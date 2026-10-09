@@ -53,3 +53,12 @@ test('shoe-heavy inventory fits completely without filler and still applies vali
  const geometry=createWardrobeGeometry(()=>state);
  for(let i=0;i<state.n;i++)assert.ok(geometry.sectionLayoutValid(i));
 });
+
+test('current possession fit outranks design quality; category balance breaks coverage ties',()=>{
+ const {rankStoragePlans}=require('../src/domain/planner/selection-search.ts');
+ const base={id:'base',complete:false,score:99,partCount:2,positionSum:0,metrics:{coverage:{total:.8}}};
+ const missing={...base,id:'missing',inventory:{complete:false,coverage:.9,weakest:.5,missing:[]}};
+ const fits={...base,id:'fits',score:50,inventory:{complete:true,coverage:1,weakest:1,missing:[]}};
+ const balanced={...missing,id:'balanced',score:60,inventory:{...missing.inventory,weakest:.8}};
+ assert.deepEqual(rankStoragePlans([missing,balanced,fits]).map(p=>p.id),['fits','balanced','missing']);
+});

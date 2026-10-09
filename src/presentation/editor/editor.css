@@ -369,3 +369,6 @@ button:hover:not(:disabled):not(.on){background:#e3ddd3}
 .pop .addgrid button.warn{opacity:.6}
 .pop .addgrid button small{font-size:10px;font-weight:400;color:var(--mute);margin-top:-6px}
 .pop .addgrid.more button small{font-size:10px;font-weight:400;color:var(--mute);margin-top:-3px}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font-size:12px;line-height:1.35}.tag-row .pill{display:inline-block}#plan-warnings .pill.warn{color:#a76600;border-color:#a7660040}#hint .pill{display:inline-block;margin:2px;font-size:10px}
+#toast .pill{color:inherit;border-color:currentColor}#toast .tag-row{margin:0}

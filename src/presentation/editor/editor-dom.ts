@@ -5,7 +5,6 @@ interface EditorControls {
     "#labels": HTMLElementTagNameMap["div"];
     "#item-resize-handles": HTMLElementTagNameMap["div"];
     "#pill-menu": HTMLElementTagNameMap["div"];
-    "#toast": HTMLElementTagNameMap["div"];
     "#move-status": HTMLElementTagNameMap["div"];
     "#empty-scene": HTMLElementTagNameMap["div"];
     "#empty-x": HTMLElementTagNameMap["button"];
@@ -16,7 +15,7 @@ interface EditorControls {
     "#px": HTMLElementTagNameMap["button"];
     "#section-meta": HTMLElementTagNameMap["p"];
     "#pfree": HTMLElementTagNameMap["span"];
-    "#add-intent": HTMLElementTagNameMap["p"];
+    "#add-intent": HTMLElementTagNameMap["div"];
     "#padd": HTMLElementTagNameMap["div"];
     "#more-count": HTMLElementTagNameMap["span"];
     "#padd2": HTMLElementTagNameMap["div"];
@@ -49,7 +48,7 @@ interface EditorControls {
     "#dgap1-l": HTMLElementTagNameMap["span"];
     "#dgap1": HTMLElementTagNameMap["input"];
     "#dmeas": HTMLElementTagNameMap["div"];
-    "#divider-hint": HTMLElementTagNameMap["p"];
+    "#divider-hint": HTMLElementTagNameMap["div"];
     "#topleft": HTMLElementTagNameMap["div"];
     "#menu-btn": HTMLElementTagNameMap["button"];
     "#menu": HTMLElementTagNameMap["div"];
@@ -68,7 +67,7 @@ interface EditorControls {
     "#plan-panel": HTMLElementTagNameMap["div"];
     "#score-sub": HTMLElementTagNameMap["div"];
     "#plan-title": HTMLElementTagNameMap["div"];
-    "#plan-summary": HTMLElementTagNameMap["p"];
+    "#plan-summary": HTMLElementTagNameMap["div"];
     "#plan-capacity": HTMLElementTagNameMap["div"];
     "#plan-warnings": HTMLElementTagNameMap["div"];
     "#specs": HTMLElementTagNameMap["div"];

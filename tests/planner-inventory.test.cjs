@@ -52,3 +52,41 @@ test('wizard input and change events refresh ideas automatically without a gener
  for(const input of inputs){assert.deepEqual(listeners.filter(l=>l.target===input).map(l=>l.event),['input','change']);}
  listeners.forEach(l=>l.handler());assert.equal(updates,4);
 });
+
+test('result cards show owned-item fit without internal scores or variant tags',async()=>{
+ const {createPlannerPresenter}=await import('../src/presentation/editor/planner-presenter.js');
+ const elements=Object.fromEntries(['#ideas-note','#wizard-size','#ideas-count','#ideas'].map(k=>[k,{}]));
+ const needs={short:0,long:0,pants:0,folded:10,shoes:0,small:0};
+ const plan={title:'Best match',sections:[],score:85,inventory:{coverage:1,complete:true,missing:[]},complete:false,
+  metrics:{capacities:{folded:10},coverage:{total:.8},ergo:.9,seasonal:{targetBoxes:0,allocatedBoxes:0}},familyVariant:true};
+ const presenter=createPlannerPresenter({dom:{$:k=>elements[k]},model:{activeCabinet:()=>({state:{w:100,h:230,d:60,profile:{needs,growth:20,reach:185}}})},
+  geometry:{plannerConfig:()=>({needs}),ih:()=>220},plannerState:{ideas:[plan]}});
+ presenter.renderIdeas();
+ const html=elements['#ideas'].innerHTML;
+ assert.match(html,/#1 Best match/);assert.match(html,/100% of items fit/);assert.doesNotMatch(html,/growth fit|Quality|Access|Family variant|trade-offs/);
+ assert.match(html,/10 \/ 10/);
+ assert.doesNotMatch(html,/<p\b|<details\b|Why this plan|short<\/span>/);
+ assert.match(html,/data-idea="0"/);
+});
+
+test('debounced refresh preserves an unfinished focused quantity and commits the replacement',async()=>{
+ const {createPlannerPresenter}=await import('../src/presentation/editor/planner-presenter.js');
+ const elements=Object.fromEntries(Object.entries(inventory).map(([k,v])=>['#need-'+k,{value:String(v)}]));
+ Object.assign(elements,{'#jackets':{value:'6'},'#coats':{value:'2'},'#reach':{value:'185'},'#reach-value':{},'#wizard':{hidden:false},'#ideas-note':{},'#wizard-size':{},'#ideas-count':{},'#ideas':{setAttribute(){},querySelectorAll(){return[]}}});
+ const document={activeElement:elements['#need-shoes']};
+ const state={w:200,h:230,d:60,profile:{needs:{...inventory},reach:185,reachStd:185,growth:15,jackets:6,coats:2}};
+ let scheduled;
+ const presenter=createPlannerPresenter({dom:{$:k=>elements[k],document},model:{activeCabinet:()=>({state})},
+  geometry:{plannerConfig:()=>({...state.profile,w:state.w,h:state.h,d:state.d})},
+  plannerState:{ideasTimer:null,ideas:[]},commands:{setPreferences:p=>{state.profile=p;}},plannerService:{generate:()=>[]},
+  lifetime:{cancelTimeout(){},timeout:fn=>{scheduled=fn;return 1;}}});
+ const shoes=elements['#need-shoes'];
+ shoes.value='';presenter.markIdeasDirty();scheduled();
+ assert.equal(shoes.value,'','a pause after deleting the old value must not restore it');
+ assert.equal(state.profile.needs.shoes,8,'unfinished input keeps the last saved quantity');
+ shoes.value='012';presenter.markIdeasDirty();scheduled();
+ assert.equal(shoes.value,'012','refresh must preserve the focused text exactly');
+ assert.equal(state.profile.needs.shoes,12);
+ document.activeElement=null;presenter.markIdeasDirty();scheduled();
+ assert.equal(shoes.value,'12','normalize once editing finishes');
+});

@@ -6,11 +6,10 @@ export function mountProjectWorkspace(root: HTMLElement, projects: ProjectServic
   root.innerHTML = `
     <header>
       <p class="eyebrow">WARDROBE / PROJECTS</p>
-      <h1>A place for your next idea.</h1>
-      <p>Create a project, design your wardrobe, and save it locally.</p>
+      <h1>Your wardrobes</h1>
       <a class="editor-link" href="./editor.html">Open wardrobe editor ↗</a>
     </header>
-    <p class="notice">Projects stay in this browser. Use Save project in the editor menu to save your design.</p>
+    <div class="notice tag-row"><span class="tag">Saved in this browser</span></div>
     <section aria-labelledby="projects-heading">
       <h2 id="projects-heading">Your projects</h2>
       <form id="create-project">

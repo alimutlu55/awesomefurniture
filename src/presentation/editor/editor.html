@@ -1,10 +1,10 @@
 
 <div id="app">
-<main id="view"><canvas id="c" tabindex="0" aria-label="Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels."></canvas><div id="labels"></div><div id="item-resize-handles" aria-label="Resize selected item"></div><div id="pill-menu" class="dd" role="menu" aria-label="Add to this section" hidden></div><div id="toast" role="status"></div>
+<main id="view"><canvas id="c" tabindex="0" aria-label="Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels."></canvas><div id="labels"></div><div id="item-resize-handles" aria-label="Resize selected item"></div><div id="pill-menu" class="dd" role="menu" aria-label="Add to this section" hidden></div>
 <div id="move-status" role="status" aria-live="polite" hidden></div>
-<div id="empty-scene"><button id="empty-x" aria-label="Dismiss" style="position:absolute;right:4px;top:2px;border:0;background:none;padding:2px 6px">×</button><b>Empty wardrobe</b><p class="sub">Click the wardrobe, then a section, then use “Add”.</p><button id="empty-launch" style="font-size:12px;padding:4px 8px">Auto design</button></div><div id="hint">Click a wardrobe to select it · click a section again to edit inside · Esc goes back · click an item, then drag to move · Shift-drag to swap · drag the background to orbit · scroll to zoom</div></main>
+<div id="empty-scene"><button id="empty-x" aria-label="Dismiss" style="position:absolute;right:4px;top:2px;border:0;background:none;padding:2px 6px">×</button><b>Empty wardrobe</b><p class="sub"><span class="pill">Select section</span> <span class="pill">Add item</span></p><button id="empty-launch" style="font-size:12px;padding:4px 8px">Auto design</button></div><div id="hint"><span class="pill">Click · Select</span> <span class="pill">Drag · Move</span> <span class="pill">Shift · Swap</span> <span class="pill">Background · Orbit</span> <span class="pill">Scroll · Zoom</span> <span class="pill">Esc · Back</span></div></main>
 <div id="pop2" class="pop"><div class="ph"><b id="ptitle"></b><span class="pbtns"><button class="pmin" aria-label="Collapse panel" title="Collapse / expand">▾</button><button id="px" aria-label="Close">×</button></span></div>
-<p id="section-meta"></p><span id="pfree" hidden></span><p id="add-intent"></p><h3 class="sugg-h">Suggested for this space</h3><div class="addgrid" id="padd"></div><details class="fold more-items"><summary>More items <span class="more-count" id="more-count"></span></summary><div class="addgrid more" id="padd2"></div></details>
+<p id="section-meta"></p><span id="pfree" hidden></span><div id="add-intent"></div><h3 class="sugg-h">Suggested for this space</h3><div class="addgrid" id="padd"></div><details class="fold more-items"><summary>More items <span class="more-count" id="more-count"></span></summary><div class="addgrid more" id="padd2"></div></details>
 </div><div id="pop3" class="pop"><div class="ph"><b id="ititle"></b><span class="pbtns"><button class="pmin" aria-label="Collapse panel" title="Collapse / expand">▾</button><button id="ix" aria-label="Close item settings" title="Close">×</button></span></div>
 
 <div class="item-size-pair"><label class="item-size-label" for="ih"><span>Height</span><span class="item-size-field"><input type="number" id="ih" step="0.5" inputmode="decimal" aria-label="Item height"><small>cm</small></span></label>
@@ -14,7 +14,7 @@
 <h3>Finish</h3><div class="pr" id="ifin"></div>
 <details class="fold"><summary>Measurements</summary><div class="meas" id="imeas"></div></details>
 <div id="itype" class="pr" hidden style="display:none"></div>
-<details class="fold" hidden style="display:none"><summary>Move &amp; swap</summary><div id="move-controls"><div class="pr"><button id="move-mode" type="button" aria-pressed="false">Move on model</button><button id="swap-mode" type="button" aria-pressed="false">Swap on model</button><button id="move-cancel" type="button" hidden>Cancel</button></div><p class="sub">Drag this item to place it. Shift-drag swaps with another item. Items keep their size and settle into aligned stacks.</p>
+<details class="fold" hidden style="display:none"><summary>Move &amp; swap</summary><div id="move-controls"><div class="pr"><button id="move-mode" type="button" aria-pressed="false">Move on model</button><button id="swap-mode" type="button" aria-pressed="false">Swap on model</button><button id="move-cancel" type="button" hidden>Cancel</button></div><p class="sub"><span class="pill">Drag · Move</span> <span class="pill">Shift · Swap</span></p>
 <details id="move-section"><summary>Move to a section or position</summary><label class="sub" for="move-bay">Destination section</label><select id="move-bay"></select><label class="sub" for="move-slot">Position (bottom to top)</label><select id="move-slot"></select><button id="move-apply" type="button">Move here</button></details></div></details>
 <div class="pr item-back" hidden style="display:none"><button data-ia="back" id="iback"></button></div></div>
 
@@ -23,7 +23,7 @@
 <div class="item-size-pair"><label class="item-size-label" for="dgap0"><span id="dgap0-l">Gap below</span><span class="item-size-field"><input type="number" id="dgap0" step="0.5" min="0" inputmode="decimal" aria-label="Gap below"><small>cm</small></span></label><label class="item-size-label" for="dgap1"><span id="dgap1-l">Gap above</span><span class="item-size-field"><input type="number" id="dgap1" step="0.5" min="0" inputmode="decimal" aria-label="Gap above"><small>cm</small></span></label></div>
 
 <details class="fold"><summary>Measurements</summary><div class="meas" id="dmeas"></div></details>
-<p class="sub" id="divider-hint">Drag the divider or its handle to move it.</p></div>
+<div class="sub" id="divider-hint"><span class="pill">Drag · Move</span></div></div>
 <div id="topleft" class="fl sq">
  <button id="menu-btn" class="tb" aria-label="Menu" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" data-tip="Menu"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
  <div id="menu" class="dd l" role="menu" hidden>
@@ -44,22 +44,22 @@
  <button id="fitchip" class="tb chip" aria-haspopup="dialog" aria-expanded="false" aria-controls="plan-panel" aria-label="Storage and fit details" title="What this wardrobe can store, fit score and specs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4zM3.5 8 12 12m0 0 8.5-4M12 12v8"/></svg><span>Storage</span><span id="fit-warn" class="badge" hidden></span><b id="score" hidden>–</b></button>
  <div id="plan-panel" class="dd r wide" hidden>
   <div class="dd-title" style="padding-left:0">Storage &amp; fit</div><div class="sub" id="score-sub"></div>
-  <h2>Plan</h2><div id="plan-title">Make it yours</div><p class="plan-note" id="plan-summary">The smart wizard compares different ways to use this space.</p><div id="plan-capacity"></div><div id="plan-warnings"></div>
+  <h2>Plan</h2><div id="plan-title">Make it yours</div><div class="plan-note" id="plan-summary"></div><div id="plan-capacity"></div><div id="plan-warnings"></div>
   <h2>Specs</h2><div id="specs"></div>
  </div>
 </div>
 <aside id="left" aria-label="Cabinet properties">
- <div class="wardrobe-header"><h1><select id="wardrobe-select" aria-label="Selected wardrobe"></select></h1><button id="wardrobe-add" aria-label="Add wardrobe" title="Add wardrobe"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11v16H4zM9.5 4v16M7.3 11.2v1.8M11.7 11.2v1.8M19 8.5v6M16 11.5h6"/></svg></button></div><p class="sub">Configure the selected wardrobe</p>
+ <div class="wardrobe-header"><h1><select id="wardrobe-select" aria-label="Selected wardrobe"></select></h1><button id="wardrobe-add" aria-label="Add wardrobe" title="Add wardrobe"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11v16H4zM9.5 4v16M7.3 11.2v1.8M11.7 11.2v1.8M19 8.5v6M16 11.5h6"/></svg></button></div><p class="sub"><span class="pill">Selected wardrobe</span></p>
 <div id="left-body">
 <h2 class="ct">Size</h2><div id="sliders"></div>
-<h2>Sections</h2><div class="size-row" id="section-row"><div id="nseg" role="group" aria-label="Number of sections"><button type="button" id="sec-minus" aria-label="Remove last section" title="Remove last section">−</button><span id="section-count" aria-live="polite"></span><button type="button" id="sec-plus" aria-label="Add section" title="Add section">+</button></div><div id="section-diagram" role="group" aria-label="Sections, click to select"></div></div>
+<h2>Sections</h2><div class="size-row" id="section-row"><div id="nseg" role="group" aria-label="Number of sections"><button type="button" id="sec-minus" aria-label="Merge selected section" title="Merge selected section · Undo available">−</button><span id="section-count" aria-live="polite"></span><button type="button" id="sec-plus" aria-label="Split selected section" title="Split selected section · Undo available">+</button></div><div id="section-diagram" role="group" aria-label="Sections, click to select"></div></div>
 <div class="reach-row"><label class="reach-guide-toggle"><input id="wardrobe-reach-line" type="checkbox"> Max reach line</label><span id="reach-height-row" class="reach-height-field" hidden><input id="wardrobe-reach" aria-label="Wardrobe max reach height in centimetres" type="number" min="140" max="210" step="5" inputmode="numeric"><small>cm</small></span></div>
 
 
  <h2>Finish</h2><div class="row" id="fins"></div>
  <h2>Doors</h2><div class="door-grid"><button data-d="none">None</button><button data-d="hinged">Hinged</button><button data-d="glass">Glass</button><button id="open">Open / close</button></div>
 
-<div class="reset-row"><button type="button" id="reset-all" class="reset-wardrobe" title="Back to the starting 200 × 230 × 60 cm empty wardrobe. Undo brings it back."><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg><span>Reset wardrobe</span></button><button type="button" id="remove-wardrobe" class="reset-wardrobe" title="Remove this wardrobe. Undo brings it back." hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg><span>Remove wardrobe</span></button></div>
+<div class="reset-row"><button type="button" id="reset-all" class="reset-wardrobe" title="Reset · Undo available"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg><span>Reset wardrobe</span></button><button type="button" id="remove-wardrobe" class="reset-wardrobe" title="Remove · Undo available" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg><span>Remove wardrobe</span></button></div>
 </div>
 </aside>
 <div id="bl" class="fl">

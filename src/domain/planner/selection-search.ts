@@ -17,9 +17,9 @@ import { selectConcepts,strategyModules,candidateKey,conceptRoleOptions,conceptA
 import type { DesignArchetype,CandidateCache,ConceptRole } from './design-archetypes';
 import { purposeName,PURPOSE } from '../wardrobe/catalog.js';
 export {scoreLayout} from './layout-score';
-interface Ranked {complete:boolean;score:number;partCount:number;positionSum:number;id:string;metrics?:{coverage:Record<string,number>}}
+interface Ranked {inventory?:PlannerProposal['inventory'];complete:boolean;score:number;partCount:number;positionSum:number;id:string;metrics?:{coverage:Record<string,number>}}
 export function rankStoragePlans<T extends Ranked>(plans:readonly T[]):T[] {
- return [...plans].sort((a,b)=>Number(b.complete)-Number(a.complete)||(!a.complete&&!b.complete?(b.metrics?.coverage.total??0)-(a.metrics?.coverage.total??0):0)||b.score-a.score||a.partCount-b.partCount||a.positionSum-b.positionSum||a.id.localeCompare(b.id));
+ return [...plans].sort((a,b)=>(a.inventory&&b.inventory?(Number(b.inventory.complete)-Number(a.inventory.complete)||b.inventory.coverage-a.inventory.coverage||b.inventory.weakest-a.inventory.weakest):0)||Number(b.complete)-Number(a.complete)||(!a.complete&&!b.complete?(b.metrics?.coverage.total??0)-(a.metrics?.coverage.total??0):0)||b.score-a.score||a.partCount-b.partCount||a.positionSum-b.positionSum||a.id.localeCompare(b.id));
 }
 export type SelectionProposal=PlannerProposal & ReturnType<typeof scoreLayout> & {structureKey:string;dividers:EditorDivider[];conceptRoles:ConceptRole[]};
 interface State {roles:ConceptRole[];sections:PlannerSection[];dividers:EditorDivider[];spaces:OpenSpace[];capacity:Demand;boxes:number;value:number;id:string;parts:number}

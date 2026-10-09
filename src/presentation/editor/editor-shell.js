@@ -18,27 +18,8 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
         ['shoe', 'Sole Mate', 'Add a shoe rack', 50, s => s.shoe > 0], ['tall', 'Tall Order', 'Make it 240 cm tall', 60, s => model.activeCabinet().state.h >= 240], ['door', 'Door Dandy', 'Add doors', 40, s => model.activeCabinet().state.doors !== 'none'], ['cut', 'Tailor-made', 'Resize a section by hand', 60, () => !!shellState.G.cut], ['tune', 'Fine Tuner', 'Resize an item by hand', 60, () => !!shellState.G.tune], ['paint', 'Odd One Out', 'Give an item its own finish', 60, () => !!shellState.G.paint],
         ['full', 'Tetris Master', 'Fill a section to 95%+', 100, s => s.maxFill >= .95],
         ['speed', 'Speed Builder', '3 quests in under 2 minutes', 150, s => Object.keys(shellState.G.done).length >= 3 && Date.now() - shellState.t0 < 12e4]];
-    function toast(m, action) {
-        const t = $('#toast');
-        t.style.pointerEvents = action ? 'auto' : '';
-        if (action) {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'toast-action';
-            b.textContent = action.label;
-            b.onclick = () => {
-                t.classList.remove('show');
-                action.fn();
-            };
-            t.replaceChildren(m + ' ', b);
-        }
-        else {
-            t.textContent = m;
-        }
-        t.classList.add('show');
-        lifetime.cancelTimeout(shellState.tt);
-        shellState.tt = lifetime.timeout(() => t.classList.remove('show'), action ? 5000 : 2200);
-    }
+    // Notifications are disabled; Undo remains available in the editor toolbar.
+    function toast(_message, _action) {}
     function burst() {
         return;
         const v = $('#view');

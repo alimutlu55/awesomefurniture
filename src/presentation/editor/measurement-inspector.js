@@ -1,3 +1,4 @@
+import { tags } from './storage-tags.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber, capWord, esc } from './editor-format.js';
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'shell' | 'commands' | 'rendering' | 'model' | 'history'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'histUI' | 'hidePop' | 'divWord'> }} ports */
@@ -216,7 +217,7 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
                 $('#dmeas').innerHTML = rows.map(r => '<b>' + r[0] + '</b><span>' + esc(r[1]) + '</span>').join('');
             }
         }
-        $('#divider-hint').textContent = d.orientation === 'horizontal' ? 'Drag the shelf up or down. It stops at items and wardrobe boundaries.' : 'Drag the divider left or right. It stops at items and wardrobe boundaries.';
+        $('#divider-hint').innerHTML = tags([d.orientation === 'horizontal' ? 'Drag ↕' : 'Drag ↔', 'Boundary snap']);
     }
     return { editableItemClearance, editableDividerClearance, dividerUI };
 }

@@ -1,3 +1,4 @@
+import { tags, noticeLabels } from './storage-tags.js';
 import * as THREE from "three";
 import { createSceneSelection } from './scene-selection.js';
 import { createItemResize } from './item-resize.js';
@@ -56,7 +57,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
         const status = $('#move-status');
         status.hidden = false;
         status.classList.remove('bad');
-        status.textContent = mode === 'swap' ? 'Click another item to swap positions · Escape cancels' : 'Click a destination to place this item · Escape cancels';
+        status.innerHTML = tags(mode === 'swap' ? ['Swap', 'Pick item', 'Esc cancel'] : ['Move', 'Pick space', 'Esc cancel']);
     }
     function previewAt(e) {
         if (cameraState.camGoal) {
@@ -105,11 +106,11 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
         }
         rendering.clearPreview(false);
         interactionState.previewPlan = plan;
-        const status = $('#move-status'), message = plan.reason + (plan.valid ? ' · ' + (interactionState.drag?.started ? 'Release to place' : 'Click to place') + ' · Escape cancels' : '');
+        const status = $('#move-status'), message = tags([...noticeLabels(plan.reason), ...(plan.valid ? [interactionState.drag?.started ? 'Release · Place' : 'Click · Place', 'Esc · Cancel'] : [])]);
         status.hidden = false;
         status.classList.toggle('bad', !plan.valid);
-        if (status.textContent !== message) {
-            status.textContent = message;
+        if (status.innerHTML !== message) {
+            status.innerHTML = message;
         }
         resources.cv.style.cursor = plan.valid ? 'grabbing' : 'not-allowed';
         renderState.previewGroup = new THREE.Group();
@@ -154,7 +155,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
         }
         else if (to >= 0) {
             keep.add('reason');
-            rendering.setPreviewLabel('reason', new THREE.Vector3(px, Math.min(yT, py - (interactionState.drag?.offsetY || 0) + it.h / 2 + 8), model.activeCabinet().state.d / 2 + 4), plan.reason, 'lbl dim clearance bad preview');
+            rendering.setPreviewLabel('reason', new THREE.Vector3(px, Math.min(yT, py - (interactionState.drag?.offsetY || 0) + it.h / 2 + 8), model.activeCabinet().state.d / 2 + 4), noticeLabels(plan.reason).join(' · '), 'lbl dim clearance bad preview');
         }
         rendering.dropPreviewLabels(keep);
     }

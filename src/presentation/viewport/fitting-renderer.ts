@@ -21,14 +21,14 @@ interface FittingRendererPorts {
     getRenderDesign(): EditorState;
     garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean): void;
 }
-export function createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false) {
+export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}]) {
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
-        const boxed = geometry.isBoxed(it), deck = () => {
-            if (boxed && y + hh >= h - PANEL - .05) {
+        const deck = () => {
+            if (y + hh >= h - PANEL - .05) {
                 return;
             }
-            box(sw, PANEL, d - 2, cx, y + hh - PANEL / 2, -.5, P);
+            for (const span of topSpans) box(span.x1-span.x0, PANEL, d - 2, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, -.5, P);
         }; // every fitting, boxes included, has its board on top, flush with the fitting's upper edge (the cabinet ceiling for the top fitting)
         if (k === 'drawer' || k === 'sdrawer') {
             box(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, P);

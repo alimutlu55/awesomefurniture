@@ -5,7 +5,7 @@ const engine=()=>require('../src/domain/planner/selection-planner.ts');
 test('space selection produces deterministic distinct explainable plans with existing fitting kinds',()=>{
  const {selectStorageLayouts}=engine();
  const before=structuredClone(cfg),plans=selectStorageLayouts(cfg);
- assert.ok(plans.length>=1&&plans.length<=4);assert.deepEqual(selectStorageLayouts(cfg),plans);assert.deepEqual(cfg,before);
+ assert.ok(plans.length>=1&&plans.length<=8);assert.deepEqual(selectStorageLayouts(cfg),plans);assert.deepEqual(cfg,before);
  const kinds=new Set(Object.keys(require('../src/domain/wardrobe/catalog.js').MODS));
  for(const p of plans){assert.ok(p.score>=0&&p.score<=100);assert.equal(p.metrics.valid,true);assert.equal(Object.keys(p.breakdown.criteria).length,6);assert.ok(p.placements.length);for(const s of p.sections)for(const it of s.items)assert.ok(kinds.has(it.k));}
  assert.equal(new Set(plans.map(p=>p.structureKey)).size,plans.length);
@@ -80,7 +80,7 @@ test('screenshot inventory returns valid distinct plans and recovers unreserved 
  const {createSpaceModel}=require('../src/domain/planner/selection-spaces.ts');
  const {modulesFor}=require('../src/domain/planner/selection-modules.ts');
  const {buildDemand}=require('../src/domain/planner/selection-config.ts');
- const plans=engine().selectStorageLayouts(config);assert.ok(plans.length>=1&&plans.length<=4);
+ const plans=engine().selectStorageLayouts(config);assert.ok(plans.length>=1&&plans.length<=8);
  for(const p of plans){
   assert.equal(p.metrics.valid,true);
   if(['spare','daily'].includes(p.archetype))continue;

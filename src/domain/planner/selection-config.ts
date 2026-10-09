@@ -8,7 +8,7 @@ export type Criterion = typeof CRITERIA[number];
 export type Criteria = Record<Criterion,number>;
 /** Millimetres inside selection; existing centimetre editor/catalog stay unchanged. */
 export const SELECTION_RULES = Object.freeze({
- proposalCount:4,candidateCount:24,beamWidth:32,conceptBeamQuota:4,maxSteps:48,maxParts:40,maxSections:6,grid:32,panel:PANEL*10,base:(PLINTH+PANEL)*10,
+ proposalCount:8,candidateCount:24,beamWidth:32,conceptBeamQuota:4,maxSteps:48,maxParts:40,maxSections:6,grid:32,panel:PANEL*10,base:(PLINTH+PANEL)*10,
  minBay:250,widths:[400,500,600,800,1000],zones:[.2,.4,.8,1],rearDepth:450,
  railSpan:1200,coatSpan:900,shelfSpan:800,hookAllowance:100,hemClearance:50,
  handGap:40,idealHandGap:[30,60],wasteHandGap:150,sliver:30,defaultSpare:15,

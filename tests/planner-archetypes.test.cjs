@@ -9,7 +9,7 @@ test('DNA ignores mirrored column order and sub-pitch shelf changes but separate
  const drawers=[{width:60,items:[{k:'drawer',purpose:'folded',h:100,y:40}]}],shelves=[{width:60,items:[{k:'folded',purpose:'folded',h:100,y:40}]}];
  assert.ok(dnaDistance(layoutDNA(drawers,config),layoutDNA(shelves,config))>=.2);
 });
-test('specialists require a 15% hero advantage, all floors and DNA distance; siblings become variations',()=>{
+test('selection retains quality floors and deduplicates siblings without requiring a hero advantage',()=>{
  const {selectSpecialists}=require('../src/domain/planner/selection-planner.ts');const {ARCHETYPES}=require('../src/domain/planner/design-archetypes.ts');
  const dna=(kind)=>({shares:{hang:0,drawers:kind==='drawers'?1:0,open:kind==='open'?1:0,shoes:0,seasonal:0,spare:kind==='spare'?1:0},columns:3,widthPattern:[600,600,600],zones:Array.from({length:6},()=>[0,0,1,0,0])});
  const base={id:'base',archetype:'balanced',score:90,complete:true,partCount:4,cost:100,metrics:{coverage:{total:1},capacities:{folded:20,small:6}},breakdown:{criteria:{accessibility:.6,clearance:.7,utilisation:.7,grouping:.7,safety:.7,buildability:.7}},heroes:{accessibility:.6,drawerStorage:.4,openStorage:.4,hangingCapacity:.6,spareSpace:.2},dna:dna('open'),variations:[]};
@@ -18,10 +18,10 @@ test('specialists require a 15% hero advantage, all floors and DNA distance; sib
  const noWin={...base,id:'daily',archetype:'daily',heroes:{...base.heroes,accessibility:.65}};
  const lowFloor={...base,id:'spare',archetype:'spare',dna:dna('spare'),heroes:{...base.heroes,spareSpace:1},breakdown:{criteria:{...base.breakdown.criteria,safety:.3}}};
  const shown=selectSpecialists([base,drawer,sibling,noWin,lowFloor],ARCHETYPES);
- assert.equal(shown.length,2);assert.equal(shown[0].score,90);assert.equal(shown[1].archetype,'drawers');assert.equal(shown[1].comparison.margin,1);
- assert.ok(shown[1].variations.length);assert.match(shown[0].selectionNote,/less than 15%|quality floors/);
+ assert.equal(shown.length,2);assert.equal(shown[0].score,90);assert.equal(shown[1].archetype,'drawers');
+ assert.match(shown[0].selectionNote,/target is eight/);
 });
-test('five inventory envelopes show only defensible structurally distinct hero winners',()=>{
+test('standard inventory envelopes produce eight designs; constrained cabinets retain practical fitting heights',()=>{
  const {designAll}=require('../src/domain/planner/selection-planner.ts');const {dnaDistance,DNA_THRESHOLD}=require('../src/domain/planner/layout-dna.ts');
  const {ARCHETYPES}=require('../src/domain/planner/design-archetypes.ts');
  const fixtures=[
@@ -36,12 +36,14 @@ test('five inventory envelopes show only defensible structurally distinct hero w
   // The new full-assignment rule rejects this cabinet's 28.2 cm upper gap:
   // its measured boxes require 34 cm, and it is above daily reach.
   if(!plans.length){assert.equal(pool.length,0);assert.match(require('../src/domain/planner/selection-planner.ts').noPlanExplanation(cfg),/compartment|listed storage needs|reach|clear hanging height/);continue;}
-  assert.ok(plans.length>=1&&plans.length<=4);assert.ok(pool.length);
-  const complete=pool.filter(p=>p.complete),referencePool=complete.length?complete:pool;assert.equal(plans[0].score,require('../src/domain/planner/selection-search.ts').rankStoragePlans(referencePool)[0].score);
-  for(const [i,p] of plans.entries()){assert.ok(p.metrics.valid);for(const v of Object.values(p.breakdown.criteria))assert.ok(v>=.45);for(const q of plans.slice(0,i))assert.ok(dnaDistance(p.dna,q.dna)>=DNA_THRESHOLD-1e-9);
-   if(i){specialists++;assert.ok(p.comparison.margin>=.15-1e-9);const strategy=ARCHETYPES.find(a=>a.id===p.archetype);for(const v of Object.values(p.breakdown.criteria))assert.ok(v>=strategy.floor);assert.ok(strategy.gate(p.sections));}
+  assert.ok(plans.length>=1&&plans.length<=8);if(cfg.w>=100)assert.equal(plans.length,8);assert.ok(pool.length);
+  const rank=require('../src/domain/planner/selection-search.ts').rankStoragePlans;
+  assert.equal(plans[0].score,rank(pool)[0].score);assert.deepEqual(rank(plans).map(p=>p.id),plans.map(p=>p.id));
+  assert.equal(new Set(plans.map(p=>p.structureKey)).size,plans.length);
+  for(const [i,p] of plans.entries()){assert.ok(p.metrics.valid);for(const v of Object.values(p.breakdown.criteria))assert.ok(v>=.45);for(const q of plans.slice(0,i))assert.ok(dnaDistance(p.dna,q.dna)>=.025-1e-9);
+   if(i){specialists++;const strategy=ARCHETYPES.find(a=>a.id===p.archetype);for(const v of Object.values(p.breakdown.criteria))assert.ok(v>=strategy.floor);assert.ok(strategy.gate(p.sections));}
   }
-  if(plans.length<4)assert.ok(plans[0].selectionNote);
+  if(plans.length<8)assert.ok(plans[0].selectionNote);
  }
  assert.ok(specialists>0,'search must reach at least one useful specialist corner, not only suppress cards');
 });

@@ -1,3 +1,4 @@
+import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
 import { createItemActions } from './item-actions.js';
 import { createInspectorPanels } from './inspector-panels.js';
@@ -164,7 +165,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         const eng = model.activeCabinet().state.profile.engaged, rating = scoreLayout(geometry.currentLayout().sections, geometry.planCfg(), model.activeCabinet().state.dividers), assessment = rating.metrics;
         const score = s.mods ? Math.round(rating.score) : 0;
         $('#score').textContent = String(eng ? score : '–');
-        $('#score-sub').textContent = eng ? 'Design score out of 100: access, clearance, utilisation, grouping, safety margin and buildability.' : 'Tell the planner what you store to get a fit score.';
+        $('#score-sub').hidden = true;
         planner.planUI(assessment);
         const iw = ws.reduce((a, b) => a + b);
         $('#specs').innerHTML = [['Outer', model.activeCabinet().state.w + ' × ' + model.activeCabinet().state.h + ' × ' + model.activeCabinet().state.d], ['Inner height', geometry.ih().toFixed(1) + ' cm'], ['Inner width (total)', iw.toFixed(1) + ' cm'], ['Hanging length', s.hang.toFixed(2) + ' m'], ['Shelf area', s.shelf.toFixed(2) + ' m²'], ['Drawers', s.drawers], ['Space used', Math.round(s.avg * 100) + '%']].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
@@ -305,8 +306,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.addKey = model.activeCabinet().state.sel;
         const { list, intent } = geometry.addSuggestions(), ranked = list.slice().sort((a, c) => (c.fit - a.fit) || c.s - a.s || a.o - c.o), feat = ranked.slice(0, 6);
         const set = new Set(feat.map(x => x.k)), rest = list.filter(x => !set.has(x.k)).sort((a, c) => (c.fit - a.fit) || c.s - a.s || a.o - c.o), nm = k => k === 'divider' ? 'Divider' : k === 'short' ? 'Hanging rail' : MODS[k].n, attr = x => x.k === 'divider' ? 'data-a="divider"' : 'data-m="' + x.k + '"';
-        $('#add-intent').innerHTML = intent;
-        $('#padd').innerHTML = feat.map(x => '<button type="button" ' + attr(x) + (!x.fit ? ' class="no" aria-disabled="true"' : x.warn ? ' class="warn"' : '') + ' title="' + esc(nm(x.k) + (x.fit ? (x.why ? ' · ' + x.why : '') : ' · ' + x.hint)) + '">' + productArt(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
+        $('#add-intent').innerHTML = tags([(intent.match(/<b>(.*?)<\/b>/)?.[1] || 'Selected space').replace(/\.$/, '').replace('Low space at floor level', 'Floor zone').replace('Roomy space within reach', 'Within reach').replace('Reaches above your ', 'Above reach ')]);
+        $('#padd').innerHTML = feat.map(x => '<button type="button" ' + attr(x) + (!x.fit ? ' class="no" aria-disabled="true"' : x.warn ? ' class="warn"' : '') + ' title="' + esc(nm(x.k) + (x.fit ? (x.warn ? ' · ' + x.hint : '') : ' · ' + x.hint)) + '">' + productArt(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
         $('#padd2').innerHTML = rest.map(x => '<button type="button" ' + attr(x) + ' class="' + (!x.fit ? 'no' : x.warn ? 'warn' : '') + '" aria-disabled="' + !x.fit + '" title="' + esc(nm(x.k) + (x.hint ? ' · ' + x.hint : '')) + '">' + icon(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
         $('#more-count').textContent = String(rest.length);
     }
@@ -367,7 +368,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         slot.value = String([...slot.options].some(o => o.value === value) ? value : sec.length);
         const plan = geometry.planItemMove({ i: model.activeCabinet().state.sel, j: model.activeCabinet().state.item }, to, +slot.value);
         $('#move-apply').disabled = !plan.valid || plan.unchanged;
-        $('#move-apply').title = plan.reason;
+        $('#move-apply').title = noticeLabels(plan.reason).join(' · ');
     }
     function itemUI() {
         const p = $('#pop3');

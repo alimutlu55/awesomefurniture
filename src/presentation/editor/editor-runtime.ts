@@ -81,7 +81,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             } };
         const sceneCommands = createSceneCommands(() => model.scene, { checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint, report: message => shell.toast(message) });
         const commands = createDesignCommands(() => model.activeCabinet().state, {
-            getBudget: () => settings.budget, report: message => shell.toast(message), changed: keep => inspector.update(keep),
+            getBudget: () => settings.budget, report: (message, action) => shell.toast(message, action), changed: keep => inspector.update(keep),
             checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint,
             closeInspector: () => inspector.hidePop(), milestone: key => shellState.G[key] = 1,
             selectionChanged: value => {
@@ -126,7 +126,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
         rendering.theme();
-        $('#hint').textContent = 'Select a wardrobe · Drag to place · Use ground handles to rotate or move · Drag empty space to look around';
+
         camera.fit({ instant: true, padding: 1.4 });
         cameraState.tgt.y = cameraState.tgtY;
         camera.resize();

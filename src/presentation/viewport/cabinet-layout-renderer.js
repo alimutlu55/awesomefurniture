@@ -6,6 +6,7 @@ import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { fittingBoardSpans } from '../../domain/geometry/shared-board-spans';
 export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const { $, document } = dom;
     function buildCabinet() {
@@ -91,10 +92,16 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             renderState.Gr.add(ho);
             renderState.outs[i] = ho;
             const lay = geometry.computeLayout(i);
+            const sharedBoards = geometry.sectionDividers(i).filter(q=>q.orientation==='horizontal').map(q=>{
+                const r=geometry.dividerRect(q);
+                return {...r,y0:r.y0+iy,y1:r.y1+iy};
+            });
             getRenderDesign().secs[i].forEach((it, j) => {
                 const hh = it.h, isel = sel && getRenderDesign().item === j, pos = lay[j] || { y0: iy, w: WardrobePlanner.itemWidth(it, sw), off: undefined };
                 const iwd = pos.w, iy0 = pos.y0, ix = cx - sw / 2 + (pos.off !== undefined ? pos.off : (sw - iwd) / 2) + iwd / 2, start = renderState.Gr.children.length;
-                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay));
+                const localX = ix - x - iwd / 2;
+                const spans = fittingBoardSpans({x0:localX,x1:localX+iwd,y1:iy0+hh},h-PANEL,sharedBoards).map(span=>({x0:span.x0-localX,x1:span.x1-localX}));
+                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), spans);
                 const group = new THREE.Group(), parts = renderState.Gr.children.slice(start);
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);

@@ -86,7 +86,8 @@ export function modulesFor(space:OpenSpace,unmet:Demand,cfg:PlannerConfig,season
    for(const h of new Set([snapUp(MODS.folded.mn*10),snapUp(MODS.folded.h*10),300,...(compact?[shelfHeight]:[])]))add([spec('folded',cat,h)],`${cat==='pants'?'Folded trousers':'Folded clothing'} use this shelf with hand clearance; rear-depth access is included in the score.`);
    if(cfg.drawers!=='none')for(const h of new Set([snapUp(R.drawerIdeal),...(compact?[drawerHeight]:[])]))for(const n of [1,2,3])add(Array.from({length:n},()=>spec('drawer',cat,h)),'A grouped drawer bank makes folded clothing visible and accessible.');
   }else if(cat==='small'){
-   add([spec('sdrawer','small',MODS.sdrawer.mn*10)],'A minimum-height small-item drawer respects the catalog limit when a taller bank would displace other storage.');
+   add([spec('sdrawer','small',Math.max(MODS.sdrawer.mn*10,R.smallDrawerIdeal))],'A small-item drawer preserves practical contents and hand clearance.');
+   add([spec('sdrawer','small',MODS.sdrawer.h*10)],'A standard-height small-item drawer gives extra room for organising underwear and socks.');
    for(const n of [1,2,3])add(Array.from({length:n},()=>spec('sdrawer','small',snapUp(R.smallDrawerIdeal))),'Small-item drawers keep underwear and socks together below the drawer reach limit.');
   }else if(cat==='shoes'){
    for(const h of new Set([snapUp(MODS.shoe.mn*10),...(compact?[MODS.shoe.mn*10]:[])]))for(const n of [1,2,3])add(Array.from({length:n},()=>spec('shoe','shoes',h)),'Shoe tiers use lower storage without consuming the prime clothing band.');

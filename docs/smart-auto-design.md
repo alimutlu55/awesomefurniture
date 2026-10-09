@@ -1,3 +1,47 @@
+# Inventory-ranked design gallery
+
+The gallery now targets eight selectable designs, ranked consistently by current
+possession fit. This supersedes the four-card specialist selection policy documented
+below. Existing geometry, reach, catalog and fixed-fitting constraints still apply.
+
+- Rank current inventory completeness first, then mean coverage across requested
+  categories, then the weakest category. Category ratios cap at 100%, so surplus
+  capacity cannot compensate for a shortage elsewhere.
+- Next rank growth completeness and growth coverage, then shared design quality
+  and existing deterministic construction tie-breakers.
+- Keep the strongest inventory match. Prefer structurally different candidates
+  within five coverage points, then fill remaining slots with meaningful family
+  variants. All selected cards are sorted again by the same inventory ranking.
+- Deduplicate structural keys (including mirrors and minor fitting changes), and
+  require at least 0.025 DNA separation for selectable variants. The existing 0.20
+  threshold distinguishes broad families, rather than suppressing useful variants.
+- If fewer than eight are available, search individual bay counts independently,
+  preserving earlier candidates. Constrained inventories can still produce fewer;
+  no physical rules or user dimensions are relaxed to meet the count.
+- Cards use tags for rank, current fit, growth fit, bay count, access, quality,
+  family variants and shortages. Capacity rows show fits / owned / growth.
+  Warnings remain available on focus and hover via a trade-off tag.
+
+Validation: the four standard inventory envelopes produce eight designs. The tiny
+80 cm cabinet produces seven after enforcing a 12 cm generated sock-drawer minimum.
+Previews distinguish above-reach reserve storage from folded clothing and show actual
+compartment heights. The earlier
+33-configuration application/geometry audit checked 207 designs with zero hard
+errors and 65 review findings (including partial inventories and unused clearances).
+
+## Changing sections on an existing design
+
+The + button splits the selected section; − merges it with the adjacent section
+(right when available, otherwise left). Changes apply immediately and create one
+undo entry. The status toast includes an Undo action and the resulting inventory fit.
+A detached calculation first preserves fitting identities, heights and finishes,
+resizing or restacking only affected sections. If this cannot satisfy physical rules
+or preserve custom cuts, the planner regenerates the requested exact section count
+using the same dimensions and possessions. If no valid proposal is found, the
+current wardrobe and undo history remain intact. Empty wardrobes change count directly.
+
+---
+
 # Auto design: archetypes and structural diversity
 
 The [purposeful cabinet completion](purposeful-wardrobe-layouts.md) update supersedes

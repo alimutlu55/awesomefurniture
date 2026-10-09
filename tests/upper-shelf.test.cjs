@@ -34,8 +34,8 @@ test('generated upper shelves share the preplanned line and no fitting crosses i
   const datum=upperShelfHeight(c),plans=designAll(c).plans;assert.ok(plans.length);
   for(const p of plans){
    assert.ok(p.metrics.valid);
-   const seasonal=p.sections.flatMap(s=>s.items.filter(it=>it.k==='seasonal'));
-   assert.ok(seasonal.length>1);
+   // Narrow bays can hold adjustable storage instead of the measured boxes.
+   assert.ok(p.sections.every(s=>s.items.some(it=>(it.y??0)*10>=datum-.1&&['seasonal','shelf'].includes(it.k))), 'upper storage remains assigned in every bay');
    for(const it of p.sections.flatMap(s=>s.items))assert.ok(!((it.y??0)*10<datum-.1&&((it.y??0)+it.h)*10>datum+.1),`${it.k} crosses the common line`);
    // Each column's lowest seasonal shelf starts on the common line; tall
    // cabinets may additionally have another box tier above it.

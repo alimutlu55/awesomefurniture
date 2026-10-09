@@ -65,7 +65,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         $('#pfree').textContent = geometry.free(i) + ' cm free';
         const content = dom.document.querySelector('#pcont');
         if (content) {
-            content.innerHTML = model.activeCabinet().state.secs[i].length ? model.activeCabinet().state.secs[i].map((it, j) => '<button type="button" data-r="' + j + '"><span>' + esc(itemName(it)) + '</span><small>' + it.h + ' cm</small></button>').reverse().join('') : '<p class="sub">Nothing here yet. Pick a fitting above.</p>';
+            content.innerHTML = model.activeCabinet().state.secs[i].length ? model.activeCabinet().state.secs[i].map((it, j) => '<button type="button" data-r="' + j + '"><span>' + esc(itemName(it)) + '</span><small>' + it.h + ' cm</small></button>').reverse().join('') : '<p class="sub">Empty · Add fitting</p>';
         }
         if (selectionState.addKey !== model.activeCabinet().state.sel) {
             callbacks.renderAddChoices();

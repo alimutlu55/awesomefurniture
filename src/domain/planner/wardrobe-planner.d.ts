@@ -9,6 +9,8 @@ export interface PlannerMetrics {
   seasonal: { targetBoxes: number; allocatedBoxes: number; coverage: number; zoneCount: number; fill: boolean };
 }
 export interface PlannerProposal {
+  inventory?: {complete:boolean;coverage:number;weakest:number;missing:{key:string;missing:number}[]};
+  familyVariant?: boolean;
   archetype?: string;
   dna?: import('./layout-dna').LayoutDNA;
   heroes?: Record<import('./design-archetypes').Hero,number>;

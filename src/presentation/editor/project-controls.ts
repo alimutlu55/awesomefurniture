@@ -37,8 +37,8 @@ export function mountProjectControls(projects: ProjectService, initial: StoredPr
    }
    const saved=await session.save(JSON.parse(captured) as EditorScene);
    lastSaved=key(captured);
-   status.textContent=`Saved locally: ${saved.document.name}${unsaved()?' · New changes remain unsaved':''}`;
-  }catch(error){status.textContent=error instanceof Error?error.message:'Could not save. Your design is still open.';}
+   status.textContent=`Saved locally: ${saved.document.name}${unsaved()?' · Unsaved changes':''}`;
+  }catch(error){status.textContent=error instanceof Error?error.message:'Save failed · Design kept';}
   finally{busy=false;save.disabled=false;}
  })();};
  return ()=>{window.removeEventListener('beforeunload',beforeUnload);save.onclick=null;controls.remove();};

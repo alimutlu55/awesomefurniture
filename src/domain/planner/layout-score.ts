@@ -94,5 +94,11 @@ export function scoreLayout(sections:readonly PlannerSection[],cfg:PlannerConfig
  for(const k of CRITERIA)criteria[k]=rounded(criteria[k]);
  const score=Math.round(100*CRITERIA.reduce((n,k)=>n+c.weights[k]*criteria[k],0)*100)/100;
  const finalMetrics={...metrics,valid:!errors.length,errors:[...new Set(errors)]};
- return {score,complete,boards:boardSchedule(sections,cfg,dividers),breakdown:{criteria,weights:c.weights},metrics:finalMetrics,placements,partCount,positionSum};
+ const currentDemand=selectionContext({...cfg,growth:0}).demand;
+ const currentCategories=CATEGORIES.filter(k=>currentDemand[k]>0);
+ const ratios=currentCategories.map(k=>Math.min(1,Math.floor(metrics.capacities[k]??0)/currentDemand[k]));
+ const inventory={complete:currentCategories.length>0&&ratios.every(v=>v>=1),
+  coverage:ratios.reduce((n,v)=>n+v,0)/Math.max(1,ratios.length),weakest:ratios.length?Math.min(...ratios):0,
+  missing:currentCategories.filter(k=>(metrics.capacities[k]??0)<currentDemand[k]).map(k=>({key:k,missing:currentDemand[k]-Math.floor(metrics.capacities[k]??0)}))};
+ return {score,complete,inventory,boards:boardSchedule(sections,cfg,dividers),breakdown:{criteria,weights:c.weights},metrics:finalMetrics,placements,partCount,positionSum};
 }

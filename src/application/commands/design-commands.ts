@@ -14,7 +14,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const dividers = createDividerCommands({ getDesign, effects, rules, run });
     const sizing = createSizingCommands({ getDesign, effects, rules });
     const items = createItemCommands({ getDesign, effects, rules, run, callbacks: { addShelfBoard: dividers.addShelfBoard } });
-    const layouts = createLayoutCommands({ getDesign, effects, rules, callbacks: { refitAfterSize: sizing.refitAfterSize } });
+    const layouts = createLayoutCommands({ getDesign, effects, rules });
     const appearance = createAppearanceCommands({ getDesign, effects, run });
     return { run, ...dividers, ...sizing, ...items, ...layouts, ...appearance };
 }
