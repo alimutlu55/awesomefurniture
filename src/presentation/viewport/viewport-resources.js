@@ -1,0 +1,100 @@
+import * as THREE from 'three';
+import { disposeSceneAssets } from './render-disposal';
+/** Three.js owns its renderer, lights, materials and reusable textures here. */
+export function createViewportResources(cv) {
+    const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    R.outputEncoding = THREE.sRGBEncoding;
+    R.toneMapping = THREE.ACESFilmicToneMapping;
+    R.toneMappingExposure = 1.0;
+    R.shadowMap.enabled = true;
+    R.shadowMap.type = THREE.PCFSoftShadowMap;
+    R.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(35, 1, 5, 50000);
+    scene.add(new THREE.HemisphereLight(0xfff9ee, 0xb8aa92, .9));
+    const sun = new THREE.DirectionalLight(0xfff3e3, 1.15);
+    sun.position.set(180, 380, 260);
+    sun.castShadow = false;
+    sun.shadow.mapSize.set(1024, 1024);
+    Object.assign(sun.shadow.camera, { left: -350, right: 350, top: 350, bottom: -350, far: 1200 });
+    sun.shadow.bias = -.0004;
+    sun.shadow.normalBias = .35;
+    sun.shadow.radius = 6;
+    scene.add(sun);
+    const fillLight = new THREE.DirectionalLight(0xf4f4ff, .55);
+    fillLight.position.set(-250, 220, 150);
+    scene.add(fillLight);
+    const floorM = new THREE.ShadowMaterial({ opacity: .12 }), floor = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), floorM);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+    const contactCanvas = cv.ownerDocument.createElement('canvas');
+    contactCanvas.width = contactCanvas.height = 128;
+    const contactCtx = contactCanvas.getContext('2d'), contactGradient = contactCtx.createRadialGradient(64, 64, 8, 64, 64, 64);
+    contactGradient.addColorStop(0, 'rgba(55,42,26,.26)');
+    contactGradient.addColorStop(.5, 'rgba(55,42,26,.12)');
+    contactGradient.addColorStop(1, 'rgba(55,42,26,0)');
+    contactCtx.fillStyle = contactGradient;
+    contactCtx.fillRect(0, 0, 128, 128);
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(contactCanvas), transparent: true, depthWrite: false }));
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.y = .12;
+    scene.add(contact);
+    const aoCanvas = cv.ownerDocument.createElement('canvas');
+    aoCanvas.width = aoCanvas.height = 128;
+    const aoCtx = aoCanvas.getContext('2d');
+    const aoH = aoCtx.createLinearGradient(0, 0, 128, 0);
+    aoH.addColorStop(0, 'rgba(40,28,12,.30)');
+    aoH.addColorStop(.13, 'rgba(40,28,12,0)');
+    aoH.addColorStop(.87, 'rgba(40,28,12,0)');
+    aoH.addColorStop(1, 'rgba(40,28,12,.30)');
+    aoCtx.fillStyle = aoH;
+    aoCtx.fillRect(0, 0, 128, 128);
+    const aoV = aoCtx.createLinearGradient(0, 0, 0, 128);
+    aoV.addColorStop(0, 'rgba(40,28,12,.3)');
+    aoV.addColorStop(.17, 'rgba(40,28,12,0)');
+    aoV.addColorStop(.9, 'rgba(40,28,12,0)');
+    aoV.addColorStop(1, 'rgba(40,28,12,.2)');
+    aoCtx.fillStyle = aoV;
+    aoCtx.fillRect(0, 0, 128, 128);
+    const aoTexture = new THREE.CanvasTexture(aoCanvas);
+    const HM = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+    const grainCanvas = cv.ownerDocument.createElement('canvas');
+    grainCanvas.width = 256;
+    grainCanvas.height = 512;
+    const grainCtx = grainCanvas.getContext('2d');
+    grainCtx.fillStyle = '#ece7df';
+    grainCtx.fillRect(0, 0, 256, 512);
+    let grainSeed = 27;
+    const grainRandom = () => {
+        grainSeed = (grainSeed * 16807) % 2147483647;
+        return grainSeed / 2147483647;
+    };
+    for (let i = 0; i < 1700; i++) {
+        const x = grainRandom() * 256;
+        grainCtx.strokeStyle = `rgba(${grainRandom() > .5 ? '255,250,235' : '99,75,41'},${.006 + grainRandom() * .022})`;
+        grainCtx.lineWidth = .3 + grainRandom() * .8;
+        grainCtx.beginPath();
+        grainCtx.moveTo(x, 0);
+        grainCtx.bezierCurveTo(x + grainRandom() * 7, 170, x - 3, 350, x + grainRandom() * 3, 512);
+        grainCtx.stroke();
+    }
+    const grain = new THREE.CanvasTexture(grainCanvas);
+    grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
+    grain.anisotropy = Math.min(8, R.capabilities.getMaxAnisotropy());
+    grain.encoding = THREE.sRGBEncoding;
+    const M = (c, o) => {
+        const m = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .82 }, o));
+        m.color.convertSRGBToLinear();
+        return m;
+    };
+    const wood = c => M(c, { map: grain, bumpMap: grain, bumpScale: .008, roughness: .8 });
+    const softArea = (w, h, d, opacity) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity, depthWrite: false }));
+    const shade = (c, f) => '#' + new THREE.Color(c).multiplyScalar(f).getHexString();
+    function dispose() {
+        disposeSceneAssets(scene, [grain, aoTexture], [HM]);
+        scene.clear();
+        R.dispose();
+        R.forceContextLoss();
+    }
+    return { cv, R, scene, cam, contact, aoTexture, HM, grain, M, wood, softArea, shade, dispose };
+}

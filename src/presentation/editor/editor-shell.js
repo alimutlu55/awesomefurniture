@@ -1,0 +1,84 @@
+import { dropdowns } from './editor-dom.js';
+/** Presentation behavior with explicit subsystem dependencies. */
+/** @param {import('./editor-shell.ports').CreateEditorShellPorts} ports */
+export function createEditorShell({ dom, shellState, geometry, model, lifetime, elements }) {
+    const { $, document } = dom;
+    const sync = () => {
+        const on = !!document.querySelector('.pop.show');
+        $('#more-btn').setAttribute('aria-expanded', String($('#pop2').classList.contains('show')));
+        elements.app.classList.toggle('inspecting', on);
+        elements.app.classList.toggle('adding', $('#pop2').classList.contains('show'));
+        if (on) {
+            elements.app.classList.remove('props-open');
+            elements.propsButton.setAttribute('aria-pressed', 'false');
+        }
+    };
+    /** @type {Array<[string, string, string, number, (stats: any) => boolean]>} */
+    const Q = [['first', 'First Fit', 'Add any module', 50, s => s.mods > 0], ['hang', 'Hang Tight', 'Add a hanging rail', 50, s => s.hang > 0], ['drw', 'Drawer Duty', 'Have 3+ drawers', 75, s => s.drawers >= 3],
+        ['shoe', 'Sole Mate', 'Add a shoe rack', 50, s => s.shoe > 0], ['tall', 'Tall Order', 'Make it 240 cm tall', 60, s => model.activeCabinet().state.h >= 240], ['door', 'Door Dandy', 'Add doors', 40, s => model.activeCabinet().state.doors !== 'none'], ['cut', 'Tailor-made', 'Resize a section by hand', 60, () => !!shellState.G.cut], ['tune', 'Fine Tuner', 'Resize an item by hand', 60, () => !!shellState.G.tune], ['paint', 'Odd One Out', 'Give an item its own finish', 60, () => !!shellState.G.paint],
+        ['full', 'Tetris Master', 'Fill a section to 95%+', 100, s => s.maxFill >= .95],
+        ['speed', 'Speed Builder', '3 quests in under 2 minutes', 150, s => Object.keys(shellState.G.done).length >= 3 && Date.now() - shellState.t0 < 12e4]];
+    function toast(m, action) {
+        const t = $('#toast');
+        t.style.pointerEvents = action ? 'auto' : '';
+        if (action) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'toast-action';
+            b.textContent = action.label;
+            b.onclick = () => {
+                t.classList.remove('show');
+                action.fn();
+            };
+            t.replaceChildren(m + ' ', b);
+        }
+        else {
+            t.textContent = m;
+        }
+        t.classList.add('show');
+        lifetime.cancelTimeout(shellState.tt);
+        shellState.tt = lifetime.timeout(() => t.classList.remove('show'), action ? 5000 : 2200);
+    }
+    function burst() {
+        return;
+        const v = $('#view');
+        for (let i = 0; i < 22; i++) {
+            const s = document.createElement('span');
+            s.className = 'pt';
+            s.textContent = ['✨', '⭐', '🎉'][i % 3];
+            v.appendChild(s);
+            s.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 500}px,${-120 - Math.random() * 320}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }], { duration: 1100 + Math.random() * 500, easing: 'cubic-bezier(.2,.8,.3,1)' }).onfinish = () => s.remove();
+        }
+    }
+    function check() {
+        const s = geometry.stats();
+        Q.forEach(q => {
+            if (!shellState.G.done[q[0]] && q[4](s)) {
+                shellState.G.done[q[0]] = 1;
+                shellState.G.xp += q[3]; /* quest rewards silenced */
+            }
+        });
+    }
+    function closeDD(except) {
+        let any = false;
+        for (const [b, p] of dropdowns) {
+            const pe = document.getElementById(p);
+            if (p === except) {
+                continue;
+            }
+            if (!pe.hidden) {
+                any = true;
+            }
+            pe.hidden = true;
+            document.getElementById(b).setAttribute('aria-expanded', 'false');
+        }
+        return any;
+    }
+    function openDD(btn, panel) {
+        const pe = document.getElementById(panel);
+        closeDD(panel);
+        pe.hidden = !pe.hidden;
+        document.getElementById(btn).setAttribute('aria-expanded', String(!pe.hidden));
+    }
+    return { toast, burst, check, closeDD, openDD, sync, Q };
+}

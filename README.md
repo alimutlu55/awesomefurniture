@@ -1,0 +1,83 @@
+# Wardrobe
+
+The Wardrobe Forge editor migrated from `Wardrobe_Forge-4-16-12.html` into the
+existing domain/application/infrastructure/presentation structure.
+
+## Run locally
+
+Requires Node.js 22.12 or newer.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open the URL printed by Vite. Create or open a project and choose **Edit wardrobe**.
+Use **Save project** in the editor's top-right menu to save the complete design
+locally. Reopening the project restores its cabinets, fittings, finishes, section
+widths, divider regions, placements, and planner preferences.
+
+**Open wardrobe editor** starts a new design. Its first save creates a project
+named “Wardrobe design”; rename it in the project workspace. Saving is explicit.
+The browser warns before leaving a changed design. Projects stay in this browser;
+cloud storage is not implemented.
+
+## Verify and build
+
+```sh
+npm run check
+npm run preview
+```
+
+`check` enforces layer imports, type-checks migrated JavaScript and strict TypeScript,
+runs the editor regression and architecture suites, and builds the workspace and
+`editor.html` and the multiple-editor example. The build bundles the same Three.js r128 used by the supplied HTML,
+so the migrated renderer does not require a CDN connection.
+
+## Structure
+
+| Directory | Responsibility |
+| --- | --- |
+| `src/domain` | Serializable designs, planner, fitting and cabinet geometry rules |
+| `src/application` | Design/cabinet commands, scene model/history, planner cache, project saving |
+| `src/infrastructure` | IndexedDB/memory adapters and validated serialization |
+| `src/presentation` | Workspace, inspectors, wizard, gestures, camera and managed Three.js viewport |
+| `src/app` | Browser startup and dependency wiring |
+| `tests/architecture` | Persistence, scene round-trips, concurrency, serialization, history |
+| `tests/*.test.cjs` | Editor regression, planner/command behavior, immutable UI baseline |
+
+The original standalone HTML has been removed. All behavior runs from the layered
+modules; tests require no copy of that file. `editor.html` remains the small Vite
+entry point, and the presentation fragment contains the preserved UI markup.
+See [architecture](docs/architecture.md), [extending the editor](docs/extending-editor.md),
+and [migration verification](docs/migration-verification.md).
+
+## Embed editors
+
+`mountEditor({ root, initialScene?, projects? })` in
+`src/presentation/editor/mount-editor.ts` mounts an isolated editor and returns
+`snapshot`, `viewport` and `dispose`. Give each container an explicit height.
+Multiple editors can share a document, with independent controls, shortcuts, state
+and rendering resources.
+
+Open `/examples/multiple-editors.html` on the Vite dev or preview server to try
+independent editors and disposal/remounting. See the mounting example in
+[extending the editor](docs/extending-editor.md).
+
+Application workflows, mounting and extracted rendering modules use strict
+TypeScript. Remaining presenter and geometry JavaScript uses the existing
+non-strict checker; the original numerical planner stays behind its typed interface.
+
+## Smarter Auto design
+
+Auto design shows clothing quantities and **Max reach**, followed by storage ideas.
+Independent archetype searches use existing fittings and divider cuts, recover usable
+gaps and show Best Overall plus up to three specialists. Specialists must improve
+their hero metric by at least 15% and pass structural diversity and quality floors.
+Complete plans rank ahead of partial plans; missing storage is explicitly reported.
+Existing saved planning preferences are retained when clothing quantities change.
+See [Smart Auto design](docs/smart-auto-design.md) for implementation and limits.
+
+Run `npm run review:planner` for the repeatable 32-case planner audit. See
+[test and design review](docs/planner-design-review.md) and the
+[visual comparison](docs/verification/planner-review.html) for findings and layout thumbnails.

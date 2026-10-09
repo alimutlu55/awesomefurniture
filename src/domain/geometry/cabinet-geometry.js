@@ -1,0 +1,94 @@
+/** Collision rules receive scene data explicitly; no editor or renderer state. */
+export function createCabinetGeometry(getCabinets) {
+    function cabinetBounds(w) {
+        const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+        return { x: w.x, z: w.z, hw: (w.state.w * c + w.state.d * s) / 2, hd: (w.state.w * s + w.state.d * c) / 2, h: w.state.h + (w.y || 0) };
+    }
+    function cabinetAxes(w) {
+        const a = w.angle * Math.PI / 180;
+        return [{ x: Math.cos(a), z: -Math.sin(a) }, { x: Math.sin(a), z: Math.cos(a) }];
+    }
+    function cabinetRadius(w, axis) {
+        const [u, v] = cabinetAxes(w);
+        return Math.abs(u.x * axis.x + u.z * axis.z) * w.state.w / 2 + Math.abs(v.x * axis.x + v.z * axis.z) * w.state.d / 2;
+    }
+    function cabinetGap(a, b) {
+        if ((a.y || 0) + a.state.h <= (b.y || 0) + 1e-8 || (b.y || 0) + b.state.h <= (a.y || 0) + 1e-8) {
+            return Infinity;
+        }
+        return Math.max(...[...cabinetAxes(a), ...cabinetAxes(b)].map(axis => Math.abs((a.x - b.x) * axis.x + (a.z - b.z) * axis.z) - cabinetRadius(a, axis) - cabinetRadius(b, axis)));
+    }
+    function cabinetOverlaps(a, b) {
+        return cabinetGap(a, b) < -1e-8;
+    }
+    function cabinetCollides(candidate) {
+        return getCabinets().some(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
+    }
+    function safeCabinetTranslation(w, target) {
+        const start = { x: w.x, y: w.y || 0, z: w.z }, delta = { x: target.x - start.x, y: (target.y || 0) - start.y, z: target.z - start.z };
+        let limit = 1;
+        for (const other of getCabinets()) {
+            if (other.id === w.id) {
+                continue;
+            }
+            let enter = -Infinity, leave = Infinity;
+            const constraints = [...cabinetAxes(w), ...cabinetAxes(other)].map(axis => ({ offset: (start.x - other.x) * axis.x + (start.z - other.z) * axis.z, velocity: delta.x * axis.x + delta.z * axis.z, radius: cabinetRadius(w, axis) + cabinetRadius(other, axis) }));
+            constraints.push({ offset: start.y + w.state.h / 2 - (other.y || 0) - other.state.h / 2, velocity: delta.y, radius: (w.state.h + other.state.h) / 2 });
+            for (const { offset, velocity, radius } of constraints) {
+                if (Math.abs(velocity) < 1e-10) {
+                    if (Math.abs(offset) >= radius - 1e-8) {
+                        enter = Infinity;
+                        break;
+                    }
+                }
+                else {
+                    const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
+                    enter = Math.max(enter, Math.min(a, b));
+                    leave = Math.min(leave, Math.max(a, b));
+                }
+            }
+            if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -1e-8) {
+                limit = Math.max(0, enter);
+            }
+        }
+        // A tiny numerical margin avoids jitter without introducing a visible gap.
+        const t = limit < 1 ? Math.max(0, limit - 1e-7) : 1;
+        return { x: start.x + delta.x * t, y: start.y + delta.y * t, z: start.z + delta.z * t };
+    }
+    function safeCabinetRotation(w, target) {
+        const start = w.angle, delta = ((target - start + 540) % 360) - 180;
+        if (Math.abs(delta) < 1e-8) {
+            return start;
+        }
+        const radius = Math.hypot(w.state.w, w.state.d) / 2, speed = Math.abs(delta) * Math.PI / 180 * radius;
+        let t = 0;
+        // Conservative advancement: no corner travels farther than the available gap.
+        for (let i = 0; i < 512 && t < 1; i++) {
+            const pose = { ...w, angle: start + delta * t }, gap = Math.min(...getCabinets().filter(o => o.id !== w.id).map(o => cabinetGap(pose, o))), step = Math.min(1 - t, Math.max(1e-7, gap * .8 / speed)), next = t + step, candidate = { ...w, angle: start + delta * next };
+            if (cabinetCollides(candidate)) {
+                let lo = t, hi = next;
+                for (let n = 0; n < 24; n++) {
+                    const mid = (lo + hi) / 2;
+                    if (cabinetCollides({ ...w, angle: start + delta * mid })) {
+                        hi = mid;
+                    }
+                    else {
+                        lo = mid;
+                    }
+                }
+                t = lo;
+                break;
+            }
+            t = next;
+        }
+        return ((start + delta * t) % 360 + 360) % 360;
+    }
+    function sceneBounds() {
+        const bs = getCabinets().map(cabinetBounds), x0 = Math.min(...bs.map(b => b.x - b.hw)), x1 = Math.max(...bs.map(b => b.x + b.hw)), z0 = Math.min(...bs.map(b => b.z - b.hd)), z1 = Math.max(...bs.map(b => b.z + b.hd));
+        return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: Math.max(...bs.map(b => b.h)) };
+    }
+    function cabinetTranslation(origin, delta) {
+        return { x: Math.max(-5000, Math.min(5000, origin.x + (delta.x || 0))), y: Math.max(0, Math.min(5000, (origin.y || 0) + (delta.y || 0))), z: Math.max(-5000, Math.min(5000, origin.z + (delta.z || 0))) };
+    }
+    return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };
+}

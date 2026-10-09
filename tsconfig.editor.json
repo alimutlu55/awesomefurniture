@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/application/**/*.js",
+    "src/domain/geometry/**/*.js",
+    "src/domain/wardrobe/catalog.js",
+    "src/presentation/**/*.js"
+  ],
+  "exclude": [
+    "src/domain/planner/wardrobe-planner.js"
+  ]
+}

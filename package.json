@@ -1,0 +1,32 @@
+{
+  "name": "wardrobe-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.cjs tests/architecture/*.test.ts",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check": "npm run check:boundaries && npm run typecheck:editor && npm test && npm run build",
+    "typecheck:editor": "tsc -p tsconfig.editor.json",
+    "review:planner": "node --import tsx scripts/planner-review.mjs"
+  },
+  "dependencies": {
+    "three": "0.128.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/three": "^0.128.0",
+    "fake-indexeddb": "^6.2.5",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.3"
+  }
+}

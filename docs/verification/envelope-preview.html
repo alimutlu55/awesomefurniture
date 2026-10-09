@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Purposeful wardrobe verification</title><style>html,body{margin:0;height:100%;font-family:system-ui}header{height:44px;padding:0 16px;display:flex;align-items:center;gap:18px}#editor{height:calc(100% - 44px)}select{padding:6px}@media(max-width:600px){header{gap:8px;padding:0 8px}header strong{font-size:11px;max-width:90px}header span{display:none}select{min-width:0;max-width:230px}}</style><header><strong>Generated layout verification</strong><select id="case" aria-label="Inventory case"></select><span>Isolated preview — no saved project is changed</span></header><div id="editor"></div><script type="module">
+import {mountEditor} from '/src/presentation/editor/mount-editor.ts';
+import {createEditorState} from '/src/application/projects/editor-state.ts';
+import {createDesignCommands} from '/src/application/commands/design-commands.ts';
+const report=await fetch('./planner-review.json').then(r=>r.json());
+const cases=report.rows.filter(r=>r.plans.length),select=document.querySelector('#case');let editor;
+for(const row of cases)select.add(new Option(row.name,row.name));
+function render(){const row=cases.find(r=>r.name===select.value),p=row.plans[0];const state=createEditorState();Object.assign(state,{w:row.cfg.w,h:row.cfg.h,d:row.cfg.d});state.profile={...state.profile,...row.cfg};createDesignCommands(()=>state).applyProposal({...p,summary:'Inventory storage plus bounded adjustable compartments'});editor?.dispose();editor=mountEditor({root:document.querySelector('#editor'),initialScene:{wardrobes:[{id:1,name:row.name,x:0,y:0,z:0,angle:0,state}],activeWardrobe:1,nextWardrobeId:2}});}
+select.onchange=render;select.value='reported-fold-only';render();
+</script></html>

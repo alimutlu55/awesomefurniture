@@ -1,0 +1,10 @@
+import {mountEditor} from '../src/presentation/editor/mount-editor';
+const first=document.querySelector<HTMLElement>('#first')!;
+const second=document.querySelector<HTMLElement>('#second')!;
+const status=document.querySelector<HTMLOutputElement>('#mount-status')!;
+let firstEditor:ReturnType<typeof mountEditor>|undefined=mountEditor({root:first});
+const secondEditor=mountEditor({root:second});
+document.querySelector<HTMLButtonElement>('#dispose-first')!.onclick=()=>{firstEditor?.dispose();firstEditor=undefined;status.value='First editor disposed; second remains mounted';};
+document.querySelector<HTMLButtonElement>('#mount-first')!.onclick=()=>{if(!firstEditor){firstEditor=mountEditor({root:first});status.value='Both editors mounted';}};
+window.addEventListener('pagehide',()=>{firstEditor?.dispose();secondEditor.dispose();},{once:true});
+import.meta.hot?.dispose(()=>{firstEditor?.dispose();secondEditor.dispose();});

@@ -1,0 +1,262 @@
+import * as THREE from "three";
+import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+/** Presentation behavior with explicit subsystem dependencies. */
+/** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
+export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
+    const { $, document } = dom;
+    /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
+    const fit = (options = {}) => {
+        camRelease();
+        if (!options.instant) {
+            cameraState.initialCameraFraming = false;
+        }
+        const goal = fittedCamera(options.az ?? cameraState.az, options.el ?? cameraState.el, options.padding ?? 1.08);
+        cameraState.fitDist = goal.dist;
+        cameraState.vsT = baseShift(goal);
+        cameraState.vzT = 1;
+        cameraTransition(goal, options.instant ? 0 : 620);
+    };
+    const cameraAngleDelta = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
+    const cameraEase = t => t * t * t * (t * (t * 6 - 15) + 10);
+    const cameraDistance = d => Math.max(120, Math.min(15000, d));
+    const cameraNearDistance = d => Math.max(1, Math.min(50, d * .005));
+    const camNow = () => ({ az: cameraState.az, el: cameraState.el, dist: cameraState.dist, x: cameraState.tgt.x, z: cameraState.tgt.z, y: cameraState.tgt.y });
+    function modelHalfWidthPx(g) {
+        const { angle, box } = selectionFocusBox(), r = $('#view').getBoundingClientRect(), a = (g?.az ?? cameraState.az) - angle, e = g?.el ?? cameraState.el, d = g?.dist ?? cameraState.dist, tanH = Math.tan(35 * Math.PI / 360) * r.width / r.height;
+        let frac = 0;
+        for (const x of [-box.w / 2, box.w / 2]) {
+            for (const y of [-box.h / 2, box.h / 2]) {
+                for (const z of [-box.d / 2, box.d / 2]) {
+                    const depth = x * Math.cos(e) * Math.sin(a) + y * Math.sin(e) + z * Math.cos(e) * Math.cos(a), horizontal = x * Math.cos(a) - z * Math.sin(a), range = Math.max(1, d - depth);
+                    frac = Math.max(frac, Math.abs(horizontal) / (range * tanH));
+                }
+            }
+        }
+        return Math.min(1, frac) * r.width / 2;
+    }
+    function baseShift(g) {
+        if (cameraState.initialCameraFraming || dom.width <= 900) {
+            return 0;
+        }
+        const css = getComputedStyle(document.documentElement), left = parseFloat(css.getPropertyValue('--pw')) + 56, right = document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 56 : 0, fallback = (left - right) / 2;
+        try {
+            const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = 24, lo = left + gap - (W / 2 - half), hi = right ? W - right - gap - (W / 2 + half) : Infinity;
+            if (!Number.isFinite(half) || half <= 0) {
+                return fallback;
+            }
+            if (lo > hi) {
+                return (lo + hi) / 2;
+            }
+            return Math.max(lo, Math.min(hi, 0));
+        }
+        catch (err) {
+            return fallback;
+        }
+    }
+    function applyView() {
+        const r = resources.cv.getBoundingClientRect();
+        resources.cam.aspect = r.width / r.height;
+        resources.cam.zoom = cameraState.vz;
+        if (Math.abs(cameraState.vs) > .5) {
+            resources.cam.setViewOffset(r.width, r.height, -cameraState.vs, 0, r.width, r.height);
+        }
+        else {
+            resources.cam.clearViewOffset();
+        }
+        resources.cam.updateProjectionMatrix();
+    }
+    function availableRoom() {
+        const r = $('#view').getBoundingClientRect(), css = getComputedStyle(document.documentElement), desktop = dom.width > 900;
+        return { w: Math.max(160, r.width - (desktop ? parseFloat(css.getPropertyValue('--pw')) + 80 : 28) - (desktop && document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 60 : 0)), h: Math.max(140, r.height - (desktop ? 180 : 115)) };
+    }
+    /** @param {import('./camera-types').CameraPose} from
+     * @param {import('./camera-types').CameraPose} to
+     * @returns {import('./camera-types').CameraPose} */
+    function cameraSample(from, to, t) {
+        const k = cameraEase(Math.max(0, Math.min(1, t))), out = { az: 0, el: 0, dist: 0, x: 0, y: 0, z: 0 };
+        for (const key of ['el', 'x', 'y', 'z']) {
+            out[key] = from[key] + (to[key] - from[key]) * k;
+        }
+        out.az = from.az + cameraAngleDelta(from.az, to.az) * k;
+        out.dist = Math.exp(Math.log(from.dist) + (Math.log(to.dist) - Math.log(from.dist)) * k);
+        if (to.arc) {
+            out.dist *= 1 + to.arc * Math.sin(Math.PI * k);
+        }
+        return out;
+    }
+    function cameraApply(p) {
+        cameraState.az = p.az;
+        cameraState.el = p.el;
+        cameraState.dist = p.dist;
+        cameraState.tgt.set(p.x, p.y, p.z);
+        cameraState.tgtY = p.y;
+    }
+    function cameraTransition(goal, duration = 560) {
+        cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
+        const from = camNow();
+        cameraState.camGoal = { ...goal, from, start: clock.now(), duration };
+        if (cameraState.reducedCameraMotion.matches || duration === 0) {
+            cameraApply(goal);
+            cameraState.camGoal = null;
+        }
+    }
+    function cameraFlyTo(goal, pan = false) {
+        const from = camNow(), travel = Math.hypot(goal.x - from.x, goal.y - from.y, goal.z - from.z), dr = Math.abs(Math.log(goal.dist / from.dist));
+        if (travel < 2 && dr < .02) {
+            return;
+        }
+        const arc = pan ? 0 : Math.min(.3, travel / Math.max(goal.dist, from.dist) * .3), duration = Math.round(Math.max(600, Math.min(1100, 540 + travel * .8 + dr * 280)));
+        cameraTransition({ ...goal, arc }, duration);
+    }
+    function cameraFitDistance(bounds, angle, elevation, aspect) {
+        const tanV = Math.tan(35 * Math.PI / 360), tanH = tanV * aspect;
+        let distance = 120;
+        for (const x of [-bounds.w / 2, bounds.w / 2]) {
+            for (const y of [-bounds.h / 2, bounds.h / 2]) {
+                for (const z of [-bounds.d / 2, bounds.d / 2]) {
+                    const depth = x * Math.cos(elevation) * Math.sin(angle) + y * Math.sin(elevation) + z * Math.cos(elevation) * Math.cos(angle), horizontal = x * Math.cos(angle) - z * Math.sin(angle), vertical = -x * Math.sin(elevation) * Math.sin(angle) + y * Math.cos(elevation) - z * Math.sin(elevation) * Math.cos(angle);
+                    distance = Math.max(distance, depth + Math.abs(horizontal) / tanH, depth + Math.abs(vertical) / tanV);
+                }
+            }
+        }
+        return distance;
+    }
+    function fittedCamera(angle = cameraState.az, elevation = cameraState.el, padding = 1.08) {
+        const bounds = cabinetGeometry.sceneBounds(), room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
+        return { az: angle, el: elevation, x: bounds.x, y: bounds.h / 2, z: bounds.z, dist: cameraFitDistance(bounds, angle, elevation, room.w / room.h) * scale * padding };
+    }
+    function selectionFocusBox() {
+        const w = model.activeCabinet(), angle = w.angle * Math.PI / 180;
+        let box = { x: 0, y: model.activeCabinet().state.h / 2, w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d };
+        const g = model.activeCabinet().state.item >= 0 ? geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item) : null;
+        if (g) {
+            box = { x: (g.x0 + g.x1) / 2 - model.activeCabinet().state.w / 2, y: (g.y0 + g.y1) / 2, w: g.w + 18, h: g.h + 18, d: model.activeCabinet().state.d };
+        }
+        else if (model.activeCabinet().state.divider >= 0) {
+            const d = model.activeCabinet().state.dividers[model.activeCabinet().state.divider], r = geometry.dividerRect(d), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, d.i).reduce((a, b) => a + b + PANEL, 0);
+            box = { x: base + (r.x0 + r.x1) / 2, y: PLINTH + PANEL + (r.y0 + r.y1) / 2, w: Math.max(50, r.x1 - r.x0 + 24), h: Math.max(50, r.y1 - r.y0 + 24), d: model.activeCabinet().state.d };
+        }
+        else if (inspector.inside()) {
+            const r = geometry.sectionSpaceMeasurements(model.activeCabinet().state.sel), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, model.activeCabinet().state.sel).reduce((a, b) => a + b + PANEL, 0);
+            box = { x: base + (r.x0 + r.x1) / 2, y: (r.y0 + r.y1) / 2, w: r.w + 18, h: r.h + 18, d: model.activeCabinet().state.d };
+        }
+        return { w, angle, box };
+    }
+    function cameraFocusPoint() {
+        const { w, angle, box } = selectionFocusBox();
+        return new THREE.Vector3(w.x + box.x * Math.cos(angle), (w.y || 0) + box.y, w.z - box.x * Math.sin(angle));
+    }
+    function focusSelection(panOnly = false) {
+        const keep = cameraState.dist;
+        camRelease();
+        cameraState.initialCameraFraming = false;
+        const { w, angle, box } = selectionFocusBox();
+        const room = availableRoom(), view = $('#view').getBoundingClientRect(), goal = { az: cameraState.az, el: cameraState.el, x: w.x + box.x * Math.cos(angle), z: w.z - box.x * Math.sin(angle), y: (w.y || 0) + box.y, dist: Math.max(120, cameraFitDistance(box, cameraState.az - angle, cameraState.el, room.w / room.h) * (view.height / room.h) * 1.1) };
+        if (panOnly) {
+            goal.dist = keep;
+        }
+        cameraState.vsT = baseShift(goal);
+        cameraFlyTo(goal, panOnly);
+    }
+    function camFront() {
+        const w = model.activeCabinet(), room = availableRoom(), r = $('#view').getBoundingClientRect();
+        return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: (w.y || 0) + model.activeCabinet().state.h / 2, dist: cameraFitDistance({ w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d }, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
+    }
+    function moveViewOn() {
+        cameraState.initialCameraFraming = false;
+        cameraState.vsT = baseShift();
+        if (!cameraState.camHome) {
+            cameraState.camHome = camNow();
+        }
+        cameraState.camRestore = null;
+        cameraTransition(camFront(), 480);
+    }
+    function moveViewOff() {
+        if (!cameraState.camHome) {
+            return;
+        }
+        const home = cameraState.camHome;
+        cameraState.camHome = null;
+        cameraState.camRestore = home;
+        cameraTransition(home, 480);
+    }
+    function camRelease() {
+        cameraState.camGoal = cameraState.camHome = cameraState.camRestore = cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
+        cameraState.tgtY = cameraState.tgt.y;
+        cameraState.vsT = cameraState.vs;
+        cameraState.vzT = cameraState.vz;
+    }
+    function cameraAnchoredTarget(target, anchor, ratio) {
+        if (!anchor) {
+            return { x: target.x, y: target.y, z: target.z };
+        }
+        return { x: anchor.x + (target.x - anchor.x) * ratio, y: anchor.y + (target.y - anchor.y) * ratio, z: anchor.z + (target.z - anchor.z) * ratio };
+    }
+    function cameraZoomPoint(e) {
+        resources.cam.updateMatrixWorld(true);
+        resources.scene.updateMatrixWorld(true);
+        const hit = picking.cast(e, [...renderState.allHits, ...renderState.allItemHits]);
+        if (hit) {
+            return hit.point.clone();
+        }
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(resources.cam.getWorldDirection(new THREE.Vector3()), cameraState.tgt);
+        return interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
+    }
+    function cameraZoomDistance(next, anchor = cameraState.zoomAnchor) {
+        const target = cameraAnchoredTarget(cameraState.tgt, anchor, next / cameraState.dist);
+        cameraState.tgt.set(target.x, target.y, target.z);
+        cameraState.tgtY = target.y;
+        cameraState.dist = next;
+    }
+    function cameraZoom(factor) {
+        if (!Number.isFinite(factor) || factor <= 0) {
+            return;
+        }
+        const base = cameraState.zoomTarget ?? cameraState.dist;
+        camRelease();
+        cameraState.zoomFocus = cameraFocusPoint();
+        cameraState.zoomTarget = cameraDistance(base * factor);
+        if (cameraState.reducedCameraMotion.matches) {
+            cameraZoomDistance(cameraState.zoomTarget);
+            cameraState.tgt.copy(cameraState.zoomFocus);
+            cameraState.tgtY = cameraState.tgt.y;
+            cameraState.zoomTarget = cameraState.zoomFocus = null;
+        }
+    }
+    function cameraTick(now, dt) {
+        if (cameraState.camGoal) {
+            const g = cameraState.camGoal, t = cameraState.reducedCameraMotion.matches ? 1 : Math.min(1, (now - g.start) / g.duration);
+            cameraApply(cameraSample(g.from, g, t));
+            if (t === 1) {
+                cameraState.camGoal = null;
+                cameraState.camRestore = null;
+            }
+        }
+        if (cameraState.zoomTarget !== null) {
+            const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * 22);
+            cameraZoomDistance(Math.exp(Math.log(cameraState.dist) + (Math.log(cameraState.zoomTarget) - Math.log(cameraState.dist)) * k));
+            if (cameraState.zoomFocus) {
+                cameraState.tgt.lerp(cameraState.zoomFocus, k);
+                cameraState.tgtY = cameraState.tgt.y;
+            }
+            if (Math.abs(cameraState.dist - cameraState.zoomTarget) < .05) {
+                cameraZoomDistance(cameraState.zoomTarget);
+                if (cameraState.zoomFocus) {
+                    cameraState.tgt.copy(cameraState.zoomFocus);
+                    cameraState.tgtY = cameraState.tgt.y;
+                }
+                cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
+            }
+        }
+    }
+    function resize() {
+        const r = $('#view').getBoundingClientRect();
+        viewport.resize(r.width, r.height);
+        cameraState.vsT = baseShift();
+        const p = document.querySelector('.pop.show');
+        if (p) {
+            inspector.layoutPop(p);
+        }
+    }
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+}

@@ -1,0 +1,2100 @@
+[
+  {
+    "name": "fold-heavy",
+    "cfg": {
+      "w": 200,
+      "h": 230,
+      "d": 60,
+      "reach": 185,
+      "longDrop": 160,
+      "growth": 15,
+      "upper": "fill",
+      "drawers": "auto",
+      "density": "comfort",
+      "needs": {
+        "short": 6,
+        "long": 0,
+        "pants": 10,
+        "folded": 70,
+        "shoes": 2,
+        "small": 30
+      }
+    },
+    "milliseconds": 706,
+    "poolSize": 43,
+    "skipped": [
+      "Hanging Focus: inventory or envelope does not suit this approach.",
+      "Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+    ],
+    "plans": [
+      {
+        "title": "Best Overall",
+        "archetype": "balanced",
+        "score": 87.83,
+        "coverage": 1,
+        "dna": {
+          "shares": {
+            "hang": 0.12273938975509656,
+            "drawers": 0.3013252018487621,
+            "open": 0.25823216922693365,
+            "shoes": 0.05661354352453829,
+            "seasonal": 0.19780219780219782,
+            "spare": 0.06328749784247156
+          },
+          "columns": 4,
+          "widthPattern": [
+            384,
+            512,
+            512,
+            512
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0.2890057399751134,
+              0.4927146469714607,
+              0.21827961305342594,
+              0
+            ],
+            [
+              0.3333333333333333,
+              0.6666666666666666,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.9088,
+          "clearance": 0.8682,
+          "utilisation": 0.9351,
+          "grouping": 0.9077,
+          "safety": 0.7939,
+          "buildability": 0.7625
+        },
+        "sections": [
+          {
+            "width": 41,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 41
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 41
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 41
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 12.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 41
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 12.8,
+                "x": 0,
+                "y": 70.4,
+                "w": 41
+              },
+              {
+                "k": "folded",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 83.2,
+                "w": 41
+              },
+              {
+                "k": "folded",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 112,
+                "w": 41
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 34.4,
+                "x": 0,
+                "y": 140.8,
+                "w": 41
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 41,
+                "h": 43.2
+              }
+            ],
+            "role": "Shoes + Underwear & socks + Trousers & jeans + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 102.4,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 102.4,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 131.2,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 50,
+                "h": 43.2
+              }
+            ],
+            "role": "Shirts & jackets + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 28.8,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 86.4,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 30,
+                "x": 0,
+                "y": 115.2,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 30,
+                "x": 0,
+                "y": 145.2,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 50,
+                "h": 43.2
+              }
+            ],
+            "role": "T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 28.8,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 50
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 86.4,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 22.4,
+                "x": 0,
+                "y": 115.2,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 50,
+                "h": 43.2
+              }
+            ],
+            "role": "T-shirts & knitwear + Seasonal clothing"
+          }
+        ],
+        "dividers": [],
+        "selectionNote": "1 distinct layout meet the quality and diversity requirements. Daily Driver: less than 15% advantage over Best Overall. Drawer First: no plan meets the physical, coverage and quality floors. Open & Simple: same structural family as Best Overall. Hanging Focus: inventory or envelope does not suit this approach. Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+      }
+    ],
+    "distances": [
+      [
+        0
+      ]
+    ]
+  },
+  {
+    "name": "hang-heavy",
+    "cfg": {
+      "w": 200,
+      "h": 260,
+      "d": 60,
+      "reach": 210,
+      "longDrop": 160,
+      "growth": 15,
+      "upper": "fill",
+      "drawers": "auto",
+      "density": "comfort",
+      "needs": {
+        "short": 40,
+        "long": 8,
+        "pants": 4,
+        "folded": 8,
+        "shoes": 2,
+        "small": 10
+      }
+    },
+    "milliseconds": 587,
+    "poolSize": 11,
+    "skipped": [
+      "Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+    ],
+    "plans": [
+      {
+        "title": "Best Overall · partial",
+        "archetype": "balanced",
+        "score": 90.05,
+        "coverage": 0.9423070441523425,
+        "dna": {
+          "shares": {
+            "hang": 0.5801127214170693,
+            "drawers": 0.06602254428341385,
+            "open": 0.022544283413848627,
+            "shoes": 0.05797101449275362,
+            "seasonal": 0.19404186795491146,
+            "spare": 0.07930756843800313
+          },
+          "columns": 4,
+          "widthPattern": [
+            448,
+            448,
+            448,
+            448
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              0.4995004995004995,
+              0.5004995004995005,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0.6666666666666667,
+              0.33333333333333337,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.9407,
+          "clearance": 1,
+          "utilisation": 0.9243,
+          "grouping": 0.85,
+          "safety": 0.8266,
+          "buildability": 0.695
+        },
+        "sections": [
+          {
+            "width": 47.75,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 47.75
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 47.75
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 47.75
+              },
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 47.75
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 8,
+                "x": 0,
+                "y": 86.4,
+                "w": 47.75
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 94.4,
+                "w": 47.75
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 22.4,
+                "x": 0,
+                "y": 123.2,
+                "w": 47.75
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 47.75,
+                "h": 48.2
+              }
+            ],
+            "role": "Shoes + Trousers & jeans + Underwear & socks + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 47.75,
+            "items": [
+              {
+                "k": "long",
+                "purpose": "long",
+                "h": 176,
+                "x": 0,
+                "y": 0,
+                "w": 47.75
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 47.75,
+                "h": 48.2
+              }
+            ],
+            "role": "Dresses & coats + Seasonal clothing"
+          },
+          {
+            "width": 47.75,
+            "items": [
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100,
+                "x": 0,
+                "y": 0,
+                "w": 47.75
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100.2,
+                "x": 0,
+                "y": 100,
+                "w": 47.75
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 47.75,
+                "h": 48.2
+              }
+            ],
+            "role": "Shirts & jackets + Seasonal clothing"
+          },
+          {
+            "width": 47.75,
+            "items": [
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100,
+                "x": 0,
+                "y": 0,
+                "w": 47.75
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100.2,
+                "x": 0,
+                "y": 100,
+                "w": 47.75
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 47.75,
+                "h": 48.2
+              }
+            ],
+            "role": "Shirts & jackets + Seasonal clothing"
+          }
+        ],
+        "dividers": [],
+        "selectionNote": "2 distinct layouts meet the quality and diversity requirements. Daily Driver: less than 15% advantage over Best Overall. Hanging Focus: no plan meets the physical, coverage and quality floors. Drawer First: same structural family as Best Overall · partial. Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+      },
+      {
+        "title": "Open & Simple · partial",
+        "archetype": "open",
+        "score": 75.81,
+        "coverage": 0.7745449949443883,
+        "comparison": {
+          "hero": "openStorage",
+          "baseline": 0.18518518518518517,
+          "value": 0.5555555555555556,
+          "margin": 2.0000000000000004,
+          "gainPoints": 37.03703703703704,
+          "giveUp": "Gives up 17 points of inventory coverage."
+        },
+        "dna": {
+          "shares": {
+            "hang": 0.3964640716291069,
+            "drawers": 0.006913355422347,
+            "open": 0.07441974184519141,
+            "shoes": 0.06070263297670537,
+            "seasonal": 0.19404186795491146,
+            "spare": 0.2674583301717379
+          },
+          "columns": 4,
+          "widthPattern": [
+            384,
+            512,
+            512,
+            512
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              0.4995004995004996,
+              0.5004995004995005,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0.6666666666666666,
+              0.3333333333333333,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.5608,
+          "clearance": 0.9321,
+          "utilisation": 0.8378,
+          "grouping": 0.8429,
+          "safety": 0.8344,
+          "buildability": 0.6789
+        },
+        "sections": [
+          {
+            "width": 41,
+            "items": [
+              {
+                "k": "folded",
+                "purpose": "pants",
+                "h": 30,
+                "x": 0,
+                "y": 0,
+                "w": 41
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 8,
+                "x": 0,
+                "y": 30,
+                "w": 41
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 38,
+                "w": 41
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 41,
+                "h": 48.2
+              }
+            ],
+            "role": "Trousers & jeans + Underwear & socks + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "long",
+                "purpose": "long",
+                "h": 176,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 50,
+                "h": 48.2
+              }
+            ],
+            "role": "Dresses & coats + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 50
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 50
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 22.4,
+                "x": 0,
+                "y": 57.6,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 50,
+                "h": 48.2
+              }
+            ],
+            "role": "Shoes + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 50,
+            "items": [
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100,
+                "x": 0,
+                "y": 0,
+                "w": 50
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 100.2,
+                "x": 0,
+                "y": 100,
+                "w": 50
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 200.2,
+                "w": 50,
+                "h": 48.2
+              }
+            ],
+            "role": "Shirts & jackets + Seasonal clothing"
+          }
+        ],
+        "dividers": []
+      }
+    ],
+    "distances": [
+      [
+        0,
+        0.2435
+      ],
+      [
+        0.2435,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "shoe-heavy",
+    "cfg": {
+      "w": 200,
+      "h": 230,
+      "d": 60,
+      "reach": 185,
+      "longDrop": 160,
+      "growth": 15,
+      "upper": "fill",
+      "drawers": "auto",
+      "density": "comfort",
+      "needs": {
+        "short": 4,
+        "long": 0,
+        "pants": 2,
+        "folded": 10,
+        "shoes": 35,
+        "small": 8
+      }
+    },
+    "milliseconds": 547,
+    "poolSize": 64,
+    "skipped": [
+      "Hanging Focus: inventory or envelope does not suit this approach.",
+      "Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+    ],
+    "plans": [
+      {
+        "title": "Best Overall · partial",
+        "archetype": "drawers",
+        "score": 83.42,
+        "coverage": 0.9905187220886293,
+        "dna": {
+          "shares": {
+            "hang": 0.19275003858765422,
+            "drawers": 0.07285349114742742,
+            "open": 0,
+            "shoes": 0.5005628150540792,
+            "seasonal": 0.19414295878838533,
+            "spare": 0.03969069642245393
+          },
+          "columns": 2,
+          "widthPattern": [
+            832,
+            1152
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0.1443999879666677,
+              0.2887999759333354,
+              0.34800397099966907,
+              0.21879606510032792,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.8039,
+          "clearance": 1,
+          "utilisation": 0.864,
+          "grouping": 0.836,
+          "safety": 0.7588,
+          "buildability": 0.6215
+        },
+        "sections": [
+          {
+            "width": 114.6,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 80
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 81.8,
+                "y": 0,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 80
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 81.8,
+                "y": 28.8,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 80
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 102.4,
+                "x": 0,
+                "y": 57.6,
+                "w": 80
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 8,
+                "x": 81.8,
+                "y": 57.6,
+                "w": 32.8
+              },
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 81.8,
+                "y": 65.6,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 81.8,
+                "y": 94.4,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 81.8,
+                "y": 113.6,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 81.8,
+                "y": 132.8,
+                "w": 32.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 23.2,
+                "x": 81.8,
+                "y": 152,
+                "w": 32.8
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 40,
+                "h": 43.2
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 41.8,
+                "y": 175.2,
+                "w": 38.2,
+                "h": 43.2
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 81.8,
+                "y": 175.2,
+                "w": 32.8,
+                "h": 43.2
+              }
+            ],
+            "role": "T-shirts & knitwear + Underwear & socks + Trousers & jeans + Shoes + Shirts & jackets + Seasonal clothing"
+          },
+          {
+            "width": 80,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 57.6,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 76.8,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 96,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 115.2,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 134.4,
+                "w": 80
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 21.599999999999998,
+                "x": 0,
+                "y": 153.6,
+                "w": 80
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 2,
+                "x": 0,
+                "y": 175.2,
+                "w": 80,
+                "h": 43.2
+              }
+            ],
+            "role": "Shoes + Seasonal clothing"
+          }
+        ],
+        "dividers": [
+          {
+            "i": 0,
+            "orientation": "vertical",
+            "x": 80.9,
+            "y0": 0,
+            "y1": 218.4
+          },
+          {
+            "i": 0,
+            "orientation": "vertical",
+            "x": 40.9,
+            "y0": 160,
+            "y1": 218.4
+          }
+        ],
+        "selectionNote": "2 distinct layouts meet the quality and diversity requirements. Daily Driver: less than 15% advantage over Best Overall. Drawer First: less than 15% advantage over Best Overall. Hanging Focus: inventory or envelope does not suit this approach. Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+      },
+      {
+        "title": "Open & Simple · partial",
+        "archetype": "open",
+        "score": 77.77,
+        "coverage": 0.9525936104431467,
+        "comparison": {
+          "hero": "openStorage",
+          "baseline": 0,
+          "value": 0.6,
+          "margin": 1,
+          "gainPoints": 60,
+          "giveUp": "Gives up 4 points of inventory coverage."
+        },
+        "dna": {
+          "shares": {
+            "hang": 0.14591217910719986,
+            "drawers": 0.011399388992749988,
+            "open": 0.07295608955359992,
+            "shoes": 0.5502713054580275,
+            "seasonal": 0.19780219780219782,
+            "spare": 0.0216588390862249
+          },
+          "columns": 3,
+          "widthPattern": [
+            576,
+            576,
+            704
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0.060324825986078884,
+              0.12064965197215777,
+              0.5396088829963539,
+              0.27941663904540937,
+              0
+            ],
+            [
+              0,
+              1,
+              0,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.6036,
+          "clearance": 0.932,
+          "utilisation": 0.8397,
+          "grouping": 0.936,
+          "safety": 0.7303,
+          "buildability": 0.7088
+        },
+        "sections": [
+          {
+            "width": 60,
+            "items": [
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 102.4,
+                "x": 0,
+                "y": 0,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 102.4,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 121.6,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 140.8,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 60,
+                "h": 43.2
+              }
+            ],
+            "role": "Shirts & jackets + Shoes + Seasonal clothing"
+          },
+          {
+            "width": 60,
+            "items": [
+              {
+                "k": "folded",
+                "purpose": "pants",
+                "h": 22.4,
+                "x": 0,
+                "y": 0,
+                "w": 60
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 22.4,
+                "w": 60
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 8,
+                "x": 0,
+                "y": 51.2,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 59.2,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 78.4,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 97.6,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 116.8,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 136,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 20,
+                "x": 0,
+                "y": 155.2,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 175.2,
+                "w": 60,
+                "h": 43.2
+              }
+            ],
+            "role": "Trousers & jeans + T-shirts & knitwear + Underwear & socks + Shoes + Seasonal clothing"
+          },
+          {
+            "width": 72.8,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 57.6,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 76.8,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 96,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 115.2,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 134.4,
+                "w": 72.8
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 21.599999999999998,
+                "x": 0,
+                "y": 153.6,
+                "w": 72.8
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 2,
+                "x": 0,
+                "y": 175.2,
+                "w": 72.8,
+                "h": 43.2
+              }
+            ],
+            "role": "Shoes + Seasonal clothing"
+          }
+        ],
+        "dividers": []
+      }
+    ],
+    "distances": [
+      [
+        0,
+        0.3212
+      ],
+      [
+        0.3212,
+        0
+      ]
+    ]
+  },
+  {
+    "name": "tiny",
+    "cfg": {
+      "w": 80,
+      "h": 180,
+      "d": 60,
+      "reach": 150,
+      "longDrop": 160,
+      "growth": 15,
+      "upper": "fill",
+      "drawers": "auto",
+      "density": "comfort",
+      "needs": {
+        "short": 24,
+        "long": 6,
+        "pants": 12,
+        "folded": 30,
+        "shoes": 8,
+        "small": 30
+      }
+    },
+    "milliseconds": 68,
+    "poolSize": 8,
+    "skipped": [
+      "Hanging Focus: inventory or envelope does not suit this approach.",
+      "Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand.",
+      "Inventory fit: inventory or envelope does not suit this approach."
+    ],
+    "plans": [
+      {
+        "title": "Best Overall · partial",
+        "archetype": "balanced",
+        "score": 77.26,
+        "coverage": 0.5755813953488372,
+        "dna": {
+          "shares": {
+            "hang": 0,
+            "drawers": 0.5042506988976839,
+            "open": 0.3073430425451975,
+            "shoes": 0,
+            "seasonal": 0,
+            "spare": 0.18840625855711857
+          },
+          "columns": 2,
+          "widthPattern": [
+            320,
+            384
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0.36,
+              0.6399999999999999,
+              0,
+              0
+            ],
+            [
+              0,
+              0.17609293793946806,
+              0.48914704983185575,
+              0.3347600122286763,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 0.6234,
+          "clearance": 0.9419,
+          "utilisation": 0.7105,
+          "grouping": 0.8545,
+          "safety": 0.8461,
+          "buildability": 0.7781
+        },
+        "sections": [
+          {
+            "width": 34.6,
+            "items": [
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 0,
+                "w": 34.6
+              },
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 28.8,
+                "w": 34.6
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 12.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 34.6
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 12.8,
+                "x": 0,
+                "y": 70.4,
+                "w": 34.6
+              },
+              {
+                "k": "folded",
+                "purpose": "pants",
+                "h": 22.4,
+                "x": 0,
+                "y": 83.2,
+                "w": 34.6
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 30,
+                "x": 0,
+                "y": 105.6,
+                "w": 34.6
+              }
+            ],
+            "role": "Trousers & jeans + Underwear & socks + T-shirts & knitwear"
+          },
+          {
+            "width": 40,
+            "items": [
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 0,
+                "w": 40
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 28.8,
+                "w": 40
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 40
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 22.4,
+                "x": 0,
+                "y": 86.4,
+                "w": 40
+              },
+              {
+                "k": "folded",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 108.8,
+                "w": 40
+              }
+            ],
+            "role": "T-shirts & knitwear"
+          }
+        ],
+        "dividers": [],
+        "selectionNote": "1 distinct layout meet the quality and diversity requirements. Daily Driver: less than 15% advantage over Best Overall. Drawer First: less than 15% advantage over Best Overall. Open & Simple: no plan meets the physical, coverage and quality floors. Hanging Focus: inventory or envelope does not suit this approach. Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand. Inventory fit: inventory or envelope does not suit this approach."
+      }
+    ],
+    "distances": [
+      [
+        0
+      ]
+    ]
+  },
+  {
+    "name": "huge",
+    "cfg": {
+      "w": 350,
+      "h": 280,
+      "d": 60,
+      "reach": 210,
+      "longDrop": 160,
+      "growth": 15,
+      "upper": "fill",
+      "drawers": "auto",
+      "density": "comfort",
+      "needs": {
+        "short": 24,
+        "long": 6,
+        "pants": 12,
+        "folded": 30,
+        "shoes": 8,
+        "small": 30
+      }
+    },
+    "milliseconds": 1454,
+    "poolSize": 59,
+    "skipped": [
+      "Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+    ],
+    "plans": [
+      {
+        "title": "Best Overall",
+        "archetype": "daily",
+        "score": 90.91,
+        "coverage": 1,
+        "dna": {
+          "shares": {
+            "hang": 0.2448843311937981,
+            "drawers": 0.08855797873912914,
+            "open": 0.043238204877166564,
+            "shoes": 0.07495735131215361,
+            "seasonal": 0.24162155441207414,
+            "spare": 0.30674057946567845
+          },
+          "columns": 3,
+          "widthPattern": [
+            576,
+            576,
+            2240
+          ],
+          "zones": [
+            [
+              0,
+              0,
+              0.5,
+              0.5,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0.7216035634743875,
+              0.27839643652561247,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              1,
+              0,
+              0
+            ]
+          ]
+        },
+        "floors": {
+          "accessibility": 1,
+          "clearance": 1,
+          "utilisation": 0.898,
+          "grouping": 0.936,
+          "safety": 0.7579,
+          "buildability": 0.5822
+        },
+        "sections": [
+          {
+            "width": 222.8,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 40
+              },
+              {
+                "k": "long",
+                "purpose": "long",
+                "h": 176,
+                "x": 41.8,
+                "y": 0,
+                "w": 58.2
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 102.4,
+                "x": 101.8,
+                "y": 0,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 163.6,
+                "y": 0,
+                "w": 59.2
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 40
+              },
+              {
+                "k": "pants",
+                "purpose": "pants",
+                "h": 67.2,
+                "x": 163.6,
+                "y": 19.2,
+                "w": 59.2
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 40
+              },
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 40
+              },
+              {
+                "k": "drawer",
+                "purpose": "pants",
+                "h": 28.8,
+                "x": 0,
+                "y": 86.4,
+                "w": 40
+              },
+              {
+                "k": "short",
+                "purpose": "short",
+                "h": 102.4,
+                "x": 101.8,
+                "y": 102.4,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 0,
+                "y": 203.4,
+                "w": 40,
+                "h": 65
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 41.8,
+                "y": 203.4,
+                "w": 58.2,
+                "h": 65
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 163.6,
+                "y": 203.4,
+                "w": 59.2,
+                "h": 65
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "x": 101.8,
+                "y": 204.8,
+                "w": 60,
+                "h": 63.6
+              }
+            ],
+            "role": "Shoes + Trousers & jeans + Dresses & coats + Shirts & jackets + Seasonal clothing"
+          },
+          {
+            "width": 60,
+            "items": [
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 0,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 19.2,
+                "w": 60
+              },
+              {
+                "k": "shoe",
+                "purpose": "shoes",
+                "h": 19.2,
+                "x": 0,
+                "y": 38.4,
+                "w": 60
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 57.6,
+                "w": 60
+              },
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 86.4,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "h": 34.1,
+                "x": 0,
+                "y": 200.2,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "h": 34.1,
+                "x": 0,
+                "y": 234.29999999999998,
+                "w": 60
+              }
+            ],
+            "role": "Shoes + T-shirts & knitwear + Seasonal clothing"
+          },
+          {
+            "width": 60,
+            "items": [
+              {
+                "k": "drawer",
+                "purpose": "folded",
+                "h": 28.8,
+                "x": 0,
+                "y": 46.6,
+                "w": 60
+              },
+              {
+                "k": "sdrawer",
+                "purpose": "small",
+                "h": 11,
+                "x": 0,
+                "y": 75.4,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "h": 34.1,
+                "x": 0,
+                "y": 200.2,
+                "w": 60
+              },
+              {
+                "k": "seasonal",
+                "purpose": "seasonal",
+                "boxes": 1,
+                "h": 34.1,
+                "x": 0,
+                "y": 234.29999999999998,
+                "w": 60
+              }
+            ],
+            "role": "T-shirts & knitwear + Underwear & socks + Seasonal clothing"
+          }
+        ],
+        "dividers": [
+          {
+            "i": 0,
+            "orientation": "vertical",
+            "x": 100.9,
+            "y0": 0,
+            "y1": 268.4
+          },
+          {
+            "i": 0,
+            "orientation": "vertical",
+            "x": 40.9,
+            "y0": 0,
+            "y1": 268.4
+          },
+          {
+            "i": 0,
+            "orientation": "vertical",
+            "x": 162.7,
+            "y0": 0,
+            "y1": 268.4
+          },
+          {
+            "i": 0,
+            "orientation": "horizontal",
+            "x0": 163.6,
+            "x1": 222.8,
+            "y": 87.3
+          },
+          {
+            "i": 2,
+            "orientation": "horizontal",
+            "x0": 0,
+            "x1": 60,
+            "y": 45.7
+          },
+          {
+            "i": 2,
+            "orientation": "horizontal",
+            "x0": 0,
+            "x1": 60,
+            "y": 87.3
+          }
+        ],
+        "selectionNote": "1 distinct layout meet the quality and diversity requirements. Daily Driver: less than 15% advantage over Best Overall. Drawer First: less than 15% advantage over Best Overall. Hanging Focus: less than 15% advantage over Best Overall. Open & Simple: same structural family as Best Overall. Room to Grow: spare-space recommendations are disabled; saved growth is included in the clothing demand."
+      }
+    ],
+    "distances": [
+      [
+        0
+      ]
+    ]
+  }
+]
