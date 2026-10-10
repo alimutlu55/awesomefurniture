@@ -69,7 +69,6 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             effects.selectionChanged({ deep: true, pillOn: false });
             effects.milestone('cut');
         });
-        effects.report('Divider added inside the selected space');
     }
     function addShelfBoard() {
         const i = getDesign().sel, space = rules.sectionSpaceMeasurements(i);
@@ -87,7 +86,6 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             getDesign().proposal = null;
             getDesign().space = { i, x: (space.x0! + space.x1!) / 2, y: (space.y0 + y + PL + T - T / 2) / 2 };
         });
-        effects.report('Shelf added. Free space above and below');
     }
     function removeDivider() {
         run(() => {

@@ -33,7 +33,7 @@ test('application commands add shelves and fittings in free spaces without a DOM
  assert.equal(design.dividers[1].orientation,'horizontal');
  commands.addMod('drawer');assert.equal(design.secs[0].length,1);
  assert.equal(design.secs[0][0].k,'drawer');assert.equal(design.item,-1);
- assert.ok(events.includes('Drawer added'));
+ assert.ok(!events.includes('Drawer added'));
 });
 test('application commands clamp reachable height and keep accessibility rules',async()=>{
  const {createDesignCommands}=await import('../src/application/commands/design-commands.js');

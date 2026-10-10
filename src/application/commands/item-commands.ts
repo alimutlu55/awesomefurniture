@@ -79,7 +79,6 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             }
         }
         effects.changed(true);
-        effects.report(MODS[k].n + ' added');
     }
     function addMod0(k: ItemKind) {
         if (getDesign().item < 0 && (getDesign().space?.i === getDesign().sel || rules.sectionDividers(getDesign().sel).length)) {
@@ -121,7 +120,6 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
                     getDesign().secs[getDesign().sel]!.push({ ...rules.newItem(k, hh), w: g.w, ax: (g.ax as 'l' | 'c' | 'r') });
                     getDesign().item = getDesign().secs[getDesign().sel]!.length - 1;
                 });
-                effects.report(m.n + ' placed in the empty ' + Math.round(g.w) + ' cm column. Undo (Ctrl/Cmd+Z) reverts.');
                 return;
             }
             if (rules.splitFor(k)) {
