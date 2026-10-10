@@ -27,3 +27,6 @@ export const icon = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"
 export const RANKS = ['Apprentice', 'Joiner', 'Carpenter', 'Cabinetmaker', 'Master Builder', 'Legend'];
 ICONP.plus = "M12 5v14M5 12h14";
 ICONP.divider = "M9 4v16M15 4v16";
+ICONP.material = "M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7 9h.01M10 6h.01M15 7h.01M6 13h.01";
+ICONP.reach = "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M4 4l6 6M20 4l-6 6M20 20l-6-6M4 20l6-6";
+ICONP.doors = "M12 3 4 5v14l8 2V3h8v18h-8";

@@ -26,19 +26,32 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     let context;
     const close = () => { menu.hidden = true; row.querySelectorAll('[aria-haspopup="menu"]').forEach(b => b.setAttribute('aria-expanded', 'false')); };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ')};
+    const menuIcons = {material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del')};
     function showMenu(options, trigger) {
         const opening = menu.hidden;
         close();
         if (!opening) return;
-        menu.replaceChildren(...options.map(([key, label]) => {
+        const items = document.createElement('div');
+        items.className = 'contextual-menu-items';
+        items.append(...options.map(([key, label]) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.setAttribute('role', 'menuitem');
-            b.textContent = label;
+            b.dataset.action = key;
+            if (menuIcons[key]) b.innerHTML = menuIcons[key];
+            const text = document.createElement('span');
+            text.textContent = label;
+            b.append(text);
             b.onclick = () => { close(); execute(key); };
             return b;
         }));
+        menu.replaceChildren(items);
         menu.hidden = false;
+        const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();
+        const center = anchor.x + anchor.width / 2 - bounds.x;
+        const left = Math.max(12, Math.min(center - menu.offsetWidth / 2, bounds.width - menu.offsetWidth - 12));
+        menu.style.left = left + 'px';
+        menu.style.setProperty('--popover-pointer', Math.max(24, Math.min(center - left, menu.offsetWidth - 24)) + 'px');
         trigger.setAttribute('aria-expanded', 'true');
         menu.querySelector('button')?.focus({preventScroll:true});
     }
