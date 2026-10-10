@@ -33,6 +33,10 @@ export function bindPageViewport(root: HTMLElement, view: Window): () => void {
             const panel = focused?.closest<HTMLElement>('.mobile-focus-body,aside,.pop,.wizard-body');
             if (!panel || !focused) return;
             const inputRect = focused.getBoundingClientRect(), panelRect = panel.getBoundingClientRect();
+            if (panel.classList.contains('mobile-focus-body')) {
+                if (inputRect.left < panelRect.left + 8) panel.scrollLeft += inputRect.left - panelRect.left - 8;
+                else if (inputRect.right > panelRect.right - 8) panel.scrollLeft += inputRect.right - panelRect.right + 8;
+            }
             const top = panelRect.top + (panel.matches('.pop') ? 64 : 12);
             if (inputRect.top < top) panel.scrollTop += inputRect.top - top;
             else if (inputRect.bottom > panelRect.bottom - 12) panel.scrollTop += inputRect.bottom - panelRect.bottom + 12;

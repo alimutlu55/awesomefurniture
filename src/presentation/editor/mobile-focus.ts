@@ -1,11 +1,12 @@
+import { FIN, MODS } from '../../domain/wardrobe/catalog.js';
 import type { MountEditorBindingsPorts } from './mount-editor-bindings.ports';
 
-type Ports = Pick<MountEditorBindingsPorts, 'dom' | 'camera' | 'cameraState' | 'inspector' | 'selectionState' | 'model' | 'lifetime' | 'interactions' | 'planner'>;
+type Ports = Pick<MountEditorBindingsPorts, 'dom' | 'camera' | 'cameraState' | 'inspector' | 'selectionState' | 'model' | 'lifetime' | 'interactions' | 'planner' | 'geometry'>;
 type Mode = 'settings' | 'resize' | 'sections' | 'reach' | 'finish' | 'doors' | 'manage' | 'wardrobe-select' | 'wardrobe-add' | 'wardrobe-reset' | 'wardrobe-remove' | 'place' | 'rotate' | 'add' | 'item' | 'item-resize' | 'item-finish' | 'item-align' | 'item-purpose' | 'item-move' | 'item-swap' | 'item-measure' | 'item-type' | 'item-duplicate' | 'item-delete' | 'divider' | 'divider-move' | 'divider-measure' | 'divider-duplicate' | 'divider-remove' | 'storage' | 'menu' | 'help' | 'auto-design';
 
 /** Mobile actions share a viewport, navigation stack and reversible DOM moves.
  * The desktop controls and their command bindings keep their original homes. */
-export function bindMobileFocus({ dom, camera, cameraState, inspector, selectionState, model, lifetime, interactions, planner }: Ports) {
+export function bindMobileFocus({ dom, camera, cameraState, inspector, selectionState, model, lifetime, interactions, planner, geometry }: Ports) {
     const { $ } = dom;
     const app = $('#app'), native = app.ownerDocument;
     const desktop = dom.matchMedia('(min-width:901px)');
@@ -43,10 +44,12 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     });
     let saved: ReturnType<typeof capture> | null = null, pending: ReturnType<typeof capture> | null = null;
     let commandBefore: string | null = null;
-    const returns: Array<{ pose: ReturnType<typeof camera.camNow>; shift: number; zoom: number; scroll: number }> = [];
+    const returns: Array<{ pose: ReturnType<typeof camera.camNow>; shift: number; zoom: number; scroll: number; scrollX: number }> = [];
     let stack: Mode[] = [], moved: Array<{ node: HTMLElement; marker: Comment; hidden: HTMLElement['hidden'] }> = [], guard = false;
     let frame = 0;
+    let pickerButtons: HTMLElement[] = [];
     const restoreNodes = () => {
+        pickerButtons.forEach(button => button.remove()); pickerButtons = [];
         for (const { node, marker, hidden } of moved) {
             marker.replaceWith(node); node.classList.remove('focus-content'); node.hidden = hidden;
         }
@@ -71,6 +74,23 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
         const mode = stack.at(-1)!;
         app.dataset.focusMode = mode; title.textContent = names[mode];
         controls.hidden = false; app.classList.add('mobile-focus');
+        if (mode === 'item-finish' || mode === 'item-type') {
+            const container = $(mode === 'item-finish' ? '#ifin' : '#itype');
+            const state = model.activeCabinet().state, selected = state.secs[state.sel]?.[state.item];
+            if (selected) {
+                const choices = mode === 'item-finish' ? [['', 'Wardrobe finish'], ...Object.keys(FIN).map(key => [key, key])] : Object.entries(MODS).filter(([key]) => key !== 'void').map(([key, value]) => [key, value.n]);
+                for (const [value, label] of choices) {
+                    const button = native.createElement('button'); button.type = 'button';
+                    button.textContent = label!; button.setAttribute('aria-label', label!);
+                    if (mode === 'item-finish') { button.dataset.f = value!; button.classList.toggle('on', (selected.f || '') === value); }
+                    else {
+                        button.dataset.t = value!; button.classList.toggle('on', selected.k === value);
+                        button.disabled = !geometry.itemFeasible(value!, (geometry.itemGeom(state.sel, state.item)?.w ?? 0)) || selected.h + geometry.itemFreeAbove(state.sel, state.item) < geometry.effectiveMin(value!);
+                    }
+                    container.append(button); pickerButtons.push(button);
+                }
+            }
+        }
         if (mode === 'settings' || mode === 'item' || mode === 'divider' || mode === 'manage') {
             const menu = native.createElement('div'); menu.className = 'mobile-action-menu';
             for (const next of mode === 'settings' ? settings : mode === 'item' ? item : mode === 'manage' ? manage : divider) {
@@ -101,13 +121,13 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
             const marker = native.createComment('mobile action control home'); node.before(marker);
             moved.push({ node, marker, hidden: node.hidden }); node.hidden = false; node.classList.add('focus-content'); body.append(node);
         }
-        body.scrollTop = 0;
+        body.scrollTop = body.scrollLeft = 0;
         frameTarget(); back.focus({ preventScroll: true });
     };
     const enter = (mode: Mode) => {
         if (desktop.matches) return;
         if (!saved) { saved = pending ?? capture(); pending = null; }
-        else returns.push({pose:camera.camNow(),shift:cameraState.vs,zoom:cameraState.vz,scroll:body.scrollTop});
+        else returns.push({pose:camera.camNow(),shift:cameraState.vs,zoom:cameraState.vz,scroll:body.scrollTop,scrollX:body.scrollLeft});
         guard = true;
         if (mode === 'auto-design') { planner.openWizard(); app.inert = false; }
         if (mode === 'settings') {
@@ -148,7 +168,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
             if (previous) {
                 lifetime.cancelFrame(frame); camera.camRelease(); camera.cameraApply(previous.pose);
                 cameraState.vs = cameraState.vsT = previous.shift; cameraState.vz = cameraState.vzT = previous.zoom;
-                body.scrollTop = previous.scroll;
+                body.scrollTop = previous.scroll; body.scrollLeft = previous.scrollX;
             }
             guard = false;
         } else exit();

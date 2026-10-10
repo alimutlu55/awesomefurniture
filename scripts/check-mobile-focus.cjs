@@ -19,8 +19,15 @@ const {chromium}=require('playwright');
      assert.ok(view.y+view.height<=controls.y+1,'Wardrobe must be above action controls');
      assert.ok(Math.abs(controls.height/(view.height+controls.height)-.25)<.01,'Tools must occupy 25% of the editor');
      assert.ok(Math.abs(view.width-controls.width)<1,'Bottom controls must span the editor width');
-     assert.equal(await c('toolbar').isVisible(),false);assert.equal(await c('props-btn').isVisible(),false);
+     assert.equal(await c('toolbar').isVisible(),false);
+     assert.equal(await c('pop2').isVisible(),false,'Unrelated item picker must remain hidden');assert.equal(await c('props-btn').isVisible(),false);
      if(mode==='resize'){
+      const dimensions=await Promise.all(['w','h','d'].map(id=>c(id).boundingBox()));
+      assert.ok(dimensions.every(box=>Math.abs(box.y-dimensions[0].y)<1),'Dimensions must form one horizontal row');
+      assert.ok(dimensions[0].x<dimensions[1].x&&dimensions[1].x<dimensions[2].x,'Dimension order must be horizontal');
+      assert.equal(await c('w').evaluate(e=>getComputedStyle(e.closest('.size-field')).borderRadius),'0px');
+      await c('d').scrollIntoViewIfNeeded();
+      assert.ok(await c('d').evaluate(e=>{const box=e.getBoundingClientRect(),panel=e.closest('.mobile-focus-body').getBoundingClientRect();return box.left>=panel.left&&box.right<=panel.right;}),'Depth must be reachable by horizontal scrolling');
       await c('d-range').evaluate(el=>{el.value='65';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
       assert.equal(await c('d').inputValue(),'65');
      }
@@ -57,9 +64,23 @@ const {chromium}=require('playwright');
      if(await c('app').getAttribute('data-focus-mode')==='item')break selection;
     }
     assert.equal(await c('app').getAttribute('data-focus-mode'),'item','Selecting an item opens its action menu');
-    for(const mode of ['item-resize','item-align','item-purpose','item-finish','item-move','item-type','item-measure']){
+    for(const mode of ['item-resize','item-align','item-purpose','item-finish','item-move','item-swap','item-type','item-measure']){
      await tap(page.locator(`[data-focus-action="${mode}"]`));assert.equal(await c('app').getAttribute('data-focus-mode'),mode);
      assert.equal(await page.locator('.mobile-focus-controls').isVisible(),true);
+     if(mode==='item-finish'){
+      assert.equal(await c('ifin').locator('button').count(),6);
+      await tap(c('ifin').locator('[data-f="Walnut"]'));
+      assert.equal(await c('ifin').locator('[data-f="Walnut"]').evaluate(e=>e.classList.contains('on')),true,'Finish must update the selected item');
+     }
+     if(mode==='item-type'){
+      assert.ok(await c('itype').locator('button').count()>0,'Type picker must contain item choices');
+      await tap(c('itype').locator('[data-t="shelf"]'));
+      assert.equal(await c('itype').locator('[data-t="shelf"]').evaluate(e=>e.classList.contains('on')),true,'Type selection must update the item');
+     }
+     if(mode==='item-resize'){
+      const before=Number(await c('ih').inputValue());await c('ih').fill(String(before-1));await c('ih').blur();
+      assert.equal(Number(await c('ih').inputValue()),before-1,'Item size must update');
+     }
      await tap(back);assert.equal(await c('app').getAttribute('data-focus-mode'),'item');
     }
     await tap(back);

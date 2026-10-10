@@ -4,7 +4,9 @@
 
 The mobile focus controller in `mobile-focus.ts` owns one shared two-pane
 layout: the model occupies the top 75%, and the current action's compact
-controls occupy the bottom 25%. The controls expand while the keyboard is open. A Back button moves through the action stack and restores the
+controls occupy the bottom 25% in a horizontally scrolling strip. Dimensions and
+choices sit side by side with square corners. The controls expand while the
+keyboard is open, and the focused field scrolls into view horizontally. A Back button moves through the action stack and restores the
 original camera, editing selection, focus and inspector scroll on final exit.
 Controls move with placeholders and return to their original desktop parents.
 
@@ -16,12 +18,13 @@ return to the previous context. Action controls still call the existing domain
 commands and history, including live size sliders.
 
 `scripts/check-mobile-focus.cjs` currently checks Settings action navigation,
-adding, item action navigation, storage/menu/Auto design, 75/25 top/bottom geometry,
+adding, item resize/finish/type mutations, storage/menu/Auto design, horizontal
+control ordering and scrolling, square corners, 75/25 top/bottom geometry,
 hidden global controls, and desktop restoration across six viewport sizes.
 The redesign is not complete: verify mutations for every item/divider action,
 keyboard behavior in the bottom pane, exact return state, wardrobe management
 as separate actions, and migrate the existing bottom-sheet regression suite
-to the new workflow before shipping or marking the goal achieved.
+to the new workflow before marking the goal achieved.
 
 The editor uses a Three.js canvas and container-scoped controls. The mobile work
 covers the editor itself, including embedded editors; the page entry also follows

@@ -30,10 +30,10 @@ export function createItemActions({ dom, selectionState, model, commands, intera
             interactions.armMovement('swap');
         }
         else if (a === 'full') {
-            ( /** @type {HTMLElement} */($('#pop3').querySelector('[data-iwfull]')))?.click();
+            ( /** @type {HTMLElement} */($('#ialign').querySelector('[data-iwfull]')))?.click();
         }
         else if (a.startsWith('al-')) {
-            ( /** @type {HTMLElement} */($('#pop3').querySelector('[data-al="' + a.slice(3) + '"]')))?.click();
+            ( /** @type {HTMLElement} */($('#ialign').querySelector('[data-al="' + a.slice(3) + '"]')))?.click();
         }
         else if (a.startsWith('t-')) {
             ( /** @type {HTMLElement} */($('#itype').querySelector('[data-t="' + a.slice(2) + '"]')))?.click();
