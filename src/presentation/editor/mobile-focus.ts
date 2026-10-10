@@ -1,7 +1,7 @@
 import type { MountEditorBindingsPorts } from './mount-editor-bindings.ports';
 
 type Ports = Pick<MountEditorBindingsPorts, 'dom' | 'camera' | 'cameraState' | 'inspector' | 'selectionState' | 'model' | 'lifetime' | 'interactions' | 'planner'>;
-type Mode = 'settings' | 'resize' | 'sections' | 'reach' | 'finish' | 'doors' | 'manage' | 'place' | 'rotate' | 'add' | 'item' | 'item-resize' | 'item-finish' | 'item-align' | 'item-purpose' | 'item-move' | 'item-measure' | 'item-type' | 'item-duplicate' | 'item-delete' | 'divider' | 'divider-move' | 'divider-measure' | 'divider-duplicate' | 'divider-remove' | 'storage' | 'menu' | 'help' | 'auto-design';
+type Mode = 'settings' | 'resize' | 'sections' | 'reach' | 'finish' | 'doors' | 'manage' | 'wardrobe-select' | 'wardrobe-add' | 'wardrobe-reset' | 'wardrobe-remove' | 'place' | 'rotate' | 'add' | 'item' | 'item-resize' | 'item-finish' | 'item-align' | 'item-purpose' | 'item-move' | 'item-swap' | 'item-measure' | 'item-type' | 'item-duplicate' | 'item-delete' | 'divider' | 'divider-move' | 'divider-measure' | 'divider-duplicate' | 'divider-remove' | 'storage' | 'menu' | 'help' | 'auto-design';
 
 /** Mobile actions share a viewport, navigation stack and reversible DOM moves.
  * The desktop controls and their command bindings keep their original homes. */
@@ -17,17 +17,18 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     back.type = 'button'; back.textContent = '‹ Back'; back.className = 'mobile-focus-back';
     body.className = 'mobile-focus-body';
     header.append(back, title); controls.append(header, body); app.append(controls);
-    const names: Record<Mode, string> = { settings: 'Wardrobe actions', resize: 'Resize wardrobe', sections: 'Sections', reach: 'Reach guide', finish: 'Wardrobe finish', doors: 'Doors', manage: 'Wardrobes', place: 'Move wardrobe', rotate: 'Rotate wardrobe', add: 'Add to this space', item: 'Item actions', 'item-resize': 'Resize item', 'item-finish': 'Item finish', 'item-align': 'Align item', 'item-purpose': 'Stores', 'item-move': 'Move item', 'item-measure': 'Measurements', 'item-type': 'Change item type', 'item-duplicate': 'Duplicate item', 'item-delete': 'Remove item', divider: 'Divider actions', 'divider-move': 'Move divider', 'divider-measure': 'Divider measurements', 'divider-duplicate': 'Duplicate divider', 'divider-remove': 'Remove divider', storage: 'Storage & fit', menu: 'Menu', help: 'Help', 'auto-design': 'Auto design' };
+    const names: Record<Mode, string> = { settings: 'Wardrobe actions', resize: 'Resize wardrobe', sections: 'Sections', reach: 'Reach guide', finish: 'Wardrobe finish', doors: 'Doors', manage: 'Wardrobes', 'wardrobe-select': 'Select wardrobe', 'wardrobe-add': 'Add wardrobe', 'wardrobe-reset': 'Reset wardrobe', 'wardrobe-remove': 'Remove wardrobe', place: 'Move wardrobe', rotate: 'Rotate wardrobe', add: 'Add to this space', item: 'Item actions', 'item-resize': 'Resize item', 'item-finish': 'Item finish', 'item-align': 'Align item', 'item-purpose': 'Stores', 'item-move': 'Move item', 'item-swap': 'Swap item', 'item-measure': 'Measurements', 'item-type': 'Change item type', 'item-duplicate': 'Duplicate item', 'item-delete': 'Remove item', divider: 'Divider actions', 'divider-move': 'Move divider', 'divider-measure': 'Divider measurements', 'divider-duplicate': 'Duplicate divider', 'divider-remove': 'Remove divider', storage: 'Storage & fit', menu: 'Menu', help: 'Help', 'auto-design': 'Auto design' };
     const settings: Mode[] = ['resize', 'sections', 'reach', 'finish', 'doors', 'place', 'rotate', 'manage'];
-    const item: Mode[] = ['item-resize', 'item-align', 'item-purpose', 'item-finish', 'item-move', 'item-type', 'item-measure', 'item-duplicate', 'item-delete'];
+    const item: Mode[] = ['item-resize', 'item-align', 'item-purpose', 'item-finish', 'item-move', 'item-swap', 'item-type', 'item-measure', 'item-duplicate', 'item-delete'];
+    const manage: Mode[] = ['wardrobe-select','wardrobe-add','wardrobe-reset','wardrobe-remove'];
     const divider: Mode[] = ['divider-move', 'divider-measure', 'divider-duplicate', 'divider-remove'];
     const nodes: Partial<Record<Mode, HTMLElement[]>> = {
         resize: [$('#sliders')], sections: [$('#section-row')], reach: [$('#left').querySelector<HTMLElement>('.reach-row')!],
         finish: [$('#fins')], doors: [$('#left').querySelector<HTMLElement>('.door-grid')!],
-        manage: [$('#left').querySelector<HTMLElement>('.wardrobe-header')!, $('#left').querySelector<HTMLElement>('.reset-row')!],
+        'wardrobe-select': [$('#wardrobe-select')],
         add: [$('#pop2')], 'item-resize': [$('#pop3').querySelector<HTMLElement>('.item-size-pair')!],
         'item-align': [$('#ialign')], 'item-purpose': [$('#ipurpose')], 'item-finish': [$('#ifin')],
-        'item-move': [$('#move-controls')], 'item-measure': [$('#imeas')], 'item-type': [$('#itype')],
+        'item-move': [$('#move-controls')], 'item-swap': [$('#move-controls')], 'item-measure': [$('#imeas')], 'item-type': [$('#itype')],
         'divider-move': [$('#pop4').querySelector<HTMLElement>('.item-size-pair')!], 'divider-measure': [$('#dmeas')],
         storage: [$('#plan-panel')], menu: [$('#menu')], help: [$('#help-panel')],
         'auto-design': [$('#wizard').querySelector<HTMLElement>('.wizard-shell')!]
@@ -42,6 +43,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     });
     let saved: ReturnType<typeof capture> | null = null, pending: ReturnType<typeof capture> | null = null;
     let commandBefore: string | null = null;
+    const returns: Array<{ pose: ReturnType<typeof camera.camNow>; shift: number; zoom: number; scroll: number }> = [];
     let stack: Mode[] = [], moved: Array<{ node: HTMLElement; marker: Comment; hidden: HTMLElement['hidden'] }> = [], guard = false;
     let frame = 0;
     const restoreNodes = () => {
@@ -56,7 +58,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
             if (!stack.length || desktop.matches) return;
             camera.resize();
             const mode = stack.at(-1)!;
-            if (['settings', 'resize', 'sections', 'reach', 'finish', 'doors', 'manage', 'place', 'rotate', 'storage', 'menu', 'help', 'auto-design'].includes(mode)) {
+            if (['settings', 'resize', 'sections', 'reach', 'finish', 'doors', 'manage', 'place', 'rotate', 'storage', 'menu', 'help', 'auto-design', 'item-move', 'item-swap'].includes(mode) || mode.startsWith('wardrobe-')) {
                 camera.camRelease();
                 camera.cameraTransition(camera.camFront(), 360);
             } else camera.focusSelection();
@@ -69,9 +71,9 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
         const mode = stack.at(-1)!;
         app.dataset.focusMode = mode; title.textContent = names[mode];
         controls.hidden = false; app.classList.add('mobile-focus');
-        if (mode === 'settings' || mode === 'item' || mode === 'divider') {
+        if (mode === 'settings' || mode === 'item' || mode === 'divider' || mode === 'manage') {
             const menu = native.createElement('div'); menu.className = 'mobile-action-menu';
-            for (const next of mode === 'settings' ? settings : mode === 'item' ? item : divider) {
+            for (const next of mode === 'settings' ? settings : mode === 'item' ? item : mode === 'manage' ? manage : divider) {
                 const button = native.createElement('button'); button.type = 'button'; button.textContent = names[next];
                 button.dataset.focusAction = next; menu.append(button);
             }
@@ -85,14 +87,16 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
                 input.addEventListener('change', () => { inspector.setCabinetPose(key,input.valueAsNumber); input.value = String(model.activeCabinet()[key as 'x'|'y'|'z'|'angle']); });
                 label.append(input); body.append(label);
             }
-        } else if (['item-duplicate','item-delete','divider-duplicate','divider-remove'].includes(mode)) {
+        } else if (['item-duplicate','item-delete','divider-duplicate','divider-remove','wardrobe-add','wardrobe-reset','wardrobe-remove'].includes(mode)) {
             const button = native.createElement('button'); button.type = 'button'; button.textContent = names[mode];
             button.addEventListener('click', () => {
                 if (mode === 'item-duplicate') inspector.itemAction('dup');
                 else if (mode === 'item-delete') inspector.itemAction('del');
+                else if (mode.startsWith('wardrobe-')) $(mode === 'wardrobe-add' ? '#wardrobe-add' : mode === 'wardrobe-reset' ? '#reset-all' : '#remove-wardrobe').click();
                 else $(mode === 'divider-duplicate' ? '#divider-dup' : '#divider-remove').click();
                 exit();
             }); body.append(button);
+            if (mode === 'wardrobe-remove') button.disabled = model.scene.wardrobes.length < 2;
         } else for (const node of nodes[mode] ?? []) {
             const marker = native.createComment('mobile action control home'); node.before(marker);
             moved.push({ node, marker, hidden: node.hidden }); node.hidden = false; node.classList.add('focus-content'); body.append(node);
@@ -103,6 +107,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     const enter = (mode: Mode) => {
         if (desktop.matches) return;
         if (!saved) { saved = pending ?? capture(); pending = null; }
+        else returns.push({pose:camera.camNow(),shift:cameraState.vs,zoom:cameraState.vz,scroll:body.scrollTop});
         guard = true;
         if (mode === 'auto-design') { planner.openWizard(); app.inert = false; }
         if (mode === 'settings') {
@@ -118,7 +123,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     const exit = () => {
         if (!saved) return;
         guard = true;
-        const previous = saved; saved = null; pending = null; stack = [];
+        const previous = saved; saved = null; pending = null; stack = []; returns.length = 0;
         lifetime.cancelFrame(frame); restoreNodes(); controls.hidden = true;
         if (stack.includes('auto-design') || !$('#wizard').hidden) planner.closeWizard();
         app.classList.remove('mobile-focus'); delete app.dataset.focusMode;
@@ -138,7 +143,14 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
         if (stack.length > 1) {
             guard = true;
             if (stack.at(-1) === 'auto-design') planner.closeWizard();
-            interactions.cancelMovement(); stack.pop(); draw(); guard = false;
+            interactions.cancelMovement(); stack.pop(); draw();
+            const previous = returns.pop();
+            if (previous) {
+                lifetime.cancelFrame(frame); camera.camRelease(); camera.cameraApply(previous.pose);
+                cameraState.vs = cameraState.vsT = previous.shift; cameraState.vz = cameraState.vzT = previous.zoom;
+                body.scrollTop = previous.scroll;
+            }
+            guard = false;
         } else exit();
     };
     lifetime.listen(back, 'click', goBack);
@@ -155,7 +167,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
     const passivePreview = (e: PointerEvent) => {
         // Action controls choose what can change; passive previews must not
         // accidentally start the editor's unrelated body-drag or selection.
-        if (!desktop.matches && saved && stack.at(-1) !== 'item-move') e.stopImmediatePropagation();
+        if (!desktop.matches && saved && !['item-move','item-swap'].includes(stack.at(-1)!)) e.stopImmediatePropagation();
     };
     for (const event of ['pointerdown','pointermove','pointerup']) lifetime.listen($('#c'), event, passivePreview, { capture: true });
     lifetime.listen(dom.root, 'click', (e: MouseEvent) => {
@@ -178,7 +190,7 @@ export function bindMobileFocus({ dom, camera, cameraState, inspector, selection
         if ($('#wizard').hidden && stack.at(-1) === 'auto-design') { goBack(); return; }
         const active = ['pop2', 'pop3', 'pop4'].find(id => $('#' + id).classList.contains('show'));
         if (!saved && active) enter(active === 'pop2' ? 'add' : active === 'pop3' ? 'item' : 'divider');
-        else if (saved && ['add', 'item', 'divider'].includes(stack[0]!) && !active) exit();
+        else if (saved && stack[0] === 'add' && !active) exit();
     });
     for (const id of ['#pop2', '#pop3', '#pop4']) lifetime.observe(observer, $(id), { attributes: true, attributeFilter: ['class'] });
     lifetime.observe(observer, $('#wizard'), { attributes: true, attributeFilter: ['hidden'] });
