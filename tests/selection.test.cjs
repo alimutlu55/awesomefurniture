@@ -31,6 +31,22 @@ test('an occupied area drags the cabinet at wardrobe level and the item at item 
  const {context:c,run}=fixture();run('pick({})');c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true);assert.equal(c.drag,null);
  c.wardrobeDrag=false;run('pick({})');c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,0);
 });
+test('touch on the cabinet body or a selected divider leaves it available for orbit and pinch',()=>{
+ const {context:c,run,hit}=fixture();run('pick({})');
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
+ assert.equal(c.wardrobeDrag,false);assert.equal(c.ptrs.size,1);
+ c.ptrs.clear();c.deep=true;c.S.divider=0;c.itemHit=hit();c.itemHit.object.userData.divider=0;
+ c.beginDividerDrag=()=>assert.fail('Touch body must not start divider dragging');
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:100,clientY:100});
+ assert.equal(c.ptrs.size,1);
+});
+test('a second touch starts pinch before testing selected cabinet or divider geometry',()=>{
+ const {context:c,run}=fixture();run('pick({})');
+ c.ptrs.set(1,{clientX:100,clientY:100});c.deep=true;c.S.divider=0;c.itemHit.object.userData.divider=0;
+ let cancelled=0;c.cancelMovement=()=>{cancelled++;c.drag=null};c.drag={started:true};
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:200,clientY:100});
+ assert.equal(c.ptrs.size,2);assert.equal(c.pd,100);assert.equal(c.moved,99);assert.equal(cancelled,1);assert.equal(c.drag,null);
+});
 test('empty bay follows the same first-click wardrobe and second-click section hierarchy',()=>{
  const {context:c,run}=fixture();c.itemHit=null;run('pick({})');assert.equal(c.deep,false);run('pick({})');assert.equal(c.deep,true);assert.equal(c.S.item,-1);assert.equal(c.pillOn,true);
 });

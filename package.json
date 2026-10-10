@@ -15,7 +15,8 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check": "npm run check:boundaries && npm run typecheck:editor && npm test && npm run build",
     "typecheck:editor": "tsc -p tsconfig.editor.json",
-    "review:planner": "node --import tsx scripts/planner-review.mjs"
+    "review:planner": "node --import tsx scripts/planner-review.mjs",
+    "check:mobile": "node scripts/check-mobile.cjs"
   },
   "dependencies": {
     "three": "0.128.0",
@@ -25,6 +26,7 @@
     "@types/node": "^22.20.5",
     "@types/three": "^0.128.0",
     "fake-indexeddb": "^6.2.5",
+    "playwright": "^1.64.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vite": "^8.3.3"

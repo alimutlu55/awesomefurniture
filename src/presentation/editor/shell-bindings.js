@@ -101,6 +101,10 @@ export function bindZoomOut({ dom, camera }) {
 export function bindInspectorControls4({ dom, inspector, shell, lifetime, elements }) {
     const { document, matchMedia } = dom;
     const desktop = matchMedia('(min-width:901px)');
+    const settingsLabel = document.createElement('span');
+    settingsLabel.className = 'mobile-settings-label';
+    settingsLabel.textContent = 'Settings';
+    elements.propsButton.append(settingsLabel);
     const syncToggle = () => {
         const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
         const label = visible ? 'Hide settings' : 'Show settings';
@@ -137,6 +141,18 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
     {
         const mq = matchMedia('(min-width:901px)'), left = $('#left');
         const place = () => {
+            // Anchor menus to the whole editor on phones, so a narrow toolbar
+            // button cannot push a full-width menu outside the screen.
+            for (const [panel, anchor] of [['#plan-panel', '#topright'], ['#menu', '#topleft']]) {
+                const p = $(panel), parent = mq.matches ? $(anchor) : elements.app;
+                if (p.parentNode !== parent) parent.appendChild(p);
+            }
+            // Touch users need an alternative to dragging and keyboard swaps.
+            const movement = $('#move-controls').closest('details');
+            movement.hidden = mq.matches;
+            movement.style.display = mq.matches ? 'none' : '';
+            const dividerActions = $('#divider-dup').parentElement;
+            dividerActions.style.display = mq.matches ? 'none' : '';
             for (const id of ['#pop3', '#pop4']) {
                 const p = $(id);
                 if (mq.matches) {

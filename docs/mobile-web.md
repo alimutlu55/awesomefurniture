@@ -1,0 +1,60 @@
+# Mobile browser audit and changes
+
+The editor uses a Three.js canvas and container-scoped controls. The mobile work
+covers the editor itself, including embedded editors; the page entry also follows
+`visualViewport` height to keep controls above an on-screen keyboard.
+
+## Findings addressed
+
+| Area | Finding | Change |
+| --- | --- | --- |
+| Settings and inspectors | Conflicting rules shrank the canvas and overlaid settings inconsistently | A bounded, scrolling bottom panel reserves matching canvas space; short landscape screens put panels beside the canvas |
+| Navigation | Settings was an unlabeled arrow; section selection used tiny, nonsemantic elements | Visible Settings label and numbered section buttons with selected state; sections scroll horizontally when needed |
+| Touch controls | Many actions and finish swatches were 22–36 px; mobile zoom controls were hidden | Main touch targets are at least 44 px; zoom buttons remain visible |
+| Menus | Menus inherited a narrow toolbar anchor and extended off-screen | Mobile menus are reparented to the editor and use its available width |
+| Inputs | Small numeric text can trigger automatic zoom while editing | Mobile numeric inputs and selects use 16 px text; panels remain independently scrollable |
+| Gestures | Cabinet/divider hit tests intercepted a second finger before pinch registration | Touch body gestures orbit the cabinet; explicit ground handles place/rotate it; second pointers join pinch before hit testing and cancel pending item moves |
+| Precise editing | Move/swap controls were hidden and depended on mouse/keyboard interaction | Mobile exposes move/swap and destination controls, divider actions, and an accessible cancel-move button |
+| Feedback | Rejected edits silently did nothing | Phone-sized editors show short status messages, while Undo remains a toolbar action |
+| Auto design | Nested scrolling and constrained columns made ideas cumbersome to access | A single scrolling wizard body, two-column inventory inputs and one-column idea cards |
+| Browser chrome | Safe areas and keyboard height affected control reachability | Safe-area spacing around controls and visual viewport resize handling |
+
+Desktop styling remains in `editor.css`; mobile overrides and section-button
+styling live in `mobile.css`. Responsive DOM changes restore desktop menu and
+inspector placement when the editor grows beyond 900 px.
+
+## Verification
+
+Run the ordinary checks with `npm run check`. The current migration hash test has
+a pre-existing mismatch for the planner: the actual normalized source hash is
+`055669275d09c17d3699cc9fc55430d9e5b0ab2801061e39e6258f83048bbe01`, while
+its stored baseline starts `dda603d8`. The planner, original CSS, and original
+markup are unchanged from the starting commit. This audit does not rewrite that
+unrelated baseline.
+
+Browser flow checks are separate from the Node regression suite:
+
+```sh
+npx playwright install chromium
+npm run dev -- --host 127.0.0.1
+# In another terminal:
+npm run check:mobile
+```
+
+`MOBILE_TEST_URL` can select another local preview server. `CHROME_PATH` can select
+an existing Chrome executable instead of downloading Playwright Chromium.
+
+The browser script covers 320×568, 390×844, 430×932, 768×1024, 844×390 and
+1440×900. It checks control bounds, canvas/panel separation, dimension and section
+changes, menus, adding fittings, item settings, movement cancellation, zoom,
+real multi-touch pinch/release, Auto design generation/application, Undo/Redo,
+viewport shrinking and rotation, and browser errors. Pointer regressions also
+exercise touch-vs-mouse behavior and second-finger priority directly.
+
+These are Chromium touch-emulation checks, not physical-device certification.
+Real iOS Safari and Android Chrome checks should still cover keyboard opening,
+notches/home indicators, native numeric entry, and GPU performance.
+
+Verified on 2026-10-10: all six browser cases passed; production build, editor
+type checking and architecture boundaries passed. The Node suite passed 212 of
+213 tests, with only the pre-existing planner hash mismatch described above.

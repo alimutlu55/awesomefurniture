@@ -107,6 +107,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
     }
     function movementUI() {
+        const mobileCancel = document.querySelector('.mobile-cancel-move');
+        if (mobileCancel) mobileCancel.hidden = !interactionState.moveMode;
         for (const [id, mode] of [['move-mode', 'move'], ['swap-mode', 'swap']]) {
             const on = interactionState.moveMode === mode;
             $('#' + id).classList.toggle('on', on);
@@ -115,7 +117,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#move-cancel').hidden = !interactionState.moveMode;
     }
     function reopenItemPanel() {
-        if (interactionState.drag || interactionState.moveMode || interactionState.wardrobeGesture || interactionState.rotationGesture || !selectionState.focusOn || !$('#wizard').hidden || document.querySelector('.pop.show')) {
+        if (interactionState.ptrs.size || interactionState.drag || interactionState.moveMode || interactionState.wardrobeGesture || interactionState.rotationGesture || !selectionState.focusOn || !$('#wizard').hidden || document.querySelector('.pop.show')) {
             return;
         }
         if (!model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item]) {
@@ -281,7 +283,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#section-count').textContent = String(model.activeCabinet().state.n);
         $('#sec-minus').disabled = model.activeCabinet().state.n <= 1;
         $('#sec-plus').disabled = model.activeCabinet().state.n >= mn;
-        $('#section-diagram').innerHTML = ws.map((w, i) => '<i data-sec="' + i + '" title="Section ' + (i + 1) + ' · ' + (Math.round(w * 10) / 10) + ' cm" class="' + (i === model.activeCabinet().state.sel ? 'on' : '') + '" style="flex:' + w + '"></i>').join('');
+        $('#section-diagram').innerHTML = ws.map((w, i) => '<button type="button" data-sec="' + i + '" aria-label="Section ' + (i + 1) + '" aria-pressed="' + (i === model.activeCabinet().state.sel) + '" title="Section ' + (i + 1) + ' · ' + (Math.round(w * 10) / 10) + ' cm" class="' + (i === model.activeCabinet().state.sel ? 'on' : '') + '" style="flex:' + w + '"><span class="mobile-section-label">' + (i + 1) + '</span></button>').join('');
     }
     function openPillMenu(btn) {
         showPop(null, '#pop2');

@@ -9,7 +9,13 @@ async function main(): Promise<void> {
   history.replaceState(null,'',url);
  }
  const editor=mountEditor({root:root!});
- const dispose=()=>editor.dispose();
+ // iOS keyboards resize the visual viewport, while the layout viewport can
+ // remain full height. Keep the editor's controls above that keyboard.
+ const visual=window.visualViewport;
+ const resize=()=>{root!.style.height=visual && visual.scale===1 ? `${visual.height}px` : '100%';};
+ visual?.addEventListener('resize',resize);
+ resize();
+ const dispose=()=>{visual?.removeEventListener('resize',resize);editor.dispose();};
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});
  import.meta.hot?.dispose(dispose);
 }

@@ -15,7 +15,9 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
             interactions.finishRotation();
             return;
         }
-        if (e.button === 0 && selectionState.focusOn && !inspector.inside()) {
+        // On touch screens the cabinet body remains available for orbit/pinch.
+        // The explicit ground handles still place and rotate the cabinet.
+        if (e.pointerType !== 'touch' && e.button === 0 && selectionState.focusOn && !inspector.inside()) {
             const hit = picking.cast(e, renderState.allHits);
             if (hit?.object.userData.wardrobe === model.scene.activeWardrobe) {
                 resources.cv.focus({ preventScroll: true });
@@ -27,7 +29,18 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         if (e.button !== 0) {
             return;
         }
-        if (model.activeCabinet().state.divider >= 0 && selectionState.focusOn && inspector.inside()) {
+        // A second pointer always joins the camera gesture before hit testing.
+        if (interactionState.ptrs.size > 0) {
+            resources.cv.setPointerCapture(e.pointerId);
+            interactionState.ptrs.set(e.pointerId, e);
+            interactions.cancelMovement();
+            camera.camRelease();
+            interactionState.moved = 99;
+            const [a, b] = [...interactionState.ptrs.values()];
+            interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            return;
+        }
+        if (e.pointerType !== 'touch' && model.activeCabinet().state.divider >= 0 && selectionState.focusOn && inspector.inside()) {
             const hit = picking.cast(e, renderState.ihits);
             if (hit?.object.userData.divider === model.activeCabinet().state.divider) {
                 resources.cv.focus({ preventScroll: true });
@@ -247,6 +260,13 @@ export function bindCanvasPointerleave({ dom, renderState, resources, lifetime }
 /** @param {import('./gesture-bindings.ports').BindViewPorts} ports */
 export function bindView({ dom, inspector, picking, renderState, selectionState, resources, model, lifetime }) {
     const { $, document, window } = dom;
+    const cancelMove = document.createElement('button');
+    cancelMove.type = 'button';
+    cancelMove.className = 'mobile-cancel-move';
+    cancelMove.textContent = 'Cancel move';
+    cancelMove.hidden = true;
+    $('#view').append(cancelMove);
+    lifetime.listen(cancelMove, 'click', () => $('#move-cancel').click());
     (function buildItemBar() {
         selectionState.itemBar = document.createElement('div');
         dom.setId(selectionState.itemBar, 'item-bar');

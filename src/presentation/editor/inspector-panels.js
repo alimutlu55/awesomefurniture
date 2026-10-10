@@ -36,6 +36,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         const b = p.querySelector('.pmin');
         b.textContent = selectionState.popMin ? '▴' : '▾';
         b.title = selectionState.popMin ? 'Expand panel' : 'Collapse panel';
+        b.setAttribute('aria-label', b.title);
+        b.setAttribute('aria-expanded', String(!selectionState.popMin));
     }
     function placePop(p, e, v) {
         syncMin(p);

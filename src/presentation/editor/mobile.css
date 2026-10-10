@@ -1,0 +1,84 @@
+/* Mobile overrides follow the preserved desktop design. All viewport units are
+   scoped to the editor container by scopeEditorStyles. */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);padding:0}
+.mobile-settings-label,.mobile-section-label,.mobile-cancel-move,.mobile-feedback{display:none}
+#section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
+#section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
+@media(max-width:900px){
+ #app{--sheet:calc(76px + var(--safe-bottom));--panel-height:min(44vh,calc(100% - 176px - var(--safe-top) - var(--safe-bottom)))}
+ #app.props-open:not(.inspecting),#app.inspecting{--sheet:calc(var(--panel-height) + 84px + var(--safe-bottom))}
+ #app.inspecting:has(.pop.show.min){--sheet:calc(76px + var(--safe-bottom))}
+ #view{inset:0 0 var(--sheet);height:auto;min-height:0}
+ #left,#app.inspecting #left,.pop,.pop.docked{
+  left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));
+  top:auto;bottom:calc(76px + var(--safe-bottom));width:auto;height:var(--panel-height);max-height:var(--panel-height);
+  padding:14px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border-radius:18px;
+ }
+ #app.props-open:not(.inspecting):not(.props-hidden) #left{display:block;visibility:visible;pointer-events:auto}
+ .pop.min{height:auto;max-height:var(--panel-height)}
+ .pop .ph{position:sticky;top:-14px;z-index:2;margin:-14px -14px 12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);touch-action:pan-y}
+ .pop .ph b{min-width:0;overflow-wrap:anywhere}
+ .pop .pbtns button{width:44px;height:44px;padding:0;font-size:22px}
+ #sidebar-toggle{left:max(8px,env(safe-area-inset-left,0px));top:calc(10px + var(--safe-top))}
+ #sidebar-toggle .tb{display:flex;align-items:center;gap:5px;width:auto;height:44px;min-width:44px;min-height:44px;padding:0 10px;background:var(--panel);border-radius:14px}
+ .mobile-settings-label{display:inline;font-size:12px}
+ .mobile-cancel-move{display:block;position:absolute;z-index:13;left:50%;bottom:12px;transform:translateX(-50%);min-height:44px;padding:0 16px;background:var(--panel);box-shadow:0 3px 16px #0002}
+ .mobile-feedback{display:block;position:absolute;z-index:25;left:50%;top:calc(68px + var(--safe-top));transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;padding:10px 14px;background:var(--ink);color:var(--panel);border-radius:12px;font-size:13px;text-align:center;pointer-events:none}
+ #topleft{right:max(8px,env(safe-area-inset-right,0px));top:calc(10px + var(--safe-top));padding:3px}
+ #topright{right:70px;top:calc(10px + var(--safe-top));padding:3px}
+ #toolbar{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(8px + var(--safe-bottom));padding:5px;gap:2px;justify-content:space-between}
+ #toolbar .tb{min-width:44px;min-height:48px;height:48px;flex-shrink:0}
+ #toolbar .tb.add,#toolbar .tb.smart{font-size:13px;padding:0 10px;gap:5px}
+ #toolbar #undo2,#toolbar #redo2{min-width:44px;padding:0 10px}
+ #toolbar .ic{width:20px;height:20px}
+ #br{display:flex;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(var(--sheet) + 8px);padding:3px;z-index:6}
+ #br #zoom-val,#br .sep,#br #help-btn{display:none}
+ .tb{min-width:44px;min-height:44px;height:44px}
+ #crumb{top:calc(70px + var(--safe-top));bottom:auto;max-width:calc(100% - 16px);white-space:normal;justify-content:center;flex-wrap:wrap;padding:3px 8px;font-size:11px}
+ #crumb button{min-height:36px}
+ #app #plan-panel,#app #help-panel,#app #menu{position:absolute;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(68px + var(--safe-top));bottom:auto;width:auto;min-width:0;max-height:calc(100% - 150px - var(--safe-top) - var(--safe-bottom));overflow:auto;overscroll-behavior:contain}
+ .mi,#item-type-menu button,#ctx-menu button{min-height:44px}
+ input[type=number],select,.pop input[type=number],.item-size-field input,#wardrobe-reach{font-size:16px!important;min-height:44px}
+ input[type=range]{min-height:36px;touch-action:pan-y}
+ #left .size-field{max-width:55%;min-width:0}
+ #wardrobe-select{font-size:18px!important}
+ #left #wardrobe-add{width:44px;height:44px;flex-basis:44px}
+ #nseg button,#section-diagram button,#pop3 #ialign button{min-width:44px;min-height:44px;height:44px}
+ #section-diagram{max-width:none;flex:1;min-width:0;height:52px;overflow-x:auto;scrollbar-width:thin;touch-action:pan-x}
+ .mobile-section-label{display:inline;font-size:13px}
+ #fins{gap:8px;flex-wrap:wrap}#fins .sw,.pop .sw{width:44px;height:44px}
+ .door-grid button,.pop .pr button,#left .reset-wardrobe,summary{min-height:44px}
+ .pop .addgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .pop .addgrid button{min-width:0;min-height:110px}
+ .pop .addgrid button small{font-size:12px}
+ .item-resize-handle,.wardrobe-move,.ground-rotate{width:44px;height:44px;min-height:44px}
+ #item-bar button{width:44px;height:44px}
+ #item-type-menu,#ctx-menu{max-height:calc(100% - 12px);max-width:calc(100% - 12px);overflow:auto;overscroll-behavior:contain}
+ #pop3 #move-controls{font-size:13px}#move-controls select{font-size:16px}
+ #wizard{padding:max(6px,var(--safe-top)) max(6px,env(safe-area-inset-right,0px)) max(6px,var(--safe-bottom)) max(6px,env(safe-area-inset-left,0px))}
+ .wizard-shell{height:100%;max-height:100%;min-height:0}
+ .wizard-head{padding:8px 12px;flex-shrink:0}.wizard-head h2{font-size:20px}
+ #close-wizard{width:44px;height:44px;padding:0;flex-shrink:0;font-size:24px}
+ .wizard-body{display:block;overflow:auto;overscroll-behavior:contain}
+ .preferences{overflow:visible;border-right:0;border-bottom:1px solid var(--line)}
+ .preferences .inventory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .preferences label.num{display:block;font-size:13px;min-width:0}.preferences input[type=number]{display:block;width:100%;margin-top:4px}
+ .preferences label.sub-row{margin-left:0;padding-left:8px}
+ .ideas-panel{overflow:visible;min-width:0}.ideas-grid{grid-template-columns:minmax(0,1fr)}
+ .ideas-heading{flex-wrap:wrap}.idea button.apply{min-height:48px}.wizard-foot{display:none}
+ #empty-scene{max-width:calc(100% - 120px);left:8px;right:auto;bottom:12px;margin:0;font-size:12px}
+ #empty-scene button{min-height:44px}#empty-x{min-width:44px}
+ #toast{z-index:25;top:calc(64px + var(--safe-top));font-size:13px;max-width:calc(100% - 24px);width:max-content;transform:translate(-50%,-180px);text-align:center}
+ #toast.show{transform:translate(-50%,0)}
+}
+@media(max-width:359px){
+ #toolbar .tb.smart .tl{display:none}#toolbar .tb.smart{padding:0 10px}
+ #fitchip>span:not(.badge){display:none}
+}
+/* Short landscape screens have room beside the model instead of below it. */
+@container (min-width:600px) and (max-width:900px) and (max-height:500px){
+ #app.props-open:not(.inspecting),#app.inspecting{--sheet:calc(76px + var(--safe-bottom))}
+ #app.props-open:not(.props-hidden) #view,#app.inspecting #view{left:264px}
+ #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.pop.show{animation:none}}

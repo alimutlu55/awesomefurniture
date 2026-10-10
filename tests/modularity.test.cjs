@@ -32,7 +32,10 @@ test('responsive binding works with an immutable inspector API',()=>{
  const {bindResponsiveInspectors}=require('../src/presentation/editor/shell-bindings.js');
  const originalDocument=global.document,originalMatchMedia=global.matchMedia;
  const app={appendChild(){}},left={appendChild(){}};
- const elements={'#left':left,'#pop3':{parentNode:left},'#pop4':{parentNode:left},'#ix':{},'#divider-close':{}};
+ const movement={hidden:true,style:{}},dividerActions={style:{}};
+ const elements={'#left':left,'#pop3':{parentNode:left},'#pop4':{parentNode:left},'#ix':{},'#divider-close':{},'#move-controls':{closest:()=>movement},'#divider-dup':{parentElement:dividerActions}};
+ elements['#topright']={appendChild(){}};elements['#topleft']={appendChild(){}};
+ elements['#plan-panel']={parentNode:elements['#topright']};elements['#menu']={parentNode:elements['#topleft']};
  let syncs=0;
  global.document={querySelector:key=>elements[key]};global.matchMedia=()=>({matches:true});
  try{
