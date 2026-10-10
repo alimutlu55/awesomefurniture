@@ -16,6 +16,9 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         }
         const m = picking.cast(e, renderState.allItemHits);
         if (m && m.object.userData.wardrobe === model.scene.activeWardrobe) {
+            // A selection replaces the open editing surface instead of leaving stale content.
+            const app = dom.$('#app');
+            const replacePanel = dom.width > 900 || app.matches('.props-open,.inspecting,.auto-design-open') || !!app.querySelector('.mobile-bottom-sheet.show,.dd:not([hidden])');
             const item = m.object.userData;
             if (item.divider !== undefined) {
                 model.activeCabinet().state.divider = item.divider;
@@ -24,7 +27,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
                 selectionState.deep = true;
                 selectionState.pillOn = false;
                 inspector.update();
-                if (dom.width > 900) inspector.showPop(e, '#pop4');
+                if (replacePanel) inspector.showPop(e, '#pop4');
                 else camera.frameMobileInspector(true);
                 return;
             }
@@ -34,7 +37,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             model.activeCabinet().state.sel = item.i;
             model.activeCabinet().state.item = item.j;
             inspector.update();
-            if (dom.width > 900) inspector.showPop(e, '#pop3');
+            if (replacePanel) inspector.showPop(e, '#pop3');
             else camera.frameMobileInspector(true);
             return;
         }

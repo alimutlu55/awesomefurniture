@@ -106,14 +106,23 @@ const assert=require('node:assert/strict');
    assert.ok(Math.abs(panelBox.y+panelBox.height-height)<1,'Panel uses the bottom space released by the toolbar');
    // Add through the existing domain command and select the new internal item.
    await el('pop2').locator('[data-m="short"]').first().click();await page.waitForTimeout(400);
-   await el('px').click();await page.waitForTimeout(350);
-   selection: for(const y of [.6,.55,.65,.5,.75,.8]) for(const x of [.35,.45,.5,.6,.65]) {
+   selection: for(const y of [.6,.55,.65,.5,.75,.8,.4,.3,.9]) for(const x of [.35,.45,.5,.6,.65]) {
+    if(!await el('pop2').isVisible()) {
+     const empty=await el('view').boundingBox();
+     await page.mouse.click(empty.x+8,empty.y+empty.height*.7);
+     await selected();
+     await page.locator('.lbl.add').click();await page.waitForTimeout(350);
+    }
     const view=await el('view').boundingBox();
     for(let tap=0;tap<2;tap++) {
      await page.mouse.click(view.x+view.width*x,view.y+view.height*y);
-     if(await toolbar.getAttribute('data-context')==='item') break selection;
+     if(await el('pop3').isVisible()) break selection;
     }
    }
+   assert.equal(await el('pop3').isVisible(),true,'Selecting an existing item replaces the open catalogue with item settings');
+   assert.equal(await el('pop2').isVisible(),false,'Catalogue relinquishes the bottom surface');
+   assert.equal(await toolbar.isVisible(),false,'Item settings occupy the single bottom surface');
+   await el('ix').click();await page.waitForTimeout(350);
    // Select the inserted item through the scene's real hit testing.
    assert.equal(await toolbar.getAttribute('data-context'),'item');
    assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['duplicate','remove','replace']);
