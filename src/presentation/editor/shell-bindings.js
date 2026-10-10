@@ -146,9 +146,60 @@ export function observeInspectorPanels({ dom, shell, lifetime }) {
 }
 /** @param {import('./shell-bindings.ports').BindResponsiveInspectorsPorts} ports */
 export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elements }) {
-    const { $, matchMedia } = dom;
+    const { $, matchMedia, document } = dom;
     {
         const mq = matchMedia('(min-width:901px)'), left = $('#left');
+        /** @type {Array<[HTMLElement, string, () => void]>} */
+        const sheets = [
+            [left, 'Settings', () => elements.propsButton.click()],
+            [$('#pop2'), 'Add item', () => inspector.hidePop()],
+            [$('#pop3'), 'Item settings', () => inspector.hidePop()],
+            [$('#pop4'), 'Divider settings', () => inspector.hidePop()],
+            [$('#plan-panel'), 'Storage details', () => $('#fitchip').click()],
+            [$('#menu'), 'Menu', () => $('#menu-btn').click()],
+            [/** @type {HTMLElement} */ ($('#wizard').querySelector('.wizard-shell')), 'Auto design', () => $('#close-wizard').click()],
+        ];
+        for (const [panel, name, close] of sheets) {
+            const handle = document.createElement('button');
+            handle.type = 'button';
+            handle.className = 'mobile-sheet-handle';
+            handle.setAttribute('aria-label', `Close ${name}. Pull down or tap.`);
+            handle.innerHTML = '<span aria-hidden="true"></span>';
+            panel.prepend(handle);
+            let gesture = null, suppressClick = false;
+            const reset = () => {
+                gesture = null;
+                panel.style.translate = '';
+                panel.classList.remove('sheet-dragging');
+            };
+            lifetime.listen(handle, 'pointerdown', e => {
+                if (mq.matches || !e.isPrimary || e.button !== 0) return;
+                suppressClick = false;
+                gesture = { id: e.pointerId, y: e.clientY, distance: 0 };
+                handle.setPointerCapture(e.pointerId);
+                panel.classList.add('sheet-dragging');
+            });
+            lifetime.listen(handle, 'pointermove', e => {
+                if (!gesture || gesture.id !== e.pointerId) return;
+                gesture.distance = Math.max(0, e.clientY - gesture.y);
+                panel.style.translate = `0 ${gesture.distance}px`;
+            });
+            lifetime.listen(handle, 'pointerup', e => {
+                if (!gesture || gesture.id !== e.pointerId) return;
+                const distance = gesture.distance;
+                suppressClick = distance > 5;
+                reset();
+                if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+                if (!mq.matches && distance >= 64) close();
+            });
+            lifetime.listen(handle, 'pointercancel', reset);
+            lifetime.listen(handle, 'lostpointercapture', reset);
+            lifetime.listen(mq, 'change', reset);
+            lifetime.listen(handle, 'click', () => {
+                if (!mq.matches && !suppressClick) close();
+                suppressClick = false;
+            });
+        }
         const place = () => {
             // Anchor menus to the whole editor on phones, so a narrow toolbar
             // button cannot push a full-width menu outside the screen.

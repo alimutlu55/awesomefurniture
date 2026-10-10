@@ -79,7 +79,7 @@ readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'goUp' | 'hidePop' | 'syncResponsive'>>;
 readonly model: ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-readonly elements: Pick<ReturnType<typeof import('./editor-dom.js').getEditorElements>, 'app'>;
+readonly elements: Pick<ReturnType<typeof import('./editor-dom.js').getEditorElements>, 'app' | 'propsButton'>;
 }
 
 export interface BindRemoveWardrobePorts {

@@ -13,6 +13,17 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    page.on('pageerror', error => errors.push(error.message));
    const control = id => page.locator(`[data-editor-id="${id}"]`);
    const click = async locator => mobile ? locator.tap() : locator.click();
+   const pullSheet = async (panel,distance) => {
+    const handle=panel.locator('.mobile-sheet-handle').first();
+    await handle.scrollIntoViewIfNeeded();
+    const box=await handle.boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2;
+    const touch=await page.context().newCDPSession(page);
+    await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:9}]});
+    await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+distance,id:9}]});
+    await page.waitForFunction(e=>parseFloat(e.style.translate.split(' ')[1])>0,await panel.elementHandle());
+    await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await touch.detach();
+   };
    await page.goto(baseURL);
    await control('more-btn').waitFor();
    const inBounds = async locator => {
@@ -45,6 +56,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const panel=await control('left').boundingBox(),view=await control('view').boundingBox();
     assert.ok(panel && view && (view.y + view.height <= panel.y + 1 || view.x >= panel.x + panel.width), `${width}×${height}: settings cover canvas`);
     await inBounds(control('left'));
+    await pullSheet(control('left'),24);
+    assert.equal(await control('left').isVisible(),true,'A short pull must return the panel to its place');
+    await pullSheet(control('left'),90);
+    assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Pulling down must close Settings');
+    await click(control('props-btn'));
     for (const id of ['w','h','d']) {
      const slider=control(id+'-range'),before=await control(id).inputValue();
      await slider.scrollIntoViewIfNeeded();
@@ -111,9 +127,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Touching overlays in the editing area must close Settings');
    }
    for (const [trigger,panel] of [['fitchip','plan-panel'],['menu-btn','menu']]) {
-    await click(control(trigger));await inBounds(control(panel));await click(control(trigger));
+    await click(control(trigger));await inBounds(control(panel));
+    if(mobile){await pullSheet(control(panel),90);assert.equal(await control(panel).isVisible(),false);}else await click(control(trigger));
    }
    await click(control('more-btn'));await inBounds(control('pop2'));
+   if(mobile){await pullSheet(control('pop2'),90);assert.equal(await control('pop2').isVisible(),false);await click(control('more-btn'));}
    await click(control('padd').locator('button[data-m="short"]'));
    assert.equal(await control('undo2').isEnabled(),true);
    await click(control('px'));
@@ -159,6 +177,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await cdp.detach();
    }
    await click(control('launch-wizard'));await inBounds(control('wizard'));
+   if(mobile){await pullSheet(control('wizard').locator('.wizard-shell'),90);assert.equal(await control('wizard').isVisible(),false);await click(control('launch-wizard'));}
    await page.locator('.idea button.apply').first().waitFor({timeout:30000});
    if(mobile){assert.equal(await control('need-short').evaluate(e=>getComputedStyle(e).fontSize),'16px');}
    await click(page.locator('.idea button.apply').first());

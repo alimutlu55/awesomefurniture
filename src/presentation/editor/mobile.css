@@ -3,9 +3,16 @@
 :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);padding:0}
 .mobile-settings-label,.mobile-section-label,.mobile-cancel-move,.mobile-feedback{display:none}
 .size-range{display:block;width:100%;height:44px;margin:0 0 12px;accent-color:#796648;cursor:pointer;touch-action:pan-y}
+.mobile-sheet-handle{display:none}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
 @media(max-width:900px){
+ .mobile-sheet-handle{display:flex;align-items:center;justify-content:center;position:sticky;top:-14px;z-index:4;width:100%;height:44px;min-height:44px;flex-shrink:0;margin:-14px 0 0;padding:0;border:0;border-radius:0;background:var(--panel);touch-action:none;cursor:grab}
+ .mobile-sheet-handle span{width:42px;height:5px;border-radius:5px;background:var(--mute);opacity:.5}
+ .mobile-sheet-handle:active{transform:none;cursor:grabbing}
+ .wizard-shell>.mobile-sheet-handle{top:0;margin:0}
+ .sheet-dragging{transition:none!important}
+ #left,.pop,.dd,.wizard-shell{transition:translate .18s ease-out}
  #app{--sheet:calc(76px + var(--safe-bottom));--panel-height:min(44vh,calc(100% - 176px - var(--safe-top) - var(--safe-bottom)))}
  #app.props-open:not(.inspecting),#app.inspecting{--sheet:calc(var(--panel-height) + 84px + var(--safe-bottom))}
  #app.inspecting:has(.pop.show.min){--sheet:calc(76px + var(--safe-bottom))}
@@ -17,7 +24,7 @@
  }
  #app.props-open:not(.inspecting):not(.props-hidden) #left{display:block;visibility:visible;pointer-events:auto}
  .pop.min{height:auto;max-height:var(--panel-height)}
- .pop .ph{position:sticky;top:-14px;z-index:2;margin:-14px -14px 12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);touch-action:pan-y}
+ .pop .ph{position:sticky;top:30px;z-index:2;margin:0 -14px 12px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);touch-action:pan-y}
  .pop .ph b{min-width:0;overflow-wrap:anywhere}
  .pop .pbtns button{width:44px;height:44px;padding:0;font-size:22px}
  #sidebar-toggle{left:max(8px,env(safe-area-inset-left,0px));top:calc(10px + var(--safe-top))}
@@ -82,7 +89,7 @@
  #app.props-open:not(.props-hidden) #view,#app.inspecting #view{left:264px}
  #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
 }
-@media(prefers-reduced-motion:reduce){.pop.show{animation:none}}
+@media(prefers-reduced-motion:reduce){.pop.show{animation:none}#left,.pop,.dd,.wizard-shell{transition:none}}
 
 /* Use the visible area for editing while the software keyboard is present. */
 @media(max-width:900px){

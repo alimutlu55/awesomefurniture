@@ -102,3 +102,9 @@ wardrobe selection and Undo keep both controls synchronized.
 Keyboard detection retains the visible height before field focus, including
 browsers that shrink both innerHeight and visualViewport.height. Focus also
 scrolls the chosen field inside its panel before the keyboard resize arrives.
+
+Mobile Settings, add-item, item/divider inspectors, storage details, menu and
+Auto design panels have centered grab handles. Dragging a handle down moves
+the panel with the finger; a 64 px pull closes it, and shorter pulls return it
+to its original position. The handle is also an accessible close button. Panel
+contents retain native scrolling and sliders retain their own touch gestures.
