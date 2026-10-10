@@ -61,7 +61,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         else if (dom.width <= 900) {
             $('#app').classList.remove('adding');
             $('#app').classList.add('inspecting');
-            camera.frameMobileInspector();
+            camera.frameMobileInspector(true);
         }
     }
     function popUI() {
@@ -96,6 +96,10 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         t.classList.add('show');
         syncMin(t);
         layoutPop(t);
+        if (dom.width <= 900) {
+            $('#app').classList.toggle('adding', to === '#pop2');
+            camera.frameMobileInspector(to !== '#pop2');
+        }
     }
     return { sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop };
 }

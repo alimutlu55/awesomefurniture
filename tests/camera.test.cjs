@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm');
 const {dependencies}=require('./helpers/editor-fixture.cjs');
 const {createCameraController}=require('../src/presentation/viewport/camera-controller.js');
-function fixture(width=1200){let time=0;const c=vm.createContext({az:0,el:.1,dist:500,tgt:new (require('three').Vector3)(0,100,0),tgtY:100,vs:0,vsT:0,vz:1,vzT:1,camGoal:null,camHome:null,camRestore:null,zoomTarget:null,zoomAnchor:null,zoomFocus:null,reducedCameraMotion:{matches:false},activeCabinet:()=>({x:0,y:0,z:0,angle:0}),S:{w:200,h:200,d:60,item:-1,divider:-1},focusOn:false,inside:()=>false});Object.assign(c,createCameraController({...dependencies(c),dom:{...require('./helpers/dom-fixture.cjs').domFixture(),width},clock:{now:()=>time}}));const transition=c.cameraTransition;c.cameraTransition=(...a)=>{transition(...a);if(c.camGoal)c.camGoal.start=time};return{run:s=>vm.runInContext(s,c),time:t=>time=t}}
+function fixture(width=1200,domOverrides={}){let time=0;const c=vm.createContext({az:0,el:.1,dist:500,tgt:new (require('three').Vector3)(0,100,0),tgtY:100,vs:0,vsT:0,vz:1,vzT:1,camGoal:null,camHome:null,camRestore:null,zoomTarget:null,zoomAnchor:null,zoomFocus:null,reducedCameraMotion:{matches:false},activeCabinet:()=>({x:0,y:0,z:0,angle:0}),S:{w:200,h:200,d:60,item:-1,divider:-1},focusOn:false,inside:()=>false});Object.assign(c,createCameraController({...dependencies(c),dom:{...require('./helpers/dom-fixture.cjs').domFixture(),width,...domOverrides},clock:{now:()=>time}}));const transition=c.cameraTransition;c.cameraTransition=(...a)=>{transition(...a);if(c.camGoal)c.camGoal.start=time};return{run:s=>vm.runInContext(s,c),time:t=>time=t}}
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 test('camera transitions have exact endpoints, smooth ends and take shortest angular path',()=>{const{run}=fixture();run('cameraTransition({az:Math.PI*2-.1,el:.3,dist:250,x:50,y:150,z:20},600)');run('cameraTick(0,1/60)');near(run('dist'),500);run('cameraTick(300,1/60)');near(run('az'),-.05);near(run('dist'),Math.sqrt(500*250));run('cameraTick(600,1/60)');near(run('dist'),250);near(run('tgt.y'),150);assert.equal(run('camGoal'),null);near(run('cameraEase(0)'),0);near(run('cameraEase(1)'),1);assert.ok(run('cameraEase(.001)')<1e-7)});
@@ -45,4 +45,21 @@ test('mobile button zoom centres the wardrobe instead of chasing a low selected 
  run('S.item=0;tgt.set(0,30,0);cameraZoom(.8)');
  near(run('zoomFocus.y'),100);
  near(run('zoomTarget'),400);
+});
+
+test('mobile item focus animates to the fitting, retains context and keeps zoom on its focus',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
+ run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:10,y1:50,w:180,h:40});frameMobileInspector(true);savedGoal=camGoal');
+ assert.ok(run('camGoal'),'Selecting a fitting should animate');
+ near(run('camGoal.y'),30);
+ assert.ok(run('camGoal.dist >= camFront().dist*.65'),'Keep cabinet context around thin fittings');
+ const duration=run('camGoal.duration');
+ time(duration/2);run(`cameraTick(${duration/2},1/60)`);
+ assert.ok(run('tgt.y')<100&&run('tgt.y')>30,'Focus must move gradually');
+ run('frameMobileInspector(true)');assert.equal(run('camGoal===savedGoal'),true);
+ run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),30);
+ run('cameraZoom(.9)');near(run('zoomFocus.y'),30);
 });

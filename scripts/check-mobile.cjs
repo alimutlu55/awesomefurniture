@@ -188,7 +188,17 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.notEqual(await control('zoom-val').textContent(),before,'Zoom button must change camera');
     // Real multi-touch events exercise the pointer registry, pinch and release.
     const cdp=await page.context().newCDPSession(page);
-    const v=await control('view').boundingBox();const x=v.x+v.width*.5,y=v.y+v.height*.25;
+    // Choose exposed canvas, avoiding floating item controls after focus changes.
+    const point=await control('view').evaluate(e=>{
+     const r=e.getBoundingClientRect(),root=e.getRootNode();
+     for(const fy of [.25,.4,.55,.7]) for(const fx of [.5,.3,.7]) {
+      const x=r.x+r.width*fx,y=r.y+r.height*fy;
+      if([-55,-25,25,55].every(dx=>root.elementFromPoint(x+dx,y)?.tagName==='CANVAS')) return {x,y};
+     }
+     return null;
+    });
+    assert.ok(point,'Pinch needs exposed canvas away from overlay controls');
+    const {x,y}=point;
     const beforePinch=await control('zoom-val').textContent();
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x-25,y,id:1},{x:x+25,y,id:2}]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-55,y,id:1},{x:x+55,y,id:2}]});

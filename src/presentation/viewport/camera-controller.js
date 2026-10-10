@@ -5,6 +5,7 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
     const { $, document } = dom;
     let mobileInspectorFraming = false;
+    let mobileSelectionFraming = false;
     let lastViewWidth = 0, lastViewHeight = 0;
     /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
     const fit = (options = {}) => {
@@ -153,7 +154,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         return { w, angle, box };
     }
     function cameraFocusPoint() {
-        if (dom.width <= 900) {
+        if (dom.width <= 900 && !mobileSelectionFraming) {
             const w = model.activeCabinet();
             return new THREE.Vector3(w.x, (w.y || 0) + w.state.h / 2, w.z);
         }
@@ -176,13 +177,24 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const w = model.activeCabinet(), room = availableRoom(), r = $('#view').getBoundingClientRect();
         return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: (w.y || 0) + model.activeCabinet().state.h / 2, dist: cameraFitDistance({ w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d }, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
     }
-    function frameMobileInspector() {
+    function frameMobileInspector(selected = false) {
         if (dom.width > 900) return;
         cameraState.camHome = cameraState.camRestore = null;
         cameraState.vsT = 0;
         cameraState.vzT = 1;
-        cameraFlyTo(camFront(), true);
+        const goal = camFront();
+        if (selected) {
+            const { w, angle, box } = selectionFocusBox();
+            const room = availableRoom(), view = $('#view').getBoundingClientRect();
+            goal.x = w.x + box.x * Math.cos(angle);
+            goal.y = (w.y || 0) + box.y;
+            goal.z = w.z - box.x * Math.sin(angle);
+            // Keep surrounding cabinet visible instead of filling the screen with a thin shelf.
+            goal.dist = Math.max(goal.dist * .65, cameraFitDistance(box, 0, 0, room.w / room.h) * (view.height / room.h) * 1.12);
+        }
+        cameraFlyTo(goal, true);
         mobileInspectorFraming = true;
+        mobileSelectionFraming = selected;
     }
     function moveViewOn() {
         cameraState.initialCameraFraming = false;
@@ -283,7 +295,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (p) {
             inspector.layoutPop(p);
         }
-        if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector();
+        if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming);
     }
     return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }
