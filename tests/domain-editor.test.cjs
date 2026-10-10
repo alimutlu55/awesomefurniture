@@ -101,11 +101,12 @@ test('viewport lifetime cancels frames, timers, listeners and observers exactly 
 test('opening the planner schedules uncached ideas through its application service',async()=>{
  const {createPlannerPresenter}=await import('../src/presentation/editor/planner-presenter.js');
  const originalDocument=global.document;let scheduled=0,focused=0;
- const elements={'#wizard':{hidden:true},'#app':{inert:false},'#ideas-count':{},'#preferences-note':{},'#ideas':{setAttribute(){},querySelectorAll(){return[]}},'#close-wizard':{focus(){focused++}}};
+ const classes=new Set();
+ const elements={'#wizard':{hidden:true},'#app':{inert:false,classList:{add:c=>classes.add(c),remove:c=>classes.delete(c)}},'#ideas-count':{},'#preferences-note':{},'#ideas':{setAttribute(){},querySelectorAll(){return[]}},'#close-wizard':{focus(){focused++}},'#launch-wizard':{focus(){}}};
  global.document={activeElement:null,querySelector:key=>elements[key]??(elements[key]={}),querySelectorAll:()=>[]};
  try{
-  const ports={closeDD(){},hidePop(){},syncPreferences(){},$:key=>elements[key],plannerConfig:()=>({}),plannerService:{has:()=>false},lifetime:{cancelFrame(){},cancelTimeout(){},frame(){scheduled++;return 1}},openRaf:0,openTimer:null};
-  createPlannerPresenter({dom:require('./helpers/dom-fixture.cjs').domFixture(), shell:ports,inspector:ports,geometry:ports,plannerState:ports,plannerService:ports.plannerService,lifetime:ports.lifetime,model:{activeCabinet:()=>({state:{profile:{needs:{},growth:15}}})}}).openWizard();assert.equal(elements['#wizard'].hidden,false);assert.equal(elements['#app'].inert,true);assert.equal(scheduled,1);assert.equal(focused,1);
+  const ports={closeDD(){},hidePop(){},syncPreferences(){},$:key=>elements[key],plannerConfig:()=>({}),plannerService:{has:()=>false},lifetime:{cancelFrame(){},cancelTimeout(){},frame(){scheduled++;return 1}},openRaf:0,openTimer:null,ideasTimer:null};
+  const presenter=createPlannerPresenter({dom:require('./helpers/dom-fixture.cjs').domFixture(), shell:ports,inspector:ports,geometry:ports,plannerState:ports,plannerService:ports.plannerService,lifetime:ports.lifetime,model:{activeCabinet:()=>({state:{profile:{needs:{},growth:15}}})}});presenter.openWizard();assert.equal(classes.has('auto-design-open'),true);assert.equal(elements['#wizard'].hidden,false);assert.equal(elements['#app'].inert,true);assert.equal(scheduled,1);assert.equal(focused,1);presenter.closeWizard();assert.equal(classes.has('auto-design-open'),false);assert.equal(elements['#wizard'].hidden,true);assert.equal(elements['#app'].inert,false);
  }finally{global.document=originalDocument}
 });
 test('cabinet reset retains the existing reach-line toggle just as the supplied editor did',async()=>{

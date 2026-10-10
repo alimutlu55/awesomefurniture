@@ -56,6 +56,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const panel=await control('left').boundingBox(),view=await control('view').boundingBox();
     assert.ok(panel && view && (view.y + view.height <= panel.y + 1 || view.x >= panel.x + panel.width), `${width}×${height}: settings cover canvas`);
     await inBounds(control('left'));
+    assert.equal(await control('left').evaluate(e=>e.classList.contains('mobile-bottom-sheet')),true);
+    assert.ok(await control('left').evaluate(e=>e.scrollHeight>e.clientHeight),'Settings must have vertically scrollable content');
+    await control('left').evaluate(e=>e.scrollTop=80);
+    assert.ok(await control('left').evaluate(e=>e.scrollTop)>0,'Settings must scroll down');
+    await control('left').evaluate(e=>e.scrollTop=0);
     await pullSheet(control('left'),24);
     assert.equal(await control('left').isVisible(),true,'A short pull must return the panel to its place');
     await pullSheet(control('left'),90);
@@ -209,7 +214,22 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await cdp.detach();
    }
    await click(control('launch-wizard'));await inBounds(control('wizard'));
-   if(mobile){await pullSheet(control('wizard').locator('.wizard-shell'),90);assert.equal(await control('wizard').isVisible(),false);await click(control('launch-wizard'));}
+   if(mobile){
+    const sheet=control('wizard').locator('.wizard-shell');
+    assert.equal(await sheet.evaluate(e=>e.classList.contains('mobile-bottom-sheet')),true,'Auto design uses the shared bottom sheet');
+    const box=await sheet.boundingBox();
+    assert.ok(Math.abs(box.width-width)<1,'Auto design sheet fills the editor width');
+    assert.ok(box.height<=height*.44+1 && box.y>=height-box.height-77,'Auto design uses the compact shared sheet height');
+    assert.equal(await sheet.evaluate(e=>getComputedStyle(e).borderTopLeftRadius),'18px');
+    assert.equal(await sheet.evaluate(e=>getComputedStyle(e).borderTopWidth),'0px');
+    assert.equal(await sheet.evaluate(e=>getComputedStyle(e).boxShadow),'none');
+    const body=sheet.locator('.wizard-body');
+    assert.ok(await body.evaluate(e=>e.scrollHeight>e.clientHeight),'Auto design content must scroll vertically');
+    await body.evaluate(e=>e.scrollTop=100);
+    assert.ok(await body.evaluate(e=>e.scrollTop)>0,'Auto design must scroll down');
+    await body.evaluate(e=>e.scrollTop=0);
+    assert.equal(await body.evaluate(e=>e.scrollTop),0,'Auto design must scroll back up');
+    await pullSheet(sheet,90);assert.equal(await control('wizard').isVisible(),false);await click(control('launch-wizard'));}
    await page.locator('.idea button.apply').first().waitFor({timeout:30000});
    if(mobile){assert.equal(await control('need-short').evaluate(e=>getComputedStyle(e).fontSize),'16px');}
    await click(page.locator('.idea button.apply').first());

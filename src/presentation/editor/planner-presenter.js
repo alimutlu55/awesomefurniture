@@ -97,6 +97,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         inspector.hidePop();
         syncPreferences();
         $('#wizard').hidden = false;
+        $('#app').classList.add('auto-design-open');
         $('#app').inert = true;
         if (plannerService.has(geometry.plannerConfig())) {
             refreshIdeas();
@@ -129,6 +130,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             commands.setPreferences(readPreferences());
         }
         $('#wizard').hidden = true;
+        $('#app').classList.remove('auto-design-open');
         $('#app').inert = false;
         (plannerState.wizardTrigger || $('#launch-wizard')).focus();
     }
