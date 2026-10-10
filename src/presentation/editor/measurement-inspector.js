@@ -178,9 +178,9 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
             }
         };
     }
-    function dividerUI() {
+    function dividerUI(force = false) {
         const d = model.activeCabinet().state.dividers?.[model.activeCabinet().state.divider], panel = $('#pop4');
-        if (!panel.classList.contains('show') && !$('#app').classList.contains('v-div')) {
+        if (!force && !panel.classList.contains('show') && !$('#app').classList.contains('v-div') && !dom.document.querySelector('.contextual-control-popover:not([hidden])')) {
             return;
         }
         if (!d) {

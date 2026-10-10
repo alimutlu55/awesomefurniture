@@ -161,6 +161,17 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
         getSelection: () => !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
+        controls: key => {
+            const divider = model.activeCabinet().state.divider >= 0;
+            if (key === 'stores') {
+                if (divider) return [];
+                inspector.itemUI(true);
+                return [$('#ipurpose')];
+            }
+            if (divider) inspector.dividerUI(true);
+            else inspector.itemUI(true);
+            return [$('#pop' + (divider ? '4' : '3')).querySelector('.item-size-pair')];
+        },
         execute: key => {
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;

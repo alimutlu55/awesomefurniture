@@ -407,9 +407,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#move-apply').disabled = !plan.valid || plan.unchanged;
         $('#move-apply').title = noticeLabels(plan.reason).join(' · ');
     }
-    function itemUI() {
+    function itemUI(force = false) {
         const p = $('#pop3');
-        if (!p.classList.contains('show') && !$('#app').classList.contains('v-item')) {
+        if (!force && !p.classList.contains('show') && !$('#app').classList.contains('v-item') && !document.querySelector('.contextual-control-popover:not([hidden])')) {
             return;
         }
         const a = model.activeCabinet().state.secs[model.activeCabinet().state.sel], it = a[model.activeCabinet().state.item];

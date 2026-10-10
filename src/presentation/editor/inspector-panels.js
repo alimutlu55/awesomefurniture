@@ -46,6 +46,12 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         dockPop(p);
     }
     function showPop(e, id) {
+        if (dom.width <= 900 && (id === '#pop3' || id === '#pop4')) {
+            callbacks.hidePop();
+            takeMobilePanel(dom, $(id));
+            camera.frameMobileInspector(true);
+            return;
+        }
         const p = $(id), v = $('#view').getBoundingClientRect();
         if (dom.width <= 900) { animateMobileSheetClose($('#left')); $('#app').classList.remove('props-open'); }
         callbacks.hidePop();
@@ -87,6 +93,10 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         }
     }
     function swapPop(to) {
+        if (dom.width <= 900 && (to === '#pop3' || to === '#pop4')) {
+            showPop(null, to);
+            return;
+        }
         if (to === '#pop2') {
             callbacks.renderAddChoices();
         }

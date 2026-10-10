@@ -112,23 +112,35 @@ const assert=require('node:assert/strict');
     const view=await el('view').boundingBox();
     for(let tap=0;tap<2;tap++) {
      await page.mouse.click(view.x+view.width*x,view.y+view.height*y);
-     if(await el('pop3').isVisible()) break selection;
+     if(await toolbar.getAttribute('data-context')==='item' && !await el('pop2').isVisible()) break selection;
     }
    }
-   assert.equal(await el('pop3').isVisible(),true,'Selecting an existing item replaces the open catalogue with item settings');
+   assert.equal(await el('pop3').isVisible(),false,'Selecting an item does not open the old item sheet');
    assert.equal(await el('pop2').isVisible(),false,'Catalogue relinquishes the bottom surface');
-   assert.equal(await toolbar.isVisible(),false,'Item settings occupy the single bottom surface');
-   await el('ix').click();await page.waitForTimeout(350);
+   assert.equal(await toolbar.isVisible(),true,'Item contextual actions take over the bottom surface');
    // Select the inserted item through the scene's real hit testing.
    assert.equal(await toolbar.getAttribute('data-context'),'item');
-   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['duplicate','remove','replace']);
-   await checkActionSlots();
+   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['duplicate','remove','replace','resize','more']);
+   await toolbar.locator('[data-action="resize"]').click();
+   assert.equal(await el('ih').isVisible(),true,'Resize reuses item height');
+   assert.equal(await el('iw').isVisible(),true,'Resize reuses item width');
+   assert.equal(await el('ipurpose').isVisible(),false,'Resize only exposes size controls');
+   const itemHeight=Number(await el('ih').inputValue());
+   await el('ih').fill(String(itemHeight-1));await el('ih').press('Tab');
+   assert.equal(Number(await el('ih').inputValue()),itemHeight-1,'Existing resize command applies the new height');
+   await page.keyboard.press('Escape');
+   await toolbar.locator('[data-action="more"]').click();
+   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Stores']);
+   await page.locator('.contextual-popover button').filter({hasText:'Stores'}).click();
+   assert.equal(await el('ipurpose').isVisible(),true,'Stores reuses the storage selector');
+   assert.equal(await el('ih').isVisible(),false,'Stores only exposes storage controls');
+   await page.keyboard.press('Escape');
    await toolbar.locator('[data-action="replace"]').click();
    assert.ok(await page.locator('.contextual-popover button').count()>3);
    await page.locator('.contextual-popover button').filter({hasText:/^Shelf$/}).click();await page.waitForTimeout(350);
    // Tap an empty corner to clear selection and restore external dimensions.
    const canvas=await el('view').boundingBox();
-   await page.mouse.click(canvas.x+8,canvas.y+canvas.height*.7);await page.waitForTimeout(350);
+   await page.mouse.click(canvas.x+8,canvas.y+8);await page.waitForTimeout(350);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
    assert.equal(await el('launch-wizard').isVisible(),true);
    await el('launch-wizard').click();await page.waitForTimeout(330);
