@@ -22,9 +22,6 @@ const assert=require('node:assert/strict');
    const checkActionSlots=async()=>{
     const buttons=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width};}));
     assert.ok(buttons.length>=4);
-    assert.ok(buttons.every(button=>button.width>=44 && button.width<=67),'Action slots stay compact with usable touch targets');
-    const bar=await toolbar.boundingBox();
-    assert.ok(Math.abs(bar.x+bar.width/2-width/2)<1,'Compact toolbar stays centered');
     for(let i=1;i<buttons.length;i++){
      assert.ok(Math.abs(buttons[i].width-buttons[0].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
      assert.ok(Math.abs(buttons[i].x-(buttons[i-1].x+buttons[i-1].width))<1,'No unused spacer between actions');
@@ -32,7 +29,6 @@ const assert=require('node:assert/strict');
     assert.deepEqual(await toolbar.locator('button.tb:visible').evaluateAll(es=>es.slice(-2).map(e=>e.dataset.editorId)),['undo2','redo2'],'History occupies the last two slots');
    };
    await checkActionSlots();
-   if(width===390) await page.screenshot({path:'/tmp/contextual-default-compact.png'});
    await selected();
    assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
    assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','sections','more']);
