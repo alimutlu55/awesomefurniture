@@ -233,8 +233,18 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                     y = oy;
                 }
                 else {
+                    if (dom.width <= 900) {
+                        // A close mobile view has no margin for text: keep the guide,
+                        // but never clamp its label back over the wardrobe.
+                        l.el.style.display = 'none';
+                        return;
+                    }
                     x = bx;
                     y = by;
+                }
+                if (dom.width <= 900) {
+                    l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
+                    return;
                 }
             }
             if (l.ruler) {
