@@ -101,7 +101,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         handle.hidden = true;
         handle.setAttribute('aria-label', edge === 'top' ? 'Resize item height' : 'Resize item width from ' + edge);
         handle.title = edge === 'top' ? 'Drag to resize height' : 'Drag to resize width';
-        handle.innerHTML = '<span aria-hidden="true">' + (edge === 'top' ? '↕' : '↔') + '</span>';
+        handle.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (edge === 'top' ? 'M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4' : 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4') + '"/></svg>';
         $('#item-resize-handles').appendChild(handle);
         handle.onpointerdown = e => interactions.beginItemEdgeResize(e, edge, handle);
         handle.onpointermove = interactions.moveItemEdgeResize;

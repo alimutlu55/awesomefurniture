@@ -2,7 +2,7 @@
 export interface CreateInspectorPresenterPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly elements: Pick<ReturnType<typeof import('./editor-dom.js').getEditorElements>, 'app'>;
-readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'baseShift' | 'camRelease' | 'camFront' | 'cameraTransition' | 'fit' | 'focusSelection'>>;
+readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'baseShift' | 'camRelease' | 'frameMobileInspector' | 'fit' | 'focusSelection'>>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../viewport/cabinet-renderer.js').createCabinetRenderer>, 'build' | 'positionLabels' | 'refreshDividerVisual'>>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'armMovement' | 'cancelMovement' | 'finishItemEdgeResize' | 'finishRotation' | 'finishWardrobeDrag'>>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('./planner-presenter.js').createPlannerPresenter>, 'planUI'>>;

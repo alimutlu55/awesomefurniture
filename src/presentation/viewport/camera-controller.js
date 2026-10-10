@@ -4,6 +4,8 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
     const { $, document } = dom;
+    let mobileInspectorFraming = false;
+    let lastViewWidth = 0, lastViewHeight = 0;
     /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
     const fit = (options = {}) => {
         camRelease();
@@ -92,6 +94,11 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.tgtY = p.y;
     }
     function cameraTransition(goal, duration = 560) {
+        const pending = cameraState.camGoal;
+        if (dom.width <= 900 && pending && duration > 0 &&
+            Math.hypot(goal.x - pending.x, goal.y - pending.y, goal.z - pending.z) < 1 &&
+            Math.abs(Math.log(goal.dist / pending.dist)) < .002 &&
+            Math.abs(cameraAngleDelta(goal.az, pending.az)) < .001 && Math.abs(goal.el - pending.el) < .001) return;
         cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         const from = camNow();
         cameraState.camGoal = { ...goal, from, start: clock.now(), duration };
@@ -102,10 +109,13 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function cameraFlyTo(goal, pan = false) {
         const from = camNow(), travel = Math.hypot(goal.x - from.x, goal.y - from.y, goal.z - from.z), dr = Math.abs(Math.log(goal.dist / from.dist));
-        if (travel < 2 && dr < .02) {
+        const mobile = dom.width <= 900, turn = Math.abs(cameraAngleDelta(from.az, goal.az)) + Math.abs(goal.el - from.el);
+        if (travel < 2 && dr < .02 && (!mobile || turn < .01)) {
             return;
         }
-        const arc = pan ? 0 : Math.min(.3, travel / Math.max(goal.dist, from.dist) * .3), duration = Math.round(Math.max(600, Math.min(1100, 540 + travel * .8 + dr * 280)));
+        const arc = mobile || pan ? 0 : Math.min(.3, travel / Math.max(goal.dist, from.dist) * .3), duration = mobile
+            ? Math.round(Math.max(280, Math.min(650, 280 + travel / Math.max(goal.dist, from.dist) * 300 + dr * 200 + turn * 70)))
+            : Math.round(Math.max(600, Math.min(1100, 540 + travel * .8 + dr * 280)));
         cameraTransition({ ...goal, arc }, duration);
     }
     function cameraFitDistance(bounds, angle, elevation, aspect) {
@@ -143,6 +153,10 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         return { w, angle, box };
     }
     function cameraFocusPoint() {
+        if (dom.width <= 900) {
+            const w = model.activeCabinet();
+            return new THREE.Vector3(w.x, (w.y || 0) + w.state.h / 2, w.z);
+        }
         const { w, angle, box } = selectionFocusBox();
         return new THREE.Vector3(w.x + box.x * Math.cos(angle), (w.y || 0) + box.y, w.z - box.x * Math.sin(angle));
     }
@@ -161,6 +175,14 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function camFront() {
         const w = model.activeCabinet(), room = availableRoom(), r = $('#view').getBoundingClientRect();
         return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: (w.y || 0) + model.activeCabinet().state.h / 2, dist: cameraFitDistance({ w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d }, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
+    }
+    function frameMobileInspector() {
+        if (dom.width > 900) return;
+        cameraState.camHome = cameraState.camRestore = null;
+        cameraState.vsT = 0;
+        cameraState.vzT = 1;
+        cameraFlyTo(camFront(), true);
+        mobileInspectorFraming = true;
     }
     function moveViewOn() {
         cameraState.initialCameraFraming = false;
@@ -181,6 +203,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraTransition(home, 480);
     }
     function camRelease() {
+        mobileInspectorFraming = false;
         cameraState.camGoal = cameraState.camHome = cameraState.camRestore = cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = cameraState.vs;
@@ -233,7 +256,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             }
         }
         if (cameraState.zoomTarget !== null) {
-            const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * 22);
+            const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * (dom.width <= 900 ? 18 : 22));
             cameraZoomDistance(Math.exp(Math.log(cameraState.dist) + (Math.log(cameraState.zoomTarget) - Math.log(cameraState.dist)) * k));
             if (cameraState.zoomFocus) {
                 cameraState.tgt.lerp(cameraState.zoomFocus, k);
@@ -251,12 +274,16 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function resize() {
         const r = $('#view').getBoundingClientRect();
+        const changed = Math.abs(r.width - lastViewWidth) > 1 || Math.abs(r.height - lastViewHeight) > 1;
+        lastViewWidth = r.width;
+        lastViewHeight = r.height;
         viewport.resize(r.width, r.height);
         cameraState.vsT = baseShift();
         const p = document.querySelector('.pop.show');
         if (p) {
             inspector.layoutPop(p);
         }
+        if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector();
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }

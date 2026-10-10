@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm');
 const {dependencies}=require('./helpers/editor-fixture.cjs');
 const {createCameraController}=require('../src/presentation/viewport/camera-controller.js');
-function fixture(){let time=0;const c=vm.createContext({az:0,el:.1,dist:500,tgt:new (require('three').Vector3)(0,100,0),tgtY:100,vs:0,vsT:0,vz:1,vzT:1,camGoal:null,camHome:null,camRestore:null,zoomTarget:null,zoomAnchor:null,zoomFocus:null,reducedCameraMotion:{matches:false},activeCabinet:()=>({x:0,y:0,z:0,angle:0}),S:{w:200,h:200,d:60,item:-1,divider:-1},focusOn:false,inside:()=>false});Object.assign(c,createCameraController({dom:require('./helpers/dom-fixture.cjs').domFixture(), ...dependencies(c),clock:{now:()=>time}}));const transition=c.cameraTransition;c.cameraTransition=(...a)=>{transition(...a);if(c.camGoal)c.camGoal.start=time};return{run:s=>vm.runInContext(s,c),time:t=>time=t}}
+function fixture(width=1200){let time=0;const c=vm.createContext({az:0,el:.1,dist:500,tgt:new (require('three').Vector3)(0,100,0),tgtY:100,vs:0,vsT:0,vz:1,vzT:1,camGoal:null,camHome:null,camRestore:null,zoomTarget:null,zoomAnchor:null,zoomFocus:null,reducedCameraMotion:{matches:false},activeCabinet:()=>({x:0,y:0,z:0,angle:0}),S:{w:200,h:200,d:60,item:-1,divider:-1},focusOn:false,inside:()=>false});Object.assign(c,createCameraController({...dependencies(c),dom:{...require('./helpers/dom-fixture.cjs').domFixture(),width},clock:{now:()=>time}}));const transition=c.cameraTransition;c.cameraTransition=(...a)=>{transition(...a);if(c.camGoal)c.camGoal.start=time};return{run:s=>vm.runInContext(s,c),time:t=>time=t}}
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 test('camera transitions have exact endpoints, smooth ends and take shortest angular path',()=>{const{run}=fixture();run('cameraTransition({az:Math.PI*2-.1,el:.3,dist:250,x:50,y:150,z:20},600)');run('cameraTick(0,1/60)');near(run('dist'),500);run('cameraTick(300,1/60)');near(run('az'),-.05);near(run('dist'),Math.sqrt(500*250));run('cameraTick(600,1/60)');near(run('dist'),250);near(run('tgt.y'),150);assert.equal(run('camGoal'),null);near(run('cameraEase(0)'),0);near(run('cameraEase(1)'),1);assert.ok(run('cameraEase(.001)')<1e-7)});
@@ -14,3 +14,35 @@ test('pointer zoom keeps the anchor on the same screen ray throughout easing and
 });
 test('center zoom leaves the target fixed and takeover clears the pointer anchor',()=>{const{run}=fixture();const before=run('JSON.stringify(tgt)');run('cameraZoom(.7);cameraTick(0,1/60)');assert.equal(run('JSON.stringify(tgt)'),before);run('zoomAnchor={x:120,y:160,z:40};camRelease()');assert.equal(run('zoomAnchor'),null)});
 test('camera depth precision scales at distant zoom while keeping close-up clipping small',()=>{const{run}=fixture();near(run('cameraNearDistance(120)'),1);near(run('cameraNearDistance(800)'),4);near(run('cameraNearDistance(4000)'),20);near(run('cameraNearDistance(15000)'),50);const resolution=(distance,nearPlane)=>distance*distance/(nearPlane*2**24);assert.ok(resolution(4000,run('cameraNearDistance(4000)'))<.05);assert.ok(resolution(15000,run('cameraNearDistance(15000)'))<.3)});
+
+test('mobile flights stay direct, adapt duration and include angle-only changes',()=>{
+ const{run}=fixture(390);
+ run('cameraFlyTo({az:.5,el:.1,dist:500,x:0,y:100,z:0})');
+ assert.ok(run('camGoal')!==null,'An angle-only change must animate');
+ assert.equal(run('camGoal.arc'),0);
+ assert.ok(run('camGoal.duration')>=280&&run('camGoal.duration')<=650);
+ run('cameraTick(1000,1/60)');near(run('az'),.5);
+ run('cameraFlyTo({az:.5,el:.1,dist:350,x:100,y:100,z:0})');
+ assert.equal(run('camGoal.arc'),0);
+ let previous=500;
+ for(const t of [0,100,200,300,400,500,700]){
+  run(`cameraTick(${t},1/60)`);
+  const distance=run('dist');assert.ok(distance<=previous&&distance>=350-1e-6);previous=distance;
+ }
+ near(run('dist'),350);
+});
+test('repeated mobile framing preserves an in-flight transition and manual takeover cancels it',()=>{
+ const{run,time}=fixture(390);
+ run('cameraFlyTo({az:.2,el:.1,dist:350,x:30,y:100,z:0});savedGoal=camGoal');
+ time(100);run('cameraTick(100,1/60);cameraFlyTo({az:.2,el:.1,dist:350,x:30,y:100,z:0})');
+ assert.equal(run('camGoal===savedGoal'),true);
+ const before=run('JSON.stringify(camNow())');
+ run('camRelease();cameraTick(1000,1/60)');
+ assert.equal(run('JSON.stringify(camNow())'),before);
+});
+test('mobile button zoom centres the wardrobe instead of chasing a low selected fitting',()=>{
+ const{run}=fixture(390);
+ run('S.item=0;tgt.set(0,30,0);cameraZoom(.8)');
+ near(run('zoomFocus.y'),100);
+ near(run('zoomTarget'),400);
+});

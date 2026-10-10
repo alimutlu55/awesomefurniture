@@ -56,13 +56,12 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         placePop(p, e, v);
         if (id === '#pop2' && dom.width <= 900) {
             $('#app').classList.add('adding', 'inspecting');
-            camera.fit({ az: 0, el: .03, padding: 1.08 });
+            camera.frameMobileInspector();
         }
         else if (dom.width <= 900) {
             $('#app').classList.remove('adding');
             $('#app').classList.add('inspecting');
-            camera.camRelease();
-            camera.cameraTransition(camera.camFront(), 480);
+            camera.frameMobileInspector();
         }
     }
     function popUI() {

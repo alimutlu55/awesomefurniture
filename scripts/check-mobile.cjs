@@ -188,7 +188,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.notEqual(await control('zoom-val').textContent(),before,'Zoom button must change camera');
     // Real multi-touch events exercise the pointer registry, pinch and release.
     const cdp=await page.context().newCDPSession(page);
-    const v=await control('view').boundingBox();const x=v.x+v.width*.5,y=v.height*.45;
+    const v=await control('view').boundingBox();const x=v.x+v.width*.5,y=v.y+v.height*.25;
     const beforePinch=await control('zoom-val').textContent();
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x-25,y,id:1},{x:x+25,y,id:2}]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-55,y,id:1},{x:x+55,y,id:2}]});
