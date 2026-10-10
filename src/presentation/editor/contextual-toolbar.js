@@ -10,6 +10,12 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     row.className = 'contextual-actions';
     const history = document.createElement('div');
     history.className = 'contextual-history';
+    for (const [button, label] of [[undo, 'Undo'], [redo, 'Redo']]) {
+        const text = document.createElement('span');
+        text.className = 'contextual-history-label';
+        text.textContent = label;
+        button.append(text);
+    }
     history.append(undo, redo);
     root.append(defaults, row, history);
     const menu = document.createElement('div');
