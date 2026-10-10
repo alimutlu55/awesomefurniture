@@ -235,6 +235,7 @@ readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-li
 }
 
 export interface BindItemDimensionsPorts {
+readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'moveViewOn' | 'moveViewOff'>>;
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'setManualItemSize'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'itemUI'>>;

@@ -62,7 +62,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     inspectorBindings.bindMoveApply({ dom, interactions, geometry, model });
     inspectorBindings.bindWindowKeydown6({ dom, interactions, interactionState, lifetime });
     inspectorBindings.bindWindowKeyup({ dom, interactions, interactionState, lifetime });
-    inspectorBindings.bindItemDimensions({ dom, interactions, inspector, lifetime });
+    inspectorBindings.bindItemDimensions({ dom, camera, interactions, inspector, lifetime });
     inspectorBindings.bindIx({ dom, inspector });
     inspectorBindings.bindPop3({ dom, interactions, inspector, selectionState, geometry, model, commands, lifetime });
     inspectorBindings.populateStoragePurposes({ dom, });

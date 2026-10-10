@@ -68,3 +68,18 @@ test('cancelled resizing restores the item without moving the camera',()=>{
  run('moveItemEdgeResize({pointerId:1,clientX:130,clientY:100});finishItemEdgeResize(true)');
  assert.equal(calls.restored,true);assert.equal(calls.return,0);assert.equal(calls.focus,0);assert.equal(c.hist.length,0);
 });
+
+ test('mobile edge resizing uses the movement camera while desktop keeps its current view',()=>{
+ const {createItemResize}=require('../src/presentation/editor/item-resize.js');
+ for(const width of [390,1200]){
+  const calls=[];
+  const item={k:'drawer',h:22};
+  const state={sel:0,item:0,doors:'none',secs:[[item]]};
+  const handle={classList:{add(){},remove(){}},setPointerCapture(){},hasPointerCapture(){return false}};
+  const api=createItemResize({dom:{width},geometry:{itemGeom:()=>({...g,freeTop:50}),resizeObstacles:()=>[],itemMinW:()=>25,effectiveMin:()=>15,widths:()=>[200],ih:()=>190},model:{activeCabinet:()=>({state}),scene:{activeWardrobe:1},snapshot:()=> 'original'},picking:{frontPoint:()=>({x:0,y:0})},camera:{camRelease(){},moveViewOn(){calls.push('movement framing')},moveViewOff(){calls.push('restore')}},cameraState:{tgt:{y:100},vs:0,vz:1},interactionState:{},commands:{},history:{},shellState:{},inspector:{update(){}},renderState:{},callbacks:{cancelMovement(){}}});
+  api.beginItemEdgeResize({button:0,pointerId:1,clientX:100,clientY:100,preventDefault(){},stopPropagation(){}},'right',handle);
+  assert.deepEqual(calls,width<=900?['movement framing']:[]);
+  api.finishItemEdgeResize();
+  assert.deepEqual(calls,width<=900?['movement framing','restore']:[]);
+ }
+});

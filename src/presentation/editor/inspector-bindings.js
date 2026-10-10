@@ -383,10 +383,19 @@ export function bindWindowKeyup({ dom, interactions, interactionState, lifetime 
     });
 }
 /** @param {import('./inspector-bindings.ports').BindItemDimensionsPorts} ports */
-export function bindItemDimensions({ dom, interactions, inspector, lifetime }) {
+export function bindItemDimensions({ dom, camera, interactions, inspector, lifetime }) {
     const { $ } = dom;
     for (const [id, edge] of [['ih', 'top'], ['iw', 'right']]) {
         const input = $('#' + id);
+        lifetime.listen(input, 'focus', () => {
+            if (dom.width <= 900) {
+                camera.camRelease();
+                camera.moveViewOn();
+            }
+        });
+        lifetime.listen(input, 'blur', () => {
+            if (dom.width <= 900) camera.moveViewOff();
+        });
         for (const event of ['change', 'blur']) {
             lifetime.listen(input, event, () => interactions.setManualItemSize(edge, ( /** @type {HTMLInputElement} */(input)).valueAsNumber));
         }
