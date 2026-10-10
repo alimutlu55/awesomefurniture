@@ -1,5 +1,5 @@
-/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'picking' | 'renderState' | 'inspector' | 'selectionState' | 'model' | 'resources'>} ports */
-export function createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources }) {
+/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'picking' | 'renderState' | 'inspector' | 'selectionState' | 'model' | 'resources' | 'camera'>} ports */
+export function createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera }) {
     function pick(e) {
         const h = picking.cast(e, renderState.allHits);
         if (!h) {
@@ -24,7 +24,8 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
                 selectionState.deep = true;
                 selectionState.pillOn = false;
                 inspector.update();
-                inspector.showPop(e, '#pop4');
+                if (dom.width > 900) inspector.showPop(e, '#pop4');
+                else camera.frameMobileInspector(true);
                 return;
             }
             model.activeCabinet().state.divider = -1;
@@ -33,7 +34,8 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             model.activeCabinet().state.sel = item.i;
             model.activeCabinet().state.item = item.j;
             inspector.update();
-            inspector.showPop(e, '#pop3');
+            if (dom.width > 900) inspector.showPop(e, '#pop3');
+            else camera.frameMobileInspector(true);
             return;
         }
         inspector.hidePop();

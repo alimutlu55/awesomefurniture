@@ -10,7 +10,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 /** @param {import('./editor-gestures.ports').CreateEditorGesturesPorts} ports */
 export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }) {
     const { $, matchMedia } = dom;
-    const { pick, hover } = createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources });
+    const { pick, hover } = createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera });
     const { beginItemEdgeResize, moveItemEdgeResize, finishItemEdgeResize, buildSnapContext, snapPxPerCm, snapItemEdge, setManualItemSize } = createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks: { get cancelMovement() {
                 return cancelMovement;
             } } });

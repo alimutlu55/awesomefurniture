@@ -1,3 +1,4 @@
+import { animateMobileSheetClose, dismissMobileSheetExits } from './mobile-sheet-motion.js';
 import * as THREE from "three";
 import { PANEL, itemName } from '../../domain/wardrobe/catalog.js';
 import { measureNumber, esc } from './editor-format.js';
@@ -45,7 +46,9 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
     }
     function showPop(e, id) {
         const p = $(id), v = $('#view').getBoundingClientRect();
+        if (dom.width <= 900) { animateMobileSheetClose($('#left')); $('#app').classList.remove('props-open'); }
         callbacks.hidePop();
+        dismissMobileSheetExits(p.getRootNode());
         if (id === '#pop2') {
             callbacks.renderAddChoices();
         }
@@ -92,6 +95,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         t.style.top = f.style.top;
         t.dataset.side = f.dataset.side || '';
         t.classList.toggle('docked', f.classList.contains('docked'));
+        animateMobileSheetClose(f);
         f.classList.remove('show');
         t.classList.add('show');
         syncMin(t);

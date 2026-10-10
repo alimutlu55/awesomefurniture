@@ -1,3 +1,5 @@
+import { refreshContextualToolbar } from './contextual-toolbar.js';
+import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
 import { createItemActions } from './item-actions.js';
@@ -34,11 +36,12 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     const divWord = i => model.activeCabinet().state.dividers?.[i]?.orientation === 'horizontal' ? 'shelf' : 'divider';
     const bar = (id, p) => $(id).style.width = Math.max(0, Math.min(100, p)) + '%';
     const hidePop = () => {
-        (document.querySelectorAll('.pop')).forEach(p => p.classList.remove('show'));
+        (document.querySelectorAll('.pop.show')).forEach(p => { animateMobileSheetClose(p); p.classList.remove('show'); });
         cameraState.vsT = camera.baseShift();
         cameraState.vzT = 1;
     };
     function selectCabinet(id) {
+        delete elements.app.dataset.toolbarMode;
         camera.camRelease();
         if (interactionState.wardrobeGesture) {
             interactions.finishWardrobeDrag();
@@ -52,15 +55,17 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         model.activeCabinet().state.item = -1;
         model.activeCabinet().state.divider = -1;
         model.activeCabinet().state.space = null;
-        selectionState.pillOn = false;
-        selectionState.deep = false;
+        selectionState.pillOn = dom.width <= 900;
+        selectionState.deep = dom.width <= 900;
         update();
-        camera.focusSelection(true);
+        if (dom.width <= 900) camera.frameMobileInspector(true);
+        else camera.focusSelection(true);
     }
     function addCabinet(copy = false) {
         const w = sceneCommands.addCabinet(copy);
         hidePop();
-        selectionState.pillOn = false;
+        selectionState.pillOn = dom.width <= 900;
+        if (dom.width <= 900) selectionState.deep = true;
         update();
         camera.fit();
         shell.toast(w.name + ' added');
@@ -117,6 +122,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#move-cancel').hidden = !interactionState.moveMode;
     }
     function reopenItemPanel() {
+        if (dom.width <= 900) return;
         if (interactionState.ptrs.size || interactionState.drag || interactionState.moveMode || interactionState.wardrobeGesture || interactionState.rotationGesture || !selectionState.focusOn || !$('#wizard').hidden || document.querySelector('.pop.show')) {
             return;
         }
@@ -138,6 +144,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
     }
     function ui() {
+        refreshContextualToolbar($('#toolbar'));
         syncResponsive();
         wardrobeUI();
         measurementUI();
@@ -245,6 +252,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
     }
     function clearFocus() {
+        delete elements.app.dataset.toolbarMode;
+        if (dom.width <= 900) { elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); }
         if (interactionState.wardrobeGesture) {
             interactions.finishWardrobeDrag();
         }

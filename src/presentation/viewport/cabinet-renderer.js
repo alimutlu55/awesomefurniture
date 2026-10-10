@@ -112,7 +112,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.renderActive = true;
         renderState.moveIcons = [];
         if (selectionState.focusOn) {
-            if (!inspector.inside()) {
+            if (!inspector.inside() || (dom.width <= 900 && dom.$('#app').dataset.toolbarMode === 'move')) {
                 addRotationIndicator();
                 addWardrobeActions();
                 addWardrobeMoveHandles();

@@ -1,9 +1,11 @@
+import { registerMobileSheetMotion } from './mobile-sheet-motion.js';
 /** Shared sheet affordance. Events belong to the mounted editor lifetime. */
-/** @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>; desktop: ReturnType<ReturnType<typeof import('./editor-dom.js').createEditorDom>['matchMedia']>; panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement }} options */
+/** @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>; desktop: ReturnType<ReturnType<typeof import('./editor-dom.js').createEditorDom>['matchMedia']>; panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement }} options */
 export function mountMobileSheet({ document, lifetime, desktop, panel, name, close, bottom = false, fullscreen = false, scene }) {
     panel.classList.add('mobile-sheet');
     if (bottom) {
         panel.classList.add('mobile-bottom-sheet');
+        registerMobileSheetMotion(panel, { desktop, lifetime });
         panel.dataset.sheetPosition = fullscreen ? 'full' : 'compact';
     }
     const handle = document.createElement('button');

@@ -24,7 +24,7 @@ test('short and cancelled drags keep the current position',()=>{
  f.emit('pointerdown');f.emit('pointermove',70);f.emit('pointercancel');
  assert.equal(f.panel.dataset.sheetPosition,'compact');assert.equal(f.values.size,0);assert.equal(f.closed(),0);
 });
-test('Auto design starts full screen and moves between full and compact',()=>{
+test('Auto design starts expanded and moves between its default and compact heights',()=>{
  const f=fixture(true);assert.equal(f.panel.dataset.sheetPosition,'full');
  f.drag(100);assert.equal(f.panel.dataset.sheetPosition,'compact');assert.equal(f.closed(),0);
  f.drag(-100);assert.equal(f.panel.dataset.sheetPosition,'full');

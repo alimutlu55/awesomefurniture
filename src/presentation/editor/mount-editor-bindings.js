@@ -1,3 +1,5 @@
+import { dismissMobileSheetExits } from './mobile-sheet-motion.js';
+import { createContextualToolbar } from './contextual-toolbar.js';
 import * as inspectorBindings from './inspector-bindings.js';
 import * as gestureBindings from './gesture-bindings.js';
 import * as wizardBindings from './wizard-bindings.js';
@@ -135,6 +137,51 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         return handle;
     });
     $('#toolbar').append($('#undo2'), $('#redo2'));
+    // Group the existing wardrobe controls without replacing their bindings.
+    const body = $('#left-body');
+    let group;
+    for (const child of [...body.children]) {
+        if (child.tagName === 'H2' || !group || child.classList.contains('reach-row') || child.classList.contains('reset-row')) {
+            group = document.createElement('section');
+            const label = child.textContent.trim();
+            group.dataset.wardrobeControls = child.classList.contains('reach-row') ? 'reach' : child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
+            body.insertBefore(group,child);
+        }
+        group.append(child);
+    }
+    const openControls = key => {
+        inspector.hidePop();
+        dismissMobileSheetExits(elements.app.getRootNode());
+        $('#left').dataset.contextSection = key;
+        elements.app.classList.add('props-open');
+        elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
+        $('#left').scrollTop = 0;
+        camera.frameMobileInspector();
+    };
+    createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
+        getSelection: () => !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
+        replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
+        execute: key => {
+            const state = model.activeCabinet().state;
+            delete elements.app.dataset.toolbarMode;
+            if (key.startsWith('t-')) { inspector.itemAction(key); return; }
+            if (key === 'duplicate') {
+                if (state.divider >= 0) commands.duplicateDivider();
+                else if (state.item >= 0) inspector.itemAction('dup');
+                else inspector.addCabinet(true);
+            } else if (key === 'remove') {
+                if (state.divider >= 0) $('#divider-remove').click();
+                else if (state.item >= 0) inspector.itemAction('del');
+                else $('#remove-wardrobe').click();
+            } else if (key === 'reset') $('#reset-all').click();
+            else if (key === 'move') {
+                inspector.hidePop(); elements.app.classList.remove('props-open');
+                elements.app.dataset.toolbarMode = 'move';
+                selectionState.deep = true; selectionState.pillOn = true;
+                inspector.update();
+            } else openControls(key);
+        }
+    });
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';
     (() => {
         const k = (a, b) => '<kbd>' + a + '</kbd><span>' + b + '</span>', h = t => '<h3>' + t + '</h3>';

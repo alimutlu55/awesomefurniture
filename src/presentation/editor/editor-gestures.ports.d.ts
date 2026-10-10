@@ -1,7 +1,7 @@
 /** Explicit dependencies consumed by this module. */
 export interface CreateEditorGesturesPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
-readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'moveViewOff' | 'moveViewOn'>>;
+readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'frameMobileInspector' | 'moveViewOff' | 'moveViewOn'>>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../viewport/cabinet-renderer.js').createCabinetRenderer>, 'clearPreview' | 'clearSettling' | 'drawClearances' | 'dropPreviewLabels' | 'holdOverlay' | 'refreshDividerVisual' | 'setPreviewLabel'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'hidePop' | 'histUI' | 'inside' | 'itemUI' | 'movementUI' | 'reopenItemPanel' | 'selectCabinet' | 'selectSpaceAt' | 'showPop' | 'update'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'toast'>>;

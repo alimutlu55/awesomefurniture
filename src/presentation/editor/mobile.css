@@ -146,3 +146,31 @@
 @media(max-width:900px){
  .wardrobe-actions{pointer-events:auto}
 }
+
+/* One reusable contextual action row, with history anchored on its right. */
+.contextual-defaults,.contextual-history{display:contents}
+.contextual-actions,.contextual-popover{display:none}
+@media(max-width:900px){
+ #sidebar-toggle{display:none!important}
+ #toolbar{display:flex!important;z-index:40;justify-content:flex-start}
+ #toolbar .contextual-defaults{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto}
+ #toolbar .contextual-actions{display:none;align-items:center;gap:0;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+ #toolbar[data-context="wardrobe"] .contextual-defaults,#toolbar[data-context="item"] .contextual-defaults{display:none}
+ #toolbar[data-context="wardrobe"] .contextual-actions,#toolbar[data-context="item"] .contextual-actions{display:flex}
+ #toolbar .contextual-history{display:flex;flex:0 0 auto;margin-left:auto;background:transparent}
+ #toolbar .contextual-actions .tb{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 8px;font-size:10px;min-width:48px;height:48px}
+ #toolbar .contextual-actions .ic{height:18px;width:18px}
+ .contextual-popover:not([hidden]){display:grid;position:absolute;right:12px;bottom:calc(76px + var(--safe-bottom));z-index:60;background:var(--panel);padding:6px;border-radius:12px;box-shadow:0 6px 24px #45392320;max-height:55%;overflow-y:auto;min-width:170px}
+ .contextual-popover button{text-align:left;min-height:44px;padding:8px 12px;border-radius:6px}
+ #item-bar,.wardrobe-actions{display:none!important}
+ #left .wardrobe-header{display:none}
+ #left[data-context-section] [data-wardrobe-controls]{display:none}
+ #left[data-context-section="resize"] [data-wardrobe-controls="resize"],#left[data-context-section="sections"] [data-wardrobe-controls="sections"],#left[data-context-section="material"] [data-wardrobe-controls="material"],#left[data-context-section="reach"] [data-wardrobe-controls="reach"],#left[data-context-section="doors"] [data-wardrobe-controls="doors"]{display:block}
+ #app.props-open #left{visibility:visible;pointer-events:auto}
+}
+
+@media(max-width:900px){:host([data-keyboard-open]) #toolbar{display:none!important}}
+@media(max-width:900px){
+ #app.adding #pop2.mobile-bottom-sheet{bottom:calc(76px + var(--safe-bottom))}
+ #app.adding{--sheet:calc(var(--catalog-height) + 76px + var(--safe-bottom))}
+}

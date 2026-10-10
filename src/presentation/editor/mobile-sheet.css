@@ -1,6 +1,8 @@
 /* Shared mobile sheet tokens and frame. Content defines its own height. */
 :root{
  --mobile-sheet-radius:18px;
+ --mobile-sheet-duration:280ms;
+ --mobile-sheet-easing:cubic-bezier(.22,1,.36,1);
  --mobile-sheet-padding:12px;
  --mobile-settings-sheet-height:min(44vh,calc(100vh - 176px - var(--safe-top) - var(--safe-bottom)));
  --mobile-expanded-sheet-height:min(78vh,calc(100vh - 144px - var(--safe-top) - var(--safe-bottom)));
@@ -19,7 +21,7 @@
  .mobile-bottom-sheet>.mobile-sheet-handle{height:var(--mobile-sheet-handle-height);min-height:var(--mobile-sheet-handle-height);top:calc(-1 * var(--mobile-sheet-padding));margin:calc(-1 * var(--mobile-sheet-padding)) 0 0;background:var(--panel)}
  .mobile-bottom-sheet .ph{top:calc(var(--mobile-sheet-handle-height) - var(--mobile-sheet-padding));margin:0 calc(-1 * var(--mobile-sheet-padding)) 6px;padding:0 var(--mobile-sheet-padding);background:var(--panel)}
  #app[data-sheet-dragging] #view{bottom:var(--mobile-sheet-drag-inset);transition:none}
- .mobile-bottom-sheet{transition:height .25s ease,max-height .25s ease,translate .18s ease-out;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+ .mobile-bottom-sheet{transition:height var(--mobile-sheet-duration) var(--mobile-sheet-easing),max-height var(--mobile-sheet-duration) var(--mobile-sheet-easing),translate var(--mobile-sheet-duration) var(--mobile-sheet-easing);overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
  #app.props-open:not(.inspecting){--panel-height:var(--mobile-settings-sheet-height)}
  /* Auto design overlays the scene. Dragging it must not reserve an empty
     panel-sized area or resize the camera behind it. */
@@ -28,7 +30,7 @@
  #app.auto-design-open #left{display:none}
  #wizard{padding:0;display:flex;align-items:flex-end;background:transparent}
  #wizard:not([hidden]){backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
- #wizard:not([hidden]) .mobile-bottom-sheet{animation:none}
+ .mobile-sheet.mobile-bottom-sheet,#wizard:not([hidden]) .mobile-bottom-sheet{animation:mobile-sheet-enter var(--mobile-sheet-duration) var(--mobile-sheet-easing)}
  #wizard .mobile-bottom-sheet{width:100%;flex:0 0 100%;height:var(--mobile-settings-sheet-height);max-height:var(--mobile-settings-sheet-height);min-height:0;padding:0;overflow:hidden}
  #wizard .mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
  #wizard .wizard-head{padding:0 var(--mobile-sheet-padding) 8px;border:0}
@@ -36,7 +38,7 @@
  #wizard .preferences,#wizard .ideas-panel{padding:var(--mobile-sheet-padding)}
  #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + 76px + var(--safe-bottom))}
  #app .mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
- #wizard .mobile-bottom-sheet[data-sheet-position="full"]{height:100%;max-height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+ #wizard .mobile-bottom-sheet[data-sheet-position="full"]{height:85%;max-height:85%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
  #app .mobile-bottom-sheet[data-sheet-dragging],#wizard .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - var(--safe-top))}
  #app.adding #pop2.mobile-bottom-sheet{padding:0 var(--mobile-sheet-padding) var(--safe-bottom);overflow:hidden}
  #app.adding #pop2.mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
@@ -54,4 +56,10 @@
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - 76px - var(--safe-bottom))}
 }
 
-@media(prefers-reduced-motion:reduce){.mobile-bottom-sheet{transition:none}}
+@keyframes mobile-sheet-enter{from{opacity:0;transform:translateY(calc(100% + 80px))}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.mobile-sheet.mobile-bottom-sheet,#wizard:not([hidden]) .mobile-bottom-sheet{transition:none;animation:none}}
+@media(max-width:900px){
+ :host([data-keyboard-open]) #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{
+  top:12px;bottom:8px;height:auto!important;max-height:none!important;animation:none;transition:none;
+ }
+}

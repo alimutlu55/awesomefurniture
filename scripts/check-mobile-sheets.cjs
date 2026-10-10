@@ -8,8 +8,12 @@ const assert = require('node:assert/strict');
    const page=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
    await page.goto(process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173');
    const control=id=>page.locator(`[data-editor-id="${id}"]`);
-   await control('props-btn').waitFor();
-   if(id==='left') await control('props-btn').tap();
+   await control('more-btn').waitFor();
+   if(id==='left') {
+    const box=await control('view').boundingBox();
+    await page.touchscreen.tap(box.x+box.width/2,box.y+box.height*.45);
+    await control('toolbar').locator('[data-action="resize"]').tap();
+   }
    else if(id==='pop2') await control('more-btn').tap();
    else if(id==='wizard') await control('launch-wizard').tap();
    else {

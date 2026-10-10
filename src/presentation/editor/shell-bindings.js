@@ -1,3 +1,4 @@
+import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
 /** DOM event bindings call application commands through the mounted view ports. */
@@ -118,6 +119,7 @@ export function bindInspectorControls4({ dom, inspector, shell, lifetime, elemen
         shell.closeDD();
         const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
         if (visible) {
+            animateMobileSheetClose(dom.$('#left'));
             inspector.clearFocus();
             elements.app.classList.add('props-hidden');
             elements.app.classList.remove('props-open');
@@ -134,6 +136,7 @@ export function bindInspectorControls4({ dom, inspector, shell, lifetime, elemen
     // the canvas handles the release, including taps on its overlaid labels.
     lifetime.listen(view, 'pointerup', e => {
         if (desktop.matches || !e.isPrimary || !elements.app.classList.contains('props-open')) return;
+        animateMobileSheetClose(dom.$('#left'));
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');
         syncToggle();
@@ -212,8 +215,8 @@ export function bindRemoveWardrobe({ dom, camera, interactions, inspector, shell
         interactions.cancelMovement();
         const name = sceneCommands.removeCabinet();
         inspector.hidePop();
-        selectionState.pillOn = false;
-        selectionState.deep = false;
+        selectionState.pillOn = dom.width <= 900;
+        selectionState.deep = dom.width <= 900;
         inspector.update();
         camera.fit();
         shell.toast(name + ' removed. Undo (Ctrl/Cmd+Z) brings it back.');
