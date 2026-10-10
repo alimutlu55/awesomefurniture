@@ -82,4 +82,15 @@ Run `npm run review:planner` for the repeatable 32-case planner audit. See
 [test and design review](docs/planner-design-review.md) and the
 [visual comparison](docs/verification/planner-review.html) for findings and layout thumbnails.
 
+## Cloudflare deployment
+
+Cloudflare Workers Builds should use `npm run build` as the build command and
+`npx wrangler deploy` as the deploy command. The checked-in `wrangler.jsonc`
+uploads `dist` as static assets; it avoids automatic Vite plugin installation
+and a second build during deployment. HTML paths such as `/editor.html` remain
+available, and unknown paths return 404.
+
+Validate deployment locally after building with
+`npx wrangler deploy --dry-run`. A dry run does not publish the site.
+
 # awesomefurniture
