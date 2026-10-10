@@ -36,8 +36,17 @@ test('complete designs survive validated persistence with layout intent intact',
  assert.deepEqual(initial,scene(),'mapping must not mutate the editor scene');
 });
 
-test('empty projects start with the original editor defaults',()=>{
+test('fresh editors start with one empty wardrobe and no generated layout',async()=>{
  assert.equal(projectToScene(createProject('empty','Empty')),undefined);
+ const {createEditorModel}=await import('../../src/application/projects/editor-model');
+ const model=createEditorModel();
+ assert.equal(model.scene.wardrobes.length,1);
+ const design=model.activeCabinet().state;
+ assert.equal(design.n,1);
+ assert.ok(design.secs.every(section=>section.length===0));
+ assert.deepEqual(design.dividers,[]);
+ assert.equal(design.proposal,null);
+ assert.equal(design.profile.engaged,false);
 });
 
 test('hinged doors map to the canonical solid-door model and reopen as hinged',()=>{

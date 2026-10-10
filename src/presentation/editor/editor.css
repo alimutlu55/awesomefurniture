@@ -372,3 +372,13 @@ button:hover:not(:disabled):not(.on){background:#e3ddd3}
 
 .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;font-size:12px;line-height:1.35}.tag-row .pill{display:inline-block}#plan-warnings .pill.warn{color:#a76600;border-color:#a7660040}#hint .pill{display:inline-block;margin:2px;font-size:10px}
 #toast .pill{color:inherit;border-color:currentColor}#toast .tag-row{margin:0}
+
+/* Left settings drawer with an always-available hide/show control. */
+#sidebar-toggle{position:absolute;left:12px;top:22px;right:auto;z-index:10;padding:0;background:none;border:0;box-shadow:none}
+#sidebar-toggle .tb{width:36px;height:36px;min-width:36px;min-height:36px;padding:6px;background:transparent;border:0;border-radius:6px;color:var(--mute)}
+#sidebar-toggle .tb:hover{background:transparent;color:var(--ink)}
+#props-btn .ic{width:20px;height:20px}
+#props-btn[aria-expanded="false"] .ic{transform:rotate(180deg)}
+#left,#app.inspecting #left{left:8px;right:auto;top:70px;bottom:auto;max-height:calc(100% - 150px);height:auto}
+#app.props-hidden #left,#app.props-hidden.inspecting #left{display:none;pointer-events:none}
+@media(max-width:900px){#left,#app.inspecting #left{width:min(300px,calc(100% - 16px));padding:20px}#app.props-open:not(.inspecting){--sheet:76px}}

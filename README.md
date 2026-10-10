@@ -81,3 +81,5 @@ See [Smart Auto design](docs/smart-auto-design.md) for implementation and limits
 Run `npm run review:planner` for the repeatable 32-case planner audit. See
 [test and design review](docs/planner-design-review.md) and the
 [visual comparison](docs/verification/planner-review.html) for findings and layout thumbnails.
+
+# awesomefurniture

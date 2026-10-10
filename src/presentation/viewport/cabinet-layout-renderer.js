@@ -159,7 +159,6 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             });
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
                 const space = geometry.sectionSpaceMeasurements(i), sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler';
-                label(new V(cx, h + 8, zf), 'Selected space', 'lbl dim space-tag');
                 dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), measureNumber(space.w) + ' cm', cls, spaceRulerPoints);
                 dimLine(new V(ex - 4, space.y0, zf), new V(ex - 4, space.y1, zf), measureNumber(space.h) + ' cm', cls, spaceRulerPoints);
                 dimLine(new V(sx + 5, space.y0 + 5, -d / 2 + .5), new V(sx + 5, space.y0 + 5, d / 2 - 1.5), measureNumber(space.dep) + ' cm', cls, spaceRulerPoints);

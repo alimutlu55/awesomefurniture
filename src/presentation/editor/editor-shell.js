@@ -10,8 +10,14 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
         elements.app.classList.toggle('adding', $('#pop2').classList.contains('show'));
         if (on) {
             elements.app.classList.remove('props-open');
-            elements.propsButton.setAttribute('aria-pressed', 'false');
+            if (dom.width > 900 && document.querySelector('#left .pop.show')) elements.app.classList.remove('props-hidden');
         }
+        const visible = !elements.app.classList.contains('props-hidden') && (dom.width > 900 || elements.app.classList.contains('props-open'));
+        const label = visible ? 'Hide settings' : 'Show settings';
+        elements.propsButton.setAttribute('aria-pressed', String(visible));
+        elements.propsButton.setAttribute('aria-expanded', String(visible));
+        elements.propsButton.setAttribute('aria-label', label);
+        elements.propsButton.setAttribute('data-tip', label);
     };
     /** @type {Array<[string, string, string, number, (stats: any) => boolean]>} */
     const Q = [['first', 'First Fit', 'Add any module', 50, s => s.mods > 0], ['hang', 'Hang Tight', 'Add a hanging rail', 50, s => s.hang > 0], ['drw', 'Drawer Duty', 'Have 3+ drawers', 75, s => s.drawers >= 3],

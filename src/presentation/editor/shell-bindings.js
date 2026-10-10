@@ -99,18 +99,32 @@ export function bindZoomOut({ dom, camera }) {
 }
 /** @param {import('./shell-bindings.ports').BindInspectorControls4Ports} ports */
 export function bindInspectorControls4({ dom, inspector, shell, lifetime, elements }) {
-    const { document } = dom;
+    const { document, matchMedia } = dom;
+    const desktop = matchMedia('(min-width:901px)');
+    const syncToggle = () => {
+        const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
+        const label = visible ? 'Hide settings' : 'Show settings';
+        elements.propsButton.setAttribute('aria-pressed', String(visible));
+        elements.propsButton.setAttribute('aria-expanded', String(visible));
+        elements.propsButton.setAttribute('aria-label', label);
+        elements.propsButton.setAttribute('data-tip', label);
+    };
     lifetime.listen(elements.propsButton, 'click', () => {
         shell.closeDD();
-        if (document.querySelector('.pop.show')) {
+        const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
+        if (visible) {
             inspector.clearFocus();
+            elements.app.classList.add('props-hidden');
+            elements.app.classList.remove('props-open');
+        } else {
+            if (document.querySelector('.pop.show')) inspector.clearFocus();
+            elements.app.classList.remove('props-hidden');
             elements.app.classList.add('props-open');
         }
-        else {
-            elements.app.classList.toggle('props-open');
-        }
-        elements.propsButton.setAttribute('aria-pressed', String(elements.app.classList.contains('props-open')));
+        syncToggle();
     });
+    lifetime.listen(desktop, 'change', syncToggle);
+    syncToggle();
 }
 /** @param {import('./shell-bindings.ports').ObserveInspectorPanelsPorts} ports */
 export function observeInspectorPanels({ dom, shell, lifetime }) {

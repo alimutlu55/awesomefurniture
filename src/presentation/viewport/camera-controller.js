@@ -38,7 +38,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (cameraState.initialCameraFraming || dom.width <= 900) {
             return 0;
         }
-        const css = getComputedStyle(document.documentElement), left = parseFloat(css.getPropertyValue('--pw')) + 56, right = document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 56 : 0, fallback = (left - right) / 2;
+        const css = getComputedStyle(document.documentElement), left = $('#app').classList.contains('props-hidden') ? 0 : parseFloat(css.getPropertyValue('--pw')) + 32, right = document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 56 : 0, fallback = (left - right) / 2;
         try {
             const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = 24, lo = left + gap - (W / 2 - half), hi = right ? W - right - gap - (W / 2 + half) : Infinity;
             if (!Number.isFinite(half) || half <= 0) {
@@ -67,7 +67,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function availableRoom() {
         const r = $('#view').getBoundingClientRect(), css = getComputedStyle(document.documentElement), desktop = dom.width > 900;
-        return { w: Math.max(160, r.width - (desktop ? parseFloat(css.getPropertyValue('--pw')) + 80 : 28) - (desktop && document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 60 : 0)), h: Math.max(140, r.height - (desktop ? 180 : 115)) };
+        return { w: Math.max(160, r.width - (desktop && !$('#app').classList.contains('props-hidden') ? parseFloat(css.getPropertyValue('--pw')) + 48 : 28) - (desktop && document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 60 : 0)), h: Math.max(140, r.height - (desktop ? 180 : 115)) };
     }
     /** @param {import('./camera-types').CameraPose} from
      * @param {import('./camera-types').CameraPose} to

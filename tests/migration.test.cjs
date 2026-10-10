@@ -11,10 +11,14 @@ test('planner and controls match reviewed feature baselines; original styles rem
  assert.equal(hash(read('src/presentation/editor/editor.css')),baseline.css);
  assert.equal(hash(read('src/presentation/editor/editor.html')),baseline.markup);
 });
-test('build entries and workspace links point at the migrated editor',()=>{
+test('both application entries open the editor without project screens',()=>{
  assert.ok(read('vite.config.ts').includes("editor: 'editor.html'"));
  assert.ok(!read('vite.config.ts').includes('Wardrobe_Forge-4-16-7-4'));
- assert.ok(read('src/presentation/projects/project-workspace.ts').includes('editor.html'));
+ assert.match(read('index.html'), /id="editor-root"/);
+ assert.match(read('src/app/main.ts'), /import '\.\/editor'/);
+ assert.doesNotMatch(read('src/app/editor.ts'), /projectToScene|projects\.open|initialScene/);
+ assert.doesNotMatch(read('src/presentation/editor/mount-editor.ts'), /mountProjectControls|projectStyles/);
+ assert.equal(require('node:fs').existsSync(path.join(__dirname,'../src/presentation/projects/project-workspace.ts')),false);
 });
 
 test('presentation writes design changes only through application commands',()=>{

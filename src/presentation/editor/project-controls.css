@@ -1,5 +1,0 @@
-/* The extracted editor fills its parent, just as it filled the original body. */
-#editor-root { height: 100%; }
-.project-controls { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
-.project-controls a, .project-controls button { display: block; width: 100%; padding: 10px 12px; text-align: left; color: inherit; font: inherit; }
-.project-controls p { margin: 6px 12px; max-width: 240px; font-size: 12px; overflow-wrap: anywhere; }

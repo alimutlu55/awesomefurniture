@@ -42,7 +42,6 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             const shortages = requested.filter(k => Math.floor(m.capacities[k]) < cfg.needs[k]);
             const tags = [tag(Math.floor(currentFit*100)+'% of items fit', shortages.length?'warn':'good')];
             for (const k of shortages) tags.push(tag(PURPOSE[k]+': '+(cfg.needs[k]-Math.floor(m.capacities[k]))+" won't fit",'warn'));
-            if (m.seasonal.targetBoxes || m.seasonal.allocatedBoxes) tags.push(tag(m.seasonal.fill?'Boxes '+m.seasonal.allocatedBoxes:'Boxes '+m.seasonal.allocatedBoxes+'/'+m.seasonal.targetBoxes));
             return '<article class="idea '+(index===0?'best':'')+'">'+miniPlan(p)+'<div class="idea-text"><h4><span>#'+(index+1)+' '+esc(p.title)+'</span></h4><div class="meta">'+tags.join('')+'</div><div class="capacity"><span>Storage</span><b>Fits / Owned</b>'+requested.map(k=>{
                 const have=Math.floor(m.capacities[k]),need=cfg.needs[k],cls=have<need?' class="low"':'';
                 return '<span'+cls+'>'+esc(PURPOSE[k])+'</span><b'+cls+'>'+have+' / '+need+'</b>';
