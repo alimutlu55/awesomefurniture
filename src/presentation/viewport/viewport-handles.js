@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { icon } from '../editor/editor-format.js';
+import { createActionBar } from '../editor/action-bar.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'model' | 'renderState' | 'interactionState' | 'interactions' | 'shell' | 'inspector' | 'resources' | 'selectionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'dimensionStroke' | 'drawSnapGuides'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createViewportHandles({ dom, geometry, callbacks, model, renderState, interactionState, interactions, shell, inspector, resources, selectionState, getRenderDesign }) {
@@ -19,8 +19,30 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         handle.setAttribute('aria-pressed', 'false');
         handle.title = 'Drag to rotate · Click, move, then click to set · Arrow keys rotate';
         handle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></svg><span></span>';
-        $('#labels').appendChild(handle);
-        renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: handle, owner: renderState.Gr });
+        /** @type {HTMLElement} */ let label = handle;
+        if (dom.width <= 900) {
+            handle.classList.remove('lbl', 'ground-rotate');
+            const actions = createActionBar(document, 'Wardrobe actions', [
+                { key: 'rot', title: 'Rotate ' + model.activeCabinet().name, button: handle },
+                { key: 'dup', title: 'Duplicate wardrobe' },
+                { key: 'del', title: 'Remove wardrobe', disabled: model.scene.wardrobes.length < 2 }
+            ]);
+            actions.classList.add('lbl', 'wardrobe-actions');
+            for (const [key, action] of [['dup', 'duplicate'], ['del', 'remove']]) {
+                const button = /** @type {HTMLButtonElement} */ (actions.querySelector('[data-ib="' + key + '"]'));
+                button.dataset.wardrobeAction = action;
+                if (button.disabled) button.title = 'Keep at least one wardrobe';
+                button.onpointerdown = e => e.stopPropagation();
+                button.onclick = e => {
+                    e.stopPropagation();
+                    if (action === 'duplicate') inspector.addCabinet(true);
+                    else $('#remove-wardrobe').click();
+                };
+            }
+            label = actions;
+        }
+        $('#labels').appendChild(label);
+        renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: label, owner: renderState.Gr });
         handle.onpointerdown = e => {
             if (e.button !== 0) {
                 return;
@@ -87,6 +109,7 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
     }
     function addWardrobeMoveHandles() {
         renderState.moveIcons = [];
+        if (dom.width <= 900) return;
         const anchor = new THREE.Vector3(0, 12, getRenderDesign().d / 2 + 28), inverse = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -model.activeCabinet().angle * Math.PI / 180);
         /** @type {Array<[string,string,string,number]>} */ const axes = [['x', '↔', 'left or right', 48], ['y', '↕', 'up or down', 68], ['z', '↗', 'forward or back', 48]];
         for (const [axis, icon, name, length] of axes) {

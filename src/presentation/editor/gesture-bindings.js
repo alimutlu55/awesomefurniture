@@ -1,5 +1,5 @@
 import { MODS } from '../../domain/wardrobe/catalog.js';
-import { ibIcon } from './editor-format.js';
+import { createActionBar } from './action-bar.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** @param {import('./gesture-bindings.ports').ObserveViewportSizePorts} ports */
 export function observeViewportSize({ dom, camera, lifetime }) {
@@ -273,12 +273,9 @@ export function bindView({ dom, inspector, picking, renderState, selectionState,
     $('#view').append(cancelMove);
     lifetime.listen(cancelMove, 'click', () => $('#move-cancel').click());
     (function buildItemBar() {
-        selectionState.itemBar = document.createElement('div');
+        selectionState.itemBar = createActionBar(document, 'Item actions', [{key:'dup',title:'Duplicate (Ctrl/Cmd+D)'},{key:'del',title:'Remove (Delete)'},{key:'typ',title:'Change type'}]);
         dom.setId(selectionState.itemBar, 'item-bar');
         selectionState.itemBar.hidden = true;
-        selectionState.itemBar.setAttribute('role', 'toolbar');
-        selectionState.itemBar.setAttribute('aria-label', 'Item actions');
-        selectionState.itemBar.innerHTML = [['dup', 'Duplicate (Ctrl/Cmd+D)'], ['del', 'Remove (Delete)'], ['typ', 'Change type']].map(([k, t]) => '<button type="button" data-ib="' + k + '" title="' + t + '" aria-label="' + t + '"' + (k === 'del' ? ' class="dl"' : '') + '>' + ibIcon(k) + '</button>').join('');
         selectionState.itemTypeMenu = document.createElement('div');
         dom.setId(selectionState.itemTypeMenu, 'item-type-menu');
         selectionState.itemTypeMenu.hidden = true;

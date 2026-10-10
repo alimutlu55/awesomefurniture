@@ -180,7 +180,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             const b = el.getBoundingClientRect();
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
-        const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
+        const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
             const q = l.p.clone();
             if (l.owner) {
                 l.owner.localToWorld(q);
@@ -195,7 +195,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             renderState.pv.project(resources.cam);
             const visible = renderState.pv.z < 1 && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
-            l.el.style.display = visible ? 'block' : 'none';
+            l.el.style.display = visible ? (l.el.classList.contains('wardrobe-actions') ? 'flex' : 'block') : 'none';
             if (!visible) {
                 if (l.rulerNode) {
                     l.rulerNode.style.display = 'none';

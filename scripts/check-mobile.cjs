@@ -37,6 +37,13 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     // Use the upper body to avoid the movement handles in short landscape views.
     const canvas=await control('view').boundingBox(),cx=canvas.x+canvas.width/2,cy=canvas.y+canvas.height*.36;
     await page.touchscreen.tap(cx,cy); // Select the wardrobe before dragging it.
+    assert.equal(await page.locator('.wardrobe-move[data-move-axis]').count(),0,'Mobile wardrobe axes are removed');
+    const actions=page.locator('.wardrobe-actions');
+    assert.equal(await control('item-bar').evaluate(e=>e.classList.contains('selection-action-bar')),true,'Items use the shared action toolbar');
+    await actions.waitFor();
+    assert.equal(await actions.evaluate(e=>e.classList.contains('selection-action-bar')),true,'Wardrobes use the same action toolbar');
+    assert.equal(await actions.evaluate(e=>getComputedStyle(e).borderRadius),await control('item-bar').evaluate(e=>getComputedStyle(e).borderRadius),'Selection toolbars share their existing design');
+    assert.equal(await actions.locator('[data-ib]').count(),3,'Rotate, Duplicate and Remove appear together');
     await movement.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx,y:cy,id:1}]});
     await movement.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx+35,y:cy,id:1}]});
     await movement.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
@@ -260,6 +267,25 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await page.setViewportSize({width:height,height:width});
     await page.waitForTimeout(150);
     await inBounds(control('menu-btn'));
+   }
+   if(mobile){
+    // Use a fresh editor so the action test does not alter the gesture scenarios.
+    const actionPage=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
+    await actionPage.goto(baseURL);
+    const actionControl=id=>actionPage.locator(`[data-editor-id="${id}"]`);
+    await actionControl('more-btn').waitFor();
+    const r=await actionControl('view').boundingBox();
+    await actionPage.touchscreen.tap(r.x+r.width*.5,r.y+r.height*.36);
+    const group=actionPage.locator('.wardrobe-actions');await group.waitFor();
+    await group.locator('[data-wardrobe-action="duplicate"]').tap();
+    assert.equal(await actionControl('wardrobe-select').locator('option').count(),2,'Duplicate creates another wardrobe');
+    await actionPage.locator('.wardrobe-actions [data-wardrobe-action="remove"]').tap();
+    assert.equal(await actionControl('wardrobe-select').locator('option').count(),1,'Remove deletes the selected duplicate');
+    await actionControl('undo2').tap();
+    assert.equal(await actionControl('wardrobe-select').locator('option').count(),2,'Undo restores the removed wardrobe');
+    await actionControl('undo2').tap();
+    assert.equal(await actionControl('wardrobe-select').locator('option').count(),1,'Undo restores the scene before duplication');
+    await actionPage.close();
    }
    assert.deepEqual(errors,[],`${width}×${height}: runtime errors`);
    console.log(`PASS ${width}×${height}: settings, menus, fittings, zoom/pinch, planner, undo/redo, resize`);

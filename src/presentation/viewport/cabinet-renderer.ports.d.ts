@@ -3,7 +3,7 @@ export interface CreateCabinetRendererPorts {
 readonly dom: ReturnType<typeof import('../editor/editor-dom.js').createEditorDom>;
 readonly camera: Readonly<Pick<ReturnType<typeof import('./camera-controller.js').createCameraController>, 'applyView' | 'cameraNearDistance' | 'cameraTick'>>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor/editor-gestures.js').createEditorGestures>, 'beginDividerDrag' | 'beginRotation' | 'beginWardrobeDrag' | 'finishRotation' | 'finishWardrobeDrag' | 'moveWardrobeFromPointer' | 'previewAt' | 'rotateFromPointer'>>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../editor/inspector-presenter.js').createInspectorPresenter>, 'crumbUI' | 'dividerUI' | 'editableDividerClearance' | 'editableItemClearance' | 'inside' | 'openPillMenu' | 'selectCabinet' | 'setCabinetPose' | 'updateItemBar'>>;
+readonly inspector: Readonly<Pick<ReturnType<typeof import('../editor/inspector-presenter.js').createInspectorPresenter>, 'addCabinet' | 'crumbUI' | 'dividerUI' | 'editableDividerClearance' | 'editableItemClearance' | 'inside' | 'openPillMenu' | 'selectCabinet' | 'setCabinetPose' | 'updateItemBar'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor/editor-shell.js').createEditorShell>, 'toast'>>;
 readonly picking: Readonly<Pick<ReturnType<typeof import('../editor/scene-picking.js').createScenePicking>, 'frontPoint'>>;
 readonly cameraState: Pick<ReturnType<typeof import('./camera-state.js').createCameraState>, 'az' | 'camGoal' | 'dist' | 'el' | 'fitDist' | 'tgt' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
