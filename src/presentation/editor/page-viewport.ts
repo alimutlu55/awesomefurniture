@@ -30,7 +30,7 @@ export function bindPageViewport(root: HTMLElement, view: Window): () => void {
         if (editing) frame = view.requestAnimationFrame(() => {
             // Scroll only the editor panel; scrollIntoView can pan the entire
             // document on iOS and reintroduce the blank area below the editor.
-            const panel = focused?.closest<HTMLElement>('aside,.pop,.wizard-body');
+            const panel = focused?.closest<HTMLElement>('.mobile-focus-body,aside,.pop,.wizard-body');
             if (!panel || !focused) return;
             const inputRect = focused.getBoundingClientRect(), panelRect = panel.getBoundingClientRect();
             const top = panelRect.top + (panel.matches('.pop') ? 64 : 12);

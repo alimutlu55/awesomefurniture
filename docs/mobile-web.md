@@ -1,5 +1,28 @@
 # Mobile browser audit and changes
 
+## Focused action redesign (in progress)
+
+The mobile focus controller in `mobile-focus.ts` owns one shared two-pane
+layout: the model stays on the left, and the current action's controls occupy
+the right. A Back button moves through the action stack and restores the
+original camera, editing selection, focus and inspector scroll on final exit.
+Controls move with placeholders and return to their original desktop parents.
+
+Settings now launches individual resize, section, reach, finish, door,
+placement and rotation actions. Adding filters out fittings that cannot fit
+and frames the selected space. Item and divider action menus, storage, help,
+and Auto design are connected to the same controller. Successful additions
+return to the previous context. Action controls still call the existing domain
+commands and history, including live size sliders.
+
+`scripts/check-mobile-focus.cjs` currently checks Settings action navigation,
+adding, item action navigation, storage/menu/Auto design, left/right geometry,
+hidden global controls, and desktop restoration across six viewport sizes.
+The redesign is not complete: verify mutations for every item/divider action,
+keyboard behavior in the right pane, exact return state, wardrobe management
+as separate actions, and migrate the existing bottom-sheet regression suite
+to the new workflow before shipping or marking the goal achieved.
+
 The editor uses a Three.js canvas and container-scoped controls. The mobile work
 covers the editor itself, including embedded editors; the page entry also follows
 `visualViewport` height to keep controls above an on-screen keyboard.
