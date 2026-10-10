@@ -1,3 +1,4 @@
+import { takeMobilePanel } from './mobile-panel-owner.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
@@ -125,6 +126,7 @@ export function bindInspectorControls4({ dom, inspector, shell, lifetime, elemen
             elements.app.classList.remove('props-open');
         } else {
             if (document.querySelector('.pop.show')) inspector.clearFocus();
+            takeMobilePanel(dom, dom.$('#left'));
             elements.app.classList.remove('props-hidden');
             elements.app.classList.add('props-open');
         }
@@ -155,7 +157,14 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
         const mq = matchMedia('(min-width:901px)'), left = $('#left');
         /** @type {Array<[HTMLElement, string, () => void]>} */
         const sheets = [
-            [left, 'Settings', () => elements.propsButton.click()],
+            [left, 'Settings', () => {
+                if (mq.matches) { elements.propsButton.click(); return; }
+                animateMobileSheetClose(left);
+                elements.app.classList.add('props-hidden');
+                elements.app.classList.remove('props-open');
+                elements.propsButton.setAttribute('aria-expanded','false');
+                elements.propsButton.setAttribute('aria-pressed','false');
+            }],
             [$('#pop2'), 'Add item', () => inspector.hidePop()],
             [$('#pop3'), 'Item settings', () => inspector.hidePop()],
             [$('#pop4'), 'Divider settings', () => inspector.hidePop()],

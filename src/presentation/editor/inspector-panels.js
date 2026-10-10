@@ -1,4 +1,5 @@
-import { animateMobileSheetClose, dismissMobileSheetExits } from './mobile-sheet-motion.js';
+import { takeMobilePanel } from './mobile-panel-owner.js';
+import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import * as THREE from "three";
 import { PANEL, itemName } from '../../domain/wardrobe/catalog.js';
 import { measureNumber, esc } from './editor-format.js';
@@ -48,7 +49,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         const p = $(id), v = $('#view').getBoundingClientRect();
         if (dom.width <= 900) { animateMobileSheetClose($('#left')); $('#app').classList.remove('props-open'); }
         callbacks.hidePop();
-        dismissMobileSheetExits(p.getRootNode());
+        takeMobilePanel(dom, p);
         if (id === '#pop2') {
             callbacks.renderAddChoices();
         }
@@ -97,10 +98,12 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         t.classList.toggle('docked', f.classList.contains('docked'));
         animateMobileSheetClose(f);
         f.classList.remove('show');
+        takeMobilePanel(dom, t);
         t.classList.add('show');
         syncMin(t);
         layoutPop(t);
         if (dom.width <= 900) {
+            $('#app').classList.add('inspecting');
             $('#app').classList.toggle('adding', to === '#pop2');
             camera.frameMobileInspector(to !== '#pop2');
         }

@@ -1,4 +1,4 @@
-import { dismissMobileSheetExits } from './mobile-sheet-motion.js';
+import { takeMobilePanel } from './mobile-panel-owner.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
 import * as inspectorBindings from './inspector-bindings.js';
 import * as gestureBindings from './gesture-bindings.js';
@@ -151,7 +151,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     }
     const openControls = key => {
         inspector.hidePop();
-        dismissMobileSheetExits(elements.app.getRootNode());
+        takeMobilePanel(dom, $('#left'));
         $('#left').dataset.contextSection = key;
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');

@@ -12,6 +12,7 @@ const assert = require('node:assert/strict');
    if(id==='left') {
     const box=await control('view').boundingBox();
     await page.touchscreen.tap(box.x+box.width/2,box.y+box.height*.45);
+    assert.equal(await control('pop2').isVisible(),false,'Selecting a wardrobe does not trigger a new Add item button');
     await control('toolbar').locator('[data-action="resize"]').tap();
    }
    else if(id==='pop2') await control('more-btn').tap();
@@ -27,6 +28,7 @@ const assert = require('node:assert/strict');
    }
    const panel=id==='wizard'?control(id).locator('.wizard-shell'):control(id);
    await panel.waitFor();
+   assert.equal(await control('toolbar').isVisible(),false,`${name}: panel takes over toolbar`);
    const drag=async distance=>{
     await panel.evaluate((e,distance)=>{
      e.scrollTop=0;
@@ -49,6 +51,7 @@ const assert = require('node:assert/strict');
    assert.equal(await panel.getAttribute('data-sheet-position'),'compact',`${name}: lower from the body`);
    await drag(90);
    assert.equal(await panel.isVisible(),false,`${name}: close from the body`);
+   assert.equal(await control('toolbar').isVisible(),true,`${name}: closing restores toolbar`);
    console.log(`PASS ${width}×${height} ${name}: body drag, expand/lower/close, no gap`);
    await page.close();
   }

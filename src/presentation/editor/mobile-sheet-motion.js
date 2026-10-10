@@ -38,7 +38,8 @@ export function animateMobileSheetClose(panel) {
     copy.setAttribute('aria-hidden', 'true');
     copy.inert = true;
     Object.assign(copy.style, {position:'absolute',left:`${r.left-origin.left}px`,top:`${r.top-origin.top}px`,right:'auto',bottom:'auto',width:`${r.width}px`,height:`${r.height}px`,minHeight:'0',maxHeight:'none',margin:'0',translate:'none',transform:'none',zIndex:'100'});
-    root.appendChild(copy);
+    const app = /** @type {ParentNode} */ (root).querySelector('[data-editor-id="app"]');
+    (app || root).appendChild(copy);
     sources.forEach((source,i) => { copies[i].scrollTop = source.scrollTop; copies[i].scrollLeft = source.scrollLeft; });
     snapshots.set(panel, copy);
     const duration = parseFloat(css.getPropertyValue('--mobile-sheet-duration')) || 280;

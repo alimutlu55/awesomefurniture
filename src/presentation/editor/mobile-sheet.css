@@ -63,3 +63,16 @@
   top:12px;bottom:8px;height:auto!important;max-height:none!important;animation:none;transition:none;
  }
 }
+
+/* Panels replace the action bar instead of stacking above another surface. */
+@media(max-width:900px){
+ #app.props-open #toolbar,#app:has(.mobile-bottom-sheet.show) #toolbar,#app.auto-design-open #toolbar,#app:has(.dd:not([hidden])) #toolbar,#app:has(.mobile-sheet-exit) #toolbar{display:none!important}
+ #app.props-open .contextual-popover,#app:has(.mobile-bottom-sheet.show) .contextual-popover{display:none!important}
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#app .dd.mobile-sheet,#app.adding #pop2.mobile-bottom-sheet{bottom:0}
+ #app :is(#left,#pop3,#pop4).mobile-bottom-sheet{padding-bottom:max(var(--mobile-sheet-padding),var(--safe-bottom))}
+ #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + var(--safe-bottom))}
+ #app.adding{--sheet:calc(var(--catalog-height) + var(--safe-bottom))}
+ #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + var(--safe-bottom))}
+ #app:has(.mobile-sheet-exit){background:var(--mobile-scene-background)}
+ #app:has(.mobile-sheet-exit) #view{background:transparent}
+}

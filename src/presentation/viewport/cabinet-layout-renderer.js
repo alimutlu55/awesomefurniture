@@ -172,8 +172,14 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 ab.className = 'lbl add compact';
                 ab.innerHTML = '<span class="add-plus">+</span>Add item<small>Shelf · Rail · Drawer</small>';
                 ab.setAttribute('aria-label', 'Add item to section ' + (i + 1));
+                let pressed = false;
+                ab.onpointerdown = () => { pressed = true; };
                 ab.onclick = ev => {
                     ev.stopPropagation();
+                    // A selection release can create this button beneath the finger.
+                    // Only accept a pointer click that actually began on this button.
+                    if (dom.width <= 900 && ev.isTrusted && ev.detail > 0 && !pressed) return;
+                    pressed = false;
                     inspector.openPillMenu(ab);
                 };
                 $('#labels').appendChild(ab);

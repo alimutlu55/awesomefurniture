@@ -1,4 +1,5 @@
-import { animateMobileSheetClose, dismissMobileSheetExits } from './mobile-sheet-motion.js';
+import { takeMobilePanel } from './mobile-panel-owner.js';
+import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { PANEL, PLINTH, PURPOSE, purposeName, itemName, r1 } from '../../domain/wardrobe/catalog.js';
 import { esc, zoneColor, zoneText } from './editor-format.js';
 import { tags, issueTags } from './storage-tags.js';
@@ -97,7 +98,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         plannerState.wizardTrigger = document.activeElement;
         inspector.hidePop();
         if (dom.width <= 900) $('#app').classList.remove('props-open');
-        dismissMobileSheetExits($('#wizard').getRootNode());
+        takeMobilePanel(dom, $('#wizard'));
         syncPreferences();
         const sheet = /** @type {HTMLElement | null} */ ($('#wizard').querySelector('.wizard-shell'));
         if (sheet) sheet.dataset.sheetPosition = 'full';

@@ -36,6 +36,17 @@ const assert=require('node:assert/strict');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
+   assert.equal(await toolbar.isVisible(),false,'Properties take over the toolbar');
+   await el('fitchip').click();
+   assert.equal(await el('left').isVisible(),false,'Storage replaces properties');
+   assert.equal(await el('plan-panel').isVisible(),true);
+   assert.equal(await toolbar.isVisible(),false);
+   await el('menu-btn').click();
+   assert.equal(await el('plan-panel').isVisible(),false,'Menu replaces storage');
+   assert.equal(await el('menu').isVisible(),true);
+   await el('menu-btn').click();
+   assert.equal(await toolbar.isVisible(),true);
+   await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
    assert.equal(await el('left').isVisible(),true);
    assert.equal(await el('w').isVisible(),true);
    assert.equal(await el('section-row').isVisible(),false);
@@ -63,9 +74,22 @@ const assert=require('node:assert/strict');
    await page.evaluate(()=>{delete window.innerHeight;delete window.visualViewport.height;delete window.visualViewport.offsetTop;window.visualViewport.dispatchEvent(new Event('resize'));});
    await page.waitForTimeout(100);
    assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'mobile-sheet-enter');
+   const closeProperties=async()=>{
+    await el('left').locator('.mobile-sheet-handle').evaluate(e=>{
+     const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;
+     for(const [type,dy] of [['touchstart',0],['touchmove',90],['touchend',90]]){
+      const touch=new Touch({identifier:1,target:e,clientX:x,clientY:y+dy});
+      e.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}));
+     }
+    });
+    await page.waitForTimeout(350);
+    assert.equal(await toolbar.isVisible(),true,'Closing restores contextual actions');
+   };
+   await closeProperties();
    await toolbar.locator('[data-action="sections"]').click();await page.waitForTimeout(320);
    assert.equal(await el('section-row').isVisible(),true);
    assert.equal(await el('w').isVisible(),false);
+   await closeProperties();
    await toolbar.locator('[data-action="more"]').click();
    assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Material','Max reach size','Doors','Duplicate','Reset','Remove']);
    await page.locator('.contextual-popover button').filter({hasText:'Material'}).click();
@@ -73,6 +97,9 @@ const assert=require('node:assert/strict');
    await page.locator('.lbl.add').click();await page.waitForTimeout(320);
    assert.equal(await el('left').isVisible(),false,'Adding replaces properties');
    assert.equal(await el('pop2').isVisible(),true);
+   assert.equal(await toolbar.isVisible(),false,'Add item replaces the action bar');
+   const panelBox=await el('pop2').boundingBox();
+   assert.ok(Math.abs(panelBox.y+panelBox.height-height)<1,'Panel uses the bottom space released by the toolbar');
    // Add through the existing domain command and select the new internal item.
    await el('pop2').locator('[data-m="short"]').first().click();await page.waitForTimeout(400);
    await el('px').click();await page.waitForTimeout(350);

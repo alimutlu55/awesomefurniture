@@ -1,3 +1,4 @@
+import { takeMobilePanel } from './mobile-panel-owner.js';
 import { dropdowns } from './editor-dom.js';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./editor-shell.ports').CreateEditorShellPorts} ports */
@@ -79,6 +80,7 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
     function openDD(btn, panel) {
         const pe = document.getElementById(panel);
         closeDD(panel);
+        if (pe.hidden) takeMobilePanel(dom, pe);
         pe.hidden = !pe.hidden;
         document.getElementById(btn).setAttribute('aria-expanded', String(!pe.hidden));
     }
