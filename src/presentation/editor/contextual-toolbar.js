@@ -48,6 +48,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         context = selection;
         close();
         root.dataset.context = selection;
+        root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
         root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
         row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto'].includes(key)).map(([key,label]) => {
             const b = document.createElement('button');

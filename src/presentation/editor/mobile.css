@@ -179,13 +179,14 @@
 .contextual-history-label{display:none}
 @media(max-width:900px){
  #toolbar{gap:0;padding:5px 8px}
- #toolbar .contextual-defaults,#toolbar .contextual-actions{flex:1 1 50%;width:50%;gap:0;scrollbar-width:none}
+ #toolbar .contextual-defaults,#toolbar .contextual-actions{flex:1 1 0; width:auto;gap:0;scrollbar-width:none}
+ #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  #toolbar .contextual-defaults .sep{display:none}
  #toolbar .contextual-defaults #add-anchor{flex:1;min-width:0}
  #toolbar .contextual-defaults #more-btn{width:100%}
  #toolbar .contextual-defaults #launch-wizard{flex:1;min-width:0}
  #toolbar .contextual-actions .tb{flex:1;min-width:44px}
- #toolbar .contextual-history{flex:0 0 50%;margin-left:0;position:relative;padding-left:8px}
+ #toolbar .contextual-history{flex:0 0 calc(200% / var(--contextual-action-count,4));margin-left:0;position:relative;padding-left:0}
  #toolbar .contextual-history::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}
  #toolbar .contextual-history .tb{flex:1;min-width:0}
  #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;height:58px;min-height:58px;padding:0 2px;gap:3px;border:0;border-radius:0;background:transparent;color:var(--ink);font-size:11px;line-height:15px;white-space:nowrap;box-shadow:none}
