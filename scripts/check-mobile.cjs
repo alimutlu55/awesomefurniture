@@ -80,6 +80,12 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await page.touchscreen.tap(editArea.x+editArea.width*.1,editArea.y+editArea.height*.7);
     assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Tapping the editing canvas must close Settings');
     assert.equal(await control('left').isVisible(),false);
+    await click(control('props-btn'));
+    await control('view').locator('canvas').dispatchEvent('pointerup',{pointerType:'touch',pointerId:41,isPrimary:true});
+    assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','A touch release without a compatibility click must close Settings');
+    await click(control('props-btn'));
+    await control('labels').dispatchEvent('pointerup',{pointerType:'touch',pointerId:42,isPrimary:true});
+    assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Touching overlays in the editing area must close Settings');
    }
    for (const [trigger,panel] of [['fitchip','plan-panel'],['menu-btn','menu']]) {
     await click(control(trigger));await inBounds(control(panel));await click(control(trigger));

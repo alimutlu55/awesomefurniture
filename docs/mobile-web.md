@@ -89,3 +89,6 @@ Browser checks now exercise a real touch wardrobe drag, its single Undo entry,
 and switching from a placement preview to pinch without recording a move.
 On mobile, tapping the editing canvas also dismisses Settings and updates its
 toggle state, so returning to the design does not require the Settings button.
+Dismissal uses primary pointer release rather than a compatibility click, and
+includes editing-area overlays. Browser checks cover release without a click
+and the label layer as well as an actual canvas tap.

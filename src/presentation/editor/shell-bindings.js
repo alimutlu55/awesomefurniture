@@ -128,8 +128,11 @@ export function bindInspectorControls4({ dom, inspector, shell, lifetime, elemen
         syncToggle();
     });
     lifetime.listen(desktop, 'change', syncToggle);
-    lifetime.listen(dom.$('#view'), 'click', e => {
-        if (desktop.matches || !elements.app.classList.contains('props-open') || /** @type {HTMLElement} */ (e.target).tagName !== 'CANVAS') return;
+    const view = dom.$('#view');
+    // Touch gestures need not produce a compatibility click. Dismiss after
+    // the canvas handles the release, including taps on its overlaid labels.
+    lifetime.listen(view, 'pointerup', e => {
+        if (desktop.matches || !e.isPrimary || !elements.app.classList.contains('props-open')) return;
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');
         syncToggle();
