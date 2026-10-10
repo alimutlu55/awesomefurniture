@@ -128,6 +128,12 @@ export function bindInspectorControls4({ dom, inspector, shell, lifetime, elemen
         syncToggle();
     });
     lifetime.listen(desktop, 'change', syncToggle);
+    lifetime.listen(dom.$('#view'), 'click', e => {
+        if (desktop.matches || !elements.app.classList.contains('props-open') || /** @type {HTMLElement} */ (e.target).tagName !== 'CANVAS') return;
+        elements.app.classList.add('props-hidden');
+        elements.app.classList.remove('props-open');
+        syncToggle();
+    });
     syncToggle();
 }
 /** @param {import('./shell-bindings.ports').ObserveInspectorPanelsPorts} ports */

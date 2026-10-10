@@ -22,6 +22,24 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    };
    for (const id of ['props-btn','more-btn','launch-wizard','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
    if (mobile) {
+    const movement=await page.context().newCDPSession(page);
+    // Use the upper body to avoid the movement handles in short landscape views.
+    const canvas=await control('view').boundingBox(),cx=canvas.x+canvas.width/2,cy=canvas.y+canvas.height*.36;
+    await page.touchscreen.tap(cx,cy); // Select the wardrobe before dragging it.
+    await movement.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx,y:cy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx+35,y:cy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    assert.equal(await control('undo2').isEnabled(),true,'Dragging the wardrobe body must commit its movement');
+    await click(control('undo2'));
+    assert.equal(await control('undo2').isEnabled(),false,'One body drag must create one undo entry');
+    await page.touchscreen.tap(cx,cy);
+    await movement.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx,y:cy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx+15,y:cy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx+15,y:cy,id:1},{x:cx+60,y:cy,id:2}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx+5,y:cy,id:1},{x:cx+70,y:cy,id:2}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    assert.equal(await control('undo2').isEnabled(),false,'Switching a wardrobe drag to pinch must roll back the move');
+    await movement.detach();
     await inBounds(control('zoom-in'));await click(control('props-btn'));
     await page.waitForTimeout(100);
     const panel=await control('left').boundingBox(),view=await control('view').boundingBox();
@@ -58,7 +76,10 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await page.waitForTimeout(100);
     assert.equal(await page.locator('#editor-root').getAttribute('data-keyboard-open'),null);
     await click(control('sec-plus'));assert.equal((await control('section-count').innerText()).trim(),'2');
-    await click(control('props-btn'));
+    const editArea=await control('view').boundingBox();
+    await page.touchscreen.tap(editArea.x+editArea.width*.1,editArea.y+editArea.height*.7);
+    assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Tapping the editing canvas must close Settings');
+    assert.equal(await control('left').isVisible(),false);
    }
    for (const [trigger,panel] of [['fitchip','plan-panel'],['menu-btn','menu']]) {
     await click(control(trigger));await inBounds(control(panel));await click(control(trigger));

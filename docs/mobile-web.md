@@ -13,7 +13,7 @@ covers the editor itself, including embedded editors; the page entry also follow
 | Touch controls | Many actions and finish swatches were 22–36 px; mobile zoom controls were hidden | Main touch targets are at least 44 px; zoom buttons remain visible |
 | Menus | Menus inherited a narrow toolbar anchor and extended off-screen | Mobile menus are reparented to the editor and use its available width |
 | Inputs | Small numeric text can trigger automatic zoom while editing | Mobile numeric inputs and selects use 16 px text; panels remain independently scrollable |
-| Gestures | Cabinet/divider hit tests intercepted a second finger before pinch registration | Touch body gestures orbit the cabinet; explicit ground handles place/rotate it; second pointers join pinch before hit testing and cancel pending item moves |
+| Gestures | Cabinet/divider hit tests intercepted a second finger before pinch registration | One finger drags the selected wardrobe body; dragging empty background orbits; a second finger rolls back pending movement and joins pinch before hit testing |
 | Precise editing | Move/swap controls were hidden and depended on mouse/keyboard interaction | Mobile exposes move/swap and destination controls, divider actions, and an accessible cancel-move button |
 | Feedback | Rejected edits silently did nothing | Phone-sized editors show short status messages, while Undo remains a toolbar action |
 | Auto design | Nested scrolling and constrained columns made ideas cumbersome to access | A single scrolling wizard body, two-column inventory inputs and one-column idea cards |
@@ -76,3 +76,16 @@ browser checks also simulate a shrinking and panning visual viewport while the
 layout viewport stays unchanged, check that the focused field stays visible,
 and verify restoration when the keyboard closes. Actual iOS keyboard behavior
 still requires checking the updated app on a physical device.
+
+## Wardrobe movement follow-up
+
+Restored one-finger body dragging at wardrobe selection level. The initial
+mobile change reserved the body for camera orbit, making movement depend on
+the small ground handles. Touch movement now registers its pointer, so adding
+a second finger cancels the placement preview and starts pinch without saving
+an accidental move. Pointer release and interrupted capture clear the gesture.
+Item selection and the ground movement/rotation handles remain available.
+Browser checks now exercise a real touch wardrobe drag, its single Undo entry,
+and switching from a placement preview to pinch without recording a move.
+On mobile, tapping the editing canvas also dismisses Settings and updates its
+toggle state, so returning to the design does not require the Settings button.

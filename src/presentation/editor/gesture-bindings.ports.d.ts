@@ -8,10 +8,10 @@ readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-li
 export interface BindCanvasPointerdownPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease'>>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'beginDividerDrag' | 'beginWardrobeDrag' | 'cancelMovement' | 'finishRotation'>>;
+readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'beginDividerDrag' | 'beginWardrobeDrag' | 'cancelMovement' | 'finishRotation' | 'finishWardrobeDrag'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'inside'>>;
 readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').createScenePicking>, 'cast' | 'frontPoint'>>;
-readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'drag' | 'moved' | 'pd' | 'ptrs' | 'rotationClick' | 'rotationGesture' | 'sx' | 'sy'>;
+readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'drag' | 'moved' | 'pd' | 'ptrs' | 'rotationClick' | 'rotationGesture' | 'sx' | 'sy' | 'wardrobeGesture'>;
 readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'allHits' | 'ihits'>;
 readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'focusOn'>;
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
@@ -50,8 +50,8 @@ readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-li
 
 export interface BindCanvasLostpointercapturePorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'>>;
-readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'moved' | 'ptrs'>;
+readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishWardrobeDrag'>>;
+readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'moved' | 'ptrs' | 'wardrobeGesture'>;
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

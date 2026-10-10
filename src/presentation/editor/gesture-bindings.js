@@ -15,17 +15,6 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
             interactions.finishRotation();
             return;
         }
-        // On touch screens the cabinet body remains available for orbit/pinch.
-        // The explicit ground handles still place and rotate the cabinet.
-        if (e.pointerType !== 'touch' && e.button === 0 && selectionState.focusOn && !inspector.inside()) {
-            const hit = picking.cast(e, renderState.allHits);
-            if (hit?.object.userData.wardrobe === model.scene.activeWardrobe) {
-                resources.cv.focus({ preventScroll: true });
-                resources.cv.setPointerCapture(e.pointerId);
-                interactions.beginWardrobeDrag(e, 'floor');
-                return;
-            }
-        }
         if (e.button !== 0) {
             return;
         }
@@ -33,12 +22,25 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         if (interactionState.ptrs.size > 0) {
             resources.cv.setPointerCapture(e.pointerId);
             interactionState.ptrs.set(e.pointerId, e);
+            if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
             interactions.cancelMovement();
             camera.camRelease();
             interactionState.moved = 99;
             const [a, b] = [...interactionState.ptrs.values()];
             interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
             return;
+        }
+        // Drag the selected wardrobe with one finger, as with the mouse.
+        // Register the touch so another finger can safely take over for pinch.
+        if (selectionState.focusOn && !inspector.inside()) {
+            const hit = picking.cast(e, renderState.allHits);
+            if (hit?.object.userData.wardrobe === model.scene.activeWardrobe) {
+                resources.cv.focus({ preventScroll: true });
+                resources.cv.setPointerCapture(e.pointerId);
+                if (e.pointerType === 'touch') interactionState.ptrs.set(e.pointerId, e);
+                interactions.beginWardrobeDrag(e, 'floor');
+                return;
+            }
         }
         if (e.pointerType !== 'touch' && model.activeCabinet().state.divider >= 0 && selectionState.focusOn && inspector.inside()) {
             const hit = picking.cast(e, renderState.ihits);
@@ -81,6 +83,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
             return;
         }
         if (interactionState.wardrobeGesture) {
+            if (interactionState.ptrs.has(e.pointerId)) interactionState.ptrs.set(e.pointerId, e);
             interactions.moveWardrobeFromPointer(e);
             return;
         }
@@ -146,6 +149,7 @@ export function bindCanvasPointerup({ dom, interactions, shell, interactionState
         }
         if (interactionState.wardrobeGesture) {
             const changed = interactionState.wardrobeGesture.moved;
+            interactionState.ptrs.delete(e.pointerId);
             interactions.finishWardrobeDrag();
             if (resources.cv.hasPointerCapture(e.pointerId)) {
                 resources.cv.releasePointerCapture(e.pointerId);
@@ -209,6 +213,7 @@ export function bindCanvasPointercancel({ dom, interactions, interactionState, r
 export function bindCanvasLostpointercapture({ dom, interactions, interactionState, resources, lifetime }) {
     lifetime.listen(resources.cv, 'lostpointercapture', e => {
         if (interactionState.ptrs.has(e.pointerId)) {
+            if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
             interactionState.ptrs.delete(e.pointerId);
             interactionState.moved = 99;
             interactions.cancelMovement();
