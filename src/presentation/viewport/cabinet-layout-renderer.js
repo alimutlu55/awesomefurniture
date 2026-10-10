@@ -198,7 +198,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + d + ' cm');
         }
         if (renderState.renderActive && (getRenderDesign().reachLine ?? getRenderDesign().profile.engaged)) {
-            const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 3, transparent: true, opacity: .7, depthTest: false }));
+            const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color(dom.width <= 900 ? '#75664f' : '#8d7d65').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: dom.width <= 900 ? 2 : 3, transparent: true, opacity: dom.width <= 900 ? .9 : .7, depthTest: false }));
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
             renderState.Gr.add(reachLine);
