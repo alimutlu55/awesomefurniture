@@ -188,12 +188,13 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.az = cameraState.camGoal?.az ?? cameraState.az;
             goal.el = cameraState.camGoal?.el ?? cameraState.el;
             const room = availableRoom(), view = $('#view').getBoundingClientRect();
-            goal.x = w.x + box.x * Math.cos(angle);
-            goal.y = (w.y || 0) + box.y;
-            goal.z = w.z - box.x * Math.sin(angle);
-            // Fit the whole cabinet around the selected target so moving fittings never crops it.
-            const contextDistance = cameraFitDistance({ w: w.state.w + 2 * Math.abs(box.x), h: w.state.h + 2 * Math.abs(box.y - w.state.h / 2), d: w.state.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
-            goal.dist = Math.max(contextDistance * 1.12, cameraFitDistance(box, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h) * 1.12);
+            // Bias toward the selection without moving the cabinet centre out of frame.
+            const focusX = box.x * .12, focusY = (box.y - w.state.h / 2) * .12;
+            goal.x = w.x + focusX * Math.cos(angle);
+            goal.y = (w.y || 0) + w.state.h / 2 + focusY;
+            goal.z = w.z - focusX * Math.sin(angle);
+            const contextDistance = cameraFitDistance({ w: w.state.w + 2 * Math.abs(focusX), h: w.state.h + 2 * Math.abs(focusY), d: w.state.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
+            goal.dist = contextDistance * 1.025;
         }
         if (resizing && cameraState.camGoal) {
             // Panel resizing changes the destination, not the animation's origin or clock.

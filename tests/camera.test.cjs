@@ -54,13 +54,13 @@ test('mobile item focus animates to the fitting, retains context and keeps zoom 
  const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
  run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:10,y1:50,w:180,h:40});frameMobileInspector(true);savedGoal=camGoal');
  assert.ok(run('camGoal'),'Selecting a fitting should animate');
- near(run('camGoal.y'),30);
+ near(run('camGoal.y'),91.6);
  assert.ok(run('camGoal.dist >= camFront().dist*.8'),'Keep cabinet context around thin fittings');
  const duration=run('camGoal.duration');
  time(duration/2);run(`cameraTick(${duration/2},1/60)`);
- assert.ok(run('tgt.y')<100&&run('tgt.y')>30,'Focus must move gradually');
+ assert.ok(run('tgt.y')<100&&run('tgt.y')>91.6,'Focus must move gradually');
  run('frameMobileInspector(true)');assert.equal(run('camGoal===savedGoal'),true);
- run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),30);
+ run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),91.6);
  run('cameraZoom(.9)');near(run('zoomFocus.y'),30);
 });
 
@@ -80,7 +80,7 @@ test('mobile selection preserves the current view and panel resizing does not re
  assert.equal(run('JSON.stringify(camNow())'),run('mid'));
  assert.equal(run('JSON.stringify(camGoal.from)'),run('origin'));
  assert.equal(run('camGoal.start'),run('start'));
- run('cameraTick(1000,1/60)');near(run('tgt.y'),30);near(run('az'),.65);near(run('el'),.3);
+ run('cameraTick(1000,1/60)');near(run('tgt.y'),91.6);near(run('az'),.65);near(run('el'),.3);
 });
 
 test('mobile fitting focus keeps every cabinet corner in view, including low and side items',t=>{
@@ -92,7 +92,7 @@ test('mobile fitting focus keeps every cabinet corner in view, including low and
   run(`az=${az};el=${el};S.item=0;S.sel=0;itemGeom=()=>({x0:${item.x+80},x1:${item.x+120},y0:${item.y-10},y1:${item.y+10},w:40,h:20});frameMobileInspector(true)`);
   const distance=run('camGoal.dist'),tan=Math.tan(35*Math.PI/360);
   for(const x of [-100,100])for(const y of [0,200])for(const z of [-30,30]) {
-   const dx=x-item.x,dy=y-item.y;
+   const dx=x-item.x*.12,dy=y-(100+(item.y-100)*.12);
    const depth=dx*Math.cos(el)*Math.sin(az)+dy*Math.sin(el)+z*Math.cos(el)*Math.cos(az);
    const horizontal=dx*Math.cos(az)-z*Math.sin(az);
    const vertical=-dx*Math.sin(el)*Math.sin(az)+dy*Math.cos(el)-z*Math.sin(el)*Math.cos(az);
@@ -114,4 +114,14 @@ test('mobile move mode backs away while desktop movement keeps its existing dist
   near(run('camGoal.dist'),front*(width<=900 ? 1.12 : 1));
   near(run('camGoal.y'),100);
  }
+});
+
+test('mobile selection fills the view more closely than move mode without aggressive item-centering',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ const{run}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:768})}),document:{documentElement:{}}});
+ run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:0,y1:20,w:180,h:20});frameMobileInspector(true)');
+ assert.ok(run('camGoal.dist < camFront().dist*1.12'),'Selection should be closer than movement');
+ assert.ok(run('camGoal.y > 85'),'Low items must not push the wardrobe out of the frame');
 });
