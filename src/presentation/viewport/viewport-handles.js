@@ -103,6 +103,7 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             const handle = document.createElement('button');
             handle.type = 'button';
             handle.className = 'lbl wardrobe-move';
+            handle.dataset.moveAxis = axis;
             const span = document.createElement('span');
             span.className = 'mv-ic';
             span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg>';

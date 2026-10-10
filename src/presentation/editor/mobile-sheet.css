@@ -1,0 +1,21 @@
+/* Shared mobile sheet tokens and frame. Content defines its own height. */
+:root{
+ --mobile-sheet-radius:18px;
+ --mobile-sheet-padding:12px;
+ --mobile-sheet-handle-height:32px;
+ --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
+}
+@media(max-width:900px){
+ #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
+ #app:has(.mobile-bottom-sheet.show),#app.props-open:not(.inspecting){background:var(--mobile-scene-background) top left / 100% calc(100% - var(--sheet) + var(--mobile-sheet-radius)) no-repeat}
+ #app:has(.mobile-bottom-sheet.show) #view,#app.props-open:not(.inspecting) #view{background:transparent}
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{left:0;right:0;width:auto;padding:var(--mobile-sheet-padding);border:0;box-shadow:none;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;background:var(--panel);scrollbar-gutter:auto}
+ .mobile-bottom-sheet>.mobile-sheet-handle{height:var(--mobile-sheet-handle-height);min-height:var(--mobile-sheet-handle-height);top:calc(-1 * var(--mobile-sheet-padding));margin:calc(-1 * var(--mobile-sheet-padding)) 0 0;background:var(--panel)}
+ .mobile-bottom-sheet .ph{top:calc(var(--mobile-sheet-handle-height) - var(--mobile-sheet-padding));margin:0 calc(-1 * var(--mobile-sheet-padding)) 6px;padding:0 var(--mobile-sheet-padding);background:var(--panel)}
+ #app.adding #pop2.mobile-bottom-sheet{padding:0 var(--mobile-sheet-padding) var(--safe-bottom);overflow:hidden}
+ #app.adding #pop2.mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
+}
+@container (min-width:600px) and (max-width:900px) and (max-height:500px){
+ #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(76px + var(--safe-bottom))}
+ #app :is(#left,#pop3,#pop4).mobile-bottom-sheet{left:max(8px,env(safe-area-inset-left,0px));right:auto;width:248px;border-radius:var(--mobile-sheet-radius)}
+}

@@ -94,11 +94,18 @@
 
 /* The mobile catalogue leaves the model visible above a compact bottom sheet. */
 @media(max-width:900px){
- #app.adding{--catalog-height:min(210px,40vh);--sheet:calc(var(--catalog-height) + var(--safe-bottom));background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1) top left / 100% calc(100% - var(--sheet) + 18px) no-repeat}
- #app.adding #view{left:0;background:transparent}
- #app.adding #pop2{left:0;right:0;top:auto;bottom:0;width:auto;height:calc(var(--catalog-height) + var(--safe-bottom));max-height:none;padding:0 10px var(--safe-bottom);overflow:hidden;scrollbar-gutter:auto;border:0;box-shadow:none;border-radius:18px 18px 0 0;background:var(--panel)}
+ #app.inspecting:not(.adding){--panel-height:min(28vh,240px,calc(100% - 176px - var(--safe-top) - var(--safe-bottom)))}
+ #pop3 .item-size-pair{margin-top:0;margin-bottom:6px;gap:8px}
+ #pop3 .item-size-pair .item-size-field{padding:0 8px}
+ #pop3 #ialign{margin:6px 0;gap:4px}
+ #pop3 #ialign:has([data-iwfull]:disabled):not(:has(button:not(:disabled))){display:none}
+ #item-bar{gap:0;padding:2px}
+ #item-bar .ic{width:20px;height:20px}
+ .wardrobe-move[data-move-axis="z"] .mv-ic{transform:rotate(-45deg)!important}
+ #app.adding{--catalog-height:min(210px,40vh);--sheet:calc(var(--catalog-height) + var(--safe-bottom))}
+ #app.adding #view{left:0}
+ #app.adding #pop2{top:auto;bottom:0;height:calc(var(--catalog-height) + var(--safe-bottom));max-height:none;overflow:hidden}
  #app.adding #toolbar,#app.adding #br{display:none}
- #app.adding #pop2>.mobile-sheet-handle{top:0;margin:0;height:32px;min-height:32px}
  #app.adding #pop2 .ph{position:absolute;top:0;right:0;margin:0;padding:0;border:0;background:transparent;z-index:5}
  #app.adding #pop2 #ptitle,#app.adding #pop2 .pmin{display:none}
  #app.adding #pop2 #px{height:32px;min-height:32px;width:32px;font-size:20px}

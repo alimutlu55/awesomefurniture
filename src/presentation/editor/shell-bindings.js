@@ -1,3 +1,4 @@
+import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** @param {import('./shell-bindings.ports').BindMoreBtnPorts} ports */
@@ -160,45 +161,7 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
             [/** @type {HTMLElement} */ ($('#wizard').querySelector('.wizard-shell')), 'Auto design', () => $('#close-wizard').click()],
         ];
         for (const [panel, name, close] of sheets) {
-            const handle = document.createElement('button');
-            handle.type = 'button';
-            handle.className = 'mobile-sheet-handle';
-            handle.setAttribute('aria-label', `Close ${name}. Pull down or tap.`);
-            handle.innerHTML = '<span aria-hidden="true"></span>';
-            panel.prepend(handle);
-            let gesture = null, suppressClick = false;
-            const reset = () => {
-                gesture = null;
-                panel.style.translate = '';
-                panel.classList.remove('sheet-dragging');
-            };
-            lifetime.listen(handle, 'pointerdown', e => {
-                if (mq.matches || !e.isPrimary || e.button !== 0) return;
-                suppressClick = false;
-                gesture = { id: e.pointerId, y: e.clientY, distance: 0 };
-                handle.setPointerCapture(e.pointerId);
-                panel.classList.add('sheet-dragging');
-            });
-            lifetime.listen(handle, 'pointermove', e => {
-                if (!gesture || gesture.id !== e.pointerId) return;
-                gesture.distance = Math.max(0, e.clientY - gesture.y);
-                panel.style.translate = `0 ${gesture.distance}px`;
-            });
-            lifetime.listen(handle, 'pointerup', e => {
-                if (!gesture || gesture.id !== e.pointerId) return;
-                const distance = gesture.distance;
-                suppressClick = distance > 5;
-                reset();
-                if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
-                if (!mq.matches && distance >= 64) close();
-            });
-            lifetime.listen(handle, 'pointercancel', reset);
-            lifetime.listen(handle, 'lostpointercapture', reset);
-            lifetime.listen(mq, 'change', reset);
-            lifetime.listen(handle, 'click', () => {
-                if (!mq.matches && !suppressClick) close();
-                suppressClick = false;
-            });
+            mountMobileSheet({ document, lifetime, desktop: mq, panel, name, close, bottom: [left, $('#pop2'), $('#pop3'), $('#pop4')].includes(panel) });
         }
         const place = () => {
             // Anchor menus to the whole editor on phones, so a narrow toolbar

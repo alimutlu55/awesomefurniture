@@ -166,6 +166,12 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     }
     await control('pop3').waitFor({state:'visible',timeout:3000});
     await inBounds(control('pop3'));
+    assert.equal(await control('pop3').evaluate(e=>e.classList.contains('mobile-bottom-sheet')),true,'Item settings use the shared sheet component');
+    const itemPanel=await control('pop3').boundingBox();
+    const shortLandscape=width>=600 && height<=500;
+    assert.ok(itemPanel.height<=(shortLandscape ? height-144 : Math.min(height*.28,240))+1,'Item sheet adapts to portrait or short landscape space');
+    assert.equal(await control('pop3').evaluate(e=>getComputedStyle(e).borderTopLeftRadius),'18px','Shared sheet keeps its rounded corners');
+    assert.equal(await control('pop3').evaluate(e=>getComputedStyle(e).borderTopWidth),'0px','Shared sheet has no gray frame');
     assert.equal(await control('ih').evaluate(e=>getComputedStyle(e).fontSize),'16px');
     const originalHeight=await control('ih').inputValue();
     await control('ih').fill(String(Number(originalHeight)-1));await control('ih').blur();

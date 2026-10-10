@@ -31,13 +31,14 @@ test('presentation modules cannot regain an unrestricted editor context or globa
 test('responsive binding works with an immutable inspector API',()=>{
  const {bindResponsiveInspectors}=require('../src/presentation/editor/shell-bindings.js');
  const originalDocument=global.document,originalMatchMedia=global.matchMedia;
- const app={appendChild(){}},left={appendChild(){}};
+ const sheet=()=>({appendChild(){},prepend(){},classList:{add(){}}});
+ const app={appendChild(){}},left=sheet();
  const movement={hidden:true,style:{}},dividerActions={style:{}};
- const elements={'#left':left,'#pop3':{parentNode:left},'#pop4':{parentNode:left},'#ix':{},'#divider-close':{},'#move-controls':{closest:()=>movement},'#divider-dup':{parentElement:dividerActions}};
+ const elements={'#left':left,'#pop2':sheet(),'#pop3':{...sheet(),parentNode:left},'#pop4':{...sheet(),parentNode:left},'#wizard':{querySelector:()=>sheet()},'#ix':{},'#divider-close':{},'#move-controls':{closest:()=>movement},'#divider-dup':{parentElement:dividerActions}};
  elements['#topright']={appendChild(){}};elements['#topleft']={appendChild(){}};
- elements['#plan-panel']={parentNode:elements['#topright']};elements['#menu']={parentNode:elements['#topleft']};
+ elements['#plan-panel']={...sheet(),parentNode:elements['#topright']};elements['#menu']={...sheet(),parentNode:elements['#topleft']};
  let syncs=0;
- global.document={querySelector:key=>elements[key]};global.matchMedia=()=>({matches:true});
+ global.document={querySelector:key=>elements[key],createElement:()=>({setAttribute(){}})};global.matchMedia=()=>({matches:true});
  try{
   const inspector=Object.freeze({syncResponsive(){syncs++},goUp(){},hidePop(){}});
   bindResponsiveInspectors({dom:require('./helpers/dom-fixture.cjs').domFixture(), inspector,elements:{app},lifetime:{listen(){}}});
