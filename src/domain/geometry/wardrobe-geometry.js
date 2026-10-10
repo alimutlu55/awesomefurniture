@@ -475,8 +475,9 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         return getDesign().profile.engaged ? c : { ...c, needs: { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0 }, upper: 'more', reach: 210, seasonalAboveReach: false };
     }
     function plannerConfig() {
-        const fixed = getDesign().proposal === null && (getDesign().dividers?.length > 0 || getDesign().secs.some(items => items.some(it => it.x !== undefined || it.y !== undefined)));
-        return { ...(fixed ? { fixedSections: currentLayout().sections.map(s => ({ ...s, items: s.items.filter(it => it.x !== undefined || it.y !== undefined) })), fixedDividers: getDesign().dividers } : {}), w: getDesign().w, h: getDesign().h, d: getDesign().d, budget: getBudget(), finFactor: Number(FIN[getDesign().fin][1]), doors: getDesign().doors, ...getDesign().profile };
+        // Whole-cabinet Auto design starts from the envelope and preferences.
+        // Commands that preserve fittings (such as bay autofill) pass them explicitly.
+        return { w: getDesign().w, h: getDesign().h, d: getDesign().d, budget: getBudget(), finFactor: Number(FIN[getDesign().fin][1]), doors: getDesign().doors, ...getDesign().profile };
     }
     function currentLayout() {
         const ws = widths();
