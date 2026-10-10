@@ -2,7 +2,7 @@ import { packStorageBoxes,storageBoxSize } from '../../domain/planner/storage-bo
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
-import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
+import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { COL } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import type { createViewportResources } from './viewport-resources.js';
@@ -22,26 +22,29 @@ interface FittingRendererPorts {
     garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean): void;
 }
 export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}]) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}]) {
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
         const deck = () => {
             if (y + hh >= h - PANEL - .05) {
                 return;
             }
             for (const span of topSpans) box(span.x1-span.x0, PANEL, d - 2, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, -.5, P);
-        }; // every fitting, boxes included, has its board on top, flush with the fitting's upper edge (the cabinet ceiling for the top fitting)
+        };
+        deck();
+        if(y>PLINTH+PANEL+.05)for(const span of bottomSpans)box(span.x1-span.x0,PANEL,d-2,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,-.5,P);
+        const riseAt=(x0=0,x1=sw)=>Math.max(0,...support.filter(span=>span.x1>x0+.01&&span.x0<x1-.01).map(span=>span.rise));
+        const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {
             box(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, P);
             box(sw - 3, Math.max(4, hh - 6), d - 8, cx, y + hh / 2 - 1, -2, D);
             box(Math.min(14, sw * .4), 1, 1.4, cx, y + hh / 2, d / 2 + .4, mh);
         }
         else if (['shelf', 'folded', 'seasonal', 'shoe', 'basket'].includes(k)) {
-            deck();
             if (k === 'shoe') {
                 const pairs = Math.max(1, WardrobePlanner.geo.shoePairs(sw)), sh = Math.min(9, hh - PANEL - 1);
                 for (let j = 0; j < pairs; j++) {
                     for (let q = 0; q < 2; q++) {
-                        box(8, sh, Math.min(27, d - 5), cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW() + (q ? 5 : -5), y + sh / 2, 1, resources.M(COL[j % 8]!));
+                        box(8, sh, Math.min(27, d - 5), cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW() + (q ? 5 : -5), base + sh / 2, 1, resources.M(COL[j % 8]!));
                     }
                 }
             }
@@ -49,7 +52,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                 const stacks = WardrobePlanner.geo.foldStacks(sw, false), layers = Math.min(5, Math.floor((hh - 5) / 4));
                 for (let j = 0; j < stacks; j++) {
                     for (let q = 0; q < layers; q++) {
-                        box(Math.min(23, sw - 4), 3.2, Math.min(30, d - 5), cx - (stacks - 1) * WardrobePlanner.geo.foldW() / 2 + j * WardrobePlanner.geo.foldW(), y + 2 + q * 3.5, 2, resources.M(COL[(j * 2 + q) % 8]!));
+                        box(Math.min(23, sw - 4), 3.2, Math.min(30, d - 5), cx - (stacks - 1) * WardrobePlanner.geo.foldW() / 2 + j * WardrobePlanner.geo.foldW(), base + 1.6 + q * 3.5, 2, resources.M(COL[(j * 2 + q) % 8]!));
                     }
                 }
             }
@@ -57,23 +60,22 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                 const size=storageBoxSize(getRenderDesign().profile);
                 const count=it.boxes??packStorageBoxes(sw,d,0,size).capacity;
                 const packing=packStorageBoxes(sw,d,count,size);
-                if(size.height>hh-PANEL) return;
                 for(const position of packing.positions){
                     const bx=cx+position.x,bz=position.z;
-                    box(size.width,size.height,size.depth,bx,y+size.height/2,bz,resources.M('#b7aa91'));
-                    box(Math.min(9,size.width-4),4,.3,bx,y+size.height*.55,bz+size.depth/2+.3,resources.M('#f3eee4'));
+                    const rise=riseAt(sw/2+position.x-size.width/2,sw/2+position.x+size.width/2);
+                    if(size.height>hh-PANEL-rise+.01)continue;
+                    box(size.width,size.height,size.depth,bx,y+rise+size.height/2,bz,resources.M('#b7aa91'));
+                    box(Math.min(9,size.width-4),4,.3,bx,y+rise+size.height*.55,bz+size.depth/2+.3,resources.M('#f3eee4'));
                 }
             }
             else if (k === 'basket') {
-                box(sw - 6, Math.min(hh - 5, 32), d - 9, cx, y + Math.min(hh - 5, 32) / 2 + 1, 0, resources.M('#8d99ae', { wireframe: true }));
+                box(sw - 6, Math.min(hh - 5, 32), d - 9, cx, base + Math.min(hh - 5, 32) / 2, 0, resources.M('#8d99ae', { wireframe: true }));
                 box(sw - 7, 2, 2, cx, y + hh - 7, d / 2 - 3, mh);
             }
         }
         else if (k === 'void') {
-            deck();
         }
         else if (k === 'pants') {
-            deck();
             const count = Math.max(1, WardrobePlanner.geo.pantsCount(sw));
             box(sw - 5, 1.5, d - 8, cx, y + hh - 7, -1, mh);
             for (let j = 0; j < count; j++) {
@@ -83,13 +85,12 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             }
         }
         else {
-            deck();
             const ry = y + hh - 6, front = !!it.front, len = front ? d - 8 : sw - 3, r = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, len, 12), mh);
             r.rotation[front ? 'x' : 'z'] = Math.PI / 2;
             r.position.set(cx, ry, 0);
             r.castShadow = true;
             group.add(r);
-            const c = Math.max(1, WardrobePlanner.geo.hangCount(sw, front, d, k)), sp = WardrobePlanner.geo.spacing(k), gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : hh - 12, hh - 10), gz = Math.min(d - 14, 42);
+            const c = Math.max(1, WardrobePlanner.geo.hangCount(sw, front, d, k)), sp = WardrobePlanner.geo.spacing(k), gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : hh - 12, hh - 10, hh - riseAt() - 9), gz = Math.min(d - 14, 42);
             for (let j = 0; j < c; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {

@@ -3,7 +3,7 @@ import type { EditorDivider } from '../wardrobe/editor-design';
 import { WardrobePlanner } from './wardrobe-planner.js';
 import { number,selectionContext,SELECTION_RULES as R } from './selection-config';
 import { boardRect } from './selection-spaces';
-import { fittingBoardSpans } from '../geometry/shared-board-spans';
+import { fittingPanels } from '../geometry/shared-board-spans';
 export interface PlanBoard {source:'frame'|'divider'|'fitting';position:{x:number;y:number;z:number};size:{w:number;h:number;d:number};reason:string}
 /** A preview board schedule in existing centimetres; no new editor item kinds. */
 export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConfig,dividers:readonly EditorDivider[]):PlanBoard[] {
@@ -17,10 +17,8 @@ export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConf
   const explicit=dividers.filter(q=>q.i===bay&&q.orientation==='horizontal').map(q=>{
    const r=boardRect(q);return {x0:r.x/10,x1:(r.x+r.w)/10,y0:r.y/10,y1:(r.y+r.h)/10};
   });
-  s.items.forEach((it,i)=>{
-   const p=positions[i]!;
-   if(['drawer','sdrawer'].includes(it.k)||p.y1+R.base/10>=h-t-.05)return;
-   for(const span of fittingBoardSpans(p,c.height/10,explicit))add('fitting',offset+(span.x0+span.x1)/2,p.y1+R.base/10-t/2,span.x1-span.x0,t,'Top board spans this fitting’s clear space');
+  fittingPanels(positions,0,c.height/10,explicit).forEach(panels=>{
+   for(const edge of ['top','bottom'] as const)for(const span of panels[edge])add('fitting',offset+(span.x0+span.x1)/2,(span.y0+span.y1)/2+R.base/10,span.x1-span.x0,t,edge==='top'?'Top board spans this fitting’s clear space':'Bottom board supports this fitting’s contents');
   });
   for(const divider of dividers.filter(q=>q.i===bay)){const r=boardRect(divider);add('divider',offset+(r.x+r.w/2)/10,R.base/10+(r.y+r.h/2)/10,r.w/10,r.h/10,'Board divides an open space without crossing fixed fittings');}
   offset+=s.width;
