@@ -98,3 +98,7 @@ editing flow. The wardrobe and its measurements update live while sliding
 through the existing fit and collision rules. Releasing saves one undo step;
 cancelled touch gestures restore the starting design. Numeric edits,
 wardrobe selection and Undo keep both controls synchronized.
+
+Keyboard detection retains the visible height before field focus, including
+browsers that shrink both innerHeight and visualViewport.height. Focus also
+scrolls the chosen field inside its panel before the keyboard resize arrives.

@@ -26,6 +26,17 @@ test('intentional page zoom preserves editor dimensions and allows browser panni
  assert.equal(root.style.height,'844px');assert.equal(root.style.width,'390px');assert.equal(root.style.transform,'');assert.equal(root.keyboard,false);
  dispose();
 });
+test('keyboard is detected when Safari shrinks layout and visual viewport together',()=>{
+ const {root,view,visual,dispose}=fixture();
+ root.shadowRoot.activeElement={matches:()=>true,closest:()=>null};
+ view.innerHeight=400;visual.height=400;root.dispatchEvent(new Event('focusin'));visual.dispatchEvent(new Event('resize'));
+ assert.equal(root.keyboard,true);assert.equal(root.style.height,'400px');
+ root.shadowRoot.activeElement=null;root.dispatchEvent(new Event('focusout'));
+ assert.equal(root.keyboard,false);
+ root.shadowRoot.activeElement={matches:()=>true,closest:()=>null};root.dispatchEvent(new Event('focusin'));
+ assert.equal(root.keyboard,true,'Switching fields while keyboard stays open must retain the original height');
+ dispose();
+});
 test('a focused size field scrolls inside its inspector, and disposal removes viewport listeners',()=>{
  const {root,visual,dispose,frames}=fixture();
  const panel={matches:()=>true,scrollTop:0,getBoundingClientRect:()=>({top:62,bottom:392})};

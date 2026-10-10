@@ -69,21 +69,24 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await control('w-range').inputValue(),'220');
     assert.equal(await control('w').getAttribute('inputmode'),'numeric');
     await control('d').focus();
-    // Safari keeps the layout height while its keyboard shrinks AND pans the
-    // visual viewport. A regular browser resize does not reproduce that state.
+    // Exercise a keyboard that shrinks both reported heights and pans the
+    // visual viewport. Comparing those two current heights misses the keyboard.
     const keyboardHeight=Math.min(300,height-150);
     await page.evaluate(visibleHeight=>{
+     Object.defineProperty(window,'innerHeight',{configurable:true,get:()=>visibleHeight});
      Object.defineProperty(window.visualViewport,'height',{configurable:true,get:()=>visibleHeight});
      Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>110});
      window.visualViewport.dispatchEvent(new Event('resize'));
     },keyboardHeight);
     await page.waitForTimeout(100);
     assert.equal(await page.locator('#editor-root').getAttribute('data-keyboard-open'),'');
+    assert.equal(await control('d').evaluate(e=>e.getRootNode().activeElement===e),true,'Depth must retain focus while the keyboard opens');
     assert.equal(await control('more-btn').isVisible(),false);
     const editorBox=await page.locator('#editor-root').boundingBox(),inputBox=await control('d').boundingBox();
     assert.equal(editorBox.y,110);assert.equal(editorBox.height,keyboardHeight);
     assert.ok(inputBox.y>=editorBox.y && inputBox.y+inputBox.height<=editorBox.y+editorBox.height,'Focused input must remain in the visible editor');
     await page.evaluate(()=>{
+     delete window.innerHeight;
      Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>150});
      window.visualViewport.dispatchEvent(new Event('scroll'));
     });
