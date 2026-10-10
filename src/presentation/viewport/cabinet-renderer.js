@@ -15,7 +15,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const { $, document } = dom;
     let renderDesign = model.activeCabinet().state;
     const geometry = createWardrobeGeometry(() => renderDesign, () => settings.budget);
-    const { addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles } = createViewportHandles({ dom, geometry, callbacks: { get dimensionStroke() {
+    const { addRotationIndicator, addWardrobeActions, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles } = createViewportHandles({ dom, geometry, callbacks: { get dimensionStroke() {
                 return dimensionStroke;
             }, get drawSnapGuides() {
                 return drawSnapGuides;
@@ -114,6 +114,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         if (selectionState.focusOn) {
             if (!inspector.inside()) {
                 addRotationIndicator();
+                addWardrobeActions();
                 addWardrobeMoveHandles();
             }
         }

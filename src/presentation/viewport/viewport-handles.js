@@ -21,26 +21,6 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         handle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></svg><span></span>';
         $('#labels').appendChild(handle);
         renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: handle, owner: renderState.Gr });
-        if (dom.width <= 900) {
-            const actions = createActionBar(document, 'Wardrobe actions', [
-                { key: 'dup', title: 'Duplicate wardrobe' },
-                { key: 'del', title: 'Remove wardrobe', disabled: model.scene.wardrobes.length < 2 }
-            ]);
-            actions.classList.add('lbl', 'wardrobe-actions');
-            for (const [key, action] of [['dup', 'duplicate'], ['del', 'remove']]) {
-                const button = /** @type {HTMLButtonElement} */ (actions.querySelector('[data-ib="' + key + '"]'));
-                button.dataset.wardrobeAction = action;
-                if (button.disabled) button.title = 'Keep at least one wardrobe';
-                button.onpointerdown = e => e.stopPropagation();
-                button.onclick = e => {
-                    e.stopPropagation();
-                    if (action === 'duplicate') inspector.addCabinet(true);
-                    else $('#remove-wardrobe').click();
-                };
-            }
-            $('#labels').appendChild(actions);
-            renderState.labs.push({ p: new THREE.Vector3(0, getRenderDesign().h / 2, getRenderDesign().d / 2 + 4), el: actions, owner: renderState.Gr });
-        }
         handle.onpointerdown = e => {
             if (e.button !== 0) {
                 return;
@@ -90,6 +70,28 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
                 inspector.setCabinetPose('angle', model.activeCabinet().angle + (e.key === 'ArrowLeft' ? -15 : 15));
             }
         };
+    }
+    function addWardrobeActions() {
+        if (dom.width <= 900) {
+            const actions = createActionBar(document, 'Wardrobe actions', [
+                { key: 'dup', title: 'Duplicate wardrobe' },
+                { key: 'del', title: 'Remove wardrobe', disabled: model.scene.wardrobes.length < 2 }
+            ]);
+            actions.classList.add('lbl', 'wardrobe-actions');
+            for (const [key, action] of [['dup', 'duplicate'], ['del', 'remove']]) {
+                const button = /** @type {HTMLButtonElement} */ (actions.querySelector('[data-ib="' + key + '"]'));
+                button.dataset.wardrobeAction = action;
+                if (button.disabled) button.title = 'Keep at least one wardrobe';
+                button.onpointerdown = e => e.stopPropagation();
+                button.onclick = e => {
+                    e.stopPropagation();
+                    if (action === 'duplicate') inspector.addCabinet(true);
+                    else $('#remove-wardrobe').click();
+                };
+            }
+            $('#labels').appendChild(actions);
+            renderState.labs.push({ p: new THREE.Vector3(0, getRenderDesign().h / 2, getRenderDesign().d / 2 + 4), el: actions, owner: renderState.Gr });
+        }
     }
     function updateMoveIcons() {
         if (!renderState.moveIcons.length || !renderState.Gr) {
@@ -180,5 +182,5 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             handle.style.transform = `translate(-50%,-50%) translate(${(q.x * .5 + .5) * r.width}px,${(-q.y * .5 + .5) * r.height}px)`;
         });
     }
-    return { addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles };
+    return { addRotationIndicator, addWardrobeActions, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles };
 }

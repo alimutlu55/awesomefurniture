@@ -61,7 +61,7 @@
  .pop .addgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .pop .addgrid button{min-width:0;min-height:110px}
  .pop .addgrid button small{font-size:12px}
- .item-resize-handle,.wardrobe-move,.ground-rotate{width:44px;height:44px;min-height:44px}
+ .item-resize-handle,.wardrobe-move{width:44px;height:44px;min-height:44px}
  .selection-action-bar button{width:44px;height:44px}
  #item-type-menu,#ctx-menu{max-height:calc(100% - 12px);max-width:calc(100% - 12px);overflow:auto;overscroll-behavior:contain}
  #pop3 #move-controls{font-size:13px}#move-controls select{font-size:16px}
