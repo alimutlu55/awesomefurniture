@@ -51,7 +51,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await movement.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     assert.equal(await control('undo2').isEnabled(),false,'Switching a wardrobe drag to pinch must roll back the move');
     await movement.detach();
-    await inBounds(control('zoom-in'));await click(control('props-btn'));
+    assert.equal(await control('zoom-in').isVisible(),false);assert.equal(await control('zoom-out').isVisible(),false);await click(control('props-btn'));
     await page.waitForTimeout(100);
     const panel=await control('left').boundingBox(),view=await control('view').boundingBox();
     assert.ok(panel && view && (view.y + view.height <= panel.y + 1 || view.x >= panel.x + panel.width), `${width}×${height}: settings cover canvas`);
@@ -195,15 +195,13 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    }
    await click(control('undo2'));await click(control('redo2'));
    if (mobile) {
-    const before=await control('zoom-val').textContent();
-    await click(control('zoom-in'));await page.waitForTimeout(600);
-    assert.notEqual(await control('zoom-val').textContent(),before,'Zoom button must change camera');
+    assert.equal(await control('br').isVisible(),false,'Mobile zoom buttons stay hidden');
     // Real multi-touch events exercise the pointer registry, pinch and release.
     const cdp=await page.context().newCDPSession(page);
     // Choose exposed canvas, avoiding floating item controls after focus changes.
     const point=await control('view').evaluate(e=>{
      const r=e.getBoundingClientRect(),root=e.getRootNode();
-     for(const fy of [.25,.4,.55,.7]) for(const fx of [.5,.3,.7]) {
+     for(const fy of [.1,.25,.4,.55,.7]) for(const fx of [.5,.3,.7]) {
       const x=r.x+r.width*fx,y=r.y+r.height*fy;
       if([-55,-25,25,55].every(dx=>root.elementFromPoint(x+dx,y)?.tagName==='CANVAS')) return {x,y};
      }
@@ -213,7 +211,9 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const {x,y}=point;
     const beforePinch=await control('zoom-val').textContent();
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:x-25,y,id:1},{x:x+25,y,id:2}]});
+    await page.waitForTimeout(32);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-55,y,id:1},{x:x+55,y,id:2}]});
+    await page.waitForTimeout(32);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await page.waitForTimeout(150);
     assert.notEqual(await control('zoom-val').textContent(),beforePinch,'Pinch must change camera');

@@ -41,7 +41,7 @@
  #toolbar .tb.add,#toolbar .tb.smart{font-size:13px;padding:0 10px;gap:5px}
  #toolbar #undo2,#toolbar #redo2{min-width:44px;padding:0 10px}
  #toolbar .ic{width:20px;height:20px}
- #br{display:flex;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(var(--sheet) + 8px);padding:3px;z-index:6}
+ #br{display:none;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(var(--sheet) + 8px);padding:3px;z-index:6}
  #br #zoom-val,#br .sep,#br #help-btn{display:none}
  .tb{min-width:44px;min-height:44px;height:44px}
  #crumb{top:calc(70px + var(--safe-top));bottom:auto;max-width:calc(100% - 16px);white-space:normal;justify-content:center;flex-wrap:wrap;padding:3px 8px;font-size:11px}
