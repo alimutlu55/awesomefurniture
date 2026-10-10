@@ -18,7 +18,7 @@
  #app{--sheet:calc(76px + var(--safe-bottom));--panel-height:min(44vh,calc(100% - 176px - var(--safe-top) - var(--safe-bottom)))}
  #app.props-open:not(.inspecting),#app.inspecting{--sheet:calc(var(--panel-height) + 84px + var(--safe-bottom))}
  #app.inspecting:has(.pop.show.min){--sheet:calc(76px + var(--safe-bottom))}
- #view{inset:0 0 var(--sheet);height:auto;min-height:0}
+ #view{inset:0 0 var(--sheet);height:auto;min-height:0;transition:bottom .4s ease,left .4s ease}
  #left,#app.inspecting #left,.pop,.pop.docked{
   left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));
   top:auto;bottom:calc(76px + var(--safe-bottom));width:auto;height:var(--panel-height);max-height:var(--panel-height);
@@ -91,7 +91,7 @@
  #app.props-open:not(.props-hidden) #view,#app.inspecting #view{left:264px}
  #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
 }
-@media(prefers-reduced-motion:reduce){.pop.show{animation:none}#left,.pop,.dd,.wizard-shell{transition:none}}
+@media(prefers-reduced-motion:reduce){.pop.show{animation:none}#view,#left,.pop,.dd,.wizard-shell{transition:none}}
 
 /* The mobile catalogue leaves the model visible above a compact bottom sheet. */
 @media(max-width:900px){

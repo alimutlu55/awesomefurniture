@@ -63,3 +63,22 @@ test('mobile item focus animates to the fitting, retains context and keeps zoom 
  run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),30);
  run('cameraZoom(.9)');near(run('zoomFocus.y'),30);
 });
+
+test('mobile selection preserves the current view and panel resizing does not restart focus',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ let height=700;
+ const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height})}),document:{documentElement:{}}});
+ run('az=.65;el=.3;dist=850;tgt.set(25,140,10);S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:10,y1:50,w:180,h:40});before=JSON.stringify(camNow());frameMobileInspector(true);savedGoal=camGoal');
+ assert.equal(run('JSON.stringify(camNow())'),run('before'),'Starting focus must not reset the pose');
+ near(run('camGoal.az'),.65);near(run('camGoal.el'),.3);
+ assert.equal(run('JSON.stringify(camGoal.from)'),run('before'));
+ time(100);run('cameraTick(100,1/60);mid=JSON.stringify(camNow());origin=JSON.stringify(camGoal.from);start=camGoal.start');
+ height=500;run('frameMobileInspector(true,true)');
+ assert.equal(run('camGoal===savedGoal'),true);
+ assert.equal(run('JSON.stringify(camNow())'),run('mid'));
+ assert.equal(run('JSON.stringify(camGoal.from)'),run('origin'));
+ assert.equal(run('camGoal.start'),run('start'));
+ run('cameraTick(1000,1/60)');near(run('tgt.y'),30);near(run('az'),.65);near(run('el'),.3);
+});
