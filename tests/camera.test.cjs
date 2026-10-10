@@ -55,7 +55,7 @@ test('mobile item focus animates to the fitting, retains context and keeps zoom 
  run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:10,y1:50,w:180,h:40});frameMobileInspector(true);savedGoal=camGoal');
  assert.ok(run('camGoal'),'Selecting a fitting should animate');
  near(run('camGoal.y'),30);
- assert.ok(run('camGoal.dist >= camFront().dist*.65'),'Keep cabinet context around thin fittings');
+ assert.ok(run('camGoal.dist >= camFront().dist*.8'),'Keep cabinet context around thin fittings');
  const duration=run('camGoal.duration');
  time(duration/2);run(`cameraTick(${duration/2},1/60)`);
  assert.ok(run('tgt.y')<100&&run('tgt.y')>30,'Focus must move gradually');
