@@ -80,7 +80,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             Object.assign(cabinet, pose);
             return true;
         },
-        setCabinetSize(key: string, value: number) {
+        setCabinetSize(key: string, value: number, recordHistory = true) {
             const ranges = { w: [80, 400], h: [180, 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
             if (!range || !Number.isFinite(value)) {
                 return false;
@@ -90,12 +90,13 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (key === 'w') {
                 requested = Math.max(requested, geometry.minTotal());
             }
+            if (state[key as 'w' | 'h' | 'd'] === requested) return false;
             if (collision.cabinetCollides({ ...active(), state: { ...state, [key]: requested } })) {
                 report('That size would overlap another wardrobe. Move it first.');
                 return false;
             }
             const previous = structuredClone(state);
-            checkpoint();
+            if (recordHistory) checkpoint();
             state[key as 'w' | 'h' | 'd'] = requested;
             state.n = Math.min(state.n, geometry.maxN());
             state.sel = Math.min(state.sel, state.n - 1);
@@ -109,7 +110,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             design.refitAfterSize();
             if ((state.dividers || []).some((d, j) => !geometry.dividerValid(d, j))) {
                 Object.assign(state, previous);
-                discardCheckpoint();
+                if (recordHistory) discardCheckpoint();
                 report('Move the dividers or items before reducing the wardrobe size');
                 return false;
             }

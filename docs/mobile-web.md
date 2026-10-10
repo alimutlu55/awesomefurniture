@@ -94,6 +94,7 @@ includes editing-area overlays. Browser checks cover release without a click
 and the label layer as well as an actual canvas tap.
 
 Width, height and depth also have native touch sliders beside the numeric
-editing flow. Their values update while sliding; releasing commits the size
-through the existing fit and collision rules with one undo step. Numeric edits,
+editing flow. The wardrobe and its measurements update live while sliding
+through the existing fit and collision rules. Releasing saves one undo step;
+cancelled touch gestures restore the starting design. Numeric edits,
 wardrobe selection and Undo keep both controls synchronized.

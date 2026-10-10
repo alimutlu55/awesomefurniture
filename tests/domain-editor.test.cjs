@@ -70,6 +70,16 @@ test('item property commands refuse overlap and restore every layout property',a
  assert.equal(commands.editItem(0,0,{fullWidth:true}),false);assert.deepEqual(design.secs,before);
  assert.equal(commands.editItem(0,0,{finish:'Walnut'}),true);assert.equal(design.secs[0][0].f,'Walnut');
 });
+test('live cabinet size previews enforce collisions without recording history',async()=>{
+ const {createSceneCommands}=await import('../src/application/commands/scene-commands.js');
+ const scene={wardrobes:[{id:1,x:0,y:0,z:0,angle:0,state:state()},{id:2,x:230,y:0,z:0,angle:0,state:state()}],activeWardrobe:1,nextWardrobeId:3};
+ let checkpoints=0;const commands=createSceneCommands(()=>scene,{checkpoint:()=>checkpoints++});
+ assert.equal(commands.setCabinetSize('h',240,false),true);assert.equal(scene.wardrobes[0].state.h,240);
+ assert.equal(commands.setCabinetSize('w',300,false),false);assert.equal(scene.wardrobes[0].state.w,200);
+ assert.equal(checkpoints,0);
+ assert.equal(commands.setCabinetSize('h',250),true);assert.equal(checkpoints,1);
+ assert.equal(commands.setCabinetSize('h',250),false);assert.equal(checkpoints,1);
+});
 test('camera module can animate a view using presentation ports without mounting the editor',async()=>{
  const THREE=await import('three');
  const {createCameraController}=await import('../src/presentation/viewport/camera-controller.js');

@@ -115,7 +115,7 @@ export function bindSectionDiagram({ dom, inspector, model, lifetime }) {
     });
 }
 /** @param {import('./inspector-bindings.ports').BindCabinetDimensionsPorts} ports */
-export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, lifetime }) {
+export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
     const { $ } = dom;
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', 35, 80]];
     dimensions.forEach(([id, t, mi, ma]) => {
@@ -131,12 +131,26 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
             range.setAttribute('aria-valuetext', range.value + ' cm');
         };
         lifetime.listen(el, 'change', () => commit(( /** @type {HTMLInputElement} */(el)).valueAsNumber));
+        let before = null;
+        const finishSlide = (cancel = false) => {
+            if (before === null) return;
+            const snapshot = before;
+            before = null;
+            selectionState.editingSize = false;
+            if (cancel) model.restore(snapshot);
+            else if (model.snapshot() !== snapshot) history.checkpoint(snapshot);
+            inspector.update(true);
+        };
         lifetime.listen(range, 'input', () => {
-            ( /** @type {HTMLInputElement} */(el)).value = range.value;
-            range.setAttribute('aria-valuetext', range.value + ' cm');
+            if (before === null) before = model.snapshot();
+            selectionState.editingSize = true;
+            sceneCommands.setCabinetSize(id, range.valueAsNumber, false);
+            inspector.update(true);
         });
-        // Commit once on release so a slide creates one undo step.
-        lifetime.listen(range, 'change', () => commit(range.valueAsNumber));
+        // Preview each input, but save only the original state in Undo.
+        lifetime.listen(range, 'change', () => finishSlide());
+        lifetime.listen(range, 'blur', () => finishSlide());
+        lifetime.listen(range, 'pointercancel', () => finishSlide(true));
         lifetime.listen(el, 'focus', () => {
             selectionState.editingSize = true;
             rendering.build();

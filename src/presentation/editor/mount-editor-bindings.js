@@ -29,7 +29,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     inspectorBindings.bindSecMinus({ dom, commands });
     inspectorBindings.bindSecPlus({ dom, commands });
     inspectorBindings.bindSectionDiagram({ dom, inspector, model, lifetime });
-    inspectorBindings.bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, lifetime });
+    inspectorBindings.bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
     inspectorBindings.bindFinishSwatches({ dom, commands });
     inspectorBindings.bindWardrobeReach({ dom, inspector, commands, lifetime });
     inspectorBindings.bindWardrobeReach2({ dom, inspector, model, commands, lifetime });

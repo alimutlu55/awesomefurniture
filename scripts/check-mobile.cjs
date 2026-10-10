@@ -48,6 +48,13 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     for (const id of ['w','h','d']) {
      const slider=control(id+'-range'),before=await control(id).inputValue();
      await slider.scrollIntoViewIfNeeded();
+     const preview=String(Number(before)+10);
+     await slider.evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));},preview);
+     assert.equal(await control(id).inputValue(),preview,`${id}: size must update before release`);
+     await page.waitForFunction(text=>document.querySelector('#editor-root').shadowRoot.querySelector('[data-editor-id="labels"]').textContent.includes(text),`${id.toUpperCase()} ${preview} cm`);
+     assert.equal(await control('undo2').isEnabled(),false,'A slider preview must not create Undo entries');
+     await slider.dispatchEvent('pointercancel',{pointerType:'touch',isPrimary:true});
+     assert.equal(await control(id).inputValue(),before,'Interrupted sliding must restore the original size');
      const track=await slider.boundingBox();
      await page.touchscreen.tap(track.x+track.width*.7,track.y+track.height/2);
      assert.notEqual(await control(id).inputValue(),before,`${id}: touch slider must change size`);
