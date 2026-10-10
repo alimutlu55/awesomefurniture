@@ -14,6 +14,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    const control = id => page.locator(`[data-editor-id="${id}"]`);
    const click = async locator => mobile ? locator.tap() : locator.click();
    const pullSheet = async (panel,distance) => {
+    const autoDesign=await panel.evaluate(e=>e.classList.contains('wizard-shell'));
+    const sceneBefore=autoDesign?await control('view').boundingBox():null;
     const handle=panel.locator('.mobile-sheet-handle').first();
     await handle.scrollIntoViewIfNeeded();
     const box=await handle.boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2;
@@ -21,6 +23,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:9}]});
     await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+distance,id:9}]});
     await page.waitForFunction(e=>parseFloat(e.style.translate.split(' ')[1])>0 || e.hasAttribute('data-sheet-dragging'),await panel.elementHandle());
+    if(autoDesign){
+     const scene=await control('view').boundingBox(),sheet=await panel.boundingBox();
+     assert.ok(Math.abs(scene.height-sceneBefore.height)<1,'Dragging Auto design must keep the canvas size stable');
+     assert.ok(scene.y+scene.height>=sheet.y-1,'No empty gap between the canvas and dragged Auto design sheet');
+    }
     await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await touch.detach();
    };

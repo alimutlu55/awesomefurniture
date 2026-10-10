@@ -16,8 +16,10 @@
  .mobile-bottom-sheet .ph{top:calc(var(--mobile-sheet-handle-height) - var(--mobile-sheet-padding));margin:0 calc(-1 * var(--mobile-sheet-padding)) 6px;padding:0 var(--mobile-sheet-padding);background:var(--panel)}
  .mobile-bottom-sheet{transition:height .25s ease,max-height .25s ease,translate .18s ease-out;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
  #app.props-open:not(.inspecting){--panel-height:var(--mobile-settings-sheet-height)}
- #app.auto-design-open{--panel-height:var(--mobile-settings-sheet-height);--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
- #app.auto-design-open #view{left:0}
+ /* Auto design overlays the scene. Dragging it must not reserve an empty
+    panel-sized area or resize the camera behind it. */
+ #app.auto-design-open{--panel-height:var(--mobile-settings-sheet-height);--sheet:calc(76px + var(--safe-bottom));background:var(--mobile-scene-background)}
+ #app.auto-design-open #view{left:0;transition:none}
  #app.auto-design-open #left{display:none}
  #wizard{padding:0;display:flex;align-items:flex-end;background:transparent}
  #wizard:not([hidden]){backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
