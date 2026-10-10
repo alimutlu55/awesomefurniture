@@ -111,7 +111,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.pivots = combinedPivots;
         renderState.renderActive = true;
         renderState.moveIcons = [];
-        if (selectionState.focusOn || dom.width <= 900) {
+        if (selectionState.focusOn) {
             if (!inspector.inside()) {
                 addRotationIndicator();
                 addWardrobeMoveHandles();
@@ -181,10 +181,6 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
         const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
-            if (dom.width <= 900 && !$('#app').classList.contains('props-open') && !$('#app').classList.contains('inspecting') && l.el.matches('.ground-rotate,.wardrobe-move')) {
-                const b = l.el.getBoundingClientRect();
-                return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
-            }
             const q = l.p.clone();
             if (l.owner) {
                 l.owner.localToWorld(q);

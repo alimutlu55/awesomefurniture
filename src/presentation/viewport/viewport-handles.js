@@ -10,10 +10,8 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             const a = i / 96 * Math.PI * 2;
             points.push(new THREE.Vector3(Math.sin(a) * radius, .5 - (model.activeCabinet().y || 0), Math.cos(a) * radius));
         }
-        if (selectionState.focusOn || dom.width > 900) {
-            const ring = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x8d7d65, transparent: true, opacity: .55 }));
-            renderState.Gr.add(ring);
-        }
+        const ring = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x8d7d65, transparent: true, opacity: .55 }));
+        renderState.Gr.add(ring);
         const handle = document.createElement('button');
         handle.className = 'lbl ground-rotate';
         handle.type = 'button';
@@ -101,11 +99,10 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             }
             side.normalize();
             const head = tip.clone().addScaledVector(direction, -5);
-            if (selectionState.focusOn || dom.width > 900) callbacks.dimensionStroke([anchor, tip, tip, head.clone().addScaledVector(side, 2), tip, head.clone().addScaledVector(side, -2)]);
+            callbacks.dimensionStroke([anchor, tip, tip, head.clone().addScaledVector(side, 2), tip, head.clone().addScaledVector(side, -2)]);
             const handle = document.createElement('button');
             handle.type = 'button';
             handle.className = 'lbl wardrobe-move';
-            handle.dataset.moveAxis = axis;
             const span = document.createElement('span');
             span.className = 'mv-ic';
             span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg>';
