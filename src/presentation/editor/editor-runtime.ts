@@ -127,7 +127,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
         rendering.theme();
 
-        camera.fit({ instant: true, padding: 1.4 });
+        camera.fit(dom.width <= 900 ? { instant: true, az: 0, el: .03, padding: 1.08 } : { instant: true, padding: 1.4 });
         cameraState.tgt.y = cameraState.tgtY;
         camera.resize();
         inspector.update(true);

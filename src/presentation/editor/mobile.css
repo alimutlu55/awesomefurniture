@@ -104,3 +104,27 @@
   top:calc(62px + var(--safe-top));bottom:8px;width:auto;height:auto;max-height:none;
  }
 }
+
+/* Reference opening view: a large wardrobe with only the primary view controls. */
+@media(max-width:900px){
+ #app:not(.props-open):not(.inspecting) #br{bottom:calc(104px + var(--safe-bottom));right:12px;z-index:12}
+ #app:not(.props-open):not(.inspecting) #br #zoom-out{border-right:1px solid var(--line)}
+ #app:not(.props-open):not(.inspecting) #br .sep{display:none}
+ #app:not(.props-open):not(.inspecting) #labels .ground-rotate,
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move{position:absolute!important;top:auto!important;bottom:32px!important;transform:none!important;width:44px;height:44px;min-width:44px;min-height:44px;padding:10px;border:0;background:var(--panel);box-shadow:none;z-index:12;border-radius:50%}
+ #app:not(.props-open):not(.inspecting) #labels .ground-rotate{left:max(12px,calc(50% - 144px))!important}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="y"]{left:max(60px,calc(50% - 96px))!important}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="x"]{left:max(108px,calc(50% - 48px))!important}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="z"]{left:max(156px,50%)!important}
+ #app:not(.props-open):not(.inspecting) #labels .ground-rotate>span{display:none}
+ #app:not(.props-open):not(.inspecting) #labels .ground-rotate,
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move{display:grid!important;place-items:center;color:var(--ink);line-height:1}
+ #app:not(.props-open):not(.inspecting) #labels .ground-rotate svg,
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move .mv-ic,
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move .mv-ic svg{width:24px;height:24px;stroke-width:1.6}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="x"] .mv-ic{transform:none!important}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="y"] .mv-ic{transform:rotate(-90deg)!important}
+ #app:not(.props-open):not(.inspecting) #labels .wardrobe-move[data-move-axis="z"] .mv-ic{transform:rotate(-45deg)!important}
+ #app:not(.props-open):not(.inspecting) #br .ic{width:24px;height:24px}
+ #props-btn[aria-expanded="false"] .ic{transform:none}
+}

@@ -25,15 +25,32 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await touch.detach();
    };
    await page.goto(baseURL);
-   await control('more-btn').waitFor();
+   await control('props-btn').waitFor();
    const inBounds = async locator => {
     const box = await locator.boundingBox();
     const size=page.viewportSize();
     assert.ok(box && box.x >= -1 && box.y >= -1 && box.x + box.width <= size.width + 1 && box.y + box.height <= size.height + 1, `${size.width}×${size.height}: control out of bounds ${JSON.stringify(box)}`);
    };
-   for (const id of ['props-btn','more-btn','launch-wizard','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
+   for (const id of ['props-btn','fitchip','menu-btn']) await inBounds(control(id));
+   if(mobile){
+    assert.equal(await control('props-btn').getAttribute('aria-expanded'),'false','Settings starts closed');
+    assert.equal(await control('toolbar').isVisible(),true,'Add item and Auto design stay directly accessible');
+    await inBounds(page.locator('.wardrobe-move[data-move-axis="z"]'));
+    for(const id of ['more-btn','launch-wizard','undo2','redo2'])await inBounds(control(id));
+    for(const locator of [page.locator('.ground-rotate'),page.locator('.wardrobe-move[data-move-axis="x"]'),page.locator('.wardrobe-move[data-move-axis="y"]'),control('br')]) await inBounds(locator);
+   }else for(const id of ['more-btn','launch-wizard','undo2','redo2'])await inBounds(control(id));
    if (mobile) {
     const movement=await page.context().newCDPSession(page);
+    const moveHandle=await page.locator('.wardrobe-move[data-move-axis="x"]').boundingBox();
+    const hx=moveHandle.x+moveHandle.width/2,hy=moveHandle.y+moveHandle.height/2;
+    await movement.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:hx,y:hy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:hx+25,y:hy,id:1}]});
+    await movement.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    assert.equal(await control('undo2').isEnabled(),true,'The opening movement control must work by touch');
+    await click(control('undo2'));
+    assert.equal(await control('undo2').isEnabled(),false,'A movement control drag must create one undo entry');
+    await page.reload();
+    await page.locator('.wardrobe-move[data-move-axis="x"]').waitFor();
     // Use the upper body to avoid the movement handles in short landscape views.
     const canvas=await control('view').boundingBox(),cx=canvas.x+canvas.width/2,cy=canvas.y+canvas.height*.36;
     await page.touchscreen.tap(cx,cy); // Select the wardrobe before dragging it.
@@ -188,7 +205,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     // Browser UI and keyboards can reduce the available height after mounting.
     await page.setViewportSize({width,height:Math.max(300,height-250)});
     await page.waitForTimeout(150);
-    await inBounds(control('more-btn'));
+    await inBounds(control('props-btn'));
     await page.setViewportSize({width:height,height:width});
     await page.waitForTimeout(150);
     await inBounds(control('menu-btn'));
