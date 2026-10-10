@@ -178,7 +178,11 @@
 /* Equal action slots: no empty flex spacer before persistent history. */
 .contextual-history-label{display:none}
 @media(max-width:900px){
- #toolbar{gap:0;padding:5px 8px}
+ #toolbar{
+  gap:0;padding:5px 8px;left:50%;right:auto;transform:translateX(-50%);
+  width:calc(var(--contextual-action-count,4) * 66px + 18px);
+  max-width:calc(100% - max(8px,env(safe-area-inset-left,0px)) - max(8px,env(safe-area-inset-right,0px)));
+ }
  #toolbar .contextual-defaults,#toolbar .contextual-actions{flex:1 1 0; width:auto;gap:0;scrollbar-width:none}
  #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  #toolbar .contextual-defaults .sep{display:none}
