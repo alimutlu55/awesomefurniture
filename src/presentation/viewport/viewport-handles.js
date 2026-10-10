@@ -19,11 +19,10 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         handle.setAttribute('aria-pressed', 'false');
         handle.title = 'Drag to rotate · Click, move, then click to set · Arrow keys rotate';
         handle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></svg><span></span>';
-        /** @type {HTMLElement} */ let label = handle;
+        $('#labels').appendChild(handle);
+        renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: handle, owner: renderState.Gr });
         if (dom.width <= 900) {
-            handle.classList.remove('lbl', 'ground-rotate');
             const actions = createActionBar(document, 'Wardrobe actions', [
-                { key: 'rot', title: 'Rotate ' + model.activeCabinet().name, button: handle },
                 { key: 'dup', title: 'Duplicate wardrobe' },
                 { key: 'del', title: 'Remove wardrobe', disabled: model.scene.wardrobes.length < 2 }
             ]);
@@ -39,10 +38,9 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
                     else $('#remove-wardrobe').click();
                 };
             }
-            label = actions;
+            $('#labels').appendChild(actions);
+            renderState.labs.push({ p: new THREE.Vector3(0, getRenderDesign().h / 2, getRenderDesign().d / 2 + 4), el: actions, owner: renderState.Gr });
         }
-        $('#labels').appendChild(label);
-        renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: label, owner: renderState.Gr });
         handle.onpointerdown = e => {
             if (e.button !== 0) {
                 return;

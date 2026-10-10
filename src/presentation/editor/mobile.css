@@ -144,6 +144,4 @@
 
 @media(max-width:900px){
  .wardrobe-actions{pointer-events:auto}
- .wardrobe-actions [data-ib="rot"]{touch-action:none}
- .wardrobe-actions button.rotating{width:auto;min-width:44px}
 }
