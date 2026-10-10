@@ -31,7 +31,7 @@ test('presentation modules cannot regain an unrestricted editor context or globa
 test('responsive binding works with an immutable inspector API',()=>{
  const {bindResponsiveInspectors}=require('../src/presentation/editor/shell-bindings.js');
  const originalDocument=global.document,originalMatchMedia=global.matchMedia;
- const sheet=()=>({appendChild(){},prepend(){},classList:{add(){}}});
+ const sheet=()=>({dataset:{},appendChild(){},prepend(){},classList:{add(){}}});
  const app={appendChild(){}},left=sheet();
  const movement={hidden:true,style:{}},dividerActions={style:{}};
  const elements={'#left':left,'#pop2':sheet(),'#pop3':{...sheet(),parentNode:left},'#pop4':{...sheet(),parentNode:left},'#wizard':{querySelector:()=>sheet()},'#ix':{},'#divider-close':{},'#move-controls':{closest:()=>movement},'#divider-dup':{parentElement:dividerActions}};

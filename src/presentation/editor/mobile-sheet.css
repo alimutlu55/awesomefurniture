@@ -3,6 +3,7 @@
  --mobile-sheet-radius:18px;
  --mobile-sheet-padding:12px;
  --mobile-settings-sheet-height:min(44vh,calc(100vh - 176px - var(--safe-top) - var(--safe-bottom)));
+ --mobile-expanded-sheet-height:min(78vh,calc(100vh - 144px - var(--safe-top) - var(--safe-bottom)));
  --mobile-sheet-handle-height:32px;
  --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
 }
@@ -13,12 +14,12 @@
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#wizard .mobile-bottom-sheet{left:0;right:0;width:auto;padding:var(--mobile-sheet-padding);border:0;box-shadow:none;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;background:var(--panel);scrollbar-gutter:auto}
  .mobile-bottom-sheet>.mobile-sheet-handle{height:var(--mobile-sheet-handle-height);min-height:var(--mobile-sheet-handle-height);top:calc(-1 * var(--mobile-sheet-padding));margin:calc(-1 * var(--mobile-sheet-padding)) 0 0;background:var(--panel)}
  .mobile-bottom-sheet .ph{top:calc(var(--mobile-sheet-handle-height) - var(--mobile-sheet-padding));margin:0 calc(-1 * var(--mobile-sheet-padding)) 6px;padding:0 var(--mobile-sheet-padding);background:var(--panel)}
- .mobile-bottom-sheet{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+ .mobile-bottom-sheet{transition:height .25s ease,max-height .25s ease,translate .18s ease-out;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
  #app.props-open:not(.inspecting){--panel-height:var(--mobile-settings-sheet-height)}
  #app.auto-design-open{--panel-height:var(--mobile-settings-sheet-height);--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
  #app.auto-design-open #view{left:0}
  #app.auto-design-open #left{display:none}
- #wizard{padding:0 0 calc(76px + var(--safe-bottom));display:flex;align-items:flex-end;background:transparent}
+ #wizard{padding:0;display:flex;align-items:flex-end;background:transparent}
  #wizard:not([hidden]){backdrop-filter:none;-webkit-backdrop-filter:none;animation:none}
  #wizard:not([hidden]) .mobile-bottom-sheet{animation:none}
  #wizard .mobile-bottom-sheet{width:100%;flex:0 0 100%;height:var(--mobile-settings-sheet-height);max-height:var(--mobile-settings-sheet-height);min-height:0;padding:0;overflow:hidden}
@@ -26,6 +27,10 @@
  #wizard .wizard-head{padding:0 var(--mobile-sheet-padding) 8px;border:0}
  #wizard .wizard-body{min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
  #wizard .preferences,#wizard .ideas-panel{padding:var(--mobile-sheet-padding)}
+ #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + 76px + var(--safe-bottom))}
+ #app .mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
+ #wizard .mobile-bottom-sheet[data-sheet-position="full"]{height:100%;max-height:100%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+ #app .mobile-bottom-sheet[data-sheet-dragging],#wizard .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - var(--safe-top))}
  #app.adding #pop2.mobile-bottom-sheet{padding:0 var(--mobile-sheet-padding) var(--safe-bottom);overflow:hidden}
  #app.adding #pop2.mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
 }
@@ -36,3 +41,10 @@
  #app #left.mobile-bottom-sheet{top:auto;bottom:calc(76px + var(--safe-bottom));height:var(--panel-height);max-height:var(--panel-height)}
  #app :is(#pop3,#pop4).mobile-bottom-sheet{left:max(8px,env(safe-area-inset-left,0px));right:auto;width:248px;border-radius:var(--mobile-sheet-radius)}
 }
+
+@media(max-width:900px){
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - 76px - var(--safe-bottom))}
+}
+
+@media(prefers-reduced-motion:reduce){.mobile-bottom-sheet{transition:none}}

@@ -161,7 +161,7 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
             [/** @type {HTMLElement} */ ($('#wizard').querySelector('.wizard-shell')), 'Auto design', () => $('#close-wizard').click()],
         ];
         for (const [panel, name, close] of sheets) {
-            mountMobileSheet({ document, lifetime, desktop: mq, panel, name, close, bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), $('#wizard').querySelector('.wizard-shell')].includes(panel) });
+            mountMobileSheet({ document, lifetime, desktop: mq, panel, name, close, fullscreen: panel === $('#wizard').querySelector('.wizard-shell'), bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), $('#wizard').querySelector('.wizard-shell')].includes(panel) });
         }
         const place = () => {
             // Anchor menus to the whole editor on phones, so a narrow toolbar

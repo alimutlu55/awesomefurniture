@@ -96,6 +96,8 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         plannerState.wizardTrigger = document.activeElement;
         inspector.hidePop();
         syncPreferences();
+        const sheet = /** @type {HTMLElement | null} */ ($('#wizard').querySelector('.wizard-shell'));
+        if (sheet) sheet.dataset.sheetPosition = 'full';
         $('#wizard').hidden = false;
         $('#app').classList.add('auto-design-open');
         $('#app').inert = true;
