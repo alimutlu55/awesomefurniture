@@ -413,13 +413,11 @@ export function bindIx({ dom, inspector }) {
 /** @param {import('./inspector-bindings.ports').BindPop3Ports} ports */
 export function bindPop3({ dom, interactions, inspector, selectionState, geometry, model, commands, lifetime }) {
     const { $ } = dom;
-    lifetime.listen(dom.root, 'click', e => {
+    lifetime.listen($('#pop3'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));
         if (!b || dom.controlId(b) === 'ix') {
             return;
         }
-        const focusedItem = dom.width <= 900 && $('#app').dataset.focusMode?.startsWith('item') && b.closest('.mobile-focus-body');
-        if (!$('#pop3').contains(b) && !focusedItem) return;
         const i = model.activeCabinet().state.sel, a = model.activeCabinet().state.secs[i], j = model.activeCabinet().state.item, it = a[j], d = b.dataset;
         if (!it) {
             return;

@@ -67,7 +67,6 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function availableRoom() {
         const r = $('#view').getBoundingClientRect(), css = getComputedStyle(document.documentElement), desktop = dom.width > 900;
-        if (!desktop && $('#app').classList.contains('mobile-focus')) return { w: Math.max(60, r.width - 24), h: Math.max(100, r.height - 48) };
         return { w: Math.max(160, r.width - (desktop && !$('#app').classList.contains('props-hidden') ? parseFloat(css.getPropertyValue('--pw')) + 48 : 28) - (desktop && document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 60 : 0)), h: Math.max(140, r.height - (desktop ? 180 : 115)) };
     }
     /** @param {import('./camera-types').CameraPose} from
