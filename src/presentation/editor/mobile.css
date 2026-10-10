@@ -4,6 +4,7 @@
 .mobile-settings-label,.mobile-section-label,.mobile-cancel-move,.mobile-feedback{display:none}
 .size-range{display:block;width:100%;height:44px;margin:0 0 12px;accent-color:#796648;cursor:pointer;touch-action:pan-y}
 .mobile-sheet-handle{display:none}
+.mobile-add-browser{display:none}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
 @media(max-width:900px){
@@ -90,6 +91,34 @@
  #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
 }
 @media(prefers-reduced-motion:reduce){.pop.show{animation:none}#left,.pop,.dd,.wizard-shell{transition:none}}
+
+/* The mobile catalogue leaves the model visible above a compact bottom sheet. */
+@media(max-width:900px){
+ #app.adding{--catalog-height:min(210px,40vh);--sheet:calc(var(--catalog-height) + var(--safe-bottom));background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1) top left / 100% calc(100% - var(--sheet) + 18px) no-repeat}
+ #app.adding #view{left:0;background:transparent}
+ #app.adding #pop2{left:0;right:0;top:auto;bottom:0;width:auto;height:calc(var(--catalog-height) + var(--safe-bottom));max-height:none;padding:0 10px var(--safe-bottom);overflow:hidden;scrollbar-gutter:auto;border:0;box-shadow:none;border-radius:18px 18px 0 0;background:var(--panel)}
+ #app.adding #toolbar,#app.adding #br{display:none}
+ #app.adding #pop2>.mobile-sheet-handle{top:0;margin:0;height:32px;min-height:32px}
+ #app.adding #pop2 .ph{position:absolute;top:0;right:0;margin:0;padding:0;border:0;background:transparent;z-index:5}
+ #app.adding #pop2 #ptitle,#app.adding #pop2 .pmin{display:none}
+ #app.adding #pop2 #px{height:32px;min-height:32px;width:32px;font-size:20px}
+ #app.adding #pop2>#section-meta,#app.adding #pop2>#add-intent,#app.adding #pop2>.sugg-h,
+ #app.adding #pop2>#padd,#app.adding #pop2>.more-items{display:none}
+ .mobile-add-browser{display:flex;flex-direction:column;gap:8px}
+ .mobile-add-categories,.mobile-add-products{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x}
+ .mobile-add-categories button{display:flex;align-items:center;gap:6px;flex:none;height:40px;min-height:40px;padding:0 12px;border:0;border-radius:24px;background:#eae5de;font-size:12px;white-space:nowrap}
+ .mobile-add-categories button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+ .mobile-add-categories .ic{width:18px;height:18px}
+ .mobile-add-products{padding-bottom:8px}
+ .mobile-add-products button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:0 0 86px;min-width:0;min-height:108px;padding:4px 0;border:0;background:transparent;font-size:11px;text-align:center}
+ .mobile-add-products button[hidden]{display:none}
+ .mobile-add-products .product-art{width:86px;height:80px;border-radius:12px;background:#eae5de;filter:none;padding:2px}
+ .mobile-add-products button.no{opacity:.4}
+}
+@container (max-height:500px){
+ #app.adding .mobile-add-products .product-art{height:52px}
+ #app.adding .mobile-add-products button{min-height:80px}
+}
 
 /* Use the visible area for editing while the software keyboard is present. */
 @media(max-width:900px){

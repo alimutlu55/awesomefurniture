@@ -321,6 +321,23 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#padd').innerHTML = feat.map(x => '<button type="button" ' + attr(x) + (!x.fit ? ' class="no" aria-disabled="true"' : x.warn ? ' class="warn"' : '') + ' title="' + esc(nm(x.k) + (x.fit ? (x.warn ? ' · ' + x.hint : '') : ' · ' + x.hint)) + '">' + productArt(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
         $('#padd2').innerHTML = rest.map(x => '<button type="button" ' + attr(x) + ' class="' + (!x.fit ? 'no' : x.warn ? 'warn' : '') + '" aria-disabled="' + !x.fit + '" title="' + esc(nm(x.k) + (x.hint ? ' · ' + x.hint : '')) + '">' + icon(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
         $('#more-count').textContent = String(rest.length);
+        const browser = $('#pop2').querySelector('.mobile-add-browser');
+        const categories = browser.querySelector('.mobile-add-categories'), products = browser.querySelector('.mobile-add-products');
+        const group = k => ['short','long','lift','pants'].includes(k) ? 'hanging' : ['drawer','sdrawer'].includes(k) ? 'drawers' : ['shelf','folded','divider','shoe'].includes(k) ? 'shelves' : 'storage';
+        categories.innerHTML = [['all','Add item','plus'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'">'+icon(ic)+'<span>'+name+'</span></button>').join('') + '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>';
+        const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
+        const order = k => { const i = ['drawer','shelf','short','seasonal'].indexOf(k); return i < 0 ? 4 : i; };
+        products.innerHTML = '<button type="button" data-product-category="storage" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + list.slice().sort((a,b) => order(a.k) - order(b.k)).map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('');
+        (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
+        (/** @type {HTMLButtonElement} */ (categories.querySelector('[data-auto-design]'))).onclick = () => $('#launch-wizard').click();
+        (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => {
+            button.onclick = () => {
+                const category = button.dataset.category;
+                categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed',String(tab===button)));
+                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { product.hidden = category !== 'all' && product.dataset.productCategory !== category; });
+                products.scrollLeft = 0;
+            };
+        });
     }
     function undo() {
         if (interactionState.itemEdgeGesture) {

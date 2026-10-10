@@ -54,6 +54,10 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         callbacks.itemUI();
         callbacks.dividerUI();
         placePop(p, e, v);
+        if (id === '#pop2' && dom.width <= 900) {
+            $('#app').classList.add('adding', 'inspecting');
+            camera.fit({ az: 0, el: .03, padding: 1.08 });
+        }
     }
     function popUI() {
         const p = $('#pop2');

@@ -132,7 +132,23 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    }
    await click(control('more-btn'));await inBounds(control('pop2'));
    if(mobile){await pullSheet(control('pop2'),90);assert.equal(await control('pop2').isVisible(),false);await click(control('more-btn'));}
-   await click(control('padd').locator('button[data-m="short"]'));
+   if(mobile){
+    const categories=page.locator('.mobile-add-categories'),products=page.locator('.mobile-add-products');
+    await page.waitForTimeout(250);
+    assert.equal(await control('br').isVisible(),false,'Zoom controls are hidden while adding');
+    const panel=await control('pop2').boundingBox(),view=await control('view').boundingBox();
+    assert.ok(view.y+view.height<=panel.y+1,`Add catalogue must leave the model unobstructed: ${JSON.stringify({view,panel})}`);
+    await click(categories.locator('[data-category="storage"]'));
+    assert.equal(await products.locator('[data-add-wardrobe]').isVisible(),true);
+    assert.equal(await products.locator('[data-m="short"]').isVisible(),false);
+    await click(categories.locator('[data-category="hanging"]'));
+    assert.equal(await products.locator('[data-m="short"]').isVisible(),true);
+    await click(categories.locator('[data-category="all"]'));
+    await products.locator('button').last().scrollIntoViewIfNeeded();
+    assert.ok(await products.evaluate(e=>e.scrollLeft>0),'Product catalogue must scroll horizontally');
+    await products.locator('[data-m="short"]').scrollIntoViewIfNeeded();
+    await click(products.locator('[data-m="short"]'));
+   }else await click(control('padd').locator('button[data-m="short"]'));
    assert.equal(await control('undo2').isEnabled(),true);
    await click(control('px'));
    await page.waitForFunction(()=>!document.querySelector('#editor-root').shadowRoot.querySelector('[data-editor-id="app"]').classList.contains('inspecting'));
