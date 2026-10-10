@@ -191,9 +191,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.x = w.x + box.x * Math.cos(angle);
             goal.y = (w.y || 0) + box.y;
             goal.z = w.z - box.x * Math.sin(angle);
-            // Keep surrounding cabinet visible instead of filling the screen with a thin shelf.
-            const contextDistance = cameraFitDistance({ w: w.state.w, h: w.state.h, d: w.state.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
-            goal.dist = Math.max(contextDistance * .85, cameraFitDistance(box, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h) * 1.12);
+            // Fit the whole cabinet around the selected target so moving fittings never crops it.
+            const contextDistance = cameraFitDistance({ w: w.state.w + 2 * Math.abs(box.x), h: w.state.h + 2 * Math.abs(box.y - w.state.h / 2), d: w.state.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
+            goal.dist = Math.max(contextDistance * 1.12, cameraFitDistance(box, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h) * 1.12);
         }
         if (resizing && cameraState.camGoal) {
             // Panel resizing changes the destination, not the animation's origin or clock.
@@ -210,7 +210,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             cameraState.camHome = camNow();
         }
         cameraState.camRestore = null;
-        cameraTransition(camFront(), 480);
+        const goal = camFront();
+        if (dom.width <= 900) goal.dist *= 1.12;
+        cameraTransition(goal, 480);
     }
     function moveViewOff() {
         if (!cameraState.camHome) {

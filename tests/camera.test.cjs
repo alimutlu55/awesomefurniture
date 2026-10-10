@@ -82,3 +82,36 @@ test('mobile selection preserves the current view and panel resizing does not re
  assert.equal(run('camGoal.start'),run('start'));
  run('cameraTick(1000,1/60)');near(run('tgt.y'),30);near(run('az'),.65);near(run('el'),.3);
 });
+
+test('mobile fitting focus keeps every cabinet corner in view, including low and side items',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ for(const az of [0,.65,1.3])for(const el of [0,.3])for(const item of [{x:0,y:30},{x:65,y:170}]) {
+  const{run}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
+  run(`az=${az};el=${el};S.item=0;S.sel=0;itemGeom=()=>({x0:${item.x+80},x1:${item.x+120},y0:${item.y-10},y1:${item.y+10},w:40,h:20});frameMobileInspector(true)`);
+  const distance=run('camGoal.dist'),tan=Math.tan(35*Math.PI/360);
+  for(const x of [-100,100])for(const y of [0,200])for(const z of [-30,30]) {
+   const dx=x-item.x,dy=y-item.y;
+   const depth=dx*Math.cos(el)*Math.sin(az)+dy*Math.sin(el)+z*Math.cos(el)*Math.cos(az);
+   const horizontal=dx*Math.cos(az)-z*Math.sin(az);
+   const vertical=-dx*Math.sin(el)*Math.sin(az)+dy*Math.cos(el)-z*Math.sin(el)*Math.cos(az);
+   assert.ok(Math.abs(horizontal)<(distance-depth)*tan*390/600,'Cabinet sides remain visible');
+   assert.ok(Math.abs(vertical)<(distance-depth)*tan*(600-115)/600,'Cabinet top and bottom fit the usable view');
+  }
+ }
+});
+
+test('mobile move mode backs away while desktop movement keeps its existing distance',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ for(const width of [390,1200]) {
+  const element={getBoundingClientRect:()=>({width,height:600}),classList:{contains:()=>true}};
+  const{run}=fixture(width,{$:()=>element,document:{documentElement:{},querySelector:()=>null}});
+  const front=run('camFront().dist');
+  run('moveViewOn()');
+  near(run('camGoal.dist'),front*(width<=900 ? 1.12 : 1));
+  near(run('camGoal.y'),100);
+ }
+});
