@@ -126,7 +126,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
-        bindMobileFocus({ dom, camera, cameraState, inspector, selectionState, model, lifetime, interactions, planner, geometry });
+        bindMobileFocus({ dom, camera, cameraState, inspector, selectionState, model, lifetime, interactions, planner });
         rendering.theme();
 
         camera.fit({ instant: true, padding: 1.4 });

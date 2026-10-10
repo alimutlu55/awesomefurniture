@@ -8,37 +8,28 @@
  .mobile-focus-controls>header{flex-shrink:0;display:flex;align-items:center;gap:12px;padding-bottom:4px;border-bottom:1px solid var(--line)}
  .mobile-focus-back{min-height:44px;align-self:flex-start;padding:8px 12px}
  .mobile-focus-controls h2{font-size:16px;color:var(--ink);margin:0;overflow-wrap:anywhere}
- .mobile-focus-body{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain;flex:1;min-height:0;padding:4px 0}
- .mobile-focus-body>*{flex-shrink:0}
- .mobile-action-menu{display:flex;gap:8px;flex-wrap:nowrap}
+ .mobile-focus-body{overflow:auto;overscroll-behavior:contain;flex:1;min-height:0;padding:4px 0}
+ .mobile-action-menu{display:flex;gap:8px;overflow-x:auto}
  .mobile-action-menu button{flex-shrink:0;min-height:44px;text-align:left;padding:8px 12px;font-size:15px}
- #app.mobile-focus .focus-content{position:static!important;inset:auto!important;width:max-content!important;height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important;display:block!important;visibility:visible!important;pointer-events:auto!important;border:0;box-shadow:none}
+ #app.mobile-focus .focus-content{position:static!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important;display:block!important;visibility:visible!important;pointer-events:auto!important;border:0;box-shadow:none}
  .focus-content .mobile-sheet-handle,.focus-content .ph,.focus-content .item-back{display:none!important}
- #app.mobile-focus .focus-content .addgrid{display:flex;flex-wrap:nowrap;gap:8px}
- #app.mobile-focus .focus-content .addgrid button{flex:0 0 112px;min-height:72px;padding:4px;overflow-wrap:anywhere}
+ #app.mobile-focus .focus-content .addgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ #app.mobile-focus .focus-content .addgrid button{min-height:72px;padding:4px;overflow-wrap:anywhere}
  #app.mobile-focus .focus-content .addgrid .no{display:none}
  #app.mobile-focus .focus-content .product-art{height:36px}
  #app.mobile-focus .size-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px}
- #app.mobile-focus .size-field{width:96px;max-width:none;min-height:44px}
+ #app.mobile-focus .size-field{width:50%;max-width:180px;min-height:44px}
  #app.mobile-focus .size-field input{width:100%;min-width:0}
- #app.mobile-focus .size-control{flex:0 0 170px;margin:0}
- #app.mobile-focus .item-size-pair{display:flex!important;gap:12px}
+ #app.mobile-focus .size-control{margin-bottom:8px}
+ #app.mobile-focus .item-size-pair{display:grid;grid-template-columns:1fr;gap:12px}
  #app.mobile-focus .sw{width:44px;height:44px}
- #app.mobile-focus .door-grid{display:flex!important;flex-wrap:nowrap;gap:8px}
+ #app.mobile-focus .door-grid{display:grid!important;grid-template-columns:1fr;gap:8px}
  #app.mobile-focus .door-grid button{min-height:60px}
- #app.mobile-focus .pr{display:flex!important;flex-wrap:nowrap;gap:8px}
- #app.mobile-focus .mobile-focus-controls,#app.mobile-focus .mobile-focus-controls *{border-radius:0!important}
- #app.mobile-focus #sliders,#app.mobile-focus #fins,#app.mobile-focus #pop2.focus-content{display:flex!important;flex-wrap:nowrap;align-items:flex-start;gap:12px}
- #app.mobile-focus #pop2>p,#app.mobile-focus #pop2>h3,#app.mobile-focus #add-intent{display:none}
- #app.mobile-focus #sliders .size-range{margin:0;touch-action:pan-y}
- #app.mobile-focus .item-size-label{flex:0 0 170px;margin:0;display:block}
- #app.mobile-focus .item-size-field{margin-top:4px;display:flex}
- #app.mobile-focus .door-grid button,#app.mobile-focus #fins button{flex-shrink:0}
- #app.mobile-focus #imeas,#app.mobile-focus #dmeas{display:grid!important;grid-auto-flow:column;grid-template-rows:auto auto;grid-auto-columns:max-content;gap:8px 20px}
+ #app.mobile-focus .pr{display:flex!important;flex-wrap:wrap;gap:8px}
  #app.mobile-focus .ground-rotate,#app.mobile-focus .wardrobe-move,#app.mobile-focus .wardrobe-name,#app.mobile-focus .lbl.add{display:none!important}
  #app.mobile-focus #item-resize-handles{display:none}
  #app.mobile-focus[data-focus-mode="item-resize"] #item-resize-handles{display:block}
- #app.mobile-focus .mobile-focus-body>label{display:block;width:180px;margin:0}
+ #app.mobile-focus .mobile-focus-body>label{display:block;margin:0 0 16px}
  #app.mobile-focus .mobile-focus-body button{min-height:44px}
  #app.mobile-focus[data-focus-mode="item-move"] #swap-mode{display:none}
  #app.mobile-focus[data-focus-mode="item-swap"] #move-mode,#app.mobile-focus[data-focus-mode="item-swap"] #move-section{display:none}
@@ -49,10 +40,5 @@
  #app.mobile-focus .ideas-grid{display:grid;grid-template-columns:1fr}
  #app.mobile-focus~#wizard{display:none!important}
  #app.mobile-focus select,#app.mobile-focus input[type=number]{width:100%;min-width:0;font-size:16px!important;min-height:44px}
- @media(max-height:500px){
-  #app.mobile-focus .mobile-focus-controls{flex-direction:row;gap:12px}
-  .mobile-focus-controls>header{width:100px;flex-direction:column;align-items:flex-start;gap:0;padding:0;border-bottom:0;border-right:1px solid var(--line)}
-  .mobile-focus-controls h2{font-size:12px}
- }
  :host([data-keyboard-open]) #app.mobile-focus{--focus-controls:75%}
 }
