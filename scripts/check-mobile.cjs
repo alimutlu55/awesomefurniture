@@ -13,20 +13,20 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    page.on('pageerror', error => errors.push(error.message));
    const control = id => page.locator(`[data-editor-id="${id}"]`);
    const click = async locator => mobile ? locator.tap() : locator.click();
-   const pullSheet = async (panel,distance) => {
+   const pullSheet = async (panel,distance,surface) => {
     const autoDesign=await panel.evaluate(e=>e.classList.contains('wizard-shell'));
     const sceneBefore=autoDesign?await control('view').boundingBox():null;
-    const handle=panel.locator('.mobile-sheet-handle').first();
+    const handle=surface?panel.locator(surface).first():panel.locator('.mobile-sheet-handle').first();
     await handle.scrollIntoViewIfNeeded();
     const box=await handle.boundingBox(),x=box.x+box.width/2,y=box.y+box.height/2;
     const touch=await page.context().newCDPSession(page);
     await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:9}]});
     await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+distance,id:9}]});
     await page.waitForFunction(e=>parseFloat(e.style.translate.split(' ')[1])>0 || e.hasAttribute('data-sheet-dragging'),await panel.elementHandle());
-    if(autoDesign){
+    if(autoDesign || await panel.evaluate(e=>e.classList.contains('mobile-bottom-sheet'))){
      const scene=await control('view').boundingBox(),sheet=await panel.boundingBox();
-     assert.ok(Math.abs(scene.height-sceneBefore.height)<1,'Dragging Auto design must keep the canvas size stable');
-     assert.ok(scene.y+scene.height>=sheet.y-1,'No empty gap between the canvas and dragged Auto design sheet');
+     if(autoDesign) assert.ok(Math.abs(scene.height-sceneBefore.height)<1,'Dragging Auto design must keep the canvas size stable');
+     assert.ok(scene.y+scene.height>=sheet.y-1,'No empty gap between the canvas and any dragged bottom sheet');
     }
     await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
     await touch.detach();
@@ -77,7 +77,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await control('left').evaluate(e=>e.scrollTop=80);
     assert.ok(await control('left').evaluate(e=>e.scrollTop)>0,'Settings must scroll down');
     await control('left').evaluate(e=>e.scrollTop=0);
-    await pullSheet(control('left'),24);
+    await pullSheet(control('left'),24,'h2.ct');
     assert.equal(await control('left').isVisible(),true,'A short pull must return the panel to its place');
     const compactHeight=(await control('left').boundingBox()).height;
     await pullSheet(control('left'),-100);
@@ -252,7 +252,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.ok(await body.evaluate(e=>e.scrollTop)>0,'Auto design must scroll down');
     await body.evaluate(e=>e.scrollTop=0);
     assert.equal(await body.evaluate(e=>e.scrollTop),0,'Auto design must scroll back up');
-    await pullSheet(sheet,100);
+    await pullSheet(sheet,100,'.wizard-head h2');
     assert.equal(await sheet.getAttribute('data-sheet-position'),'compact','Auto design can be lowered');
     assert.equal(await control('wizard').isVisible(),true);
     await pullSheet(sheet,-100);
