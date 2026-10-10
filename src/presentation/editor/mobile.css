@@ -82,3 +82,17 @@
  #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
 }
 @media(prefers-reduced-motion:reduce){.pop.show{animation:none}}
+
+/* Use the visible area for editing while the software keyboard is present. */
+@media(max-width:900px){
+ :host([data-keyboard-open]) #app{--sheet:0px}
+ :host([data-keyboard-open]) #view{inset:0;visibility:hidden}
+ :host([data-keyboard-open]) #toolbar,:host([data-keyboard-open]) #topright,
+ :host([data-keyboard-open]) #topleft,:host([data-keyboard-open]) #br,
+ :host([data-keyboard-open]) #crumb{display:none}
+ :host([data-keyboard-open]) #left,:host([data-keyboard-open]) #app.inspecting #left,
+ :host([data-keyboard-open]) .pop,:host([data-keyboard-open]) .pop.docked{
+  left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));
+  top:calc(62px + var(--safe-top));bottom:8px;width:auto;height:auto;max-height:none;
+ }
+}

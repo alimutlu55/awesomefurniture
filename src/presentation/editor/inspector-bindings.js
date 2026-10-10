@@ -119,7 +119,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
     const { $ } = dom;
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', 35, 80]];
     dimensions.forEach(([id, t, mi, ma]) => {
-        $('#sliders').insertAdjacentHTML('beforeend', `<label class="size-row" for="${id}"><span>${t}<b id="${id}v"></b></span><span class="size-field"><input type="number" id="${id}" min="${mi}" max="${ma}" step="1" aria-label="Wardrobe ${t.toLowerCase()}"><small>cm</small></span></label>`);
+        $('#sliders').insertAdjacentHTML('beforeend', `<label class="size-row" for="${id}"><span>${t}<b id="${id}v"></b></span><span class="size-field"><input type="number" inputmode="numeric" id="${id}" min="${mi}" max="${ma}" step="1" aria-label="Wardrobe ${t.toLowerCase()}"><small>cm</small></span></label>`);
         const el = $('#' + id);
         lifetime.listen(el, 'change', () => {
             if (sceneCommands.setCabinetSize(id, ( /** @type {HTMLInputElement} */(el)).valueAsNumber)) {

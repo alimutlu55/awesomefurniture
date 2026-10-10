@@ -29,6 +29,34 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await inBounds(control('left'));
     await control('w').fill('220');await control('w').blur();
     assert.equal(await control('w').inputValue(),'220');
+    assert.equal(await control('w').getAttribute('inputmode'),'numeric');
+    await control('d').focus();
+    // Safari keeps the layout height while its keyboard shrinks AND pans the
+    // visual viewport. A regular browser resize does not reproduce that state.
+    const keyboardHeight=Math.min(300,height-150);
+    await page.evaluate(visibleHeight=>{
+     Object.defineProperty(window.visualViewport,'height',{configurable:true,get:()=>visibleHeight});
+     Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>110});
+     window.visualViewport.dispatchEvent(new Event('resize'));
+    },keyboardHeight);
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#editor-root').getAttribute('data-keyboard-open'),'');
+    assert.equal(await control('more-btn').isVisible(),false);
+    const editorBox=await page.locator('#editor-root').boundingBox(),inputBox=await control('d').boundingBox();
+    assert.equal(editorBox.y,110);assert.equal(editorBox.height,keyboardHeight);
+    assert.ok(inputBox.y>=editorBox.y && inputBox.y+inputBox.height<=editorBox.y+editorBox.height,'Focused input must remain in the visible editor');
+    await page.evaluate(()=>{
+     Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>150});
+     window.visualViewport.dispatchEvent(new Event('scroll'));
+    });
+    assert.equal((await page.locator('#editor-root').boundingBox()).y,150);
+    await control('d').blur();
+    await page.evaluate(()=>{
+     delete window.visualViewport.height;delete window.visualViewport.offsetTop;
+     window.visualViewport.dispatchEvent(new Event('resize'));
+    });
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#editor-root').getAttribute('data-keyboard-open'),null);
     await click(control('sec-plus'));assert.equal((await control('section-count').innerText()).trim(),'2');
     await click(control('props-btn'));
    }

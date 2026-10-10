@@ -17,7 +17,7 @@ covers the editor itself, including embedded editors; the page entry also follow
 | Precise editing | Move/swap controls were hidden and depended on mouse/keyboard interaction | Mobile exposes move/swap and destination controls, divider actions, and an accessible cancel-move button |
 | Feedback | Rejected edits silently did nothing | Phone-sized editors show short status messages, while Undo remains a toolbar action |
 | Auto design | Nested scrolling and constrained columns made ideas cumbersome to access | A single scrolling wizard body, two-column inventory inputs and one-column idea cards |
-| Browser chrome | Safe areas and keyboard height affected control reachability | Safe-area spacing around controls and visual viewport resize handling |
+| Browser chrome | Safari keyboard opening pans the visible area as well as shrinking it; the document remained taller than the editor | A fixed, non-scrolling page shell; visual viewport resize and scroll offsets; an expanded editing panel while the keyboard is open |
 
 Desktop styling remains in `editor.css`; mobile overrides and section-button
 styling live in `mobile.css`. Responsive DOM changes restore desktop menu and
@@ -58,3 +58,21 @@ notches/home indicators, native numeric entry, and GPU performance.
 Verified on 2026-10-10: all six browser cases passed; production build, editor
 type checking and architecture boundaries passed. The Node suite passed 212 of
 213 tests, with only the pre-existing planner hash mismatch described above.
+
+## Safari keyboard follow-up
+
+The reported size-input screenshot exposed a gap in the first verification:
+shrinking the entire browser viewport did not reproduce Safari's unchanged
+layout viewport plus a smaller, vertically shifted visual viewport. The page now
+tracks both `visualViewport.height` and `offsetTop` on resize and scroll, without
+counteracting intentional page magnification. While editing with the keyboard
+open, the inspector uses the visible space and scrolls its focused input within
+the panel rather than scrolling the document. Wardrobe size fields request a
+numeric keyboard explicitly.
+
+`page-viewport.test.cjs` covers viewport pan, scale tolerance, keyboard dismissal,
+intentional zoom, internal input scrolling and listener cleanup. The mobile
+browser checks also simulate a shrinking and panning visual viewport while the
+layout viewport stays unchanged, check that the focused field stays visible,
+and verify restoration when the keyboard closes. Actual iOS keyboard behavior
+still requires checking the updated app on a physical device.
