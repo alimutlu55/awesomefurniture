@@ -119,14 +119,24 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
     const { $ } = dom;
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', 35, 80]];
     dimensions.forEach(([id, t, mi, ma]) => {
-        $('#sliders').insertAdjacentHTML('beforeend', `<label class="size-row" for="${id}"><span>${t}<b id="${id}v"></b></span><span class="size-field"><input type="number" inputmode="numeric" id="${id}" min="${mi}" max="${ma}" step="1" aria-label="Wardrobe ${t.toLowerCase()}"><small>cm</small></span></label>`);
+        $('#sliders').insertAdjacentHTML('beforeend', `<div class="size-control"><label class="size-row" for="${id}"><span>${t}<b id="${id}v"></b></span><span class="size-field"><input type="number" inputmode="numeric" id="${id}" min="${mi}" max="${ma}" step="1" aria-label="Wardrobe ${t.toLowerCase()}"><small>cm</small></span></label><input class="size-range" type="range" id="${id}-range" data-dimension="${id}" min="${mi}" max="${ma}" step="1" aria-label="Adjust wardrobe ${t.toLowerCase()}"></div>`);
         const el = $('#' + id);
-        lifetime.listen(el, 'change', () => {
-            if (sceneCommands.setCabinetSize(id, ( /** @type {HTMLInputElement} */(el)).valueAsNumber)) {
+        const range = /** @type {HTMLInputElement} */ ($('#' + id + '-range'));
+        const commit = value => {
+            if (value !== model.activeCabinet().state[id] && sceneCommands.setCabinetSize(id, value)) {
                 inspector.update();
             }
             ( /** @type {HTMLInputElement} */(el)).value = model.activeCabinet().state[id];
+            range.value = model.activeCabinet().state[id];
+            range.setAttribute('aria-valuetext', range.value + ' cm');
+        };
+        lifetime.listen(el, 'change', () => commit(( /** @type {HTMLInputElement} */(el)).valueAsNumber));
+        lifetime.listen(range, 'input', () => {
+            ( /** @type {HTMLInputElement} */(el)).value = range.value;
+            range.setAttribute('aria-valuetext', range.value + ' cm');
         });
+        // Commit once on release so a slide creates one undo step.
+        lifetime.listen(range, 'change', () => commit(range.valueAsNumber));
         lifetime.listen(el, 'focus', () => {
             selectionState.editingSize = true;
             rendering.build();

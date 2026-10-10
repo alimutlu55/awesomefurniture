@@ -92,3 +92,8 @@ toggle state, so returning to the design does not require the Settings button.
 Dismissal uses primary pointer release rather than a compatibility click, and
 includes editing-area overlays. Browser checks cover release without a click
 and the label layer as well as an actual canvas tap.
+
+Width, height and depth also have native touch sliders beside the numeric
+editing flow. Their values update while sliding; releasing commits the size
+through the existing fit and collision rules with one undo step. Numeric edits,
+wardrobe selection and Undo keep both controls synchronized.

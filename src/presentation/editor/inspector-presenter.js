@@ -144,8 +144,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         reachUI();
         const s = geometry.stats(), f = geometry.free(model.activeCabinet().state.sel), ws = geometry.widths(), mn = geometry.maxN();
         $('#sliders').querySelectorAll('input').forEach(i => {
-            i.value = model.activeCabinet().state[dom.controlId(i)];
-            $('#' + dom.controlId(i) + 'v').textContent = model.activeCabinet().state[dom.controlId(i)] + ' cm';
+            const key = i.dataset.dimension || dom.controlId(i);
+            i.value = model.activeCabinet().state[key];
+            $('#' + key + 'v').textContent = model.activeCabinet().state[key] + ' cm';
+            if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
         });
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {

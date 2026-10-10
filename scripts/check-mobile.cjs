@@ -45,8 +45,21 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const panel=await control('left').boundingBox(),view=await control('view').boundingBox();
     assert.ok(panel && view && (view.y + view.height <= panel.y + 1 || view.x >= panel.x + panel.width), `${width}×${height}: settings cover canvas`);
     await inBounds(control('left'));
+    for (const id of ['w','h','d']) {
+     const slider=control(id+'-range'),before=await control(id).inputValue();
+     await slider.scrollIntoViewIfNeeded();
+     const track=await slider.boundingBox();
+     await page.touchscreen.tap(track.x+track.width*.7,track.y+track.height/2);
+     assert.notEqual(await control(id).inputValue(),before,`${id}: touch slider must change size`);
+     assert.equal(await slider.inputValue(),await control(id).inputValue(),`${id}: slider and number must agree`);
+     await click(control('undo2'));
+     assert.equal(await control(id).inputValue(),before,`${id}: one Undo must restore size`);
+     assert.equal(await slider.inputValue(),before,`${id}: Undo must restore slider`);
+    }
+    await control('w').scrollIntoViewIfNeeded();
     await control('w').fill('220');await control('w').blur();
     assert.equal(await control('w').inputValue(),'220');
+    assert.equal(await control('w-range').inputValue(),'220');
     assert.equal(await control('w').getAttribute('inputmode'),'numeric');
     await control('d').focus();
     // Safari keeps the layout height while its keyboard shrinks AND pans the

@@ -2,6 +2,7 @@
    scoped to the editor container by scopeEditorStyles. */
 :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);padding:0}
 .mobile-settings-label,.mobile-section-label,.mobile-cancel-move,.mobile-feedback{display:none}
+.size-range{display:block;width:100%;height:44px;margin:0 0 12px;accent-color:#796648;cursor:pointer;touch-action:pan-y}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
 @media(max-width:900px){
