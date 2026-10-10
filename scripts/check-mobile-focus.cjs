@@ -16,9 +16,7 @@ const {chromium}=require('playwright');
      assert.equal(await c('app').getAttribute('data-focus-mode'),mode);
      await page.waitForTimeout(100);
      const view=await c('view').boundingBox(),controls=await page.locator('.mobile-focus-controls').boundingBox();
-     assert.ok(view.y+view.height<=controls.y+1,'Wardrobe must be above action controls');
-     assert.ok(Math.abs(controls.height/(view.height+controls.height)-.25)<.01,'Tools must occupy 25% of the editor');
-     assert.ok(Math.abs(view.width-controls.width)<1,'Bottom controls must span the editor width');
+     assert.ok(view.x+view.width<=controls.x+1,'Wardrobe must be left of action controls');
      assert.equal(await c('toolbar').isVisible(),false);assert.equal(await c('props-btn').isVisible(),false);
      if(mode==='resize'){
       await c('d-range').evaluate(el=>{el.value='65';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
@@ -34,21 +32,12 @@ const {chromium}=require('playwright');
      assert.equal(await c('app').evaluate(e=>e.inert),false,'Focused actions must leave the wardrobe preview available');
      await tap(back);assert.equal(await c('app').getAttribute('data-focus-mode'),null);
     }
-    await page.waitForTimeout(500);const originalView=await c('c').screenshot();
+    await page.waitForTimeout(100);const originalView=await c('c').screenshot();
     await tap(c('more-btn'));await page.waitForTimeout(100);
     assert.equal(await c('app').getAttribute('data-focus-mode'),'add');
     assert.equal(await c('padd').locator('.no').first().isVisible().catch(()=>false),false,'Non-fitting choices must be hidden');
     await tap(back);assert.equal(await c('app').getAttribute('data-focus-mode'),null);
-    await page.waitForTimeout(500);
-    const restoredView=await c('c').screenshot();
-    if(!restoredView.equals(originalView)){
-     const diff=await page.evaluate(async images=>{
-      const pixels=await Promise.all(images.map(async src=>{const img=new Image();img.src='data:image/png;base64,'+src;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);return ctx.getImageData(0,0,img.width,img.height).data;}));
-      let changed=0,max=0;for(let i=0;i<pixels[0].length;i++){const delta=Math.abs(pixels[0][i]-pixels[1][i]);if(delta)changed++;max=Math.max(max,delta);}return {changed,max,total:pixels[0].length};
-     },[originalView.toString('base64'),restoredView.toString('base64')]);
-     // GPU rasterization can differ by one shade after projection resizing.
-     assert.ok(diff.max<=1&&diff.changed/diff.total<.001,`Back must restore the previous camera view: ${JSON.stringify(diff)}`);
-    }
+    await page.waitForTimeout(100);assert.deepEqual(await c('c').screenshot(),originalView,'Back must restore the exact previous camera view');
     await tap(c('more-btn'));await tap(c('padd').locator('[data-m="short"]'));
     await page.waitForTimeout(100);assert.equal(await c('app').getAttribute('data-focus-mode'),null,'Adding returns to the previous view');
     const canvas=await c('view').boundingBox();

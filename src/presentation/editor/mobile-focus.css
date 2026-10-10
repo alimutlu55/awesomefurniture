@@ -1,26 +1,26 @@
 .mobile-focus-controls{display:none}
 @media(max-width:900px){
- #app.mobile-focus{--sheet:0px;--focus-controls:25%}
- #app.mobile-focus #view{inset:0 0 var(--focus-controls) 0;height:auto;min-height:0;visibility:visible}
+ #app.mobile-focus{--sheet:0px;--focus-controls:52%}
+ #app.mobile-focus #view{inset:0 var(--focus-controls) 0 0;height:auto;min-height:0;visibility:visible}
  #app.mobile-focus #toolbar,#app.mobile-focus #sidebar-toggle,#app.mobile-focus #topright,#app.mobile-focus #topleft,#app.mobile-focus #br,#app.mobile-focus #bl,
  #app.mobile-focus #left,#app.mobile-focus>.pop,#app.mobile-focus #crumb,#app.mobile-focus #empty-scene,#app.mobile-focus #item-bar,#app.mobile-focus #item-type-menu,#app.mobile-focus #ctx-menu,#app.mobile-focus #hint{display:none!important}
- #app.mobile-focus .mobile-focus-controls{display:flex;flex-direction:column;position:absolute;inset:auto 0 0;width:100%;height:var(--focus-controls);z-index:20;background:var(--panel);border-top:1px solid var(--line);padding:4px 8px;min-height:0}
- .mobile-focus-controls>header{flex-shrink:0;display:flex;align-items:center;gap:12px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+ #app.mobile-focus .mobile-focus-controls{display:flex;flex-direction:column;position:absolute;inset:0 0 0 auto;width:var(--focus-controls);z-index:20;background:var(--panel);border-left:1px solid var(--line);padding:8px;min-height:0}
+ .mobile-focus-controls>header{flex-shrink:0;display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)}
  .mobile-focus-back{min-height:44px;align-self:flex-start;padding:8px 12px}
  .mobile-focus-controls h2{font-size:16px;color:var(--ink);margin:0;overflow-wrap:anywhere}
- .mobile-focus-body{overflow:auto;overscroll-behavior:contain;flex:1;min-height:0;padding:4px 0}
- .mobile-action-menu{display:flex;gap:8px;overflow-x:auto}
- .mobile-action-menu button{flex-shrink:0;min-height:44px;text-align:left;padding:8px 12px;font-size:15px}
+ .mobile-focus-body{overflow:auto;overscroll-behavior:contain;flex:1;min-height:0;padding:12px 0}
+ .mobile-action-menu{display:grid;gap:8px}
+ .mobile-action-menu button{min-height:48px;text-align:left;padding:12px;font-size:15px}
  #app.mobile-focus .focus-content{position:static!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important;display:block!important;visibility:visible!important;pointer-events:auto!important;border:0;box-shadow:none}
  .focus-content .mobile-sheet-handle,.focus-content .ph,.focus-content .item-back{display:none!important}
- #app.mobile-focus .focus-content .addgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
- #app.mobile-focus .focus-content .addgrid button{min-height:72px;padding:4px;overflow-wrap:anywhere}
+ #app.mobile-focus .focus-content .addgrid{display:grid;grid-template-columns:1fr;gap:8px}
+ #app.mobile-focus .focus-content .addgrid button{min-height:92px;padding:10px;overflow-wrap:anywhere}
  #app.mobile-focus .focus-content .addgrid .no{display:none}
- #app.mobile-focus .focus-content .product-art{height:36px}
- #app.mobile-focus .size-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 4px}
- #app.mobile-focus .size-field{width:50%;max-width:180px;min-height:44px}
+ #app.mobile-focus .focus-content .product-art{height:55px}
+ #app.mobile-focus .size-row{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0 0 4px}
+ #app.mobile-focus .size-field{width:100%;max-width:none;min-height:44px}
  #app.mobile-focus .size-field input{width:100%;min-width:0}
- #app.mobile-focus .size-control{margin-bottom:8px}
+ #app.mobile-focus .size-control{margin-bottom:16px}
  #app.mobile-focus .item-size-pair{display:grid;grid-template-columns:1fr;gap:12px}
  #app.mobile-focus .sw{width:44px;height:44px}
  #app.mobile-focus .door-grid{display:grid!important;grid-template-columns:1fr;gap:8px}
@@ -31,8 +31,6 @@
  #app.mobile-focus[data-focus-mode="item-resize"] #item-resize-handles{display:block}
  #app.mobile-focus .mobile-focus-body>label{display:block;margin:0 0 16px}
  #app.mobile-focus .mobile-focus-body button{min-height:44px}
- #app.mobile-focus[data-focus-mode="item-move"] #swap-mode{display:none}
- #app.mobile-focus[data-focus-mode="item-swap"] #move-mode,#app.mobile-focus[data-focus-mode="item-swap"] #move-section{display:none}
  #app.mobile-focus .focus-content.wizard-shell{display:flex!important;flex-direction:column;border-radius:0;max-width:none}
  #app.mobile-focus .wizard-head{display:none}
  #app.mobile-focus .wizard-body{display:block;overflow:visible;padding:0}
@@ -40,5 +38,5 @@
  #app.mobile-focus .ideas-grid{display:grid;grid-template-columns:1fr}
  #app.mobile-focus~#wizard{display:none!important}
  #app.mobile-focus select,#app.mobile-focus input[type=number]{width:100%;min-width:0;font-size:16px!important;min-height:44px}
- :host([data-keyboard-open]) #app.mobile-focus{--focus-controls:75%}
+ :host([data-keyboard-open]) #app.mobile-focus .mobile-focus-controls{width:var(--focus-controls)}
 }
