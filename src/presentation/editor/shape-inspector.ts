@@ -145,7 +145,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         return shape.top.map((p, index, all) => ({
             index, x: p.x - w / 2, y: p.y,
             movesX: index > 0 && index < all.length - 1,
-            label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),
+            label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),  // accessible name only; the handle shows a dot
         }));
     }
     /** "+" markers at the middle of every top panel wide enough to split. */
@@ -218,6 +218,16 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         return best;
     }
     const roundCm = (v: number) => Math.round(v * 10) / 10;
+    /** Live X and Y rulers for the break point being dragged: X from the left side,
+     * Y from the floor. Cabinet-centred endpoints, rebuilt on every move. */
+    function dragRulers() {
+        const g = drag;
+        if (!g) return [];
+        const p = g.last.top[g.index]!, w = state().w, x = p.x - w / 2, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
+        if (p.x > .5) out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + cm(p.x) + ' cm', axis: 'width' });
+        if (p.y > .5) out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + cm(p.y) + ' cm', axis: 'height' });
+        return out;
+    }
     /** Guides for the current drag: horizontal for heights, vertical for positions. */
     function guides(): { orient: 'h' | 'v'; pos: number; label: string }[] {
         return drag?.guides ?? [];
@@ -296,5 +306,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, splitMarkers, measures, guides, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, measures, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }

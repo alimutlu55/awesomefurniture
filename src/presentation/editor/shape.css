@@ -37,6 +37,8 @@
  .lbl.shape-handle::before{width:12px;height:12px}
  .mobile-add-products .shape-product .product-art{height:65px}
 }
+.lbl.shape-handle.point{width:26px;height:26px;padding:0;margin:0;border-radius:50%;background:transparent;border:0;box-shadow:none;justify-content:center;display:inline-flex;align-items:center}
+.lbl.shape-handle.point::before{width:12px;height:12px;margin:0;vertical-align:middle;background:var(--ink);box-shadow:0 0 0 2px var(--panel)}
 .lbl.shape-guide{background:#5f9f78;color:#fff;font-size:11px;font-weight:600;padding:2px 7px;white-space:nowrap;pointer-events:none}
 .lbl.shape-handle.split-handle{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-height:0;padding:0;margin:0;font-size:13px;line-height:18px;font-weight:600;border-radius:50%;min-width:0;gap:0}
 .lbl.shape-handle.split-handle::before{content:none}

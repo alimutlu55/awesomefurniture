@@ -18,7 +18,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = 'lbl shape-handle';
+            el.className = 'lbl shape-handle point';
             el.onpointerdown = e => shapeInspector.beginHandleDrag(e, +el.dataset.index, el);
             el.onpointermove = e => shapeInspector.moveHandleDrag(e);
             el.onpointerup = () => shapeInspector.endHandleDrag();
@@ -71,6 +71,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             const A = picking.screenPoint(near), B = picking.screenPoint(far);
             shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
             const w = getRenderDesign().w, h = getRenderDesign().h;
+            for (const q of shapeInspector.dragRulers()) {
+                const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
+                const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-coord');
+                bindRuler(el, a, b, q.axis);
+            }
             for (const g of shapeInspector.guides()) {
                 // A guide across the model: horizontal for a shared height, vertical for a shared position.
                 const pts = g.orient === 'h'
@@ -92,7 +97,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         handles.forEach((q, n) => {
             const el = shapeHandle(n);
             el.dataset.index = String(q.index);
-            el.textContent = q.label;
+            // The handle is a plain dot; its position is read from the live rulers while dragging.
+            el.textContent = '';
             el.classList.toggle('fixed-x', !q.movesX);
             el.setAttribute('aria-label', 'Break point ' + (q.index + 1) + ', ' + q.label + ' cm high. Drag or use arrow keys to ' + (q.movesX ? 'move it' : 'change the height'));
             el.title = q.movesX ? 'Drag to move this break point' : 'Drag up or down to change this side height';
