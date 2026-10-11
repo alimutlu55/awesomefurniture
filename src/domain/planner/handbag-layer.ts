@@ -29,6 +29,7 @@ export function handbagsIn(sections: readonly PlannerSection[]): number {
 export function placeHandbags(plan: PlannerProposal, cfg: PlannerConfig): PlannerProposal {
   const wanted = Math.max(0, Math.floor(Number((cfg.needs as Record<string, unknown> | undefined)?.bags ?? 0)));
   if (wanted <= 0) return plan;
+  planner.configure(cfg);
   const sections = plan.sections.map(s => ({ ...s, items: s.items.map(it => ({ ...it })) }));
   let have = handbagsIn(sections);
   // Space the plan can spare becomes handbag shelves first: free space (void items) and the flexible

@@ -70,6 +70,17 @@ export function compositionOf(sections:readonly PlannerSection[]) {
  return {upperAligned,upperBayCount:levels.length,upperShelfHeight:levels.length?round(Math.min(...levels)+PLINTH+PANEL):null,alignmentSpread:round(spread),upperTopSpread:round(topSpread),balance:pairs?round(balance/pairs):1,score:round(score)};
 }
 /** Compatibility facade; Auto design now uses the space-selection beam and shared score. */
+/** Handbag shelves need 25 cm of height with the base, inside the reach line. Clothing is planned
+ * this far below the reach line, so the band it leaves holds the handbag shelves. */
+export const BAG_BAND = 35;
 export function generateDesignedLayouts(cfg:PlannerConfig):PlannerProposal[] {
- return selectStorageLayouts(cfg).map(p=>placeHandbags(p,cfg)).map(p=>({...p,composition:{...compositionOf(p.sections),dailyQuality:dailyStorageQuality(p.sections,cfg)}}));
+ const reach=Number(cfg.reach??185),bags=Number((cfg.needs as {bags?:number}|undefined)?.bags??0);
+ const finish=(plans:PlannerProposal[])=>plans.map(p=>placeHandbags(p,cfg)).map(p=>({...p,composition:{...compositionOf(p.sections),dailyQuality:dailyStorageQuality(p.sections,cfg)}}));
+ const plain=finish(selectStorageLayouts(cfg));
+ if(!(bags>0&&reach-BAG_BAND>=140))return plain;
+ // Reserving the band lowers the clothing reach. Use it only when the clothing still gets its coverage.
+ const banded=finish(selectStorageLayouts({...cfg,reach:reach-BAG_BAND,upper:'none'}));
+ // Every clothing category keeps its coverage: no category may lose what it had.
+ const keeps=(b:PlannerProposal,p:PlannerProposal)=>Object.keys(p.coverage).every(k=>k==='total'||(p.coverage[k]??0)<=.05||(b.coverage[k]??0)>=(p.coverage[k]??0)-.05);
+ return banded.length&&keeps(banded[0]!,plain[0]!)?banded:plain;
 }
