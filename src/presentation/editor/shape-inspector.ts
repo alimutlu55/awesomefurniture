@@ -3,7 +3,7 @@ import type { createSceneCommands } from '../../application/commands/scene-comma
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
     addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
-    type ShapeTemplateId, type WardrobeShape,
+    type ShapeTemplateId, type WardrobeShape, friendlyProblem,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
@@ -24,6 +24,7 @@ interface HandleDrag {
     start: { x: number; y: number }; original: WardrobeShape; last: WardrobeShape; moved: boolean;
     lockX: { v: number; label: string } | null; lockY: { v: number; label: string } | null;
     guides: { orient: 'h' | 'v'; pos: number; label: string }[];
+    reason: string | null;
 }
 
 /** Wardrobe-level skeleton editing: template choice, a precise panel list and
@@ -157,22 +158,37 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         }
         return out;
     }
-    /** Live measurements as rulers, like the item rulers: a top panel gets a line
-     * offset above it, a step a line beside its riser. Endpoints are cabinet-centred. */
-    function measures() {
-        const shape = current(), w = state().w, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
-        const OFF = 8;
-        for (const panel of shapePanels(shape)) {
-            if (panel.kind === 'top') {
-                const a = shape.top[panel.from]!, b = shape.top[panel.to]!;
-                out.push({ a: { x: a.x - w / 2, y: a.y + OFF }, b: { x: b.x - w / 2, y: b.y + OFF }, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', axis: 'width' });
-            }
-            else if (panel.kind === 'step') {
-                const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y, x = a.x - w / 2 + (rise > 0 ? -OFF : OFF);
-                out.push({ a: { x, y: Math.min(a.y, b.y) }, b: { x, y: Math.max(a.y, b.y) }, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', axis: 'height' });
-            }
+    /** One ruler for a panel or step, offset beside it. */
+    function panelMeasure(shape: WardrobeShape, panel: ReturnType<typeof shapePanels>[number]) {
+        const w = state().w, OFF = 8;
+        if (panel.kind === 'top') {
+            const a = shape.top[panel.from]!, b = shape.top[panel.to]!;
+            return { a: { x: a.x - w / 2, y: a.y + OFF }, b: { x: b.x - w / 2, y: b.y + OFF }, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', axis: 'width' as const };
         }
-        return out;
+        if (panel.kind === 'step') {
+            const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y, x = a.x - w / 2 + (rise > 0 ? -OFF : OFF);
+            return { a: { x, y: Math.min(a.y, b.y) }, b: { x, y: Math.max(a.y, b.y) }, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', axis: 'height' as const };
+        }
+        return null;
+    }
+    /** Resting measurements: every panel and step. */
+    function measures() {
+        const shape = current();
+        return shapePanels(shape).map(p => panelMeasure(shape, p)).filter((m): m is NonNullable<typeof m> => m !== null);
+    }
+    /** Live measurements while a point is dragged: only the panels and steps that touch it,
+     * so their length, angle or rise update as the point moves. */
+    function dragMeasures() {
+        const g = drag;
+        if (!g) return [];
+        return shapePanels(g.last).filter(p => p.from === g.index || p.to === g.index).map(p => panelMeasure(g.last, p)).filter((m): m is NonNullable<typeof m> => m !== null);
+    }
+    /** Why a drag stopped short of the pointer, in plain language. */
+    function dragReason() {
+        const g = drag;
+        if (!g || !g.reason) return null;
+        const p = g.last.top[g.index]!, w = state().w;
+        return { text: g.reason, x: p.x - w / 2, y: p.y };
     }
     function split(index: number) {
         const shape = current(), next = splitPanel(shape, index);
@@ -238,7 +254,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         e.preventDefault();
         e.stopPropagation();
         const original = current();
-        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false, lockX: null, lockY: null, guides: [] };
+        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false, lockX: null, lockY: null, guides: [], reason: null };
         // Capture can fail if the pointer already ended; the drag still works from the handle's own events.
         try { target.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     }
@@ -261,8 +277,11 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             ...(alignX ? [{ orient: 'v' as const, pos: alignX.v, label: alignX.label }] : []),
         ];
         const wantY = alignY ? alignY.v : roundCm(rawY);
-        const wantX = movesX ? (alignX ? alignX.v : roundCm(rawX)) : point.x;
+        // A break point stays inside the wardrobe; the rules then decide how far it may go.
+        const wantX = movesX ? Math.max(0, Math.min(state().w, alignX ? alignX.v : roundCm(rawX))) : point.x;
         const want = setPoint(o, g.index, { x: wantX, y: wantY });
+        const wantProblem = shapeProblems(want, state().w)[0];
+        g.reason = wantProblem ? friendlyProblem(wantProblem) : null;
         // Move as far toward the target as the rules allow, rather than stopping dead
         // at the first invalid position. Bisect between the last valid shape and the target.
         const valid = (t: number) => {
@@ -306,5 +325,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, splitMarkers, measures, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }

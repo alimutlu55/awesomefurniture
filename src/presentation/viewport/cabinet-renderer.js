@@ -298,7 +298,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             if (l.el.classList.contains('shape-handle')) {
                 shapePlaced.push({ x, y, w: ew, h: eh, r: 9 });
             }
-            else if (['shape-measure', 'shape-guide', 'shape-coord'].some(c => l.el.classList.contains(c))) {
+            else if (['shape-measure', 'shape-guide', 'shape-coord', 'shape-reason'].some(c => l.el.classList.contains(c))) {
                 const clear = (cx, cy) => shapePlaced.every(q => Math.abs(cx - q.x) >= (ew + q.w) / 2 + 3 || Math.abs(cy - q.y) >= (eh + q.h) / 2 + 3);
                 // Stay beside the line: a label only moves one or two steps along its own side of it,
                 // and keeps its place when no free spot is that close.

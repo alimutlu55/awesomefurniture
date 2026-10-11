@@ -28,11 +28,19 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
     let feedback = null, feedbackTimer = null;
     // A phone has no hover hints or keyboard shortcuts to explain a failed edit.
     // Keep feedback brief; Undo remains an explicit toolbar action.
+    /** Messages reach people on both layouts. Phones use the bottom-anchored feedback
+     * line; desktop shows the same message under the toolbar. */
     function toast(message, _action) {
-        if (!Number.isFinite(dom.width) || dom.width > 900) return;
+        if (!Number.isFinite(dom.width)) return;
+        const mode = dom.width > 900 ? 'desktop' : 'mobile';
+        if (feedback && feedback.dataset.mode !== mode) {
+            feedback.remove();
+            feedback = null;
+        }
         if (!feedback) {
             feedback = document.createElement('div');
-            feedback.className = 'mobile-feedback';
+            feedback.className = mode === 'desktop' ? 'desktop-feedback' : 'mobile-feedback';
+            feedback.dataset.mode = mode;
             feedback.setAttribute('role', 'status');
             feedback.setAttribute('aria-live', 'polite');
             elements.app.append(feedback);

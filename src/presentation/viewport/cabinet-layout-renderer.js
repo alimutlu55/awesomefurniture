@@ -71,6 +71,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             const A = picking.screenPoint(near), B = picking.screenPoint(far);
             shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
             const w = getRenderDesign().w, h = getRenderDesign().h;
+            const why = shapeInspector.dragReason();
+            if (why) {
+                // Say why the point stopped short of the pointer, beside the point.
+                label(new THREE.Vector3(why.x, why.y + 12, d / 2 + 4), why.text, 'lbl shape-reason');
+            }
             for (const q of shapeInspector.dragRulers()) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-coord');
@@ -89,7 +94,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 label(at, g.label, 'lbl shape-guide');
             }
             // While a point is dragged only its own rulers and guides show, so nothing competes for space.
-            for (const q of shapeInspector.dragging() ? [] : shapeInspector.measures()) {
+            // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
+            for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.measures()) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
                 bindRuler(el, a, b, q.axis);

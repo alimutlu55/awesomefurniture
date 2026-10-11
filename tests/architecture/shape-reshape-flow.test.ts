@@ -152,3 +152,11 @@ test('step 15 · every panel the list shows has a matching measurement', () => {
   assert.equal(panels.filter(p => p.kind === 'side').length, 2);
   void PANEL;
 });
+
+test('every rule has a plain-language message that says what to do', async () => {
+  const { friendlyProblem } = await import('../../src/domain/wardrobe/shape/wardrobe-shape');
+  assert.match(friendlyProblem('Break points must run from left to right.'), /can't pass its neighbour/);
+  assert.match(friendlyProblem('Slopes steeper than 70° must be built as a step.'), /Make it a step instead/);
+  assert.match(friendlyProblem('Every part must be at least 40 cm tall.'), /at least 40 cm tall/);
+  assert.equal(friendlyProblem('Something new.'), 'Something new.');
+});

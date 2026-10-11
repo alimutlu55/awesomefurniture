@@ -4,7 +4,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
-import { isRegularShape, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { friendlyProblem, isRegularShape, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -105,7 +105,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (state.shape && key !== 'd') {
                 const next = resizeShape(state.shape, state.w, key === 'w' ? requested : state.w, state.h, key === 'h' ? requested : state.h), problem = shapeProblems(next, key === 'w' ? requested : state.w)[0];
                 if (problem) {
-                    report(problem);
+                    report(friendlyProblem(problem));
                     return false;
                 }
             }
@@ -169,7 +169,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         setShape(shape: WardrobeShape, recordHistory = true, refit = true) {
             const cabinet = active(), state = cabinet.state, problem = shapeProblems(shape, state.w)[0];
             if (problem) {
-                report(problem);
+                report(friendlyProblem(problem));
                 return false;
             }
             const h = maxHeight(shape);
