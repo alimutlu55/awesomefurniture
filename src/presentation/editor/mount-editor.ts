@@ -2,7 +2,8 @@ import { scopeEditorStyles } from './editor-styles';
 import { startEditor } from './editor-runtime.js';
 import { createEditorDom } from './editor-dom.js';
 import type { EditorScene } from '../../application/projects/editor-scene';
-import markup from './editor.html?raw';
+import rawMarkup from './editor.html?raw';
+import { withPossessionFields } from './possession-fields';
 import stylesheet from './editor.css?raw';
 import mobileStylesheet from './mobile.css?raw';
 import mobileSheetStylesheet from './mobile-sheet.css?raw';
@@ -11,6 +12,7 @@ export interface MountEditorOptions {
     root: HTMLElement;
     initialScene?: EditorScene | undefined;
 }
+const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
 export function mountEditor({ root, initialScene }: MountEditorOptions) {

@@ -1,7 +1,10 @@
 import type { PlannerConfig } from './wardrobe-planner';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
-export const CATEGORIES = ['short','long','pants','folded','shoes','small','handbags'] as const;
-export type Category = typeof CATEGORIES[number];
+import { POSSESSIONS, defaultNeeds } from '../wardrobe/possessions';
+import type { PossessionKey } from '../wardrobe/possessions';
+/** Planner categories are the possessions registry: add a possession there, not here. */
+export const CATEGORIES = POSSESSIONS.map(p=>p.key) as readonly PossessionKey[];
+export type Category = PossessionKey;
 export type Demand = Record<Category,number>;
 export const CRITERIA = ['accessibility','clearance','utilisation','grouping','safety','buildability'] as const;
 export type Criterion = typeof CRITERIA[number];
@@ -16,8 +19,8 @@ export const SELECTION_RULES = Object.freeze({
  normalisedWeights:{storage:{accessibility:.25,clearance:.15,utilisation:.30,grouping:.10,safety:.10,buildability:.10},
  comfort:{accessibility:.40,clearance:.18,utilisation:.12,grouping:.12,safety:.10,buildability:.08},
  simple:{accessibility:.25,clearance:1/6,utilisation:.125,grouping:.125,safety:1/12,buildability:.25}},
- frequency:{short:1,long:.6,pants:.9,folded:1,shoes:.8,small:1,handbags:.7},
- home:{short:[.4,1],long:[.4,1],pants:[.2,.8],folded:[.2,.8],shoes:[0,.4],small:[.4,.8],handbags:[.25,.85]},
+ frequency:Object.fromEntries(POSSESSIONS.map(p=>[p.key,p.planner.frequency])) as Record<PossessionKey,number>,
+ home:Object.fromEntries(POSSESSIONS.map(p=>[p.key,p.planner.home])) as Record<PossessionKey,readonly [number,number]>,
  weights:{accessibility:.30,clearance:.20,utilisation:.15,grouping:.15,safety:.10,buildability:.10},
 } as const);
 const R_STORAGE_WEIGHTS=SELECTION_RULES.normalisedWeights.storage;
@@ -25,7 +28,7 @@ export const number = (value:unknown,fallback:number) => typeof value==='number'
 export const clamp = (n:number,lo=0,hi=1) => Math.max(lo,Math.min(hi,n));
 export function buildDemand(cfg:PlannerConfig):Demand {
  const needs=cfg.needs as Partial<Demand>|undefined,spare=clamp(number(cfg.growth,SELECTION_RULES.defaultSpare),0,30);
- const defaults:Demand={short:24,long:6,pants:12,folded:30,shoes:8,small:30,handbags:0};
+ const defaults:Demand=defaultNeeds();
  return Object.fromEntries(CATEGORIES.map(k=>[k,Math.ceil(Math.max(0,number(needs?.[k],defaults[k]))*(1+spare/100)-1e-9)])) as Demand;
 }
 export function selectionContext(cfg:PlannerConfig) {

@@ -1,4 +1,5 @@
 import { WardrobePlanner } from '../planner/wardrobe-planner.js';
+import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../wardrobe/possessions';
 import { MODS, FIN, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../wardrobe/catalog.js';
 import { resolveShape, ceilingPieces, ceilingMin, ceilingMax, ceilingPolyline, fitSpans, sectionOrigins, elevationArea, shapePanels } from '../wardrobe/shape/wardrobe-shape';
 import { bestWindowClear, clipBelowTop, MIN_CUT_BOARD } from '../wardrobe/shape/angle-cut';
@@ -823,9 +824,11 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                         : H >= 100 ? '<b>Roomy space within reach.</b> Good for hanging and everyday storage.'
                             : b >= 100 ? '<b>Upper shelf zone.</b> Good for folded clothes and light storage.'
                                 : '<b>Compact space.</b> Good for drawers, shelves and folded clothes.';
-        // Handbags stand upright on an open shelf: suggested where a shelf can hold them, ranked with the shelves.
-        const bagFit = w >= 33 - .01 && H >= 25 - .01;
-        list.push({ k: 'handbags', o: ADD_ORDER.length + 1, fit: bagFit, s: 42 + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: 'Bags stand upright on a shelf', hint: bagFit ? '' : w < 33 ? 'Needs 33 cm width' : 'Needs 25 cm height', warn: false });
+        // Possessions that stand on a shelf (handbags...): suggested where a shelf can hold them, ranked with the shelves.
+        SHELF_POSSESSIONS.forEach((p, n) => {
+            const fits = shelfFits(p.holder, w, H), minWidth = p.holder.pitch + p.holder.margin;
+            list.push({ k: p.key, possession: p.key, o: ADD_ORDER.length + 1 + n, fit: fits, s: p.menu.score + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: p.menu.why, hint: fits ? '' : unitsOnShelf(p.holder, w) < 1 ? 'Needs ' + minWidth + ' cm width' : 'Needs ' + p.holder.height + ' cm height', warn: false });
+        });
         return { list, intent };
     }
     function duplicateSideSpot(i, j) {

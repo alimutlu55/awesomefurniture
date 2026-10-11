@@ -3,7 +3,7 @@ import type { EditorDivider } from '../wardrobe/editor-design';
 import { WardrobePlanner as physical } from './wardrobe-planner.js';
 import { CATEGORIES,selectionContext,SELECTION_RULES as R,clamp } from './selection-config';
 import type { Demand } from './selection-config';
-import { BAG,bagsPerShelf } from './handbag-size';
+import { SHELF_POSSESSIONS,shelfPossession,unitsOnShelf } from '../wardrobe/possessions';
 import { createSpaceModel,partitionOptions } from './selection-spaces';
 import type { OpenSpace } from './selection-spaces';
 import { recoverStorageSpace } from './selection-recovery';
@@ -47,10 +47,10 @@ export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype
   const requested=CATEGORIES.filter(k=>c.demand[k]>0);
   const coverage=requested.reduce((n,k)=>n+Math.min(1,s.capacity[k]/c.demand[k]),0)/Math.max(1,requested.length);
   const possible=(k:typeof CATEGORIES[number])=>s.spaces.reduce((n,sp)=>{
-   const minimum=k==='short'?1000:k==='long'?c.longDrop+R.hookAllowance+R.hemClearance:k==='pants'?224:k==='folded'?224:k==='small'?128:k==='handbags'?BAG.shelf*10:192;
+   const minimum=k==='short'?1000:k==='long'?c.longDrop+R.hookAllowance+R.hemClearance:k==='pants'?224:k==='folded'?224:k==='small'?128:shelfPossession(k)?shelfPossession(k)!.holder.height*10:192;
    if(sp.h<minimum||sp.w<(k==='short'||k==='long'?450:250)||sp.y+minimum+R.base-(k==='short'||k==='long'?60:0)>c.reach)return n;
    const w=sp.w/10;
-   const cap=k==='short'||k==='long'?physical.geo.hangCount(w,c.depth<550,c.depth/10,k):k==='pants'?Math.max(1,Math.floor((w-3)/physical.geo.foldW()))*6:k==='folded'?physical.geo.foldStacks(w,true)*6:k==='small'?physical.geo.smallCount(w,c.depth/10,12.8):k==='handbags'?bagsPerShelf(w):physical.geo.shoePairs(w);
+   const cap=k==='short'||k==='long'?physical.geo.hangCount(w,c.depth<550,c.depth/10,k):k==='pants'?Math.max(1,Math.floor((w-3)/physical.geo.foldW()))*6:k==='folded'?physical.geo.foldStacks(w,true)*6:k==='small'?physical.geo.smallCount(w,c.depth/10,12.8):shelfPossession(k)?unitsOnShelf(shelfPossession(k)!.holder,w):physical.geo.shoePairs(w);
    return n+cap*Math.max(1,Math.floor(sp.h/minimum));
   },0);
   const optimistic=requested.reduce((n,k)=>n+Math.min(1,(s.capacity[k]+possible(k))/c.demand[k]),0)/Math.max(1,requested.length);
@@ -104,7 +104,10 @@ export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype
   const seen=new Set<string>(),perShape=new Map<string,number>();
   const diverse=expanded.filter(s=>{
    const key=keyOf(s)+JSON.stringify([s.spaces,s.roles]);if(seen.has(key))return false;seen.add(key);
-   const shape=JSON.stringify([s.sections.map(b=>b.width),s.roles]),count=perShape.get(shape)??0;
+   // States that differ in how much of a shelf possession they already hold are different designs: their
+   // first shelves score low on their own, so they get a diversity slot of their own and are not crowded out.
+   const shelfProgress=SHELF_POSSESSIONS.filter(p=>c.demand[p.key]>0).map(p=>Math.ceil(3*Math.min(1,s.capacity[p.key]/c.demand[p.key])));
+   const shape=JSON.stringify([s.sections.map(b=>b.width),s.roles,shelfProgress]),count=perShape.get(shape)??0;
    if(count>=R.conceptBeamQuota)return false;perShape.set(shape,count+1);return true;
   });
   const protectedLong=diverse.filter(s=>s.roles.includes('long')).slice(0,Math.floor(R.beamWidth/4));

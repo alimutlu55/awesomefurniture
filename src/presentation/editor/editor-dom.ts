@@ -110,7 +110,6 @@ interface EditorControls {
     "#wizard-size": HTMLElementTagNameMap["p"];
     "#close-wizard": HTMLElementTagNameMap["button"];
     "#need-short": HTMLElementTagNameMap["input"];
-    "#need-handbags": HTMLElementTagNameMap["input"];
     "#jackets": HTMLElementTagNameMap["input"];
     "#need-long": HTMLElementTagNameMap["input"];
     "#coats": HTMLElementTagNameMap["input"];

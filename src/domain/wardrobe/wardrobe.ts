@@ -1,14 +1,13 @@
 import type { EditorItem, EditorDivider, EditorLayout } from './editor-design';
 import type { Dimensions, Vector3 } from '../geometry/types';
 import type { WardrobeShape } from './shape/wardrobe-shape';
+import type { GeneralPurpose, Needs, PossessionKey } from './possessions';
 
 export type ItemKind =
   | 'drawer' | 'sdrawer' | 'void' | 'shelf' | 'folded' | 'seasonal'
   | 'short' | 'long' | 'pants' | 'shoe' | 'basket' | 'lift';
 
-export type StoragePurpose =
-  | 'free' | 'small' | 'short' | 'long' | 'pants' | 'folded'
-  | 'reserve' | 'accessories' | 'shoes' | 'seasonal' | 'luggage' | 'linen' | 'laundry' | 'handbags';
+export type StoragePurpose = GeneralPurpose | PossessionKey;
 
 export interface WardrobeItem {
   readonly editorItem?: EditorItem | undefined;
@@ -46,8 +45,8 @@ export interface WardrobePreferences {
   readonly boxHeight?: number | undefined;
   readonly boxDepth?: number | undefined;
   readonly composition?: 'balanced' | 'storage' | undefined;
-  /** Bags are optional so projects saved before handbags still open. */
-  readonly needs: Readonly<Record<'short' | 'long' | 'pants' | 'folded' | 'shoes' | 'small', number>> & { readonly handbags?: number | undefined };
+  /** Possessions added after the first release are optional so older projects still open. */
+  readonly needs: Needs;
   readonly reach: number;
   readonly longDrop: number;
   readonly upper: 'none' | 'auto' | 'more' | 'fill';

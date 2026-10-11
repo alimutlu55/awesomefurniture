@@ -2,7 +2,7 @@ import { WardrobePlanner as planner } from './wardrobe-planner.js';
 import type { PlannerConfig,PlannerSection,PlannerProposal } from './wardrobe-planner';
 import { selectStorageLayouts } from './selection-planner';
 import { dailyStorageQuality } from './daily-storage-composer';
-import { reportHandbags } from './handbag-layer';
+import { reportShelfPossessions } from './possession-report';
 import { MODS, PANEL, PLINTH } from '../wardrobe/catalog.js';
 const round=(n:number)=>Math.round(n*100)/100;
 const copy=(sections:readonly PlannerSection[])=>sections.map(s=>({...s,items:s.items.map(it=>({...it}))}));
@@ -71,5 +71,5 @@ export function compositionOf(sections:readonly PlannerSection[]) {
 }
 /** Compatibility facade; Auto design now uses the space-selection beam and shared score. */
 export function generateDesignedLayouts(cfg:PlannerConfig):PlannerProposal[] {
- return selectStorageLayouts(cfg).map(p=>reportHandbags(p,cfg)).map(p=>({...p,composition:{...compositionOf(p.sections),dailyQuality:dailyStorageQuality(p.sections,cfg)}}));
+ return selectStorageLayouts(cfg).map(p=>reportShelfPossessions(p,cfg)).map(p=>({...p,composition:{...compositionOf(p.sections),dailyQuality:dailyStorageQuality(p.sections,cfg)}}));
 }

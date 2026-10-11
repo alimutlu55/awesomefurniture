@@ -2,6 +2,7 @@ import type { ProjectDocument } from '../../domain/project/project';
 import type { EditorScene, EditorState } from './editor-scene';
 import type { EditorItem, EditorDivider } from '../../domain/wardrobe/editor-design';
 import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
+import { defaultNeeds } from '../../domain/wardrobe/possessions';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 
 const purposes: Record<EditorItem['k'], StoragePurpose> = {
@@ -51,7 +52,8 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    w:w.dimensions.width,h:w.dimensions.height,d:w.dimensions.depth,n:w.sections.length,
    wt:layout?structuredClone(layout.weights):w.sections.map(s=>s.width).concat(Array(6).fill(100)).slice(0,6),
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
-   profile:{...profile,...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
+   // Projects saved before a possession existed get its default count.
+   profile:{...profile,needs:{...defaultNeeds(),...profile.needs},...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
    proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),
    ...(w.shape?{shape:structuredClone(w.shape)}:{}),
    sel:0,item:-1,divider:-1,space:null,open:false,

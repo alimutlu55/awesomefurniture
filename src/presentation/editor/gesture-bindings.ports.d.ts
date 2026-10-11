@@ -143,6 +143,6 @@ export interface BindPop2Ports {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'itemUI' | 'showPop' | 'swapPop' | 'update'>>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'addMod' | 'addHandbagShelf' | 'addSpaceDivider' | 'autofill' | 'clearSection' | 'run'>>;
+readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'addMod' | 'addPossessionShelf' | 'addSpaceDivider' | 'autofill' | 'clearSection' | 'run'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

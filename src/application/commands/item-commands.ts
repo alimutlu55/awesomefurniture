@@ -1,6 +1,7 @@
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { ItemKind } from '../../domain/wardrobe/wardrobe';
 import type { ItemEdit, ItemMovePlan, ItemResizeSession, ItemResizeTarget } from './command-types';
+import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { itemName, MODS, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
@@ -57,28 +58,26 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
         });
         return { changed: true, limited: Math.abs(next - want) > .15 };
     }
-    /** A shelf item for handbags: it fills the selected open space at full width, 25 cm tall
-     * (a 23 cm bag with clearance). Bags stand upright on it. */
-    function addHandbagShelf() {
-        const i = getDesign().sel, space = rules.sectionSpaceMeasurements(i), h = 25;
+    /** A shelf for a possession that stands on one (handbags...): it fills the selected open space at
+     * full width, at the height its registry entry gives. */
+    function addPossessionShelf(key: string) {
+        const held = shelfPossession(key);
+        if (!held) return;
+        const i = getDesign().sel, space = rules.sectionSpaceMeasurements(i), h = held.holder.height, minWidth = held.holder.pitch + held.holder.margin;
         if (space.x0 === undefined || space.x1 === undefined) return;
-        if (space.h < h || space.w < 33) {
-            effects.report('No room for a handbag shelf here. It needs 25 cm of height and 33 cm of width.');
+        if (space.h < h || space.w < minWidth) {
+            effects.report('No room for a ' + held.label.toLowerCase() + ' shelf here. It needs ' + h + ' cm of height and ' + minWidth + ' cm of width.');
             return;
         }
         run(() => {
-            const it = { ...rules.newItem('shelf', h), purpose: 'handbags' as const, w: space.w, x: space.x0, y: space.y0 - PL - T };
+            const it = { ...rules.newItem('shelf', h), purpose: held.key, w: space.w, x: space.x0, y: space.y0 - PL - T };
             getDesign().secs[i]!.push(it);
             getDesign().item = getDesign().secs[i]!.length - 1;
             getDesign().space = null;
         });
-        effects.report('Handbag shelf added');
+        effects.report(held.label + ' shelf added');
     }
     function addMod(k: ItemKind) {
-        if ((k as string) === 'handbags') {
-            addHandbagShelf();
-            return;
-        }
         if (k === 'shelf') {
             callbacks.addShelfBoard();
             return;
@@ -398,5 +397,5 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             state.item = -1;
         }
     }
-    return { applyItemEdgeSize, setItemClearance, addHandbagShelf, addMod, addMod0, duplicateItem, deleteItem, removeTop, setItemH, setItemW, editItem, clearSection, applyMove, restoreSection, normalizeSelection };
+    return { applyItemEdgeSize, setItemClearance, addPossessionShelf, addMod, addMod0, duplicateItem, deleteItem, removeTop, setItemH, setItemW, editItem, clearSection, applyMove, restoreSection, normalizeSelection };
 }

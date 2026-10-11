@@ -1,4 +1,5 @@
 import { packStorageBoxes,storageBoxSize } from '../../domain/planner/storage-boxes';
+import { shelfPossession, unitsOnShelf } from '../../domain/wardrobe/possessions';
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
@@ -67,14 +68,15 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     }
                 }
             }
-            else if (k === 'shelf' && it.purpose === 'handbags') {
-                // Handbags stand upright on the shelf: a 31 × 14 × 23 cm design bag, 33 cm per bag with a 2 cm gap.
-                const bagW = 31, bagD = Math.min(14, d - 6), bagH = 23, pitch = 33, count = Math.max(0, Math.floor((sw - 2) / pitch));
-                const fits = hh >= bagH + 2;
+            else if (k === 'shelf' && shelfPossession(it.purpose ?? '')) {
+                // A possession that stands upright on the shelf, drawn at the size its registry entry gives.
+                const held = shelfPossession(it.purpose ?? '')!, { unit, pitch } = { unit: held.holder.unit, pitch: held.holder.pitch };
+                const unitD = Math.min(unit.depth, d - 6), count = unitsOnShelf(held.holder, sw);
+                const fits = hh >= unit.height + 2;
                 for (let j = 0; j < count && fits; j++) {
                     const bx = cx - (count - 1) * pitch / 2 + j * pitch;
-                    box(bagW, bagH, bagD, bx, base + bagH / 2, 0, resources.M(COL[(j * 2) % 8]!));
-                    box(bagW * .45, 1, 1.2, bx, base + bagH + .5, 0, mh);
+                    box(unit.width, unit.height, unitD, bx, base + unit.height / 2, 0, resources.M(COL[(j * 2) % 8]!));
+                    if (unit.handle) box(unit.width * .45, 1, 1.2, bx, base + unit.height + .5, 0, mh);
                 }
             }
             else if (k === 'folded' || (k === 'shelf' && ['folded', 'pants'].includes(it.purpose ?? ''))) {

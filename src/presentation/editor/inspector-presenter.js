@@ -1,3 +1,4 @@
+import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 import { syncResizeFields } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
@@ -323,9 +324,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
                 return `<g><path d="M${x} ${y}q7-3 14-3l1 44-6 2-2-23-1 24-6 2Z" fill="${color}"/><path d="m${x + 7} ${y + 3} 0 20m-4 4-1 16m9-18 1 17" fill="none" stroke="#202b33" stroke-opacity=".22" stroke-width=".8"/><path d="m${x} ${y} 14-3" stroke="#f7f4eb" stroke-opacity=".4" stroke-width="1.4"/><path d="m${x - 15} ${y - 10} 32 14" stroke="#797d76" stroke-width="3" stroke-linecap="round"/><path d="m${x - 15} ${y - 11} 32 14" stroke="#e7e8e0" stroke-width="1" stroke-linecap="round"/></g>`;
             }).join('')
             + '<path d="m18 43 36 17 78-19" fill="none" stroke="#73786f" stroke-width="4" stroke-linejoin="round"/><path d="m18 42 36 17 78-19" fill="none" stroke="#e7e9e2" stroke-width="1.3"/><path d="m72 57 30-7" stroke="#4f554f" stroke-width="5" stroke-linecap="round"/><path d="m72 56 30-7" stroke="#92988e" stroke-width="1" stroke-linecap="round"/>';
-        // Handbags uses the same line icon as its More items card, drawn at card size.
-        const handbagArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><g transform="translate(46,25) scale(3.2)" fill="none" stroke="#6b4a3a" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="' + ICONP.handbags + '"/></g></svg>';
-        const art = { handbags: handbagArt, short: '<path d="M17 24 128 15" stroke="#8c8980" stroke-width="5" stroke-linecap="round"/><path d="M17 23 128 14" stroke="#f8f6ee" stroke-width="2"/>' + hanger(-19) + hanger(2) + hanger(23),
+        // A shelf possession uses its registry line icon, drawn at card size.
+        const possessionArt = p => '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><g transform="translate(46,25) scale(3.2)" fill="none" stroke="' + p.look.stroke + '" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="' + p.look.icon + '"/></g></svg>';
+        const art = { short: '<path d="M17 24 128 15" stroke="#8c8980" stroke-width="5" stroke-linecap="round"/><path d="M17 23 128 14" stroke="#f8f6ee" stroke-width="2"/>' + hanger(-19) + hanger(2) + hanger(23),
             shelf,
             folded: shelf + '<path d="M38 54 74 45 92 52 56 61Z" fill="#e7e1d4"/><path d="M38 54v5l18 8v-6Z" fill="#b8b09c"/><path d="M56 61 92 52v5L56 67Z" fill="#cfc7b4"/><path d="M40 47 76 38 94 45 58 54Z" fill="#8a9a82"/><path d="M40 47v5l18 7v-5Z" fill="#6d7c66"/><path d="M58 54 94 45v5L58 59Z" fill="#7b8b73"/>',
             pants: trouserRack,
@@ -335,12 +336,13 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             seasonal: '<path d="M24 62 56 54 84 66 52 75Z" fill="#d2c4a4"/><path d="M24 62v22l28 12V75Z" fill="#a99b7c"/><path d="M52 75 84 66v22L52 96Z" fill="#bbad8e"/><path d="M40 70h8" stroke="#f3eee4" stroke-width="2"/><path d="M66 34 98 26 126 38 94 46Z" fill="#d9ccae"/><path d="M66 34v22l28 12V46Z" fill="#b2a485"/><path d="M94 46 126 38v22L94 68Z" fill="#c4b697"/><path d="M80 44h8" stroke="#f3eee4" stroke-width="2"/>',
             divider: '<path d="m71 22 6-2v72l-6 2Z" fill="#a28e73"/><path d="m71 22-35 13v51l35 8Z" fill="#dfd5c4"/><path d="m77 20 34 17v48L77 92Z" fill="#b5aa96"/>',
         };
+        if (shelfPossession(k)) return possessionArt(shelfPossession(k));
         return '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true">' + (art[k] || art[{ long: 'short', sdrawer: 'drawer', lift: 'short' }[k]] || shelf) + '</svg>';
     }
     function renderAddChoices() {
         selectionState.addKey = model.activeCabinet().state.sel;
         const { list, intent } = geometry.addSuggestions(), ranked = list.slice().sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), feat = ranked.slice(0, 6);
-        const set = new Set(feat.map(x => x.k)), rest = list.filter(x => !set.has(x.k)).sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), nm = k => k === 'divider' ? 'Divider' : k === 'handbags' ? 'Handbags' : k === 'short' ? 'Hanging rail' : MODS[k].n, attr = x => x.k === 'divider' ? 'data-a="divider"' : x.k === 'handbags' ? 'data-handbags="1"' : 'data-m="' + x.k + '"';
+        const set = new Set(feat.map(x => x.k)), rest = list.filter(x => !set.has(x.k)).sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), nm = k => k === 'divider' ? 'Divider' : shelfPossession(k) ? shelfPossession(k).label : k === 'short' ? 'Hanging rail' : MODS[k].n, attr = x => x.k === 'divider' ? 'data-a="divider"' : shelfPossession(x.k) ? 'data-possession="' + x.k + '"' : 'data-m="' + x.k + '"';
         $('#add-intent').innerHTML = tags([(intent.match(/<b>(.*?)<\/b>/)?.[1] || '').replace(/\.$/, '').replace('Low space at floor level', 'Floor zone').replace('Roomy space within reach', 'Within reach').replace('Reaches above your ', 'Above reach ')]);
         $('#padd').innerHTML = feat.map(x => '<button type="button" ' + attr(x) + (!x.fit ? ' class="no" aria-disabled="true"' : x.warn ? ' class="warn"' : '') + ' title="' + esc(nm(x.k) + (x.fit ? (x.warn ? ' · ' + x.hint : '') : ' · ' + x.hint)) + '">' + productArt(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');
         $('#padd2').innerHTML = rest.map(x => '<button type="button" ' + attr(x) + ' class="' + (!x.fit ? 'no' : x.warn ? 'warn' : '') + '" aria-disabled="' + !x.fit + '" title="' + esc(nm(x.k) + (x.hint ? ' · ' + x.hint : '')) + '">' + icon(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');

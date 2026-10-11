@@ -1,10 +1,11 @@
+import { SHELF_POSSESSIONS, shelfPossession } from '../../domain/wardrobe/possessions';
 export const COL = ['#58584c', '#b6ab94', '#e6dfd0', '#a49680', '#343831', '#827d70', '#c7bca5', '#727862'];
 export const measureNumber = v => String(Math.round(Math.max(0, v) * 10) / 10);
 export const capWord = w => w.charAt(0).toUpperCase() + w.slice(1);
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const drawerN = p => p.sections.reduce((n, s) => n + s.items.filter(it => it.k === 'drawer' || it.k === 'sdrawer').length, 0);
-export const zoneColor = it => it.k === 'void' || it.purpose === 'reserve' ? '#8b9bb0' : it.purpose === 'handbags' ? '#a0664f' : it.purpose === 'accessories' ? '#6f8fa3' : it.purpose === 'small' ? '#c0668a' : it.k === 'pants' || it.purpose === 'pants' ? '#9876ac' : ['short', 'long', 'lift'].includes(it.k) ? '#477fac' : ['seasonal', 'linen', 'luggage'].includes(it.purpose) || it.k === 'seasonal' ? '#b78a4d' : it.k === 'shoe' ? '#73869c' : it.k === 'basket' ? '#86928c' : '#4b9277';
-export const zoneText = it => it.k === 'void' ? 'Free' : it.purpose === 'reserve' ? 'Adjustable' : it.purpose === 'accessories' ? 'Spare shelf' : it.purpose === 'small' ? 'Underwear & socks' : it.k === 'lift' ? 'Pull-down' : it.front ? 'Front hang' : it.k === 'long' ? 'Long hang' : it.k === 'short' ? 'Shirts' : it.purpose === 'pants' ? 'Trousers' : it.k === 'seasonal' ? 'Boxes' : it.k === 'shoe' ? 'Shoes' : it.k === 'drawer' ? 'Drawer' : it.k === 'basket' ? 'Basket' : 'Folded';
+export const zoneColor = it => it.k === 'void' || it.purpose === 'reserve' ? '#8b9bb0' : shelfPossession(it.purpose) ? shelfPossession(it.purpose).look.color : it.purpose === 'accessories' ? '#6f8fa3' : it.purpose === 'small' ? '#c0668a' : it.k === 'pants' || it.purpose === 'pants' ? '#9876ac' : ['short', 'long', 'lift'].includes(it.k) ? '#477fac' : ['seasonal', 'linen', 'luggage'].includes(it.purpose) || it.k === 'seasonal' ? '#b78a4d' : it.k === 'shoe' ? '#73869c' : it.k === 'basket' ? '#86928c' : '#4b9277';
+export const zoneText = it => it.k === 'void' ? 'Free' : shelfPossession(it.purpose) ? shelfPossession(it.purpose).label : it.purpose === 'reserve' ? 'Adjustable' : it.purpose === 'accessories' ? 'Spare shelf' : it.purpose === 'small' ? 'Underwear & socks' : it.k === 'lift' ? 'Pull-down' : it.front ? 'Front hang' : it.k === 'long' ? 'Long hang' : it.k === 'short' ? 'Shirts' : it.purpose === 'pants' ? 'Trousers' : it.k === 'seasonal' ? 'Boxes' : it.k === 'shoe' ? 'Shoes' : it.k === 'drawer' ? 'Drawer' : it.k === 'basket' ? 'Basket' : 'Folded';
 export const zoneRuns = items => {
     const out = [];
     for (const it of items) {
@@ -27,7 +28,7 @@ export const icon = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"
 export const RANKS = ['Apprentice', 'Joiner', 'Carpenter', 'Cabinetmaker', 'Master Builder', 'Legend'];
 ICONP.plus = "M12 5v14M5 12h14";
 ICONP.divider = "M9 4v16M15 4v16";
-ICONP.handbags = "M6 9h12l1 11H5L6 9Zm3 0V7a3 3 0 0 1 6 0v2";
+for (const p of SHELF_POSSESSIONS) ICONP[p.key] = p.look.icon;
 ICONP.wardrobe = "M5 20V9l7-5 7 5v11zM12 6.5V20M10 12v2M14 12v2";
 ICONP.material = "M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7 9h.01M10 6h.01M15 7h.01M6 13h.01";
 ICONP.reach = "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M4 4l6 6M20 4l-6 6M20 20l-6-6M4 20l6-6";

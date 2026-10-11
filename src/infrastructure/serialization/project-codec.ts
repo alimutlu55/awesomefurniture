@@ -2,6 +2,9 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
+import { ALL_PURPOSES, POSSESSIONS } from '../../domain/wardrobe/possessions';
+import type { Needs } from '../../domain/wardrobe/possessions';
+import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -9,12 +12,15 @@ const finite = z.number().finite();
 const positive = finite.positive();
 const nonnegative = finite.nonnegative();
 const count = nonnegative.int();
+// Purposes and needs come from the possessions registry: a new possession is accepted here with no edit.
+const purposeEnum = z.enum(ALL_PURPOSES as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StoragePurpose]: K }>;
+const needsSchema = z.strictObject(Object.fromEntries(POSSESSIONS.map(p => [p.key, p.engine === 'bespoke' ? count : count.optional()]))) as unknown as z.ZodType<Needs>;
 const name = z.string().trim().min(1).max(120);
 const editorItem = z.strictObject({
   id:id.optional(),
   k: z.enum(['drawer','sdrawer','void','shelf','folded','seasonal','short','long','pants','shoe','basket','lift']),
   f: z.enum(['Oak','White','Walnut','Graphite','Sage']).nullable().optional(),
-  h: nonnegative, purpose: z.enum(['reserve','free','small','short','long','pants','folded','accessories','shoes','seasonal','luggage','linen','laundry','handbags']).optional(),
+  h: nonnegative, purpose: purposeEnum.optional(),
   w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
   front: z.boolean().optional(), boxes: count.optional(),
 });
@@ -40,7 +46,7 @@ const item = z.strictObject({
   editorItem: editorItem.optional(),
   id,
   kind: z.enum(['drawer', 'sdrawer', 'void', 'shelf', 'folded', 'seasonal', 'short', 'long', 'pants', 'shoe', 'basket', 'lift']),
-  purpose: z.enum(['reserve', 'free', 'small', 'short', 'long', 'pants', 'folded', 'accessories', 'shoes', 'seasonal', 'luggage', 'linen', 'laundry', 'handbags']),
+  purpose: purposeEnum,
   width: positive,
   height: nonnegative,
   x: nonnegative,
@@ -69,7 +75,7 @@ const wardrobe = z.strictObject({
   preferences: z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
     composition:z.enum(['balanced','storage']).optional(),
-    needs: z.strictObject({ short: count, long: count, pants: count, folded: count, shoes: count, small: count, handbags: count.optional() }),
+    needs: needsSchema,
     reach: positive, longDrop: positive,
     upper: z.enum(['none', 'auto', 'more', 'fill']),
     drawers: z.enum(['none', 'auto', 'more']),
