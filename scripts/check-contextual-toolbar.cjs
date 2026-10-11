@@ -92,7 +92,7 @@ const assert=require('node:assert/strict');
    assert.equal(await el('w').isVisible(),false);
    await closeProperties();
    await toolbar.locator('[data-action="more"]').click();
-   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Material','Max reach size','Doors','Duplicate','Reset','Remove']);
+   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Shape','Material','Max reach size','Doors','Duplicate','Reset','Remove']);
    await page.locator('.contextual-popover button').filter({hasText:'Material'}).click();
    assert.equal(await el('fins').isVisible(),true);
    await page.locator('.lbl.add').click();await page.waitForTimeout(320);
