@@ -72,7 +72,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       for (const c of [line.a, line.b]) {
         if (cornerDegree(studio, c.id) !== 1) continue;
         const sign = c.id === w.b ? 1 : -1;
-        out.push({ key: 'extend:' + c.id, kind: 'extend', id: c.id, x: c.x + line.ux * sign * 34, y: 0, z: c.z + line.uz * sign * 34, label: 'Add a wall here. Drag to draw it, or click for a corner' });
+        out.push({ key: 'extend:' + c.id, kind: 'extend', id: c.id, x: c.x + line.ux * sign * 60, y: 0, z: c.z + line.uz * sign * 60, label: 'Add a wall here. Drag to draw it, or click for a corner' });
       }
     }
     for (const o of studio.openings.filter(o => o.wall === w.id && (s.kind === 'wall' || o.id === s.id))) {
