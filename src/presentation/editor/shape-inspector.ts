@@ -34,6 +34,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     const current = (): WardrobeShape => resolveShape(state());
     const editable = (shape: WardrobeShape): WardrobeShape => state().shape ? shape : { ...shape, template: 'custom' };
     const f = (v: number) => measureNumber(Math.round(v * 10) / 10);
+    /** Coordinates keep their sign and one decimal, unlike the clamped measure format. */
+    const cm = (v: number) => String(Math.round(v * 10) / 10);
     /** Number inputs need a dot decimal, whatever the display locale. */
     const raw = (v: number) => String(Math.round(v * 10) / 10);
 
@@ -141,7 +143,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         return shape.top.map((p, index, all) => ({
             index, x: p.x - w / 2, y: p.y,
             movesX: index > 0 && index < all.length - 1,
-            label: f(p.y),
+            label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),
         }));
     }
     /** "+" markers at the middle of every top panel wide enough to split. */
