@@ -23,6 +23,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             el.onpointermove = e => shapeInspector.moveHandleDrag(e);
             el.onpointerup = () => shapeInspector.endHandleDrag();
             el.onpointercancel = () => shapeInspector.endHandleDrag(true);
+            el.onlostpointercapture = () => shapeInspector.endHandleDrag();
             el.onkeydown = e => {
                 const step = e.shiftKey ? .5 : 1, dy = e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0, dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
                 if (dx || dy) {

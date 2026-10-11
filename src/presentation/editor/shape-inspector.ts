@@ -21,7 +21,7 @@ interface ShapeInspectorPorts {
 }
 interface HandleDrag {
     index: number; pointer: number; target: HTMLElement; snapshot: string;
-    start: { x: number; y: number }; original: WardrobeShape; moved: boolean;
+    start: { x: number; y: number }; original: WardrobeShape; last: WardrobeShape; moved: boolean;
 }
 
 /** Wardrobe-level skeleton editing: template choice, a precise panel list and
@@ -182,22 +182,46 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         if (!start) return;
         e.preventDefault();
         e.stopPropagation();
-        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original: current(), moved: false };
-        target.setPointerCapture(e.pointerId);
+        const original = current();
+        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false };
+        // Capture can fail if the pointer already ended; the drag still works from the handle's own events.
+        try { target.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     }
+    /** Tolerance for snapping, in cm. Small, so the point follows the pointer and only
+     * settles on a neighbouring height or partition when it is really close. */
+    const SNAP_Y = 1, SNAP_X = 1;
+    /** Browsers already deliver pointer moves aligned to frames, so each one is applied directly. */
     function moveHandleDrag(e: PointerEvent) {
-        if (!drag || e.pointerId !== drag.pointer) return;
+        const g = drag;
+        if (!g || e.pointerId !== g.pointer) return;
         const p = picking.frontPoint(e);
         if (!p) return;
-        const o = drag.original, point = o.top[drag.index]!, others = o.top.filter((_, k) => k !== drag!.index);
-        // Heights snap to neighbouring break points (to level a panel); positions to partitions.
-        const y = snap(point.y + p.y - drag.start.y, others.map(q => q.y), 1.5);
+        const o = g.original, point = o.top[g.index]!, others = o.top.filter((_, k) => k !== g.index);
+        const movesX = g.index > 0 && g.index < o.top.length - 1;
+        // Targets follow the pointer from where the handle was grabbed.
+        const wantY = snap(point.y + p.y - g.start.y, others.map(q => q.y), SNAP_Y);
         const faces = partitionPositions(state()).flatMap(x => [x, x + PANEL]);
-        const movesX = drag.index > 0 && drag.index < o.top.length - 1;
-        const x = movesX ? snap(point.x + p.x - drag.start.x, faces, 2) : undefined;
-        const next = setPoint(o, drag.index, x === undefined ? { y } : { x, y });
-        if (shapeProblems(next, state().w).length) return;
-        drag.moved = true;
+        const wantX = movesX ? snap(point.x + p.x - g.start.x, faces, SNAP_X) : point.x;
+        const want = setPoint(o, g.index, { x: wantX, y: wantY });
+        // Move as far toward the target as the rules allow, rather than stopping dead
+        // at the first invalid position. Bisect between the last valid shape and the target.
+        const valid = (t: number) => {
+            const from = g.last.top[g.index]!;
+            const at = setPoint(g.last, g.index, { x: from.x + (want.top[g.index]!.x - from.x) * t, y: from.y + (want.top[g.index]!.y - from.y) * t });
+            return shapeProblems(at, state().w).length === 0 ? at : null;
+        };
+        let next = valid(1);
+        if (!next) {
+            let lo = 0, hi = 1, best = g.last;
+            for (let n = 0; n < 14; n++) {
+                const mid = (lo + hi) / 2, cand = valid(mid);
+                if (cand) { lo = mid; best = cand; } else hi = mid;
+            }
+            next = best;
+        }
+        if (JSON.stringify(next.top) === JSON.stringify(g.last.top)) return;
+        g.last = next;
+        g.moved = true;
         if (sceneCommands.setShape(editable(next), false, false)) callbacks.rebuild();
     }
     function endHandleDrag(cancel = false) {
