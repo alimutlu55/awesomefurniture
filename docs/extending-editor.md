@@ -8,14 +8,18 @@ browser startup are composed in `src/app/editor.ts`.
 
 | Change | Owner | Example |
 | --- | --- | --- |
-| Placement, clearance or feasibility rule | Domain geometry | `wardrobe-geometry.js`, `cabinet-geometry.js` |
-| New fitting definition | Domain catalog | `catalog.js` |
+| A new kind of fitting (drawer, rail, rack...) | Fittings registry: one entry | `domain/wardrobe/fittings.ts` |
+| Something that stands on a shelf (bags, hats...) | Possessions registry: one entry | `domain/wardrobe/possessions.ts` |
+| A new general purpose (spare room, linen...) | Purposes registry: one entry | `domain/wardrobe/purposes.ts` |
+| A rule that applies to several fitting kinds | A trait in the fittings registry, asked with `hasTrait` | `domain/wardrobe/fittings.ts` |
+| Placement, clearance or feasibility rule | The wardrobe rules module that owns the concern | `domain/geometry/wardrobe-rules/*.js`, `cabinet-geometry.js` |
 | Design mutation, undo checkpoint or rejection | Application commands | `commands/*-commands.ts`, `scene-commands.ts` |
 | Save format or design mapping | Application contracts/mapper; infrastructure serialization | `editor-mapper.ts`, existing project repositories |
 | Drag, selection or resize behavior | Focused interaction factory | `divider-drag.js`, `cabinet-drag.js`, `item-resize.js`, `scene-selection.js` |
 | Measurement or contextual action | Focused inspector factory | `measurement-inspector.js`, `item-actions.js` |
 | Labels, handles or previews | Focused viewport factory | `dimension-renderer.js`, `viewport-handles.js`, `movement-overlays.js` |
-| Input listener | Focused binding module | `design-bindings.js`, `pointer-bindings.js`, `shell-bindings.js` |
+| Input listener | The feature's binding module | `presentation/editor/bindings/<feature>.js`, `shell-bindings.js` |
+| Add item menu cards or wording | Add menu presenter | `add-menu-presenter.js`, `add-suggestions.js`, `product-art.js` |
 
 Domain/application code must not import DOM, Three.js or presentation modules.
 Presenters request mutations through commands. Domain geometry works in centimetres;
@@ -76,9 +80,14 @@ and round-trip tests. Keep transient UI state out of `ProjectDocument`. Preserve
 existing revision checks and explicit-save behavior; command undo history must not
 roll back the storage revision.
 
-The original planner algorithm and presentation markup/styles have immutable
-regression baselines. An intentional behavior or UI change requires an explicit test
-and reviewed baseline update; a structural refactor should leave those hashes intact.
+The original planner algorithm and presentation markup/styles have regression
+baselines (`tests/fixtures/editor-baseline.json`). An intentional behavior or UI change
+requires an explicit test and a reviewed baseline update whose commit says why.
+
+Golden tests (`tests/architecture/golden.test.ts`) record what Auto design, layout,
+cost, stats and Add item produce for six wardrobes. A refactor must leave them
+untouched. If behaviour changes on purpose, re-record with `UPDATE_GOLDEN=1 npm test`,
+review the fixture diff, and explain the change in the commit.
 
 ## Mount one or several editors
 

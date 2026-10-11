@@ -27,10 +27,10 @@ supplied controls and appearance. Three.js is pinned to 0.128.0 and bundled loca
 
 | Layer | Modules and ownership |
 | --- | --- |
-| Domain | `wardrobe-planner.js`, `catalog.js`, `wardrobe-geometry.js`, `cabinet-geometry.js`, `shape/` (wardrobe skeleton model and templates, see [wardrobe shapes](wardrobe-shapes.md)), typed designs/defaults. Layout, feasibility, placement, measurements, clearances and swept collisions use plain centimetre data. |
+| Domain | Registries in `wardrobe/`: `fittings.ts` (fitting kinds and their traits), `possessions.ts` (what Auto design plans for), `purposes.ts`, `zone-style.ts`; `catalog.js` derives the older tables from them. `wardrobe-planner.js` (numerical engine) and the `selection-*` space search. `wardrobe-geometry.js` composes `geometry/wardrobe-rules/` (sizes, ceiling, layout, fit, dividers, boxes, spaces, movement, measurements, costing, planner-config). `cabinet-geometry.js`, `shape/` (see [wardrobe shapes](wardrobe-shapes.md)). Plain centimetre data; no DOM, Three.js or markup. |
 | Application | Strict TypeScript command families, `scene-commands.ts`, `editor-model.ts`, `scene-history.ts`, `planner-service.ts`. Fittings, shelves, dividers, duplication, sizing, finishes, doors, profiles, cabinet edits, snapshots and history. |
 | Infrastructure | Existing project repositories and strict serialization, with validated layout intent for lossless reopening. |
-| Presentation | Camera, frame rendering, dimensions, movement overlays, viewport handles, scene picking, divider/cabinet dragging, item resizing, scene selection, inspector panels, measurements, item actions, planner, shell and focused DOM bindings. |
+| Presentation | Camera, frame rendering, dimensions, movement overlays, viewport handles, scene picking, divider/cabinet dragging, item resizing, scene selection, inspector panels, measurements, item actions, the Add item menu (`add-menu-presenter.js`), planner, shell, and event bindings grouped by feature in `editor/bindings/`. |
 | Composition | `editor-runtime.ts` constructs the model, commands, resources, states and controllers, connects their ports, and mounts event bindings. It contains startup wiring, with no copied geometry or gesture implementations. |
 
 Application commands receive callbacks for checkpoints and presentation effects.
@@ -46,6 +46,20 @@ IDs into transient editing context. Resize requests reach the renderer. Disposal
 cancels frames/timers, detaches listeners, disconnects observers, and frees geometries,
 materials, textures and the WebGL renderer. Browser startup also cleans up project
 controls and the database connection on unmount/hot reload.
+
+## Registries and enforced rules
+
+Fitting kinds, possessions and purposes are each defined once, in a registry under
+`src/domain/wardrobe/`. Everything that depends on them (planner categories and
+limits, saved-project enums, Add item menu, zone styles, icons, wizard fields) is
+derived. Rules that apply to several kinds ask for a trait (`hasTrait(kind, 'pullout')`)
+instead of listing kinds. `tests/architecture/fittings.test.ts` and
+`possessions.test.ts` walk every registry entry through every derived place.
+
+`scripts/check-architecture.mjs` (part of `npm run check`) fails on files over 400
+lines, lines over 240 characters, hand-written kind or possession lists, and HTML in
+the domain. Older code is held by a ratchet in `scripts/architecture-baseline.json`:
+a listed file may only improve.
 
 ## Module contracts and lifecycle
 
