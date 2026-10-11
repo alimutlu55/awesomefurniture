@@ -1,13 +1,14 @@
 import type { EditorItem, EditorDivider, EditorLayout } from './editor-design';
 import type { Dimensions, Vector3 } from '../geometry/types';
 import type { WardrobeShape } from './shape/wardrobe-shape';
-import type { GeneralPurpose, Needs, PossessionKey } from './possessions';
+import type { Needs } from './possessions';
+import type { Purpose } from './purposes';
+import type { FittingKind } from './fittings';
 
-export type ItemKind =
-  | 'drawer' | 'sdrawer' | 'void' | 'shelf' | 'folded' | 'seasonal'
-  | 'short' | 'long' | 'pants' | 'shoe' | 'basket' | 'lift';
+/** Fitting kinds come from the fittings registry (fittings.ts). */
+export type ItemKind = FittingKind;
 
-export type StoragePurpose = GeneralPurpose | PossessionKey;
+export type StoragePurpose = Purpose;
 
 export interface WardrobeItem {
   readonly editorItem?: EditorItem | undefined;

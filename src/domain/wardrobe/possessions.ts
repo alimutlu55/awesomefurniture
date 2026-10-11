@@ -17,6 +17,9 @@
  * engine work; a new thing to put on a shelf does not.
  */
 
+import { ZONE_PRIORITY } from './zone-style';
+import type { ZoneStyle } from './zone-style';
+
 /** A shelf that holds one possession. Centimetres. */
 export interface ShelfHolder {
   /** Shelf height. A lower shelf holds none. */
@@ -45,6 +48,8 @@ interface Common {
     /** Share of the reach height where it is best kept: [low, high]. Outside it loses benefit. */
     readonly home: readonly [number, number];
   };
+  /** How its zone is drawn when it changes what the zone is (see zone-style.ts). Optional. */
+  readonly zone?: ZoneStyle;
 }
 
 export interface BespokePossession extends Common { readonly engine: 'bespoke' }
@@ -69,10 +74,10 @@ export type Possession = BespokePossession | ShelfPossession;
 export const POSSESSIONS = [
   { key: 'short', label: 'Shirts & jackets', engine: 'bespoke', need: { default: 24, max: 150 }, planner: { frequency: 1, home: [.4, 1] } },
   { key: 'long', label: 'Dresses & coats', engine: 'bespoke', need: { default: 6, max: 80 }, planner: { frequency: .6, home: [.4, 1] } },
-  { key: 'pants', label: 'Trousers & jeans', engine: 'bespoke', need: { default: 12, max: 100 }, planner: { frequency: .9, home: [.2, .8] } },
+  { key: 'pants', label: 'Trousers & jeans', engine: 'bespoke', need: { default: 12, max: 100 }, planner: { frequency: .9, home: [.2, .8] }, zone: { color: '#9876ac', label: 'Trousers', priority: ZONE_PRIORITY.purpose } },
   { key: 'folded', label: 'T-shirts & knitwear', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.2, .8] } },
   { key: 'shoes', label: 'Shoes', engine: 'bespoke', need: { default: 8, max: 80 }, planner: { frequency: .8, home: [0, .4] } },
-  { key: 'small', label: 'Underwear & socks', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.4, .8] } },
+  { key: 'small', label: 'Underwear & socks', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.4, .8] }, zone: { color: '#c0668a', label: 'Underwear & socks', priority: ZONE_PRIORITY.purpose } },
   {
     key: 'handbags', label: 'Handbags', engine: 'shelf', need: { default: 0, max: 60 }, planner: { frequency: .7, home: [.25, .85] },
     // A medium tote: 31 × 14 × 23 cm, standing upright, 33 cm each with a 2 cm gap.
@@ -89,12 +94,6 @@ export type BespokeKey = Exclude<PossessionKey, ShelfKey>;
 
 export const POSSESSION_KEYS = POSSESSIONS.map(p => p.key) as readonly PossessionKey[];
 export const SHELF_POSSESSIONS = POSSESSIONS.filter((p): p is ShelfPossessionEntry => p.engine === 'shelf');
-
-/** Purposes a fitting can have that are not a possession: spare room, accessories, seasonal boxes... */
-export const GENERAL_PURPOSES = ['free', 'reserve', 'accessories', 'seasonal', 'luggage', 'linen', 'laundry'] as const;
-export type GeneralPurpose = typeof GENERAL_PURPOSES[number];
-/** Every purpose a fitting can have: the general ones and one for each possession. */
-export const ALL_PURPOSES = [...GENERAL_PURPOSES, ...POSSESSIONS.map(p => p.key)] as readonly (GeneralPurpose | PossessionKey)[];
 
 /** Every possession a saved design may need, with the project's own count. */
 export type Needs = Readonly<Record<BespokeKey, number>> & Readonly<Partial<Record<ShelfKey, number | undefined>>>;

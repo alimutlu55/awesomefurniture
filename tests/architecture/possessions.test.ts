@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { POSSESSIONS, SHELF_POSSESSIONS, POSSESSION_KEYS, ALL_PURPOSES, defaultNeeds, unitsOnShelf } from '../../src/domain/wardrobe/possessions';
+import { POSSESSIONS, SHELF_POSSESSIONS, POSSESSION_KEYS, defaultNeeds, unitsOnShelf } from '../../src/domain/wardrobe/possessions';
+import { ALL_PURPOSES } from '../../src/domain/wardrobe/purposes';
 import { CATEGORIES, SELECTION_RULES, buildDemand } from '../../src/domain/planner/selection-config';
 import { PURPOSE, compatiblePurposes } from '../../src/domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../src/domain/planner/wardrobe-planner.js';

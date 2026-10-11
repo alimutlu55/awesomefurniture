@@ -2,9 +2,11 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
-import { ALL_PURPOSES, POSSESSIONS } from '../../domain/wardrobe/possessions';
+import { POSSESSIONS } from '../../domain/wardrobe/possessions';
+import { ALL_PURPOSES } from '../../domain/wardrobe/purposes';
 import type { Needs } from '../../domain/wardrobe/possessions';
-import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
+import type { ItemKind, StoragePurpose } from '../../domain/wardrobe/wardrobe';
+import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -12,13 +14,14 @@ const finite = z.number().finite();
 const positive = finite.positive();
 const nonnegative = finite.nonnegative();
 const count = nonnegative.int();
-// Purposes and needs come from the possessions registry: a new possession is accepted here with no edit.
+// Fitting kinds, purposes and needs come from the registries: a new entry is accepted here with no edit.
+const kindEnum = z.enum(FITTING_KINDS as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in ItemKind]: K }>;
 const purposeEnum = z.enum(ALL_PURPOSES as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StoragePurpose]: K }>;
 const needsSchema = z.strictObject(Object.fromEntries(POSSESSIONS.map(p => [p.key, p.engine === 'bespoke' ? count : count.optional()]))) as unknown as z.ZodType<Needs>;
 const name = z.string().trim().min(1).max(120);
 const editorItem = z.strictObject({
   id:id.optional(),
-  k: z.enum(['drawer','sdrawer','void','shelf','folded','seasonal','short','long','pants','shoe','basket','lift']),
+  k: kindEnum,
   f: z.enum(['Oak','White','Walnut','Graphite','Sage']).nullable().optional(),
   h: nonnegative, purpose: purposeEnum.optional(),
   w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
@@ -45,7 +48,7 @@ const shape = z.strictObject({
 const item = z.strictObject({
   editorItem: editorItem.optional(),
   id,
-  kind: z.enum(['drawer', 'sdrawer', 'void', 'shelf', 'folded', 'seasonal', 'short', 'long', 'pants', 'shoe', 'basket', 'lift']),
+  kind: kindEnum,
   purpose: purposeEnum,
   width: positive,
   height: nonnegative,

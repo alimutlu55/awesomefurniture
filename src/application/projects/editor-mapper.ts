@@ -4,11 +4,10 @@ import type { EditorItem, EditorDivider } from '../../domain/wardrobe/editor-des
 import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { defaultNeeds } from '../../domain/wardrobe/possessions';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 
-const purposes: Record<EditorItem['k'], StoragePurpose> = {
- drawer:'folded',sdrawer:'small',void:'free',shelf:'accessories',folded:'folded',seasonal:'seasonal',short:'short',long:'long',pants:'pants',shoe:'shoes',basket:'laundry',lift:'short',
-};
-const PANEL=1.8;
+/** A fitting saved without a purpose takes its kind's starting purpose from the fittings registry. */
+const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
 
 export function sceneToProject(project: ProjectDocument, scene: EditorScene): ProjectDocument {
  return {...project, wardrobes: scene.wardrobes.map(cabinet=>{
@@ -26,7 +25,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    sections:widths.map((width,i)=>{
     const positions=WardrobePlanner.layoutSection(s.secs[i]!,width);
     return {id:`${prefix}/section/${i}`,width,
-     items:s.secs[i]!.map((it,j)=>({id:it.id??`${prefix}/section/${i}/item/${j}`,kind:it.k,purpose:it.purpose??purposes[it.k],width:positions[j]!.w,height:it.h,x:positions[j]!.x0,y:positions[j]!.y0,frontFacing:it.front??false,boxes:it.boxes??null,editorItem:structuredClone(it)})),
+     items:s.secs[i]!.map((it,j)=>({id:it.id??`${prefix}/section/${i}/item/${j}`,kind:it.k,purpose:it.purpose??purposeOf(it.k),width:positions[j]!.w,height:it.h,x:positions[j]!.x0,y:positions[j]!.y0,frontFacing:it.front??false,boxes:it.boxes??null,editorItem:structuredClone(it)})),
      dividers:s.dividers.filter(d=>d.i===i).map((d,j)=>({
       id:d.id??`${prefix}/section/${i}/divider/${j}`,orientation:d.orientation,
       x:d.orientation==='horizontal'?d.x0!:d.x!-PANEL/2,

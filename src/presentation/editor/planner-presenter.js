@@ -143,7 +143,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         (plannerState.wizardTrigger || $('#launch-wizard')).focus();
     }
     function storedNow(a) {
-        const rows = POSSESSION_KEYS.map(k => [PURPOSE[k], Math.floor(a.capacities[k] ?? 0)]).concat([['Seasonal boxes', Math.floor(a.capacities.seasonalBoxes)]]).filter(r => r[1] > 0);
+        const rows = /** @type {[string, number][]} */ (POSSESSION_KEYS.map(k => [PURPOSE[k], Math.floor(a.capacities[k] ?? 0)])).concat([['Seasonal boxes', Math.floor(a.capacities.seasonalBoxes)]]).filter(r => r[1] > 0);
         return (rows.length ? '<div class="capacity">' + rows.map(r => '<span>' + esc(r[0]) + '</span><b>~' + r[1] + '</b>').join('') + '</div>' + tags(['Current capacity']) : tags(['Empty', 'Add fittings']));
     }
     function planUI(a) {

@@ -1,5 +1,7 @@
 import { packStorageBoxes, storageBoxSize } from './storage-boxes';
 import { SHELF_POSSESSIONS, unitsOnShelf } from '../wardrobe/possessions';
+import { plannerLimits } from '../wardrobe/fittings';
+import { PANEL as CATALOG_PANEL, PLINTH } from '../wardrobe/catalog.js';
 
 /* WardrobePlanner: cm, bottom-to-top stacks. Empty space is intentional and
  * never counted as seasonal storage. Every candidate is measured the same way and must clear the same quality floor.
@@ -7,8 +9,10 @@ import { SHELF_POSSESSIONS, unitsOnShelf } from '../wardrobe/possessions';
  * and picking; labels are awarded afterwards from what each plan actually measures, so names never add ranking bonuses. */
 export const WardrobePlanner = (() => {
   'use strict';
-  const PANEL = 1.8, BASE = 9.8, LIFT_TRAVEL = 65, RAIL_DROP = 6, FLOOR_CLEAR = 2, FOLD_T = 3;
-  const LIMITS = { drawer: [15, 30, 25, 35, 22, 45], sdrawer: [8, 18, 25, 35, 12, 30], void: [0, 400, 0, 0, 1, 0], shelf: [15, 65, 25, 35, 30, 15], folded: [22, 38, 25, 35, 28, 18], seasonal: [25, 65, 25, 35, 40, 20], short: [100, 120, 45, 55, 106, 30], long: [130, 195, 45, 55, 160, 40], pants: [65, 85, 45, 50, 75, 65], shoe: [18, 35, 25, 35, 24, 25], basket: [25, 45, 30, 35, 32, 40], lift: [100, 120, 55, 55, 106, 130] };
+  // Board thickness and plinth come from the catalogue; BASE is where the first fitting starts.
+  const PANEL = CATALOG_PANEL, BASE = PLINTH + CATALOG_PANEL, LIFT_TRAVEL = 65, RAIL_DROP = 6, FLOOR_CLEAR = 2, FOLD_T = 3;
+  // [min, max, minWidth, minDepth, default height, price] per fitting kind, from the fittings registry.
+  const LIMITS = plannerLimits();
   const KEYS = ['short', 'long', 'pants', 'folded', 'shoes', 'small'];
   // Possessions that stand on a shelf are counted from the registry: one zero capacity each.
   const SHELF_ZERO = Object.fromEntries(SHELF_POSSESSIONS.map(p => [p.key, 0]));
