@@ -1,5 +1,6 @@
 // The room (Studio) in the real editor: place a room from Add item, select a wall on the model, drag it,
-// undo, add a door, type a size, deselect. Desktop with a mouse and a phone with touch. Needs the dev
+// undo, add a door, type a size, deselect. Desktop with a mouse and a phone with touch. Then two wardrobes
+// facing each other: the one in front steps aside when you add to the other. Needs the dev
 // server at 127.0.0.1:5173. Screenshots go to docs/verification/ (or STUDIO_SHOTS).
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
@@ -70,5 +71,26 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   assert.deepEqual(errors,[]);
   await page.close();
   console.log('studio '+view.name+' ok');
- } } finally { await browser.close(); }
+ }
+ // Two wardrobes facing each other: adding to one must not show the back of the other.
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:5173/editor.html');
+ await page.locator('[data-editor-id="more-btn"]').waitFor();
+ await page.evaluate(async()=>{
+  const { createEditorState } = await import('/src/application/projects/editor-state.ts');
+  const { mountEditor } = await import('/src/presentation/editor/mount-editor.ts');
+  const root=document.createElement('div'); root.style.cssText='position:absolute;inset:0'; document.getElementById('editor-root').replaceWith(root);
+  mountEditor({ root, initialScene: { activeWardrobe: 1, nextWardrobeId: 3, wardrobes: [
+   { id: 1, name: 'Wardrobe 1', x: 0, y: 0, z: 0, angle: 0, state: createEditorState() },
+   { id: 2, name: 'Wardrobe 2', x: 0, y: 0, z: 150, angle: 180, state: createEditorState() }] } });
+ });
+ await page.waitForTimeout(800);
+ await page.locator('[data-editor-id="more-btn"]').tap();await page.waitForTimeout(1500);
+ const names=await page.locator('.wardrobe-name').evaluateAll(es=>es.map(e=>e.textContent+':'+e.style.display));
+ assert.deepEqual(names.sort(),['Wardrobe 1:block','Wardrobe 2:none'],'the wardrobe in front steps aside: '+names);
+ await page.screenshot({path:path.join(shots,'studio-facing-wardrobes-phone.jpg')});
+ assert.deepEqual(errors,[]);
+ console.log('facing wardrobes ok');
+ } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exit(1);});

@@ -10,7 +10,14 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
     function cast(e, arr) {
         const r = resources.cv.getBoundingClientRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
-        return interactionState.ray.intersectObjects(arr)[0];
+        // A wardrobe hidden because it blocks the view takes no clicks: they reach what is behind it.
+        return interactionState.ray.intersectObjects(arr).find(h => shown(h.object));
+    }
+    /** Whether the object's top group (a wardrobe, or the room) is on show. */
+    function shown(object) {
+        let o = object;
+        while (o.parent && o.parent.type !== 'Scene') o = o.parent;
+        return o.visible;
     }
     function hitAt(e) {
         const h = cast(e, renderState.hits);

@@ -1,5 +1,6 @@
 import { createStudioRenderer } from './studio-renderer';
 import { createStudioOverlay } from './studio-overlay';
+import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -27,6 +28,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // Optional: renderer tests build this without a 3D scene.
     const studio = resources?.scene ? createStudioRenderer(resources.scene) : null;
     if (studio) lifetime.cleanup(() => studio.dispose());
+    // Another wardrobe between the camera and the selected one steps aside, leaving an outline.
+    const occlusion = resources?.scene ? createWardrobeOcclusion(resources.scene) : null;
+    if (occlusion) lifetime.cleanup(() => occlusion.dispose());
+    const sceneFrame = { frame: (cam, dt) => {
+        studio?.frame(cam, dt);
+        occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
+    } };
     // Room editing: handles, rulers and guides for the selected wall or opening.
     const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
         label: (p, t, c) => label(p, t, c), bindRuler: (e, a, b, x) => bindRuler(e, a, b, x), editor: studioEditor }) : null;
@@ -38,7 +46,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         overlay?.draw();
         positionLabels();
     }
-    const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio: studio ?? undefined, callbacks: { get positionLabels() {
+    const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio: sceneFrame, callbacks: { get positionLabels() {
                 return positionLabels;
             } } });
     const { holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, drawSnapGuides } = createMovementOverlays({ dom, geometry, callbacks: { get label() {
@@ -251,7 +259,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 l.owner.localToWorld(renderState.pv);
             }
             renderState.pv.project(resources.cam);
-            const visible = renderState.pv.z < 1 && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
+            // Labels of a wardrobe hidden because it blocks the view are hidden with it.
+            const visible = renderState.pv.z < 1 && l.owner?.visible !== false && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
             l.el.style.display = visible ? (l.el.classList.contains('wardrobe-actions') ? 'flex' : 'block') : 'none';
             if (!visible) {
                 if (l.rulerNode) {
