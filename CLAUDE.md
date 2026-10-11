@@ -65,6 +65,11 @@ Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`, `PURPOSES`
   on desktop and at phone width (375 px), and share screenshots. Say plainly what was not verified.
 - When asked to check the scope of something, report the scope and wait before building.
 
+## Work in progress
+
+- **Studio** (rooms around the wardrobes), branch `feature/studio`: see [docs/studio-handoff.md](docs/studio-handoff.md)
+  for decisions, status and what is left.
+
 ## Known gaps
 
 - Auto design plans each bay of a shaped wardrobe only up to the lowest point of the top above it
