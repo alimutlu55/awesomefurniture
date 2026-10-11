@@ -51,6 +51,15 @@
   <h2>Specs</h2><div id="specs"></div>
  </div>
 </div>
+<button id="room-toggle" class="tb room-toggle" aria-expanded="false" aria-controls="room-panel">Room</button>
+<section id="room-panel" class="room-panel" aria-label="Room studio" hidden>
+ <div class="room-heading"><h2>Room studio</h2><button id="room-close" aria-label="Close room editor">×</button></div>
+ <div id="room-picker"><div id="studio-templates" class="shape-templates" role="group" aria-label="Room around the wardrobes"></div>
+ <p class="shape-caption" id="studio-caption" aria-live="polite"></p></div>
+ <div class="room-actions"><button id="room-edit">Edit room</button><button id="room-plan">Plan view</button><button id="room-view">3D view</button><button id="room-draw">Draw wall</button></div>
+ <p id="room-help" class="shape-summary"></p><div id="room-fields"></div><p id="room-feedback" role="status"></p>
+</section>
+<div id="room-overlay" class="room-overlay" hidden></div>
 <aside id="left" aria-label="Cabinet properties">
  <div class="wardrobe-header"><h1><select id="wardrobe-select" aria-label="Selected wardrobe"></select></h1><button id="wardrobe-add" aria-label="Add wardrobe" title="Add wardrobe"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11v16H4zM9.5 4v16M7.3 11.2v1.8M11.7 11.2v1.8M19 8.5v6M16 11.5h6"/></svg></button></div>
 <div id="left-body">
@@ -58,8 +67,7 @@
 <h2>Shape</h2><div id="shape-templates" class="shape-templates" role="group" aria-label="Wardrobe shape"></div>
 <p class="shape-caption" id="shape-caption" aria-live="polite"></p>
 <details class="fold shape-fold" id="shape-fold"><summary>Adjust panels</summary><div id="shape-panels" class="shape-panels"></div></details>
-<h2>Room</h2><div id="studio-templates" class="shape-templates" role="group" aria-label="Room around the wardrobes"></div>
-<p class="shape-caption" id="studio-caption" aria-live="polite"></p>
+
 <h2>Sections</h2><div class="size-row" id="section-row"><div id="nseg" role="group" aria-label="Number of sections"><button type="button" id="sec-minus" aria-label="Merge selected section" title="Merge selected section · Undo available">−</button><span id="section-count" aria-live="polite"></span><button type="button" id="sec-plus" aria-label="Split selected section" title="Split selected section · Undo available">+</button></div><div id="section-diagram" role="group" aria-label="Sections, click to select"></div></div>
 <div class="reach-row"><label class="reach-guide-toggle"><input id="wardrobe-reach-line" type="checkbox"> Max reach line</label><span id="reach-height-row" class="reach-height-field" hidden><input id="wardrobe-reach" aria-label="Wardrobe max reach height in centimetres" type="number" min="140" max="210" step="5" inputmode="numeric"><small>cm</small></span></div>
 

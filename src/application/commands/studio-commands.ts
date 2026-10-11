@@ -59,6 +59,15 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return true;
   }
 
+  /** Checks a candidate without mutating the scene or reporting a toast, for live drag feedback. */
+  function studioEditProblem(next: Studio | null): string | null {
+    if (!next) return 'This edit does not fit. Choose another position or a longer wall.';
+    const problem = studioProblems(next)[0];
+    if (problem) return problem;
+    if (blockedBy(next).length) return 'A wardrobe is in the way. Move it before moving this wall.';
+    return null;
+  }
+
   /** Commits an edit to the room. `recordHistory` false is a live preview during a drag (the drag
    * takes one checkpoint when it starts). Refused, with the reason, if the room would not be valid or
    * a wall would cut through a wardrobe. */
@@ -66,10 +75,9 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     const scene = getScene();
     if (!scene.studio) return false;
     const next = edit(scene.studio);
-    if (!next) return false;
-    const problem = studioProblems(next)[0];
+    const problem = studioEditProblem(next);
     if (problem) { report(problem); return false; }
-    if (blockedBy(next).length) { report('A wardrobe is in the way. Move it before moving this wall.'); return false; }
+    if (!next) return false;
     if (JSON.stringify(next) === JSON.stringify(scene.studio)) return false;
     if (recordHistory) checkpoint();
     scene.studio = next;
@@ -95,5 +103,5 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, placeNewCabinet, wallSnap };
+  return { placeStudio, editStudio, studioEditProblem, placeNewCabinet, wallSnap };
 }

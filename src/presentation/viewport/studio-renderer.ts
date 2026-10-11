@@ -1,14 +1,15 @@
 import * as THREE from 'three';
-import { studioBounds, wallExtent, wallLine } from '../../domain/studio/studio';
+import { studioFloorPolygons } from './studio-layout';
+import { wallExtent, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 
 /** Colours of the room. Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
   wall: '#efe9df', skirting: '#f7f4ee', frame: '#ece6dc', door: '#f4f0e8', handle: '#a9a39a', glass: '#cfe2ea',
-  floorA: '#d6c3a2', floorB: '#cdb894', floorLine: '#b9a37f',
+  floorA: '#b89466', floorB: '#a98153', floorLine: '#81633e',
 });
 /** Opacity a wall fades to when the camera looks at the room through it. */
-const CUTAWAY = .12;
+const CUTAWAY = 0;
 const SKIRTING = { height: 8, depth: 1.5 }, CASING = { width: 7, depth: 2 }, LEAF = 4;
 
 interface WallView { group: THREE.Group; materials: THREE.MeshStandardMaterial[]; mid: THREE.Vector3; normal: THREE.Vector3; opacity: number }
@@ -56,6 +57,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
   }
   function apply(view: WallView, opacity: number) {
     view.opacity = opacity;
+    view.group.visible = opacity > 0;
     for (const m of view.materials) {
       m.opacity = opacity * (m.userData.base as number);
       m.transparent = opacity < .999 || (m.userData.base as number) < 1;
@@ -114,22 +116,17 @@ export function createStudioRenderer(scene: THREE.Scene) {
   }
 
   function floor(studio: Studio) {
-    const b = studioBounds(studio)!, closed = studio.walls.every(w => studio.walls.some(o => o !== w && (o.a === w.b || o.b === w.b)));
-    const shape = new THREE.Shape();
-    if (closed) {
-      // The room's own outline, walked along its walls.
-      const order = [studio.walls[0]!];
-      while (order.length < studio.walls.length) { const next = studio.walls.find(w => w.a === order.at(-1)!.b); if (!next || order.includes(next)) break; order.push(next); }
-      order.forEach((w, i) => { const c = studio.corners.find(x => x.id === w.a)!; if (i) shape.lineTo(c.x, -c.z); else shape.moveTo(c.x, -c.z); });
-    } else {
-      // Open layouts: floor in front of the walls, as far as a person would stand.
-      shape.moveTo(b.x0 - 80, -b.z0); shape.lineTo(b.x1 + 80, -b.z0); shape.lineTo(b.x1 + 80, -(b.z1 + 260)); shape.lineTo(b.x0 - 80, -(b.z1 + 260));
-    }
-    const geometry = new THREE.ShapeGeometry(shape);
+    const shapes = studioFloorPolygons(studio).map(points => {
+      const shape = new THREE.Shape();
+      points.forEach((p, i) => { if (i) shape.lineTo(p.x, -p.z); else shape.moveTo(p.x, -p.z); });
+      shape.closePath();
+      return shape;
+    });
+    const geometry = new THREE.ShapeGeometry(shapes);
     geometry.rotateX(-Math.PI / 2);
     floorTexture = planks();
     const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ map: floorTexture, roughness: .85, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
-    mesh.position.y = -.05;
+    mesh.position.y = .05;
     mesh.receiveShadow = true;
     return mesh;
   }
