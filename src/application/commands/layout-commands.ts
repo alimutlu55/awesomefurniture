@@ -31,8 +31,11 @@ export function createLayoutCommands({ getDesign, effects, rules }: Ports) {
     }
     function applyProposal(p: PlannerProposal,selected=0) {
         effects.checkpoint();
+        // An idea planned for the wardrobe's own bays keeps their exact weights, so steps anchored to
+        // bay boundaries do not shift by floating-point noise.
+        const current = rules.widths(), sameBays = p.sections.length === getDesign().n && p.sections.every((s, i) => Math.abs(s.width - current[i]!) < .01);
         getDesign().n = p.sections.length;
-        getDesign().wt = p.sections.map(s => s.width).concat([100, 100, 100, 100, 100, 100]).slice(0, 6);
+        if (!sameBays) getDesign().wt = p.sections.map(s => s.width).concat([100, 100, 100, 100, 100, 100]).slice(0, 6);
         getDesign().secs = p.sections.map(s => structuredClone(s.items)).concat([[], [], [], [], [], []]).slice(0, 6);
         getDesign().sel = selected;
         getDesign().item = -1;

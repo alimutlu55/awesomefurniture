@@ -27,7 +27,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     const movementRules = createMovementRules(ctx, { ...sizesRules, ...layoutRules, ...fitRules, ...dividersRules, ...spacesRules });
     const measurementsRules = createMeasurementsRules(ctx, { ...ceilingRules, ...layoutRules, ...fitRules, ...spacesRules });
     const costingRules = createCostingRules(ctx, { ...ceilingRules, ...layoutRules });
-    const plannerConfigRules = createPlannerConfigRules(ctx, {});
+    const plannerConfigRules = createPlannerConfigRules(ctx, { ...ceilingRules, ...layoutRules });
     const {
         itemMinW, effectiveMin, itemFeasible, newItem, splitFor, okItem, bayMinW, minTotal, maxN, shapeInfo,
         floor2, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, cutOutline, widths,

@@ -2,6 +2,7 @@ import type { EditorDivider } from '../wardrobe/editor-design';
 import type { PlannerConfig,PlannerSection } from './wardrobe-planner';
 import { WardrobePlanner } from './wardrobe-planner.js';
 import { number,selectionContext,SELECTION_RULES as R } from './selection-config';
+import { bayClearHeights } from './bay-ceilings';
 export interface OpenSpace {bay:number;x:number;y:number;w:number;h:number;depth:number}
 export interface Rect {x:number;y:number;w:number;h:number}
 export function boardRect(board:EditorDivider):Rect {
@@ -21,7 +22,9 @@ export function createSpaceModel(cfg:PlannerConfig) {
  const widths=(fixed?.map(s=>s.width)??cfg.bayWidths as number[]|undefined)??[number(cfg.w,200)-R.panel/5];
  const sections:PlannerSection[]=widths.map((width,i)=>({width,items:structuredClone(fixed?.[i]?.items??[]),role:'Available space'}));
  const dividers=structuredClone((cfg.fixedDividers??[]) as EditorDivider[]);
- let spaces:OpenSpace[]=sections.map((s,bay)=>({bay,x:0,y:0,w:s.width*10,h:c.height,depth:c.depth}));
+ // Under a sloped or stepped top, a bay only has the height below its lowest point.
+ const ceilings=bayClearHeights(cfg,widths);
+ let spaces:OpenSpace[]=sections.map((s,bay)=>({bay,x:0,y:0,w:s.width*10,h:Math.min(c.height,ceilings?.[bay]??c.height),depth:c.depth}));
  sections.forEach((s,bay)=>{
   const obstacles:Rect[]=WardrobePlanner.layoutSection(s.items,s.width).map(p=>({x:p.x0*10,y:p.y0*10,w:p.w*10,h:p.h*10}));
   obstacles.push(...dividers.filter(d=>d.i===bay).map(boardRect));

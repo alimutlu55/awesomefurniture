@@ -67,9 +67,10 @@ Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`, `PURPOSES`
 
 ## Known gaps
 
-- Auto design ignores the wardrobe shape: `plannerConfig()` does not pass it, so sloped and
-  stepped wardrobes are planned as rectangles and cut to the shape when applied. The golden
-  fixtures record this; fixing it will change them.
+- Auto design plans each bay of a shaped wardrobe only up to the lowest point of the top above it
+  (`planner/bay-ceilings.ts`), so the space above that point under a slope stays empty. On narrow
+  fixed bays the planner can give a whole tall bay to long garments and leave shirts out
+  (under-stairs default: 0 of 24 shirts).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,
