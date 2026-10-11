@@ -244,3 +244,18 @@ test('a divider adapts to the height: it is cut when the slope drops and grows b
   assert.ok(Math.abs(back.y1! - rules.clampDivider(back).y1!) < .01, 'and matches the slope at its position');
   assert.ok(back.y1! <= wanted + .01, 'never above the wanted height');
 });
+
+test('a shelf uses another open space in its section when the selected one is too small', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const state = createEditorState();
+  Object.assign(state, { h: H, n: 1, wt: [100, 100, 100, 100, 100, 100], sel: 0, dividers: [] });
+  // A narrow tall item on the left leaves a thin strip above it, and a wide open area on the right.
+  state.secs[0] = [{ k: 'folded', h: 190, w: 25, x: 0, y: 0, ax: 'l' } as never];
+  const messages: string[] = [];
+  const commands = createDesignCommands(() => state, { report: m => messages.push(m) });
+  // The selected point is in the thin strip above the item.
+  state.space = { i: 0, x: 10, y: 205 };
+  commands.addMod('shelf');
+  assert.equal(state.dividers.length, 1, 'a shelf is added in the open space');
+  assert.equal(messages.length, 0, 'and nothing is refused');
+});

@@ -2,7 +2,7 @@ import { PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'selectionChanged' | 'milestone' | 'closeInspector'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot' | 'clampDivider' | 'ceilingIn'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot' | 'clampDivider' | 'ceilingIn' | 'sectionSpaces'>;
     run(fn: () => void): void;
 };
 export function createDividerCommands({ getDesign, effects, rules, run }: Ports) {
@@ -106,14 +106,24 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             effects.milestone('cut');
         });
     }
+    /** A shelf needs room for itself and its clearance on both sides. */
+    const shelfFits = (q: { w: number; h: number }) => (q.h - T) / 2 >= 15 && q.w >= 25;
     function addShelfBoard() {
-        const i = getDesign().sel, space = rules.sectionSpaceMeasurements(i);
+        const i = getDesign().sel;
+        let space = rules.sectionSpaceMeasurements(i);
+        if (!shelfFits(space)) {
+            // The selected space is too small, but another open space in this section may fit a shelf.
+            // Use the largest one that does, rather than refusing.
+            const fitting = rules.sectionSpaces(i).filter(shelfFits).sort((a, b) => b.w * b.h - a.w * a.h)[0];
+            if (!fitting) {
+                effects.report('No open space in this section is big enough for a shelf');
+                return;
+            }
+            space = fitting;
+            getDesign().space = { i, x: (fitting.x0! + fitting.x1!) / 2, y: (fitting.y0! + fitting.y1!) / 2 };
+        }
         if (space.x0 === undefined || space.x1 === undefined)
             return;
-        if ((space.h - T) / 2 < 15 || space.w < 25) {
-            effects.report('This space is too small for a shelf');
-            return;
-        }
         const y = (space.y0 + space.y1) / 2 - PL - T, d = { i, orientation: ('horizontal' as const), x0: space.x0, x1: space.x1, y, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } };
         run(() => {
             getDesign().dividers = (getDesign().dividers || []).concat(d);
