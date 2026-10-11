@@ -1,5 +1,5 @@
 import * as THREE from "three";
-/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> }} ports */
+/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> & { wallGuide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null): void } }} ports */
 export function createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks }) {
     function beginRotation(e, handle) {
         callbacks.cancelMovement();
@@ -110,9 +110,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             const v = g.projected[g.axis], length = v.x * v.x + v.y * v.y;
             delta[g.axis] = length > .005 ? (dx * v.x + dy * v.y) / length : dx * 1.5;
         }
+        // Whole centimetres follow the pointer smoothly; Shift moves freely.
         if (!e.shiftKey) {
             for (const k in delta) {
-                delta[k] = Math.round(delta[k] / 5) * 5;
+                delta[k] = Math.round(delta[k]);
             }
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
@@ -120,6 +121,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         // In a room, a wardrobe brought near a wall settles flush and square against it (Shift: free).
         const snap = g.axis === 'floor' && !e.shiftKey ? sceneCommands.wallSnap(w, { x: w.x, z: w.z, angle: w.angle }) : null;
         if (snap) sceneCommands.restorePose(g.id, snap);
+        callbacks.wallGuide(snap ? backEdge(snap, w.state) : null);
         renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.position.set(w.x, w.y, w.z);
         renderState.Gr.children.forEach(o => {
@@ -135,6 +137,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             return;
         }
         interactionState.wardrobeGesture = null;
+        callbacks.wallGuide(null);
         const w = model.scene.wardrobes.find(w => w.id === g.id);
         if (cancel) {
             sceneCommands.restorePose(g.id, g.origin);
@@ -144,6 +147,11 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         resources.cv.style.cursor = 'grab';
         inspector.update(true);
+    }
+    /** The back edge of a wardrobe in a pose, on the floor: where it meets the wall it snapped to. */
+    function backEdge(pose, state) {
+        const a = pose.angle * Math.PI / 180, ux = Math.cos(a), uz = -Math.sin(a), bx = pose.x - Math.sin(a) * state.d / 2, bz = pose.z - Math.cos(a) * state.d / 2;
+        return { a: { x: bx - ux * state.w / 2, z: bz - uz * state.w / 2 }, b: { x: bx + ux * state.w / 2, z: bz + uz * state.w / 2 } };
     }
     return { beginRotation, rotateFromPointer, finishRotation, beginWardrobeDrag, moveWardrobeFromPointer, finishWardrobeDrag };
 }

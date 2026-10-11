@@ -87,7 +87,9 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   function addStudioWall(prefer?: string): string | null {
     const room = getScene().studio;
     if (!room) return placeStudio('wall') ? getScene().studio!.walls[0]!.id : null;
-    const found = suggestWall(room, next => !studioProblem(next), prefer);
+    // Prefer a spot that leaves the wardrobes room to open: no new wall within 70 cm of one.
+    const clear = (next: Studio) => { const w = next.walls.at(-1)!; return !crowds(next, w.id) && !studioProblem(next); };
+    const found = suggestWall(room, clear, prefer) ?? suggestWall(room, next => !studioProblem(next), prefer);
     if (!found) { report('There is no free space for another wall. Move a wall or a wardrobe first.'); return null; }
     checkpoint();
     getScene().studio = found.studio;
@@ -117,6 +119,13 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     checkpoint();
     getScene().studio = next;
     return next.openings.at(-1)!.id;
+  }
+  /** Whether a wall comes within 70 cm of a wardrobe, on either side of it. */
+  function crowds(room: Studio, id: string) {
+    const box = studioObstacles(room).find(o => o.id === 'wall:' + id);
+    if (!box) return false;
+    const space = createCabinetGeometry(() => [], () => [{ ...box, state: { ...box.state, d: box.state.d + 140, w: box.state.w + 40 } }]);
+    return getScene().wardrobes.some(c => space.cabinetCollides(c));
   }
   /** Whether a wardrobe stands in the half metre in front of an opening, where a person walks or looks. */
   function inFrontOfOpening(room: Studio, id: string) {

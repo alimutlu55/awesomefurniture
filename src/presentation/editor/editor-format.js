@@ -33,6 +33,12 @@ export const icon = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"
 export const RANKS = ['Apprentice', 'Joiner', 'Carpenter', 'Cabinetmaker', 'Master Builder', 'Legend'];
 ICONP.plus = "M12 5v14M5 12h14";
 ICONP.divider = "M9 4v16M15 4v16";
+// The room: walls, doors, windows and archways, drawn in plan or elevation.
+ICONP["room-wall"] = "M3 9h18v6H3zM8 9v6M13 9v6M18 9v6";
+ICONP["room-door"] = "M5 20V4h11v16M3 20h18M13 12h.01M16 4l3 2v14";
+ICONP["room-window"] = "M4 5h16v12H4zM12 5v12M4 11h16M3 20h18";
+ICONP["room-archway"] = "M5 20V10a7 7 0 0 1 14 0v10M3 20h4M17 20h4";
+ICONP.split = "M3 12h7M14 12h7M12 5v14M8 9l-3 3 3 3M16 9l3 3-3 3";
 // Fitting and possession icons come from their registries.
 for (const f of FITTINGS) ICONP[f.key] = f.icon;
 for (const p of SHELF_POSSESSIONS) ICONP[p.key] = p.look.icon;

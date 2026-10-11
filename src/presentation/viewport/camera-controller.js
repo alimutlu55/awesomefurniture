@@ -5,6 +5,8 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
     const { $, document } = dom;
     let mobileInspectorFraming = false;
+    /** A box being framed (the whole room): fitted again when the view changes size, as a sheet closes. */
+    let boxFraming = null;
     let mobileSelectionFraming = false;
     let lastViewWidth = 0, lastViewHeight = 0;
     /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
@@ -132,8 +134,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return distance;
     }
-    function fittedCamera(angle = cameraState.az, elevation = cameraState.el, padding = 1.08) {
-        const bounds = cabinetGeometry.sceneBounds(), room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
+    /** @param {{ x: number; z: number; w: number; d: number; h: number }} [bounds] what to fit: the wardrobes by default */
+    function fittedCamera(angle = cameraState.az, elevation = cameraState.el, padding = 1.08, bounds = cabinetGeometry.sceneBounds()) {
+        const room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
         return { az: angle, el: elevation, x: bounds.x, y: bounds.h / 2, z: bounds.z, dist: cameraFitDistance(bounds, angle, elevation, room.w / room.h) * scale * padding };
     }
     function selectionFocusBox() {
@@ -224,8 +227,19 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.camRestore = home;
         cameraTransition(home, 480);
     }
+    /** Flies to show a box whole (the room), and keeps it whole while panels open or close around it.
+     * @param {{ x: number; z: number; w: number; d: number; h: number }} bounds */
+    function frameBox(bounds, az, el, padding, resizing = false) {
+        if (!resizing) camRelease();
+        boxFraming = { bounds, az, el, padding };
+        const goal = fittedCamera(az, el, padding, bounds);
+        if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
+        else if (resizing) cameraTransition(goal, 240);
+        else cameraFlyTo(goal);
+    }
     function camRelease() {
         mobileInspectorFraming = false;
+        boxFraming = null;
         cameraState.camGoal = cameraState.camHome = cameraState.camRestore = cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = cameraState.vs;
@@ -306,6 +320,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             inspector.layoutPop(p);
         }
         if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
+        else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }

@@ -8,15 +8,15 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./editor-gestures.ports').CreateEditorGesturesPorts} ports */
-export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }) {
+export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room }) {
     const { $, matchMedia } = dom;
-    const { pick, hover } = createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera });
+    const { pick, hover } = createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera, room });
     const { beginItemEdgeResize, moveItemEdgeResize, finishItemEdgeResize, buildSnapContext, snapPxPerCm, snapItemEdge, setManualItemSize } = createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks: { get cancelMovement() {
                 return cancelMovement;
             } } });
     const { beginRotation, rotateFromPointer, finishRotation, beginWardrobeDrag, moveWardrobeFromPointer, finishWardrobeDrag } = createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks: { get cancelMovement() {
                 return cancelMovement;
-            } } });
+            }, wallGuide: segment => rendering.wallGuide(segment) } });
     const { beginDividerDrag, moveDividerDrag, finishDividerDrag } = createDividerDrag({ dom, resources, model, picking, camera, cameraState, interactionState, commands, rendering, history, inspector });
     function cancelMovement() {
         rendering.holdOverlay(false);

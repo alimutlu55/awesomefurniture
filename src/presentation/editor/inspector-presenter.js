@@ -18,7 +18,7 @@ import { shapeTemplates, templateArt } from './shape-art';
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel }) {
     const { $, document, matchMedia } = dom;
-    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template) });
+    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
             }, get hidePop() {

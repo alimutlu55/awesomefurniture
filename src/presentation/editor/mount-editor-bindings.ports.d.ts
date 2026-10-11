@@ -22,4 +22,6 @@ readonly sceneCommands: Readonly<ReturnType<typeof import('../../application/com
 readonly history: Readonly<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>>;
 readonly lifetime: Readonly<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>>;
 readonly elements: ReturnType<typeof import('./editor-dom.js').getEditorElements>;
+/** The room editor and its Size fields, for the contextual toolbar. */
+readonly room: Pick<ReturnType<typeof import('./room-wiring').createRoomWiring>, 'editor' | 'fields'>;
 }

@@ -1,4 +1,5 @@
 import { createStudioRenderer } from './studio-renderer';
+import { createStudioOverlay } from './studio-overlay';
 import * as THREE from "three";
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -12,7 +13,8 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
-export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }) {
+export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
+    shapeInspector, studioEditor }) {
     const { $, document } = dom;
     let renderDesign = model.activeCabinet().state;
     const geometry = createWardrobeGeometry(() => renderDesign, () => settings.budget);
@@ -25,6 +27,17 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // Optional: renderer tests build this without a 3D scene.
     const studio = resources?.scene ? createStudioRenderer(resources.scene) : null;
     if (studio) lifetime.cleanup(() => studio.dispose());
+    // Room editing: handles, rulers and guides for the selected wall or opening.
+    const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
+        label: (p, t, c) => label(p, t, c), bindRuler: (e, a, b, x) => bindRuler(e, a, b, x), editor: studioEditor }) : null;
+    if (overlay) lifetime.cleanup(() => overlay.dispose());
+    /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */
+    function redrawStudio() {
+        studio?.sync(model.scene.studio);
+        studio?.select(studioEditor?.valid() ?? null);
+        overlay?.draw();
+        positionLabels();
+    }
     const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio: studio ?? undefined, callbacks: { get positionLabels() {
                 return positionLabels;
             } } });
@@ -91,6 +104,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     function build() {
         studio?.sync(model.scene.studio);
+        studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
@@ -153,6 +167,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         WardrobePlanner.configure(geometry.plannerConfig());
         inspector.crumbUI();
         resources.contact.visible = false;
+        overlay?.draw();
         if (renderState.dividerMoveHandle && !renderState.labs.some(l => l.el === renderState.dividerMoveHandle)) {
             renderState.dividerMoveHandle.remove();
         }
@@ -211,6 +226,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     function positionLabels() {
         inspector.updateItemBar();
+        overlay?.orient();
         const r = resources.cv.getBoundingClientRect();
         updateItemResizeHandles();
         updateMoveIcons();
@@ -317,5 +333,5 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
         });
     }
-    return { theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
+    return { redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
 }

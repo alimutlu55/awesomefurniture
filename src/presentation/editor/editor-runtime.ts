@@ -1,4 +1,5 @@
 import { createStudioPanel } from './studio-panel';
+import { createRoomWiring } from './room-wiring';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { createEditorDom } from './editor-dom';
@@ -124,16 +125,20 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             disposeResources: () => lifetime.dispose()
         });
-        // The Room section: choosing a studio places it and frames the wardrobes in their room.
-        const studioPanel = createStudioPanel({ dom, model, sceneCommands, callbacks: { refresh: () => inspector.update(true), frameRoom: () => camera.cameraFlyTo(camera.fittedCamera(.55, .32, 1.7)) } });
+        // The room: selecting and editing walls and openings, and choosing a built-in studio (framed whole).
+        const room = createRoomWiring({ dom, model, sceneCommands, history, picking, selectionState, listen: lifetime.listen, late: {
+            rendering: () => rendering, inspector: () => inspector, report: message => shell.toast(message), camera: () => camera, wardrobeBounds: () => cabinetGeometry.sceneBounds() } });
+        const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
+            placed: () => { selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
+            added: selection => { selectionState.room = selection; inspector.clearFocus(); }, refresh: () => inspector.update(true) } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
-        renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }));
-        interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }));
+        renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector, studioEditor: room.editor }));
+        interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room: room.room }));
         inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
-        mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
+        mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();

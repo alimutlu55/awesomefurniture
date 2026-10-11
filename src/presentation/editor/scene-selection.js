@@ -1,7 +1,15 @@
-/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'picking' | 'renderState' | 'inspector' | 'selectionState' | 'model' | 'resources' | 'camera'>} ports */
-export function createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera }) {
+/** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'picking' | 'renderState' | 'inspector' | 'selectionState' | 'model' | 'resources' | 'camera' | 'room'>} ports */
+export function createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera, room }) {
+    /** The wall or opening under the pointer, when no wardrobe is in front of it. */
+    const roomHit = (e, wardrobe) => {
+        const hit = room ? picking.cast(e, room.pickables()) : undefined;
+        return hit && (!wardrobe || hit.distance < wardrobe.distance) ? hit : undefined;
+    };
     function pick(e) {
-        const h = picking.cast(e, renderState.allHits);
+        const h = picking.cast(e, renderState.allHits), part = roomHit(e, h);
+        if (part && room.pick(part)) return;
+        // A click anywhere else leaves the room part it had selected.
+        selectionState.room = null;
         if (!h) {
             inspector.clearFocus();
             return;
@@ -68,7 +76,8 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             }
             o.visible = x === h || !!o.userData.s;
         });
-        resources.cv.style.cursor = h || i >= 0 || picking.cast(e, renderState.allHits) ? 'pointer' : 'grab';
+        const wardrobe = h || i >= 0 ? null : picking.cast(e, renderState.allHits);
+        resources.cv.style.cursor = h || i >= 0 || wardrobe || roomHit(e, wardrobe) ? 'pointer' : 'grab';
     }
     return { pick, hover };
 }

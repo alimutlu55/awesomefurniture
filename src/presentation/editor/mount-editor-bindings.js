@@ -18,7 +18,7 @@ import * as wizardBindings from './wizard-bindings.js';
 import * as shellBindings from './shell-bindings.js';
 import { MODS } from '../../domain/wardrobe/catalog.js';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
-export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements }) {
+export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room }) {
     const { $, document } = dom;
     mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),
         fields: [{ input: $('#iw'), axis: 'width' }, { input: $('#ih'), axis: 'height' },
@@ -194,9 +194,11 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
-        getSelection: () => !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
+        // A selected wall or opening of the room has its own actions.
+        getSelection: () => selectionState.room ? selectionState.room.kind : !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
+            if (key === 'wall-size' || key === 'opening-size') { room.fields.render(); return [room.fields.root]; }
             const divider = model.activeCabinet().state.divider >= 0;
             if (key === 'stores') {
                 if (divider) return [];
@@ -206,6 +208,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;
             if (key === 'resize') { resize.open(); return; }

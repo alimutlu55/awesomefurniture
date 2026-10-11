@@ -132,14 +132,16 @@ export function suggestWall(studio: Studio, fits: (next: Studio) => boolean, pre
       if (next && fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
     }
   }
-  const longest = studio.walls.map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line).sort((p, q) => q.line!.length - p.line!.length)[0];
-  if (!longest) return null;
-  const { line } = longest as { line: NonNullable<ReturnType<typeof wallLine>> };
-  const half = Math.min(length, line.length - 2 * L.minWallLength) / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
-  for (const depth of [120, 90, 160, 60, 200]) {
-    const cx = mid.x + line.nx * depth, cz = mid.z + line.nz * depth;
-    const next = addWall(studio, cx - line.ux * half, cz - line.uz * half, cx + line.ux * half, cz + line.uz * half);
-    if (half * 2 >= L.minWallLength && fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
+  // A closed room: free-standing, parallel to a wall (longest first), a little way into the room.
+  const lines = studio.walls.map(w => wallLine(studio, w)).filter(x => x !== null).sort((p, q) => q.length - p.length);
+  for (const line of lines) {
+    const half = Math.min(length, line.length - 2 * L.minWallLength) / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+    if (half * 2 < L.minWallLength) continue;
+    for (const depth of [120, 90, 160, 60, 200]) {
+      const cx = mid.x + line.nx * depth, cz = mid.z + line.nz * depth;
+      const next = addWall(studio, cx - line.ux * half, cz - line.uz * half, cx + line.ux * half, cz + line.uz * half);
+      if (fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
+    }
   }
   return null;
 }

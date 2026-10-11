@@ -70,6 +70,11 @@ test('Add wall and Add door, window or archway: one undo step each, refused with
   assert.equal(s.room().walls.length, 2);
   assert.equal(s.checkpoints(), 2);
 
+  const inRoom = scene();
+  inRoom.commands.placeStudio('bedroom');
+  const free = inRoom.commands.addStudioWall()!, line = wallLine(inRoom.room(), inRoom.room().walls.find(w => w.id === free)!)!;
+  assert.ok(Math.min(line.a.z, line.b.z) > 30 + 70, 'a free-standing wall keeps 70 cm clear of the wardrobe front');
+
   const t = scene();
   t.commands.placeStudio('bedroom');
   const door = t.commands.addStudioOpening('door');
