@@ -67,6 +67,16 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     }
                 }
             }
+            else if (k === 'shelf' && it.purpose === 'handbags') {
+                // Handbags stand upright on the shelf: a 31 × 14 × 23 cm design bag, 33 cm per bag with a 2 cm gap.
+                const bagW = 31, bagD = Math.min(14, d - 6), bagH = 23, pitch = 33, count = Math.max(0, Math.floor((sw - 2) / pitch));
+                const fits = hh >= bagH + 2;
+                for (let j = 0; j < count && fits; j++) {
+                    const bx = cx - (count - 1) * pitch / 2 + j * pitch;
+                    box(bagW, bagH, bagD, bx, base + bagH / 2, 0, resources.M(COL[(j * 2) % 8]!));
+                    box(bagW * .45, 1, 1.2, bx, base + bagH + .5, 0, mh);
+                }
+            }
             else if (k === 'folded' || (k === 'shelf' && ['folded', 'pants'].includes(it.purpose ?? ''))) {
                 const stacks = WardrobePlanner.geo.foldStacks(sw, false), layers = Math.min(5, Math.floor((hh - 5) / 4)), fw = Math.min(23, sw - 4);
                 for (let j = 0; j < stacks; j++) {

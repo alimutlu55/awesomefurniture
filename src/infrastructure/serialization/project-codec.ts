@@ -14,7 +14,7 @@ const editorItem = z.strictObject({
   id:id.optional(),
   k: z.enum(['drawer','sdrawer','void','shelf','folded','seasonal','short','long','pants','shoe','basket','lift']),
   f: z.enum(['Oak','White','Walnut','Graphite','Sage']).nullable().optional(),
-  h: nonnegative, purpose: z.enum(['reserve','free','small','short','long','pants','folded','accessories','shoes','seasonal','luggage','linen','laundry']).optional(),
+  h: nonnegative, purpose: z.enum(['reserve','free','small','short','long','pants','folded','accessories','shoes','seasonal','luggage','linen','laundry','handbags']).optional(),
   w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
   front: z.boolean().optional(), boxes: count.optional(),
 });
@@ -40,7 +40,7 @@ const item = z.strictObject({
   editorItem: editorItem.optional(),
   id,
   kind: z.enum(['drawer', 'sdrawer', 'void', 'shelf', 'folded', 'seasonal', 'short', 'long', 'pants', 'shoe', 'basket', 'lift']),
-  purpose: z.enum(['reserve', 'free', 'small', 'short', 'long', 'pants', 'folded', 'accessories', 'shoes', 'seasonal', 'luggage', 'linen', 'laundry']),
+  purpose: z.enum(['reserve', 'free', 'small', 'short', 'long', 'pants', 'folded', 'accessories', 'shoes', 'seasonal', 'luggage', 'linen', 'laundry', 'handbags']),
   width: positive,
   height: nonnegative,
   x: nonnegative,

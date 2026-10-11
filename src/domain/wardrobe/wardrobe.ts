@@ -8,7 +8,7 @@ export type ItemKind =
 
 export type StoragePurpose =
   | 'free' | 'small' | 'short' | 'long' | 'pants' | 'folded'
-  | 'reserve' | 'accessories' | 'shoes' | 'seasonal' | 'luggage' | 'linen' | 'laundry';
+  | 'reserve' | 'accessories' | 'shoes' | 'seasonal' | 'luggage' | 'linen' | 'laundry' | 'handbags';
 
 export interface WardrobeItem {
   readonly editorItem?: EditorItem | undefined;

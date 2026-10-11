@@ -275,3 +275,20 @@ test('four shelves added in a row stay in the open area they were started in', a
   for (const d of state.dividers) assert.ok(d.x0! >= 25 - .01, 'each shelf is in the open area, not on the far side');
   assert.equal(messages.length, 0);
 });
+
+test('handbags are a shelf storage purpose and survive saving a project', async () => {
+  const { compatiblePurposes, PURPOSE } = await import('../../src/domain/wardrobe/catalog.js');
+  assert.ok(compatiblePurposes('shelf').includes('handbags'), 'offered on shelves');
+  assert.ok(!compatiblePurposes('drawer').includes('handbags'), 'not offered on drawers');
+  assert.equal((PURPOSE as Record<string, string>).handbags, 'Handbags');
+  const { sceneToProject, projectToScene } = await import('../../src/application/projects/editor-mapper');
+  const { createProject } = await import('../../src/domain/project/project');
+  const { deserializeProject, serializeProject } = await import('../../src/infrastructure/serialization/project-codec');
+  const state = createEditorState();
+  Object.assign(state, { h: H, n: 1, wt: [100, 100, 100, 100, 100, 100], sel: 0, dividers: [] });
+  state.secs[0] = [{ k: 'shelf', h: 30, purpose: 'handbags', x: 0, y: 40, w: 100 } as never];
+  const scene = { wardrobes: [{ id: 1, name: 'W', x: 0, y: 0, z: 0, angle: 0, state }], activeWardrobe: 1, nextWardrobeId: 2 };
+  const json = serializeProject(sceneToProject(createProject('p', 'Bags'), scene as never));
+  const back = projectToScene(deserializeProject(json))!;
+  assert.equal(back.wardrobes[0]!.state.secs[0]![0]!.purpose, 'handbags');
+});
