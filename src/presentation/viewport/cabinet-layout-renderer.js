@@ -64,6 +64,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
         });
         splitPool.slice(splits.length).forEach(el => el.remove());
+        if (editing) {
+            for (const q of shapeInspector.measures()) {
+                label(new THREE.Vector3(q.x, q.y, d / 2 + 2), q.text, 'lbl dim ' + q.cls);
+            }
+        }
         handles.forEach((q, n) => {
             const el = shapeHandle(n);
             el.dataset.index = String(q.index);

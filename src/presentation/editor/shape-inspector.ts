@@ -153,6 +153,22 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         }
         return out;
     }
+    /** Live measurements of every panel and step, placed on the model. Each panel
+     * shows its length and angle; each step its rise. Re-computed on every change. */
+    function measures() {
+        const shape = current(), w = state().w, out: { x: number; y: number; text: string; cls: string }[] = [];
+        for (const panel of shapePanels(shape)) {
+            if (panel.kind === 'top') {
+                const a = shape.top[panel.from]!, b = shape.top[panel.to]!;
+                out.push({ x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2 + 9, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', cls: 'shape-measure top' });
+            }
+            else if (panel.kind === 'step') {
+                const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y;
+                out.push({ x: a.x - w / 2 + (rise > 0 ? -6 : 6), y: (a.y + b.y) / 2, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', cls: 'shape-measure step' });
+            }
+        }
+        return out;
+    }
     function split(index: number) {
         const shape = current(), next = splitPanel(shape, index);
         if (next !== shape) commit(next);
@@ -202,5 +218,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, splitMarkers, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, measures, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }
