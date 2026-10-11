@@ -153,18 +153,19 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         }
         return out;
     }
-    /** Live measurements of every panel and step, placed on the model. Each panel
-     * shows its length and angle; each step its rise. Re-computed on every change. */
+    /** Live measurements as rulers, like the item rulers: a top panel gets a line
+     * offset above it, a step a line beside its riser. Endpoints are cabinet-centred. */
     function measures() {
-        const shape = current(), w = state().w, out: { x: number; y: number; text: string; cls: string }[] = [];
+        const shape = current(), w = state().w, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
+        const OFF = 8;
         for (const panel of shapePanels(shape)) {
             if (panel.kind === 'top') {
                 const a = shape.top[panel.from]!, b = shape.top[panel.to]!;
-                out.push({ x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2 + 9, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', cls: 'shape-measure top' });
+                out.push({ a: { x: a.x - w / 2, y: a.y + OFF }, b: { x: b.x - w / 2, y: b.y + OFF }, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', axis: 'width' });
             }
             else if (panel.kind === 'step') {
-                const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y;
-                out.push({ x: a.x - w / 2 + (rise > 0 ? -6 : 6), y: (a.y + b.y) / 2, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', cls: 'shape-measure step' });
+                const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y, x = a.x - w / 2 + (rise > 0 ? -OFF : OFF);
+                out.push({ a: { x, y: Math.min(a.y, b.y) }, b: { x, y: Math.max(a.y, b.y) }, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', axis: 'height' });
             }
         }
         return out;

@@ -67,7 +67,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         splitPool.slice(splits.length).forEach(el => el.remove());
         if (editing) {
             for (const q of shapeInspector.measures()) {
-                label(new THREE.Vector3(q.x, q.y, d / 2 + 2), q.text, 'lbl dim ' + q.cls);
+                const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
+                const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
+                bindRuler(el, a, b, q.axis);
             }
         }
         handles.forEach((q, n) => {
