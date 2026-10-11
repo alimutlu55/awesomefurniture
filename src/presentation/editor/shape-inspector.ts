@@ -162,8 +162,15 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             const t = shapeTemplates().find(x => x.id === button?.dataset.template);
             if (t) caption(t.name + ': ' + t.description);
         });
-        listen(dom.$('#shape-templates'), 'pointerleave', () => render());
-        listen(dom.$('#shape-templates'), 'focusout', () => render());
+        // Leaving a chip only restores the caption. The chips themselves must not be redrawn
+        // here: a touch tap ends with pointerleave before its click, and a redrawn chip would
+        // swallow that click.
+        const restoreCaption = () => {
+            const active = state().shape?.template ?? 'regular', t = shapeTemplates().find(x => x.id === active);
+            caption(t ? t.name + ': ' + t.description : '');
+        };
+        listen(dom.$('#shape-templates'), 'pointerleave', restoreCaption);
+        listen(dom.$('#shape-templates'), 'focusout', restoreCaption);
         listen(dom.$('#shape-fold'), 'toggle', () => {
             const open = dom.$<HTMLDetailsElement>('#shape-fold').open;
             if (open === !!selectionState.shapeEditing) return;
