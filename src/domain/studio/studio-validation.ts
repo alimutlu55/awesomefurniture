@@ -4,19 +4,12 @@ import type { Studio, StudioOpening, StudioWall } from './studio';
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
   const problems: string[] = [];
-  if (studio.corners.some(c => !Number.isFinite(c.x) || !Number.isFinite(c.z))) {
-    return ['Corner positions must be finite numbers.'];
-  }
   const ids = new Set<string>();
   for (const item of [...studio.corners, ...studio.walls, ...studio.openings]) {
     if (ids.has(item.id)) problems.push(`Two parts share the id ${item.id}.`);
     ids.add(item.id);
   }
   for (const w of studio.walls) {
-    if (!Number.isFinite(w.thickness) || !Number.isFinite(w.height)) {
-      problems.push('Wall height and thickness must be finite numbers.');
-      continue;
-    }
     const line = wallLine(studio, w);
     if (!line) { problems.push('A wall is missing one of its corners.'); continue; }
     if (w.a === w.b) problems.push('A wall needs two different corners.');
@@ -71,7 +64,6 @@ export function openingRange(length: number, width: number) {
 }
 
 function openingProblems(studio: Studio, o: StudioOpening): string[] {
-  if (![o.offset, o.width, o.height, o.sill].every(Number.isFinite)) return ['Opening position and size must be finite numbers.'];
   const w = studio.walls.find(x => x.id === o.wall) as StudioWall | undefined;
   const line = w && wallLine(studio, w);
   if (!w || !line) return ['An opening is on a wall that no longer exists.'];

@@ -1,6 +1,3 @@
-import { frameStudio } from '../viewport/studio-camera';
-import { createStudioEditor } from './studio-editor';
-import { studioCameraBounds } from '../viewport/studio-layout';
 import { createStudioPanel } from './studio-panel';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
@@ -128,15 +125,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             disposeResources: () => lifetime.dispose()
         });
         // The Room section: choosing a studio places it and frames the wardrobes in their room.
-        const frameRoom = (plan = false) => frameStudio({ dom, camera, cameraState },
-            studioCameraBounds(model.scene.studio, cabinetGeometry.sceneBounds()), plan);
-        const studioEditor = createStudioEditor({ dom, model, sceneCommands, picking, lifetime, rendering,
-            callbacks: { refresh: () => inspector.update(true), frameRoom, enter: () => {
-                selectionState.shapeEditing = false; inspector.hidePop();
-            } } });
-        const studioPanel = createStudioPanel({ dom, model, sceneCommands, callbacks: {
-            refresh: () => inspector.update(true), frameRoom, renderEditor: studioEditor.render,
-        } });
+        const studioPanel = createStudioPanel({ dom, model, sceneCommands, callbacks: { refresh: () => inspector.update(true), frameRoom: () => camera.cameraFlyTo(camera.fittedCamera(.55, .32, 1.7)) } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }));
@@ -147,7 +136,6 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
-        studioEditor.bind();
         rendering.theme();
 
         camera.fit({ instant: true, padding: 1.4 });

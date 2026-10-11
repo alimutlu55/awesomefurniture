@@ -78,11 +78,6 @@ test('a wall edit that would cut through a wardrobe is refused with the reason',
   const s = scene();
   s.commands.placeStudio('bedroom');
   const before = JSON.stringify(s.model.scene.studio);
-  const reports = s.messages.length, history = s.checkpoints();
-  assert.match(s.commands.studioEditProblem(moveWall(s.model.scene.studio!, 'w1', 40))!, /wardrobe is in the way/);
-  assert.equal(s.messages.length, reports, 'drag validation does not emit repeated toasts');
-  assert.equal(s.checkpoints(), history, 'drag validation does not record history');
-  assert.equal(JSON.stringify(s.model.scene.studio), before, 'drag validation does not commit');
   assert.equal(s.commands.editStudio(room => moveWall(room, 'w1', 40)), false, 'the back wall into the wardrobe');
   assert.match(s.messages.at(-1)!, /wardrobe is in the way/);
   assert.equal(JSON.stringify(s.model.scene.studio), before);

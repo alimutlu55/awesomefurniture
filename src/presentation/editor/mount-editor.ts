@@ -7,7 +7,6 @@ import { withPossessionFields } from './possession-fields';
 import stylesheet from './editor.css?raw';
 import mobileStylesheet from './mobile.css?raw';
 import mobileSheetStylesheet from './mobile-sheet.css?raw';
-import studioStylesheet from './studio.css?raw';
 import shapeStylesheet from './shape.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
@@ -24,7 +23,7 @@ export function mountEditor({ root, initialScene }: MountEditorOptions) {
     root.dataset.theme ??= root.ownerDocument.documentElement.dataset.theme ?? 'light';
     const style = root.ownerDocument.createElement('style');
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
-    const styles = scopeEditorStyles(stylesheet + '\n' + mobileStylesheet + '\n' + mobileSheetStylesheet + '\n' + shapeStylesheet + '\n' + studioStylesheet, controlIds);
+    const styles = scopeEditorStyles(stylesheet + '\n' + mobileStylesheet + '\n' + mobileSheetStylesheet + '\n' + shapeStylesheet, controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

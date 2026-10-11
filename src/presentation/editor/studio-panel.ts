@@ -5,7 +5,7 @@ interface StudioPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene'>;
   readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio'>>;
-  readonly callbacks: { refresh(): void; frameRoom(): void; renderEditor(): void };
+  readonly callbacks: { refresh(): void; frameRoom(): void };
 }
 
 /** The Room section: a chip per built-in studio, drawn from its own plan, and "No room". Choosing one
@@ -15,7 +15,6 @@ export function createStudioPanel({ dom, model, sceneCommands, callbacks }: Stud
   const active = () => model.scene.studio?.template ?? 'none';
 
   function render() {
-    callbacks.renderEditor();
     choices ??= studioChoices();
     const current = active(), chosen = choices.find(c => c.id === current);
     const chip = (c: ReturnType<typeof studioChoices>[number]) => {

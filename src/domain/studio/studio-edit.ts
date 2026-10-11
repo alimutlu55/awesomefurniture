@@ -45,10 +45,11 @@ export function moveWall(studio: Studio, id: string, distance: number): Studio |
 export function setWallLength(studio: Studio, id: string, length: number, fromEnd = false): Studio | null {
   const w = wall(studio, id), line = w && wallLine(studio, w);
   if (!w || !line) return null;
-  const corners = fromEnd
-    ? moved(studio.corners, line.a.id, line.b.x - line.ux * length, line.b.z - line.uz * length)
-    : moved(studio.corners, line.b.id, line.a.x + line.ux * length, line.a.z + line.uz * length);
-  return custom(studio, { corners, openings: keepOpenings(studio, corners) });
+  if (fromEnd) {
+    const openings = studio.openings.map(o => o.wall === id ? { ...o, offset: round(o.offset + length - line.length) } : o);
+    return custom(studio, { corners: moved(studio.corners, line.a.id, line.b.x - line.ux * length, line.b.z - line.uz * length), openings });
+  }
+  return custom(studio, { corners: moved(studio.corners, line.b.id, line.a.x + line.ux * length, line.a.z + line.uz * length) });
 }
 
 export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height'>>): Studio | null {
@@ -75,23 +76,19 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
 export function extendFromCorner(studio: Studio, id: string, x: number, z: number): Studio | null {
   const from = corner(studio, id), joined = studio.walls.find(w => w.a === id || w.b === id);
   if (!from) return null;
-  const end: StudioCorner = studio.corners.find(c => c.x === round(x) && c.z === round(z))
-    ?? { id: nextId('c', studio.corners), x: round(x), z: round(z) };
+  const end: StudioCorner = { id: nextId('c', studio.corners), x: round(x), z: round(z) };
   const template = joined ?? { thickness: STUDIO_DEFAULTS.thickness, height: STUDIO_DEFAULTS.height };
   const forward = !joined || joined.b === id;
   const added: StudioWall = { id: nextId('w', studio.walls), a: forward ? id : end.id, b: forward ? end.id : id, thickness: template.thickness, height: template.height };
-  return custom(studio, { corners: studio.corners.includes(end) ? studio.corners : [...studio.corners, end], walls: [...studio.walls, added] });
+  return custom(studio, { corners: [...studio.corners, end], walls: [...studio.walls, added] });
 }
 
 /** Adds a free-standing wall from (x0, z0) to (x1, z1); its room side faces left of that direction. */
 export function addWall(studio: Studio, x0: number, z0: number, x1: number, z1: number): Studio {
-  const a: StudioCorner = studio.corners.find(c => c.x === round(x0) && c.z === round(z0))
-    ?? { id: nextId('c', studio.corners), x: round(x0), z: round(z0) };
-  const corners = studio.corners.includes(a) ? [...studio.corners] : [...studio.corners, a];
-  const b: StudioCorner = corners.find(c => c.x === round(x1) && c.z === round(z1))
-    ?? { id: nextId('c', corners), x: round(x1), z: round(z1) };
+  const a: StudioCorner = { id: nextId('c', studio.corners), x: round(x0), z: round(z0) };
+  const b: StudioCorner = { id: nextId('c', [...studio.corners, a]), x: round(x1), z: round(z1) };
   const w: StudioWall = { id: nextId('w', studio.walls), a: a.id, b: b.id, thickness: STUDIO_DEFAULTS.thickness, height: STUDIO_DEFAULTS.height };
-  return custom(studio, { corners: corners.includes(b) ? corners : [...corners, b], walls: [...studio.walls, w] });
+  return custom(studio, { corners: [...studio.corners, a, b], walls: [...studio.walls, w] });
 }
 
 /** Removes a wall with its openings, and any corner it leaves unattached. */

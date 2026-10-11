@@ -132,8 +132,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return distance;
     }
-    function fittedCamera(angle = cameraState.az, elevation = cameraState.el, padding = 1.08, bounds = cabinetGeometry.sceneBounds()) {
-        const room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
+    function fittedCamera(angle = cameraState.az, elevation = cameraState.el, padding = 1.08) {
+        const bounds = cabinetGeometry.sceneBounds(), room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
         return { az: angle, el: elevation, x: bounds.x, y: bounds.h / 2, z: bounds.z, dist: cameraFitDistance(bounds, angle, elevation, room.w / room.h) * scale * padding };
     }
     function selectionFocusBox() {
