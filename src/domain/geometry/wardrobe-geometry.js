@@ -581,6 +581,24 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
             return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: getDesign().d - 2, y0: q.y0 + PL + T, y1: y1 + PL + T };
         }).filter(q => q.h > .01);
     }
+    /** Centre of mass of a free space's clear area: the true middle of the room left after the
+     * slope, for rectangles and any other shape. Section-local x; absolute y (like the space). */
+    function spaceCentre(i, space) {
+        const N = 48, x0 = space.x0, x1 = space.x1, base = space.y0, cap = space.y1;
+        let area = 0, sx = 0, sy = 0;
+        for (let k = 0; k < N; k++) {
+            const x = x0 + (x1 - x0) * (k + .5) / N;
+            const top = Math.min(cap, ceilingIn(i, x, x + .01) + PL + T);
+            const h = Math.max(0, top - base);
+            area += h;
+            sx += x * h;
+            sy += (base + h / 2) * h;
+        }
+        if (area < 1e-6) {
+            return { x: (x0 + x1) / 2, y: (base + cap) / 2 };
+        }
+        return { x: sx / area, y: sy / area };
+    }
     function sectionSpaceMeasurements(i) {
         const spaces = sectionSpaces(i), point = getDesign().space?.i === i ? getDesign().space : null;
         const selected = point && spaces.find(q => point.x >= q.x0 - .01 && point.x <= q.x1 + .01 && point.y >= q.y0 - .01 && point.y <= q.y1 + .01);
@@ -907,5 +925,5 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         runs.sort((p, q) => (q.end - q.start) - (p.end - p.start) || Math.abs(mid(p) - d[key]) - Math.abs(mid(q) - d[key]));
         return mid(runs[0]);
     }
-    return { clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
+    return { spaceCentre, clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
 }

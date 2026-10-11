@@ -344,10 +344,10 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 };
                 $('#labels').appendChild(ab);
                 const space = geometry.sectionSpaceMeasurements(i);
-                // Centre the pill in the space that is actually clear. Under a slope that is the
-                // lower part (up to the lowest clear height), not the space's bounding box.
-                const cy = space.sloped ? space.y0 + space.hMin / 2 : (space.y0 + space.y1) / 2;
-                renderState.labs.push({ p: new V(x + (space.x0 + space.x1) / 2, cy, d / 2), el: ab, owner: renderState.Gr });
+                // The pill sits at the centre of mass of the clear area, so it is in the middle of
+                // the room the shape leaves, whatever the shape.
+                const c = geometry.spaceCentre(i, space);
+                renderState.labs.push({ p: new V(x + c.x, c.y, d / 2), el: ab, owner: renderState.Gr });
             }
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
                 const space = geometry.sectionSpaceMeasurements(i);
