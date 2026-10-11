@@ -46,7 +46,8 @@ export interface WardrobePreferences {
   readonly boxHeight?: number | undefined;
   readonly boxDepth?: number | undefined;
   readonly composition?: 'balanced' | 'storage' | undefined;
-  readonly needs: Readonly<Record<'short' | 'long' | 'pants' | 'folded' | 'shoes' | 'small', number>>;
+  /** Bags are optional so projects saved before handbags still open. */
+  readonly needs: Readonly<Record<'short' | 'long' | 'pants' | 'folded' | 'shoes' | 'small', number>> & { readonly bags?: number | undefined };
   readonly reach: number;
   readonly longDrop: number;
   readonly upper: 'none' | 'auto' | 'more' | 'fill';

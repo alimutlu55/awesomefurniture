@@ -75,7 +75,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         };
         const needs = { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0 };
         for (const k of Object.keys(model.activeCabinet().state.profile.needs)) {
-            needs[k] = bounded('#need-' + k, 0, k === 'folded' || k === 'small' ? 200 : k === 'short' ? 150 : k === 'pants' ? 100 : 80, model.activeCabinet().state.profile.needs[k]);
+            needs[k] = bounded('#need-' + k, 0, k === 'folded' || k === 'small' ? 200 : k === 'short' ? 150 : k === 'pants' ? 100 : k === 'bags' ? 60 : 80, model.activeCabinet().state.profile.needs[k] ?? 0);
         }
         const p = model.activeCabinet().state.profile;
         const reachStd = bounded('#reach', 140, 210, p.reachStd ?? p.reach ?? 185);

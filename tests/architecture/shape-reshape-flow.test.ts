@@ -292,3 +292,22 @@ test('handbags are a shelf storage purpose and survive saving a project', async 
   const back = projectToScene(deserializeProject(json))!;
   assert.equal(back.wardrobes[0]!.state.secs[0]![0]!.purpose, 'handbags');
 });
+
+test('Auto design places handbag shelves in open space and reports bags that do not fit', async () => {
+  const { placeHandbags, handbagsIn, bagsPerShelf } = await import('../../src/domain/planner/handbag-layer');
+  const { WardrobePlanner } = await import('../../src/domain/planner/wardrobe-planner.js');
+  assert.equal(bagsPerShelf(97), 2, 'a 97 cm bay holds two 31 cm bags with gaps');
+  const cfg: any = { w: 200, h: 230, d: 60, budget: 900, needs: { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0, bags: 8 }, reach: 185, longDrop: 160, upper: 'none', drawers: 'none', allowLift: false, density: 'comfort', growth: 0, jackets: 0, coats: 0, accessible: false, composition: 'balanced', finFactor: 1, doors: 'none' };
+  WardrobePlanner.configure(cfg);
+  const sections = [{ width: 97.3, items: [] }, { width: 97.3, items: [] }];
+  const plan: any = { sections, dividers: [], warnings: [], metrics: WardrobePlanner.analyze(sections, cfg) };
+  const placed = placeHandbags(plan, cfg);
+  assert.ok(placed.bags!.placed >= 8, 'enough bags are placed: ' + placed.bags!.placed);
+  assert.equal(handbagsIn(placed.sections), placed.bags!.placed);
+  assert.equal(placed.metrics.valid, true, 'the plan still checks out');
+  // With no open space, the report says how many bags fit instead of pretending.
+  const fullSections = [{ width: 97.3, items: [{ k: "shelf", purpose: "accessories", h: 200, x: 0, y: 0, w: 97.3 }] }, { width: 97.3, items: [{ k: "shelf", purpose: "accessories", h: 200, x: 0, y: 0, w: 97.3 }] }] as any[]; const full: any = { sections: fullSections, dividers: [], warnings: [], metrics: WardrobePlanner.analyze(fullSections, cfg) };
+  const none = placeHandbags(full, { ...cfg, needs: { ...cfg.needs, bags: 4 } });
+  assert.ok(none.bags!.placed < 4);
+  assert.ok(none.warnings.some((m: string) => /Handbags: room for/.test(m)));
+});

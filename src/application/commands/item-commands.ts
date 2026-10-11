@@ -75,6 +75,10 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
         effects.report('Handbag shelf added');
     }
     function addMod(k: ItemKind) {
+        if ((k as string) === 'handbags') {
+            addHandbagShelf();
+            return;
+        }
         if (k === 'shelf') {
             callbacks.addShelfBoard();
             return;

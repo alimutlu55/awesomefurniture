@@ -27,6 +27,8 @@ export interface PlannerProposal {
   positionSum?: number;
   composition?: {upperTopSpread?:number;dailyQuality?:{fillerHeight:number;lowFoldedHeight:number;drawerGroups:number;penalty:number};upperAligned:boolean;upperBayCount:number;upperShelfHeight:number|null;alignmentSpread:number;balance:number;score:number};
   id: string; title: string; summary: string; sections: PlannerSection[];
+  /** Handbags asked for and placed on handbag shelves. Added after the clothing layout is chosen. */
+  bags?: {requested:number;placed:number} | undefined;
   metrics: PlannerMetrics; cost: number; score: number; coverage: Record<string, number>; reasons: string[]; warnings: string[];
 }
 /** The preserved numerical engine accepts partial configurations and normalizes defaults. */

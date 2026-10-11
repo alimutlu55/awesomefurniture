@@ -69,7 +69,7 @@ const wardrobe = z.strictObject({
   preferences: z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
     composition:z.enum(['balanced','storage']).optional(),
-    needs: z.strictObject({ short: count, long: count, pants: count, folded: count, shoes: count, small: count }),
+    needs: z.strictObject({ short: count, long: count, pants: count, folded: count, shoes: count, small: count, bags: count.optional() }),
     reach: positive, longDrop: positive,
     upper: z.enum(['none', 'auto', 'more', 'fill']),
     drawers: z.enum(['none', 'auto', 'more']),

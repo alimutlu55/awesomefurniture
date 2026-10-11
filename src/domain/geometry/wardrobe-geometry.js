@@ -823,6 +823,9 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                         : H >= 100 ? '<b>Roomy space within reach.</b> Good for hanging and everyday storage.'
                             : b >= 100 ? '<b>Upper shelf zone.</b> Good for folded clothes and light storage.'
                                 : '<b>Compact space.</b> Good for drawers, shelves and folded clothes.';
+        // Handbags stand upright on an open shelf: suggested where a shelf can hold them, ranked with the shelves.
+        const bagFit = w >= 33 - .01 && H >= 25 - .01;
+        list.push({ k: 'handbags', o: ADD_ORDER.length + 1, fit: bagFit, s: 42 + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: 'Bags stand upright on a shelf', hint: bagFit ? '' : w < 33 ? 'Needs 33 cm width' : 'Needs 25 cm height', warn: false });
         return { list, intent };
     }
     function duplicateSideSpot(i, j) {
