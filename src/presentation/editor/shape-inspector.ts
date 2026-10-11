@@ -7,6 +7,7 @@ import {
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
+import { alignTo, type Align } from './align-snap';
 
 interface ShapeInspectorPorts {
     dom: {
@@ -247,7 +248,6 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     let pxPerCm = 4;
     function setScale(value: number) { pxPerCm = Math.max(.5, value); }
     const tolerance = () => Math.max(.4, Math.min(4, 8 / pxPerCm));
-    type Align = { v: number; label: string };
     function breakName(shape: WardrobeShape, k: number) {
         if (k === 0) return 'left side';
         if (k === shape.top.length - 1) return 'right side';
@@ -265,20 +265,6 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         for (const x of partitionPositions(state())) out.push({ v: x, label: 'Aligned with partition' }, { v: x + PANEL, label: 'Aligned with partition' });
         o.top.forEach((q, k) => { if (k !== index && k > 0 && k < o.top.length - 1) out.push({ v: q.x, label: 'Aligned with ' + breakName(o, k) }); });
         return out;
-    }
-    /** Nearest target within tolerance; a lock keeps the target it caught until the pointer leaves it. */
-    function alignTo(raw: number, targets: Align[], lock: Align | null): Align | null {
-        const tol = tolerance();
-        if (lock) {
-            const same = targets.find(t => Math.abs(t.v - lock.v) < 1e-6 && t.label === lock.label);
-            if (same && Math.abs(same.v - raw) <= tol * 1.6) return same;
-        }
-        let best: Align | null = null, bestD = Infinity;
-        for (const t of targets) {
-            const d = Math.abs(t.v - raw);
-            if (d <= tol && d < bestD) { best = t; bestD = d; }
-        }
-        return best;
     }
     const roundCm = (v: number) => Math.round(v * 10) / 10;
     /** Live X and Y rulers for the break point being dragged: X from the left side,
@@ -317,8 +303,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const movesX = g.index > 0 && g.index < o.top.length - 1;
         // Targets follow the pointer from where the handle was grabbed.
         const rawY = point.y + p.y - g.start.y, rawX = point.x + p.x - g.start.x;
-        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY);
-        const alignX = movesX ? alignTo(rawX, positionTargets(o, g.index), g.lockX) : null;
+        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY, tolerance());
+        const alignX = movesX ? alignTo(rawX, positionTargets(o, g.index), g.lockX, tolerance()) : null;
         g.lockY = alignY;
         g.lockX = alignX;
         g.guides = [
