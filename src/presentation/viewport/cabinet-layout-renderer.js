@@ -343,7 +343,10 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 };
                 $('#labels').appendChild(ab);
                 const space = geometry.sectionSpaceMeasurements(i);
-                renderState.labs.push({ p: new V(x + (space.x0 + space.x1) / 2, (space.y0 + space.y1) / 2, d / 2), el: ab, owner: renderState.Gr });
+                // Centre the pill in the space that is actually clear. Under a slope that is the
+                // lower part (up to the lowest clear height), not the space's bounding box.
+                const cy = space.sloped ? space.y0 + space.hMin / 2 : (space.y0 + space.y1) / 2;
+                renderState.labs.push({ p: new V(x + (space.x0 + space.x1) / 2, cy, d / 2), el: ab, owner: renderState.Gr });
             }
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
                 const space = geometry.sectionSpaceMeasurements(i);
