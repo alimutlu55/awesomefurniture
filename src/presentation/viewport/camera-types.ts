@@ -8,4 +8,6 @@ export interface CameraState {
   camGoal: CameraTransition | null; camHome: CameraPose | null; camRestore: CameraPose | null;
   zoomTarget: number | null; zoomAnchor: import('three').Vector3 | null; zoomFocus: import('three').Vector3 | null;
   reducedCameraMotion: { readonly matches: boolean };
+  /** The view was panned by hand: zooming keeps its target instead of returning to the selection. */
+  panned?: boolean;
 }

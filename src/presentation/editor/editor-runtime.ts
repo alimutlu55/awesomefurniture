@@ -106,6 +106,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 Object.assign(selectionState, flags);
                 inspector.hidePop();
                 inspector.update(true);
+                if (next.studio) room.frameRoom();
                 if (session.openPanel === 'planner') {
                     planner.openWizard();
                 }
@@ -145,6 +146,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
 
         camera.fit({ instant: true, padding: 1.4 });
         cameraState.tgt.y = cameraState.tgtY;
+        // A project with a room opens on the whole room.
+        if (model.scene.studio) room.frameRoom();
         camera.resize();
         inspector.update(true);
         rendering.loop();

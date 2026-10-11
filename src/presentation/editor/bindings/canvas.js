@@ -8,11 +8,20 @@ export function observeViewportSize({ dom, camera, lifetime }) {
 }
 /** @param {import('./canvas.ports').BindCanvasPointerdownPorts} ports */
 export function bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime }) {
+    // The right button pans; it opens no menu on the model.
+    lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
         camera.camRelease();
         if (interactionState.rotationGesture) {
             interactionState.rotationClick = true;
             interactions.finishRotation();
+            return;
+        }
+        // Right or middle button: pan the view.
+        if (e.button === 1 || e.button === 2) {
+            e.preventDefault();
+            interactionState.panGesture = { id: e.pointerId, x: e.clientX, y: e.clientY };
+            resources.cv.setPointerCapture(e.pointerId);
             return;
         }
         if (e.button !== 0) {
@@ -78,6 +87,13 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
         if (interactionState.dividerGesture) {
             return;
         }
+        const pan = interactionState.panGesture;
+        if (pan?.id === e.pointerId) {
+            camera.panBy(e.clientX - pan.x, e.clientY - pan.y);
+            pan.x = e.clientX;
+            pan.y = e.clientY;
+            return;
+        }
         if (interactionState.rotationGesture) {
             interactions.rotateFromPointer(e);
             return;
@@ -117,15 +133,23 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
             else if (interactionState.moveMode) {
                 interactions.previewAt(e);
             }
+            else if (interactionState.moved >= 5 && e.shiftKey) {
+                // Shift-drag on empty space pans, for trackpads without a right button.
+                camera.panBy(e.clientX - o.clientX, e.clientY - o.clientY);
+                inspector.hidePop();
+            }
             else if (interactionState.moved >= 5) {
                 cameraState.az -= (e.clientX - o.clientX) * .007;
                 cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * .007));
                 inspector.hidePop();
             }
         }
+        const before = interactionState.ptrs.size === 2 ? [...interactionState.ptrs.values()] : null;
         interactionState.ptrs.set(e.pointerId, e);
         if (interactionState.ptrs.size === 2) {
             const [a, b] = [...interactionState.ptrs.values()], nd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            // Two fingers moving together pan the view while they pinch.
+            if (before) camera.panBy(((a.clientX + b.clientX) - (before[0].clientX + before[1].clientX)) / 2, ((a.clientY + b.clientY) - (before[0].clientY + before[1].clientY)) / 2);
             if (nd > 0 && interactionState.pd > 0) {
                 camera.cameraZoomDistance(camera.cameraDistance(cameraState.dist * interactionState.pd / nd), null);
                 cameraState.tgt.lerp(camera.cameraFocusPoint(), .12);
@@ -139,6 +163,11 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
 export function bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
+        if (interactionState.panGesture?.id === e.pointerId) {
+            interactionState.panGesture = null;
+            if (resources.cv.hasPointerCapture(e.pointerId)) resources.cv.releasePointerCapture(e.pointerId);
+            return;
+        }
         if (interactionState.dividerGesture) {
             interactions.finishDividerDrag();
             return;
@@ -201,6 +230,7 @@ export function bindCanvasPointerup({ dom, interactions, shell, interactionState
 /** @param {import('./canvas.ports').BindCanvasPointercancelPorts} ports */
 export function bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime }) {
     lifetime.listen(resources.cv, 'pointercancel', e => {
+        if (interactionState.panGesture?.id === e.pointerId) interactionState.panGesture = null;
         if (interactionState.wardrobeGesture) {
             interactions.finishWardrobeDrag(true);
         }

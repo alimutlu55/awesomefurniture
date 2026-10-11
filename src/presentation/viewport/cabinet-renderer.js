@@ -1,6 +1,8 @@
 import { createStudioRenderer } from './studio-renderer';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
+import { createRoomCamera } from './room-camera';
+import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import * as THREE from "three";
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -31,7 +33,11 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // Another wardrobe between the camera and the selected one steps aside, leaving an outline.
     const occlusion = resources?.scene ? createWardrobeOcclusion(resources.scene) : null;
     if (occlusion) lifetime.cleanup(() => occlusion.dispose());
-    const sceneFrame = { frame: (cam, dt) => {
+    const roomCamera = createRoomCamera(), subjectPoint = new THREE.Vector3(), geometryOfScene = createCabinetGeometry(() => model.scene.wardrobes);
+    /** The middle of the wardrobes, at half their height: what an eye-level view of the room looks at. */
+    const subject = () => { const b = geometryOfScene.sceneBounds(); return subjectPoint.set(b.x, b.h / 2, b.z); };
+    const sceneFrame = { adjust: (cam, orbit, dt) => roomCamera.adjust(cam, orbit, model.scene.studio, selectionState.focusOn ? [] : model.scene.wardrobes,
+        selectionState.focusOn || cameraState.panned ? null : subject(), dt), frame: (cam, dt) => {
         studio?.frame(cam, dt);
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
     } };

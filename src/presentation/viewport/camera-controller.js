@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { studioBounds } from '../../domain/studio/studio';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
@@ -103,6 +104,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             Math.abs(Math.log(goal.dist / pending.dist)) < .002 &&
             Math.abs(cameraAngleDelta(goal.az, pending.az)) < .001 && Math.abs(goal.el - pending.el) < .001) return;
         cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
+        cameraState.panned = false;
         const from = camNow();
         cameraState.camGoal = { ...goal, from, start: clock.now(), duration };
         if (cameraState.reducedCameraMotion.matches || duration === 0) {
@@ -156,7 +158,20 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return { w, angle, box };
     }
+    /** Pans the view by screen pixels: across the screen, and along the floor away or towards you. The
+     * target stays over the room (or near the wardrobes), so the view cannot be lost. */
+    function panBy(dx, dy) {
+        const r = $('#view').getBoundingClientRect(), perPx = 2 * cameraState.dist * Math.tan(35 * Math.PI / 360) / Math.max(1, r.height) / cameraState.vz;
+        const rx = Math.cos(cameraState.az), rz = -Math.sin(cameraState.az), fx = -Math.sin(cameraState.az), fz = -Math.cos(cameraState.az), deep = perPx / Math.max(.4, Math.sin(cameraState.el));
+        const room = model.scene.studio && studioBounds(model.scene.studio), b = cabinetGeometry.sceneBounds();
+        const x0 = room ? room.x0 : b.x - b.w / 2 - 300, x1 = room ? room.x1 : b.x + b.w / 2 + 300, z0 = room ? room.z0 : b.z - b.d / 2 - 300, z1 = room ? room.z1 : b.z + b.d / 2 + 300;
+        camRelease();
+        cameraState.tgt.x = Math.max(x0, Math.min(x1, cameraState.tgt.x - rx * dx * perPx + fx * dy * deep));
+        cameraState.tgt.z = Math.max(z0, Math.min(z1, cameraState.tgt.z - rz * dx * perPx + fz * dy * deep));
+        cameraState.panned = true;
+    }
     function cameraFocusPoint() {
+        if (cameraState.panned) return cameraState.tgt.clone();
         if (dom.width <= 900 && !mobileSelectionFraming) {
             const w = model.activeCabinet();
             return new THREE.Vector3(w.x, (w.y || 0) + w.state.h / 2, w.z);
@@ -322,5 +337,5 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, panBy, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }

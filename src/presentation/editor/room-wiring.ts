@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { studioBounds } from '../../domain/studio/studio';
+import { studioBounds, wallFace, wallLine } from '../../domain/studio/studio';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
 import type { StudioEditorPorts } from './studio-editor.ports';
@@ -17,7 +17,7 @@ interface RoomWiringPorts {
         rendering(): { redrawStudio(): void; studioPickables(): THREE.Object3D[] };
         inspector(): { update(keep?: boolean): void; clearFocus(): void; histUI(): void };
         report(message: string): void;
-        camera(): { frameBox(bounds: { x: number; z: number; w: number; d: number; h: number }, az: number, el: number, padding: number): void };
+        camera(): { frameBox(bounds: { x: number; z: number; w: number; d: number; h: number }, az: number, el: number, padding: number): void; camNow(): { az: number; el: number; dist: number; x: number; y: number; z: number } };
         wardrobeBounds(): { x: number; z: number; w: number; d: number; h: number };
     };
     readonly listen: (target: Listenable, type: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
@@ -32,7 +32,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         picking: { groundPoint: (e, h) => picking.groundPoint(e, h), screenPoint: p => picking.screenPoint(new THREE.Vector3(p.x, p.y, p.z)) },
         callbacks: {
             // Selecting a room part leaves the wardrobe that was selected.
-            selectionChanged: () => { if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true); fields?.render(); },
+            selectionChanged: () => {
+                if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true);
+                fields?.render();
+                faceSelection();
+            },
             redraw: () => { late.rendering().redrawStudio(); fields?.render(); },
             refresh, histUI: () => late.inspector().histUI(), report: m => late.report(m),
         },
@@ -54,6 +58,22 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.preventDefault();
         k.stopImmediatePropagation();
     }, true);
+
+    /** A wall (or an opening on one) selected from behind, where it is lowered, is brought round to be seen
+     * from inside the room: a three-quarter view of its face, a little above eye level. A wall already
+     * facing the camera keeps the view, so selecting never jumps needlessly. */
+    function faceSelection() {
+        const room = model.scene.studio, s = editor.selection();
+        if (!room || !s) return;
+        const id = s.kind === 'wall' ? s.id : room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
+        const line = w && wallLine(room, w), face = w && wallFace(room, w);
+        if (!w || !line || !face) return;
+        const c = late.camera().camNow(), cam = { x: c.x + c.dist * Math.cos(c.el) * Math.sin(c.az), z: c.z + c.dist * Math.cos(c.el) * Math.cos(c.az) };
+        const mid = { x: (face.from.x + face.to.x) / 2, z: (face.from.z + face.to.z) / 2 };
+        if ((cam.x - mid.x) * line.nx + (cam.z - mid.z) * line.nz > 0) return;
+        const span = Math.max(150, face.length);
+        late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .35, .45, 1.08);
+    }
 
     /** Flies to a view of the whole room (and any wardrobe outside it), from above the lowered walls. */
     function frameRoom() {

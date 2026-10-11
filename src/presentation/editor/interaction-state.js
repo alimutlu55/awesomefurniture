@@ -15,6 +15,9 @@ export function createInteractionState() {
         previewPlan: null,
         lastMoveEvent: null,
         rotationClick: false,
+        /** A right- or middle-button drag (or Shift-drag on empty space) that pans the view.
+         * @type {{ id: number; x: number; y: number } | null} */
+        panGesture: null,
         panelWasOpen: false,
         ray: new THREE.Raycaster()
     };
