@@ -1,4 +1,5 @@
 import { refreshContextualToolbar } from './contextual-toolbar.js';
+import { syncResizeFields } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
@@ -421,7 +422,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         movementUI();
         const m = MODS[it.k], mx = Math.min(m.mx, it.h + geometry.itemFreeAbove(model.activeCabinet().state.sel, model.activeCabinet().state.item));
         $('#iback').textContent = '← Add another item';
-        $('#ititle').textContent = itemName(it);
+        $('#ititle').textContent = dom.width <= 900 && p.dataset.contextSection === 'resize' ? 'Size' : itemName(it);
         $('#ipurpose').innerHTML = compatiblePurposes(it.k).map(value => '<option value="' + value + '">' + PURPOSE[value] + '</option>').join('');
         $('#ipurpose').value = it.purpose || m.purpose;
         $('#ih').value = measureNumber(it.h);
@@ -459,6 +460,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
         $('#itype').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === it.k));
         $('#ifin').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.f || null) === (it.f || null)));
+        syncResizeFields(p);
     }
     return { syncResponsive, selectCabinet, addCabinet, wardrobeUI, histUI, editableItemClearance, selectSpaceAt, reachUI, measurementUI, editableDividerClearance, dividerUI, movementUI, reopenItemPanel, closeItemMenus, itemAction, placeFloating, placeItemTypeMenu, updateItemBar, ui, inside, goUp, crumbUI, clearFocus, update, sectionsUI, openPillMenu, productArt, renderAddChoices, undo, redo, setCabinetPose, sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop, moveDestinationUI, moveSlotUI, itemUI, divWord, bar, hidePop };
 }

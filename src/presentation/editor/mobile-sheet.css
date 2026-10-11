@@ -9,7 +9,18 @@
  --mobile-sheet-handle-height:32px;
  --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
 }
+.size-range.mobile-resize-range{display:none}
 @media(max-width:900px){
+ #app :is(#pop3,#pop4)[data-context-section="resize"] .item-size-pair{display:flex;flex-direction:column;gap:0;margin:0}
+ .size-range.mobile-resize-range{display:block}
+ .resize-field-control[data-axis="width"]{order:0}
+ .resize-field-control[data-axis="height"]{order:1}
+ #app :is(#left,#pop3,#pop4)[data-context-section="resize"] .size-row{display:flex;align-items:center;justify-content:space-between;margin:10px 0;color:#64615b;gap:12px;font-size:13px}
+ #app :is(#left,#pop3,#pop4)[data-context-section="resize"] :is(.size-field,.item-size-field){display:flex;align-items:center;margin:0;background:#fff7;border-radius:15px;padding:0 12px;height:43px;width:117px;flex:0 0 117px}
+ #app :is(#left,#pop3,#pop4)[data-context-section="resize"] :is(.size-field,.item-size-field) input{width:70px!important;min-width:0;border:0;background:transparent;padding:8px 0!important;font-size:16px}
+ #app :is(#left,#pop3,#pop4)[data-context-section="resize"] :is(.size-field,.item-size-field) small{font-size:12px}
+ #app :is(#pop3,#pop4)[data-context-section="resize"] .ph{border:0;margin-bottom:14px;min-height:38px}
+ #app :is(#pop3,#pop4)[data-context-section="resize"] .ph b{font-size:13px;font-weight:600;letter-spacing:0}
  #app :is(#pop3,#pop4)[data-context-section="resize"]>:not(.ph):not(.item-size-pair):not(.mobile-sheet-handle){display:none!important}
  #app :is(#pop3,#pop4).mobile-bottom-sheet[data-context-section="resize"]{left:0;right:0;top:auto;width:auto;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;height:var(--panel-height);max-height:var(--panel-height)}
  #app.inspecting:has(:is(#pop3,#pop4)[data-context-section="resize"].show){--panel-height:var(--mobile-settings-sheet-height)}

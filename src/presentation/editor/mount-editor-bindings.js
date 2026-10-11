@@ -1,6 +1,7 @@
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
 import { createResizePresenter } from './resize-presenter.js';
+import { mountResizeFields } from './resize-fields.js';
 import * as inspectorBindings from './inspector-bindings.js';
 import * as gestureBindings from './gesture-bindings.js';
 import * as wizardBindings from './wizard-bindings.js';
@@ -9,6 +10,15 @@ import { MODS } from '../../domain/wardrobe/catalog.js';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements }) {
     const { $, document } = dom;
+    mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),
+        fields: [{ input: $('#iw'), axis: 'width' }, { input: $('#ih'), axis: 'height' },
+            { input: $('#dgap0'), axis: 'before' }, { input: $('#dgap1'), axis: 'after' }],
+        preview: (input, value) => {
+            const id = dom.controlId(input);
+            if (id === 'ih' || id === 'iw') interactions.setManualItemSize(id === 'ih' ? 'top' : 'right', value, false);
+            else commands.setDividerClearance(model.activeCabinet().state.divider, id === 'dgap0' ? 'before' : 'after', value);
+        }
+    });
     inspectorBindings.bindInspectorControls({ dom, rendering, lifetime });
     inspectorBindings.bindDividerClose({ dom, inspector });
     inspectorBindings.bindDgap({ dom, rendering, inspector, shell, geometry, model, commands, history });

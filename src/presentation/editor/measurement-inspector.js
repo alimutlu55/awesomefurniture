@@ -1,4 +1,5 @@
 import { tags } from './storage-tags.js';
+import { syncResizeFields } from './resize-fields.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber, capWord, esc } from './editor-format.js';
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'shell' | 'commands' | 'rendering' | 'model' | 'history'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'histUI' | 'hidePop' | 'divWord'> }} ports */
@@ -189,7 +190,7 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
         }
         {
             const w = callbacks.divWord(model.activeCabinet().state.divider);
-            $('#divider-title').textContent = capWord(w);
+            $('#divider-title').textContent = dom.width <= 900 && panel.dataset.contextSection === 'resize' ? 'Size' : capWord(w);
             $('#divider-remove').title = 'Remove this ' + w;
             $('#divider-close').setAttribute('aria-label', 'Close ' + w + ' settings');
             panel.querySelector('.pmin')?.setAttribute('aria-label', 'Collapse ' + w + ' panel');
@@ -218,6 +219,7 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
             }
         }
         $('#divider-hint').innerHTML = tags([d.orientation === 'horizontal' ? 'Drag ↕' : 'Drag ↔', 'Boundary snap']);
+        syncResizeFields(panel);
     }
     return { editableItemClearance, editableDividerClearance, dividerUI };
 }

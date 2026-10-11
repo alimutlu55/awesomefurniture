@@ -163,7 +163,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         const target = top ? { h: best.pos - g.y0 } : (a.edge === 'right' ? { w: best.pos - left, x: left } : { w: right - best.pos, x: best.pos });
         return { target, guide: { orient: top ? 'h' : 'v', pos: top ? best.pos : g.bayL + best.pos, kind: best.kind, label: best.label, src: best.src } };
     }
-    function setManualItemSize(edge, value) {
+    function setManualItemSize(edge, value, recordHistory = true) {
         const g = geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item), it = model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item];
         if (!g || !it || !Number.isFinite(value)) {
             inspector.itemUI();
@@ -179,7 +179,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         }
         const applied = commands.applyItemEdgeSize({ edge, g, index: model.activeCabinet().state.item, section: model.activeCabinet().state.sel, layout: geometry.resizeObstacles(model.activeCabinet().state.sel), original: model.activeCabinet().state.secs[model.activeCabinet().state.sel] }, target);
         if (applied && model.snapshot() !== before) {
-            history.checkpoint(before);
+            if (recordHistory) history.checkpoint(before);
             shellState.G.tune = 1;
             inspector.histUI();
         }
