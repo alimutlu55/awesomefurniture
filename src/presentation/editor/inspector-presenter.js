@@ -44,6 +44,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         cameraState.vzT = 1;
     };
     function selectCabinet(id) {
+        selectionState.shapeEditing = false;
         delete elements.app.dataset.toolbarMode;
         camera.camRelease();
         if (interactionState.wardrobeGesture) {
@@ -262,6 +263,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
     }
     function clearFocus() {
+        // Leaving the wardrobe ends any shape session: handles disappear with it.
+        selectionState.shapeEditing = false;
         delete elements.app.dataset.toolbarMode;
         if (dom.width <= 900) { elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); }
         if (interactionState.wardrobeGesture) {
