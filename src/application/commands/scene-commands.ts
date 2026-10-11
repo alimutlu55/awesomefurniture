@@ -1,5 +1,7 @@
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
+import { createStudioCommands } from './studio-commands';
+import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
@@ -15,10 +17,16 @@ interface SceneCommandOptions {
 export function createSceneCommands(getScene: () => EditorScene, { initialDesign = createEditorState, checkpoint = () => { }, discardCheckpoint = () => { }, report = () => { } }: SceneCommandOptions = {}) {
     const active = (): EditorCabinet => { const cabinet = getScene().wardrobes.find(w => w.id === getScene().activeWardrobe); if (!cabinet)
         throw new Error('Active wardrobe is missing.'); return cabinet; };
-    const collision = createCabinetGeometry(() => getScene().wardrobes);
+    const collision = createCabinetGeometry(() => getScene().wardrobes, () => studioObstacles(getScene().studio));
     const geometry = createWardrobeGeometry(() => active().state);
     const design = createDesignCommands(() => active().state, { report });
+    const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report });
+    /** Why a change is refused: it would run into a wall of the room, or into another wardrobe. */
+    const blockedMessage = (change: string, candidate: EditorCabinet) => collision.cabinetObstruction(candidate) === 'wall'
+        ? change + ' would go through a wall of the room.'
+        : change + ' would overlap another wardrobe. Move it first.';
     return {
+        ...studio,
         addCabinet(copy = false, template?: ShapeTemplateId) {
             checkpoint();
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId++;
@@ -29,6 +37,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             const cabinet = { id, name: 'Wardrobe ' + id, x: 0, y: copy ? (original.y || 0) : 0, z: original.z, angle: copy ? original.angle : 0, state };
             cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
+            // In a room, a new wardrobe stands against the first free wall instead.
+            Object.assign(cabinet, studio.placeNewCabinet(cabinet) ?? {});
             scene.wardrobes.push(cabinet);
             scene.activeWardrobe = id;
             return cabinet;
@@ -98,7 +108,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             if (state[key as 'w' | 'h' | 'd'] === requested) return false;
             if (collision.cabinetCollides({ ...active(), state: { ...state, [key]: requested } })) {
-                report('That size would overlap another wardrobe. Move it first.');
+                report(blockedMessage('That size', { ...active(), state: { ...state, [key]: requested } }));
                 return false;
             }
             const previous = structuredClone(state);
@@ -159,7 +169,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             else next.shape = shape;
             next.h = maxHeight(shape);
             if (collision.cabinetCollides({ ...cabinet, state: next })) {
-                report('That shape would overlap another wardrobe. Move it first.');
+                report(blockedMessage('That shape', { ...cabinet, state: next }));
                 return false;
             }
             checkpoint();
@@ -180,7 +190,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             const h = maxHeight(shape);
             if (JSON.stringify(shape) === JSON.stringify(state.shape)) return false;
             if (collision.cabinetCollides({ ...cabinet, state: { ...state, h } })) {
-                report('That height would overlap another wardrobe. Move it first.');
+                report(blockedMessage('That height', { ...cabinet, state: { ...state, h } }));
                 return false;
             }
             if (recordHistory) checkpoint();

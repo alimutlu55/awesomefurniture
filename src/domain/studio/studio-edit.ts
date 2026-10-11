@@ -11,10 +11,24 @@ const custom = (studio: Studio, changes: Partial<Studio>): Studio => ({ ...studi
 const round = (n: number) => Math.round(n * 10) / 10;
 const moved = (corners: readonly StudioCorner[], id: string, x: number, z: number) => corners.map(c => c.id === id ? { ...c, x: round(x), z: round(z) } : c);
 
-/** Moves a corner. Every wall that meets there stretches with it. */
+/** After corners move, doors and windows stay where they were in the room (sliding only as far as
+ * needed to stay on a wall that got shorter), instead of moving with the wall's start corner. */
+function keepOpenings(before: Studio, corners: readonly StudioCorner[]): StudioOpening[] {
+  const after = { ...before, corners };
+  return before.openings.map(o => {
+    const w = wall(before, o.wall), old = w && wallLine(before, w), now = w && wallLine(after, w);
+    if (!old || !now) return o;
+    const x = old.a.x + old.ux * o.offset, z = old.a.z + old.uz * o.offset;
+    const range = openingRange(now.length, o.width), along = (x - now.a.x) * now.ux + (z - now.a.z) * now.uz;
+    return { ...o, offset: round(range.max < range.min ? along : Math.min(range.max, Math.max(range.min, along))) };
+  });
+}
+
+/** Moves a corner. Every wall that meets there stretches with it; openings keep their place. */
 export function moveCorner(studio: Studio, id: string, x: number, z: number): Studio | null {
   if (!corner(studio, id)) return null;
-  return custom(studio, { corners: moved(studio.corners, id, x, z) });
+  const corners = moved(studio.corners, id, x, z);
+  return custom(studio, { corners, openings: keepOpenings(studio, corners) });
 }
 
 /** Moves a wall towards its room side (positive) or away (negative), keeping its direction. The walls
@@ -24,7 +38,7 @@ export function moveWall(studio: Studio, id: string, distance: number): Studio |
   if (!w || !line) return null;
   let corners = studio.corners;
   for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + line.nx * distance, c.z + line.nz * distance);
-  return custom(studio, { corners });
+  return custom(studio, { corners, openings: keepOpenings(studio, corners) });
 }
 
 /** Sets a wall's length by moving its `b` end along the wall (or its `a` end when `fromEnd`). */

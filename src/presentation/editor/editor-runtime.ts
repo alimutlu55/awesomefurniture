@@ -1,3 +1,4 @@
+import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { createEditorDom } from './editor-dom';
 import { createModulePort } from './module-port';
@@ -48,7 +49,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         lifetime.cleanup(() => resources.dispose());
         const history = createSceneHistory(model.snapshot, model.restore);
         const geometry = createWardrobeGeometry(() => model.activeCabinet().state, () => settings.budget);
-        const cabinetGeometry = createCabinetGeometry(() => model.scene.wardrobes);
+        const cabinetGeometry = createCabinetGeometry(() => model.scene.wardrobes, () => studioObstacles(model.scene.studio));
         const plannerService = createPlannerService();
         // Each explicit controller port is connected exactly once before events can run.
         const picking = createScenePicking({ dom, interactionState, renderState, resources, model });

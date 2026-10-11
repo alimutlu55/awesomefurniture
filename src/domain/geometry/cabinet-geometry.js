@@ -1,5 +1,11 @@
-/** Collision rules receive scene data explicitly; no editor or renderer state. */
-export function createCabinetGeometry(getCabinets) {
+/** Collision rules receive scene data explicitly; no editor or renderer state.
+ * Wardrobes collide with each other and with fixed obstacles (the room's walls). Obstacles never move
+ * and are not wardrobes: scene bounds and wardrobe lists ignore them.
+ * @param {() => readonly { id: string | number; x: number; y?: number; z: number; angle: number; state: { w: number; d: number; h: number } }[]} getCabinets
+ * @param {() => readonly import('../studio/studio-obstacles').Obstacle[]} [getObstacles] */
+export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
+    /** Everything a wardrobe can bump into. */
+    const solids = () => [...getCabinets(), ...getObstacles()];
     function cabinetBounds(w) {
         const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
         return { x: w.x, z: w.z, hw: (w.state.w * c + w.state.d * s) / 2, hd: (w.state.w * s + w.state.d * c) / 2, h: w.state.h + (w.y || 0) };
@@ -22,12 +28,17 @@ export function createCabinetGeometry(getCabinets) {
         return cabinetGap(a, b) < -1e-8;
     }
     function cabinetCollides(candidate) {
-        return getCabinets().some(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
+        return solids().some(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
+    }
+    /** What a wardrobe in this pose would run into: 'wall', 'wardrobe', or null. */
+    function cabinetObstruction(candidate) {
+        const hit = solids().find(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
+        return !hit ? null : String(hit.id).startsWith('wall:') ? 'wall' : 'wardrobe';
     }
     function safeCabinetTranslation(w, target) {
         const start = { x: w.x, y: w.y || 0, z: w.z }, delta = { x: target.x - start.x, y: (target.y || 0) - start.y, z: target.z - start.z };
         let limit = 1;
-        for (const other of getCabinets()) {
+        for (const other of solids()) {
             if (other.id === w.id) {
                 continue;
             }
@@ -64,7 +75,7 @@ export function createCabinetGeometry(getCabinets) {
         let t = 0;
         // Conservative advancement: no corner travels farther than the available gap.
         for (let i = 0; i < 512 && t < 1; i++) {
-            const pose = { ...w, angle: start + delta * t }, gap = Math.min(...getCabinets().filter(o => o.id !== w.id).map(o => cabinetGap(pose, o))), step = Math.min(1 - t, Math.max(1e-7, gap * .8 / speed)), next = t + step, candidate = { ...w, angle: start + delta * next };
+            const pose = { ...w, angle: start + delta * t }, gap = Math.min(...solids().filter(o => o.id !== w.id).map(o => cabinetGap(pose, o))), step = Math.min(1 - t, Math.max(1e-7, gap * .8 / speed)), next = t + step, candidate = { ...w, angle: start + delta * next };
             if (cabinetCollides(candidate)) {
                 let lo = t, hi = next;
                 for (let n = 0; n < 24; n++) {
@@ -90,5 +101,5 @@ export function createCabinetGeometry(getCabinets) {
     function cabinetTranslation(origin, delta) {
         return { x: Math.max(-5000, Math.min(5000, origin.x + (delta.x || 0))), y: Math.max(0, Math.min(5000, (origin.y || 0) + (delta.y || 0))), z: Math.max(-5000, Math.min(5000, origin.z + (delta.z || 0))) };
     }
-    return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };
+    return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, cabinetObstruction, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };
 }

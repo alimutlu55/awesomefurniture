@@ -120,3 +120,15 @@ test('moving the whole room keeps it a built-in', () => {
   assert.equal(moved.template, 'corner');
   assert.equal(moved.corners[1]!.x, -176 + 50);
 });
+
+test('moving a wall leaves doors and windows where they are in the room', () => {
+  const studio = createStudio('bedroom');
+  const at = (s: Studio, id: string) => { const o = s.openings.find(x => x.id === id)!, line = wallLine(s, s.walls.find(w => w.id === o.wall)!)!; return [line.a.x + line.ux * o.offset, line.a.z + line.uz * o.offset]; };
+  const moved = moveWall(studio, 'w1', 40)!;                           // the back wall: the right wall gets shorter from its start
+  assert.deepEqual(studioProblems(moved), []);
+  assert.deepEqual(at(moved, 'o1'), at(studio, 'o1'), 'the door did not move');
+  const short = moveWall(studio, 'w1', 250)!;                          // a 112 cm wall: the door slides just far enough to stay on it
+  assert.equal(short.openings[0]!.offset, 45, '40 cm along would put its edge off the wall; 45 keeps the 5 cm margin');
+  assert.deepEqual(studioProblems(short), ['This window is wider than its wall. Make it narrower or the wall longer.'], 'the door fits; the 120 cm window on the opposite 112 cm wall does not');
+  assert.match(studioProblems(moveWall(studio, 'w1', 280)!).join(), /wider than its wall/, 'an 82 cm wall cannot hold the 80 cm door');
+});

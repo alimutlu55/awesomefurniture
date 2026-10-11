@@ -10,7 +10,7 @@ import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
 
 export function sceneToProject(project: ProjectDocument, scene: EditorScene): ProjectDocument {
- return {...project, wardrobes: scene.wardrobes.map(cabinet=>{
+ return {...project, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), wardrobes: scene.wardrobes.map(cabinet=>{
   const s=cabinet.state, weights=s.wt.slice(0,s.n), total=weights.reduce((a,b)=>a+b,0);
   const widths=weights.map(w=>(s.w-(s.n+1)*PANEL)*w/total);
   const prefix=`${project.id}/cabinet/${cabinet.id}`;
@@ -59,7 +59,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};
  });
- return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1};
+ return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{})};
 }
 
 /** Selection, open doors, and the next ID counter are transient UI state. */

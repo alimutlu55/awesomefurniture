@@ -1,4 +1,5 @@
 import type { Wardrobe } from '../wardrobe/wardrobe';
+import type { Studio } from '../studio/studio';
 
 /** Serializable design only. Editor state and render resources live elsewhere. */
 export interface ProjectDocument {
@@ -7,6 +8,8 @@ export interface ProjectDocument {
   readonly name: string;
   readonly units: 'cm';
   readonly wardrobes: readonly Wardrobe[];
+  /** The room the wardrobes stand in. Absent: no room, wardrobes on an open floor. */
+  readonly studio?: Studio | undefined;
 }
 
 export function projectName(value: string): string {

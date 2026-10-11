@@ -7,6 +7,10 @@ import { ALL_PURPOSES } from '../../domain/wardrobe/purposes';
 import type { Needs } from '../../domain/wardrobe/possessions';
 import type { ItemKind, StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
+import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
+import type { StudioTemplateId } from '../../domain/studio/studio-templates';
+import { studioProblems } from '../../domain/studio/studio-validation';
+import type { Studio } from '../../domain/studio/studio';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -122,8 +126,17 @@ const wardrobe = z.strictObject({
     });
   });
 });
+// A saved room must be buildable by the same rules the editor uses.
+const studio = z.strictObject({
+  template: z.enum([...STUDIO_TEMPLATES.map(t => t.id), 'custom'] as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StudioTemplateId]: K }>,
+  corners: z.array(z.strictObject({ id, x: finite, z: finite })),
+  walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive })),
+  openings: z.array(z.strictObject({ id, wall: id, kind: z.enum(['door', 'window', 'archway']), offset: finite, width: positive, height: positive, sill: nonnegative })),
+}).superRefine((room, context) => {
+  for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
+});
 const projectSchema = z.strictObject({
-  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe),
+  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(),
 }).superRefine((project, context) => {
   const ids = new Set<string>([project.id]);
   const cabinetIds = new Set<number>();
