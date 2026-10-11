@@ -19,7 +19,8 @@ export function createDimensionRenderer({ dom, renderState, resources }) {
             y = ay + (by - ay) * .28;
         }
         const dx = Math.max(bounds.left + ew / 2, Math.min(bounds.right - ew / 2, x)) - x, dy = Math.max(eh / 2 + 6, Math.min(bounds.bottom - eh / 2, y)) - y;
-        return { a: { x: ax + dx, y: ay + dy }, b: { x: bx + dx, y: by + dy }, x: x + dx, y: y + dy };
+        // `line` is where the dimension line belongs; a/b are moved only to keep the label on screen.
+        return { a: { x: ax + dx, y: ay + dy }, b: { x: bx + dx, y: by + dy }, line: { a, b }, x: x + dx, y: y + dy };
     }
     function bindRuler(el, a, b, axis) {
         const entry = renderState.labs.find(l => l.el === el);
@@ -36,7 +37,11 @@ export function createDimensionRenderer({ dom, renderState, resources }) {
             q.project(resources.cam);
             return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
         };
-        const a = project(l.ruler.a), b = project(l.ruler.b), q = rulerScreenPlacement(a, b, l.ruler.axis, ew, eh, bounds), len = Math.hypot(q.b.x - q.a.x, q.b.y - q.a.y) || 1, nx = -(q.b.y - q.a.y) / len * 4, ny = (q.b.x - q.a.x) / len * 4;
+        const a = project(l.ruler.a), b = project(l.ruler.b), placed = rulerScreenPlacement(a, b, l.ruler.axis, ew, eh, bounds);
+        // Shape measurements keep their line on the corner they measure; only their label moves.
+        const keepLine = l.el.classList.contains('shape-coord') || l.el.classList.contains('shape-measure');
+        const q = keepLine ? { ...placed, a: placed.line.a, b: placed.line.b } : placed;
+        const len = Math.hypot(q.b.x - q.a.x, q.b.y - q.a.y) || 1, nx = -(q.b.y - q.a.y) / len * 4, ny = (q.b.x - q.a.x) / len * 4;
         if (!l.rulerNode) {
             const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'), path = document.createElementNS(ns, 'path');
             svg.classList.add('measurement-line');
