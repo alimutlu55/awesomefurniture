@@ -8,7 +8,7 @@ readonly model: Pick<ReturnType<typeof import('../../application/projects/editor
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindInspectorControls2Ports {
+export interface BindDropdownOpenPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'openDD'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
@@ -20,19 +20,19 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').crea
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindInspectorControls3Ports {
+export interface BindResetClosesDropdownPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowPointerdown2Ports {
+export interface BindDropdownOutsideClosePorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowKeydown7Ports {
+export interface BindDropdownEscapePorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
@@ -60,7 +60,7 @@ readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'cameraZoom'>>;
 }
 
-export interface BindInspectorControls4Ports {
+export interface BindPropertiesTogglePorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'clearFocus'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
@@ -99,7 +99,7 @@ readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'duplicateDivider'>>;
 }
 
-export interface BindCPorts {
+export interface BindCanvasHintDismissPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

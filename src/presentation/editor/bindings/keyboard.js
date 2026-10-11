@@ -1,8 +1,8 @@
 import { MODS } from '../../../domain/wardrobe/catalog.js';
 /** Escape and other global keys.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
-/** @param {import('./keyboard.ports').BindWindowKeydown4Ports} ports */
-export function bindWindowKeydown4({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, lifetime }) {
+/** @param {import('./keyboard.ports').BindEscapeKeyPorts} ports */
+export function bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, lifetime }) {
     const { $, window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (e.key === 'Escape') {

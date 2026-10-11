@@ -33,8 +33,8 @@ export function bindMoveApply({ dom, interactions, geometry, model }) {
     const { $ } = dom;
     $('#move-apply').onclick = () => interactions.performMove(geometry.planItemMove({ i: model.activeCabinet().state.sel, j: model.activeCabinet().state.item }, +$('#move-bay').value, +$('#move-slot').value));
 }
-/** @param {import('./move.ports').BindWindowKeydown6Ports} ports */
-export function bindWindowKeydown6({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./move.ports').BindMovePreviewKeydownPorts} ports */
+export function bindMovePreviewKeydown({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (e.key === 'Shift' && interactionState.lastMoveEvent && (interactionState.drag?.started || interactionState.moveMode)) {
@@ -42,8 +42,8 @@ export function bindWindowKeydown6({ dom, interactions, interactionState, lifeti
         }
     });
 }
-/** @param {import('./move.ports').BindWindowKeyupPorts} ports */
-export function bindWindowKeyup({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./move.ports').BindMovePreviewKeyupPorts} ports */
+export function bindMovePreviewKeyup({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keyup', e => {
         if (e.key === 'Shift' && interactionState.lastMoveEvent && (interactionState.drag?.started || interactionState.moveMode)) {

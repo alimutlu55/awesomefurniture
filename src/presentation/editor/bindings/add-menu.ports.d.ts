@@ -11,13 +11,13 @@ readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/
 readonly elements: Pick<ReturnType<typeof import('../editor-dom.js').getEditorElements>, 'pillMenu'>;
 }
 
-export interface BindWindowPointerdownPorts {
+export interface BindPillMenuDismissPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly elements: Pick<ReturnType<typeof import('../editor-dom.js').getEditorElements>, 'pillMenu'>;
 }
 
-export interface BindPop2Ports {
+export interface BindAddPanelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'itemUI' | 'showPop' | 'swapPop' | 'update'>>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;

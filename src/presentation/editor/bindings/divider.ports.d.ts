@@ -4,7 +4,7 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'hidePop'>>;
 }
 
-export interface BindDgapPorts {
+export interface BindDividerGapPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../../viewport/cabinet-renderer.js').createCabinetRenderer>, 'positionLabels' | 'refreshDividerVisual'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'dividerUI' | 'histUI'>>;
@@ -15,7 +15,7 @@ readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/
 readonly history: Readonly<Pick<ReturnType<typeof import('../../../application/history/scene-history.js').createSceneHistory>, 'checkpoint'>>;
 }
 
-export interface BindDheightPorts {
+export interface BindDividerHeightPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'dividerUI' | 'update'>>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
@@ -28,31 +28,31 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'removeDivider'>>;
 }
 
-export interface BindWindowPointermovePorts {
+export interface BindDividerDragMovePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'moveDividerDrag'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowPointerupPorts {
+export interface BindDividerDragEndPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowPointercancelPorts {
+export interface BindDividerDragCancelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowBlurPorts {
+export interface BindDividerDragBlurPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowKeydownPorts {
+export interface BindDividerDragEscapePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture'>;

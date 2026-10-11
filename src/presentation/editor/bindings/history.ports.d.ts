@@ -1,15 +1,15 @@
 /** Explicit dependencies consumed by ./history.js. */
-export interface BindUndo2Ports {
+export interface BindUndoButtonPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'undo'>>;
 }
 
-export interface BindRedo2Ports {
+export interface BindRedoButtonPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'redo'>>;
 }
 
-export interface BindWindowKeydown2Ports {
+export interface BindEditShortcutsPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'redo' | 'undo'>>;
 readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'focusOn'>;

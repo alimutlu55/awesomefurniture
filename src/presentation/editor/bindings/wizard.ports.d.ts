@@ -1,5 +1,5 @@
 /** Explicit dependencies consumed by ./wizard.js. */
-export interface BindEmptyXPorts {
+export interface BindEmptySceneDismissPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly plannerState: Pick<ReturnType<typeof import('../planner-state.js').createPlannerState>, 'emptyDismissed'>;
 }
@@ -9,7 +9,7 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'openWizard'>>;
 }
 
-export interface BindEmptyLaunchPorts {
+export interface BindEmptySceneLaunchPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'openWizard'>>;
 }
@@ -19,13 +19,13 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'closeWizard'>>;
 }
 
-export interface BindWizardPorts {
+export interface BindWizardInputsPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'markIdeasDirty'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindIdeasPorts {
+export interface BindIdeaApplyPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'closeWizard' | 'readPreferences' | 'refreshIdeas'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').createEditorShell>, 'toast'>>;
@@ -34,13 +34,13 @@ readonly geometry: Readonly<Pick<ReturnType<typeof import('../../../domain/geome
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'applyProposal'>>;
 }
 
-export interface BindWizard2Ports {
+export interface BindWizardBackdropClosePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'closeWizard'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWizard3Ports {
+export interface BindWizardFocusTrapPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

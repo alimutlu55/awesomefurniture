@@ -5,8 +5,8 @@ export function bindDividerClose({ dom, inspector }) {
     const { $ } = dom;
     $('#divider-close').onclick = () => inspector.hidePop();
 }
-/** @param {import('./divider.ports').BindDgapPorts} ports */
-export function bindDgap({ dom, rendering, inspector, shell, geometry, model, commands, history }) {
+/** @param {import('./divider.ports').BindDividerGapPorts} ports */
+export function bindDividerGap({ dom, rendering, inspector, shell, geometry, model, commands, history }) {
     const { $ } = dom;
     [0, 1].forEach(k => {
         const input = $('#dgap' + k), side = k ? 'after' : 'before';
@@ -50,8 +50,8 @@ export function bindDgap({ dom, rendering, inspector, shell, geometry, model, co
     });
 }
 /** Height of a vertical divider, typed in centimetres.
- * @param {import('./divider.ports').BindDheightPorts} ports */
-export function bindDheight({ dom, inspector, model, commands, shell }) {
+ * @param {import('./divider.ports').BindDividerHeightPorts} ports */
+export function bindDividerHeight({ dom, inspector, model, commands, shell }) {
     const { $ } = dom;
     const input = $('#dheight');
     const commit = () => {
@@ -73,28 +73,28 @@ export function bindDividerRemove({ dom, commands }) {
     const { $ } = dom;
     $('#divider-remove').onclick = () => commands.removeDivider();
 }
-/** @param {import('./divider.ports').BindWindowPointermovePorts} ports */
-export function bindWindowPointermove({ dom, interactions, lifetime }) {
+/** @param {import('./divider.ports').BindDividerDragMovePorts} ports */
+export function bindDividerDragMove({ dom, interactions, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'pointermove', e => interactions.moveDividerDrag(e));
 }
-/** @param {import('./divider.ports').BindWindowPointerupPorts} ports */
-export function bindWindowPointerup({ dom, interactions, lifetime }) {
+/** @param {import('./divider.ports').BindDividerDragEndPorts} ports */
+export function bindDividerDragEnd({ dom, interactions, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'pointerup', () => interactions.finishDividerDrag());
 }
-/** @param {import('./divider.ports').BindWindowPointercancelPorts} ports */
-export function bindWindowPointercancel({ dom, interactions, lifetime }) {
+/** @param {import('./divider.ports').BindDividerDragCancelPorts} ports */
+export function bindDividerDragCancel({ dom, interactions, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'pointercancel', () => interactions.finishDividerDrag(true));
 }
-/** @param {import('./divider.ports').BindWindowBlurPorts} ports */
-export function bindWindowBlur({ dom, interactions, lifetime }) {
+/** @param {import('./divider.ports').BindDividerDragBlurPorts} ports */
+export function bindDividerDragBlur({ dom, interactions, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'blur', () => interactions.finishDividerDrag(true));
 }
-/** @param {import('./divider.ports').BindWindowKeydownPorts} ports */
-export function bindWindowKeydown({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./divider.ports').BindDividerDragEscapePorts} ports */
+export function bindDividerDragEscape({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (interactionState.dividerGesture && e.key === 'Escape') {

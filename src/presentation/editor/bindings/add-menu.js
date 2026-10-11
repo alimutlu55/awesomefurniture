@@ -36,8 +36,8 @@ export function bindPillAddMenu({ dom, commands, elements }) {
         elements.pillMenu.appendChild(b);
     }
 }
-/** @param {import('./add-menu.ports').BindWindowPointerdownPorts} ports */
-export function bindWindowPointerdown({ dom, lifetime, elements }) {
+/** @param {import('./add-menu.ports').BindPillMenuDismissPorts} ports */
+export function bindPillMenuDismiss({ dom, lifetime, elements }) {
     const { window } = dom;
     lifetime.listen(window, 'pointerdown', e => {
         if (!e.target.closest(dom.selector('#pill-menu,.lbl.add'))) {
@@ -45,8 +45,8 @@ export function bindWindowPointerdown({ dom, lifetime, elements }) {
         }
     }, true);
 }
-/** @param {import('./add-menu.ports').BindPop2Ports} ports */
-export function bindPop2({ dom, inspector, model, commands, lifetime }) {
+/** @param {import('./add-menu.ports').BindAddPanelPorts} ports */
+export function bindAddPanel({ dom, inspector, model, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#pop2'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));

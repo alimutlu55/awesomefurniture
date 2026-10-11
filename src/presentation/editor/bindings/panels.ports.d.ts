@@ -1,23 +1,23 @@
 /** Explicit dependencies consumed by ./panels.js. */
-export interface BindInspectorControlsPorts {
+export interface BindColorSchemeChangePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../../viewport/cabinet-renderer.js').createCabinetRenderer>, 'theme'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindToolbarPorts {
+export interface AddToolbarSeparatorPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 
 }
 
-export interface BindPopPminPorts {
+export interface BindPanelMinimizePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'layoutPop' | 'syncMin'>>;
 readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'popMin'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindPopPhPorts {
+export interface BindPanelHeaderDragPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../../viewport/camera-controller.js').createCameraController>, 'baseShift'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'dockPop' | 'sideFor'>>;
@@ -26,7 +26,7 @@ readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindPxPorts {
+export interface BindPropertiesPanelClosePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'hidePop'>>;
 }

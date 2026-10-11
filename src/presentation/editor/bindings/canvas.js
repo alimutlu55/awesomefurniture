@@ -220,8 +220,8 @@ export function bindCanvasLostpointercapture({ dom, interactions, interactionSta
         }
     });
 }
-/** @param {import('./canvas.ports').BindWindowBlur2Ports} ports */
-export function bindWindowBlur2({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./canvas.ports').BindCanvasGestureBlurPorts} ports */
+export function bindCanvasGestureBlur({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'blur', () => {
         if (interactionState.wardrobeGesture) {
@@ -262,8 +262,8 @@ export function bindCanvasPointerleave({ dom, renderState, resources, lifetime }
         });
     });
 }
-/** @param {import('./canvas.ports').BindWindowKeydown3Ports} ports */
-export function bindWindowKeydown3({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./canvas.ports').BindCanvasGestureEscapePorts} ports */
+export function bindCanvasGestureEscape({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if ((interactionState.rotationGesture || interactionState.wardrobeGesture) && e.key === 'Escape') {

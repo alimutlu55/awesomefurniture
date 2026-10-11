@@ -2,8 +2,8 @@ import { MODS } from '../../../domain/wardrobe/catalog.js';
 import { createActionBar } from '../action-bar.js';
 /** Item menus in the view: the item type menu, the context menu and the mobile Cancel move button.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
-/** @param {import('./item-menus.ports').BindViewPorts} ports */
-export function bindView({ dom, inspector, picking, renderState, selectionState, resources, model, lifetime }) {
+/** @param {import('./item-menus.ports').BindItemMenusPorts} ports */
+export function bindItemMenus({ dom, inspector, picking, renderState, selectionState, resources, model, lifetime }) {
     const { $, document, window } = dom;
     const cancelMove = document.createElement('button');
     cancelMove.type = 'button';

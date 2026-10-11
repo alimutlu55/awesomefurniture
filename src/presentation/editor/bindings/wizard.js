@@ -1,7 +1,7 @@
 /** The Auto design wizard and the empty-scene prompt.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
-/** @param {import('./wizard.ports').BindEmptyXPorts} ports */
-export function bindEmptyX({ dom, plannerState }) {
+/** @param {import('./wizard.ports').BindEmptySceneDismissPorts} ports */
+export function bindEmptySceneDismiss({ dom, plannerState }) {
     const { $ } = dom;
     $('#empty-x').onclick = () => {
         plannerState.emptyDismissed = true;
@@ -13,8 +13,8 @@ export function bindLaunchWizard({ dom, planner }) {
     const { $ } = dom;
     $('#launch-wizard').onclick = planner.openWizard;
 }
-/** @param {import('./wizard.ports').BindEmptyLaunchPorts} ports */
-export function bindEmptyLaunch({ dom, planner }) {
+/** @param {import('./wizard.ports').BindEmptySceneLaunchPorts} ports */
+export function bindEmptySceneLaunch({ dom, planner }) {
     const { $ } = dom;
     $('#empty-launch').onclick = planner.openWizard;
 }
@@ -23,16 +23,16 @@ export function bindCloseWizard({ dom, planner }) {
     const { $ } = dom;
     $('#close-wizard').onclick = planner.closeWizard;
 }
-/** @param {import('./wizard.ports').BindWizardPorts} ports */
-export function bindWizard({ dom, planner, lifetime }) {
+/** @param {import('./wizard.ports').BindWizardInputsPorts} ports */
+export function bindWizardInputs({ dom, planner, lifetime }) {
     const { $ } = dom;
     $('#wizard').querySelectorAll('input,select').forEach(el => {
         lifetime.listen(el, 'input', planner.markIdeasDirty);
         lifetime.listen(el, 'change', planner.markIdeasDirty);
     });
 }
-/** @param {import('./wizard.ports').BindIdeasPorts} ports */
-export function bindIdeas({ dom, planner, shell, plannerState, geometry, commands }) {
+/** @param {import('./wizard.ports').BindIdeaApplyPorts} ports */
+export function bindIdeaApply({ dom, planner, shell, plannerState, geometry, commands }) {
     const { $ } = dom;
     $('#ideas').onclick = e => {
         const b = ( /** @type {HTMLElement} */(e.target)).closest(dom.selector('[data-idea]'));
@@ -48,8 +48,8 @@ export function bindIdeas({ dom, planner, shell, plannerState, geometry, command
         planner.closeWizard();
     };
 }
-/** @param {import('./wizard.ports').BindWizard2Ports} ports */
-export function bindWizard2({ dom, planner, lifetime }) {
+/** @param {import('./wizard.ports').BindWizardBackdropClosePorts} ports */
+export function bindWizardBackdropClose({ dom, planner, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#wizard'), 'click', e => {
         if (e.target === $('#wizard')) {
@@ -57,8 +57,8 @@ export function bindWizard2({ dom, planner, lifetime }) {
         }
     });
 }
-/** @param {import('./wizard.ports').BindWizard3Ports} ports */
-export function bindWizard3({ dom, lifetime }) {
+/** @param {import('./wizard.ports').BindWizardFocusTrapPorts} ports */
+export function bindWizardFocusTrap({ dom, lifetime }) {
     const { $, document } = dom;
     lifetime.listen($('#wizard'), 'keydown', e => {
         if (e.key !== 'Tab') {

@@ -66,16 +66,16 @@ export function bindFinishSwatches({ dom, commands }) {
         $('#fins').appendChild(b);
     });
 }
-/** @param {import('./cabinet.ports').BindWardrobeReachPorts} ports */
-export function bindWardrobeReach({ dom, inspector, commands, lifetime }) {
+/** @param {import('./cabinet.ports').BindReachChangePorts} ports */
+export function bindReachChange({ dom, inspector, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#wardrobe-reach'), 'change', e => {
         commands.setWardrobeReach(e.target.valueAsNumber);
         inspector.reachUI();
     });
 }
-/** @param {import('./cabinet.ports').BindWardrobeReach2Ports} ports */
-export function bindWardrobeReach2({ dom, inspector, model, commands, lifetime }) {
+/** @param {import('./cabinet.ports').BindReachBlurPorts} ports */
+export function bindReachBlur({ dom, inspector, model, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#wardrobe-reach'), 'blur', e => {
         if (Number.isFinite(e.target.valueAsNumber) && e.target.valueAsNumber !== model.activeCabinet().state.profile.reach) {
@@ -84,8 +84,8 @@ export function bindWardrobeReach2({ dom, inspector, model, commands, lifetime }
         inspector.reachUI();
     });
 }
-/** @param {import('./cabinet.ports').BindWardrobeReach3Ports} ports */
-export function bindWardrobeReach3({ dom, inspector, commands, lifetime }) {
+/** @param {import('./cabinet.ports').BindReachEnterPorts} ports */
+export function bindReachEnter({ dom, inspector, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#wardrobe-reach'), 'keydown', e => {
         if (e.key === 'Enter') {
@@ -100,18 +100,18 @@ export function bindWardrobeReach3({ dom, inspector, commands, lifetime }) {
         }
     });
 }
-/** @param {import('./cabinet.ports').BindWardrobeReachLinePorts} ports */
-export function bindWardrobeReachLine({ dom, commands, lifetime }) {
+/** @param {import('./cabinet.ports').BindReachLineTogglePorts} ports */
+export function bindReachLineToggle({ dom, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#wardrobe-reach-line'), 'change', e => commands.setReachLine(e.target.checked));
 }
-/** @param {import('./cabinet.ports').BindDataDPorts} ports */
-export function bindDataD({ dom, commands }) {
+/** @param {import('./cabinet.ports').BindDoorChoicePorts} ports */
+export function bindDoorChoice({ dom, commands }) {
     const { document } = dom;
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-d]')).forEach(b => b.onclick = () => commands.setDoors(/** @type {import('../../../domain/wardrobe/editor-design').EditorDesign['doors']} */ (b.dataset.d)));
 }
-/** @param {import('./cabinet.ports').BindDataD2Ports} ports */
-export function bindDataD2({ dom, }) {
+/** @param {import('./cabinet.ports').RenderDoorChoicesPorts} ports */
+export function renderDoorChoices({ dom, }) {
     const { document } = dom;
     for (const b of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-d]'))) {
         const k = b.dataset.d, art = k === 'none' ? '<circle cx="23" cy="22" r="12"/><path d="m15 13 16 18"/>' : '<path d="M5 3h36v38H5zM17 3v38M29 3v38" fill="' + (k === 'glass' ? '#b1b0a780' : '#a49a89') + '"/><path d="M15 20v5m16-5v5"/>';
@@ -119,8 +119,8 @@ export function bindDataD2({ dom, }) {
         b.setAttribute('aria-label', k === 'none' ? 'No doors' : k + ' doors');
     }
 }
-/** @param {import('./cabinet.ports').BindOpenPorts} ports */
-export function bindOpen({ dom, model }) {
+/** @param {import('./cabinet.ports').BindDoorsOpenTogglePorts} ports */
+export function bindDoorsOpenToggle({ dom, model }) {
     const { $ } = dom;
     $('#open').onclick = () => {
         model.activeCabinet().state.open = !model.activeCabinet().state.open;

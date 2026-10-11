@@ -1,18 +1,18 @@
 /** Floating panels and the toolbar: minimise, drag, close, colour scheme.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** DOM event bindings call application commands through the mounted view ports. */
-/** @param {import('./panels.ports').BindInspectorControlsPorts} ports */
-export function bindInspectorControls({ dom, rendering, lifetime }) {
+/** @param {import('./panels.ports').BindColorSchemeChangePorts} ports */
+export function bindColorSchemeChange({ dom, rendering, lifetime }) {
     const { matchMedia } = dom;
     lifetime.listen(matchMedia('(prefers-color-scheme: dark)'), 'change', rendering.theme);
 }
-/** @param {import('./panels.ports').BindToolbarPorts} ports */
-export function bindToolbar({ dom, }) {
+/** @param {import('./panels.ports').AddToolbarSeparatorPorts} ports */
+export function addToolbarSeparator({ dom, }) {
     const { $ } = dom;
     $('#toolbar').insertAdjacentHTML('beforeend', '<span class="sep"></span>');
 }
-/** @param {import('./panels.ports').BindPopPminPorts} ports */
-export function bindPopPmin({ dom, inspector, selectionState, lifetime }) {
+/** @param {import('./panels.ports').BindPanelMinimizePorts} ports */
+export function bindPanelMinimize({ dom, inspector, selectionState, lifetime }) {
     const { document } = dom;
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.pop .pmin')).forEach(b => lifetime.listen(b, 'click', e => {
         e.stopPropagation();
@@ -22,8 +22,8 @@ export function bindPopPmin({ dom, inspector, selectionState, lifetime }) {
         inspector.layoutPop(p);
     }));
 }
-/** @param {import('./panels.ports').BindPopPhPorts} ports */
-export function bindPopPh({ dom, camera, inspector, cameraState, selectionState, lifetime }) {
+/** @param {import('./panels.ports').BindPanelHeaderDragPorts} ports */
+export function bindPanelHeaderDrag({ dom, camera, inspector, cameraState, selectionState, lifetime }) {
     const { $, document } = dom;
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.pop .ph')).forEach(h => {
         h.title = '';
@@ -60,8 +60,8 @@ export function bindPopPh({ dom, camera, inspector, cameraState, selectionState,
         });
     });
 }
-/** @param {import('./panels.ports').BindPxPorts} ports */
-export function bindPx({ dom, inspector }) {
+/** @param {import('./panels.ports').BindPropertiesPanelClosePorts} ports */
+export function bindPropertiesPanelClose({ dom, inspector }) {
     const { $ } = dom;
     $('#px').onclick = inspector.hidePop;
 }

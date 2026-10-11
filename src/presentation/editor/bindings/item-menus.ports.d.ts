@@ -1,5 +1,5 @@
 /** Explicit dependencies consumed by ./item-menus.js. */
-export interface BindViewPorts {
+export interface BindItemMenusPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'closeItemMenus' | 'inside' | 'itemAction' | 'placeFloating' | 'placeItemTypeMenu' | 'showPop' | 'update'>>;
 readonly picking: Readonly<Pick<ReturnType<typeof import('../scene-picking.js').createScenePicking>, 'cast'>>;

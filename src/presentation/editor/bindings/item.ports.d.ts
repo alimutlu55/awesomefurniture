@@ -1,12 +1,12 @@
 /** Explicit dependencies consumed by ./item.js. */
-export interface BindWindowKeydown5Ports {
+export interface BindItemResizeEscapePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishItemEdgeResize'>>;
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'itemEdgeGesture'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowBlur3Ports {
+export interface BindItemResizeBlurPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishItemEdgeResize'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
@@ -20,12 +20,12 @@ readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-present
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindIxPorts {
+export interface BindItemPanelClosePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'hidePop'>>;
 }
 
-export interface BindPop3Ports {
+export interface BindItemPanelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'performMove'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'update'>>;
@@ -41,7 +41,7 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 
 }
 
-export interface BindIpurposePorts {
+export interface BindItemPurposePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'editItem'>>;

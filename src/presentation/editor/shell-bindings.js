@@ -16,8 +16,8 @@ export function bindMoreBtn({ dom, inspector, shell, selectionState, model, life
         $('#px').focus();
     });
 }
-/** @param {import('./shell-bindings.ports').BindInspectorControls2Ports} ports */
-export function bindInspectorControls2({ dom, shell, lifetime }) {
+/** @param {import('./shell-bindings.ports').BindDropdownOpenPorts} ports */
+export function bindDropdownOpen({ dom, shell, lifetime }) {
     const { document } = dom;
     for (const [b, p] of dropdowns) {
         lifetime.listen(document.getElementById(b), 'click', e => {
@@ -34,15 +34,15 @@ export function bindHelpMenu({ dom, shell, lifetime }) {
         shell.openDD('help-btn', 'help-panel');
     });
 }
-/** @param {import('./shell-bindings.ports').BindInspectorControls3Ports} ports */
-export function bindInspectorControls3({ dom, shell, lifetime }) {
+/** @param {import('./shell-bindings.ports').BindResetClosesDropdownPorts} ports */
+export function bindResetClosesDropdown({ dom, shell, lifetime }) {
     const { document } = dom;
     for (const id of ['reset-all']) {
         lifetime.listen(document.getElementById(id), 'click', () => shell.closeDD());
     }
 }
-/** @param {import('./shell-bindings.ports').BindWindowPointerdown2Ports} ports */
-export function bindWindowPointerdown2({ dom, shell, lifetime }) {
+/** @param {import('./shell-bindings.ports').BindDropdownOutsideClosePorts} ports */
+export function bindDropdownOutsideClose({ dom, shell, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'pointerdown', e => {
         if (!e.target.closest(dom.selector('.dd,#menu-btn,#more-btn,#fitchip,#help-btn'))) {
@@ -50,8 +50,8 @@ export function bindWindowPointerdown2({ dom, shell, lifetime }) {
         }
     }, true);
 }
-/** @param {import('./shell-bindings.ports').BindWindowKeydown7Ports} ports */
-export function bindWindowKeydown7({ dom, shell, lifetime }) {
+/** @param {import('./shell-bindings.ports').BindDropdownEscapePorts} ports */
+export function bindDropdownEscape({ dom, shell, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (e.key === 'Escape' && shell.closeDD()) {
@@ -100,8 +100,8 @@ export function bindZoomOut({ dom, camera }) {
         }
     };
 }
-/** @param {import('./shell-bindings.ports').BindInspectorControls4Ports} ports */
-export function bindInspectorControls4({ dom, inspector, shell, lifetime, elements }) {
+/** @param {import('./shell-bindings.ports').BindPropertiesTogglePorts} ports */
+export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements }) {
     const { document, matchMedia } = dom;
     const desktop = matchMedia('(min-width:901px)');
     const settingsLabel = document.createElement('span');
@@ -236,8 +236,8 @@ export function bindDividerDup({ dom, commands }) {
     const { $ } = dom;
     $('#divider-dup').onclick = () => commands.duplicateDivider();
 }
-/** @param {import('./shell-bindings.ports').BindCPorts} ports */
-export function bindC({ dom, lifetime }) {
+/** @param {import('./shell-bindings.ports').BindCanvasHintDismissPorts} ports */
+export function bindCanvasHintDismiss({ dom, lifetime }) {
     const { document } = dom;
     lifetime.listen(document.getElementById('c'), 'pointerdown', () => document.getElementById('hint').classList.add('gone'), { once: true });
 }

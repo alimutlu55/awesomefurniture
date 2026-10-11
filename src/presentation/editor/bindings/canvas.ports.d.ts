@@ -56,7 +56,7 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowBlur2Ports {
+export interface BindCanvasGestureBlurPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishRotation' | 'finishWardrobeDrag'>>;
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'ptrs' | 'rotationGesture' | 'wardrobeGesture'>;
@@ -79,7 +79,7 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindWindowKeydown3Ports {
+export interface BindCanvasGestureEscapePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishRotation' | 'finishWardrobeDrag'>>;
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'rotationGesture' | 'wardrobeGesture'>;

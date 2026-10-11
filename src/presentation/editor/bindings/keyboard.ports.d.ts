@@ -1,5 +1,5 @@
 /** Explicit dependencies consumed by ./keyboard.js. */
-export interface BindWindowKeydown4Ports {
+export interface BindEscapeKeyPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'keyboardMove'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'goUp' | 'hidePop' | 'update'>>;

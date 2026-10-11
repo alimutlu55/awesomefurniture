@@ -1,8 +1,8 @@
 import { PURPOSE } from '../../../domain/wardrobe/catalog.js';
 /** The selected item: its panel, size fields, purpose, and edge resizing.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
-/** @param {import('./item.ports').BindWindowKeydown5Ports} ports */
-export function bindWindowKeydown5({ dom, interactions, interactionState, lifetime }) {
+/** @param {import('./item.ports').BindItemResizeEscapePorts} ports */
+export function bindItemResizeEscape({ dom, interactions, interactionState, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (interactionState.itemEdgeGesture && e.key === 'Escape') {
@@ -12,8 +12,8 @@ export function bindWindowKeydown5({ dom, interactions, interactionState, lifeti
         }
     }, true);
 }
-/** @param {import('./item.ports').BindWindowBlur3Ports} ports */
-export function bindWindowBlur3({ dom, interactions, lifetime }) {
+/** @param {import('./item.ports').BindItemResizeBlurPorts} ports */
+export function bindItemResizeBlur({ dom, interactions, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'blur', () => interactions.finishItemEdgeResize(true));
 }
@@ -49,13 +49,13 @@ export function bindItemDimensions({ dom, camera, interactions, inspector, lifet
         });
     }
 }
-/** @param {import('./item.ports').BindIxPorts} ports */
-export function bindIx({ dom, inspector }) {
+/** @param {import('./item.ports').BindItemPanelClosePorts} ports */
+export function bindItemPanelClose({ dom, inspector }) {
     const { $ } = dom;
     $('#ix').onclick = inspector.hidePop;
 }
-/** @param {import('./item.ports').BindPop3Ports} ports */
-export function bindPop3({ dom, interactions, inspector, selectionState, geometry, model, commands, lifetime }) {
+/** @param {import('./item.ports').BindItemPanelPorts} ports */
+export function bindItemPanel({ dom, interactions, inspector, selectionState, geometry, model, commands, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#pop3'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));
@@ -114,8 +114,8 @@ export function populateStoragePurposes({ dom, }) {
         $('#ipurpose').appendChild(o);
     });
 }
-/** @param {import('./item.ports').BindIpurposePorts} ports */
-export function bindIpurpose({ dom, model, commands }) {
+/** @param {import('./item.ports').BindItemPurposePorts} ports */
+export function bindItemPurpose({ dom, model, commands }) {
     const { $ } = dom;
     $('#ipurpose').onchange = e => commands.editItem(model.activeCabinet().state.sel, model.activeCabinet().state.item, { purpose: /** @type {import('../../../domain/wardrobe/wardrobe').StoragePurpose} */ (( /** @type {HTMLInputElement} */(e.target)).value) });
 }
