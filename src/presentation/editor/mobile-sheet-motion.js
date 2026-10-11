@@ -16,8 +16,11 @@ export function registerMobileSheetMotion(panel, options) {
 /** Preserve immediate logical closing, while an inert visual copy slides out.
  * @param {Element} panel */
 export function animateMobileSheetClose(panel) {
-    const options = mounted.get(panel), win = panel.ownerDocument.defaultView;
-    if (!options || options.desktop.matches || win?.matchMedia('(prefers-reduced-motion: reduce)').matches || snapshots.has(panel)) return;
+    // An unmounted panel has nothing to animate, so it is left before its document is read.
+    const options = mounted.get(panel);
+    if (!options) return;
+    const win = panel.ownerDocument?.defaultView;
+    if (options.desktop.matches || win?.matchMedia('(prefers-reduced-motion: reduce)').matches || snapshots.has(panel)) return;
     const r = panel.getBoundingClientRect(), css = win.getComputedStyle(panel);
     if (!r.width || !r.height || css.display === 'none' || css.visibility === 'hidden') return;
     const root = panel.getRootNode(), parent = /** @type {ShadowRoot} */ (root).host || panel.parentElement;
