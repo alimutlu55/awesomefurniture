@@ -152,7 +152,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;

@@ -8,7 +8,7 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
-export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const { $, document } = dom;
     /** Break-point handles are pooled: rebuilding during a drag reuses the
      * captured element instead of replacing it. */
@@ -66,6 +66,23 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         });
         splitPool.slice(splits.length).forEach(el => el.remove());
         if (editing) {
+            // Tolerance is in screen pixels: convert with the current zoom.
+            const near = renderState.Gr.localToWorld(new THREE.Vector3(0, 100, d / 2 + 3)), far = renderState.Gr.localToWorld(new THREE.Vector3(10, 100, d / 2 + 3));
+            const A = picking.screenPoint(near), B = picking.screenPoint(far);
+            shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
+            const w = getRenderDesign().w, h = getRenderDesign().h;
+            for (const g of shapeInspector.guides()) {
+                // A guide across the model: horizontal for a shared height, vertical for a shared position.
+                const pts = g.orient === 'h'
+                    ? [new THREE.Vector3(-w / 2, g.pos, d / 2 + 3), new THREE.Vector3(w / 2, g.pos, d / 2 + 3)]
+                    : [new THREE.Vector3(g.pos - w / 2, 0, d / 2 + 3), new THREE.Vector3(g.pos - w / 2, h, d / 2 + 3)];
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(), toneMapped: false, dashSize: 4, gapSize: 3, transparent: true, opacity: .9, depthTest: false }));
+                line.computeLineDistances();
+                line.renderOrder = 16;
+                renderState.Gr.add(line);
+                const at = g.orient === 'h' ? new THREE.Vector3(w / 2 + 4, g.pos, d / 2 + 3) : new THREE.Vector3(g.pos - w / 2, h + 4, d / 2 + 3);
+                label(at, g.label, 'lbl shape-guide');
+            }
             for (const q of shapeInspector.measures()) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');

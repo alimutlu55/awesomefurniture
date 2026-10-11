@@ -22,6 +22,8 @@ interface ShapeInspectorPorts {
 interface HandleDrag {
     index: number; pointer: number; target: HTMLElement; snapshot: string;
     start: { x: number; y: number }; original: WardrobeShape; last: WardrobeShape; moved: boolean;
+    lockX: { v: number; label: string } | null; lockY: { v: number; label: string } | null;
+    guides: { orient: 'h' | 'v'; pos: number; label: string }[];
 }
 
 /** Wardrobe-level skeleton editing: template choice, a precise panel list and
@@ -176,35 +178,80 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const shape = current(), next = splitPanel(shape, index);
         if (next !== shape) commit(next);
     }
-    const snap = (value: number, targets: number[], within: number) => {
-        const near = targets.filter(t => Math.abs(t - value) <= within).sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0];
-        return near ?? Math.round(value * 2) / 2;
-    };
+    /** Snapping and guides follow the item rules: a tolerance of about 8 screen pixels
+     * (so it feels the same at any zoom), a lock that holds the line it caught, and a
+     * guide drawn across the model with its name. */
+    let pxPerCm = 4;
+    function setScale(value: number) { pxPerCm = Math.max(.5, value); }
+    const tolerance = () => Math.max(.4, Math.min(4, 8 / pxPerCm));
+    type Align = { v: number; label: string };
+    function breakName(shape: WardrobeShape, k: number) {
+        if (k === 0) return 'left side';
+        if (k === shape.top.length - 1) return 'right side';
+        let n = 0;
+        for (let j = 1; j <= k; j++) if (Math.abs(shape.top[j]!.x - shape.top[j - 1]!.x) > 1e-6 || j === k) n++;
+        return 'break ' + n;
+    }
+    /** Heights a point can level with: the other break points. */
+    function heightTargets(o: WardrobeShape, index: number): Align[] {
+        return o.top.flatMap((q, k) => k === index ? [] : [{ v: q.y, label: 'Level with ' + breakName(o, k) }]);
+    }
+    /** Positions a point can align with: sides, centre, partitions and other break points. */
+    function positionTargets(o: WardrobeShape, index: number): Align[] {
+        const w = state().w, out: Align[] = [{ v: 0, label: 'Flush with left side' }, { v: w, label: 'Flush with right side' }, { v: w / 2, label: 'Centred' }];
+        for (const x of partitionPositions(state())) out.push({ v: x, label: 'Aligned with partition' }, { v: x + PANEL, label: 'Aligned with partition' });
+        o.top.forEach((q, k) => { if (k !== index && k > 0 && k < o.top.length - 1) out.push({ v: q.x, label: 'Aligned with ' + breakName(o, k) }); });
+        return out;
+    }
+    /** Nearest target within tolerance; a lock keeps the target it caught until the pointer leaves it. */
+    function alignTo(raw: number, targets: Align[], lock: Align | null): Align | null {
+        const tol = tolerance();
+        if (lock) {
+            const same = targets.find(t => Math.abs(t.v - lock.v) < 1e-6 && t.label === lock.label);
+            if (same && Math.abs(same.v - raw) <= tol * 1.6) return same;
+        }
+        let best: Align | null = null, bestD = Infinity;
+        for (const t of targets) {
+            const d = Math.abs(t.v - raw);
+            if (d <= tol && d < bestD) { best = t; bestD = d; }
+        }
+        return best;
+    }
+    const roundCm = (v: number) => Math.round(v * 10) / 10;
+    /** Guides for the current drag: horizontal for heights, vertical for positions. */
+    function guides(): { orient: 'h' | 'v'; pos: number; label: string }[] {
+        return drag?.guides ?? [];
+    }
     function beginHandleDrag(e: PointerEvent, index: number, target: HTMLElement) {
         const start = picking.frontPoint(e);
         if (!start) return;
         e.preventDefault();
         e.stopPropagation();
         const original = current();
-        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false };
+        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false, lockX: null, lockY: null, guides: [] };
         // Capture can fail if the pointer already ended; the drag still works from the handle's own events.
         try { target.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     }
-    /** Tolerance for snapping, in cm. Small, so the point follows the pointer and only
-     * settles on a neighbouring height or partition when it is really close. */
-    const SNAP_Y = 1, SNAP_X = 1;
     /** Browsers already deliver pointer moves aligned to frames, so each one is applied directly. */
     function moveHandleDrag(e: PointerEvent) {
         const g = drag;
         if (!g || e.pointerId !== g.pointer) return;
         const p = picking.frontPoint(e);
         if (!p) return;
-        const o = g.original, point = o.top[g.index]!, others = o.top.filter((_, k) => k !== g.index);
+        const o = g.original, point = o.top[g.index]!;
         const movesX = g.index > 0 && g.index < o.top.length - 1;
         // Targets follow the pointer from where the handle was grabbed.
-        const wantY = snap(point.y + p.y - g.start.y, others.map(q => q.y), SNAP_Y);
-        const faces = partitionPositions(state()).flatMap(x => [x, x + PANEL]);
-        const wantX = movesX ? snap(point.x + p.x - g.start.x, faces, SNAP_X) : point.x;
+        const rawY = point.y + p.y - g.start.y, rawX = point.x + p.x - g.start.x;
+        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY);
+        const alignX = movesX ? alignTo(rawX, positionTargets(o, g.index), g.lockX) : null;
+        g.lockY = alignY;
+        g.lockX = alignX;
+        g.guides = [
+            ...(alignY ? [{ orient: 'h' as const, pos: alignY.v, label: alignY.label }] : []),
+            ...(alignX ? [{ orient: 'v' as const, pos: alignX.v, label: alignX.label }] : []),
+        ];
+        const wantY = alignY ? alignY.v : roundCm(rawY);
+        const wantX = movesX ? (alignX ? alignX.v : roundCm(rawX)) : point.x;
         const want = setPoint(o, g.index, { x: wantX, y: wantY });
         // Move as far toward the target as the rules allow, rather than stopping dead
         // at the first invalid position. Bisect between the last valid shape and the target.
@@ -222,7 +269,11 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             }
             next = best;
         }
-        if (JSON.stringify(next.top) === JSON.stringify(g.last.top)) return;
+        if (JSON.stringify(next.top) === JSON.stringify(g.last.top)) {
+            // Only the guides changed (the point is held on a line): redraw them.
+            callbacks.rebuild();
+            return;
+        }
         g.last = next;
         g.moved = true;
         if (sceneCommands.setShape(editable(next), false, false)) callbacks.rebuild();
@@ -245,5 +296,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, splitMarkers, measures, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, measures, guides, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }
