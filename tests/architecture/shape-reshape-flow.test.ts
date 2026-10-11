@@ -257,5 +257,21 @@ test('a shelf uses another open space in its section when the selected one is to
   state.space = { i: 0, x: 10, y: 205 };
   commands.addMod('shelf');
   assert.equal(state.dividers.length, 1, 'a shelf is added in the open space');
+  assert.ok(state.dividers[0]!.x0! >= 25 - .01, 'in the open space beside the item, not on the far side');
   assert.equal(messages.length, 0, 'and nothing is refused');
+});
+
+test('four shelves added in a row stay in the open area they were started in', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const state = createEditorState();
+  Object.assign(state, { h: H, n: 1, wt: [100, 100, 100, 100, 100, 100], sel: 0, dividers: [] });
+  // A narrow tall item on the left leaves a thin strip above it and a wide open area beside it.
+  state.secs[0] = [{ k: 'folded', h: 190, w: 25, x: 0, y: 0, ax: 'l' } as never];
+  const messages: string[] = [];
+  const commands = createDesignCommands(() => state, { report: m => messages.push(m) });
+  state.space = { i: 0, x: 10, y: 205 };
+  for (let n = 0; n < 4; n++) commands.addMod('shelf');
+  assert.equal(state.dividers.length, 4, 'all four shelves are placed');
+  for (const d of state.dividers) assert.ok(d.x0! >= 25 - .01, 'each shelf is in the open area, not on the far side');
+  assert.equal(messages.length, 0);
 });

@@ -112,9 +112,16 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         const i = getDesign().sel;
         let space = rules.sectionSpaceMeasurements(i);
         if (!shelfFits(space)) {
-            // The selected space is too small, but another open space in this section may fit a shelf.
-            // Use the largest one that does, rather than refusing.
-            const fitting = rules.sectionSpaces(i).filter(shelfFits).sort((a, b) => b.w * b.h - a.w * a.h)[0];
+            // The selected space is too small. Use the open space nearest the selection that fits a shelf,
+            // so shelves fill the area being worked on before they move elsewhere in the section.
+            const point = getDesign().space;
+            const distance = (q: { x0?: number | undefined; x1?: number | undefined; y0?: number | undefined; y1?: number | undefined }) => {
+                if (!point) return 0;
+                const dx = Math.max((q.x0 ?? 0) - point.x, 0, point.x - (q.x1 ?? 0));
+                const dy = Math.max((q.y0 ?? 0) - point.y, 0, point.y - (q.y1 ?? 0));
+                return Math.hypot(dx, dy);
+            };
+            const fitting = rules.sectionSpaces(i).filter(shelfFits).sort((a, b) => distance(a) - distance(b) || b.w * b.h - a.w * a.h)[0];
             if (!fitting) {
                 effects.report('No open space in this section is big enough for a shelf');
                 return;
