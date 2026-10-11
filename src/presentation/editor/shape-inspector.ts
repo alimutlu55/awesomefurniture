@@ -287,7 +287,9 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const index = drag?.index ?? focusedPoint, shape = drag?.last ?? current();
         if (index === null || !shape.top[index]) return [];
         const p = shape.top[index]!, w = state().w, x = p.x - w / 2, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
-        if (p.x > .5) out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + cm(p.x) + ' cm', axis: 'width' });
+        // An X ruler only for a point inside the wardrobe: on a side it repeats the full width.
+        const interior = index > 0 && index < shape.top.length - 1;
+        if (interior && p.x > .5 && p.x < w - .5) out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + cm(p.x) + ' cm', axis: 'width' });
         if (p.y > .5) out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + cm(p.y) + ' cm', axis: 'height' });
         return out;
     }
