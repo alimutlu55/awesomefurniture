@@ -1,3 +1,4 @@
+import { createStudioRenderer } from './studio-renderer';
 import * as THREE from "three";
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -20,7 +21,11 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }, get drawSnapGuides() {
                 return drawSnapGuides;
             } }, model, renderState, interactionState, interactions, shell, inspector, resources, selectionState, getRenderDesign: () => renderDesign });
-    const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, callbacks: { get positionLabels() {
+    // The room around the wardrobes: rebuilt with them when it changes; its walls fade every frame.
+    // Optional: renderer tests build this without a 3D scene.
+    const studio = resources?.scene ? createStudioRenderer(resources.scene) : null;
+    if (studio) lifetime.cleanup(() => studio.dispose());
+    const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio: studio ?? undefined, callbacks: { get positionLabels() {
                 return positionLabels;
             } } });
     const { holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, drawSnapGuides } = createMovementOverlays({ dom, geometry, callbacks: { get label() {
@@ -85,6 +90,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.Gr.add(mesh);
     }
     function build() {
+        studio?.sync(model.scene.studio);
         const selected = model.activeCabinet();
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {

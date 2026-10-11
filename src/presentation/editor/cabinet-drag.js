@@ -117,6 +117,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
         const w = model.activeCabinet();
+        // In a room, a wardrobe brought near a wall settles flush and square against it (Shift: free).
+        const snap = g.axis === 'floor' && !e.shiftKey ? sceneCommands.wallSnap(w, { x: w.x, z: w.z, angle: w.angle }) : null;
+        if (snap) sceneCommands.restorePose(g.id, snap);
+        renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.position.set(w.x, w.y, w.z);
         renderState.Gr.children.forEach(o => {
             if (o.userData.floorShadow) {

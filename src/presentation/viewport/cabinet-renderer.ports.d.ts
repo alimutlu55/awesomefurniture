@@ -15,6 +15,6 @@ readonly resources: Pick<ReturnType<typeof import('./viewport-resources.js').cre
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'moveDividerTo' | 'run'>>;
 readonly settings: Pick<{ budget: number }, 'budget'>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('./editor-lifetime.js').createEditorLifetime>, 'frame'>>;
+readonly lifetime: Readonly<Pick<ReturnType<typeof import('./editor-lifetime.js').createEditorLifetime>, 'frame' | 'cleanup'>>;
 readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('../editor/shape-inspector').createShapeInspector>, 'handles' | 'beginHandleDrag' | 'moveHandleDrag' | 'endHandleDrag' | 'nudge'>>;
 }

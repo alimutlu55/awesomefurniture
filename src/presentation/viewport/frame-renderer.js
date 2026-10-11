@@ -1,5 +1,5 @@
-/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'> }} ports */
-export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, callbacks }) {
+/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame'> }} ports */
+export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio, callbacks }) {
     const { $, matchMedia } = dom;
     function loop() {
         lifetime.frame(loop);
@@ -15,6 +15,7 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
         });
         resources.cam.position.set(cameraState.tgt.x + cameraState.dist * Math.cos(cameraState.el) * Math.sin(cameraState.az), cameraState.tgt.y + cameraState.dist * Math.sin(cameraState.el), cameraState.tgt.z + cameraState.dist * Math.cos(cameraState.el) * Math.cos(cameraState.az));
         resources.cam.lookAt(cameraState.tgt);
+        studio?.frame(resources.cam, dt);
         const near = camera.cameraNearDistance(cameraState.dist);
         if (resources.cam.near !== near) {
             resources.cam.near = near;

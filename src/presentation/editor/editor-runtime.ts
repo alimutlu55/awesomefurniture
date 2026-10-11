@@ -1,3 +1,4 @@
+import { createStudioPanel } from './studio-panel';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { createEditorDom } from './editor-dom';
@@ -123,15 +124,18 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             disposeResources: () => lifetime.dispose()
         });
+        // The Room section: choosing a studio places it and frames the wardrobes in their room.
+        const studioPanel = createStudioPanel({ dom, model, sceneCommands, callbacks: { refresh: () => inspector.update(true), frameRoom: () => camera.cameraFlyTo(camera.fittedCamera(.55, .32, 1.7)) } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }));
-        inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector }));
+        inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
+        studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
         camera.fit({ instant: true, padding: 1.4 });

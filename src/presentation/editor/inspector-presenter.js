@@ -16,7 +16,7 @@ import { isRegularShape, minimumShapeHeight } from '../../domain/wardrobe/shape/
 import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
-export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector }) {
+export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel }) {
     const { $, document, matchMedia } = dom;
     const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template) });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
@@ -170,7 +170,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             const shape = model.activeCabinet().state.shape, minH = shape && !isRegularShape(shape) ? Math.max(60, Math.ceil(minimumShapeHeight(shape))) : 180;
             for (const el of /** @type {HTMLInputElement[]} */ ([$('#h'), document.querySelector('[data-dimension="h"]')])) if (el) el.min = String(minH);
         }
-        shapeInspector.render();
+        for (const panel of [shapeInspector, studioPanel]) panel.render();
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {
             b.classList.toggle('on', b.dataset.f === model.activeCabinet().state.fin);

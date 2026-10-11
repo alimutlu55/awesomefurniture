@@ -19,4 +19,5 @@ readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/com
 readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'addCabinet' | 'setCabinetPose'>>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint' | 'redo' | 'redoCount' | 'undo' | 'undoCount'>>;
 readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('./shape-inspector').createShapeInspector>, 'render'>>;
+readonly studioPanel: Readonly<Pick<ReturnType<typeof import('./studio-panel').createStudioPanel>, 'render'>>;
 }

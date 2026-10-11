@@ -16,6 +16,6 @@ readonly cabinetGeometry: Readonly<Pick<ReturnType<typeof import('../../domain/g
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cv' | 'scene'>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'restore' | 'scene' | 'snapshot'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'applyItemEdgeSize' | 'applyMove' | 'moveDividerTo' | 'restoreSection'>>;
-readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'previewRotation' | 'previewTranslation' | 'restorePose'>>;
+readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'previewRotation' | 'previewTranslation' | 'restorePose' | 'wallSnap'>>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint'>>;
 }
