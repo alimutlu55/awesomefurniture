@@ -1,4 +1,4 @@
-/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame'> & { adjust?(camera: import('three').PerspectiveCamera, orbit: { az: number; el: number; dist: number; tgt: import('three').Vector3 }, dt: number): import('three').Vector3 } }} ports */
+/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame'> }} ports */
 export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio, callbacks }) {
     const { $, matchMedia } = dom;
     function loop() {
@@ -14,8 +14,7 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
             return t < 1;
         });
         resources.cam.position.set(cameraState.tgt.x + cameraState.dist * Math.cos(cameraState.el) * Math.sin(cameraState.az), cameraState.tgt.y + cameraState.dist * Math.sin(cameraState.el), cameraState.tgt.z + cameraState.dist * Math.cos(cameraState.el) * Math.cos(cameraState.az));
-        // In a room, an eye-level camera stays inside it with a wider lens.
-        resources.cam.lookAt(studio?.adjust?.(resources.cam, cameraState, dt) ?? cameraState.tgt);
+        resources.cam.lookAt(cameraState.tgt);
         studio?.frame(resources.cam, dt);
         const near = camera.cameraNearDistance(cameraState.dist);
         if (resources.cam.near !== near) {

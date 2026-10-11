@@ -158,16 +158,23 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return { w, angle, box };
     }
-    /** Pans the view by screen pixels: across the screen, and along the floor away or towards you. The
-     * target stays over the room (or near the wardrobes), so the view cannot be lost. */
+    /** Pans the view by screen pixels, so the scene follows the fingers or pointer: across the screen, and
+     * vertically either up and down (from eye level) or along the floor away and towards you (from above),
+     * blended by elevation. The target stays over the room (or near the wardrobes), so the view cannot be lost. */
     function panBy(dx, dy) {
         const r = $('#view').getBoundingClientRect(), perPx = 2 * cameraState.dist * Math.tan(35 * Math.PI / 360) / Math.max(1, r.height) / cameraState.vz;
-        const rx = Math.cos(cameraState.az), rz = -Math.sin(cameraState.az), fx = -Math.sin(cameraState.az), fz = -Math.cos(cameraState.az), deep = perPx / Math.max(.4, Math.sin(cameraState.el));
+        const floor = Math.max(0, Math.min(1, (cameraState.el - .25) / .35)), el = Math.max(.25, cameraState.el);
+        const rx = Math.cos(cameraState.az), rz = -Math.sin(cameraState.az), fx = -Math.sin(cameraState.az), fz = -Math.cos(cameraState.az);
+        const deep = dy * perPx / Math.sin(el) * floor, up = dy * perPx * (1 - floor);
         const room = model.scene.studio && studioBounds(model.scene.studio), b = cabinetGeometry.sceneBounds();
         const x0 = room ? room.x0 : b.x - b.w / 2 - 300, x1 = room ? room.x1 : b.x + b.w / 2 + 300, z0 = room ? room.z0 : b.z - b.d / 2 - 300, z1 = room ? room.z1 : b.z + b.d / 2 + 300;
+        const top = room ? room.height : b.h + 100;
+        // A target already outside the area is never pulled back with a jump; it just cannot go further out.
+        const keep = (v, lo, hi, old) => Math.max(Math.min(lo, old), Math.min(Math.max(hi, old), v));
         camRelease();
-        cameraState.tgt.x = Math.max(x0, Math.min(x1, cameraState.tgt.x - rx * dx * perPx + fx * dy * deep));
-        cameraState.tgt.z = Math.max(z0, Math.min(z1, cameraState.tgt.z - rz * dx * perPx + fz * dy * deep));
+        cameraState.tgt.x = keep(cameraState.tgt.x - rx * dx * perPx + fx * deep, x0, x1, cameraState.tgt.x);
+        cameraState.tgt.z = keep(cameraState.tgt.z - rz * dx * perPx + fz * deep, z0, z1, cameraState.tgt.z);
+        cameraState.tgt.y = cameraState.tgtY = keep(cameraState.tgt.y + up, 10, top, cameraState.tgt.y);
         cameraState.panned = true;
     }
     function cameraFocusPoint() {

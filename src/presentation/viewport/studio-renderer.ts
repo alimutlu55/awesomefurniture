@@ -9,8 +9,10 @@ const LOOK = Object.freeze({
   ceiling: '#f4f1ec', select: '#2f2a22',
 });
 /** Height of a wall lowered because it stands between the camera and the room: low enough to see over,
- * tall enough to still read as the room's outline. */
+ * tall enough to still read as the room's outline. A camera near eye level would see a stub as a band
+ * across the floor, so there it lowers to a line on the floor. */
 const STUB = 14;
+const stubFor = (cameraY: number) => Math.max(1, Math.min(STUB, (cameraY - 90) / 12));
 const SKIRTING = { height: 8, depth: 1.5 }, CASING = { width: 7, depth: 2 }, LEAF = 4;
 const linear = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
@@ -68,10 +70,10 @@ export function createStudioRenderer(scene: THREE.Scene) {
 
   /** Lowers the walls whose room side faces away from the camera, smoothly so orbiting never flickers. */
   function frame(camera: THREE.Camera, dt: number) {
-    const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3();
+    const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(camera.position.y);
     for (const view of walls) {
       to.copy(camera.position).sub(view.mid);
-      const target = to.dot(view.normal) < -1 ? Math.min(1, STUB / view.height) : 1;
+      const target = to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
       if (view.lift !== target) setLift(view, Math.abs(view.lift - target) < .003 ? target : view.lift + (target - view.lift) * k);
     }
     // The ceiling closes the room only when you look from inside it, below it.

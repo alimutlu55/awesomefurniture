@@ -91,14 +91,13 @@ How it works now:
   square, so a room grows instead of skewing.
 - **Cutaway**: walls between the camera and the room lower to a 14 cm stub with a darker cut top (no ghosting).
   The selected wall keeps a full-height outline. The ceiling shows only from inside the room.
-- **Camera in a room** (`viewport/room-camera.ts`, applied each frame by `frame-renderer.js`), like an interior
-  photographer: from above (elevation over 0.55 rad) it orbits freely and near walls are cut away. Coming down
-  to eye level (under 0.3 rad, blended in between) the view centres on the wardrobes, the camera stays inside
-  the room (22 cm from the walls, 50 cm from wardrobes when none is selected), the lens widens from 35° up to
-  76° to hold the framing, and it does not go round behind the wall a wardrobe stands against (at most 45°
-  from straight on). Selecting a wall seen from behind swings the view round to it. Right- or middle-drag,
-  Shift-drag on empty space and two fingers pan, kept over the room. A project with a room opens on the
-  whole room. Without a room the camera behaves exactly as before.
+- **Camera in a room**: the camera goes exactly where the person moves it, with or without a room; the room never
+  moves, clamps or re-aims it (an earlier version kept eye-level views inside the room with a wider lens and a
+  45° stop, which looked good in stills but fought pinch, orbit and pan on phones; it was removed). Walls between
+  the camera and the room are cut away, to a 14 cm stub from above and a line on the floor near eye level.
+  Selecting a wall seen from behind swings the view round to it. Right- or middle-drag, Shift-drag on empty
+  space and two fingers pan (vertical moves pan up and down at eye level, along the floor from above), kept
+  near the room without ever jumping. A project with a room opens on the whole room.
 - **Wardrobes in the way**: while a wardrobe is selected, another one between it and the camera is hidden and
   shown as a dashed footprint (`viewport/wardrobe-occlusion.ts`).
 - **Wardrobe drags** follow the pointer in 1 cm steps (were 5 cm); a green strip marks the wall face a wardrobe
@@ -106,7 +105,6 @@ How it works now:
 
 ![Bedroom, wall selected, desktop](verification/studio-wall-selected-desktop.jpg)
 ![Door size, phone](verification/studio-door-size-phone.jpg)
-![Eye level in the room, desktop](verification/studio-camera-eye-level-desktop.jpg)
 
 ## What is left
 
@@ -114,7 +112,8 @@ How it works now:
 - Removing a corner (merging two collinear walls into one) is not offered.
 - `check-studio.cjs` taps the back wall at a fixed point of the framed view; if framing changes, update `VIEWS`.
 - Walls meet only at corners: a wall cannot start from the middle of another (split it first).
-- Two-finger pan on a real phone was checked only through `check:mobile`'s pinch flow, not by hand.
+- Phone gestures were checked with synthetic touches (one-finger orbit, pinch, two-finger pan) in Playwright,
+  not on a real phone.
 - Later: sloped ceilings and boxes (from the user's photo), "fit a wardrobe to a niche", wall materials,
   lighting, photo-assisted building.
 
