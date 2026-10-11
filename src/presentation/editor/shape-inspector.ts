@@ -214,7 +214,13 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     function dragMeasures() {
         const g = drag;
         if (!g) return [];
-        return shapePanels(g.last).filter(p => p.from === g.index || p.to === g.index).map(p => panelMeasure(g.last, p)).filter((m): m is NonNullable<typeof m> => m !== null);
+        // The X and Y rulers already give the point's distances, so a touching panel
+        // shows only its live angle. Steps keep their rise, which the rulers do not show.
+        return shapePanels(g.last).filter(p => p.from === g.index || p.to === g.index).map(p => {
+            const m = panelMeasure(g.last, p);
+            if (!m) return m;
+            return p.kind === 'top' ? { ...m, text: Math.round(p.angle) + '°' } : m;
+        }).filter((m): m is NonNullable<typeof m> => m !== null);
     }
     /** Why a drag stopped short of the pointer, in plain language. */
     function dragReason() {
