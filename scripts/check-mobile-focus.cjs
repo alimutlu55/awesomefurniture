@@ -27,7 +27,9 @@ const { chromium } = require('playwright');
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto(process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173');
    const control=id=>page.locator(`[data-editor-id="${id}"]`);
-   await control('more-btn').tap();await page.waitForTimeout(700);
+   // Fittings are added to a selected wardrobe: select it, then its Add item.
+   {const v=await control('view').boundingBox();await page.touchscreen.tap(v.x+v.width/2,v.y+v.height*.36);await page.waitForTimeout(400);}
+   await control('toolbar').locator('[data-action="add"]').tap();await page.waitForTimeout(700);
    await page.locator('.mobile-add-products [data-m="short"]').tap();
    await control('px').tap();await page.waitForTimeout(700);
    const view=await control('view').boundingBox();

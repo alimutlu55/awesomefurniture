@@ -24,7 +24,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   // A room comes from Add item, in its Walls category.
   await tap(el('more-btn'));
   if(phone) { await tap(page.locator('[data-category="room"]')); await tap(page.locator('.mobile-add-products [data-studio="bedroom"]')); }
-  else { await page.locator('.room-add > summary').click(); await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]')); }
+  else await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]'));
   await page.waitForTimeout(1400);
   assert.equal(await context(),'none','placing a room leaves nothing selected');
   assert.equal(await page.locator('[data-editor-id="pop2"].show').count(),0,'the Add item panel closes');
@@ -86,7 +86,9 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
    { id: 2, name: 'Wardrobe 2', x: 0, y: 0, z: 150, angle: 180, state: createEditorState() }] } });
  });
  await page.waitForTimeout(800);
- await page.locator('[data-editor-id="more-btn"]').tap();await page.waitForTimeout(1500);
+ // Select Wardrobe 1 by its name, then add to it (the toolbar's Add item on a phone).
+ await page.locator('.wardrobe-name',{hasText:'Wardrobe 1'}).tap();await page.waitForTimeout(900);
+ await page.locator('[data-editor-id="toolbar"] [data-action="add"]').tap();await page.waitForTimeout(1500);
  const names=await page.locator('.wardrobe-name').evaluateAll(es=>es.map(e=>e.textContent+':'+e.style.display));
  assert.deepEqual(names.sort(),['Wardrobe 1:block','Wardrobe 2:none'],'the wardrobe in front steps aside: '+names);
  await page.screenshot({path:path.join(shots,'studio-facing-wardrobes-phone.jpg')});

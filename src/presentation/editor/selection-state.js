@@ -16,6 +16,9 @@ export function createSelectionState() {
         shapeEditing: false,
         /** The selected wall or opening of the room, when a room part is selected instead of a wardrobe.
          * @type {import('../viewport/studio-renderer').RoomSelection} */
-        room: null
+        room: null,
+        /** What the Add sheet adds to: the room (nothing selected) or the selected wardrobe's space.
+         * @type {'room' | 'wardrobe'} */
+        addScope: 'wardrobe'
     };
 }
