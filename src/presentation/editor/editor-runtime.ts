@@ -122,7 +122,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             disposeResources: () => lifetime.dispose()
         });
-        const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI() } });
+        const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }));

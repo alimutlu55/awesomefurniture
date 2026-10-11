@@ -23,6 +23,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             el.onpointermove = e => shapeInspector.moveHandleDrag(e);
             el.onpointerup = () => shapeInspector.endHandleDrag();
             el.onpointercancel = () => shapeInspector.endHandleDrag(true);
+            // Keyboard users see the point's live rulers while the handle has focus.
+            el.onfocus = () => shapeInspector.setFocusedPoint(+el.dataset.index);
+            el.onblur = () => shapeInspector.setFocusedPoint(null);
             el.onlostpointercapture = () => shapeInspector.endHandleDrag();
             el.onkeydown = e => {
                 const step = e.shiftKey ? .5 : 1, dy = e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0, dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
@@ -61,6 +64,10 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         splits.forEach((q, n) => {
             const el = splitHandle(n);
             el.dataset.index = String(q.index);
+            // Narrow panels keep a dimmed marker that explains why it cannot split.
+            el.classList.toggle('off', !q.ok);
+            el.title = q.ok ? 'Add a break point here' : 'Too narrow to split';
+            el.setAttribute('aria-label', q.ok ? 'Add a break point to this top panel' : 'This top panel is too narrow to split');
             if (!el.isConnected) $('#labels').appendChild(el);
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
         });
@@ -71,6 +78,10 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             const A = picking.screenPoint(near), B = picking.screenPoint(far);
             shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
             const w = getRenderDesign().w, h = getRenderDesign().h;
+            const pv = shapeInspector.pivot();
+            if (pv) {
+                label(new THREE.Vector3(pv.x, pv.y + 12, d / 2 + 4), 'Pivot: left end', 'lbl shape-guide');
+            }
             const why = shapeInspector.dragReason();
             if (why) {
                 // Say why the point stopped short of the pointer, beside the point.
@@ -95,7 +106,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             }
             // While a point is dragged only its own rulers and guides show, so nothing competes for space.
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
-            for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.measures()) {
+            const phone = dom.width <= 900;
+            for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(phone)) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
                 bindRuler(el, a, b, q.axis);

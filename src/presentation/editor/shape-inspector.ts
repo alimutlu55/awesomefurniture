@@ -17,7 +17,7 @@ interface ShapeInspectorPorts {
     sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape'>;
     picking: { frontPoint(e: PointerEvent): { x: number; y: number } | null };
     selectionState: { shapeEditing?: boolean; focusOn: boolean };
-    callbacks: { refresh(): void; rebuild(): void; histUI(): void };
+    callbacks: { refresh(): void; rebuild(): void; histUI(): void; report?(message: string): void };
 }
 interface HandleDrag {
     index: number; pointer: number; target: HTMLElement; snapshot: string;
@@ -42,13 +42,19 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     /** Number inputs need a dot decimal, whatever the display locale. */
     const raw = (v: number) => String(Math.round(v * 10) / 10);
 
+    const report = (message: string) => callbacks.report?.(message);
     function commit(next: WardrobeShape) {
         if (sceneCommands.setShape(editable(next))) callbacks.refresh();
         else render();
     }
     function chooseTemplate(id: ShapeTemplateId) {
         const active = state().shape?.template ?? 'regular';
-        if (id === active && id !== 'custom') return;
+        // Choosing the shape already in use just reopens its editing session.
+        if (id === active && id !== 'custom') {
+            selectionState.shapeEditing = true;
+            callbacks.refresh();
+            return;
+        }
         if (sceneCommands.applyShapeTemplate(id)) {
             selectionState.shapeEditing = id !== 'regular';
             callbacks.refresh();
@@ -68,6 +74,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     function render() {
         const templates = dom.$('#shape-templates'), panels = dom.$('#shape-panels'), fold = dom.$<HTMLDetailsElement>('#shape-fold');
         const active = state().shape?.template ?? 'regular';
+        const current0 = shapeTemplates().find(t => t.id === active);
+        dom.$('#shape-caption').textContent = current0 ? current0.name + ': ' + current0.description : '';
         templates.innerHTML = shapeTemplates().map(t => '<button type="button" class="shape-chip' + (t.id === active ? ' on' : '') + '" data-template="' + t.id + '" aria-pressed="' + (t.id === active) + '" title="' + esc(t.name + ' · ' + t.description) + '">' + templateArt(t.id, true) + '<span>' + esc(t.name) + '</span></button>').join('');
         fold.open = !!selectionState.shapeEditing;
         const shape = current(), pts = shape.top, rows: string[] = [], panelsList = shapePanels(shape);
@@ -86,7 +94,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             }
             else {
                 const label = 'Step ' + ++steps, anchored = a.partition !== undefined && a.partition === b.partition;
-                rows.push(row('step', k, label, anchored ? 'On partition ' + (a.partition! + 1) : '', action('remove', 'Remove ' + label.toLowerCase(), { p: k }, TRASH),
+                rows.push(row('step', k, label, anchored ? 'On partition ' + (a.partition! + 1) : '', action('remove', 'Remove this step (both of its corners)', { p: k }, TRASH),
                     field('From left', { p: k, k: 'x' }, a.x, { min: 0, max: state().w }) + field('Rise', { p: k, k: 'rise' }, b.y - a.y, { min: -240, max: 240 }) + field('Left height', { p: k, k: 'y' }, a.y) + field('Right height', { p: k + 1, k: 'y' }, b.y)));
             }
         }
@@ -131,6 +139,31 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-action]');
             if (button) onAction(button);
         });
+        // Focusing an angle field shows that panel's pivot and measurement.
+        const setSegment = (segment: number | null) => {
+            if (focusedSegment === segment) return;
+            focusedSegment = segment;
+            callbacks.rebuild();
+        };
+        listen(dom.$('#shape-panels'), 'focusin', e => {
+            const input = e.target as HTMLInputElement;
+            if (input.dataset?.k === 'angle') setSegment(Number(input.dataset.s));
+        });
+        listen(dom.$('#shape-panels'), 'focusout', () => setSegment(null));
+        // Each chip previews what its shape is; the line stays with the current shape otherwise.
+        const caption = (text: string) => { dom.$('#shape-caption').textContent = text; };
+        listen(dom.$('#shape-templates'), 'pointerover', e => {
+            const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-template]');
+            const t = shapeTemplates().find(x => x.id === button?.dataset.template);
+            if (t) caption(t.name + ': ' + t.description);
+        });
+        listen(dom.$('#shape-templates'), 'focusin', e => {
+            const button = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-template]');
+            const t = shapeTemplates().find(x => x.id === button?.dataset.template);
+            if (t) caption(t.name + ': ' + t.description);
+        });
+        listen(dom.$('#shape-templates'), 'pointerleave', () => render());
+        listen(dom.$('#shape-templates'), 'focusout', () => render());
         listen(dom.$('#shape-fold'), 'toggle', () => {
             const open = dom.$<HTMLDetailsElement>('#shape-fold').open;
             if (open === !!selectionState.shapeEditing) return;
@@ -151,10 +184,10 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     }
     /** "+" markers at the middle of every top panel wide enough to split. */
     function splitMarkers() {
-        const shape = current(), w = state().w, out: { index: number; x: number; y: number }[] = [];
+        const shape = current(), w = state().w, out: { index: number; x: number; y: number; ok: boolean }[] = [];
         for (let k = 0; k < shape.top.length - 1; k++) {
             const a = shape.top[k]!, b = shape.top[k + 1]!;
-            if (b.x - a.x >= 2 * MIN_SEGMENT - 1e-6) out.push({ index: k, x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2 });
+            if (b.x - a.x > 1e-6) out.push({ index: k, x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2, ok: b.x - a.x >= 2 * MIN_SEGMENT - 1e-6 });
         }
         return out;
     }
@@ -193,6 +226,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     function split(index: number) {
         const shape = current(), next = splitPanel(shape, index);
         if (next !== shape) commit(next);
+        else report('This panel is too narrow to split. It needs at least ' + 2 * MIN_SEGMENT + ' cm.');
     }
     /** Snapping and guides follow the item rules: a tolerance of about 8 screen pixels
      * (so it feels the same at any zoom), a lock that holds the line it caught, and a
@@ -237,9 +271,9 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     /** Live X and Y rulers for the break point being dragged: X from the left side,
      * Y from the floor. Cabinet-centred endpoints, rebuilt on every move. */
     function dragRulers() {
-        const g = drag;
-        if (!g) return [];
-        const p = g.last.top[g.index]!, w = state().w, x = p.x - w / 2, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
+        const index = drag?.index ?? focusedPoint, shape = drag?.last ?? current();
+        if (index === null || !shape.top[index]) return [];
+        const p = shape.top[index]!, w = state().w, x = p.x - w / 2, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
         if (p.x > .5) out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + cm(p.x) + ' cm', axis: 'width' });
         if (p.y > .5) out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + cm(p.y) + ' cm', axis: 'height' });
         return out;
@@ -325,5 +359,23 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    /** Keyboard focus on a break point or the angle field shows that point's or panel's measures. */
+    let focusedPoint: number | null = null, focusedSegment: number | null = null;
+    function setFocusedPoint(index: number | null) {
+        if (focusedPoint === index) return;
+        focusedPoint = index;
+        callbacks.rebuild();
+    }
+    function focusMeasures(phone: boolean) {
+        if (focusedSegment !== null) {
+            return measures().filter((_, i) => shapePanels(current())[i]?.from === focusedSegment);
+        }
+        return phone ? [] : measures();
+    }
+    function pivot() {
+        if (focusedSegment === null) return null;
+        const shape = current(), a = shape.top[focusedSegment];
+        return a ? { x: a.x - state().w / 2, y: a.y } : null;
+    }
+    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, focusMeasures, pivot, setFocusedPoint, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }

@@ -4,7 +4,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
-import { friendlyProblem, isRegularShape, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { friendlyProblem, isRegularShape, shapePanels, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -133,6 +133,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 if (recordHistory) discardCheckpoint();
                 report('Move the dividers or items before reducing the wardrobe size');
                 return false;
+            }
+            // A width change scales slopes, so say what the slope is now.
+            if (state.shape && key === 'w' && recordHistory) {
+                const longest = shapePanels(state.shape).filter(p => p.kind === 'top').sort((a, b) => b.length - a.length)[0];
+                if (longest) report('Width ' + state.w + ' cm · top panel now ' + Math.round(longest.angle) + '°');
             }
             return true;
         },
