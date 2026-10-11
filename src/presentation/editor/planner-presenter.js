@@ -166,7 +166,9 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         }
         $('#plan-warnings').innerHTML = [...new Set(issues)].map(x => tags([issueTags(x).join(' · ')], 'warn')).join('');
     }
-    function markIdeasDirty() {
+    /** A settings change makes the current ideas stale. While the reach slider is being dragged only its
+     * label moves; ideas are recalculated once, when the user lets go (the change event). */
+    function markIdeasDirty(event) {
         if ($('#wizard').hidden) {
             return;
         }
@@ -174,6 +176,10 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         const p = model.activeCabinet().state.profile;
         const reach = readPreferences().reach;
         $('#reach-value').textContent = reach + ' cm' + (p.accessible ? ' · seated' : '');
+        if (event?.type === 'input' && /** @type {HTMLInputElement} */ (event.target).type === 'range') {
+            plannerState.ideasTimer = null;
+            return;
+        }
         $('#ideas-count').textContent = 'Settings changed · updating';
         $('#ideas').setAttribute('aria-busy', 'true');
         $('#ideas').querySelectorAll('[data-idea]').forEach(b => ( /** @type {HTMLInputElement} */(b)).disabled = true);

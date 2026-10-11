@@ -90,3 +90,15 @@ test('debounced refresh preserves an unfinished focused quantity and commits the
  document.activeElement=null;presenter.markIdeasDirty();scheduled();
  assert.equal(shoes.value,'12','normalize once editing finishes');
 });
+
+test('dragging Max reach only moves its label; recommendations wait for release',async()=>{
+ const {presenter,getDelay,elements,profile}=await fixture();
+ profile.accessible=false;
+ elements['#reach'].value='190';
+ const range={type:'range'};
+ presenter.markIdeasDirty({type:'input',target:range});
+ assert.equal(getDelay(),undefined,'no recalculation is scheduled while dragging');
+ assert.match(elements['#reach-value'].textContent,/190 cm/);
+ presenter.markIdeasDirty({type:'change',target:range});
+ assert.equal(getDelay(),350,'release schedules the recalculation');
+});
