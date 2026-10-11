@@ -94,6 +94,26 @@ export function wallBox(studio: Studio, w: StudioWall) {
   return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: 0, angle: line.angle, length: end - start, thickness: w.thickness, height: w.height };
 }
 
+/** The wall's room-side face on the floor: the length a tape measure reads inside the room. It runs from
+ * where it meets the face of the wall joined at corner `a` to where it meets the one at `b`; at a free
+ * end it stops at the corner. `start` and `end` are measured along the wall from corner `a`. */
+export function wallFace(studio: Studio, w: StudioWall) {
+  const line = wallLine(studio, w);
+  if (!line) return null;
+  const off = w.thickness / 2, x0 = line.a.x + line.nx * off, z0 = line.a.z + line.nz * off;
+  /** Where this face crosses the face of the other wall at a corner, along this wall; `fallback` if none. */
+  const meet = (id: string, fallback: number) => {
+    const other = studio.walls.find(o => o !== w && (o.a === id || o.b === id)), ol = other && wallLine(studio, other);
+    if (!other || !ol) return fallback;
+    const det = line.ux * -ol.uz + line.uz * ol.ux;
+    if (Math.abs(det) < 1e-6) return fallback;
+    const qx = ol.a.x + ol.nx * other.thickness / 2 - x0, qz = ol.a.z + ol.nz * other.thickness / 2 - z0;
+    return (qx * -ol.uz + qz * ol.ux) / det;
+  };
+  const start = meet(w.a, 0), end = meet(w.b, line.length), at = (t: number) => ({ x: x0 + line.ux * t, z: z0 + line.uz * t });
+  return { start, end, length: end - start, from: at(start), to: at(end) };
+}
+
 /** The next free id with a prefix: c1, c2... */
 export function nextId(prefix: string, used: readonly { id: string }[]) {
   const n = used.reduce((m, { id }) => id.startsWith(prefix) ? Math.max(m, Number(id.slice(prefix.length)) || 0) : m, 0);

@@ -2,12 +2,13 @@ import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createStudio, studioTemplate } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
-import { translateStudio } from '../../domain/studio/studio-edit';
+import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { placeAgainstWall, pushOutOfWalls, snapToWall } from '../../domain/studio/studio-placement';
 import type { Pose } from '../../domain/studio/studio-placement';
-import type { Studio } from '../../domain/studio/studio';
+import { wallLine } from '../../domain/studio/studio';
+import type { OpeningKind, Studio } from '../../domain/studio/studio';
 
 interface StudioCommandOptions {
   checkpoint: () => void;
@@ -59,21 +60,71 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return true;
   }
 
+  /** Why a room could not be built as it is, or null. Changes nothing: drags use it to go as far as
+   * the room allows. */
+  function studioProblem(next: Studio): string | null {
+    return studioProblems(next)[0] ?? (blockedBy(next).length ? 'A wardrobe is in the way. Move it before moving this wall.' : null);
+  }
+
   /** Commits an edit to the room. `recordHistory` false is a live preview during a drag (the drag
-   * takes one checkpoint when it starts). Refused, with the reason, if the room would not be valid or
-   * a wall would cut through a wardrobe. */
-  function editStudio(edit: (room: Studio) => Studio | null, recordHistory = true) {
+   * takes one checkpoint when it ends). Refused, with the reason, if the room would not be valid or
+   * a wall would cut through a wardrobe. `quiet` previews skip the message; the drag shows it itself. */
+  function editStudio(edit: (room: Studio) => Studio | null, recordHistory = true, quiet = false) {
     const scene = getScene();
     if (!scene.studio) return false;
     const next = edit(scene.studio);
     if (!next) return false;
-    const problem = studioProblems(next)[0];
-    if (problem) { report(problem); return false; }
-    if (blockedBy(next).length) { report('A wardrobe is in the way. Move it before moving this wall.'); return false; }
+    const problem = studioProblem(next);
+    if (problem) { if (!quiet) report(problem); return false; }
     if (JSON.stringify(next) === JSON.stringify(scene.studio)) return false;
     if (recordHistory) checkpoint();
     scene.studio = next;
     return true;
+  }
+
+  /** Adds a wall: from a free wall end (the selected wall's first), else free-standing in the room. With
+   * no room yet, a wall behind the wardrobes. Returns the new wall's id, or null with the reason. */
+  function addStudioWall(prefer?: string): string | null {
+    const room = getScene().studio;
+    if (!room) return placeStudio('wall') ? getScene().studio!.walls[0]!.id : null;
+    const found = suggestWall(room, next => !studioProblem(next), prefer);
+    if (!found) { report('There is no free space for another wall. Move a wall or a wardrobe first.'); return null; }
+    checkpoint();
+    getScene().studio = found.studio;
+    return found.wall;
+  }
+
+  /** Adds a door, window or archway: to the given wall, or else to the longest wall with room for it
+   * where no wardrobe stands in front of it. Returns its id, or null with the reason. */
+  function addStudioOpening(kind: OpeningKind, wallId?: string): string | null {
+    const room = getScene().studio;
+    if (!room) { report('Add a room first, then its doors and windows.'); return null; }
+    const name = kind === 'door' ? 'door' : kind === 'window' ? 'window' : 'archway';
+    const walls = wallId ? room.walls.filter(w => w.id === wallId) : room.walls.slice().sort((p, q) => (wallLine(room, q)?.length ?? 0) - (wallLine(room, p)?.length ?? 0));
+    let fallback: Studio | null = null;
+    for (const w of walls) {
+      const next = addOpening(room, w.id, kind);
+      if (!next || studioProblem(next)) continue;
+      if (!inFrontOfOpening(next, next.openings.at(-1)!.id)) return commitOpening(next);
+      fallback ??= next;
+    }
+    if (fallback && wallId) report(`A wardrobe stands in front of this ${name}. Move one of them.`);
+    if (fallback) return commitOpening(fallback);
+    report(wallId ? `This wall has no room for a ${name}. Make it longer or move an opening.` : `No wall has room for a ${name}.`);
+    return null;
+  }
+  function commitOpening(next: Studio) {
+    checkpoint();
+    getScene().studio = next;
+    return next.openings.at(-1)!.id;
+  }
+  /** Whether a wardrobe stands in the half metre in front of an opening, where a person walks or looks. */
+  function inFrontOfOpening(room: Studio, id: string) {
+    const o = room.openings.find(x => x.id === id), w = o && room.walls.find(x => x.id === o.wall), line = w && wallLine(room, w);
+    if (!o || !w || !line) return false;
+    const off = w.thickness / 2 + 26, x = line.a.x + line.ux * o.offset + line.nx * off, z = line.a.z + line.uz * o.offset + line.nz * off;
+    const space = createCabinetGeometry(() => [], () => [{ id: 'opening', x, y: 0, z, angle: line.angle, state: { w: o.width, d: 50, h: 400 } }]);
+    return getScene().wardrobes.some(c => space.cabinetCollides(c));
   }
 
   /** Where a new wardrobe goes in the room: flush against the first free wall, facing in. Null when
@@ -95,5 +146,5 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, placeNewCabinet, wallSnap };
+  return { placeStudio, editStudio, studioProblem, addStudioWall, addStudioOpening, placeNewCabinet, wallSnap };
 }
