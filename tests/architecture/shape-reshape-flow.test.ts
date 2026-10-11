@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PANEL } from '../../src/domain/wardrobe/catalog.js';
 import {
-  addStep, maxHeight, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
+  addStep, maxHeight, removePoint, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
   type WardrobeShape,
 } from '../../src/domain/wardrobe/shape/wardrobe-shape';
 import { createFromTemplate } from '../../src/domain/wardrobe/shape/shape-templates';
