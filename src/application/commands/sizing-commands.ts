@@ -116,6 +116,8 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
     }
     function refitAfterSize() {
         clampWidths();
+        // A new size changes the slope, so vertical dividers take their tops from it again.
+        getDesign().dividers = getDesign().dividers.map(d => d.i < getDesign().n ? rules.clampDivider(d) : d);
         const ws = rules.widths();
         let removed = 0, squeezed = false;
         for (let i = 0; i < getDesign().n; i++) {

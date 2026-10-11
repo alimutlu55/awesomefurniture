@@ -173,9 +173,9 @@ test('dividers follow the slope like items: tops are cut, heights are limited an
   state.space = null;
   commands.addSpaceDivider();
   const index = state.dividers.length - 1;
-  // Created at full bay height, its top is cut to the slope it stands under.
-  const cut = rules.clampDivider(state.dividers[index]!);
-  assert.ok(cut.y1! < state.dividers[index]!.y1!, 'the top is cut to the slope');
+  // Created at full bay height, its top is cut to the slope it stands under, and the full height is remembered.
+  const created = state.dividers[index]!;
+  assert.ok(created.want! > created.y1!, 'the full wanted height is remembered, the drawn top is cut');
   assert.equal(rules.dividerValid(state.dividers[index]!, index), true);
   // Asking for more than the slope allows gives the tallest allowed height and says why.
   assert.equal(commands.setDividerHeight(index, 500), true);
@@ -213,4 +213,34 @@ test('a divider moved under a lower part of the slope takes its top with it', as
   const d = state.dividers[index]!;
   assert.ok(Math.abs(d.y1! - rules.clampDivider({ ...d, y1: 999 }).y1!) < .01, 'the stored top matches the slope at the new spot');
   assert.equal(rules.dividerValid(d, index), true);
+});
+
+test('a divider adapts to the height: it is cut when the slope drops and grows back to its wanted height', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const { createWardrobeGeometry: geometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const state = createEditorState();
+  const sloped = createFromTemplate('sloped', { w: W, h: H, maxN: 6 });
+  Object.assign(state, { shape: sloped.shape, h: H, n: 1, wt: sloped.wt, sel: 0 });
+  const commands = createDesignCommands(() => state);
+  const rules = geometry(() => state);
+  state.space = null;
+  commands.addSpaceDivider();
+  const index = state.dividers.length - 1;
+  commands.setDividerHeight(index, 300);
+  const wanted = state.dividers[index]!.want!;
+  // Lower the top: the divider is cut to the new slope.
+  state.shape = { template: 'custom', top: [{ x: 0, y: 120 }, { x: W, y: 120 }] };
+  state.h = 120;
+  commands.fitToShape();
+  const low = state.dividers[index]!;
+  assert.ok(low.y1! < wanted, 'cut when the slope drops');
+  assert.equal(low.want, wanted, 'the wanted height is kept');
+  // Raise the top again: the divider grows back to what was asked for.
+  state.shape = { template: 'custom', top: [{ x: 0, y: H }, { x: W, y: H }] };
+  state.h = H;
+  commands.fitToShape();
+  const back = state.dividers[index]!;
+  assert.ok(back.y1! > low.y1! + 1, 'grows back when the slope rises');
+  assert.ok(Math.abs(back.y1! - rules.clampDivider(back).y1!) < .01, 'and matches the slope at its position');
+  assert.ok(back.y1! <= wanted + .01, 'never above the wanted height');
 });

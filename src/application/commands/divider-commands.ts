@@ -56,18 +56,22 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             return false;
         }
         const base = d.y0 ?? 0, current = d.y1 ?? base;
-        const top = rules.clampDivider({ ...d, y1: base + height }).y1 ?? base;
+        const top = rules.clampDivider({ ...d, want: base + height, y1: base + height }).y1 ?? base;
         if ((top ?? base) - base < 15 - .01) {
             effects.report('A divider needs at least 15 cm of height here.');
             return false;
         }
-        if (Math.abs(top - current) < .05) {
-            return false;
-        }
+        // Asking above the slope always says so, even when the divider already stands at its limit.
         if (top < base + height - .05) {
             effects.report('The slope limits this divider to ' + Math.round((top - base) * 10) / 10 + ' cm here.');
         }
+        const wanted = base + height;
+        if (Math.abs(top - current) < .05 && Math.abs(wanted - (d.want ?? current)) < .05) {
+            return false;
+        }
         run(() => {
+            // The wanted height is kept, so the divider returns to it when the slope allows.
+            getDesign().dividers[index]!.want = wanted;
             getDesign().dividers[index]!.y1 = top;
             getDesign().space = null;
         });
@@ -91,7 +95,8 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             effects.report('This space is too narrow for a divider');
             return;
         }
-        const d = { i, orientation: ('vertical' as const), x: (space.x0! + space.x1!) / 2, y0: space.y0 - PL - T, y1: space.y1 - PL - T, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } };
+        // A new divider starts at the most the slope allows above its position.
+        const d = rules.clampDivider({ i, orientation: ('vertical' as const), x: (space.x0! + space.x1!) / 2, y0: space.y0 - PL - T, y1: space.y1 - PL - T, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } });
         run(() => {
             getDesign().dividers = (getDesign().dividers || []).concat(d);
             getDesign().space = { i, x: (space.x0! + d.x - T / 2) / 2, y: (space.y0 + space.y1) / 2 };

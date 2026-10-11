@@ -281,8 +281,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 }
             });
             geometry.sectionDividers(i).forEach(q => {
-                // Shelf boards and dividers meeting a sloped top are cut to its angle.
-                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(q), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, r.x1 - r.x0), Math.max(5, r.y1 - r.y0), d), resources.HM);
+                // Shelf boards and dividers meeting a sloped top are cut to its angle. A divider
+                // is drawn to the top the slope allows, never to a stored top above it.
+                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(geometry.clampDivider(q)), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, r.x1 - r.x0), Math.max(5, r.y1 - r.y0), d), resources.HM);
                 hit.position.set(cx, cy, 0);
                 hit.userData = { i, divider: j };
                 renderState.Gr.add(hit);

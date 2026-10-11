@@ -459,8 +459,9 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         if (d.orientation !== 'vertical') {
             return d;
         }
-        const r = dividerRect(d), top = ceilingIn(d.i, r.x0, r.x1);
-        return top < d.y1 - .01 ? { ...d, y1: Math.max(d.y0, top) } : d;
+        // The wanted top is remembered; the drawn top is the lower of it and the slope.
+        const want = d.want ?? d.y1, r = dividerRect({ ...d, y1: want }), top = Math.min(want, ceilingIn(d.i, r.x0, r.x1));
+        return { ...d, want, y1: Math.max(d.y0, top) };
     }
     function dividerValid(d, index) {
         const eff = clampDivider(d), r = dividerRect(eff), bw = widths()[eff.i];
