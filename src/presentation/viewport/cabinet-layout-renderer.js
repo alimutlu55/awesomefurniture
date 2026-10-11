@@ -88,7 +88,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 const at = g.orient === 'h' ? new THREE.Vector3(w / 2 + 4, g.pos, d / 2 + 3) : new THREE.Vector3(g.pos - w / 2, h + 4, d / 2 + 3);
                 label(at, g.label, 'lbl shape-guide');
             }
-            for (const q of shapeInspector.measures()) {
+            // While a point is dragged only its own rulers and guides show, so nothing competes for space.
+            for (const q of shapeInspector.dragging() ? [] : shapeInspector.measures()) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
                 bindRuler(el, a, b, q.axis);

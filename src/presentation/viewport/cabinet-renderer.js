@@ -212,6 +212,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             const b = el.getBoundingClientRect();
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
+        const shapePlaced = [];
         const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
             const q = l.p.clone();
             if (l.owner) {
@@ -220,7 +221,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             q.project(resources.cam);
             return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height, w: l.el.offsetWidth, h: l.el.offsetHeight };
         }).concat(resizeOccupied);
-        renderState.labs.sort((a, b) => Number(b.el.classList.contains('reach-dimension')) - Number(a.el.classList.contains('reach-dimension'))).forEach(l => {
+        // Handles place first and stay on their points; other shape text makes room around them.
+        const rank = l => (l.el.classList.contains('shape-handle') ? 2 : 0) + (l.el.classList.contains('reach-dimension') ? 1 : 0);
+        renderState.labs.sort((a, b) => rank(b) - rank(a)).forEach(l => {
             renderState.pv.copy(l.p);
             if (l.owner) {
                 l.owner.localToWorld(renderState.pv);
@@ -291,12 +294,16 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 }
                 placed.push({ x, y, w: ew, h: eh });
             }
-            // Break-point handles at the same height would hide one another: stack the later ones below.
+            // Shape text (measurements, guides, coordinates) never sits on another label or a handle.
             if (l.el.classList.contains('shape-handle')) {
-                for (let n = 0; n < 8 && placed.some(q => Math.abs(x - q.x) < (ew + q.w) / 2 + 2 && Math.abs(y - q.y) < (eh + q.h) / 2 + 2); n++) {
-                    y += eh + 4;
-                }
-                placed.push({ x, y, w: ew, h: eh });
+                shapePlaced.push({ x, y, w: ew, h: eh, r: 9 });
+            }
+            else if (['shape-measure', 'shape-guide', 'shape-coord'].some(c => l.el.classList.contains(c))) {
+                const clear = (cx, cy) => shapePlaced.every(q => Math.abs(cx - q.x) >= (ew + q.w) / 2 + 3 || Math.abs(cy - q.y) >= (eh + q.h) / 2 + 3);
+                const step = eh + 6, options = [[0, 0], [0, step], [0, -step], [0, 2 * step], [0, -2 * step], [ew / 2 + 14, 0], [-ew / 2 - 14, 0], [0, 3 * step], [0, -3 * step]];
+                const spot = options.map(([dx, dy]) => [x + dx, y + dy]).find(([cx, cy]) => clear(cx, cy) && cx - ew / 2 >= leftLimit && cx + ew / 2 <= rightLimit && cy - eh / 2 >= 6 && cy + eh / 2 <= r.height - 56);
+                if (spot) { x = spot[0]; y = spot[1]; }
+                shapePlaced.push({ x, y, w: ew, h: eh });
             }
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
         });
