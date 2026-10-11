@@ -534,6 +534,9 @@ export function bindPop2({ dom, inspector, model, commands, lifetime }) {
         else if (d.m) {
             commands.addMod(d.m);
         }
+        else if (d.handbags !== undefined) {
+            commands.addHandbagShelf();
+        }
         else if (d.a === 'fit') {
             commands.run(() => commands.autofill(i));
         }
