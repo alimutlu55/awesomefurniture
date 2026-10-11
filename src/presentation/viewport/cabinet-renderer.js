@@ -300,7 +300,10 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             else if (['shape-measure', 'shape-guide', 'shape-coord'].some(c => l.el.classList.contains(c))) {
                 const clear = (cx, cy) => shapePlaced.every(q => Math.abs(cx - q.x) >= (ew + q.w) / 2 + 3 || Math.abs(cy - q.y) >= (eh + q.h) / 2 + 3);
-                const step = eh + 6, options = [[0, 0], [0, step], [0, -step], [0, 2 * step], [0, -2 * step], [ew / 2 + 14, 0], [-ew / 2 - 14, 0], [0, 3 * step], [0, -3 * step]];
+                // Stay beside the line: a label only moves one or two steps along its own side of it,
+                // and keeps its place when no free spot is that close.
+                const along = l.ruler?.axis === 'height' ? [ew + 4, 0] : l.ruler ? [0, -(eh + 4)] : [0, -(eh + 4)];
+                const options = [[0, 0], along, [along[0] * 2, along[1] * 2]];
                 const spot = options.map(([dx, dy]) => [x + dx, y + dy]).find(([cx, cy]) => clear(cx, cy) && cx - ew / 2 >= leftLimit && cx + ew / 2 <= rightLimit && cy - eh / 2 >= 6 && cy + eh / 2 <= r.height - 56);
                 if (spot) { x = spot[0]; y = spot[1]; }
                 shapePlaced.push({ x, y, w: ew, h: eh });
