@@ -291,6 +291,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 }
                 placed.push({ x, y, w: ew, h: eh });
             }
+            // Break-point handles at the same height would hide one another: stack the later ones below.
+            if (l.el.classList.contains('shape-handle')) {
+                for (let n = 0; n < 8 && placed.some(q => Math.abs(x - q.x) < (ew + q.w) / 2 + 2 && Math.abs(y - q.y) < (eh + q.h) / 2 + 2); n++) {
+                    y += eh + 4;
+                }
+                placed.push({ x, y, w: ew, h: eh });
+            }
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
         });
     }

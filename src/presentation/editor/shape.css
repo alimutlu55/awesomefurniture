@@ -37,3 +37,5 @@
  .lbl.shape-handle::before{width:12px;height:12px}
  .mobile-add-products .shape-product .product-art{height:65px}
 }
+.lbl.shape-handle.split-handle{padding:0;width:24px;height:24px;justify-content:center;font-size:16px;line-height:1;font-weight:500;border-radius:50%}
+.lbl.shape-handle.split-handle::before{content:none}

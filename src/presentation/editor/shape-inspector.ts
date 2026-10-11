@@ -2,7 +2,7 @@ import type { EditorState } from '../../application/projects/editor-scene';
 import type { createSceneCommands } from '../../application/commands/scene-commands';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
-    addStep, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
+    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
     type ShapeTemplateId, type WardrobeShape,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
@@ -135,14 +135,27 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     }
 
     /** Model handles: one per profile point, in cabinet-local coordinates. */
+    /** Break points are always reachable on the model; the panel list only adds precision. */
     function handles() {
-        if (!selectionState.shapeEditing) return [];
         const shape = current(), w = state().w;
         return shape.top.map((p, index, all) => ({
             index, x: p.x - w / 2, y: p.y,
             movesX: index > 0 && index < all.length - 1,
             label: f(p.y),
         }));
+    }
+    /** "+" markers at the middle of every top panel wide enough to split. */
+    function splitMarkers() {
+        const shape = current(), w = state().w, out: { index: number; x: number; y: number }[] = [];
+        for (let k = 0; k < shape.top.length - 1; k++) {
+            const a = shape.top[k]!, b = shape.top[k + 1]!;
+            if (b.x - a.x >= 2 * MIN_SEGMENT - 1e-6) out.push({ index: k, x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2 });
+        }
+        return out;
+    }
+    function split(index: number) {
+        const shape = current(), next = splitPanel(shape, index);
+        if (next !== shape) commit(next);
     }
     const snap = (value: number, targets: number[], within: number) => {
         const near = targets.filter(t => Math.abs(t - value) <= within).sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0];
@@ -189,5 +202,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
     }
     const dragging = () => drag !== null;
-    return { render, bind, handles, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
 }

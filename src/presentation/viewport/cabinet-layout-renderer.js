@@ -35,12 +35,34 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         return el;
     }
     /** On a phone, skeleton editing lives in the Shape sheet; elsewhere in the side panel. */
-    const shapeSheetOpen = () => dom.width > 900 || ($('#app').classList.contains('props-open') && $('#left').dataset.contextSection === 'shape');
+    const shapeSheetOpen = () => dom.width > 900 || ($('#app').classList.contains('props-open') && $('#left').dataset.contextSection === 'shape') || selectionState.shapeEditing;
+    const splitPool = [];
+    function splitHandle(n) {
+        let el = splitPool[n];
+        if (!el) {
+            el = document.createElement('button');
+            el.type = 'button';
+            el.className = 'lbl shape-handle split-handle';
+            el.textContent = '+';
+            el.setAttribute('aria-label', 'Add a break point to this top panel');
+            el.title = 'Add a break point here';
+            el.onclick = e => { e.stopPropagation(); shapeInspector.split(+el.dataset.index); };
+            splitPool[n] = el;
+        }
+        return el;
+    }
     function placeShapeHandles() {
         if (!renderState.renderActive) {
             return;
         }
-        const handles = getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && shapeSheetOpen() ? shapeInspector.handles() : [], d = getRenderDesign().d;
+        const editing = getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && shapeSheetOpen(), handles = editing ? shapeInspector.handles() : [], splits = editing ? shapeInspector.splitMarkers() : [], d = getRenderDesign().d;
+        splits.forEach((q, n) => {
+            const el = splitHandle(n);
+            el.dataset.index = String(q.index);
+            if (!el.isConnected) $('#labels').appendChild(el);
+            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
+        });
+        splitPool.slice(splits.length).forEach(el => el.remove());
         handles.forEach((q, n) => {
             const el = shapeHandle(n);
             el.dataset.index = String(q.index);
