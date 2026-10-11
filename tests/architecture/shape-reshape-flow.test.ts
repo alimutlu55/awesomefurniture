@@ -174,13 +174,13 @@ test('dividers follow the slope like items: tops are cut, heights are limited an
   commands.addSpaceDivider();
   const index = state.dividers.length - 1;
   // Created at full bay height, its top is cut to the slope it stands under.
-  const cut = rules.clampDivider(state.dividers[index]);
-  assert.ok(cut.y1 < state.dividers[index].y1, 'the top is cut to the slope');
-  assert.equal(rules.dividerValid(state.dividers[index], index), true);
+  const cut = rules.clampDivider(state.dividers[index]!);
+  assert.ok(cut.y1! < state.dividers[index]!.y1!, 'the top is cut to the slope');
+  assert.equal(rules.dividerValid(state.dividers[index]!, index), true);
   // Asking for more than the slope allows gives the tallest allowed height and says why.
   assert.equal(commands.setDividerHeight(index, 500), true);
   assert.match(messages.at(-1)!, /limits this divider to/);
-  assert.ok(state.dividers[index].y1 - state.dividers[index].y0 < 200);
+  assert.ok(state.dividers[index]!.y1! - state.dividers[index]!.y0! < 200);
   // Too short is refused with a reason.
   assert.equal(commands.setDividerHeight(index, 5), false);
   assert.match(messages.at(-1)!, /at least 15 cm/);
@@ -188,9 +188,9 @@ test('dividers follow the slope like items: tops are cut, heights are limited an
   state.shape = { template: 'custom', top: [{ x: 0, y: 120 }, { x: W, y: 120 }] };
   state.h = 120;
   commands.fitToShape();
-  const kept = state.dividers[index];
+  const kept = state.dividers[index]!;
   assert.ok(kept, 'a divider that still has room is kept');
-  assert.ok(kept.y1 - kept.y0 >= 15 - .01, 'and is at least the shortest divider');
+  assert.ok(kept!.y1! - kept!.y0! >= 15 - .01, 'and is at least the shortest divider');
   state.shape = { template: 'custom', top: [{ x: 0, y: 24 }, { x: W, y: 24 }] };
   state.h = 24;
   commands.fitToShape();
@@ -210,7 +210,7 @@ test('a divider moved under a lower part of the slope takes its top with it', as
   commands.addSpaceDivider();
   const index = state.dividers.length - 1;
   commands.moveDividerTo(index, 20);
-  const d = state.dividers[index];
-  assert.ok(Math.abs(d.y1 - rules.clampDivider({ ...d, y1: 999 }).y1) < .01, 'the stored top matches the slope at the new spot');
+  const d = state.dividers[index]!;
+  assert.ok(Math.abs(d.y1! - rules.clampDivider({ ...d, y1: 999 }).y1!) < .01, 'the stored top matches the slope at the new spot');
   assert.equal(rules.dividerValid(d, index), true);
 });
