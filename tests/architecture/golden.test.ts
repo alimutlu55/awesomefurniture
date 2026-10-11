@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createDesignCommands } from '../../src/application/commands/design-commands';
 import { createWardrobeGeometry } from '../../src/domain/geometry/wardrobe-geometry.js';
+import { createAddSuggestions } from '../../src/presentation/editor/add-suggestions.js';
 import { createFromTemplate } from '../../src/domain/wardrobe/shape/shape-templates';
 import { maxHeight, type ShapeTemplateId } from '../../src/domain/wardrobe/shape/wardrobe-shape';
 import { generateDesignedLayouts } from '../../src/domain/planner/wardrobe-composer';
@@ -83,7 +84,7 @@ for (const [name, c] of Object.entries(CASES)) {
       n: state.n, wt: state.wt, secs: state.secs, dividers: state.dividers,
       layout: sections.map(i => geometry.computeLayout(i)),
       cost: geometry.cost(), stats: geometry.stats(),
-      suggestions: sections.map(i => { state.sel = i; state.space = null; return geometry.addSuggestions(); }),
+      suggestions: sections.map(i => { state.sel = i; state.space = null; return createAddSuggestions(() => state, geometry).addSuggestions(); }),
     });
   });
 }

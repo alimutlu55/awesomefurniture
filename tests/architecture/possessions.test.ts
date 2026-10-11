@@ -12,6 +12,7 @@ import { heldOnShelves } from '../../src/domain/planner/possession-report';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createDesignCommands } from '../../src/application/commands/design-commands';
 import { createWardrobeGeometry } from '../../src/domain/geometry/wardrobe-geometry.js';
+import { createAddSuggestions } from '../../src/presentation/editor/add-suggestions.js';
 import { zoneColor, zoneText, ICONP } from '../../src/presentation/editor/editor-format.js';
 import { possessionFields, withPossessionFields, POSSESSION_FIELDS_MARKER } from '../../src/presentation/editor/possession-fields';
 
@@ -135,7 +136,7 @@ for (const p of SHELF_POSSESSIONS) {
     const state = createEditorState();
     Object.assign(state, { n: 1, wt: [100, 100, 100, 100, 100, 100], sel: 0 });
     const rules = createWardrobeGeometry(() => state);
-    const entry = rules.addSuggestions().list.find((x: any) => x.possession === p.key);
+    const entry = createAddSuggestions(() => state, rules).addSuggestions().list.find((x: any) => x.possession === p.key);
     assert.ok(entry, 'listed in Add item');
     assert.equal(entry.fit, true);
     assert.equal(entry.why, p.menu.why);

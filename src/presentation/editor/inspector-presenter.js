@@ -1,3 +1,4 @@
+import { createAddSuggestions } from './add-suggestions.js';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
@@ -16,6 +17,7 @@ import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector }) {
+    const addMenu = createAddSuggestions(() => model.activeCabinet().state, geometry);
     const { $, document, matchMedia } = dom;
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
@@ -342,7 +344,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     }
     function renderAddChoices() {
         selectionState.addKey = model.activeCabinet().state.sel;
-        const { list, intent } = geometry.addSuggestions(), ranked = list.slice().sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), feat = ranked.slice(0, 6);
+        const { list, intent } = addMenu.addSuggestions(), ranked = list.slice().sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), feat = ranked.slice(0, 6);
         const set = new Set(feat.map(x => x.k)), rest = list.filter(x => !set.has(x.k)).sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || a.o - c.o), nm = k => k === 'divider' ? 'Divider' : shelfPossession(k) ? shelfPossession(k).label : fitting(k)?.menu?.label ?? MODS[k].n, attr = x => x.k === 'divider' ? 'data-a="divider"' : shelfPossession(x.k) ? 'data-possession="' + x.k + '"' : 'data-m="' + x.k + '"';
         $('#add-intent').innerHTML = tags([(intent.match(/<b>(.*?)<\/b>/)?.[1] || '').replace(/\.$/, '').replace('Low space at floor level', 'Floor zone').replace('Roomy space within reach', 'Within reach').replace('Reaches above your ', 'Above reach ')]);
         $('#padd').innerHTML = feat.map(x => '<button type="button" ' + attr(x) + (!x.fit ? ' class="no" aria-disabled="true"' : x.warn ? ' class="warn"' : '') + ' title="' + esc(nm(x.k) + (x.fit ? (x.warn ? ' · ' + x.hint : '') : ' · ' + x.hint)) + '">' + productArt(x.k) + '<span>' + nm(x.k) + '</span>' + (x.hint ? '<small>' + esc(x.hint) + '</small>' : '') + '</button>').join('');

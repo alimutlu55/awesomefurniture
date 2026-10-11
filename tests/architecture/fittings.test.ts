@@ -7,6 +7,7 @@ import { MODS, PURPOSE, ADD_ORDER, compatiblePurposes, itemName } from '../../sr
 import { zoneColor, zoneText, ICONP } from '../../src/presentation/editor/editor-format.js';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createWardrobeGeometry } from '../../src/domain/geometry/wardrobe-geometry.js';
+import { createAddSuggestions } from '../../src/presentation/editor/add-suggestions.js';
 
 /**
  * Adding a fitting kind or a general purpose means adding one entry to fittings.ts or purposes.ts.
@@ -54,7 +55,7 @@ test('fittings · Add item menu: order is unique and every menu kind is suggeste
   assert.deepEqual([...ADD_ORDER], [...MENU_KINDS]);
   const state = createEditorState();
   Object.assign(state, { n: 1, wt: [100, 100, 100, 100, 100, 100], sel: 0 });
-  const listed = new Set(createWardrobeGeometry(() => state).addSuggestions().list.map((x: { k: string }) => x.k));
+  const listed = new Set(createAddSuggestions(() => state, createWardrobeGeometry(() => state)).addSuggestions().list.map((x: { k: string }) => x.k));
   for (const k of MENU_KINDS) assert.ok(listed.has(k), `${k}: missing from Add item`);
 });
 

@@ -1,15 +1,12 @@
-import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../../wardrobe/possessions';
-import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
-/** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
-/** @typedef {ReturnType<typeof import('./spaces.js').createSpacesRules>} SpacesRules */
-/** Add item suggestions for the selected space: what fits, ranked.
- * Part of the wardrobe rules (see ../wardrobe-geometry.js). Centimetres; only the design is read.
- * @param {import('./context.js').GeometryContext} ctx
- * @param {SizesRules & SpacesRules} deps Rules from the modules created before this one. */
-export function createSuggestionsRules(ctx, deps) {
-    const { getDesign } = ctx;
-    const { edgeGap, effectiveMin, itemFeasible, sectionSpaceMeasurements, spaceSpan } = deps;
-
+import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../../domain/wardrobe/possessions';
+import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
+/** Add item menu content for the selected space: which fittings fit, ranked, with the reason and the
+ * hint shown on each card, and a one-line description of the space. This is presentation copy; the
+ * sizing rules it asks come from the wardrobe rules (domain/geometry/wardrobe-rules).
+ * @param {import('../../domain/geometry/wardrobe-rules/context.js').GeometryContext['getDesign']} getDesign
+ * @param {Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'edgeGap' | 'effectiveMin' | 'itemFeasible' | 'sectionSpaceMeasurements' | 'spaceSpan'>} rules */
+export function createAddSuggestions(getDesign, rules) {
+    const { edgeGap, effectiveMin, itemFeasible, sectionSpaceMeasurements, spaceSpan } = rules;
     function addSuggestions() {
         const sp = sectionSpaceMeasurements(getDesign().sel), w = sp.w, H = sp.h, b = sp.y0, t = sp.y1, reach = getDesign().profile.reach, dMax = getDesign().profile.accessible ? 105 : Math.max(100, Math.min(135, Math.round(reach * .7))), onFloor = b - (PL + T) <= 1, high = b >= reach - 1, above = Math.max(0, t - Math.max(b, reach)), eng = !!getDesign().profile.engaged, need = { short: 'short', long: 'long', pants: 'pants', folded: 'folded', drawer: 'folded', shoe: 'shoes', sdrawer: 'small' }, list = [];
         [...ADD_ORDER, 'divider'].forEach((k, o) => {
