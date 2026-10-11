@@ -1,5 +1,6 @@
 import { WardrobePlanner } from '../planner/wardrobe-planner.js';
 import { MODS, FIN, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../wardrobe/catalog.js';
+import { resolveShape, ceilingPieces, ceilingMin, ceilingMax, ceilingPolyline, fitSpans, sectionOrigins, elevationArea, shapePanels } from '../wardrobe/shape/wardrobe-shape';
 /** Geometry and feasibility rules. Only the centimetre design is read. */
 /** @param {() => import('../wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; space: {i:number;x:number;y:number}|null }} getDesign */
 export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
@@ -7,6 +8,39 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const n = getDesign().n, iw = getDesign().w - (n + 1) * T, wt = getDesign().wt.slice(0, n), s = wt.reduce((a, b) => a + b);
         return wt.map(x => iw * x / s);
     };
+    /** Resolved skeleton for the current design: every section's clear height comes
+     * from the same top profile, whatever template created it. */
+    function shapeInfo() {
+        const shape = resolveShape(getDesign());
+        return { shape, pieces: ceilingPieces(shape), origins: sectionOrigins(getDesign()) };
+    }
+    const floor2 = v => Math.floor(v * 100 + 1e-6) / 100;
+    /** Clear height above the base board over a section-local span (lowest point). */
+    function ceilingIn(i, x0, x1) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return floor2(ceilingMin(pieces, o + Math.min(x0, x1), o + Math.max(x0, x1)) - PL - T);
+    }
+    /** Highest clear point over a section-local span. */
+    function ceilingTop(i, x0, x1) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return floor2(ceilingMax(pieces, o + Math.min(x0, x1), o + Math.max(x0, x1)) - PL - T);
+    }
+    /** Section-local underside of the top, left to right, relative to the base board. */
+    function ceilingOutline(i, x0, x1) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return ceilingPolyline(pieces, o + x0, o + x1).map(p => ({ x: p.x - o, y: p.y - PL - T }));
+    }
+    /** Parts of a section span with at least `top` cm of clear height. */
+    function clearSpans(i, x0, x1, top) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return fitSpans(pieces, o + x0, o + x1, top + PL + T - 1e-6).map(q => ({ x0: q.x0 - o, x1: q.x1 - o }));
+    }
+    const fitsCeiling = (i, q) => q.relY1 <= ceilingIn(i, q.x0, q.x1) + .01;
+    /** Height by which the most constrained fitting pokes through the top (0 when all fit). */
+    function overflow(i, layout = computeLayout(i)) {
+        return Math.max(0, ...layout.map(q => q.relY1 - ceilingIn(i, q.x0, q.x1)));
+    }
+    const sectionFits = i => overflow(i) <= .05;
     function computeLayout(i, secArg, bwArg) {
         const bw = bwArg !== undefined ? bwArg : widths()[i], sec = secArg !== undefined ? secArg : getDesign().secs[i];
         if (!sec || !sec.length) {
@@ -81,8 +115,8 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                 if (!m || !Number.isFinite(item.h) || item.h < effectiveMin(item.k) - .01 || p.w < itemMinW(item) - .01 || item.w > ws[i] + .01 || getDesign().d < (item.front ? 35 : m.d)) {
                     return fail('A module would lose its required width, depth, or clearance.');
                 }
-                if (p.relY1 > ih() + .01) {
-                    return fail('Not enough height in section ' + (i + 1) + '. The whole stack must fit.');
+                if (!fitsCeiling(i, p)) {
+                    return fail('Not enough height in section ' + (i + 1) + '. The whole stack must fit under the top.');
                 }
                 for (let k = 0; k < j; k++) {
                     const q = lay[k];
@@ -112,7 +146,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
             old[i] = computeLayout(i);
             getDesign().secs[i].forEach((o, j) => oldPos.set(o, old[i][j]));
         }
-        const r = WardrobePlanner.placeItem({ bw: ws[to], H: ih(), w, h: it.h, want, snap: !opts.free, others: old[to].map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).filter((_, j) => !(to === from.i && j === from.j)).concat(sectionDividers(to).map(dividerRect)) });
+        const r = WardrobePlanner.placeItem({ bw: ws[to], H: ih(to), w, h: it.h, want, snap: !opts.free, others: old[to].map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).filter((_, j) => !(to === from.i && j === from.j)).concat(sectionDividers(to).map(dividerRect)) });
         if (!r) {
             return fail('No free space in section ' + (to + 1) + ' for a ' + rd(w) + ' × ' + rd(it.h) + ' cm item.');
         }
@@ -178,8 +212,8 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         for (const i of aff) {
             for (let j = 0; j < secs[i].length; j++) {
                 const p = lay[i][j];
-                if (p.relY1 > ih() + .01) {
-                    return fail('Not enough height in section ' + (i + 1) + '.');
+                if (!fitsCeiling(i, p)) {
+                    return fail('Not enough height under the top in section ' + (i + 1) + '.');
                 }
                 for (let k = 0; k < j; k++) {
                     const q = lay[i][k];
@@ -210,7 +244,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         if (!pos) {
             return 0;
         }
-        let ceiling = ih();
+        let ceiling = ceilingIn(i, pos.x0, pos.x1);
         for (let k = 0; k < sec.length; k++) {
             if (k === j) {
                 continue;
@@ -230,15 +264,23 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         }
         return Math.max(0, Math.round((ceiling - pos.relY1) * 10) / 10);
     }
-    const ih = () => Math.round((getDesign().h - PL - 2 * T) * 10) / 10;
+    /** Tallest clear height of a section, or of the whole cabinet without an index. */
+    const ih = i => {
+        const ws = widths();
+        if (i !== undefined) {
+            return ws[i] === undefined ? 0 : ceilingTop(i, 0, ws[i]);
+        }
+        return Math.max(...ws.map((w, k) => ceilingTop(k, 0, w)));
+    };
     const used = i => {
         const l = computeLayout(i);
         return l.length ? Math.max(...l.map(p => p.relY1)) : 0;
     };
-    const free = i => Math.round((ih() - used(i)) * 10) / 10;
+    const free = i => Math.round((ceilingIn(i, 0, widths()[i] ?? 0) - used(i)) * 10) / 10;
     const maxN = () => Math.max(1, Math.min(6, Math.floor((getDesign().w - T) / (25 + T))));
     function cost() {
-        const f = Number(FIN[getDesign().fin][1]), a = (2 * getDesign().h * getDesign().d + 2 * getDesign().w * getDesign().d + (getDesign().n - 1) * ih() * getDesign().d + getDesign().w * getDesign().h) / 1e4, panels = a * 38 * f;
+        const { shape } = shapeInfo(), D = getDesign(), top = shapePanels(shape), sides = top.filter(p => p.kind === 'side').reduce((s, p) => s + p.length, 0), boards = top.filter(p => p.kind !== 'side').reduce((s, p) => s + p.length, 0), parts = widths().slice(0, -1).reduce((s, w, i) => s + Math.min(ih(i), ih(i + 1)), 0);
+        const f = Number(FIN[D.fin][1]), a = (sides * D.d + (boards + D.w) * D.d + parts * D.d + elevationArea(shape)) / 1e4, panels = a * 38 * f;
         let mods = 0;
         {
             const cw = widths();
@@ -251,7 +293,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const ws = widths();
         let hang = 0, shelf = 0, dr = 0, shoe = 0, mods = 0, fills = [], types = new Set();
         for (let i = 0; i < getDesign().n; i++) {
-            fills.push(used(i) / ih());
+            fills.push(used(i) / ih(i));
             getDesign().secs[i].forEach(it => {
                 const k = it.k;
                 mods++;
@@ -300,7 +342,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                 support = Math.max(support, q.y1);
             }
         }
-        return { ...g, top: Math.max(0, getDesign().h - T - g.y1), bottom: Math.max(0, g.y0 - PL - T), freeBelow: Math.max(0, g.y0 - support) };
+        return { ...g, top: Math.max(0, PL + T + ceilingIn(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T), freeBelow: Math.max(0, g.y0 - support) };
     }
     function dividerRect(d) {
         return d.orientation === 'horizontal' ? { x0: d.x0, x1: d.x1, y0: d.y - T / 2, y1: d.y + T / 2 } : { x0: d.x - T / 2, x1: d.x + T / 2, y0: d.y0, y1: d.y1 };
@@ -344,7 +386,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     }
     function dividerValid(d, index) {
         const r = dividerRect(d), bw = widths()[d.i];
-        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ih() + .01) {
+        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ceilingIn(d.i, r.x0, r.x1) + .01) {
             return false;
         }
         const overlaps = q => r.x0 < q.x1 - .01 && r.x1 > q.x0 + .01 && r.y0 < q.y1 - .01 && r.y1 > q.y0 + .01;
@@ -407,14 +449,23 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     }
     function sectionLayoutValid(i) {
         const layout = computeLayout(i);
-        return !dividerOverlaps(i, layout) && layout.every((q, j) => q.relY0 >= -.01 && q.relY1 <= ih() + .01 && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.relY0 >= r.relY1 - .01 || r.relY0 >= q.relY1 - .01));
+        return !dividerOverlaps(i, layout) && layout.every((q, j) => q.relY0 >= -.01 && fitsCeiling(i, q) && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.relY0 >= r.relY1 - .01 || r.relY0 >= q.relY1 - .01));
     }
     function sectionSpaces(i) {
         const bw = widths()[i];
         if (bw === undefined) {
             return [];
         }
-        const H = ih(), obstacles = computeLayout(i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat(sectionDividers(i).map(dividerRect)), ys = [...new Set([0, H, ...obstacles.flatMap(q => [Math.max(0, Math.min(H, q.y0)), Math.max(0, Math.min(H, q.y1))])])].sort((a, b) => a - b), regions = [];
+        // Areas above the top boards are obstacles. Steps give exact boundaries;
+        // a slope keeps its bounding height and records its lower edge.
+        const H = ih(i), outline = ceilingOutline(i, 0, bw), roof = [];
+        for (let n = 0; n < outline.length - 1; n++) {
+            const a = outline[n], b = outline[n + 1];
+            if (b.x - a.x > .01 && Math.max(a.y, b.y) < H - .01) {
+                roof.push({ x0: a.x, x1: b.x, y0: Math.max(a.y, b.y), y1: H });
+            }
+        }
+        const obstacles = computeLayout(i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat(sectionDividers(i).map(dividerRect), roof), ys = [...new Set([0, H, ...obstacles.flatMap(q => [Math.max(0, Math.min(H, q.y0)), Math.max(0, Math.min(H, q.y1))])])].sort((a, b) => a - b), regions = [];
         for (let n = 0; n < ys.length - 1; n++) {
             const y0 = ys[n], y1 = ys[n + 1];
             if (y1 - y0 < .01) {
@@ -442,12 +493,15 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                 }
             }
         }
-        return regions.map(q => ({ ...q, w: q.x1 - q.x0, h: q.y1 - q.y0, dep: getDesign().d - 2, y0: q.y0 + PL + T, y1: q.y1 + PL + T }));
+        return regions.map(q => {
+            const y1 = Math.min(q.y1, ceilingTop(i, q.x0, q.x1)), low = Math.min(y1, ceilingIn(i, q.x0, q.x1));
+            return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: getDesign().d - 2, y0: q.y0 + PL + T, y1: y1 + PL + T };
+        }).filter(q => q.h > .01);
     }
     function sectionSpaceMeasurements(i) {
         const spaces = sectionSpaces(i), point = getDesign().space?.i === i ? getDesign().space : null;
         const selected = point && spaces.find(q => point.x >= q.x0 - .01 && point.x <= q.x1 + .01 && point.y >= q.y0 - .01 && point.y <= q.y1 + .01);
-        return selected || spaces.sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0] || { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, dep: getDesign().d - 2, y0: getDesign().h - T, y1: getDesign().h - T };
+        return selected || spaces.sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0] || { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, hMin: 0, sloped: false, dep: getDesign().d - 2, y0: PL + T + ih(i), y1: PL + T + ih(i) };
     }
     const itemMinW = it => it.front ? 55 : MODS[it.k].w;
     const isBoxed = it => ['shelf', 'seasonal', 'basket'].includes(it.k) && !(it.k === 'shelf' && ['folded', 'pants'].includes(it.purpose)) && (it.k === 'seasonal' || ['seasonal', 'linen', 'luggage'].includes(it.purpose));
@@ -498,7 +552,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     }
     function edgeGap(k) {
         const i = getDesign().sel, bw = widths()[i], mn = effectiveMin(k), front = (k === 'short' || k === 'long') && getDesign().d < 55, minW = Math.max(25, front ? 55 : MODS[k].w), lay = computeLayout(i);
-        if (ih() < mn - .01 || !lay.some(p => p.w < bw - .05)) {
+        if (ih(i) < mn - .01 || !lay.some(p => p.w < bw - .05)) {
             return null;
         }
         const xs = [0, bw];
@@ -546,6 +600,38 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const w = it.w ? Math.min(it.w, bw) : bw, front = (it.k === 'short' || it.k === 'long') && getDesign().d < 55, m = MODS[it.k];
         return getDesign().d >= (front ? 35 : m.d) && w >= (front ? 55 : m.w) - .01 && !(it.k === 'lift' && !getDesign().profile.allowLift);
     };
+    /** Widest part of a free space where a fitting of height h clears the top.
+     * Section-local; null when no part is at least minW wide. */
+    function spaceSpan(i, space, h, minW) {
+        const y0 = space.y0 - PL - T, spans = clearSpans(i, space.x0, space.x1, y0 + h).filter(q => q.x1 - q.x0 >= minW - .01);
+        return spans.sort((a, b) => (b.x1 - b.x0) - (a.x1 - a.x0))[0] || null;
+    }
+    /** Narrowest change that brings a fitting back under a lowered or sloped top:
+     * keep its height and slide/narrow it into the tallest part of its row. */
+    function narrowToFit(i, j) {
+        const it = getDesign().secs[i]?.[j], lay = computeLayout(i), p = lay[j];
+        if (!it || !p) {
+            return null;
+        }
+        const others = lay.filter((q, k) => k !== j).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat(sectionDividers(i).map(dividerRect));
+        const spans = clearSpans(i, 0, widths()[i], p.relY1).flatMap(q => {
+            // Neighbouring fittings in the same row also limit the span.
+            let pieces = [q];
+            for (const o of others) {
+                if (o.y0 >= p.relY1 - .01 || o.y1 <= p.relY0 + .01) {
+                    continue;
+                }
+                pieces = pieces.flatMap(r => o.x1 <= r.x0 + .01 || o.x0 >= r.x1 - .01 ? [r] : [{ x0: r.x0, x1: Math.min(r.x1, o.x0) }, { x0: Math.max(r.x0, o.x1), x1: r.x1 }].filter(z => z.x1 - z.x0 > .01));
+            }
+            return pieces;
+        }).filter(q => q.x1 - q.x0 >= itemMinW(it) - .01);
+        if (!spans.length) {
+            return null;
+        }
+        spans.sort((a, b) => Math.min(b.x1 - b.x0, p.w) - Math.min(a.x1 - a.x0, p.w) || Math.abs((a.x0 + a.x1) / 2 - (p.x0 + p.x1) / 2) - Math.abs((b.x0 + b.x1) / 2 - (p.x0 + p.x1) / 2));
+        const q = spans[0], w = Math.floor(Math.min(p.w, q.x1 - q.x0) * 10) / 10, x = Math.max(q.x0, Math.min(q.x1 - w, p.x0));
+        return { w, x: Math.round(x * 100) / 100, y: Math.round(p.relY0 * 100) / 100 };
+    }
     function addSuggestions() {
         const sp = sectionSpaceMeasurements(getDesign().sel), w = sp.w, H = sp.h, b = sp.y0, t = sp.y1, reach = getDesign().profile.reach, dMax = getDesign().profile.accessible ? 105 : Math.max(100, Math.min(135, Math.round(reach * .7))), onFloor = b - (PL + T) <= 1, high = b >= reach - 1, above = Math.max(0, t - Math.max(b, reach)), eng = !!getDesign().profile.engaged, need = { short: 'short', long: 'long', pants: 'pants', folded: 'folded', drawer: 'folded', shoe: 'shoes', sdrawer: 'small' }, list = [];
         [...ADD_ORDER, 'divider'].forEach((k, o) => {
@@ -560,7 +646,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
             }
             else {
                 const m = MODS[k], mn = effectiveMin(k), front = (k === 'short' || k === 'long') && getDesign().d < 55, needW = front ? 55 : m.w, needD = front ? 35 : m.d;
-                fit = itemFeasible(k, w) && (mn <= H + .01 || !!edgeGap(k));
+                fit = itemFeasible(k, w) && ((mn <= H + .01 && !!spaceSpan(getDesign().sel, sp, mn, front ? 55 : m.w)) || !!edgeGap(k));
                 if (!fit) {
                     hint = k === 'lift' && !getDesign().profile.allowLift ? 'Pull-down is off' : w < needW - .01 ? 'Needs ' + needW + ' cm width' : getDesign().d < needD ? 'Needs ' + needD + ' cm depth' : 'Needs ' + r1(mn) + ' cm height';
                 }
@@ -648,7 +734,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
             return null;
         }
         const blockers = lay.map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat(sectionDividers(i).map(dividerRect));
-        const fits = x => x >= -.01 && x + w <= bw + .01 && !blockers.some(o => x < o.x1 - .01 && o.x0 < x + w - .01 && y0 < o.y1 - .01 && o.y0 < y1 - .01);
+        const fits = x => x >= -.01 && x + w <= bw + .01 && y1 <= ceilingIn(i, x, x + w) + .01 && !blockers.some(o => x < o.x1 - .01 && o.x0 < x + w - .01 && y0 < o.y1 - .01 && o.y0 < y1 - .01);
         const r2 = v => Math.round(v * 100) / 100, xs = [...new Set([pos.x1, pos.x0 - w, 0, bw - w, ...blockers.flatMap(o => [o.x1, o.x0 - w])].map(v => r2(Math.max(0, Math.min(bw - w, v)))))].filter(fits);
         if (!xs.length) {
             return null;
@@ -709,7 +795,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const obs = computeLayout(d.i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat((getDesign().dividers || []).filter(q => q.i === d.i).map(dividerRect));
         const ok = v => {
             const r = dividerRect({ ...d, [key]: v });
-            if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ih() + .01) {
+            if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ceilingIn(d.i, r.x0, r.x1) + .01) {
                 return false;
             }
             const g = hor ? { x0: r.x0, x1: r.x1, y0: r.y0 - GAP, y1: r.y1 + GAP } : { x0: r.x0 - GAP, x1: r.x1 + GAP, y0: r.y0, y1: r.y1 };
@@ -738,5 +824,5 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         runs.sort((p, q) => (q.end - q.start) - (p.end - p.start) || Math.abs(mid(p) - d[key]) - Math.abs(mid(q) - d[key]));
         return mid(runs[0]);
     }
-    return { widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
+    return { shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
 }

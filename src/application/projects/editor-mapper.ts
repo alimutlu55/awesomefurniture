@@ -20,6 +20,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    position:{x:cabinet.x,y:cabinet.y||0,z:cabinet.z},rotation:cabinet.angle,finish:s.fin,
    doors:s.doors==='hinged'?'solid' as const:s.doors,
    preferences:{...preferences,budget:900},
+   ...(s.shape?{shape:structuredClone(s.shape)}:{}),
    editorLayout:{cabinetId:cabinet.id,weights:structuredClone(s.wt),...(reachStd===undefined?{}:{reachStd}),...(engaged===undefined?{}:{engaged}),...(s.reachLine===undefined?{}:{reachLine:s.reachLine}),proposal:structuredClone(s.proposal)},
    sections:widths.map((width,i)=>{
     const positions=WardrobePlanner.layoutSection(s.secs[i]!,width);
@@ -52,6 +53,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
    profile:{...profile,...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
    proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),
+   ...(w.shape?{shape:structuredClone(w.shape)}:{}),
    sel:0,item:-1,divider:-1,space:null,open:false,
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};

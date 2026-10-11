@@ -2,6 +2,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
+import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
 const finite = z.number().finite();
@@ -30,6 +31,10 @@ const editorDivider = z.strictObject({
 const editorLayout = z.strictObject({
   cabinetId:count.positive(), weights:z.array(positive).length(6), reachStd:positive.optional(), engaged:z.boolean().optional(), reachLine:z.boolean().optional(),
   proposal:z.strictObject({title:z.string(),summary:z.string()}).nullable(),
+});
+const shape = z.strictObject({
+  template: z.enum(SHAPE_TEMPLATE_IDS),
+  top: z.array(z.strictObject({ x: nonnegative, y: positive, partition: count.max(4).optional() })).min(2).max(40),
 });
 const item = z.strictObject({
   editorItem: editorItem.optional(),
@@ -60,6 +65,7 @@ const wardrobe = z.strictObject({
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
   doors: z.enum(['none', 'solid', 'glass']),
   sections: z.array(section),
+  shape: shape.optional(),
   preferences: z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
     composition:z.enum(['balanced','storage']).optional(),
@@ -81,6 +87,12 @@ const wardrobe = z.strictObject({
       const width=(cabinet.dimensions.width-(n+1)*1.8)*weights[i]!/total;
       if(!close(section.width,width)) fail('Section weights disagree with the canonical widths.');
     });
+  }
+  if (cabinet.shape) {
+    // Skeletons are checked against the same rules the editor enforces.
+    const n=cabinet.sections.length, resolved=resolveShape({w:cabinet.dimensions.width,h:cabinet.dimensions.height,n,wt:cabinet.sections.map(s=>s.width),shape:cabinet.shape});
+    for (const problem of shapeProblems(resolved,cabinet.dimensions.width)) fail('Invalid wardrobe shape: '+problem);
+    if (!close(maxHeight(resolved),cabinet.dimensions.height)) fail('Wardrobe height disagrees with its shape.');
   }
   cabinet.sections.forEach((section,i)=>{
     const raw=section.items.map(it=>it.editorItem??{k:it.kind,h:it.height,w:it.width,x:it.x,y:it.y});

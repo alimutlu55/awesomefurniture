@@ -3,6 +3,8 @@ import { createEditorState } from '../projects/editor-state';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
+import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
+import { isRegularShape, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -17,10 +19,14 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const geometry = createWardrobeGeometry(() => active().state);
     const design = createDesignCommands(() => active().state, { report });
     return {
-        addCabinet(copy = false) {
+        addCabinet(copy = false, template?: ShapeTemplateId) {
             checkpoint();
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId++;
             const state = copy ? structuredClone(original.state) : initialDesign();
+            if (!copy && template && template !== 'regular') {
+                const start = createFromTemplate(template, { w: state.w, h: state.h, maxN: 6 });
+                Object.assign(state, { shape: start.shape, n: start.n, wt: start.wt, h: maxHeight(start.shape) });
+            }
             const cabinet = { id, name: 'Wardrobe ' + id, x: 0, y: copy ? (original.y || 0) : 0, z: original.z, angle: copy ? original.angle : 0, state };
             cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
             scene.wardrobes.push(cabinet);
@@ -81,11 +87,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return true;
         },
         setCabinetSize(key: string, value: number, recordHistory = true) {
-            const ranges = { w: [80, 400], h: [180, 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
+            const state = active().state, shaped = !isRegularShape(state.shape);
+            const ranges = { w: [80, 400], h: [shaped && state.shape ? Math.max(60, Math.ceil(minimumShapeHeight(state.shape))) : 180, 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
             if (!range || !Number.isFinite(value)) {
                 return false;
             }
-            const state = active().state;
             let requested = Math.max(range[0]!, Math.min(range[1]!, Math.round(value)));
             if (key === 'w') {
                 requested = Math.max(requested, geometry.minTotal());
@@ -96,8 +102,18 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 return false;
             }
             const previous = structuredClone(state);
+            if (state.shape && key !== 'd') {
+                const next = resizeShape(state.shape, state.w, key === 'w' ? requested : state.w, state.h, key === 'h' ? requested : state.h), problem = shapeProblems(next, key === 'w' ? requested : state.w)[0];
+                if (problem) {
+                    report(problem);
+                    return false;
+                }
+            }
             if (recordHistory) checkpoint();
+            if (state.shape && key !== 'd') state.shape = resizeShape(state.shape, state.w, key === 'w' ? requested : state.w, state.h, key === 'h' ? requested : state.h);
             state[key as 'w' | 'h' | 'd'] = requested;
+            // The skeleton's tallest point is the cabinet height.
+            if (state.shape) state.h = maxHeight(state.shape);
             state.n = Math.min(state.n, geometry.maxN());
             state.sel = Math.min(state.sel, state.n - 1);
             if (key === 'w') {
@@ -107,6 +123,10 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                     report('Narrowest width that keeps all your modules: ' + minimum + ' cm');
                 }
             }
+            if (state.shape && key === 'w') {
+                // Clamping to the narrowest width must keep the skeleton in step.
+                state.shape = resizeShape(state.shape, state.shape.top[state.shape.top.length - 1]!.x, state.w, state.h, state.h);
+            }
             design.refitAfterSize();
             if ((state.dividers || []).some((d, j) => !geometry.dividerValid(d, j))) {
                 Object.assign(state, previous);
@@ -114,6 +134,57 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 report('Move the dividers or items before reducing the wardrobe size');
                 return false;
             }
+            return true;
+        },
+        /** Replace the skeleton with a template's starting geometry. An empty
+         * wardrobe also takes the template's sections; fittings are refitted. */
+        applyShapeTemplate(template: ShapeTemplateId) {
+            const cabinet = active(), state = cabinet.state, empty = !state.secs.some(items => items.length) && !state.dividers.length;
+            const start = createFromTemplate(template, { w: state.w, h: state.h, maxN: geometry.maxN() });
+            const next = structuredClone(state);
+            if (empty) Object.assign(next, { n: start.n, wt: start.wt, sel: Math.min(state.sel, start.n - 1) });
+            const shape = structuredClone(start.shape);
+            // Anchored steps follow existing partitions only when those partitions exist.
+            if (!empty) shape.top.forEach(p => { if (p.partition !== undefined && p.partition >= next.n - 1) delete p.partition; });
+            if (shapeProblems(shape, state.w).length) {
+                report('This shape does not fit a ' + state.w + ' cm wide wardrobe.');
+                return false;
+            }
+            if (template === 'regular') delete next.shape;
+            else next.shape = shape;
+            next.h = maxHeight(shape);
+            if (collision.cabinetCollides({ ...cabinet, state: next })) {
+                report('That shape would overlap another wardrobe. Move it first.');
+                return false;
+            }
+            checkpoint();
+            Object.assign(state, next);
+            if (template === 'regular') delete state.shape;
+            state.proposal = null;
+            design.fitToShape();
+            return true;
+        },
+        /** Commit an edited skeleton. Invalid geometry is rejected with its reason;
+         * fittings and shelf boards that no longer fit are compacted or removed. */
+        setShape(shape: WardrobeShape, recordHistory = true, refit = true) {
+            const cabinet = active(), state = cabinet.state, problem = shapeProblems(shape, state.w)[0];
+            if (problem) {
+                report(problem);
+                return false;
+            }
+            const h = maxHeight(shape);
+            if (JSON.stringify(shape) === JSON.stringify(state.shape)) return false;
+            if (collision.cabinetCollides({ ...cabinet, state: { ...state, h } })) {
+                report('That height would overlap another wardrobe. Move it first.');
+                return false;
+            }
+            if (recordHistory) checkpoint();
+            state.shape = structuredClone(shape);
+            state.h = h;
+            state.proposal = null;
+            // Live previews skip refitting so a drag never destroys fittings; the
+            // final commit refits once.
+            if (refit) design.fitToShape();
             return true;
         },
         resetCabinet() {

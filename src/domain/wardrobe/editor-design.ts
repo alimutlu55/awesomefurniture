@@ -1,4 +1,5 @@
 import type { ItemKind, StoragePurpose, WardrobePreferences } from './wardrobe';
+import type { WardrobeShape } from './shape/wardrobe-shape';
 
 /** Serializable layout intent: distinguishes stacked/full-width items from
  * pinned coordinates and retains divider travel regions. No camera or selection. */
@@ -27,4 +28,6 @@ export interface EditorDesign {
   secs: EditorItem[][]; dividers: EditorDivider[];
   fin: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage'; doors: 'none' | 'hinged' | 'glass';
   profile: EditorProfile; proposal: EditorLayout['proposal']; reachLine?: boolean | undefined;
+  /** Built-in skeleton; absent means the regular rectangular wardrobe. */
+  shape?: WardrobeShape | undefined;
 }

@@ -1,5 +1,6 @@
 import type { EditorItem, EditorDivider, EditorLayout } from './editor-design';
 import type { Dimensions, Vector3 } from '../geometry/types';
+import type { WardrobeShape } from './shape/wardrobe-shape';
 
 export type ItemKind =
   | 'drawer' | 'sdrawer' | 'void' | 'shelf' | 'folded' | 'seasonal'
@@ -70,4 +71,6 @@ export interface Wardrobe {
   readonly doors: 'none' | 'solid' | 'glass';
   readonly sections: readonly Section[];
   readonly preferences: WardrobePreferences;
+  /** Built-in skeleton; absent for regular rectangular wardrobes (and older projects). */
+  readonly shape?: WardrobeShape | undefined;
 }

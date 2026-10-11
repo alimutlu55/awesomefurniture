@@ -11,7 +11,7 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
-export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime }) {
+export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }) {
     const { $, document } = dom;
     let renderDesign = model.activeCabinet().state;
     const geometry = createWardrobeGeometry(() => renderDesign, () => settings.budget);
@@ -42,6 +42,31 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         (g || renderState.Gr).add(o);
         return o;
     }
+    /** Extruded front-elevation outline for angled or notched panels. UVs span the
+     * panel like a box face so wood grain keeps its scale. */
+    function prism(points, depth, z, m, g) {
+        const geo = new THREE.ExtrudeGeometry(new THREE.Shape(points.map(p => new THREE.Vector2(p.x, p.y))), { depth, bevelEnabled: false, steps: 1 });
+        geo.translate(0, 0, z - depth / 2);
+        planarUVs(geo);
+        const o = new THREE.Mesh(geo, m);
+        o.castShadow = o.receiveShadow = true;
+        (g || renderState.Gr).add(o);
+        return o;
+    }
+    function planarUVs(geo) {
+        geo.computeBoundingBox();
+        const b = geo.boundingBox, pos = geo.attributes.position, uv = geo.attributes.uv, W = Math.max(1e-6, b.max.x - b.min.x), H = Math.max(1e-6, b.max.y - b.min.y);
+        for (let k = 0; k < pos.count; k++) {
+            uv.setXY(k, (pos.getX(k) - b.min.x) / W, (pos.getY(k) - b.min.y) / H);
+        }
+        uv.needsUpdate = true;
+    }
+    /** Flat translucent outline (highlights and AO) clipped to a polygon. */
+    function flatShape(points, material) {
+        const geo = new THREE.ShapeGeometry(new THREE.Shape(points.map(p => new THREE.Vector2(p.x, p.y))));
+        planarUVs(geo);
+        return new THREE.Mesh(geo, material);
+    }
     function garment(cx, top, z, height, depth, color, front = false) {
         const sh = new THREE.Shape();
         sh.moveTo(-depth * .13, 0);
@@ -63,7 +88,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         const selected = model.activeCabinet();
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
-            if (l.el !== renderState.dividerMoveHandle) {
+            // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
+            if (l.el !== renderState.dividerMoveHandle && !l.el.classList.contains('shape-handle')) {
                 l.el.remove();
             }
             l.rulerNode?.remove();
@@ -126,7 +152,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;
@@ -263,5 +289,5 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
         });
     }
-    return { theme, box, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
+    return { theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
 }

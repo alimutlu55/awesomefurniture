@@ -28,6 +28,7 @@ import { createRenderState } from '../viewport/render-state.js';
 import { createSelectionState } from './selection-state.js';
 import { createPlannerState } from './planner-state.js';
 import { createShellState } from './shell-state.js';
+import { createShapeInspector } from './shape-inspector';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>) {
     const { $ } = dom;
@@ -121,13 +122,15 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             disposeResources: () => lifetime.dispose()
         });
+        const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI() } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
-        renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime }));
+        renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history }));
-        inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history }));
+        inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements });
+        shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
         camera.fit({ instant: true, padding: 1.4 });

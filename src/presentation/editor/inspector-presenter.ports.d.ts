@@ -10,7 +10,7 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').crea
 readonly cameraState: Pick<ReturnType<typeof import('../viewport/camera-state.js').createCameraState>, 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'moveMode' | 'ptrs' | 'rotationGesture' | 'wardrobeGesture'>;
 readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'buildStamp' | 'overlayHeld'>;
-readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'addKey' | 'ctxMenu' | 'deep' | 'focusOn' | 'itemBar' | 'itemBarCache' | 'itemTypeMenu' | 'pillOn' | 'popMin' | 'responsivePanel' | 'showDimensions'>;
+readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'addKey' | 'ctxMenu' | 'deep' | 'focusOn' | 'itemBar' | 'itemBarCache' | 'itemTypeMenu' | 'pillOn' | 'popMin' | 'responsivePanel' | 'showDimensions' | 'shapeEditing'>;
 readonly shellState: Pick<ReturnType<typeof import('./shell-state.js').createShellState>, 'G'>;
 readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'addSuggestions' | 'currentLayout' | 'dividerDupSpot' | 'dividerMeasurements' | 'dividerRect' | 'duplicateSideSpot' | 'edgeGap' | 'effectiveMin' | 'free' | 'ih' | 'itemEdgeSize' | 'itemFeasible' | 'itemFreeAbove' | 'itemGeom' | 'itemMeasurements' | 'itemMinW' | 'itemYBounds' | 'maxN' | 'planCfg' | 'planItemMove' | 'plannerConfig' | 'resizeObstacles' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'stats' | 'widthEdgeFor' | 'widths'>>;
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cam' | 'cv'>;
@@ -18,4 +18,5 @@ readonly model: Pick<ReturnType<typeof import('../../application/projects/editor
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'deleteItem' | 'duplicateItem' | 'normalizeSelection' | 'setDividerClearance' | 'setItemClearance'>>;
 readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'addCabinet' | 'setCabinetPose'>>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint' | 'redo' | 'redoCount' | 'undo' | 'undoCount'>>;
+readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('./shape-inspector').createShapeInspector>, 'render'>>;
 }

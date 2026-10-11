@@ -11,8 +11,9 @@ type Ports = {
     rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'plannerConfig' | 'currentLayout' | 'widths' | 'maxN'>;
 };
 export function createLayoutCommands({ getDesign, effects, rules }: Ports) {
-    function autofill(i: number) {
-        const config = rules.plannerConfig(), other = rules.currentLayout();
+    /** Plan one bay. `height` overrides the outer height for bays under a lower top. */
+    function autofill(i: number, height?: number) {
+        const config = { ...rules.plannerConfig(), ...(height === undefined ? {} : { h: height }) }, other = rules.currentLayout();
         other.sections = other.sections.filter((_, j) => j !== i);
         const existing = WardrobePlanner.analyze(other, config), demand = buildDemand(config);
         const pinned = getDesign().proposal === null ? getDesign().secs[i]!.filter(it => it.x !== undefined || it.y !== undefined) : [];

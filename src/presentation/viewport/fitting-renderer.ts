@@ -22,10 +22,10 @@ interface FittingRendererPorts {
     garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean): void;
 }
 export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}]) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}], ceiling = h - PANEL) {
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
         const deck = () => {
-            if (y + hh >= h - PANEL - .05) {
+            if (y + hh >= ceiling - .05) {
                 return;
             }
             for (const span of topSpans) box(span.x1-span.x0, PANEL, d - 2, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, -.5, P);

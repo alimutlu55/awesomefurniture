@@ -11,6 +11,8 @@ export function createSelectionState() {
         itemBarCache: null,
         addKey: null,
         popPos: null,
-        popMin: false
+        popMin: false,
+        /** Wardrobe skeleton handles and panel list are open. */
+        shapeEditing: false
     };
 }

@@ -1,14 +1,56 @@
 import * as THREE from "three";
 import { createCabinetMaterials } from './cabinet-materials';
-import { renderCabinetFrame } from './frame-geometry';
+import { renderCabinetFrame, boardUnderTop, panelBuilder } from './frame-geometry';
+import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
-export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const { $, document } = dom;
+    /** Break-point handles are pooled: rebuilding during a drag reuses the
+     * captured element instead of replacing it. */
+    const shapeHandlePool = [];
+    function shapeHandle(n) {
+        let el = shapeHandlePool[n];
+        if (!el) {
+            el = document.createElement('button');
+            el.type = 'button';
+            el.className = 'lbl shape-handle';
+            el.onpointerdown = e => shapeInspector.beginHandleDrag(e, +el.dataset.index, el);
+            el.onpointermove = e => shapeInspector.moveHandleDrag(e);
+            el.onpointerup = () => shapeInspector.endHandleDrag();
+            el.onpointercancel = () => shapeInspector.endHandleDrag(true);
+            el.onkeydown = e => {
+                const step = e.shiftKey ? .5 : 1, dy = e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0, dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
+                if (dx || dy) {
+                    e.preventDefault();
+                    shapeInspector.nudge(+el.dataset.index, el.classList.contains('fixed-x') ? 0 : dx, dy);
+                }
+            };
+            shapeHandlePool[n] = el;
+        }
+        return el;
+    }
+    function placeShapeHandles() {
+        if (!renderState.renderActive) {
+            return;
+        }
+        const handles = !inspector.inside() ? shapeInspector.handles() : [], d = getRenderDesign().d;
+        handles.forEach((q, n) => {
+            const el = shapeHandle(n);
+            el.dataset.index = String(q.index);
+            el.textContent = q.label;
+            el.classList.toggle('fixed-x', !q.movesX);
+            el.setAttribute('aria-label', 'Break point ' + (q.index + 1) + ', ' + q.label + ' cm high. Drag or use arrow keys to ' + (q.movesX ? 'move it' : 'change the height'));
+            el.title = q.movesX ? 'Drag to move this break point' : 'Drag up or down to change this side height';
+            if (!el.isConnected) $('#labels').appendChild(el);
+            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
+        });
+        shapeHandlePool.slice(handles.length).forEach(el => el.remove());
+    }
     function buildCabinet() {
         renderState.buildStamp++;
         WardrobePlanner.configure(geometry.plannerConfig());
@@ -27,9 +69,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);
         shadow.userData.floorShadow = true;
         renderState.Gr.add(shadow);
-        const { w, h, d, n } = getRenderDesign(), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = PLINTH + PANEL, H = geometry.ih(), V = THREE.Vector3;
+        const { w, h, d, n } = getRenderDesign(), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = PLINTH + PANEL, V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         renderState.Gr.userData.ownedMaterials = materials.owned;
-        renderCabinetFrame(getRenderDesign(), box, materials);
+        renderCabinetFrame(getRenderDesign(), box, prism, materials);
+        /** Section-local outline of a span under the top, in cabinet-centred coordinates. */
+        const sectionOutline = (i, sx, x0, x1, y0 = 0) => [{ x: sx + x0, y: iy + y0 }, { x: sx + x1, y: iy + y0 }, ...geometry.ceilingOutline(i, x0, x1).reverse().map(p => ({ x: sx + p.x, y: iy + p.y }))];
         const lp = [], spaceRulerPoints = [], dimLine = (a, b, txt, cls = 'lbl dim', points = lp) => {
             points.push(a, b);
             const vertical = Math.abs(a.y - b.y) > Math.abs(a.x - b.x), tick = new V(vertical ? 2 : 0, vertical ? 0 : 2, 0);
@@ -71,22 +115,32 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 }
                 inspector.editableItemClearance(el, i, j, side);
             };
-            clear(g.y1, h - PANEL, f(g.top), 'top');
+            clear(g.y1, g.y1 + g.top, f(g.top), 'top');
             clear(PLINTH + PANEL, g.y0, f(g.bottom), 'bottom');
         };
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
-            const cx = x + sw / 2, sel = renderState.renderActive && selectionState.focusOn && inspector.inside() && i === getRenderDesign().sel;
-            const ao = new THREE.Mesh(new THREE.PlaneGeometry(sw, H), new THREE.MeshBasicMaterial({ map: resources.aoTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }));
-            ao.position.set(cx, iy + H / 2, -d / 2 + .9);
+            const cx = x + sw / 2, sel = renderState.renderActive && selectionState.focusOn && inspector.inside() && i === getRenderDesign().sel, H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
+            const aoMaterial = new THREE.MeshBasicMaterial({ map: resources.aoTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+            const ao = shaped ? flatShape(outline, aoMaterial) : new THREE.Mesh(new THREE.PlaneGeometry(sw, H), aoMaterial);
+            if (shaped) ao.position.z = -d / 2 + .9;
+            else ao.position.set(cx, iy + H / 2, -d / 2 + .9);
             renderState.Gr.add(ao);
-            const hb = new THREE.Mesh(new THREE.BoxGeometry(sw, H, d), resources.HM);
-            hb.position.set(cx, iy + H / 2, 0);
+            let hb;
+            if (shaped) {
+                hb = prism(outline, d, 0, resources.HM);
+                hb.castShadow = hb.receiveShadow = false;
+            }
+            else {
+                hb = new THREE.Mesh(new THREE.BoxGeometry(sw, H, d), resources.HM);
+                hb.position.set(cx, iy + H / 2, 0);
+                renderState.Gr.add(hb);
+            }
             hb.userData.i = i;
-            renderState.Gr.add(hb);
             renderState.hits.push(hb);
-            const ho = resources.softArea(sw - .5, H - .5, .15, .045);
-            ho.position.set(cx, iy + H / 2, d / 2 + .1);
+            const ho = shaped ? flatShape(sectionOutline(i, x, .25, sw - .25, .25), new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity: .045, depthWrite: false })) : resources.softArea(sw - .5, H - .5, .15, .045);
+            if (shaped) ho.position.z = d / 2 + .1;
+            else ho.position.set(cx, iy + H / 2, d / 2 + .1);
             ho.visible = false;
             ho.renderOrder = 9;
             renderState.Gr.add(ho);
@@ -96,13 +150,13 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 const r=geometry.dividerRect(q);
                 return {...r,y0:r.y0+iy,y1:r.y1+iy};
             });
-            const panels = fittingPanels(lay, iy, h-PANEL, sharedBoards);
+            const panels = fittingPanels(lay, iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
             getRenderDesign().secs[i].forEach((it, j) => {
                 const hh = it.h, isel = sel && getRenderDesign().item === j, pos = lay[j] || { y0: iy, w: WardrobePlanner.itemWidth(it, sw), off: undefined };
                 const iwd = pos.w, iy0 = pos.y0, ix = cx - sw / 2 + (pos.off !== undefined ? pos.off : (sw - iwd) / 2) + iwd / 2, start = renderState.Gr.children.length;
                 const localX = ix - x - iwd / 2;
                 const local = span => ({...span,x0:span.x0-localX,x1:span.x1-localX});
-                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local));
+                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1));
                 const group = new THREE.Group(), parts = renderState.Gr.children.slice(start);
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);
@@ -165,7 +219,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 dimLine(new V(sx + 5, space.y0 + 5, -d / 2 + .5), new V(sx + 5, space.y0 + 5, d / 2 - 1.5), measureNumber(space.dep) + ' cm', cls, spaceRulerPoints);
             }
             else if (!sel && getRenderDesign().item < 0) {
-                ho.userData.label = label(new V(cx, h + 8, d / 2), sw.toFixed(1) + ' cm', 'lbl dim hover-dim');
+                ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), sw.toFixed(1) + ' cm', 'lbl dim hover-dim');
             }
             if (selectionState.pillOn && sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && !interactionState.moveMode && geometry.sectionSpaceMeasurements(i).h >= 15) {
                 const ab = document.createElement('button');
@@ -188,19 +242,34 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 renderState.labs.push({ p: new V(x + (space.x0 + space.x1) / 2, (space.y0 + space.y1) / 2, d / 2), el: ab, owner: renderState.Gr });
             }
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
-                const space = geometry.sectionSpaceMeasurements(i), glow = resources.softArea(Math.max(.1, space.w - .8), Math.max(.1, space.h - .8), .1, .075);
-                glow.position.set(x + (space.x0 + space.x1) / 2, (space.y0 + space.y1) / 2, d / 2 + .15);
+                const space = geometry.sectionSpaceMeasurements(i);
+                let glow;
+                if (space.sloped) {
+                    // A space under a slope glows only where it is actually clear.
+                    const y0 = space.y0 - iy + .4, top = geometry.ceilingOutline(i, space.x0 + .4, space.x1 - .4).map(p => ({ x: x + p.x, y: iy + Math.min(p.y, space.y1 - iy) - .4 })).reverse();
+                    glow = flatShape([{ x: x + space.x0 + .4, y: iy + y0 }, { x: x + space.x1 - .4, y: iy + y0 }, ...top], new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity: .075, depthWrite: false }));
+                    glow.position.z = d / 2 + .15;
+                }
+                else {
+                    glow = resources.softArea(Math.max(.1, space.w - .8), Math.max(.1, space.h - .8), .1, .075);
+                    glow.position.set(x + (space.x0 + space.x1) / 2, (space.y0 + space.y1) / 2, d / 2 + .15);
+                }
                 renderState.Gr.add(glow);
             }
             x += sw;
             if (i < n - 1) {
-                box(PANEL, H, d - 1, x + PANEL / 2, iy + H / 2, 0, mp);
+                // Partitions run from the base board up to the top's underside.
+                panel(boardUnderTop(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy), d - 1, 0, mp);
                 x += PANEL;
             }
         });
         if (renderState.renderActive && ((selectionState.showDimensions && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
             dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + w + ' cm');
-            dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, h, d / 2 + 2), 'H ' + h + ' cm');
+            const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
+            dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + ' cm');
+            if (Math.abs(right - left) > .05) {
+                dimLine(new V(w / 2 + 9, 0, d / 2 + 2), new V(w / 2 + 9, right, d / 2 + 2), 'H ' + f(right) + ' cm');
+            }
             // The wardrobe depth remains available on the model alongside width and height.
             dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + d + ' cm');
         }
@@ -218,7 +287,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         if (spaceRulerPoints.length) {
             dimensionStroke(spaceRulerPoints, renderState.Gr, 11);
         }
-        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, resources, mp, mh);
+        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, mp, mh);
+        placeShapeHandles();
         renderState.Gr.updateMatrixWorld(true);
     }
     return { buildCabinet };

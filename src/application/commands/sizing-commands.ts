@@ -2,7 +2,7 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'milestone' | 'changed'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'widths' | 'bayMinW' | 'itemMinW' | 'used' | 'ih' | 'effectiveMin' | 'computeLayout' | 'okItem'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'widths' | 'bayMinW' | 'itemMinW' | 'used' | 'ih' | 'effectiveMin' | 'computeLayout' | 'okItem' | 'overflow' | 'narrowToFit' | 'dividerValid'>;
 };
 export function createSizingCommands({ getDesign, effects, rules }: Ports) {
     function clampWidths() {
@@ -39,20 +39,23 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
             }
         });
     }
+    /** Bring every fitting in a bay under the top. Heights shrink first (down to
+     * each fitting's minimum); under a sloped top a fitting may then narrow into
+     * the taller part; only then is the most overflowing fitting removed. */
     function compressBay(i: number) {
         const sec = getDesign().secs[i]!;
         let removed = 0;
-        for (let guard = 0; guard < 80 && rules.used(i) > rules.ih() + .05; guard++) {
-            const over = rules.used(i) - rules.ih();
+        for (let guard = 0; guard < 80 && rules.overflow(i) > .05; guard++) {
+            const over = rules.overflow(i);
             let done = false;
             for (const it of [...sec].sort((a, b) => (b.h - rules.effectiveMin(b.k)) - (a.h - rules.effectiveMin(a.k)))) {
                 const slack = it.h - rules.effectiveMin(it.k);
                 if (slack <= .05) {
                     break;
                 }
-                const old = it.h, before = rules.used(i);
+                const old = it.h;
                 it.h = Math.round((old - Math.min(slack, over)) * 10) / 10;
-                if (rules.used(i) < before - .01) {
+                if (rules.overflow(i) < over - .01) {
                     done = true;
                     break;
                 }
@@ -60,17 +63,53 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
             }
             if (!done) {
                 const lay = rules.computeLayout(i);
-                let t = 0;
+                let t = 0, worst = -Infinity;
                 lay.forEach((q, j) => {
-                    if (q.relY1 > lay[t]!.relY1) {
+                    const o = rules.overflow(i, [q]);
+                    if (o > worst + .001 || (Math.abs(o - worst) <= .001 && q.relY1 > lay[t]!.relY1)) {
+                        worst = o;
                         t = j;
                     }
                 });
+                const fit = rules.narrowToFit(i, t);
+                if (fit) {
+                    const it = sec[t]!, before = structuredClone(it);
+                    it.w = fit.w;
+                    it.x = fit.x;
+                    it.y = fit.y;
+                    delete it.ax;
+                    if (rules.overflow(i) < over - .01) {
+                        continue;
+                    }
+                    Object.keys(it).forEach(k => delete it[k as keyof EditorItem]);
+                    Object.assign(it, before);
+                }
                 sec.splice(t, 1);
                 removed++;
             }
         }
         return removed;
+    }
+    /** Fit fittings and shelf boards to a changed skeleton. Returns what changed. */
+    function fitToShape() {
+        let removed = 0, squeezed = false;
+        for (let i = 0; i < getDesign().n; i++) {
+            if (rules.overflow(i) > .05) {
+                squeezed = true;
+                removed += compressBay(i);
+            }
+        }
+        const before = getDesign().dividers.length;
+        getDesign().dividers = getDesign().dividers.filter((d, j) => d.i >= getDesign().n || rules.dividerValid(d, j));
+        const boards = before - getDesign().dividers.length;
+        if (removed || boards) {
+            const parts = [removed && removed + ' module' + (removed > 1 ? 's' : ''), boards && boards + ' shelf board' + (boards > 1 ? 's' : '')].filter(Boolean).join(' and ');
+            effects.report(parts + ' no longer fit under the top and ' + (removed + boards > 1 ? 'were' : 'was') + ' removed. Undo (Ctrl/Cmd+Z) restores ' + (removed + boards > 1 ? 'them' : 'it') + '.');
+        }
+        else if (squeezed) {
+            effects.report('Modules were compacted to fit under the top. Undo (Ctrl/Cmd+Z) reverts.');
+        }
+        return { removed, boards, squeezed };
     }
     function refitAfterSize() {
         clampWidths();
@@ -90,7 +129,7 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
                     it.front = getDesign().d < 55;
                 }
             });
-            if (rules.used(i) > rules.ih() + .05) {
+            if (rules.overflow(i) > .05) {
                 squeezed = true;
                 removed += compressBay(i);
             }
@@ -115,5 +154,5 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
         effects.milestone('cut');
         effects.changed();
     }
-    return { clampWidths, fitColumns, compressBay, refitAfterSize, setWidth };
+    return { clampWidths, fitColumns, compressBay, fitToShape, refitAfterSize, setWidth };
 }

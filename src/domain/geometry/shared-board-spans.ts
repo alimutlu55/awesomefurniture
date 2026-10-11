@@ -3,8 +3,10 @@ import { PANEL } from '../wardrobe/catalog.js';
 export interface BoardRect {x0:number;x1:number;y0:number;y1:number}
 /** Clear-width portions of a fitting's top board that need their own panel.
  * Frame ceilings and explicit shelves own shared boundaries. Centimetres. */
-export function fittingBoardSpans(top:Pick<BoardRect,'x0'|'x1'> & {y1:number},ceiling:number,boards:readonly BoardRect[]) {
- if(top.y1>=ceiling-.05)return [];
+/** A ceiling is a flat height or, under a shaped top, the highest underside over a span. */
+export type Ceiling=number|((x0:number,x1:number)=>number);
+export function fittingBoardSpans(top:Pick<BoardRect,'x0'|'x1'> & {y1:number},ceiling:Ceiling,boards:readonly BoardRect[]) {
+ if(top.y1>=(typeof ceiling==='number'?ceiling:ceiling(top.x0,top.x1))-.05)return [];
  let spans=[{x0:top.x0,x1:top.x1}];
  for(const board of boards){
   if(board.y0>top.y1+.06||board.y1<=top.y1-PANEL+.01)continue;
@@ -21,7 +23,7 @@ export function fittingBoardSpans(top:Pick<BoardRect,'x0'|'x1'> & {y1:number},ce
 
 /** Top boards own touching boundaries before bottom boards. Explicit boards and
  * the cabinet frame take precedence; partially shared widths are split. */
-export function fittingPanels(items:readonly BoardRect[],floor:number,ceiling:number,explicit:readonly BoardRect[]) {
+export function fittingPanels(items:readonly BoardRect[],floor:number,ceiling:Ceiling,explicit:readonly BoardRect[]) {
  const owners=[...explicit];
  const result=items.map(()=>({top:[] as BoardRect[],bottom:[] as BoardRect[],support:[] as (Pick<BoardRect,'x0'|'x1'> & {rise:number})[]}));
  items.forEach((item,index)=>{

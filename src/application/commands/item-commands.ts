@@ -5,7 +5,7 @@ import { itemName, MODS, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'ih' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'ih' | 'fitsCeiling' | 'sectionFits' | 'spaceSpan' | 'clearSpans' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN'>;
     callbacks: Pick<ReturnType<typeof import('./divider-commands').createDividerCommands>, 'addShelfBoard'>;
     run(fn: () => void): void;
 };
@@ -31,7 +31,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
                 delete it.x;
             }
         }
-        const layout = rules.computeLayout(a.section, sec), valid = layout.every((q, j) => q.relY1 <= rules.ih() + .01 && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.y0 >= r.y1 - .01 || r.y0 >= q.y1 - .01));
+        const layout = rules.computeLayout(a.section, sec), valid = layout.every((q, j) => rules.fitsCeiling(a.section, q) && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.y0 >= r.y1 - .01 || r.y0 >= q.y1 - .01));
         if (!valid || rules.dividerOverlaps(a.section, layout)) {
             return false;
         }
@@ -82,13 +82,26 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
     }
     function addMod0(k: ItemKind) {
         if (getDesign().item < 0 && (getDesign().space?.i === getDesign().sel || rules.sectionDividers(getDesign().sel).length)) {
-            const space = rules.sectionSpaceMeasurements(getDesign().sel), m = MODS[k], mn = rules.effectiveMin(k);
+            const space = rules.sectionSpaceMeasurements(getDesign().sel), m = MODS[k], mn = rules.effectiveMin(k), minW = rules.itemMinW(rules.newItem(k, mn));
             if (!rules.itemFeasible(k, space.w) || space.h < mn) {
                 effects.report(m.n + ' does not fit the selected space');
                 return;
             }
+            // Under a sloped or stepped top, use the default height where it fits;
+            // otherwise the tallest height that still clears the top across the space.
+            const span = (h: number) => rules.spaceSpan(getDesign().sel, space, h, minW);
+            let hh = Math.min(Math.max(m.h, mn), space.h), place = span(hh);
+            for (let h = hh; !place && h >= mn - .01; h = Math.round((h - .5) * 10) / 10) {
+                if ((place = span(h))) hh = h;
+            }
+            if (!place) {
+                effects.report(m.n + ' needs ' + mn + ' cm of height; the top is too low across this space');
+                return;
+            }
+            const full = place.x1 - place.x0 >= space.w - .05;
+            if (!full) effects.report(m.n + ' placed in the taller part of this space');
             run(() => {
-                const it = { ...rules.newItem(k, Math.min(Math.max(m.h, mn), space.h)), w: space.w, x: space.x0, y: space.y0 - PL - T };
+                const it = { ...rules.newItem(k, hh), w: full ? space.w : Math.floor((place.x1 - place.x0) * 10) / 10, x: full ? space.x0 : place.x0, y: space.y0 - PL - T };
                 getDesign().secs[getDesign().sel]!.push(it);
                 getDesign().item = getDesign().secs[getDesign().sel]!.length - 1;
                 getDesign().space = null;
@@ -111,10 +124,13 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             return;
         }
         const f = rules.free(getDesign().sel);
+        if (f < mn && addUnderSlope(k)) {
+            return;
+        }
         if (f < mn) {
             const g = rules.edgeGap(k);
             if (g) {
-                const hh = Math.min(Math.max(m.h, mn), rules.ih());
+                const hh = Math.min(Math.max(m.h, mn), rules.ih(getDesign().sel));
                 run(() => {
                     getDesign().divider = -1;
                     getDesign().secs[getDesign().sel]!.push({ ...rules.newItem(k, hh), w: g.w, ax: (g.ax as 'l' | 'c' | 'r') });
@@ -133,6 +149,22 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             getDesign().item = getDesign().secs[getDesign().sel]!.length - 1;
             getDesign().proposal = null;
         });
+    }
+    /** A stacked fitting that a sloped top blocks across the full width can still
+     * sit in the taller part of the section, on top of the current stack. */
+    function addUnderSlope(k: ItemKind) {
+        const i = getDesign().sel, m = MODS[k], mn = rules.effectiveMin(k), y = rules.used(i), minW = rules.itemMinW(rules.newItem(k, mn));
+        for (let h = Math.max(m.h, mn); h >= mn - .01; h = Math.round((h - .5) * 10) / 10) {
+            const span = rules.clearSpans(i, 0, rules.widths()[i]!, y + h).filter(q => q.x1 - q.x0 >= minW - .01).sort((a, b) => (b.x1 - b.x0) - (a.x1 - a.x0))[0];
+            if (!span) continue;
+            run(() => {
+                getDesign().secs[i]!.push({ ...rules.newItem(k, h), w: Math.floor((span.x1 - span.x0) * 10) / 10, x: span.x0, y });
+                getDesign().item = getDesign().secs[i]!.length - 1;
+            });
+            effects.report(m.n + ' placed in the taller part of this section');
+            return true;
+        }
+        return false;
     }
     function duplicateItem(i: number = getDesign().sel, j: number = getDesign().item) {
         const a = getDesign().secs[i]!, it = a && a[j];
@@ -233,14 +265,14 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
         else {
             it.w = x;
         }
-        if (rules.used(getDesign().sel) > rules.ih() + .05) {
+        if (!rules.sectionFits(getDesign().sel)) {
             if (oldW === undefined) {
                 delete it.w;
             }
             else {
                 it.w = oldW;
             }
-            effects.report('Not enough vertical space for items to stack at this width');
+            effects.report('Not enough height under the top for items to stack at this width');
             return;
         }
         getDesign().proposal = null;

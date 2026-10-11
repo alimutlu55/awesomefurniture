@@ -9,9 +9,11 @@ import { PANEL, PLINTH, MODS, PURPOSE, compatiblePurposes, itemName } from '../.
 import { measureNumber, capWord, esc, icon, RANKS } from './editor-format.js';
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { isRegularShape, minimumShapeHeight } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
-export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history }) {
+export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector }) {
     const { $, document, matchMedia } = dom;
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
@@ -62,8 +64,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         if (dom.width <= 900) camera.frameMobileInspector(true);
         else camera.focusSelection(true);
     }
-    function addCabinet(copy = false) {
-        const w = sceneCommands.addCabinet(copy);
+    function addCabinet(copy = false, template) {
+        const w = sceneCommands.addCabinet(copy, template);
+        if (template && template !== 'regular') selectionState.shapeEditing = true;
         hidePop();
         selectionState.pillOn = dom.width <= 900;
         if (dom.width <= 900) selectionState.deep = true;
@@ -157,6 +160,12 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             $('#' + key + 'v').textContent = model.activeCabinet().state[key] + ' cm';
             if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
         });
+        {
+            // A shaped wardrobe's height is its tallest point; its lowest part may be short.
+            const shape = model.activeCabinet().state.shape, minH = shape && !isRegularShape(shape) ? Math.max(60, Math.ceil(minimumShapeHeight(shape))) : 180;
+            for (const el of /** @type {HTMLInputElement[]} */ ([$('#h'), document.querySelector('[data-dimension="h"]')])) if (el) el.min = String(minH);
+        }
+        shapeInspector.render();
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {
             b.classList.toggle('on', b.dataset.f === model.activeCabinet().state.fin);
@@ -334,17 +343,21 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         const browser = $('#pop2').querySelector('.mobile-add-browser');
         const categories = browser.querySelector('.mobile-add-categories'), products = browser.querySelector('.mobile-add-products');
         const group = k => ['short','long','lift','pants'].includes(k) ? 'hanging' : ['drawer','sdrawer'].includes(k) ? 'drawers' : ['shelf','folded','divider','shoe'].includes(k) ? 'shelves' : 'storage';
-        categories.innerHTML = [['all','Add item','plus'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'">'+icon(ic)+'<span>'+name+'</span></button>').join('') + '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>';
+        const shapes = shapeTemplates(), shapeButton = (t, extra) => '<button type="button" class="shape-product" data-add-shape="' + t.id + '"' + extra + ' title="' + esc('New ' + t.name.toLowerCase() + ' wardrobe · ' + t.description) + '">' + templateArt(t.id) + '<span>' + esc(t.name) + '</span></button>';
+        $('#padd-shapes').innerHTML = shapes.map(t => shapeButton(t, '')).join('');
+        categories.innerHTML = [['all','Add item','plus'],['wardrobe','Wardrobe','wardrobe'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'">'+icon(ic)+'<span>'+name+'</span></button>').join('') + '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>';
         const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
         const order = k => { const i = ['drawer','shelf','short','seasonal'].indexOf(k); return i < 0 ? 4 : i; };
-        products.innerHTML = '<button type="button" data-product-category="storage" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + list.slice().sort((a,b) => order(a.k) - order(b.k)).map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('');
+        products.innerHTML = '<button type="button" data-product-category="storage" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + list.slice().sort((a,b) => order(a.k) - order(b.k)).map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('');
         (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
+        // Wardrobe templates add a new wardrobe that starts from that skeleton.
+        (/** @type {NodeListOf<HTMLButtonElement>} */ ($('#pop2').querySelectorAll('[data-add-shape]'))).forEach(button => { button.onclick = () => addCabinet(false, button.dataset.addShape); });
         (/** @type {HTMLButtonElement} */ (categories.querySelector('[data-auto-design]'))).onclick = () => $('#launch-wizard').click();
         (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => {
             button.onclick = () => {
                 const category = button.dataset.category;
                 categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed',String(tab===button)));
-                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { product.hidden = category !== 'all' && product.dataset.productCategory !== category; });
+                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { product.hidden = category === 'all' ? product.dataset.productCategory === 'wardrobe' : product.dataset.productCategory !== category; });
                 products.scrollLeft = 0;
             };
         });
