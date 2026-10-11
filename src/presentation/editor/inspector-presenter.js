@@ -463,6 +463,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
                 }
             }
             rows.unshift(['Size · width × height × depth', f(g.w) + ' × ' + f(g.h) + ' × ' + f(g.dep) + ' cm'], ['To inside top / base', f(q.top) + ' / ' + f(q.bottom) + ' cm']);
+            if (q.cut && q.core) {
+                // Boards and front follow the top's angle; the working part keeps a full rectangle.
+                rows.splice(1, 0, ['Cut to the top', 'angled · usable ' + f(q.core.w) + ' × ' + f(q.core.h) + ' cm']);
+            }
             if (model.activeCabinet().state.profile.engaged) {
                 rows.push(['Max reach', f(model.activeCabinet().state.profile.reach) + ' cm'], ['Access height', f(A.height) + ' cm' + (A.height > model.activeCabinet().state.profile.reach + .03 ? ' · above max reach' : '')]);
                 if (A.limit) {

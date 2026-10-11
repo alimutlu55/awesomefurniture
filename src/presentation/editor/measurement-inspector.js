@@ -215,6 +215,10 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
                     }
                 });
                 const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + ' cm'], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + ' cm'], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + ' cm'], ['Y · bottom → top from floor', f(PLINTH + PANEL + m.y0) + ' → ' + f(PLINTH + PANEL + m.y1) + ' cm'], ['Z · back → front', f(.5) + ' → ' + f(model.activeCabinet().state.d - 1.5) + ' cm']];
+                const cut = geometry.boardFit(d.i, geometry.dividerRect(d), d.orientation);
+                if (cut?.cut) {
+                    rows.splice(1, 0, ['Cut to the top', hor ? 'angled · ' + f(cut.length) + ' cm whole board' : 'angled top']);
+                }
                 $('#dmeas').innerHTML = rows.map(r => '<b>' + r[0] + '</b><span>' + esc(r[1]) + '</span>').join('');
             }
         }

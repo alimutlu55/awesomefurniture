@@ -1,6 +1,7 @@
 import { WardrobePlanner } from '../planner/wardrobe-planner.js';
 import { MODS, FIN, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../wardrobe/catalog.js';
 import { resolveShape, ceilingPieces, ceilingMin, ceilingMax, ceilingPolyline, fitSpans, sectionOrigins, elevationArea, shapePanels } from '../wardrobe/shape/wardrobe-shape';
+import { bestWindowClear, clipBelowTop, MIN_CUT_BOARD } from '../wardrobe/shape/angle-cut';
 /** Geometry and feasibility rules. Only the centimetre design is read. */
 /** @param {() => import('../wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; space: {i:number;x:number;y:number}|null }} getDesign */
 export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
@@ -35,12 +36,60 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
         return fitSpans(pieces, o + x0, o + x1, top + PL + T - 1e-6).map(q => ({ x0: q.x0 - o, x1: q.x1 - o }));
     }
-    const fitsCeiling = (i, q) => q.relY1 <= ceilingIn(i, q.x0, q.x1) + .01;
-    /** Height by which the most constrained fitting pokes through the top (0 when all fit). */
-    function overflow(i, layout = computeLayout(i)) {
-        return Math.max(0, ...layout.map(q => q.relY1 - ceilingIn(i, q.x0, q.x1)));
+    /** Highest clear height (relative) that a window of width w inside a span reaches everywhere. */
+    function windowClear(i, x0, x1, w) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return floor2(bestWindowClear(pieces, o + x0, o + x1, w) - PL - T);
     }
-    const sectionFits = i => overflow(i) <= .05;
+    /** How a fitting meets the top. Every fitting's enclosure (boards, front,
+     * highlight) is cut to the top's angle; its working core (drawer box, rail,
+     * basket, contents) is the largest rectangle that fits: the fitting's own
+     * height where a wide enough part allows it, else down to its minimum height.
+     * Null when even the minimum core cannot fit. Section-local, relative to the base. */
+    function itemFit(i, q, it) {
+        const x0 = q.x0, x1 = q.x1, y0 = q.relY0, y1 = q.relY1;
+        if (y1 <= ceilingIn(i, x0, x1) + .01) {
+            return { cut: false, core: { x0, x1, y0, y1 } };
+        }
+        if (!it || y1 > ceilingTop(i, x0, x1) + .01) {
+            return null;
+        }
+        const minW = Math.min(itemMinW(it), x1 - x0), mn = Math.min(effectiveMin(it.k), y1 - y0);
+        const h = Math.min(y1 - y0, windowClear(i, x0, x1, minW) - y0);
+        if (h < mn - .01) {
+            return null;
+        }
+        const span = clearSpans(i, x0, x1, y0 + h).filter(s => s.x1 - s.x0 >= minW - .01).sort((a, b) => (b.x1 - b.x0) - (a.x1 - a.x0))[0];
+        return span ? { cut: true, core: { x0: span.x0, x1: span.x1, y0, y1: y0 + h } } : null;
+    }
+    const fitsCeiling = (i, q, it) => !!itemFit(i, q, it);
+    /** How far the least fitting item is from fitting under the top (0 when all fit). */
+    function itemOverflow(i, q, it) {
+        if (itemFit(i, q, it)) {
+            return 0;
+        }
+        if (!it) {
+            return Math.max(0, q.relY1 - ceilingIn(i, q.x0, q.x1));
+        }
+        const minW = Math.min(itemMinW(it), q.x1 - q.x0), mn = Math.min(effectiveMin(it.k), q.relY1 - q.relY0);
+        return Math.max(.06, q.relY1 - ceilingTop(i, q.x0, q.x1), q.relY0 + mn - windowClear(i, q.x0, q.x1, minW));
+    }
+    function overflow(i, layout = computeLayout(i), items = getDesign().secs[i] || []) {
+        return Math.max(0, ...layout.map((q, j) => itemOverflow(i, q, items[j])));
+    }
+    /** Outline of a section-local rectangle cut to the top; x section-local, y absolute. */
+    function cutOutline(i, x0, x1, y0, y1) {
+        const { pieces, origins } = shapeInfo(), o = origins[i] ?? T;
+        return clipBelowTop(pieces, o + x0, o + x1, y0, y1).map(poly => poly.map(p => ({ x: p.x - o, y: p.y })));
+    }
+    /** Every fitting in a section with its cut and working core, for rendering and measuring. */
+    function sectionFits(i) {
+        return overflow(i) <= .05;
+    }
+    function fittingFit(i, j) {
+        const lay = computeLayout(i), q = lay[j], it = getDesign().secs[i]?.[j];
+        return q && it ? itemFit(i, q, it) : null;
+    }
     function computeLayout(i, secArg, bwArg) {
         const bw = bwArg !== undefined ? bwArg : widths()[i], sec = secArg !== undefined ? secArg : getDesign().secs[i];
         if (!sec || !sec.length) {
@@ -115,7 +164,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                 if (!m || !Number.isFinite(item.h) || item.h < effectiveMin(item.k) - .01 || p.w < itemMinW(item) - .01 || item.w > ws[i] + .01 || getDesign().d < (item.front ? 35 : m.d)) {
                     return fail('A module would lose its required width, depth, or clearance.');
                 }
-                if (!fitsCeiling(i, p)) {
+                if (!fitsCeiling(i, p, item)) {
                     return fail('Not enough height in section ' + (i + 1) + '. The whole stack must fit under the top.');
                 }
                 for (let k = 0; k < j; k++) {
@@ -212,7 +261,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         for (const i of aff) {
             for (let j = 0; j < secs[i].length; j++) {
                 const p = lay[i][j];
-                if (!fitsCeiling(i, p)) {
+                if (!fitsCeiling(i, p, secs[i][j])) {
                     return fail('Not enough height under the top in section ' + (i + 1) + '.');
                 }
                 for (let k = 0; k < j; k++) {
@@ -244,7 +293,8 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         if (!pos) {
             return 0;
         }
-        let ceiling = ceilingIn(i, pos.x0, pos.x1);
+        // A fitting may rise into a sloped top: its enclosure is cut to the angle.
+        let ceiling = ceilingTop(i, pos.x0, pos.x1);
         for (let k = 0; k < sec.length; k++) {
             if (k === j) {
                 continue;
@@ -342,7 +392,8 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
                 support = Math.max(support, q.y1);
             }
         }
-        return { ...g, top: Math.max(0, PL + T + ceilingIn(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T), freeBelow: Math.max(0, g.y0 - support) };
+        const fit = itemFit(i, current, getDesign().secs[i][j]);
+        return { ...g, cut: !!fit?.cut, core: fit?.core && { x0: g.bayL + fit.core.x0, x1: g.bayL + fit.core.x1, w: fit.core.x1 - fit.core.x0, h: fit.core.y1 - fit.core.y0 }, top: Math.max(0, PL + T + ceilingTop(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T), freeBelow: Math.max(0, g.y0 - support) };
     }
     function dividerRect(d) {
         return d.orientation === 'horizontal' ? { x0: d.x0, x1: d.x1, y0: d.y - T / 2, y1: d.y + T / 2 } : { x0: d.x - T / 2, x1: d.x + T / 2, y0: d.y0, y1: d.y1 };
@@ -384,9 +435,25 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     function dividerBounds(d) {
         return d.area || { x0: 0, x1: widths()[d.i], y0: d.y0, y1: d.y1 };
     }
+    /** A board meeting a sloped top is cut to its angle. A shelf board stays valid
+     * while a whole length of at least MIN_CUT_BOARD remains; a vertical divider
+     * while it reaches the top at its tallest point and keeps room below. */
+    function boardFit(i, r, orientation) {
+        if (r.y1 <= ceilingIn(i, r.x0, r.x1) + .01) {
+            return { cut: false, length: r.x1 - r.x0 };
+        }
+        if (r.y1 > ceilingTop(i, r.x0, r.x1) + .01) {
+            return null;
+        }
+        if (orientation === 'horizontal') {
+            const length = Math.max(0, ...clearSpans(i, r.x0, r.x1, r.y1).map(q => q.x1 - q.x0));
+            return length >= MIN_CUT_BOARD - .01 ? { cut: true, length } : null;
+        }
+        return ceilingIn(i, r.x0, r.x1) - r.y0 >= 10 ? { cut: true, length: r.x1 - r.x0 } : null;
+    }
     function dividerValid(d, index) {
         const r = dividerRect(d), bw = widths()[d.i];
-        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ceilingIn(d.i, r.x0, r.x1) + .01) {
+        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || !boardFit(d.i, r, d.orientation)) {
             return false;
         }
         const overlaps = q => r.x0 < q.x1 - .01 && r.x1 > q.x0 + .01 && r.y0 < q.y1 - .01 && r.y1 > q.y0 + .01;
@@ -449,7 +516,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     }
     function sectionLayoutValid(i) {
         const layout = computeLayout(i);
-        return !dividerOverlaps(i, layout) && layout.every((q, j) => q.relY0 >= -.01 && fitsCeiling(i, q) && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.relY0 >= r.relY1 - .01 || r.relY0 >= q.relY1 - .01));
+        return !dividerOverlaps(i, layout) && layout.every((q, j) => q.relY0 >= -.01 && fitsCeiling(i, q, getDesign().secs[i][j]) && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.relY0 >= r.relY1 - .01 || r.relY0 >= q.relY1 - .01));
     }
     function sectionSpaces(i) {
         const bw = widths()[i];
@@ -734,7 +801,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
             return null;
         }
         const blockers = lay.map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat(sectionDividers(i).map(dividerRect));
-        const fits = x => x >= -.01 && x + w <= bw + .01 && y1 <= ceilingIn(i, x, x + w) + .01 && !blockers.some(o => x < o.x1 - .01 && o.x0 < x + w - .01 && y0 < o.y1 - .01 && o.y0 < y1 - .01);
+        const fits = x => x >= -.01 && x + w <= bw + .01 && fitsCeiling(i, { x0: x, x1: x + w, relY0: y0, relY1: y1 }, it) && !blockers.some(o => x < o.x1 - .01 && o.x0 < x + w - .01 && y0 < o.y1 - .01 && o.y0 < y1 - .01);
         const r2 = v => Math.round(v * 100) / 100, xs = [...new Set([pos.x1, pos.x0 - w, 0, bw - w, ...blockers.flatMap(o => [o.x1, o.x0 - w])].map(v => r2(Math.max(0, Math.min(bw - w, v)))))].filter(fits);
         if (!xs.length) {
             return null;
@@ -795,7 +862,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         const obs = computeLayout(d.i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat((getDesign().dividers || []).filter(q => q.i === d.i).map(dividerRect));
         const ok = v => {
             const r = dividerRect({ ...d, [key]: v });
-            if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || r.y1 > ceilingIn(d.i, r.x0, r.x1) + .01) {
+            if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || !boardFit(d.i, r, d.orientation)) {
                 return false;
             }
             const g = hor ? { x0: r.x0, x1: r.x1, y0: r.y0 - GAP, y1: r.y1 + GAP } : { x0: r.x0 - GAP, x1: r.x1 + GAP, y0: r.y0, y1: r.y1 };
@@ -824,5 +891,5 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         runs.sort((p, q) => (q.end - q.start) - (p.end - p.start) || Math.abs(mid(p) - d[key]) - Math.abs(mid(q) - d[key]));
         return mid(runs[0]);
     }
-    return { shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
+    return { shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
 }

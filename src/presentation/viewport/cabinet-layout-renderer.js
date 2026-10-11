@@ -155,23 +155,49 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 return {...r,y0:r.y0+iy,y1:r.y1+iy};
             });
             const panels = fittingPanels(lay, iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
+            /** Boxes cut to the top: front outline clipped, depth kept. Cabinet-centred x. */
+            const slabIn = (bx, w0, h0, dep, cx0, cy0, z, m, g) => {
+                let last = null;
+                for (const poly of geometry.cutOutline(i, cx0 - w0 / 2 - bx, cx0 + w0 / 2 - bx, cy0 - h0 / 2, cy0 + h0 / 2)) {
+                    last = panel(poly.map(p => ({ x: p.x + bx, y: p.y })), dep, z, m, g);
+                }
+                return last;
+            };
+            const cutFor = (fit, ix0) => fit?.cut ? {
+                core: { x0: fit.core.x0 - ix0, x1: fit.core.x1 - ix0, h: fit.core.y1 - fit.core.y0 },
+                slab: (w0, h0, dep, cx0, cy0, z, m, g) => slabIn(x, w0, h0, dep, cx0, cy0, z, m, g),
+                clearAt: (a, b) => iy + geometry.ceilingIn(i, a - x, b - x),
+            } : undefined;
+            /** Flat or extruded outline of a fitting as cut by the top (highlight and picking). */
+            const cutShape = (x0, x1, y0, y1) => geometry.cutOutline(i, x0, x1, y0, y1).map(poly => poly.map(p => ({ x: p.x + x, y: p.y })));
             getRenderDesign().secs[i].forEach((it, j) => {
                 const hh = it.h, isel = sel && getRenderDesign().item === j, pos = lay[j] || { y0: iy, w: WardrobePlanner.itemWidth(it, sw), off: undefined };
                 const iwd = pos.w, iy0 = pos.y0, ix = cx - sw / 2 + (pos.off !== undefined ? pos.off : (sw - iwd) / 2) + iwd / 2, start = renderState.Gr.children.length;
                 const localX = ix - x - iwd / 2;
                 const local = span => ({...span,x0:span.x0-localX,x1:span.x1-localX});
-                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1));
+                const fit = lay[j] ? geometry.itemFit(i, lay[j], it) : null, cut = cutFor(fit, pos.x0);
+                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1), cut);
                 const group = new THREE.Group(), parts = renderState.Gr.children.slice(start);
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);
                 renderState.itemGroups.push({ it, i, j, group, x: ix, y: iy0 });
-                const im = new THREE.Mesh(new THREE.BoxGeometry(iwd, hh, d), resources.HM);
-                im.position.set(ix, iy0 + hh / 2, 0);
+                // A cut fitting is picked and highlighted by its real, angled outline.
+                const outline = cut ? cutShape(pos.x0, pos.x1, iy0, iy0 + hh)[0] : null;
+                let im;
+                if (outline) {
+                    im = prism(outline, d, 0, resources.HM);
+                    im.castShadow = im.receiveShadow = false;
+                }
+                else {
+                    im = new THREE.Mesh(new THREE.BoxGeometry(iwd, hh, d), resources.HM);
+                    im.position.set(ix, iy0 + hh / 2, 0);
+                    renderState.Gr.add(im);
+                }
                 im.userData = { i, j };
-                renderState.Gr.add(im);
                 renderState.ihits.push(im);
-                const io = resources.softArea(iwd - .4, hh - .4, .15, isel ? .22 : .04);
-                io.position.set(ix, iy0 + hh / 2, d / 2 + .2);
+                const io = outline ? flatShape(cutShape(pos.x0 + .2, pos.x1 - .2, iy0 + .2, iy0 + hh - .2)[0] ?? outline, new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity: isel ? .22 : .04, depthWrite: false })) : resources.softArea(iwd - .4, hh - .4, .15, isel ? .22 : .04);
+                if (outline) io.position.z = d / 2 + .2;
+                else io.position.set(ix, iy0 + hh / 2, d / 2 + .2);
                 io.visible = isel;
                 io.userData.s = isel;
                 io.renderOrder = 13;
@@ -182,7 +208,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 }
             });
             geometry.sectionDividers(i).forEach(q => {
-                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(q), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, panel = box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, r.x1 - r.x0), Math.max(5, r.y1 - r.y0), d), resources.HM);
+                // Shelf boards and dividers meeting a sloped top are cut to its angle.
+                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(q), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, r.x1 - r.x0), Math.max(5, r.y1 - r.y0), d), resources.HM);
                 hit.position.set(cx, cy, 0);
                 hit.userData = { i, divider: j };
                 renderState.Gr.add(hit);

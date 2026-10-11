@@ -176,6 +176,11 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         if (!d || !v) {
             return;
         }
+        // Under a shaped top the board's cut changes as it moves: rebuild it.
+        if (!v.panel || renderDesign.shape) {
+            build();
+            return;
+        }
         const r = geometry.dividerRect(d), pos = new THREE.Vector3(v.baseX + (r.x0 + r.x1) / 2, PLINTH + PANEL + (r.y0 + r.y1) / 2, -.5), delta = pos.clone().sub(v.panel.position);
         v.panel.position.copy(pos);
         v.hit.position.x = pos.x;

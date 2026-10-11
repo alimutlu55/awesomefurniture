@@ -65,7 +65,7 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
                 const lay = rules.computeLayout(i);
                 let t = 0, worst = -Infinity;
                 lay.forEach((q, j) => {
-                    const o = rules.overflow(i, [q]);
+                    const o = rules.overflow(i, [q], [sec[j]!]);
                     if (o > worst + .001 || (Math.abs(o - worst) <= .001 && q.relY1 > lay[t]!.relY1)) {
                         worst = o;
                         t = j;

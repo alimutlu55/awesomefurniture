@@ -73,7 +73,8 @@ non-strict checker; the original numerical planner stays behind its typed interf
 Wardrobes can be regular, sloped, stepped, under-stairs, recessed or custom. Choose a
 shape under **Shape** in the wardrobe settings (on phones: **More › Shape**), then
 drag the break-point handles on the model or enter exact heights, positions and
-angles under **Adjust panels**. All shapes share one top-profile model; fittings,
+angles under **Adjust panels**. Fittings under a slope are cut to its angle
+automatically. All shapes share one top-profile model; fittings,
 doors, measurements, Undo and saved projects follow it. See
 [wardrobe shapes](docs/wardrobe-shapes.md).
 

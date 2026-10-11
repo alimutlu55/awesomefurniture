@@ -7,6 +7,7 @@ import {
   type WardrobeShape,
 } from '../../src/domain/wardrobe/shape/wardrobe-shape';
 import { SHAPE_TEMPLATES, createFromTemplate } from '../../src/domain/wardrobe/shape/shape-templates';
+import { clipBelowTop } from '../../src/domain/wardrobe/shape/angle-cut';
 import { createWardrobeGeometry } from '../../src/domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from '../../src/application/commands/design-commands';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
@@ -125,29 +126,64 @@ test('regular wardrobes keep their exact long-standing clear height', () => {
   assert.equal(geometry.ceilingIn(0, 0, 100), 218.4);
 });
 
-test('fittings respect a sloped top: placement, measurements and free spaces', () => {
+test('a rectangle is clipped exactly to the underside of a sloped top', () => {
+  const pieces = ceilingPieces(sloped), m = 90 / 200, t = PANEL * Math.sqrt(1 + m * m), under = (x: number) => 140 + m * x - t;
+  // Fully below the top: the rectangle itself.
+  assert.deepEqual(clipBelowTop(pieces, 10, 60, 20, 60), [[{ x: 10, y: 20 }, { x: 60, y: 20 }, { x: 60, y: 60 }, { x: 10, y: 60 }]]);
+  // Crossing the slope: the upper edge follows the underside and meets the rectangle's top exactly.
+  const [outline] = clipBelowTop(pieces, 10, 190, 100, 200);
+  const cross = (200 + t - 140) / m;
+  close(outline!.find(p => Math.abs(p.y - 200) < 1e-9 && p.x < 190)!.x, cross);
+  close(outline!.find(p => Math.abs(p.x - 10) < 1e-9 && p.y > 100)!.y, under(10));
+  // Entirely above the top: nothing remains.
+  assert.deepEqual(clipBelowTop(pieces, 1.8, 20, 200, 220), []);
+});
+
+test('every fitting meets a sloped top with an angled enclosure and a rectangular working core', () => {
   const state = design(sloped, { n: 1 });
   const geometry = createWardrobeGeometry(() => state);
   const bw = geometry.widths()[0]!;
-  // A full-width hanging rail cannot sit under the low end...
+  // A full-width long rail is cut: its rail hangs where garments clear the slope.
   state.secs[0] = [{ k: 'long', h: 160 }];
+  assert.equal(geometry.sectionLayoutValid(0), true);
+  const rail = geometry.fittingFit(0, 0)!;
+  assert.equal(rail.cut, true);
+  close(rail.core.y1 - rail.core.y0, 160);
+  assert.ok(rail.core.x1 - rail.core.x0 >= 45 && rail.core.x1 - rail.core.x0 < bw);
+  assert.ok(geometry.ceilingIn(0, rail.core.x0, rail.core.x1) >= 160 - .01, 'the core clears the top everywhere');
+  // A drawer high in the low part keeps a rectangular box, lower than its angled front where needed.
+  state.secs[0] = [{ k: 'drawer', h: 30, y: 100 }];
+  const drawer = geometry.fittingFit(0, 0)!;
+  assert.equal(drawer.cut, true);
+  assert.ok(drawer.core.y1 <= geometry.ceilingIn(0, drawer.core.x0, drawer.core.x1) + .01);
+  // Measurements report the cut and the usable core.
+  const m = geometry.itemMeasurements(0, 0)!;
+  assert.equal(m.cut, true);
+  assert.ok(m.core && m.core.w > 0 && m.core.h >= 15);
+  // A fitting whose minimum core cannot clear the top anywhere is rejected.
+  state.secs[0] = [{ k: 'long', h: 160, y: 60 }];
   assert.equal(geometry.sectionLayoutValid(0), false);
   assert.ok(geometry.overflow(0) > 0);
-  // ...but fits in the taller part.
-  const span = geometry.clearSpans(0, 0, bw, 160)[0]!;
-  state.secs[0] = [{ k: 'long', h: 160, w: Math.floor((bw - span.x0) * 10) / 10, x: span.x0, y: 0 }];
-  assert.equal(geometry.sectionLayoutValid(0), true);
-  const m = geometry.itemMeasurements(0, 0)!;
-  assert.ok(m.top >= 0 && m.top < 1, 'top clearance is measured to the slope above the item');
-  // The free space reports both its tallest and its lowest clear height.
-  state.secs[0] = [];
-  const space = geometry.sectionSpaceMeasurements(0);
-  assert.equal(space.sloped, true);
-  close(space.h, geometry.ceilingTop(0, 0, bw), .02);
-  close(space.hMin, geometry.ceilingIn(0, 0, bw), .02);
+  // A fitting may not float above the top's tallest point.
+  state.secs[0] = [{ k: 'shelf', h: 30, w: 40, x: 0, y: 150 }];
+  assert.equal(geometry.sectionLayoutValid(0), false);
 });
 
-test('adding a fitting under a slope places it in the taller part of the space', () => {
+test('shelf boards are cut to the angle while a whole board remains', () => {
+  const state = design(sloped, { n: 1 });
+  const geometry = createWardrobeGeometry(() => state);
+  const bw = geometry.widths()[0]!;
+  const board = (y: number) => ({ i: 0, orientation: 'horizontal' as const, x0: 0, x1: bw, y });
+  const fit = geometry.boardFit(0, geometry.dividerRect(board(180)), 'horizontal')!;
+  assert.equal(fit.cut, true);
+  assert.ok(fit.length > 15 && fit.length < bw);
+  assert.equal(geometry.dividerValid(board(180), -1), true);
+  assert.equal(geometry.dividerValid(board(60), -1), true);
+  // Too high: under 15 cm of whole board would remain.
+  assert.equal(geometry.dividerValid(board(212), -1), false);
+});
+
+test('adding fittings under a slope fills the space and cuts them to the angle', () => {
   const state = design(sloped, { n: 1 });
   const messages: string[] = [];
   const commands = createDesignCommands(() => state, { report: m => messages.push(m) });
@@ -155,10 +191,19 @@ test('adding a fitting under a slope places it in the taller part of the space',
   state.space = { i: 0, x: 150, y: 50 };
   commands.addMod('long');
   assert.equal(state.secs[0]!.length, 1);
-  const item = state.secs[0]![0]!;
-  assert.ok(item.w! < geometry.widths()[0]!);
+  assert.ok(Math.abs(geometry.computeLayout(0)[0]!.w - geometry.widths()[0]!) < .05, 'the fitting spans the space');
+  assert.equal(geometry.fittingFit(0, 0)!.cut, true);
   assert.equal(geometry.sectionLayoutValid(0), true);
-  assert.ok(messages.some(m => /taller part/.test(m)));
+  assert.ok(messages.some(m => /cut to the angle/.test(m)));
+});
+
+test('lowering a top keeps cut fittings instead of removing them', () => {
+  const s = scene(design(undefined, { n: 1, secs: [[{ k: 'drawer', h: 22 }, { k: 'folded', h: 28 }, { k: 'short', h: 106 }, { k: 'seasonal', h: 40 }], [], [], [], [], []] }));
+  assert.equal(s.commands.setShape({ template: 'custom', top: [{ x: 0, y: 150 }, { x: 200, y: 230 }] }), true);
+  const geometry = createWardrobeGeometry(() => s.state());
+  assert.equal(s.state().secs[0]!.length, 4, 'nothing had to be removed');
+  assert.equal(geometry.sectionLayoutValid(0), true);
+  assert.ok(s.state().secs[0]!.some((_, j) => geometry.fittingFit(0, j)!.cut));
 });
 
 test('shape commands validate, refit fittings and record one history entry', () => {

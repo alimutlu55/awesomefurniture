@@ -62,9 +62,19 @@ and the inspector need no changes.
   spaces all go through these. Free spaces under a slope keep their tallest height
   and report `hMin`/`sloped`; steps split spaces exactly. A regular wardrobe keeps
   its exact previous clear height (218.4 cm for 230 cm).
-- **Adding fittings**: a fitting that does not clear a slope across the whole space
-  is placed in the taller part, at its default height or the tallest height that
-  fits.
+- **Angle cutting** (`angle-cut.ts`, `itemFit`, `boardFit`): every fitting that
+  meets a sloped or stepped top is cut to it. Its enclosure (top and bottom
+  boards, drawer front, highlight and picking outline) is clipped exactly to the
+  underside of the top boards, so it meets the slope flush. Its working core
+  (drawer box, rail, basket, trouser rack) stays a rectangle so standard hardware
+  fits: the fitting's own height where a part at least its minimum width allows
+  it, otherwise down to its minimum height. Shelf contents fill every part that
+  clears the top. A fitting is rejected only when its minimum core cannot fit, or
+  when it would rise above the top's tallest point. Shelf boards are cut while at
+  least 15 cm of whole board remains; vertical dividers are cut at the top.
+  Measurements report the cut and the usable core.
+- **Adding fittings**: under a slope a new fitting fills the space and is cut to
+  the angle, keeping its default height where its core fits.
 - **Commands**: `sceneCommands.applyShapeTemplate(id)` and
   `sceneCommands.setShape(shape, recordHistory, refit)` validate, check collisions,
   set the height and refit. `sizing.fitToShape()` shrinks fittings to their minimum
@@ -102,6 +112,6 @@ and the inspector need no changes.
 
 - The top profile varies; the base, depth and plinth are uniform across the
   wardrobe. Obstructions at floor level and per-section depths are not modelled.
-- Fittings are rectangles. Under a slope they sit below the lowest point of their
-  own span; shelves are not cut to the angle.
+- A fitting's working core is rectangular by design (runners, rails and baskets
+  are); only its boards and fronts are angled.
 - Auto design idea cards preview rectangular layouts; applying one adapts it.
