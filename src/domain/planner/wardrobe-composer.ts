@@ -4,6 +4,7 @@ import { selectStorageLayouts } from './selection-planner';
 import { dailyStorageQuality } from './daily-storage-composer';
 import { reportShelfPossessions } from './possession-report';
 import { MODS, PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { hasTrait } from '../wardrobe/fittings';
 const round=(n:number)=>Math.round(n*100)/100;
 const copy=(sections:readonly PlannerSection[])=>sections.map(s=>({...s,items:s.items.map(it=>({...it}))}));
 const upper=(s:PlannerSection)=>s.items.findIndex(it=>it.k==='seasonal');
@@ -22,7 +23,7 @@ export function coordinateUpperStorage(sections:readonly PlannerSection[],cfg:Pl
    let delta=round(target-upperBottom(section)!);
    // Prefer adjusting empty/accessory clearance, then hanging clearance; drawers last.
    const indices=section.items.slice(0,index).map((_,i)=>i).sort((a,b)=>{
-    const priority=(i:number)=>['void','shelf'].includes(section.items[i]!.k)?0:['short','long','lift'].includes(section.items[i]!.k)?1:2;
+    const priority=(i:number)=>['void','shelf'].includes(section.items[i]!.k)?0:hasTrait(section.items[i]!.k, 'hanging')?1:2;
     return priority(a)-priority(b)||b-a;
    });
    for(const i of indices){

@@ -1,5 +1,6 @@
 import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../../domain/wardrobe/possessions';
 import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
+import { hasTrait } from '../../domain/wardrobe/fittings';
 /** Add item menu content for the selected space: which fittings fit, ranked, with the reason and the
  * hint shown on each card, and a one-line description of the space. This is presentation copy; the
  * sizing rules it asks come from the wardrobe rules (domain/geometry/wardrobe-rules).
@@ -26,7 +27,7 @@ export function createAddSuggestions(getDesign, rules) {
                     hint = k === 'lift' && !getDesign().profile.allowLift ? 'Pull-down is off' : w < needW - .01 ? 'Needs ' + needW + ' cm width' : getDesign().d < needD ? 'Needs ' + needD + ' cm depth' : 'Needs ' + r1(mn) + ' cm height';
                 }
                 else {
-                    const top = b + mn, ok = k === 'seasonal' || k === 'shelf' || k === 'void' ? true : k === 'short' || k === 'long' ? top - 6 <= reach + .03 : k === 'lift' ? top - 6 - 65 <= reach + .03 : ['drawer', 'sdrawer', 'basket'].includes(k) ? top <= Math.min(reach, dMax) + .03 : top <= reach + .03;
+                    const top = b + mn, ok = k === 'seasonal' || k === 'shelf' || k === 'void' ? true : k === 'short' || k === 'long' ? top - 6 <= reach + .03 : k === 'lift' ? top - 6 - 65 <= reach + .03 : hasTrait(k, 'drawerBox') ? top <= Math.min(reach, dMax) + .03 : top <= reach + .03;
                     switch (k) {
                         case 'seasonal':
                             s = high ? 100 : above >= 34 ? (b >= reach - 60 ? 70 : 50) : b >= reach - 40 ? 25 : -10;

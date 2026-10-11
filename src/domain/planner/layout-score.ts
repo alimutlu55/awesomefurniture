@@ -6,6 +6,7 @@ import { CATEGORIES,CRITERIA,selectionContext,SELECTION_RULES as R,bandFit,clamp
 import type { Category,Criteria } from './selection-config';
 import { additionalGate,clearanceFit,interactionHeight } from './selection-modules';
 import { boardRect,overlaps } from './selection-spaces';
+import { hasTrait } from '../wardrobe/fittings';
 const rounded=(n:number)=>Math.round(n*10000)/10000;
 export interface PlacementReason {bay:number;item:number;kind:EditorItem['k'];reason:string;position:{x:number;y:number;z:number};size:{w:number;h:number;d:number};criteria:Criteria}
 export function scoreLayout(sections:readonly PlannerSection[],cfg:PlannerConfig,dividers:readonly EditorDivider[]=[]) {
@@ -23,7 +24,7 @@ export function scoreLayout(sections:readonly PlannerSection[],cfg:PlannerConfig
    const local=planner.analyze([{width:pos.w,items:[{...it,x:0}]}],{...cfg,w:pos.w+R.panel/5});
    const access=interactionHeight(it,cfg);
    let band=CATEGORIES.includes(category)?bandFit(category,access,c.reach):0;
-   if(['folded','shelf'].includes(it.k)&&c.depth>R.rearDepth)band*=.75;
+   if(hasTrait(it.k, 'openShelf')&&c.depth>R.rearDepth)band*=.75;
    return [{key:bay+':'+item,category,local,band,clear:clearanceFit(it,cfg),access,width:pos.w}];
   });
  });
@@ -49,7 +50,7 @@ export function scoreLayout(sections:readonly PlannerSection[],cfg:PlannerConfig
    const local=evidence.get(bay+':'+i)!.local;
    const count=allocation.get(bay+':'+i)??0,weight=cat?count*R.frequency[cat]:.1;
    let band=cat?bandFit(cat,access,c.reach):access>=c.reach*.8?1:.4;
-   if(['folded','shelf'].includes(it.k)&&c.depth>R.rearDepth)band*=.75;
+   if(hasTrait(it.k, 'openShelf')&&c.depth>R.rearDepth)band*=.75;
    const clear=clearanceFit(it,cfg),spanSafety=clamp((R.shelfSpan-pos.w*10)/R.shelfSpan+.25);
    const ergonomicSafety=cat&&['pants','folded'].includes(cat)&&access>c.reach*.8?.3:1;
    const safe=(spanSafety+ergonomicSafety)/2;

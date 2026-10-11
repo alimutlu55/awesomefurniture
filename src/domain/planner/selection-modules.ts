@@ -9,11 +9,12 @@ import { upperShelfHeight } from './upper-shelf';
 import { storageHeightLimits } from './storage-fitting-limits';
 import type { OpenSpace } from './selection-spaces';
 import { shelfPossession } from '../wardrobe/possessions';
+import { hasTrait } from '../wardrobe/fittings';
 export interface ModuleCandidate {items:EditorItem[];capacity:Demand;seasonalBoxes:number;height:number;value:number;clearance:number;reason:string}
 export function clearanceFit(it:EditorItem,cfg:PlannerConfig):number {
  const c=selectionContext(cfg),h=it.h*10;
  if(it.k==='void')return 0;
- if(['short','long','lift'].includes(it.k)){
+ if(hasTrait(it.k, 'hanging')){
   const min=it.k==='long'?c.longDrop+R.hookAllowance+R.hemClearance:MODS[it.k].mn*10;
   return h<min-.1?0:h<=min+100?1:clamp(1-(h-min-100)/200);
  }
@@ -30,14 +31,14 @@ export function additionalGate(it:EditorItem,width:number,bottom:number,cfg:Plan
  const limits=storageHeightLimits(it,cfg);
  if(kind!=='void'&&(it.h<limits.min-.03||it.h>limits.max+.03))return 'Storage purpose or fitting height exceeds its limits.';
  if(width>R.shelfSpan+.1&&kind!=='void')return 'Shelf span requires a supporting divider.';
- if(['short','long','lift'].includes(kind)){
+ if(hasTrait(kind, 'hanging')){
   if(!it.front&&c.depth<500)return 'Hanging depth is insufficient.';
   if(width>(kind==='long'&&Number(cfg.coats)>0?R.coatSpan:R.railSpan)+.1)return 'Rail span requires support.';
   if(kind==='long'&&h<c.longDrop+R.hookAllowance+R.hemClearance-.1)return 'Long garment hook and hem clearance is insufficient.';
   if(kind==='lift'&&cfg.allowLift!==true)return 'Pull-down rails are opt-in.';
  }
  // Use the same centimetre-based reach rule as capacity analysis and manual layouts.
- if(['drawer','sdrawer','basket'].includes(kind)&&!planner.accessInfo(it,(bottom+R.base)/10,cfg).withinReach)return 'Drawer top exceeds the visible reach band.';
+ if(hasTrait(kind, 'drawerBox')&&!planner.accessInfo(it,(bottom+R.base)/10,cfg).withinReach)return 'Drawer top exceeds the visible reach band.';
  return null;
 }
 export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:PlannerConfig,seasonalRemaining:number,compact=true):ModuleCandidate[] {
@@ -69,7 +70,7 @@ export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:Plann
   if(!served&&!seasonal)return;
   out.push({items,capacity,seasonalBoxes:seasonal,height,value:(benefit+seasonal*.1)/(space.w*height/1e6),clearance:clear,reason});
  };
- const spec=(k:EditorItem['k'],purpose:EditorItem['purpose'],mm:number):EditorItem=>({k,purpose,h:mm/10,...(['short','long'].includes(k)&&c.depth<550?{front:true}:{})});
+ const spec=(k:EditorItem['k'],purpose:EditorItem['purpose'],mm:number):EditorItem=>({k,purpose,h:mm/10,...(hasTrait(k, 'fixedRail')&&c.depth<550?{front:true}:{})});
  for(const cat of CATEGORIES){
   if(unmet[cat]<=0)continue;
   if(cat==='short'||cat==='long'){
@@ -115,9 +116,9 @@ export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:Plann
 export function interactionHeight(it:EditorItem,cfg:PlannerConfig):number {
  const bottom=R.base+(it.y??0)*10,h=it.h*10;
  void cfg;
- if(['short','long'].includes(it.k))return bottom+h-60;
+ if(hasTrait(it.k, 'fixedRail'))return bottom+h-60;
  if(it.k==='lift')return bottom+h-60-650;
- if(['drawer','sdrawer','pants','basket'].includes(it.k))return bottom+h;
+ if(hasTrait(it.k, 'pullout'))return bottom+h;
  if(it.k==='seasonal')return bottom+h/2;
  return bottom+Math.min(h-R.panel,180)/2;
 }

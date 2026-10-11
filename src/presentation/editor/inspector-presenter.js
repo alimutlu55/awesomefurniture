@@ -1,6 +1,6 @@
 import { createAddMenuPresenter } from './add-menu-presenter.js';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
-import { fitting } from '../../domain/wardrobe/fittings';
+import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 import { syncResizeFields } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
@@ -411,7 +411,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             });
             const q = geometry.itemMeasurements(model.activeCabinet().state.sel, model.activeCabinet().state.item), A = WardrobePlanner.accessInfo(it, g.y0, geometry.plannerConfig()), f = measureNumber;
             const rows = [['Free above (next fitting / top)', f(q.freeTop) + ' cm'], ['Free below (next fitting / base)', f(q.freeBelow) + ' cm'], ['Section side gaps (left / right)', f(g.gapL) + ' / ' + f(g.gapR) + ' cm'], ['X · left → right edge', f(g.x0) + ' → ' + f(g.x1) + ' cm'], ['Y · bottom → top from floor', f(g.y0) + ' → ' + f(g.y1) + ' cm'], ['Z · back → front', f(g.z0) + ' → ' + f(g.z1) + ' cm']];
-            if (['short', 'long', 'lift'].includes(it.k)) {
+            if (hasTrait(it.k, 'hanging')) {
                 rows.push(['Rail above floor', f(A.railHeight) + ' cm']);
                 if (it.k === 'lift') {
                     rows.push(['Handle above floor', f(A.handleHeight) + ' cm']);

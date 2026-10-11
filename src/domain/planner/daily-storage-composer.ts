@@ -1,6 +1,7 @@
 import { WardrobePlanner as planner } from './wardrobe-planner.js';
 import type { PlannerConfig, PlannerSection } from './wardrobe-planner';
 import { PANEL, PLINTH, purposeName } from '../wardrobe/catalog.js';
+import { hasTrait } from '../wardrobe/fittings';
 const base = PLINTH + PANEL;
 const drawer = (kind: string) => kind === 'drawer' || kind === 'sdrawer';
 const clone = (sections: readonly PlannerSection[]) => sections.map(s => ({ ...s, items: s.items.map(it => ({ ...it })) }));
@@ -16,7 +17,7 @@ export function dailyStorageQuality(sections: readonly PlannerSection[], cfg: Pl
         section.items.forEach((it, i) => {
             const position = positions[i]!;
             if (it.k === 'void' || (it.k === 'shelf' && it.purpose === 'accessories')) fillerHeight += it.h * weight;
-            if (['folded', 'shelf'].includes(it.k) && ['folded', 'pants'].includes(it.purpose ?? '')) {
+            if (hasTrait(it.k, 'openShelf') && ['folded', 'pants'].includes(it.purpose ?? '')) {
                 lowFoldedHeight += Math.max(0, Math.min(position.y1 + base, primeLow) - (position.y0 + base)) * weight;
             }
             if (drawer(it.k)) {

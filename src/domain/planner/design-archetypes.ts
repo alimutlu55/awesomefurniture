@@ -6,6 +6,7 @@ import { buildDemand,selectionContext,SELECTION_RULES as R } from './selection-c
 import type { Criteria } from './selection-config';
 import type { OpenSpace } from './selection-spaces';
 import { MODS } from '../wardrobe/catalog.js';
+import { hasTrait } from '../wardrobe/fittings';
 export type Hero='accessibility'|'drawerStorage'|'openStorage'|'hangingCapacity'|'spareSpace';
 export interface DesignArchetype {id:string;title:string;hero:Hero|null;weights:Criteria;floor:number;
  applicable:(cfg:PlannerConfig)=>boolean;accept:(items:readonly EditorItem[],cfg:PlannerConfig)=>boolean;
@@ -21,7 +22,7 @@ export const ARCHETYPES:readonly DesignArchetype[]=[
  applicable:cfg=>foldShare(cfg)>=.25,accept:(items,cfg)=>items.every(it=>{if(it.k==='void'||it.k==='seasonal'||!['folded','pants','small'].includes(it.purpose??''))return true;const h=interactionHeight(it,cfg),r=selectionContext(cfg).reach;return h>=r*.4&&h<=r*.8;}),
  bias:m=>1+area(m,['drawer','pants'])*2,gate:any,reserve:true,columns:[2,4]},
  {id:'drawers',title:'Drawer First',hero:'drawerStorage',weights:{...base,accessibility:.40,clearance:.20,utilisation:.15,grouping:.10,safety:.10,buildability:.05},floor:.45,
- applicable:cfg=>cfg.drawers!=='none'&&foldShare(cfg)>=.25,accept:items=>items.every(it=>!folds(it)||!['folded','shelf'].includes(it.k)),
+ applicable:cfg=>cfg.drawers!=='none'&&foldShare(cfg)>=.25,accept:items=>items.every(it=>!folds(it)||!hasTrait(it.k, 'openShelf')),
  bias:m=>1+area(m,['drawer','sdrawer','basket'])*4,gate:s=>s.some(b=>b.items.some(it=>it.k==='drawer')),reserve:false,columns:[2,4]},
  {id:'open',title:'Open & Simple',hero:'openStorage',weights:{...base,accessibility:.25,clearance:.15,utilisation:.15,grouping:.10,safety:.10,buildability:.25},floor:.45,
  applicable:cfg=>buildDemand(cfg).folded+buildDemand(cfg).pants>0,accept:items=>items.every(it=>it.k!=='drawer'&&it.k!=='basket'),
@@ -66,7 +67,7 @@ export function conceptRoles(widths:readonly number[],strategy:DesignArchetype|u
 }
 export function conceptAllows(items:readonly EditorItem[],role:ConceptRole='flex') {
  return items.every(it=>role==='flex'||it.k==='void'||it.k==='seasonal'||(it.k==='shelf'&&['accessories','reserve'].includes(it.purpose??''))||
-  (role==='long'?it.k==='long':role==='fold'?!['short','long','lift'].includes(it.k):!['folded','pants'].includes(it.purpose??'')));
+  (role==='long'?it.k==='long':role==='fold'?!hasTrait(it.k, 'hanging'):!['folded','pants'].includes(it.purpose??'')));
 }
 export function conceptRoleOptions(widths:readonly number[],strategy:DesignArchetype|undefined,cfg:PlannerConfig):ConceptRole[][] {
  const roles=conceptRoles(widths,strategy,cfg),options=[roles],c=selectionContext(cfg);

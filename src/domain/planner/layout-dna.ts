@@ -2,6 +2,7 @@ import type { PlannerConfig,PlannerSection } from './wardrobe-planner';
 import { WardrobePlanner as physical } from './wardrobe-planner.js';
 import { CATEGORIES,selectionContext,SELECTION_RULES as R } from './selection-config';
 import { interactionHeight } from './selection-modules';
+import { hasTrait } from '../wardrobe/fittings';
 export const DNA_THRESHOLD=.2;
 export const DNA_TYPES=['hang','drawers','open','shoes','seasonal','spare'] as const;
 export interface LayoutDNA {shares:Record<typeof DNA_TYPES[number],number>;columns:number;widthPattern:number[];zones:number[][]}
@@ -11,7 +12,7 @@ export function layoutDNA(sections:readonly PlannerSection[],cfg:PlannerConfig):
  const zones=CATEGORIES.map(()=>[0,0,0,0,0]);
  for(const s of sections){const positions=physical.layoutSection(s.items,s.width);
   s.items.forEach((it,i)=>{const p=positions[i]!,a=p.w*it.h*100/area;
-   const kind=it.k==='void'?'spare':['short','long','lift'].includes(it.k)?'hang':['drawer','sdrawer','basket'].includes(it.k)?'drawers':it.k==='shoe'?'shoes':it.k==='seasonal'?'seasonal':'open';
+   const kind=it.k==='void'?'spare':hasTrait(it.k, 'hanging')?'hang':hasTrait(it.k, 'drawerBox')?'drawers':it.k==='shoe'?'shoes':it.k==='seasonal'?'seasonal':'open';
    shares[kind]+=a;
    const cat=CATEGORIES.indexOf(it.purpose as typeof CATEGORIES[number]);if(cat<0)return;
    const height=Math.round(interactionHeight({...it,y:p.y0},cfg)/R.grid)*R.grid/c.reach;
