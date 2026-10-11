@@ -194,12 +194,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
-        // A selected wall or opening of the room has its own actions. With nothing selected, Add adds to the room.
-        getSelection: () => {
-            const level = selectionState.room ? selectionState.room.kind : !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe';
-            $('#add-label').textContent = level === 'none' ? 'Add' : 'Add item';
-            return level;
-        },
+        // A selected wall or opening of the room has its own actions.
+        getSelection: () => selectionState.room ? selectionState.room.kind : !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
             if (key === 'wall-size' || key === 'opening-size') { room.fields.render(); return [room.fields.root]; }
@@ -216,10 +212,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;
             if (key === 'resize') { resize.open(); return; }
-            // Add and Auto design on a selected wardrobe do what the toolbar buttons do; Add wardrobe puts a new one beside it.
-            if (key === 'add') { $('#more-btn').click(); return; }
-            if (key === 'auto') { $('#launch-wizard').click(); return; }
-            if (key === 'add-wardrobe') { inspector.addCabinet(false); return; }
             if (key.startsWith('t-')) { inspector.itemAction(key); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();

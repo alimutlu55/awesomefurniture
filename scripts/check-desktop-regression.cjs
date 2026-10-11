@@ -38,16 +38,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const size=page.viewportSize();
     assert.ok(box && box.x >= -1 && box.y >= -1 && box.x + box.width <= size.width + 1 && box.y + box.height <= size.height + 1, `${size.width}×${size.height}: control out of bounds ${JSON.stringify(box)}`);
    };
-   // Auto design belongs to a wardrobe: with nothing selected only Add (to the room) and history show.
-   const openAutoDesign = async () => {
-    if (!await control('launch-wizard').isVisible() && !await control('toolbar').locator('[data-action="auto"]').isVisible()) {
-     const view = await control('view').boundingBox();
-     if (mobile) await page.touchscreen.tap(view.x + view.width / 2, view.y + view.height * .36); else await page.mouse.click(view.x + view.width / 2, view.y + view.height * .36);
-     await page.waitForTimeout(400);
-    }
-    await click(await control('launch-wizard').isVisible() ? control('launch-wizard') : control('toolbar').locator('[data-action="auto"]'));
-   };
-   for (const id of ['props-btn','more-btn','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
+   for (const id of ['props-btn','more-btn','launch-wizard','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
    if (mobile) {
     const movement=await page.context().newCDPSession(page);
     // Use the upper body to avoid the movement handles in short landscape views.
@@ -167,24 +158,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     await click(control(trigger));await inBounds(control(panel));
     if(mobile){await pullSheet(control(panel),90);assert.equal(await control(panel).isVisible(),false);}else await click(control(trigger));
    }
-   // Nothing selected: Add adds to the room (wardrobes, walls, rooms), never fittings.
    await click(control('more-btn'));await inBounds(control('pop2'));
-   assert.equal(await control('pop2').getAttribute('data-scope'),'room');
-   assert.equal(await page.locator('[data-editor-id="pop2"] [data-m]:visible').count(),0,'No fittings at room level');
-   if(mobile) assert.equal(await page.locator('.mobile-add-products [data-add-wardrobe]').isVisible(),true);
-   else assert.equal(await control('padd-room').isVisible(),true);
-   if(mobile){await pullSheet(control('pop2'),90);}else await click(control('px'));
-   assert.equal(await control('pop2').isVisible(),false);
-   // A selected wardrobe: Add item adds fittings to its space.
-   {
-    const view=await control('view').boundingBox();
-    if(mobile) await page.touchscreen.tap(view.x+view.width/2,view.y+view.height*.36); else await page.mouse.click(view.x+view.width/2,view.y+view.height*.36);
-    await page.waitForTimeout(400);
-   }
-   const addItem=async()=>click(mobile?control('toolbar').locator('[data-action="add"]'):control('more-btn'));
-   await addItem();await inBounds(control('pop2'));
-   assert.equal(await control('pop2').getAttribute('data-scope'),'wardrobe');
-   if(mobile){await pullSheet(control('pop2'),90);assert.equal(await control('pop2').isVisible(),false);await addItem();}
+   if(mobile){await pullSheet(control('pop2'),90);assert.equal(await control('pop2').isVisible(),false);await click(control('more-btn'));}
    if(mobile){
     const categories=page.locator('.mobile-add-categories'),products=page.locator('.mobile-add-products');
     await page.waitForTimeout(250);
@@ -192,7 +167,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const panel=await control('pop2').boundingBox(),view=await control('view').boundingBox();
     assert.ok(view.y+view.height<=panel.y+1,`Add catalogue must leave the model unobstructed: ${JSON.stringify({view,panel})}`);
     await click(categories.locator('[data-category="storage"]'));
-    assert.equal(await products.locator('[data-add-wardrobe]').count(),0,'Wardrobes are added to the room, not to a wardrobe');
+    assert.equal(await products.locator('[data-add-wardrobe]').isVisible(),true);
     assert.equal(await products.locator('[data-m="short"]').isVisible(),false);
     await click(categories.locator('[data-category="hanging"]'));
     assert.equal(await products.locator('[data-m="short"]').isVisible(),true);
@@ -261,7 +236,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await control('pop3').isVisible(),false,'Releasing pinch must not select an item');
     await cdp.detach();
    }
-   await openAutoDesign();await inBounds(control('wizard'));
+   await click(control('launch-wizard'));await inBounds(control('wizard'));
    if(mobile){
     const sheet=control('wizard').locator('.wizard-shell');
     assert.equal(await sheet.evaluate(e=>e.classList.contains('mobile-bottom-sheet')),true,'Auto design uses the shared bottom sheet');
@@ -284,7 +259,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await sheet.getAttribute('data-sheet-position'),'full','Pulling up restores full screen');
     assert.ok(Math.abs((await sheet.boundingBox()).height-height)<1);
     await pullSheet(sheet,100);await pullSheet(sheet,90);
-    assert.equal(await control('wizard').isVisible(),false);await openAutoDesign();
+    assert.equal(await control('wizard').isVisible(),false);await click(control('launch-wizard'));
     assert.equal(await sheet.getAttribute('data-sheet-position'),'full','Reopening Auto design always starts full screen');
    }
    await page.locator('.idea button.apply').first().waitFor({timeout:30000});

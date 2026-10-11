@@ -3,35 +3,17 @@ import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
 /** DOM event bindings call application commands through the mounted view ports. */
-/** Add, by level. With nothing selected it adds to the room (wardrobes, walls, rooms) and leaves the
- * view alone; with a wardrobe (or a space in it) selected it adds fittings to that space. "Room" in the
- * fittings sheet goes up a level.
- * @param {import('./shell-bindings.ports').BindMoreBtnPorts} ports */
+/** @param {import('./shell-bindings.ports').BindMoreBtnPorts} ports */
 export function bindMoreBtn({ dom, inspector, shell, selectionState, model, lifetime }) {
     const { $ } = dom;
-    const openRoom = () => {
+    lifetime.listen($('#more-btn'), 'click', () => {
         shell.closeDD();
-        if (selectionState.focusOn || selectionState.room) {
-            selectionState.room = null;
-            inspector.clearFocus();
-        }
-        selectionState.addScope = 'room';
-        inspector.showPop(null, '#pop2');
-        $('#px').focus();
-    };
-    const openWardrobe = () => {
-        shell.closeDD();
-        selectionState.addScope = 'wardrobe';
         model.activeCabinet().state.item = -1;
         model.activeCabinet().state.divider = -1;
         selectionState.pillOn = true;
         inspector.update();
         inspector.showPop(null, '#pop2');
         $('#px').focus();
-    };
-    lifetime.listen($('#more-btn'), 'click', () => selectionState.focusOn ? openWardrobe() : openRoom());
-    lifetime.listen($('#pop2'), 'click', e => {
-        if (/** @type {Element} */ (e.target).closest('[data-add-scope="room"]')) openRoom();
     });
 }
 /** @param {import('./shell-bindings.ports').BindDropdownOpenPorts} ports */

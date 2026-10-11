@@ -16,12 +16,7 @@ const assert = require('node:assert/strict');
     await control('toolbar').locator('[data-action="resize"]').tap();
    }
    else if(id==='pop2') await control('more-btn').tap();
-   else if(id==='wizard') {
-    // Auto design belongs to a wardrobe: select it, then its toolbar action.
-    const box=await control('view').boundingBox();
-    await page.touchscreen.tap(box.x+box.width/2,box.y+box.height*.45);
-    await control('toolbar').locator('[data-action="auto"]').tap();
-   }
+   else if(id==='wizard') await control('launch-wizard').tap();
    else {
     // Mount the item/divider sheet independently of scene selection. Their
     // actual selection and form workflows are covered by check-mobile.cjs.

@@ -18,12 +18,10 @@ const assert=require('node:assert/strict');
   else {
    assert.equal(await el('props-btn').isVisible(),false);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   // Nothing selected is the room: Add (to the room) and history; Auto design waits for a wardrobe.
-   assert.equal(await el('launch-wizard').isVisible(),false);
-   assert.equal(await el('add-label').textContent(),'Add');
+   assert.equal(await el('launch-wizard').isVisible(),true);
    const checkActionSlots=async()=>{
     const buttons=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width};}));
-    assert.ok(buttons.length>=3);
+    assert.ok(buttons.length>=4);
     for(let i=1;i<buttons.length;i++){
      assert.ok(Math.abs(buttons[i].width-buttons[0].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
      assert.ok(Math.abs(buttons[i].x-(buttons[i-1].x+buttons[i-1].width))<1,'No unused spacer between actions');
@@ -33,7 +31,7 @@ const assert=require('node:assert/strict');
    await checkActionSlots();
    await selected();
    assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['add','auto','move','resize','more']);
+   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','sections','more']);
    assert.equal(await page.locator('.lbl.add').isVisible(),true,'First tap shows internal Add item');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
@@ -89,14 +87,12 @@ const assert=require('node:assert/strict');
     assert.equal(await toolbar.isVisible(),true,'Closing restores contextual actions');
    };
    await closeProperties();
-   // Sections is in More now; the toolbar keeps Add item and Auto design.
-   await toolbar.locator('[data-action="more"]').click();
-   await page.locator('.contextual-popover [data-action="sections"]').click();await page.waitForTimeout(320);
+   await toolbar.locator('[data-action="sections"]').click();await page.waitForTimeout(320);
    assert.equal(await el('section-row').isVisible(),true);
    assert.equal(await el('w').isVisible(),false);
    await closeProperties();
    await toolbar.locator('[data-action="more"]').click();
-   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Sections','Shape','Material','Max reach size','Doors','Add wardrobe','Duplicate','Reset','Remove']);
+   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Shape','Material','Max reach size','Doors','Duplicate','Reset','Remove']);
    await page.locator('.contextual-popover button').filter({hasText:'Material'}).click();
    assert.equal(await el('fins').isVisible(),true);
    await page.locator('.lbl.add').click();await page.waitForTimeout(320);
@@ -180,10 +176,8 @@ const assert=require('node:assert/strict');
    const canvas=await el('view').boundingBox();
    await page.mouse.click(canvas.x+8,canvas.y+8);await page.waitForTimeout(350);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   assert.equal(await el('launch-wizard').isVisible(),false);
-   // Auto design belongs to a wardrobe: select one, then use its toolbar action.
-   await selected();
-   await toolbar.locator('[data-action="auto"]').click();await page.waitForTimeout(330);
+   assert.equal(await el('launch-wizard').isVisible(),true);
+   await el('launch-wizard').click();await page.waitForTimeout(330);
    const sheet=el('wizard').locator('.wizard-shell'),box=await sheet.boundingBox();
    assert.ok(Math.abs(box.height-height*.85)<2,'Auto design opens at 85%');
    await el('close-wizard').click();
