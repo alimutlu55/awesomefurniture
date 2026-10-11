@@ -45,7 +45,7 @@ test('Max reach edits are bounded and update planning reach while retaining othe
 });
 
 test('wizard input and change events refresh ideas automatically without a generate button',async()=>{
- const {bindWizard}=await import('../src/presentation/editor/inspector-bindings.js');
+ const {bindWizard}=await import('../src/presentation/editor/bindings/wizard.js');
  const inputs=[{},{}],listeners=[];let updates=0;
  bindWizard({dom:{$:selector=>{assert.equal(selector,'#wizard');return{querySelectorAll:()=>inputs}}},planner:{markIdeasDirty(){updates++}},lifetime:{listen(target,event,handler){listeners.push({target,event,handler})}}});
  assert.equal(listeners.length,4);
