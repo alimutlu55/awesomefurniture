@@ -28,6 +28,28 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     const measurementsRules = createMeasurementsRules(ctx, { ...ceilingRules, ...layoutRules, ...fitRules, ...spacesRules });
     const costingRules = createCostingRules(ctx, { ...ceilingRules, ...layoutRules });
     const plannerConfigRules = createPlannerConfigRules(ctx, {});
-    const { itemMinW, effectiveMin, itemFeasible, newItem, splitFor, okItem, bayMinW, minTotal, maxN, shapeInfo, floor2, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, cutOutline, widths, computeLayout, ih, used, free, currentLayout, itemFit, fitsCeiling, itemOverflow, overflow, sectionFits, fittingFit, dividerRect, sectionDividers, dividerBounds, boardFit, clampDivider, dividerValid, dividerOrientation, dividerOverlaps, dividerMeasurements, dividerDupSpot, isBoxed, boxCapped, boxSupported, sectionSpaces, spaceCentre, sectionSpaceMeasurements, spaceSpan, narrowToFit, edgeGap, itemFreeAbove, planItemMove, planFreeMove, verticalNeighbor, itemYBounds, sectionLayoutValid, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, itemGeom, itemMeasurements, cost, stats, plannerConfig, planCfg } = { ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules, ...boxesRules, ...spacesRules, ...movementRules, ...measurementsRules, ...costingRules, ...plannerConfigRules };
-    return { spaceCentre, clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
+    const {
+        itemMinW, effectiveMin, itemFeasible, newItem, splitFor, okItem, bayMinW, minTotal, maxN, shapeInfo,
+        floor2, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, cutOutline, widths,
+        computeLayout, ih, used, free, currentLayout, itemFit, fitsCeiling, itemOverflow, overflow,
+        sectionFits, fittingFit, dividerRect, sectionDividers, dividerBounds, boardFit, clampDivider,
+        dividerValid, dividerOrientation, dividerOverlaps, dividerMeasurements, dividerDupSpot, isBoxed,
+        boxCapped, boxSupported, sectionSpaces, spaceCentre, sectionSpaceMeasurements, spaceSpan, narrowToFit,
+        edgeGap, itemFreeAbove, planItemMove, planFreeMove, verticalNeighbor, itemYBounds, sectionLayoutValid,
+        duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, itemGeom, itemMeasurements, cost,
+        stats, plannerConfig, planCfg,
+    } = {
+        ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules, ...boxesRules,
+        ...spacesRules, ...movementRules, ...measurementsRules, ...costingRules, ...plannerConfigRules,
+    };
+    return {
+        spaceCentre, clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear,
+        itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit,
+        widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free,
+        maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds,
+        dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid,
+        sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg,
+        plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW,
+        minTotal, okItem, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot,
+    };
 }

@@ -114,7 +114,8 @@ export type FittingKind = typeof FITTINGS[number]['key'];
 export const FITTING_KINDS = FITTINGS.map(f => f.key) as readonly FittingKind[];
 export const fitting = (key: string | undefined): FittingDef | undefined => (FITTINGS as readonly FittingDef[]).find(f => f.key === key);
 
-const TRAIT_KINDS = Object.fromEntries(Object.keys(FITTING_TRAITS).map(t => [t, new Set((FITTINGS as readonly FittingDef[]).filter(f => f.traits.includes(t as FittingTrait)).map(f => f.key))])) as unknown as Record<FittingTrait, ReadonlySet<string>>;
+const kindsWith = (trait: FittingTrait) => new Set((FITTINGS as readonly FittingDef[]).filter(f => f.traits.includes(trait)).map(f => f.key));
+const TRAIT_KINDS = Object.fromEntries((Object.keys(FITTING_TRAITS) as FittingTrait[]).map(t => [t, kindsWith(t)])) as unknown as Record<FittingTrait, ReadonlySet<string>>;
 /** Whether a fitting kind has a trait. Use this instead of listing kinds. */
 export const hasTrait = (kind: string | undefined, trait: FittingTrait) => kind !== undefined && TRAIT_KINDS[trait].has(kind);
 

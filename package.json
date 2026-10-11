@@ -13,10 +13,11 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.cjs tests/architecture/*.test.ts",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "check": "npm run check:boundaries && npm run typecheck:editor && npm test && npm run build",
+    "check": "npm run check:boundaries && npm run check:architecture && npm run typecheck:editor && npm test && npm run build",
     "typecheck:editor": "tsc -p tsconfig.editor.json",
     "review:planner": "node --import tsx scripts/planner-review.mjs",
-    "check:mobile": "node scripts/check-mobile.cjs"
+    "check:mobile": "node scripts/check-mobile.cjs",
+    "check:architecture": "node scripts/check-architecture.mjs"
   },
   "dependencies": {
     "three": "0.128.0",
