@@ -1,0 +1,626 @@
+{
+ "n": 2,
+ "wt": [
+  134.6,
+  60,
+  100,
+  100,
+  100,
+  100
+ ],
+ "secs": [
+  [
+   {
+    "k": "sdrawer",
+    "purpose": "small",
+    "h": 12,
+    "x": 0,
+    "y": 0,
+    "w": 80
+   },
+   {
+    "k": "long",
+    "purpose": "long",
+    "h": 181.2,
+    "x": 81.8,
+    "y": 0,
+    "w": 52.8
+   },
+   {
+    "k": "drawer",
+    "purpose": "pants",
+    "h": 28.8,
+    "x": 0,
+    "y": 12,
+    "w": 80
+   },
+   {
+    "k": "drawer",
+    "purpose": "pants",
+    "h": 28.8,
+    "x": 0,
+    "y": 40.8,
+    "w": 80
+   },
+   {
+    "k": "short",
+    "purpose": "short",
+    "h": 109.8,
+    "x": 0,
+    "y": 69.6,
+    "w": 80
+   },
+   {
+    "k": "shelf",
+    "purpose": "reserve",
+    "x": 0,
+    "y": 181.2,
+    "w": 66.4,
+    "h": 37.2
+   },
+   {
+    "k": "shelf",
+    "purpose": "reserve",
+    "x": 68.2,
+    "y": 181.2,
+    "w": 66.4,
+    "h": 37.2
+   }
+  ],
+  [
+   {
+    "k": "drawer",
+    "purpose": "folded",
+    "h": 28.8,
+    "x": 0,
+    "y": 0,
+    "w": 60
+   },
+   {
+    "k": "drawer",
+    "purpose": "folded",
+    "h": 28.8,
+    "x": 0,
+    "y": 28.8,
+    "w": 60
+   },
+   {
+    "k": "folded",
+    "purpose": "folded",
+    "h": 22.4,
+    "x": 0,
+    "y": 57.6,
+    "w": 60
+   },
+   {
+    "k": "shoe",
+    "purpose": "shoes",
+    "h": 19.2,
+    "x": 0,
+    "y": 80,
+    "w": 60
+   },
+   {
+    "k": "shoe",
+    "purpose": "shoes",
+    "h": 19.2,
+    "x": 0,
+    "y": 99.2,
+    "w": 60
+   },
+   {
+    "k": "shoe",
+    "purpose": "shoes",
+    "h": 19.2,
+    "x": 0,
+    "y": 118.4,
+    "w": 60
+   },
+   {
+    "k": "shoe",
+    "purpose": "shoes",
+    "h": 19.2,
+    "x": 0,
+    "y": 137.6,
+    "w": 60
+   },
+   {
+    "k": "shelf",
+    "purpose": "reserve",
+    "x": 0,
+    "y": 156.8,
+    "w": 60,
+    "h": 24.4
+   },
+   {
+    "k": "seasonal",
+    "purpose": "seasonal",
+    "boxes": 1,
+    "x": 0,
+    "y": 181.2,
+    "w": 60,
+    "h": 37.2
+   }
+  ],
+  [],
+  [],
+  [],
+  []
+ ],
+ "dividers": [
+  {
+   "i": 0,
+   "orientation": "vertical",
+   "x": 80.9,
+   "y0": 0,
+   "y1": 181.2
+  },
+  {
+   "i": 0,
+   "orientation": "vertical",
+   "x": 67.3,
+   "y0": 181.2,
+   "y1": 218.4
+  },
+  {
+   "i": 0,
+   "orientation": "horizontal",
+   "x0": 0,
+   "x1": 80,
+   "y": 180.3
+  }
+ ],
+ "layout": [
+  [
+   {
+    "relY0": 0,
+    "relY1": 12,
+    "y0": 9.8,
+    "y1": 21.8,
+    "x0": 0,
+    "x1": 80,
+    "w": 80,
+    "off": 0,
+    "h": 12
+   },
+   {
+    "relY0": 0,
+    "relY1": 181.2,
+    "y0": 9.8,
+    "y1": 191,
+    "x0": 81.8,
+    "x1": 134.6,
+    "w": 52.8,
+    "off": 81.8,
+    "h": 181.2
+   },
+   {
+    "relY0": 12,
+    "relY1": 40.8,
+    "y0": 21.8,
+    "y1": 50.6,
+    "x0": 0,
+    "x1": 80,
+    "w": 80,
+    "off": 0,
+    "h": 28.8
+   },
+   {
+    "relY0": 40.8,
+    "relY1": 69.6,
+    "y0": 50.6,
+    "y1": 79.4,
+    "x0": 0,
+    "x1": 80,
+    "w": 80,
+    "off": 0,
+    "h": 28.8
+   },
+   {
+    "relY0": 69.6,
+    "relY1": 179.4,
+    "y0": 79.4,
+    "y1": 189.2,
+    "x0": 0,
+    "x1": 80,
+    "w": 80,
+    "off": 0,
+    "h": 109.8
+   },
+   {
+    "relY0": 181.2,
+    "relY1": 218.4,
+    "y0": 191,
+    "y1": 228.2,
+    "x0": 0,
+    "x1": 66.4,
+    "w": 66.4,
+    "off": 0,
+    "h": 37.2
+   },
+   {
+    "relY0": 181.2,
+    "relY1": 218.4,
+    "y0": 191,
+    "y1": 228.2,
+    "x0": 68.2,
+    "x1": 134.6,
+    "w": 66.4,
+    "off": 68.2,
+    "h": 37.2
+   }
+  ],
+  [
+   {
+    "relY0": 0,
+    "relY1": 28.8,
+    "y0": 9.8,
+    "y1": 38.6,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 28.8
+   },
+   {
+    "relY0": 28.8,
+    "relY1": 57.6,
+    "y0": 38.6,
+    "y1": 67.4,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 28.8
+   },
+   {
+    "relY0": 57.6,
+    "relY1": 80,
+    "y0": 67.4,
+    "y1": 89.8,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 22.4
+   },
+   {
+    "relY0": 80,
+    "relY1": 99.2,
+    "y0": 89.8,
+    "y1": 109,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 19.2
+   },
+   {
+    "relY0": 99.2,
+    "relY1": 118.4,
+    "y0": 109,
+    "y1": 128.2,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 19.2
+   },
+   {
+    "relY0": 118.4,
+    "relY1": 137.6,
+    "y0": 128.2,
+    "y1": 147.4,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 19.2
+   },
+   {
+    "relY0": 137.6,
+    "relY1": 156.8,
+    "y0": 147.4,
+    "y1": 166.6,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 19.2
+   },
+   {
+    "relY0": 156.8,
+    "relY1": 181.2,
+    "y0": 166.6,
+    "y1": 191,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 24.4
+   },
+   {
+    "relY0": 181.2,
+    "relY1": 218.4,
+    "y0": 191,
+    "y1": 228.2,
+    "x0": 0,
+    "x1": 60,
+    "w": 60,
+    "off": 0,
+    "h": 37.2
+   }
+  ]
+ ],
+ "cost": {
+  "panels": 421,
+  "mods": 424,
+  "doors": 0,
+  "total": 845
+ },
+ "stats": {
+  "hang": 1.328,
+  "shelf": 3.3168,
+  "drawers": 5,
+  "shoe": 4,
+  "mods": 16,
+  "avg": 1,
+  "maxFill": 1,
+  "allUsed": true,
+  "types": 8,
+  "cost": {
+   "panels": 421,
+   "mods": 424,
+   "doors": 0,
+   "total": 845
+  }
+ },
+ "suggestions": [
+  {
+   "list": [
+    {
+     "k": "short",
+     "o": 0,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 100 cm height",
+     "warn": false
+    },
+    {
+     "k": "long",
+     "o": 1,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 168 cm height",
+     "warn": false
+    },
+    {
+     "k": "drawer",
+     "o": 2,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 15 cm height",
+     "warn": false
+    },
+    {
+     "k": "shelf",
+     "o": 3,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 15 cm height",
+     "warn": false
+    },
+    {
+     "k": "shoe",
+     "o": 4,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 18 cm height",
+     "warn": false
+    },
+    {
+     "k": "seasonal",
+     "o": 5,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    },
+    {
+     "k": "folded",
+     "o": 6,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 22 cm height",
+     "warn": false
+    },
+    {
+     "k": "pants",
+     "o": 7,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 65 cm height",
+     "warn": false
+    },
+    {
+     "k": "sdrawer",
+     "o": 8,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 8 cm height",
+     "warn": false
+    },
+    {
+     "k": "basket",
+     "o": 9,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    },
+    {
+     "k": "lift",
+     "o": 10,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Pull-down is off",
+     "warn": false
+    },
+    {
+     "k": "divider",
+     "o": 11,
+     "fit": true,
+     "s": 30,
+     "why": "Splits this space side by side",
+     "hint": "",
+     "warn": false
+    },
+    {
+     "k": "handbags",
+     "possession": "handbags",
+     "o": 12,
+     "fit": false,
+     "s": 27,
+     "why": "Bags stand upright on a shelf",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    }
+   ],
+   "intent": "<b>High space</b>, above your 185 cm reach. Best for seasonal boxes and occasional storage."
+  },
+  {
+   "list": [
+    {
+     "k": "short",
+     "o": 0,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 100 cm height",
+     "warn": false
+    },
+    {
+     "k": "long",
+     "o": 1,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 168 cm height",
+     "warn": false
+    },
+    {
+     "k": "drawer",
+     "o": 2,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 15 cm height",
+     "warn": false
+    },
+    {
+     "k": "shelf",
+     "o": 3,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 15 cm height",
+     "warn": false
+    },
+    {
+     "k": "shoe",
+     "o": 4,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 18 cm height",
+     "warn": false
+    },
+    {
+     "k": "seasonal",
+     "o": 5,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    },
+    {
+     "k": "folded",
+     "o": 6,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 22 cm height",
+     "warn": false
+    },
+    {
+     "k": "pants",
+     "o": 7,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 65 cm height",
+     "warn": false
+    },
+    {
+     "k": "sdrawer",
+     "o": 8,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 8 cm height",
+     "warn": false
+    },
+    {
+     "k": "basket",
+     "o": 9,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    },
+    {
+     "k": "lift",
+     "o": 10,
+     "fit": false,
+     "s": 0,
+     "why": "",
+     "hint": "Pull-down is off",
+     "warn": false
+    },
+    {
+     "k": "divider",
+     "o": 11,
+     "fit": true,
+     "s": 15,
+     "why": "Splits this space side by side",
+     "hint": "",
+     "warn": false
+    },
+    {
+     "k": "handbags",
+     "possession": "handbags",
+     "o": 12,
+     "fit": false,
+     "s": 27,
+     "why": "Bags stand upright on a shelf",
+     "hint": "Needs 25 cm height",
+     "warn": false
+    }
+   ],
+   "intent": "<b>High space</b>, above your 185 cm reach. Best for seasonal boxes and occasional storage."
+  }
+ ]
+}

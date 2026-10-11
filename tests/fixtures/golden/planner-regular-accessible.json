@@ -1,0 +1,997 @@
+[
+ {
+  "title": "Best match",
+  "score": 71.75,
+  "complete": false,
+  "cost": 764,
+  "coverage": {
+   "short": 0.4286,
+   "long": 0,
+   "pants": 0.8571,
+   "folded": 0.6857,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.6914
+  },
+  "capacities": {
+   "short": 12,
+   "long": 0,
+   "pants": 12,
+   "folded": 24,
+   "shoes": 11,
+   "small": 48,
+   "handbags": 0,
+   "seasonalBoxes": 4,
+   "seasonalLitres": 360.72,
+   "drawerFolded": 0
+  },
+  "warnings": [
+   "Your 160 cm garment drop needs a fixed rail at least 171.8 cm high, above your 122 cm reach. Long hanging cannot be counted as accessible.",
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
+   "Some daily items sit outside the 38–122 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 114.6,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 61.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 100.2,
+      "x": 0,
+      "y": 18,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 61.8,
+      "y": 22.8,
+      "w": 52.8
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 61.8,
+      "y": 45.6,
+      "w": 52.8
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 61.8,
+      "y": 68.4,
+      "w": 52.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 27,
+      "x": 61.8,
+      "y": 91.2,
+      "w": 52.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 118.2,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 118.2,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 151.6,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 151.6,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 185,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 185,
+      "w": 56.4
+     }
+    ]
+   },
+   {
+    "width": 80,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 40.8,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 60,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 79.2,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 19.8,
+      "x": 0,
+      "y": 98.4,
+      "w": 80
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 80,
+      "boxes": 2
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 80,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 60.9,
+    "y0": 0,
+    "y1": 118.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 57.3,
+    "y0": 118.2,
+    "y1": 218.4
+   }
+  ]
+ },
+ {
+  "title": "Daily Driver",
+  "score": 74.21,
+  "complete": false,
+  "cost": 766,
+  "coverage": {
+   "short": 0.7857,
+   "long": 0,
+   "pants": 0.8571,
+   "folded": 0.3429,
+   "shoes": 0.6,
+   "small": 1,
+   "total": 0.636
+  },
+  "capacities": {
+   "short": 22,
+   "long": 0,
+   "pants": 12,
+   "folded": 12,
+   "shoes": 6,
+   "small": 48,
+   "handbags": 0,
+   "seasonalBoxes": 4,
+   "seasonalLitres": 360.72,
+   "drawerFolded": 12
+  },
+  "warnings": [
+   "Your 160 cm garment drop needs a fixed rail at least 171.8 cm high, above your 122 cm reach. Long hanging cannot be counted as accessible."
+  ],
+  "sections": [
+   {
+    "width": 114.6,
+    "items": [
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 118.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 118.2,
+      "x": 61.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 118.2,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 118.2,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 151.6,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 151.6,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 185,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 58.2,
+      "y": 185,
+      "w": 56.4
+     }
+    ]
+   },
+   {
+    "width": 80,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 29,
+      "x": 0,
+      "y": 18,
+      "w": 80
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 47,
+      "w": 80
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 59,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 82,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 18.2,
+      "x": 0,
+      "y": 100,
+      "w": 80
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 80,
+      "boxes": 2
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 80,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 60.9,
+    "y0": 0,
+    "y1": 118.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 57.3,
+    "y0": 118.2,
+    "y1": 218.4
+   }
+  ]
+ },
+ {
+  "title": "Daily Driver",
+  "score": 77.4,
+  "complete": false,
+  "cost": 781,
+  "coverage": {
+   "short": 0.9286,
+   "long": 0,
+   "pants": 0.8571,
+   "folded": 0.3429,
+   "shoes": 0.4,
+   "small": 1,
+   "total": 0.639
+  },
+  "capacities": {
+   "short": 26,
+   "long": 0,
+   "pants": 12,
+   "folded": 12,
+   "shoes": 4,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 2,
+   "seasonalLitres": 270.54,
+   "drawerFolded": 12
+  },
+  "warnings": [
+   "Your 160 cm garment drop needs a fixed rail at least 171.8 cm high, above your 122 cm reach. Long hanging cannot be counted as accessible."
+  ],
+  "sections": [
+   {
+    "width": 134.6,
+    "items": [
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 102.4,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 102.4,
+      "x": 81.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 15.8,
+      "x": 0,
+      "y": 102.4,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 15.8,
+      "x": 81.8,
+      "y": 102.4,
+      "w": 52.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 118.2,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 68.2,
+      "y": 118.2,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 151.6,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 68.2,
+      "y": 151.6,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 0,
+      "y": 185,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 33.4,
+      "x": 68.2,
+      "y": 185,
+      "w": 66.4
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 29,
+      "x": 0,
+      "y": 18,
+      "w": 60
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 47,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 59,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 82,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 18.2,
+      "x": 0,
+      "y": 100,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 60,
+      "boxes": 1
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 80.9,
+    "y0": 0,
+    "y1": 118.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 67.3,
+    "y0": 118.2,
+    "y1": 218.4
+   }
+  ]
+ },
+ {
+  "title": "Daily Driver",
+  "score": 75.93,
+  "complete": false,
+  "cost": 850,
+  "coverage": {
+   "short": 0.9286,
+   "long": 0,
+   "pants": 0.8571,
+   "folded": 0.3429,
+   "shoes": 0.4,
+   "small": 1,
+   "total": 0.639
+  },
+  "capacities": {
+   "short": 26,
+   "long": 0,
+   "pants": 12,
+   "folded": 12,
+   "shoes": 4,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 8,
+   "seasonalLitres": 869.34,
+   "drawerFolded": 12
+  },
+  "warnings": [
+   "Your 160 cm garment drop needs a fixed rail at least 171.8 cm high, above your 122 cm reach. Long hanging cannot be counted as accessible."
+  ],
+  "sections": [
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 118.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 60,
+      "boxes": 1
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 29,
+      "x": 0,
+      "y": 18,
+      "w": 60
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 47,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 59.8,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 82.8,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 17.4,
+      "x": 0,
+      "y": 100.8,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 60,
+      "boxes": 1
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 72.8,
+    "items": [
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 116.4,
+      "x": 0,
+      "y": 0,
+      "w": 72.8
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 72.8,
+      "boxes": 2
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 72.8,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 2,
+    "orientation": "horizontal",
+    "x0": 0,
+    "x1": 72.8,
+    "y": 117.3
+   }
+  ]
+ },
+ {
+  "title": "Daily Driver",
+  "score": 75.74,
+  "complete": false,
+  "cost": 894,
+  "coverage": {
+   "short": 0.4286,
+   "long": 0,
+   "pants": 0.7857,
+   "folded": 0.2857,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.594
+  },
+  "capacities": {
+   "short": 12,
+   "long": 0,
+   "pants": 11,
+   "folded": 10,
+   "shoes": 10,
+   "small": 42,
+   "handbags": 0,
+   "seasonalBoxes": 8,
+   "seasonalLitres": 869.34,
+   "drawerFolded": 0
+  },
+  "warnings": [
+   "Your 160 cm garment drop needs a fixed rail at least 171.8 cm high, above your 122 cm reach. Long hanging cannot be counted as accessible.",
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
+  ],
+  "sections": [
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 100,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 18.2,
+      "x": 0,
+      "y": 100,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 60,
+      "boxes": 1
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 80,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 19,
+      "x": 0,
+      "y": 99.2,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 60,
+      "boxes": 1
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 72.8,
+    "items": [
+     {
+      "k": "pants",
+      "purpose": "pants",
+      "h": 67.2,
+      "x": 0,
+      "y": 0,
+      "w": 72.8
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 67.2,
+      "w": 72.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 79.2,
+      "w": 72.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 19.8,
+      "x": 0,
+      "y": 98.4,
+      "w": 72.8
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 118.2,
+      "w": 72.8,
+      "boxes": 2
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 50.1,
+      "x": 0,
+      "y": 168.3,
+      "w": 72.8,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": []
+ }
+]

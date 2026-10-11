@@ -1,0 +1,1534 @@
+[
+ {
+  "title": "Best match",
+  "score": 79.16,
+  "complete": false,
+  "cost": 846,
+  "coverage": {
+   "short": 0.5714,
+   "long": 0.8571,
+   "pants": 1,
+   "folded": 0.9714,
+   "shoes": 0.8,
+   "small": 1,
+   "total": 0.8713
+  },
+  "capacities": {
+   "short": 16,
+   "long": 6,
+   "pants": 20,
+   "folded": 34,
+   "shoes": 8,
+   "small": 48,
+   "handbags": 0,
+   "seasonalBoxes": 1,
+   "seasonalLitres": 100.44,
+   "drawerFolded": 24
+  },
+  "warnings": [
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
+   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 134.6,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 81.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 80
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 40.8,
+      "w": 80
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 109.8,
+      "x": 0,
+      "y": 69.6,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 68.2,
+      "y": 181.2,
+      "w": 66.4
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 28.8,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 80,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 99.2,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 118.4,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 137.6,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 24.4,
+      "x": 0,
+      "y": 156.8,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 80.9,
+    "y0": 0,
+    "y1": 181.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 67.3,
+    "y0": 181.2,
+    "y1": 218.4
+   },
+   {
+    "i": 0,
+    "orientation": "horizontal",
+    "x0": 0,
+    "x1": 80,
+    "y": 180.3
+   }
+  ]
+ },
+ {
+  "title": "Balanced storage",
+  "score": 81.63,
+  "complete": false,
+  "cost": 996,
+  "coverage": {
+   "short": 0.5,
+   "long": 1,
+   "pants": 1,
+   "folded": 1,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.9041
+  },
+  "capacities": {
+   "short": 14,
+   "long": 7,
+   "pants": 20,
+   "folded": 36,
+   "shoes": 10,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 4,
+   "seasonalLitres": 322.75,
+   "drawerFolded": 36
+  },
+  "warnings": [
+   "Estimated cost 996 is over your 900 budget.",
+   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 40.8,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 69.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 87.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 105.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 123.6,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 142.8,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 19.2,
+      "x": 0,
+      "y": 162,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 72.8,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 0,
+      "w": 72.8
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 23,
+      "w": 72.8
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 46,
+      "w": 72.8
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 110.4,
+      "x": 0,
+      "y": 69,
+      "w": 72.8
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 72.8,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 2,
+    "orientation": "horizontal",
+    "x0": 0,
+    "x1": 72.8,
+    "y": 180.3
+   }
+  ]
+ },
+ {
+  "title": "Balanced storage",
+  "score": 80.66,
+  "complete": false,
+  "cost": 997,
+  "coverage": {
+   "short": 0.4286,
+   "long": 1,
+   "pants": 1,
+   "folded": 1,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.8904
+  },
+  "capacities": {
+   "short": 12,
+   "long": 8,
+   "pants": 20,
+   "folded": 36,
+   "shoes": 10,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 6,
+   "seasonalLitres": 322.74,
+   "drawerFolded": 36
+  },
+  "warnings": [
+   "Estimated cost 997 is over your 900 budget.",
+   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   },
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 40.8,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 69.6,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 87.6,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 105.6,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 123.6,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 142.8,
+      "w": 64.267
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 19.2,
+      "x": 0,
+      "y": 162,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   },
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 23,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 46,
+      "w": 64.267
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 112.2,
+      "x": 0,
+      "y": 69,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": []
+ },
+ {
+  "title": "Balanced storage",
+  "score": 79.62,
+  "complete": false,
+  "cost": 976,
+  "coverage": {
+   "short": 0.4286,
+   "long": 1,
+   "pants": 1,
+   "folded": 0.9714,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.8841
+  },
+  "capacities": {
+   "short": 12,
+   "long": 8,
+   "pants": 20,
+   "folded": 34,
+   "shoes": 10,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 6,
+   "seasonalLitres": 322.74,
+   "drawerFolded": 24
+  },
+  "warnings": [
+   "Estimated cost 976 is over your 900 budget.",
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
+   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   },
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 40.8,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 69.6,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 88.8,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 108,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 127.2,
+      "w": 64.267
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 146.4,
+      "w": 64.267
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 15.6,
+      "x": 0,
+      "y": 165.6,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   },
+   {
+    "width": 64.267,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 0,
+      "w": 64.267
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 28.8,
+      "w": 64.267
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 64.267
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 101.2,
+      "x": 0,
+      "y": 80,
+      "w": 64.267
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 64.267,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": []
+ },
+ {
+  "title": "Balanced storage",
+  "score": 84.91,
+  "complete": false,
+  "cost": 956,
+  "coverage": {
+   "short": 0.4286,
+   "long": 1,
+   "pants": 1,
+   "folded": 0.9714,
+   "shoes": 0.8,
+   "small": 1,
+   "total": 0.8597
+  },
+  "capacities": {
+   "short": 12,
+   "long": 7,
+   "pants": 20,
+   "folded": 34,
+   "shoes": 8,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 4,
+   "seasonalLitres": 322.75,
+   "drawerFolded": 24
+  },
+  "warnings": [
+   "Estimated cost 956 is over your 900 budget.",
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
+  ],
+  "sections": [
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 28.8,
+      "w": 60
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 57.6,
+      "w": 60
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 111.6,
+      "x": 0,
+      "y": 69.6,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   },
+   {
+    "width": 72.8,
+    "items": [
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 0,
+      "w": 72.8
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 28.8,
+      "w": 72.8
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 72.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 80,
+      "w": 72.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 99.2,
+      "w": 72.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 118.4,
+      "w": 72.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 137.6,
+      "w": 72.8
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 24.4,
+      "x": 0,
+      "y": 156.8,
+      "w": 72.8
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 72.8,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": []
+ },
+ {
+  "title": "Daily Driver",
+  "score": 81.41,
+  "complete": false,
+  "cost": 784,
+  "coverage": {
+   "short": 0.5714,
+   "long": 0.8571,
+   "pants": 1,
+   "folded": 0.6857,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.8332
+  },
+  "capacities": {
+   "short": 16,
+   "long": 6,
+   "pants": 17,
+   "folded": 24,
+   "shoes": 11,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 1,
+   "seasonalLitres": 100.44,
+   "drawerFolded": 12
+  },
+  "warnings": [
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
+  ],
+  "sections": [
+   {
+    "width": 134.6,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 81.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 80
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 80
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 101.2,
+      "x": 0,
+      "y": 80,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 68.2,
+      "y": 181.2,
+      "w": 66.4
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "pants",
+      "purpose": "pants",
+      "h": 67.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 67.2,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 79.2,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 108,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 136.8,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 25.2,
+      "x": 0,
+      "y": 156,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 80.9,
+    "y0": 0,
+    "y1": 181.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 67.3,
+    "y0": 181.2,
+    "y1": 218.4
+   }
+  ]
+ },
+ {
+  "title": "Daily Driver",
+  "score": 81.38,
+  "complete": false,
+  "cost": 804,
+  "coverage": {
+   "short": 0.5714,
+   "long": 0.8571,
+   "pants": 1,
+   "folded": 0.6857,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.8332
+  },
+  "capacities": {
+   "short": 16,
+   "long": 6,
+   "pants": 17,
+   "folded": 24,
+   "shoes": 11,
+   "small": 48,
+   "handbags": 0,
+   "seasonalBoxes": 1,
+   "seasonalLitres": 100.44,
+   "drawerFolded": 24
+  },
+  "warnings": [
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
+  ],
+  "sections": [
+   {
+    "width": 134.6,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 81.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 18,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 36,
+      "w": 80
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 54,
+      "w": 80
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 113.4,
+      "x": 0,
+      "y": 66,
+      "w": 80
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 66.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 68.2,
+      "y": 181.2,
+      "w": 66.4
+     }
+    ]
+   },
+   {
+    "width": 60,
+    "items": [
+     {
+      "k": "pants",
+      "purpose": "pants",
+      "h": 67.2,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 67.2,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 90.2,
+      "w": 60
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 22.4,
+      "x": 0,
+      "y": 113.2,
+      "w": 60
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 135.6,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 26.4,
+      "x": 0,
+      "y": 154.8,
+      "w": 60
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 60,
+      "boxes": 1
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 80.9,
+    "y0": 0,
+    "y1": 181.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 67.3,
+    "y0": 181.2,
+    "y1": 218.4
+   },
+   {
+    "i": 0,
+    "orientation": "horizontal",
+    "x0": 0,
+    "x1": 80,
+    "y": 180.3
+   }
+  ]
+ },
+ {
+  "title": "Balanced storage",
+  "score": 76.55,
+  "complete": false,
+  "cost": 825,
+  "coverage": {
+   "short": 0.4286,
+   "long": 0.8571,
+   "pants": 1,
+   "folded": 0.7714,
+   "shoes": 1,
+   "small": 1,
+   "total": 0.8245
+  },
+  "capacities": {
+   "short": 12,
+   "long": 6,
+   "pants": 20,
+   "folded": 27,
+   "shoes": 10,
+   "small": 36,
+   "handbags": 0,
+   "seasonalBoxes": 2,
+   "seasonalLitres": 133.92,
+   "drawerFolded": 6
+  },
+  "warnings": [
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
+   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+  ],
+  "sections": [
+   {
+    "width": 114.6,
+    "items": [
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12,
+      "x": 0,
+      "y": 0,
+      "w": 60
+     },
+     {
+      "k": "long",
+      "purpose": "long",
+      "h": 181.2,
+      "x": 61.8,
+      "y": 0,
+      "w": 52.8
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 12,
+      "w": 60
+     },
+     {
+      "k": "drawer",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 40.8,
+      "w": 60
+     },
+     {
+      "k": "short",
+      "purpose": "short",
+      "h": 111.6,
+      "x": 0,
+      "y": 69.6,
+      "w": 60
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 56.4
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 58.2,
+      "y": 181.2,
+      "w": 56.4
+     }
+    ]
+   },
+   {
+    "width": 80,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 80
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 80
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 57.6,
+      "w": 80
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 80,
+      "w": 50
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 28.8,
+      "x": 51.8,
+      "y": 80,
+      "w": 28.2
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
+      "y": 108.8,
+      "w": 50
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 36.2,
+      "x": 51.8,
+      "y": 108.8,
+      "w": 28.2
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 131.2,
+      "w": 50
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 36.2,
+      "x": 51.8,
+      "y": 145,
+      "w": 28.2
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 21.2,
+      "x": 0,
+      "y": 160,
+      "w": 50
+     },
+     {
+      "k": "seasonal",
+      "purpose": "seasonal",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 80,
+      "boxes": 2
+     }
+    ]
+   }
+  ],
+  "dividers": [
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 60.9,
+    "y0": 0,
+    "y1": 181.2
+   },
+   {
+    "i": 1,
+    "orientation": "vertical",
+    "x": 50.9,
+    "y0": 80,
+    "y1": 181.2
+   },
+   {
+    "i": 0,
+    "orientation": "vertical",
+    "x": 57.3,
+    "y0": 181.2,
+    "y1": 218.4
+   }
+  ]
+ }
+]
