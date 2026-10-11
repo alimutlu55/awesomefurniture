@@ -10,6 +10,9 @@
  --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
 }
 @media(max-width:900px){
+ #app :is(#pop3,#pop4)[data-context-section="resize"]>:not(.ph):not(.item-size-pair):not(.mobile-sheet-handle){display:none!important}
+ #app :is(#pop3,#pop4).mobile-bottom-sheet[data-context-section="resize"]{left:0;right:0;top:auto;width:auto;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;height:var(--panel-height);max-height:var(--panel-height)}
+ #app.inspecting:has(:is(#pop3,#pop4)[data-context-section="resize"].show){--panel-height:var(--mobile-settings-sheet-height)}
  #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
  #app:has(.mobile-bottom-sheet.show),#app.props-open:not(.inspecting),#app.auto-design-open{background:var(--mobile-scene-background)}
  #app:has(.mobile-bottom-sheet.show) #view,#app.props-open:not(.inspecting) #view,#app.auto-design-open #view{background:transparent}

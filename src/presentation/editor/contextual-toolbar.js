@@ -33,7 +33,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         row.querySelectorAll('[aria-haspopup]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ')};
-    const menuIcons = {material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer')};
+    const menuIcons = {material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ')};
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();
@@ -65,8 +65,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         menu.tabIndex = -1;
         menu.focus({preventScroll:true});
     }
-    function showMenu(options, trigger) {
-        const opening = menu.hidden || menuTrigger !== trigger || menu.classList.contains('contextual-control-popover');
+    function showMenu(options, trigger, force = false) {
+        const opening = force || menu.hidden || menuTrigger !== trigger || menu.classList.contains('contextual-control-popover');
         close();
         if (!opening) return;
         menu.setAttribute('role', 'menu');
@@ -84,7 +84,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             text.textContent = label;
             b.append(text);
             if (key === 'stores') b.disabled = !controls(key).length;
-            b.onclick = () => key === 'stores' ? showControls(key, label, trigger) : (close(), execute(key));
+            b.onclick = () => key === 'stores' ? showControls(key, label, trigger) : key === 'replace' ? showMenu(replacements(),trigger,true) : (close(), execute(key));
             return b;
         }));
         menu.replaceChildren(items);
@@ -105,8 +105,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);
             b.innerHTML = icons[key] + '<span>' + label + '</span>';
-            if (key === 'more' || key === 'replace' || (key === 'resize' && selection === 'item')) {b.setAttribute('aria-haspopup',key === 'resize' ? 'dialog' : 'menu'); b.setAttribute('aria-expanded','false');}
-            b.onclick = () => key === 'more' ? showMenu(selection === 'item' ? itemMoreActions : wardrobeMoreActions,b) : key === 'replace' ? showMenu(replacements(),b) : key === 'resize' && selection === 'item' ? showControls(key,label,b) : (close(),execute(key));
+            if (key === 'more') {b.setAttribute('aria-haspopup','menu'); b.setAttribute('aria-expanded','false');}
+            b.onclick = () => key === 'more' ? showMenu(selection === 'item' ? itemMoreActions : wardrobeMoreActions,b) : (close(),execute(key));
             return b;
         }));
     };

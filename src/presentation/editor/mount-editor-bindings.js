@@ -1,5 +1,6 @@
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
+import { createResizePresenter } from './resize-presenter.js';
 import * as inspectorBindings from './inspector-bindings.js';
 import * as gestureBindings from './gesture-bindings.js';
 import * as wizardBindings from './wizard-bindings.js';
@@ -158,6 +159,18 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         $('#left').scrollTop = 0;
         camera.frameMobileInspector();
     };
+    const resize = createResizePresenter({
+        getSelection: () => model.activeCabinet().state,
+        prepare: target => {
+            const panel = $({wardrobe:'#left',item:'#pop3',divider:'#pop4'}[target]);
+            panel.dataset.sheetPosition = 'compact';
+            panel.scrollTop = 0;
+            selectionState.popMin = false;
+        },
+        openWardrobe: () => openControls('resize'),
+        openItem: () => inspector.showPop(null, '#pop3', 'resize'),
+        openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
+    });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
         getSelection: () => !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
@@ -168,13 +181,12 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 inspector.itemUI(true);
                 return [$('#ipurpose')];
             }
-            if (divider) inspector.dividerUI(true);
-            else inspector.itemUI(true);
-            return [$('#pop' + (divider ? '4' : '3')).querySelector('.item-size-pair')];
+            return [];
         },
         execute: key => {
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;
+            if (key === 'resize') { resize.open(); return; }
             if (key.startsWith('t-')) { inspector.itemAction(key); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();
