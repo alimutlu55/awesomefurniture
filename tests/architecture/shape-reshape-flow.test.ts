@@ -293,21 +293,32 @@ test('handbags are a shelf storage purpose and survive saving a project', async 
   assert.equal(back.wardrobes[0]!.state.secs[0]![0]!.purpose, 'handbags');
 });
 
-test('Auto design places handbag shelves in open space and reports bags that do not fit', async () => {
-  const { placeHandbags, handbagsIn, bagsPerShelf } = await import('../../src/domain/planner/handbag-layer');
+test('Auto design plans handbags as a category: capacity, trade-offs and shortfall report', async () => {
+  const { handbagsIn, bagsPerShelf } = await import('../../src/domain/planner/handbag-layer');
   const { WardrobePlanner } = await import('../../src/domain/planner/wardrobe-planner.js');
+  const { generateDesignedLayouts } = await import('../../src/domain/planner/wardrobe-composer');
   assert.equal(bagsPerShelf(97), 2, 'a 97 cm bay holds two 31 cm bags with gaps');
-  const cfg: any = { w: 200, h: 230, d: 60, budget: 900, needs: { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0, bags: 8 }, reach: 185, longDrop: 160, upper: 'none', drawers: 'none', allowLift: false, density: 'comfort', growth: 0, jackets: 0, coats: 0, accessible: false, composition: 'balanced', finFactor: 1, doors: 'none' };
+  const cfg: any = { w: 200, h: 230, d: 60, budget: 900, needs: { short: 14, long: 4, pants: 8, folded: 20, shoes: 6, small: 20, handbags: 0 }, reach: 185, longDrop: 160, upper: 'fill', drawers: 'auto', allowLift: false, density: 'comfort', growth: 15, jackets: 6, coats: 2, accessible: false, composition: 'balanced', finFactor: 1, doors: 'none', engaged: true, reachStd: 185 };
+  // The physical engine counts bags on a handbag shelf, and not on a shelf that is too low or out of reach.
   WardrobePlanner.configure(cfg);
-  const sections = [{ width: 97.3, items: [] }, { width: 97.3, items: [] }];
-  const plan: any = { sections, dividers: [], warnings: [], metrics: WardrobePlanner.analyze(sections, cfg) };
-  const placed = placeHandbags(plan, cfg);
-  assert.ok(placed.bags!.placed >= 8, 'enough bags are placed: ' + placed.bags!.placed);
-  assert.equal(handbagsIn(placed.sections), placed.bags!.placed);
-  assert.equal(placed.metrics.valid, true, 'the plan still checks out');
-  // With no open space, the report says how many bags fit instead of pretending.
-  const fullSections = [{ width: 97.3, items: [{ k: "shelf", purpose: "accessories", h: 200, x: 0, y: 0, w: 97.3 }] }, { width: 97.3, items: [{ k: "shelf", purpose: "accessories", h: 200, x: 0, y: 0, w: 97.3 }] }] as any[]; const full: any = { sections: fullSections, dividers: [], warnings: [], metrics: WardrobePlanner.analyze(fullSections, cfg) };
-  const none = placeHandbags(full, { ...cfg, needs: { ...cfg.needs, bags: 4 } });
-  assert.ok(none.bags!.placed < 4);
-  assert.ok(none.warnings.some((m: string) => /Handbags: room for/.test(m)));
+  const bay = (items: any[]) => WardrobePlanner.analyze([{ width: 97.3, items }], { ...cfg, w: 105.3 }).capacities.handbags;
+  assert.equal(bay([{ k: 'shelf', purpose: 'handbags', h: 25 }, { k: 'shelf', purpose: 'handbags', h: 25 }]), 4, 'two stacked shelves hold two bags each');
+  assert.equal(bay([{ k: 'shelf', purpose: 'handbags', h: 20 }]), 0, 'a shelf under 25 cm holds no bag');
+  assert.equal(bay([{ k: 'void', h: 180 }, { k: 'shelf', purpose: 'handbags', h: 25 }]), 0, 'a shelf above reach holds no bag');
+  // Without bags, the search plans none and reports nothing.
+  const none = generateDesignedLayouts(cfg)[0]!;
+  assert.equal(handbagsIn(none.sections), 0);
+  assert.equal(none.bags, undefined);
+  // With bags, the best plan holds them alongside clothing, and every plan reports what it holds.
+  const plans = generateDesignedLayouts({ ...cfg, needs: { ...cfg.needs, handbags: 6 } });
+  const best = plans[0]!;
+  assert.ok(best.bags!.placed >= 4, 'the best plan holds most of the bags: ' + best.bags!.placed);
+  assert.equal(handbagsIn(best.sections), best.bags!.placed);
+  assert.equal(best.metrics.capacities.handbags, best.bags!.placed, 'the planner capacity and the layout agree');
+  assert.equal(best.metrics.valid, true);
+  assert.ok((best.metrics.capacities.long ?? 0) >= 4 && (best.metrics.capacities.folded ?? 0) >= 20, 'clothing keeps its coverage when there is room');
+  // More bags than the wardrobe can hold are reported honestly.
+  const many = generateDesignedLayouts({ ...cfg, needs: { ...cfg.needs, handbags: 40 } })[0]!;
+  assert.ok(many.bags!.placed < 40);
+  assert.ok(many.warnings.some((m: string) => /Handbags: room for/.test(m)));
 });

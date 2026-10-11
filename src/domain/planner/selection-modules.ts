@@ -8,6 +8,7 @@ import type { Demand,Category } from './selection-config';
 import { upperShelfHeight } from './upper-shelf';
 import { storageHeightLimits } from './storage-fitting-limits';
 import type { OpenSpace } from './selection-spaces';
+import { BAG } from './handbag-size';
 export interface ModuleCandidate {items:EditorItem[];capacity:Demand;seasonalBoxes:number;height:number;value:number;clearance:number;reason:string}
 export function clearanceFit(it:EditorItem,cfg:PlannerConfig):number {
  const c=selectionContext(cfg),h=it.h*10;
@@ -39,7 +40,9 @@ export function additionalGate(it:EditorItem,width:number,bottom:number,cfg:Plan
  if(['drawer','sdrawer','basket'].includes(kind)&&!planner.accessInfo(it,(bottom+R.base)/10,cfg).withinReach)return 'Drawer top exceeds the visible reach band.';
  return null;
 }
-export function modulesFor(space:OpenSpace,unmet:Demand,cfg:PlannerConfig,seasonalRemaining:number,compact=true):ModuleCandidate[] {
+export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:PlannerConfig,seasonalRemaining:number,compact=true):ModuleCandidate[] {
+ // A category the caller does not mention has nothing unmet.
+ const unmet=Object.fromEntries(CATEGORIES.map(k=>[k,unmetDemand[k]??0])) as Demand;
  const c=selectionContext(cfg),out:ModuleCandidate[]=[],size=storageBoxSize(cfg);
  const add=(specs:EditorItem[],reason:string)=>{
   const height=specs.reduce((n,it)=>n+it.h*10,0);if(height>space.h+.1)return;
@@ -89,6 +92,9 @@ export function modulesFor(space:OpenSpace,unmet:Demand,cfg:PlannerConfig,season
    add([spec('sdrawer','small',Math.max(MODS.sdrawer.mn*10,R.smallDrawerIdeal))],'A small-item drawer preserves practical contents and hand clearance.');
    add([spec('sdrawer','small',MODS.sdrawer.h*10)],'A standard-height small-item drawer gives extra room for organising underwear and socks.');
    for(const n of [1,2,3])add(Array.from({length:n},()=>spec('sdrawer','small',snapUp(R.smallDrawerIdeal))),'Small-item drawers keep underwear and socks together below the drawer reach limit.');
+  }else if(cat==='handbags'){
+   // Bags stand upright on shelves of their own; stacked shelves share one bay.
+   for(const n of [1,2,3])add(Array.from({length:n},()=>spec('shelf','handbags',BAG.shelf*10)),'Handbags stand upright on their own shelves, within reach.');
   }else if(cat==='shoes'){
    for(const h of new Set([snapUp(MODS.shoe.mn*10),...(compact?[MODS.shoe.mn*10]:[])]))for(const n of [1,2,3])add(Array.from({length:n},()=>spec('shoe','shoes',h)),'Shoe tiers use lower storage without consuming the prime clothing band.');
   }

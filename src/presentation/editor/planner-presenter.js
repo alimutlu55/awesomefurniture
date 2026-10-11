@@ -38,7 +38,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         $('#ideas-count').textContent = plannerState.ideas.length + ' designs';
         $('#ideas').innerHTML = plannerState.ideas.length ? plannerState.ideas.map((p, index) => {
             const m = p.metrics;
-            const requested = ['short', 'long', 'pants', 'folded', 'shoes', 'small'].filter(k => cfg.needs[k] > 0);
+            const requested = ['short', 'long', 'pants', 'folded', 'shoes', 'small', 'handbags'].filter(k => cfg.needs[k] > 0);
             const owned = requested.reduce((sum, k) => sum + cfg.needs[k], 0);
             const currentFit = owned ? requested.reduce((sum, k) => sum + Math.min(cfg.needs[k], Math.floor(m.capacities[k])), 0) / owned : 1;
             const shortages = requested.filter(k => Math.floor(m.capacities[k]) < cfg.needs[k]);
@@ -75,7 +75,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         };
         const needs = { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0 };
         for (const k of Object.keys(model.activeCabinet().state.profile.needs)) {
-            needs[k] = bounded('#need-' + k, 0, k === 'folded' || k === 'small' ? 200 : k === 'short' ? 150 : k === 'pants' ? 100 : k === 'bags' ? 60 : 80, model.activeCabinet().state.profile.needs[k] ?? 0);
+            needs[k] = bounded('#need-' + k, 0, k === 'folded' || k === 'small' ? 200 : k === 'short' ? 150 : k === 'pants' ? 100 : k === 'handbags' ? 60 : 80, model.activeCabinet().state.profile.needs[k] ?? 0);
         }
         const p = model.activeCabinet().state.profile;
         const reachStd = bounded('#reach', 140, 210, p.reachStd ?? p.reach ?? 185);
@@ -142,7 +142,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         (plannerState.wizardTrigger || $('#launch-wizard')).focus();
     }
     function storedNow(a) {
-        const rows = ['short', 'long', 'pants', 'folded', 'shoes', 'small'].map(k => [PURPOSE[k], Math.floor(a.capacities[k])]).concat([['Seasonal boxes', Math.floor(a.capacities.seasonalBoxes)]]).filter(r => r[1] > 0);
+        const rows = ['short', 'long', 'pants', 'folded', 'shoes', 'small', 'handbags'].map(k => [PURPOSE[k], Math.floor(a.capacities[k] ?? 0)]).concat([['Seasonal boxes', Math.floor(a.capacities.seasonalBoxes)]]).filter(r => r[1] > 0);
         return (rows.length ? '<div class="capacity">' + rows.map(r => '<span>' + esc(r[0]) + '</span><b>~' + r[1] + '</b>').join('') + '</div>' + tags(['Current capacity']) : tags(['Empty', 'Add fittings']));
     }
     function planUI(a) {
