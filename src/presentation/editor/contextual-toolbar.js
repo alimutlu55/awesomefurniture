@@ -33,7 +33,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         row.querySelectorAll('[aria-haspopup]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ')};
-    const menuIcons = {material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ')};
+    const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ')};
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();

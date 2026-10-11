@@ -2,7 +2,7 @@ import type { EditorState } from '../../application/projects/editor-scene';
 import type { createSceneCommands } from '../../application/commands/scene-commands';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
-    addStep, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, shapePanels, shapeProblems, splitPanel,
+    addStep, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
     type ShapeTemplateId, type WardrobeShape,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
@@ -34,6 +34,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     const current = (): WardrobeShape => resolveShape(state());
     const editable = (shape: WardrobeShape): WardrobeShape => state().shape ? shape : { ...shape, template: 'custom' };
     const f = (v: number) => measureNumber(Math.round(v * 10) / 10);
+    /** Number inputs need a dot decimal, whatever the display locale. */
+    const raw = (v: number) => String(Math.round(v * 10) / 10);
 
     function commit(next: WardrobeShape) {
         if (sceneCommands.setShape(editable(next))) callbacks.refresh();
@@ -50,11 +52,14 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
 
     function field(label: string, data: Record<string, string | number>, value: number, opts: { min?: number; max?: number; step?: number; unit?: string } = {}) {
         const attrs = Object.entries(data).map(([k, v]) => ' data-' + k + '="' + v + '"').join('');
-        return '<label class="shape-field"><span>' + label + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="' + (opts.step ?? .5) + '"' + (opts.min !== undefined ? ' min="' + opts.min + '"' : '') + (opts.max !== undefined ? ' max="' + opts.max + '"' : '') + attrs + ' value="' + f(value) + '" aria-label="' + esc(label) + '"><small>' + (opts.unit ?? 'cm') + '</small></span></label>';
+        return '<label class="shape-field"><span>' + label + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="' + (opts.step ?? .5) + '"' + (opts.min !== undefined ? ' min="' + opts.min + '"' : '') + (opts.max !== undefined ? ' max="' + opts.max + '"' : '') + attrs + ' value="' + raw(value) + '" aria-label="' + esc(label) + '"><small>' + (opts.unit ?? 'cm') + '</small></span></label>';
     }
     const action = (name: string, title: string, data: Record<string, number>, path: string) =>
         '<button type="button" class="shape-action" data-action="' + name + '"' + Object.entries(data).map(([k, v]) => ' data-' + k + '="' + v + '"').join('') + ' title="' + esc(title) + '" aria-label="' + esc(title) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg></button>';
 
+    const TRASH = 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13';
+    const row = (kind: string, k: number, label: string, meta: string, actions: string, fields: string) =>
+        '<div class="shape-row' + (kind ? ' ' + kind : '') + '" data-' + (kind === 'panel' ? 'segment' : 'point') + '="' + k + '"><div class="shape-row-head"><b>' + esc(label) + '</b>' + (meta ? '<small>' + esc(meta) + '</small>' : '') + '<span class="shape-actions">' + actions + '</span></div><div class="shape-fields">' + fields + '</div></div>';
     function render() {
         const templates = dom.$('#shape-templates'), panels = dom.$('#shape-panels'), fold = dom.$<HTMLDetailsElement>('#shape-fold');
         const active = state().shape?.template ?? 'regular';
@@ -62,7 +67,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         fold.open = !!selectionState.shapeEditing;
         const shape = current(), pts = shape.top, rows: string[] = [], panelsList = shapePanels(shape);
         const point = (k: number, label: string, withX: boolean) => {
-            rows.push('<div class="shape-row" data-point="' + k + '"><b>' + esc(label) + '</b><div class="shape-fields">' + (withX ? field('At', { p: k, k: 'x' }, pts[k]!.x, { min: 0, max: state().w }) : '') + field('Height', { p: k, k: 'y' }, pts[k]!.y, { min: 40, max: 280 }) + '</div>' + (withX ? action('remove', 'Remove ' + label.toLowerCase(), { p: k }, 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13') : '') + '</div>');
+            rows.push(row('', k, label, '', withX ? action('remove', 'Remove ' + label.toLowerCase(), { p: k }, TRASH) : '', (withX ? field('From left', { p: k, k: 'x' }, pts[k]!.x, { min: 0, max: state().w }) : '') + field('Height', { p: k, k: 'y' }, pts[k]!.y, { min: 40, max: 280 })));
         };
         let breaks = 0, steps = 0;
         point(0, 'Left side', false);
@@ -70,14 +75,14 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             const a = pts[k]!, b = pts[k + 1]!;
             if (b.x - a.x > 1e-6) {
                 const panel = panelsList.find(p => p.kind === 'top' && p.from === k)!;
-                rows.push('<div class="shape-row panel" data-segment="' + k + '"><b>' + esc(panel.label) + '<small>' + f(panel.length) + ' cm long · ' + f(b.x - a.x) + ' cm wide</small></b><div class="shape-fields">' + field('Angle', { s: k, k: 'angle' }, panel.angle, { min: -70, max: 70, step: .5, unit: '°' }) + '</div>'
-                    + action('split', 'Add a break point to ' + panel.label.toLowerCase(), { s: k }, 'M4 16 12 8l8 8M12 8v.01')
-                    + action('step', 'Add a step to ' + panel.label.toLowerCase(), { s: k }, 'M4 8h8v8h8') + '</div>');
+                rows.push(row('panel', k, panel.label, 'Board ' + f(panel.length) + ' cm', action('split', 'Add a break point to ' + panel.label.toLowerCase(), { s: k }, 'M4 16 12 8l8 8M12 8v.01') + action('step', 'Add a step to ' + panel.label.toLowerCase(), { s: k }, 'M4 8h8v8h8'),
+                    field('Angle', { s: k, k: 'angle' }, panel.angle, { min: -70, max: 70, step: .5, unit: '°' }) + '<span class="shape-field shape-readout"><span>Width</span><b>' + f(b.x - a.x) + ' cm</b></span>'));
                 if (k + 1 < pts.length - 1 && !(pts[k + 2] && Math.abs(pts[k + 2]!.x - b.x) < 1e-6)) point(k + 1, 'Break ' + ++breaks, true);
             }
             else {
                 const label = 'Step ' + ++steps, anchored = a.partition !== undefined && a.partition === b.partition;
-                rows.push('<div class="shape-row step" data-point="' + k + '"><b>' + label + (anchored ? '<small>On partition ' + (a.partition! + 1) + '</small>' : '') + '</b><div class="shape-fields">' + field('At', { p: k, k: 'x' }, a.x, { min: 0, max: state().w }) + field('Left', { p: k, k: 'y' }, a.y) + field('Right', { p: k + 1, k: 'y' }, b.y) + '</div>' + action('remove', 'Remove ' + label.toLowerCase(), { p: k }, 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13') + '</div>');
+                rows.push(row('step', k, label, anchored ? 'On partition ' + (a.partition! + 1) : '', action('remove', 'Remove ' + label.toLowerCase(), { p: k }, TRASH),
+                    field('From left', { p: k, k: 'x' }, a.x, { min: 0, max: state().w }) + field('Rise', { p: k, k: 'rise' }, b.y - a.y, { min: -240, max: 240 }) + field('Left height', { p: k, k: 'y' }, a.y) + field('Right height', { p: k + 1, k: 'y' }, b.y)));
             }
         }
         point(pts.length - 1, 'Right side', false);
@@ -90,6 +95,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const value = input.valueAsNumber, shape = current();
         if (!Number.isFinite(value)) { render(); return; }
         if (input.dataset.k === 'angle') commit(setPanelAngle(shape, Number(input.dataset.s), value));
+        else if (input.dataset.k === 'rise') commit(setStepRise(shape, Number(input.dataset.p), value));
         else commit(setPoint(shape, Number(input.dataset.p), input.dataset.k === 'x' ? { x: value } : { y: value }));
     }
     function onAction(button: HTMLButtonElement) {

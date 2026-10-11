@@ -27,7 +27,7 @@ supplied controls and appearance. Three.js is pinned to 0.128.0 and bundled loca
 
 | Layer | Modules and ownership |
 | --- | --- |
-| Domain | `wardrobe-planner.js`, `catalog.js`, `wardrobe-geometry.js`, `cabinet-geometry.js`, typed designs/defaults. Layout, feasibility, placement, measurements, clearances and swept collisions use plain centimetre data. |
+| Domain | `wardrobe-planner.js`, `catalog.js`, `wardrobe-geometry.js`, `cabinet-geometry.js`, `shape/` (wardrobe skeleton model and templates, see [wardrobe shapes](wardrobe-shapes.md)), typed designs/defaults. Layout, feasibility, placement, measurements, clearances and swept collisions use plain centimetre data. |
 | Application | Strict TypeScript command families, `scene-commands.ts`, `editor-model.ts`, `scene-history.ts`, `planner-service.ts`. Fittings, shelves, dividers, duplication, sizing, finishes, doors, profiles, cabinet edits, snapshots and history. |
 | Infrastructure | Existing project repositories and strict serialization, with validated layout intent for lossless reopening. |
 | Presentation | Camera, frame rendering, dimensions, movement overlays, viewport handles, scene picking, divider/cabinet dragging, item resizing, scene selection, inspector panels, measurements, item actions, planner, shell and focused DOM bindings. |

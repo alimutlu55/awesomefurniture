@@ -34,11 +34,13 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         }
         return el;
     }
+    /** On a phone, skeleton editing lives in the Shape sheet; elsewhere in the side panel. */
+    const shapeSheetOpen = () => dom.width > 900 || ($('#app').classList.contains('props-open') && $('#left').dataset.contextSection === 'shape');
     function placeShapeHandles() {
         if (!renderState.renderActive) {
             return;
         }
-        const handles = !inspector.inside() ? shapeInspector.handles() : [], d = getRenderDesign().d;
+        const handles = getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && shapeSheetOpen() ? shapeInspector.handles() : [], d = getRenderDesign().d;
         handles.forEach((q, n) => {
             const el = shapeHandle(n);
             el.dataset.index = String(q.index);
@@ -120,7 +122,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         };
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
-            const cx = x + sw / 2, sel = renderState.renderActive && selectionState.focusOn && inspector.inside() && i === getRenderDesign().sel, H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
+            // While the skeleton is edited on a phone, the model shows only the panels and their handles.
+            const shapeFocus = selectionState.shapeEditing && dom.width <= 900 && shapeSheetOpen();
+            const cx = x + sw / 2, sel = !shapeFocus && renderState.renderActive && selectionState.focusOn && inspector.inside() && i === getRenderDesign().sel, H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
             const aoMaterial = new THREE.MeshBasicMaterial({ map: resources.aoTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
             const ao = shaped ? flatShape(outline, aoMaterial) : new THREE.Mesh(new THREE.PlaneGeometry(sw, H), aoMaterial);
             if (shaped) ao.position.z = -d / 2 + .9;

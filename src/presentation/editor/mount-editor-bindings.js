@@ -155,13 +155,14 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         if (child.tagName === 'H2' || !group || child.classList.contains('reach-row') || child.classList.contains('reset-row')) {
             group = document.createElement('section');
             const label = child.textContent.trim();
-            group.dataset.wardrobeControls = child.classList.contains('reach-row') ? 'reach' : child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
+            group.dataset.wardrobeControls = child.classList.contains('reach-row') ? 'reach' : child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Shape:'shape',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
             body.insertBefore(group,child);
         }
         group.append(child);
     }
     const openControls = key => {
         inspector.hidePop();
+        if (key !== 'shape' && selectionState.shapeEditing) { selectionState.shapeEditing = false; rendering.build(); }
         takeMobilePanel(dom, $('#left'));
         $('#left').dataset.contextSection = key;
         elements.app.classList.add('props-open');
@@ -212,7 +213,11 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 elements.app.dataset.toolbarMode = 'move';
                 selectionState.deep = true; selectionState.pillOn = true;
                 inspector.update();
-            } else openControls(key);
+            } else {
+                openControls(key);
+                // The shape sheet opens with its panel list and break-point handles.
+                if (key === 'shape' && !selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); }
+            }
         }
     });
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';

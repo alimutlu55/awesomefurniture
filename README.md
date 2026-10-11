@@ -68,6 +68,15 @@ Application workflows, mounting and extracted rendering modules use strict
 TypeScript. Remaining presenter and geometry JavaScript uses the existing
 non-strict checker; the original numerical planner stays behind its typed interface.
 
+## Wardrobe shapes
+
+Wardrobes can be regular, sloped, stepped, under-stairs, recessed or custom. Choose a
+shape under **Shape** in the wardrobe settings (on phones: **More › Shape**), then
+drag the break-point handles on the model or enter exact heights, positions and
+angles under **Adjust panels**. All shapes share one top-profile model; fittings,
+doors, measurements, Undo and saved projects follow it. See
+[wardrobe shapes](docs/wardrobe-shapes.md).
+
 ## Smarter Auto design
 
 Auto design shows clothing quantities and **Max reach**, followed by storage ideas.

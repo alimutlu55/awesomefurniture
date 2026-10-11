@@ -27,7 +27,7 @@ test('presentation writes design changes only through application commands',()=>
  const files=[];
  const walk=dir=>{for(const entry of readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name);if(entry.isDirectory())walk(file);else if(/\.[jt]s$/.test(file)&&!file.endsWith('.d.ts'))files.push(file)}};
  walk(path.join(__dirname,'../src/presentation'));
- const fields=new Set(['w','h','d','n','wt','secs','dividers','fin','doors','profile','proposal','reachLine']);
+ const fields=new Set(['w','h','d','n','wt','secs','dividers','fin','doors','profile','proposal','reachLine','shape']);
  const violations=[];
  for(const file of files){
   const text=readFileSync(file,'utf8'),source=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true);

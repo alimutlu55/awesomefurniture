@@ -319,6 +319,20 @@ export function setPoint(shape: WardrobeShape, index: number, patch: { x?: numbe
   }
   return { template: shape.template, top };
 }
+/** Change a step's rise. The run after the step moves with it up to the next
+ * step (or the right side), so flat panels stay flat and the next step absorbs
+ * the change. `index` is the step's left corner. */
+export function setStepRise(shape: WardrobeShape, index: number, rise: number): WardrobeShape {
+  const a = shape.top[index], b = shape.top[index + 1];
+  if (!a || !b || Math.abs(b.x - a.x) > EPS || !Number.isFinite(rise)) return shape;
+  const delta = round(a.y + rise - b.y), top = shape.top.map(p => ({ ...p }));
+  for (let k = index + 1; k < top.length; k++) {
+    top[k]!.y = round(top[k]!.y + delta);
+    const next = top[k + 1];
+    if (next && Math.abs(next.x - top[k]!.x) < EPS && k > index + 1) break;
+  }
+  return { template: shape.template, top };
+}
 /** Set a top panel's angle by moving its end point (or start when pivoting at the end). */
 export function setPanelAngle(shape: WardrobeShape, from: number, degrees: number, pivot: 'start' | 'end' = 'start'): WardrobeShape {
   const a = shape.top[from], b = shape.top[from + 1];
