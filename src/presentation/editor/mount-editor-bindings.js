@@ -22,6 +22,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     inspectorBindings.bindInspectorControls({ dom, rendering, lifetime });
     inspectorBindings.bindDividerClose({ dom, inspector });
     inspectorBindings.bindDgap({ dom, rendering, inspector, shell, geometry, model, commands, history });
+    inspectorBindings.bindDheight({ dom, inspector, model, commands, shell });
     inspectorBindings.bindDividerRemove({ dom, commands });
     inspectorBindings.bindWindowPointermove({ dom, interactions, lifetime });
     inspectorBindings.bindWindowPointerup({ dom, interactions, lifetime });

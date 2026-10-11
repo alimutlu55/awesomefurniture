@@ -12,6 +12,24 @@ export function bindDividerClose({ dom, inspector }) {
     $('#divider-close').onclick = () => inspector.hidePop();
 }
 /** @param {import('./inspector-bindings.ports').BindDgapPorts} ports */
+/** Height of a vertical divider, typed in centimetres. */
+export function bindDheight({ dom, inspector, model, commands, shell }) {
+    const { $ } = dom;
+    const input = $('#dheight');
+    const commit = () => {
+        const index = model.activeCabinet().state.divider, value = ( /** @type {HTMLInputElement} */(input)).valueAsNumber;
+        if (!model.activeCabinet().state.dividers?.[index]) return;
+        if (!Number.isFinite(value)) {
+            shell.toast('Enter a height in centimetres');
+            inspector.dividerUI();
+            return;
+        }
+        commands.setDividerHeight(index, value);
+        inspector.update(true);
+    };
+    input.addEventListener('change', commit);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+}
 export function bindDgap({ dom, rendering, inspector, shell, geometry, model, commands, history }) {
     const { $ } = dom;
     [0, 1].forEach(k => {

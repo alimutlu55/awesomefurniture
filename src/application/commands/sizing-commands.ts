@@ -2,7 +2,7 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'milestone' | 'changed'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'widths' | 'bayMinW' | 'itemMinW' | 'used' | 'ih' | 'effectiveMin' | 'computeLayout' | 'okItem' | 'overflow' | 'narrowToFit' | 'dividerValid'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'widths' | 'bayMinW' | 'itemMinW' | 'used' | 'ih' | 'effectiveMin' | 'computeLayout' | 'okItem' | 'overflow' | 'narrowToFit' | 'dividerValid' | 'clampDivider'>;
 };
 export function createSizingCommands({ getDesign, effects, rules }: Ports) {
     function clampWidths() {
@@ -99,11 +99,14 @@ export function createSizingCommands({ getDesign, effects, rules }: Ports) {
                 removed += compressBay(i);
             }
         }
+        // Dividers follow the slope like items: their tops are cut first, and only a divider
+        // the slope leaves too short is removed.
         const before = getDesign().dividers.length;
+        getDesign().dividers = getDesign().dividers.map(d => d.i < getDesign().n ? rules.clampDivider(d) : d);
         getDesign().dividers = getDesign().dividers.filter((d, j) => d.i >= getDesign().n || rules.dividerValid(d, j));
         const boards = before - getDesign().dividers.length;
         if (removed || boards) {
-            const parts = [removed && removed + ' module' + (removed > 1 ? 's' : ''), boards && boards + ' shelf board' + (boards > 1 ? 's' : '')].filter(Boolean).join(' and ');
+            const parts = [removed && removed + ' module' + (removed > 1 ? 's' : ''), boards && boards + ' shelf or divider' + (boards > 1 ? 's' : '')].filter(Boolean).join(' and ');
             effects.report(parts + ' no longer fit under the top and ' + (removed + boards > 1 ? 'were' : 'was') + ' removed. Undo (Ctrl/Cmd+Z) restores ' + (removed + boards > 1 ? 'them' : 'it') + '.');
         }
         else if (squeezed) {

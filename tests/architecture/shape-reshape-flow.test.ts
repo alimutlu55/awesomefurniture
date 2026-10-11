@@ -160,3 +160,57 @@ test('every rule has a plain-language message that says what to do', async () =>
   assert.match(friendlyProblem('Every part must be at least 40 cm tall.'), /at least 40 cm tall/);
   assert.equal(friendlyProblem('Something new.'), 'Something new.');
 });
+
+test('dividers follow the slope like items: tops are cut, heights are limited and set in cm', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const { createWardrobeGeometry: geometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const state = createEditorState();
+  const sloped = createFromTemplate('sloped', { w: W, h: H, maxN: 6 });
+  Object.assign(state, { shape: sloped.shape, h: H, n: 1, wt: sloped.wt, sel: 0 });
+  const messages: string[] = [];
+  const commands = createDesignCommands(() => state, { report: m => messages.push(m) });
+  const rules = geometry(() => state);
+  state.space = null;
+  commands.addSpaceDivider();
+  const index = state.dividers.length - 1;
+  // Created at full bay height, its top is cut to the slope it stands under.
+  const cut = rules.clampDivider(state.dividers[index]);
+  assert.ok(cut.y1 < state.dividers[index].y1, 'the top is cut to the slope');
+  assert.equal(rules.dividerValid(state.dividers[index], index), true);
+  // Asking for more than the slope allows gives the tallest allowed height and says why.
+  assert.equal(commands.setDividerHeight(index, 500), true);
+  assert.match(messages.at(-1)!, /limits this divider to/);
+  assert.ok(state.dividers[index].y1 - state.dividers[index].y0 < 200);
+  // Too short is refused with a reason.
+  assert.equal(commands.setDividerHeight(index, 5), false);
+  assert.match(messages.at(-1)!, /at least 15 cm/);
+  // A lower flat top cuts a divider's top to the new clear height, and removes one that is too short.
+  state.shape = { template: 'custom', top: [{ x: 0, y: 120 }, { x: W, y: 120 }] };
+  state.h = 120;
+  commands.fitToShape();
+  const kept = state.dividers[index];
+  assert.ok(kept, 'a divider that still has room is kept');
+  assert.ok(kept.y1 - kept.y0 >= 15 - .01, 'and is at least the shortest divider');
+  state.shape = { template: 'custom', top: [{ x: 0, y: 24 }, { x: W, y: 24 }] };
+  state.h = 24;
+  commands.fitToShape();
+  assert.equal(state.dividers.length, 0, 'a divider the slope leaves too short is removed');
+  assert.match(messages.at(-1)!, /shelf or divider/);
+});
+
+test('a divider moved under a lower part of the slope takes its top with it', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const { createWardrobeGeometry: geometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const state = createEditorState();
+  const sloped = createFromTemplate('sloped', { w: W, h: H, maxN: 6 });
+  Object.assign(state, { shape: sloped.shape, h: H, n: 1, wt: sloped.wt, sel: 0 });
+  const commands = createDesignCommands(() => state);
+  const rules = geometry(() => state);
+  state.space = null;
+  commands.addSpaceDivider();
+  const index = state.dividers.length - 1;
+  commands.moveDividerTo(index, 20);
+  const d = state.dividers[index];
+  assert.ok(Math.abs(d.y1 - rules.clampDivider({ ...d, y1: 999 }).y1) < .01, 'the stored top matches the slope at the new spot');
+  assert.equal(rules.dividerValid(d, index), true);
+});

@@ -2,7 +2,7 @@ import { PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'selectionChanged' | 'milestone' | 'closeInspector'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot' | 'clampDivider' | 'ceilingIn'>;
     run(fn: () => void): void;
 };
 export function createDividerCommands({ getDesign, effects, rules, run }: Ports) {
@@ -38,8 +38,39 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             return false;
         }
         d[key] = last;
+        // Moving a vertical divider keeps its top at the slope where it now stands.
+        if (!horizontal) {
+            const clamped = rules.clampDivider(d);
+            d.y1 = clamped.y1;
+        }
         getDesign().space = null;
         getDesign().proposal = null;
+        return true;
+    }
+    /** Height of a vertical divider, from its base. Limited by the slope above it and by
+     * the shortest divider; a height the slope cannot reach is reported and kept as the
+     * tallest allowed. */
+    function setDividerHeight(index: number, height: number) {
+        const d = getDesign().dividers?.[index];
+        if (!d || d.orientation !== 'vertical' || !Number.isFinite(height)) {
+            return false;
+        }
+        const base = d.y0 ?? 0, current = d.y1 ?? base;
+        const top = rules.clampDivider({ ...d, y1: base + height }).y1 ?? base;
+        if ((top ?? base) - base < 15 - .01) {
+            effects.report('A divider needs at least 15 cm of height here.');
+            return false;
+        }
+        if (Math.abs(top - current) < .05) {
+            return false;
+        }
+        if (top < base + height - .05) {
+            effects.report('The slope limits this divider to ' + Math.round((top - base) * 10) / 10 + ' cm here.');
+        }
+        run(() => {
+            getDesign().dividers[index]!.y1 = top;
+            getDesign().space = null;
+        });
         return true;
     }
     function setDividerClearance(index: number, side: 'top' | 'bottom' | 'before' | 'after', value: number) {
@@ -119,5 +150,5 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         effects.report(word.charAt(0).toUpperCase() + word.slice(1) + ' duplicated');
         return true;
     }
-    return { moveDividerTo, setDividerClearance, addSpaceDivider, addShelfBoard, removeDivider, duplicateDivider };
+    return { moveDividerTo, setDividerHeight, setDividerClearance, addSpaceDivider, addShelfBoard, removeDivider, duplicateDivider };
 }

@@ -2,6 +2,8 @@ import { WardrobePlanner } from '../planner/wardrobe-planner.js';
 import { MODS, FIN, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../wardrobe/catalog.js';
 import { resolveShape, ceilingPieces, ceilingMin, ceilingMax, ceilingPolyline, fitSpans, sectionOrigins, elevationArea, shapePanels } from '../wardrobe/shape/wardrobe-shape';
 import { bestWindowClear, clipBelowTop, MIN_CUT_BOARD } from '../wardrobe/shape/angle-cut';
+/** Shortest vertical divider, in cm. */
+const MIN_DIVIDER = 15;
 /** Geometry and feasibility rules. Only the centimetre design is read. */
 /** @param {() => import('../wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; space: {i:number;x:number;y:number}|null }} getDesign */
 export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
@@ -451,13 +453,26 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         }
         return ceilingIn(i, r.x0, r.x1) - r.y0 >= 10 ? { cut: true, length: r.x1 - r.x0 } : null;
     }
+    /** A vertical divider stands on the base and stops at the slope over its own
+     * thickness, like an item. Its stored top is the most it can be: this clamps it. */
+    function clampDivider(d) {
+        if (d.orientation !== 'vertical') {
+            return d;
+        }
+        const r = dividerRect(d), top = ceilingIn(d.i, r.x0, r.x1);
+        return top < d.y1 - .01 ? { ...d, y1: Math.max(d.y0, top) } : d;
+    }
     function dividerValid(d, index) {
-        const r = dividerRect(d), bw = widths()[d.i];
-        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || !boardFit(d.i, r, d.orientation)) {
+        const eff = clampDivider(d), r = dividerRect(eff), bw = widths()[eff.i];
+        if (r.x0 < -.01 || r.x1 > bw + .01 || r.y0 < -.01 || !boardFit(eff.i, r, eff.orientation)) {
+            return false;
+        }
+        // Too short to be a divider once the slope has taken its top.
+        if (eff.orientation === 'vertical' && r.y1 - r.y0 < MIN_DIVIDER - .01) {
             return false;
         }
         const overlaps = q => r.x0 < q.x1 - .01 && r.x1 > q.x0 + .01 && r.y0 < q.y1 - .01 && r.y1 > q.y0 + .01;
-        return !computeLayout(d.i).some(q => overlaps({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })) && !(getDesign().dividers || []).some((q, j) => j !== index && q.i === d.i && overlaps(dividerRect(q)));
+        return !computeLayout(eff.i).some(q => overlaps({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })) && !(getDesign().dividers || []).some((q, j) => j !== index && q.i === eff.i && overlaps(dividerRect(q.orientation === 'vertical' ? clampDivider(q) : q)));
     }
     function dividerOrientation(index, orientation) {
         const d = getDesign().dividers?.[index];
@@ -891,5 +906,5 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         runs.sort((p, q) => (q.end - q.start) - (p.end - p.start) || Math.abs(mid(p) - d[key]) - Math.abs(mid(q) - d[key]));
         return mid(runs[0]);
     }
-    return { shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
+    return { clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit, widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free, maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, dividerMeasurements, dividerBounds, dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid, sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg, plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW, minTotal, okItem, addSuggestions, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot };
 }

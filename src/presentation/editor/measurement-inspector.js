@@ -189,6 +189,11 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
             return;
         }
         {
+            // Vertical dividers have a height; shelves are set by their gaps alone.
+            const vertical = d.orientation !== 'horizontal', heightRow = $('#divider-height-row');
+            heightRow.hidden = !vertical;
+            heightRow.style.display = vertical ? '' : 'none';
+            if (vertical) /** @type {HTMLInputElement} */ ($('#dheight')).value = measureNumber(d.y1 - d.y0);
             const w = callbacks.divWord(model.activeCabinet().state.divider);
             $('#divider-title').textContent = dom.width <= 900 && panel.dataset.contextSection === 'resize' ? 'Size' : capWord(w);
             $('#divider-remove').title = 'Remove this ' + w;
