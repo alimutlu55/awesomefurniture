@@ -240,11 +240,15 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900) goal.dist *= 1.12;
         cameraTransition(goal, 480);
     }
-    /** Moving a wardrobe from the toolbar: ease back and rise a little, so the floor around it shows where it can go. */
+    /** Moving a wardrobe from the toolbar: fly to a view of the whole room (or the wardrobes with floor around them)
+     * from a little above. The target is absolute, so tapping Move again does not zoom out further. */
     function moveOverview() {
-        const now = camNow();
         camRelease();
-        cameraTransition({ ...now, el: Math.max(now.el, .62), dist: cameraDistance(now.dist * 1.7) }, 650);
+        const w = cabinetGeometry.sceneBounds(), room = model.scene.studio && studioBounds(model.scene.studio);
+        const x0 = room ? Math.min(room.x0, w.x - w.w / 2) : w.x - w.w / 2 - 80, x1 = room ? Math.max(room.x1, w.x + w.w / 2) : w.x + w.w / 2 + 80;
+        const z0 = room ? Math.min(room.z0, w.z - w.d / 2) : w.z - w.d / 2 - 80, z1 = room ? Math.max(room.z1, w.z + w.d / 2) : w.z + w.d / 2 + 80;
+        const bounds = { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room ? Math.max(room.height, w.h) : w.h };
+        cameraTransition(fittedCamera(cameraState.az, Math.max(cameraState.el, .62), 1.05, bounds), 700);
     }
     function moveViewOff() {
         if (!cameraState.camHome) {
