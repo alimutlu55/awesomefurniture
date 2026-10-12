@@ -1,9 +1,9 @@
 /** Explicit dependencies consumed by this module. */
 export interface BindMoreBtnPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'showPop' | 'update' | 'clearFocus'>>;
+readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'showPop' | 'update'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
-readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'pillOn' | 'focusOn' | 'room' | 'addScope'>;
+readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'pillOn'>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

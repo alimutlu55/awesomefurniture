@@ -242,7 +242,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             const b = el.getBoundingClientRect();
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
-        const shapePlaced = [], namesPlaced = [];
+        const shapePlaced = [];
         const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
             const q = l.p.clone();
             if (l.owner) {
@@ -324,11 +324,6 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                     y += eh + 5;
                 }
                 placed.push({ x, y, w: ew, h: eh });
-            }
-            // Wardrobe names never cover each other (two wardrobes facing each other share a spot): stack them.
-            if (l.el.classList.contains('wardrobe-name')) {
-                for (let n = 0; n < 6 && namesPlaced.some(q => Math.abs(x - q.x) < (ew + q.w) / 2 + 4 && Math.abs(y - q.y) < (eh + q.h) / 2 + 3); n++) y -= eh + 6;
-                namesPlaced.push({ x, y, w: ew, h: eh });
             }
             // Shape text (measurements, guides, coordinates) never sits on another label or a handle.
             if (l.el.classList.contains('shape-handle')) {

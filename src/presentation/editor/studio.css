@@ -39,22 +39,3 @@
 .pop .addgrid .room-product.no{opacity:.45}
 svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter:none}
 .mobile-add-products .room-product.on .product-art{box-shadow:inset 0 0 0 2px var(--ink)}
-/* Add, by level: the room adds wardrobes, walls and rooms; a wardrobe adds fittings, with Room to go up. */
-#pop2[data-scope="room"] :is(#add-intent,.sugg-h,#padd,#pfree,.more-items:not(.shape-add):not(.room-add),.add-scope-link){display:none!important}
-#pop2[data-scope="wardrobe"] :is(.shape-add,.room-add){display:none!important}
-#pop2[data-scope="room"] .shape-add{margin-top:6px}
-.add-scope-link{display:inline-flex;align-items:center;gap:4px;margin:-8px 0 10px;padding:4px 8px 4px 4px;border:0;border-radius:999px;background:transparent;color:var(--mute);font-size:12px}
-.add-scope-link .ic{width:14px;height:14px}
-.add-scope-link:hover{background:rgba(120,100,70,.09);color:var(--ink)}
-/* With nothing selected there is no wardrobe to design: Auto design waits for one. */
-#toolbar[data-context="none"] :is(#launch-wizard,#add-anchor + .sep){display:none!important}
-@media(max-width:900px){
- .add-scope-link{display:none}
- #toolbar[data-context="none"] .contextual-defaults{grid-template-columns:1fr!important}
- /* Five actions and history share the width equally, even on a 320 px phone. */
- #toolbar .contextual-actions .tb{min-width:0}
- /* A tapped tab keeps its chosen look: touch screens leave hover on after a tap. */
- .mobile-add-categories button[aria-pressed="true"]:hover{background:var(--ink);color:var(--panel)}
- .mobile-add-categories .add-scope-chip{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
- .mobile-add-categories .add-scope-chip .ic{transform:rotate(90deg)}
-}

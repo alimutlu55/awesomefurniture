@@ -77,16 +77,8 @@ need the dev server at 127.0.0.1:5173). Golden fixtures are unchanged.
 
 How it works now:
 
-- **The toolbar and Add follow the selection, from the outside in** (`contextual-actions.js`, `bindMoreBtn` in
-  `shell-bindings.js`, `selectionState.addScope`):
-  - Nothing selected is the room: toolbar **Add**, Undo, Redo (Auto design hidden). Add opens "Add to the
-    room" (`#pop2[data-scope="room"]`): Wardrobes (and shapes), and Walls, doors and rooms (Wall, Door, Window,
-    Archway, built-in rooms). It does not select a wardrobe or move the camera.
-  - A wardrobe (or a space in it): toolbar Add item, Auto design ("Design" on phones), Move, Resize, More
-    (Sections, Shape, Material, Reach, Doors, Add wardrobe, Duplicate, Reset, Remove). Add item opens fittings
-    for the selected space only, with "‹ Room" to go up a level.
-  - An item, a wall or an opening: their own actions, as before.
-  The Room section left the wardrobe panel. Wardrobe name labels stack instead of covering each other.
+- **Add item → Walls** (desktop fold "Walls and rooms", phone category "Walls"): Wall, Door, Window, Archway,
+  and the built-in rooms. The Room section left the wardrobe panel.
 - **Click or tap a wall** (when no wardrobe is in front of it) or an opening to select it. The contextual
   toolbar shows its actions on desktop and phone: wall → Size, Split, Door, Window, More (Archway, Add wall,
   Remove wall); opening → Size, Remove. Size opens exact fields. Esc leaves, Delete removes.

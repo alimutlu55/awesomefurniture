@@ -33,9 +33,9 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         row.querySelectorAll('[aria-haspopup]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
-        add:icon('plus'),auto:icon('spark'),'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window')};
+        'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window')};
     const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
-        archway:icon('room-archway'),'add-wall':icon('room-wall'),sections:icon('divider'),'add-wardrobe':icon('wardrobe')};
+        archway:icon('room-archway'),'add-wall':icon('room-wall')};
     const moreActions = {item:itemMoreActions,wall:wallMoreActions};
     function positionMenu(trigger) {
         menuTrigger = trigger;
@@ -103,11 +103,11 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         root.dataset.context = selection;
         root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
         root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
-        row.replaceChildren(...contextualActions(selection).filter(([key]) => key !== 'undo' && key !== 'redo').map(([key,label,short]) => {
+        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto'].includes(key)).map(([key,label]) => {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);
-            b.innerHTML = icons[key] + '<span>' + (short ?? label) + '</span>';
+            b.innerHTML = icons[key] + '<span>' + label + '</span>';
             if (key === 'more') {b.setAttribute('aria-haspopup','menu'); b.setAttribute('aria-expanded','false');}
             if (fieldActions.includes(key)) {b.setAttribute('aria-haspopup','dialog'); b.setAttribute('aria-expanded','false');}
             b.onclick = () => key === 'more' ? showMenu(moreActions[selection] ?? wardrobeMoreActions,b)

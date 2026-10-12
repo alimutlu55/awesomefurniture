@@ -68,8 +68,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         placePop(p, e, v);
         if (id === '#pop2' && dom.width <= 900) {
             $('#app').classList.add('adding', 'inspecting');
-            // Adding to the room keeps the view; adding to a wardrobe turns to it.
-            if (selectionState.addScope !== 'room') camera.frameMobileInspector();
+            camera.frameMobileInspector();
         }
         else if (dom.width <= 900) {
             $('#app').classList.remove('adding');
@@ -80,11 +79,6 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
     function popUI() {
         const p = $('#pop2');
         if (!p.classList.contains('show')) {
-            return;
-        }
-        if (selectionState.addScope === 'room') {
-            $('#ptitle').textContent = 'Add to the room';
-            $('#section-meta').textContent = 'Wardrobes, walls, doors, windows and rooms';
             return;
         }
         const ws = geometry.widths(), i = model.activeCabinet().state.sel, iw = ws.reduce((a, b) => a + b), w = ws[i], one = model.activeCabinet().state.n < 2;
