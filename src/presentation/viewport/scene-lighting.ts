@@ -22,16 +22,18 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   const sun = new THREE.DirectionalLight(0xffeedb, 1.05);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.bias = -.00025;
-  sun.shadow.normalBias = .6;
-  // Soft-edged, like daylight from a window rather than a spotlight.
-  sun.shadow.radius = 7;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  // Variance shadow maps: shadow edges fade over centimetres, like daylight from a large window, instead of the
+  // hard, stair-stepped bands a sharp map draws under a shelf. A small bias; no normal offset (it leaked light
+  // as a bright line where the top meets the back).
+  renderer.shadowMap.type = THREE.VSMShadowMap;
+  sun.shadow.bias = -.0005;
+  sun.shadow.radius = 14;
   scene.add(sun, sun.target);
   /** Where the key light comes from: mostly from the front, a little above and to the left, like a tall window
    * behind the photographer (the Cycles benchmark's key, scripts/realism/benchmark_scene.py). The wardrobe's back
    * is evenly lit with a soft shade under the top, instead of a hard patch of sun cut by a side panel. */
-  const direction = new THREE.Vector3(-.08, .42, .9).normalize();
+  // Straight from the front: a shelf's shadow on the back runs level, not slanted.
+  const direction = new THREE.Vector3(0, .42, .9).normalize();
 
   function fit(bounds: LitBounds) {
     const reach = Math.max(bounds.w, bounds.d, bounds.h, 200) * .75 + 40;
