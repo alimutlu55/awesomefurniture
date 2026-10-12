@@ -167,7 +167,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const panel=await control('pop2').boundingBox(),view=await control('view').boundingBox();
     assert.ok(view.y+view.height<=panel.y+1,`Add catalogue must leave the model unobstructed: ${JSON.stringify({view,panel})}`);
     await click(categories.locator('[data-category="storage"]'));
-    assert.equal(await products.locator('[data-add-wardrobe]').isVisible(),true);
+    assert.equal(await products.locator('[data-add-wardrobe]').isVisible(),false,'Wardrobes wait behind the Wardrobe pill, not under Storage');
     assert.equal(await products.locator('[data-m="short"]').isVisible(),false);
     await click(categories.locator('[data-category="hanging"]'));
     assert.equal(await products.locator('[data-m="short"]').isVisible(),true);
