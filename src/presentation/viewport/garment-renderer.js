@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { itemModel, LONG_GARMENTS, SHOE_MODELS, SHORT_GARMENTS } from './item-models';
+import { itemModel, LONG_GARMENTS, RAIL_PHOTO, railPhoto, SHOE_MODELS, SHORT_GARMENTS } from './item-models';
 
 /** Real items on the rails and shelves: downloaded models of real garments and shoes (item-models.ts), each in its
  * own colour, at its real size. Until a model has loaded, a simple stand-in is drawn instead. Materials are made once
@@ -95,5 +95,23 @@ export function createGarmentRenderer({ resources, group }) {
         group().add(pair);
         return pair;
     }
-    return { garment, shoes, materials: () => [...made.values()], dispose: () => made.forEach(m => m.dispose()) };
+    /** A photographed rail of real garments on wooden hangers (public/textures/rails), shown on a rail along the
+     * wardrobe: the stretch of the photo as long as the rail, hooks on the rail, at the photo's real scale
+     * (RAIL_PHOTO). It keeps its own photographed light, toned to the wardrobe's inside, and casts its shadow on the
+     * back. Its cut-out edge blends softly into what is behind it (the photo's edge pixels carry the cloth's colour,
+     * not the background it was cut from). `seed` picks where along the photo a rail starts, so neighbouring rails differ. False until loaded. */
+    function rail(x0, x1, hookY, room, seed) {
+        const photo = railPhoto();
+        if (!photo) return false;
+        const s = Math.min(1, room / RAIL_PHOTO.height), w = x1 - x0, h = RAIL_PHOTO.height * s;
+        const span = w / (RAIL_PHOTO.width * s), start = Math.abs(Math.sin(seed * 12.9898) * 43758.5453) % 1 * Math.max(0, 1 - span);
+        const geometry = new THREE.PlaneGeometry(w, h), uv = geometry.attributes.uv;
+        for (let i = 0; i < uv.count; i++) uv.setX(i, start + uv.getX(i) * span);
+        const strip = new THREE.Mesh(geometry, material('rail', () => new THREE.MeshBasicMaterial({ map: photo, color: new THREE.Color('#e9e3da').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide })));
+        strip.position.set((x0 + x1) / 2, hookY - h / 2, 0);
+        strip.castShadow = true;
+        group().add(strip);
+        return true;
+    }
+    return { garment, shoes, rail, materials: () => [...made.values()], dispose: () => made.forEach(m => m.dispose()) };
 }

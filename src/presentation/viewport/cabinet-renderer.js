@@ -4,7 +4,7 @@ import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
-import { ITEM_MODELS, loadItem } from './item-models';
+import { ITEM_MODELS, loadItem, onRailPhoto, railPhoto } from './item-models';
 import { createGarmentRenderer } from './garment-renderer.js';
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -54,6 +54,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     let disposed = false;
     lifetime?.cleanup(() => { disposed = true; garments.dispose(); });
     for (const name of ITEM_MODELS) void loadItem(name).then(real => { if (real && !disposed) build(); });
+    const stopPhoto = onRailPhoto(() => { if (!disposed) build(); });
+    lifetime?.cleanup(stopPhoto);
+    railPhoto();
     /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
     const wardrobeFootprints = () => model.scene.wardrobes.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */
@@ -114,7 +117,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         return new THREE.Mesh(geo, material);
     }
     const garments = createGarmentRenderer({ resources, group: () => renderState.Gr });
-    const garment = garments.garment, shoes = garments.shoes;
+    const garment = garments.garment, shoes = garments.shoes, rail = garments.rail;
     /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
     function fitLight() {
         const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
@@ -202,7 +205,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, shoes, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, shoes, rail, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;

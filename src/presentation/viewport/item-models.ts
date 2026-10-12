@@ -66,5 +66,27 @@ export function loadItem(name: string): Promise<ItemModel | null> {
   return pending;
 }
 
+/** A photograph of real garments hanging on wooden hangers, cut out (public/textures/rails): its size in centimetres
+ * at real scale, the hooks' tops along its top edge. */
+export const RAIL_PHOTO = { width: 160.7, height: 103.7 } as const;
+let photo: THREE.Texture | null = null, photoLoading = false;
+/** The rail photograph once loaded (one texture for the page), else null; starts loading on first call. */
+export function railPhoto(): THREE.Texture | null {
+  if (!photoLoading && typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+    photoLoading = true;
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
+    new THREE.TextureLoader().load(`${base}textures/rails/hanging-clothes.webp`, texture => {
+      texture.encoding = THREE.sRGBEncoding;
+      texture.anisotropy = 8;
+      photo = texture;
+      photoListeners.forEach(f => f());
+    });
+  }
+  return photo;
+}
+const photoListeners = new Set<() => void>();
+/** Calls `f` when the rail photograph has loaded; returns a function that stops listening. */
+export function onRailPhoto(f: () => void) { photoListeners.add(f); return () => photoListeners.delete(f); }
+
 /** The item if it has arrived, else null. */
 export const itemModel = (name: string) => models.get(name) ?? null;

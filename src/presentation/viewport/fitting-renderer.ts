@@ -25,6 +25,8 @@ interface FittingRendererPorts {
     garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean, pitch?: number): void;
     /** A real pair of shoes standing at (x, y, z), or null until the model has loaded (stand-ins are drawn then). */
     shoes?(x: number, y: number, z: number, height: number, length: number, index: number): unknown;
+    /** A photographed rail of garments from x0 to x1, hooks at hookY, at most `room` tall; false until loaded. */
+    rail?(x0: number, x1: number, hookY: number, room: number, seed: number): boolean;
 }
 /** A fitting meeting a sloped or stepped top. Coordinates are cabinet-centred x and floor-relative y. */
 export interface FittingCut {
@@ -37,7 +39,7 @@ export interface FittingCut {
 }
 /** Garment spacing along a rail in the styled view, and how far a garment reaches along the rail from its hook (cm). */
 const STYLED_PITCH = 11, STYLED_REACH = 6;
-export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, shoes }: FittingRendererPorts) {
+export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, shoes, rail }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
@@ -151,7 +153,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             // not every garment it can take (the plan's counts are unchanged). In profile a garment reaches STYLED_REACH
             // either side of its hook along the rail, so the end ones stay clear of the bay's sides.
             const room = Math.max(0, coreW - 3 - 2 * STYLED_REACH), shown = front ? c : Math.min(c, Math.floor(room / STYLED_PITCH) + 1), step = front ? sp : shown > 1 ? room / (shown - 1) : 0;
-            for (let j = 0; j < shown; j++) {
+            // A rail along the wardrobe shows the photographed garments once loaded.
+            const photographed = !front && !!rail?.(coreX - (coreW - 3) / 2, coreX + (coreW - 3) / 2, ry + 1.2, coreH - riseAt() - 4, coreX + y);
+            for (let j = 0; j < (photographed ? 0 : shown); j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {
                     garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true, sp);
