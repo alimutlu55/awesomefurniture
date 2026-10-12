@@ -66,17 +66,20 @@ export function loadItem(name: string): Promise<ItemModel | null> {
   return pending;
 }
 
-/** Photographs of single garments hanging in profile on wooden hangers, cut out (public/textures/garments): each
- * one's length from the hook's top to the hem in centimetres, its width over height, and where its hook is across it. */
+/** Photographs of single garments hanging in profile on wooden hangers, cut out (public/textures/garments), with their
+ * physical dimensions in centimetres: `length` from the hook's top to the hem; `thickness`, the room the garment takes
+ * along a rail when hung beside others (it sets hook spacing and so how much neighbours overlap); the photo's width over
+ * height (`aspect`, its profile front to back) and where its hook is across it. `family` groups garments of a kind;
+ * `colours` are the shades it comes in (multiplying the photographed fabric: white stays as photographed). */
 export const GARMENT_PHOTOS = [
-  { name: 'shirt', length: 88, aspect: .2826, hook: .476 },
-  { name: 'tshirt', length: 78, aspect: .237, hook: .422 },
-  { name: 'overshirt', length: 88, aspect: .2539, hook: .504 },
-  { name: 'hoodie', length: 80, aspect: .2669, hook: .493 },
-  { name: 'skirt', length: 90, aspect: .2917, hook: .457 },
-  { name: 'cardigan', length: 105, aspect: .2669, hook: .442 },
-  { name: 'chinos', length: 112, aspect: .1693, hook: .481 },
-  { name: 'shirtdress', length: 125, aspect: .2344, hook: .45 },
+  { name: 'shirt', family: 'shirt', length: 88, thickness: 2.6, aspect: .2826, hook: .476, colours: ['#ffffff', '#e4ebf3', '#efe6dc', '#dfe3e6'] },
+  { name: 'tshirt', family: 'tshirt', length: 78, thickness: 2.2, aspect: .237, hook: .422, colours: ['#ffffff', '#8c95a0', '#d9d2c4'] },
+  { name: 'overshirt', family: 'jacket', length: 88, thickness: 3.8, aspect: .2539, hook: .504, colours: ['#ffffff', '#c9c0b0', '#8e8a80'] },
+  { name: 'hoodie', family: 'hoodie', length: 80, thickness: 5.2, aspect: .2669, hook: .493, colours: ['#ffffff', '#c8c0b4', '#6f7378'] },
+  { name: 'skirt', family: 'skirt', length: 90, thickness: 3.2, aspect: .2917, hook: .457, colours: ['#ffffff', '#d8d0c6', '#9a9184'] },
+  { name: 'cardigan', family: 'sweater', length: 105, thickness: 5.6, aspect: .2669, hook: .442, colours: ['#ffffff', '#d6cbbb', '#a99f90'] },
+  { name: 'chinos', family: 'trousers', length: 112, thickness: 2.8, aspect: .1693, hook: .481, colours: ['#ffffff', '#c7bba7', '#7d786e'] },
+  { name: 'shirtdress', family: 'dress', length: 125, thickness: 3.2, aspect: .2344, hook: .45, colours: ['#ffffff', '#e8e2da'] },
 ] as const;
 export type GarmentPhoto = typeof GARMENT_PHOTOS[number] & { readonly texture: THREE.Texture };
 let photos: GarmentPhoto[] | null = null, photosLoading = false;

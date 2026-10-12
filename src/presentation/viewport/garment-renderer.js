@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 import { garmentPhotos, itemModel, LONG_GARMENTS, SHOE_MODELS, SHORT_GARMENTS } from './item-models';
-
-/** Hooks' spacing along a rail of photographed garments (cm). */
-const RAIL_PITCH = 10;
-/** Garments on a rail press against each other: shown at this share of their photographed width (front to back). */
-const PRESSED = .75;
+import { drawRail, railLayout } from './garment-rail.js';
 
 /** Real items on the rails and shelves: downloaded models of real garments and shoes (item-models.ts), each in its
  * own colour, at its real size. Until a model has loaded, a simple stand-in is drawn instead. Materials are made once
@@ -100,37 +96,13 @@ export function createGarmentRenderer({ resources, group }) {
         group().add(pair);
         return pair;
     }
-    /** Real garments on a rail along the wardrobe: photographs of single garments hanging in profile on wooden hangers
-     * (item-models.ts), each at its real length, hook on the rail, RAIL_PITCH apart, each a little in front of the
-     * one before so they overlap as clothes on a rail do. Garments longer than the room under the rail are left for
-     * a longer rail. They keep their photographed light, toned a little to the wardrobe's inside. `seed` varies the mix from
-     * rail to rail. False until the photographs have loaded. */
+    /** Real garments on a rail along the wardrobe: photographs of single garments hanging in profile on wooden hangers,
+     * laid out from their physical dimensions and lit like the wardrobe (garment-rail.js). `seed` makes each bay's mix
+     * stable and different from its neighbours'. False until the photographs have loaded. */
     function rail(x0, x1, hookY, room, seed) {
         const all = garmentPhotos();
         if (!all) return false;
-        // Garments clear what is below by a few centimetres; a rail with room for long garments holds the long ones.
-        const fit = all.filter(g => g.length <= room - 6), long = fit.filter(g => g.length >= 100);
-        const set = room >= 120 && long.length ? long : fit.length ? fit : [all.reduce((a, b) => a.length < b.length ? a : b)];
-        // A mix that differs from rail to rail and never repeats a garment next to itself: the set in a shuffled order.
-        const order = set.map((g, i) => ({ g, k: Math.sin((i + 1) * 12.9898 + seed * 78.233) })).sort((a, b) => a.k - b.k).map(x => x.g);
-        // Hooks spread evenly over what the widest garment leaves, so the end garments stay inside the bay.
-        const widest = Math.max(...order.map(g => Math.min(g.length, room) * g.aspect * PRESSED)), span = Math.max(0, x1 - x0 - widest);
-        const count = Math.max(1, Math.floor(span / RAIL_PITCH) + 1), step = count > 1 ? span / (count - 1) : 0, first = count > 1 ? x0 + widest / 2 : (x0 + x1) / 2;
-        for (let j = 0; j < count; j++) {
-            const g = order[j % order.length], h = Math.min(g.length, room), w = h * g.aspect * PRESSED;
-            const geometry = new THREE.PlaneGeometry(w, h);
-            // Soft cut-out edge; a light tone so the photograph's studio light sits in the wardrobe's.
-            const look = () => new THREE.MeshBasicMaterial({ map: g.texture, color: new THREE.Color('#f3eee7').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide });
-            const sprite = new THREE.Mesh(geometry, material('photo' + g.name, look));
-            // The hook on the rail: the photo's hook sits at `g.hook` across its width.
-            // Within the bay: a wide garment at either end slides in rather than reach through the side panel.
-            const cx = Math.max(x0 + w / 2, Math.min(x1 - w / 2, first + step * j + w * (.5 - g.hook)));
-            sprite.position.set(cx, hookY - h / 2, -2 + j * .35);
-            // Its shadow follows the garment's outline, not the photo's rectangle.
-            sprite.customDepthMaterial = material('depth' + g.name, () => new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: g.texture, alphaTest: .5 }));
-            sprite.castShadow = true;
-            group().add(sprite);
-        }
+        drawRail(group(), railLayout(all, x0, x1, room, seed), hookY, material);
         return true;
     }
     return { garment, shoes, rail, materials: () => [...made.values()], dispose: () => made.forEach(m => m.dispose()) };
