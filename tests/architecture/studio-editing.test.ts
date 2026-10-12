@@ -44,12 +44,14 @@ test('dropping a free wall end on another joins them and closes the room', () =>
   assert.equal(mergeCorners(closed, 'c1', 'c1'), null, 'a corner cannot join itself');
 });
 
-test('a suggested wall turns into the room from a free end, then stands free in a closed room', () => {
+test('a suggested wall is independent in both an open and a closed room', () => {
   const wall = createStudio('wall');
   const first = suggestWall(wall, valid)!;
   const added = first.studio.walls.find(w => w.id === first.wall)!, line = wallLine(first.studio, added)!;
   assert.ok(Math.abs(line.length - 150) < .01);
-  assert.ok(Math.abs(Math.abs(line.uz) - 1) < 1e-9, 'a right angle to the first wall');
+  assert.equal(added.independent, true);
+  assert.ok(![added.a, added.b].some(id => wall.corners.some(c => c.id === id)), 'both corners are new');
+  assert.deepEqual(first.studio.corners.slice(0, wall.corners.length), wall.corners, 'the old wall did not change');
   assert.ok(line.b.z > 0 || line.a.z > 0, 'into the room, in front of the wall');
   const preferred = suggestWall(wall, valid, 'w1')!;
   assert.ok(valid(preferred.studio));

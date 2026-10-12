@@ -9,7 +9,8 @@ import { openingRange } from './studio-validation';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => ({ ...studio, ...changes, template: 'custom' });
 const round = (n: number) => Math.round(n * 10) / 10;
-const moved = (corners: readonly StudioCorner[], id: string, x: number, z: number) => corners.map(c => c.id === id ? { ...c, x: round(x), z: round(z) } : c);
+const moved = (corners: readonly StudioCorner[], id: string, x: number, z: number, quantize = true) =>
+  corners.map(c => c.id === id ? { ...c, x: quantize ? round(x) : x, z: quantize ? round(z) : z } : c);
 
 /** After corners move, doors and windows stay where they were in the room (sliding only as far as
  * needed to stay on a wall that got shorter), instead of moving with the wall's start corner. */
@@ -37,7 +38,7 @@ export function moveWall(studio: Studio, id: string, distance: number): Studio |
   const w = wall(studio, id), line = w && wallLine(studio, w);
   if (!w || !line) return null;
   let corners = studio.corners;
-  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + line.nx * distance, c.z + line.nz * distance);
+  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + line.nx * distance, c.z + line.nz * distance, !w.independent);
   return custom(studio, { corners, openings: keepOpenings(studio, corners) });
 }
 
@@ -48,9 +49,19 @@ export function moveWallAxis(studio: Studio, id: string, axis: 'x' | 'y' | 'z', 
   if (!w || !line || !Number.isFinite(distance)) return null;
   if (axis === 'y') return custom(studio, { walls: studio.walls.map(v => v.id === id ? { ...v, y: round((v.y ?? 0) + distance) } : v) });
   let corners = studio.corners;
-  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + (axis === 'x' ? distance : 0), c.z + (axis === 'z' ? distance : 0));
+  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + (axis === 'x' ? distance : 0), c.z + (axis === 'z' ? distance : 0), !w.independent);
   const openings = keepOpenings(studio, corners).map(o => o.wall === id ? studio.openings.find(v => v.id === o.id)! : o);
   return custom(studio, { corners, openings });
+}
+
+/** Rotates an independent solid around its centre on the floor, without moving any other wall. */
+export function setWallAngle(studio: Studio, id: string, angle: number): Studio | null {
+  const w = wall(studio, id), line = w && wallLine(studio, w);
+  if (!w?.independent || !line || !Number.isFinite(angle)) return null;
+  const mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+  const a = angle * Math.PI / 180, dx = Math.cos(a) * line.length / 2, dz = -Math.sin(a) * line.length / 2;
+  const corners = moved(moved(studio.corners, w.a, mid.x - dx, mid.z - dz, false), w.b, mid.x + dx, mid.z + dz, false);
+  return custom(studio, { corners });
 }
 
 /** Sets a wall's length by moving its `b` end along the wall (or its `a` end when `fromEnd`). */
@@ -59,9 +70,9 @@ export function setWallLength(studio: Studio, id: string, length: number, fromEn
   if (!w || !line) return null;
   if (fromEnd) {
     const openings = studio.openings.map(o => o.wall === id ? { ...o, offset: round(o.offset + length - line.length) } : o);
-    return custom(studio, { corners: moved(studio.corners, line.a.id, line.b.x - line.ux * length, line.b.z - line.uz * length), openings });
+    return custom(studio, { corners: moved(studio.corners, line.a.id, line.b.x - line.ux * length, line.b.z - line.uz * length, !w.independent), openings });
   }
-  return custom(studio, { corners: moved(studio.corners, line.b.id, line.a.x + line.ux * length, line.a.z + line.uz * length) });
+  return custom(studio, { corners: moved(studio.corners, line.b.id, line.a.x + line.ux * length, line.a.z + line.uz * length, !w.independent) });
 }
 
 /** Sets the length a person measures inside the room (the wall's room face) at its `b` end (or its `a`
@@ -78,7 +89,7 @@ export function setInsideLength(studio: Studio, id: string, length: number, from
   return moveWall(studio, next.id, (fromEnd ? -delta : delta) * dot);
 }
 
-export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height'>>): Studio | null {
+export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height' | 'y'>>): Studio | null {
   if (!wall(studio, id)) return null;
   return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size } : w) });
 }
@@ -91,10 +102,11 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const d = at ?? line.length / 2;
   if (d < L.minWallLength - .01 || line.length - d < L.minWallLength - .01) return null;
   const mid: StudioCorner = { id: nextId('c', studio.corners), x: round(line.a.x + line.ux * d), z: round(line.a.z + line.uz * d) };
-  const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b };
+  const otherMid = w.independent ? { ...mid, id: nextId('c', [...studio.corners, mid]) } : mid;
+  const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: otherMid.id, b: w.b };
   const walls = studio.walls.flatMap(x => x.id === id ? [{ ...x, b: mid.id }, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: round(o.offset - d) });
-  return custom(studio, { corners: [...studio.corners, mid], walls, openings });
+  return custom(studio, { corners: [...studio.corners, mid, ...(w.independent ? [otherMid] : [])], walls, openings });
 }
 
 /** Adds a wall from a corner to a new point, continuing the chain the corner belongs to so the room
@@ -113,43 +125,29 @@ export function extendFromCorner(studio: Studio, id: string, x: number, z: numbe
 export function addWall(studio: Studio, x0: number, z0: number, x1: number, z1: number): Studio {
   const a: StudioCorner = { id: nextId('c', studio.corners), x: round(x0), z: round(z0) };
   const b: StudioCorner = { id: nextId('c', [...studio.corners, a]), x: round(x1), z: round(z1) };
-  const w: StudioWall = { id: nextId('w', studio.walls), a: a.id, b: b.id, thickness: STUDIO_DEFAULTS.thickness, height: STUDIO_DEFAULTS.height };
+  const w: StudioWall = { id: nextId('w', studio.walls), a: a.id, b: b.id, independent: true, thickness: STUDIO_DEFAULTS.thickness, height: STUDIO_DEFAULTS.height };
   return custom(studio, { corners: [...studio.corners, a, b], walls: [...studio.walls, w] });
 }
 
 /** Joins two corners into one, so walls that ended at `from` now end at `into`: dropping a free wall end
  * on another closes the room there. Walls left with both ends on one corner are removed. */
 export function mergeCorners(studio: Studio, from: string, into: string): Studio | null {
+  if (studio.walls.some(w => w.independent && [w.a, w.b].some(id => id === from || id === into))) return null;
   if (from === into || !corner(studio, from) || !corner(studio, into)) return null;
   const walls = studio.walls.map(w => ({ ...w, a: w.a === from ? into : w.a, b: w.b === from ? into : w.b })).filter(w => w.a !== w.b);
   const kept = new Set(walls.map(w => w.id));
   return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)) });
 }
 
-/** Rooms people add walls to: where one more wall goes. From a free wall end it turns a right angle
- * into the room (or runs straight on when that is blocked), so a wall becomes a corner and a corner a
- * U. In a closed room it is a free-standing wall across the middle of the longest wall. Each try is
- * checked with `fits`; null when none fits. `prefer` is a wall to start from (the selected one). */
+/** Suggests a separate wall with its own two corners. Selection affects placement order only;
+ * adding a wall never extends or attaches to another wall. */
 export function suggestWall(studio: Studio, fits: (next: Studio) => boolean, prefer?: string, length = 150): { studio: Studio; wall: string } | null {
-  const free = studio.corners.filter(c => cornerDegree(studio, c.id) === 1);
-  const owner = (c: StudioCorner) => studio.walls.find(w => w.a === c.id || w.b === c.id)!;
-  free.sort((p, q) => Number(owner(q).id === prefer) - Number(owner(p).id === prefer));
-  for (const c of free) {
-    const w = owner(c), line = wallLine(studio, w);
-    if (!line) continue;
-    // Outward along the wall from this end, and the room side of the wall.
-    const out = w.b === c.id ? { x: line.ux, z: line.uz } : { x: -line.ux, z: -line.uz };
-    for (const d of [{ x: line.nx, z: line.nz }, out]) {
-      const next = extendFromCorner(studio, c.id, c.x + d.x * length, c.z + d.z * length);
-      if (next && fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
-    }
-  }
-  // A closed room: free-standing, parallel to a wall (longest first), a little way into the room.
-  const lines = studio.walls.map(w => wallLine(studio, w)).filter(x => x !== null).sort((p, q) => q.length - p.length);
+  const lines = studio.walls.map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line)
+    .sort((p, q) => Number(q.w.id === prefer) - Number(p.w.id === prefer) || q.line!.length - p.line!.length).map(x => x.line!);
   for (const line of lines) {
-    const half = Math.min(length, line.length - 2 * L.minWallLength) / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+    const half = length / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
     if (half * 2 < L.minWallLength) continue;
-    for (const depth of [120, 90, 160, 60, 200]) {
+    for (const depth of [120, 90, 160, 60, 200, -120, -200, 300]) {
       const cx = mid.x + line.nx * depth, cz = mid.z + line.nz * depth;
       const next = addWall(studio, cx - line.ux * half, cz - line.uz * half, cx + line.ux * half, cz + line.uz * half);
       if (fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };

@@ -55,3 +55,6 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
  #toolbar[data-context] :is(#walls-btn,#wardrobe-btn) .tl{display:block;font-size:11px}
  #toolbar[data-context]{max-width:calc(var(--contextual-action-count,5) * 96px + 10px);margin-inline:auto}
 }
+
+.room-fields .room-ceiling-preset{grid-column:1/-1;margin-top:4px;background:var(--ink);color:var(--panel);border-radius:10px;padding:8px 12px;font-size:12px}
+.room-ceiling-hint{grid-column:1/-1;font-size:11px;line-height:1.4;color:var(--mute)}

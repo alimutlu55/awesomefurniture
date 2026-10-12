@@ -82,14 +82,28 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return true;
   }
 
-  /** Adds a wall: from a free wall end (the selected wall's first), else free-standing in the room. With
+  /** Adds an independent wall with its own corners. With
    * no room yet, a wall behind the wardrobes. Returns the new wall's id, or null with the reason. */
   function addStudioWall(prefer?: string): string | null {
     const room = getScene().studio;
-    if (!room) return placeStudio('wall') ? getScene().studio!.walls[0]!.id : null;
+    if (!room || !room.walls.length) {
+      const scene = getScene(), bounds = createCabinetGeometry(() => scene.wardrobes).sceneBounds();
+      const seed = translateStudio(createStudio('wall'), bounds.x, bounds.z - bounds.d / 2);
+      const next: Studio = { ...seed, template: 'custom', walls: seed.walls.map(w => ({ ...w, independent: true })) };
+      const problem = studioProblem(next);
+      if (problem) { report(problem); return null; }
+      checkpoint();
+      scene.studio = next;
+      return next.walls[0]!.id;
+    }
     // Prefer a spot that leaves the wardrobes room to open: no new wall within 70 cm of one.
-    const clear = (next: Studio) => { const w = next.walls.at(-1)!; return !crowds(next, w.id) && !studioProblem(next); };
-    const found = suggestWall(room, clear, prefer) ?? suggestWall(room, next => !studioProblem(next), prefer);
+    const existing = createCabinetGeometry(() => [], () => studioObstacles(room));
+    const free = (next: Studio) => {
+      const box = studioObstacles(next).at(-1);
+      return !!box && !existing.cabinetCollides(box) && !studioProblem(next);
+    };
+    const clear = (next: Studio) => free(next) && !crowds(next, next.walls.at(-1)!.id);
+    const found = suggestWall(room, clear, prefer) ?? suggestWall(room, free, prefer);
     if (!found) { report('There is no free space for another wall. Move a wall or a wardrobe first.'); return null; }
     checkpoint();
     getScene().studio = found.studio;

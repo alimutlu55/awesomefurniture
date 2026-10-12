@@ -23,8 +23,9 @@ export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks,
   const own = new Set(neighbours(room, id)), guides: Guide[] = [];
   const others = room.corners.filter(c => c.id !== id);
   // A free end can join another free end: the room closes there.
-  const free = cornerDegree(room, id) === 1;
-  const join = free ? others.filter(c => cornerDegree(room, c.id) === 1 && !own.has(c.id)).find(c => near(c, raw) <= Math.max(JOIN, tolerance * 2.5) * (locks.join === c.id ? 1.35 : 1)) : undefined;
+  const independentEnd = (id: string) => room.walls.some(w => w.independent && (w.a === id || w.b === id));
+  const free = cornerDegree(room, id) === 1 && !independentEnd(id);
+  const join = free ? others.filter(c => cornerDegree(room, c.id) === 1 && !independentEnd(c.id) && !own.has(c.id)).find(c => near(c, raw) <= Math.max(JOIN, tolerance * 2.5) * (locks.join === c.id ? 1.35 : 1)) : undefined;
   if (join) return { at: { x: join.x, z: join.z }, locks: { x: null, z: null, ray: null, join: join.id }, guides: [{ a: join, b: join, label: 'Join walls' }] };
   const name = (cid: string) => own.has(cid) ? 'Square' : 'Aligned with corner';
   const xs = others.map(c => ({ v: c.x, label: name(c.id) })), zs = others.map(c => ({ v: c.z, label: name(c.id) }));

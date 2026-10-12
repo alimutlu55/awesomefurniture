@@ -40,7 +40,7 @@ export const studioChoices = (className?: string) => [
 /** The parts a person adds to a room, drawn in the Add item style: a wall seen from the front, and one
  * with a door, a window or an archway in it. */
 export const ROOM_PARTS = [
-  { kind: 'wall', name: 'Wall', description: 'Adds a wall from a free wall end, or one standing in the room' },
+  { kind: 'wall', name: 'Wall', description: 'Adds an independent wall. Move, rotate and resize it freely, or shape it into a ceiling' },
   { kind: 'door', name: 'Door', description: 'Adds a door to the selected wall, or a free one' },
   { kind: 'window', name: 'Window', description: 'Adds a window to the selected wall, or a free one' },
   { kind: 'archway', name: 'Archway', description: 'Adds an archway to the selected wall, or a free one' },

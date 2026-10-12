@@ -22,7 +22,7 @@ export interface Footprint { x: number; z: number; angle: number; w: number; d: 
 
 /** What is selected in the room: drawn with its outline at full height, even while its wall is lowered. */
 export type RoomSelection = { readonly kind: 'wall' | 'opening'; readonly id: string } | null;
-interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number }
+interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number; fixed: boolean }
 
 /** Draws the studio around the wardrobes. Walls between the camera and the room lower to a short cut
  * stub, so nothing ghosts over the wardrobes; the ceiling shows only from inside the room. `sync`
@@ -100,7 +100,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(-camera.getWorldDirection(new THREE.Vector3()).y);
     for (const view of walls) {
       to.copy(camera.position).sub(view.mid);
-      const target = to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
+      const target = !view.fixed && to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
       if (view.lift !== target) setLift(view, Math.abs(view.lift - target) < .003 ? target : view.lift + (target - view.lift) * k);
     }
     // The ceiling closes the room whenever you look from below it, as in a photograph of the room.
@@ -130,6 +130,22 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.add(body);
     body.add(details);
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
+    // Independent solids can be broad, thin ceiling slabs. Render their actual box at full height;
+    // room cutaway and decorative skirting would turn them into a different shape.
+    if (w.independent && !openings.length) {
+      const solid = new THREE.Mesh(new THREE.BoxGeometry(end - start, w.height, w.thickness), material(LOOK.wall));
+      solid.position.set((start + end) / 2, w.height / 2, 0);
+      solid.userData.studioWall = w.id;
+      solid.receiveShadow = solid.castShadow = true;
+      body.add(solid);
+      hits.push(solid);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(end - start, .6, w.thickness), material(LOOK.cut));
+      group.add(cap);
+      group.rotation.y = line.angle * Math.PI / 180;
+      group.position.set(line.a.x, w.y ?? 0, line.a.z);
+      const mid = new THREE.Vector3((line.a.x + line.b.x) / 2, (w.y ?? 0) + w.height / 2, (line.a.z + line.b.z) / 2);
+      return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1, fixed: true };
+    }
     const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
     geometry.translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, material(LOOK.wall));
@@ -200,7 +216,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.rotation.y = line.angle * Math.PI / 180;
     group.position.set(line.a.x, w.y ?? 0, line.a.z);
     const mid = new THREE.Vector3(line.a.x + line.ux * line.length / 2, (w.y ?? 0) + w.height / 2, line.a.z + line.uz * line.length / 2);
-    return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1 };
+    return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1, fixed: !!w.independent };
   }
 
   /** The selected wall or opening keeps a full-height outline, so it reads even while its wall is low. */
@@ -246,7 +262,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     geometry.rotateX(-Math.PI / 2);
     // Seen from below only: its face points down.
     const mesh = new THREE.Mesh(geometry, material(LOOK.ceiling, { side: THREE.BackSide, emissive: linear(LOOK.ceiling), emissiveIntensity: .3 }));
-    mesh.position.y = Math.min(...studio.walls.map(w => (w.y ?? 0) + w.height));
+    mesh.position.y = Math.min(...studio.walls.filter(w => !w.independent).map(w => (w.y ?? 0) + w.height));
     mesh.visible = false;
     // Recessed downlights on a grid about 1.3 m apart, kept clear of the walls.
     const xs = outline.map(p => p.x), zs = outline.map(p => p.z), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);

@@ -24,6 +24,8 @@ export interface StudioWall {
   readonly height: number;
   /** Bottom above the floor; omitted in older projects means zero. */
   readonly y?: number | undefined;
+  /** A separate building solid: never shares corners or automatically joins another wall. */
+  readonly independent?: boolean | undefined;
 }
 
 export type OpeningKind = 'door' | 'window' | 'archway';
@@ -57,6 +59,9 @@ export const STUDIO_LIMITS = Object.freeze({
   minOpeningWidth: 40,
 });
 
+/** Independent solids may be thin ceiling slabs or deep blocks, as well as upright walls. */
+export const SOLID_LIMITS = Object.freeze({ minHeight: 1, maxHeight: 2000, minThickness: 1, maxThickness: 2000 });
+
 /** Defaults for walls and openings people add. */
 export const STUDIO_DEFAULTS = Object.freeze({
   thickness: 12, height: 260,
@@ -84,6 +89,7 @@ export const cornerDegree = (studio: Studio, id: string) => studio.walls.filter(
 /** Where the wall's solid starts and ends along its line, measured from corner `a`. A wall that meets
  * another at a corner reaches half its thickness past it, so the two fill the corner between them. */
 export function wallExtent(studio: Studio, w: StudioWall, length: number) {
+  if (w.independent) return { start: 0, end: length };
   return { start: cornerDegree(studio, w.a) > 1 ? -w.thickness / 2 : 0, end: length + (cornerDegree(studio, w.b) > 1 ? w.thickness / 2 : 0) };
 }
 
@@ -105,7 +111,8 @@ export function wallFace(studio: Studio, w: StudioWall) {
   const off = w.thickness / 2, x0 = line.a.x + line.nx * off, z0 = line.a.z + line.nz * off;
   /** Where this face crosses the face of the other wall at a corner, along this wall; `fallback` if none. */
   const meet = (id: string, fallback: number) => {
-    const other = studio.walls.find(o => o !== w && (o.a === id || o.b === id)), ol = other && wallLine(studio, other);
+    if (w.independent) return fallback;
+    const other = studio.walls.find(o => !o.independent && o !== w && (o.a === id || o.b === id)), ol = other && wallLine(studio, other);
     if (!other || !ol) return fallback;
     const det = line.ux * -ol.uz + line.uz * ol.ux;
     if (Math.abs(det) < 1e-6) return fallback;
@@ -128,8 +135,11 @@ export function studioBounds(studio: Studio) {
   for (const w of studio.walls) {
     const line = wallLine(studio, w);
     if (!line) continue;
-    const half = w.thickness / 2;
-    for (const p of [line.a, line.b]) { xs.push(p.x - half, p.x + half); zs.push(p.z - half, p.z + half); }
+    const half = w.thickness / 2, { start, end } = wallExtent(studio, w, line.length);
+    for (const along of [start, end]) for (const side of [-half, half]) {
+      xs.push(line.a.x + line.ux * along + line.nx * side);
+      zs.push(line.a.z + line.uz * along + line.nz * side);
+    }
   }
   if (!xs.length) return null;
   return { x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs), height: Math.max(...studio.walls.map(w => (w.y ?? 0) + w.height)) };

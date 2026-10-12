@@ -130,7 +130,7 @@ const wardrobe = z.strictObject({
 const studio = z.strictObject({
   template: z.enum([...STUDIO_TEMPLATES.map(t => t.id), 'custom'] as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StudioTemplateId]: K }>,
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
-  walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive, y: nonnegative.optional() })),
+  walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive, y: nonnegative.optional(), independent: z.boolean().optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: z.enum(['door', 'window', 'archway']), offset: finite, width: positive, height: positive, sill: nonnegative })),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
