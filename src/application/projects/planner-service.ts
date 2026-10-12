@@ -20,5 +20,12 @@ export function createPlannerService() {
         }
         return out;
     }
-    return { generate: generateCached, has: (cfg:PlannerConfig) => GEN_CACHE.has(genKey(cfg)) };
+    /** Keeps layouts planned elsewhere (in a background worker) for this configuration. */
+    function store(cfg:PlannerConfig, proposals:PlannerProposal[]) {
+        GEN_CACHE.set(genKey(cfg), proposals);
+        if (GEN_CACHE.size > 8) {
+            GEN_CACHE.delete(GEN_CACHE.keys().next().value!);
+        }
+    }
+    return { generate: generateCached, store, has: (cfg:PlannerConfig) => GEN_CACHE.has(genKey(cfg)) };
 }

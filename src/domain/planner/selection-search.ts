@@ -65,7 +65,9 @@ export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype
   const redundant=requested.reduce((n,k)=>n+Math.max(0,s.capacity[k]/c.demand[k]-1),0)/Math.max(1,requested.length);
   return -abandoned*50-redundant*8+coverage*80+optimistic*40+railFeasibility*20+Math.log1p(Math.max(0,s.value))*(strategy?.hero?2:.2)+regular*.5+s.boxes*.02-s.parts*.01;
  };
- let beam=states.sort((a,b)=>progress(b)-progress(a)||a.id.localeCompare(b.id));
+ // Each state's progress is computed once, not in every comparison of the sort (same order, a fraction of the work).
+ const byProgress=<T extends State>(list:T[],tie:(a:T,b:T)=>number)=>{const value=new Map(list.map(s=>[s,progress(s)]));return list.sort((a,b)=>value.get(b)!-value.get(a)!||tie(a,b));};
+ let beam=byProgress(states,(a,b)=>a.id.localeCompare(b.id));
  // Retain width strategies initially; the first expansion may discover their fit.
  for(let step=0;step<R.maxSteps&&beam.length;step++){
   const expanded:State[]=[];
@@ -100,7 +102,7 @@ export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype
     expanded.push({...state,sections,spaces,capacity,boxes:state.boxes+module.seasonalBoxes,value:state.value+module.value,parts:state.parts+module.items.length,id:state.id+JSON.stringify(module.items.map(it=>[it.k,it.h,it.purpose]))});
    }
   }
-  expanded.sort((a,b)=>progress(b)-progress(a)||a.parts-b.parts||a.id.localeCompare(b.id));
+  byProgress(expanded,(a,b)=>a.parts-b.parts||a.id.localeCompare(b.id));
   const seen=new Set<string>(),perShape=new Map<string,number>();
   const diverse=expanded.filter(s=>{
    const key=keyOf(s)+JSON.stringify([s.spaces,s.roles]);if(seen.has(key))return false;seen.add(key);
