@@ -36,3 +36,10 @@ ec3d2deb1fe21150ede5f987b48c691b3c7dbffe4183850a9b8717e904917a46  oak_wood_plank
 (2026-10-12). Cropped to the hooks' tops; the soft cut-out edge's colour is carried in from the cloth so no trace of
 the original background shows; WebP at quality 90. Shown at real scale, 160.7 × 103.7 cm (`RAIL_PHOTO` in
 `src/presentation/viewport/item-models.ts`).
+
+## Cabinet oak photograph
+
+`oak_photo/oak_photo_diff.jpg`: the cabinet's wood colour, from a rendered flat oak panel supplied by the project owner
+(2026-10-12). The panel's face was cropped, its uneven light flattened (divided by a 60 px blur), made seamless
+(blended with its half-shifted copy) and turned so the grain runs along the image width; 2048 × 1024 JPEG. It covers
+110 cm along the grain by 60 cm across (`VENEER_TILE`). Oak Veneer 02 still supplies the roughness and normal maps.

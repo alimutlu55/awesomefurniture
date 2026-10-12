@@ -11,7 +11,8 @@ import * as THREE from 'three';
  *
  * Textures are returned at once and filled in when their image arrives, so building a scene never waits;
  * where images cannot load (tests, a missing file) they stay blank and the material shows its plain colour. */
-export const VENEER_TILE = 100, PLANK_TILE_CM = 120;
+/** The cabinet's oak photograph (public/textures/oak_photo) covers 110 cm along the grain by 60 cm across it. */
+export const VENEER_TILE = { along: 110, across: 60 } as const, PLANK_TILE_CM = 120;
 
 type Kind = 'veneer' | 'planks';
 type MapName = 'diff' | 'rough' | 'nor_gl';
@@ -20,6 +21,8 @@ const images = new Map<string, Promise<CanvasImageSource | null>>();
 
 function textureUrl(kind: Kind, map: MapName) {
   const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
+  // The cabinet's colour is a photographed oak panel (supplied by the project owner); its pores and sheen are Oak Veneer 02's.
+  if (kind === 'veneer' && map === 'diff') return `${base}textures/oak_photo/oak_photo_diff.jpg`;
   return `${base}textures/${ASSET[kind]}/${ASSET[kind]}_${map}_2k.jpg`;
 }
 
@@ -33,7 +36,7 @@ function image(document: Document, kind: Kind, map: MapName): Promise<CanvasImag
       if (!view || typeof view.Image !== 'function') { resolve(null); return; }
       const img = new view.Image();
       img.decoding = 'async';
-      img.onload = () => resolve(map === 'diff' ? grade(document, img, kind) : img);
+      img.onload = () => resolve(map === 'diff' && kind !== 'veneer' ? grade(document, img, kind) : img);
       img.onerror = () => resolve(null);
       img.src = textureUrl(kind, map);
     });

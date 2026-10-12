@@ -12,7 +12,7 @@ export function boardBox(w: number, h: number, d: number) {
   return r > .02 ? new RoundedBoxGeometry(w, h, d, 1, r) : new THREE.BoxGeometry(w, h, d);
 }
 
-/** UVs at the veneer's true scale, with the grain along the board: one UV unit is one VENEER_TILE, u runs
+/** UVs at the veneer's true scale, with the grain along the board: one UV unit is one VENEER_TILE (along u, across v), u runs
  * along the board's longer edge in the front view (up a side or a back, across a shelf or a top) on every face
  * that contains it, and each board starts at its own place on the sheet (`seed`, from where it stands), so
  * boards do not repeat one another and keep their figure when the wardrobe is rebuilt.
@@ -31,7 +31,7 @@ export function boardUVs(geometry: THREE.BufferGeometry, seed: number) {
     const facing = n[0]! >= n[1]! && n[0]! >= n[2]! ? 0 : n[1]! >= n[2]! ? 1 : 2;
     const inFace = [0, 1, 2].filter(a => a !== facing);
     const u = inFace.includes(grain) ? grain : inFace[0]!, v = inFace.find(a => a !== u)!;
-    uv.setXY(i, p[u]! / VENEER_TILE + du, p[v]! / VENEER_TILE + dv);
+    uv.setXY(i, p[u]! / VENEER_TILE.along + du, p[v]! / VENEER_TILE.across + dv);
   }
   uv.needsUpdate = true;
   geometry.setAttribute('uv', uv);

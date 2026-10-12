@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { disposeSceneAssets } from './render-disposal';
 import { createSceneLighting } from './scene-lighting';
 import { oakMaps } from './wood-textures';
+import { FIN } from '../../domain/wardrobe/catalog.js';
 import { fabricTexture } from './fabric';
 import { createStageFloor } from './stage-floor';
 /** Three.js owns its renderer, lights, materials and reusable textures here. */
@@ -59,8 +60,14 @@ export function createViewportResources(cv) {
     };
     // Lacquered veneer: the finish colour tints the photographed grain; the pores show in the normal map and
     // the satin coat in the roughness map. Boards get true-scale UVs and eased edges (board-geometry.ts).
+    // The colour map is a photographed oak panel: the Oak finish shows it as photographed, other finishes tint it by
+    // their colour relative to oak (a darker back panel, walnut, white...).
+    const oak = new THREE.Color(FIN.Oak[0]).convertSRGBToLinear();
     const wood = c => {
         const m = M(c, { ...veneer, normalScale: new THREE.Vector2(.3, .3), roughness: 1, envMapIntensity: .45 });
+        // The scene's front light lifts a facing board above the photograph's exposure, and the tone curve drains its
+        // warmth: measured against the photograph, these factors bring a drawer front back to it.
+        m.color.setRGB(m.color.r / oak.r * .74, m.color.g / oak.g * .64, m.color.b / oak.b * .52);
         m.userData.board = true;
         return m;
     };
