@@ -4,6 +4,8 @@ import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
+import { ITEM_MODELS, loadItem } from './item-models';
+import { createGarmentRenderer } from './garment-renderer.js';
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
 import { createViewportHandles } from './viewport-handles.js';
@@ -48,6 +50,10 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
         label: (p, t, c) => label(p, t, c), bindRuler: (e, a, b, x) => bindRuler(e, a, b, x), editor: studioEditor }) : null;
     if (overlay) lifetime.cleanup(() => overlay.dispose());
+    // Real items arrive after the first build: rebuild as each does. Their materials outlive rebuilds.
+    let disposed = false;
+    lifetime?.cleanup(() => { disposed = true; garments.dispose(); });
+    for (const name of ITEM_MODELS) void loadItem(name).then(real => { if (real && !disposed) build(); });
     /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
     const wardrobeFootprints = () => model.scene.wardrobes.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */
@@ -107,34 +113,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         planarUVs(geo);
         return new THREE.Mesh(geo, material);
     }
-    function garment(cx, top, z, height, depth, color, front = false) {
-        const sh = new THREE.Shape();
-        sh.moveTo(-depth * .13, 0);
-        sh.lineTo(depth * .13, 0);
-        sh.quadraticCurveTo(depth * .25, -3, depth * .43, -7);
-        sh.lineTo(depth * .48, -height * .91);
-        sh.quadraticCurveTo(0, -height * 1.03, -depth * .48, -height * .95);
-        sh.lineTo(-depth * .43, -7);
-        sh.quadraticCurveTo(-depth * .25, -3, -depth * .13, 0);
-        // Cloth with some body, on a wooden hanger hooked over the rail.
-        const cloth = resources.fabric ? resources.fabric(color) : resources.M(color);
-        const geo = new THREE.ExtrudeGeometry(sh, { depth: 2.2, bevelEnabled: true, bevelThickness: 1.1, bevelSize: 1.1, bevelSegments: 3, steps: 1, curveSegments: 8 }), mesh = new THREE.Mesh(geo, cloth);
-        geo.translate(0, 0, -1.1);
-        const hanger = resources.M('#7a6148', { roughness: .45 }), steel = resources.M('#a7a49e', { metalness: .8, roughness: .3 });
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(depth * .86, 1.1, 1.1), hanger), hook = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, 3.2, 6), steel);
-        bar.position.set(0, -1.6, 0);
-        hook.position.set(0, .6, 0);
-        mesh.add(bar, hook);
-        bar.castShadow = true;
-        // Garments never hang perfectly parallel: each turns a little on its hanger.
-        const turn = Math.sin(cx * 12.9898 + z * 78.233) * .09;
-        mesh.rotation.y = (front ? 0 : Math.PI / 2) + turn;
-        // Some garments are bulkier than others: a knit against a shirt.
-        mesh.scale.z = 1.25 + .45 * Math.abs(Math.sin(cx * 3.7 + z * 5.1));
-        mesh.position.set(cx, top, z);
-        mesh.castShadow = mesh.receiveShadow = true;
-        renderState.Gr.add(mesh);
-    }
+    const garments = createGarmentRenderer({ resources, group: () => renderState.Gr });
+    const garment = garments.garment, shoes = garments.shoes;
     /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
     function fitLight() {
         const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
@@ -165,7 +145,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         });
         renderState.wardrobeGroups.forEach(g => {
             resources.scene.remove(g);
-            disposeCabinetGroup(g, new Set([resources.HM]));
+            disposeCabinetGroup(g, new Set([resources.HM, ...garments.materials()]));
         });
         renderState.wardrobeGroups = [];
         renderState.allHits = [];
@@ -222,7 +202,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, shoes, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;

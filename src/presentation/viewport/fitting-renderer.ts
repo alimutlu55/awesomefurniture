@@ -22,7 +22,9 @@ interface FittingRendererPorts {
     geometry: Pick<ReturnType<typeof createWardrobeGeometry>, 'isBoxed'>;
     group: THREE.Group;
     getRenderDesign(): EditorState;
-    garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean): void;
+    garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean, pitch?: number): void;
+    /** A real pair of shoes standing at (x, y, z), or null until the model has loaded (stand-ins are drawn then). */
+    shoes?(x: number, y: number, z: number, height: number, length: number, index: number): unknown;
 }
 /** A fitting meeting a sloped or stepped top. Coordinates are cabinet-centred x and floor-relative y. */
 export interface FittingCut {
@@ -33,7 +35,7 @@ export interface FittingCut {
     /** Lowest clear height over an x span. */
     clearAt(x0: number, x1: number): number;
 }
-export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
+export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, shoes }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
@@ -69,6 +71,8 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             if (k === 'shoe') {
                 const pairs = Math.max(1, WardrobePlanner.geo.shoePairs(sw)), sh = Math.min(9, hh - PANEL - 1);
                 for (let j = 0; j < pairs; j++) {
+                    const pairX = cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW();
+                    if (clears(pairX - 10, pairX + 10, base + hh - PANEL - 1) && shoes?.(pairX, base, 1, hh - PANEL - 1, d - 5, j + Math.round(base / 7))) continue;
                     for (let q = 0; q < 2; q++) {
                         const px = cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW() + (q ? 5 : -5);
                         if (!clears(px - 4, px + 4, base + sh)) continue;
@@ -144,10 +148,10 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (let j = 0; j < c; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {
-                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true);
+                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true, sp);
                 }
                 else {
-                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!);
+                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!, false, sp);
                 }
             }
             if (k === 'lift') {

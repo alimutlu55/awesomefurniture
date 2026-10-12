@@ -68,6 +68,9 @@ export function createViewportResources(cv) {
     const cloth = fabricTexture(cv.ownerDocument);
     cloth.repeat.set(1 / 30, 1 / 45);
     const fabric = c => M(c, { map: cloth, roughness: .95, envMapIntensity: .25 });
+    // Real garments (item-models.ts): matte cloth in the garment's colour; the folds are in the model's shape and
+    // their ambient occlusion in its vertex colours. Both faces drawn, as cloth has an inside.
+    const garmentFabric = c => M(c, { roughness: .95, envMapIntensity: .2, vertexColors: true, side: THREE.DoubleSide });
     const softArea = (w, h, d, opacity) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity, depthWrite: false }));
     const shade = (c, f) => '#' + new THREE.Color(c).multiplyScalar(f).getHexString();
     function dispose() {
@@ -78,5 +81,5 @@ export function createViewportResources(cv) {
         R.dispose();
         R.forceContextLoss();
     }
-    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
+    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, fabric, garmentFabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
 }

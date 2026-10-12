@@ -243,5 +243,9 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             + h('Move around') + k('← →', 'Previous / next section') + k('↑ ↓', 'Next item up / down') + k('Esc', 'Deselect or cancel a move')
             + h('Edit') + k('⌫', 'Remove the selected item') + k('Shift + arrows', 'Move the selected item') + k('Ctrl/⌘ Z', 'Undo') + k('Ctrl/⌘ ⇧ Z', 'Redo')
             + h('Mouse and touch') + k('Click', 'Select a section or item') + k('Drag item', 'Move freely, view turns to the front · Alt = no snap · Shift-drag swaps') + k('Drag background', 'Orbit') + k('Scroll / pinch', 'Zoom');
+        // The real items' 3D models are CC BY 4.0: their authors are credited here (public/models/MANIFEST.md).
+        document.getElementById('keys').innerHTML += h('Credits') + '<p class="sub">3D models (Sketchfab, CC BY 4.0): "T-Shirt On Hanger" by FeisalKassim, '
+            + '"sweater woman" by Rouker, "Color Blocked Shirt" by Shift4cube, "Trench 3D" by Ellebecool, "Wood Clothes Hanger" by roh3d, '
+            + '"Old Oxford Shoe" by inciprocal.com, "Classic high heel pumps" by Earl_1, "Photoscanned Female Ankle Boots" by TunnelVisionStudio.</p>';
     })();
 }

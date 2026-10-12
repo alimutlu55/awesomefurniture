@@ -8,7 +8,7 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
-export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, shoes, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const { $, document } = dom;
     /** Break-point handles are pooled: rebuilding during a drag reuses the
      * captured element instead of replacing it. */
@@ -159,7 +159,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment });
+        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, shoes });
         const itemDims = (i, j) => {
             const g = geometry.itemMeasurements(i, j);
             if (!g) {
