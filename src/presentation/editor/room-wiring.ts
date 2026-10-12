@@ -59,9 +59,10 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.stopImmediatePropagation();
     }, true);
 
-    /** A wall (or an opening on one) selected from behind, where it is lowered, is brought round to be seen
-     * from inside the room: a three-quarter view of its face, a little above eye level. A wall already
-     * facing the camera keeps the view, so selecting never jumps needlessly. */
+    /** A wall (or an opening on one) selected from behind, where it is lowered, or from eye level, is brought
+     * round to an editing view: a three-quarter view of its face from above, where its corners and grips can
+     * be dragged. A wall already facing the camera from above keeps the view, so selecting never jumps
+     * needlessly. */
     function faceSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
@@ -70,17 +71,25 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (!w || !line || !face) return;
         const c = late.camera().camNow(), cam = { x: c.x + c.dist * Math.cos(c.el) * Math.sin(c.az), z: c.z + c.dist * Math.cos(c.el) * Math.cos(c.az) };
         const mid = { x: (face.from.x + face.to.x) / 2, z: (face.from.z + face.to.z) / 2 };
-        if ((cam.x - mid.x) * line.nx + (cam.z - mid.z) * line.nz > 0) return;
+        // Seen from the room and from high enough to drag its grips: keep the view. From behind, or from eye
+        // level (where moving the wall would point straight at the camera), turn to a three-quarter view above.
+        if ((cam.x - mid.x) * line.nx + (cam.z - mid.z) * line.nz > 0 && c.el >= .35) return;
         const span = Math.max(150, face.length);
-        late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .35, .45, 1.08);
+        late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
     }
 
-    /** Flies to a view of the whole room (and any wardrobe outside it), from above the lowered walls. */
+    /** Flies to the room as a photographer would show it: straight on to the wardrobe wall, a little above eye
+     * level, the whole room width and the walls' full height in frame (the near wall is cut away). */
     function frameRoom() {
         const room = model.scene.studio && studioBounds(model.scene.studio), w = late.wardrobeBounds();
         if (!room) return;
         const x0 = Math.min(room.x0, w.x - w.w / 2), x1 = Math.max(room.x1, w.x + w.w / 2), z0 = Math.min(room.z0, w.z - w.d / 2), z1 = Math.max(room.z1, w.z + w.d / 2);
-        late.camera().frameBox({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: Math.min(room.height, w.h + 40) }, .6, .62, 1.04);
+        const active = model.scene.wardrobes.find(c => c.id === model.scene.activeWardrobe), facing = (active?.angle ?? 0) * Math.PI / 180;
+        // A portrait screen cannot show the whole room width at eye level without leaving it tiny: it shows the
+        // wardrobe wall with a little room either side, the walls' full height.
+        const narrow = typeof innerWidth === 'number' && innerWidth < innerHeight;
+        const width = narrow ? Math.min(x1 - x0, w.w + 140) : x1 - x0, x = narrow ? w.x : (x0 + x1) / 2;
+        late.camera().frameBox({ x, z: (z0 + z1) / 2, w: width, d: (z1 - z0) * .4, h: room.height }, facing, .14, 1.02);
     }
 
     return {

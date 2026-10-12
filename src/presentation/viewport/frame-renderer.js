@@ -1,6 +1,7 @@
-/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame'> }} ports */
+/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame' | 'shadowKey'> }} ports */
 export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio, callbacks }) {
     const { $, matchMedia } = dom;
+    let lastShadows;
     function loop() {
         lifetime.frame(loop);
         const _n = clock.now(), dt = Math.min(.05, (_n - (renderState.lastFrameTime ?? _n)) / 1000);
@@ -45,6 +46,12 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
             }
         }
         renderState.pivots.forEach(p => p.rotation.y += ((p.userData.state.open ? p.userData.t : 0) - p.rotation.y) * kk(8));
+        // Shadows depend on the scene, not the camera: redraw them only when something moved.
+        const shadows = studio?.shadowKey?.();
+        if (shadows !== lastShadows) {
+            lastShadows = shadows;
+            resources.R.shadowMap.needsUpdate = true;
+        }
         resources.R.render(resources.scene, resources.cam);
         const r = resources.cv.getBoundingClientRect();
         callbacks.positionLabels();

@@ -22,9 +22,9 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   await el('more-btn').waitFor();
 
   // A room comes from Add item, in its Walls category.
-  await tap(el('more-btn'));
-  if(phone) { await tap(page.locator('[data-category="room"]')); await tap(page.locator('.mobile-add-products [data-studio="bedroom"]')); }
-  else { await page.locator('.room-add > summary').click(); await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]')); }
+  // On a phone the Walls button opens Add item on its Walls tab.
+  if(phone) { await tap(el('walls-btn')); await tap(page.locator('.mobile-add-products [data-studio="bedroom"]')); }
+  else { await tap(el('more-btn')); await page.locator('.room-add > summary').click(); await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]')); }
   await page.waitForTimeout(1400);
   assert.equal(await context(),'none','placing a room leaves nothing selected');
   assert.equal(await page.locator('[data-editor-id="pop2"].show').count(),0,'the Add item panel closes');
@@ -56,7 +56,8 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   assert.equal(Number(await el('undo2').locator('small').textContent()||0),undoBefore,'undone');
 
   // Door: added to the selected wall (refused there: the wardrobe stands in front), then exact sizes.
-  if(await context()!=='wall') { if(phone) await page.touchscreen.tap(at.x,at.y); else await page.mouse.click(at.x,at.y); await page.waitForTimeout(400); }
+  // Undo selects the wardrobe again; the wall is where its grip was, just below the top edge.
+  if(await context()!=='wall') { const back={x:from.x,y:from.y+14}; if(phone) await page.touchscreen.tap(back.x,back.y); else await page.mouse.click(back.x,back.y); await page.waitForTimeout(400); }
   await tap(toolbar.locator('[data-action="door"]'));
   assert.equal(await context(),'opening','the new door is selected');
   await tap(toolbar.locator('[data-action="opening-size"]'));

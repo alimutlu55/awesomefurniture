@@ -5,12 +5,13 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { COL } from '../editor/editor-format.js';
+import { GARMENT_COLOURS } from './fabric';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import type { createViewportResources } from './viewport-resources.js';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { BoxBuilder } from './frame-geometry';
 interface FittingRendererPorts {
-    resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'>;
+    resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'fabric'>>;
     mp: THREE.Material;
     md: THREE.Material;
     mh: THREE.Material;
@@ -32,6 +33,8 @@ export interface FittingCut {
     clearAt(x0: number, x1: number): number;
 }
 export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
+    /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
+    const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
@@ -64,7 +67,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     for (let q = 0; q < 2; q++) {
                         const px = cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW() + (q ? 5 : -5);
                         if (!clears(px - 4, px + 4, base + sh)) continue;
-                        box(8, sh, Math.min(27, d - 5), px, base + sh / 2, 1, resources.M(COL[j % 8]!));
+                        box(8, sh, Math.min(27, d - 5), px, base + sh / 2, 1, cloth(GARMENT_COLOURS[j % 8]!));
                     }
                 }
             }
@@ -85,7 +88,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     const px = cx - (stacks - 1) * WardrobePlanner.geo.foldW() / 2 + j * WardrobePlanner.geo.foldW();
                     for (let q = 0; q < layers; q++) {
                         if (!clears(px - fw / 2, px + fw / 2, base + 3.2 + q * 3.5)) break;
-                        box(fw, 3.2, Math.min(30, d - 5), px, base + 1.6 + q * 3.5, 2, resources.M(COL[(j * 2 + q) % 8]!));
+                        box(fw, 3.2, Math.min(30, d - 5), px, base + 1.6 + q * 3.5, 2, cloth(GARMENT_COLOURS[(j * 2 + q) % 8]!));
                     }
                 }
             }
@@ -116,7 +119,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (let j = 0; j < count; j++) {
                 const px = coreX - (count - 1) * 3 + j * 6;
                 box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, mh);
-                box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, resources.M(COL[j % 8]));
+                box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % 8]!));
             }
         }
         else {
@@ -130,10 +133,10 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (let j = 0; j < c; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {
-                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), COL[(j * 3) % 8]!, true);
+                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true);
                 }
                 else {
-                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, COL[(j * 3) % 8]!);
+                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!);
                 }
             }
             if (k === 'lift') {
