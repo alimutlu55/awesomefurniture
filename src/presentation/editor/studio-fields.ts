@@ -50,15 +50,12 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
 
     function render() {
         const list = fields();
-        const ceiling = list.some(x => x.key === 'angle');
         const shape = list.map(x => x.key).join();
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
             root.innerHTML = list.map(x => '<label class="shape-field"><span>' + esc(x.label) + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
                 + '" min="' + x.min + '" max="' + x.max + '" aria-label="' + esc(x.label) + '"><small>' + (x.unit ?? 'cm') + '</small></span>'
-                + (x.hint ? '<small class="room-field-hint">' + esc(x.hint) + '</small>' : '') + '</label>').join('')
-                + (ceiling ? '<button type="button" class="room-ceiling-preset" data-room-ceiling>Make ceiling</button>'
-                    + '<small class="room-ceiling-hint">A thin slab above the floor. Adjust its depth and elevation to fit.</small>' : '');
+                + (x.hint ? '<small class="room-field-hint">' + esc(x.hint) + '</small>' : '') + '</label>').join('');
         }
         for (const x of list) {
             const input = root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]');
@@ -83,20 +80,6 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         refresh();
         render();
     }
-
-    listen(root, 'click', e => {
-        if (!(e.target as Element).closest('[data-room-ceiling]')) return;
-        const s = getSelection();
-        if (s?.kind !== 'wall') return;
-        editStudio(r => {
-            const w = r.walls.find(w => w.id === s.id);
-            return w?.independent ? setWallSize(r, w.id, {
-                height: Math.min(12, w.height), thickness: Math.max(w.height, w.thickness), y: Math.max(w.y ?? 0, w.height),
-            }) : null;
-        });
-        refresh();
-        render();
-    });
 
     listen(root, 'change', e => {
         const input = e.target as HTMLInputElement;

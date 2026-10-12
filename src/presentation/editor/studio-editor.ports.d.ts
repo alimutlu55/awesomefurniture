@@ -4,10 +4,12 @@ type Point = { x: number; y: number; z: number };
 /** A handle on the room: a corner, the grip that moves a wall, "+" on a free wall end, or an opening's grip. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'rotate';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'rotate' | 'face';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
+    readonly dimension?: 'length' | 'height' | 'depth';
+    readonly side?: -1 | 1;
     readonly axis?: 'x' | 'y' | 'z';
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;

@@ -3,7 +3,7 @@
  * They do not validate: the caller checks studioProblems() and refuses an invalid result with its
  * reason. Any change to walls or openings makes the studio 'custom'. Centimetres.
  */
-import { STUDIO_DEFAULTS, STUDIO_LIMITS as L, corner, cornerDegree, nextId, wall, wallFace, wallLine } from './studio';
+import { STUDIO_DEFAULTS, STUDIO_LIMITS as L, SOLID_LIMITS, corner, cornerDegree, nextId, wall, wallFace, wallLine } from './studio';
 import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } from './studio';
 import { openingRange } from './studio-validation';
 
@@ -62,6 +62,22 @@ export function setWallAngle(studio: Studio, id: string, angle: number): Studio 
   const a = angle * Math.PI / 180, dx = Math.cos(a) * line.length / 2, dz = -Math.sin(a) * line.length / 2;
   const corners = moved(moved(studio.corners, w.a, mid.x - dx, mid.z - dz, false), w.b, mid.x + dx, mid.z + dz, false);
   return custom(studio, { corners });
+}
+
+/** Pulls one face of a solid while keeping its opposite face in place. */
+export function pullWallFace(studio: Studio, id: string, dimension: 'length' | 'height' | 'depth', side: -1 | 1, distance: number): Studio | null {
+  const w = wall(studio, id), line = w && wallLine(studio, w);
+  if (!w || !line || !Number.isFinite(distance)) return null;
+  const size = w.independent ? SOLID_LIMITS : L;
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  if (dimension === 'length') return setWallLength(studio, id, clamp(line.length + distance, L.minWallLength, L.maxWallLength), side === -1);
+  if (dimension === 'height') {
+    const height = clamp(w.height + distance, size.minHeight, side === -1 ? Math.min(size.maxHeight, w.height + (w.y ?? 0)) : size.maxHeight);
+    return setWallSize(studio, id, { height, ...(side === -1 ? { y: (w.y ?? 0) + w.height - height } : {}) });
+  }
+  const thickness = clamp(w.thickness + distance, size.minThickness, size.maxThickness);
+  const moved = moveWall(studio, id, side * (thickness - w.thickness) / 2);
+  return moved && setWallSize(moved, id, { thickness });
 }
 
 /** Sets a wall's length by moving its `b` end along the wall (or its `a` end when `fromEnd`). */

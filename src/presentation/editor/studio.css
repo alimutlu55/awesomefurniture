@@ -56,5 +56,11 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
  #toolbar[data-context]{max-width:calc(var(--contextual-action-count,5) * 96px + 10px);margin-inline:auto}
 }
 
-.room-fields .room-ceiling-preset{grid-column:1/-1;margin-top:4px;background:var(--ink);color:var(--panel);border-radius:10px;padding:8px 12px;font-size:12px}
-.room-ceiling-hint{grid-column:1/-1;font-size:11px;line-height:1.4;color:var(--mute)}
+/* Square face grips change a solid's shape; round direction arrows move the whole solid. */
+.lbl.room-face{width:32px;height:32px;min-height:32px;border-radius:8px;z-index:4;display:grid;place-items:center}
+.lbl.room-face:active{background:var(--ink);color:var(--panel);cursor:grabbing}
+.lbl.room-face:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media(max-width:900px){.lbl.room-face{width:44px;height:44px;min-height:44px;border-radius:10px}}
+
+.lbl.shape-handle.room-face::before{content:none}
+.lbl.shape-handle.room-face:hover{transform:none}

@@ -57,7 +57,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest?.('.contextual-popover'))) return;
         // Focused room grips handle their own arrow keys at the target.
         if (k.key.startsWith('Arrow') && target?.closest?.('.room-handle')) return;
-        if (k.key === 'Escape') editor.select(null);
+        if (k.key === 'Escape') { if (editor.dragging()) editor.end(true); else editor.select(null); }
         else if (k.key === 'Delete' || k.key === 'Backspace') editor.act('remove');
         else if (!k.key.startsWith('Arrow')) return;
         k.preventDefault();

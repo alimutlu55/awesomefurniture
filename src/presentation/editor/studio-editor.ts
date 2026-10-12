@@ -1,6 +1,6 @@
 import { STUDIO_LIMITS, cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { addWall, mergeCorners, moveCorner, moveOpening, moveWall, moveWallAxis, setWallAngle, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import { addWall, mergeCorners, moveCorner, moveOpening, moveWall, moveWallAxis, setWallAngle, pullWallFace, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
@@ -65,13 +65,26 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (!studio || !w || !line) return [];
     const face = wallFace(studio, w)!, out: RoomHandle[] = [], s = selection()!;
     if (s.kind === 'wall') {
-      for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: w.y ?? 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
+      if (!w.independent) for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: w.y ?? 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
       const mid = (face.start + face.end) / 2, at = { x: line.a.x + line.ux * mid + line.nx * w.thickness / 2, z: line.a.z + line.uz * mid + line.nz * w.thickness / 2 };
       // On the wall's top edge: wardrobes stand against its foot.
       for (const axis of ['x', 'y', 'z'] as const) {
         out.push({ key: 'wall:' + w.id + ':' + axis, kind: 'wall', id: w.id, axis,
           x: at.x + (axis === 'x' ? 65 : 0), y: (w.y ?? 0) + w.height + (axis === 'y' ? 65 : 0), z: at.z + (axis === 'z' ? 65 : 0),
           label: 'Move wall along ' + axis.toUpperCase() + '. Drag or use arrow keys', nx: axis === 'x' ? 1 : 0, nz: axis === 'z' ? 1 : 0 });
+      }
+      // Face grips reshape directly: each face moves alone, its opposite face stays fixed.
+      for (const dimension of ['length', 'height', 'depth'] as const) for (const side of [-1, 1] as const) {
+        const t = dimension === 'length' ? (side === -1 ? 0 : line.length) : line.length * (dimension === 'height' ? .35 : .7);
+        const normal = dimension === 'depth' ? side * w.thickness / 2 : w.thickness / 2;
+        out.push({ key: 'face:' + w.id + ':' + dimension + ':' + side, kind: 'face', id: w.id, dimension, side,
+          x: line.a.x + line.ux * t + line.nx * normal,
+          y: (w.y ?? 0) + (dimension === 'height' ? (side === -1 ? 0 : w.height) : w.height * .45),
+          z: line.a.z + line.uz * t + line.nz * normal,
+          nx: dimension === 'length' ? line.ux * side : dimension === 'depth' ? line.nx * side : 0,
+          nz: dimension === 'length' ? line.uz * side : dimension === 'depth' ? line.nz * side : 0,
+          label: 'Drag this face to change wall ' + dimension,
+        });
       }
       if (w.independent) out.push({ key: 'rotate:' + w.id, kind: 'rotate', id: w.id,
         x: (line.a.x + line.b.x) / 2 - line.ux * line.length * .2 + line.nx * (w.thickness / 2 + 60),
@@ -122,7 +135,15 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const corners = moving.handle.kind === 'wall' ? [w.a, w.b] : [moving.created ?? moving.handle.id];
       for (const x of studio.walls) if (corners.includes(x.a) || corners.includes(x.b)) ids.add(x.id);
     }
-    return studio.walls.filter(x => ids.has(x.id)).map(x => wallRuler(studio, x)).filter((m): m is RoomMeasure => !!m);
+    const rulers = studio.walls.filter(x => ids.has(x.id)).map(x => wallRuler(studio, x)).filter((m): m is RoomMeasure => !!m);
+    const line = wallLine(studio, w)!;
+    const at = { x: line.a.x + line.ux * line.length * .7, z: line.a.z + line.uz * line.length * .7 };
+    const y = w.y ?? 0;
+    rulers.push({ a: { x: at.x + line.nx * w.thickness / 2, y, z: at.z + line.nz * w.thickness / 2 },
+      b: { x: at.x + line.nx * w.thickness / 2, y: y + w.height, z: at.z + line.nz * w.thickness / 2 }, text: f(w.height) });
+    rulers.push({ a: { x: at.x - line.nx * w.thickness / 2, y: y + w.height, z: at.z - line.nz * w.thickness / 2 },
+      b: { x: at.x + line.nx * w.thickness / 2, y: y + w.height, z: at.z + line.nz * w.thickness / 2 }, text: f(w.thickness) });
+    return rulers;
   }
   const guides = () => drag?.guides ?? [];
   const reason = () => {
@@ -182,6 +203,14 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
         const moved = moveCorner(g.original, id, from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t);
         return moved && join && t === 1 ? mergeCorners(moved, id, join) : moved;
       };
+    } else if (h.kind === 'face') {
+      const w = wallOf(g.original, h.id)!, last = wallOf(g.last, h.id)!;
+      const dimension = h.dimension!, side = h.side!;
+      const initial = dimension === 'length' ? wallLine(g.original, w)!.length : dimension === 'height' ? w.height : w.thickness;
+      const current = dimension === 'length' ? wallLine(g.last, last)!.length : dimension === 'height' ? last.height : last.thickness;
+      const raw = step(along(e, h, h.nx!, h.nz!, dimension === 'height' ? side : 0));
+      g.guides = [];
+      want = t => pullWallFace(g.original, h.id, dimension, side, current - initial + (raw - (current - initial)) * t);
     } else if (h.kind === 'rotate') {
       const w = wallOf(g.original, h.id)!, line = wallLine(g.original, w)!, current = picking.groundPoint(e, h.y);
       const centre = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
@@ -279,6 +308,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const n = shift ? 10 : 1, dir = key === 'ArrowRight' || key === 'ArrowUp' ? 1 : -1;
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
     const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
+      : h.kind === 'face' ? edit(s => pullWallFace(s, h.id, h.dimension!, h.side!, dir * n))
       : h.kind === 'wall' ? edit(s => h.axis ? moveWallAxis(s, h.id, h.axis, dir * n) : moveWall(s, h.id, dir * n))
         : h.kind === 'rotate' ? edit(s => setWallAngle(s, h.id, wallLine(s, wallOf(s, h.id)!)!.angle + dir * (shift ? 15 : 1)))
           : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n)) : false;

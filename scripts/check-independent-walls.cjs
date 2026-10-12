@@ -5,7 +5,7 @@ const path = require('node:path');
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH });
   try {
-    for (const [name, width, height] of [['desktop', 1440, 900], ['phone', 375, 812]]) {
+    for (const [name, width, height] of [['desktop', 1440, 900], ['phone', 375, 812]].filter(x => !process.env.STUDIO_DEVICE || x[0] === process.env.STUDIO_DEVICE)) {
       const phone = name === 'phone';
       const page = await browser.newPage({ viewport: { width, height }, isMobile: phone, hasTouch: phone });
       const errors = [];
@@ -68,29 +68,69 @@ const path = require('node:path');
       await tap(el('walls-btn'));
       await tap(page.locator(phone ? '.mobile-add-products [data-add-room="wall"]' : '[data-editor-id="padd-room"] [data-add-room="wall"]'));
       const all = await snapshot(), current = all.studio.walls.at(-1), others = all.studio.walls.slice(0, -1);
-      await tap(el('toolbar').locator('[data-action="wall-size"]'));
-      const field = key => page.locator('[data-room-field="' + key + '"]');
-      for (const [key, value] of [['length', '180'], ['height', '280'], ['thickness', '24'], ['angle', '30']]) {
-        await field(key).fill(value); await field(key).press('Enter'); await page.waitForTimeout(100);
-        assert.equal(Number(await field(key).inputValue()), Number(value), key + ' is editable');
+      assert.equal(await page.locator('.room-face').count(), 6);
+      assert.equal(await page.locator('[data-room-ceiling]').count(), 0);
+      const face = (dimension, side) => page.locator('.room-face[data-dimension="' + dimension + '"][data-side="' + side + '"]');
+      await page.evaluate(() => { window.wallPointerEvents = []; for (const type of ['pointerdown','pointermove','pointerup','pointercancel','lostpointercapture']) window.solidRoot.shadowRoot.addEventListener(type, e => { if (e.target.closest('.room-handle')) window.wallPointerEvents.push({ type, x:e.clientX,y:e.clientY,id:e.pointerId,button:e.button,kind:e.pointerType,handle:e.target.closest('.room-handle').outerHTML.slice(0,180) }); }, true); });
+      const session = await page.context().newCDPSession(page);
+      const drag = async (locator, pixels) => {
+        const box = await locator.boundingBox();
+        assert.ok(box, 'handle is visible');
+        const x = box.x + box.width / 2, y = box.y + box.height / 2;
+        const direction = await locator.locator('.mv-ic').evaluate(el => {
+          const m = new DOMMatrix(getComputedStyle(el).transform); return { x: m.a, y: m.b };
+        });
+        const hit = await locator.evaluate((el, p) => { const hit = el.getRootNode().elementFromPoint(p.x, p.y); return { ok: hit?.closest('.room-handle') === el, styles: {pe:getComputedStyle(el).pointerEvents, z:getComputedStyle(el).zIndex}, stack:el.getRootNode().elementsFromPoint(p.x,p.y).slice(0,6).map(x=>x.outerHTML.slice(0,100)), hit: hit?.outerHTML.slice(0, 300), target: el.outerHTML.slice(0, 250) }; }, { x, y });
+        if (!hit.ok) { await page.screenshot({ path: '/tmp/wall-handle-failure-' + name + '.png' }); console.log({ x, y, ...hit }); }
+        assert.equal(hit.ok, true, 'handle can be grabbed without another target covering it');
+        if (phone) await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+        else { await page.mouse.move(x, y); await page.mouse.down(); }
+        for (let i = 1; i <= 12; i++) {
+          const point = { x: x + direction.x * pixels * i / 12, y: y + direction.y * pixels * i / 12 };
+          if (phone) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] });
+          else await page.mouse.move(point.x, point.y);
+        }
+        if (phone) await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        else await page.mouse.up();
+        await page.waitForTimeout(150);
+      };
+      const selected = async () => (await snapshot()).studio.walls.find(w => w.id === current.id);
+      for (const axis of ['x', 'y', 'z']) {
+        const start = await snapshot();
+        await drag(page.locator('.room-axis[data-axis="' + axis + '"]'), 30);
+        const after = await snapshot();
+        assert.notDeepEqual(after.studio, start.studio, axis + ' movement responds to dragging');
+        assert.deepEqual(after.studio.walls.slice(0, -1), others);
+        assert.deepEqual(after.wardrobes, before.wardrobes);
       }
-      await tap(page.locator('[data-room-ceiling]'));
-      assert.equal(Number(await field('height').inputValue()), 12);
-      assert.equal(Number(await field('thickness').inputValue()), 280);
-      assert.equal(Number(await field('y').inputValue()), 280);
-      for (const [key, value] of [['thickness', '350'], ['y', '320']]) {
-        await field(key).fill(value); await field(key).press('Enter'); await page.waitForTimeout(100);
+      for (const dimension of ['length', 'height', 'depth']) for (const side of [-1, 1]) {
+        const handle = face(dimension, side);
+        if (phone) assert.ok((await handle.boundingBox()).width >= 44);
+        const start = await snapshot();
+        await drag(handle, 35);
+        const after = await snapshot();
+        const size = scene => { const w = scene.studio.walls.at(-1); if (dimension === 'height') return w.height; if (dimension === 'depth') return w.thickness; const a = scene.studio.corners.find(c => c.id === w.a), b = scene.studio.corners.find(c => c.id === w.b); return Math.hypot(b.x-a.x,b.z-a.z); };
+        if (!(size(after) > size(start) + 1)) { console.log({ dimension, side, before:size(start), after:size(after), events:await page.evaluate(()=>window.wallPointerEvents), reason:await page.locator('.shape-reason').allTextContents() }); await page.screenshot({path:'/tmp/wall-touch-failure.png'}); }
+        assert.ok(size(after) > size(start) + 1, dimension + ' face expands the chosen dimension');
+        assert.deepEqual(after.studio.walls.slice(0, -1), others);
+        assert.deepEqual(after.wardrobes, before.wardrobes);
       }
-      const ceiling = await snapshot(), slab = ceiling.studio.walls.find(w => w.id === current.id);
-      assert.equal(slab.height, 12); assert.equal(slab.thickness, 350); assert.equal(slab.y, 320);
-      assert.deepEqual(ceiling.studio.walls.slice(0, -1), others);
-      assert.deepEqual(ceiling.wardrobes, before.wardrobes);
-      await page.screenshot({ path: path.join(process.env.STUDIO_SHOTS || '/tmp/independent-walls-shots', 'ceiling-fields-' + name + '.png') });
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(200);
-      await page.screenshot({ path: path.join(process.env.STUDIO_SHOTS || '/tmp/independent-walls-shots', 'ceiling-' + name + '.png') });
+      // Shape a slab entirely with face dragging, then lift it with the existing direction arrow.
+      for (let i = 0; i < 12 && (await selected()).height > 1.01; i++) await drag(face('height', 1), -100);
+      assert.ok((await selected()).height <= 1.01, 'top face can be pulled down to a thin slab');
+      const depth = (await selected()).thickness;
+      await drag(face('depth', 1), 60);
+      assert.ok((await selected()).thickness > depth);
+      await drag(page.locator('.room-axis[data-axis="y"]'), 50);
+      assert.ok((await selected()).y > 0, 'whole slab lifts with the same Y direction arrow');
+      for (const dimension of ['length', 'height', 'depth']) for (const side of [-1, 1]) {
+        const handle = face(dimension, side), box = await handle.boundingBox();
+        const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        assert.equal(await handle.evaluate((el, p) => el.getRootNode().elementFromPoint(p.x,p.y)?.closest('.room-handle') === el, point), true, 'thin slab face remains independently touchable');
+      }
+      await page.screenshot({ path: path.join(process.env.STUDIO_SHOTS || '/tmp/independent-walls-shots', 'direct-slab-' + name + '.png') });
       assert.deepEqual(errors, []);
-      console.log('independent walls, drag rotation, depth, ceiling and elevation: ' + name + ' ok');
+      console.log('direct wall face shaping, movement, rotation and slab: ' + name + ' ok');
       await page.close();
     }
   } finally { await browser.close(); }

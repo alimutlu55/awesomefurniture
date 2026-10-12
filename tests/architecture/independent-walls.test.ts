@@ -5,7 +5,7 @@ import { createSceneCommands } from '../../src/application/commands/scene-comman
 import { createSceneHistory } from '../../src/application/history/scene-history';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { cornerDegree, studioBounds, wallBox, wallLine } from '../../src/domain/studio/studio';
-import { addWall, mergeCorners, moveWallAxis, removeWall, setWallAngle, setWallSize, splitWall, suggestWall } from '../../src/domain/studio/studio-edit';
+import { addWall, mergeCorners, moveWallAxis, removeWall, setWallAngle, setWallSize, pullWallFace, translateStudio, splitWall, suggestWall } from '../../src/domain/studio/studio-edit';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { snapCorner } from '../../src/presentation/editor/studio-drag';
 import { createStudioEditor } from '../../src/presentation/editor/studio-editor';
@@ -171,4 +171,61 @@ test('drawing from a template end creates private corners instead of attaching a
   assert.ok([drawn.a, drawn.b].every(id => !original.corners.some(c => c.id === id)));
   assert.deepEqual(room.corners.slice(0, 2), original.corners);
   assert.equal(s.history.undoCount, 2);
+});
+
+
+test('pulling either face in all three dimensions fixes the opposite face and preserves neighbours', () => {
+  const base = addWall(createStudio('wall'), 0, 120, 200, 120);
+  const room = setWallSize(setWallAngle(base, base.walls.at(-1)!.id, 30)!, base.walls.at(-1)!.id, { y: 100 })!;
+  const w = room.walls.at(-1)!, line = wallLine(room, w)!, box = wallBox(room, w)!;
+  for (const dimension of ['length', 'height', 'depth'] as const) for (const side of [-1, 1] as const) {
+    const next = pullWallFace(room, w.id, dimension, side, 40)!;
+    const changed = next.walls.at(-1)!, after = wallBox(next, changed)!, edge = wallLine(next, changed)!;
+    assert.deepEqual(next.walls[0], room.walls[0]);
+    assert.deepEqual(next.corners.slice(0, 2), room.corners.slice(0, 2));
+    if (dimension === 'length') {
+      assert.ok(Math.abs(edge.length - line.length - 40) < 1e-8);
+      assert.deepEqual(side === 1 ? edge.a : edge.b, side === 1 ? line.a : line.b);
+    } else if (dimension === 'height') {
+      assert.equal(changed.height, w.height + 40);
+      assert.equal(side === 1 ? after.y : after.y + after.height, side === 1 ? box.y : box.y + box.height);
+    } else {
+      assert.equal(after.thickness, box.thickness + 40);
+      // The other face has the same signed projection on the depth normal.
+      const position = (b: typeof box) => b.x * line.nx + b.z * line.nz - side * b.thickness / 2;
+      assert.ok(Math.abs(position(after) - position(box)) < 1e-8);
+    }
+    assert.deepEqual(studioProblems(next), []);
+  }
+});
+
+test('face drags on raised solids support all sides, undo, cancellation and floor limits', () => {
+  for (const dimension of ['length', 'height', 'depth'] as const) for (const side of [-1, 1] as const) {
+    const s = setup();
+    const room = setWallSize(addWall(translateStudio(createStudio('wall'), 0, -200), 600, 600, 800, 600), 'w2', { y: 100 })!;
+    s.model.scene.studio = room;
+    const editor = createStudioEditor({ model: s.model, sceneCommands: s.commands, history: s.history,
+      selectionState: { room: { kind: 'wall', id: 'w2' }, focusOn: false },
+      picking: { groundPoint: () => ({ x: 0, z: 0 }), screenPoint: p => ({ x: p.x + p.z * .5, y: -p.y + p.z * .4 }) },
+      callbacks: { selectionChanged() {}, redraw() {}, refresh() {}, histUI() {}, report() {} },
+    });
+    const faces = editor.handles().filter(h => h.kind === 'face');
+    assert.equal(faces.length, 6);
+    assert.equal(editor.handles().filter(h => h.kind === 'corner').length, 0);
+    const h = faces.find(h => h.dimension === dimension && h.side === side)!, before = s.model.snapshot();
+    const dx = h.nx! * 40 + h.nz! * 20, dy = h.nz! * 16 - (dimension === 'height' ? side * 40 : 0);
+    const target = { setPointerCapture() {}, hasPointerCapture: () => false } as unknown as HTMLElement;
+    const pointer = (x: number, y: number) => ({ pointerId: 1, button: 0, clientX: x, clientY: y, shiftKey: false, preventDefault() {}, stopPropagation() {} }) as PointerEvent;
+    editor.begin(pointer(0, 0), h, target); editor.move(pointer(dx, dy)); editor.end();
+    assert.deepEqual(s.model.scene.studio, pullWallFace(room, 'w2', dimension, side, 40));
+    assert.equal(s.history.undoCount, 1);
+    assert.equal(s.history.undo(), true); assert.equal(s.model.snapshot(), before);
+    editor.begin(pointer(0, 0), h, target); editor.move(pointer(dx, dy)); editor.end(true);
+    assert.equal(s.model.snapshot(), before);
+    if (dimension === 'height' && side === -1) {
+      editor.begin(pointer(0, 0), h, target); editor.move(pointer(0, 500)); editor.end();
+      assert.ok((s.model.scene.studio!.walls.at(-1)!.y ?? 0) >= 0);
+      assert.ok((s.model.scene.studio!.walls.at(-1)!.y ?? 0) < .01);
+    }
+  }
 });
