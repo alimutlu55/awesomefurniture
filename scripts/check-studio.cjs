@@ -49,7 +49,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   // Every axis is reachable on desktop and phone, and keyboard moves are undoable.
   const axisUndo=Number(await el('undo2').locator('small').textContent()||0);
   for (const axis of ['x','y','z']) {
-   const axisGrip=page.locator('.room-grip[data-axis="'+axis+'"]');
+   const axisGrip=page.locator('.room-axis[data-axis="'+axis+'"]');
    assert.equal(await axisGrip.count(),1,'one '+axis+' grip');
    assert.equal(await axisGrip.isVisible(),true,axis+' grip visible');
    const count=Number(await el('undo2').locator('small').textContent()||0);
@@ -59,15 +59,23 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
    await axisGrip.focus();await axisGrip.press(axis==='y'?'ArrowDown':'ArrowRight');
    await page.waitForTimeout(150);
    assert.equal(Number(await el('undo2').locator('small').textContent()||0),count+2,axis+' reverse move is undoable');
+   // Drag the same directional arrow used by wardrobes. Its icon follows the projected scene axis.
+   const box=await axisGrip.boundingBox(), icon=await axisGrip.locator('.mv-ic').getAttribute('style');
+   const angle=Number(icon.match(/rotate\(([-.\d]+)rad\)/)[1]), sign=axis==='y'?1:-1;
+   const x=box.x+box.width/2,y=box.y+box.height/2;
+   await page.mouse.move(x,y);await page.mouse.down();
+   for(let i=1;i<=6;i++) await page.mouse.move(x+Math.cos(angle)*sign*i*4,y+Math.sin(angle)*sign*i*4);
+   await page.mouse.up();await page.waitForTimeout(150);
+   assert.equal(Number(await el('undo2').locator('small').textContent()||0),count+3,axis+' drag is one undo step');
   }
   await shot('axis-grips');
-  for(let i=0;i<6;i++) { await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(150); }
+  for(let i=0;i<9;i++) { await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(150); }
   assert.equal(Number(await el('undo2').locator('small').textContent()||0),axisUndo,'axis moves undone');
   // Undo may focus the wardrobe; selecting the wall restores its editing view.
   if(await context()!=='wall') { if(phone) await page.touchscreen.tap(at.x,at.y); else await page.mouse.click(at.x,at.y); await page.waitForTimeout(400); }
 
   // Dragging its grip moves it out; the side walls stretch live; one undo step takes it back.
-  const grip=await page.locator('.room-grip').first().boundingBox(), from={x:grip.x+grip.width/2,y:grip.y+grip.height/2};
+  const grip=await page.locator('.room-axis[data-axis="z"]').boundingBox(), from={x:grip.x+grip.width/2,y:grip.y+grip.height/2};
   const undoBefore=Number(await el('undo2').locator('small').textContent()||0);
   await page.mouse.move(from.x,from.y);await page.mouse.down();
   // The whole room is in view, smaller on a phone: a shorter drag there moves the wall as far.
@@ -85,7 +93,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
 
   // Door: added to the selected wall (refused there: the wardrobe stands in front), then exact sizes.
   // Undo selects the wardrobe again; the wall is where its grip was, just below the top edge.
-  if(await context()!=='wall') { const back={x:from.x,y:from.y+14}; if(phone) await page.touchscreen.tap(back.x,back.y); else await page.mouse.click(back.x,back.y); await page.waitForTimeout(400); }
+  if(await context()!=='wall') { const back=at; if(phone) await page.touchscreen.tap(back.x,back.y); else await page.mouse.click(back.x,back.y); await page.waitForTimeout(400); }
   await tap(toolbar.locator('[data-action="door"]'));
   assert.equal(await context(),'opening','the new door is selected');
   await tap(toolbar.locator('[data-action="opening-size"]'));

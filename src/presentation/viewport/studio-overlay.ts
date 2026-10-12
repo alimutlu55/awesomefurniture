@@ -33,6 +33,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
     guideGroup.name = 'studio-guides';
     scene.add(guideGroup);
     const guideMaterial = new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(), toneMapped: false, dashSize: 6, gapSize: 4, transparent: true, opacity: .95, depthTest: false });
+    const axisMaterial = new THREE.LineBasicMaterial({ color: 0x8d7d65, transparent: true, opacity: .65, depthTest: false });
     let mine: Lab[] = [];
 
     function handleElement(h: RoomHandle) {
@@ -40,8 +41,12 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
-            if (h.axis) { el.textContent = h.axis.toUpperCase(); el.dataset.axis = h.axis; }
+            el.className = h.axis ? 'lbl wardrobe-move room-handle room-axis' : 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
+            if (h.axis) {
+                el.dataset.axis = h.axis;
+                el.innerHTML = '<span class="mv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"'
+                    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg></span>';
+            }
             else if (h.kind === 'extend') el.textContent = '+';
             else if (h.kind !== 'corner') el.innerHTML = h.kind === 'wall' ? ARROWS : SLIDE;
             const button = el;
@@ -105,6 +110,17 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         const why = editor.reason();
         if (why) track(label(V(why), why.text, 'lbl shape-reason room-label'), V(why));
         for (const h of handles) {
+            if (h.axis) {
+                const direction = new THREE.Vector3(h.axis === 'x' ? 1 : 0, h.axis === 'y' ? 1 : 0, h.axis === 'z' ? 1 : 0);
+                const anchor = V(h).addScaledVector(direction, -65), tip = V(h).addScaledVector(direction, -8);
+                const side = direction.clone().cross(new THREE.Vector3(0, 1, 0));
+                if (side.lengthSq() < .01) side.set(1, 0, 0);
+                side.normalize();
+                const head = tip.clone().addScaledVector(direction, -5);
+                const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([anchor, tip, tip, head.clone().addScaledVector(side, 2), tip, head.clone().addScaledVector(side, -2)]), axisMaterial);
+                line.renderOrder = 16;
+                guideGroup.add(line);
+            }
             const el = handleElement(h);
             used.add(h.key);
             current.set(el, h);
@@ -122,7 +138,12 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         const screen = (p: THREE.Vector3) => { const q = p.clone().project(camera); return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height }; };
         for (const [el, h] of current) {
             const dx = h.kind === 'wall' ? h.nx : h.kind === 'opening' ? h.ux : undefined, dz = h.kind === 'wall' ? h.nz : h.uz;
-            if (h.axis) continue;
+            if (h.axis) {
+                const a = screen(V(h)), b = screen(V(h).add(new THREE.Vector3(h.axis === 'x' ? 40 : 0, h.axis === 'y' ? 40 : 0, h.axis === 'z' ? 40 : 0)));
+                const icon = el.querySelector<HTMLElement>('.mv-ic');
+                if (icon) icon.style.transform = 'rotate(' + Math.atan2(b.y - a.y, b.x - a.x).toFixed(3) + 'rad)';
+                continue;
+            }
             if (dx === undefined || dz === undefined) continue;
             const a = screen(V(h)), b = screen(new THREE.Vector3(h.x + dx * 40, h.y, h.z + dz * 40));
             const turn = Math.atan2(b.y - a.y, b.x - a.x) - (h.kind === 'wall' ? Math.PI / 2 : 0);
@@ -133,6 +154,6 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
 
     return {
         draw, orient,
-        dispose() { clear(); pool.forEach(el => el.remove()); pool.clear(); guideMaterial.dispose(); scene.remove(guideGroup); },
+        dispose() { clear(); pool.forEach(el => el.remove()); pool.clear(); guideMaterial.dispose(); axisMaterial.dispose(); scene.remove(guideGroup); },
     };
 }

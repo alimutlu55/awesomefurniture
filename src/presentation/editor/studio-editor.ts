@@ -68,7 +68,6 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: w.y ?? 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
       const mid = (face.start + face.end) / 2, at = { x: line.a.x + line.ux * mid + line.nx * w.thickness / 2, z: line.a.z + line.uz * mid + line.nz * w.thickness / 2 };
       // On the wall's top edge: wardrobes stand against its foot.
-      out.push({ key: 'wall:' + w.id, kind: 'wall', id: w.id, ...at, y: (w.y ?? 0) + w.height, label: 'Move this wall in or out', nx: line.nx, nz: line.nz });
       for (const axis of ['x', 'y', 'z'] as const) {
         out.push({ key: 'wall:' + w.id + ':' + axis, kind: 'wall', id: w.id, axis,
           x: at.x + (axis === 'x' ? 65 : 0), y: (w.y ?? 0) + w.height + (axis === 'y' ? 65 : 0), z: at.z + (axis === 'z' ? 65 : 0),

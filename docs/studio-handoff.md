@@ -82,7 +82,7 @@ How it works now:
 - **Click or tap a wall** (when no wardrobe is in front of it) or an opening to select it. The contextual
   toolbar shows its actions on desktop and phone: wall → Size, Split, Door, Window, More (Archway, Add wall,
   Remove wall); opening → Size, Remove. Size opens exact fields. Esc leaves, Delete removes.
-- **Handles**: corner dots (floor), a grip on the wall's top edge (moves it along its room side), and X/Y/Z grips (translate it left/right, up/down, and forward/backward), "+" on free
+- **Handles**: corner dots (floor), three directional arrow grips on the wall's top edge, matching the wardrobe's movement handles (translate it left/right, up/down, and forward/backward), "+" on free
   ends (drag to draw a wall, click for a right-angle wall), a grip on each opening (slides it). Drags go as far
   as the room allows and say why they stopped; one undo step each; Shift drags freely. Snaps: corners square
   with neighbours, align with other corners, 45°, and join a free end dropped within 36 cm of another free end;
