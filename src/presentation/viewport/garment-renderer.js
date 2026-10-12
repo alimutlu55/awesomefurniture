@@ -3,6 +3,8 @@ import { garmentPhotos, itemModel, LONG_GARMENTS, SHOE_MODELS, SHORT_GARMENTS } 
 
 /** Hooks' spacing along a rail of photographed garments (cm). */
 const RAIL_PITCH = 10;
+/** Garments on a rail press against each other: shown at this share of their photographed width (front to back). */
+const PRESSED = .75;
 
 /** Real items on the rails and shelves: downloaded models of real garments and shoes (item-models.ts), each in its
  * own colour, at its real size. Until a model has loaded, a simple stand-in is drawn instead. Materials are made once
@@ -101,7 +103,7 @@ export function createGarmentRenderer({ resources, group }) {
     /** Real garments on a rail along the wardrobe: photographs of single garments hanging in profile on wooden hangers
      * (item-models.ts), each at its real length, hook on the rail, RAIL_PITCH apart, each a little in front of the
      * one before so they overlap as clothes on a rail do. Garments longer than the room under the rail are left for
-     * a longer rail. They keep their photographed light, toned to the wardrobe's inside. `seed` varies the mix from
+     * a longer rail. They keep their photographed light, toned a little to the wardrobe's inside. `seed` varies the mix from
      * rail to rail. False until the photographs have loaded. */
     function rail(x0, x1, hookY, room, seed) {
         const all = garmentPhotos();
@@ -112,12 +114,13 @@ export function createGarmentRenderer({ resources, group }) {
         // A mix that differs from rail to rail and never repeats a garment next to itself: the set in a shuffled order.
         const order = set.map((g, i) => ({ g, k: Math.sin((i + 1) * 12.9898 + seed * 78.233) })).sort((a, b) => a.k - b.k).map(x => x.g);
         // Hooks spread evenly over what the widest garment leaves, so the end garments stay inside the bay.
-        const widest = Math.max(...order.map(g => Math.min(g.length, room) * g.aspect)), span = Math.max(0, x1 - x0 - widest);
+        const widest = Math.max(...order.map(g => Math.min(g.length, room) * g.aspect * PRESSED)), span = Math.max(0, x1 - x0 - widest);
         const count = Math.max(1, Math.floor(span / RAIL_PITCH) + 1), step = count > 1 ? span / (count - 1) : 0, first = count > 1 ? x0 + widest / 2 : (x0 + x1) / 2;
         for (let j = 0; j < count; j++) {
-            const g = order[j % order.length], h = Math.min(g.length, room), w = h * g.aspect;
+            const g = order[j % order.length], h = Math.min(g.length, room), w = h * g.aspect * PRESSED;
             const geometry = new THREE.PlaneGeometry(w, h);
-            const look = () => new THREE.MeshBasicMaterial({ map: g.texture, color: new THREE.Color('#ebe5dc').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide });
+            // Soft cut-out edge; a light tone so the photograph's studio light sits in the wardrobe's.
+            const look = () => new THREE.MeshBasicMaterial({ map: g.texture, color: new THREE.Color('#f3eee7').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide });
             const sprite = new THREE.Mesh(geometry, material('photo' + g.name, look));
             // The hook on the rail: the photo's hook sits at `g.hook` across its width.
             // Within the bay: a wide garment at either end slides in rather than reach through the side panel.
