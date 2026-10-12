@@ -43,6 +43,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const sceneFrame = { shadowKey, frame: (cam, dt) => {
         studio?.frame(cam, dt);
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
+        // Which wardrobes stepped aside, for assistive tools and checks (no visible label shows it).
+        const hidden = occlusion?.hiddenIds().join(' ') ?? '', view = $('#view');
+        if (view && view.dataset.hiddenWardrobes !== hidden) view.dataset.hiddenWardrobes = hidden;
     } };
     // Room editing: handles, rulers and guides for the selected wall or opening.
     const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
@@ -188,14 +191,6 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             renderState.allItemHits.push(...renderState.ihits);
             combinedLabs.push(...renderState.labs);
             combinedPivots.push(...renderState.pivots);
-            if (model.scene.wardrobes.length > 1) {
-                const owner = renderState.Gr, name = document.createElement('button');
-                name.className = 'lbl wardrobe-name';
-                name.textContent = wardrobe.name;
-                name.onclick = () => inspector.selectCabinet(wardrobe.id);
-                $('#labels').appendChild(name);
-                combinedLabs.push({ p: new THREE.Vector3(0, renderDesign.h + 24, 0), el: name, owner });
-            }
             if (renderState.renderActive) {
                 activeRender = { Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups };
             }

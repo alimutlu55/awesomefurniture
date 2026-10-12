@@ -54,6 +54,8 @@ export function createWardrobeOcclusion(scene: THREE.Scene) {
   }
 
   return {
+    /** Ids of the wardrobes currently stepped aside. */
+    hiddenIds: () => [...hidden.keys()].sort((a, b) => a - b),
     frame,
     /** Whether a wardrobe is hidden because it blocks the view. */
     isHidden: (id: number) => hidden.has(id),

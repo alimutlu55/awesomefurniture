@@ -96,8 +96,8 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
  });
  await page.waitForTimeout(800);
  await page.locator('[data-editor-id="more-btn"]').tap();await page.waitForTimeout(1500);
- const names=await page.locator('.wardrobe-name').evaluateAll(es=>es.map(e=>e.textContent+':'+e.style.display));
- assert.deepEqual(names.sort(),['Wardrobe 1:block','Wardrobe 2:none'],'the wardrobe in front steps aside: '+names);
+ const hidden=await page.locator('[data-editor-id="view"]').getAttribute('data-hidden-wardrobes');
+ assert.equal(hidden,'2','the wardrobe in front steps aside: '+hidden);
  await page.screenshot({path:path.join(shots,'studio-facing-wardrobes-phone.jpg')});
  assert.deepEqual(errors,[]);
  console.log('facing wardrobes ok');

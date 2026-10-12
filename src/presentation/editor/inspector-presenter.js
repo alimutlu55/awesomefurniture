@@ -76,7 +76,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.pillOn = dom.width <= 900;
         if (dom.width <= 900) selectionState.deep = true;
         update();
-        camera.fit();
+        if (dom.width <= 900) camera.frameMobileInspector(true); else camera.focusSelection(true); // frame the new wardrobe, not all of them
         shell.toast(w.name + ' added');
     }
     function wardrobeUI() {
