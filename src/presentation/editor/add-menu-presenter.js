@@ -35,8 +35,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         $('#pop2').dataset.scope = room ? 'room' : 'wardrobe';
         for (const fold of $('#pop2').querySelectorAll('.shape-add,.room-add')) /** @type {HTMLDetailsElement} */ (fold).open = room;
         const roomTabs = [['wardrobe','Wardrobes','wardrobe'],['room','Walls & rooms','room-wall']];
-        // Walls and Wardrobe sit next to Add item: the room's products, shown only when their pill is picked.
-        const fittingTabs = [['all','Add item','plus'],['room','Walls','room-wall'],['wardrobe','Wardrobe','wardrobe'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']];
+        const fittingTabs = [['all','Add item','plus'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']];
         const tabs = room ? roomTabs : fittingTabs;
         const tab = ([key,name,ic], i) => '<button type="button" data-category="'+key+'" aria-pressed="'+(i===0)+'">'+icon(ic)+'<span>'+name+'</span></button>';
         categories.innerHTML = room ? tabs.map(tab).join('')
@@ -47,8 +46,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
             + shapes.filter(t => t.id !== 'regular').map(t => shapeButton(t, ' data-product-category="wardrobe"')).join('');
         const fittingButton = x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'"'
             + ' title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>';
-        // A wardrobe's Add item lists its fittings only; wardrobes and walls wait behind their own pills.
-        products.innerHTML = room ? wardrobes() + roomProducts() : list.slice().sort((a,b) => order(a.k) - order(b.k)).map(fittingButton).join('') + wardrobes() + roomProducts();
+        products.innerHTML = room ? wardrobes() + roomProducts() : list.slice().sort((a,b) => order(a.k) - order(b.k)).map(fittingButton).join('');
         const plain = browser.querySelector('[data-add-wardrobe]');
         if (plain) (/** @type {HTMLButtonElement} */ (plain)).onclick = () => addCabinet();
         // Wardrobe templates add a new wardrobe that starts from that skeleton.
@@ -59,9 +57,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
             button.onclick = () => {
                 const category = button.dataset.category;
                 categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed',String(tab===button)));
-                // Add item shows fittings only: the wardrobe and room products stay behind their pills.
-                const roomLevel = k => k === 'wardrobe' || k === 'room';
-                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { const pc = product.dataset.productCategory; product.hidden = category === 'all' ? roomLevel(pc) : pc !== category; });
+                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { product.hidden = category !== 'all' && product.dataset.productCategory !== category; });
                 products.scrollLeft = 0;
             };
         });
