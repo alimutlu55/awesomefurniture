@@ -3,6 +3,7 @@ import type { Material, Object3D } from 'three';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { BoxBuilder, PrismBuilder } from './frame-geometry';
 import { panelBuilder } from './frame-geometry';
+import { barPull } from './hardware';
 import type { createViewportResources } from './viewport-resources.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { outerPolyline, resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
@@ -23,7 +24,9 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         const outline = [{ x: 0, y: base }, { x: w, y: base }, ...top.slice().reverse()].map(p => ({ x: left ? p.x : p.x - w, y: p.y }));
         build(outline, 1.6, 0, material, pivot);
         const edge = left ? w : 0, edgeTop = top[left ? top.length - 1 : 0]!.y, handleY = Math.min((base + edgeTop) / 2, base + 120);
-        box(1.2, Math.min(18, Math.max(4, edgeTop - base - 8)), 1.6, left ? edge - 4 : -w + 4, handleY, 1.4, hardware, pivot);
+        const pull = barPull(Math.min(24, Math.max(4, edgeTop - base - 8)), hardware, true);
+        pull.position.set(left ? edge - 4 : -w + 4, handleY, .8);
+        pivot.add(pull);
         pivot.userData.t = left ? -1.6 : 1.6;
         pivot.rotation.y = design.open ? pivot.userData.t : 0;
         group.add(pivot);

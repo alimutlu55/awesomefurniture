@@ -54,6 +54,11 @@ export function createStudioRenderer(scene: THREE.Scene) {
     mesh.renderOrder = 1;
     return mesh;
   };
+  // A downlight: a white trim ring around a warm, glowing lens, facing down.
+  const downlight = {
+    trim: new THREE.RingGeometry(4.2, 6, 24).rotateX(Math.PI / 2), lamp: new THREE.CircleGeometry(4.2, 24).rotateX(Math.PI / 2),
+    trimMaterial: material('#fbfaf7', { side: THREE.DoubleSide }), lampMaterial: new THREE.MeshBasicMaterial({ color: linear('#fff3dc'), side: THREE.DoubleSide, toneMapped: false }),
+  };
   const lineMaterial = new THREE.LineBasicMaterial({ color: linear(LOOK.select), toneMapped: false, transparent: true, opacity: .85, depthTest: false });
 
   function clear() {
@@ -93,8 +98,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       const target = to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
       if (view.lift !== target) setLift(view, Math.abs(view.lift - target) < .003 ? target : view.lift + (target - view.lift) * k);
     }
-    // The ceiling closes the room only when you look from inside it, below it.
-    if (ceiling) ceiling.visible = camera.position.y < ceiling.position.y - 5 && inside(camera.position.x, camera.position.z);
+    // The ceiling closes the room whenever you look from below it, as in a photograph of the room.
+    if (ceiling) ceiling.visible = camera.position.y < ceiling.position.y - 5;
   }
   function setLift(view: WallView, lift: number) {
     view.lift = lift;
@@ -146,6 +151,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const inside = wallFace(studio, w), fs = inside?.start ?? start, fe = inside?.end ?? end, z = face + .25;
     group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
     body.add(shadeQuad([fs, 0, z], [fe, 0, z], [fe, 28, z], [fs, 28, z]));
+    // Where the wall meets the ceiling: a faint shade, seen only while the wall stands.
+    details.add(shadeQuad([fs, w.height, z], [fe, w.height, z], [fe, w.height - 22, z], [fs, w.height - 22, z]));
     if (cornerDegree(studio, w.a) > 1) body.add(shadeQuad([fs, 0, z], [fs, w.height, z], [fs + 28, w.height, z], [fs + 28, 0, z]));
     if (cornerDegree(studio, w.b) > 1) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
     const frameM = material(LOOK.frame);
@@ -161,11 +168,25 @@ export function createStudioRenderer(scene: THREE.Scene) {
       }
       if (o.kind === 'door') {
         box(o.width - 1, o.height - 1, LEAF, o.offset, o.height / 2, 0, material(LOOK.door), details, o.id);
-        const handle = material(LOOK.handle, { metalness: .6, roughness: .35 });
-        for (const side of [1, -1]) box(12, 2, 3, right - 10, 100, side * (LEAF / 2 + 1.5), handle, details, o.id);
+        // Two raised panels on each face and a lever handle on a round rose.
+        const handle = material(LOOK.handle, { metalness: .7, roughness: .3 }), pw = o.width - 26, upper = (o.height - 40) * .58, lower = o.height - 40 - upper;
+        for (const side of [1, -1]) {
+          const z = side * (LEAF / 2 + .3);
+          if (pw > 10) for (const [ph, py] of [[lower, 12 + lower / 2], [upper, 28 + lower + upper / 2]] as const) box(pw, ph, .6, o.offset, py, z, material('#e6e0d5', { roughness: .8 }), details, o.id);
+          box(4.4, 4.4, 1, right - 9, 100, side * (LEAF / 2 + .5), handle, details, o.id);
+          box(13, 1.6, 1.6, right - 14, 100, side * (LEAF / 2 + 2), handle, details, o.id);
+        }
       } else if (o.kind === 'window') {
-        box(o.width, o.height, 1, o.offset, o.sill + o.height / 2, 0, material(LOOK.glass, { opacity: .55, transparent: true, roughness: .05, depthWrite: false, emissive: linear('#eef4f6'), emissiveIntensity: .55 }), details, o.id);
-        box(o.width, 3, 3, o.offset, o.sill + o.height / 2, 0, frameM, details, o.id);
+        // Daylight: the glass glows like a bright sky, as a window does in a photograph of a room.
+        box(o.width, o.height, 1, o.offset, o.sill + o.height / 2, 0, material(LOOK.glass, { opacity: .9, transparent: true, roughness: .05, depthWrite: false, emissive: linear('#f2f7f9'), emissiveIntensity: 1 }), details, o.id);
+        // A sash frame around the glass, with a transom and a mullion.
+        const sash = 5, cy = o.sill + o.height / 2;
+        box(o.width, sash, 4, o.offset, o.sill + sash / 2, 0, frameM, details, o.id);
+        box(o.width, sash, 4, o.offset, o.sill + o.height - sash / 2, 0, frameM, details, o.id);
+        box(sash, o.height, 4, left + sash / 2, cy, 0, frameM, details, o.id);
+        box(sash, o.height, 4, right - sash / 2, cy, 0, frameM, details, o.id);
+        box(o.width, 3, 3, o.offset, cy, 0, frameM, details, o.id);
+        if (o.width > 90) box(3, o.height, 3, o.offset, cy, 0, frameM, details, o.id);
         box(o.width + 16, 2.5, 6, o.offset, o.sill - 1.25, face + 3, material(LOOK.skirting), details, o.id);
       }
     }
@@ -217,9 +238,20 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.rotateX(-Math.PI / 2);
     // Seen from below only: its face points down.
-    const mesh = new THREE.Mesh(geometry, material(LOOK.ceiling, { side: THREE.BackSide }));
+    const mesh = new THREE.Mesh(geometry, material(LOOK.ceiling, { side: THREE.BackSide, emissive: linear(LOOK.ceiling), emissiveIntensity: .3 }));
     mesh.position.y = Math.min(...studio.walls.map(w => w.height));
     mesh.visible = false;
+    // Recessed downlights on a grid about 1.3 m apart, kept clear of the walls.
+    const xs = outline.map(p => p.x), zs = outline.map(p => p.z), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+    const across = Math.max(1, Math.round((x1 - x0 - 120) / 130) + 1), deep = Math.max(1, Math.round((z1 - z0 - 120) / 130) + 1);
+    for (let i = 0; i < across; i++) for (let j = 0; j < deep; j++) {
+      const x = across > 1 ? x0 + 60 + i * (x1 - x0 - 120) / (across - 1) : (x0 + x1) / 2, z = deep > 1 ? z0 + 60 + j * (z1 - z0 - 120) / (deep - 1) : (z0 + z1) / 2;
+      if (!inside(x, z)) continue;
+      const trim = new THREE.Mesh(downlight.trim, downlight.trimMaterial), lamp = new THREE.Mesh(downlight.lamp, downlight.lampMaterial);
+      trim.position.set(x, -.15, z);
+      lamp.position.set(x, -.3, z);
+      mesh.add(trim, lamp);
+    }
     return mesh;
   }
 
@@ -247,7 +279,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       clear();
       scene.remove(guideStrip, root);
       guideStrip.geometry.dispose();
-      for (const m of [guideStrip.material as THREE.Material, texture, shade, shadeMaterial, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
+      for (const g of [downlight.trim, downlight.lamp]) g.dispose();
+      for (const m of [downlight.lampMaterial, guideStrip.material as THREE.Material, texture, shade, shadeMaterial, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
     },
   };
 }

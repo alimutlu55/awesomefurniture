@@ -106,6 +106,22 @@ How it works now:
 ![Bedroom, wall selected, desktop](verification/studio-wall-selected-desktop.jpg)
 ![Door size, phone](verification/studio-door-size-phone.jpg)
 
+## Realistic rendering
+
+The look follows the user's reference photos (a styled walk-in wardrobe): a photographed interior, not a game.
+Rendering only: nothing here changes the model, the planner or the golden tests.
+
+- **Light**: `scene-lighting.ts`, with a RoomEnvironment for soft reflections, a warm sun with soft PCF shadows and a sky fill.
+  Shadows redraw only when `shadowKey` changes (`frame-renderer.js`), which keeps phones smooth.
+- **Materials**: `wood-grain.ts` (oak), `fabric.ts` (cloth, folded garments as rounded boxes, shoes),
+  `hardware.ts` (bar pulls on drawers and doors), and `studio-surfaces.ts` (floor boards and contact shade).
+- **No room**: the wardrobe stands on oak boards that fade out (`stage-floor.ts`). **In a room**: the ceiling
+  shows whenever the camera is below it, with recessed downlights. Doors have raised panels and a lever.
+  Windows have a sash and glow like daylight. Shade lines run where walls meet the floor, the ceiling and each other.
+- **Default room view**: front-on at eye level (`frameRoom` in `room-wiring.ts`).
+- Still to do: an ambient-occlusion pass on capable devices, an optional LED strip under the top shelf, and
+  labels restyled to the references.
+
 ## What is left
 
 - Corner and opening fields have no keyboard-free precise X/Z entry (corners move by dragging or arrow keys).

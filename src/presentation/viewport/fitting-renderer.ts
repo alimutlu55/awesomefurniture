@@ -5,7 +5,8 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { COL } from '../editor/editor-format.js';
-import { GARMENT_COLOURS } from './fabric';
+import { barPull } from './hardware';
+import { GARMENT_COLOURS, SHOE_COLOURS, shoe, softBox } from './fabric';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import type { createViewportResources } from './viewport-resources.js';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
@@ -35,6 +36,8 @@ export interface FittingCut {
 export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
+    /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
+    const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
@@ -58,7 +61,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             // An angled front over a rectangular drawer box that runs on standard slides.
             slab(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, P);
             box(Math.max(4, coreW - 3), Math.max(4, coreH - 6), d - 8, coreX, y + coreH / 2 - 1, -2, D);
-            box(Math.min(14, coreW * .4), 1, 1.4, coreX, y + Math.min(coreH, hh) / 2, d / 2 + .4, mh);
+            const pull = barPull(Math.min(16, Math.max(6, coreW * .4)), mh);
+            pull.position.set(coreX, y + Math.min(coreH, hh) / 2, d / 2 - 1.2 + PANEL / 2);
+            group.add(pull);
         }
         else if (['shelf', 'folded', 'seasonal', 'shoe', 'basket'].includes(k)) {
             if (k === 'shoe') {
@@ -67,7 +72,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     for (let q = 0; q < 2; q++) {
                         const px = cx - (pairs - 1) * WardrobePlanner.geo.shoeW() / 2 + j * WardrobePlanner.geo.shoeW() + (q ? 5 : -5);
                         if (!clears(px - 4, px + 4, base + sh)) continue;
-                        box(8, sh, Math.min(27, d - 5), px, base + sh / 2, 1, cloth(GARMENT_COLOURS[j % 8]!));
+                        const pair = shoe(7.6, sh, Math.min(27, d - 5), leather(SHOE_COLOURS[j % 6]!), leather('#2b2724'));
+                        pair.position.set(px, base, 1);
+                        group.add(pair);
                     }
                 }
             }
@@ -88,7 +95,10 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     const px = cx - (stacks - 1) * WardrobePlanner.geo.foldW() / 2 + j * WardrobePlanner.geo.foldW();
                     for (let q = 0; q < layers; q++) {
                         if (!clears(px - fw / 2, px + fw / 2, base + 3.2 + q * 3.5)) break;
-                        box(fw, 3.2, Math.min(30, d - 5), px, base + 1.6 + q * 3.5, 2, cloth(GARMENT_COLOURS[(j * 2 + q) % 8]!));
+                        // Each folded garment a little different in width and set, as a real stack is.
+                        const lay = ((j * 7 + q * 3) % 5) / 4 - .5, fold = softBox(fw - 1 + lay, 3.4, Math.min(30, d - 5), cloth(GARMENT_COLOURS[(j * 2 + q) % 8]!), 1.5);
+                        fold.position.set(px + lay * 1.2, base + 1.7 + q * 3.5, 2 + lay);
+                        group.add(fold);
                     }
                 }
             }
@@ -101,8 +111,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     const rise=riseAt(sw/2+position.x-size.width/2,sw/2+position.x+size.width/2);
                     if(size.height>hh-PANEL-rise+.01)continue;
                     if(!clears(bx-size.width/2,bx+size.width/2,y+rise+size.height))continue;
-                    box(size.width,size.height,size.depth,bx,y+rise+size.height/2,bz,resources.M('#b7aa91'));
-                    box(Math.min(9,size.width-4),4,.3,bx,y+rise+size.height*.55,bz+size.depth/2+.3,resources.M('#f3eee4'));
+                    // A linen storage box with a cut-out handle in its front.
+                    box(size.width,size.height,size.depth,bx,y+rise+size.height/2,bz,cloth('#b7aa91'));
+                    box(Math.min(9,size.width-4),2.4,.3,bx,y+rise+size.height*.7,bz+size.depth/2+.2,resources.M('#4f463b'));
                 }
             }
             else if (k === 'basket') {
