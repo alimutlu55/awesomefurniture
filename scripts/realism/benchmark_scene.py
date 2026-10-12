@@ -5,7 +5,7 @@ the app's frame renderer (src/presentation/viewport/frame-geometry.ts), and rend
 
 Run from the repository root:
     blender -b --factory-startup -P scripts/realism/benchmark_scene.py -- \
-        --out docs/realism-reference/benchmark-cycles.png [--samples 256] [--scale 50] [--blend out.blend]
+        --out docs/realism-reference/benchmark-cycles.jpg [--samples 256] [--scale 50] [--blend out.blend]
 
 Writes the image and, beside it, `<out>.camera.json`: the camera in app coordinates (centimetres, y up,
 the wardrobe's front towards +z) so the browser renderers can reproduce the same view.
@@ -28,7 +28,8 @@ TEXTURES = os.path.join(ROOT, 'public', 'textures')
 # Product dimensions (src/domain/wardrobe/catalog.js: PANEL, PLINTH) and the default wardrobe.
 PANEL, PLINTH, BACK = 1.8, 8.0, 0.6
 W, H, D = 200.0, 230.0, 60.0
-ROOM = {'width': 400.0, 'height': 260.0, 'depth': 350.0}
+# Tall enough that, as in the target, the frame shows wall above the wardrobe and no ceiling.
+ROOM = {'width': 400.0, 'height': 520.0, 'depth': 480.0}
 BEVEL = 0.15  # 1.5 mm: a sanded, lacquered board edge, not a rounded one.
 M = 0.01      # centimetres to metres
 
@@ -36,7 +37,7 @@ M = 0.01      # centimetres to metres
 def args():
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
     p = argparse.ArgumentParser()
-    p.add_argument('--out', default=os.path.join(ROOT, 'docs', 'realism-reference', 'benchmark-cycles.png'))
+    p.add_argument('--out', default=os.path.join(ROOT, 'docs', 'realism-reference', 'benchmark-cycles.jpg'))
     p.add_argument('--samples', type=int, default=256)
     p.add_argument('--scale', type=int, default=50, help='resolution percentage of 1290 x 2796 (an iPhone screen)')
     p.add_argument('--blend', default='')
@@ -110,7 +111,8 @@ def room(materials):
     t = 10.0
     board('floor', (rw, 2, rd), (0, -1, back_z + rd / 2), 'x', materials['floor'], (0, 0), bevel=False)
     board('back_wall', (rw, rh, t), (0, rh / 2, back_z - t / 2), 'x', materials['wall'], (0, 0), bevel=False)
-    board('ceiling', (rw, t, rd), (0, rh + t / 2, back_z + rd / 2), 'x', materials['wall'], (0, 0), bevel=False)
+    # The ceiling bounces light but stays out of the picture, as in the target.
+    board('ceiling', (rw, t, rd), (0, rh + t / 2, back_z + rd / 2), 'x', materials['wall'], (0, 0), bevel=False).visible_camera = False
     board('right_wall', (t, rh, rd), (rw / 2 + t / 2, rh / 2, back_z + rd / 2), 'z', materials['wall'], (0, 0), bevel=False)
     # Left wall with a tall window, the room's daylight: 120 wide, sill 60, head 230, 60 cm from the back.
     win = {'from': 60.0, 'width': 120.0, 'sill': 60.0, 'head': 230.0}
@@ -138,7 +140,7 @@ def image(nodes, name, colour):
     return node
 
 
-def textured(name, asset, tint, roughness_range, normal_strength, coat=0.0, value=1.0, saturation=1.0):
+def textured(name, asset, tint, roughness_range, normal_strength, coat=0.0, value=1.0, saturation=1.0, hue=0.5, contrast=0.0):
     """Principled material from a Poly Haven set: colour (sRGB) graded towards `tint`, roughness and
     OpenGL normal (linear data)."""
     mat = bpy.data.materials.new(name)
@@ -149,6 +151,7 @@ def textured(name, asset, tint, roughness_range, normal_strength, coat=0.0, valu
     rough = image(nodes, f'{asset}/{asset}_rough_2k.jpg', False)
     nor = image(nodes, f'{asset}/{asset}_nor_gl_2k.jpg', False)
     hsv = nodes.new('ShaderNodeHueSaturation')
+    hsv.inputs['Hue'].default_value = hue
     hsv.inputs['Saturation'].default_value = saturation
     hsv.inputs['Value'].default_value = value
     links.new(diff.outputs['Color'], hsv.inputs['Color'])
@@ -157,7 +160,11 @@ def textured(name, asset, tint, roughness_range, normal_strength, coat=0.0, valu
     mix.blend_type = 'MULTIPLY'
     mix.inputs['Factor'].default_value = 1.0
     mix.inputs['B'].default_value = (*tint, 1.0)
-    links.new(hsv.outputs['Color'], mix.inputs['A'])
+    # Grain contrast: the target's rift-cut oak reads as clear vertical streaks.
+    grade = nodes.new('ShaderNodeBrightContrast')
+    grade.inputs['Contrast'].default_value = contrast
+    links.new(hsv.outputs['Color'], grade.inputs['Color'])
+    links.new(grade.outputs['Color'], mix.inputs['A'])
     links.new(mix.outputs['Result'], bsdf.inputs['Base Color'])
     rng = nodes.new('ShaderNodeMapRange')
     rng.inputs['To Min'].default_value, rng.inputs['To Max'].default_value = roughness_range
@@ -207,34 +214,51 @@ def lighting(win):
     bpy.context.scene.world = world
     world.use_nodes = True
     bg = world.node_tree.nodes['Background']
-    bg.inputs['Color'].default_value = (*srgb('#dfe6ee'), 1.0)
-    bg.inputs['Strength'].default_value = 0.35
+    bg.inputs['Color'].default_value = (*srgb('#f1ece4'), 1.0)
+    # Daylight from behind the camera, through the open front of the room.
+    bg.inputs['Strength'].default_value = 0.25
     # Low afternoon sun through the left window: the streaks on the floor and walls in the target.
     sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN'))
-    sun.data.energy = 3.2
-    sun.data.angle = math.radians(1.2)
+    sun.data.energy = 1.4
+    sun.data.angle = math.radians(2.5)
     sun.data.color = srgb('#fff1dc')
-    sun.rotation_euler = (math.radians(58), 0, math.radians(-112))
+    sun.rotation_euler = (math.radians(62), 0, math.radians(-100))
     bpy.context.collection.objects.link(sun)
     # Skylight filling the window opening, facing into the room: the soft, broad daylight.
     sky = bpy.data.objects.new('window_sky', bpy.data.lights.new('window_sky', 'AREA'))
     sky.data.shape = 'RECTANGLE'
     sky.data.size = win['width'] * M
     sky.data.size_y = (win['head'] - win['sill']) * M
-    sky.data.energy = 900.0
-    sky.data.color = srgb('#eef3f8')
+    sky.data.energy = 110.0
+    sky.data.color = srgb('#f6f4ef')
     zc = -D / 2 + win['from'] + win['width'] / 2
     sky.location = to_blender(-ROOM['width'] / 2 - 12, (win['sill'] + win['head']) / 2, zc)
-    sky.rotation_euler = (0, math.radians(90), 0)
+    # An area light shines along its local -Z: turned -90 degrees about Y it faces +X, into the room.
+    sky.rotation_euler = (0, math.radians(-90), 0)
     bpy.context.collection.objects.link(sky)
+    # The key light: a large soft source high up behind the camera, like a tall window behind the
+    # photographer. Light from above and in front leaves the underside of the top in shade and the back
+    # evenly lit, as in the target.
+    key = bpy.data.objects.new('key', bpy.data.lights.new('key', 'AREA'))
+    key.data.shape = 'RECTANGLE'
+    key.data.size, key.data.size_y = 3.0, 1.6
+    key.data.energy = 380.0
+    key.data.color = srgb('#fbf7f0')
+    key.location = to_blender(-40, 250, D / 2 + 380)
+    aim = to_blender(0, 95, -D / 2) - key.location
+    key.rotation_euler = aim.to_track_quat('-Z', 'Y').to_euler()
+    bpy.context.collection.objects.link(key)
 
 
 def camera(scene):
     """Near-front, eye level, the wardrobe filling about four fifths of a portrait phone frame, as in the
     target image. Returns the camera in app coordinates."""
-    lens, sensor = 30.0, 36.0
-    eye = {'x': 0.0, 'y': 118.0, 'z': D / 2 + 245.0}
-    look = {'x': 0.0, 'y': 112.0, 'z': -D / 2}
+    lens, sensor = 50.0, 36.0
+    # Level (vertical edges stay parallel, as in the target), a little below the wardrobe's middle, and
+    # from far enough back with a longer lens that its inside reads shallow, as in the target; it spans
+    # about 80 % of the frame's width.
+    eye = {'x': 0.0, 'y': 104.0, 'z': D / 2 + 345.0}
+    look = {'x': 0.0, 'y': 104.0, 'z': -D / 2}
     cam = bpy.data.objects.new('camera', bpy.data.cameras.new('camera'))
     cam.data.lens = lens
     cam.data.sensor_fit = 'HORIZONTAL'
@@ -266,10 +290,11 @@ def render_settings(scene, samples, scale):
     scene.cycles.max_bounces = 12
     scene.render.resolution_x, scene.render.resolution_y = 1290, 2796
     scene.render.resolution_percentage = scale
-    scene.view_settings.view_transform = 'AgX'
-    scene.view_settings.look = 'AgX - Base Contrast'
-    scene.view_settings.exposure = 0.0
-    scene.render.image_settings.file_format = 'PNG'
+    # Khronos PBR Neutral keeps material colours true (AgX bleaches bright oak towards pink), and Three.js
+    # has the same curve (NeutralToneMapping), so the browser renderers can match this benchmark.
+    scene.view_settings.view_transform = 'Khronos PBR Neutral'
+    scene.view_settings.look = 'None'
+    scene.view_settings.exposure = -2.0
 
 
 def main():
@@ -277,11 +302,11 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     render_settings(scene, a.samples, a.scale)
-    veneer = textured('oak_veneer', 'oak_veneer_02', srgb('#f4e2c8'), (0.38, 0.55), 0.25, coat=0.2, value=1.05, saturation=0.9)
-    back = textured('oak_veneer_back', 'oak_veneer_02', srgb('#e9d5b9'), (0.42, 0.6), 0.2, coat=0.15, value=1.0, saturation=0.9)
+    veneer = textured('oak_veneer', 'oak_veneer_02', srgb('#efe6d8'), (0.38, 0.55), 0.25, coat=0.2, value=0.95, saturation=0.4, hue=0.512, contrast=1.1)
+    back = textured('oak_veneer_back', 'oak_veneer_02', srgb('#ece2d3'), (0.42, 0.6), 0.2, coat=0.15, value=0.93, saturation=0.4, hue=0.512, contrast=1.1)
     materials = {
-        'floor': textured('oak_floor', 'oak_wood_planks', srgb('#ffffff'), (0.3, 0.55), 0.45, coat=0.1, value=1.9, saturation=0.62),
-        'wall': plain('plaster', srgb('#e8e2d8'), 0.92, bump=0.08),
+        'floor': textured('oak_floor', 'oak_wood_planks', srgb('#f3ebdf'), (0.3, 0.55), 0.45, coat=0.1, value=1.7, saturation=0.4, hue=0.51, contrast=-0.2),
+        'wall': plain('plaster', srgb('#e2dbd1'), 0.92, bump=0.08),
         'skirting': plain('skirting', srgb('#f3f0ea'), 0.45),
     }
     wardrobe(veneer, back)
@@ -290,6 +315,12 @@ def main():
     view = camera(scene)
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     scene.render.filepath = os.path.abspath(a.out)
+    # A JPEG keeps the committed benchmark small; PNG for lossless comparisons.
+    if a.out.lower().endswith(('.jpg', '.jpeg')):
+        scene.render.image_settings.file_format = 'JPEG'
+        scene.render.image_settings.quality = 92
+    else:
+        scene.render.image_settings.file_format = 'PNG'
     if a.blend:
         bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(a.blend))
     bpy.ops.render.render(write_still=True)

@@ -79,6 +79,43 @@ Owner: rendering engineer, with Orchestrator tracking the visual objective.
 
 Deliverable: reproducible Blender scene/script and a comparison image. Gate: photographic depth and material response are visible at phone size, especially under the top panel, at back corners, on side panels, and at the floor contact. Record remaining differences from the reference before proceeding.
 
+### Phase 1 results (2026-10-12)
+
+Done. [Benchmark render](realism-reference/benchmark-cycles.jpg), produced by
+`blender -b --factory-startup -P scripts/realism/benchmark_scene.py` (Blender 5.2.2 LTS, Homebrew cask,
+Cycles on the Apple M4 GPU through Metal, 256 samples with denoising, 1290 × 2796, about 2 minutes). The
+camera, in app coordinates, is saved beside it in `benchmark-cycles.jpg.camera.json`. Textures and their
+licences are in `public/textures/MANIFEST.md`.
+
+- **Scene**: the empty default wardrobe built as `frame-geometry.ts` builds it: 1.8 cm sides under a full-width
+  top, the bottom board on an 8 cm plinth recessed 4 cm, and a 6 mm back. Edges are bevelled 1.5 mm. UVs are in
+  metres with the grain along each board (up the sides and back, across the top, bottom and plinth), and each
+  board has its own offset. The room is 4 × 4.8 m, tall enough that no ceiling shows, as in the target. It has
+  plaster walls, skirting, an oak floor and a window on the left.
+- **Light**: a large soft area light high behind the camera (key), a weaker window light from the left, a
+  low sun and a dim world. Light from above and in front is what puts the underside of the top in shade
+  while the back stays evenly lit.
+- **Colour management**: Khronos PBR Neutral at exposure −2. AgX bleached the bright oak towards pink. Three.js
+  has the same curve (`NeutralToneMapping`, r162 and later), which matters for phase 3.
+- **Material grading**: Oak Veneer 02 desaturated (0.4) and graded with grain contrast 1.1. As shipped it is
+  peach and its grain too faint for the target. The plank floor is lightened (×1.7) and desaturated (0.4).
+- **Measured against the target** (mean sRGB of matching regions): back panel 199/160/119 vs 192/162/130,
+  wall 201/184/163 vs 194/180/164, floor 172/142/112 vs 193/166/139, under the top 165/117/67 vs 141/105/70.
+
+Gate: met at phone size. The underside of the top is in shade, the back corners and sides fall off softly,
+the plinth shadow and bevel highlights read at the floor contact, and the grain runs the length of every board.
+
+Remaining differences from the target:
+
+- The target draws the wardrobe taller than 230 × 200 cm allows (about 1.28 : 1 on screen, against 1.15 : 1 at its
+  true proportions). It was probably generated, not photographed. The benchmark keeps the product's real
+  proportions.
+- The target has sun streaks across the left wall and floor. The benchmark has the window, but no blind or
+  mullion pattern to cast them.
+- Under the top, the benchmark is lighter than the target (165 against 141), and the floor is a little darker
+  (172 against 193).
+- The target's grain is a little more pronounced at phone size.
+
 ## Phase 2 — shared app geometry and materials
 
 Owner: frontend/rendering engineer. Mobile Engineer verifies mobile interaction.

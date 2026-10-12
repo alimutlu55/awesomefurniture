@@ -1,0 +1,24 @@
+{
+  "camera": {
+    "position": {
+      "x": 0.0,
+      "y": 104.0,
+      "z": 375.0
+    },
+    "target": {
+      "x": 0.0,
+      "y": 104.0,
+      "z": -30.0
+    },
+    "verticalFovDeg": 75.92834157622738,
+    "aspect": 0.4613733905579399
+  },
+  "samples": 256,
+  "resolution": [
+    1290,
+    2796
+  ],
+  "blender": "5.2.2 LTS",
+  "device": "GPU",
+  "view_transform": "Khronos PBR Neutral"
+}
