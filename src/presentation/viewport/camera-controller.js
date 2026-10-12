@@ -240,6 +240,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900) goal.dist *= 1.12;
         cameraTransition(goal, 480);
     }
+    /** Moving a wardrobe from the toolbar: ease back and rise a little, so the floor around it shows where it can go. */
+    function moveOverview() {
+        const now = camNow();
+        camRelease();
+        cameraTransition({ ...now, el: Math.max(now.el, .62), dist: cameraDistance(now.dist * 1.7) }, 650);
+    }
     function moveViewOff() {
         if (!cameraState.camHome) {
             return;
@@ -344,5 +350,5 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, panBy, moveViewOn, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }

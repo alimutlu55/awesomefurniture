@@ -225,8 +225,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             else if (key === 'move') {
                 inspector.hidePop(); elements.app.classList.remove('props-open');
                 elements.app.dataset.toolbarMode = 'move';
-                // Pull back a little so the wardrobe and its surroundings show where it can go.
-                camera.cameraZoom(1.2);
+                // Ease back and rise a little so the floor around the wardrobe shows where it can go.
+                camera.moveOverview();
                 selectionState.deep = true; selectionState.pillOn = true;
                 inspector.update();
             } else {
