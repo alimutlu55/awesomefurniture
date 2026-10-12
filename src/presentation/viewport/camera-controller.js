@@ -16,7 +16,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (!options.instant) {
             cameraState.initialCameraFraming = false;
         }
-        const goal = fittedCamera(options.az ?? cameraState.az, options.el ?? cameraState.el, options.padding ?? 1.08);
+        // With every wardrobe removed there is nothing to frame: show the room, or a small floor area without one.
+        const empty = !model.scene.wardrobes.length ? (model.scene.studio ? sceneBox() : { x: 0, z: 0, w: 240, d: 240, h: 120 }) : undefined;
+        const goal = fittedCamera(options.az ?? cameraState.az, options.el ?? cameraState.el, options.padding ?? 1.08, empty);
         cameraState.fitDist = goal.dist;
         cameraState.vsT = baseShift(goal);
         cameraState.vzT = 1;
