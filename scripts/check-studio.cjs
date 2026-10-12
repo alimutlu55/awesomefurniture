@@ -7,8 +7,9 @@ const assert=require('node:assert/strict');
 const path=require('node:path');
 const shots=process.env.STUDIO_SHOTS||path.join(__dirname,'..','docs','verification');
 const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:5173';
-// Where the back wall is, right of the wardrobe, once the Bedroom is framed (fraction of the view).
-const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone',width:375,height:812,wall:[.87,.41]}];
+// Where the back wall is, right of the wardrobe, once the Bedroom is framed (fraction of the view); `stairs` is
+// the back wall of the Under stairs room, above the wardrobe's low end.
+const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38],stairs:[.70,.30]},{name:'phone',width:375,height:812,wall:[.87,.41],stairs:[.80,.43]}];
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try { for(const view of VIEWS) {
@@ -79,6 +80,50 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   await page.keyboard.press('Escape');await page.waitForTimeout(200);
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   assert.equal(await context(),'none','Escape closes the fields, then leaves the door');
+
+  // Under stairs, from the user's photos: the wall's Ceiling choices, height pills dragged and typed, and a
+  // wardrobe that fills the wall under the stairs.
+  const count=async()=>Number(await el('undo2').locator('small').textContent()||0);
+  const touchDrag=async(p,dx,dy)=>{ const t=await page.context().newCDPSession(page);
+   await t.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:p.x,y:p.y,id:5}]});
+   for(let i=1;i<=10;i++){ await t.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:p.x+dx*i/10,y:p.y+dy*i/10,id:5}]}); await page.waitForTimeout(20); }
+   await t.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]}); await t.detach(); await page.waitForTimeout(400); };
+  const mouseDrag=async(p,dx,dy)=>{ await page.mouse.move(p.x,p.y); await page.mouse.down(); for(let i=1;i<=10;i++){ await page.mouse.move(p.x+dx*i/10,p.y+dy*i/10); await page.waitForTimeout(20); } await page.mouse.up(); await page.waitForTimeout(400); };
+  const drag=phone?touchDrag:mouseDrag;
+  await tap(el('walls-btn'));
+  await tap(page.locator((phone?'.mobile-add-products':'[data-editor-id="padd-room"]')+' [data-studio="under-stairs"]'));
+  await page.waitForTimeout(1400);
+  const stairs={x:box.x+box.width*view.stairs[0],y:box.y+box.height*view.stairs[1]};
+  if(phone) await page.touchscreen.tap(stairs.x,stairs.y); else await page.mouse.click(stairs.x,stairs.y);
+  await page.waitForTimeout(500);
+  assert.equal(await context(),'wall','the wall under the stairs is selected');
+  await tap(toolbar.locator('[data-action="ceiling"]'));
+  assert.deepEqual(await page.locator('.ceiling-choice').evaluateAll(es=>es.map(e=>e.dataset.ceiling)),['stairs','landing','slope','box'],'the ceiling shapes to choose from');
+  await tap(page.locator('.ceiling-choice[data-ceiling="landing"]'));
+  await page.waitForTimeout(1300);
+  assert.equal(await context(),'ceiling','the new ceiling is selected');
+  assert.deepEqual(await page.locator('.room-pill').allTextContents(),['205 cm','205 cm','100 cm','100 cm'],'a height pill on each point');
+  await shot('ceiling');
+  const pill=await page.locator('.room-pill').nth(2).boundingBox(), before=await count();
+  await drag({x:pill.x+pill.width/2,y:pill.y+pill.height/2},0,-40);
+  assert.notEqual((await page.locator('.room-pill').allTextContents())[2],'100 cm','the pill moved the point up');
+  assert.equal(await count(),before+1,'one undo step for the drag');
+  await tap(page.locator('.room-pill').first());
+  const typed=page.locator('[data-room-field="p0"]');
+  assert.equal(await typed.evaluate(e=>e.getRootNode().activeElement===e),true,'tapping a pill opens its height, ready to type');
+  await typed.fill('190');await typed.press('Enter');await page.waitForTimeout(300);
+  assert.equal(await page.locator('.room-pill').first().textContent(),'190 cm','typed');
+  await page.keyboard.press('Escape');await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');await page.waitForTimeout(300);
+  await tap(el('walls-btn'));
+  await tap(page.locator((phone?'.mobile-add-products':'[data-editor-id="padd-room"]')+' [data-studio="under-stairs"]'));
+  await page.waitForTimeout(1400);
+  if(phone) await page.touchscreen.tap(stairs.x,stairs.y); else await page.mouse.click(stairs.x,stairs.y);
+  await page.waitForTimeout(500);
+  await tap(toolbar.locator('[data-action="wardrobe-here"]'));
+  await page.waitForTimeout(1200);
+  assert.equal(await context(),'wardrobe','the new wardrobe is selected');
+  await shot('wardrobe-under-stairs');
   assert.deepEqual(errors,[]);
   await page.close();
   console.log('studio '+view.name+' ok');

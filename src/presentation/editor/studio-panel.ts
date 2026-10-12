@@ -1,11 +1,14 @@
 import { ROOM_PARTS, roomPartArt, studioChoices } from './studio-art';
+import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
+import type { CeilingShape } from '../../domain/studio/studio-ceiling';
+import { ceilingArt } from './studio-ceiling-panel';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 interface StudioPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio' | 'addStudioWall' | 'addStudioOpening'>>;
+  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio' | 'addStudioWall' | 'addStudioOpening' | 'addStudioCeiling'>>;
   readonly getSelection: () => RoomSelection;
   readonly callbacks: {
     /** A built-in room was placed (or removed): show it whole. */
@@ -33,6 +36,10 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
       const off = needsRoom ? ' no' : '', disabled = needsRoom ? ' aria-disabled="true"' : '', title = esc(needsRoom ? 'Add a room first' : p.description);
       return `<button type="button" class="room-product${off}" data-add-room="${p.kind}"${disabled}${extra} title="${title}">${roomPartArt(p.kind)}<span>${esc(p.name)}</span></button>`;
     });
+    // Ceilings that come down, from their registry: on the selected wall, or the wardrobes' wall.
+    const off = room() ? '' : ' no', disabled = room() ? '' : ' aria-disabled="true"';
+    parts.push(...(CEILING_SHAPES as readonly CeilingShape[]).map(c => `<button type="button" class="room-product${off}" data-add-ceiling="${c.id}"${disabled}${extra} title="${esc(room() ? c.description : 'Add a room first')}">`
+      + `${ceilingArt(c, 'product-art ceiling-product-art')}<span>${esc(c.name)}</span></button>`));
     // Without a room, "No room" is what you have: it goes last, after the rooms to choose from.
     const rooms = (room() ? choices : [...choices.filter(c => c.id !== 'none'), ...choices.filter(c => c.id === 'none')]).map(c => {
       const on = c.id === current;
@@ -54,16 +61,20 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {
-      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room]');
+      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling]');
       if (!button) return;
-      const studio = button.dataset.studio, part = button.dataset.addRoom;
+      const studio = button.dataset.studio, part = button.dataset.addRoom, ceiling = button.dataset.addCeiling;
       if (studio) {
         if (studio !== active() && sceneCommands.placeStudio(studio as never)) callbacks.placed();
         else callbacks.refresh();
         return;
       }
       const wall = getSelection()?.kind === 'wall' ? getSelection()!.id : undefined;
-      if (part === 'wall') {
+      if (ceiling) {
+        const id = room() ? sceneCommands.addStudioCeiling(ceiling, wall) : null;
+        if (id) callbacks.added({ kind: 'ceiling', id });
+        else callbacks.refresh();
+      } else if (part === 'wall') {
         const id = sceneCommands.addStudioWall(wall);
         if (id) callbacks.added({ kind: 'wall', id });
         else callbacks.refresh();

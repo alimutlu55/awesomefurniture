@@ -44,6 +44,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (ok) ceilings.followAll(recordHistory);
             return ok;
         },
+        addStudioCeiling(shape: string, wall?: string) {
+            const id = studio.addStudioCeiling(shape, wall);
+            if (id) ceilings.followAll();
+            return id;
+        },
         /** After a live room drag (`refit` false) and when it is committed. True when a wardrobe changed. */
         followCeilings: (refit = true) => ceilings.followAll(refit),
         /** A wardrobe dropped after a drag or a turn takes the ceiling over it. Returns why it cannot stand there. */

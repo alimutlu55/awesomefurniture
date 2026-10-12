@@ -40,9 +40,18 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
 - **Built-in studios are a registry** (`studio-templates.ts`): one entry each, laid out around the
   wardrobe wall (x = 0 is its middle; the back wall's room face is at z = 0). Picker art is drawn
   from the corners, so a new built-in needs no art.
-- Sloped ceilings and boxes under stairs (the user's photo) are **not** in v1. Add them as new lists
-  on `Studio` (for example `ceilings`), not as new wall fields. Do not offer an under-stairs studio
-  until slopes exist.
+- **Ceilings that come down** (stairs, landings, sloped roofs, boxes) are the `ceilings` list on `Studio`
+  (absent when there are none, so old projects and the golden tests are untouched). Each belongs to a wall
+  and has a profile like a wardrobe's top: `run: 'along'` changes along the wall and reaches `depth` into
+  the room; `run: 'across'` slopes away from the wall. The lowest ceiling over a spot counts (`ceilingAt`).
+- **Wardrobes follow the ceiling** (`studio-fit.ts`, `ceiling-commands.ts`): a wardrobe that a ceiling comes
+  down over takes shape template `'room'` (top = the lowest ceiling over its depth, filled up to the room's
+  ceiling elsewhere); leaving it, it stands regular at its tallest point. A shape someone sets that stays
+  under the ceiling is kept; one that would rise into it is refused with the reason.
+- **As few handles as possible.** A selected wall shows its two corner dots and "+" on free ends, nothing
+  else: the wall, a door or a window is dragged by its own surface (`surface.grab` in `room-wiring.ts`,
+  routed from `bindings/canvas.js`). A ceiling shows one height pill per point (handle and measurement in
+  one; tap to type) and one depth grip. Lengths are typed by tapping them on the model.
 
 ## Files
 
@@ -53,10 +62,15 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
 | Domain | `src/domain/studio/studio-edit.ts` | Edits: move corner or wall, inside length, size, split, extend, merge corners, suggest a wall, openings, translate |
 | Domain | `src/domain/studio/studio-validation.ts` | `studioProblems` (worded as what to do), `openingRange` |
 | Domain | `src/domain/studio/studio-obstacles.ts` | Walls as collision obstacles |
-| Domain | `src/domain/studio/studio-placement.ts` | `placeAgainstWall`, `pushOutOfWalls`, `snapToWall` |
+| Domain | `src/domain/studio/studio-placement.ts` | `placeAgainstWall`, `pushOutOfWalls`, `snapToWall`, `wallSpot` (a wall's free stretch) |
+| Domain | `src/domain/studio/studio-ceiling.ts` | Ceilings: `ceilingAt`, `ceilingFrame`, `reachAt`, the `CEILING_SHAPES` registry, edits, validation |
+| Domain | `src/domain/studio/studio-fit.ts` | `ceilingTop` (a wardrobe's top under the ceiling), `sectionsUnder` (partitions at steps and bends) |
+| Application | `src/application/commands/ceiling-commands.ts` | Wardrobes follow the ceiling: `follow`, `followAll`, `shapeBlocked` |
 | Application | `src/application/commands/studio-commands.ts` | `placeStudio`, `editStudio`, `studioProblem`, `addStudioWall`, `addStudioOpening`, `placeNewCabinet`, `wallSnap` |
 | Presentation | `viewport/studio-renderer.ts`, `studio-surfaces.ts` | Walls, openings, floor, ceiling; cutaway (walls lower to a cut stub); selection outline; wardrobe snap strip |
-| Presentation | `viewport/studio-overlay.ts` | Room handles, live rulers, guides, refusal reasons in the label system |
+| Presentation | `viewport/studio-overlay.ts` | Room handles and height pills, live rulers (tap a length to type it), guides, refusal reasons |
+| Presentation | `viewport/studio-ceilings.ts` | Ceilings: solid from inside the room below the ceiling, thin lines from above |
+| Presentation | `editor/studio-ceiling-drag.ts`, `studio-ceiling-panel.ts` | Pill and depth-grip geometry and snapping; the Ceiling choices drawn from the registry |
 | Presentation | `editor/studio-editor.ts`, `studio-drag.ts` | Room selection, drags (corner, wall, opening, "+"), snapping, measures, toolbar commands |
 | Presentation | `editor/studio-fields.ts` | Size popover fields (wall: length inside, height, thickness; opening: width, height, sill, from left end) |
 | Presentation | `editor/studio-panel.ts`, `studio-art.ts` | Walls category of Add item (desktop fold `#padd-room`, phone category `room`) |
@@ -122,6 +136,24 @@ Rendering only: nothing here changes the model, the planner or the golden tests.
 - Still to do: an ambient-occlusion pass on capable devices, an optional LED strip under the top shelf, and
   labels restyled to the references.
 
+## Ceilings and fitting wardrobes (branch `claude/wall-adjustment-ux-*`)
+
+How to build the user's under-stairs space:
+
+1. Walls › **Under stairs** (built in, from the photos), or any room then select a wall › **Ceiling** ›
+   Stairs / Stairs with landing / Sloped ceiling / Box or beam (also in the Walls sheet).
+2. The view turns to eye level; drag a height pill up, down or along (snaps level, to steps and the wall's
+   ends), or tap it and type. The grip sets how far it reaches into the room (snaps to the opposite wall).
+   Drag the ceiling itself to raise or lower it. Flip, Size and Remove are in the toolbar.
+3. Select the wall › **Wardrobe**: a wardrobe fills its free stretch, flush, fitted under the stairs and
+   divided where they step and bend. Wardrobes standing against a wall go with it when it is pushed or pulled.
+
+Verified on desktop (1440 × 900) and phone (375 × 812, real touch events): `node scripts/check-studio.cjs`
+(with `MOBILE_TEST_URL` for another port). Tests: `studio-ceilings.test.ts`, `studio-ceiling-commands.test.ts`.
+
+Limits: a wardrobe's top can slope side to side, not front to back, so under a roof sloping down to its own
+wall it is flat at the lowest point. Ceiling solids hide while the camera is above the room's ceiling.
+
 ## What is left
 
 - Corner and opening fields have no keyboard-free precise X/Z entry (corners move by dragging or arrow keys).
@@ -130,8 +162,7 @@ Rendering only: nothing here changes the model, the planner or the golden tests.
 - Walls meet only at corners: a wall cannot start from the middle of another (split it first).
 - Phone gestures were checked with synthetic touches (one-finger orbit, pinch, two-finger pan) in Playwright,
   not on a real phone.
-- Later: sloped ceilings and boxes (from the user's photo), "fit a wardrobe to a niche", wall materials,
-  lighting, photo-assisted building.
+- Later: wall materials, lighting, photo-assisted building, front-to-back sloped wardrobe tops.
 
 ## Gotchas
 

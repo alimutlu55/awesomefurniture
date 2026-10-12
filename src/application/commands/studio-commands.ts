@@ -3,6 +3,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { createStudio, studioTemplate } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
+import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
@@ -128,6 +129,25 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return found.wall;
   }
 
+  /** Puts a ceiling shape (stairs, a landing, a slope, a box) on the given wall, or else on the wall the most
+   * wardrobe width stands against (the longest wall without wardrobes). Returns its id, or null with the reason. */
+  function addStudioCeiling(shape: string, wallId?: string): string | null {
+    const room = getScene().studio;
+    if (!room) { report('Add a room first, then its stairs or sloped ceiling.'); return null; }
+    const against = (id: string) => standingAgainst(id).list.reduce((n, c) => n + (getScene().wardrobes.find(w => w.id === c.id)?.state.w ?? 0), 0);
+    const walls = wallId ? room.walls.filter(w => w.id === wallId)
+      : room.walls.slice().sort((p, q) => against(q.id) - against(p.id) || (wallLine(room, q)?.length ?? 0) - (wallLine(room, p)?.length ?? 0));
+    for (const w of walls) {
+      const next = addCeiling(room, w.id, shape);
+      if (!next || studioProblem(next)) continue;
+      checkpoint();
+      getScene().studio = next;
+      return next.ceilings!.at(-1)!.id;
+    }
+    report('This wall is too short for that ceiling.');
+    return null;
+  }
+
   /** Adds a door, window or archway: to the given wall, or else to the longest wall with room for it
    * where no wardrobe stands in front of it. Returns its id, or null with the reason. */
   function addStudioOpening(kind: OpeningKind, wallId?: string): string | null {
@@ -197,5 +217,5 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, placeNewCabinet, fillWall, wallSnap };
+  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap };
 }

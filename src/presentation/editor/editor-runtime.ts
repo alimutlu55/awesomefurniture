@@ -131,7 +131,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             rendering: () => rendering, inspector: () => inspector, report: message => shell.toast(message), camera: () => camera } });
         const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
             placed: () => { selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
-            added: selection => { selectionState.room = selection; inspector.clearFocus(); }, refresh: () => inspector.update(true) } });
+            // A part just added is selected; a ceiling also turns the view to eye level to shape it.
+            added: selection => { inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector, studioEditor: room.editor }));
