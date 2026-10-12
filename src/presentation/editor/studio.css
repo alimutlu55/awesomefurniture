@@ -47,3 +47,11 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #pop2[data-add-context="room"] .shape-add,#pop2[data-add-context="wardrobe"] .room-add{display:none}
 #pop2[data-add-context] .mobile-add-categories>button,#pop2:not([data-add-context]) .add-context-title{display:none}
 .add-context-title{display:flex;align-items:center;height:40px;padding:0 4px;font-size:16px;font-weight:600;color:var(--ink)}
+
+/* Phone bar with nothing selected: Add item, Walls and Wardrobe each carry their name, like Undo and Redo. */
+/* The bar grows with the screen up to about 96 px a button, then stays centred: a phone gets it edge to edge, a
+   tablet or a phone on its side a compact pill instead of buttons spread across the screen. */
+@media(max-width:900px){
+ #toolbar[data-context] :is(#walls-btn,#wardrobe-btn) .tl{display:block;font-size:11px}
+ #toolbar[data-context]{max-width:calc(var(--contextual-action-count,5) * 96px + 10px);margin-inline:auto}
+}

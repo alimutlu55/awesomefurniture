@@ -103,7 +103,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         root.dataset.context = selection;
         root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
         root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
-        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto'].includes(key)).map(([key,label]) => {
+        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','walls','wardrobe'].includes(key)).map(([key,label]) => {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);

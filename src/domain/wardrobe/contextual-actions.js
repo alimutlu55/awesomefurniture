@@ -1,6 +1,7 @@
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
 const actions = {
-    none: [['add', 'Add item'], ['auto', 'Auto design']],
+    // Nothing selected: add to the wardrobe, the room, or the scene.
+    none: [['add', 'Add item'], ['walls', 'Walls'], ['wardrobe', 'Wardrobe']],
     wardrobe: [['move', 'Move'], ['resize', 'Resize'], ['sections', 'Sections'], ['more', 'More']],
     item: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize'], ['more', 'More']],
     // The room: a selected wall, or a door, window or archway on one.
