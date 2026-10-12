@@ -14,12 +14,12 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   pmrem.dispose();
   scene.environment = environment;
 
-  const sky = new THREE.HemisphereLight(0xfff8ee, 0xc9b99c, .42);
+  const sky = new THREE.HemisphereLight(0xfff8ee, 0xc9b99c, .95);
   scene.add(sky);
   // Shadow maps are redrawn only when the scene changes (see the frame loop), not every frame.
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
-  const sun = new THREE.DirectionalLight(0xffeedb, 1.05);
+  const sun = new THREE.DirectionalLight(0xffeedb, .78);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   // Variance shadow maps: shadow edges fade over centimetres, like daylight from a large window, instead of the
@@ -37,7 +37,9 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
 
   function fit(bounds: LitBounds) {
     const reach = Math.max(bounds.w, bounds.d, bounds.h, 200) * .75 + 40;
-    sun.target.position.set(bounds.x, 0, bounds.z);
+    // Centred on the scene's middle height, not the floor: centred on the floor, the shadow camera's reach left the
+    // top of a tall wardrobe outside it, unshadowed (a lit stripe under the top).
+    sun.target.position.set(bounds.x, bounds.h / 2, bounds.z);
     sun.position.copy(sun.target.position).addScaledVector(direction, reach * 3);
     const c = sun.shadow.camera;
     c.left = c.bottom = -reach;
