@@ -14,7 +14,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   const phone=view.width<=900;
   const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:2});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173/editor.html');
+  await page.goto((process.env.STUDIO_URL || 'http://127.0.0.1:5173') + '/editor.html');
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
   const tap=async locator=>{ if(phone) await locator.tap(); else await locator.click(); await page.waitForTimeout(250); };
   const shot=name=>page.screenshot({path:path.join(shots,`studio-${name}-${view.name}.jpg`)});
@@ -45,6 +45,26 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   assert.ok(await page.locator('.room-handle.point').count()>=2,'its corners have handles');
   assert.equal(await page.locator('.room-label',{hasText:'400 cm'}).count(),1,'its inside length shows');
   await shot('wall-selected');
+
+  // Every axis is reachable on desktop and phone, and keyboard moves are undoable.
+  const axisUndo=Number(await el('undo2').locator('small').textContent()||0);
+  for (const axis of ['x','y','z']) {
+   const axisGrip=page.locator('.room-grip[data-axis="'+axis+'"]');
+   assert.equal(await axisGrip.count(),1,'one '+axis+' grip');
+   assert.equal(await axisGrip.isVisible(),true,axis+' grip visible');
+   const count=Number(await el('undo2').locator('small').textContent()||0);
+   await axisGrip.focus();await axisGrip.press(axis==='y'?'ArrowUp':'ArrowLeft');
+   await page.waitForTimeout(150);
+   assert.equal(Number(await el('undo2').locator('small').textContent()||0),count+1,axis+' move is undoable');
+   await axisGrip.focus();await axisGrip.press(axis==='y'?'ArrowDown':'ArrowRight');
+   await page.waitForTimeout(150);
+   assert.equal(Number(await el('undo2').locator('small').textContent()||0),count+2,axis+' reverse move is undoable');
+  }
+  await shot('axis-grips');
+  for(let i=0;i<6;i++) { await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(150); }
+  assert.equal(Number(await el('undo2').locator('small').textContent()||0),axisUndo,'axis moves undone');
+  // Undo may focus the wardrobe; selecting the wall restores its editing view.
+  if(await context()!=='wall') { if(phone) await page.touchscreen.tap(at.x,at.y); else await page.mouse.click(at.x,at.y); await page.waitForTimeout(400); }
 
   // Dragging its grip moves it out; the side walls stretch live; one undo step takes it back.
   const grip=await page.locator('.room-grip').first().boundingBox(), from={x:grip.x+grip.width/2,y:grip.y+grip.height/2};
@@ -84,7 +104,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
  // Two wardrobes facing each other: adding to one must not show the back of the other.
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:5173/editor.html');
+ await page.goto((process.env.STUDIO_URL || 'http://127.0.0.1:5173') + '/editor.html');
  await page.locator('[data-editor-id="more-btn"]').waitFor();
  await page.evaluate(async()=>{
   const { createEditorState } = await import('/src/application/projects/editor-state.ts');

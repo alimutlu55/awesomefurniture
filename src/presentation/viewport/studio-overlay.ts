@@ -41,7 +41,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             el = document.createElement('button');
             el.type = 'button';
             el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
-            if (h.kind === 'extend') el.textContent = '+';
+            if (h.axis) { el.textContent = h.axis.toUpperCase(); el.dataset.axis = h.axis; }
+            else if (h.kind === 'extend') el.textContent = '+';
             else if (h.kind !== 'corner') el.innerHTML = h.kind === 'wall' ? ARROWS : SLIDE;
             const button = el;
             el.onpointerdown = e => { const x = current.get(button); if (x) editor.begin(e, x, button); };
@@ -121,6 +122,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         const screen = (p: THREE.Vector3) => { const q = p.clone().project(camera); return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height }; };
         for (const [el, h] of current) {
             const dx = h.kind === 'wall' ? h.nx : h.kind === 'opening' ? h.ux : undefined, dz = h.kind === 'wall' ? h.nz : h.uz;
+            if (h.axis) continue;
             if (dx === undefined || dz === undefined) continue;
             const a = screen(V(h)), b = screen(new THREE.Vector3(h.x + dx * 40, h.y, h.z + dz * 40));
             const turn = Math.atan2(b.y - a.y, b.x - a.x) - (h.kind === 'wall' ? Math.PI / 2 : 0);

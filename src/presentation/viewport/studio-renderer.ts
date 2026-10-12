@@ -154,7 +154,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     for (const [s, e] of gaps(start, end, openings.filter(o => o.sill < 1))) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
     // Contact shading: on the floor along the wall's foot, up the foot of the wall, and into joined corners.
     const inside = wallFace(studio, w), fs = inside?.start ?? start, fe = inside?.end ?? end, z = face + .25;
-    group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
+    if (!(w.y ?? 0)) group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
     body.add(shadeQuad([fs, 0, z], [fe, 0, z], [fe, 28, z], [fs, 28, z]));
     // Where the wall meets the ceiling: a faint shade, seen only while the wall stands.
     details.add(shadeQuad([fs, w.height, z], [fe, w.height, z], [fe, w.height - 22, z], [fs, w.height - 22, z]));
@@ -198,8 +198,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       }
     }
     group.rotation.y = line.angle * Math.PI / 180;
-    group.position.set(line.a.x, 0, line.a.z);
-    const mid = new THREE.Vector3(line.a.x + line.ux * line.length / 2, w.height / 2, line.a.z + line.uz * line.length / 2);
+    group.position.set(line.a.x, w.y ?? 0, line.a.z);
+    const mid = new THREE.Vector3(line.a.x + line.ux * line.length / 2, (w.y ?? 0) + w.height / 2, line.a.z + line.uz * line.length / 2);
     return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1 };
   }
 
@@ -246,7 +246,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     geometry.rotateX(-Math.PI / 2);
     // Seen from below only: its face points down.
     const mesh = new THREE.Mesh(geometry, material(LOOK.ceiling, { side: THREE.BackSide, emissive: linear(LOOK.ceiling), emissiveIntensity: .3 }));
-    mesh.position.y = Math.min(...studio.walls.map(w => w.height));
+    mesh.position.y = Math.min(...studio.walls.map(w => (w.y ?? 0) + w.height));
     mesh.visible = false;
     // Recessed downlights on a grid about 1.3 m apart, kept clear of the walls.
     const xs = outline.map(p => p.x), zs = outline.map(p => p.z), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
