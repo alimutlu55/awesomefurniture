@@ -112,17 +112,19 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         sh.quadraticCurveTo(-depth * .25, -3, -depth * .13, 0);
         // Cloth with some body, on a wooden hanger hooked over the rail.
         const cloth = resources.fabric ? resources.fabric(color) : resources.M(color);
-        const geo = new THREE.ExtrudeGeometry(sh, { depth: 1.6, bevelEnabled: true, bevelThickness: .7, bevelSize: .9, bevelSegments: 3, steps: 1, curveSegments: 8 }), mesh = new THREE.Mesh(geo, cloth);
-        geo.translate(0, 0, -.8);
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: 2.2, bevelEnabled: true, bevelThickness: 1.1, bevelSize: 1.1, bevelSegments: 3, steps: 1, curveSegments: 8 }), mesh = new THREE.Mesh(geo, cloth);
+        geo.translate(0, 0, -1.1);
         const hanger = resources.M('#7a6148', { roughness: .45 }), steel = resources.M('#a7a49e', { metalness: .8, roughness: .3 });
         const bar = new THREE.Mesh(new THREE.BoxGeometry(depth * .86, 1.1, 1.1), hanger), hook = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, 3.2, 6), steel);
         bar.position.set(0, -1.6, 0);
         hook.position.set(0, .6, 0);
         mesh.add(bar, hook);
         bar.castShadow = true;
-        if (!front) {
-            mesh.rotation.y = Math.PI / 2;
-        }
+        // Garments never hang perfectly parallel: each turns a little on its hanger.
+        const turn = Math.sin(cx * 12.9898 + z * 78.233) * .09;
+        mesh.rotation.y = (front ? 0 : Math.PI / 2) + turn;
+        // Some garments are bulkier than others: a knit against a shirt.
+        mesh.scale.z = 1.25 + .45 * Math.abs(Math.sin(cx * 3.7 + z * 5.1));
         mesh.position.set(cx, top, z);
         mesh.castShadow = mesh.receiveShadow = true;
         renderState.Gr.add(mesh);
