@@ -142,7 +142,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     }
     function syncResponsive() {
         const desk = matchMedia('(min-width:901px)').matches, design = model.activeCabinet().state;
-        $('#remove-wardrobe').hidden = model.scene.wardrobes.length < 2;
+        $('#remove-wardrobe').hidden = !model.scene.wardrobes.length;
         const div = desk && design.divider >= 0, item = desk && !div && !!design.secs[design.sel]?.[design.item];
         elements.app.classList.toggle('v-div', div);
         elements.app.classList.toggle('v-item', item);

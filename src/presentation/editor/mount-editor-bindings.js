@@ -195,7 +195,12 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
         // A selected wall or opening of the room has its own actions.
-        getSelection: () => selectionState.room ? selectionState.room.kind : !selectionState.focusOn ? 'none' : model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 'item' : 'wardrobe',
+        getSelection: () => {
+            if (selectionState.room) return selectionState.room.kind;
+            if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
+            const state = model.activeCabinet().state;
+            return state.item >= 0 || state.divider >= 0 ? 'item' : 'wardrobe';
+        },
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
             if (key === 'wall-size' || key === 'opening-size') { room.fields.render(); return [room.fields.root]; }

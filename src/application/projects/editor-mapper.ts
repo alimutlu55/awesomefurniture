@@ -40,7 +40,8 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
 }
 
 export function projectToScene(project: ProjectDocument): EditorScene | undefined {
- if (!project.wardrobes.length) return undefined;
+ // A room whose wardrobes were all removed stays empty. Without a room, an empty project starts with a wardrobe.
+ if (!project.wardrobes.length) return project.studio ? {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:structuredClone(project.studio)} : undefined;
  const wardrobes=project.wardrobes.map((w,index)=>{
   const layout=w.editorLayout;
   const {budget: _budget,...profile}=w.preferences;

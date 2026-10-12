@@ -147,6 +147,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             xs.push(w.x - r, w.x + r); zs.push(w.z - r, w.z + r); h = Math.max(h, w.state.h + (w.y || 0));
         }
         if (room) { xs.push(room.x0, room.x1); zs.push(room.z0, room.z1); h = Math.max(h, room.height); }
+        if (!xs.length) xs.push(-100, 100), zs.push(-100, 100);
         const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
         resources.lighting?.fit({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });
         // In a room its own floor takes the shadows; the open ground outside it would show the walls' shadows.
@@ -195,13 +196,16 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 activeRender = { Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups };
             }
         }
+        // Every wardrobe removed: an empty stand-in keeps the active-wardrobe handles pointing at nothing.
+        activeRender ??= { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
         renderDesign = selected.state;
         ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
         renderState.labs = combinedLabs;
         renderState.pivots = combinedPivots;
         renderState.renderActive = true;
         renderState.moveIcons = [];
-        if (selectionState.focusOn) {
+        dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
+        if (selectionState.focusOn && model.scene.wardrobes.length) {
             if (!inspector.inside() || (dom.width <= 900 && dom.$('#app').dataset.toolbarMode === 'move')) {
                 addRotationIndicator();
                 addWardrobeActions();

@@ -223,7 +223,7 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
 export function bindRemoveWardrobe({ dom, camera, interactions, inspector, shell, interactionState, selectionState, model, sceneCommands }) {
     const { $ } = dom;
     $('#remove-wardrobe').onclick = () => {
-        if (model.scene.wardrobes.length < 2) {
+        if (!model.scene.wardrobes.length) {
             return;
         }
         if (interactionState.wardrobeGesture) {

@@ -1,5 +1,6 @@
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
+import { emptyCabinet } from '../projects/editor-model';
 import { createStudioCommands } from './studio-commands';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
@@ -15,7 +16,9 @@ interface SceneCommandOptions {
     report?: (message: string) => void;
 }
 export function createSceneCommands(getScene: () => EditorScene, { initialDesign = createEditorState, checkpoint = () => { }, discardCheckpoint = () => { }, report = () => { } }: SceneCommandOptions = {}) {
-    const active = (): EditorCabinet => { const cabinet = getScene().wardrobes.find(w => w.id === getScene().activeWardrobe); if (!cabinet)
+    let spare: EditorCabinet | null = null;
+    const active = (): EditorCabinet => { if (!getScene().wardrobes.length) return spare ??= emptyCabinet();
+        const cabinet = getScene().wardrobes.find(w => w.id === getScene().activeWardrobe); if (!cabinet)
         throw new Error('Active wardrobe is missing.'); return cabinet; };
     const collision = createCabinetGeometry(() => getScene().wardrobes, () => studioObstacles(getScene().studio));
     const geometry = createWardrobeGeometry(() => active().state);
@@ -36,7 +39,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 Object.assign(state, { shape: start.shape, n: start.n, wt: start.wt, h: maxHeight(start.shape) });
             }
             const cabinet = { id, name: 'Wardrobe ' + id, x: 0, y: copy ? (original.y || 0) : 0, z: original.z, angle: copy ? original.angle : 0, state };
-            cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
+            if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
             // In a room, a new wardrobe stands against the first free wall instead.
             Object.assign(cabinet, studio.placeNewCabinet(cabinet) ?? {});
             scene.wardrobes.push(cabinet);
@@ -45,12 +48,13 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         removeCabinet() {
             const scene = getScene();
-            if (scene.wardrobes.length < 2) {
+            if (!scene.wardrobes.length) {
                 return false;
             }
             checkpoint();
             const index = scene.wardrobes.findIndex(w => w.id === scene.activeWardrobe), removed = scene.wardrobes.splice(index, 1)[0];
-            scene.activeWardrobe = scene.wardrobes[Math.min(index, scene.wardrobes.length - 1)]!.id;
+            // The last wardrobe leaves an empty floor or room. Nothing is active until a wardrobe is added.
+            scene.activeWardrobe = scene.wardrobes[Math.min(index, scene.wardrobes.length - 1)]?.id ?? 0;
             const state = active().state;
             state.item = -1;
             state.divider = -1;

@@ -61,6 +61,7 @@ test('scene commands duplicate independent cabinets and reject collision on resi
  copy.angle=0;copy.x=200;scene.wardrobes[0].angle=0;
  assert.equal(commands.setCabinetSize('w',300),false);assert.equal(copy.state.w,200);
  assert.equal(commands.removeCabinet(),copy.name);assert.equal(scene.wardrobes.length,1);
+ assert.equal(commands.removeCabinet(),'Bedroom');assert.equal(scene.wardrobes.length,0);
  assert.equal(commands.removeCabinet(),false);
 });
 test('item property commands refuse overlap and restore every layout property',async()=>{

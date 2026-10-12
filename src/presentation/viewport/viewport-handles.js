@@ -75,13 +75,12 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         if (dom.width <= 900) {
             const actions = createActionBar(document, 'Wardrobe actions', [
                 { key: 'dup', title: 'Duplicate wardrobe' },
-                { key: 'del', title: 'Remove wardrobe', disabled: model.scene.wardrobes.length < 2 }
+                { key: 'del', title: 'Remove wardrobe' }
             ]);
             actions.classList.add('lbl', 'wardrobe-actions');
             for (const [key, action] of [['dup', 'duplicate'], ['del', 'remove']]) {
                 const button = /** @type {HTMLButtonElement} */ (actions.querySelector('[data-ib="' + key + '"]'));
                 button.dataset.wardrobeAction = action;
-                if (button.disabled) button.title = 'Keep at least one wardrobe';
                 button.onpointerdown = e => e.stopPropagation();
                 button.onclick = e => {
                     e.stopPropagation();

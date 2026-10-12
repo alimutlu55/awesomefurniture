@@ -55,3 +55,6 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
  #toolbar[data-context] :is(#walls-btn,#wardrobe-btn) .tl{display:block;font-size:11px}
  #toolbar[data-context]{max-width:calc(var(--contextual-action-count,5) * 96px + 10px);margin-inline:auto}
 }
+/* Every wardrobe removed: only the floor or room is left. Wardrobe controls go, and Wardrobe leads the toolbar. */
+#app[data-no-wardrobe] :is(#add-anchor,#launch-wizard,#topright,#props-btn,#left,#empty-scene,.wardrobe-actions,.contextual-defaults>:not(#walls-btn,#wardrobe-btn)){display:none!important}
+@media(min-width:901px){#app[data-no-wardrobe] #wardrobe-btn{background:#282824;color:#fff}}

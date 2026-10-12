@@ -95,7 +95,9 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         return ((start + delta * t) % 360 + 360) % 360;
     }
     function sceneBounds() {
-        const bs = getCabinets().map(cabinetBounds), x0 = Math.min(...bs.map(b => b.x - b.hw)), x1 = Math.max(...bs.map(b => b.x + b.hw)), z0 = Math.min(...bs.map(b => b.z - b.hd)), z1 = Math.max(...bs.map(b => b.z + b.hd));
+        const bs = getCabinets().map(cabinetBounds);
+        if (!bs.length) return { x: 0, z: 0, w: 0, d: 0, h: 0 };
+        const x0 = Math.min(...bs.map(b => b.x - b.hw)), x1 = Math.max(...bs.map(b => b.x + b.hw)), z0 = Math.min(...bs.map(b => b.z - b.hd)), z1 = Math.max(...bs.map(b => b.z + b.hd));
         return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: Math.max(...bs.map(b => b.h)) };
     }
     function cabinetTranslation(origin, delta) {
