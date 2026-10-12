@@ -47,9 +47,11 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
         label: (p, t, c) => label(p, t, c), bindRuler: (e, a, b, x) => bindRuler(e, a, b, x), editor: studioEditor }) : null;
     if (overlay) lifetime.cleanup(() => overlay.dispose());
+    /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
+    const wardrobeFootprints = () => model.scene.wardrobes.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */
     function redrawStudio() {
-        studio?.sync(model.scene.studio);
+        studio?.sync(model.scene.studio, wardrobeFootprints());
         studio?.select(studioEditor?.valid() ?? null);
         overlay?.draw();
         positionLabels();
@@ -145,7 +147,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         resources.stage?.fit((x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, z1 - z0));
     }
     function build() {
-        studio?.sync(model.scene.studio);
+        studio?.sync(model.scene.studio, wardrobeFootprints());
         fitLight();
         studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();

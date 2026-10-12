@@ -78,18 +78,14 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
     }
 
-    /** Flies to the room as a photographer would show it: straight on to the wardrobe wall, a little above eye
-     * level, the whole room width and the walls' full height in frame (the near wall is cut away). */
+    /** Flies to show the whole room: every wall, the floor and the wardrobes, from a little above and
+     * slightly to one side of the wardrobe wall, so its depth reads. The near walls are cut away. */
     function frameRoom() {
         const room = model.scene.studio && studioBounds(model.scene.studio), w = late.wardrobeBounds();
         if (!room) return;
         const x0 = Math.min(room.x0, w.x - w.w / 2), x1 = Math.max(room.x1, w.x + w.w / 2), z0 = Math.min(room.z0, w.z - w.d / 2), z1 = Math.max(room.z1, w.z + w.d / 2);
         const active = model.scene.wardrobes.find(c => c.id === model.scene.activeWardrobe), facing = (active?.angle ?? 0) * Math.PI / 180;
-        // A portrait screen cannot show the whole room width at eye level without leaving it tiny: it shows the
-        // wardrobe wall with a little room either side, the walls' full height.
-        const narrow = typeof innerWidth === 'number' && innerWidth < innerHeight;
-        const width = narrow ? Math.min(x1 - x0, w.w + 140) : x1 - x0, x = narrow ? w.x : (x0 + x1) / 2;
-        late.camera().frameBox({ x, z: (z0 + z1) / 2, w: width, d: (z1 - z0) * .4, h: room.height }, facing, .14, 1.02);
+        late.camera().frameBox({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room.height }, facing + .32, .5, 1.04);
     }
 
     return {

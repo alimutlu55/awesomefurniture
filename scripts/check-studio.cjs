@@ -44,7 +44,9 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   const grip=await page.locator('.room-grip').first().boundingBox(), from={x:grip.x+grip.width/2,y:grip.y+grip.height/2};
   const undoBefore=Number(await el('undo2').locator('small').textContent()||0);
   await page.mouse.move(from.x,from.y);await page.mouse.down();
-  for(let i=1;i<=12;i++){ await page.mouse.move(from.x+i*3,from.y-i*3); await page.waitForTimeout(16); }
+  // The whole room is in view, smaller on a phone: a shorter drag there moves the wall as far.
+  const step=phone?1.2:3;
+  for(let i=1;i<=12;i++){ await page.mouse.move(from.x+i*step,from.y-i*step); await page.waitForTimeout(16); }
   const live=await page.locator('.room-label').allTextContents();
   await page.mouse.up();await page.waitForTimeout(300);
   assert.ok(live.length>=3,'while dragging, the walls it stretches show their lengths: '+live);

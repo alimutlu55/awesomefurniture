@@ -208,3 +208,6 @@
 }
 
 .mobile-add-categories [hidden]{display:none}
+
+/* Moving a wardrobe: nothing is added meanwhile, so its Add item button steps aside. */
+#app[data-toolbar-mode="move"] #labels .lbl.add{display:none!important}

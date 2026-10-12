@@ -17,6 +17,9 @@ const stubFor = (downward: number) => Math.max(1, Math.min(STUB, STUB * (downwar
 const SKIRTING = { height: 8, depth: 1.5 }, CASING = { width: 7, depth: 2 }, LEAF = 4;
 const linear = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
+/** Where a wardrobe stands: its centre, turn (degrees) and size. Centimetres. */
+export interface Footprint { x: number; z: number; angle: number; w: number; d: number }
+
 /** What is selected in the room: drawn with its outline at full height, even while its wall is lowered. */
 export type RoomSelection = { readonly kind: 'wall' | 'opening'; readonly id: string } | null;
 interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number }
@@ -68,12 +71,14 @@ export function createStudioRenderer(scene: THREE.Scene) {
   }
 
   let builds = 0;
-  function sync(studio: Studio | undefined) {
-    const next = studio ? JSON.stringify(studio) : '';
+  let standing: readonly Footprint[] = [];
+  function sync(studio: Studio | undefined, footprints: readonly Footprint[] = []) {
+    const next = studio ? JSON.stringify([studio, footprints]) : '';
     if (next === key) return;
     key = next;
     builds++;
     room = studio;
+    standing = footprints;
     const lifts = new Map(walls.map(v => [v.id, v.lift]));
     clear();
     if (!studio) return;
@@ -158,8 +163,10 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const frameM = material(LOOK.frame);
     for (const o of openings) {
       const left = o.offset - o.width / 2, right = o.offset + o.width / 2, top = o.sill + o.height, tall = top - o.sill + (o.sill > 0 ? CASING.width : 0);
+      // A wardrobe standing against the wall in front of it hides its room-side trim, which would poke through its back.
+      const covered = standing.some(f => covers(f, line, left - CASING.width, right + CASING.width, face + 8));
       // Casings on both faces: sides and head; windows also have a bottom rail.
-      for (const side of [1, -1]) {
+      for (const side of covered ? [-1] : [1, -1]) {
         const z = side * (face + CASING.depth / 2);
         box(CASING.width, tall, CASING.depth, left - CASING.width / 2, (o.sill + top) / 2, z, frameM, details, o.id);
         box(CASING.width, tall, CASING.depth, right + CASING.width / 2, (o.sill + top) / 2, z, frameM, details, o.id);
@@ -187,7 +194,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
         box(sash, o.height, 4, right - sash / 2, cy, 0, frameM, details, o.id);
         box(o.width, 3, 3, o.offset, cy, 0, frameM, details, o.id);
         if (o.width > 90) box(3, o.height, 3, o.offset, cy, 0, frameM, details, o.id);
-        box(o.width + 16, 2.5, 6, o.offset, o.sill - 1.25, face + 3, material(LOOK.skirting), details, o.id);
+        if (!covered) box(o.width + 16, 2.5, 6, o.offset, o.sill - 1.25, face + 3, material(LOOK.skirting), details, o.id);
       }
     }
     group.rotation.y = line.angle * Math.PI / 180;
@@ -301,6 +308,18 @@ function faceOutline(start: number, end: number, height: number, openings: reado
     shape.holes.push(hole);
   }
   return shape;
+}
+
+/** Whether a wardrobe's footprint reaches within `reach` of the wall's centre line, on the room side, over
+ * the stretch [from, to] along the wall. */
+function covers(f: Footprint, line: NonNullable<ReturnType<typeof wallLine>>, from: number, to: number, reach: number) {
+  const a = f.angle * Math.PI / 180, ux = Math.cos(a), uz = -Math.sin(a), fx = Math.sin(a), fz = Math.cos(a);
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => {
+    const x = f.x + i! * f.w / 2 * ux + j! * f.d / 2 * fx - line.a.x, z = f.z + i! * f.w / 2 * uz + j! * f.d / 2 * fz - line.a.z;
+    return { along: x * line.ux + z * line.uz, out: x * line.nx + z * line.nz };
+  });
+  const along = corners.map(c => c.along), out = corners.map(c => c.out);
+  return Math.max(...along) > from && Math.min(...along) < to && Math.min(...out) < reach && Math.max(...out) > 0;
 }
 
 /** The parts of [start, end] not covered by the openings. */
