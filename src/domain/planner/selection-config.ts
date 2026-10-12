@@ -31,10 +31,18 @@ export function buildDemand(cfg:PlannerConfig):Demand {
  const defaults:Demand=defaultNeeds();
  return Object.fromEntries(CATEGORIES.map(k=>[k,Math.ceil(Math.max(0,number(needs?.[k],defaults[k]))*(1+spare/100)-1e-9)])) as Demand;
 }
+/** The selection context of a planner configuration. Planning asks for it thousands of times with the same
+ * configuration object, so it is built once per object (configurations are never changed in place) and frozen. */
+const CONTEXTS=new WeakMap<PlannerConfig,ReturnType<typeof buildContext>>();
 export function selectionContext(cfg:PlannerConfig) {
+ let context=CONTEXTS.get(cfg);
+ if(!context){context=buildContext(cfg);CONTEXTS.set(cfg,context);}
+ return context;
+}
+function buildContext(cfg:PlannerConfig) {
  const reach=number(cfg.reach,185)*10,depth=number(cfg.d,60)*10,height=number(cfg.h,230)*10-SELECTION_RULES.base-SELECTION_RULES.panel;
- return {reach,depth,height,accessible:cfg.accessible===true,longDrop:number(cfg.longDrop,160)*10,spare:number(cfg.growth,15),demand:buildDemand(cfg),
- weights:cfg.composition==='storage'?R_STORAGE_WEIGHTS:({...SELECTION_RULES.weights}) as Criteria};
+ return Object.freeze({reach,depth,height,accessible:cfg.accessible===true,longDrop:number(cfg.longDrop,160)*10,spare:number(cfg.growth,15),demand:Object.freeze(buildDemand(cfg)),
+ weights:Object.freeze(cfg.composition==='storage'?R_STORAGE_WEIGHTS:({...SELECTION_RULES.weights}) as Criteria)});
 }
 export function bandFit(category:Category,interaction:number,reach:number) {
  const [lo,hi]=SELECTION_RULES.home[category],r=interaction/Math.max(1,reach);

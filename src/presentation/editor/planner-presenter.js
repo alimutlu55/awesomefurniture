@@ -5,6 +5,7 @@ import { esc, zoneColor, zoneText } from './editor-format.js';
 import { tags, issueTags } from './storage-tags.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { POSSESSION_KEYS, possession } from '../../domain/wardrobe/possessions';
+import { planInBackground } from './planner-worker-client';
 /** wizard presentation behavior; the view ports provide transient UI state and application commands. */
 /** @param {import('./planner-presenter.ports').CreatePlannerPresenterPorts} ports */
 export function createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }) {
@@ -89,10 +90,47 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             commands.setPreferences(readPreferences());
             syncPreferences(true);
         }
-        plannerState.ideas = plannerService.generate(geometry.plannerConfig());
-        plannerState.ideasConfig = JSON.stringify({ ...geometry.plannerConfig(), engaged: 0 });
+        const cfg = geometry.plannerConfig();
+        // Not planned yet: plan in the background and show the ideas when they arrive, so the page never freezes.
+        if (!plannerService.has?.(cfg)) {
+            const key = JSON.stringify({ ...cfg, engaged: 0 }), background = planInBackground(cfg);
+            if (background) {
+                plannerState.pendingKey = key;
+                showCalculating('Calculating layouts…');
+                void background.then(result => {
+                    // A newer request supersedes this one.
+                    if (plannerState.pendingKey !== key) return;
+                    plannerState.pendingKey = null;
+                    if (result) plannerService.store(cfg, result);
+                    if (!$('#wizard').hidden) showIdeas(cfg);
+                });
+                return;
+            }
+        }
+        showIdeas(cfg);
+    }
+    function showIdeas(cfg) {
+        plannerState.ideas = plannerService.generate(cfg);
+        plannerState.ideasConfig = JSON.stringify({ ...cfg, engaged: 0 });
         renderIdeas();
         $('#ideas').setAttribute('aria-busy', 'false');
+    }
+    function showCalculating(text) {
+        $('#ideas-count').textContent = text;
+        $('#ideas').setAttribute('aria-busy', 'true');
+        $('#ideas').querySelectorAll('[data-idea]').forEach(b => ( /** @type {HTMLInputElement} */(b)).disabled = true);
+    }
+    /** Plans the current wardrobe's ideas in the background while the page is idle, a moment after it last
+     * changed, so Auto design usually opens with them ready. */
+    function prewarm() {
+        if (!lifetime?.timeout || !plannerService?.store) return;
+        lifetime.cancelTimeout(plannerState.prewarmTimer);
+        plannerState.prewarmTimer = lifetime.timeout(() => {
+            plannerState.prewarmTimer = null;
+            const cfg = geometry.plannerConfig();
+            if (plannerState.pendingKey || plannerService.has(cfg)) return;
+            void planInBackground(cfg)?.then(result => { if (result) plannerService.store(cfg, result); });
+        }, 900);
     }
     function openWizard() {
         shell.closeDD();
@@ -110,9 +148,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             refreshIdeas();
         }
         else {
-            $('#ideas-count').textContent = 'Calculating layouts…';
-            $('#ideas').setAttribute('aria-busy', 'true');
-            $('#ideas').querySelectorAll('[data-idea]').forEach(b => ( /** @type {HTMLInputElement} */(b)).disabled = true);
+            showCalculating('Calculating layouts…');
             lifetime.cancelFrame(plannerState.openRaf);
             lifetime.cancelTimeout(plannerState.openTimer);
             // Wait for one paint so the wizard appears straight away, then compute. A pending edit timer will do its own refresh.
@@ -131,6 +167,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         lifetime.cancelFrame(plannerState.openRaf);
         lifetime.cancelTimeout(plannerState.openTimer);
         plannerState.openTimer = null;
+        plannerState.pendingKey = null;
         if (plannerState.ideasTimer !== null) {
             lifetime.cancelTimeout(plannerState.ideasTimer);
             plannerState.ideasTimer = null;
@@ -147,6 +184,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         return (rows.length ? '<div class="capacity">' + rows.map(r => '<span>' + esc(r[0]) + '</span><b>~' + r[1] + '</b>').join('') + '</div>' + tags(['Current capacity']) : tags(['Empty', 'Add fittings']));
     }
     function planUI(a) {
+        prewarm();
         $('#empty-scene').hidden = geometry.stats().mods > 0 || plannerState.emptyDismissed;
         $('#plan-title').textContent = model.activeCabinet().state.proposal?.title || (geometry.stats().mods ? 'Custom wardrobe' : 'Make it yours');
         const profile = model.activeCabinet().state.profile;
@@ -180,9 +218,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             plannerState.ideasTimer = null;
             return;
         }
-        $('#ideas-count').textContent = 'Settings changed · updating';
-        $('#ideas').setAttribute('aria-busy', 'true');
-        $('#ideas').querySelectorAll('[data-idea]').forEach(b => ( /** @type {HTMLInputElement} */(b)).disabled = true);
+        showCalculating('Settings changed · updating');
         plannerState.ideasTimer = lifetime.timeout(() => refreshIdeas(true), 350);
     }
     return { miniPlan, renderIdeas, syncPreferences, readPreferences, refreshIdeas, openWizard, closeWizard, storedNow, planUI, markIdeasDirty, planned };
