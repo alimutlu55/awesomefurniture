@@ -35,6 +35,8 @@ export interface FittingCut {
     /** Lowest clear height over an x span. */
     clearAt(x0: number, x1: number): number;
 }
+/** Garment spacing along a rail in the styled view, and how far a garment reaches along the rail from its hook (cm). */
+const STYLED_PITCH = 11, STYLED_REACH = 6;
 export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, shoes }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
@@ -145,13 +147,17 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             r.castShadow = true;
             group.add(r);
             const c = Math.max(1, WardrobePlanner.geo.hangCount(coreW, front, d, k)), sp = WardrobePlanner.geo.spacing(k), gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : coreH - 12, coreH - 10, coreH - riseAt() - 9), gz = Math.min(d - 14, 42);
-            for (let j = 0; j < c; j++) {
+            // Drawn as a styled wardrobe is shown: a rail along the wardrobe holds about one garment per STYLED_PITCH,
+            // not every garment it can take (the plan's counts are unchanged). In profile a garment reaches STYLED_REACH
+            // either side of its hook along the rail, so the end ones stay clear of the bay's sides.
+            const room = Math.max(0, coreW - 3 - 2 * STYLED_REACH), shown = front ? c : Math.min(c, Math.floor(room / STYLED_PITCH) + 1), step = front ? sp : shown > 1 ? room / (shown - 1) : 0;
+            for (let j = 0; j < shown; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {
                     garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true, sp);
                 }
                 else {
-                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!, false, sp);
+                    garment(coreX - (shown - 1) * step / 2 + j * step, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!, false, step);
                 }
             }
             if (k === 'lift') {

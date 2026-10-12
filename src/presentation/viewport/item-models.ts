@@ -18,8 +18,8 @@ export interface ItemModel {
 }
 
 /** Garments for ordinary rails, and for long ones (a long rail holds dresses and coats). */
-export const SHORT_GARMENTS = ['tshirt', 'sweater', 'checkshirt'] as const;
-export const LONG_GARMENTS = ['trench'] as const;
+export const SHORT_GARMENTS = ['dressshirt', 'dressshirt', 'sweater'] as const;
+export const LONG_GARMENTS = ['tancoat'] as const;
 /** Shoes for the shoe shelves: men's and women's, one shoe mirrored into a pair or a pair as modelled. Leathers
  * multiply a photographed material; colours replace a plain one. */
 export const SHOE_MODELS = [
@@ -27,7 +27,7 @@ export const SHOE_MODELS = [
   { name: 'pumps', pair: true, shades: ['#1f1d1c', '#c8a387', '#7d1f26', '#ece6dc'] },
   { name: 'ankleboot', pair: false, shades: ['#ffffff', '#4a443f', '#d9b48f'] },
 ] as const;
-export const ITEM_MODELS = [...SHORT_GARMENTS, ...LONG_GARMENTS, ...SHOE_MODELS.map(s => s.name)];
+export const ITEM_MODELS = [...new Set([...SHORT_GARMENTS, ...LONG_GARMENTS, ...SHOE_MODELS.map(s => s.name)])];
 
 const models = new Map<string, ItemModel | null>();
 const loading = new Map<string, Promise<ItemModel | null>>();

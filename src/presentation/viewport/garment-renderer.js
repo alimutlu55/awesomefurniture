@@ -15,9 +15,15 @@ export function createGarmentRenderer({ resources, group }) {
         const set = height > 110 ? LONG_GARMENTS : SHORT_GARMENTS;
         return set[Math.abs(Math.round(cx * 7.3 + z * 3.1)) % set.length];
     };
-    /** A model's own material where it has a printed pattern, else matte cloth in the garment's colour. */
+    /** The garment's own photographed fabric tinted by its colour where it has one, else matte cloth in its colour. */
     const clothFor = (name, part, color) => part.material.map
-        ? material('own' + name, () => part.material)
+        ? material(name + color, () => {
+            const m = /** @type {THREE.MeshStandardMaterial} */ (part.material.clone());
+            m.color.set(color).convertSRGBToLinear();
+            m.vertexColors = true;
+            m.side = THREE.DoubleSide;
+            return m;
+        })
         : material('cloth' + color, () => resources.garmentFabric(color));
     function garment(cx, top, z, height, depth, color, front = false, pitch = Infinity) {
         const name = pick(cx, z, height), real = itemModel(name);
@@ -27,12 +33,12 @@ export function createGarmentRenderer({ resources, group }) {
             const fabric = new THREE.Mesh(cloth.geometry, clothFor(name, cloth, color));
             const wood = new THREE.Mesh(hangerPart.geometry, material('hanger', () => resources.M('#8a6646', { roughness: .45 })));
             for (const o of [fabric, wood]) { o.castShadow = o.receiveShadow = true; hung.add(o); }
-            // Real size, unless the wardrobe is shallower than the garment is wide, or the rail too crowded.
-            hung.scale.x = Math.min(1, depth / real.size.x);
-            hung.scale.y = Math.min(1, (height + 4.2) / real.size.y);
-            hung.scale.z = Math.min(1, pitch * 1.15 / real.size.z);
-            // Garments never hang perfectly parallel: each turns a little on its hanger, not enough to cross.
-            hung.rotation.y = (front ? 0 : Math.PI / 2) + Math.sin(cx * 12.9898 + z * 78.233) * .035;
+            // In profile, as garments hang in a wardrobe: shoulders across the wardrobe's depth, a hanger's width each.
+            const turn = front ? 0 : Math.PI / 2, across = front ? real.size.x : real.size.x;
+            // Real size, unless the wardrobe is shallower than the garment reaches across it.
+            hung.scale.setScalar(Math.min(1, depth / across, (height + 4.2) / real.size.y));
+            // Garments never hang perfectly parallel: each turns a little on its hanger.
+            hung.rotation.y = turn + Math.sin(cx * 12.9898 + z * 78.233) * .05;
             // The hook rests on the rail (3 cm above `top` is the rail's centre, 1.2 cm its radius).
             hung.position.set(cx, top + 3 + 1.2, z);
             group().add(hung);

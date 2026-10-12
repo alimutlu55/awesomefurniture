@@ -96,6 +96,10 @@ def bake_ao(garment):
     scene.render.bake.target = 'VERTEX_COLORS'
     select([garment])
     bpy.ops.object.bake(type='AO')
+    # Folds shade, but never to black: occlusion is lifted to between 45 % and full light.
+    for c in garment.data.color_attributes['ao'].data:
+        r, g, b, a = c.color
+        c.color = (0.45 + 0.55 * r, 0.45 + 0.55 * g, 0.45 + 0.55 * b, a)
 
 
 def shrink_images(size):
@@ -115,21 +119,6 @@ def export(objs, name, materials='PLACEHOLDER'):
 
 
 # --- Items ----------------------------------------------------------------------------------------
-def tshirt(src):
-    """'T-Shirt On Hanger' by FeisalKassim: a pressed tee on a plastic hanger. Scaled so the hanger is 42 cm."""
-    reset()
-    meshes = load(os.path.join(src, 'tshirt.glb'))
-    shirt = max(meshes, key=lambda o: len(o.data.polygons) if bounds([o])[0].z < -500 else 0)
-    hanger = join([o for o in meshes if o is not shirt], 'hanger')
-    shirt = join([shirt], 'garment')
-    lo, hi = bounds([hanger])
-    s = 0.42 / (hi.x - lo.x)
-    transform([shirt, hanger], Matrix.Translation(Vector((-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, -hi.z))))
-    transform([shirt, hanger], Matrix.Scale(s, 4))
-    bake_ao(shirt)
-    export([shirt, hanger], 'tshirt')
-
-
 def sweater(src):
     """'sweater woman' by Rouker, worn on an invisible body: flattened as a sweater hangs, reduced, and put on
     roh3d's 'Wood Clothes Hanger'."""
@@ -161,22 +150,60 @@ def wooden_hanger(src):
     return wood
 
 
-def worn_garment(src, file, out, height, depth, keep_material=False):
-    """A garment modelled as worn on an invisible body, hung on the wooden hanger instead: `height` tall from the
-    shoulders down, the body's depth pressed to `depth` (metres). Garments keep their own material (a pattern) only
-    where `keep_material`; otherwise the app colours them."""
+def hang_garment(src, file, out, length, keep_fabric=True, drop=()):
+    """A garment modelled as worn (arms out, around an invisible body) hung on the wooden hanger as it would be in a
+    wardrobe: brought to `length` metres from collar to hem, its body pressed flat, and each sleeve turned down at
+    the shoulder to hang beside the body, blended over the shoulder so the cloth does not tear. Pockets, buttons
+    and cuffs move with their sleeve or stay with the body. The garment's design, seams and fabric are kept."""
     reset()
-    cloth = join(load(os.path.join(src, file + '.glb')), 'garment')
+    # `drop`: materials of inner layers (a garment's inside, modelled as a second skin) that are left out: pressed
+    # flat they would show through, and enclosed they bake black.
+    parts = [o for o in load(os.path.join(src, file + '.glb')) if len(o.data.polygons) > 50 and not any(m and m.name in drop for m in o.data.materials)]
+    for o in [o for o in bpy.context.scene.objects if o.type == 'MESH' and o not in parts]:
+        bpy.data.objects.remove(o)
+    cloth = join(parts, 'garment')
     lo, hi = bounds([cloth])
-    s = height / (hi.z - lo.z)
+    s = length / (hi.z - lo.z)
     transform([cloth], Matrix.Translation(Vector((-(lo.x + hi.x) / 2, -(lo.y + hi.y) / 2, -hi.z))))
-    transform([cloth], Matrix.Diagonal((s, depth / (hi.y - lo.y), s, 1)))
-    transform([cloth], Matrix.Translation(Vector((0, 0, -0.105))))    # the hook stands above the collar
-    decimate(cloth, 9000)
+    transform([cloth], Matrix.Diagonal((s, s * 0.5, s, 1)))                 # the body pressed half flat, as it hangs
+    # Sleeves: measure how far each is raised, then turn it down to 84 degrees below horizontal.
+    pivot_x, pivot_z = 0.2, -0.07
+    smooth = lambda a, b, x: max(0.0, min(1.0, (x - a) / (b - a))) ** 2 * (3 - 2 * max(0.0, min(1.0, (x - a) / (b - a))))
+    for side in (-1, 1):
+        far = [v.co for v in cloth.data.vertices if v.co.x * side > 0.34]
+        if not far:
+            continue
+        current = math.atan2(sum(v.z for v in far) / len(far) - pivot_z, sum(v.x * side for v in far) / len(far) - pivot_x)
+        turn = math.radians(-84) - current
+        for v in cloth.data.vertices:
+            # A sleeve point lies out from the shoulder and along the arm; a flared hem lies further below it.
+            angle = math.atan2(v.co.z - pivot_z, v.co.x * side - pivot_x)
+            w = smooth(0.13, 0.27, v.co.x * side) * smooth(current - math.radians(40), current - math.radians(22), angle)
+            if w <= 0:
+                continue
+            dx, dz, a = v.co.x * side - pivot_x, v.co.z - pivot_z, turn * w
+            nx, nz = dx * math.cos(a) - dz * math.sin(a), dx * math.sin(a) + dz * math.cos(a)
+            v.co.x, v.co.z = (pivot_x + nx) * side, pivot_z + nz
+            v.co.y -= 0.025 * w                                              # sleeves fall a little in front
+    cloth.data.update()
+    # One fabric: collar, cuffs and lining take the material covering most of the garment, so the app colours the
+    # whole garment as one cloth.
+    mats = list(cloth.data.materials)
+    main = max(range(len(mats)), key=lambda i: sum(1 for p in cloth.data.polygons if p.material_index == i))
+    for p in cloth.data.polygons:
+        p.material_index = 0
+    cloth.data.materials.clear()
+    # Where the app colours the garment, a plain cloth; else the garment's own photographed fabric.
+    cloth.data.materials.append(mats[main] if keep_fabric else bpy.data.materials.new('cloth'))
+    decimate(cloth, 12000)
     wood = wooden_hanger(src)
+    transform([wood], Matrix.Translation(Vector((0, 0, 0.07))))              # the hook's top 7 cm above the collar
+    lo, hi = bounds([wood])
+    transform([cloth, wood], Matrix.Translation(Vector((0, 0, -hi.z))))
+    cloth.data.shade_smooth()
     bake_ao(cloth)
     shrink_images(1024)
-    export([cloth, wood], out, materials='EXPORT' if keep_material else 'PLACEHOLDER')
+    export([cloth, wood], out, materials='EXPORT' if keep_fabric else 'PLACEHOLDER')
 
 
 def shoe_model(src, file, out, length, turn):
@@ -219,17 +246,20 @@ def oxford(src):
 
 
 def main():
-    src = sys.argv[sys.argv.index('--') + 1]
-    tshirt(src)
+    args = sys.argv[sys.argv.index('--') + 1:]
+    src, only = args[0], set(args[1:])
+    if only:
+        for name in only:
+            {'dressshirt': lambda: hang_garment(src, 'dressshirt', 'dressshirt', 0.80, keep_fabric=False, drop=('Material3579',)), 'tancoat': lambda: hang_garment(src, 'tancoat', 'tancoat', 1.05)}[name]()
+        return
     sweater(src)
     oxford(src)
-    # Long: a trench coat, 1.15 m from the shoulders, coloured by the app.
-    worn_garment(src, 'trench', 'trench', 1.15, 0.10)
-    # A short-sleeved shirt in its own colour-blocked fabric, 0.72 m.
-    worn_garment(src, 'checkshirt', 'checkshirt', 0.72, 0.07, keep_material=True)
     # Women's shoes: a pair of pumps (toes to -X as downloaded), a scanned ankle boot (toe to +Y).
     shoe_model(src, 'pumps', 'pumps', 0.25, 90)
     shoe_model(src, 'ankleboots', 'ankleboot', 0.25, 180)
+    # Real garments modelled as worn, hung: a pressed dress shirt and a long double-breasted coat.
+    hang_garment(src, 'dressshirt', 'dressshirt', 0.80, keep_fabric=False, drop=('Material3579',))
+    hang_garment(src, 'tancoat', 'tancoat', 1.05)
 
 
 main()
