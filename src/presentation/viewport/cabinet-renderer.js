@@ -3,6 +3,7 @@ import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
+import { boardBox, boardSeed, boardUVs } from './board-geometry';
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
 import { createViewportHandles } from './viewport-handles.js';
@@ -72,7 +73,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         resources.R.setClearColor(c.getPropertyValue('--scene').trim(), 0);
     }
     function box(w, h, d, x, y, z, m, g) {
-        const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+        // Wood boards: eased edges and veneer at true scale, grain along the board.
+        const board = m?.userData?.board, geo = board ? boardUVs(boardBox(w, h, d), boardSeed(x, y, z)) : new THREE.BoxGeometry(w, h, d);
+        const o = new THREE.Mesh(geo, m);
         o.position.set(x, y, z);
         o.castShadow = o.receiveShadow = true;
         (g || renderState.Gr).add(o);
@@ -83,7 +86,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     function prism(points, depth, z, m, g) {
         const geo = new THREE.ExtrudeGeometry(new THREE.Shape(points.map(p => new THREE.Vector2(p.x, p.y))), { depth, bevelEnabled: false, steps: 1 });
         geo.translate(0, 0, z - depth / 2);
-        planarUVs(geo);
+        if (m?.userData?.board) boardUVs(geo, boardSeed(points[0].x, points[0].y, z));
+        else planarUVs(geo);
         const o = new THREE.Mesh(geo, m);
         o.castShadow = o.receiveShadow = true;
         (g || renderState.Gr).add(o);

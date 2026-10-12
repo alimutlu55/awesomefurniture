@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
-import { contactShade, roomOutline, planks } from './studio-surfaces';
+import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
-  wall: '#ece6dc', cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
+  wall: '#e2d9cc', cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
   ceiling: '#f4f1ec', select: '#2f2a22',
 });
 /** Height of a wall lowered because it stands between the camera and the room: low enough to see over,
@@ -34,7 +34,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
   scene.add(root);
   let key = '', walls: WallView[] = [], hits: THREE.Object3D[] = [], ceiling: THREE.Mesh | null = null, outline: { x: number; z: number }[] = [];
   let selection: RoomSelection = null, selected: THREE.Object3D | null = null, room: Studio | undefined;
-  const texture = planks(), materials = new Map<string, THREE.MeshStandardMaterial>();
+  const boards = planks(), materials = new Map<string, THREE.MeshStandardMaterial>();
   /** Shared materials: rebuilding during a drag reuses them. */
   const material = (color: string, options: THREE.MeshStandardMaterialParameters = {}) => {
     const id = color + JSON.stringify(options);
@@ -43,8 +43,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     if (!m) { m = new THREE.MeshStandardMaterial({ color: linear(color), roughness: .92, metalness: 0, envMapIntensity: .35, ...options }); materials.set(id, m); }
     return m;
   };
-  // Oiled oak boards: a soft reflection of the room, not a mirror.
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: texture, color: linear('#efe6da'), roughness: .5, envMapIntensity: .45, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  // Lacquered oak boards: a soft reflection of the room, not a mirror.
+  const floorMaterial = new THREE.MeshStandardMaterial({ ...boards, normalScale: new THREE.Vector2(.45, .45), roughness: .9, envMapIntensity: .45, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   const shade = contactShade();
   const shadeMaterial = new THREE.MeshBasicMaterial({ map: shade, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   /** A shading quad: dark along its first edge (a0 to a1), fading out towards the opposite edge. */
@@ -287,7 +287,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       scene.remove(guideStrip, root);
       guideStrip.geometry.dispose();
       for (const g of [downlight.trim, downlight.lamp]) g.dispose();
-      for (const m of [downlight.lampMaterial, guideStrip.material as THREE.Material, texture, shade, shadeMaterial, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
+      disposeMaps(boards);
+      for (const m of [downlight.lampMaterial, guideStrip.material as THREE.Material, shade, shadeMaterial, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
     },
   };
 }

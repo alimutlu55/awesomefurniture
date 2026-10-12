@@ -14,7 +14,7 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   pmrem.dispose();
   scene.environment = environment;
 
-  const sky = new THREE.HemisphereLight(0xfff8ee, 0xc9b99c, .55);
+  const sky = new THREE.HemisphereLight(0xfff8ee, 0xc9b99c, .42);
   scene.add(sky);
   // Shadow maps are redrawn only when the scene changes (see the frame loop), not every frame.
   renderer.shadowMap.autoUpdate = false;
@@ -28,9 +28,10 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   sun.shadow.radius = 7;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   scene.add(sun, sun.target);
-  /** Where the sun comes from: high, a little to the left and in front, like daylight from a window beside
-   * the viewer. High enough that walls do not throw half the floor into shadow. */
-  const direction = new THREE.Vector3(-.38, .84, .4).normalize();
+  /** Where the key light comes from: mostly from the front, a little above and to the left, like a tall window
+   * behind the photographer (the Cycles benchmark's key, scripts/realism/benchmark_scene.py). The wardrobe's back
+   * is evenly lit with a soft shade under the top, instead of a hard patch of sun cut by a side panel. */
+  const direction = new THREE.Vector3(-.08, .42, .9).normalize();
 
   function fit(bounds: LitBounds) {
     const reach = Math.max(bounds.w, bounds.d, bounds.h, 200) * .75 + 40;

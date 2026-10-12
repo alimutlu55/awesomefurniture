@@ -129,6 +129,50 @@ Owner: frontend/rendering engineer. Mobile Engineer verifies mobile interaction.
 
 Deliverable: app screenshots of the benchmark scene with improved materials and edges; editing remains functional. Gate: no stretched grain, unwanted floor seams on panels, dimension drift, or new interaction failures.
 
+### Phase 2 results (2026-10-12)
+
+[Comparison](realism-reference/phase2-compare.jpg): target, the app before, the app now, and the Cycles
+benchmark; [furnished wardrobe](realism-reference/phase2-furnished.jpg). Default phone view, 393 × 852 at 3×.
+
+Done:
+
+- **Photographed materials** (`wood-textures.ts`). The veneer's colour, roughness and OpenGL normal maps load once
+  per page and are graded on a canvas. The colour becomes warm grain near white with 2.2 times the contrast, so
+  each finish colour tints it. One shared set per editor (`viewport-resources.js`) serves every board, so the
+  GPU holds one copy. Each texture starts as one neutral pixel; an empty texture would sample black. Where
+  images cannot load, boards show their plain finish colour.
+- **True-scale, per-board UVs** (`board-geometry.ts`). One UV unit is the 1 m veneer tile. The grain runs along
+  the board's longer front-view edge: up sides and backs, across tops, shelves, drawer fronts and plinths. Each
+  board's offset comes from where it stands, so it keeps its figure across rebuilds. Shaped boards (extrusions)
+  get the same mapping.
+- **Eased edges**: wood boards are 1.5 mm rounded boxes of the same nominal size. Joins, hit meshes,
+  measurements and fitting calculations are unchanged. Shaped (extruded) boards are not bevelled yet.
+- **Floors**: the room floor and the showroom floor use the Oak Wood Planks maps at 1.2 m, graded to 72 % of
+  their colour.
+- **Light**, following the benchmark: the key now comes mostly from the front and a little above. The back is
+  evenly lit with a soft shade under the top, instead of a hard patch of sun cut by a side panel. Hemisphere
+  fill is 0.42, tone-mapping exposure 0.76.
+
+Measured in the default phone view against the target: back panel 207/172/131 vs 192/162/130; under the top
+158/125/87 vs 141/105/70; room floor 205/173/143 vs 193/166/139.
+
+Checks: `npm run check` (354 tests), check-studio, check-mobile and check-desktop-regression pass. Software-GL
+frame rate (Playwright, SwiftShader) is 24 / 23 fps at 768 × 1024 / 1440 × 900, against 26.5 / 25.5 before.
+That is about 9 % slower. Not measured on a real phone.
+
+Not done, or different from the plan:
+
+- **No presentation backdrop.** Without a room, the app still shows a CSS background and a showroom floor
+  fading into it, where the target shows a lit wall. This is the largest remaining gap in the default view.
+  It needs a decision on how a backdrop behaves with several wardrobes at different angles and when orbiting
+  behind them.
+- **Framing**: the app's default view leaves the wardrobe smaller and seen slightly from one side and above, so
+  level lines read as slanted. Composition was left alone, as the handoff asks.
+- **The phase 3 exclusions** (rulers, hit meshes, gradient AO planes, contact shadows, highlights) still belong
+  to the raster renderer; they matter once a path tracer is added.
+- **Tone mapping** is still ACES: Three.js r128 has no neutral curve. Matching the benchmark's Khronos PBR
+  Neutral needs r162 or later. That is part of phase 3's upgrade decision.
+
 ## Phase 3 — browser path-tracing spike
 
 Owner: frontend/rendering engineer; Test Engineer collects measurements.

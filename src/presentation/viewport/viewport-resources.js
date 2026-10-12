@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { disposeSceneAssets } from './render-disposal';
 import { createSceneLighting } from './scene-lighting';
-import { oakGrain } from './wood-grain';
+import { oakMaps } from './wood-textures';
 import { fabricTexture } from './fabric';
 import { createStageFloor } from './stage-floor';
 /** Three.js owns its renderer, lights, materials and reusable textures here. */
@@ -9,7 +9,8 @@ export function createViewportResources(cv) {
     const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
     R.outputEncoding = THREE.sRGBEncoding;
     R.toneMapping = THREE.ACESFilmicToneMapping;
-    R.toneMappingExposure = 1.0;
+    // A touch under 1, as measured against the reference photograph.
+    R.toneMappingExposure = .76;
     R.shadowMap.enabled = true;
     R.shadowMap.type = THREE.PCFSoftShadowMap;
     R.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -49,14 +50,20 @@ export function createViewportResources(cv) {
     aoCtx.fillRect(0, 0, 128, 128);
     const aoTexture = new THREE.CanvasTexture(aoCanvas);
     const HM = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-    const grain = oakGrain(cv.ownerDocument, Math.min(8, R.capabilities.getMaxAnisotropy()));
+    // Photographed oak veneer, one set of maps shared by every board of every wardrobe in this editor.
+    const veneer = oakMaps(cv.ownerDocument, 'veneer', Math.min(8, R.capabilities.getMaxAnisotropy()));
     const M = (c, o) => {
         const m = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .82 }, o));
         m.color.convertSRGBToLinear();
         return m;
     };
-    // Lacquered oak: a soft sheen that picks up the environment, the grain just felt in the bump.
-    const wood = c => M(c, { map: grain, bumpMap: grain, bumpScale: .005, roughness: .58, envMapIntensity: .55 });
+    // Lacquered veneer: the finish colour tints the photographed grain; the pores show in the normal map and
+    // the satin coat in the roughness map. Boards get true-scale UVs and eased edges (board-geometry.ts).
+    const wood = c => {
+        const m = M(c, { ...veneer, normalScale: new THREE.Vector2(.3, .3), roughness: 1, envMapIntensity: .45 });
+        m.userData.board = true;
+        return m;
+    };
     // Matte woven cloth for the clothes on the rails.
     const cloth = fabricTexture(cv.ownerDocument);
     cloth.repeat.set(1 / 30, 1 / 45);
@@ -66,10 +73,10 @@ export function createViewportResources(cv) {
     function dispose() {
         lighting.dispose();
         stage.dispose();
-        disposeSceneAssets(scene, [grain, cloth, aoTexture], [HM]);
+        disposeSceneAssets(scene, [veneer.map, veneer.roughnessMap, veneer.normalMap, cloth, aoTexture], [HM]);
         scene.clear();
         R.dispose();
         R.forceContextLoss();
     }
-    return { cv, R, scene, cam, contact, aoTexture, HM, grain, M, wood, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
+    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
 }
