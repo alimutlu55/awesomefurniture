@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { studioBounds, wallExtent, wallLine } from '../../domain/studio/studio';
+import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
-import { roomOutline, planks } from './studio-surfaces';
+import { contactShade, roomOutline, planks } from './studio-surfaces';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
@@ -12,7 +12,8 @@ const LOOK = Object.freeze({
  * tall enough to still read as the room's outline. A camera near eye level would see a stub as a band
  * across the floor, so there it lowers to a line on the floor. */
 const STUB = 14;
-const stubFor = (cameraY: number) => Math.max(1, Math.min(STUB, (cameraY - 90) / 12));
+/** Stub height for how steeply the camera looks down: a line on the floor near eye level, the full stub from above. */
+const stubFor = (downward: number) => Math.max(1, Math.min(STUB, STUB * (downward - .1) / .3));
 const SKIRTING = { height: 8, depth: 1.5 }, CASING = { width: 7, depth: 2 }, LEAF = 4;
 const linear = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
@@ -35,10 +36,24 @@ export function createStudioRenderer(scene: THREE.Scene) {
   const material = (color: string, options: THREE.MeshStandardMaterialParameters = {}) => {
     const id = color + JSON.stringify(options);
     let m = materials.get(id);
-    if (!m) { m = new THREE.MeshStandardMaterial({ color: linear(color), roughness: .9, metalness: 0, ...options }); materials.set(id, m); }
+    // Matte plaster and paint: they take the light but barely reflect the environment.
+    if (!m) { m = new THREE.MeshStandardMaterial({ color: linear(color), roughness: .92, metalness: 0, envMapIntensity: .35, ...options }); materials.set(id, m); }
     return m;
   };
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: texture, color: linear('#efe6da'), roughness: .72, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  // Oiled oak boards: a soft reflection of the room, not a mirror.
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: texture, color: linear('#efe6da'), roughness: .5, envMapIntensity: .45, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const shade = contactShade();
+  const shadeMaterial = new THREE.MeshBasicMaterial({ map: shade, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  /** A shading quad: dark along its first edge (a0 to a1), fading out towards the opposite edge. */
+  const shadeQuad = (a0: number[], a1: number[], b1: number[], b0: number[]) => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute([...a0, ...a1, ...b1, ...b0], 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 0, 1, 1, 1, 1, 0], 2));
+    geometry.setIndex([0, 1, 2, 0, 2, 3]);
+    const mesh = new THREE.Mesh(geometry, shadeMaterial);
+    mesh.renderOrder = 1;
+    return mesh;
+  };
   const lineMaterial = new THREE.LineBasicMaterial({ color: linear(LOOK.select), toneMapped: false, transparent: true, opacity: .85, depthTest: false });
 
   function clear() {
@@ -47,10 +62,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
     walls = []; hits = []; ceiling = null; selected = null;
   }
 
+  let builds = 0;
   function sync(studio: Studio | undefined) {
     const next = studio ? JSON.stringify(studio) : '';
     if (next === key) return;
     key = next;
+    builds++;
     room = studio;
     const lifts = new Map(walls.map(v => [v.id, v.lift]));
     clear();
@@ -70,7 +87,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
 
   /** Lowers the walls whose room side faces away from the camera, smoothly so orbiting never flickers. */
   function frame(camera: THREE.Camera, dt: number) {
-    const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(camera.position.y);
+    const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(-camera.getWorldDirection(new THREE.Vector3()).y);
     for (const view of walls) {
       to.copy(camera.position).sub(view.mid);
       const target = to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
@@ -107,7 +124,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     geometry.translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, material(LOOK.wall));
     solid.userData.studioWall = w.id;
-    solid.receiveShadow = true;
+    // Walls take the sun's shadows and cast them: light falls through a window onto the floor.
+    solid.receiveShadow = solid.castShadow = true;
     body.add(solid);
     hits.push(solid);
     // The cut top of a lowered wall: a darker band, as in a section drawing.
@@ -124,6 +142,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
     };
     // Skirting on the room side, interrupted by doors and archways. It stays on a lowered wall.
     for (const [s, e] of gaps(start, end, openings.filter(o => o.sill < 1))) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
+    // Contact shading: on the floor along the wall's foot, up the foot of the wall, and into joined corners.
+    const inside = wallFace(studio, w), fs = inside?.start ?? start, fe = inside?.end ?? end, z = face + .25;
+    group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
+    body.add(shadeQuad([fs, 0, z], [fe, 0, z], [fe, 28, z], [fs, 28, z]));
+    if (cornerDegree(studio, w.a) > 1) body.add(shadeQuad([fs, 0, z], [fs, w.height, z], [fs + 28, w.height, z], [fs + 28, 0, z]));
+    if (cornerDegree(studio, w.b) > 1) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
     const frameM = material(LOOK.frame);
     for (const o of openings) {
       const left = o.offset - o.width / 2, right = o.offset + o.width / 2, top = o.sill + o.height, tall = top - o.sill + (o.sill > 0 ? CASING.width : 0);
@@ -140,7 +164,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
         const handle = material(LOOK.handle, { metalness: .6, roughness: .35 });
         for (const side of [1, -1]) box(12, 2, 3, right - 10, 100, side * (LEAF / 2 + 1.5), handle, details, o.id);
       } else if (o.kind === 'window') {
-        box(o.width, o.height, 1, o.offset, o.sill + o.height / 2, 0, material(LOOK.glass, { opacity: .3, transparent: true, roughness: .08, depthWrite: false }), details, o.id);
+        box(o.width, o.height, 1, o.offset, o.sill + o.height / 2, 0, material(LOOK.glass, { opacity: .55, transparent: true, roughness: .05, depthWrite: false, emissive: linear('#eef4f6'), emissiveIntensity: .55 }), details, o.id);
         box(o.width, 3, 3, o.offset, o.sill + o.height / 2, 0, frameM, details, o.id);
         box(o.width + 16, 2.5, 6, o.offset, o.sill - 1.25, face + 3, material(LOOK.skirting), details, o.id);
       }
@@ -215,13 +239,15 @@ export function createStudioRenderer(scene: THREE.Scene) {
 
   return {
     sync, frame, select, guide,
+    /** Changes whenever the room's shadows would: a rebuild, or a wall lowering or rising. */
+    shadowKey: () => builds + ':' + walls.map(v => v.lift.toFixed(3)).join(','),
     /** Walls and openings, for picking with a ray. */
     pickables: () => hits,
     dispose: () => {
       clear();
       scene.remove(guideStrip, root);
       guideStrip.geometry.dispose();
-      for (const m of [guideStrip.material as THREE.Material, texture, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
+      for (const m of [guideStrip.material as THREE.Material, texture, shade, shadeMaterial, floorMaterial, lineMaterial, ...materials.values()]) m.dispose();
     },
   };
 }

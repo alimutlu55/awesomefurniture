@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { disposeSceneAssets } from './render-disposal';
+import { createSceneLighting } from './scene-lighting';
+import { oakGrain } from './wood-grain';
+import { fabricTexture } from './fabric';
+import { createStageFloor } from './stage-floor';
 /** Three.js owns its renderer, lights, materials and reusable textures here. */
 export function createViewportResources(cv) {
     const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
@@ -10,23 +14,10 @@ export function createViewportResources(cv) {
     R.shadowMap.type = THREE.PCFSoftShadowMap;
     R.setPixelRatio(Math.min(devicePixelRatio, 2));
     const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(35, 1, 5, 50000);
-    scene.add(new THREE.HemisphereLight(0xfff9ee, 0xb8aa92, .9));
-    const sun = new THREE.DirectionalLight(0xfff3e3, 1.15);
-    sun.position.set(180, 380, 260);
-    sun.castShadow = false;
-    sun.shadow.mapSize.set(1024, 1024);
-    Object.assign(sun.shadow.camera, { left: -350, right: 350, top: 350, bottom: -350, far: 1200 });
-    sun.shadow.bias = -.0004;
-    sun.shadow.normalBias = .35;
-    sun.shadow.radius = 6;
-    scene.add(sun);
-    const fillLight = new THREE.DirectionalLight(0xf4f4ff, .55);
-    fillLight.position.set(-250, 220, 150);
-    scene.add(fillLight);
-    const floorM = new THREE.ShadowMaterial({ opacity: .12 }), floor = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), floorM);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
+    // A photographed-interior light: soft environment, a warm sun with real shadows, a quiet sky fill.
+    const lighting = createSceneLighting(R, scene);
+    // Without a room, wardrobes stand on oak boards that fade into the background, like a showroom photo.
+    const stage = createStageFloor(scene);
     const contactCanvas = cv.ownerDocument.createElement('canvas');
     contactCanvas.width = contactCanvas.height = 128;
     const contactCtx = contactCanvas.getContext('2d'), contactGradient = contactCtx.createRadialGradient(64, 64, 8, 64, 64, 64);
@@ -58,43 +49,27 @@ export function createViewportResources(cv) {
     aoCtx.fillRect(0, 0, 128, 128);
     const aoTexture = new THREE.CanvasTexture(aoCanvas);
     const HM = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-    const grainCanvas = cv.ownerDocument.createElement('canvas');
-    grainCanvas.width = 256;
-    grainCanvas.height = 512;
-    const grainCtx = grainCanvas.getContext('2d');
-    grainCtx.fillStyle = '#ece7df';
-    grainCtx.fillRect(0, 0, 256, 512);
-    let grainSeed = 27;
-    const grainRandom = () => {
-        grainSeed = (grainSeed * 16807) % 2147483647;
-        return grainSeed / 2147483647;
-    };
-    for (let i = 0; i < 1700; i++) {
-        const x = grainRandom() * 256;
-        grainCtx.strokeStyle = `rgba(${grainRandom() > .5 ? '255,250,235' : '99,75,41'},${.006 + grainRandom() * .022})`;
-        grainCtx.lineWidth = .3 + grainRandom() * .8;
-        grainCtx.beginPath();
-        grainCtx.moveTo(x, 0);
-        grainCtx.bezierCurveTo(x + grainRandom() * 7, 170, x - 3, 350, x + grainRandom() * 3, 512);
-        grainCtx.stroke();
-    }
-    const grain = new THREE.CanvasTexture(grainCanvas);
-    grain.wrapS = grain.wrapT = THREE.RepeatWrapping;
-    grain.anisotropy = Math.min(8, R.capabilities.getMaxAnisotropy());
-    grain.encoding = THREE.sRGBEncoding;
+    const grain = oakGrain(cv.ownerDocument, Math.min(8, R.capabilities.getMaxAnisotropy()));
     const M = (c, o) => {
         const m = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .82 }, o));
         m.color.convertSRGBToLinear();
         return m;
     };
-    const wood = c => M(c, { map: grain, bumpMap: grain, bumpScale: .008, roughness: .8 });
+    // Lacquered oak: a soft sheen that picks up the environment, the grain just felt in the bump.
+    const wood = c => M(c, { map: grain, bumpMap: grain, bumpScale: .005, roughness: .58, envMapIntensity: .55 });
+    // Matte woven cloth for the clothes on the rails.
+    const cloth = fabricTexture(cv.ownerDocument);
+    cloth.repeat.set(1 / 30, 1 / 45);
+    const fabric = c => M(c, { map: cloth, roughness: .95, envMapIntensity: .25 });
     const softArea = (w, h, d, opacity) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity, depthWrite: false }));
     const shade = (c, f) => '#' + new THREE.Color(c).multiplyScalar(f).getHexString();
     function dispose() {
-        disposeSceneAssets(scene, [grain, aoTexture], [HM]);
+        lighting.dispose();
+        stage.dispose();
+        disposeSceneAssets(scene, [grain, cloth, aoTexture], [HM]);
         scene.clear();
         R.dispose();
         R.forceContextLoss();
     }
-    return { cv, R, scene, cam, contact, aoTexture, HM, grain, M, wood, softArea, shade, dispose };
+    return { cv, R, scene, cam, contact, aoTexture, HM, grain, M, wood, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
 }

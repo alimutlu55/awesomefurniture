@@ -1,4 +1,5 @@
 import { createStudioRenderer } from './studio-renderer';
+import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
@@ -31,7 +32,14 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // Another wardrobe between the camera and the selected one steps aside, leaving an outline.
     const occlusion = resources?.scene ? createWardrobeOcclusion(resources.scene) : null;
     if (occlusion) lifetime.cleanup(() => occlusion.dispose());
-    const sceneFrame = { frame: (cam, dt) => {
+    /** What the sun's shadows depend on; they are redrawn only when it changes, not as the camera moves. */
+    const shadowKey = () => {
+        let k = renderState.buildStamp + '|' + renderState.settling.length + '|' + (studio?.shadowKey() ?? '');
+        for (const g of renderState.wardrobeGroups) k += '|' + g.visible + g.position.x.toFixed(1) + ',' + g.position.y.toFixed(1) + ',' + g.position.z.toFixed(1) + ',' + g.rotation.y.toFixed(3);
+        for (const p of renderState.pivots) k += '|' + p.rotation.y.toFixed(3);
+        return k;
+    };
+    const sceneFrame = { shadowKey, frame: (cam, dt) => {
         studio?.frame(cam, dt);
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
     } };
@@ -102,7 +110,16 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         sh.quadraticCurveTo(0, -height * 1.03, -depth * .48, -height * .95);
         sh.lineTo(-depth * .43, -7);
         sh.quadraticCurveTo(-depth * .25, -3, -depth * .13, 0);
-        const geo = new THREE.ExtrudeGeometry(sh, { depth: 1.2, bevelEnabled: true, bevelThickness: .35, bevelSize: .6, bevelSegments: 2, steps: 1, curveSegments: 6 }), mesh = new THREE.Mesh(geo, resources.M(color));
+        // Cloth with some body, on a wooden hanger hooked over the rail.
+        const cloth = resources.fabric ? resources.fabric(color) : resources.M(color);
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: 1.6, bevelEnabled: true, bevelThickness: .7, bevelSize: .9, bevelSegments: 3, steps: 1, curveSegments: 8 }), mesh = new THREE.Mesh(geo, cloth);
+        geo.translate(0, 0, -.8);
+        const hanger = resources.M('#7a6148', { roughness: .45 }), steel = resources.M('#a7a49e', { metalness: .8, roughness: .3 });
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(depth * .86, 1.1, 1.1), hanger), hook = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, 3.2, 6), steel);
+        bar.position.set(0, -1.6, 0);
+        hook.position.set(0, .6, 0);
+        mesh.add(bar, hook);
+        bar.castShadow = true;
         if (!front) {
             mesh.rotation.y = Math.PI / 2;
         }
@@ -110,8 +127,24 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         mesh.castShadow = mesh.receiveShadow = true;
         renderState.Gr.add(mesh);
     }
+    /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
+    function fitLight() {
+        const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
+        let h = 230;
+        for (const w of model.scene.wardrobes) {
+            const r = Math.hypot(w.state.w, w.state.d) / 2;
+            xs.push(w.x - r, w.x + r); zs.push(w.z - r, w.z + r); h = Math.max(h, w.state.h + (w.y || 0));
+        }
+        if (room) { xs.push(room.x0, room.x1); zs.push(room.z0, room.z1); h = Math.max(h, room.height); }
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+        resources.lighting?.fit({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });
+        // In a room its own floor takes the shadows; the open ground outside it would show the walls' shadows.
+        if (resources.ground) resources.ground.visible = !room;
+        resources.stage?.fit((x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, z1 - z0));
+    }
     function build() {
         studio?.sync(model.scene.studio);
+        fitLight();
         studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();
         renderState.dividerVisuals = [];
