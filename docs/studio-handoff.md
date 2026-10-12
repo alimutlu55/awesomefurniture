@@ -83,9 +83,9 @@ How it works now:
   toolbar shows its actions on desktop and phone: wall → Size, Split, Door, Window, More (Archway, Add wall,
   Remove wall); opening → Size, Remove. Size opens exact fields. Esc leaves, Delete removes.
 - **Handles**: corner dots (floor), three directional arrow grips on the wall's top edge, matching the wardrobe's movement handles (translate it left/right, up/down, and forward/backward), "+" on free
-  ends (drag to draw a wall, click for a right-angle wall), a grip on each opening (slides it). Drags go as far
+  ends of template walls (drag to draw a separate wall, click to add an independent wall), a grip on each opening (slides it). Drags go as far
   as the room allows and say why they stopped; one undo step each; Shift drags freely. Snaps: corners square
-  with neighbours, align with other corners, 45°, and join a free end dropped within 36 cm of another free end;
+  with neighbours, align with other corners, 45°, and join connected template ends dropped within 36 cm of another template end;
   walls align with corners; openings centre on the wall.
 - **Lengths are inside lengths** (`wallFace`), as a tape measure reads them. Setting one moves the next wall
   square, so a room grows instead of skewing.
@@ -149,3 +149,9 @@ Rendering only: nothing here changes the model, the planner or the golden tests.
   into `develop` or `main` only when the user asks, by fast-forward.
 - Once, this checkout switched from a feature branch to `main` without any command of ours. Check
   `git branch --show-current` before committing.
+
+### Independent building solids
+
+Add wall creates a solid with two private corners, even beside an open room or a selected wall. It never auto-joins, extends another wall, or moves existing geometry. Separate solids may overlap when the user positions them to form joints; automatic placement chooses an unoccupied spot.
+
+Independent walls keep the wardrobe-style X/Y/Z drag arrows and add a rotation grip. Size offers Length, Height, Depth, Elevation and Rotation. Height and depth support 1–2000 cm: a thin height with a broad depth makes a horizontal slab. Make ceiling sets a thin slab above the floor; depth and elevation remain editable. These solids render at full size and retain their dimensions and independence when saved. Built-in room outlines keep their connected editing and cutaway behavior.

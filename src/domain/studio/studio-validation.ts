@@ -1,4 +1,4 @@
-import { STUDIO_LIMITS as L, corner, wallLine } from './studio';
+import { STUDIO_LIMITS as L, SOLID_LIMITS, corner, wallLine } from './studio';
 import type { Studio, StudioOpening, StudioWall } from './studio';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
@@ -13,11 +13,13 @@ export function studioProblems(studio: Studio): string[] {
     const line = wallLine(studio, w);
     if (!line) { problems.push('A wall is missing one of its corners.'); continue; }
     if (!Number.isFinite(w.y ?? 0) || (w.y ?? 0) < 0) problems.push('Walls must stay above the floor.');
+    if (w.independent && studio.walls.some(other => other !== w && [other.a, other.b].some(id => id === w.a || id === w.b))) problems.push('Independent walls need their own corners.');
     if (w.a === w.b) problems.push('A wall needs two different corners.');
     if (line.length < L.minWallLength - .01) problems.push(`Walls must be at least ${L.minWallLength} cm long.`);
     if (line.length > L.maxWallLength + .01) problems.push(`Walls can be at most ${L.maxWallLength / 100} m long.`);
-    if (w.thickness < L.minThickness - .01 || w.thickness > L.maxThickness + .01) problems.push(`Wall thickness must be ${L.minThickness}–${L.maxThickness} cm.`);
-    if (w.height < L.minHeight - .01 || w.height > L.maxHeight + .01) problems.push(`Wall height must be ${L.minHeight}–${L.maxHeight} cm.`);
+    const size = w.independent ? SOLID_LIMITS : L;
+    if (w.thickness < size.minThickness - .01 || w.thickness > size.maxThickness + .01) problems.push(`Wall thickness must be ${size.minThickness}–${size.maxThickness} cm.`);
+    if (w.height < size.minHeight - .01 || w.height > size.maxHeight + .01) problems.push(`Wall height must be ${size.minHeight}–${size.maxHeight} cm.`);
   }
   problems.push(...crossingProblems(studio));
   for (const o of studio.openings) problems.push(...openingProblems(studio, o));
@@ -30,6 +32,7 @@ function crossingProblems(studio: Studio): string[] {
   const walls = studio.walls;
   for (let i = 0; i < walls.length; i++) for (let j = i + 1; j < walls.length; j++) {
     const p = walls[i]!, q = walls[j]!;
+    if (p.independent || q.independent) continue;
     if ((p.y ?? 0) >= (q.y ?? 0) + q.height || (q.y ?? 0) >= (p.y ?? 0) + p.height) continue;
     const shared = [p.a, p.b].filter(c => c === q.a || c === q.b);
     if (shared.length > 1) { out.push('Two walls join the same corners. Remove one of them.'); continue; }

@@ -27,7 +27,7 @@ function flush(studio: Studio, w: StudioWall, along: number, size: Footprint): P
 /** The first free spot flush against a wall, facing into the room: longest walls first, from the middle
  * of each wall outwards. Null when no wall has room. */
 export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides): Pose | null {
-  const walls = studio.walls.map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line && x.line.length >= size.w).sort((p, q) => q.line!.length - p.line!.length);
+  const walls = studio.walls.filter(w => !(w.y ?? 0)).map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line && x.line.length >= size.w).sort((p, q) => q.line!.length - p.line!.length);
   for (const { w, line } of walls) {
     const min = size.w / 2, max = line!.length - size.w / 2, mid = line!.length / 2;
     for (let step = 0; mid - step >= min - .01 || mid + step <= max + .01; step += 5) {
@@ -69,6 +69,7 @@ export function pushOutOfWalls(studio: Studio, pose: Pose, size: Footprint, coll
 export function snapToWall(studio: Studio, pose: Pose, size: Footprint, distance = 10, maxTurn = 20): Pose | null {
   let best: { pose: Pose; gap: number } | null = null;
   for (const w of studio.walls) {
+    if (w.y) continue;
     const line = wallLine(studio, w);
     if (!line) continue;
     const turn = Math.abs(((pose.angle - line.angle) % 360 + 540) % 360 - 180);

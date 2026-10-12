@@ -1,6 +1,6 @@
 import { STUDIO_LIMITS, cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, moveWallAxis, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import { addWall, mergeCorners, moveCorner, moveOpening, moveWall, moveWallAxis, setWallAngle, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
@@ -73,10 +73,14 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
           x: at.x + (axis === 'x' ? 65 : 0), y: (w.y ?? 0) + w.height + (axis === 'y' ? 65 : 0), z: at.z + (axis === 'z' ? 65 : 0),
           label: 'Move wall along ' + axis.toUpperCase() + '. Drag or use arrow keys', nx: axis === 'x' ? 1 : 0, nz: axis === 'z' ? 1 : 0 });
       }
+      if (w.independent) out.push({ key: 'rotate:' + w.id, kind: 'rotate', id: w.id,
+        x: (line.a.x + line.b.x) / 2 - line.ux * line.length * .2 + line.nx * (w.thickness / 2 + 60),
+        y: w.y ?? 0, z: (line.a.z + line.b.z) / 2 - line.uz * line.length * .2 + line.nz * (w.thickness / 2 + 60),
+        label: 'Rotate this wall. Drag around its centre or use arrow keys' });
       for (const c of [line.a, line.b]) {
-        if (cornerDegree(studio, c.id) !== 1) continue;
+        if (w.independent || cornerDegree(studio, c.id) !== 1) continue;
         const sign = c.id === w.b ? 1 : -1;
-        out.push({ key: 'extend:' + c.id, kind: 'extend', id: c.id, x: c.x + line.ux * sign * 60, y: 0, z: c.z + line.uz * sign * 60, label: 'Add a wall here. Drag to draw it, or click for a corner' });
+        out.push({ key: 'extend:' + c.id, kind: 'extend', id: c.id, x: c.x + line.ux * sign * 60, y: 0, z: c.z + line.uz * sign * 60, label: 'Add a separate wall here. Drag to draw it, or click to add one' });
       }
     }
     for (const o of studio.openings.filter(o => o.wall === w.id && (s.kind === 'wall' || o.id === s.id))) {
@@ -133,7 +137,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (!studio || e.button > 0) return;
     e.preventDefault();
     e.stopPropagation();
-    const ground = picking.groundPoint(e);
+    const ground = picking.groundPoint(e, handle.kind === 'rotate' ? handle.y : 0);
     drag = { handle, pointer: e.pointerId, target, snapshot: model.snapshot(), original: studio, last: studio, client: { x: e.clientX, y: e.clientY }, ground: ground && { x: ground.x, z: ground.z },
       moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, guides: [], reason: null, free: false, at: null };
     try { target.setPointerCapture(e.pointerId); } catch { /* the drag still works from the handle's own events */ }
@@ -178,6 +182,16 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
         const moved = moveCorner(g.original, id, from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t);
         return moved && join && t === 1 ? mergeCorners(moved, id, join) : moved;
       };
+    } else if (h.kind === 'rotate') {
+      const w = wallOf(g.original, h.id)!, line = wallLine(g.original, w)!, current = picking.groundPoint(e, h.y);
+      const centre = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+      if (!current || !g.ground) return;
+      const start = Math.atan2(g.ground.z - centre.z, g.ground.x - centre.x), now = Math.atan2(current.z - centre.z, current.x - centre.x);
+      const delta = ((start - now) * 180 / Math.PI + 540) % 360 - 180;
+      const angle = line.angle + (g.free ? delta : Math.round(delta));
+      const last = wallLine(g.last, wallOf(g.last, h.id)!)!.angle, change = ((angle - last) % 360 + 540) % 360 - 180;
+      g.guides = [];
+      want = t => setWallAngle(g.original, h.id, last + change * t);
     } else if (h.kind === 'wall' && h.axis) {
       const axis = h.axis, w = wallOf(g.original, h.id)!, original = wallLine(g.original, w)!, last = wallOf(g.last, h.id)!, line = wallLine(g.last, last)!;
       const raw = step(along(e, h, axis === 'x' ? 1 : 0, axis === 'z' ? 1 : 0, axis === 'y' ? 1 : 0));
@@ -227,9 +241,10 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const line = wallLine(studio, w)!, mid = centredOffset(studio, w)!, at = { x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid };
     return [{ a: { x: at.x + line.nx * w.thickness / 2, z: at.z + line.nz * w.thickness / 2 }, b: { x: at.x + line.nx * 70, z: at.z + line.nz * 70 }, label: 'Centred on the wall' }];
   }
-  /** Dragging "+" draws a new wall from that free end; its far corner follows the pointer. */
+  /** Dragging "+" draws a separate solid near that end, with two private corners. */
   function startExtend(e: PointerEvent) {
-    const g = drag!, p = picking.groundPoint(e), extended = p && extendFromCorner(g.original, g.handle.id, p.x, p.z);
+    const g = drag!, p = picking.groundPoint(e), from = g.original.corners.find(c => c.id === g.handle.id);
+    const extended = p && from && addWall(g.original, from.x, from.z, p.x, p.z);
     if (!p || !extended) return;
     g.original = extended;
     g.created = extended.corners.at(-1)!.id;
@@ -265,7 +280,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
     const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
       : h.kind === 'wall' ? edit(s => h.axis ? moveWallAxis(s, h.id, h.axis, dir * n) : moveWall(s, h.id, dir * n))
-        : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n)) : false;
+        : h.kind === 'rotate' ? edit(s => setWallAngle(s, h.id, wallLine(s, wallOf(s, h.id)!)!.angle + dir * (shift ? 15 : 1)))
+          : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n)) : false;
     return ok;
   }
   function edit(change: (s: Studio) => Studio | null) {

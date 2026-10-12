@@ -4,7 +4,7 @@ type Point = { x: number; y: number; z: number };
 /** A handle on the room: a corner, the grip that moves a wall, "+" on a free wall end, or an opening's grip. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'rotate';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;

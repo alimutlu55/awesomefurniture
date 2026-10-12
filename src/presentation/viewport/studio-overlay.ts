@@ -41,12 +41,16 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = h.axis ? 'lbl wardrobe-move room-handle room-axis' : 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
+            el.className = h.kind === 'rotate' ? 'lbl ground-rotate room-handle room-rotate'
+                : h.axis ? 'lbl wardrobe-move room-handle room-axis'
+                    : 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
             if (h.axis) {
                 el.dataset.axis = h.axis;
                 el.innerHTML = '<span class="mv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"'
                     + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4"/></svg></span>';
             }
+            else if (h.kind === 'rotate') el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"'
+                + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></svg>';
             else if (h.kind === 'extend') el.textContent = '+';
             else if (h.kind !== 'corner') el.innerHTML = h.kind === 'wall' ? ARROWS : SLIDE;
             const button = el;
