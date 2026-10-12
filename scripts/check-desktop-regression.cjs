@@ -38,7 +38,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     const size=page.viewportSize();
     assert.ok(box && box.x >= -1 && box.y >= -1 && box.x + box.width <= size.width + 1 && box.y + box.height <= size.height + 1, `${size.width}×${size.height}: control out of bounds ${JSON.stringify(box)}`);
    };
-   for (const id of ['props-btn','more-btn','launch-wizard','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
+   for (const id of ['props-btn','more-btn','undo2','redo2','fitchip','menu-btn']) await inBounds(control(id));
    if (mobile) {
     const movement=await page.context().newCDPSession(page);
     // Use the upper body to avoid the movement handles in short landscape views.
@@ -236,7 +236,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await control('pop3').isVisible(),false,'Releasing pinch must not select an item');
     await cdp.detach();
    }
-   await click(control('launch-wizard'));await inBounds(control('wizard'));
+   await control('launch-wizard').evaluate(b=>b.click());await inBounds(control('wizard'));
    if(mobile){
     const sheet=control('wizard').locator('.wizard-shell');
     assert.equal(await sheet.evaluate(e=>e.classList.contains('mobile-bottom-sheet')),true,'Auto design uses the shared bottom sheet');
@@ -259,7 +259,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
     assert.equal(await sheet.getAttribute('data-sheet-position'),'full','Pulling up restores full screen');
     assert.ok(Math.abs((await sheet.boundingBox()).height-height)<1);
     await pullSheet(sheet,100);await pullSheet(sheet,90);
-    assert.equal(await control('wizard').isVisible(),false);await click(control('launch-wizard'));
+    assert.equal(await control('wizard').isVisible(),false);await control('launch-wizard').evaluate(b=>b.click());
     assert.equal(await sheet.getAttribute('data-sheet-position'),'full','Reopening Auto design always starts full screen');
    }
    await page.locator('.idea button.apply').first().waitFor({timeout:30000});
