@@ -4,7 +4,7 @@ import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
-import { ITEM_MODELS, loadItem, onRailPhoto, railPhoto } from './item-models';
+import { garmentPhotos, ITEM_MODELS, loadItem, onGarmentPhotos } from './item-models';
 import { createGarmentRenderer } from './garment-renderer.js';
 import { disposeCabinetGroup } from './render-disposal';
 import { createCabinetLayoutRenderer } from './cabinet-layout-renderer.js';
@@ -54,9 +54,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     let disposed = false;
     lifetime?.cleanup(() => { disposed = true; garments.dispose(); });
     for (const name of ITEM_MODELS) void loadItem(name).then(real => { if (real && !disposed) build(); });
-    const stopPhoto = onRailPhoto(() => { if (!disposed) build(); });
-    lifetime?.cleanup(stopPhoto);
-    railPhoto();
+    const stopPhotos = onGarmentPhotos(() => { if (!disposed) build(); });
+    lifetime?.cleanup(stopPhotos);
+    garmentPhotos();
     /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
     const wardrobeFootprints = () => model.scene.wardrobes.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */

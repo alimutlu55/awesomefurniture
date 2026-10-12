@@ -30,12 +30,13 @@ ec3d2deb1fe21150ede5f987b48c691b3c7dbffe4183850a9b8717e904917a46  oak_wood_plank
 18b2a97f44b18e1a794652dbb2ec4bbdfc35869e2f028e4bbb85441258da1018  oak_wood_planks/oak_wood_planks_rough_2k.jpg
 ```
 
-## Rail photograph
+## Garment photographs
 
-`rails/hanging-clothes.webp`: a cut-out photograph of 22 garments on wooden hangers, supplied by the project owner
-(2026-10-12). Cropped to the hooks' tops; the soft cut-out edge's colour is carried in from the cloth so no trace of
-the original background shows; WebP at quality 90. Shown at real scale, 160.7 × 103.7 cm (`RAIL_PHOTO` in
-`src/presentation/viewport/item-models.ts`).
+`garments/*.webp`: cut-out photographs of single garments hanging in profile on wooden hangers (shirt, T-shirt,
+overshirt, hoodie, pleated skirt, cardigan, chinos, shirt dress), supplied by the project owner (2026-10-12). Each is
+cropped to the garment, its soft cut-out edge's colour carried in from the cloth, scaled to 768 px tall, WebP at
+quality 88. Their real lengths, hook positions and proportions are in `GARMENT_PHOTOS`
+(`src/presentation/viewport/item-models.ts`).
 
 ## Cabinet oak photograph
 

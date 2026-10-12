@@ -66,27 +66,41 @@ export function loadItem(name: string): Promise<ItemModel | null> {
   return pending;
 }
 
-/** A photograph of real garments hanging on wooden hangers, cut out (public/textures/rails): its size in centimetres
- * at real scale, the hooks' tops along its top edge. */
-export const RAIL_PHOTO = { width: 160.7, height: 103.7 } as const;
-let photo: THREE.Texture | null = null, photoLoading = false;
-/** The rail photograph once loaded (one texture for the page), else null; starts loading on first call. */
-export function railPhoto(): THREE.Texture | null {
-  if (!photoLoading && typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-    photoLoading = true;
-    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
-    new THREE.TextureLoader().load(`${base}textures/rails/hanging-clothes.webp`, texture => {
+/** Photographs of single garments hanging in profile on wooden hangers, cut out (public/textures/garments): each
+ * one's length from the hook's top to the hem in centimetres, its width over height, and where its hook is across it. */
+export const GARMENT_PHOTOS = [
+  { name: 'shirt', length: 88, aspect: .2826, hook: .476 },
+  { name: 'tshirt', length: 78, aspect: .237, hook: .422 },
+  { name: 'overshirt', length: 88, aspect: .2539, hook: .504 },
+  { name: 'hoodie', length: 80, aspect: .2669, hook: .493 },
+  { name: 'skirt', length: 90, aspect: .2917, hook: .457 },
+  { name: 'cardigan', length: 105, aspect: .2669, hook: .442 },
+  { name: 'chinos', length: 112, aspect: .1693, hook: .481 },
+  { name: 'shirtdress', length: 125, aspect: .2344, hook: .45 },
+] as const;
+export type GarmentPhoto = typeof GARMENT_PHOTOS[number] & { readonly texture: THREE.Texture };
+let photos: GarmentPhoto[] | null = null, photosLoading = false;
+const photoListeners = new Set<() => void>();
+/** The garment photographs once all have loaded (one texture each for the page), else null; starts loading on first call. */
+export function garmentPhotos(): readonly GarmentPhoto[] | null {
+  if (!photosLoading && typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+    photosLoading = true;
+    const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/', loader = new THREE.TextureLoader();
+    void Promise.all(GARMENT_PHOTOS.map(g => new Promise<GarmentPhoto | null>(resolve => loader.load(`${base}textures/garments/${g.name}.webp`, texture => {
       texture.encoding = THREE.sRGBEncoding;
-      texture.anisotropy = 8;
-      photo = texture;
+      texture.anisotropy = 4;
+      resolve({ ...g, texture });
+    }, undefined, () => resolve(null))))).then(all => {
+      const loaded = all.filter((g): g is GarmentPhoto => !!g);
+      if (!loaded.length) return;
+      photos = loaded;
       photoListeners.forEach(f => f());
     });
   }
-  return photo;
+  return photos;
 }
-const photoListeners = new Set<() => void>();
-/** Calls `f` when the rail photograph has loaded; returns a function that stops listening. */
-export function onRailPhoto(f: () => void) { photoListeners.add(f); return () => photoListeners.delete(f); }
+/** Calls `f` when the garment photographs have loaded; returns a function that stops listening. */
+export function onGarmentPhotos(f: () => void) { photoListeners.add(f); return () => photoListeners.delete(f); }
 
 /** The item if it has arrived, else null. */
 export const itemModel = (name: string) => models.get(name) ?? null;

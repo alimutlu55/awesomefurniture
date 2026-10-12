@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { itemModel, LONG_GARMENTS, RAIL_PHOTO, railPhoto, SHOE_MODELS, SHORT_GARMENTS } from './item-models';
+import { garmentPhotos, itemModel, LONG_GARMENTS, SHOE_MODELS, SHORT_GARMENTS } from './item-models';
+
+/** Hooks' spacing along a rail of photographed garments (cm). */
+const RAIL_PITCH = 10;
 
 /** Real items on the rails and shelves: downloaded models of real garments and shoes (item-models.ts), each in its
  * own colour, at its real size. Until a model has loaded, a simple stand-in is drawn instead. Materials are made once
@@ -95,22 +98,36 @@ export function createGarmentRenderer({ resources, group }) {
         group().add(pair);
         return pair;
     }
-    /** A photographed rail of real garments on wooden hangers (public/textures/rails), shown on a rail along the
-     * wardrobe: the stretch of the photo as long as the rail, hooks on the rail, at the photo's real scale
-     * (RAIL_PHOTO). It keeps its own photographed light, toned to the wardrobe's inside, and casts its shadow on the
-     * back. Its cut-out edge blends softly into what is behind it (the photo's edge pixels carry the cloth's colour,
-     * not the background it was cut from). `seed` picks where along the photo a rail starts, so neighbouring rails differ. False until loaded. */
+    /** Real garments on a rail along the wardrobe: photographs of single garments hanging in profile on wooden hangers
+     * (item-models.ts), each at its real length, hook on the rail, RAIL_PITCH apart, each a little in front of the
+     * one before so they overlap as clothes on a rail do. Garments longer than the room under the rail are left for
+     * a longer rail. They keep their photographed light, toned to the wardrobe's inside. `seed` varies the mix from
+     * rail to rail. False until the photographs have loaded. */
     function rail(x0, x1, hookY, room, seed) {
-        const photo = railPhoto();
-        if (!photo) return false;
-        const s = Math.min(1, room / RAIL_PHOTO.height), w = x1 - x0, h = RAIL_PHOTO.height * s;
-        const span = w / (RAIL_PHOTO.width * s), start = Math.abs(Math.sin(seed * 12.9898) * 43758.5453) % 1 * Math.max(0, 1 - span);
-        const geometry = new THREE.PlaneGeometry(w, h), uv = geometry.attributes.uv;
-        for (let i = 0; i < uv.count; i++) uv.setX(i, start + uv.getX(i) * span);
-        const strip = new THREE.Mesh(geometry, material('rail', () => new THREE.MeshBasicMaterial({ map: photo, color: new THREE.Color('#e9e3da').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide })));
-        strip.position.set((x0 + x1) / 2, hookY - h / 2, 0);
-        strip.castShadow = true;
-        group().add(strip);
+        const all = garmentPhotos();
+        if (!all) return false;
+        // Garments clear what is below by a few centimetres; a rail with room for long garments holds the long ones.
+        const fit = all.filter(g => g.length <= room - 6), long = fit.filter(g => g.length >= 100);
+        const set = room >= 120 && long.length ? long : fit.length ? fit : [all.reduce((a, b) => a.length < b.length ? a : b)];
+        // A mix that differs from rail to rail and never repeats a garment next to itself: the set in a shuffled order.
+        const order = set.map((g, i) => ({ g, k: Math.sin((i + 1) * 12.9898 + seed * 78.233) })).sort((a, b) => a.k - b.k).map(x => x.g);
+        // Hooks spread evenly over what the widest garment leaves, so the end garments stay inside the bay.
+        const widest = Math.max(...order.map(g => Math.min(g.length, room) * g.aspect)), span = Math.max(0, x1 - x0 - widest);
+        const count = Math.max(1, Math.floor(span / RAIL_PITCH) + 1), step = count > 1 ? span / (count - 1) : 0, first = count > 1 ? x0 + widest / 2 : (x0 + x1) / 2;
+        for (let j = 0; j < count; j++) {
+            const g = order[j % order.length], h = Math.min(g.length, room), w = h * g.aspect;
+            const geometry = new THREE.PlaneGeometry(w, h);
+            const look = () => new THREE.MeshBasicMaterial({ map: g.texture, color: new THREE.Color('#ebe5dc').convertSRGBToLinear(), transparent: true, alphaTest: .02, side: THREE.DoubleSide });
+            const sprite = new THREE.Mesh(geometry, material('photo' + g.name, look));
+            // The hook on the rail: the photo's hook sits at `g.hook` across its width.
+            // Within the bay: a wide garment at either end slides in rather than reach through the side panel.
+            const cx = Math.max(x0 + w / 2, Math.min(x1 - w / 2, first + step * j + w * (.5 - g.hook)));
+            sprite.position.set(cx, hookY - h / 2, -2 + j * .35);
+            // Its shadow follows the garment's outline, not the photo's rectangle.
+            sprite.customDepthMaterial = material('depth' + g.name, () => new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: g.texture, alphaTest: .5 }));
+            sprite.castShadow = true;
+            group().add(sprite);
+        }
         return true;
     }
     return { garment, shoes, rail, materials: () => [...made.values()], dispose: () => made.forEach(m => m.dispose()) };
