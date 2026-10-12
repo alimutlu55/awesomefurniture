@@ -15,6 +15,13 @@ export function bindMoreBtn({ dom, inspector, shell, selectionState, model, life
         inspector.showPop(null, '#pop2');
         $('#px').focus();
     });
+    // Walls and Wardrobe open the Add item sheet on their own tab.
+    for (const [button, tab] of [['#walls-btn', 'room'], ['#wardrobe-btn', 'wardrobe']]) {
+        lifetime.listen($(button), 'click', () => {
+            $('#more-btn').click();
+            /** @type {HTMLButtonElement} */ ($('#pop2').querySelector(`[data-category="${tab}"]`)).click();
+        });
+    }
 }
 /** @param {import('./shell-bindings.ports').BindDropdownOpenPorts} ports */
 export function bindDropdownOpen({ dom, shell, lifetime }) {

@@ -189,7 +189,7 @@
  /* The floating toolbar sits over the canvas, without an outer reserved strip. */
  #app:not(.props-open):not(.auto-design-open):not(:has(.mobile-bottom-sheet.show,.dd:not([hidden]),.mobile-sheet-exit)) #view{bottom:0}
  #toolbar .contextual-defaults,#toolbar .contextual-actions{flex:1 1 0; width:auto;gap:0;scrollbar-width:none}
- #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
  #toolbar .contextual-defaults .sep{display:none}
  #toolbar .contextual-defaults #add-anchor{flex:1;min-width:0}
  #toolbar .contextual-defaults #more-btn{width:100%}

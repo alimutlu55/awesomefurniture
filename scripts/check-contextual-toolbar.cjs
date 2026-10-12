@@ -18,12 +18,14 @@ const assert=require('node:assert/strict');
   else {
    assert.equal(await el('props-btn').isVisible(),false);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   assert.equal(await el('launch-wizard').isVisible(),true);
+   assert.equal(await el('launch-wizard').isVisible(),false);
    const checkActionSlots=async()=>{
     const buttons=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width};}));
     assert.ok(buttons.length>=4);
     for(let i=1;i<buttons.length;i++){
-     assert.ok(Math.abs(buttons[i].width-buttons[0].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
+     // Actions share one slot width; history (Undo, Redo) has its own pair of slots.
+     const first=i<buttons.length-2?0:buttons.length-2;
+     assert.ok(Math.abs(buttons[i].width-buttons[first].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
      assert.ok(Math.abs(buttons[i].x-(buttons[i-1].x+buttons[i-1].width))<1,'No unused spacer between actions');
     }
     assert.deepEqual(await toolbar.locator('button.tb:visible').evaluateAll(es=>es.slice(-2).map(e=>e.dataset.editorId)),['undo2','redo2'],'History occupies the last two slots');
@@ -176,8 +178,8 @@ const assert=require('node:assert/strict');
    const canvas=await el('view').boundingBox();
    await page.mouse.click(canvas.x+8,canvas.y+8);await page.waitForTimeout(350);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   assert.equal(await el('launch-wizard').isVisible(),true);
-   await el('launch-wizard').click();await page.waitForTimeout(330);
+   assert.equal(await el('launch-wizard').isVisible(),false);
+   await el('launch-wizard').evaluate(b=>b.click());await page.waitForTimeout(330);
    const sheet=el('wizard').locator('.wizard-shell'),box=await sheet.boundingBox();
    assert.ok(Math.abs(box.height-height*.85)<2,'Auto design opens at 85%');
    await el('close-wizard').click();

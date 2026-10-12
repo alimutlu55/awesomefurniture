@@ -16,7 +16,7 @@ const assert = require('node:assert/strict');
     await control('toolbar').locator('[data-action="resize"]').tap();
    }
    else if(id==='pop2') await control('more-btn').tap();
-   else if(id==='wizard') await control('launch-wizard').tap();
+   else if(id==='wizard') await control('launch-wizard').evaluate(b=>b.click());
    else {
     // Mount the item/divider sheet independently of scene selection. Their
     // actual selection and form workflows are covered by check-mobile.cjs.
