@@ -206,3 +206,5 @@
  #toolbar .contextual-history .tb:disabled .ic{opacity:.45}
  #toolbar[data-context="item"] .contextual-history{flex-basis:max(88px,calc(200% / var(--contextual-action-count,7)))}
 }
+
+.mobile-add-categories [hidden]{display:none}
