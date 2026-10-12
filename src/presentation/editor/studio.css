@@ -39,3 +39,11 @@
 .pop .addgrid .room-product.no{opacity:.45}
 svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter:none}
 .mobile-add-products .room-product.on .product-art{box-shadow:inset 0 0 0 2px var(--ink)}
+
+/* The Add item sheet follows what it adds to: Add item the wardrobe's fittings, Walls the room, Wardrobe a new
+   wardrobe. Only the chosen one's products show; on a phone the wardrobe's categories are left out too. */
+#pop2:not([data-add-context]) .room-add,#pop2:not([data-add-context]) .shape-add{display:none}
+#pop2[data-add-context]>:not(.ph):not(.mobile-add-browser):not(.room-add):not(.shape-add){display:none}
+#pop2[data-add-context="room"] .shape-add,#pop2[data-add-context="wardrobe"] .room-add{display:none}
+#pop2[data-add-context] .mobile-add-categories>button,#pop2:not([data-add-context]) .add-context-title{display:none}
+.add-context-title{display:flex;align-items:center;height:40px;padding:0 4px;font-size:16px;font-weight:600;color:var(--ink)}

@@ -101,7 +101,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWizardFocusTrap({ dom, lifetime });
     addToolbarSeparator({ dom, });
     renderDoorChoices({ dom, });
-    shellBindings.bindMoreBtn({ dom, inspector, shell, selectionState, model, lifetime });
+    shellBindings.bindMoreBtn({ dom, inspector, shell, selectionState, model, camera, lifetime });
     shellBindings.bindDropdownOpen({ dom, shell, lifetime });
     shellBindings.bindHelpMenu({ dom, shell, lifetime });
     shellBindings.bindResetClosesDropdown({ dom, shell, lifetime });

@@ -4,7 +4,7 @@ import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** @param {import('./shell-bindings.ports').BindMoreBtnPorts} ports */
-export function bindMoreBtn({ dom, inspector, shell, selectionState, model, lifetime }) {
+export function bindMoreBtn({ dom, inspector, shell, selectionState, model, camera, lifetime }) {
     const { $ } = dom;
     lifetime.listen($('#more-btn'), 'click', () => {
         shell.closeDD();
@@ -15,11 +15,15 @@ export function bindMoreBtn({ dom, inspector, shell, selectionState, model, life
         inspector.showPop(null, '#pop2');
         $('#px').focus();
     });
-    // Walls and Wardrobe open the Add item sheet on their own tab.
-    for (const [button, tab] of [['#walls-btn', 'room'], ['#wardrobe-btn', 'wardrobe']]) {
+    // Walls and Wardrobe add to the scene, not to a wardrobe: nothing stays selected, the sheet shows only their
+    // products, and the camera shows the whole scene, where the new walls or wardrobe will go.
+    for (const [button, context, fold] of [['#walls-btn', 'room', '.room-add'], ['#wardrobe-btn', 'wardrobe', '.shape-add']]) {
         lifetime.listen($(button), 'click', () => {
-            $('#more-btn').click();
-            /** @type {HTMLButtonElement} */ ($('#pop2').querySelector(`[data-category="${tab}"]`)).click();
+            shell.closeDD();
+            inspector.clearFocus();
+            inspector.showPop(null, '#pop2', context);
+            /** @type {HTMLDetailsElement} */ ($('#pop2').querySelector(fold)).open = true;
+            camera.frameScene();
         });
     }
 }

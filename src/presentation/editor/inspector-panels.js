@@ -59,6 +59,9 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         callbacks.hidePop();
         takeMobilePanel(dom, p);
         if (id === '#pop2') {
+            // Add item adds to the wardrobe; Walls and Wardrobe ('room', 'wardrobe') add to the scene.
+            if (mode === 'room' || mode === 'wardrobe') p.dataset.addContext = mode;
+            else delete p.dataset.addContext;
             callbacks.renderAddChoices();
         }
         p.classList.add('show');
@@ -68,7 +71,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         placePop(p, e, v);
         if (id === '#pop2' && dom.width <= 900) {
             $('#app').classList.add('adding', 'inspecting');
-            camera.frameMobileInspector();
+            // Adding to the scene frames the scene: its opener does that.
+            if (!p.dataset.addContext) camera.frameMobileInspector();
         }
         else if (dom.width <= 900) {
             $('#app').classList.remove('adding');
@@ -82,7 +86,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             return;
         }
         const ws = geometry.widths(), i = model.activeCabinet().state.sel, iw = ws.reduce((a, b) => a + b), w = ws[i], one = model.activeCabinet().state.n < 2;
-        $('#ptitle').textContent = 'Add to this space';
+        $('#ptitle').textContent = ({ room: 'Walls', wardrobe: 'Add a wardrobe' })[p.dataset.addContext] ?? 'Add to this space';
         const space = geometry.sectionSpaceMeasurements(i);
         $('#section-meta').textContent = 'Space · W ' + measureNumber(space.w) + ' × H ' + measureNumber(space.h) + ' × D ' + measureNumber(space.dep) + ' cm free';
         $('#pfree').textContent = geometry.free(i) + ' cm free';

@@ -33,12 +33,14 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
       const off = needsRoom ? ' no' : '', disabled = needsRoom ? ' aria-disabled="true"' : '', title = esc(needsRoom ? 'Add a room first' : p.description);
       return `<button type="button" class="room-product${off}" data-add-room="${p.kind}"${disabled}${extra} title="${title}">${roomPartArt(p.kind)}<span>${esc(p.name)}</span></button>`;
     });
-    const rooms = choices.map(c => {
+    // Without a room, "No room" is what you have: it goes last, after the rooms to choose from.
+    const rooms = (room() ? choices : [...choices.filter(c => c.id !== 'none'), ...choices.filter(c => c.id === 'none')]).map(c => {
       const on = c.id === current;
       const name = esc(c.id === 'none' ? c.name : c.name + ' room'), title = esc(c.name + ' · ' + c.description);
       return `<button type="button" class="room-product room-choice${on ? ' on' : ''}" data-studio="${c.id}" aria-pressed="${on}"${extra} title="${title}">${art(c)}<span>${name}</span></button>`;
     });
-    return parts.join('') + rooms.join('');
+    // Without a room, a room comes first: doors, windows and archways need one.
+    return room() ? parts.join('') + rooms.join('') : rooms.join('') + parts.join('');
   }
 
   function render() {

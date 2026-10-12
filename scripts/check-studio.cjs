@@ -21,10 +21,16 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   const context=()=>toolbar.getAttribute('data-context');
   await el('more-btn').waitFor();
 
-  // A room comes from Add item, in its Walls category.
-  // On a phone the Walls button opens Add item on its Walls tab.
-  if(phone) { await tap(el('walls-btn')); await tap(page.locator('.mobile-add-products [data-studio="bedroom"]')); }
-  else { await tap(el('more-btn')); await page.locator('.room-add > summary').click(); await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]')); }
+  // A room comes from the Walls button: its sheet holds only walls and rooms.
+  if(phone) {
+   await tap(el('walls-btn'));
+   // It adds to the scene, not to the wardrobe: nothing is selected and no wardrobe categories or fittings show.
+   assert.equal(await context(),'none','Walls leaves no wardrobe selected');
+   assert.equal(await page.locator('.mobile-add-categories > button:visible').count(),0,'no wardrobe categories under Walls');
+   assert.equal(await page.locator('.mobile-add-products [data-m]:visible').count(),0,'no fittings under Walls');
+   await tap(page.locator('.mobile-add-products [data-studio="bedroom"]'));
+  }
+  else { await tap(el('walls-btn')); await tap(page.locator('[data-editor-id="padd-room"] [data-studio="bedroom"]')); }
   await page.waitForTimeout(1400);
   assert.equal(await context(),'none','placing a room leaves nothing selected');
   assert.equal(await page.locator('[data-editor-id="pop2"].show').count(),0,'the Add item panel closes');

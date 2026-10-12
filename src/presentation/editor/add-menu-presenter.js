@@ -39,14 +39,21 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         // Wardrobe templates add a new wardrobe that starts from that skeleton.
         (/** @type {NodeListOf<HTMLButtonElement>} */ ($('#pop2').querySelectorAll('[data-add-shape]'))).forEach(button => { button.onclick = () => addCabinet(false, button.dataset.addShape); });
         (/** @type {HTMLButtonElement} */ (categories.querySelector('[data-auto-design]'))).onclick = () => $('#launch-wizard').click();
-        (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => {
-            button.onclick = () => {
-                const category = button.dataset.category;
-                categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed',String(tab===button)));
-                (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => { product.hidden = category === 'all' ? ['wardrobe', 'room'].includes(product.dataset.productCategory) : product.dataset.productCategory !== category; });
-                products.scrollLeft = 0;
-            };
-        });
+        const show = category => {
+            categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.getAttribute('data-category') === category)));
+            (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => {
+                const kind = product.dataset.productCategory;
+                product.hidden = category === 'all' ? ['wardrobe', 'room'].includes(kind) : kind !== category;
+            });
+            products.scrollLeft = 0;
+        };
+        (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => { button.onclick = () => show(button.dataset.category); });
+        // Add item shows what goes into the wardrobe; Walls and Wardrobe only their own products, under their name.
+        const context = $('#pop2').dataset.addContext, heading = categories.ownerDocument.createElement('b');
+        heading.className = 'add-context-title';
+        heading.textContent = context === 'room' ? 'Walls and rooms' : 'Add a wardrobe';
+        categories.prepend(heading);
+        show(context ?? 'all');
     }
     return { renderAddChoices };
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { studioBounds, wallFace, wallLine } from '../../domain/studio/studio';
+import { wallFace, wallLine } from '../../domain/studio/studio';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
 import type { StudioEditorPorts } from './studio-editor.ports';
@@ -17,8 +17,11 @@ interface RoomWiringPorts {
         rendering(): { redrawStudio(): void; studioPickables(): THREE.Object3D[] };
         inspector(): { update(keep?: boolean): void; clearFocus(): void; histUI(): void };
         report(message: string): void;
-        camera(): { frameBox(bounds: { x: number; z: number; w: number; d: number; h: number }, az: number, el: number, padding: number): void; camNow(): { az: number; el: number; dist: number; x: number; y: number; z: number } };
-        wardrobeBounds(): { x: number; z: number; w: number; d: number; h: number };
+        camera(): {
+            frameScene(): void;
+            frameBox(bounds: { x: number; z: number; w: number; d: number; h: number }, az: number, el: number, padding: number): void;
+            camNow(): { az: number; el: number; dist: number; x: number; y: number; z: number };
+        };
     };
     readonly listen: (target: Listenable, type: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
 }
@@ -78,14 +81,9 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
     }
 
-    /** Flies to show the whole room: every wall, the floor and the wardrobes, from a little above and
-     * slightly to one side of the wardrobe wall, so its depth reads. The near walls are cut away. */
+    /** Flies to show the whole room: every wall, the floor and the wardrobes (`frameScene`). */
     function frameRoom() {
-        const room = model.scene.studio && studioBounds(model.scene.studio), w = late.wardrobeBounds();
-        if (!room) return;
-        const x0 = Math.min(room.x0, w.x - w.w / 2), x1 = Math.max(room.x1, w.x + w.w / 2), z0 = Math.min(room.z0, w.z - w.d / 2), z1 = Math.max(room.z1, w.z + w.d / 2);
-        const active = model.scene.wardrobes.find(c => c.id === model.scene.activeWardrobe), facing = (active?.angle ?? 0) * Math.PI / 180;
-        late.camera().frameBox({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room.height }, facing + .32, .5, 1.04);
+        if (model.scene.studio) late.camera().frameScene();
     }
 
     return {

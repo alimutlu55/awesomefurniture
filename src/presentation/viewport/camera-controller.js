@@ -240,15 +240,25 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900) goal.dist *= 1.12;
         cameraTransition(goal, 480);
     }
+    /** The whole scene: the room and the wardrobes in it, or without a room the wardrobes with floor around them. */
+    function sceneBox() {
+        const w = cabinetGeometry.sceneBounds(), room = model.scene.studio && studioBounds(model.scene.studio), m = room ? 0 : 80;
+        const x0 = Math.min(w.x - w.w / 2 - m, room ? room.x0 : Infinity), x1 = Math.max(w.x + w.w / 2 + m, room ? room.x1 : -Infinity);
+        const z0 = Math.min(w.z - w.d / 2 - m, room ? room.z0 : Infinity), z1 = Math.max(w.z + w.d / 2 + m, room ? room.z1 : -Infinity);
+        return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room ? Math.max(room.height, w.h) : w.h };
+    }
     /** Moving a wardrobe from the toolbar: fly to a view of the whole room (or the wardrobes with floor around them)
      * from a little above. The target is absolute, so tapping Move again does not zoom out further. */
     function moveOverview() {
         camRelease();
-        const w = cabinetGeometry.sceneBounds(), room = model.scene.studio && studioBounds(model.scene.studio);
-        const x0 = room ? Math.min(room.x0, w.x - w.w / 2) : w.x - w.w / 2 - 80, x1 = room ? Math.max(room.x1, w.x + w.w / 2) : w.x + w.w / 2 + 80;
-        const z0 = room ? Math.min(room.z0, w.z - w.d / 2) : w.z - w.d / 2 - 80, z1 = room ? Math.max(room.z1, w.z + w.d / 2) : w.z + w.d / 2 + 80;
-        const bounds = { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room ? Math.max(room.height, w.h) : w.h };
-        cameraTransition(fittedCamera(cameraState.az, Math.max(cameraState.el, .62), 1.05, bounds), 700);
+        cameraTransition(fittedCamera(cameraState.az, Math.max(cameraState.el, .62), 1.05, sceneBox()), 700);
+    }
+    /** Shows the whole scene from a little above, and keeps it whole while sheets open and close: for adding walls
+     * or a wardrobe, and for a room just placed. In a room it looks slightly to one side of the wardrobe wall, so
+     * the room's depth reads; without one it keeps the side it looks from. */
+    function frameScene() {
+        const room = !!model.scene.studio, facing = (model.activeCabinet().angle ?? 0) * Math.PI / 180;
+        frameBox(sceneBox(), room ? facing + .32 : cameraState.az, .5, room ? 1.04 : 1.1);
     }
     function moveViewOff() {
         if (!cameraState.camHome) {
@@ -354,5 +364,5 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
 }

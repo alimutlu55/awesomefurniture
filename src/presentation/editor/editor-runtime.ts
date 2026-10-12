@@ -128,7 +128,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         });
         // The room: selecting and editing walls and openings, and choosing a built-in studio (framed whole).
         const room = createRoomWiring({ dom, model, sceneCommands, history, picking, selectionState, listen: lifetime.listen, late: {
-            rendering: () => rendering, inspector: () => inspector, report: message => shell.toast(message), camera: () => camera, wardrobeBounds: () => cabinetGeometry.sceneBounds() } });
+            rendering: () => rendering, inspector: () => inspector, report: message => shell.toast(message), camera: () => camera } });
         const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
             placed: () => { selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             added: selection => { selectionState.room = selection; inspector.clearFocus(); }, refresh: () => inspector.update(true) } });
