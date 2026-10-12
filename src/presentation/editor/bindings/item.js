@@ -97,7 +97,7 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
         }
         else if (d.ia === 'sec') {
             $('#move-section').open = true;
-            $('#move-bay').focus();
+            $('#move-bay').focus({ preventScroll: true });
         }
         else if (d.ia === 'del') {
             commands.deleteItem(i, j);

@@ -13,7 +13,7 @@ export function bindMoreBtn({ dom, inspector, shell, selectionState, model, came
         selectionState.pillOn = true;
         inspector.update();
         inspector.showPop(null, '#pop2');
-        $('#px').focus();
+        $('#px').focus({ preventScroll: true });
     });
     // Walls and Wardrobe add to the scene, not to a wardrobe: nothing stays selected, the sheet shows only their
     // products, and the camera shows the whole scene, where the new walls or wardrobe will go.

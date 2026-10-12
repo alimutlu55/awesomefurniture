@@ -315,7 +315,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     }
     function openPillMenu(btn) {
         showPop(null, '#pop2');
-        $('#px').focus();
+        $('#px').focus({ preventScroll: true });
     }
     function undo() {
         if (interactionState.itemEdgeGesture) {

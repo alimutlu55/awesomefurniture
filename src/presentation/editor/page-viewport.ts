@@ -38,8 +38,12 @@ export function bindPageViewport(root: HTMLElement, view: Window): () => void {
             else if (inputRect.bottom > panelRect.bottom - 12) panel.scrollTop += inputRect.bottom - panelRect.bottom + 12;
         });
     };
+    // The editor fills its frame and never scrolls as a whole. Safari scrolls it anyway when something focuses
+    // a control that is still sliding in from below the screen, leaving the editor shifted up over a blank area.
+    const unscroll = () => { if (root.scrollTop || root.scrollLeft) root.scrollTo(0, 0); };
     visual?.addEventListener('resize', resize);
     visual?.addEventListener('scroll', resize);
+    root.addEventListener('scroll', unscroll);
     root.addEventListener('focusin', resize);
     root.addEventListener('focusout', resize);
     resize();
@@ -48,6 +52,7 @@ export function bindPageViewport(root: HTMLElement, view: Window): () => void {
         visual?.removeEventListener('scroll', resize);
         root.removeEventListener('focusin', resize);
         root.removeEventListener('focusout', resize);
+        root.removeEventListener('scroll', unscroll);
         view.cancelAnimationFrame(frame);
     };
 }

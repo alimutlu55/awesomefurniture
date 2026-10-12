@@ -161,7 +161,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
                 }, 0);
             });
         }
-        $('#close-wizard').focus();
+        $('#close-wizard').focus({ preventScroll: true }); // the sheet is still sliding in: Safari would scroll the whole editor to it
     }
     function closeWizard() {
         lifetime.cancelFrame(plannerState.openRaf);
