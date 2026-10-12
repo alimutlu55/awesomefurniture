@@ -1,20 +1,25 @@
 import * as THREE from 'three';
-import { wallFace, wallLine } from '../../domain/studio/studio';
+import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
+import { ceilingFrame } from '../../domain/studio/studio-ceiling';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
+import { createCeilingChoices } from './studio-ceiling-panel';
 import type { StudioEditorPorts } from './studio-editor.ports';
 
 type Listenable = { addEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void };
 interface RoomWiringPorts {
-    readonly dom: { document: unknown; window: Listenable };
+    readonly dom: { document: unknown; window: Listenable; $: (selector: string) => HTMLElement };
     readonly model: StudioEditorPorts['model'];
     readonly sceneCommands: StudioEditorPorts['sceneCommands'];
     readonly history: { checkpoint(snapshot: string): void };
-    readonly picking: { groundPoint(e: PointerEvent, height?: number): THREE.Vector3 | null; screenPoint(p: THREE.Vector3): { x: number; y: number } };
+    readonly picking: {
+        groundPoint(e: PointerEvent, height?: number): THREE.Vector3 | null; screenPoint(p: THREE.Vector3): { x: number; y: number };
+        cast(e: PointerEvent, objects: THREE.Object3D[]): THREE.Intersection | undefined;
+    };
     readonly selectionState: StudioEditorPorts['selectionState'] & { focusOn: boolean };
     /** Late-bound editor parts: called only after the editor is mounted. */
     readonly late: {
-        rendering(): { redrawStudio(): void; studioPickables(): THREE.Object3D[] };
+        rendering(): { redrawStudio(): void; studioPickables(): THREE.Object3D[]; build(): void };
         inspector(): { update(keep?: boolean): void; clearFocus(): void; histUI(): void };
         report(message: string): void;
         camera(): {
@@ -41,9 +46,29 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 faceSelection();
             },
             redraw: () => { late.rendering().redrawStudio(); fields?.render(); },
+            rebuild: () => { late.rendering().build(); late.rendering().redrawStudio(); fields?.render(); },
+            openFields,
             refresh, histUI: () => late.inspector().histUI(), report: m => late.report(m),
         },
     });
+    /** Tap to type: opens the toolbar's fields for the selection and puts one in focus. */
+    function openFields(action: string, field: string) {
+        const toolbar = dom.$('#toolbar'), selector = '[data-action="' + action + '"]';
+        const button = toolbar.querySelector<HTMLButtonElement>(selector);
+        if (button && button.getAttribute('aria-expanded') !== 'true') button.click();
+        // Kept in More: open More, then the fields from it.
+        if (!button) {
+            toolbar.querySelector<HTMLButtonElement>('[data-action="more"]')?.click();
+            (toolbar.getRootNode() as ParentNode).querySelector<HTMLButtonElement>('.contextual-popover ' + selector)?.click();
+        }
+        const input = fields?.root.querySelector<HTMLInputElement>('[data-room-field="' + field + '"]');
+        input?.focus({ preventScroll: true });
+        input?.select();
+    }
+    const ceilingChoices = createCeilingChoices({ document: dom.document as Document, listen, choose: key => {
+        dom.$('#toolbar').querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.click();
+        editor.act(key);
+    } });
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
@@ -69,6 +94,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     function faceSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
+        if (s.kind === 'ceiling') { faceCeiling(s.id); return; }
         const id = s.kind === 'wall' ? s.id : room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
         if (!w || !line || !face) return;
@@ -81,13 +107,37 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
     }
 
+    /** A ceiling is shaped from inside the room, below it, where it shows solid: a three-quarter view at eye
+     * level facing its wall. A view already below the ceiling and in front of the wall is kept. */
+    function faceCeiling(id: string) {
+        const room = model.scene.studio, c = room?.ceilings?.find(x => x.id === id), fr = room && c && ceilingFrame(room, c);
+        if (!room || !fr) return;
+        const cam = late.camera().camNow(), height = roomHeight(room), ground = { x: cam.x + cam.dist * Math.cos(cam.el) * Math.sin(cam.az), z: cam.z + cam.dist * Math.cos(cam.el) * Math.cos(cam.az) };
+        const y = cam.y + cam.dist * Math.sin(cam.el), mid = fr.at((fr.along.from + fr.along.to) / 2, 0);
+        if (y < height - 20 && (ground.x - mid.x) * fr.line.nx + (ground.z - mid.z) * fr.line.nz > 0) return;
+        // The whole wall it runs along, so both its ends and the room around it show.
+        const depth = fr.across.to, centre = fr.at((fr.face.start + fr.face.end) / 2, depth / 2), span = Math.max(150, fr.face.length);
+        // The lens is long, so the camera stands well back: it looks level, from about eye height, to stay under the ceiling.
+        late.camera().frameBox({ x: centre.x, z: centre.z, w: span, d: depth, h: Math.min(height, 260) }, Math.atan2(fr.line.nx, fr.line.nz) + .4, .02, 1.12);
+    }
+
     /** Flies to show the whole room: every wall, the floor and the wardrobes (`frameScene`). */
     function frameRoom() {
         if (model.scene.studio) late.camera().frameScene();
     }
 
     return {
-        editor, fields, frameRoom,
+        editor, fields, frameRoom, ceilingChoices,
+        /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
+        surface: {
+            grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
+                if (!editor.selection()) return false;
+                const hit = picking.cast(e, late.rendering().studioPickables());
+                if (!hit || (wardrobe && wardrobe.distance < hit.distance)) return false;
+                return editor.grab(e, hit as never, e.target as HTMLElement);
+            },
+            move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),
+        },
         /** For picking: the room's walls and openings, and what a hit selects. */
         room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => editor.pick(hit) },
     };

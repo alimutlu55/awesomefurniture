@@ -57,6 +57,18 @@ export const STUDIO_TEMPLATES = [
     build: () => ({ ...chain(room(400, 350), true), openings: [opening('o1', 'w2', 'door', 290), opening('o2', 'w4', 'window', 180)] }),
   },
   {
+    // A corridor under a turning staircase (the user's photos): full height at the door, a landing
+    // boxed in 55 cm below the ceiling, then the lower flight down to a 105 cm soffit at the far end.
+    id: 'under-stairs', name: 'Under stairs', description: 'A 3.8 × 1.15 m space under a staircase with a landing',
+    build: () => {
+      const start = T / 2, landing = [[start + 95, H - 55], [start + 185, H - 55], [start + 320, 105], [start + 380, 105]] as const;
+      return {
+        ...chain(room(380, 115), true), openings: [opening('o1', 'w4', 'door', 63.5)],
+        ceilings: [{ id: 'k1', wall: 'w1', run: 'along' as const, depth: 115, profile: landing.map(([t, y]) => ({ t, y })) }],
+      };
+    },
+  },
+  {
     id: 'walk-in', name: 'Walk-in', description: 'A 2.2 × 2.4 m dressing room with a door',
     build: () => ({ ...chain(room(220, 240), true), openings: [opening('o1', 'w3', 'door', 116)] }),
   },

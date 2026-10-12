@@ -1,11 +1,12 @@
 import { STUDIO_LIMITS as L, corner, wallLine } from './studio';
 import type { Studio, StudioOpening, StudioWall } from './studio';
+import { ceilingProblems } from './studio-ceiling';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
   const problems: string[] = [];
   const ids = new Set<string>();
-  for (const item of [...studio.corners, ...studio.walls, ...studio.openings]) {
+  for (const item of [...studio.corners, ...studio.walls, ...studio.openings, ...studio.ceilings ?? []]) {
     if (ids.has(item.id)) problems.push(`Two parts share the id ${item.id}.`);
     ids.add(item.id);
   }
@@ -20,6 +21,7 @@ export function studioProblems(studio: Studio): string[] {
   }
   problems.push(...crossingProblems(studio));
   for (const o of studio.openings) problems.push(...openingProblems(studio, o));
+  for (const c of studio.ceilings ?? []) problems.push(...ceilingProblems(studio, c));
   return [...new Set(problems)];
 }
 

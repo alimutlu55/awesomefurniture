@@ -69,8 +69,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         if (dom.width <= 900) camera.frameMobileInspector(true);
         else camera.focusSelection(true);
     }
-    function addCabinet(copy = false, template) {
-        const w = sceneCommands.addCabinet(copy, template);
+    function addCabinet(copy = false, template, wall) {
+        const w = sceneCommands.addCabinet(copy, template, wall);
         if (template && template !== 'regular') selectionState.shapeEditing = true;
         hidePop();
         selectionState.pillOn = dom.width <= 900;

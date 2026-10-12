@@ -14,7 +14,7 @@ export interface ShapeTemplate {
 const r = (v: number) => Math.round(v * 10) / 10;
 const fill = (wt: number[]) => wt.concat([100, 100, 100, 100, 100, 100]).slice(0, 6);
 /** Weights that put partition k's left face at the given x positions. */
-function weightsFor(w: number, cuts: number[]): number[] {
+export function weightsFor(w: number, cuts: number[]): number[] {
   const edges = [PANEL, ...cuts.flatMap(x => [x, x + PANEL]), w - PANEL], wt: number[] = [];
   for (let i = 0; i < edges.length; i += 2) wt.push(r(edges[i + 1]! - edges[i]!));
   return wt;

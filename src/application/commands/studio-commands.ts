@@ -5,10 +5,13 @@ import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
-import { placeAgainstWall, pushOutOfWalls, snapToWall } from '../../domain/studio/studio-placement';
+import { placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
 import type { Pose } from '../../domain/studio/studio-placement';
 import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
+
+/** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
+export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
 
 interface StudioCommandOptions {
   checkpoint: () => void;
@@ -61,9 +64,38 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   }
 
   /** Why a room could not be built as it is, or null. Changes nothing: drags use it to go as far as
-   * the room allows. */
-  function studioProblem(next: Studio): string | null {
-    return studioProblems(next)[0] ?? (blockedBy(next).length ? 'A wardrobe is in the way. Move it before moving this wall.' : null);
+   * the room allows. Wardrobes `carried` with a moving wall are checked where they would stand. */
+  function studioProblem(next: Studio, carried?: Carried): string | null {
+    const first = studioProblems(next)[0];
+    if (first) return first;
+    if (!carried?.list.length) return blockedBy(next).length ? 'A wardrobe is in the way. Move it before moving this wall.' : null;
+    const poses = carriedPoses(carried, next), moved = (c: EditorCabinet) => ({ ...c, ...poses.get(c.id) });
+    const all = createCabinetGeometry(() => getScene().wardrobes.map(moved), () => studioObstacles(next));
+    return getScene().wardrobes.some(c => all.cabinetCollides(moved(c))) ? 'A wardrobe is in the way. Move it before moving this wall.' : null;
+  }
+
+  /** Wardrobes standing flush and square against a wall: they go with it when it moves, as a built-in does. */
+  function standingAgainst(wallId: string): Carried {
+    const room = getScene().studio, w = room?.walls.find(x => x.id === wallId), line = room && w && wallLine(room, w);
+    if (!room || !w || !line) return { from: room!, wall: wallId, list: [] };
+    const list = getScene().wardrobes.filter(c => {
+      const turn = ((c.angle - line.angle) % 360 + 360) % 360, a = c.angle * Math.PI / 180;
+      const bx = c.x - Math.sin(a) * c.state.d / 2 - line.a.x, bz = c.z - Math.cos(a) * c.state.d / 2 - line.a.z;
+      const along = bx * line.ux + bz * line.uz, out = bx * line.nx + bz * line.nz - w.thickness / 2;
+      return (turn < .5 || turn > 359.5) && Math.abs(out) < 2 && along > 0 && along < line.length;
+    }).map(c => ({ id: c.id, x: c.x, z: c.z }));
+    return { from: room, wall: wallId, list };
+  }
+  /** Where carried wardrobes stand once their wall has moved from where it was to `next`. */
+  function carriedPoses(carried: Carried, next: Studio) {
+    const w = carried.from.walls.find(x => x.id === carried.wall), was = w && wallLine(carried.from, w), now = w && wallLine(next, w);
+    const shift = was && now ? (now.a.x - was.a.x) * was.nx + (now.a.z - was.a.z) * was.nz : 0;
+    return new Map(carried.list.map(c => [c.id, { x: Math.round((c.x + (was?.nx ?? 0) * shift) * 10) / 10, z: Math.round((c.z + (was?.nz ?? 0) * shift) * 10) / 10 }]));
+  }
+  /** Moves carried wardrobes to stand against their wall in `next`. */
+  function carryWardrobes(carried: Carried, next: Studio) {
+    const poses = carriedPoses(carried, next);
+    for (const c of getScene().wardrobes) Object.assign(c, poses.get(c.id) ?? {});
   }
 
   /** Commits an edit to the room. `recordHistory` false is a live preview during a drag (the drag
@@ -145,6 +177,16 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return placeAgainstWall(room, footprint(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
   }
 
+  /** A new wardrobe filling a wall's free stretch (studio-placement.ts `wallSpot`): its pose, width and
+   * depth, or null with the reason. */
+  function fillWall(cabinet: EditorCabinet, wallId: string) {
+    const room = getScene().studio, others = getScene().wardrobes.filter(c => c !== cabinet);
+    const spot = room && wallSpot(room, wallId, others.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d })), { min: 80, max: 400, depth: cabinet.state.d });
+    const fits = spot && !collisionWith(room, () => others).cabinetCollides({ ...cabinet, ...spot.pose, state: { ...cabinet.state, w: spot.w, d: spot.d } });
+    if (!fits) report('This wall has no free stretch of 80 cm for a wardrobe. It went where there is room.');
+    return fits ? spot : null;
+  }
+
   /** The flush, square pose against a wall for a wardrobe being dragged near it, if it is free. */
   function wallSnap(cabinet: EditorCabinet, pose: Pose): Pose | null {
     const room = getScene().studio;
@@ -155,5 +197,5 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, studioProblem, addStudioWall, addStudioOpening, placeNewCabinet, wallSnap };
+  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, placeNewCabinet, fillWall, wallSnap };
 }

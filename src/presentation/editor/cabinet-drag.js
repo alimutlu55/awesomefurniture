@@ -52,7 +52,8 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             sceneCommands.restorePose(g.id, { angle: g.original });
         }
         else if (w.angle !== g.original) {
-            history.checkpoint(g.snapshot);
+            if (sceneCommands.settleCabinet(g.id)) sceneCommands.restorePose(g.id, { angle: g.original });
+            else history.checkpoint(g.snapshot);
         }
         resources.cv.style.cursor = 'grab';
         inspector.update(true);
@@ -143,7 +144,9 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             sceneCommands.restorePose(g.id, g.origin);
         }
         else if (w.x !== g.origin.x || (w.y || 0) !== g.origin.y || w.z !== g.origin.z) {
-            history.checkpoint(g.snapshot);
+            // Dropped under a staircase or a sloped ceiling, it takes the ceiling's shape; too low there, it goes back.
+            if (sceneCommands.settleCabinet(g.id)) sceneCommands.restorePose(g.id, g.origin);
+            else history.checkpoint(g.snapshot);
         }
         resources.cv.style.cursor = 'grab';
         inspector.update(true);

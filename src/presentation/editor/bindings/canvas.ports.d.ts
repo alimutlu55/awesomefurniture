@@ -1,4 +1,8 @@
 /** Explicit dependencies consumed by ./canvas.js. */
+/** The room editor's surface drags: the selected wall, opening or ceiling, grabbed on the model. */
+type RoomSurface = Readonly<Pick<ReturnType<typeof import('../room-wiring').createRoomWiring>['surface'], 'grab' | 'move' | 'end' | 'dragging'>>;
+
+
 export interface ObserveViewportSizePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../../viewport/camera-controller.js').createCameraController>, 'resize'>>;
@@ -17,6 +21,7 @@ readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
+readonly room?: RoomSurface;
 }
 
 export interface BindCanvasPointermovePorts {
@@ -29,6 +34,7 @@ readonly cameraState: Pick<ReturnType<typeof import('../../viewport/camera-state
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'moveMode' | 'moved' | 'panelWasOpen' | 'pd' | 'ptrs' | 'rotationGesture' | 'sx' | 'sy' | 'wardrobeGesture' | 'panGesture'>;
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
+readonly room?: RoomSurface;
 }
 
 export interface BindCanvasPointerupPorts {
@@ -38,6 +44,7 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').cre
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'moveMode' | 'moved' | 'previewPlan' | 'ptrs' | 'rotationClick' | 'wardrobeGesture' | 'panGesture'>;
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
+readonly room?: RoomSurface;
 }
 
 export interface BindCanvasPointercancelPorts {
@@ -46,6 +53,7 @@ readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gesture
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'moved' | 'ptrs' | 'wardrobeGesture' | 'panGesture'>;
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
+readonly room?: RoomSurface;
 }
 
 export interface BindCanvasLostpointercapturePorts {

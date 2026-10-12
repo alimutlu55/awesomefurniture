@@ -6,8 +6,14 @@
 import { STUDIO_DEFAULTS, STUDIO_LIMITS as L, corner, cornerDegree, nextId, wall, wallFace, wallLine } from './studio';
 import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } from './studio';
 import { openingRange } from './studio-validation';
+import { keepCeilings, splitCeilings } from './studio-ceiling';
 
-const custom = (studio: Studio, changes: Partial<Studio>): Studio => ({ ...studio, ...changes, template: 'custom' });
+const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
+  const next: Studio = { ...studio, ...changes, template: 'custom' };
+  // Ceilings stay where they are in the room when corners move; a room without any keeps no list.
+  if (changes.corners && !('ceilings' in changes) && studio.ceilings) return { ...next, ceilings: keepCeilings(studio, changes.corners) };
+  return next;
+};
 const round = (n: number) => Math.round(n * 10) / 10;
 const moved = (corners: readonly StudioCorner[], id: string, x: number, z: number) => corners.map(c => c.id === id ? { ...c, x: round(x), z: round(z) } : c);
 
@@ -82,7 +88,7 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b };
   const walls = studio.walls.flatMap(x => x.id === id ? [{ ...x, b: mid.id }, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: round(o.offset - d) });
-  return custom(studio, { corners: [...studio.corners, mid], walls, openings });
+  return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}) });
 }
 
 /** Adds a wall from a corner to a new point, continuing the chain the corner belongs to so the room
@@ -111,7 +117,8 @@ export function mergeCorners(studio: Studio, from: string, into: string): Studio
   if (from === into || !corner(studio, from) || !corner(studio, into)) return null;
   const walls = studio.walls.map(w => ({ ...w, a: w.a === from ? into : w.a, b: w.b === from ? into : w.b })).filter(w => w.a !== w.b);
   const kept = new Set(walls.map(w => w.id));
-  return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)) });
+  const ceilings = studio.ceilings?.filter(c => kept.has(c.wall));
+  return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)), ...(ceilings ? { ceilings } : {}) });
 }
 
 /** Rooms people add walls to: where one more wall goes. From a free wall end it turns a right angle
@@ -151,7 +158,8 @@ export function removeWall(studio: Studio, id: string): Studio | null {
   if (!wall(studio, id)) return null;
   const walls = studio.walls.filter(w => w.id !== id);
   const next = { ...studio, walls };
-  return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id) });
+  const ceilings = studio.ceilings?.filter(c => c.wall !== id);
+  return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id), ...(ceilings ? { ceilings } : {}) });
 }
 
 /** Adds a door, window or archway to a wall: in the middle if it is free, else in the widest gap.

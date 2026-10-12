@@ -132,6 +132,7 @@ const studio = z.strictObject({
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
   walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive })),
   openings: z.array(z.strictObject({ id, wall: id, kind: z.enum(['door', 'window', 'archway']), offset: finite, width: positive, height: positive, sill: nonnegative })),
+  ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, profile: z.array(z.strictObject({ t: finite, y: positive })) })).optional(),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });

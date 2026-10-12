@@ -8,13 +8,25 @@
 .lbl.shape-handle.room-handle.point:hover{background:transparent;transform:none}
 .lbl.shape-handle.room-grip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lbl.shape-handle.room-handle.split-handle{width:24px;height:24px;font-size:15px}
+/* A ceiling's height pill: the shape editor's pill, with a finger-sized hit area. */
+.lbl.shape-handle.room-pill{position:absolute}
+.lbl.shape-handle.room-pill small{font-size:inherit}
+.lbl.shape-handle.room-pill::after{content:"";position:absolute;inset:-8px -4px}
+/* A length on the model that can be tapped and typed. */
+.lbl.room-measure-edit{pointer-events:auto;cursor:text}
+.lbl.room-measure-edit:hover{text-decoration:underline dotted}
+/* The ceiling shapes a wall can take: small side views with their names. */
+.ceiling-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ceiling-choice{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border:0;border-radius:12px;background:rgba(120,100,70,.07);color:var(--ink);font-size:12px;line-height:1.2;text-align:center;cursor:pointer}
+.ceiling-choice:is(:hover,:focus-visible){background:rgba(120,100,70,.15)}
+.ceiling-art{width:56px;height:40px;color:#6f6250}
 .room-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .room-fields .shape-field{font-size:11px}
 .room-field-hint{font-size:10px;opacity:.55}
 /* On a desktop the toolbar shows the room's actions in place of Add item and Auto design. */
 @media(min-width:901px){
- #toolbar:is([data-context="wall"],[data-context="opening"]) .contextual-defaults{display:none}
- #toolbar:is([data-context="wall"],[data-context="opening"]) .contextual-actions{display:flex;align-items:center;gap:2px}
+ #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-defaults{display:none}
+ #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-actions{display:flex;align-items:center;gap:2px}
  #toolbar .contextual-actions .tb{display:inline-flex;align-items:center;gap:6px}
  .contextual-popover:not([hidden]){display:block;position:absolute;top:76px;z-index:60;background:var(--panel);padding:12px 14px;border-radius:16px;box-shadow:0 8px 28px rgba(60,45,25,.18);width:260px;max-width:calc(100% - 24px)}
  .contextual-popover::before{content:"";position:absolute;top:-7px;left:var(--popover-pointer,50%);width:14px;height:14px;background:inherit;transform:translateX(-50%) rotate(45deg);border-radius:2px;pointer-events:none}
@@ -30,8 +42,11 @@
  .room-fields .shape-input input{font-size:16px}
  .lbl.shape-handle.room-grip{width:32px;height:32px}
  .lbl.shape-handle.room-handle.split-handle{width:30px;height:30px}
- #toolbar:is([data-context="wall"],[data-context="opening"]) .contextual-defaults{display:none}
- #toolbar:is([data-context="wall"],[data-context="opening"]) .contextual-actions{display:flex}
+ .lbl.shape-handle.room-pill{padding:6px 9px 6px 6px;font-size:12px}
+ .lbl.shape-handle.room-pill small{display:none}
+ .ceiling-choice{font-size:13px;padding:10px 6px}
+ #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-defaults{display:none}
+ #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-actions{display:flex}
 }
 /* Walls and rooms in Add item. Room plans are drawn small; they sit in the product art's box. */
 .room-add .shape-caption{margin:8px 0 2px}
@@ -58,3 +73,6 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 /* Every wardrobe removed: only the floor or room is left. Wardrobe controls go, and Wardrobe leads the toolbar. */
 #app[data-no-wardrobe] :is(#add-anchor,#launch-wizard,#topright,#props-btn,#left,#empty-scene,.wardrobe-actions,.contextual-defaults>:not(#walls-btn,#wardrobe-btn)){display:none!important}
 @media(min-width:901px){#app[data-no-wardrobe] #wardrobe-btn{background:#282824;color:#fff}}
+@media(max-width:900px){
+ .contextual-popover .ceiling-choice{flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;padding:10px 6px;font-size:13px;line-height:1.2;text-align:center;background:rgba(120,100,70,.07)}
+}

@@ -1,11 +1,12 @@
 // The room (Studio) in the real editor: place a room from Add item, select a wall on the model, drag it,
 // undo, add a door, type a size, deselect. Desktop with a mouse and a phone with touch. Then two wardrobes
 // facing each other: the one in front steps aside when you add to the other. Needs the dev
-// server at 127.0.0.1:5173. Screenshots go to docs/verification/ (or STUDIO_SHOTS).
+// server at 127.0.0.1:5173 (or MOBILE_TEST_URL). Screenshots go to docs/verification/ (or STUDIO_SHOTS).
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const path=require('node:path');
 const shots=process.env.STUDIO_SHOTS||path.join(__dirname,'..','docs','verification');
+const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:5173';
 // Where the back wall is, right of the wardrobe, once the Bedroom is framed (fraction of the view).
 const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone',width:375,height:812,wall:[.87,.41]}];
 (async()=>{
@@ -14,7 +15,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   const phone=view.width<=900;
   const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:2});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173/editor.html');
+  await page.goto(base+'/editor.html');
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
   const tap=async locator=>{ if(phone) await locator.tap(); else await locator.click(); await page.waitForTimeout(250); };
   const shot=name=>page.screenshot({path:path.join(shots,`studio-${name}-${view.name}.jpg`)});
@@ -41,13 +42,14 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
   if(phone) await page.touchscreen.tap(at.x,at.y); else await page.mouse.click(at.x,at.y);
   await page.waitForTimeout(500);
   assert.equal(await context(),'wall','the back wall is selected');
-  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['wall-size','split','door','window','more']);
+  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['door','window','ceiling','wardrobe-here','more']);
   assert.ok(await page.locator('.room-handle.point').count()>=2,'its corners have handles');
   assert.equal(await page.locator('.room-label',{hasText:'400 cm'}).count(),1,'its inside length shows');
   await shot('wall-selected');
 
-  // Dragging its grip moves it out; the side walls stretch live; one undo step takes it back.
-  const grip=await page.locator('.room-grip').first().boundingBox(), from={x:grip.x+grip.width/2,y:grip.y+grip.height/2};
+  // No grip: the selected wall itself is dragged out; the side walls stretch live; one undo step takes it back.
+  assert.equal(await page.locator('.room-grip').count(),0,'a selected wall shows no grip, only its corners');
+  const from={x:at.x,y:at.y};
   const undoBefore=Number(await el('undo2').locator('small').textContent()||0);
   await page.mouse.move(from.x,from.y);await page.mouse.down();
   // The whole room is in view, smaller on a phone: a shorter drag there moves the wall as far.
@@ -65,7 +67,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
 
   // Door: added to the selected wall (refused there: the wardrobe stands in front), then exact sizes.
   // Undo selects the wardrobe again; the wall is where its grip was, just below the top edge.
-  if(await context()!=='wall') { const back={x:from.x,y:from.y+14}; if(phone) await page.touchscreen.tap(back.x,back.y); else await page.mouse.click(back.x,back.y); await page.waitForTimeout(400); }
+  if(await context()!=='wall') { const back={x:from.x,y:from.y}; if(phone) await page.touchscreen.tap(back.x,back.y); else await page.mouse.click(back.x,back.y); await page.waitForTimeout(400); }
   await tap(toolbar.locator('[data-action="door"]'));
   assert.equal(await context(),'opening','the new door is selected');
   await tap(toolbar.locator('[data-action="opening-size"]'));
@@ -84,7 +86,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38]},{name:'phone'
  // Two wardrobes facing each other: adding to one must not show the back of the other.
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:5173/editor.html');
+ await page.goto(base+'/editor.html');
  await page.locator('[data-editor-id="more-btn"]').waitFor();
  await page.evaluate(async()=>{
   const { createEditorState } = await import('/src/application/projects/editor-state.ts');

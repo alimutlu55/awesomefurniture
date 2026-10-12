@@ -15,8 +15,8 @@ interface StudioOverlayPorts {
     readonly editor: {
         handles(): RoomHandle[]; measures(): RoomMeasure[]; guides(): readonly Guide[];
         reason(): { text: string; x: number; y: number; z: number } | null;
-        begin(e: PointerEvent, h: RoomHandle, el: HTMLElement): void; move(e: PointerEvent): void; end(cancel?: boolean): void;
-        nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean;
+        begin(e: PointerEvent, h: RoomHandle, el: HTMLElement): void; move(e: PointerEvent): void; end(cancel?: boolean): boolean;
+        nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean; editMeasure(m: RoomMeasure): void;
     };
 }
 
@@ -40,9 +40,10 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
+            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : h.kind === 'ceiling' ? 'room-pill' : 'room-grip');
             if (h.kind === 'extend') el.textContent = '+';
-            else if (h.kind !== 'corner') el.innerHTML = h.kind === 'wall' ? ARROWS : SLIDE;
+            else if (h.kind === 'depth') el.innerHTML = ARROWS;
+            else if (h.kind !== 'corner' && h.kind !== 'ceiling') el.innerHTML = SLIDE;
             const button = el;
             el.onpointerdown = e => { const x = current.get(button); if (x) editor.begin(e, x, button); };
             el.onpointermove = e => editor.move(e);
@@ -58,8 +59,12 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             };
             pool.set(h.key, el);
         }
-        el.setAttribute('aria-label', h.label);
+        el.setAttribute('aria-label', (h.text ? h.text + '. ' : '') + h.label);
         el.title = h.label;
+        // A height pill shows its height: it is the handle and the measurement at once.
+        // On a phone the unit is left out, so pills a short way apart do not overlap.
+        const pill = h.text === undefined ? '' : h.text.replace(/ cm$/, '') + '<small> cm</small>';
+        if (h.text !== undefined && el.innerHTML !== pill) el.innerHTML = pill;
         return el;
     }
 
@@ -97,7 +102,9 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
         }
         for (const m of editor.measures()) {
-            const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label');
+            const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.edit ? ' room-measure-edit' : ''));
+            // Tap a length to type it.
+            if (m.edit) { el.setAttribute('role', 'button'); el.title = 'Type the length'; el.onclick = () => editor.editMeasure(m); }
             track(el, a.clone().add(b).multiplyScalar(.5));
             bindRuler(el, a, b, 'width');
         }
@@ -115,15 +122,15 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         orient();
     }
 
-    /** Wall grips point along the wall's room side on screen; opening grips along the wall. */
+    /** A depth grip points into the room on screen. */
     function orient() {
         const r = canvas.getBoundingClientRect();
         const screen = (p: THREE.Vector3) => { const q = p.clone().project(camera); return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height }; };
         for (const [el, h] of current) {
-            const dx = h.kind === 'wall' ? h.nx : h.kind === 'opening' ? h.ux : undefined, dz = h.kind === 'wall' ? h.nz : h.uz;
+            const dx = h.kind === 'depth' ? h.nx : undefined, dz = h.nz;
             if (dx === undefined || dz === undefined) continue;
             const a = screen(V(h)), b = screen(new THREE.Vector3(h.x + dx * 40, h.y, h.z + dz * 40));
-            const turn = Math.atan2(b.y - a.y, b.x - a.x) - (h.kind === 'wall' ? Math.PI / 2 : 0);
+            const turn = Math.atan2(b.y - a.y, b.x - a.x) - Math.PI / 2;
             const svg = el.firstElementChild as SVGElement | null;
             if (svg) svg.style.transform = 'rotate(' + turn.toFixed(3) + 'rad)';
         }

@@ -16,7 +16,7 @@ readonly cabinetGeometry: Readonly<Pick<ReturnType<typeof import('../../domain/g
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cv' | 'scene'>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'restore' | 'scene' | 'snapshot'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'applyItemEdgeSize' | 'applyMove' | 'moveDividerTo' | 'restoreSection'>>;
-readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'previewRotation' | 'previewTranslation' | 'restorePose' | 'wallSnap'>>;
+readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'previewRotation' | 'previewTranslation' | 'restorePose' | 'wallSnap' | 'settleCabinet'>>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint'>>;
 /** The room: its walls and openings can be picked when no wardrobe is in front of them. */
 readonly room?: { pickables(): import('three').Object3D[]; pick(hit: import('three').Intersection | undefined): boolean };

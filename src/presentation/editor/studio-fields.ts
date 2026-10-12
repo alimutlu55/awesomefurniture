@@ -1,6 +1,8 @@
-import { STUDIO_LIMITS as L, wallFace, wallLine } from '../../domain/studio/studio';
+import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
 import { moveOpening, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
+import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { measureNumber } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { esc } from './editor-format.js';
 
@@ -26,6 +28,16 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
     function fields(): Field[] {
         const studio = getStudio(), s = getSelection();
         if (!studio || !s) return [];
+        if (s.kind === 'ceiling') {
+            const c = studio.ceilings?.find(x => x.id === s.id), fr = c && ceilingFrame(studio, c);
+            if (!c || !fr) return [];
+            // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
+            const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + ' cm ' + (c.run === 'along' ? 'along' : 'out');
+            return [
+                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
+                { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
+            ];
+        }
         if (s.kind === 'wall') {
             const w = studio.walls.find(x => x.id === s.id), face = w && wallFace(studio, w);
             if (!w || !face) return [];
@@ -47,7 +59,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
 
     function render() {
         const list = fields();
-        const shape = list.map(x => x.key).join();
+        const shape = list.map(x => x.key + ':' + (x.hint ?? '')).join();
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
             root.innerHTML = list.map(x => '<label class="shape-field"><span>' + esc(x.label) + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
@@ -63,7 +75,10 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
     function apply(key: string, value: number) {
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
-        if (s.kind === 'wall') {
+        if (s.kind === 'ceiling') {
+            if (key === 'depth') editStudio(r => setCeilingDepth(r, s.id, value));
+            else editStudio(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });
+        } else if (s.kind === 'wall') {
             if (key === 'length') editStudio(r => setInsideLength(r, s.id, value));
             else editStudio(r => setWallSize(r, s.id, { [key]: value }));
         } else if (key === 'left') {

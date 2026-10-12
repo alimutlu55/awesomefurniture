@@ -5,7 +5,7 @@ const assert=require('node:assert/strict');
  try { for(const [width,height] of (process.env.TOOLBAR_LANDSCAPE ? [[844,390]] : [[320,568],[390,844],[430,932],[768,1024],[844,390],[1440,900]])) {
   const page=await browser.newPage({viewport:{width,height},isMobile:width<=900,hasTouch:width<=900});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:5173');
+  await page.goto(process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173');
   const el=id=>page.locator(`[data-editor-id="${id}"]`);
   await el('more-btn').waitFor();
   const toolbar=el('toolbar');

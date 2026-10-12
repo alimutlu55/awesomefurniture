@@ -33,9 +33,10 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         row.querySelectorAll('[aria-haspopup]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
-        'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window')};
+        'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window'),
+        ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),'wardrobe-here':icon('wardrobe')};
     const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
-        archway:icon('room-archway'),'add-wall':icon('room-wall')};
+        archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
     const moreActions = {item:itemMoreActions,wall:wallMoreActions};
     function positionMenu(trigger) {
         menuTrigger = trigger;
@@ -87,7 +88,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             text.textContent = label;
             b.append(text);
             if (key === 'stores') b.disabled = !controls(key).length;
-            b.onclick = () => key === 'stores' ? showControls(key, label, trigger) : key === 'replace' ? showMenu(replacements(),trigger,true) : (close(), execute(key));
+            b.onclick = () => key === 'stores' || fieldActions.includes(key) ? showControls(key, label, trigger) : key === 'replace' ? showMenu(replacements(),trigger,true) : (close(), execute(key));
             return b;
         }));
         menu.replaceChildren(items);

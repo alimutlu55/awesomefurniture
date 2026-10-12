@@ -40,10 +40,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerDragBlur({ dom, interactions, lifetime });
     bindDividerDragEscape({ dom, interactions, interactionState, lifetime });
     observeViewportSize({ dom, camera, lifetime });
-    bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime });
-    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime });
-    bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime });
-    bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime });
+    bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface });
+    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface });
+    bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room: room.surface });
+    bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room: room.surface });
     bindCanvasLostpointercapture({ dom, interactions, interactionState, resources, lifetime });
     bindCanvasGestureBlur({ dom, interactions, interactionState, lifetime });
     bindCanvasWheel({ dom, camera, interactions, interactionState, resources, lifetime });
@@ -203,7 +203,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         },
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
-            if (key === 'wall-size' || key === 'opening-size') { room.fields.render(); return [room.fields.root]; }
+            if (key === 'wall-size' || key === 'opening-size' || key === 'ceiling-size') { room.fields.render(); return [room.fields.root]; }
+            if (key === 'ceiling' || key === 'ceiling-shape') return [room.ceilingChoices.root];
             const divider = model.activeCabinet().state.divider >= 0;
             if (key === 'stores') {
                 if (divider) return [];
@@ -213,6 +214,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;

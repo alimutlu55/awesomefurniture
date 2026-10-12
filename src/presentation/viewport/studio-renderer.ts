@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
+import { createCeilingViews } from './studio-ceilings';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
   wall: '#e2d9cc', cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
-  ceiling: '#f4f1ec', select: '#2f2a22',
+  ceiling: '#f4f1ec', soffit: '#d4c9b8', select: '#2f2a22',
 });
 /** Height of a wall lowered because it stands between the camera and the room: low enough to see over,
  * tall enough to still read as the room's outline. A camera near eye level would see a stub as a band
@@ -21,7 +22,7 @@ const linear = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 export interface Footprint { x: number; z: number; angle: number; w: number; d: number }
 
 /** What is selected in the room: drawn with its outline at full height, even while its wall is lowered. */
-export type RoomSelection = { readonly kind: 'wall' | 'opening'; readonly id: string } | null;
+export type RoomSelection = { readonly kind: 'wall' | 'opening' | 'ceiling'; readonly id: string } | null;
 interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number }
 
 /** Draws the studio around the wardrobes. Walls between the camera and the room lower to a short cut
@@ -63,6 +64,9 @@ export function createStudioRenderer(scene: THREE.Scene) {
     trimMaterial: material('#fbfaf7', { side: THREE.DoubleSide }), lampMaterial: new THREE.MeshBasicMaterial({ color: linear('#fff3dc'), side: THREE.DoubleSide, toneMapped: false }),
   };
   const lineMaterial = new THREE.LineBasicMaterial({ color: linear(LOOK.select), toneMapped: false, transparent: true, opacity: .85, depthTest: false });
+  // Stairs, landings, sloped roofs and boxes: plastered, a shade deeper than the walls so the volume reads
+  // against the wall behind it; their undersides face down and fall into soft shade.
+  const ceilings = createCeilingViews(scene, material(LOOK.soffit), lineMaterial);
 
   function clear() {
     root.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
@@ -81,6 +85,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     standing = footprints;
     const lifts = new Map(walls.map(v => [v.id, v.lift]));
     clear();
+    ceilings.sync(studio);
     if (!studio) return;
     outline = roomOutline(studio) ?? [];
     root.add(floor(studio));
@@ -105,6 +110,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     }
     // The ceiling closes the room whenever you look from below it, as in a photograph of the room.
     if (ceiling) ceiling.visible = camera.position.y < ceiling.position.y - 5;
+    ceilings.frame(camera, id => (walls.find(v => v.id === id)?.lift ?? 1) > .6);
   }
   function setLift(view: WallView, lift: number) {
     view.lift = lift;
@@ -211,7 +217,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
   }
   function drawSelection() {
     if (selected) { selected.parent?.remove(selected); (selected as THREE.LineSegments).geometry.dispose(); selected = null; }
-    if (!selection || !room) return;
+    ceilings.select(selection?.kind === 'ceiling' ? selection.id : null);
+    if (!selection || !room || selection.kind === 'ceiling') return;
     const o = selection.kind === 'opening' ? room.openings.find(x => x.id === selection!.id) : undefined;
     const w = room.walls.find(x => x.id === (o ? o.wall : selection!.id)), view = walls.find(v => v.id === w?.id), line = w && wallLine(room, w);
     if (!w || !view || !line) return;
@@ -279,11 +286,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
   return {
     sync, frame, select, guide,
     /** Changes whenever the room's shadows would: a rebuild, or a wall lowering or rising. */
-    shadowKey: () => builds + ':' + walls.map(v => v.lift.toFixed(3)).join(','),
-    /** Walls and openings, for picking with a ray. */
-    pickables: () => hits,
+    shadowKey: () => builds + ':' + walls.map(v => v.lift.toFixed(3)).join(',') + ':' + ceilings.shadowKey(),
+    /** Walls, openings and the ceilings on show, for picking with a ray. */
+    pickables: () => [...hits, ...ceilings.pickables()],
     dispose: () => {
       clear();
+      ceilings.dispose();
       scene.remove(guideStrip, root);
       guideStrip.geometry.dispose();
       for (const g of [downlight.trim, downlight.lamp]) g.dispose();

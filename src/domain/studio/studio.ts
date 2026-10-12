@@ -9,7 +9,8 @@
  * so a closed room stays closed while it is edited.
  *
  * Openings (doors, windows, archways) sit on a wall, measured along it from corner `a`.
- * Later elements (sloped ceilings, boxes under stairs) are added as new lists, not new wall fields.
+ * Ceilings that come down into the room (under a staircase, a landing, a sloped roof, a beam or boxing)
+ * run along a wall too: see studio-ceiling.ts.
  */
 import type { StudioTemplateId } from './studio-templates';
 
@@ -38,11 +39,31 @@ export interface StudioOpening {
   readonly sill: number;
 }
 
+/** A point of a ceiling's underside: `y` cm above the floor at `t`, measured along its run. */
+export interface CeilingPoint { readonly t: number; readonly y: number }
+
+/** A part of the ceiling that comes down into the room, along a wall: the underside of a staircase, a
+ * landing, a sloped roof, a beam or a boxing. Its underside follows `profile`, like a wardrobe's top:
+ * - `run: 'along'`: the height changes along the wall (`t` from the wall's corner `a`, as an opening's
+ *   offset) and stays level for `depth` into the room, as under a staircase that runs beside the wall.
+ * - `run: 'across'`: the height changes with the distance from the wall's face (`t` from 0) and stays
+ *   level along the whole wall, as under a roof sloping down to the wall. It reaches its last point.
+ * Two points at one `t` are a vertical step. Where several cover a spot, the lowest counts. */
+export interface StudioCeiling {
+  readonly id: string;
+  readonly wall: string;
+  readonly run: 'along' | 'across';
+  readonly depth: number;
+  readonly profile: readonly CeilingPoint[];
+}
+
 export interface Studio {
   readonly template: StudioTemplateId;
   readonly corners: readonly StudioCorner[];
   readonly walls: readonly StudioWall[];
   readonly openings: readonly StudioOpening[];
+  /** Absent in rooms with a flat ceiling, so older projects stay as they were saved. */
+  readonly ceilings?: readonly StudioCeiling[] | undefined;
 }
 
 /** Limits a person can build within. Centimetres. */
@@ -53,6 +74,8 @@ export const STUDIO_LIMITS = Object.freeze({
   /** Opening edges keep this far from the wall's ends, so the frame has room. */
   openingMargin: 5,
   minOpeningWidth: 40,
+  /** A ceiling's underside stays this high, and reaches at least this far into the room. */
+  minCeilingHeight: 40, minCeilingDepth: 20,
 });
 
 /** Defaults for walls and openings people add. */
@@ -62,6 +85,9 @@ export const STUDIO_DEFAULTS = Object.freeze({
   window: { width: 120, height: 120, sill: 90 },
   archway: { width: 100, height: 210, sill: 0 },
 });
+
+/** The room's ceiling height: the top of its lowest wall, where the flat ceiling sits. */
+export const roomHeight = (studio: Studio) => studio.walls.length ? Math.min(...studio.walls.map(w => w.height)) : STUDIO_DEFAULTS.height;
 
 export const corner = (studio: Studio, id: string) => studio.corners.find(c => c.id === id);
 export const wall = (studio: Studio, id: string) => studio.walls.find(w => w.id === id);

@@ -1,17 +1,24 @@
-import { STUDIO_LIMITS, cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
+import { STUDIO_LIMITS, cornerDegree, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reachAt, removeCeiling, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { ceilingHandles, depthRuler, pointRuler, runAxis, snapPoint } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
 import { centredOffset, furthestValid, snapCorner, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber } from './editor-format.js';
+import type { Carried } from '../../application/commands/studio-commands';
 
 type P = { x: number; z: number };
 interface Drag {
   handle: RoomHandle; pointer: number; target: HTMLElement; snapshot: string; original: Studio; last: Studio;
   client: { x: number; y: number }; ground: P | null; moved: boolean; created: string | null;
   locks: CornerLocks; lock: Align | null; guides: Guide[]; reason: string | null; free: boolean;
+  /** A ceiling point's snaps: along its run and in height. */
+  pin: { t: Align | null; y: Align | null };
+  /** Wardrobes standing against a dragged wall: they go with it. */
+  carry: Carried | null;
   /** Where the dragged corner is meant to be (snapped), for its handle. */
   at: P | null;
 }
@@ -20,10 +27,13 @@ const f = (v: number) => measureNumber(Math.round(v * 10) / 10) + ' cm';
 /** Rulers stand this far into the room from the face they measure. */
 const RULER = 4;
 
-/** Editing the room on the model: select a wall or an opening, drag its corners, the wall itself or the
- * opening along it, and add walls from free ends with "+". It follows the shape editor: session handles,
- * smooth drags that stop where the room stops them and say why, alignment guides, live rulers, and one
- * undo step per drag. Every change goes through the scene's studio commands. */
+/** Editing the room on the model, with as few handles as possible. Select a wall, a door or window, or a
+ * ceiling that comes down (stairs, a landing, a sloped roof, a box), then drag the part itself: a wall moves
+ * in or out, an opening slides along its wall, a ceiling moves up or down. A selected wall shows only its two
+ * corner dots and "+" on a free end; a selected ceiling shows a height pill on each point and one grip for
+ * how far it reaches into the room. Tapping a pill or a length types it exactly. Drags stop where the room
+ * stops them and say why, snap with guides, show live rulers, take one undo step, and reshape the wardrobes
+ * under a ceiling as it moves. Every change goes through the scene's studio commands. */
 export function createStudioEditor({ model, sceneCommands, history, picking, selectionState, callbacks }: StudioEditorPorts) {
   let drag: Drag | null = null, pxPerCm = 2;
   const room = () => model.scene.studio;
@@ -33,8 +43,11 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   const selectedWall = (studio = room()) => {
     const s = selection();
     if (!studio || !s) return undefined;
-    return wallOf(studio, s.kind === 'wall' ? s.id : studio.openings.find(o => o.id === s.id)?.wall ?? '');
+    return wallOf(studio, s.kind === 'wall' ? s.id : s.kind === 'ceiling' ? ceilingOf(studio, s.id)?.wall ?? '' : studio.openings.find(o => o.id === s.id)?.wall ?? '');
   };
+  const ceilingOf = (studio: Studio, id: string) => studio.ceilings?.find(c => c.id === id);
+  const exists = (studio: Studio, s: NonNullable<RoomSelection>) =>
+    s.kind === 'wall' ? !!wallOf(studio, s.id) : s.kind === 'ceiling' ? !!ceilingOf(studio, s.id) : studio.openings.some(o => o.id === s.id);
 
   /** Selects a wall or an opening (null clears). A selection that no longer exists clears itself. */
   function select(next: RoomSelection) {
@@ -46,44 +59,42 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     // A wardrobe in focus takes the selection over from the room.
     if (selectionState.focusOn) selectionState.room = null;
     const s = selection(), studio = room();
-    if (s && (!studio || !(s.kind === 'wall' ? wallOf(studio, s.id) : studio.openings.some(o => o.id === s.id)))) selectionState.room = null;
+    if (s && (!studio || !exists(studio, s))) selectionState.room = null;
     return selection();
   }
   /** A click on the model: the wall or opening under it, if it is nearer than any wardrobe. */
   function pick(hit: { object: { userData: Record<string, unknown> } } | undefined) {
     const u = hit?.object.userData;
     if (u?.studioOpening) select({ kind: 'opening', id: String(u.studioOpening) });
+    else if (u?.studioCeiling) select({ kind: 'ceiling', id: String(u.studioCeiling) });
     else if (u?.studioWall) select({ kind: 'wall', id: String(u.studioWall) });
     else return false;
     return true;
   }
 
-  /** Handles for the selection: its wall's corners, a grip to move the wall, "+" on free ends, and a grip
- * for each opening on it. Positions are on the floor, except openings, which sit at their middle. */
+  /** Handles for the selection, and only those: a wall's two corners and "+" on a free end; a ceiling's
+   * height pills and depth grip. Walls and openings are dragged by their own surface. Positions are on the
+   * floor, except pills, which sit on the ceiling's edge. */
   function handles(): RoomHandle[] {
-    const studio = room(), w = selectedWall(studio), line = studio && w && wallLine(studio, w);
-    if (!studio || !w || !line) return [];
-    const face = wallFace(studio, w)!, out: RoomHandle[] = [], s = selection()!;
+    const studio = room(), s = selection(), w = selectedWall(studio), line = studio && w && wallLine(studio, w);
+    if (!studio || !s || !w || !line) return [];
+    const out: RoomHandle[] = [];
     if (s.kind === 'wall') {
       for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
-      const mid = (face.start + face.end) / 2, at = { x: line.a.x + line.ux * mid + line.nx * w.thickness / 2, z: line.a.z + line.uz * mid + line.nz * w.thickness / 2 };
-      // On the wall's top edge: wardrobes stand against its foot.
-      out.push({ key: 'wall:' + w.id, kind: 'wall', id: w.id, ...at, y: w.height, label: 'Move this wall. Drag in or out; the walls joined to it stretch', nx: line.nx, nz: line.nz });
       for (const c of [line.a, line.b]) {
         if (cornerDegree(studio, c.id) !== 1) continue;
         const sign = c.id === w.b ? 1 : -1;
         out.push({ key: 'extend:' + c.id, kind: 'extend', id: c.id, x: c.x + line.ux * sign * 60, y: 0, z: c.z + line.uz * sign * 60, label: 'Add a wall here. Drag to draw it, or click for a corner' });
       }
-    }
-    for (const o of studio.openings.filter(o => o.wall === w.id && (s.kind === 'wall' || o.id === s.id))) {
-      const off = w.thickness / 2 + 3;
-      const x = line.a.x + line.ux * o.offset + line.nx * off, z = line.a.z + line.uz * o.offset + line.nz * off;
-      out.push({ key: 'opening:' + o.id, kind: 'opening', id: o.id, x, y: o.sill + o.height / 2, z, label: 'Slide this ' + o.kind + ' along the wall', ux: line.ux, uz: line.uz });
+    } else if (s.kind === 'ceiling') {
+      const c = ceilingOf(studio, s.id);
+      if (c) out.push(...ceilingHandles(studio, c));
     }
     // The handle being dragged stays under the pointer even when its part is renamed (a joined corner)
-    // or new (a wall drawn from "+"), so the drag keeps its pointer.
-    if (drag?.moved && drag.at && !out.some(x => x.key === drag!.handle.key)) out.push({ ...drag.handle, x: drag.at.x, y: 0, z: drag.at.z });
-    else if (drag?.moved && drag.at) Object.assign(out.find(x => x.key === drag!.handle.key)!, drag.handle.kind === 'extend' ? { x: drag.at.x, z: drag.at.z } : {});
+    // or new (a wall drawn from "+"), so the drag keeps its pointer. A surface grab has no handle to keep.
+    const kept = drag?.moved && drag.at && ['corner', 'extend'].includes(drag.handle.kind);
+    if (kept && !out.some(x => x.key === drag!.handle.key)) out.push({ ...drag!.handle, x: drag!.at!.x, y: 0, z: drag!.at!.z });
+    else if (kept && drag!.handle.kind === 'extend') Object.assign(out.find(x => x.key === drag!.handle.key)!, { x: drag!.at!.x, z: drag!.at!.z });
     return out;
   }
 
@@ -101,6 +112,12 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (!studio || !s) return [];
     const w = selectedWall(studio);
     if (!w) return [];
+    if (s.kind === 'ceiling') {
+      // At rest the pills say it all; a drag shows where the point is, or how deep the ceiling reaches.
+      const c = ceilingOf(studio, s.id), h = drag?.moved ? drag.handle : null;
+      const m = c && h?.kind === 'ceiling' ? pointRuler(studio, c, h.index!) : c && h?.kind === 'depth' ? depthRuler(studio, c, handles().find(x => x.key === h.key) ?? h) : null;
+      return m ? [m] : [];
+    }
     if (s.kind === 'opening' || drag?.handle.kind === 'opening') {
       const o = studio.openings.find(x => x.id === (drag?.handle.kind === 'opening' ? drag.handle.id : s.id)), line = wallLine(studio, w), face = wallFace(studio, w);
       if (!o || !line || !face) return [];
@@ -114,7 +131,9 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const corners = moving.handle.kind === 'wall' ? [w.a, w.b] : [moving.created ?? moving.handle.id];
       for (const x of studio.walls) if (corners.includes(x.a) || corners.includes(x.b)) ids.add(x.id);
     }
-    return studio.walls.filter(x => ids.has(x.id)).map(x => wallRuler(studio, x)).filter((m): m is RoomMeasure => !!m);
+    // At rest, the selected wall's length can be tapped and typed.
+    const ruler = (x: StudioWall) => { const m = wallRuler(studio, x); return m && x.id === w.id && !moving && s.kind === 'wall' ? { ...m, edit: 'length' } : m; };
+    return studio.walls.filter(x => ids.has(x.id)).map(ruler).filter((m): m is RoomMeasure => !!m);
   }
   const guides = () => drag?.guides ?? [];
   const reason = () => {
@@ -131,8 +150,36 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     e.stopPropagation();
     const ground = picking.groundPoint(e);
     drag = { handle, pointer: e.pointerId, target, snapshot: model.snapshot(), original: studio, last: studio, client: { x: e.clientX, y: e.clientY }, ground: ground && { x: ground.x, z: ground.z },
-      moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, guides: [], reason: null, free: false, at: null };
+      moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, guides: [], reason: null, free: false, at: null, pin: { t: null, y: null },
+      carry: handle.kind === 'wall' ? sceneCommands.standingAgainst(handle.id) : null };
     try { target.setPointerCapture(e.pointerId); } catch { /* the drag still works from the handle's own events */ }
+  }
+  /** Starts dragging the selected wall, an opening on it, or the selected ceiling by its own surface, from
+   * the point grabbed. False when the pointer is not on the selection, so the view orbits as usual. */
+  function grab(e: PointerEvent, hit: { point: P & { y: number }; object: { userData: Record<string, unknown> } }, target: HTMLElement) {
+    const studio = room(), s = selection(), u = hit.object.userData, w = selectedWall(studio), line = studio && w && wallLine(studio, w);
+    if (!studio || !s || !w || !line) return false;
+    const at = { x: hit.point.x, y: hit.point.y, z: hit.point.z };
+    const opening = u.studioOpening ? studio.openings.find(o => o.id === u.studioOpening && o.wall === w.id) : undefined;
+    let handle: RoomHandle | null = null;
+    if (opening && s.kind !== 'ceiling') handle = { key: 'opening:' + opening.id, kind: 'opening', id: opening.id, ...at, label: '', ux: line.ux, uz: line.uz };
+    else if (s.kind === 'wall' && u.studioWall === w.id) handle = { key: 'wall:' + w.id, kind: 'wall', id: w.id, ...at, label: '', nx: line.nx, nz: line.nz };
+    else if (s.kind === 'ceiling' && u.studioCeiling === s.id) handle = { key: 'lift:' + s.id, kind: 'lift', id: s.id, ...at, label: '' };
+    if (!handle) return false;
+    if (handle.kind === 'opening' && s.id !== handle.id) select({ kind: 'opening', id: handle.id });
+    begin(e, handle, target);
+    return true;
+  }
+  /** Centimetres the pointer moved since the grab along a floor direction and upwards, measured on screen
+   * in the plane they span, so a pill follows the pointer at any camera angle. */
+  function inPlane(e: PointerEvent, h: RoomHandle, dx: number, dz: number) {
+    const o = picking.screenPoint({ x: h.x, y: h.y, z: h.z }), a = picking.screenPoint({ x: h.x + dx * 50, y: h.y, z: h.z + dz * 50 }), b = picking.screenPoint({ x: h.x, y: h.y + 50, z: h.z });
+    const u = { x: (a.x - o.x) / 50, y: (a.y - o.y) / 50 }, v = { x: (b.x - o.x) / 50, y: (b.y - o.y) / 50 }, det = u.x * v.y - u.y * v.x;
+    const mx = e.clientX - drag!.client.x, my = e.clientY - drag!.client.y;
+    pxPerCm = Math.hypot(v.x, v.y) || pxPerCm;
+    // Looking straight along the run, only the height can follow the pointer.
+    if (Math.abs(det) < .02 * Math.hypot(u.x, u.y) * Math.hypot(v.x, v.y) + 1e-6) return { s: 0, y: (mx * v.x + my * v.y) / Math.max(1e-6, v.x * v.x + v.y * v.y) };
+    return { s: (mx * v.y - my * v.x) / det, y: (u.x * my - u.y * mx) / det };
   }
   /** Centimetres the pointer moved along a floor direction from the grab, measured on screen so it feels
    * the same at any camera angle. */
@@ -159,7 +206,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     g.free = e.shiftKey;
     if (!g.moved && g.handle.kind === 'extend') startExtend(e);
     g.moved = true;
-    const problem = (s: Studio) => sceneCommands.studioProblem(s);
+    const problem = (s: Studio) => sceneCommands.studioProblem(s, g.carry ?? undefined);
     let want: ((t: number) => Studio | null) | null = null;
     const h = g.handle;
     if (h.kind === 'corner' || g.created) {
@@ -189,6 +236,28 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const target = lock ? lock.v : raw, from = g.last.openings.find(x => x.id === h.id)!.offset;
       g.guides = lock ? centreGuide(g.original, w) : [];
       want = t => moveOpening(g.original, h.id, from + (target - from) * t);
+    } else if (h.kind === 'ceiling') {
+      const c = ceilingOf(g.original, h.id)!, fr = ceilingFrame(g.original, c)!, axis = runAxis(fr, c), d = inPlane(e, h, axis.x, axis.z), p = c.profile[h.index!]!;
+      const snapped = g.free ? { at: { t: p.t + d.s, y: p.y + d.y }, locks: { t: null, y: null } } : snapPoint(g.original, c, h.index!, { t: step(p.t + d.s), y: step(p.y + d.y) }, g.pin, tolerance());
+      g.pin = snapped.locks;
+      const now = ceilingOf(g.last, h.id)?.profile[h.index!] ?? p, to = snapped.at;
+      want = t => moveCeilingPoint(g.original, h.id, h.index!, now.t + (to.t - now.t) * t, now.y + (to.y - now.y) * t);
+    } else if (h.kind === 'depth') {
+      const c = ceilingOf(g.original, h.id)!, raw = step(c.depth + along(e, h, h.nx!, h.nz!)), fr = ceilingFrame(g.original, c)!;
+      // Snaps to the wall opposite, so a staircase can span the whole room.
+      const opposite = reachAt(g.original, c.wall, (fr.along.from + fr.along.to) / 2);
+      const lock = g.free || opposite === null ? null : alignTo(raw, [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], g.lock, tolerance());
+      g.lock = lock;
+      const target = lock ? lock.v : raw, from = ceilingOf(g.last, h.id)?.depth ?? c.depth;
+      want = t => setCeilingDepth(g.original, h.id, from + (target - from) * t);
+    } else if (h.kind === 'lift') {
+      // The whole ceiling up or down, as one: a box lowered, a staircase raised.
+      const c = ceilingOf(g.original, h.id)!, top = roomHeight(g.original), dy = step(inPlane(e, h, 1, 0).y);
+      const lift = Math.min(top - Math.max(...c.profile.map(p => p.y)), dy), before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;
+      want = t => {
+        const by = before + (lift - before) * t;
+        return c.profile.reduce<Studio | null>((r, p, k) => r && moveCeilingPoint(r, h.id, k, p.t, p.y + by), g.original);
+      };
     }
     if (!want) return;
     const whole = want(1), wanted = whole && problem(whole);
@@ -198,6 +267,9 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (result.room && JSON.stringify(result.room) !== JSON.stringify(g.last)) {
       g.last = result.room;
       model.scene.studio = result.room;
+      if (g.carry?.list.length) sceneCommands.carryWardrobes(g.carry, result.room);
+      // Wardrobes under a ceiling follow it live; their fittings are fitted when the drag ends.
+      if (sceneCommands.followCeilings(false) || g.carry?.list.length) { callbacks.rebuild(); return; }
     }
     callbacks.redraw();
   }
@@ -225,29 +297,32 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     g.created = extended.corners.at(-1)!.id;
     g.ground = { x: p.x, z: p.z };
   }
+  /** Ends a drag. Returns whether anything moved: a tap on a surface is left to selection. */
   function end(cancel = false) {
     const g = drag;
-    if (!g) return;
+    if (!g) return false;
     drag = null;
     try { if (g.target.hasPointerCapture(g.pointer)) g.target.releasePointerCapture(g.pointer); } catch { /* released already */ }
-    if (cancel) { model.restore(g.snapshot); callbacks.refresh(); return; }
-    if (!g.moved) { click(g.handle); return; }
+    if (cancel) { model.restore(g.snapshot); callbacks.refresh(); return g.moved; }
+    if (!g.moved) { click(g.handle); return false; }
     if (JSON.stringify(g.last) !== JSON.stringify(JSON.parse(g.snapshot).studio ?? null)) {
       history.checkpoint(g.snapshot);
+      sceneCommands.followCeilings(true);
       callbacks.histUI();
     }
     // A wall drawn from "+" is selected: it is still there after its end joined another.
     if (g.created) selectionState.room = { kind: 'wall', id: g.original.walls.at(-1)!.id };
     if (g.locks.join) callbacks.report('Walls joined.');
     callbacks.refresh();
+    return true;
   }
   function click(h: RoomHandle) {
-    if (h.kind === 'opening') select({ kind: 'opening', id: h.id });
+    if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index);
     else if (h.kind === 'extend') {
       const id = sceneCommands.addStudioWall(selectedWall()?.id);
       if (id) selectionState.room = { kind: 'wall', id };
       callbacks.refresh();
-    } else callbacks.redraw();
+    } else if (h.kind === 'corner' || h.kind === 'depth') callbacks.redraw();
   }
   /** Arrow keys on a focused handle: 1 cm, Shift 10 cm. */
   function nudge(h: RoomHandle, key: string, shift: boolean) {
@@ -255,7 +330,9 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
     const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
       : h.kind === 'wall' ? edit(s => moveWall(s, h.id, dir * n))
-        : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n)) : false;
+        : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n))
+          : h.kind === 'ceiling' ? edit(s => { const p = ceilingOf(s, h.id)!.profile[h.index!]!; return moveCeilingPoint(s, h.id, h.index!, p.t + across, p.y + deep); })
+            : h.kind === 'depth' ? edit(s => setCeilingDepth(s, h.id, ceilingOf(s, h.id)!.depth + dir * n)) : false;
     return ok;
   }
   function edit(change: (s: Studio) => Studio | null) {
@@ -278,15 +355,26 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     } else if (key === 'split' && w) {
       if (!sceneCommands.editStudio(r => splitWall(r, w.id)) ) callbacks.report('This wall is too short to split. Each part needs ' + STUDIO_LIMITS.minWallLength + ' cm.');
       callbacks.refresh();
+    } else if (key.startsWith('ceiling:') && w) {
+      // A ceiling shape on this wall (replacing the one it had), selected to shape it on the model.
+      if (sceneCommands.editStudio(r => addCeiling(r, w.id, key.slice(8)))) select({ kind: 'ceiling', id: room()!.ceilings!.at(-1)!.id });
+      callbacks.refresh();
+    } else if (key === 'flip' && s?.kind === 'ceiling') {
+      if (!sceneCommands.editStudio(r => flipCeiling(r, s.id))) callbacks.report('A sloped ceiling always slopes down to its wall. Pick the wall it slopes down to.');
+      callbacks.refresh();
     } else if (key === 'remove' && s) {
-      if (s.kind === 'opening' ? sceneCommands.editStudio(r => removeOpening(r, s.id)) : sceneCommands.editStudio(r => removeWall(r, s.id))) selectionState.room = null;
+      const removed = s.kind === 'opening' ? sceneCommands.editStudio(r => removeOpening(r, s.id))
+        : s.kind === 'ceiling' ? sceneCommands.editStudio(r => removeCeiling(r, s.id)) : sceneCommands.editStudio(r => removeWall(r, s.id));
+      if (removed) selectionState.room = null;
       callbacks.refresh();
     }
   }
 
   return {
     select, valid, pick, handles, measures, guides, reason, act, nudge,
-    begin, move, end,
+    begin, grab, move, end,
+    /** Tapping a length on the model opens its field. */
+    editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields('wall-size', m.edit); },
     dragging: () => drag !== null,
     selection,
   };

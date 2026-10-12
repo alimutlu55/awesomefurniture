@@ -2,6 +2,8 @@ import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor
 import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet } from '../projects/editor-model';
 import { createStudioCommands } from './studio-commands';
+import { createCeilingCommands } from './ceiling-commands';
+import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
@@ -24,13 +26,35 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const geometry = createWardrobeGeometry(() => active().state);
     const design = createDesignCommands(() => active().state, { report });
     const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report });
+    const ceilings = createCeilingCommands(getScene, report);
     /** Why a change is refused: it would run into a wall of the room, or into another wardrobe. */
     const blockedMessage = (change: string, candidate: EditorCabinet) => collision.cabinetObstruction(candidate) === 'wall'
         ? change + ' would go through a wall of the room.'
         : change + ' would overlap another wardrobe. Move it first.';
     return {
         ...studio,
-        addCabinet(copy = false, template?: ShapeTemplateId) {
+        /** Room edits reshape the wardrobes under any ceiling they move. */
+        placeStudio(id: Parameters<typeof studio.placeStudio>[0]) {
+            const ok = studio.placeStudio(id);
+            if (ok) ceilings.followAll();
+            return ok;
+        },
+        editStudio(edit: Parameters<typeof studio.editStudio>[0], recordHistory = true, quiet = false) {
+            const ok = studio.editStudio(edit, recordHistory, quiet);
+            if (ok) ceilings.followAll(recordHistory);
+            return ok;
+        },
+        /** After a live room drag (`refit` false) and when it is committed. True when a wardrobe changed. */
+        followCeilings: (refit = true) => ceilings.followAll(refit),
+        /** A wardrobe dropped after a drag or a turn takes the ceiling over it. Returns why it cannot stand there. */
+        settleCabinet(id: number) {
+            const cabinet = getScene().wardrobes.find(w => w.id === id), problem = cabinet ? ceilings.follow(cabinet) : null;
+            if (problem) report(problem);
+            return problem;
+        },
+        /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it
+         * fills that wall's free stretch instead, as wide as it allows. */
+        addCabinet(copy = false, template?: ShapeTemplateId, wall?: string) {
             checkpoint();
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId++;
             const state = copy ? structuredClone(original.state) : initialDesign();
@@ -40,10 +64,23 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             const cabinet = { id, name: 'Wardrobe ' + id, x: 0, y: copy ? (original.y || 0) : 0, z: original.z, angle: copy ? original.angle : 0, state };
             if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
-            // In a room, a new wardrobe stands against the first free wall instead.
-            Object.assign(cabinet, studio.placeNewCabinet(cabinet) ?? {});
+            // In a room, a new wardrobe stands against the first free wall instead, or fills the wall chosen.
+            const spot = wall && !copy && !template ? studio.fillWall(cabinet, wall) : null;
+            if (spot) {
+                Object.assign(cabinet, spot.pose);
+                Object.assign(state, { w: spot.w, d: spot.d });
+                state.n = Math.max(1, Math.min(state.n, createWardrobeGeometry(() => state).maxN()));
+                state.sel = Math.min(state.sel, state.n - 1);
+            } else Object.assign(cabinet, studio.placeNewCabinet(cabinet) ?? {});
             scene.wardrobes.push(cabinet);
             scene.activeWardrobe = id;
+            // Under a staircase or a sloped ceiling it takes the ceiling's shape straight away, and a new wardrobe
+            // filling a wall is divided where the ceiling steps and bends.
+            ceilings.follow(cabinet);
+            if (spot && state.shape) {
+                Object.assign(state, sectionsUnder(state.shape, state.w, createWardrobeGeometry(() => state).maxN()));
+                state.sel = Math.min(state.sel, state.n - 1);
+            }
             return cabinet;
         },
         removeCabinet() {
@@ -97,7 +134,15 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 return false;
             }
             checkpoint();
+            const before = { x: cabinet.x, y: cabinet.y, z: cabinet.z, angle: cabinet.angle };
             Object.assign(cabinet, pose);
+            const problem = ceilings.follow(cabinet);
+            if (problem) {
+                Object.assign(cabinet, before);
+                discardCheckpoint();
+                report(problem);
+                return false;
+            }
             return true;
         },
         setCabinetSize(key: string, value: number, recordHistory = true) {
@@ -148,8 +193,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 report('Move the dividers or items before reducing the wardrobe size');
                 return false;
             }
+            // A height someone sets is theirs: the wardrobe no longer fills up to the ceiling.
+            if (state.shape?.template === 'room' && key === 'h') state.shape.template = 'custom';
+            if (recordHistory) ceilings.follow(active());
             // A width change scales slopes, so say what the slope is now.
-            if (state.shape && key === 'w' && recordHistory) {
+            if (state.shape && key === 'w' && recordHistory && state.shape.template !== 'room') {
                 const longest = shapePanels(state.shape).filter(p => p.kind === 'top').sort((a, b) => b.length - a.length)[0];
                 if (longest) report('Width ' + state.w + ' cm · top panel now ' + Math.round(longest.angle) + '°');
             }
@@ -167,6 +215,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (!empty) shape.top.forEach(p => { if (p.partition !== undefined && p.partition >= next.n - 1) delete p.partition; });
             if (shapeProblems(shape, state.w).length) {
                 report('This shape does not fit a ' + state.w + ' cm wide wardrobe.');
+                return false;
+            }
+            const underCeiling = ceilings.shapeBlocked(cabinet, template === 'regular' ? { template, top: [{ x: 0, y: state.h }, { x: state.w, y: state.h }] } : shape);
+            if (underCeiling) {
+                report(underCeiling);
                 return false;
             }
             if (template === 'regular') delete next.shape;
@@ -193,6 +246,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             const h = maxHeight(shape);
             if (JSON.stringify(shape) === JSON.stringify(state.shape)) return false;
+            const underCeiling = ceilings.shapeBlocked(cabinet, shape);
+            if (underCeiling) {
+                report(underCeiling);
+                return false;
+            }
             if (collision.cabinetCollides({ ...cabinet, state: { ...state, h } })) {
                 report(blockedMessage('That height', { ...cabinet, state: { ...state, h } }));
                 return false;
