@@ -14,6 +14,6 @@ export function studioObstacles(studio: Studio | undefined): Obstacle[] {
   if (!studio) return [];
   return studio.walls.flatMap(w => {
     const box = wallBox(studio, w);
-    return box ? [{ id: box.id, x: box.x, y: 0, z: box.z, angle: box.angle, state: { w: box.length, d: box.thickness, h: box.height } }] : [];
+    return box ? [{ id: box.id, x: box.x, y: box.y, z: box.z, angle: box.angle, state: { w: box.length, d: box.thickness, h: box.height } }] : [];
   });
 }

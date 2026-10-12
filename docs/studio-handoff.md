@@ -24,7 +24,7 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
 - **Corners and walls.** A wall runs from corner `a` to corner `b`, centred on that line. Its
   **room side** is to the left of a→b: normal `(nx, nz) = (-uz, ux)`. That equals the front
   direction of a wardrobe at the wall's angle `atan2(-dz, dx)`, so a wardrobe flush against a wall
-  simply takes the wall's angle. Moving a corner stretches every wall that meets there.
+  simply takes the wall's angle. Moving a corner stretches every wall that meets there. A wall's optional `y` is its elevation above the floor (zero for older projects); vertical movement carries its openings without changing its height.
 - **Openings** (door, window, archway) belong to a wall: `offset` is the distance from corner `a`
   to the opening's centre. Wall and corner moves keep openings where they are in the room
   (`keepOpenings` in `studio-edit.ts`).
@@ -82,7 +82,7 @@ How it works now:
 - **Click or tap a wall** (when no wardrobe is in front of it) or an opening to select it. The contextual
   toolbar shows its actions on desktop and phone: wall → Size, Split, Door, Window, More (Archway, Add wall,
   Remove wall); opening → Size, Remove. Size opens exact fields. Esc leaves, Delete removes.
-- **Handles**: corner dots (floor), a grip on the wall's top edge (moves it along its room side), "+" on free
+- **Handles**: corner dots (floor), a grip on the wall's top edge (moves it along its room side), and X/Y/Z grips (translate it left/right, up/down, and forward/backward), "+" on free
   ends (drag to draw a wall, click for a right-angle wall), a grip on each opening (slides it). Drags go as far
   as the room allows and say why they stopped; one undo step each; Shift drags freely. Snaps: corners square
   with neighbours, align with other corners, 45°, and join a free end dropped within 36 cm of another free end;

@@ -41,6 +41,18 @@ export function moveWall(studio: Studio, id: string, distance: number): Studio |
   return custom(studio, { corners, openings: keepOpenings(studio, corners) });
 }
 
+/** Translates a wall on one scene axis. Joined corners follow on the floor; openings on this wall
+ * travel with it. Vertical movement preserves the wall's size and opening positions. */
+export function moveWallAxis(studio: Studio, id: string, axis: 'x' | 'y' | 'z', distance: number): Studio | null {
+  const w = wall(studio, id), line = w && wallLine(studio, w);
+  if (!w || !line || !Number.isFinite(distance)) return null;
+  if (axis === 'y') return custom(studio, { walls: studio.walls.map(v => v.id === id ? { ...v, y: round((v.y ?? 0) + distance) } : v) });
+  let corners = studio.corners;
+  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + (axis === 'x' ? distance : 0), c.z + (axis === 'z' ? distance : 0));
+  const openings = keepOpenings(studio, corners).map(o => o.wall === id ? studio.openings.find(v => v.id === o.id)! : o);
+  return custom(studio, { corners, openings });
+}
+
 /** Sets a wall's length by moving its `b` end along the wall (or its `a` end when `fromEnd`). */
 export function setWallLength(studio: Studio, id: string, length: number, fromEnd = false): Studio | null {
   const w = wall(studio, id), line = w && wallLine(studio, w);

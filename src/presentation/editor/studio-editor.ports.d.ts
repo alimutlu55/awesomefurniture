@@ -8,6 +8,7 @@ export interface RoomHandle {
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
+    readonly axis?: 'x' | 'y' | 'z';
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
 }

@@ -1,6 +1,6 @@
 import { STUDIO_LIMITS, cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, moveWallAxis, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
@@ -65,10 +65,15 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (!studio || !w || !line) return [];
     const face = wallFace(studio, w)!, out: RoomHandle[] = [], s = selection()!;
     if (s.kind === 'wall') {
-      for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
+      for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: w.y ?? 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
       const mid = (face.start + face.end) / 2, at = { x: line.a.x + line.ux * mid + line.nx * w.thickness / 2, z: line.a.z + line.uz * mid + line.nz * w.thickness / 2 };
       // On the wall's top edge: wardrobes stand against its foot.
-      out.push({ key: 'wall:' + w.id, kind: 'wall', id: w.id, ...at, y: w.height, label: 'Move this wall. Drag in or out; the walls joined to it stretch', nx: line.nx, nz: line.nz });
+      out.push({ key: 'wall:' + w.id, kind: 'wall', id: w.id, ...at, y: (w.y ?? 0) + w.height, label: 'Move this wall in or out', nx: line.nx, nz: line.nz });
+      for (const axis of ['x', 'y', 'z'] as const) {
+        out.push({ key: 'wall:' + w.id + ':' + axis, kind: 'wall', id: w.id, axis,
+          x: at.x + (axis === 'x' ? 65 : 0), y: (w.y ?? 0) + w.height + (axis === 'y' ? 65 : 0), z: at.z + (axis === 'z' ? 65 : 0),
+          label: 'Move wall along ' + axis.toUpperCase() + '. Drag or use arrow keys', nx: axis === 'x' ? 1 : 0, nz: axis === 'z' ? 1 : 0 });
+      }
       for (const c of [line.a, line.b]) {
         if (cornerDegree(studio, c.id) !== 1) continue;
         const sign = c.id === w.b ? 1 : -1;
@@ -78,7 +83,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     for (const o of studio.openings.filter(o => o.wall === w.id && (s.kind === 'wall' || o.id === s.id))) {
       const off = w.thickness / 2 + 3;
       const x = line.a.x + line.ux * o.offset + line.nx * off, z = line.a.z + line.uz * o.offset + line.nz * off;
-      out.push({ key: 'opening:' + o.id, kind: 'opening', id: o.id, x, y: o.sill + o.height / 2, z, label: 'Slide this ' + o.kind + ' along the wall', ux: line.ux, uz: line.uz });
+      out.push({ key: 'opening:' + o.id, kind: 'opening', id: o.id, x, y: (w.y ?? 0) + o.sill + o.height / 2, z, label: 'Slide this ' + o.kind + ' along the wall', ux: line.ux, uz: line.uz });
     }
     // The handle being dragged stays under the pointer even when its part is renamed (a joined corner)
     // or new (a wall drawn from "+"), so the drag keeps its pointer.
@@ -91,7 +96,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   function wallRuler(studio: Studio, w: StudioWall): RoomMeasure | null {
     const line = wallLine(studio, w), face = wallFace(studio, w);
     if (!line || !face || face.length < 1) return null;
-    const o = { x: line.nx * RULER, z: line.nz * RULER }, y = w.height + 12;
+    const o = { x: line.nx * RULER, z: line.nz * RULER }, y = (w.y ?? 0) + w.height + 12;
     return { a: { x: face.from.x + o.x, y, z: face.from.z + o.z }, b: { x: face.to.x + o.x, y, z: face.to.z + o.z }, text: f(face.length) };
   }
   /** Rulers for what is selected or dragged: the wall's inside length, and while a wall or corner moves,
@@ -104,7 +109,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (s.kind === 'opening' || drag?.handle.kind === 'opening') {
       const o = studio.openings.find(x => x.id === (drag?.handle.kind === 'opening' ? drag.handle.id : s.id)), line = wallLine(studio, w), face = wallFace(studio, w);
       if (!o || !line || !face) return [];
-      const y = o.sill + o.height + 14, z = w.thickness / 2 + 4, at = (t: number) => ({ x: line.a.x + line.ux * t + line.nx * z, y, z: line.a.z + line.uz * t + line.nz * z });
+      const y = (w.y ?? 0) + o.sill + o.height + 14, z = w.thickness / 2 + 4, at = (t: number) => ({ x: line.a.x + line.ux * t + line.nx * z, y, z: line.a.z + line.uz * t + line.nz * z });
       const l = o.offset - o.width / 2, r = o.offset + o.width / 2;
       return [[face.start, l], [l, r], [r, face.end]].filter(([p, q]) => q! - p! > .5).map(([p, q]) => ({ a: at(p!), b: at(q!), text: f(q! - p!) }));
     }
@@ -134,10 +139,10 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, guides: [], reason: null, free: false, at: null };
     try { target.setPointerCapture(e.pointerId); } catch { /* the drag still works from the handle's own events */ }
   }
-  /** Centimetres the pointer moved along a floor direction from the grab, measured on screen so it feels
+  /** Centimetres the pointer moved along a scene direction from the grab, measured on screen so it feels
    * the same at any camera angle. */
-  function along(e: PointerEvent, h: RoomHandle, dx: number, dz: number) {
-    const a = picking.screenPoint({ x: h.x, y: h.y, z: h.z }), b = picking.screenPoint({ x: h.x + dx * 50, y: h.y, z: h.z + dz * 50 });
+  function along(e: PointerEvent, h: RoomHandle, dx: number, dz: number, dy = 0) {
+    const a = picking.screenPoint({ x: h.x, y: h.y, z: h.z }), b = picking.screenPoint({ x: h.x + dx * 50, y: h.y + dy * 50, z: h.z + dz * 50 });
     const sx = (b.x - a.x) / 50, sy = (b.y - a.y) / 50, len2 = sx * sx + sy * sy;
     pxPerCm = Math.sqrt(len2) || pxPerCm;
     return len2 < 1e-4 ? 0 : ((e.clientX - drag!.client.x) * sx + (e.clientY - drag!.client.y) * sy) / len2;
@@ -174,6 +179,12 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
         const moved = moveCorner(g.original, id, from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t);
         return moved && join && t === 1 ? mergeCorners(moved, id, join) : moved;
       };
+    } else if (h.kind === 'wall' && h.axis) {
+      const axis = h.axis, w = wallOf(g.original, h.id)!, original = wallLine(g.original, w)!, last = wallOf(g.last, h.id)!, line = wallLine(g.last, last)!;
+      const raw = step(along(e, h, axis === 'x' ? 1 : 0, axis === 'z' ? 1 : 0, axis === 'y' ? 1 : 0));
+      const before = axis === 'y' ? (last.y ?? 0) - (w.y ?? 0) : line.a[axis] - original.a[axis];
+      g.guides = [];
+      want = t => moveWallAxis(g.original, h.id, axis, before + (raw - before) * t);
     } else if (h.kind === 'wall') {
       const w = wallOf(g.original, h.id)!, raw = step(along(e, h, h.nx!, h.nz!));
       const lock = g.free ? null : alignTo(raw, wallTargets(g.original, w), g.lock, tolerance());
@@ -254,7 +265,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const n = shift ? 10 : 1, dir = key === 'ArrowRight' || key === 'ArrowUp' ? 1 : -1;
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
     const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
-      : h.kind === 'wall' ? edit(s => moveWall(s, h.id, dir * n))
+      : h.kind === 'wall' ? edit(s => h.axis ? moveWallAxis(s, h.id, h.axis, dir * n) : moveWall(s, h.id, dir * n))
         : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n)) : false;
     return ok;
   }

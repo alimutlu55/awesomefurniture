@@ -22,6 +22,8 @@ export interface StudioWall {
   /** Centred on the line from a to b. */
   readonly thickness: number;
   readonly height: number;
+  /** Bottom above the floor; omitted in older projects means zero. */
+  readonly y?: number | undefined;
 }
 
 export type OpeningKind = 'door' | 'window' | 'archway';
@@ -91,7 +93,7 @@ export function wallBox(studio: Studio, w: StudioWall) {
   const line = wallLine(studio, w);
   if (!line) return null;
   const { start, end } = wallExtent(studio, w, line.length), mid = (start + end) / 2;
-  return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: 0, angle: line.angle, length: end - start, thickness: w.thickness, height: w.height };
+  return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: w.y ?? 0, angle: line.angle, length: end - start, thickness: w.thickness, height: w.height };
 }
 
 /** The wall's room-side face on the floor: the length a tape measure reads inside the room. It runs from
@@ -130,5 +132,5 @@ export function studioBounds(studio: Studio) {
     for (const p of [line.a, line.b]) { xs.push(p.x - half, p.x + half); zs.push(p.z - half, p.z + half); }
   }
   if (!xs.length) return null;
-  return { x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs), height: Math.max(...studio.walls.map(w => w.height)) };
+  return { x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs), height: Math.max(...studio.walls.map(w => (w.y ?? 0) + w.height)) };
 }

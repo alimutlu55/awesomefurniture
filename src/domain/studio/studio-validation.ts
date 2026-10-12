@@ -12,6 +12,7 @@ export function studioProblems(studio: Studio): string[] {
   for (const w of studio.walls) {
     const line = wallLine(studio, w);
     if (!line) { problems.push('A wall is missing one of its corners.'); continue; }
+    if (!Number.isFinite(w.y ?? 0) || (w.y ?? 0) < 0) problems.push('Walls must stay above the floor.');
     if (w.a === w.b) problems.push('A wall needs two different corners.');
     if (line.length < L.minWallLength - .01) problems.push(`Walls must be at least ${L.minWallLength} cm long.`);
     if (line.length > L.maxWallLength + .01) problems.push(`Walls can be at most ${L.maxWallLength / 100} m long.`);
@@ -29,6 +30,7 @@ function crossingProblems(studio: Studio): string[] {
   const walls = studio.walls;
   for (let i = 0; i < walls.length; i++) for (let j = i + 1; j < walls.length; j++) {
     const p = walls[i]!, q = walls[j]!;
+    if ((p.y ?? 0) >= (q.y ?? 0) + q.height || (q.y ?? 0) >= (p.y ?? 0) + p.height) continue;
     const shared = [p.a, p.b].filter(c => c === q.a || c === q.b);
     if (shared.length > 1) { out.push('Two walls join the same corners. Remove one of them.'); continue; }
     const a = corner(studio, p.a), b = corner(studio, p.b), c = corner(studio, q.a), d = corner(studio, q.b);

@@ -55,6 +55,8 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (!editor.selection() || k.metaKey || k.ctrlKey || k.altKey) return;
         // Typing, and keys inside the toolbar's popover (Escape closes it first), are not for the room.
         if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest?.('.contextual-popover'))) return;
+        // Focused room grips handle their own arrow keys at the target.
+        if (k.key.startsWith('Arrow') && target?.closest?.('.room-handle')) return;
         if (k.key === 'Escape') editor.select(null);
         else if (k.key === 'Delete' || k.key === 'Backspace') editor.act('remove');
         else if (!k.key.startsWith('Arrow')) return;
