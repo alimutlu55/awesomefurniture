@@ -15,7 +15,7 @@ import { POSSESSIONS } from '../domain/wardrobe/possessions';
  * or open a design from a link (`#spec=`). Every design goes through the spec codec and the interpreter, so
  * an agent gets exactly what the editor's own commands build, and the person can undo it in one step.
  */
-export type AgentResult = { ok: true; report: SceneReport } | { ok: false; problems: readonly SpecProblem[] };
+export type AgentResult = { ok: true; report: SceneReport; shown?: false; link?: string; note?: string } | { ok: false; problems: readonly SpecProblem[] };
 export interface MountedEditor {
   replaceDesign(project: ProjectDocument): void;
   scene(): EditorScene;
@@ -66,7 +66,8 @@ Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
 - \`example()\`: a complete spec to start from.
 - \`check(spec)\`: builds it without changing the editor. Returns \`{ ok: true, report }\` or \`{ ok: false, problems }\`.
 - \`build(spec)\`: builds it and shows it in the editor (the person can undo it in one step). Same result.
-- \`describe()\`: the report of the design the editor shows now.
+  In a browser without 3D (WebGL) nothing is shown: the result has \`shown: false\` and a \`link\` for the person.
+- \`describe()\`: the report of the design the editor shows now (without 3D, of the last design built).
 - \`link(spec)\`: a URL that opens this design in the editor; give it to the person.
 
 Without JavaScript, give a link instead (above): \`#spec=\` with the JSON, URL-encoded, or base64url as \`link(spec)\` makes.
@@ -117,8 +118,16 @@ export function checkSpec(value: unknown): { result: AgentResult; project?: Proj
 const toBase64Url = (text: string) => btoa(String.fromCharCode(...new TextEncoder().encode(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 export const fromBase64Url = (code: string) => new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
 
-/** The functions on `window.wardrobeForge`, and the WebMCP tools where the browser offers them. */
-export function createAgentApi(editor: MountedEditor, location: { href: string }) {
+/** Why a browser without 3D shows no design, and what an agent does instead. */
+export const NO_EDITOR_NOTE = 'This browser cannot show the 3D editor (WebGL is off), so nothing was shown. The design builds: give the person this link to open in their own browser.';
+
+/**
+ * The functions on `window.wardrobeForge`, and the WebMCP tools where the browser offers them. They work
+ * before the editor starts and in a browser that cannot start it (agents' browsers often have no WebGL):
+ * then `build` shows nothing and answers with a link for the person, and `describe` reports the last build.
+ */
+export function createAgentApi(current: () => MountedEditor | null, location: { href: string }) {
+  let last: SceneReport | null = null;
   const api = {
     version: 1,
     help: agentGuide,
@@ -126,14 +135,18 @@ export function createAgentApi(editor: MountedEditor, location: { href: string }
     example: () => structuredClone(EXAMPLE_SPEC),
     check: (spec: unknown) => checkSpec(spec).result,
     build(spec: unknown): AgentResult {
-      const { result, project } = checkSpec(spec);
-      if (project) {
-        editor.replaceDesign(project);
-        editor.notify('Design built by an assistant. Undo restores yours.');
-      }
+      const { result, project } = checkSpec(spec), editor = current();
+      if (!project || !result.ok) return result;
+      last = result.report;
+      if (!editor) return { ...result, shown: false, link: api.link(spec), note: NO_EDITOR_NOTE };
+      editor.replaceDesign(project);
+      editor.notify('Design built by an assistant. Undo restores yours.');
       return result;
     },
-    describe: () => describeScene(editor.scene()),
+    describe(): SceneReport | null {
+      const editor = current();
+      return editor ? describeScene(editor.scene()) : last;
+    },
     link(spec: unknown) {
       const url = new URL(location.href);
       url.hash = 'spec=' + toBase64Url(JSON.stringify(spec));

@@ -18,7 +18,8 @@ Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
 - `example()`: a complete spec to start from.
 - `check(spec)`: builds it without changing the editor. Returns `{ ok: true, report }` or `{ ok: false, problems }`.
 - `build(spec)`: builds it and shows it in the editor (the person can undo it in one step). Same result.
-- `describe()`: the report of the design the editor shows now.
+  In a browser without 3D (WebGL) nothing is shown: the result has `shown: false` and a `link` for the person.
+- `describe()`: the report of the design the editor shows now (without 3D, of the last design built).
 - `link(spec)`: a URL that opens this design in the editor; give it to the person.
 
 Without JavaScript, give a link instead (above): `#spec=` with the JSON, URL-encoded, or base64url as `link(spec)` makes.

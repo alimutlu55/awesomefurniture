@@ -27,7 +27,7 @@ test('the guide names every built-in room, ceiling shape and possession, and its
 });
 
 test('check builds without changing the editor; build shows it as one undo step and says so', () => {
-  const e = editor(), api = createAgentApi(e, { href: 'https://example.test/editor' });
+  const e = editor(), api = createAgentApi(() => e, { href: 'https://example.test/editor' });
   assert.equal(api.check(api.example()).ok, true);
   assert.equal(e.loaded.length, 0, 'check leaves the editor alone');
   const built = api.build(api.example());
@@ -42,7 +42,7 @@ test('check builds without changing the editor; build shows it as one undo step 
 });
 
 test('a design link carries the spec and opens the same design', () => {
-  const api = createAgentApi(editor(), { href: 'https://example.test/editor?x=1#old' });
+  const api = createAgentApi(() => editor(), { href: 'https://example.test/editor?x=1#old' });
   const url = new URL(api.link(EXAMPLE_SPEC));
   assert.equal(url.pathname, '/editor');
   const spec = JSON.parse(fromBase64Url(new URLSearchParams(url.hash.slice(1)).get('spec')!));
@@ -51,7 +51,7 @@ test('a design link carries the spec and opens the same design', () => {
 
 test('where the browser offers WebMCP, the functions are tools; elsewhere nothing is assumed', async () => {
   const tools: { name: string; execute(input: unknown): Promise<any> }[] = [];
-  const api = createAgentApi(editor(), { href: 'https://example.test/' });
+  const api = createAgentApi(() => editor(), { href: 'https://example.test/' });
   assert.equal(registerWebMcpTools(api, { modelContext: { registerTool: (t: never) => tools.push(t) } }, {}), true);
   assert.deepEqual(tools.map(t => t.name), ['design_guide', 'check_design', 'build_design', 'describe_design', 'design_link']);
   const reply = await tools.find(t => t.name === 'check_design')!.execute(EXAMPLE_SPEC);
@@ -71,9 +71,19 @@ test('assistants that only read pages find the link recipe and a working example
 });
 
 test('a design link takes the JSON as written, URL-encoded, or as base64url', () => {
-  const json = JSON.stringify(LINK_EXAMPLE), api = createAgentApi(editor(), { href: 'https://example.test/' });
+  const json = JSON.stringify(LINK_EXAMPLE), api = createAgentApi(() => editor(), { href: 'https://example.test/' });
   assert.deepEqual(specFromLink('#spec=' + json), LINK_EXAMPLE, 'as written');
   assert.deepEqual(specFromLink('#spec=' + encodeURIComponent(json)), LINK_EXAMPLE, 'URL-encoded');
   assert.deepEqual(specFromLink(new URL(api.link(LINK_EXAMPLE)).hash), LINK_EXAMPLE, 'base64url');
   assert.equal(specFromLink('#other=1'), null);
+});
+
+test('in a browser that cannot start the editor (no WebGL), the functions still work and build answers with a link', () => {
+  const api = createAgentApi(() => null, { href: 'https://example.test/' });
+  assert.equal(api.describe(), null, 'nothing built yet');
+  const built = api.build(LINK_EXAMPLE);
+  assert.ok(built.ok && built.shown === false && built.note);
+  assert.deepEqual(specFromLink(new URL(built.link!).hash), LINK_EXAMPLE, 'the link opens what was built');
+  assert.deepEqual(api.describe(), built.report, 'describe reports the last design built');
+  assert.equal(api.build({ specVersion: 1, wardrobes: [{ against: 3 }] }).ok, false);
 });
