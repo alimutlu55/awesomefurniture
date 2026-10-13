@@ -1,6 +1,6 @@
 import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../../domain/wardrobe/possessions';
 import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
-import { hasTrait } from '../../domain/wardrobe/fittings';
+import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 /** Add item menu content for the selected space: which fittings fit, ranked, with the reason and the
  * hint shown on each card, and a one-line description of the space. This is presentation copy; the
  * sizing rules it asks come from the wardrobe rules (domain/geometry/wardrobe-rules).
@@ -106,4 +106,19 @@ export function createAddSuggestions(getDesign, rules) {
         return { list, intent };
     }
     return { addSuggestions };
+}
+/** The menu group a card belongs to (fittings registry, `menu.group`); shelf possessions and anything else are storage. */
+export const menuGroup = k => k === 'divider' ? 'shelves' : fitting(k)?.menu?.group ?? 'storage';
+/** The phone sheet's order for the selected space: what fits first, then what suits this zone best (the same
+ * ranking as Suggested for this space), the registry's phone rank breaking ties.
+ * @template {{ k: string, o: number, fit: boolean, s: number }} T @param {T[]} list @returns {T[]} */
+export function orderForSpace(list) {
+    const rank = k => fitting(k)?.menu?.mobileRank ?? 4;
+    return list.slice().sort((a, c) => (Number(c.fit) - Number(a.fit)) || c.s - a.s || rank(a.k) - rank(c.k) || a.o - c.o);
+}
+/** Category pills in the order of their best product for this space; a category with nothing that fits goes last.
+ * @param {{ k: string, fit: boolean }[]} ordered from orderForSpace @param {string[]} keys @returns {string[]} */
+export function categoriesForSpace(ordered, keys) {
+    const firstAt = key => { const at = ordered.findIndex(x => x.fit && menuGroup(x.k) === key); return at < 0 ? ordered.length : at; };
+    return keys.slice().sort((a, c) => firstAt(a) - firstAt(c));
 }

@@ -8,7 +8,7 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').crea
 readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').createScenePicking>, 'cast' | 'frontPoint' | 'groundPoint' | 'hitAt' | 'screenPoint'>>;
 readonly cameraState: Pick<ReturnType<typeof import('../viewport/camera-state.js').createCameraState>, 'camGoal' | 'el' | 'tgt' | 'tgtY' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'lastMoveEvent' | 'moveMode' | 'panelWasOpen' | 'previewPlan' | 'rotationGesture' | 'wardrobeGesture'>;
-readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'hits' | 'ihits' | 'itemGroups' | 'outs' | 'previewGroup' | 'settling'>;
+readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'hits' | 'ihits' | 'itemGroups' | 'outs' | 'previewGroup' | 'settling' | 'wardrobeGroups'>;
 readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'room'>;
 readonly shellState: Pick<ReturnType<typeof import('./shell-state.js').createShellState>, 'G'>;
 readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'effectiveMin' | 'ih' | 'itemEdgeSize' | 'itemGeom' | 'itemMinW' | 'planFreeMove' | 'planItemMove' | 'resizeObstacles' | 'verticalNeighbor' | 'widthEdgeFor' | 'widths'>>;

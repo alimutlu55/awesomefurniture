@@ -1,4 +1,4 @@
-import { createAddSuggestions } from './add-suggestions.js';
+import { categoriesForSpace, createAddSuggestions, menuGroup, orderForSpace } from './add-suggestions.js';
 import { productArt } from './product-art.js';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting } from '../../domain/wardrobe/fittings';
@@ -27,14 +27,16 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         const browser = $('#pop2').querySelector('.mobile-add-browser');
         const categories = browser.querySelector('.mobile-add-categories'), products = browser.querySelector('.mobile-add-products');
         // Menu groups and phone order come from the fittings registry (fittings.ts, `menu`).
-        const group = k => k === 'divider' ? 'shelves' : fitting(k)?.menu?.group ?? 'storage';
+        const group = menuGroup;
         const shapes = shapeTemplates(), shapeButton = (t, extra) => '<button type="button" class="shape-product" data-add-shape="' + t.id + '"' + extra + ' title="' + esc('New ' + t.name.toLowerCase() + ' wardrobe · ' + t.description) + '">' + templateArt(t.id) + '<span>' + esc(t.name) + '</span></button>';
         $('#padd-shapes').innerHTML = shapes.map(t => shapeButton(t, '')).join('');
+        // The phone sheet follows the selected space: products and category pills in the order that suits it.
+        const forSpace = orderForSpace(list), pillOf = { storage: ['Storage', 'seasonal'], hanging: ['Hanging', 'short'], drawers: ['Drawers', 'drawer'], shelves: ['Shelves', 'shelf'] };
+        const pills = categoriesForSpace(forSpace, Object.keys(pillOf)).map(key => [key, ...pillOf[key]]);
         // Auto design takes the Add item pill's place in this row. Add item stays as the hidden "all" filter the sheet opens on.
-        categories.innerHTML = '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>' + [['all','Add item','plus'],['room','Walls','room-wall'],['wardrobe','Wardrobe','wardrobe'],['storage','Storage','seasonal'],['hanging','Hanging','short'],['drawers','Drawers','drawer'],['shelves','Shelves','shelf']].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'"'+(key==='all'||key==='room'||key==='wardrobe'?' hidden':'')+'>'+icon(ic)+'<span>'+name+'</span></button>').join('');
+        categories.innerHTML = '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>' + [['all','Add item','plus'],['room','Walls','room-wall'],['wardrobe','Wardrobe','wardrobe'],...pills].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'"'+(key==='all'||key==='room'||key==='wardrobe'?' hidden':'')+'>'+icon(ic)+'<span>'+name+'</span></button>').join('');
         const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
-        const order = k => fitting(k)?.menu?.mobileRank ?? 4;
-        products.innerHTML = '<button type="button" data-product-category="wardrobe" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + list.slice().sort((a,b) => order(a.k) - order(b.k)).map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('') + roomProducts();
+        products.innerHTML = '<button type="button" data-product-category="wardrobe" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + forSpace.map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('') + roomProducts();
         (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
         // Wardrobe templates add a new wardrobe that starts from that skeleton.
         (/** @type {NodeListOf<HTMLButtonElement>} */ ($('#pop2').querySelectorAll('[data-add-shape]'))).forEach(button => { button.onclick = () => addCabinet(false, button.dataset.addShape); });

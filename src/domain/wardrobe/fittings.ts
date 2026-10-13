@@ -58,7 +58,7 @@ export interface FittingDef {
   readonly itemName?: string;
   readonly frontName?: string;
   /** Add item menu. Leave out for kinds the user does not add directly (free space). */
-  readonly menu?: { readonly order: number; readonly group: MenuGroup; readonly label?: string; /** Lower first on phones. */ readonly mobileRank?: number };
+  readonly menu?: { readonly order: number; readonly group: MenuGroup; readonly label?: string; /** Breaks ties on phones, after what suits the selected space (add-menu-presenter.js). Lower first. */ readonly mobileRank?: number };
   readonly zone: ZoneStyle;
   /** 24 px line icon path. */
   readonly icon: string;

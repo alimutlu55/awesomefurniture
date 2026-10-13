@@ -5,6 +5,12 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         const hit = room ? picking.cast(e, room.pickables()) : undefined;
         return hit && (!wardrobe || hit.distance < wardrobe.distance) ? hit : undefined;
     };
+    /** A point in the frame of the wardrobe the hit object belongs to. */
+    const inWardrobe = (object, point) => {
+        let group = object;
+        while (group && !renderState.wardrobeGroups.includes(group)) group = group.parent;
+        return group ? group.worldToLocal(point.clone()) : null;
+    };
     function pick(e) {
         const h = picking.cast(e, renderState.allHits), part = roomHit(e, h);
         if (part && room.pick(part)) return;
@@ -17,8 +23,12 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         const u = h.object.userData;
         // Decide the selection scope before switching cabinet or rebuilding its hit boxes.
         if (!selectionState.focusOn || u.wardrobe !== model.scene.activeWardrobe) {
+            // Where it was tapped is the space the person means, not the section's top: Add item ranks for it.
+            const at = h.point ? inWardrobe(h.object, h.point) : null;
             inspector.selectCabinet(u.wardrobe);
             model.activeCabinet().state.sel = u.i;
+            model.activeCabinet().state.space = null;
+            if (at) inspector.selectSpaceAt(u.i, at);
             inspector.update();
             return;
         }
