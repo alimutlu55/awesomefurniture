@@ -44,8 +44,9 @@ test('shaping the stairs reshapes the wardrobe under them; a shape that would ri
   assert.equal(s.commands.editStudio(room => moveCeilingPoint(room, 'k1', 2, room.ceilings![0]!.profile[2]!.t, 150)), true);
   assert.notEqual(JSON.stringify(s.w().state.shape), before, 'it followed');
   assert.equal(s.checkpoints(), checkpoints + 1, 'one undo step for both');
+  const messages = s.messages.length;
   assert.equal(s.commands.applyShapeTemplate('regular'), false);
-  assert.match(s.messages.at(-1)!, /ceiling above is lower/);
+  assert.equal(s.messages.length, messages, 'ceiling-blocked templates are silent');
 });
 
 test('room-fitted shape edits cannot rise into the stairs, including live previews at unchanged maximum height', () => {
@@ -61,10 +62,12 @@ test('room-fitted shape edits cannot rise into the stairs, including live previe
   assert.equal(maxHeight(shape), original.h, 'the bounding box height does not change');
   assert.deepEqual(shapeProblems(shape, original.w), [], 'the edited skeleton itself is buildable');
   assert.match(s.commands.shapeEditProblem(shape)!, /ceiling above is lower/);
+  const messages = s.messages.length;
   for (const recordHistory of [false, true]) {
     assert.equal(s.commands.setShape(shape, recordHistory, recordHistory), false);
     assert.deepEqual(cabinet.state, original, 'shape, fittings and height are preserved');
     assert.equal(s.checkpoints(), checkpoints, 'rejected edits do not enter undo history');
+    assert.equal(s.messages.length, messages, 'ceiling-blocked edits are silent');
   }
 });
 
@@ -113,7 +116,7 @@ test('a handle stops at the ceiling, can move back down, and commits one undo st
   pointer = { ...pointer, y: point.y + 20 };
   inspector.moveHandleDrag(event);
   assert.ok(state().shape!.top[index]!.y <= point.y + .5, 'stops at the ceiling tolerance');
-  assert.match(inspector.dragReason()!.text, /ceiling above is lower/);
+  assert.equal(inspector.dragReason(), null, 'ceiling boundary does not show feedback');
   assert.equal(s.checkpoints(), checkpoints, 'preview has no undo entry');
   pointer = { ...pointer, y: point.y - 5 };
   inspector.moveHandleDrag(event);

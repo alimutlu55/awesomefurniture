@@ -242,14 +242,12 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             const underCeiling = ceilings.shapeBlocked(cabinet, template === 'regular' ? { template, top: [{ x: 0, y: state.h }, { x: state.w, y: state.h }] } : shape);
             if (underCeiling) {
-                report(underCeiling);
                 return false;
             }
             if (template === 'regular') delete next.shape;
             else next.shape = shape;
             next.h = maxHeight(shape);
             if (collision.cabinetCollides({ ...cabinet, state: next })) {
-                report(blockedMessage('That shape', { ...cabinet, state: next }));
                 return false;
             }
             checkpoint();
@@ -264,7 +262,10 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         setShape(shape: WardrobeShape, recordHistory = true, refit = true) {
             const cabinet = active(), state = cabinet.state, problem = shapeEditProblem(shape);
             if (problem) {
-                report(problem);
+                // Room boundaries silently stop the edit. Keep feedback for
+                // malformed skeletons, such as a panel that is too narrow.
+                const geometryProblem = shapeProblems(shape, state.w)[0];
+                if (geometryProblem) report(friendlyProblem(geometryProblem));
                 return false;
             }
             const h = maxHeight(shape);

@@ -2,8 +2,8 @@ import type { EditorState } from '../../application/projects/editor-scene';
 import type { createSceneCommands } from '../../application/commands/scene-commands';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
-    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, splitPanel,
-    type ShapeTemplateId, type WardrobeShape,
+    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
+    type ShapeTemplateId, type WardrobeShape, friendlyProblem,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
@@ -315,7 +315,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         // A break point stays inside the wardrobe; the rules then decide how far it may go.
         const wantX = movesX ? Math.max(0, Math.min(state().w, alignX ? alignX.v : roundCm(rawX))) : point.x;
         const want = setPoint(o, g.index, { x: wantX, y: wantY });
-        g.reason = sceneCommands.shapeEditProblem(editable(want));
+        const geometryProblem = shapeProblems(want, state().w)[0];
+        g.reason = geometryProblem ? friendlyProblem(geometryProblem) : null;
         // Move as far toward the target as the rules allow, rather than stopping dead
         // at the first invalid position. Bisect between the last valid shape and the target.
         const valid = (t: number) => {
