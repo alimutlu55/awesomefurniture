@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { EXAMPLE_SPEC, agentGuide, checkSpec, createAgentApi, fromBase64Url, registerWebMcpTools } from '../../src/app/agent-api';
+import { EXAMPLE_SPEC, LINK_EXAMPLE, LINK_EXAMPLE_PATH, agentGuide, checkSpec, createAgentApi, fromBase64Url, registerWebMcpTools, specFromLink } from '../../src/app/agent-api';
 import { STUDIO_TEMPLATES } from '../../src/domain/studio/studio-templates';
 import { CEILING_SHAPES } from '../../src/domain/studio/studio-ceiling';
 import { POSSESSION_KEYS } from '../../src/domain/wardrobe/possessions';
@@ -57,4 +57,23 @@ test('where the browser offers WebMCP, the functions are tools; elsewhere nothin
   const reply = await tools.find(t => t.name === 'check_design')!.execute(EXAMPLE_SPEC);
   assert.equal(JSON.parse(reply.content[0].text).ok, true);
   assert.equal(registerWebMcpTools(api, {}, {}), false);
+});
+
+test('assistants that only read pages find the link recipe and a working example in the page itself', () => {
+  for (const page of ['index.html', 'editor.html']) {
+    const html = readFileSync(page, 'utf8');
+    assert.ok(html.includes('For AI assistants'), page);
+    assert.ok(html.includes(LINK_EXAMPLE_PATH), page + ' carries the example link');
+  }
+  assert.ok(agentGuide().includes(LINK_EXAMPLE_PATH));
+  assert.deepEqual(specFromLink(LINK_EXAMPLE_PATH.slice(1)), LINK_EXAMPLE);
+  assert.equal(checkSpec(LINK_EXAMPLE).result.ok, true, 'the example builds');
+});
+
+test('a design link takes the JSON as written, URL-encoded, or as base64url', () => {
+  const json = JSON.stringify(LINK_EXAMPLE), api = createAgentApi(editor(), { href: 'https://example.test/' });
+  assert.deepEqual(specFromLink('#spec=' + json), LINK_EXAMPLE, 'as written');
+  assert.deepEqual(specFromLink('#spec=' + encodeURIComponent(json)), LINK_EXAMPLE, 'URL-encoded');
+  assert.deepEqual(specFromLink(new URL(api.link(LINK_EXAMPLE)).hash), LINK_EXAMPLE, 'base64url');
+  assert.equal(specFromLink('#other=1'), null);
 });

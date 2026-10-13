@@ -30,6 +30,18 @@ export const EXAMPLE_SPEC: DesignSpec = {
   wardrobes: [{ against: 1, fill: true, for: { short: 20, pants: 10 } }],
 };
 
+/** A small design and the link path that opens it, for assistants that cannot run JavaScript. */
+export const LINK_EXAMPLE: DesignSpec = { specVersion: 1, room: { template: 'bedroom' }, wardrobes: [{ against: 1, width: 240, for: { short: 30, shoes: 10 } }] };
+export const LINK_EXAMPLE_PATH = '/#spec=' + encodeURIComponent(JSON.stringify(LINK_EXAMPLE));
+
+/** The spec in a design link: JSON as written (URL-encoded or not), or base64url JSON (what `link()` makes). */
+export function specFromLink(hash: string): unknown {
+  const value = new URLSearchParams(hash.replace(/^#/, '')).get('spec');
+  if (!value) return null;
+  const text = value.trim();
+  return JSON.parse(text.startsWith('{') ? text : fromBase64Url(text));
+}
+
 const list = (items: readonly { id: string; description: string }[]) => items.map(t => `- \`${t.id}\`: ${t.description}`).join('\n');
 
 /** The guide, with every allowed name read from the registries. */
@@ -38,6 +50,15 @@ export function agentGuide(): string {
 
 Design a room and fitted wardrobes for a person by describing the result as a design spec (JSON).
 The editor builds it with its own rules and reports back what it built, so you can check and adjust.
+
+## In a chat, without running JavaScript: give the person a link
+1. Write the design spec as JSON (conventions, names and an example below).
+2. Give the person this site's address followed by \`#spec=\` and the JSON, URL-encoded (encodeURIComponent).
+   They open it and see the design built, with every measurement. If something cannot be built, the page says
+   what and why; ask them for that message and fix the spec.
+
+Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
+\`${LINK_EXAMPLE_PATH}\`
 
 ## Functions (\`window.wardrobeForge\`, and the same as WebMCP tools where the browser offers them)
 - \`help()\`: this guide.
@@ -48,8 +69,7 @@ The editor builds it with its own rules and reports back what it built, so you c
 - \`describe()\`: the report of the design the editor shows now.
 - \`link(spec)\`: a URL that opens this design in the editor; give it to the person.
 
-Without JavaScript, open this editor's address with \`#spec=\` and the spec as base64url-encoded JSON
-(what \`link(spec)\` returns).
+Without JavaScript, give a link instead (above): \`#spec=\` with the JSON, URL-encoded, or base64url as \`link(spec)\` makes.
 
 ## How to work
 1. Gather the measurements: the room's inside width and depth and wall height; doors and windows (which wall,

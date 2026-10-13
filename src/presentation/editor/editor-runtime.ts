@@ -165,7 +165,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             inspector.histUI();
             if (next.studio) room.frameRoom(); else camera.fit({ padding: 1.4 });
         }
-        return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message), dispose: () => viewport.dispose() };
+        return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message, undefined, 12000), dispose: () => viewport.dispose() };
     }
     catch (error) {
         lifetime.dispose();

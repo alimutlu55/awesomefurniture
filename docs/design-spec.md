@@ -60,7 +60,7 @@ The editor welcomes AI agents that use a browser:
 - **WebMCP**: the same functions as tools (`design_guide`, `check_design`, `build_design`, `describe_design`,
   `design_link`) where the browser offers `document.modelContext` / `navigator.modelContext` (experimental;
   detected, never assumed).
-- **Design links**: `#spec=` with the spec as base64url JSON opens that design, on loading or when the link changes.
+- **Design links**: `#spec=` with the spec as JSON (URL-encoded or not) or base64url JSON opens that design, on loading or when the link changes. An assistant in a chat that cannot run JavaScript gives the person such a link; the page says why when one cannot be built (shown for 12 s, long enough to copy back).
 
 ## Next
 

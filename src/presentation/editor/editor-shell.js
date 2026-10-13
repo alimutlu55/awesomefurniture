@@ -30,7 +30,7 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
     // Keep feedback brief; Undo remains an explicit toolbar action.
     /** Messages reach people on both layouts. Phones use the bottom-anchored feedback
      * line; desktop shows the same message under the toolbar. */
-    function toast(message, _action) {
+    function toast(message, _action, hold = 4000) {
         if (!Number.isFinite(dom.width)) return;
         const mode = dom.width > 900 ? 'desktop' : 'mobile';
         if (feedback && feedback.dataset.mode !== mode) {
@@ -48,7 +48,7 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
         lifetime.cancelTimeout(feedbackTimer);
         feedback.textContent = message;
         feedback.hidden = false;
-        feedbackTimer = lifetime.timeout(() => { feedback.hidden = true; }, 4000);
+        feedbackTimer = lifetime.timeout(() => { feedback.hidden = true; }, hold);
     }
     function burst() {
         return;

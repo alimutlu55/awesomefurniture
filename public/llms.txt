@@ -3,6 +3,15 @@
 Design a room and fitted wardrobes for a person by describing the result as a design spec (JSON).
 The editor builds it with its own rules and reports back what it built, so you can check and adjust.
 
+## In a chat, without running JavaScript: give the person a link
+1. Write the design spec as JSON (conventions, names and an example below).
+2. Give the person this site's address followed by `#spec=` and the JSON, URL-encoded (encodeURIComponent).
+   They open it and see the design built, with every measurement. If something cannot be built, the page says
+   what and why; ask them for that message and fix the spec.
+
+Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
+`/#spec=%7B%22specVersion%22%3A1%2C%22room%22%3A%7B%22template%22%3A%22bedroom%22%7D%2C%22wardrobes%22%3A%5B%7B%22against%22%3A1%2C%22width%22%3A240%2C%22for%22%3A%7B%22short%22%3A30%2C%22shoes%22%3A10%7D%7D%5D%7D`
+
 ## Functions (`window.wardrobeForge`, and the same as WebMCP tools where the browser offers them)
 - `help()`: this guide.
 - `schema()`: the JSON Schema of a design spec, every field described.
@@ -12,8 +21,7 @@ The editor builds it with its own rules and reports back what it built, so you c
 - `describe()`: the report of the design the editor shows now.
 - `link(spec)`: a URL that opens this design in the editor; give it to the person.
 
-Without JavaScript, open this editor's address with `#spec=` and the spec as base64url-encoded JSON
-(what `link(spec)` returns).
+Without JavaScript, give a link instead (above): `#spec=` with the JSON, URL-encoded, or base64url as `link(spec)` makes.
 
 ## How to work
 1. Gather the measurements: the room's inside width and depth and wall height; doors and windows (which wall,
