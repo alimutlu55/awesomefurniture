@@ -1,6 +1,7 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createDesignCommands } from './design-commands';
 import { ceilingTop } from '../../domain/studio/studio-fit';
+import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { maxHeight, regularShape, resolveShape, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 type Top = readonly { x: number; y: number }[];
@@ -41,7 +42,7 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
     if (fit && 'problem' in fit) return fit.problem;
     const under = fit && 'shape' in fit ? fit.shape : null;
     let next: WardrobeShape | null | undefined;
-    if (under) next = state.shape?.template === 'room' || risesAbove(current(cabinet).top, under.top, state.w) ? under : undefined;
+    if (under) next = state.shape?.template === 'room' || ceilingClearance(getScene().studio, placed(cabinet))(current(cabinet)) ? under : undefined;
     // Out from under it: a fitted wardrobe stands regular at its tallest point.
     else if (state.shape?.template === 'room') next = null;
     const changed = next !== undefined && JSON.stringify(next) !== JSON.stringify(state.shape ?? null);
@@ -64,19 +65,16 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
     return changed;
   }
   /** Why a shape someone picks does not fit under the ceiling over the wardrobe, or null. */
-  let clearanceKey: string | undefined, clearance: ReturnType<typeof ceilingTop> = null;
+  let clearanceKey: string | undefined, clearance: ReturnType<typeof ceilingClearance> = () => false;
   function shapeBlocked(cabinet: EditorCabinet, shape: WardrobeShape): string | null {
     const room = getScene().studio, pose = placed(cabinet), key = JSON.stringify([room, pose]);
-    // A handle's boundary search checks many shapes in the same space. Sample
-    // that space once; any room, pose or footprint change invalidates the result.
+    // A handle's boundary search checks many shapes in the same space. Prepare
+    // its ceiling planes once; any room, pose or footprint change invalidates them.
     if (key !== clearanceKey) {
-      clearance = ceilingTop(room, pose);
+      clearance = ceilingClearance(room, pose);
       clearanceKey = key;
     }
-    const fit = clearance;
-    if (!fit) return null;
-    if ('problem' in fit) return fit.problem;
-    return risesAbove(shape.top, fit.shape.top, cabinet.state.w) ? 'The ceiling above is lower than that. This wardrobe follows the ceiling.' : null;
+    return clearance(shape) ? 'The ceiling above is lower than that. This wardrobe follows the ceiling.' : null;
   }
   return { follow, followAll, shapeBlocked };
 }

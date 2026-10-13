@@ -85,6 +85,25 @@ test('lowering a room-fitted top is allowed and stays a manual shape after settl
   assert.deepEqual(cabinet.state.shape!.top, shape.top, 'settling preserves the lowered top');
 });
 
+test('manual reshaping can use real clearance beside a ceiling step simplified by automatic fitting', () => {
+  const s = scene([{ state: { ...createEditorState(), w: 400 } }]);
+  s.commands.placeStudio('bedroom');
+  s.commands.editStudio(room => ({ ...room, ceilings: [{ id: 'k1', wall: 'w1', run: 'along', depth: 100,
+    profile: [{ t: 6, y: 100 }, { t: 10, y: 100 }, { t: 10, y: 240 }, { t: 406, y: 240 }] }] }));
+  const shape = { template: 'custom' as const, top: [{ x: 0, y: 100 }, { x: 7, y: 100 }, { x: 7, y: 200 }, { x: 400, y: 200 }] };
+  assert.deepEqual(shapeProblems(shape, 400), []);
+  assert.equal(risesAbove(shape.top, s.w().state.shape!.top, 400), true, 'the automatic fitting profile is too restrictive');
+  assert.equal(s.commands.shapeEditProblem(shape), null, 'the actual ceiling is clear');
+  assert.equal(s.commands.setShape(shape), true);
+  assert.equal(s.commands.settleCabinet(s.w().id), null);
+  assert.deepEqual(s.w().state.shape!.top, shape.top, 'settling does not flatten a valid manual shape');
+  const higher = structuredClone(shape);
+  higher.top[3]!.y = 230;
+  assert.equal(s.commands.setShape(higher), true, 'height can increase into free space');
+  higher.top[3]!.y = 250;
+  assert.equal(s.commands.setShape(higher), false, 'the actual ceiling still stops it');
+});
+
 test('ceiling comparison checks both sides of steps and bends between centimetre samples', () => {
   const stepped = [{ x: 0, y: 230 }, { x: 50.3, y: 230 }, { x: 50.3, y: 150 }, { x: 200, y: 150 }];
   assert.equal(risesAbove(stepped, stepped, 200), false, 'a flush step does not intersect');
