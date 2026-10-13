@@ -17,7 +17,8 @@
     "typecheck:editor": "tsc -p tsconfig.editor.json",
     "review:planner": "node --import tsx scripts/planner-review.mjs",
     "check:mobile": "node scripts/check-mobile.cjs",
-    "check:architecture": "node scripts/check-architecture.mjs"
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "agents:guide": "node --import tsx scripts/write-agent-guide.mjs"
   },
   "dependencies": {
     "three": "0.128.0",

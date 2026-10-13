@@ -37,6 +37,10 @@ export function mountEditor({ root, initialScene }: MountEditorOptions) {
         return {
             snapshot: mountedEditor.snapshot,
             viewport: mountedEditor.viewport,
+            /** For the agent API (src/app/agent-api.ts): load a whole design, read the current one, tell the person. */
+            replaceDesign: mountedEditor.replaceDesign,
+            scene: mountedEditor.scene,
+            notify: mountedEditor.notify,
             dispose() {
                 if (disposed)
                     return;

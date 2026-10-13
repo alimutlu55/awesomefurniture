@@ -2,6 +2,7 @@ import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
+import type { ProjectDocument } from '../../domain/project/project';
 import type { createEditorDom } from './editor-dom';
 import { createModulePort } from './module-port';
 import { createScenePicking } from './scene-picking.js';
@@ -152,7 +153,19 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         camera.resize();
         inspector.update(true);
         rendering.loop();
-        return { snapshot: model.snapshot, viewport, dispose: () => viewport.dispose() };
+        /** Puts a whole design in the editor (one an agent built, or an import) as one undo step, framed whole. */
+        function replaceDesign(project: ProjectDocument) {
+            const next = projectToScene(project) ?? createEditorModel().scene;
+            history.checkpoint(model.snapshot());
+            model.restore(JSON.stringify(next));
+            selectionState.room = null;
+            inspector.hidePop();
+            inspector.clearFocus();
+            inspector.update(true);
+            inspector.histUI();
+            if (next.studio) room.frameRoom(); else camera.fit({ padding: 1.4 });
+        }
+        return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message), dispose: () => viewport.dispose() };
     }
     catch (error) {
         lifetime.dispose();
