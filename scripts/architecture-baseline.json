@@ -60,8 +60,7 @@
   },
   "fileLines": {
     "src/application/commands/item-commands.ts": 402,
-    "src/presentation/editor/inspector-presenter.js": 439,
-    "src/presentation/viewport/cabinet-layout-renderer.js": 404
+    "src/presentation/editor/inspector-presenter.js": 439
   },
   "kindLists": {
     "src/domain/geometry/wardrobe-rules/boxes.js": 1,
