@@ -12,11 +12,13 @@ import studioStylesheet from './studio.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
     initialScene?: EditorScene | undefined;
+    /** Makes a link that opens a design; given, the menu offers Share design. */
+    shareLink?: ((scene: EditorScene) => Promise<string>) | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -31,7 +33,7 @@ export function mountEditor({ root, initialScene }: MountEditorOptions) {
     const dom = createEditorDom(shadow);
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom);
+        editor = startEditor(initialScene, dom, shareLink);
         const mountedEditor=editor;
         let disposed = false;
         return {

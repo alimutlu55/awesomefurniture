@@ -20,6 +20,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { createPlannerService } from '../../application/projects/planner-service.js';
 import { getEditorElements } from './editor-dom.js';
 import { mountEditorBindings } from './mount-editor-bindings.js';
+import { bindShareMenu } from './bindings/share.js';
 import { createCameraController } from '../viewport/camera-controller.js';
 import { createCabinetRenderer } from '../viewport/cabinet-renderer.js';
 import { createEditorGestures } from './editor-gestures.js';
@@ -34,7 +35,7 @@ import { createPlannerState } from './planner-state.js';
 import { createShellState } from './shell-state.js';
 import { createShapeInspector } from './shape-inspector';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
-export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>) {
+export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>) {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -142,6 +143,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
+        bindShareMenu({ dom, shell, model, lifetime, shareLink });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();

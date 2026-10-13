@@ -53,6 +53,7 @@ interface EditorControls {
     "#menu-btn": HTMLElementTagNameMap["button"];
     "#menu": HTMLElementTagNameMap["div"];
     "#help-menu": HTMLElementTagNameMap["button"];
+    "#share-menu": HTMLElementTagNameMap["button"];
     "#toolbar": HTMLElementTagNameMap["div"];
     "#props-btn": HTMLElementTagNameMap["button"];
     "#add-anchor": HTMLElementTagNameMap["div"];
@@ -244,6 +245,8 @@ export function createEditorDom(root: HTMLElement | ShadowRoot) {
     return {
         root, host, selector, setId, controlId: (element: HTMLElement) => element.dataset.editorId || element.id,
         $: queryControl, document: documentScope, window: windowEvents, matchMedia,
+        /** For sharing: the share sheet, the clipboard and the address bar of the page the editor is in. */
+        navigator: view.navigator, history: view.history,
         get width() { return host.clientWidth; }, get height() { return host.clientHeight; },
         dispose() {
             if (disposed)

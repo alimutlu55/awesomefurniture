@@ -1,6 +1,7 @@
 import { mountEditor } from '../presentation/editor/mount-editor';
 import { bindPageViewport } from '../presentation/editor/page-viewport';
 import { checkSpec, createAgentApi, registerWebMcpTools, specFromLink } from './agent-api';
+import { designFromLink, designLink, hasDesign } from './design-link';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
 if(!root) throw new Error('Editor mount point is missing.');
@@ -17,11 +18,17 @@ async function main(): Promise<void> {
   url.searchParams.delete('project');
   history.replaceState(null,'',url);
  }
- const mounted=mountEditor({root:root!});
+ const mounted=mountEditor({root:root!,shareLink:scene=>designLink(scene,location.href.split('#')[0]!)});
  editor=mounted;
  const unbindViewport=bindPageViewport(root!,window);
- // A design link (#spec=, base64url JSON) opens that design, on loading and when the link changes.
+ // A design link opens that design, on loading and when the link changes: #design= is a design someone
+ // shared (the whole design), #spec= one an assistant described.
  const openLink=()=>{
+  if(hasDesign(location.hash)) {
+   designFromLink(location.hash).then(project=>{mounted.replaceDesign(project);mounted.notify('This is the shared design. Undo goes back to yours.');},
+    ()=>mounted.notify('This design link could not be opened: it is damaged or cut short. Ask for the link again.'));
+   return;
+  }
   if(!new URLSearchParams(location.hash.slice(1)).has('spec')) return;
   let built:ReturnType<typeof checkSpec>|null=null;
   try { built=checkSpec(specFromLink(location.hash)); } catch { /* not a readable link */ }
