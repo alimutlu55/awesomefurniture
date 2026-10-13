@@ -116,6 +116,9 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         const d = rules.clampDivider({ i, orientation: ('vertical' as const), x: (space.x0! + space.x1!) / 2, y0: space.y0 - PL - T, y1: space.y1 - PL - T, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } });
         run(() => {
             getDesign().dividers = (getDesign().dividers || []).concat(d);
+            // Under a sloped or stepped top it reaches up to the top where it stands, not only the section's lowest point.
+            const fitted = planMove(getDesign().dividers.length - 1, d.x);
+            if (fitted) { getDesign().dividers = fitted.dividers; getDesign().secs[fitted.i] = fitted.secs; }
             getDesign().space = { i, x: (space.x0! + d.x - T / 2) / 2, y: (space.y0 + space.y1) / 2 };
             getDesign().item = -1;
             getDesign().divider = getDesign().dividers.length - 1;

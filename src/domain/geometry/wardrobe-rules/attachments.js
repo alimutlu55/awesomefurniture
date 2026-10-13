@@ -53,9 +53,13 @@ export function createAttachmentRules(ctx, deps) {
         if (d.orientation === 'vertical') {
             const was = gap(i, 'y', [before.x - T / 2, before.x + T / 2], before.y0 + .5, old, self);
             // It fills its space unless someone made it shorter. A filling divider wants no top of its own, or the
-            // wardrobe's full height; a shorter one wants its own top, kept even where a slope cuts it.
-            const full = ceilingTop(i, 0, widths()[i]), wanted = before.want ?? before.y1;
-            const filling = !was || before.want === undefined || wanted >= full - .5 || (before.y1 >= was.hi - .5 && wanted <= was.hi + .5);
+            // wardrobe's full height; a shorter one keeps its own top.
+            // Full height: it wants the wardrobe's full height, or still the top of the space it was made in (under a
+            // sloped top that is the section's lowest point), or exactly what is above it. Any other height is one
+            // someone chose: it keeps it.
+            const full = ceilingTop(i, 0, widths()[i]), wanted = before.want ?? before.y1, made = before.area?.y1;
+            const filling = !was || before.want === undefined || wanted >= full - .5 || (made !== undefined && Math.abs(wanted - made) < .5)
+                || (before.y1 >= was.hi - .5 && wanted <= was.hi + .5);
             const run = gap(i, 'y', [d.x - T / 2, d.x + T / 2], d.y0 + .5, all, self);
             // A part lower than its top is in the way: it stops there rather than shrinking under it.
             if (!run || (run.hiPart && run.hi < before.y1 - .01 && run.hi < run.lo + (wanted - before.y0) - .01)) return null;

@@ -138,3 +138,10 @@ test('a fitting moved takes along what stands on it: a divider and a fitting pla
  assert.ok(drawer.x>20,'the drawer moved: '+drawer.x);
  near(c.S.dividers[0].x,27+drawer.x);near(c.S.dividers[0].y0,40);near(shelf.x,5+drawer.x);near(shelf.y,40);
 });
+test('a divider added under a sloped top reaches the top where it stands, and follows it as it slides',()=>{
+ const c=vm.createContext({S:{w:200,h:230,d:60,n:1,wt:[100,100,100,100,100,100],secs:[[],[],[],[],[],[]],sel:0,item:-1,dividers:[],shape:{template:'room',top:[{x:0,y:230},{x:110,y:140},{x:200,y:140}]}},G:{},act(fn){fn()},toast(){},deep:true,pillOn:true});
+ designFixture(c);const run=code=>vm.runInContext(code,c),top=x=>run(`ceilingIn(0,${x-.9},${x+.9})`);
+ c.S.space={i:0,x:150,y:60};run('addSpaceDivider()');
+ const d=()=>c.S.dividers[0];near(d().y1,top(d().x));assert.ok(d().y1>run('ceilingIn(0,0,196.4)')+1,'taller than the section\'s lowest point');
+ for(const x of [70,40,10]){ run(`moveDividerTo(0,${x})`);near(d().y1,top(x)); }
+});
