@@ -4,6 +4,7 @@ import type { Studio } from './studio';
 import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 import { roomHeight } from './studio';
 import { ceilingFrame } from './studio-ceiling';
+import { topSurface } from '../wardrobe/shape/depth-shape';
 
 type Point = { x: number; z: number };
 type Plane = { footprint: Point[]; height: (p: Point) => number };
@@ -34,7 +35,7 @@ function hasArea(points: Point[]) {
 }
 
 /** Prepares ceiling planes in cabinet coordinates. Reuse while a handle edits the same footprint.
- * Every top board spans the whole depth, so hidden rear contact is checked as well as the front. */
+ * The front and rear heights are checked together over the actual top surface. */
 export function ceilingClearance(studio: Studio | undefined, f: Placed): (shape: WardrobeShape) => boolean {
   if (!studio) return () => false;
   const angle = f.angle * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle), base = f.y ?? 0;
@@ -56,15 +57,19 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed): (shape:
     }
   }
   return shape => {
-    for (let i = 1; i < shape.top.length; i++) {
-      const a = shape.top[i - 1]!, b = shape.top[i]!;
-      if (b.x - a.x <= EPS) continue;
+    for (const triangle of topSurface(shape, f.d)) {
+      const [a, b, c] = triangle as [typeof triangle[number], typeof triangle[number], typeof triangle[number]];
+      const det = (b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z);
+      const mx = ((b.y - a.y) * (c.z - a.z) - (c.y - a.y) * (b.z - a.z)) / det;
+      const mz = ((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / det;
       for (const plane of planes) {
-        const patch = strip(plane.footprint, p => p.x, a.x, b.x);
-        // A shared step edge has no volume: touching it is allowed on either side.
+        let patch = plane.footprint;
+        for (let i = 0; i < 3; i++) {
+          const p = triangle[i]!, q = triangle[(i + 1) % 3]!;
+          patch = clip(patch, r => (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x));
+        }
         if (!hasArea(patch)) continue;
-        // The difference of two planes is linear; its maximum is at a polygon vertex.
-        if (patch.some(p => a.y + (b.y - a.y) * (p.x - a.x) / (b.x - a.x) > plane.height(p) + .5 + EPS)) return true;
+        if (patch.some(p => a.y + mx * (p.x - a.x) + mz * (p.z - a.z) > plane.height(p) + .5 + EPS)) return true;
       }
     }
     return false;

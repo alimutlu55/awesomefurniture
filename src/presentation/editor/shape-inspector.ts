@@ -15,7 +15,7 @@ interface ShapeInspectorPorts {
         document: { createElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K] };
     };
     model: { activeCabinet(): { state: EditorState }; snapshot(): string; restore(raw: string): void };
-    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem'>;
+    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem' | 'frontShape'>;
     picking: { frontPoint(e: PointerEvent): { x: number; y: number } | null };
     selectionState: { shapeEditing?: boolean; focusOn: boolean };
     callbacks: { refresh(): void; rebuild(): void; histUI(): void; report?(message: string): void };
@@ -45,7 +45,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
 
     const report = (message: string) => callbacks.report?.(message);
     function commit(next: WardrobeShape) {
-        if (sceneCommands.setShape(editable(next))) callbacks.refresh();
+        if (sceneCommands.setShape(sceneCommands.frontShape(editable(next)))) callbacks.refresh();
         else render();
     }
     function chooseTemplate(id: ShapeTemplateId) {
@@ -322,7 +322,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const valid = (t: number) => {
             const from = g.last.top[g.index]!;
             const at = setPoint(g.last, g.index, { x: from.x + (want.top[g.index]!.x - from.x) * t, y: from.y + (want.top[g.index]!.y - from.y) * t });
-            return sceneCommands.shapeEditProblem(editable(at)) === null ? at : null;
+            const front = sceneCommands.frontShape(editable(at), g.original);
+            return sceneCommands.shapeEditProblem(front) === null ? front : null;
         };
         let next = valid(1);
         if (!next) {

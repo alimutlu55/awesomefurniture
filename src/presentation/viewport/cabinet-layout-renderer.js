@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createCabinetMaterials } from './cabinet-materials';
-import { renderCabinetFrame, boardUnderTop, panelBuilder } from './frame-geometry';
+import { renderCabinetFrame, renderUpright, panelBuilder } from './frame-geometry';
 import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
@@ -339,7 +339,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             x += sw;
             if (i < n - 1) {
                 // Partitions run from the base board up to the top's underside.
-                panel(boardUnderTop(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy), d - 1, 0, mp);
+                renderUpright(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy, d - 1, mp, box, prism);
                 x += PANEL;
             }
         });

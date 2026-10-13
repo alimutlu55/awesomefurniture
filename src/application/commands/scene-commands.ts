@@ -10,7 +10,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
-import { friendlyProblem, isRegularShape, shapePanels, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { friendlyProblem, resolveShape, isRegularShape, shapePanels, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -43,6 +43,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     };
     return {
         shapeEditProblem,
+        /** A front handle can use its clearance while the rear stays at its previous height. */
+        frontShape(shape: WardrobeShape, original = resolveShape(active().state)): WardrobeShape {
+            if (shape.back || !original || !ceilings.shapeBlocked(active(), shape)) return shape;
+            return { ...shape, back: original.back ?? original.top.map(p => p.y) };
+        },
         ...studio,
         ...createAlignCommands(getScene, collision),
         /** Room edits reshape the wardrobes under any ceiling they move. */

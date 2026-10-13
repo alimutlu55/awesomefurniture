@@ -1,3 +1,4 @@
+import { loftGeometry } from './loft-geometry';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
@@ -92,9 +93,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     /** Extruded front-elevation outline for angled or notched panels. UVs span the
      * panel like a box face so wood grain keeps its scale. */
-    function prism(points, depth, z, m, g) {
-        const geo = new THREE.ExtrudeGeometry(new THREE.Shape(points.map(p => new THREE.Vector2(p.x, p.y))), { depth, bevelEnabled: false, steps: 1 });
-        geo.translate(0, 0, z - depth / 2);
+    function prism(points, depth, z, m, g, back) {
+        const geo = loftGeometry(points, depth, z, back);
         if (m?.userData?.board) boardUVs(geo, boardSeed(points[0].x, points[0].y, z));
         else planarUVs(geo);
         const o = new THREE.Mesh(geo, m);

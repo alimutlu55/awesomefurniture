@@ -1,12 +1,13 @@
+import { rearShape } from '../../domain/wardrobe/shape/depth-shape';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { Material, Object3D } from 'three';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { ceilingMin, ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../../domain/wardrobe/shape/wardrobe-shape';
 export type BoxBuilder = (w: number, h: number, d: number, x: number, y: number, z: number, material: Material, group?: Object3D) => Object3D;
 export interface Point2 { x: number; y: number }
 /** Extrudes a front-elevation polygon (cabinet-local x, floor-relative y) through
  * `depth`, centred on `z`. */
-export type PrismBuilder = (points: readonly Point2[], depth: number, z: number, material: Material, group?: Object3D) => Object3D;
+export type PrismBuilder = (points: readonly Point2[], depth: number, z: number, material: Material, group?: Object3D, back?: readonly Point2[]) => Object3D;
 
 /** Axis-aligned rectangles stay boxes so regular wardrobes render exactly as before;
  * any angled or notched outline becomes a prism. */
@@ -31,7 +32,7 @@ export function dedupe(points: readonly Point2[]): Point2[] {
 /** Front-elevation outline of a vertical board from `y0` up to the underside of
  * the top, over cabinet-width coordinates [x0, x1] (left outer face = 0). */
 export function boardUnderTop(design: Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' | 'shape'>, x0: number, x1: number, y0: number): Point2[] {
-    const pieces = ceilingPieces(resolveShape(design)), top = ceilingPolyline(pieces, x0, x1);
+    const shape = resolveShape(design), pieces = ceilingPieces({ ...shape, back: undefined }), top = ceilingPolyline(pieces, x0, x1);
     return [{ x: x0, y: y0 }, { x: x1, y: y0 }, ...top.reverse()].map(p => ({ x: p.x - design.w / 2, y: p.y }));
 }
 
@@ -41,12 +42,25 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     plinth: Material;
 }): void {
     const { w, d } = design, panel = panelBuilder(box, prism), shape = resolveShape(design);
-    for (const board of shapeBoards(shape)) {
-        panel(board.points.map(p => ({ x: p.x - w / 2, y: p.y })), d, 0, materials.panel);
-    }
-    panel(boardUnderTop(design, 0, PANEL, 0), d, 0, materials.panel);
-    panel(boardUnderTop(design, w - PANEL, w, 0), d, 0, materials.panel);
+    const back = rearShape(shape), tops = shapeBoards(shape), rearTops = shapeBoards(back);
+    tops.forEach((board, i) => {
+        const points = board.points.map(p => ({ x: p.x - w / 2, y: p.y }));
+        if (shape.back) prism(points, d, 0, materials.panel, undefined, rearTops[i]!.points.map(p => ({ x: p.x - w / 2, y: p.y })));
+        else panel(points, d, 0, materials.panel);
+    });
+    renderUpright(design, 0, PANEL, 0, d, materials.panel, box, prism);
+    renderUpright(design, w - PANEL, w, 0, d, materials.panel, box, prism);
     box(w - 2 * PANEL, PANEL, d - 1, 0, PLINTH + PANEL / 2, 0, materials.panel);
-    panel(boardUnderTop(design, PANEL, w - PANEL, PLINTH), .6, -d / 2 + .3, materials.back);
+    panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), .6, -d / 2 + .3, materials.back);
     box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
+}
+
+/** Side panels and partitions join the edited front to its fixed rear. */
+export function renderUpright(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'n' | 'wt' | 'shape'>,
+    x0: number, x1: number, y0: number, depth: number, material: Material, box: BoxBuilder, prism: PrismBuilder) {
+    const shape = resolveShape(design), points = boardUnderTop(design, x0, x1, y0);
+    if (!shape.back) return panelBuilder(box, prism)(points, depth, 0, material);
+    const pieces = ceilingPieces(rearShape(shape));
+    const back = points.map((p, i) => i < 2 ? p : { x: p.x, y: ceilingMin(pieces, p.x + design.w / 2, p.x + design.w / 2) });
+    return prism(points, depth, 0, material, undefined, back);
 }
