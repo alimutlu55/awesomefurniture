@@ -234,6 +234,7 @@ export function bindRemoveWardrobe({ dom, camera, interactions, inspector, shell
         }
         interactions.cancelMovement();
         const name = sceneCommands.removeCabinet();
+        selectionState.shapeEditing = false;
         inspector.hidePop();
         selectionState.pillOn = dom.width <= 900;
         selectionState.deep = dom.width <= 900;

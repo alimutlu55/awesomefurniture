@@ -161,10 +161,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         resources.stage?.fit((x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, z1 - z0));
     }
     function build() {
+        if (!model.scene.wardrobes.length) selectionState.shapeEditing = false;
         studio?.sync(model.scene.studio, wardrobeFootprints());
         fitLight();
         studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();
+        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle'));
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
             // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
@@ -207,6 +209,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderDesign = selected.state;
         ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
         renderState.labs = combinedLabs;
+        // Remove orphaned handles even when no wardrobe remains to prune the pools.
+        const usedLabels = new Set(combinedLabs.map(l => l.el));
+        previousShapeHandles.forEach(l => { if (!usedLabels.has(l.el)) l.el.remove(); });
         renderState.pivots = combinedPivots;
         renderState.renderActive = true;
         renderState.moveIcons = [];
