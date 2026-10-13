@@ -2,7 +2,7 @@ import { createAddMenuPresenter } from './add-menu-presenter.js';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
-import { syncResizeFields } from './resize-fields.js';
+import { syncResizeFields, syncCabinetHeightMinimum } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
@@ -12,7 +12,6 @@ import { PANEL, PLINTH, MODS, PURPOSE, compatiblePurposes, itemName } from '../.
 import { measureNumber, capWord, esc, icon, ICONP, RANKS } from './editor-format.js';
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
-import { isRegularShape, minimumShapeHeight } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
@@ -165,11 +164,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             $('#' + key + 'v').textContent = model.activeCabinet().state[key] + ' cm';
             if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
         });
-        {
-            // A shaped wardrobe's height is its tallest point; its lowest part may be short.
-            const shape = model.activeCabinet().state.shape, minH = shape && !isRegularShape(shape) ? Math.max(60, Math.ceil(minimumShapeHeight(shape))) : 180;
-            for (const el of /** @type {HTMLInputElement[]} */ ([$('#h'), document.querySelector('[data-dimension="h"]')])) if (el) el.min = String(minH);
-        }
+        syncCabinetHeightMinimum(dom, model.activeCabinet().state, selectionState.editingSize);
         for (const panel of [shapeInspector, studioPanel]) panel.render();
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {

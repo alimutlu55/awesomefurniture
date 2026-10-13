@@ -35,6 +35,20 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         const hit = solids().find(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
         return !hit ? null : String(hit.id).startsWith('wall:') ? 'wall' : 'wardrobe';
     }
+    /** Size fields normally grow around the centre. At a wall, keep one local face fixed and
+     * grow the opposite face instead. Each growing candidate contains the old footprint. */
+    function cabinetResizePose(w, key, value) {
+        const pose = { x: w.x, y: w.y || 0, z: w.z }, next = { ...w, state: { ...w.state, [key]: value } };
+        if (!cabinetCollides(next)) return pose;
+        const growth = value - w.state[key];
+        if ((key !== 'w' && key !== 'd') || growth <= 0 || !getObstacles().some(wall => cabinetOverlaps(next, wall))) return null;
+        const axis = cabinetAxes(w)[key === 'w' ? 0 : 1];
+        for (const sign of [1, -1]) {
+            const shifted = { ...pose, x: pose.x + sign * axis.x * growth / 2, z: pose.z + sign * axis.z * growth / 2 };
+            if (!cabinetCollides({ ...next, ...shifted })) return shifted;
+        }
+        return null;
+    }
     function safeCabinetTranslation(w, target) {
         const start = { x: w.x, y: w.y || 0, z: w.z }, delta = { x: target.x - start.x, y: (target.y || 0) - start.y, z: target.z - start.z };
         let limit = 1;
@@ -103,5 +117,6 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     function cabinetTranslation(origin, delta) {
         return { x: Math.max(-5000, Math.min(5000, origin.x + (delta.x || 0))), y: Math.max(0, Math.min(5000, (origin.y || 0) + (delta.y || 0))), z: Math.max(-5000, Math.min(5000, origin.z + (delta.z || 0))) };
     }
-    return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, cabinetObstruction, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };
+    return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, cabinetObstruction,
+        cabinetResizePose, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };
 }
