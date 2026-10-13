@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import { createActionBar } from '../editor/action-bar.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
+import { createWardrobeResizeHandles } from './wardrobe-resize-handles';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'model' | 'renderState' | 'interactionState' | 'interactions' | 'shell' | 'inspector' | 'resources' | 'selectionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'dimensionStroke' | 'drawSnapGuides'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createViewportHandles({ dom, geometry, callbacks, model, renderState, interactionState, interactions, shell, inspector, resources, selectionState, getRenderDesign }) {
     const { $, document } = dom;
+    const updateWardrobeResizeHandles = createWardrobeResizeHandles({ dom, model, resources, renderState, selectionState, interactions });
     function addRotationIndicator() {
         const radius = Math.hypot(getRenderDesign().w, getRenderDesign().d) / 2 + 16, points = [];
         for (let i = 0; i <= 96; i++) {
@@ -165,6 +167,7 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         }
     }
     function updateItemResizeHandles() {
+        updateWardrobeResizeHandles();
         callbacks.drawSnapGuides();
         if (!$('#item-resize-handles').children.length) {
             return;

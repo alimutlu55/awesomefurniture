@@ -58,7 +58,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   }
 
   /** Draws the gaps and alignments given; with nothing, clears. */
-  function draw(gaps: readonly Gap[] = [], aligned: readonly Alignment[] = []) {
+  function draw(gaps: readonly Gap[] = [], aligned: readonly Alignment[] = [], contactNumbers = false) {
     clear();
     const green = new Set(aligned.flatMap(a => a.kind === 'centred' || a.kind === 'flush' ? a.sides ?? [] : []));
     for (const g of gaps) {
@@ -67,6 +67,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
       if (g.distance < .5) {
         // Touching: a short green bar on the face where it meets (the wall strip says so at the back).
         if (g.side === 'left' || g.side === 'right') dimension(a.clone().add(new THREE.Vector3(0, 25, 0)), a.clone().sub(new THREE.Vector3(0, 25, 0)), ok);
+        if (contactNumbers) tag(a, '0 cm', 'ok');
         continue;
       }
       dimension(a, b, good ? ok : short ? tight : ink);
@@ -101,9 +102,11 @@ export function createWardrobeAssist(ports: AssistOverlayPorts) {
     const host = ports.labels();
     // Clearing leaves the marks of other assistants (a fitting's or a divider's drag) alone.
     if (!sides || !cabinet) { overlay.clear(); if (host && (host.dataset.assist === 'move' || host.dataset.assist === 'size')) delete host.dataset.assist; return; }
-    const m = measureAround(scene, cabinet, sides), sideways = sides.includes('left'), keep = mode === 'size' && editing ? SIZE_ALIGN[editing] : null;
+    const measured: GapSide[] = mode === 'size' ? ['left', 'right', 'back', 'front', 'top'] : sides;
+    const m = measureAround(scene, cabinet, measured), sideways = sides.includes('left'), keep = mode === 'size' && editing ? SIZE_ALIGN[editing] : null;
     // Moved sideways, the room in front matters only when it is getting tight.
-    overlay.draw(m.gaps.filter(g => !(sideways && g.side === 'front' && g.distance > 120)), m.aligned.filter(a => !keep || keep.includes(a.kind)));
+    const gaps = m.gaps.filter(g => sides.includes(g.side) || (mode === 'size' && g.target === 'wall' && g.distance < .5));
+    overlay.draw(gaps.filter(g => !(sideways && g.side === 'front' && g.distance > 120)), m.aligned.filter(a => !keep || keep.includes(a.kind)), mode === 'size');
     if (host) host.dataset.assist = mode;
   }
   return { show, dispose: overlay.dispose };
