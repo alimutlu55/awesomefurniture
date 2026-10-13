@@ -18,6 +18,9 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         selectionState.room = null;
         if (!h) {
             inspector.clearFocus();
+            // Leaving the editing surface returns to the studio, including the other wardrobes.
+            // Keep that framing while the panel closes and the viewport grows.
+            camera.frameScene();
             return;
         }
         const u = h.object.userData;
