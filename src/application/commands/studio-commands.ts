@@ -6,7 +6,7 @@ import { addOpening, suggestWall, translateStudio } from '../../domain/studio/st
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
-import { placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
+import { flushAgainst, placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
 import type { Pose } from '../../domain/studio/studio-placement';
 import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
@@ -197,13 +197,18 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return placeAgainstWall(room, footprint(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
   }
 
-  /** A new wardrobe filling a wall's free stretch (studio-placement.ts `wallSpot`): its pose, width and
+  /** A new wardrobe against a wall: filling its free stretch (studio-placement.ts `wallSpot`), exactly `width`
+   * wide when given, or with its left side `from` cm from the wall's left end inside. Its pose, width and
    * depth, or null with the reason. */
-  function fillWall(cabinet: EditorCabinet, wallId: string) {
+  function fillWall(cabinet: EditorCabinet, wallId: string, width?: number, from?: number) {
     const room = getScene().studio, others = getScene().wardrobes.filter(c => c !== cabinet);
-    const spot = room && wallSpot(room, wallId, others.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d })), { min: 80, max: 400, depth: cabinet.state.d });
+    const standing = others.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
+    const at = room && from !== undefined ? flushAgainst(room, wallId, from, { w: width ?? cabinet.state.w, d: cabinet.state.d }) : null;
+    const spot = at ? { pose: at, w: width ?? cabinet.state.w, d: cabinet.state.d }
+      : room && from === undefined ? wallSpot(room, wallId, standing, { min: width ?? 80, max: width ?? 400, depth: cabinet.state.d }) : null;
     const fits = spot && !collisionWith(room, () => others).cabinetCollides({ ...cabinet, ...spot.pose, state: { ...cabinet.state, w: spot.w, d: spot.d } });
-    if (!fits) report('This wall has no free stretch of 80 cm for a wardrobe. It went where there is room.');
+    if (!fits) report(from !== undefined ? 'The wardrobe does not fit there on that wall: it would run into a wall, a door or another wardrobe.'
+      : 'This wall has no free stretch of ' + (width ?? 80) + ' cm for a wardrobe. It went where there is room.');
     return fits ? spot : null;
   }
 

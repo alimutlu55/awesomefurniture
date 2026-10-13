@@ -61,10 +61,12 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it
          * fills that wall's free stretch instead, as wide as it allows. */
-        addCabinet(copy = false, template?: ShapeTemplateId, wall?: string) {
+        addCabinet(copy = false, template?: ShapeTemplateId, wall?: string, size: { w?: number; h?: number; d?: number; from?: number } = {}) {
             checkpoint();
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId++;
             const state = copy ? structuredClone(original.state) : initialDesign();
+            // A size asked for (a design spec): set before the shape and the place are worked out.
+            if (!copy) for (const k of ['w', 'h', 'd'] as const) if (size[k] !== undefined) state[k] = size[k]!;
             if (!copy && template && template !== 'regular') {
                 const start = createFromTemplate(template, { w: state.w, h: state.h, maxN: 6 });
                 Object.assign(state, { shape: start.shape, n: start.n, wt: start.wt, h: maxHeight(start.shape) });
@@ -72,9 +74,10 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             const cabinet = { id, name: 'Wardrobe ' + id, x: 0, y: copy ? (original.y || 0) : 0, z: original.z, angle: copy ? original.angle : 0, state };
             if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
             // In a room, a new wardrobe stands against the first free wall instead, or fills the wall chosen.
-            const spot = wall && !copy && !template ? studio.fillWall(cabinet, wall) : null;
+            const spot = wall && !copy ? studio.fillWall(cabinet, wall, size.w, size.from) : null;
             if (spot) {
                 Object.assign(cabinet, spot.pose);
+                if (state.shape && spot.w !== state.w) state.shape = resizeShape(state.shape, state.w, spot.w, state.h, state.h);
                 Object.assign(state, { w: spot.w, d: spot.d });
                 state.n = Math.max(1, Math.min(state.n, createWardrobeGeometry(() => state).maxN()));
                 state.sel = Math.min(state.sel, state.n - 1);

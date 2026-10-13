@@ -25,6 +25,13 @@ function flush(studio: Studio, w: StudioWall, along: number, size: Footprint): P
   return { x: round(line.a.x + line.ux * along + line.nx * off), z: round(line.a.z + line.uz * along + line.nz * off), angle: line.angle };
 }
 
+/** The pose that stands a wardrobe flush and square against wall `wallId`, its left side `from` cm from the
+ * wall's left end inside the room. Null when the wall is missing. */
+export function flushAgainst(studio: Studio, wallId: string, from: number, size: Footprint): Pose | null {
+  const w = studio.walls.find(x => x.id === wallId), face = w && wallFace(studio, w);
+  return w && face ? flush(studio, w, face.start + from + size.w / 2, size) : null;
+}
+
 /** The first free spot flush against a wall, facing into the room: longest walls first, from the middle
  * of each wall outwards. Null when no wall has room. */
 export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides): Pose | null {

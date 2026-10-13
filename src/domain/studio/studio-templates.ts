@@ -85,3 +85,11 @@ export function createStudio(id: typeof STUDIO_TEMPLATES[number]['id']): Studio 
   if (!template) throw new Error('Unknown studio ' + id);
   return { template: id, ...structuredClone(template.build()) };
 }
+
+/** A rectangular room `width` × `depth` inside, laid out like the built-in rooms: wall 1 at the back (its room
+ * face at z = 0, centred on x = 0), then right, front and left. Walls `height` tall and `thickness` thick. */
+export function rectangleStudio(width: number, depth: number, height: number = H, thickness: number = T): Studio {
+  const x = width / 2 + thickness / 2, back = -thickness / 2, front = depth + thickness / 2;
+  const { corners, walls } = chain([[-x, back], [x, back], [x, front], [-x, front]], true);
+  return { template: 'custom', corners, walls: walls.map(w => ({ ...w, thickness, height })), openings: [] };
+}
