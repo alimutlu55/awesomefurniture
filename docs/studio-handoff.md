@@ -154,6 +154,21 @@ Verified on desktop (1440 × 900) and phone (375 × 812, real touch events): `no
 Limits: a wardrobe's top can slope side to side, not front to back, so under a roof sloping down to its own
 wall it is flat at the lowest point. Ceiling solids hide while the camera is above the room's ceiling.
 
+## Measuring assistant (resizing and moving)
+
+What a carpenter reads while something moves or is resized, and nothing else on the model:
+
+- **Wardrobe moved or resized** (`domain/studio/scene-gaps.ts`, `viewport/assist-overlay.ts`): dark tags on
+  dimension lines to the side walls or neighbours (filler gaps), the ceiling (top filler) and, when tight, the
+  room in front (amber under 60 cm: doors need it). Each gap is the smallest of three readings along the face.
+  Green when it lines up: Flush, Centred, Fronts in line, Tops level; within about 8 px it snaps there
+  (`align-commands.ts`, Shift moves freely). Pressed against a wall it slides along it.
+- **Fitting edge dragged** (`viewport/item-dimensions.js`): only the size it sets and the gaps it closes.
+- **Divider dragged**: its gaps in dark tags. **Wall pushed**: the gap to the nearest wardrobe in front.
+  **Corner dragged**: its angle (green at 90° Square and 180° Straight); snaps Square, Straight, Parallel, 45°.
+- While any of these shows, the label layer is marked (`#labels[data-assist]`, `[data-room-drag]`) and
+  every other handle, "+" and tag hides (`studio.css`).
+
 ## What is left
 
 - Corner and opening fields have no keyboard-free precise X/Z entry (corners move by dragging or arrow keys).

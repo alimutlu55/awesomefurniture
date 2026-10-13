@@ -6,7 +6,7 @@ import { ceilingHandles, depthRuler, pointRuler, runAxis, snapPoint } from './st
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
-import { centredOffset, furthestValid, snapCorner, wallTargets, type CornerLocks, type Guide } from './studio-drag';
+import { centredOffset, cornerAngle, furthestValid, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber } from './editor-format.js';
 import type { Carried } from '../../application/commands/studio-commands';
 
@@ -131,11 +131,19 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const corners = moving.handle.kind === 'wall' ? [w.a, w.b] : [moving.created ?? moving.handle.id];
       for (const x of studio.walls) if (corners.includes(x.a) || corners.includes(x.b)) ids.add(x.id);
     }
+    // Pushed or pulled, the gap to the nearest wardrobe in front of it (not one going with it).
+    const gap = moving?.handle.kind === 'wall' ? wallGap(studio, w, model.scene.wardrobes, moving.carry) : null;
     // At rest, the selected wall's length can be tapped and typed.
     const ruler = (x: StudioWall) => { const m = wallRuler(studio, x); return m && x.id === w.id && !moving && s.kind === 'wall' ? { ...m, edit: 'length' } : m; };
-    return studio.walls.filter(x => ids.has(x.id)).map(ruler).filter((m): m is RoomMeasure => !!m);
+    return [...studio.walls.filter(x => ids.has(x.id)).map(ruler), gap].filter((m): m is RoomMeasure => !!m);
   }
-  const guides = () => drag?.guides ?? [];
+  /** Snap guides while dragging, and the angle at a dragged corner (green when square or straight). */
+  const guides = () => {
+    const id = drag?.moved ? (drag.created ?? (drag.handle.kind === 'corner' ? drag.handle.id : null)) : null, angle = id && drag ? cornerAngle(drag.last, drag.locks.join ?? id) : null;
+    // A square or straight corner says so once, on its angle; the guide lines keep no words of their own.
+    const said = angle && !angle.info, lines = (drag?.guides ?? []).map(g => said && (g.label === 'Square' || g.label === 'Straight') ? { ...g, label: '' } : g);
+    return [...lines, ...(angle ? [angle] : [])];
+  };
   const reason = () => {
     if (!drag?.reason) return null;
     const h = handles().find(x => x.key === drag!.handle.key) ?? drag.handle;
@@ -376,6 +384,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     /** Tapping a length on the model opens its field. */
     editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields('wall-size', m.edit); },
     dragging: () => drag !== null,
+    /** The handle being dragged, which stays on show while the others step aside. */
+    dragKey: () => drag?.moved ? drag.handle.key : null,
     selection,
   };
 }

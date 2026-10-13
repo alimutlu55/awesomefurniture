@@ -30,7 +30,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
         };
         lifetime.listen(range, 'input', () => {
             if (before === null) before = model.snapshot();
-            selectionState.editingSize = true;
+            selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id);
             sceneCommands.setCabinetSize(id, range.valueAsNumber, false);
             inspector.update(true);
         });
@@ -39,7 +39,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
         lifetime.listen(range, 'blur', () => finishSlide());
         lifetime.listen(range, 'pointercancel', () => finishSlide(true));
         lifetime.listen(el, 'focus', () => {
-            selectionState.editingSize = true;
+            selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id);
             rendering.build();
         });
         lifetime.listen(el, 'blur', () => {

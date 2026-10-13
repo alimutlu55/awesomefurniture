@@ -2,6 +2,7 @@ import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion } from './wardrobe-occlusion';
+import { createWardrobeAssist, SIZE_SIDES } from './assist-overlay';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
 import { disposeCabinetGroup } from './render-disposal';
@@ -51,6 +52,11 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const overlay = studio && studioEditor ? createStudioOverlay({ document, labels: () => $('#labels'), scene: resources.scene, camera: resources.cam, canvas: resources.cv, renderState,
         label: (p, t, c) => label(p, t, c), bindRuler: (e, a, b, x) => bindRuler(e, a, b, x), editor: studioEditor }) : null;
     if (overlay) lifetime.cleanup(() => overlay.dispose());
+    // The measuring assistant: gaps to the walls, neighbours and ceiling while a wardrobe moves or is resized.
+    const wardrobeAssist = resources?.scene ? createWardrobeAssist({ document, labels: () => $('#labels'), scene: resources.scene, renderState }) : null;
+    if (wardrobeAssist) lifetime.cleanup(() => wardrobeAssist.dispose());
+    /** @param {import('../../domain/studio/scene-gaps').GapSide[] | null} sides @param {'move' | 'size'} [mode] */
+    const assist = (sides, mode = 'move') => wardrobeAssist?.show(model.scene, model.scene.wardrobes.length ? model.activeCabinet() : null, sides, mode, selectionState.editingSize);
     /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
     const wardrobeFootprints = () => model.scene.wardrobes.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     /** Redraws only the room and its handles: a wall drag never rebuilds the wardrobes. */
@@ -216,6 +222,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         inspector.crumbUI();
         resources.contact.visible = false;
         overlay?.draw();
+        if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
         if (renderState.dividerMoveHandle && !renderState.labs.some(l => l.el === renderState.dividerMoveHandle)) {
             renderState.dividerMoveHandle.remove();
         }
@@ -382,5 +389,5 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
         });
     }
-    return { redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
+    return { assist, redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
 }

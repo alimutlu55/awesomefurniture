@@ -3,6 +3,7 @@ import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet } from '../projects/editor-model';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
+import { createAlignCommands } from './align-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
@@ -33,6 +34,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         : change + ' would overlap another wardrobe. Move it first.';
     return {
         ...studio,
+        ...createAlignCommands(getScene, collision),
         /** Room edits reshape the wardrobes under any ceiling they move. */
         placeStudio(id: Parameters<typeof studio.placeStudio>[0]) {
             const ok = studio.placeStudio(id);
@@ -116,7 +118,10 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (!cabinet) {
                 return false;
             }
-            Object.assign(cabinet, collision.safeCabinetTranslation(cabinet, pose));
+            // Pressed against a wall or a neighbour, it slides along it: the part of the move that is free still happens.
+            const moves = [pose, { ...pose, z: cabinet.z }, { ...pose, x: cabinet.x }].map(p => collision.safeCabinetTranslation(cabinet, p));
+            const travel = (p: Pick<EditorCabinet, 'x' | 'y' | 'z'>) => Math.hypot(p.x - cabinet.x, (p.y || 0) - (cabinet.y || 0), p.z - cabinet.z);
+            Object.assign(cabinet, moves.reduce((best, p) => travel(p) > travel(best) + .01 ? p : best));
             return true;
         },
         restorePose(id: number, pose: Partial<Pick<EditorCabinet, 'x' | 'y' | 'z' | 'angle'>>) {

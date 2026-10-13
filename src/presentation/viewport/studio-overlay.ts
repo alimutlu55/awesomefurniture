@@ -16,7 +16,7 @@ interface StudioOverlayPorts {
         handles(): RoomHandle[]; measures(): RoomMeasure[]; guides(): readonly Guide[];
         reason(): { text: string; x: number; y: number; z: number } | null;
         begin(e: PointerEvent, h: RoomHandle, el: HTMLElement): void; move(e: PointerEvent): void; end(cancel?: boolean): boolean;
-        nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean; editMeasure(m: RoomMeasure): void;
+        nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean; editMeasure(m: RoomMeasure): void; dragKey(): string | null;
     };
 }
 
@@ -99,7 +99,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
                 line.renderOrder = 16;
                 guideGroup.add(line);
             }
-            track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
+            // A reading (a corner's angle) is plain; a snap is green; a line already explained has no words.
+            if (g.label) track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, g.info ? 'lbl room-angle room-label' : 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
         }
         for (const m of editor.measures()) {
             const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.edit ? ' room-measure-edit' : ''));
@@ -110,8 +111,12 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         }
         const why = editor.reason();
         if (why) track(label(V(why), why.text, 'lbl shape-reason room-label'), V(why));
+        // While a part is dragged, its handle stays and every other handle on the model steps aside.
+        const dragged = editor.dragKey();
+        labels().toggleAttribute('data-room-drag', !!dragged);
         for (const h of handles) {
             const el = handleElement(h);
+            el.classList.toggle('dragging', h.key === dragged);
             used.add(h.key);
             current.set(el, h);
             if (!el.isConnected) labels().appendChild(el);

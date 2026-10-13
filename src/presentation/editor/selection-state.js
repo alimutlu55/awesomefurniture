@@ -1,6 +1,8 @@
 export function createSelectionState() {
     return { responsivePanel: null,
         showDimensions: true,
+        /** The wardrobe size being slid or typed ('w', 'h' or 'd'): the model shows it with its gaps.
+         * @type {false | 'w' | 'h' | 'd'} */
         editingSize: false,
         focusOn: false,
         pillOn: false,

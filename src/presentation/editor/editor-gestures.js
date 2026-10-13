@@ -16,7 +16,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             } } });
     const { beginRotation, rotateFromPointer, finishRotation, beginWardrobeDrag, moveWardrobeFromPointer, finishWardrobeDrag } = createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks: { get cancelMovement() {
                 return cancelMovement;
-            }, wallGuide: segment => rendering.wallGuide(segment) } });
+            }, wallGuide: segment => rendering.wallGuide(segment), assist: sides => rendering.assist(sides) } });
     const { beginDividerDrag, moveDividerDrag, finishDividerDrag } = createDividerDrag({ dom, resources, model, picking, camera, cameraState, interactionState, commands, rendering, history, inspector });
     function cancelMovement() {
         rendering.holdOverlay(false);

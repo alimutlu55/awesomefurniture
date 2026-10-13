@@ -25,6 +25,9 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
             return;
         }
         g.moved = true;
+        // While it moves, its gaps read clearly and nothing else on the model competes with them.
+        const labels = dom.$?.('#labels');
+        if (labels) labels.dataset.assist = 'divider';
         const point = picking.frontPoint(e);
         if (!point) {
             return;
@@ -41,6 +44,8 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
             return;
         }
         interactionState.dividerGesture = null;
+        const labels = dom.$?.('#labels');
+        if (labels) delete labels.dataset.assist;
         if (cancel) {
             model.restore(g.snapshot);
         }

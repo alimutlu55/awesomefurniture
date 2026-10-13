@@ -35,6 +35,9 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
                 return;
             }
             a.moved = true;
+            // Only what this edge changes shows on the model while it is dragged.
+            const labels = dom.$?.('#labels');
+            if (labels) labels.dataset.assist = 'item';
         }
         // Reproject both pointer positions with the current camera: easing alone must never resize an item.
         const p = picking.frontPoint(e), previous = picking.frontPoint({ clientX: a.lastX, clientY: a.lastY });
@@ -68,6 +71,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         }
         interactionState.itemEdgeGesture = null;
         a.handle.classList.remove('resizing');
+        const labels = dom.$?.('#labels');
+        if (labels) delete labels.dataset.assist;
         if (cancel) {
             model.restore(a.snapshot);
         }

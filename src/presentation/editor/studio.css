@@ -77,3 +77,24 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 @media(max-width:900px){
  .contextual-popover .ceiling-choice{flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;padding:10px 6px;font-size:13px;line-height:1.2;text-align:center;background:rgba(120,100,70,.07)}
 }
+
+/* The measuring assistant: while something moves or is resized, the gaps that matter are dark tags on
+   dimension lines, green where it lines up, amber where doors would not open. Every other handle and tag on
+   the model steps aside so nothing covers them. */
+.lbl.assist-gap{z-index:6;pointer-events:none;background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.lbl.assist-gap.ok{background:#2f8a57}
+.lbl.assist-gap.tight{background:#b86e22}
+.lbl.assist-gap.note{background:transparent;color:#24774a;box-shadow:none;font-size:11px;padding:0 4px;text-shadow:0 1px 3px #fff,0 0 4px #fff}
+#labels:is([data-assist="move"],[data-assist="size"]) :is(.wardrobe-move:not(.moving),.ground-rotate,.wardrobe-actions,.lbl.add,.wardrobe-name,.lbl.space-tag,.lbl.space-ruler,.measurement-line){display:none!important}
+/* A fitting's edge dragged: its size and the gaps it closes; the other edges' handles and other tags step aside. */
+#labels[data-assist="item"] :is(.lbl.add,.lbl.space-tag,.lbl.dim:not(.assist-size):not(.assist-gap),.wardrobe-move,.ground-rotate,.wardrobe-actions){display:none!important}
+#app:has(.item-resize-handle.resizing) .item-resize-handle:not(.resizing){display:none!important}
+.lbl.dim.assist-size{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;text-shadow:none;font-variant-numeric:tabular-nums}
+#labels[data-assist="move"] .lbl.dim:not(.assist-gap){display:none!important}
+#labels[data-room-drag] :is(.room-handle:not(.dragging),.lbl.add,.wardrobe-move,.ground-rotate,.wardrobe-actions,.lbl.dim:not(.room-label)){display:none!important}
+/* A corner's angle while it is dragged: a plain reading; it turns green (a guide) when square or straight. */
+.lbl.room-angle{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+/* While a wall or corner moves, the lengths it changes read as clearly as the wardrobe's gaps. */
+#labels[data-room-drag] .lbl.room-label.shape-measure{background:#2f2a22;color:#fff;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;text-shadow:none;font-variant-numeric:tabular-nums}
+#labels[data-assist="divider"] :is(.lbl.add,.lbl.space-tag,.wardrobe-move:not([aria-label^="Move divider"]):not([aria-label^="Move shelf"]),.ground-rotate,.wardrobe-actions){display:none!important}
+#labels[data-assist="divider"] .lbl.dim.divider-clearance{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600}
