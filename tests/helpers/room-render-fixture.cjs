@@ -45,7 +45,10 @@ class Node {
     hasPointerCapture(id) { return this.captured === id; }
     releasePointerCapture() { this.captured = null; }
     matches(selector) { return selector.split(',').some(s => /^\.[\w-]+$/.test(s) && this.classList.contains(s.slice(1))); }
-    querySelector() { return null; }
+    querySelector(selector) {
+        const key = /^\[data-ib="([^"]+)"\]$/.exec(selector)?.[1];
+        return key ? this.children.find(child => child.dataset.ib === key) ?? null : null;
+    }
     querySelectorAll() { return []; }
     getContext() { return { fillRect() {}, createLinearGradient: () => ({ addColorStop() {} }) }; }
 }
@@ -95,6 +98,6 @@ exports.roomRenderFixture = function (t, { run = 'along', width = 1280, wardrobe
     const handle = index => nodes.labels.children.find(el => el.getAttribute('aria-label')?.startsWith('Point ' + (index + 1) + ','));
     const event = (pointerType = 'mouse', x = 0, y = 0) => ({ pointerId: 1, pointerType, button: 0, clientX: x, clientY: y,
         shiftKey: true, preventDefault() {}, stopPropagation() {} });
-    return { model, commands, editor, renderer, shapeInspector, selectionState, renderState, nodes, checkpoints, history, messages, handle, event,
+    return { model, commands, editor, renderer, shapeInspector, inspector, interactionState, selectionState, renderState, nodes, checkpoints, history, messages, handle, event,
         point: p => { frontPoint = p; } };
 };
