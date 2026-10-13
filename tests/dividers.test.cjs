@@ -145,3 +145,10 @@ test('a divider added under a sloped top reaches the top where it stands, and fo
  const d=()=>c.S.dividers[0];near(d().y1,top(d().x));assert.ok(d().y1>run('ceilingIn(0,0,196.4)')+1,'taller than the section\'s lowest point');
  for(const x of [70,40,10]){ run(`moveDividerTo(0,${x})`);near(d().y1,top(x)); }
 });
+test('a shelf cut by a sloped top is measured, outlined and handled where it is built',()=>{
+ const c=vm.createContext({S:{w:200,h:230,d:60,n:2,wt:[100,100,100,100,100,100],secs:[[],[],[],[],[],[]],sel:0,item:-1,shape:{template:'sloped',top:[{x:0,y:230},{x:200,y:120}]},
+  dividers:[{i:0,orientation:'horizontal',x0:0,x1:96.4,y:172,area:{x0:0,x1:96.4,y0:0,y1:216.4}}]},G:{},act(fn){fn()},toast(){},deep:true,pillOn:true});
+ designFixture(c);const run=code=>vm.runInContext(code,c);
+ const r=run('visibleRect(S.dividers[0])');assert.ok(r.x1<96.4-5,'shorter than its stored width: '+r.x1);near(r.x0,0);
+ const m=run('dividerMeasurements(0)'),mid=(r.x0+r.x1)/2;near(m.high,run(`ceilingIn(0,${mid-.5},${mid+.5})`));
+});

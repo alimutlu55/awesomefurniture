@@ -13,7 +13,9 @@ export function createDimensionRenderer({ dom, renderState, resources }) {
         return el;
     }
     function rulerScreenPlacement(a, b, axis, ew, eh, bounds) {
-        const offset = axis === 'height' ? [8, 0] : axis === 'depth' ? [-8, 0] : [0, 6], side = axis === 'height' ? [ew / 2 + 14, 0] : axis === 'depth' ? [-ew / 2 - 8, 0] : [0, -eh / 2 - 7];
+        // 'under': a width read below its line (a shelf's, so the clear space above it keeps its own number).
+        const offset = axis === 'height' ? [8, 0] : axis === 'depth' ? [-8, 0] : [0, 6];
+        const side = axis === 'height' ? [ew / 2 + 14, 0] : axis === 'depth' ? [-ew / 2 - 8, 0] : axis === 'under' ? [0, eh / 2 + 9] : [0, -eh / 2 - 7];
         let ax = a.x + offset[0], ay = a.y + offset[1], bx = b.x + offset[0], by = b.y + offset[1], x = (ax + bx) / 2 + side[0], y = (ay + by) / 2 + side[1];
         if (axis === 'height' && Math.abs(by - ay) > 80) {
             y = ay + (by - ay) * .28;

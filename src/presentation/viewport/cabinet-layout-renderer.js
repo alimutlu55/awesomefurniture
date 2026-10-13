@@ -252,16 +252,19 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             geometry.sectionDividers(i).forEach(q => {
                 // Shelf boards and dividers meeting a sloped top are cut to its angle. A divider
                 // is drawn to the top the slope allows, never to a stored top above it.
-                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(geometry.clampDivider(q)), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, r.x1 - r.x0), Math.max(5, r.y1 - r.y0), d), resources.HM);
-                hit.position.set(cx, cy, 0);
+                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(geometry.clampDivider(q)), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp);
+                // Picking, outline, handle and measurements follow the part that is built (a shelf cut by a slope).
+                const vr = geometry.visibleRect(q), vcx = x + (vr.x0 + vr.x1) / 2, vcy = iy + (vr.y0 + vr.y1) / 2, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, vr.x1 - vr.x0), Math.max(5, vr.y1 - vr.y0), d), resources.HM);
+                hit.position.set(vcx, vcy, 0);
                 hit.userData = { i, divider: j };
                 renderState.Gr.add(hit);
                 renderState.ihits.push(hit);
                 if (renderState.renderActive && selectionState.focusOn && getRenderDesign().divider === j) {
-                    const front = d / 2 + 4, a = new V(x + r.x0, iy + r.y0, front), b = new V(x + r.x1, iy + r.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
-                    const hor = q.orientation === 'horizontal', ra = hor ? new V(x + r.x0, iy + r.y0, front) : new V(x + r.x1, iy + r.y0, front), rb = hor ? new V(x + r.x1, iy + r.y0, front) : new V(x + r.x1, iy + r.y1, front), el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? r.x1 - r.x0 : r.y1 - r.y0) + ' cm', 'lbl dim space-ruler item-dimension');
-                    bindRuler(el, ra, rb, hor ? 'width' : 'height');
-                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + r.x0, iy + r.y0, -d / 2 + .5), db = new V(x + r.x0, iy + r.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
+                    const front = d / 2 + 4, a = new V(x + vr.x0, iy + vr.y0, front), b = new V(x + vr.x1, iy + vr.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
+                    const hor = q.orientation === 'horizontal', ra = hor ? new V(x + vr.x0, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y0, front), rb = hor ? new V(x + vr.x1, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y1, front);
+                    const el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0) + ' cm', 'lbl dim space-ruler item-dimension');
+                    bindRuler(el, ra, rb, hor ? 'under' : 'height');
+                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, -d / 2 + .5), db = new V(x + vr.x0, iy + vr.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
                     bindRuler(depthLabel, da, db, 'depth');
                     const depthEntry = renderState.labs[renderState.labs.length - 1], handle = renderState.dividerMoveHandle || (renderState.dividerMoveHandle = document.createElement('button'));
                     handle.type = 'button';
@@ -281,7 +284,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                         }
                     };
                     $('#labels').appendChild(handle);
-                    renderState.labs.push({ p: new V(hor ? x + r.x1 : cx, cy, front), el: handle, owner: renderState.Gr });
+                    renderState.labs.push({ p: new V(hor ? x + vr.x1 : vcx, vcy, front), el: handle, owner: renderState.Gr });
                     const handleEntry = renderState.labs[renderState.labs.length - 1], clearances = createDividerClearances(j, x);
                     renderState.dividerVisuals[j] = { panel, hit, outline, sizeEntry, depthEntry, handleEntry, clearances, baseX: x };
                 }

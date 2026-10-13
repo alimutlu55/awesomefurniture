@@ -15,13 +15,28 @@ export function createDividersRules(ctx, deps) {
     function dividerRect(d) {
         return d.orientation === 'horizontal' ? { x0: d.x0, x1: d.x1, y0: d.y - T / 2, y1: d.y + T / 2 } : { x0: d.x - T / 2, x1: d.x + T / 2, y0: d.y0, y1: d.y1 };
     }
+    /** The part of a board that is built: a shelf under a sloped top is cut to the longest stretch that clears
+     * it, a divider to the top above it. Its outline, handle and measurements follow this, not the stored extent. */
+    function visibleRect(d) {
+        const r = dividerRect(d.orientation === 'vertical' ? clampDivider(d) : d);
+        if (d.orientation !== 'horizontal' || !boardFit(d.i, r, 'horizontal')?.cut) {
+            return r;
+        }
+        const best = clearSpans(d.i, r.x0, r.x1, r.y1).sort((p, q) => (q.x1 - q.x0) - (p.x1 - p.x0))[0];
+        return best ? { ...r, x0: best.x0, x1: best.x1 } : r;
+    }
     function dividerMeasurements(index) {
         const d = getDesign().dividers?.[index];
         if (!d) {
             return null;
         }
-        const r = dividerRect(d), area = dividerBounds(d), hor = d.orientation === 'horizontal';
+        const r = visibleRect(d), area = dividerBounds(d), hor = d.orientation === 'horizontal';
         let low = hor ? area.y0 : area.x0, high = hor ? area.y1 : area.x1;
+        // Above a shelf, the clear height is measured up to the top where the shelf is, not the wardrobe's tallest point.
+        if (hor) {
+            const mid = (r.x0 + r.x1) / 2;
+            high = Math.min(high, ceilingIn(d.i, mid - .5, mid + .5));
+        }
         const obstacles = computeLayout(d.i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).concat((getDesign().dividers || []).filter((q, j) => j !== index && q.i === d.i).map(dividerRect));
         obstacles.forEach(q => {
             if (hor) {
@@ -160,5 +175,5 @@ export function createDividersRules(ctx, deps) {
         runs.sort((p, q) => (q.end - q.start) - (p.end - p.start) || Math.abs(mid(p) - d[key]) - Math.abs(mid(q) - d[key]));
         return mid(runs[0]);
     }
-    return { dividerRect, sectionDividers, dividerBounds, boardFit, clampDivider, dividerValid, dividerOrientation, dividerOverlaps, dividerMeasurements, dividerDupSpot };
+    return { dividerRect, visibleRect, sectionDividers, dividerBounds, boardFit, clampDivider, dividerValid, dividerOrientation, dividerOverlaps, dividerMeasurements, dividerDupSpot };
 }
