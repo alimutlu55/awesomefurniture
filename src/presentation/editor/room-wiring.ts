@@ -107,14 +107,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
     }
 
-    /** A ceiling is shaped from inside the room, below it, where it shows solid: a three-quarter view at eye
-     * level facing its wall. A view already below the ceiling and in front of the wall is kept. */
+    /** Selecting a ceiling fits its editing view even when the camera is already below it: being below
+     * does not mean its profile and depth grip are in view. Drag previews keep the view stationary. */
     function faceCeiling(id: string) {
         const room = model.scene.studio, c = room?.ceilings?.find(x => x.id === id), fr = room && c && ceilingFrame(room, c);
         if (!room || !fr) return;
-        const cam = late.camera().camNow(), height = roomHeight(room), ground = { x: cam.x + cam.dist * Math.cos(cam.el) * Math.sin(cam.az), z: cam.z + cam.dist * Math.cos(cam.el) * Math.cos(cam.az) };
-        const y = cam.y + cam.dist * Math.sin(cam.el), mid = fr.at((fr.along.from + fr.along.to) / 2, 0);
-        if (y < height - 20 && (ground.x - mid.x) * fr.line.nx + (ground.z - mid.z) * fr.line.nz > 0) return;
+        const height = roomHeight(room);
         // The whole wall it runs along, so both its ends and the room around it show.
         const depth = fr.across.to, centre = fr.at((fr.face.start + fr.face.end) / 2, depth / 2), span = Math.max(150, fr.face.length);
         // The lens is long, so the camera stands well back: it looks level, from about eye height, to stay under the ceiling.
@@ -139,6 +137,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
             move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),
         },
         /** For picking: the room's walls and openings, and what a hit selects. */
-        room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => editor.pick(hit) },
+        room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => {
+            const selected = editor.selection(), repeat = selected?.kind === 'ceiling' && hit?.object.userData.studioCeiling === selected.id;
+            const picked = editor.pick(hit);
+            // A tap after orbiting or zooming brings the same ceiling back into its editing view.
+            if (picked && repeat) faceCeiling(selected.id);
+            return picked;
+        } },
     };
 }
