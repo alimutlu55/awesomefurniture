@@ -7,6 +7,11 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none"
   },
+  "env": {
+    "dev": {
+      "name": "awesomefurniture-dev"
+    }
+  },
   // Builds of branches other than the production one run `wrangler preview`, which needs this block.
   "previews": {}
 }

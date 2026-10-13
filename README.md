@@ -103,4 +103,13 @@ available, and unknown paths return 404.
 Validate deployment locally after building with
 `npx wrangler deploy --dry-run`. A dry run does not publish the site.
 
+Both Workers use `npm run build` and `npx wrangler deploy`. Connect the
+`awesomefurniture` Worker to `main` and `awesomefurniture-dev` to `develop`
+as each Worker's production branch. The build reads Cloudflare's
+`WORKERS_CI_BRANCH` and sets the matching Worker name in the temporary build
+checkout. Keep automatic builds enabled for each Worker.
+
+Local builds retain the `awesomefurniture` default. To deploy development
+locally, use `npx wrangler deploy --env dev` (add `--dry-run` to validate).
+
 # awesomefurniture
