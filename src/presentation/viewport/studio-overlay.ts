@@ -99,8 +99,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
                 line.renderOrder = 16;
                 guideGroup.add(line);
             }
-            // A reading (a corner's angle) is plain; a snap is green; a line already explained has no words.
-            if (g.label) track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, g.info ? 'lbl room-angle room-label' : 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
+            // Snap guides are lines without words; only a corner's angle shows, as a number (green when square or straight).
+            if (g.info !== undefined) track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, g.info ? 'lbl room-angle room-label' : 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
         }
         for (const m of editor.measures()) {
             const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.edit ? ' room-measure-edit' : ''));

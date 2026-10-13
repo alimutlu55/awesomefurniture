@@ -140,9 +140,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   /** Snap guides while dragging, and the angle at a dragged corner (green when square or straight). */
   const guides = () => {
     const id = drag?.moved ? (drag.created ?? (drag.handle.kind === 'corner' ? drag.handle.id : null)) : null, angle = id && drag ? cornerAngle(drag.last, drag.locks.join ?? id) : null;
-    // A square or straight corner says so once, on its angle; the guide lines keep no words of their own.
-    const said = angle && !angle.info, lines = (drag?.guides ?? []).map(g => said && (g.label === 'Square' || g.label === 'Straight') ? { ...g, label: '' } : g);
-    return [...lines, ...(angle ? [angle] : [])];
+    return [...drag?.guides ?? [], ...(angle ? [angle] : [])];
   };
   const reason = () => {
     if (!drag?.reason) return null;

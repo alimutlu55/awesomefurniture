@@ -65,7 +65,8 @@ test('pressed against the wall behind it, a dragged wardrobe still slides along 
 
 test('a dragged corner shows its angle and snaps straight or parallel to another wall', () => {
   const room = bedroom();
-  assert.equal(cornerAngle(room, 'c2')!.label, '90° Square');
+  assert.equal(cornerAngle(room, 'c2')!.label, '90°');
+  assert.equal(cornerAngle(room, 'c2')!.info, false, 'square: shown green');
   const leaning = moveCorner(room, 'c2', 230, -30)!;
   assert.match(cornerAngle(leaning, 'c2')!.label, /^\d+(\.5)?°$/, 'a plain reading when not square');
   assert.equal(cornerAngle(leaning, 'c2')!.info, true);
@@ -75,7 +76,7 @@ test('a dragged corner shows its angle and snaps straight or parallel to another
   const straight = snapCorner(run, 'c9', { x: 52, z: 49 }, { x: null, z: null, ray: null, join: null }, 4);
   assert.ok(Math.abs(straight.at.x - 50.5) < 1e-9 && Math.abs(straight.at.z - 50.5) < 1e-9, 'on the line: ' + JSON.stringify(straight.at));
   assert.equal(straight.guides[0]!.label, 'Straight');
-  assert.equal(cornerAngle({ ...run, corners: run.corners.map(c => c.id === 'c9' ? { ...c, ...straight.at } : c) }, 'c9')!.label, '180° Straight');
+  assert.equal(cornerAngle({ ...run, corners: run.corners.map(c => c.id === 'c9' ? { ...c, ...straight.at } : c) }, 'c9')!.label, '180°');
   // A free wall drawn near the direction of a wall at 30° snaps parallel to it.
   const free = { template: 'custom' as const, openings: [], corners: [{ id: 'c1', x: 0, z: 0 }, { id: 'c2', x: 173.2, z: 100 }, { id: 'c5', x: 0, z: 300 }, { id: 'c6', x: 100, z: 300 }],
     walls: [{ id: 'w1', a: 'c1', b: 'c2', thickness: 12, height: 260 }, { id: 'w5', a: 'c5', b: 'c6', thickness: 12, height: 260 }] };
@@ -89,6 +90,6 @@ test('a wall pushed towards a wardrobe shows the gap to it', () => {
   const room = bedroom(), w = room.walls[0]!;
   const gap = wardrobeGap(room, w, [{ id: 1, x: -80, z: 60, angle: 0, w: 200, d: 60 }], new Set())!;
   assert.equal(gap.text, '60 cm');
-  assert.equal(wardrobeGap(room, w, [{ id: 1, x: -80, z: 0, angle: 0, w: 200, d: 60 }], new Set())!.text, 'Flush');
+  assert.equal(wardrobeGap(room, w, [{ id: 1, x: -80, z: 0, angle: 0, w: 200, d: 60 }], new Set()), null, 'touching: nothing to read');
   assert.equal(wardrobeGap(room, w, [{ id: 1, x: -80, z: 0, angle: 0, w: 200, d: 60 }], new Set([1])), null, 'one going with the wall is left out');
 });

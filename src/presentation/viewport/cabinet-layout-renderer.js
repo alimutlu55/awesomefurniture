@@ -82,7 +82,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             const w = getRenderDesign().w, h = getRenderDesign().h;
             const pv = shapeInspector.pivot();
             if (pv) {
-                label(new THREE.Vector3(pv.x, pv.y + 12, d / 2 + 4), 'Pivot: left end', 'lbl shape-guide');
+                label(new THREE.Vector3(pv.x, pv.y, d / 2 + 4), '', 'lbl pivot-dot');
             }
             const why = shapeInspector.dragReason();
             if (why) {
@@ -103,8 +103,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 line.computeLineDistances();
                 line.renderOrder = 16;
                 renderState.Gr.add(line);
-                const at = g.orient === 'h' ? new THREE.Vector3(w / 2 + 4, g.pos, d / 2 + 3) : new THREE.Vector3(g.pos - w / 2, h + 4, d / 2 + 3);
-                label(at, g.label, 'lbl shape-guide');
+
             }
             // While a point is dragged only its own rulers and guides show, so nothing competes for space.
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.

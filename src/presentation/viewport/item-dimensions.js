@@ -46,23 +46,35 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         // Selected item and clearances use the same fine strokes as the wardrobe rulers.
         const fz = d / 2 + .6, A = Pt(g.x0, g.y0, fz), B = Pt(g.x1, g.y0, fz), C = Pt(g.x1, g.y1, fz), D = Pt(g.x0, g.y1, fz);
         renderState.selMarks.push(dimensionStroke([A, B, B, C, C, D, D, A], renderState.Gr, 14));
+        /** A green bar along an edge: it touches what is there. */
+        const touching = (a, b) => {
+            const bar = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: new THREE.Color('#2f8a57').convertSRGBToLinear(), toneMapped: false, depthTest: false }));
+            bar.renderOrder = 30;
+            renderState.Gr.add(bar);
+            renderState.selMarks.push(bar);
+        };
         const gap = (a, b, value, cls) => {
             const tick = Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? new V(2, 0, 0) : new V(0, 2, 0);
             if (value > .1) renderState.selMarks.push(dimensionStroke([a, b, a.clone().sub(tick), a.clone().add(tick), b.clone().sub(tick), b.clone().add(tick)]));
-            return label(value > .1 ? a.clone().add(b).multiplyScalar(.5) : a, value > .1 ? f(value) + ' cm' : cls.includes('assist') ? 'Flush' : '0 cm', cls);
+            else if (cls.includes('assist')) {
+                touching(a.clone().sub(tick.clone().multiplyScalar(4)), a.clone().add(tick.clone().multiplyScalar(4)));
+                return null;
+            }
+            return label(value > .1 ? a.clone().add(b).multiplyScalar(.5) : a, value > .1 ? f(value) + ' cm' : '0 cm', cls);
         };
         if (edge === 'left' || edge === 'right') {
             const s = sideGaps(i, j, g), y = (g.y0 + g.y1) / 2;
-            gap(Pt(s.lo, y), Pt(g.x0, y), s.left, 'lbl assist-gap' + (s.left < .1 ? ' ok' : ''));
-            gap(Pt(g.x1, y), Pt(s.hi, y), s.right, 'lbl assist-gap' + (s.right < .1 ? ' ok' : ''));
+            // The touching side is drawn at the fitting's edge, not at the far end of a zero gap.
+            gap(Pt(g.x0, y), Pt(s.lo, y), s.left, 'lbl assist-gap');
+            gap(Pt(g.x1, y), Pt(s.hi, y), s.right, 'lbl assist-gap');
             return;
         }
         const clear = (y0, y1, value, side, cls = 'lbl dim clearance') => {
-            const el = y1 - y0 > .1 ? gap(Pt(mid, y0), Pt(mid, y1), value, cls) : label(Pt(mid, y0 + (y0 >= h / 2 ? 6 : -6)), cls.includes('assist') ? 'Flush' : '0 cm', cls);
-            inspector.editableItemClearance(el, i, j, side);
+            const el = y1 - y0 > .1 || cls.includes('assist') ? gap(Pt(mid, y0), Pt(mid, y1), value, cls) : label(Pt(mid, y0 + (y0 >= h / 2 ? 6 : -6)), '0 cm', cls);
+            if (el) inspector.editableItemClearance(el, i, j, side);
         };
         if (edge === 'top') {
-            clear(g.y1, g.y1 + g.top, g.top, 'top', 'lbl assist-gap' + (g.top < .1 ? ' ok' : ''));
+            clear(g.y1, g.y1 + g.top, g.top, 'top', 'lbl assist-gap');
             return;
         }
         clear(g.y1, g.y1 + g.top, g.top, 'top');

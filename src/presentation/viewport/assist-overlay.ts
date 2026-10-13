@@ -16,9 +16,10 @@ const DOOR_ROOM = 60;
 const colour = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
 /** The measuring assistant on the model while something is moved or resized: a dimension line from each
- * face being changed to the nearest surface (wall, neighbour, ceiling) with its distance, green where it
- * lines up (touching, centred, fronts in line, tops level), amber where doors would not open. Nothing else:
- * it replaces what it drew last, and the editor hides other handles while it shows. Scene centimetres. */
+ * face being changed to the nearest surface (wall, neighbour, ceiling) with its distance. Numbers only, no
+ * words: green where it lines up (centred gaps, a green bar where it touches, a green dashed line along
+ * fronts in line or tops level), amber where doors would not open. It replaces what it drew last, and the
+ * editor hides other handles while it shows. Scene centimetres. */
 export function createAssistOverlay({ document, labels, scene, renderState }: AssistOverlayPorts) {
   const group = new THREE.Group();
   group.name = 'measuring-assistant';
@@ -63,25 +64,22 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
     for (const g of gaps) {
       const a = new THREE.Vector3(g.from.x, g.from.y, g.from.z), b = new THREE.Vector3(g.to.x, g.to.y, g.to.z);
       const short = g.side === 'front' && g.distance < DOOR_ROOM, good = green.has(g.side);
-      if (g.distance >= .5) dimension(a, b, good ? ok : short ? tight : ink);
-      // Flush against the wall behind: the green strip at its foot already says so.
-      if (g.side === 'back' && g.target === 'wall' && g.distance < .5) continue;
-      const text = g.distance < .5 ? 'Flush' : measureNumber(g.distance) + ' cm' + (short ? ' · doors need ' + DOOR_ROOM : '');
+      if (g.distance < .5) {
+        // Touching: a short green bar on the face where it meets (the wall strip says so at the back).
+        if (g.side === 'left' || g.side === 'right') dimension(a.clone().add(new THREE.Vector3(0, 25, 0)), a.clone().sub(new THREE.Vector3(0, 25, 0)), ok);
+        continue;
+      }
+      dimension(a, b, good ? ok : short ? tight : ink);
       // Near the wardrobe being changed, so a long gap's tag stays in view: half way, or 25 cm out at most.
-      const at = a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25)));
-      tag(g.distance < .5 ? a : at, text, good || g.distance < .5 ? 'ok' : short ? 'tight' : '');
+      tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + ' cm', good ? 'ok' : short ? 'tight' : '');
     }
-    if (aligned.some(a => a.kind === 'centred')) {
-      const l = gaps.find(g => g.side === 'left'), r = gaps.find(g => g.side === 'right');
-      if (l && r) tag(new THREE.Vector3((l.from.x + r.from.x) / 2, l.from.y - 14, (l.from.z + r.from.z) / 2), 'Centred', 'ok note');
-    }
+    // Fronts in line, tops level: a green dashed line along them, no words.
     for (const a of aligned) {
       if ((a.kind !== 'fronts' && a.kind !== 'tops') || !a.a || !a.b) continue;
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.a.x, a.a.y, a.a.z), new THREE.Vector3(a.b.x, a.b.y, a.b.z)]), level);
       line.computeLineDistances();
       line.renderOrder = 30;
       group.add(line);
-      tag(new THREE.Vector3(a.b.x, a.b.y + 6, a.b.z), a.kind === 'fronts' ? 'Fronts in line' : 'Tops level', 'ok note');
     }
   }
   return {

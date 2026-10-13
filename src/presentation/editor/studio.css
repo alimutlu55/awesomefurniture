@@ -98,3 +98,5 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #labels[data-room-drag] .lbl.room-label.shape-measure{background:#2f2a22;color:#fff;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;text-shadow:none;font-variant-numeric:tabular-nums}
 #labels[data-assist="divider"] :is(.lbl.add,.lbl.space-tag,.wardrobe-move:not([aria-label^="Move divider"]):not([aria-label^="Move shelf"]),.ground-rotate,.wardrobe-actions){display:none!important}
 #labels[data-assist="divider"] .lbl.dim.divider-clearance{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600}
+/* The pivot an angle turns about: a green dot, no words. */
+.lbl.pivot-dot{width:10px;height:10px;padding:0;border-radius:50%;background:#2f8a57;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);pointer-events:none}

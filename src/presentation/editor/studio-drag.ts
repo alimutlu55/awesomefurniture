@@ -100,8 +100,8 @@ export function furthestValid<T>(at: (t: number) => T | null, valid: (room: T) =
   return { room: best, whole: false };
 }
 
-/** The angle between the two walls meeting at a corner, as a reading beside it: green when square or
- * straight. Null for a free end. */
+/** The angle between the two walls meeting at a corner, as a number beside it: green at 90° (square) and
+ * 180° (straight). Null for a free end. */
 export function cornerAngle(room: Studio, id: string): Guide | null {
   const c = room.corners.find(x => x.id === id), nbs = neighbours(room, id).map(n => room.corners.find(x => x.id === n)).filter((n): n is StudioCorner => !!n);
   if (!c || nbs.length !== 2) return null;
@@ -109,7 +109,7 @@ export function cornerAngle(room: Studio, id: string): Guide | null {
   let deg = Math.abs(a - b) * 180 / Math.PI;
   if (deg > 180) deg = 360 - deg;
   const shown = Math.round(deg * 2) / 2, square = Math.abs(shown - 90) < .01, straight = Math.abs(shown - 180) < .01;
-  return { a: c, b: c, label: square ? '90° Square' : straight ? '180° Straight' : shown + '°', info: !square && !straight };
+  return { a: c, b: c, label: shown + '°', info: !square && !straight };
 }
 
 /** While a wall moves: the nearest wardrobe in front of it (one not going with it) and the gap to it, as a
@@ -127,9 +127,10 @@ export function wardrobeGap(room: Studio, w: StudioWall, standing: readonly { id
       if (along >= face.start && along <= face.end && out > -.5 && out < 300 && (!best || out < best.out)) best = { out, along };
     }
   }
-  if (!best) return null;
+  // Touching it there is nothing to read; the wall stops and says why.
+  if (!best || best.out < .5) return null;
   const at = (d: number) => ({ x: line.a.x + line.ux * best!.along + line.nx * (w.thickness / 2 + d), y: 100, z: line.a.z + line.uz * best!.along + line.nz * (w.thickness / 2 + d) });
-  return { a: at(0), b: at(Math.max(0, best.out)), text: best.out < .5 ? 'Flush' : measureNumber(Math.round(best.out * 10) / 10) + ' cm' };
+  return { a: at(0), b: at(Math.max(0, best.out)), text: measureNumber(Math.round(best.out * 10) / 10) + ' cm' };
 }
 /** `wardrobeGap` for the scene's wardrobes, leaving out those carried with the wall. */
 export function wallGap(room: Studio, w: StudioWall, wardrobes: readonly { id: number; x: number; z: number; angle: number; state: { w: number; d: number } }[], carry: { list: readonly { id: number }[] } | null) {
