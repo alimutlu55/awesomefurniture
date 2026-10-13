@@ -1,4 +1,4 @@
-/** Share design: a link that opens this design, sent with the phone's share sheet or copied on a computer.
+/** Share: a link that opens this design, sent with the phone's share sheet or copied on a computer.
  * Event bindings only: the link itself comes from the page that mounts the editor. */
 /** @param {import('./share.ports').BindShareMenuPorts} ports */
 export function bindShareMenu({ dom, shell, model, lifetime, shareLink }) {
