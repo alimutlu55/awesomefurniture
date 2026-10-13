@@ -1,3 +1,4 @@
+import { loftGeometry } from './loft-geometry';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
@@ -92,9 +93,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     /** Extruded front-elevation outline for angled or notched panels. UVs span the
      * panel like a box face so wood grain keeps its scale. */
-    function prism(points, depth, z, m, g) {
-        const geo = new THREE.ExtrudeGeometry(new THREE.Shape(points.map(p => new THREE.Vector2(p.x, p.y))), { depth, bevelEnabled: false, steps: 1 });
-        geo.translate(0, 0, z - depth / 2);
+    function prism(points, depth, z, m, g, back) {
+        const geo = loftGeometry(points, depth, z, back);
         if (m?.userData?.board) boardUVs(geo, boardSeed(points[0].x, points[0].y, z));
         else planarUVs(geo);
         const o = new THREE.Mesh(geo, m);
@@ -161,10 +161,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         resources.stage?.fit((x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, z1 - z0));
     }
     function build() {
+        if (!model.scene.wardrobes.length) selectionState.shapeEditing = false;
         studio?.sync(model.scene.studio, wardrobeFootprints());
         fitLight();
         studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();
+        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle') && !l.el.classList.contains('room-handle'));
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
             // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
@@ -207,6 +209,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderDesign = selected.state;
         ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
         renderState.labs = combinedLabs;
+        // Prune wardrobe handles only; the studio overlay owns room handles and their active pointer capture.
+        const usedLabels = new Set(combinedLabs.map(l => l.el));
+        previousShapeHandles.forEach(l => { if (!usedLabels.has(l.el)) l.el.remove(); });
         renderState.pivots = combinedPivots;
         renderState.renderActive = true;
         renderState.moveIcons = [];

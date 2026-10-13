@@ -1,6 +1,7 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createDesignCommands } from './design-commands';
 import { ceilingTop } from '../../domain/studio/studio-fit';
+import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { maxHeight, regularShape, resolveShape, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 type Top = readonly { x: number; y: number }[];
@@ -17,7 +18,13 @@ function heightAt(top: Top, x: number, high: boolean) {
 }
 /** Whether a top rises into the ceiling's: more than half a centimetre above it anywhere. */
 export function risesAbove(top: Top, ceiling: Top, w: number) {
-  for (let x = 0; x <= w; x += 1) if (heightAt(top, Math.min(x, w), true) > heightAt(ceiling, Math.min(x, w), false) + .5) return true;
+  // Between profile vertices both heights are linear. Check both ends of each
+  // interval, on its own side of a step, including bends less than 1 cm apart.
+  const xs = [...new Set([0, w, ...top.map(p => p.x), ...ceiling.map(p => p.x)])].filter(x => x >= 0 && x <= w).sort((a, b) => a - b);
+  for (let k = 1; k < xs.length; k++) {
+    const a = xs[k - 1]!, b = xs[k]!, inset = Math.min(1e-5, (b - a) / 4);
+    for (const x of [a + inset, b - inset]) if (heightAt(top, x, true) > heightAt(ceiling, x, false) + .5) return true;
+  }
   return false;
 }
 
@@ -35,7 +42,7 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
     if (fit && 'problem' in fit) return fit.problem;
     const under = fit && 'shape' in fit ? fit.shape : null;
     let next: WardrobeShape | null | undefined;
-    if (under) next = state.shape?.template === 'room' || risesAbove(current(cabinet).top, under.top, state.w) ? under : undefined;
+    if (under) next = state.shape?.template === 'room' || ceilingClearance(getScene().studio, placed(cabinet))(current(cabinet)) ? under : undefined;
     // Out from under it: a fitted wardrobe stands regular at its tallest point.
     else if (state.shape?.template === 'room') next = null;
     const changed = next !== undefined && JSON.stringify(next) !== JSON.stringify(state.shape ?? null);
@@ -58,10 +65,16 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
     return changed;
   }
   /** Why a shape someone picks does not fit under the ceiling over the wardrobe, or null. */
+  let clearanceKey: string | undefined, clearance: ReturnType<typeof ceilingClearance> = () => false;
   function shapeBlocked(cabinet: EditorCabinet, shape: WardrobeShape): string | null {
-    const fit = ceilingTop(getScene().studio, placed(cabinet));
-    if (!fit || !('shape' in fit) || shape.template === 'room') return null;
-    return risesAbove(shape.top, fit.shape.top, cabinet.state.w) ? 'The ceiling above is lower than that. This wardrobe follows the ceiling.' : null;
+    const room = getScene().studio, pose = placed(cabinet), key = JSON.stringify([room, pose]);
+    // A handle's boundary search checks many shapes in the same space. Prepare
+    // its ceiling planes once; any room, pose or footprint change invalidates them.
+    if (key !== clearanceKey) {
+      clearance = ceilingClearance(room, pose);
+      clearanceKey = key;
+    }
+    return clearance(shape) ? 'The ceiling above is lower than that. This wardrobe follows the ceiling.' : null;
   }
   return { follow, followAll, shapeBlocked };
 }

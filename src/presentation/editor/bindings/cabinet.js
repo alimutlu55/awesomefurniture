@@ -44,7 +44,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
         });
         lifetime.listen(el, 'blur', () => {
             selectionState.editingSize = false;
-            rendering.build();
+            inspector.update(true);
         });
         lifetime.listen(el, 'keydown', e => {
             if (e.key === 'Enter') {

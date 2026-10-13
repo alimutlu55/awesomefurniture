@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
+import { risesAbove } from '../../src/application/commands/ceiling-commands';
+import { createShapeInspector } from '../../src/presentation/editor/shape-inspector';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry.js';
@@ -42,8 +44,126 @@ test('shaping the stairs reshapes the wardrobe under them; a shape that would ri
   assert.equal(s.commands.editStudio(room => moveCeilingPoint(room, 'k1', 2, room.ceilings![0]!.profile[2]!.t, 150)), true);
   assert.notEqual(JSON.stringify(s.w().state.shape), before, 'it followed');
   assert.equal(s.checkpoints(), checkpoints + 1, 'one undo step for both');
+  const messages = s.messages.length;
   assert.equal(s.commands.applyShapeTemplate('regular'), false);
-  assert.match(s.messages.at(-1)!, /ceiling above is lower/);
+  assert.equal(s.messages.length, messages, 'ceiling-blocked templates are silent');
+});
+
+test('room-fitted shape edits cannot rise into the stairs, including live previews at unchanged maximum height', () => {
+  const s = scene();
+  s.commands.placeStudio('under-stairs');
+  s.model.scene.wardrobes = [];
+  const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  const original = structuredClone(cabinet.state), checkpoints = s.checkpoints();
+  const shape = structuredClone(original.shape!);
+  const low = shape.top.find(p => p.y < original.h - 10)!;
+  assert.ok(low, 'the fitted top has a lower section');
+  low.y += 5;
+  assert.equal(maxHeight(shape), original.h, 'the bounding box height does not change');
+  assert.deepEqual(shapeProblems(shape, original.w), [], 'the edited skeleton itself is buildable');
+  assert.match(s.commands.shapeEditProblem(shape)!, /ceiling above is lower/);
+  const messages = s.messages.length;
+  for (const recordHistory of [false, true]) {
+    assert.equal(s.commands.setShape(shape, recordHistory, recordHistory), false);
+    assert.deepEqual(cabinet.state, original, 'shape, fittings and height are preserved');
+    assert.equal(s.checkpoints(), checkpoints, 'rejected edits do not enter undo history');
+    assert.equal(s.messages.length, messages, 'ceiling-blocked edits are silent');
+  }
+});
+
+test('lowering a room-fitted top is allowed and stays a manual shape after settling', () => {
+  const s = scene();
+  s.commands.placeStudio('under-stairs');
+  s.model.scene.wardrobes = [];
+  const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  const shape = structuredClone(cabinet.state.shape!);
+  assert.equal(s.commands.shapeEditProblem(shape), null, 'matching steps can touch the ceiling');
+  shape.top.forEach(p => { p.y -= 5; });
+  assert.equal(s.commands.setShape(shape, false, false), true, 'live preview fits');
+  assert.equal(cabinet.state.shape!.template, 'custom');
+  assert.equal(s.commands.settleCabinet(cabinet.id), null);
+  assert.deepEqual(cabinet.state.shape!.top, shape.top, 'settling preserves the lowered top');
+});
+
+test('manual reshaping can use real clearance beside a ceiling step simplified by automatic fitting', () => {
+  const s = scene([{ state: { ...createEditorState(), w: 400 } }]);
+  s.commands.placeStudio('bedroom');
+  s.commands.editStudio(room => ({ ...room, ceilings: [{ id: 'k1', wall: 'w1', run: 'along', depth: 100,
+    profile: [{ t: 6, y: 100 }, { t: 10, y: 100 }, { t: 10, y: 240 }, { t: 406, y: 240 }] }] }));
+  const shape = { template: 'custom' as const, top: [{ x: 0, y: 100 }, { x: 7, y: 100 }, { x: 7, y: 200 }, { x: 400, y: 200 }] };
+  assert.deepEqual(shapeProblems(shape, 400), []);
+  assert.equal(risesAbove(shape.top, s.w().state.shape!.top, 400), true, 'the automatic fitting profile is too restrictive');
+  assert.equal(s.commands.shapeEditProblem(shape), null, 'the actual ceiling is clear');
+  assert.equal(s.commands.setShape(shape), true);
+  assert.equal(s.commands.settleCabinet(s.w().id), null);
+  assert.deepEqual(s.w().state.shape!.top, shape.top, 'settling does not flatten a valid manual shape');
+  const higher = structuredClone(shape);
+  higher.top[3]!.y = 230;
+  assert.equal(s.commands.setShape(higher), true, 'height can increase into free space');
+  higher.top[3]!.y = 250;
+  assert.equal(s.commands.setShape(higher), false, 'the actual ceiling still stops it');
+});
+
+test('ceiling comparison checks both sides of steps and bends between centimetre samples', () => {
+  const stepped = [{ x: 0, y: 230 }, { x: 50.3, y: 230 }, { x: 50.3, y: 150 }, { x: 200, y: 150 }];
+  assert.equal(risesAbove(stepped, stepped, 200), false, 'a flush step does not intersect');
+  const shifted = stepped.map(p => ({ ...p, x: p.x === 50.3 ? 50.6 : p.x }));
+  assert.equal(risesAbove(shifted, stepped, 200), true, 'a narrow overlap beside the step is blocked');
+  const peak = [{ x: 0, y: 140 }, { x: 50.4, y: 151 }, { x: 200, y: 140 }];
+  const ceiling = [{ x: 0, y: 150 }, { x: 200, y: 150 }];
+  assert.equal(risesAbove(peak, ceiling, 200), true, 'the peak itself is checked');
+});
+
+test('a handle stops at the ceiling, can move back down, and commits one undo step', () => {
+  const s = scene();
+  s.commands.placeStudio('under-stairs');
+  s.model.scene.wardrobes = [];
+  const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  const shape = structuredClone(cabinet.state.shape!);
+  const index = shape.top.length - 1, point = shape.top[index]!;
+  const state = () => s.w(cabinet.id).state;
+  const checkpoints = s.checkpoints();
+  let pointer = { x: point.x, y: point.y };
+  const inspector = createShapeInspector({
+    dom: {} as never, model: s.model, sceneCommands: s.commands,
+    picking: { frontPoint: () => pointer }, selectionState: { focusOn: true },
+    callbacks: { refresh() {}, rebuild() {}, histUI() {} },
+  });
+  const event = { pointerId: 1, preventDefault() {}, stopPropagation() {} } as PointerEvent;
+  const target = { setPointerCapture() {}, hasPointerCapture: () => false } as unknown as HTMLElement;
+  inspector.beginHandleDrag(event, index, target);
+  pointer = { ...pointer, y: point.y + 20 };
+  inspector.moveHandleDrag(event);
+  assert.ok(state().shape!.top[index]!.y <= point.y + .5, 'stops at the ceiling tolerance');
+  assert.equal(inspector.dragReason(), null, 'ceiling boundary does not show feedback');
+  assert.equal(s.checkpoints(), checkpoints, 'preview has no undo entry');
+  pointer = { ...pointer, y: point.y - 5 };
+  inspector.moveHandleDrag(event);
+  assert.equal(state().shape!.top[index]!.y, point.y - 5, 'reversing the pointer releases the boundary');
+  inspector.endHandleDrag();
+  assert.equal(state().shape!.top[index]!.y, point.y - 5);
+  assert.equal(s.checkpoints(), checkpoints + 1);
+  inspector.beginHandleDrag(event, index, target);
+  pointer = { ...pointer, y: point.y - 10 };
+  inspector.moveHandleDrag(event);
+  inspector.endHandleDrag(true);
+  assert.equal(state().shape!.top[index]!.y, point.y - 5, 'cancel restores the committed shape');
+  assert.equal(s.checkpoints(), checkpoints + 1);
+});
+
+test('shape clearance refreshes after the room or wardrobe position changes', () => {
+  const s = scene();
+  s.commands.placeStudio('under-stairs');
+  const shape = structuredClone(s.w().state.shape!);
+  shape.top.forEach(p => { p.y -= 5; });
+  assert.equal(s.commands.shapeEditProblem(shape), null);
+  s.w().y = 20;
+  assert.match(s.commands.shapeEditProblem(shape)!, /ceiling above is lower/);
+  s.w().y = 0;
+  assert.equal(s.commands.shapeEditProblem(shape), null);
+  s.model.scene.studio = undefined;
+  shape.top.forEach(p => { p.y += 10; });
+  assert.equal(s.commands.shapeEditProblem(shape), null, 'removed room no longer limits the shape');
 });
 
 test('a wardrobe moved out from under a box stands regular again; moved back, it fits under it', () => {

@@ -47,6 +47,7 @@ const editorLayout = z.strictObject({
 });
 const shape = z.strictObject({
   template: z.enum(SHAPE_TEMPLATE_IDS),
+  back: z.array(positive).min(2).max(40).optional(),
   top: z.array(z.strictObject({ x: nonnegative, y: positive, partition: count.max(4).optional() })).min(2).max(40),
 });
 const item = z.strictObject({

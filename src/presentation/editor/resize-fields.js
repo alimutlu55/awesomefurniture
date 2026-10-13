@@ -1,3 +1,16 @@
+import { resizeHeightMinimum } from '../../domain/wardrobe/cabinet-size-limits';
+
+/** Keep the slider's scale stable while a gesture changes the front/rear height difference.
+ * @param {ReturnType<typeof import('./editor-dom.js').createEditorDom>} dom
+ * @param {import('../../domain/wardrobe/shape/wardrobe-shape').ShapedDesign} design
+ * @param {false | 'w' | 'h' | 'd'} editingSize */
+export function syncCabinetHeightMinimum(dom, design, editingSize) {
+    const min = String(resizeHeightMinimum(design));
+    dom.$('#h').min = min;
+    const range = /** @type {HTMLInputElement | null} */ (dom.document.querySelector('[data-dimension="h"]'));
+    if (range && editingSize !== 'h') range.min = min;
+}
+
 /** Wrap existing bound dimension inputs in the shared value-and-slider layout. */
 export function mountResizeFields({ dom, lifetime, fields, preview, model, history, refresh }) {
     for (const { input, axis } of fields) {

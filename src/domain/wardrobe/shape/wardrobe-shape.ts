@@ -1,4 +1,5 @@
 import { PANEL, PLINTH } from '../catalog.js';
+import { rearShape, withRear } from './depth-shape';
 
 /** Built-in wardrobe skeletons share one model: an x-monotone outer top profile
  * over the full cabinet width. Every template, sloped or stepped, is data in this
@@ -17,6 +18,8 @@ export interface ShapePoint {
 export interface WardrobeShape {
   template: ShapeTemplateId;
   top: ShapePoint[];
+  /** Rear heights at the same profile points; omitted when front and rear match. */
+  back?: number[] | undefined;
 }
 
 /** Lowest outer height of any part of the cabinet. */
@@ -57,7 +60,7 @@ export function regularShape(w: number, h: number): WardrobeShape {
 /** True when the profile is one flat top across the whole width. */
 export function isRegularShape(shape: WardrobeShape | undefined): boolean {
   if (!shape) return true;
-  const ys = shape.top.map(p => p.y);
+  const ys = [...shape.top.map(p => p.y), ...(shape.back ?? [])];
   return Math.max(...ys) - Math.min(...ys) < .05;
 }
 
@@ -101,7 +104,7 @@ export function resolveShape(design: ShapedDesign): WardrobeShape {
     if (p === undefined) continue;
     a.x = b.x = b.y > a.y ? p : p + PANEL;
   }
-  return { template: stored.template, top };
+  return { ...stored, top };
 }
 
 /** Vertical board thickness of a panel with this slope. */
@@ -135,7 +138,7 @@ export function shapeBoards(shape: WardrobeShape): BoardPolygon[] {
 /** The underside of the top boards across the full width. The clear interior lies
  * below the minimum of the overlapping pieces. */
 export function ceilingPieces(shape: WardrobeShape): CeilingPiece[] {
-  return shapeBoards(shape).map(board => {
+  return [...shapeBoards(shape), ...(shape.back ? shapeBoards(rearShape(shape)) : [])].map(board => {
     const [p0, p1] = board.points as [{ x: number; y: number }, { x: number; y: number }];
     return { x0: p0.x, x1: p1.x, y0: p0.y, y1: p1.y };
   });
@@ -222,7 +225,7 @@ export function outerPolyline(shape: WardrobeShape, x0: number, x1: number): { x
 }
 
 export function maxHeight(shape: WardrobeShape): number {
-  return Math.max(...shape.top.map(p => p.y));
+  return Math.max(...shape.top.map(p => p.y), ...(shape.back ?? []));
 }
 
 /** Area of the cabinet's front elevation, for material and cost estimates. */
@@ -289,6 +292,10 @@ export function shapeProblems(shape: WardrobeShape, w: number): string[] {
     const pieces = ceilingPieces(shape), clear = ceilingMin(pieces, PANEL, w - PANEL) - BASE;
     if (clear < MIN_INNER_CLEARANCE - .01) problems.push(`Leave at least ${MIN_INNER_CLEARANCE} cm clear inside under the lowest top panel.`);
   }
+  if (shape.back) {
+    if (shape.back.length !== pts.length || shape.back.some(y => !Number.isFinite(y))) problems.push('Rear profile must match the front points.');
+    else problems.push(...shapeProblems(rearShape(shape), w).filter(p => !/step must rise|Two steps/.test(p)));
+  }
   return [...new Set(problems)];
 }
 
@@ -296,11 +303,12 @@ export function shapeProblems(shape: WardrobeShape, w: number): string[] {
  * maximum height shifts the whole top so measured slopes and steps are kept. */
 export function resizeShape(shape: WardrobeShape, fromW: number, toW: number, fromH: number, toH: number): WardrobeShape {
   const sx = fromW > EPS ? toW / fromW : 1, dy = toH - fromH;
-  return { template: shape.template, top: shape.top.map((p, k, all) => ({ ...p, x: k === all.length - 1 ? toW : round(p.x * sx), y: round(p.y + dy) })) };
+  const top = shape.top.map((p, k, all) => ({ ...p, x: k === all.length - 1 ? toW : round(p.x * sx), y: round(p.y + dy) }));
+  return { ...shape, top, ...(shape.back ? { back: shape.back.map(y => round(y + dy)) } : {}) };
 }
 /** Lowest maximum height that keeps every part above the minimum outer height. */
 export function minimumShapeHeight(shape: WardrobeShape): number {
-  const ys = shape.top.map(p => p.y);
+  const ys = [...shape.top.map(p => p.y), ...(shape.back ?? [])];
   return Math.max(...ys) - (Math.min(...ys) - MIN_OUTER_HEIGHT);
 }
 
@@ -318,7 +326,7 @@ export function setPoint(shape: WardrobeShape, index: number, patch: { x?: numbe
       delete top[k]!.partition;
     }
   }
-  return { template: shape.template, top };
+  return { ...shape, top };
 }
 /** Change a step's rise. The run after the step moves with it up to the next
  * step (or the right side), so flat panels stay flat and the next step absorbs
@@ -332,7 +340,7 @@ export function setStepRise(shape: WardrobeShape, index: number, rise: number): 
     const next = top[k + 1];
     if (next && Math.abs(next.x - top[k]!.x) < EPS && k > index + 1) break;
   }
-  return { template: shape.template, top };
+  return { ...shape, top };
 }
 /** Set a top panel's angle by moving its end point (or start when pivoting at the end). */
 export function setPanelAngle(shape: WardrobeShape, from: number, degrees: number, pivot: 'start' | 'end' = 'start'): WardrobeShape {
@@ -353,7 +361,7 @@ export function splitPanel(shape: WardrobeShape, from: number): WardrobeShape {
   if (!a || !b || b.x - a.x < 2 * MIN_SEGMENT) return shape;
   const top = shape.top.map(p => ({ ...p }));
   top.splice(from + 1, 0, { x: round((a.x + b.x) / 2), y: round((a.y + b.y) / 2) });
-  return { template: shape.template, top };
+  return withRear(shape, top);
 }
 /** Add a step in the middle of a top panel: the right part drops by `drop` cm. */
 export function addStep(shape: WardrobeShape, from: number, drop = 20): WardrobeShape {
@@ -362,7 +370,7 @@ export function addStep(shape: WardrobeShape, from: number, drop = 20): Wardrobe
   const x = round((a.x + b.x) / 2), y = round((a.y + b.y) / 2), top = shape.top.map(p => ({ ...p }));
   top.splice(from + 1, 0, { x, y }, { x, y: round(y - drop) });
   for (let k = from + 3; k < top.length; k++) top[k]!.y = round(top[k]!.y - drop);
-  return { template: shape.template, top };
+  return withRear(shape, top);
 }
 /** Remove a break point (both corners of a step). Side corners are kept. */
 export function removePoint(shape: WardrobeShape, index: number): WardrobeShape {
@@ -372,7 +380,7 @@ export function removePoint(shape: WardrobeShape, index: number): WardrobeShape 
   // straight between the neighbouring break points.
   const mate = [index - 1, index + 1].find(k => k > 0 && k < top.length - 1 && Math.abs(top[k]!.x - p.x) < EPS);
   top.splice(mate === undefined ? index : Math.min(index, mate), mate === undefined ? 1 : 2);
-  return { template: shape.template, top };
+  return withRear(shape, top);
 }
 
 /** Clear interior (relative to the base board) available to fittings in a section span. */
@@ -380,17 +388,4 @@ export function sectionCeiling(pieces: readonly CeilingPiece[], origin: number, 
   return ceilingMin(pieces, origin + x0, origin + x1) - BASE;
 }
 
-/** Plain-language version of a rule message, for the person editing. The rule
- * itself is unchanged; this only says what to do about it. */
-export function friendlyProblem(message: string): string {
-  if (/left to right/.test(message)) return "A break point can't pass its neighbour. Move it or remove it first.";
-  if (/at least 5 cm wide/.test(message)) return 'Keep each top panel at least 5 cm wide.';
-  if (/steeper than/.test(message)) return 'That slope would be steeper than 70°. Make it a step instead.';
-  if (/at least 40 cm tall/.test(message)) return 'Keep every part at least 40 cm tall.';
-  if (/taller than/.test(message)) return 'No part can be taller than 280 cm.';
-  if (/cannot sit on a side/.test(message) || /side panel/.test(message)) return 'A step cannot sit on a side panel.';
-  if (/rise at least/.test(message)) return 'A step must rise at least 1 cm.';
-  if (/room for its riser/.test(message)) return 'A step needs room for its riser board inside the sides.';
-  if (/clear inside/.test(message)) return 'Leave at least 15 cm of clear height inside under the lowest top.';
-  return message;
-}
+export { friendlyProblem } from './shape-messages';

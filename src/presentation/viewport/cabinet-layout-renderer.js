@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createCabinetMaterials } from './cabinet-materials';
-import { renderCabinetFrame, boardUnderTop, panelBuilder } from './frame-geometry';
+import { renderCabinetFrame, renderUpright, panelBuilder } from './frame-geometry';
 import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
@@ -166,7 +166,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         ws.forEach((sw, i) => {
             // While the skeleton is edited on a phone, the model shows only the panels and their handles.
             const shapeFocus = shapeSheetOpen() && dom.width <= 900;
-            const cx = x + sw / 2, sel = !shapeFocus && renderState.renderActive && selectionState.focusOn && inspector.inside() && i === getRenderDesign().sel, H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
+            const selected = !shapeFocus && renderState.renderActive && selectionState.focusOn && i === getRenderDesign().sel;
+            const cx = x + sw / 2, sel = selected && inspector.inside(), H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
             const aoMaterial = new THREE.MeshBasicMaterial({ map: resources.aoTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
             const ao = shaped ? flatShape(outline, aoMaterial) : new THREE.Mesh(new THREE.PlaneGeometry(sw, H), aoMaterial);
             if (shaped) ao.position.z = -d / 2 + .9;
@@ -298,7 +299,20 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             else if (!sel && getRenderDesign().item < 0) {
                 ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), sw.toFixed(1) + ' cm', 'lbl dim hover-dim');
             }
-            if (selectionState.pillOn && sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && !interactionState.moveMode && geometry.sectionSpaceMeasurements(i).h >= 15) {
+            // Add item belongs to the selected wardrobe even outside the section-inspection scope.
+            let addSpace, fallbackSpace = false;
+            if (selected && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && !interactionState.moveMode) {
+                addSpace = geometry.sectionSpaceMeasurements(i);
+                const point = getRenderDesign().space;
+                const targeted = point?.i === i && point.x >= addSpace.x0 - .01 && point.x <= addSpace.x1 + .01
+                    && point.y >= addSpace.y0 - .01 && point.y <= addSpace.y1 + .01;
+                // A slope can leave a thin upper sliver. An untargeted Add should use a usable space below it.
+                if (addSpace.h < 15 && !targeted) {
+                    addSpace = geometry.sectionSpaces(i).filter(q => q.h >= 15).sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0];
+                    fallbackSpace = true;
+                }
+            }
+            if (addSpace?.h >= 15) {
                 const ab = document.createElement('button');
                 ab.type = 'button';
                 ab.className = 'lbl add compact';
@@ -312,13 +326,16 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     // Only accept a pointer click that actually began on this button.
                     if (dom.width <= 900 && ev.isTrusted && ev.detail > 0 && !pressed) return;
                     pressed = false;
+                    if (fallbackSpace) {
+                        const c = geometry.spaceCentre(i, addSpace);
+                        getRenderDesign().space = { i, x: c.x, y: c.y };
+                    }
                     inspector.openPillMenu(ab);
                 };
                 $('#labels').appendChild(ab);
-                const space = geometry.sectionSpaceMeasurements(i);
                 // The pill sits at the centre of mass of the clear area, so it is in the middle of
                 // the room the shape leaves, whatever the shape.
-                const c = geometry.spaceCentre(i, space);
+                const c = geometry.spaceCentre(i, addSpace);
                 renderState.labs.push({ p: new V(x + c.x, c.y, d / 2), el: ab, owner: renderState.Gr });
             }
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
@@ -339,7 +356,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             x += sw;
             if (i < n - 1) {
                 // Partitions run from the base board up to the top's underside.
-                panel(boardUnderTop(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy), d - 1, 0, mp);
+                renderUpright(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy, d - 1, mp, box, prism);
                 x += PANEL;
             }
         });

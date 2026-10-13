@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
-import { ceilingFrame } from '../../domain/studio/studio-ceiling';
+import { wallFace, wallLine } from '../../domain/studio/studio';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
 import { createCeilingChoices } from './studio-ceiling-panel';
@@ -43,7 +42,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
             selectionChanged: () => {
                 if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true);
                 fields?.render();
-                faceSelection();
+                frameSelection();
             },
             redraw: () => { late.rendering().redrawStudio(); fields?.render(); },
             rebuild: () => { late.rendering().build(); late.rendering().redrawStudio(); fields?.render(); },
@@ -87,15 +86,14 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.stopImmediatePropagation();
     }, true);
 
-    /** A wall (or an opening on one) selected from behind, where it is lowered, or from eye level, is brought
-     * round to an editing view: a three-quarter view of its face from above, where its corners and grips can
-     * be dragged. A wall already facing the camera from above keeps the view, so selecting never jumps
-     * needlessly. */
-    function faceSelection() {
+    /** Room editing keeps the whole studio visible from the wardrobe's front, slightly above the floor.
+     * Looking straight at a selected wall can put the wardrobe's back in front of every room control. */
+    function frameSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
-        if (s.kind === 'ceiling') { faceCeiling(s.id); return; }
-        const id = s.kind === 'wall' ? s.id : room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
+        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().frameScene(); return; }
+        // An opening keeps its own wall-facing view for adjusting its position and exact size.
+        const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
         if (!w || !line || !face) return;
         const c = late.camera().camNow(), cam = { x: c.x + c.dist * Math.cos(c.el) * Math.sin(c.az), z: c.z + c.dist * Math.cos(c.el) * Math.cos(c.az) };
@@ -105,20 +103,6 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if ((cam.x - mid.x) * line.nx + (cam.z - mid.z) * line.nz > 0 && c.el >= .35) return;
         const span = Math.max(150, face.length);
         late.camera().frameBox({ x: mid.x + line.nx * 60, z: mid.z + line.nz * 60, w: span, d: span * .5, h: w.height }, Math.atan2(line.nx, line.nz) + .62, .55, 1.08);
-    }
-
-    /** A ceiling is shaped from inside the room, below it, where it shows solid: a three-quarter view at eye
-     * level facing its wall. A view already below the ceiling and in front of the wall is kept. */
-    function faceCeiling(id: string) {
-        const room = model.scene.studio, c = room?.ceilings?.find(x => x.id === id), fr = room && c && ceilingFrame(room, c);
-        if (!room || !fr) return;
-        const cam = late.camera().camNow(), height = roomHeight(room), ground = { x: cam.x + cam.dist * Math.cos(cam.el) * Math.sin(cam.az), z: cam.z + cam.dist * Math.cos(cam.el) * Math.cos(cam.az) };
-        const y = cam.y + cam.dist * Math.sin(cam.el), mid = fr.at((fr.along.from + fr.along.to) / 2, 0);
-        if (y < height - 20 && (ground.x - mid.x) * fr.line.nx + (ground.z - mid.z) * fr.line.nz > 0) return;
-        // The whole wall it runs along, so both its ends and the room around it show.
-        const depth = fr.across.to, centre = fr.at((fr.face.start + fr.face.end) / 2, depth / 2), span = Math.max(150, fr.face.length);
-        // The lens is long, so the camera stands well back: it looks level, from about eye height, to stay under the ceiling.
-        late.camera().frameBox({ x: centre.x, z: centre.z, w: span, d: depth, h: Math.min(height, 260) }, Math.atan2(fr.line.nx, fr.line.nz) + .4, .02, 1.12);
     }
 
     /** Flies to show the whole room: every wall, the floor and the wardrobes (`frameScene`). */
@@ -139,6 +123,13 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
             move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),
         },
         /** For picking: the room's walls and openings, and what a hit selects. */
-        room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => editor.pick(hit) },
+        room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => {
+            const selected = editor.selection(), data = hit?.object.userData;
+            const repeat = selected?.kind === 'ceiling' ? data?.studioCeiling === selected.id : selected?.kind === 'wall' && data?.studioWall === selected.id;
+            const picked = editor.pick(hit);
+            // A tap after orbiting or zooming restores context; dragging leaves the camera stationary.
+            if (picked && repeat) frameSelection();
+            return picked;
+        } },
     };
 }
