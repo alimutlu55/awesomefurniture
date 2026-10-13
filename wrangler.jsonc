@@ -1,11 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "awesomefurniture-dev",
+  "name": "awesomefurniture",
   "compatibility_date": "2026-10-10",
   "assets": {
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none"
+  },
+  "env": {
+    "dev": {
+      "name": "awesomefurniture-dev"
+    }
   },
   // Builds of branches other than the production one run `wrangler preview`, which needs this block.
   "previews": {}
