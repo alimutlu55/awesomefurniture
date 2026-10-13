@@ -180,7 +180,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
         camera.frameMobileInspector();
-        rendering.build();
     };
     const resize = createResizePresenter({
         getSelection: () => model.activeCabinet().state,

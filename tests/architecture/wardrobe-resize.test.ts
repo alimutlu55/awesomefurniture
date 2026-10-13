@@ -1,11 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as THREE from 'three';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createEditorState } from '../../src/application/projects/editor-state';
-import { createSelectionState } from '../../src/presentation/editor/selection-state.js';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
-import { createWardrobeResize } from '../../src/presentation/editor/wardrobe-resize';
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
 import { measureAround } from '../../src/application/commands/align-commands';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
@@ -71,37 +68,4 @@ test('rotated face resizing anchors in wardrobe coordinates', () => {
   assert.equal(f.commands.setCabinetSize('d', 80, true, 'front'), true);
   assert.ok(Math.abs(c.x - c.state.d / 2 - back) < 1e-8);
   assert.equal(c.z, 30);
-});
-
-for (const pointerType of ['mouse', 'touch']) test(`${pointerType}: a face stops at contact, reverses freely, and produces one undo entry; cancellation restores pose and size`, () => {
-  const f = fixture();
-  // Only 10 cm is free in front: collision limits this front independently of side/back contact.
-  f.model.scene.studio = rectangleStudio(400, 70);
-  const snapshot = f.model.snapshot(), checkpoints: string[] = [], selectionState = createSelectionState();
-  const group = new THREE.Group();
-  const resize = createWardrobeResize({ model: f.model, sceneCommands: f.commands,
-    selectionState, renderState: { Gr: group } as never, camera: { camRelease() {} } as never,
-    picking: { screenPoint: (p: THREE.Vector3) => ({ x: p.x, y: -p.z }) } as never,
-    rendering: { build() {} } as never, inspector: { update() {} } as never,
-    history: { checkpoint: (raw: string) => checkpoints.push(raw) } as never,
-  });
-  const target = { setPointerCapture() {}, hasPointerCapture: () => false, classList: { add() {}, remove() {} } } as unknown as HTMLElement;
-  const event = (y: number) => ({ button: 0, pointerType, pointerId: 1, clientX: 0, clientY: y, preventDefault() {}, stopPropagation() {} }) as PointerEvent;
-  resize.beginWardrobeResize(event(0), 'front', target);
-  resize.moveWardrobeResize(event(-30));
-  assert.equal(f.cabinet().state.d, 70, 'clamps at the front wall');
-  assert.equal(f.cabinet().z, 35);
-  resize.moveWardrobeResize(event(-5));
-  assert.equal(f.cabinet().state.d, 65, 'reversing releases contact');
-  resize.finishWardrobeResize();
-  assert.deepEqual(checkpoints, [snapshot]);
-  assert.equal(selectionState.editingSize, false);
-  const committed = f.model.snapshot();
-  resize.beginWardrobeResize(event(0), 'front', target);
-  resize.moveWardrobeResize(event(5));
-  resize.finishWardrobeResize(true);
-  assert.equal(f.model.snapshot(), committed);
-  assert.equal(checkpoints.length, 1);
-  f.model.restore(checkpoints[0]!);
-  assert.equal(f.model.snapshot(), snapshot, 'undo restores the anchored pose as well as geometry');
 });

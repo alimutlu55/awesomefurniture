@@ -4,7 +4,6 @@ import { createSceneSelection } from './scene-selection.js';
 import { createItemResize } from './item-resize.js';
 import { createCabinetDrag } from './cabinet-drag.js';
 import { createDividerDrag } from './divider-drag.js';
-import { createWardrobeResize } from './wardrobe-resize';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 /** Presentation behavior with explicit subsystem dependencies. */
@@ -19,7 +18,6 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
                 return cancelMovement;
             }, wallGuide: segment => rendering.wallGuide(segment), assist: sides => rendering.assist(sides) } });
     const { beginDividerDrag, moveDividerDrag, finishDividerDrag } = createDividerDrag({ dom, resources, model, picking, camera, cameraState, interactionState, commands, rendering, history, inspector });
-    const wardrobeResize = createWardrobeResize({ model, picking, renderState, camera, sceneCommands, selectionState, rendering, history, inspector });
     function cancelMovement() {
         rendering.holdOverlay(false);
         if (interactionState.panelWasOpen) {
@@ -216,5 +214,5 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             performMove(geometry.planItemMove(from, to, model.activeCabinet().state.secs[to]?.length || 0));
         }
     }
-    return { ...wardrobeResize, beginDividerDrag, moveDividerDrag, finishDividerDrag, frontPoint: picking.frontPoint, cancelMovement, armMovement, previewAt, commitItemMove, cast: picking.cast, hitAt: picking.hitAt, pick, hover, groundPoint: picking.groundPoint, beginRotation, rotateFromPointer, finishRotation, screenPoint: picking.screenPoint, beginWardrobeDrag, moveWardrobeFromPointer, finishWardrobeDrag, beginItemEdgeResize, moveItemEdgeResize, finishItemEdgeResize, buildSnapContext, snapPxPerCm, snapItemEdge, performMove, keyboardMove, setManualItemSize };
+    return { beginDividerDrag, moveDividerDrag, finishDividerDrag, frontPoint: picking.frontPoint, cancelMovement, armMovement, previewAt, commitItemMove, cast: picking.cast, hitAt: picking.hitAt, pick, hover, groundPoint: picking.groundPoint, beginRotation, rotateFromPointer, finishRotation, screenPoint: picking.screenPoint, beginWardrobeDrag, moveWardrobeFromPointer, finishWardrobeDrag, beginItemEdgeResize, moveItemEdgeResize, finishItemEdgeResize, buildSnapContext, snapPxPerCm, snapItemEdge, performMove, keyboardMove, setManualItemSize };
 }

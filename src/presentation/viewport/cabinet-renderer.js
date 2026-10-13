@@ -227,8 +227,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         inspector.crumbUI();
         resources.contact.visible = false;
         overlay?.draw();
-        const sizeSides = selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : $('#left').dataset.contextSection === 'resize' && selectionState.focusOn ? [] : null;
-        if (!interactionState.wardrobeGesture) assist(sizeSides, 'size');
+        if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
         if (renderState.dividerMoveHandle && !renderState.labs.some(l => l.el === renderState.dividerMoveHandle)) {
             renderState.dividerMoveHandle.remove();
         }
