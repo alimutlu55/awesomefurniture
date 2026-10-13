@@ -2,8 +2,8 @@ import type { EditorState } from '../../application/projects/editor-scene';
 import type { createSceneCommands } from '../../application/commands/scene-commands';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
-    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
-    type ShapeTemplateId, type WardrobeShape, friendlyProblem,
+    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, splitPanel,
+    type ShapeTemplateId, type WardrobeShape,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
@@ -15,7 +15,7 @@ interface ShapeInspectorPorts {
         document: { createElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K] };
     };
     model: { activeCabinet(): { state: EditorState }; snapshot(): string; restore(raw: string): void };
-    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape'>;
+    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem'>;
     picking: { frontPoint(e: PointerEvent): { x: number; y: number } | null };
     selectionState: { shapeEditing?: boolean; focusOn: boolean };
     callbacks: { refresh(): void; rebuild(): void; histUI(): void; report?(message: string): void };
@@ -315,14 +315,13 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         // A break point stays inside the wardrobe; the rules then decide how far it may go.
         const wantX = movesX ? Math.max(0, Math.min(state().w, alignX ? alignX.v : roundCm(rawX))) : point.x;
         const want = setPoint(o, g.index, { x: wantX, y: wantY });
-        const wantProblem = shapeProblems(want, state().w)[0];
-        g.reason = wantProblem ? friendlyProblem(wantProblem) : null;
+        g.reason = sceneCommands.shapeEditProblem(editable(want));
         // Move as far toward the target as the rules allow, rather than stopping dead
         // at the first invalid position. Bisect between the last valid shape and the target.
         const valid = (t: number) => {
             const from = g.last.top[g.index]!;
             const at = setPoint(g.last, g.index, { x: from.x + (want.top[g.index]!.x - from.x) * t, y: from.y + (want.top[g.index]!.y - from.y) * t });
-            return shapeProblems(at, state().w).length === 0 ? at : null;
+            return sceneCommands.shapeEditProblem(editable(at)) === null ? at : null;
         };
         let next = valid(1);
         if (!next) {
@@ -338,9 +337,11 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             callbacks.rebuild();
             return;
         }
-        g.last = next;
-        g.moved = true;
-        if (sceneCommands.setShape(editable(next), false, false)) callbacks.rebuild();
+        if (sceneCommands.setShape(editable(next), false, false)) {
+            g.last = next;
+            g.moved = true;
+            callbacks.rebuild();
+        }
     }
     function endHandleDrag(cancel = false) {
         if (!drag) return;

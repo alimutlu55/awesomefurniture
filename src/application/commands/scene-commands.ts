@@ -32,7 +32,17 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const blockedMessage = (change: string, candidate: EditorCabinet) => collision.cabinetObstruction(candidate) === 'wall'
         ? change + ' would go through a wall of the room.'
         : change + ' would overlap another wardrobe. Move it first.';
+    /** The same constraints apply to numeric edits, keyboard nudges and live handles. */
+    const shapeEditProblem = (shape: WardrobeShape): string | null => {
+        const cabinet = active(), problem = shapeProblems(shape, cabinet.state.w)[0];
+        if (problem) return friendlyProblem(problem);
+        const underCeiling = ceilings.shapeBlocked(cabinet, shape);
+        if (underCeiling) return underCeiling;
+        const candidate = { ...cabinet, state: { ...cabinet.state, shape, h: maxHeight(shape) } };
+        return collision.cabinetCollides(candidate) ? blockedMessage('That shape', candidate) : null;
+    };
     return {
+        shapeEditProblem,
         ...studio,
         ...createAlignCommands(getScene, collision),
         /** Room edits reshape the wardrobes under any ceiling they move. */
@@ -252,24 +262,16 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         /** Commit an edited skeleton. Invalid geometry is rejected with its reason;
          * fittings and shelf boards that no longer fit are compacted or removed. */
         setShape(shape: WardrobeShape, recordHistory = true, refit = true) {
-            const cabinet = active(), state = cabinet.state, problem = shapeProblems(shape, state.w)[0];
+            const cabinet = active(), state = cabinet.state, problem = shapeEditProblem(shape);
             if (problem) {
-                report(friendlyProblem(problem));
+                report(problem);
                 return false;
             }
             const h = maxHeight(shape);
             if (JSON.stringify(shape) === JSON.stringify(state.shape)) return false;
-            const underCeiling = ceilings.shapeBlocked(cabinet, shape);
-            if (underCeiling) {
-                report(underCeiling);
-                return false;
-            }
-            if (collision.cabinetCollides({ ...cabinet, state: { ...state, h } })) {
-                report(blockedMessage('That height', { ...cabinet, state: { ...state, h } }));
-                return false;
-            }
             if (recordHistory) checkpoint();
             state.shape = structuredClone(shape);
+            if (state.shape.template === 'room') state.shape.template = 'custom';
             state.h = h;
             state.proposal = null;
             // Live previews skip refitting so a drag never destroys fittings; the

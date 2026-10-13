@@ -17,7 +17,13 @@ function heightAt(top: Top, x: number, high: boolean) {
 }
 /** Whether a top rises into the ceiling's: more than half a centimetre above it anywhere. */
 export function risesAbove(top: Top, ceiling: Top, w: number) {
-  for (let x = 0; x <= w; x += 1) if (heightAt(top, Math.min(x, w), true) > heightAt(ceiling, Math.min(x, w), false) + .5) return true;
+  // Between profile vertices both heights are linear. Check both ends of each
+  // interval, on its own side of a step, including bends less than 1 cm apart.
+  const xs = [...new Set([0, w, ...top.map(p => p.x), ...ceiling.map(p => p.x)])].filter(x => x >= 0 && x <= w).sort((a, b) => a - b);
+  for (let k = 1; k < xs.length; k++) {
+    const a = xs[k - 1]!, b = xs[k]!, inset = Math.min(1e-5, (b - a) / 4);
+    for (const x of [a + inset, b - inset]) if (heightAt(top, x, true) > heightAt(ceiling, x, false) + .5) return true;
+  }
   return false;
 }
 
@@ -58,9 +64,18 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
     return changed;
   }
   /** Why a shape someone picks does not fit under the ceiling over the wardrobe, or null. */
+  let clearanceKey: string | undefined, clearance: ReturnType<typeof ceilingTop> = null;
   function shapeBlocked(cabinet: EditorCabinet, shape: WardrobeShape): string | null {
-    const fit = ceilingTop(getScene().studio, placed(cabinet));
-    if (!fit || !('shape' in fit) || shape.template === 'room') return null;
+    const room = getScene().studio, pose = placed(cabinet), key = JSON.stringify([room, pose]);
+    // A handle's boundary search checks many shapes in the same space. Sample
+    // that space once; any room, pose or footprint change invalidates the result.
+    if (key !== clearanceKey) {
+      clearance = ceilingTop(room, pose);
+      clearanceKey = key;
+    }
+    const fit = clearance;
+    if (!fit) return null;
+    if ('problem' in fit) return fit.problem;
     return risesAbove(shape.top, fit.shape.top, cabinet.state.w) ? 'The ceiling above is lower than that. This wardrobe follows the ceiling.' : null;
   }
   return { follow, followAll, shapeBlocked };
