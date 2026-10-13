@@ -166,7 +166,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         fitLight();
         studio?.select(studioEditor?.valid() ?? null);
         const selected = model.activeCabinet();
-        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle'));
+        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle') && !l.el.classList.contains('room-handle'));
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
             // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
@@ -209,7 +209,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderDesign = selected.state;
         ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
         renderState.labs = combinedLabs;
-        // Remove orphaned handles even when no wardrobe remains to prune the pools.
+        // Prune wardrobe handles only; the studio overlay owns room handles and their active pointer capture.
         const usedLabels = new Set(combinedLabs.map(l => l.el));
         previousShapeHandles.forEach(l => { if (!usedLabels.has(l.el)) l.el.remove(); });
         renderState.pivots = combinedPivots;
