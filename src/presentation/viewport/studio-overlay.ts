@@ -40,7 +40,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : h.kind === 'extend' ? 'split-handle' : h.kind === 'ceiling' ? 'room-pill' : 'room-grip');
+            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
             if (h.kind === 'extend') el.textContent = '+';
             else if (h.kind === 'depth') el.innerHTML = ARROWS;
             else if (h.kind !== 'corner' && h.kind !== 'ceiling') el.innerHTML = SLIDE;
@@ -105,15 +105,17 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         for (const m of editor.measures()) {
             const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.edit ? ' room-measure-edit' : ''));
             // Tap a length to type it.
-            if (m.edit) { el.setAttribute('role', 'button'); el.title = 'Type the length'; el.onclick = () => editor.editMeasure(m); }
+            if (m.edit) { el.setAttribute('role', 'button'); el.title = m.axis === 'height' ? 'Type the height' : 'Type the length'; el.onclick = () => editor.editMeasure(m); }
             track(el, a.clone().add(b).multiplyScalar(.5));
-            bindRuler(el, a, b, 'width');
+            bindRuler(el, a, b, m.axis ?? 'width');
         }
         const why = editor.reason();
         if (why) track(label(V(why), why.text, 'lbl shape-reason room-label'), V(why));
         // While a part is dragged, its handle stays and every other handle on the model steps aside.
         const dragged = editor.dragKey();
         labels().toggleAttribute('data-room-drag', !!dragged);
+        // Editing the room, the wardrobes' own measurements step aside.
+        labels().toggleAttribute('data-room-edit', handles.length > 0);
         for (const h of handles) {
             const el = handleElement(h);
             el.classList.toggle('dragging', h.key === dragged);

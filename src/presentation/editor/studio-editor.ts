@@ -2,7 +2,7 @@ import { STUDIO_LIMITS, cornerDegree, roomHeight, wallFace, wallLine } from '../
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
 import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reachAt, removeCeiling, setCeilingDepth } from '../../domain/studio/studio-ceiling';
-import { ceilingHandles, depthRuler, pointRuler, runAxis, snapPoint } from './studio-ceiling-drag';
+import { ceilingHandles, depthRuler, heightRuler, pointRuler, restHeights, runAxis, snapPoint } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
@@ -113,10 +113,13 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const w = selectedWall(studio);
     if (!w) return [];
     if (s.kind === 'ceiling') {
-      // At rest the pills say it all; a drag shows where the point is, or how deep the ceiling reaches.
+      // At rest, each point's height from the floor (tap one to type it). Dragging a point: its height and where
+      // it is along the wall, drawn away from the finger; the depth grip: how far it reaches into the room.
       const c = ceilingOf(studio, s.id), h = drag?.moved ? drag.handle : null;
-      const m = c && h?.kind === 'ceiling' ? pointRuler(studio, c, h.index!) : c && h?.kind === 'depth' ? depthRuler(studio, c, handles().find(x => x.key === h.key) ?? h) : null;
-      return m ? [m] : [];
+      if (!c) return [];
+      const list = h?.kind === 'ceiling' ? [heightRuler(studio, c, h.index!), pointRuler(studio, c, h.index!)]
+        : h?.kind === 'depth' ? [depthRuler(studio, c, handles().find(x => x.key === h.key) ?? h)] : h ? [] : restHeights(studio, c);
+      return list.filter((m): m is RoomMeasure => !!m);
     }
     if (s.kind === 'opening' || drag?.handle.kind === 'opening') {
       const o = studio.openings.find(x => x.id === (drag?.handle.kind === 'opening' ? drag.handle.id : s.id)), line = wallLine(studio, w), face = wallFace(studio, w);
@@ -380,7 +383,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     select, valid, pick, handles, measures, guides, reason, act, nudge,
     begin, grab, move, end,
     /** Tapping a length on the model opens its field. */
-    editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields('wall-size', m.edit); },
+    editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields(m.edit.startsWith('p') ? 'ceiling-size' : 'wall-size', m.edit); },
     dragging: () => drag !== null,
     /** The handle being dragged, which stays on show while the others step aside. */
     dragKey: () => drag?.moved ? drag.handle.key : null,

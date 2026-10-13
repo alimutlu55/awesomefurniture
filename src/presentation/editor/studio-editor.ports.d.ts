@@ -19,6 +19,8 @@ export interface RoomMeasure {
     readonly a: Point; readonly b: Point; readonly text: string;
     /** The field a tap on it opens, to type the length exactly. */
     readonly edit?: string;
+    /** A vertical measurement (a height); lengths on the floor by default. */
+    readonly axis?: 'height';
 }
 
 /** Explicit dependencies of the room editor. */

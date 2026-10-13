@@ -102,17 +102,20 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38],stairs:[.70,.3
   await tap(page.locator('.ceiling-choice[data-ceiling="landing"]'));
   await page.waitForTimeout(1300);
   assert.equal(await context(),'ceiling','the new ceiling is selected');
-  assert.deepEqual(await page.locator('.room-pill').allTextContents(),['205 cm','205 cm','100 cm','100 cm'],'a height pill on each point');
+  // A dot on each point, and each point's height as a dimension line from the floor.
+  const heights=async()=>(await page.locator('.room-label').allTextContents()).filter(t=>/^\d/.test(t));
+  assert.equal(await page.locator('.room-handle.point').count(),4,'a dot on each point');
+  assert.deepEqual(await heights(),['205 cm','100 cm'],'one height per level stretch: the landing and the low end');
   await shot('ceiling');
-  const pill=await page.locator('.room-pill').nth(2).boundingBox(), before=await count();
-  await drag({x:pill.x+pill.width/2,y:pill.y+pill.height/2},0,-40);
-  assert.notEqual((await page.locator('.room-pill').allTextContents())[2],'100 cm','the pill moved the point up');
+  const dot=await page.locator('.room-handle.point').nth(2).boundingBox(), before=await count();
+  await drag({x:dot.x+dot.width/2,y:dot.y+dot.height/2},0,-40);
+  assert.equal((await heights()).length,3,'dragging the dot moved the point up: the slope ends at a height of its own');
   assert.equal(await count(),before+1,'one undo step for the drag');
-  await tap(page.locator('.room-pill').first());
+  await tap(page.locator('.room-handle.point').first());
   const typed=page.locator('[data-room-field="p0"]');
-  assert.equal(await typed.evaluate(e=>e.getRootNode().activeElement===e),true,'tapping a pill opens its height, ready to type');
+  assert.equal(await typed.evaluate(e=>e.getRootNode().activeElement===e),true,'tapping a dot opens its height, ready to type');
   await typed.fill('190');await typed.press('Enter');await page.waitForTimeout(300);
-  assert.equal(await page.locator('.room-pill').first().textContent(),'190 cm','typed');
+  assert.equal((await heights())[0],'190 cm','typed');
   await page.keyboard.press('Escape');await page.waitForTimeout(200);
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   await tap(el('walls-btn'));
