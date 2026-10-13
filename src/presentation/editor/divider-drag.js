@@ -30,9 +30,10 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
             return;
         }
         const hor = g.original.orientation === 'horizontal';
-        if (commands.moveDividerTo(g.index, (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x))) {
-            rendering.refreshDividerVisual(g.index);
-        }
+        const moved = commands.moveDividerTo(g.index, (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x));
+        // Shelves and fittings attached to it moved too: the wardrobe is redrawn, else just the board.
+        if (moved === 'all') rendering.build();
+        else if (moved) rendering.refreshDividerVisual(g.index);
     }
     function finishDividerDrag(cancel = false) {
         const g = interactionState.dividerGesture;

@@ -6,7 +6,7 @@ import { itemName, MODS, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'ih' | 'fitsCeiling' | 'sectionFits' | 'itemFit' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'ih' | 'fitsCeiling' | 'sectionFits' | 'itemFit' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN' | 'carryOnMove'>;
     callbacks: Pick<ReturnType<typeof import('./divider-commands').createDividerCommands>, 'addShelfBoard'>;
     run(fn: () => void): void;
 };
@@ -374,7 +374,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             return false;
         }
         effects.checkpoint();
-        getDesign().secs = plan.secs;
+        Object.assign(getDesign(), rules.carryOnMove(plan)); // What stands on the fitting goes with it.
         getDesign().sel = plan.to;
         getDesign().item = plan.index;
         getDesign().proposal = null;

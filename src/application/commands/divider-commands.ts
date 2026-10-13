@@ -2,50 +2,67 @@ import { PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'selectionChanged' | 'milestone' | 'closeInspector'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot' | 'clampDivider' | 'ceilingIn' | 'sectionSpaces'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'dividerBounds' | 'dividerValid' | 'dividerMeasurements' | 'sectionSpaceMeasurements' | 'dividerDupSpot' | 'clampDivider' | 'ceilingIn' | 'sectionSpaces'
+        | 'moveWithAttachments' | 'sectionLayoutValid' | 'ceilingTop' | 'widths'>;
     run(fn: () => void): void;
 };
 export function createDividerCommands({ getDesign, effects, rules, run }: Ports) {
-    function moveDividerTo(index: number, value: number) {
+    /** The design with a board moved to `v` and what is attached to it (`moveWithAttachments`), when
+     * everything in its section still fits; else null. Nothing is changed. */
+    function planMove(index: number, v: number) {
+        const plan = rules.moveWithAttachments(index, v);
+        if (!plan) return null;
+        const design = getDesign(), dividers = design.dividers, secs = design.secs[plan.i];
+        design.dividers = plan.dividers;
+        design.secs[plan.i] = plan.secs;
+        try {
+            const ok = rules.sectionLayoutValid(plan.i) && plan.dividers.every((d, k) => d.i !== plan.i || rules.dividerValid(d, k));
+            return ok ? plan : null;
+        } finally {
+            design.dividers = dividers;
+            design.secs[plan.i] = secs!;
+        }
+    }
+    /** Moves a board as far towards `value` as it can go: anywhere in its section, fitted to the space where
+     * it stands, with the shelves and fittings attached to it. Returns 'all' when attached parts moved too
+     * (the section needs redrawing), true when only the board did, false when nothing moved. */
+    function moveDividerTo(index: number, value: number): boolean | 'all' {
         const d = getDesign().dividers?.[index];
         if (!d || !Number.isFinite(value)) {
             return false;
         }
-        const a = rules.dividerBounds(d), horizontal = d.orientation === 'horizontal', key = horizontal ? 'y' : 'x', lo = (horizontal ? a.y0 : a.x0) + T / 2, hi = (horizontal ? a.y1 : a.x1) - T / 2, start = d[key], end = Math.max(lo, Math.min(hi, value));
+        const horizontal = d.orientation === 'horizontal', key = horizontal ? 'y' : 'x', start = d[key];
         if (start === undefined)
             return false;
+        const lo = T / 2, hi = (horizontal ? rules.ceilingTop(d.i, 0, rules.widths()[d.i]!) : rules.widths()[d.i]!) - T / 2, end = Math.max(lo, Math.min(hi, value));
+        // Step by centimetres so nothing is jumped over; the last step is found exactly by halving.
         const steps = Math.max(1, Math.ceil(Math.abs(end - start)));
-        let last = start;
+        let last = start, plan: ReturnType<typeof planMove> = null;
         for (let n = 1; n <= steps; n++) {
-            const v = start + (end - start) * n / steps;
-            if (!rules.dividerValid({ ...d, [key]: v }, index)) {
+            const v = start + (end - start) * n / steps, next = planMove(index, v);
+            if (!next) {
                 let low = last, high = v;
                 for (let k = 0; k < 16; k++) {
-                    const mid = (low + high) / 2;
-                    if (rules.dividerValid({ ...d, [key]: mid }, index)) {
-                        low = mid;
-                    }
-                    else {
-                        high = mid;
-                    }
+                    const mid = (low + high) / 2, m = planMove(index, mid);
+                    if (m) { low = mid; plan = m; } else high = mid;
                 }
-                last = low;
+                // Stopped against something: settle exactly onto its face (the halving lands a hair short).
+                const flush = Math.round(low * 10) / 10, m = Math.abs(flush - low) < .02 ? planMove(index, flush) : null;
+                if (m) plan = m;
+                last = m ? flush : low;
                 break;
             }
             last = v;
+            plan = next;
         }
-        if (Math.abs(last - start) < .001) {
+        if (Math.abs(last - start) < .001 || !plan) {
             return false;
         }
-        d[key] = last;
-        // Moving a vertical divider keeps its top at the slope where it now stands.
-        if (!horizontal) {
-            const clamped = rules.clampDivider(d);
-            d.y1 = clamped.y1;
-        }
+        getDesign().dividers = plan.dividers;
+        getDesign().secs[plan.i] = plan.secs;
         getDesign().space = null;
         getDesign().proposal = null;
-        return true;
+        return plan.moved ? 'all' : true;
     }
     /** Height of a vertical divider, from its base. Limited by the slope above it and by
      * the shortest divider; a height the slope cannot reach is reported and kept as the
@@ -85,7 +102,7 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         if (!m) {
             return false;
         }
-        return moveDividerTo(index, side === 'before' ? m.low + value + T / 2 : m.high - value - T / 2);
+        return !!moveDividerTo(index, side === 'before' ? m.low + value + T / 2 : m.high - value - T / 2);
     }
     function addSpaceDivider() {
         const i = getDesign().sel, space = rules.sectionSpaceMeasurements(i);

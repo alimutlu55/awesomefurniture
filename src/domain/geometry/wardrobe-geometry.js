@@ -3,6 +3,7 @@ import { createCeilingRules } from './wardrobe-rules/ceiling.js';
 import { createLayoutRules } from './wardrobe-rules/layout.js';
 import { createFitRules } from './wardrobe-rules/fit.js';
 import { createDividersRules } from './wardrobe-rules/dividers.js';
+import { createAttachmentRules } from './wardrobe-rules/attachments.js';
 import { createBoxesRules } from './wardrobe-rules/boxes.js';
 import { createSpacesRules } from './wardrobe-rules/spaces.js';
 import { createMovementRules } from './wardrobe-rules/movement.js';
@@ -22,6 +23,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     const layoutRules = createLayoutRules(ctx, { ...ceilingRules });
     const fitRules = createFitRules(ctx, { ...sizesRules, ...ceilingRules, ...layoutRules });
     const dividersRules = createDividersRules(ctx, { ...ceilingRules, ...layoutRules });
+    const attachmentRules = createAttachmentRules(ctx, { ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules });
     const boxesRules = createBoxesRules(ctx, { ...dividersRules });
     const spacesRules = createSpacesRules(ctx, { ...sizesRules, ...ceilingRules, ...layoutRules, ...dividersRules });
     const movementRules = createMovementRules(ctx, { ...sizesRules, ...layoutRules, ...fitRules, ...dividersRules, ...spacesRules });
@@ -37,9 +39,9 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         boxCapped, boxSupported, sectionSpaces, spaceCentre, sectionSpaceMeasurements, spaceSpan, narrowToFit,
         edgeGap, itemFreeAbove, planItemMove, planFreeMove, verticalNeighbor, itemYBounds, sectionLayoutValid,
         duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, itemGeom, itemMeasurements, cost,
-        stats, plannerConfig, planCfg,
+        stats, plannerConfig, planCfg, moveWithAttachments, carryOnMove,
     } = {
-        ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules, ...boxesRules,
+        ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules, ...attachmentRules, ...boxesRules,
         ...spacesRules, ...movementRules, ...measurementsRules, ...costingRules, ...plannerConfigRules,
     };
     return {
@@ -51,5 +53,6 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg,
         plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW,
         minTotal, okItem, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot,
+        moveWithAttachments, carryOnMove,
     };
 }

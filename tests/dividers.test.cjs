@@ -48,8 +48,8 @@ test('moving a divider stops at physical boundaries without changing any items',
 });
 test('divider dragging cannot pass through an item or another divider in a large step',()=>{
  const {c,run}=fixture();run('addSpaceDivider()');c.S.secs[1]=[{k:'shelf',h:30,w:25,x:0,y:100}];const before=JSON.stringify(c.S.secs);
- run('moveDividerTo(0,0)');near(c.S.dividers[0].x,25.89);assert.equal(JSON.stringify(c.S.secs),before);
- c.S.secs[1]=[];c.S.dividers.push({i:1,x:45,y0:0,y1:218.4});run('moveDividerTo(0,60)');near(c.S.dividers[0].x,43.21);
+ run('moveDividerTo(0,0)');near(c.S.dividers[0].x,25.9);assert.equal(JSON.stringify(c.S.secs),before);
+ c.S.secs[1]=[];c.S.dividers.push({i:1,x:45,y0:0,y1:218.4});run('moveDividerTo(0,60)');near(c.S.dividers[0].x,43.2);
 });
 test('horizontal divider blocks upward item resizing and stops at touching support',()=>{
  const {c,run}=fixture([{k:'drawer',h:22}]);run('addSpaceDivider()');c.S.dividers[0]=run("dividerOrientation(0,'horizontal')");run('moveDividerTo(0,0)');near(run('dividerRect(S.dividers[0]).y0'),22);near(run('itemFreeAbove(1,0)'),0);
@@ -85,4 +85,56 @@ test('invalid and excessive dimension input cannot cross physical boundaries',()
  const {c,run}=fixture();run('addSpaceDivider()');const before=JSON.stringify(c.S.dividers);
  assert.equal(run('setDividerClearance(0,"before",NaN)'),false);assert.equal(run('setDividerClearance(0,"before",-2)'),false);assert.equal(JSON.stringify(c.S.dividers),before);
  run('setDividerClearance(0,"before",1000)');near(run('dividerMeasurements(0).after'),0);near(run('dividerMeasurements(0).before'),62.4666666667);
+});
+
+// What moves with a board (wardrobe-rules/attachments.js). Section 1 is 64.27 cm wide and 218.4 cm clear.
+const BW=64.2666666667,TOP=218.4,full=(x)=>({i:1,orientation:'vertical',x,y0:0,y1:TOP,area:{x0:0,x1:BW,y0:0,y1:TOP}});
+test('a divider fits the height where it stands: standing on a fitting, and down to the floor past it',()=>{
+ const {c,run}=fixture([{k:'drawer',h:40,w:30,x:0,y:0}]);
+ c.S.dividers=[{i:1,orientation:'vertical',x:15,y0:40,y1:TOP,area:{x0:0,x1:30,y0:40,y1:TOP}}];
+ run('moveDividerTo(0,50)');near(c.S.dividers[0].x,50);near(c.S.dividers[0].y0,0);near(c.S.dividers[0].y1,TOP);
+ run('moveDividerTo(0,10)');near(c.S.dividers[0].x,30.9);near(c.S.dividers[0].y0,0);
+});
+test('a divider travels the whole section, not only the space it was made in',()=>{
+ const {c,run}=fixture();c.S.dividers=[{...full(20),area:{x0:0,x1:30,y0:0,y1:TOP}}];
+ run('moveDividerTo(0,55)');near(c.S.dividers[0].x,55);
+});
+test('a shelf fixed between the side and a divider stretches with it; a shelf held only by the divider slides',()=>{
+ const {c,run}=fixture();
+ c.S.dividers=[full(40),{i:1,orientation:'horizontal',x0:0,x1:39.1,y:100,area:{x0:0,x1:39.1,y0:0,y1:TOP}},{i:1,orientation:'horizontal',x0:20,x1:39.1,y:150,area:{x0:0,x1:39.1,y0:0,y1:TOP}}];
+ assert.equal(run('moveDividerTo(0,50)'),'all');
+ near(c.S.dividers[1].x0,0);near(c.S.dividers[1].x1,49.1);
+ near(c.S.dividers[2].x0,30);near(c.S.dividers[2].x1,49.1);
+ run('moveDividerTo(0,10)');near(c.S.dividers[1].x1,BW/2*0+(c.S.dividers[0].x-.9));assert.ok(c.S.dividers[1].x1-c.S.dividers[1].x0>=15-.01,'a stretched shelf stays at least 15 cm long');
+});
+test('a fitting beside a divider goes with it: stretched between the side and the divider',()=>{
+ const {c,run}=fixture([{k:'drawer',h:30,w:39.1,x:0,y:0}]);c.S.dividers=[full(40)];c.S.dividers[0].y0=0;
+ run('moveDividerTo(0,50)');near(c.S.secs[1][0].w,49.1);near(c.S.secs[1][0].x,0);
+ run('moveDividerTo(0,0)');assert.ok(c.S.secs[1][0].w>=run('itemMinW(S.secs[1][0])')-.01,'never narrower than the fitting allows');
+});
+test('fittings and dividers standing on a shelf ride with it; a divider reaching up to it stretches',()=>{
+ const {c,run}=fixture([{k:'shelf',h:20,w:20,x:40,y:100.9}]);
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:0,y1:TOP}},{i:1,orientation:'vertical',x:20,y0:100.9,y1:TOP,area:{x0:0,x1:BW,y0:100.9,y1:TOP}},{i:1,orientation:'vertical',x:30,y0:0,y1:99.1,area:{x0:0,x1:BW,y0:0,y1:99.1}}];
+ assert.equal(run('moveDividerTo(0,120)'),'all');
+ near(c.S.secs[1][0].y,120.9);
+ near(c.S.dividers[1].y0,120.9);near(c.S.dividers[1].y1,TOP);
+ near(c.S.dividers[2].y0,0);near(c.S.dividers[2].y1,119.1);
+});
+test('a divider made shorter keeps its length when a slope cuts it on the way and comes back',()=>{
+ const c=vm.createContext({S:{w:200,h:230,d:60,n:1,wt:[100,100,100,100,100,100],secs:[[],[],[],[],[],[]],sel:0,item:-1,dividers:[],shape:{template:'sloped',top:[{x:0,y:100},{x:200,y:230}]}},G:{},act(fn){fn()},toast(){},deep:true,pillOn:true});
+ designFixture(c);const run=code=>vm.runInContext(code,c);
+ c.S.dividers=[{i:0,orientation:'vertical',x:150,y0:0,y1:120,want:120,area:{x0:0,x1:196.4,y0:0,y1:218.4}}];
+ run('moveDividerTo(0,20)');assert.ok(c.S.dividers[0].y1<120,'cut by the slope near the low side');
+ run('moveDividerTo(0,150)');near(c.S.dividers[0].y1,120);
+ c.S.dividers=[{i:0,orientation:'vertical',x:20,y0:0,y1:run('ceilingIn(0,19.1,20.9)'),area:{x0:0,x1:196.4,y0:0,y1:218.4}}];
+ run('moveDividerTo(0,150)');near(c.S.dividers[0].y1,run('ceilingIn(0,149.1,150.9)'));
+});
+test('a fitting moved takes along what stands on it: a divider and a fitting placed on its top',()=>{
+ const {c,run}=fixture([{k:'drawer',h:40,w:30,x:0,y:0},{k:'shelf',h:20,w:20,x:5,y:40}]);
+ c.S.dividers=[{i:1,orientation:'vertical',x:27,y0:40,y1:TOP,area:{x0:0,x1:30,y0:40,y1:TOP}}];
+ c.S.item=0;const plan=run('planFreeMove({i:1,j:0},1,{x:30,y:0})');assert.equal(plan.valid,true);
+ run('applyMove(planFreeMove({i:1,j:0},1,{x:30,y:0}))');
+ const drawer=c.S.secs[1].find(it=>it.k==='drawer'),shelf=c.S.secs[1].find(it=>it.k==='shelf');
+ assert.ok(drawer.x>20,'the drawer moved: '+drawer.x);
+ near(c.S.dividers[0].x,27+drawer.x);near(c.S.dividers[0].y0,40);near(shelf.x,5+drawer.x);near(shelf.y,40);
 });
