@@ -12,7 +12,7 @@ import { PANEL, PLINTH, MODS, PURPOSE, compatiblePurposes, itemName } from '../.
 import { measureNumber, capWord, esc, icon, ICONP, RANKS } from './editor-format.js';
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
-import { minimumShapeHeight } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { isRegularShape, minimumShapeHeight } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
@@ -167,7 +167,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         });
         {
             // A shaped wardrobe's height is its tallest point; its lowest part may be short.
-            const shape = model.activeCabinet().state.shape, minH = shape ? Math.max(60, Math.ceil(minimumShapeHeight(shape))) : 180;
+            const shape = model.activeCabinet().state.shape, minH = shape && !isRegularShape(shape) ? Math.max(60, Math.ceil(minimumShapeHeight(shape))) : 180;
             for (const el of /** @type {HTMLInputElement[]} */ ([$('#h'), document.querySelector('[data-dimension="h"]')])) if (el) el.min = String(minH);
         }
         for (const panel of [shapeInspector, studioPanel]) panel.render();

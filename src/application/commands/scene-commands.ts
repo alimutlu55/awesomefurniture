@@ -3,15 +3,14 @@ import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet } from '../projects/editor-model';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
-import { createAlignCommands, measureAround } from './align-commands';
-import { cabinetResizePose, type CabinetResizeEdge } from '../../domain/geometry/cabinet-resize';
+import { createAlignCommands } from './align-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
-import { friendlyProblem, shapePanels, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { friendlyProblem, isRegularShape, shapePanels, maxHeight, minimumShapeHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -169,9 +168,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             return true;
         },
-        setCabinetSize(key: string, value: number, recordHistory = true, edge?: CabinetResizeEdge) {
-            const state = active().state;
-            const ranges = { w: [80, 400], h: [state.shape ? Math.max(60, Math.ceil(minimumShapeHeight(state.shape))) : 180, 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
+        setCabinetSize(key: string, value: number, recordHistory = true) {
+            const state = active().state, shaped = !isRegularShape(state.shape);
+            const ranges = { w: [80, 400], h: [shaped && state.shape ? Math.max(60, Math.ceil(minimumShapeHeight(state.shape))) : 180, 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
             if (!range || !Number.isFinite(value)) {
                 return false;
             }
@@ -180,20 +179,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 requested = Math.max(requested, geometry.minTotal());
             }
             if (state[key as 'w' | 'h' | 'd'] === requested) return false;
-            if (!edge && key !== 'h') {
-                const sides = key === 'w' ? ['left', 'right'] as const : ['back', 'front'] as const;
-                const gaps = measureAround(getScene(), active(), sides).gaps.filter(g => g.target === 'wall');
-                if (gaps.some(g => g.side === sides[0] && g.distance < .5)) edge = key === 'w' ? 'right' : 'front';
-                else if (gaps.some(g => g.side === sides[1] && g.distance < .5)) edge = key === 'w' ? 'left' : 'back';
-            }
-            const pose = cabinetResizePose(active(), key, requested, edge), originalPose = { x: active().x, z: active().z };
-            const candidate = { ...active(), ...pose, state: { ...structuredClone(state), [key]: requested } };
-            if (state.shape && key !== 'd') candidate.state.shape = resizeShape(state.shape, state.w, key === 'w' ? requested : state.w, state.h, key === 'h' ? requested : state.h);
-            if (candidate.state.shape?.template === 'room' && key === 'h') candidate.state.shape.template = 'custom';
-            const ceilingProblem = key === 'h' ? ceilings.shapeBlocked(candidate, candidate.state.shape ?? { template: 'regular', top: [{ x: 0, y: requested }, { x: state.w, y: requested }] })
-                : ceilings.follow(candidate, false);
-            if (ceilingProblem || collision.cabinetCollides(candidate)) {
-                if (!edge) report(ceilingProblem ?? blockedMessage('That size', candidate));
+            if (collision.cabinetCollides({ ...active(), state: { ...state, [key]: requested } })) {
+                report(blockedMessage('That size', { ...active(), state: { ...state, [key]: requested } }));
                 return false;
             }
             const previous = structuredClone(state);
@@ -205,9 +192,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 }
             }
             if (recordHistory) checkpoint();
-            Object.assign(active(), pose);
-            Object.assign(state, candidate.state);
-            if (!candidate.state.shape) delete state.shape;
+            if (state.shape && key !== 'd') state.shape = resizeShape(state.shape, state.w, key === 'w' ? requested : state.w, state.h, key === 'h' ? requested : state.h);
+            state[key as 'w' | 'h' | 'd'] = requested;
             // The skeleton's tallest point is the cabinet height.
             if (state.shape) state.h = maxHeight(state.shape);
             state.n = Math.min(state.n, geometry.maxN());
@@ -226,7 +212,6 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             design.refitAfterSize();
             if ((state.dividers || []).some((d, j) => !geometry.dividerValid(d, j))) {
                 Object.assign(state, previous);
-                Object.assign(active(), originalPose);
                 if (recordHistory) discardCheckpoint();
                 report('Move the dividers or items before reducing the wardrobe size');
                 return false;
