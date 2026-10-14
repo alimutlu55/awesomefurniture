@@ -34,7 +34,9 @@
 .wall-paint-panel .wall-finish-options button[aria-pressed="true"]{background:rgba(28,25,23,.1)}
 .wall-paint-scope{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:10px;font-size:12px}
 .wall-paint-scope input{width:18px;height:18px;accent-color:var(--ink)}
-#toolbar .tb[data-action="wall-paint"] span{white-space:normal;font-size:10px;line-height:11px}
+@media (max-width:900px){
+ #toolbar .tb[data-action="wall-paint"] span{white-space:normal;font-size:10px;line-height:11px}
+}
 
 
 

@@ -145,6 +145,8 @@
  :host([data-theme="dark"]) .mobile-add-categories button:hover{background:rgba(255,255,255,0.14)}
  :host([data-theme="dark"]) .mobile-add-categories button[aria-pressed="true"]{background:#fff;color:#181c24}
  #left [data-wardrobe-controls] > h2,#left .ct{display:none!important}
+ #pop2 .add-context-title{display:none!important}
+ #pop2[data-add-context] .mobile-add-categories{display:none!important}
 }
 
 @container (max-height:500px){
