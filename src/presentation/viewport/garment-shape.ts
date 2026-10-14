@@ -43,12 +43,13 @@ export function makeGarmentSpec(
   maxDepth: number,
   baseColorHex?: string,
   front = false,
+  kind?: GarmentKey,
 ): GarmentSpec {
   const rnd = mulberry32(seed), r: number[] = [];
   for (let k = 0; k < 32; k++) r.push(rnd());
   const roll = (k: number) => r[k] ?? 0.5;
   const v = DRAPE.variation, vp = Math.min(1, v);
-  const key = DRAPE.mix === 'mixed' ? pickType(roll(0)) : DRAPE.mix;
+  const key = kind ?? (DRAPE.mix === 'mixed' ? pickType(roll(0)) : DRAPE.mix);
   const ty: GarmentType = GARMENT_TYPES[key];
 
   const fit = clamp(maxDepth / (2 * ty.sh), 0.7, 1.05);
@@ -57,14 +58,14 @@ export function makeGarmentSpec(
   const sS = 1 + (roll(3) - 0.5) * 0.2 * v;
 
   const hex = baseColorHex ?? ty.palette[Math.floor(roll(4) * ty.palette.length) % ty.palette.length]!;
-  const color = new THREE.Color(hex);
+  const color = new THREE.Color(hex).convertSRGBToLinear();
   if (v > 0) {
     const hsl = { h: 0, s: 0, l: 0 };
     color.getHSL(hsl);
     color.setHSL(hsl.h + (roll(5) - 0.5) * 0.03 * v, clamp(hsl.s + (roll(6) - 0.5) * 0.12 * v, 0, 1), clamp(hsl.l + (roll(7) - 0.5) * 0.09 * v, 0, 1));
   }
 
-  const maxLen = Math.max(20, targetHeight - HOOK_CM - 2);
+  const maxLen = Math.max(20, targetHeight - HOOK_CM - ty.hemDrop - 2);
   const len = Math.min(ty.len, maxLen) * sL;
   const sr0 = ty.sr0 * sW;
   const sleeve = Math.min(ty.sleeve * fit * sS, len - ty.drop - sr0 * 0.6 - 2.0);
@@ -79,7 +80,7 @@ export function makeGarmentSpec(
     color,
     ph: PH0.map((p, i) => p + roll(13 + i) * TAU * vp),
     foldAmt: 1 + (roll(18) - 0.5) * 0.7 * v,
-    hemAmp: 1.8 * (1 + (roll(19) - 0.5) * 0.8 * v),
+    hemAmp: 0.018 * (1 + (roll(19) - 0.5) * 0.8 * v),
     hp: 0.7 + roll(20) * TAU * vp,
     omega: 3.8 * (0.85 + 0.3 * roll(22)) / Math.sqrt(len / 70),
     ph1: roll(23) * TAU,
@@ -139,7 +140,7 @@ function panel(sp: GarmentSpec, side: number, s: number, t: number, off: number)
   let z = side * (dh * profS(s) + off), f = 0;
   if (k > 0) {
     f = foldNoise(sp, xn, t, side);
-    z += side * 1.0 * ty.stiff * k * (0.15 + 0.85 * smooth(4, 50, d)) * f;
+    z += side * 1.0 * ty.stiff * k * (0.15 + 0.85 * smooth(0.04, 0.5, t)) * f;
   }
   const a = aoBase(y) * (k > 0 ? 0.84 + 0.16 * (0.5 + 0.5 * f) : 1) * (DRAPE.shadows ? 1 - 0.25 * smooth(0.75, 1, Math.abs(s)) : 1);
   return { x, y, z, a, u: x, v: y };
@@ -165,7 +166,7 @@ function sleeve(sp: GarmentSpec, side: number, th: number, v: number, off: numbe
   const cs = Math.cos(th), sn = Math.sin(th);
   const x = cx + (rx * (1 + fr) + off) * cs, z = cz + (rz * (1 + fr) + off) * sn;
   const inward = Math.max(0, -side * cs);
-  const a = aoBase(cy) * (DRAPE.shadows ? 1 - 0.32 * inward * smooth(5, 30, v * sp.sleeve) : 1) * (k > 0 ? 0.9 + 0.1 * clamp(0.5 + 4 * fr, 0, 1) : 1);
+  const a = aoBase(cy) * (DRAPE.shadows ? 1 - 0.32 * inward * smooth(0.05, 0.3, v) : 1) * (k > 0 ? 0.9 + 0.1 * clamp(0.5 + 4 * fr, 0, 1) : 1);
   return { x, y: cy, z, a, u: th * (rx + rz) * 0.5, v: cy };
 }
 
@@ -225,7 +226,7 @@ export function buildGarmentGeometry(sp: GarmentSpec): THREE.BufferGeometry {
 
   const F: Surface = (s, t, o) => panel(sp, 1, s, t, o), B: Surface = (s, t, o) => panel(sp, -1, s, t, o);
   const sleeveFn = (side: number): Surface => (th, v, o) => sleeve(sp, side, th, v, o);
-  const [pu, pv, su, sv] = [16, 24, 14, 18];
+  const [pu, pv, su, sv] = [26, 44, 22, 28];
 
   patch(F, -1, 1, 0, 1, pu, pv, 0, 0);
   patch(B, -1, 1, 0, 1, pu, pv, 0, 0);
@@ -246,28 +247,28 @@ export function buildGarmentGeometry(sp: GarmentSpec): THREE.BufferGeometry {
     }
 
     if (ty.collar === 'rib') {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, false, 2.2), 0, TAU, 0, 1, 18, 2, 0.25, 1);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, false, 2.2), 0, TAU, 0, 1, 24, 2, 0.25, 1);
     } else if (ty.collar === 'shirt') {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 2.8), 0, TAU, 0, 1, 18, 2, 0.1, 0);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 2.8), 0, TAU, 0, 1, 24, 2, 0.1, 0);
       for (const sg of [-1, 1]) {
-        patch((u, w, o) => panel(sp, 1, sg * (0.03 + (sp.neck / sp.sh * 1.08 - 0.03) * u), w * 0.075 * (1 - u), o), 0, 1, 0, 1, 5, 5, 0.3, 0);
+        patch((u, w, o) => panel(sp, 1, sg * (0.03 + (sp.neck / sp.sh * 1.08 - 0.03) * u), w * 0.075 * (1 - u), o), 0, 1, 0, 1, 6, 6, 0.3, 0);
       }
     } else {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 3.2), 0, TAU, 0, 1, 18, 2, 0.1, 1);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 3.2), 0, TAU, 0, 1, 24, 2, 0.1, 1);
       for (const sg of [-1, 1]) {
         patch((u, w, o) => {
           const sIn = sg * 0.035, sOut = sg * (0.38 * (1 - w) + 0.035 * w);
           return panel(sp, 1, sIn + (sOut - sIn) * u, w * 0.34, o);
-        }, 0, 1, 0, 1, 5, 8, 0.35, 1);
+        }, 0, 1, 0, 1, 6, 10, 0.35, 1);
       }
     }
 
     if (ty.placket) {
-      patch(F, -0.04, 0.04, 0.02, 1, 2, 16, 0.15, 0);
-      patch(F, -0.044, -0.037, 0.02, 1, 1, 16, 0.2, 1);
-      patch(F, 0.037, 0.044, 0.02, 1, 1, 16, 0.2, 1);
+      patch(F, -0.04, 0.04, 0.02, 1, 2, 30, 0.15, 0);
+      patch(F, -0.044, -0.037, 0.02, 1, 1, 30, 0.2, 1);
+      patch(F, 0.037, 0.044, 0.02, 1, 1, 30, 0.2, 1);
     } else if (ty.buttons) {
-      patch(F, -0.006, 0.006, ty.buttons.t0 - 0.05, 1, 1, 16, 0.2, 1);
+      patch(F, -0.006, 0.006, ty.buttons.t0 - 0.05, 1, 1, 30, 0.2, 1);
     }
 
     const bt = ty.buttons, scale = ty.len / sp.len;

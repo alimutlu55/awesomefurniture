@@ -114,7 +114,7 @@ export function createGarmentMaterials(
   detail.color.setHSL(hsl.h, hsl.s, hsl.l < 0.3 ? hsl.l + 0.07 : hsl.l * 0.8);
 
   const trim = new THREE.MeshStandardMaterial({
-    color: hsl.l > 0.45 ? 0x403b36 : 0xe8e2d2,
+    color: new THREE.Color(hsl.l > 0.45 ? 0x403b36 : 0xe8e2d2).convertSRGBToLinear(),
     roughness: 0.35,
     metalness: 0,
     vertexColors: true,

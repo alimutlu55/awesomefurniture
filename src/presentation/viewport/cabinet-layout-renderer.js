@@ -9,7 +9,7 @@ import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
-export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
     /** Break-point handles are pooled: rebuilding during a drag reuses the
@@ -160,7 +160,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment });
+        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h);
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {

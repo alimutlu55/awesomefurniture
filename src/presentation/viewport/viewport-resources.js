@@ -3,14 +3,15 @@ import { disposeSceneAssets } from './render-disposal';
 import { createSceneLighting } from './scene-lighting';
 import { oakMaps } from './wood-textures';
 import { fabricTexture } from './fabric';
+import { DRAPE } from './garment-types';
 import { createStageFloor } from './stage-floor';
 /** Three.js owns its renderer, lights, materials and reusable textures here. */
 export function createViewportResources(cv) {
     const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
     R.outputEncoding = THREE.sRGBEncoding;
     R.toneMapping = THREE.ACESFilmicToneMapping;
-    // A touch under 1, as measured against the reference photograph.
-    R.toneMappingExposure = .76;
+    // Use the same exposure as the clothing reference.
+    R.toneMappingExposure = DRAPE.exposure;
     R.shadowMap.enabled = true;
     R.shadowMap.type = THREE.PCFSoftShadowMap;
     R.setPixelRatio(Math.min(devicePixelRatio, 2));

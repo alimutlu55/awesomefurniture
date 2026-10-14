@@ -26,9 +26,9 @@ export function collectRenderAssets(root: Object3D) {
     });
     return { geometries, materials };
 }
-export function disposeCabinetGroup(root: Object3D, shared: ReadonlySet<Material> = new Set()): void {
+export function disposeCabinetGroup(root: Object3D, shared: ReadonlySet<Material> = new Set(), sharedGeometries: ReadonlySet<BufferGeometry> = new Set()): void {
     const assets = collectRenderAssets(root);
-    assets.geometries.forEach(value => value.dispose());
+    assets.geometries.forEach(value => { if (!sharedGeometries.has(value)) value.dispose(); });
     assets.materials.forEach(value => { if (!shared.has(value))
         value.dispose(); });
 }

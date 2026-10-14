@@ -1,39 +1,57 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+
 
 /** A box of the scene to light: centre and size on the floor, height. Centimetres. */
 export interface LitBounds { readonly x: number; readonly z: number; readonly w: number; readonly d: number; readonly h: number }
 
-/** Light like a photographed interior rather than a game: a soft studio environment for the ambient light
- * and the reflections in wood, glass and metal; a low, warm sun from the front left that casts real soft
- * shadows (into the wardrobe, onto the floor, through a window); and a quiet sky fill so shadows are never
- * black. `fit` keeps the sun's shadow camera tight around what is on screen, so shadows stay crisp. */
+/** Drape Lab room illumination, with shadow bounds fitted to the editor's centimetre scene. */
 export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
+  const room = new THREE.Scene();
+  room.add(new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0x8d877d).convertSRGBToLinear(), side: THREE.BackSide })));
+  function panel(w: number, h: number, position: [number, number, number], strength: number, color: [number, number, number]) {
+    const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
+    material.color.setRGB(color[0] * strength, color[1] * strength, color[2] * strength);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
+    mesh.position.set(...position);
+    mesh.lookAt(0, 0, 0);
+    room.add(mesh);
+  }
+  panel(4, 3, [-3.2, 1.8, 3.6], 4.5, [1, .96, .9]);
+  panel(5, 5, [0, 2.9, 0], 2.2, [1, .98, .95]);
+  panel(3, 2, [3.6, .8, 2.4], 1, [.85, .9, 1]);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0x6e5a42).convertSRGBToLinear() }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -2.6;
+  room.add(floor);
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+  const environmentTarget = pmrem.fromScene(room, .03);
   pmrem.dispose();
-  scene.environment = environment;
+  room.traverse(object => {
+    if (object instanceof THREE.Mesh) {
+      object.geometry.dispose();
+      (object.material as THREE.Material).dispose();
+    }
+  });
+  scene.environment = environmentTarget.texture;
 
-  const sky = new THREE.HemisphereLight(0xfff8ee, 0xc9b99c, .95);
-  scene.add(sky);
-  // Shadow maps are redrawn only when the scene changes (see the frame loop), not every frame.
+  // r128 expects light colours in linear space; the reference uses automatic colour management.
+  const linear = (hex: number) => new THREE.Color(hex).convertSRGBToLinear();
+  const ambient = new THREE.AmbientLight(0xffffff, .06);
+  const sky = new THREE.HemisphereLight(linear(0xfff1de), linear(0x6b5a46), .2);
+  const fill = new THREE.DirectionalLight(linear(0xdfe8ff), .25);
+  fill.position.set(220, 140, 220);
+  const sun = new THREE.DirectionalLight(linear(0xfff3e4), 1.1);
+  scene.add(ambient, sky, fill, sun, sun.target);
   renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.needsUpdate = true;
-  const sun = new THREE.DirectionalLight(0xffeedb, .78);
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  // Variance shadow maps: shadow edges fade over centimetres, like daylight from a large window, instead of the
-  // hard, stair-stepped bands a sharp map draws under a shelf. A small bias; no normal offset (it leaked light
-  // as a bright line where the top meets the back).
-  renderer.shadowMap.type = THREE.VSMShadowMap;
-  sun.shadow.bias = -.0005;
-  sun.shadow.radius = 14;
-  scene.add(sun, sun.target);
-  /** Where the key light comes from: mostly from the front, a little above and to the left, like a tall window
-   * behind the photographer (the Cycles benchmark's key, scripts/realism/benchmark_scene.py). The wardrobe's back
-   * is evenly lit with a soft shade under the top, instead of a hard patch of sun cut by a side panel. */
-  // Straight from the front: a shelf's shadow on the back runs level, not slanted.
-  const direction = new THREE.Vector3(0, .42, .9).normalize();
+  sun.shadow.bias = -.0006;
+  sun.shadow.normalBias = .6;
+  const direction = new THREE.Vector3(-1.4, 2.1, 2.6).normalize();
 
   function fit(bounds: LitBounds) {
     const reach = Math.max(bounds.w, bounds.d, bounds.h, 200) * .75 + 40;
@@ -52,6 +70,6 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
 
   return {
     sun, fit,
-    dispose() { scene.remove(sky, sun, sun.target); environment.dispose(); scene.environment = null; },
+    dispose() { scene.remove(ambient, sky, fill, sun, sun.target); environmentTarget.dispose(); scene.environment = null; },
   };
 }

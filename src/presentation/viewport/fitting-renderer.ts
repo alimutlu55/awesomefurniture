@@ -5,6 +5,9 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { COL } from '../editor/editor-format.js';
+import { type GarmentKey } from './garment-types';
+import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
+import type { createTrouserRenderer } from './trouser-renderer';
 import { barPull } from './hardware';
 import { GARMENT_COLOURS, SHOE_COLOURS, shoe, softBox } from './fabric';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
@@ -22,7 +25,9 @@ interface FittingRendererPorts {
     geometry: Pick<ReturnType<typeof createWardrobeGeometry>, 'isBoxed'>;
     group: THREE.Group;
     getRenderDesign(): EditorState;
-    garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean): void;
+    garment(cx: number, top: number, z: number, height: number, depth: number, color: string, front?: boolean, kind?: GarmentKey): void;
+    handbag?: ReturnType<typeof createHandbagRenderer>['handbag'];
+    trouserPullOut?: ReturnType<typeof createTrouserRenderer>['trouserPullOut'];
 }
 /** A fitting meeting a sloped or stepped top. Coordinates are cabinet-centred x and floor-relative y. */
 export interface FittingCut {
@@ -33,7 +38,7 @@ export interface FittingCut {
     /** Lowest clear height over an x span. */
     clearAt(x0: number, x1: number): number;
 }
-export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment }: FittingRendererPorts) {
+export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, handbag, trouserPullOut }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
@@ -85,8 +90,13 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                 const fits = hh >= unit.height + 2;
                 for (let j = 0; j < count && fits; j++) {
                     const bx = cx - (count - 1) * pitch / 2 + j * pitch;
-                    box(unit.width, unit.height, unitD, bx, base + unit.height / 2, 0, resources.M(COL[(j * 2) % 8]!));
-                    if (unit.handle) box(unit.width * .45, 1, 1.2, bx, base + unit.height + .5, 0, mh);
+                    if (!clears(bx - unit.width / 2, bx + unit.width / 2, base + unit.height)) continue;
+                    if (held.key === 'handbags' && handbag) {
+                        handbag(group, bx, base, 0, unit.width, unit.height, unitD, HANDBAG_COLOURS[j % HANDBAG_COLOURS.length]!);
+                    } else {
+                        box(unit.width, unit.height, unitD, bx, base + unit.height / 2, 0, resources.M(COL[(j * 2) % 8]!));
+                        if (unit.handle) box(unit.width * .45, 1, 1.2, bx, base + unit.height + .5, 0, mh);
+                    }
                 }
             }
             else if (k === 'folded' || (k === 'shelf' && ['folded', 'pants'].includes(it.purpose ?? ''))) {
@@ -126,11 +136,16 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
         }
         else if (k === 'pants') {
             const count = Math.max(1, WardrobePlanner.geo.pantsCount(coreW));
-            box(Math.max(4, coreW - 5), 1.5, d - 8, coreX, y + coreH - 7, -1, mh);
-            for (let j = 0; j < count; j++) {
-                const px = coreX - (count - 1) * 3 + j * 6;
-                box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, mh);
-                box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % GARMENT_COLOURS.length]!));
+            if (trouserPullOut) {
+                const drop = Math.max(5, Math.min(60, coreH - riseAt() - 12));
+                trouserPullOut(group, coreX, y + coreH - 7, 0, coreW, Math.min(d - 10, 44), drop, count);
+            } else {
+                box(Math.max(4, coreW - 5), 1.5, d - 8, coreX, y + coreH - 7, -1, mh);
+                for (let j = 0; j < count; j++) {
+                    const px = coreX - (count - 1) * 3 + j * 6;
+                    box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, mh);
+                    box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % GARMENT_COLOURS.length]!));
+                }
             }
         }
         else {
@@ -146,13 +161,14 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             const sp = front ? defaultSp : Math.min(14, Math.max(defaultSp, (len - 24) / Math.max(1, c - 1)));
             const gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : coreH - 12, coreH - 10, coreH - riseAt() - 9), gz = Math.min(d - 14, 42);
             for (let j = 0; j < c; j++) {
-                const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
+                const g = gh; // Drape Lab variation amount: 0%.
+                const kind: GarmentKey = k === 'long' ? 'coat' : 'shirt';
                 const color = GARMENT_COLOURS[j % GARMENT_COLOURS.length]!;
                 if (front) {
-                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), color, true);
+                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), color, true, kind);
                 }
                 else {
-                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, color);
+                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, color, false, kind);
                 }
             }
             if (k === 'lift') {

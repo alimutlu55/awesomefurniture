@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createRenderAssetCache } from './render-asset-cache';
 import {
   DRAPE,
   HOOK_CM,
@@ -6,6 +7,7 @@ import {
   buildGarmentGeometry,
   yTop,
   type GarmentSpec,
+  type GarmentKey,
 } from './garment-shape';
 import { createGarmentMaterials, createHangerMaterials } from './garment-materials';
 
@@ -71,10 +73,9 @@ export interface GarmentRendererPorts {
 
 /** Creates realistic 3D garments with real cuts, hangers, details and physics. */
 export function createGarmentRenderer({ resources, renderState }: GarmentRendererPorts = {}) {
-  const hangers = createHangerMaterials(resources);
-  const ringGeo = new THREE.TorusGeometry(1.4, 0.16, 6, 18, Math.PI * 1.85);
+  const cache = createRenderAssetCache();
+  const { geometry, material, meshes } = cache;
   const L = HOOK_CM - 1.4;
-  const neckGeo = new THREE.CylinderGeometry(0.16, 0.16, L, 6);
 
   function garment(
     cx: number,
@@ -84,15 +85,19 @@ export function createGarmentRenderer({ resources, renderState }: GarmentRendere
     depth: number,
     color: string,
     front = false,
+    kind?: GarmentKey,
   ) {
     if (!renderState?.Gr) return;
     // fitting-renderer passes ry - 3 as top, so actual rail center is top + 3.
     const railY = top + 3;
     const seed = Math.abs(Math.round(cx * 73 + z * 37 + height * 11));
-    const sp = makeGarmentSpec(seed, height, depth, color, front);
-    const geo = buildGarmentGeometry(sp);
+    const sp = makeGarmentSpec(seed, height, depth, color, front, kind);
+    const shapeKey = JSON.stringify([sp.key, sp.sh, sp.chest, sp.neck, sp.neckF, sp.neckB,
+      sp.drop, sp.len, sp.sleeve, sp.sr0, sp.sr1, sp.ph, sp.foldAmt, sp.hemAmp, sp.hp]);
+    const geo = geometry('cloth:' + shapeKey, () => buildGarmentGeometry(sp));
     const doc = resources?.cv?.ownerDocument;
-    const mats = createGarmentMaterials(sp.ty.fab, sp.color, doc);
+    const mats = material(JSON.stringify([sp.ty.fab, sp.color.r, sp.color.g, sp.color.b]),
+      () => createGarmentMaterials(sp.ty.fab, sp.color, doc));
 
     const pivot = new THREE.Group();
     pivot.rotation.order = 'ZYX';
@@ -104,27 +109,35 @@ export function createGarmentRenderer({ resources, renderState }: GarmentRendere
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     pivot.add(mesh);
+    meshes.add(mesh);
 
     if (DRAPE.hardware) {
+      const [wood, steel] = material('hangers', () => {
+        const hangers = createHangerMaterials(resources);
+        return [hangers.wood, hangers.steel];
+      });
       // Metal swivel neck from the hook down to the hanger arms.
-      const neck = new THREE.Mesh(neckGeo, hangers.steel);
+      const neck = new THREE.Mesh(geometry('neck', () => new THREE.CylinderGeometry(0.16, 0.16, L, 6)), steel);
       neck.position.y = -(1.4 + L / 2);
       neck.castShadow = true;
       pivot.add(neck);
+      meshes.add(neck);
 
       // Wooden hanger arms matching the garment shoulder slope.
       const tipX = sp.sh * 0.86, tipY = yTop(sp, tipX, 1) - 1.2;
       const armLen = Math.hypot(tipX, tipY + 1.2), ang = Math.atan2(tipY + 1.2, tipX);
+      const armGeo = geometry('arm:' + armLen, () => new THREE.BoxGeometry(armLen, 1.0, 1.2));
       for (const sd of [1, -1]) {
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(armLen, 1.0, 1.2), hangers.wood);
+        const arm = new THREE.Mesh(armGeo, wood);
         arm.position.set((sd * tipX) / 2, -HOOK_CM + (tipY - 1.2) / 2, 0);
         arm.rotation.z = sd > 0 ? ang : -ang;
         arm.castShadow = true;
         pivot.add(arm);
+        meshes.add(arm);
       }
 
       // Open hook ring sitting squarely over the rail cylinder.
-      const ring = new THREE.Mesh(ringGeo, hangers.steel);
+      const ring = new THREE.Mesh(geometry('ring', () => new THREE.TorusGeometry(1.4, 0.16, 6, 18, Math.PI * 1.85)), steel);
       ring.position.set(cx, railY, z);
       if (front) {
         ring.rotation.set(0, 0, 0);
@@ -133,6 +146,7 @@ export function createGarmentRenderer({ resources, renderState }: GarmentRendere
       }
       ring.castShadow = true;
       renderState.Gr.add(ring);
+      meshes.add(ring);
     }
 
     renderState.Gr.add(pivot);
@@ -141,5 +155,5 @@ export function createGarmentRenderer({ resources, renderState }: GarmentRendere
     renderState.garments.push({ pivot, sp, imp: 0, t0: 0 });
   }
 
-  return { garment };
+  return { garment, ...cache };
 }

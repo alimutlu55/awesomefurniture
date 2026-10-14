@@ -17,6 +17,8 @@ import { measureNumber } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { createGarmentRenderer } from './garment-renderer';
+import { createHandbagRenderer } from './handbag-renderer';
+import { createTrouserRenderer } from './trouser-renderer';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -117,7 +119,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         planarUVs(geo);
         return new THREE.Mesh(geo, material);
     }
-    const { garment } = createGarmentRenderer({ resources, renderState });
+    const clothes = createGarmentRenderer({ resources, renderState });
+    const { garment } = clothes;
+    const bags = createHandbagRenderer();
+    const { handbag } = bags;
+    const trousers = createTrouserRenderer(resources?.cv?.ownerDocument);
+    const { trouserPullOut } = trousers;
+    lifetime?.cleanup(() => { clothes.dispose(); bags.dispose(); trousers.dispose(); });
     /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
     function fitLight() {
         const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
@@ -151,12 +159,15 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         });
         renderState.wardrobeGroups.forEach(g => {
             resources.scene.remove(g);
-            disposeCabinetGroup(g, new Set([resources.HM]));
+            disposeCabinetGroup(g, new Set([resources.HM, ...clothes.sharedMaterials, ...bags.sharedMaterials, ...trousers.sharedMaterials]), new Set([...clothes.sharedGeometries, ...bags.sharedGeometries, ...trousers.sharedGeometries]));
         });
         renderState.wardrobeGroups = [];
         renderState.allHits = [];
         renderState.allItemHits = [];
         renderState.garments = [];
+        clothes.beginBuild();
+        bags.beginBuild();
+        trousers.beginBuild();
         const combinedLabs = [], combinedPivots = [];
         let activeRender;
         for (const wardrobe of model.scene.wardrobes) {
@@ -179,6 +190,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 activeRender = { Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups };
             }
         }
+        clothes.endBuild();
+        bags.endBuild();
+        trousers.endBuild();
         // Every wardrobe removed: an empty stand-in keeps the active-wardrobe handles pointing at nothing.
         activeRender ??= { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
         renderDesign = selected.state;
@@ -208,7 +222,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;
