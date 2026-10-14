@@ -33,11 +33,18 @@ export function ceilingHandles(room: Studio, c: StudioCeiling): RoomHandle[] {
     key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling' as const, id: c.id, index: k, ...pointAt(fr, c, k),
     label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag up or down, or along to move it; tap to type its height', ux: axis.x, uz: axis.z,
   }));
+  c.profile.slice(0, -1).forEach((p, k) => {
+    const next = c.profile[k + 1]!;
+    if (next.t - p.t < 10) return;
+    const t = (p.t + next.t) / 2, floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
+    out.push({ key: 'ceiling-split:' + c.id + ':' + k, kind: 'ceiling-split', id: c.id, index: k,
+      ...floor, y: (p.y + next.y) / 2, label: 'Add a ceiling shape point here' });
+  });
   if (c.run === 'along') {
-    // In the middle of its longest stretch, clear of the pills.
+    // Away from the midpoint's add-point handle.
     let best = 0;
     for (let k = 1; k < c.profile.length - 1; k++) if (c.profile[k + 1]!.t - c.profile[k]!.t > c.profile[best + 1]!.t - c.profile[best]!.t) best = k;
-    const s = (c.profile[best]!.t + c.profile[best + 1]!.t) / 2, at = fr.at(s, c.depth);
+    const s = c.profile[best]!.t + (c.profile[best + 1]!.t - c.profile[best]!.t) * .75, at = fr.at(s, c.depth);
     out.push({ key: 'depth:' + c.id, kind: 'depth', id: c.id, x: at.x, y: profileAt(c.profile, s) ?? roomHeight(room), z: at.z,
       label: 'How far it reaches into the room. Drag in or out', nx: fr.line.nx, nz: fr.line.nz });
   }

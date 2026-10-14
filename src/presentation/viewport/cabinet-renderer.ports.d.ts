@@ -18,5 +18,5 @@ readonly settings: Pick<{ budget: number }, 'budget'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('./editor-lifetime.js').createEditorLifetime>, 'frame' | 'cleanup'>>;
 readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('../editor/shape-inspector').createShapeInspector>, 'handles' | 'beginHandleDrag' | 'moveHandleDrag' | 'endHandleDrag' | 'nudge'>>;
 /** The room editor; optional so renderer tests can leave the room out. */
-readonly studioEditor?: Readonly<Pick<ReturnType<typeof import('../editor/studio-editor').createStudioEditor>, 'valid' | 'handles' | 'measures' | 'guides' | 'reason' | 'begin' | 'move' | 'end' | 'nudge' | 'dragging' | 'editMeasure' | 'dragKey'>>;
+readonly studioEditor?: Readonly<Pick<ReturnType<typeof import('../editor/studio-editor').createStudioEditor>, 'valid' | 'handles' | 'measures' | 'guides' | 'reason' | 'begin' | 'move' | 'end' | 'nudge' | 'dragging' | 'editMeasure' | 'dragKey' | 'click'>>;
 }

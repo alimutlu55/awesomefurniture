@@ -1,7 +1,7 @@
 import { STUDIO_LIMITS, cornerDegree, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
-import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reachAt, removeCeiling, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reachAt, removeCeiling, setCeilingDepth, splitCeilingPanel } from '../../domain/studio/studio-ceiling';
 import { ceilingHandles, depthRuler, heightRuler, pointRuler, restHeights, runAxis, snapPoint } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
@@ -211,6 +211,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   function move(e: PointerEvent) {
     const g = drag;
     if (!g || e.pointerId !== g.pointer) return;
+    if (g.handle.kind === 'ceiling-split') return;
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < 4) return;
     g.free = e.shiftKey;
     if (!g.moved && g.handle.kind === 'extend') startExtend(e);
@@ -327,6 +328,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   }
   function click(h: RoomHandle) {
     if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index);
+    else if (h.kind === 'ceiling-split') edit(s => splitCeilingPanel(s, h.id, h.index!));
     else if (h.kind === 'extend') {
       const id = sceneCommands.addStudioWall(selectedWall()?.id);
       if (id) selectionState.room = { kind: 'wall', id };
@@ -380,7 +382,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   }
 
   return {
-    select, valid, pick, handles, measures, guides, reason, act, nudge,
+    select, valid, pick, handles, measures, guides, reason, act, nudge, click,
     begin, grab, move, end,
     /** Tapping a length on the model opens its field. */
     editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields(m.edit.startsWith('p') ? 'ceiling-size' : 'wall-size', m.edit); },

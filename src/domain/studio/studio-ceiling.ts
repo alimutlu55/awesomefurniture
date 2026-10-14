@@ -175,6 +175,16 @@ export function moveCeilingPoint(studio: Studio, id: string, index: number, t: n
   });
 }
 
+/** Adds a bend halfway along a panel, preserving its current underside until the new point is moved. */
+export function splitCeilingPanel(studio: Studio, id: string, index: number): Studio | null {
+  return swap(studio, id, c => {
+    const a = c.profile[index], b = c.profile[index + 1];
+    if (!a || !b || b.t - a.t < 10) return null;
+    const point = { t: round((a.t + b.t) / 2), y: round((a.y + b.y) / 2) };
+    return { ...c, profile: [...c.profile.slice(0, index + 1), point, ...c.profile.slice(index + 1)] };
+  });
+}
+
 /** How far it reaches into the room. A sloped roof keeps its heights and stretches to the new depth. */
 export function setCeilingDepth(studio: Studio, id: string, depth: number): Studio | null {
   return swap(studio, id, c => {

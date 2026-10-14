@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
+import { ceilingSplitOffsets } from './ceiling-handle-layout';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; rulerNode?: Element; ruler?: unknown };
 interface StudioOverlayPorts {
@@ -17,6 +18,7 @@ interface StudioOverlayPorts {
         reason(): { text: string; x: number; y: number; z: number } | null;
         begin(e: PointerEvent, h: RoomHandle, el: HTMLElement): void; move(e: PointerEvent): void; end(cancel?: boolean): boolean;
         nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean; editMeasure(m: RoomMeasure): void; dragKey(): string | null;
+        click(h: RoomHandle): void;
     };
 }
 
@@ -40,14 +42,26 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' ? 'point' : h.kind === 'extend' ? 'split-handle' : 'room-grip');
-            if (h.kind === 'extend') el.textContent = '+';
+            const split = h.kind === 'extend' || h.kind === 'ceiling-split';
+            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' ? 'point' : split ? 'split-handle' : 'room-grip');
+            if (split) el.textContent = '+';
             else if (h.kind === 'depth') el.innerHTML = ARROWS;
             else if (h.kind !== 'corner' && h.kind !== 'ceiling') el.innerHTML = SLIDE;
             const button = el;
-            el.onpointerdown = e => { const x = current.get(button); if (x) editor.begin(e, x, button); };
+            el.onpointerdown = e => {
+                let target = button, h = current.get(button);
+                const own = button.getBoundingClientRect();
+                let distance = Math.hypot(e.clientX - own.left - own.width / 2, e.clientY - own.top - own.height / 2);
+                if (h?.kind === 'ceiling' || h?.kind === 'depth') for (const [dot, point] of current) {
+                    if (point.kind !== 'ceiling') continue;
+                    const r = dot.getBoundingClientRect(), d = Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2);
+                    if (d <= 32 && d < distance) { target = dot; h = point; distance = d; }
+                }
+                if (h) editor.begin(e, h, target);
+            };
             el.onpointermove = e => editor.move(e);
             el.onpointerup = () => editor.end();
+            el.onclick = e => { const x = current.get(button); if (e.detail === 0 && x) editor.click(x); };
             el.onpointercancel = () => editor.end(true);
             el.onlostpointercapture = () => { if (editor.dragging()) editor.end(); };
             el.onkeydown = e => {
@@ -133,7 +147,10 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
     function orient() {
         const r = canvas.getBoundingClientRect();
         const screen = (p: THREE.Vector3) => { const q = p.clone().project(camera); return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height }; };
+        const offsets = ceilingSplitOffsets([...current.values()].map(h => ({ key: h.key, kind: h.kind, ...screen(V(h)) })));
         for (const [el, h] of current) {
+            const offset = offsets.get(h.key);
+            if (offset) el.style.translate = `${offset.x}px ${offset.y}px`;
             const dx = h.kind === 'depth' ? h.nx : undefined, dz = h.nz;
             if (dx === undefined || dz === undefined) continue;
             const a = screen(V(h)), b = screen(new THREE.Vector3(h.x + dx * 40, h.y, h.z + dz * 40));

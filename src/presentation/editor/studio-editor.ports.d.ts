@@ -5,7 +5,7 @@ type Point = { x: number; y: number; z: number };
  * an opening or a ceiling dragged by its own surface gets a handle where it was grabbed, never drawn. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'ceiling' | 'depth' | 'lift';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'ceiling' | 'ceiling-split' | 'depth' | 'lift';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
