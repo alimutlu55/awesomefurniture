@@ -150,10 +150,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
-        camera.fit({ instant: true, padding: 1.4 });
-        cameraState.tgt.y = cameraState.tgtY;
-        // A project with a room opens on the whole room.
-        if (model.scene.studio) room.frameRoom();
+        // Open at the same overview reached by clicking empty canvas space.
+        camera.frameScene({ instant: true });
         camera.resize();
         inspector.update(true);
         rendering.loop();
@@ -171,7 +169,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             inspector.clearFocus();
             inspector.update(true);
             inspector.histUI();
-            if (next.studio) room.frameRoom(); else camera.fit({ padding: 1.4 });
+            camera.frameScene();
         }
         return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message, undefined, 12000), dispose: () => viewport.dispose() };
     }

@@ -258,9 +258,10 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     /** Shows the whole scene from a little above, and keeps it whole while sheets open and close: for adding walls
      * or a wardrobe, and for a room just placed. In a room it looks slightly to one side of the wardrobe wall, so
      * the room's depth reads; without one it keeps the side it looks from. */
-    function frameScene() {
+    /** @param {{ instant?: boolean }} options */
+    function frameScene(options = {}) {
         const room = !!model.scene.studio, facing = (model.activeCabinet().angle ?? 0) * Math.PI / 180;
-        frameBox(sceneBox(), room ? facing + .32 : cameraState.az, .5, room ? 1.04 : 1.1);
+        frameBox(sceneBox(), room ? facing + .32 : cameraState.az, .5, room ? 1.04 : 1.1, false, options.instant);
     }
     function moveViewOff() {
         if (!cameraState.camHome) {
@@ -273,11 +274,17 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     /** Flies to show a box whole (the room), and keeps it whole while panels open or close around it.
      * @param {{ x: number; z: number; w: number; d: number; h: number }} bounds */
-    function frameBox(bounds, az, el, padding, resizing = false) {
+    function frameBox(bounds, az, el, padding, resizing = false, instant = false) {
         if (!resizing) camRelease();
         boxFraming = { bounds, az, el, padding };
         const goal = fittedCamera(az, el, padding, bounds);
-        if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
+        if (instant) {
+            cameraState.fitDist = goal.dist;
+            cameraState.vsT = baseShift(goal);
+            cameraState.vzT = 1;
+            cameraTransition(goal, 0);
+        }
+        else if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
         else if (resizing) cameraTransition(goal, 240);
         else cameraFlyTo(goal);
     }

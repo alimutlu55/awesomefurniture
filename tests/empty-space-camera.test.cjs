@@ -38,7 +38,7 @@ function fixture(t, width, studio = true) {
         geometry: createWardrobeGeometry(() => state), cabinetGeometry: createCabinetGeometry(() => wardrobes), resources, model,
         viewport: { resize() {} }, clock: { now: () => 0 } });
     const frameScene = camera.frameScene;
-    camera.frameScene = () => { overviewCalls++; frameScene(); };
+    camera.frameScene = options => { overviewCalls++; frameScene(options); };
     const roomObjects = [], room = { pickables: () => roomObjects, pick: () => { selectionState.room = { kind: 'wall', id: 'w1' }; return true; } };
     const interactions = { ...createSceneSelection({ dom, inspector, picking, camera, selectionState, renderState, model, resources, room }), cancelMovement() {} };
     const ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState,
@@ -57,6 +57,23 @@ function fixture(t, width, studio = true) {
 }
 
 for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
+    for (const studio of [false, true]) {
+        test(`${pointerType}: initial ${studio ? 'room' : 'wardrobe'} overview matches an empty-canvas click immediately`, t => {
+            const f = fixture(t, width, studio);
+            f.setHeight(812);
+            f.camera.frameScene({ instant: true });
+            const initial = f.camera.camNow();
+            assert.equal(f.cameraState.camGoal, null, 'startup does not animate from the closer view');
+            assert.equal(f.cameraState.fitDist, initial.dist);
+            f.tap(pointerType);
+            f.camera.cameraTick(2000, 1 / 60);
+            assert.deepEqual(f.camera.camNow(), initial);
+            f.setHeight(650);
+            f.camera.resize(); f.camera.cameraTick(2000, 1 / 60);
+            assert.equal(f.cameraState.tgt.y, initial.y, 'startup retains overview framing on resize');
+            assert.equal(f.cameraState.tgt.z, initial.z);
+        });
+    }
     test(`${pointerType}: empty-space tap after adding a fitting frames the studio and both wardrobes`, t => {
         const f = fixture(t, width), snapshot = JSON.stringify(f.model.scene);
         const before = f.cameraState.dist;
