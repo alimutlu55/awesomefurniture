@@ -198,8 +198,11 @@
  #toolbar .contextual-history{flex:0 0 calc(200% / var(--contextual-action-count,4));margin-left:0;position:relative;padding-left:0}
  #toolbar .contextual-history::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}
  #toolbar .contextual-history .tb{flex:1;min-width:0}
- #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;height:58px;min-height:58px;padding:0 2px;gap:3px;border:0;border-radius:0;background:transparent;color:var(--ink);font-size:11px;line-height:15px;white-space:nowrap;box-shadow:none}
- #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .ic{flex:none;width:36px;height:36px;padding:8px;background:#fff;border-radius:50%;box-shadow:0 2px 7px #45392312}
+ #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;height:58px;min-height:58px;padding:0 2px;gap:6px;border:0;border-radius:22px;background:transparent;color:var(--ink);font-size:11px;line-height:15px;white-space:nowrap;box-shadow:none}
+ #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .ic{flex:none;width:22px;height:22px;padding:0;background:transparent;border-radius:0;box-shadow:none}
+ /* Highlight the whole active tap target, including its label, on the glass surface. */
+ #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb:is([aria-expanded="true"],[aria-pressed="true"],.on),
+ #app[data-toolbar-mode="move"] #toolbar .tb[data-action="move"]{background:rgba(28,25,23,.1)}
  #toolbar .contextual-history-label,#toolbar .tb.smart .tl{display:block;font-size:11px}
  #toolbar .contextual-history small{display:none}
  #toolbar .contextual-history .tb:disabled{opacity:1;color:var(--mute)}
