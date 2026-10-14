@@ -3,8 +3,16 @@ const assert = require('node:assert/strict');
 const { createViewModes } = require('../src/presentation/editor/view-modes.ts');
 const { createSelectionState } = require('../src/presentation/editor/selection-state.js');
 
+test('a fresh editor starts in Wardrobe mode without an object selection', () => {
+    const state = createSelectionState();
+    assert.equal(state.viewMode, 'wardrobe');
+    assert.equal(state.focusOn, false);
+    assert.equal(state.room, null);
+});
+
 test('switching spatial modes clears editing selection and frames the correct scope without opening settings', () => {
     const selectionState = createSelectionState(), calls = [], classes = new Set(['props-open']);
+    selectionState.viewMode = 'studio';
     const buttons = ['studio', 'wardrobe'].map(mode => ({ dataset: { viewMode: mode }, setAttribute(k, v) { this[k] = v; } }));
     const app = { dataset: {}, classList: { add: c => classes.add(c), remove: c => classes.delete(c) } };
     const wizard = { hidden: true }, switcher = { querySelectorAll: () => buttons };

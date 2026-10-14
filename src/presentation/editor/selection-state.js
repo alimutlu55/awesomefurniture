@@ -1,7 +1,7 @@
 export function createSelectionState() {
     return { responsivePanel: null,
         /** @type {'studio' | 'wardrobe'} */
-        viewMode: 'studio',
+        viewMode: 'wardrobe',
         /** An opening or ceiling awaiting a wall chosen on the canvas. @type {string | null} */
         pendingStudioAction: null,
         showDimensions: true,

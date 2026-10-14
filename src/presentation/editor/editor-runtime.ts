@@ -47,6 +47,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
     const interactionState = createInteractionState();
     const renderState = createRenderState();
     const selectionState = createSelectionState();
+    elements.app.classList.add('props-hidden');
     const plannerState = createPlannerState();
     const shellState = createShellState();
     try {
@@ -107,7 +108,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 model.restore(JSON.stringify(next));
                 history.clear();
                 Object.assign(selectionState, flags);
-                selectionState.viewMode = flags.focusOn || session.openPanel === 'planner' ? 'wardrobe' : 'studio';
+                selectionState.viewMode = 'wardrobe';
                 selectionState.room = null;
                 selectionState.pendingStudioAction = null;
                 inspector.hidePop();
@@ -153,8 +154,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
-        // Open at the same overview reached by clicking empty canvas space.
-        camera.frameScene({ instant: true });
+        // Open on the active wardrobe with the default dock and no camera fly-in.
+        camera.frameWardrobe({ instant: true });
         camera.resize();
         inspector.update(true);
         rendering.loop();

@@ -57,6 +57,19 @@ function fixture(t, width, studio = true) {
 }
 
 for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
+    test(`${pointerType}: the initial wardrobe camera immediately matches the Wardrobe background view`, t => {
+        const f = fixture(t, width);
+        f.selectionState.viewMode = 'wardrobe';
+        f.setHeight(812);
+        f.camera.frameWardrobe({ instant: true });
+        const initial = f.camera.camNow();
+        assert.equal(f.cameraState.camGoal, null);
+        assert.equal(f.cameraState.fitDist, initial.dist);
+        f.tap(pointerType); f.camera.cameraTick(2000, 1 / 60);
+        for (const [key, value] of Object.entries(initial)) {
+            assert.ok(Math.abs(f.camera.camNow()[key] - value) < 1e-8, key);
+        }
+    });
     test(`${pointerType}: wardrobe framing survives resize and yields to manual camera control`, t => {
         const f = fixture(t, width);
         f.camera.frameWardrobe(); f.camera.cameraTick(2000, 1 / 60);

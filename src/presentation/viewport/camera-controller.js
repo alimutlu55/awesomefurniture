@@ -264,9 +264,10 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const room = !!model.scene.studio, facing = (model.activeCabinet().angle ?? 0) * Math.PI / 180;
         frameBox(sceneBox(), room ? facing + .32 : cameraState.az, .5, room ? 1.04 : 1.1, false, options.instant);
     }
-    /** Frame the active wardrobe, independently of the surrounding room. */
-    function frameWardrobe(resizing = false) {
-        if (!model.scene.wardrobes.length) { frameScene(); return; }
+    /** Frame the active wardrobe. @param {{ resizing?: boolean; instant?: boolean }} options */
+    function frameWardrobe(options = {}) {
+        const { resizing = false, instant = false } = options;
+        if (!model.scene.wardrobes.length) { frameScene({ instant }); return; }
         const w = model.activeCabinet(), goal = camFront();
         if (!resizing) camRelease();
         wardrobeFraming = true;
@@ -275,7 +276,11 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         goal.dist *= 1.15;
         cameraState.vsT = 0;
         cameraState.vzT = 1;
-        if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
+        if (instant) {
+            cameraState.fitDist = goal.dist;
+            cameraTransition(goal, 0);
+        }
+        else if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
         else cameraTransition(goal, resizing ? 240 : 700);
     }
     function moveViewOff() {
@@ -387,7 +392,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             inspector.layoutPop(p);
         }
         if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
-        else if (wardrobeFraming && changed && r.width > 0 && r.height > 0) frameWardrobe(true);
+        else if (wardrobeFraming && changed && r.width > 0 && r.height > 0) frameWardrobe({ resizing: true });
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
     return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, frameWardrobe, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };

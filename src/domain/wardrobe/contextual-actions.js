@@ -2,7 +2,7 @@
 const actions = {
     // Nothing selected: add to the wardrobe, the room, or the scene.
     none: [['add', 'Add item'], ['wardrobe', 'Wardrobe'], ['auto', 'Auto design']],
-    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling'], ['more', 'More']],
+    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling']],
     wardrobe: [['move', 'Move'], ['resize', 'Resize'], ['sections', 'Sections'], ['more', 'More']],
     item: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize'], ['more', 'More']],
     divider: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize']],
