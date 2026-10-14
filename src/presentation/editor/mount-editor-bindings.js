@@ -175,6 +175,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         inspector.hidePop();
         if (key !== 'shape' && selectionState.shapeEditing) { selectionState.shapeEditing = false; rendering.build(); }
         takeMobilePanel(dom, $('#left'));
+        delete $('#left').dataset.roomResize;
         $('#left').dataset.contextSection = key;
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
@@ -214,6 +215,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (key === 'ceiling-size') { room.resizePanel.open(); return; }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;

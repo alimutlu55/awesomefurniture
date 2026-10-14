@@ -15,7 +15,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
-export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel }) {
+export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, roomFields }) {
     const { $, document, matchMedia } = dom;
     const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
@@ -165,7 +165,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
         });
         syncCabinetHeightMinimum(dom, model.activeCabinet().state, selectionState.editingSize);
-        for (const panel of [shapeInspector, studioPanel]) panel.render();
+        for (const panel of [shapeInspector, studioPanel, roomFields]) panel?.render();
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {
             b.classList.toggle('on', b.dataset.f === model.activeCabinet().state.fin);

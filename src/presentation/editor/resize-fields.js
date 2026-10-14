@@ -12,7 +12,7 @@ export function syncCabinetHeightMinimum(dom, design, editingSize) {
 }
 
 /** Wrap existing bound dimension inputs in the shared value-and-slider layout. */
-export function mountResizeFields({ dom, lifetime, fields, preview, model, history, refresh }) {
+export function mountResizeFields({ dom, lifetime, fields, preview, model, history, refresh, commit = () => {} }) {
     for (const { input, axis } of fields) {
         const label = input.closest('label'), control = dom.document.createElement('div');
         control.className = 'resize-field-control';
@@ -30,7 +30,7 @@ export function mountResizeFields({ dom, lifetime, fields, preview, model, histo
             const original = before;
             before = null;
             if (cancel) model.restore(original);
-            else if (model.snapshot() !== original) history.checkpoint(original);
+            else { commit(); if (model.snapshot() !== original) history.checkpoint(original); }
             refresh();
         };
         lifetime.listen(range, 'input', () => {

@@ -5,6 +5,8 @@ import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/st
 import { measureNumber } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { esc } from './editor-format.js';
+import { mountResizeFields, syncResizeFields } from './resize-fields.js';
+import type { StudioEditorPorts } from './studio-editor.ports';
 
 interface StudioFieldsPorts {
     readonly document: { createElement: Document['createElement']; activeElement?: Element | null };
@@ -13,6 +15,9 @@ interface StudioFieldsPorts {
     readonly editStudio: (edit: (room: Studio) => Studio | null) => boolean;
     readonly refresh: () => void;
     readonly listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void;
+    readonly resize?: { model: StudioEditorPorts['model']; history: { checkpoint(snapshot: string): void };
+        preview(edit: (room: Studio) => Studio | null): boolean; commit(): void; active(): boolean };
+    readonly rendered?: () => void;
 }
 type Field = { key: string; label: string; value: number; min: number; max: number; hint?: string };
 
@@ -21,7 +26,7 @@ const round = (v: number) => Math.round(v * 10) / 10;
 /** Exact sizes for the selected wall or opening, shown in the toolbar's Size popover. Typing a value
  * and pressing Enter (or leaving the field) applies it as one undo step; a refused value springs back
  * and the reason shows as usual. Lengths are inside the room, as a tape measure reads them. */
-export function createStudioFields({ document, getStudio, getSelection, editStudio, refresh, listen }: StudioFieldsPorts) {
+export function createStudioFields({ document, getStudio, getSelection, editStudio, refresh, listen, resize, rendered }: StudioFieldsPorts) {
     const root = document.createElement('div');
     root.className = 'room-fields';
 
@@ -59,25 +64,41 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
 
     function render() {
         const list = fields();
-        const shape = list.map(x => x.key + ':' + (x.hint ?? '')).join();
+        const ceiling = getSelection()?.kind === 'ceiling' && !!resize?.active();
+        const shape = JSON.stringify([getSelection(), list.map(x => x.key), ceiling]);
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
-            root.innerHTML = list.map(x => '<label class="shape-field"><span>' + esc(x.label) + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
-                + '" min="' + x.min + '" max="' + x.max + '" aria-label="' + esc(x.label) + '"><small>cm</small></span>' + (x.hint ? '<small class="room-field-hint">' + esc(x.hint) + '</small>' : '') + '</label>').join('');
+            root.innerHTML = list.map(x => {
+                const hint = x.hint ? '<small class="room-field-hint" data-room-hint="' + x.key + '">' + esc(x.hint) + '</small>' : '';
+                const label = '<label class="' + (ceiling ? 'size-row' : 'shape-field') + '"><span>' + esc(x.label) + (ceiling ? hint : '') + '</span>';
+                return label + '<span class="' + (ceiling ? 'size-field' : 'shape-input') + '"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
+                    + '" min="' + x.min + '" max="' + x.max + '" aria-label="' + esc(x.label) + '"><small>cm</small></span>' + (ceiling ? '' : hint) + '</label>';
+            }).join('');
+            if (ceiling && resize) {
+                mountResizeFields({ dom: { document }, lifetime: { listen }, model: resize.model, history: resize.history, commit: resize.commit,
+                    fields: list.map(x => ({ input: root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]')!, axis: x.key })),
+                    preview: (input: HTMLInputElement, value: number) => apply(input.dataset.roomField!, value, true), refresh: () => { refresh(); render(); } });
+                root.querySelectorAll('.mobile-resize-range').forEach(el => el.classList.remove('mobile-resize-range'));
+            }
         }
         for (const x of list) {
             const input = root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]');
-            if (input && document.activeElement !== input) input.value = String(round(x.value));
+            if (input) { input.min = String(x.min); input.max = String(x.max); if (document.activeElement !== input) input.value = String(round(x.value)); }
+            const hint = root.querySelector('[data-room-hint="' + x.key + '"]');
+            if (hint) hint.textContent = x.hint ?? '';
         }
+        if (ceiling) syncResizeFields(root);
+        rendered?.();
     }
 
     /** Applies one field; the edit functions validate nothing, editStudio refuses with the reason. */
-    function apply(key: string, value: number) {
+    function apply(key: string, value: number, preview = false) {
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
+        const write = preview && resize ? resize.preview : editStudio;
         if (s.kind === 'ceiling') {
-            if (key === 'depth') editStudio(r => setCeilingDepth(r, s.id, value));
-            else editStudio(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });
+            if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
+            else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });
         } else if (s.kind === 'wall') {
             if (key === 'length') editStudio(r => setInsideLength(r, s.id, value));
             else editStudio(r => setWallSize(r, s.id, { [key]: value }));
@@ -87,8 +108,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
                 return face && wallLine(r, w) ? moveOpening(r, s.id, face.start + value + o.width / 2) : null;
             });
         } else editStudio(r => setOpeningSize(r, s.id, { [key]: value }));
-        refresh();
-        render();
+        if (!preview) { refresh(); render(); }
     }
 
     listen(root, 'change', e => {
@@ -99,6 +119,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const input = e.target as HTMLInputElement;
         if ((e as KeyboardEvent).key === 'Enter' && input.dataset.roomField) input.blur();
     });
+    listen(root, 'focusout', () => render());
 
     return { root, render };
 }

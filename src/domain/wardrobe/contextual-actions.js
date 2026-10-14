@@ -14,7 +14,7 @@ export const wardrobeMoreActions = [['shape', 'Shape'], ['material', 'Material']
 export const wallMoreActions = [['wall-size', 'Size'], ['archway', 'Archway'], ['split', 'Split'], ['add-wall', 'Add wall'], ['remove', 'Remove wall']];
 export const itemMoreActions = [['replace', 'Replace'], ['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
-export const fieldActions = ['wall-size', 'opening-size', 'ceiling', 'ceiling-size', 'ceiling-shape'];
+export const fieldActions = ['wall-size', 'opening-size', 'ceiling', 'ceiling-shape'];
 export function contextualActions(selection) {
     return [...(actions[selection] || actions.none), ['undo', 'Undo'], ['redo', 'Redo']];
 }

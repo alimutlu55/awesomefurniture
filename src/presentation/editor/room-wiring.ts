@@ -3,11 +3,12 @@ import { wallFace, wallLine } from '../../domain/studio/studio';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
 import { createCeilingChoices } from './studio-ceiling-panel';
+import { createStudioResizePanel } from './studio-resize-panel';
 import type { StudioEditorPorts } from './studio-editor.ports';
 
 type Listenable = { addEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void };
 interface RoomWiringPorts {
-    readonly dom: { document: unknown; window: Listenable; $: (selector: string) => HTMLElement };
+    readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
     readonly model: StudioEditorPorts['model'];
     readonly sceneCommands: StudioEditorPorts['sceneCommands'];
     readonly history: { checkpoint(snapshot: string): void };
@@ -33,6 +34,7 @@ interface RoomWiringPorts {
 /** The room editor, its Size fields and its keys, connected to the rest of the editor. */
 export function createRoomWiring({ dom, model, sceneCommands, history, picking, selectionState, late, listen }: RoomWiringPorts) {
     let fields: ReturnType<typeof createStudioFields> | null = null;
+    let resizePanel: ReturnType<typeof createStudioResizePanel> | null = null;
     const refresh = () => { late.inspector().update(true); fields?.render(); };
     const editor = createStudioEditor({
         model, sceneCommands, history, selectionState,
@@ -71,7 +73,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
+        resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
+            active: () => dom.$('#left').dataset.roomResize !== undefined },
+        rendered: () => resizePanel?.sync(),
     });
+    resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection,
+        prepare: () => dom.$('#px').click(), frame: () => late.camera().frameScene() });
 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {
@@ -111,7 +118,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
 
     return {
-        editor, fields, frameRoom, ceilingChoices,
+        editor, fields, frameRoom, ceilingChoices, resizePanel,
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {

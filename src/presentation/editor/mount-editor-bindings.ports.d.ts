@@ -23,5 +23,5 @@ readonly history: Readonly<ReturnType<typeof import('../../application/history/s
 readonly lifetime: Readonly<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>>;
 readonly elements: ReturnType<typeof import('./editor-dom.js').getEditorElements>;
 /** The room editor and its Size fields, for the contextual toolbar. */
-readonly room: Pick<ReturnType<typeof import('./room-wiring').createRoomWiring>, 'editor' | 'fields' | 'surface' | 'ceilingChoices'>;
+readonly room: Pick<ReturnType<typeof import('./room-wiring').createRoomWiring>, 'editor' | 'fields' | 'surface' | 'ceilingChoices' | 'resizePanel'>;
 }
