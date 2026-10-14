@@ -1,3 +1,4 @@
+import { createClothingWarmup } from '../viewport/clothing-warmup';
 import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
@@ -156,6 +157,10 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         camera.resize();
         inspector.update(true);
         rendering.loop();
+        const clothingWarmup = createClothingWarmup(resources.R, resources.scene, resources.cam, dom.host.ownerDocument);
+        lifetime.cleanup(() => clothingWarmup.dispose());
+        // Two frames allow the initial view to paint before preparing first-use cloth programs.
+        lifetime.frame(() => lifetime.frame(() => clothingWarmup.prepare()));
         /** Puts a whole design in the editor (one an agent built, or an import) as one undo step, framed whole. */
         function replaceDesign(project: ProjectDocument) {
             const next = projectToScene(project) ?? createEditorModel().scene;

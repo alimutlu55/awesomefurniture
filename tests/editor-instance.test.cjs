@@ -30,7 +30,9 @@ test('controls inserted after mounting get unique IDs and keep label association
  root.querySelector=()=>controls[0];
  const dom=createEditorDom(root);
  const control={id:'w',dataset:{}};controls.push(control);
- const label={attributes:{for:'w'},getAttribute(key){return this.attributes[key]},setAttribute(key,value){this.attributes[key]=value}};labels.push(label);
+ let labelWrites=0;
+ const label={attributes:{for:'w'},getAttribute(key){return this.attributes[key]},setAttribute(key,value){labelWrites++;this.attributes[key]=value}};labels.push(label);
  dom.$('#w');
- assert.match(control.id,/wardrobe-\d+-w/);assert.equal(label.attributes.for,control.id);dom.dispose();
+ assert.match(control.id,/wardrobe-\d+-w/);assert.equal(label.attributes.for,control.id);
+ dom.$('#w');dom.document.querySelectorAll('label');assert.equal(labelWrites,1,'repeat queries must not rewrite stable label references');dom.dispose();
 });

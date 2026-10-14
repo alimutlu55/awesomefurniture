@@ -163,8 +163,10 @@ export function createEditorDom(root: HTMLElement | ShadowRoot) {
         for (const element of root.querySelectorAll('[for],[aria-labelledby],[aria-describedby],[aria-controls]')) {
             for (const name of ['for', 'aria-labelledby', 'aria-describedby', 'aria-controls']) {
                 const value = element.getAttribute(name);
-                if (value)
-                    element.setAttribute(name, value.split(/\s+/).map(id => id.startsWith(prefix) ? id : prefix + id).join(' '));
+                if (value) {
+                    const scoped = value.split(/\s+/).map(id => id.startsWith(prefix) ? id : prefix + id).join(' ');
+                    if (scoped !== value) element.setAttribute(name, scoped);
+                }
             }
         }
     };
