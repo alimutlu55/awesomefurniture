@@ -1,4 +1,5 @@
 interface EditorControls {
+    "#view-modes": HTMLElementTagNameMap["div"];
     "#app": HTMLElementTagNameMap["div"];
     "#view": HTMLElementTagNameMap["main"];
     "#c": HTMLElementTagNameMap["canvas"];

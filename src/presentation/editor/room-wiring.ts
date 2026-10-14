@@ -16,7 +16,9 @@ interface RoomWiringPorts {
         groundPoint(e: PointerEvent, height?: number): THREE.Vector3 | null; screenPoint(p: THREE.Vector3): { x: number; y: number };
         cast(e: PointerEvent, objects: THREE.Object3D[]): THREE.Intersection | undefined;
     };
-    readonly selectionState: StudioEditorPorts['selectionState'] & { focusOn: boolean };
+    readonly selectionState: StudioEditorPorts['selectionState'] & {
+        viewMode?: 'studio' | 'wardrobe'; pendingStudioAction?: string | null;
+    };
     /** Late-bound editor parts: called only after the editor is mounted. */
     readonly late: {
         rendering(): { redrawStudio(): void; studioPickables(): THREE.Object3D[]; build(): void };
@@ -42,6 +44,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         callbacks: {
             // Selecting a room part leaves the wardrobe that was selected.
             selectionChanged: () => {
+                if (selectionState.viewMode) selectionState.viewMode = 'studio';
                 if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true);
                 fields?.render();
                 frameSelection();
@@ -68,7 +71,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
     const ceilingChoices = createCeilingChoices({ document: dom.document as Document, listen, choose: key => {
         dom.$('#toolbar').querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.click();
-        editor.act(key);
+        actOnWall(key);
     } });
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
@@ -83,6 +86,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {
         const k = e as KeyboardEvent, target = k.target as HTMLElement | null;
+        if (k.key === 'Escape' && selectionState.pendingStudioAction && !target?.closest?.('.contextual-popover')) {
+            selectionState.pendingStudioAction = null;
+            k.preventDefault();
+            k.stopImmediatePropagation();
+            return;
+        }
         if (!editor.selection() || k.metaKey || k.ctrlKey || k.altKey) return;
         // Typing, and keys inside the toolbar's popover (Escape closes it first), are not for the room.
         if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest?.('.contextual-popover'))) return;
@@ -117,8 +126,20 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (model.scene.studio) late.camera().frameScene();
     }
 
+    /** Room-level opening and ceiling tools first ask for their supporting wall. */
+    function actOnWall(key: string) {
+        if (!model.scene.studio?.walls.length) {
+            late.report('Add walls first, then choose a wall for this ' + (key.startsWith('ceiling:') ? 'ceiling.' : 'opening.'));
+            return;
+        }
+        if (editor.selection()) { editor.act(key); return; }
+        selectionState.pendingStudioAction = key;
+        late.report('Select a wall for the ' + (key.startsWith('ceiling:') ? 'ceiling' : key) + '.');
+        late.camera().frameScene();
+    }
+
     return {
-        editor, fields, frameRoom, ceilingChoices, resizePanel,
+        editor, fields, frameRoom, ceilingChoices, resizePanel, actOnWall,
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
@@ -134,6 +155,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
             const selected = editor.selection(), data = hit?.object.userData;
             const repeat = selected?.kind === 'ceiling' ? data?.studioCeiling === selected.id : selected?.kind === 'wall' && data?.studioWall === selected.id;
             const picked = editor.pick(hit);
+            if (picked && editor.selection()?.kind === 'wall' && selectionState.pendingStudioAction) {
+                const action = selectionState.pendingStudioAction;
+                selectionState.pendingStudioAction = null;
+                editor.act(action);
+            }
             // A tap after orbiting or zooming restores context; dragging leaves the camera stationary.
             if (picked && repeat) frameSelection();
             return picked;

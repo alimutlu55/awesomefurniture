@@ -31,7 +31,7 @@ function fixture(t, width, studio = true) {
     const resources = { cv }, picking = { hitAt: () => -1,
         cast: (_e, objects) => objects === renderState.allHits ? hit : objects === roomObjects ? roomHit : null };
     const inspector = {
-        inside: () => selectionState.deep, layoutPop() {}, hidePop() {}, update() {}, selectCabinet() {}, showPop() {},
+        inside: () => selectionState.deep, layoutPop() {}, hidePop() {}, update() {}, selectCabinet() { selectionState.focusOn = true; }, showPop() {},
         clearFocus() { selectionState.focusOn = selectionState.deep = selectionState.pillOn = false; state.item = state.divider = -1; height = 812; }
     };
     const camera = createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState,
@@ -57,6 +57,18 @@ function fixture(t, width, studio = true) {
 }
 
 for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
+    test(`${pointerType}: wardrobe framing survives resize and yields to manual camera control`, t => {
+        const f = fixture(t, width);
+        f.camera.frameWardrobe(); f.camera.cameraTick(2000, 1 / 60);
+        f.setHeight(650); f.camera.resize(); f.camera.cameraTick(2000, 1 / 60);
+        assert.equal(f.cameraState.tgt.x, -80);
+        assert.equal(f.cameraState.tgt.z, 30);
+        assert.equal(f.cameraState.tgt.y, 115);
+        f.camera.camRelease();
+        f.cameraState.dist = 900;
+        f.setHeight(812); f.camera.resize(); f.camera.cameraTick(2000, 1 / 60);
+        assert.equal(f.cameraState.dist, 900, 'resize does not undo a manual orbit or zoom');
+    });
     for (const studio of [false, true]) {
         test(`${pointerType}: initial ${studio ? 'room' : 'wardrobe'} overview matches an empty-canvas click immediately`, t => {
             const f = fixture(t, width, studio);
@@ -99,6 +111,31 @@ test('background overview works without room walls and contains every wardrobe',
     f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.cameraState.tgt.x, -10); assert.equal(f.cameraState.tgt.z, 30);
     assert.equal(f.cameraState.tgt.y, 115);
+});
+
+test('Studio mode selects room parts and ignores wardrobes', t => {
+    const f = fixture(t, 375);
+    f.selectionState.viewMode = 'studio';
+    f.hit(); f.tap('touch');
+    assert.equal(f.selectionState.focusOn, false);
+    assert.equal(f.overviewCalls, 1);
+    f.wall(); f.tap('touch');
+    assert.deepEqual(f.selectionState.room, { kind: 'wall', id: 'w1' });
+});
+
+test('Wardrobe mode ignores room parts and background taps frame only the active wardrobe', t => {
+    const f = fixture(t, 375);
+    f.selectionState.viewMode = 'wardrobe';
+    f.wall(); f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    assert.equal(f.selectionState.room, null);
+    assert.equal(f.overviewCalls, 0);
+    assert.equal(f.cameraState.tgt.x, -80);
+    assert.equal(f.cameraState.tgt.z, 30);
+    const distance = f.cameraState.dist;
+    f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    assert.equal(f.cameraState.dist, distance);
+    f.hit(); f.tap('touch');
+    assert.equal(f.selectionState.focusOn, true);
 });
 
 test('wardrobe and wall selections retain their actions instead of returning to the overview', t => {

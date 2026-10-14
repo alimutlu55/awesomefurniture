@@ -1,7 +1,7 @@
 /** Explicit dependencies consumed by this module. */
 export interface CreateEditorGesturesPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
-readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'frameMobileInspector' | 'frameScene' | 'moveViewOff' | 'moveViewOn'>>;
+readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'frameMobileInspector' | 'frameScene' | 'frameWardrobe' | 'moveViewOff' | 'moveViewOn'>>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../viewport/cabinet-renderer.js').createCabinetRenderer>, 'assist' | 'build' | 'clearPreview' | 'clearSettling' | 'drawClearances' | 'dropPreviewLabels' | 'holdOverlay' | 'refreshDividerVisual' | 'setPreviewLabel' | 'wallGuide'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'hidePop' | 'histUI' | 'inside' | 'itemUI' | 'movementUI' | 'reopenItemPanel' | 'selectCabinet' | 'selectSpaceAt' | 'showPop' | 'update'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'toast'>>;
@@ -9,7 +9,7 @@ readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').c
 readonly cameraState: Pick<ReturnType<typeof import('../viewport/camera-state.js').createCameraState>, 'camGoal' | 'el' | 'tgt' | 'tgtY' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'lastMoveEvent' | 'moveMode' | 'panelWasOpen' | 'previewPlan' | 'rotationGesture' | 'wardrobeGesture'>;
 readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'hits' | 'ihits' | 'itemGroups' | 'outs' | 'previewGroup' | 'settling' | 'wardrobeGroups'>;
-readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'room'>;
+readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'room' | 'viewMode' | 'pendingStudioAction'>;
 readonly shellState: Pick<ReturnType<typeof import('./shell-state.js').createShellState>, 'G'>;
 readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'effectiveMin' | 'ih' | 'itemEdgeSize' | 'itemGeom' | 'itemMinW' | 'planFreeMove' | 'planItemMove' | 'resizeObstacles' | 'verticalNeighbor' | 'widthEdgeFor' | 'widths'>>;
 readonly cabinetGeometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/cabinet-geometry.js').createCabinetGeometry>, 'cabinetTranslation'>>;

@@ -1,5 +1,6 @@
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
+import { createViewModes } from './view-modes';
 import { createResizePresenter } from './resize-presenter.js';
 import { mountResizeFields } from './resize-fields.js';
 import { bindDividerClose, bindDividerGap, bindDividerHeight, bindDividerRemove, bindDividerDragMove, bindDividerDragEnd, bindDividerDragCancel, bindDividerDragBlur, bindDividerDragEscape } from './bindings/divider.js';
@@ -194,13 +195,15 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openItem: () => inspector.showPop(null, '#pop3', 'resize'),
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
+    const viewModes = createViewModes({ dom, selectionState, camera, inspector, shell, planner, lifetime });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
-            if (selectionState.room) return selectionState.room.kind;
+            viewModes.sync();
+            if (selectionState.viewMode === 'studio') return selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
-            return state.item >= 0 || state.divider >= 0 ? 'item' : 'wardrobe';
+            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : 'wardrobe';
         },
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
@@ -214,6 +217,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (key === 'walls') { $('#walls-btn').click(); return; }
+            if (selectionState.viewMode === 'studio' && ['door', 'window', 'archway'].includes(key)) {
+                room.actOnWall(key); return;
+            }
             if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) { room.resizePanel.open(); return; }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }

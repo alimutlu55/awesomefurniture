@@ -107,9 +107,12 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 model.restore(JSON.stringify(next));
                 history.clear();
                 Object.assign(selectionState, flags);
+                selectionState.viewMode = flags.focusOn || session.openPanel === 'planner' ? 'wardrobe' : 'studio';
+                selectionState.room = null;
+                selectionState.pendingStudioAction = null;
                 inspector.hidePop();
                 inspector.update(true);
-                if (next.studio) room.frameRoom();
+                if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
                 if (session.openPanel === 'planner') {
                     planner.openWizard();
                 }
@@ -133,7 +136,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         const room = createRoomWiring({ dom, model, sceneCommands, history, picking, selectionState, listen: lifetime.listen, late: {
             rendering: () => rendering, inspector: () => inspector, report: message => shell.toast(message), camera: () => camera } });
         const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
-            placed: () => { selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
+            placed: () => { selectionState.viewMode = 'studio'; selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             // A part just added is selected; a ceiling also turns the view to eye level to shape it.
             added: selection => { inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
@@ -165,11 +168,12 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             history.checkpoint(model.snapshot());
             model.restore(JSON.stringify(next));
             selectionState.room = null;
+            selectionState.pendingStudioAction = null;
             inspector.hidePop();
             inspector.clearFocus();
             inspector.update(true);
             inspector.histUI();
-            camera.frameScene();
+            if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
         }
         return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message, undefined, 12000), dispose: () => viewport.dispose() };
     }

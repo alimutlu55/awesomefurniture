@@ -64,7 +64,7 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #pop2[data-add-context] .mobile-add-categories>button,#pop2:not([data-add-context]) .add-context-title{display:none}
 .add-context-title{display:flex;align-items:center;height:40px;padding:0 4px;font-size:16px;font-weight:600;color:var(--ink)}
 
-/* Phone bar with nothing selected: Add item, Walls and Wardrobe each carry their name, like Undo and Redo. */
+/* Default tools carry their names, like Undo and Redo. */
 /* The bar grows with the screen up to about 96 px a button, then stays centred: a phone gets it edge to edge, a
    tablet or a phone on its side a compact pill instead of buttons spread across the screen. */
 @media(max-width:900px){
@@ -74,6 +74,31 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 /* Every wardrobe removed: only the floor or room is left. Wardrobe controls go, and Wardrobe leads the toolbar. */
 #app[data-no-wardrobe] :is(#add-anchor,#launch-wizard,#fitchip,#props-btn,#left,#empty-scene,.wardrobe-actions,.contextual-defaults>:not(#walls-btn,#wardrobe-btn)){display:none!important}
 @media(min-width:901px){#app[data-no-wardrobe] #wardrobe-btn{background:#282824;color:#fff}}
+
+/* Spatial modes share the existing tools; selection narrows each mode's dock. */
+#view-modes{left:28px;top:32px;padding:5px;gap:2px;border-radius:30px;z-index:41}
+#view-modes .tb{height:44px;min-height:44px;padding:0 16px;border-radius:24px;background:transparent;box-shadow:none;font-size:13px}
+#view-modes .tb[data-view-mode][aria-pressed="true"]{background:rgba(28,25,23,.1)}
+#toolbar .contextual-defaults #walls-btn{display:none}
+#toolbar:not([data-context="none"]) .contextual-defaults{display:none}
+#toolbar:not([data-context="none"]) .contextual-actions{display:flex;align-items:center;gap:2px}
+#app[data-view-mode="studio"] :is(#left,#props-btn,.wardrobe-actions,.wardrobe-name,.ground-rotate,.wardrobe-move,.lbl.add,.selection-action-bar,.item-resize-handle){display:none!important}
+@media(min-width:901px){
+ #toolbar{top:auto;bottom:24px;left:50%;transform:translateX(-50%)}
+ #left,#app.inspecting #left{top:96px;max-height:calc(100% - 128px)}
+ #toolbar .contextual-actions .tb{display:inline-flex;align-items:center;gap:6px}
+}
+@media(max-width:900px){
+ #view-modes{left:max(8px,env(safe-area-inset-left,0px));top:calc(10px + var(--safe-top))}
+ #view-modes .tb{padding:0 12px;font-size:12px}
+ #toolbar:not([data-context="none"]) .contextual-actions{gap:0}
+ #toolbar[data-context="divider"] .contextual-defaults{display:none}
+ #toolbar[data-context="divider"] .contextual-actions{display:flex}
+}
+@media(max-width:359px){
+ #topright #fitchip>span:not(.badge){display:none}
+ #toolbar .tb.smart .tl{display:block;font-size:11px}
+}
 @media(max-width:900px){
  .contextual-popover .ceiling-choice{flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;padding:10px 6px;font-size:13px;line-height:1.2;text-align:center;background:rgba(120,100,70,.07)}
 }

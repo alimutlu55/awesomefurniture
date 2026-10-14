@@ -287,6 +287,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             interactions.cancelMovement();
         }
         if (!keep) {
+            selectionState.viewMode = 'wardrobe';
+            selectionState.room = null;
+            selectionState.pendingStudioAction = null;
             selectionState.focusOn = true;
         }
         commands.normalizeSelection();
@@ -327,7 +330,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             shell.toast('Nothing to undo');
             return;
         }
-        update();
+        selectionState.pendingStudioAction = null;
+        update(selectionState.viewMode === 'studio');
         histUI();
     }
     function redo() {
@@ -344,7 +348,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             shell.toast('Nothing to redo');
             return;
         }
-        update();
+        selectionState.pendingStudioAction = null;
+        update(selectionState.viewMode === 'studio');
         histUI();
     }
     function setCabinetPose(key, value) {

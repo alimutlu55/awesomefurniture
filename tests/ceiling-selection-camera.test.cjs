@@ -47,7 +47,9 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     let frames = 0;
     const frameScene = camera.frameScene;
     camera.frameScene = () => { frames++; return frameScene(); };
-    const wiring = createRoomWiring({ dom, model, sceneCommands: commands, history: { checkpoint() {} }, picking, selectionState, listen() {},
+    const roomKeys = [];
+    const wiring = createRoomWiring({ dom, model, sceneCommands: commands, history: { checkpoint() {} }, picking, selectionState,
+        listen: (_target, event, handler) => { if (event === 'keydown') roomKeys.push(handler); },
         late: { rendering: () => ({ studioPickables: () => roomObjects, redrawStudio() {}, build() {} }), inspector: () => inspector,
             report() {}, camera: () => camera } });
     const interactions = { ...createSceneSelection({ dom, inspector, picking, camera, selectionState, renderState, model, resources, room: wiring.room }),
@@ -58,13 +60,47 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const event = (pointerType = width === 375 ? 'touch' : 'mouse', x = 0, y = 0) => ({ button: 0, pointerId: 1, pointerType,
         clientX: x, clientY: y, target: cv, shiftKey: true, preventDefault() {}, stopPropagation() {} });
     const tap = () => { const e = event(); handlers.pointerdown(e); handlers.pointerup(e); };
-    return { model, camera, cameraState, wiring, selectionState, cv, event, tap, get frames() { return frames; },
+    return { model, camera, cameraState, wiring, selectionState, cv, event, tap,
+        escape: () => roomKeys.forEach(handler => handler({ key: 'Escape', preventDefault() {}, stopImmediatePropagation() {} })),
+        get frames() { return frames; },
         background: () => { roomHit = undefined; }, wall: (id = 'w1') => {
             roomHit = { object: { userData: { studioWall: id } }, point: { x: 0, y: 150, z: 0 }, distance: 5 };
         } };
 }
 
 for (const width of [375, 1280]) {
+    test(`${width}px: Escape cancels a pending opening before its wall is selected`, t => {
+        const f = fixture(t, width);
+        f.selectionState.viewMode = 'studio';
+        f.selectionState.focusOn = false;
+        const snapshot = f.model.snapshot();
+        f.wiring.actOnWall('door');
+        f.escape();
+        assert.equal(f.selectionState.pendingStudioAction, null);
+        f.wall('w3'); f.tap();
+        assert.equal(f.selectionState.room.kind, 'wall');
+        assert.equal(f.model.snapshot(), snapshot);
+    });
+    for (const action of ['door', 'window', 'archway', 'ceiling:slope']) {
+        test(`${width}px: room-level ${action} waits for a chosen wall before changing the design`, t => {
+            const f = fixture(t, width);
+            f.selectionState.viewMode = 'studio';
+            f.selectionState.focusOn = false;
+            const snapshot = f.model.snapshot();
+            f.wiring.actOnWall(action);
+            assert.equal(f.model.snapshot(), snapshot);
+            assert.equal(f.selectionState.pendingStudioAction, action);
+            f.wall('w3'); f.tap();
+            assert.equal(f.selectionState.pendingStudioAction, null);
+            if (action.startsWith('ceiling:')) {
+                assert.equal(f.selectionState.room.kind, 'ceiling');
+                assert.ok(f.model.scene.studio.ceilings.some(c => c.wall === 'w3'));
+            } else {
+                assert.equal(f.selectionState.room.kind, 'opening');
+                assert.ok(f.model.scene.studio.openings.some(o => o.wall === 'w3' && o.kind === action));
+            }
+        });
+    }
     for (const shape of ['landing', 'stairs', 'slope', 'box']) {
         test(`${width}px: tapping a ${shape} ceiling frames the entire studio from the wardrobe front`, t => {
             const f = fixture(t, width, shape), snapshot = f.model.snapshot();

@@ -12,15 +12,16 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         return group ? group.worldToLocal(point.clone()) : null;
     };
     function pick(e) {
-        const h = picking.cast(e, renderState.allHits), part = roomHit(e, h);
+        const studioMode = selectionState.viewMode === 'studio';
+        const h = studioMode ? null : picking.cast(e, renderState.allHits);
+        const part = selectionState.viewMode === 'wardrobe' ? null : roomHit(e, h);
         if (part && room.pick(part)) return;
         // A click anywhere else leaves the room part it had selected.
         selectionState.room = null;
         if (!h) {
             inspector.clearFocus();
-            // Leaving the editing surface returns to the studio, including the other wardrobes.
-            // Keep that framing while the panel closes and the viewport grows.
-            camera.frameScene();
+            selectionState.pendingStudioAction = null;
+            if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
             return;
         }
         const u = h.object.userData;
@@ -75,6 +76,11 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         inspector.update();
     }
     function hover(e) {
+        if (selectionState.viewMode === 'studio') {
+            renderState.outs.forEach(o => { o.visible = false; });
+            resources.cv.style.cursor = roomHit(e, null) ? 'pointer' : 'grab';
+            return;
+        }
         const m = inspector.inside() ? picking.cast(e, renderState.ihits) : null, h = m ? m.object : null, i = h ? -1 : inspector.inside() ? picking.hitAt(e) : -1;
         renderState.outs.forEach((o, j) => {
             o.visible = j === i && (!selectionState.focusOn || j !== model.activeCabinet().state.sel);
@@ -90,7 +96,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             o.visible = x === h || !!o.userData.s;
         });
         const wardrobe = h || i >= 0 ? null : picking.cast(e, renderState.allHits);
-        resources.cv.style.cursor = h || i >= 0 || wardrobe || roomHit(e, wardrobe) ? 'pointer' : 'grab';
+        resources.cv.style.cursor = h || i >= 0 || wardrobe || (selectionState.viewMode !== 'wardrobe' && roomHit(e, wardrobe)) ? 'pointer' : 'grab';
     }
     return { pick, hover };
 }

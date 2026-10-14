@@ -1,5 +1,9 @@
 export function createSelectionState() {
     return { responsivePanel: null,
+        /** @type {'studio' | 'wardrobe'} */
+        viewMode: 'studio',
+        /** An opening or ceiling awaiting a wall chosen on the canvas. @type {string | null} */
+        pendingStudioAction: null,
         showDimensions: true,
         /** The wardrobe size being slid or typed ('w', 'h' or 'd'): the model shows it with its gaps.
          * @type {false | 'w' | 'h' | 'd'} */

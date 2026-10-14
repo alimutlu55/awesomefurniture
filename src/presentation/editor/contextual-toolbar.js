@@ -1,4 +1,4 @@
-import { contextualActions, wardrobeMoreActions, itemMoreActions, wallMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
+import { contextualActions, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. */
@@ -34,10 +34,10 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window'),
-        ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),'wardrobe-here':icon('wardrobe')};
+        ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),walls:icon('room-wall')};
     const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
         door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
-    const moreActions = {item:itemMoreActions,wall:wallMoreActions};
+    const moreActions = {item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();
@@ -81,6 +81,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         items.append(...options.map(([key, label]) => {
             const b = document.createElement('button');
             b.type = 'button';
+            b.dataset.action = key;
             b.setAttribute('role', 'menuitem');
             b.dataset.action = key;
             if (menuIcons[key]) b.innerHTML = menuIcons[key];
@@ -104,7 +105,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         root.dataset.context = selection;
         root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
         root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
-        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','walls','wardrobe'].includes(key)).map(([key,label]) => {
+        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','wardrobe'].includes(key)).map(([key,label]) => {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);
