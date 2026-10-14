@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
-import { ceilingSplitOffsets } from './ceiling-handle-layout';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; rulerNode?: Element; ruler?: unknown };
 interface StudioOverlayPorts {
@@ -52,8 +51,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
                 let target = button, h = current.get(button);
                 const own = button.getBoundingClientRect();
                 let distance = Math.hypot(e.clientX - own.left - own.width / 2, e.clientY - own.top - own.height / 2);
-                if (h?.kind === 'ceiling' || h?.kind === 'depth') for (const [dot, point] of current) {
-                    if (point.kind !== 'ceiling') continue;
+                if (h && ['ceiling', 'depth', 'ceiling-split'].includes(h.kind)) for (const [dot, point] of current) {
+                    if (!['ceiling', 'depth', 'ceiling-split'].includes(point.kind)) continue;
                     const r = dot.getBoundingClientRect(), d = Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2);
                     if (d <= 32 && d < distance) { target = dot; h = point; distance = d; }
                 }
@@ -147,10 +146,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
     function orient() {
         const r = canvas.getBoundingClientRect();
         const screen = (p: THREE.Vector3) => { const q = p.clone().project(camera); return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height }; };
-        const offsets = ceilingSplitOffsets([...current.values()].map(h => ({ key: h.key, kind: h.kind, ...screen(V(h)) })));
         for (const [el, h] of current) {
-            const offset = offsets.get(h.key);
-            if (offset) el.style.translate = `${offset.x}px ${offset.y}px`;
             const dx = h.kind === 'depth' ? h.nx : undefined, dz = h.nz;
             if (dx === undefined || dz === undefined) continue;
             const a = screen(V(h)), b = screen(new THREE.Vector3(h.x + dx * 40, h.y, h.z + dz * 40));

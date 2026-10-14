@@ -5,7 +5,8 @@ const { rectangleStudio } = require('../src/domain/studio/studio-templates.ts');
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
-const { ceilingSplitOffsets } = require('../src/presentation/viewport/ceiling-handle-layout.ts');
+const { ceilingHandles, pointAt } = require('../src/presentation/editor/studio-ceiling-drag.ts');
+const { ceilingFrame } = require('../src/domain/studio/studio-ceiling.ts');
 
 const pluses = f => f.nodes.labels.children.filter(el => el.getAttribute('aria-label') === 'Add a ceiling shape point here');
 function fixture(t, shape, width) {
@@ -80,19 +81,20 @@ test('keyboard activation adds one point; canceling its touch drag restores the 
     plus.onclick({ detail: 1 }); assert.equal(f.checkpoints.length, 1, 'native pointer click does not duplicate the pointer-up edit');
 });
 
-test('foreshortened phone handles keep add targets clear of every draggable dot and each other', () => {
-    const handles = [
-        { key: 'a', kind: 'ceiling', x: 181, y: 337 }, { key: 'b', kind: 'ceiling', x: 198, y: 355 },
-        { key: 'c', kind: 'ceiling', x: 213, y: 373 },
-        { key: 'ab', kind: 'ceiling-split', x: 190, y: 346 }, { key: 'bc', kind: 'ceiling-split', x: 206, y: 364 },
-    ];
-    const offsets = ceilingSplitOffsets(handles);
-    const placed = handles.map(h => ({ ...h, x: h.x + (offsets.get(h.key)?.x ?? 0), y: h.y + (offsets.get(h.key)?.y ?? 0) }));
-    for (const h of placed.filter(h => h.kind === 'ceiling-split')) {
-        for (const p of placed.filter(p => p.key !== h.key)) assert.ok(Math.hypot(p.x - h.x, p.y - h.y) >= 48);
+for (const shape of CEILING_SHAPES) test(`${shape.name}: at most two plus handles stay at exact split midpoints after repeated divisions`, () => {
+    let room = addCeiling(rectangleStudio(400, 200), 'w1', shape.id);
+    for (let n = 0; n < 12; n++) {
+        const c = room.ceilings[0], handles = ceilingHandles(room, c).filter(h => h.kind === 'ceiling-split');
+        assert.ok(handles.length <= 2); assert.ok(handles.length > 0);
+        const largest = c.profile.slice(0, -1).map((p, k) => ({ k, span: c.profile[k + 1].t - p.t }))
+            .filter(p => p.span >= 10).sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 2).map(p => p.k).sort((a, b) => a - b);
+        assert.deepEqual(handles.map(h => h.index), largest);
+        for (const h of handles) {
+            const a = pointAt(ceilingFrame(room, c), c, h.index), b = pointAt(ceilingFrame(room, c), c, h.index + 1);
+            for (const axis of ['x', 'y', 'z']) assert.ok(Math.abs(h[axis] - (a[axis] + b[axis]) / 2) < 1e-8);
+        }
+        room = splitCeilingPanel(room, c.id, handles[0].index);
     }
-    assert.deepEqual(ceilingSplitOffsets([{ key: 'a', kind: 'ceiling', x: 0, y: 0 },
-        { key: 'b', kind: 'ceiling', x: 200, y: 0 }, { key: 'ab', kind: 'ceiling-split', x: 100, y: 0 }]).get('ab'), { x: 0, y: 0 });
 });
 
 test('overlapping phone point touch areas select the closest actual dot and capture that dot', t => {
@@ -119,4 +121,21 @@ test('a depth grip touch area cannot cover the centre of a ceiling point', t => 
     assert.equal(middle.hasPointerCapture(1), true); assert.equal(grip.hasPointerCapture(1), false);
     middle.onpointermove(f.event('touch', 198, 375)); middle.onpointerup();
     assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 200); fits(f);
+});
+
+test('a plus touch area cannot cover a dot, and tapping the actual plus centre still divides its segment', t => {
+    const f = fixture(t, CEILING_SHAPES.find(s => s.id === 'slope'), 375);
+    pluses(f)[0].onclick({ detail: 0 });
+    const middle = f.handle(1), plus = pluses(f)[0];
+    const original = f.model.scene.studio.ceilings[0].profile[1].y;
+    middle.getBoundingClientRect = () => ({ left: 185, top: 342, width: 26, height: 26 });
+    plus.getBoundingClientRect = () => ({ left: 175, top: 330, width: 30, height: 30 });
+    plus.onpointerdown(f.event('touch', 198, 355));
+    assert.equal(middle.hasPointerCapture(1), true);
+    middle.onpointermove(f.event('touch', 198, 375)); middle.onpointerup();
+    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, original - 20);
+    const currentPlus = pluses(f)[0];
+    currentPlus.getBoundingClientRect = () => ({ left: 175, top: 330, width: 30, height: 30 });
+    currentPlus.onpointerdown(f.event('touch', 190, 345)); currentPlus.onpointerup();
+    assert.equal(f.model.scene.studio.ceilings[0].profile.length, 4); assert.equal(pluses(f).length, 2); fits(f);
 });

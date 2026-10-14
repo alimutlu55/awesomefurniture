@@ -33,9 +33,10 @@ export function ceilingHandles(room: Studio, c: StudioCeiling): RoomHandle[] {
     key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling' as const, id: c.id, index: k, ...pointAt(fr, c, k),
     label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag up or down, or along to move it; tap to type its height', ux: axis.x, uz: axis.z,
   }));
-  c.profile.slice(0, -1).forEach((p, k) => {
+  const panels = c.profile.slice(0, -1).map((p, k) => ({ p, k, span: c.profile[k + 1]!.t - p.t }))
+    .filter(p => p.span >= 10).sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 2).sort((a, b) => a.k - b.k);
+  panels.forEach(({ p, k }) => {
     const next = c.profile[k + 1]!;
-    if (next.t - p.t < 10) return;
     const t = (p.t + next.t) / 2, floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
     out.push({ key: 'ceiling-split:' + c.id + ':' + k, kind: 'ceiling-split', id: c.id, index: k,
       ...floor, y: (p.y + next.y) / 2, label: 'Add a ceiling shape point here' });
