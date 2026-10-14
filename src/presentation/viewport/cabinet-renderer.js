@@ -16,6 +16,7 @@ import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { createGarmentRenderer } from './garment-renderer';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -116,34 +117,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         planarUVs(geo);
         return new THREE.Mesh(geo, material);
     }
-    function garment(cx, top, z, height, depth, color, front = false) {
-        const sh = new THREE.Shape();
-        sh.moveTo(-depth * .13, 0);
-        sh.lineTo(depth * .13, 0);
-        sh.quadraticCurveTo(depth * .25, -3, depth * .43, -7);
-        sh.lineTo(depth * .48, -height * .91);
-        sh.quadraticCurveTo(0, -height * 1.03, -depth * .48, -height * .95);
-        sh.lineTo(-depth * .43, -7);
-        sh.quadraticCurveTo(-depth * .25, -3, -depth * .13, 0);
-        // Cloth with some body, on a wooden hanger hooked over the rail.
-        const cloth = resources.fabric ? resources.fabric(color) : resources.M(color);
-        const geo = new THREE.ExtrudeGeometry(sh, { depth: 2.2, bevelEnabled: true, bevelThickness: 1.1, bevelSize: 1.1, bevelSegments: 3, steps: 1, curveSegments: 8 }), mesh = new THREE.Mesh(geo, cloth);
-        geo.translate(0, 0, -1.1);
-        const hanger = resources.M('#7a6148', { roughness: .45 }), steel = resources.M('#a7a49e', { metalness: .8, roughness: .3 });
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(depth * .86, 1.1, 1.1), hanger), hook = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, 3.2, 6), steel);
-        bar.position.set(0, -1.6, 0);
-        hook.position.set(0, .6, 0);
-        mesh.add(bar, hook);
-        bar.castShadow = true;
-        // Garments never hang perfectly parallel: each turns a little on its hanger.
-        const turn = Math.sin(cx * 12.9898 + z * 78.233) * .09;
-        mesh.rotation.y = (front ? 0 : Math.PI / 2) + turn;
-        // Some garments are bulkier than others: a knit against a shirt.
-        mesh.scale.z = 1.25 + .45 * Math.abs(Math.sin(cx * 3.7 + z * 5.1));
-        mesh.position.set(cx, top, z);
-        mesh.castShadow = mesh.receiveShadow = true;
-        renderState.Gr.add(mesh);
-    }
+    const { garment } = createGarmentRenderer({ resources, renderState });
     /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
     function fitLight() {
         const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
@@ -182,6 +156,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.wardrobeGroups = [];
         renderState.allHits = [];
         renderState.allItemHits = [];
+        renderState.garments = [];
         const combinedLabs = [], combinedPivots = [];
         let activeRender;
         for (const wardrobe of model.scene.wardrobes) {

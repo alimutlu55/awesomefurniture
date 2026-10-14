@@ -25,6 +25,7 @@ export function createRenderState() {
         pv2: new THREE.Vector3(),
         moveIcons: [],
         itemEdgeHandles: [],
-        lastFrameTime: null
+        lastFrameTime: null,
+        garments: []
     };
 }
