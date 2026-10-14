@@ -113,7 +113,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 selectionState.pendingStudioAction = null;
                 inspector.hidePop();
                 inspector.update(true);
-                if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
+                if (flags.focusOn) camera.frameWardrobe(); else camera.frameScene();
                 if (session.openPanel === 'planner') {
                     planner.openWizard();
                 }
@@ -154,8 +154,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
-        // Open on the active wardrobe with the default dock and no camera fly-in.
-        camera.frameWardrobe({ instant: true });
+        // Keep the default Wardrobe dock, with the wider framing used by an empty-canvas tap.
+        camera.frameScene({ instant: true });
         camera.resize();
         inspector.update(true);
         rendering.loop();
@@ -174,7 +174,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             inspector.clearFocus();
             inspector.update(true);
             inspector.histUI();
-            if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
+            camera.frameScene();
         }
         return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message, undefined, 12000), dispose: () => viewport.dispose() };
     }

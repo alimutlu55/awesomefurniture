@@ -21,7 +21,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (!h) {
             inspector.clearFocus();
             selectionState.pendingStudioAction = null;
-            if (selectionState.viewMode === 'wardrobe') camera.frameWardrobe(); else camera.frameScene();
+            camera.frameScene();
             return;
         }
         const u = h.object.userData;

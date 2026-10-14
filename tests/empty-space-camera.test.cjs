@@ -57,11 +57,11 @@ function fixture(t, width, studio = true) {
 }
 
 for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
-    test(`${pointerType}: the initial wardrobe camera immediately matches the Wardrobe background view`, t => {
+    test(`${pointerType}: Wardrobe mode starts at the same wider overview as an empty-canvas tap`, t => {
         const f = fixture(t, width);
         f.selectionState.viewMode = 'wardrobe';
         f.setHeight(812);
-        f.camera.frameWardrobe({ instant: true });
+        f.camera.frameScene({ instant: true });
         const initial = f.camera.camNow();
         assert.equal(f.cameraState.camGoal, null);
         assert.equal(f.cameraState.fitDist, initial.dist);
@@ -136,14 +136,16 @@ test('Studio mode selects room parts and ignores wardrobes', t => {
     assert.deepEqual(f.selectionState.room, { kind: 'wall', id: 'w1' });
 });
 
-test('Wardrobe mode ignores room parts and background taps frame only the active wardrobe', t => {
+test('Wardrobe mode ignores room selection but background taps restore the whole-scene overview', t => {
     const f = fixture(t, 375);
     f.selectionState.viewMode = 'wardrobe';
     f.wall(); f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.selectionState.room, null);
-    assert.equal(f.overviewCalls, 0);
-    assert.equal(f.cameraState.tgt.x, -80);
-    assert.equal(f.cameraState.tgt.z, 30);
+    assert.equal(f.overviewCalls, 1);
+    assert.equal(f.cameraState.tgt.x, 0);
+    assert.equal(f.cameraState.tgt.z, 175);
+    assert.equal(f.cameraState.el, .5);
+    assert.equal(f.selectionState.viewMode, 'wardrobe');
     const distance = f.cameraState.dist;
     f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.cameraState.dist, distance);

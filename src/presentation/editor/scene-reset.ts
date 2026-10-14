@@ -41,7 +41,7 @@ export function bindSceneReset({ dom, selectionState, interactionState, plannerS
         app.inert = false;
         dismissMobileSheetExits(app);
         planner.syncPreferences();
-        camera.frameWardrobe({ instant: true });
+        camera.frameScene({ instant: true });
         camera.resize();
         inspector.histUI();
         shell.toast('Everything reset. Undo brings your design back.');
