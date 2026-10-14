@@ -53,7 +53,9 @@
  .tb{min-width:44px;min-height:44px;height:44px}
  #crumb{top:calc(70px + var(--safe-top));bottom:auto;max-width:calc(100% - 16px);white-space:normal;justify-content:center;flex-wrap:wrap;padding:3px 8px;font-size:11px}
  #crumb button{min-height:36px}
- #app #plan-panel,#app #help-panel,#app #menu{position:absolute;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(68px + var(--safe-top));bottom:auto;width:auto;min-width:0;max-height:calc(100% - 150px - var(--safe-top) - var(--safe-bottom));overflow:auto;overscroll-behavior:contain}
+ @media (max-width:900px){
+  #app #plan-panel,#app #help-panel,#app #menu{position:absolute;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(68px + var(--safe-top));bottom:auto;width:auto;min-width:0;max-height:calc(100% - 150px - var(--safe-top) - var(--safe-bottom));overflow:auto;overscroll-behavior:contain}
+ }
  .mi,#item-type-menu button,#ctx-menu button{min-height:44px}
  input[type=number],select,.pop input[type=number],.item-size-field input,#wardrobe-reach{font-size:16px!important;min-height:44px}
  input[type=range]{min-height:36px;touch-action:pan-y}
@@ -147,6 +149,13 @@
  #left [data-wardrobe-controls] > h2,#left .ct{display:none!important}
  #pop2 .add-context-title{display:none!important}
  #pop2[data-add-context] .mobile-add-categories{display:none!important}
+ #app #menu{position:absolute!important;top:76px!important;right:28px!important;left:auto!important;bottom:auto!important;width:230px!important;min-width:200px!important;border-radius:16px!important;background:rgba(253,251,248,0.95)!important;-webkit-backdrop-filter:blur(28px) saturate(190%)!important;backdrop-filter:blur(28px) saturate(190%)!important;border:1px solid rgba(255,255,255,0.7)!important;box-shadow:0 16px 40px rgba(50,40,25,0.12),0 2px 6px rgba(50,40,25,0.04)!important;padding:8px!important;z-index:60!important}
+ #app #menu .mi{min-height:36px;padding:8px 10px;border-radius:10px;font-size:13px}
+ #app #menu .dd-title{padding:6px 10px 8px;font-size:13px;font-weight:600;border-bottom:1px solid rgba(0,0,0,0.06);margin-bottom:4px}
+ #app #plan-panel{position:absolute!important;top:76px!important;right:28px!important;left:auto!important;bottom:auto!important;width:360px!important;max-width:calc(100vw - 56px)!important;max-height:calc(100vh - 120px)!important;border-radius:20px!important;background:rgba(253,251,248,0.95)!important;-webkit-backdrop-filter:blur(28px) saturate(190%)!important;backdrop-filter:blur(28px) saturate(190%)!important;border:1px solid rgba(255,255,255,0.7)!important;box-shadow:0 16px 48px rgba(50,40,25,0.12),0 2px 8px rgba(50,40,25,0.04)!important;padding:16px 20px!important;z-index:60!important}
+ #app #help-panel{position:absolute!important;bottom:76px!important;top:auto!important;right:28px!important;left:auto!important;width:340px!important;max-width:calc(100vw - 56px)!important;max-height:calc(100vh - 140px)!important;border-radius:20px!important;background:rgba(253,251,248,0.95)!important;-webkit-backdrop-filter:blur(28px) saturate(190%)!important;backdrop-filter:blur(28px) saturate(190%)!important;border:1px solid rgba(255,255,255,0.7)!important;box-shadow:0 16px 48px rgba(50,40,25,0.12),0 2px 8px rgba(50,40,25,0.04)!important;padding:16px 20px!important;z-index:60!important}
+ :host([data-theme="dark"]) #app :is(#menu,#plan-panel,#help-panel),:root[data-theme="dark"] #app :is(#menu,#plan-panel,#help-panel){background:rgba(24,28,36,0.95)!important;border-color:rgba(255,255,255,0.1)!important;box-shadow:0 16px 48px rgba(0,0,0,0.45)!important}
+ :host([data-theme="dark"]) #app #menu .dd-title,:root[data-theme="dark"] #app #menu .dd-title{border-bottom-color:rgba(255,255,255,0.08)!important}
 }
 
 @container (max-height:500px){

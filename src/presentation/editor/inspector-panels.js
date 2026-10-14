@@ -66,6 +66,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             callbacks.renderAddChoices();
         }
         p.classList.add('show');
+        p.scrollTop = 0;
         popUI();
         callbacks.itemUI();
         callbacks.dividerUI();
