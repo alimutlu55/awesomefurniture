@@ -246,8 +246,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         if (!d || !v) {
             return;
         }
-        // Under a shaped top the board's cut changes as it moves: rebuild it.
-        if (!v.panel || renderDesign.shape) {
+        // Shaped boards and divider-aligned door leaves change geometry as the board moves.
+        if (!v.panel || renderDesign.shape || renderDesign.doors !== 'none') {
             build();
             return;
         }
