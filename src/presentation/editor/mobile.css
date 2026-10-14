@@ -5,6 +5,12 @@
 .size-range{display:block;width:100%;height:44px;margin:0 0 12px;accent-color:#796648;cursor:pointer;touch-action:pan-y}
 .mobile-sheet-handle{display:none}
 .mobile-add-browser{display:none}
+/* Top tools share a single glass surface, with no inner elevated containers. */
+#topright{right:28px;padding:5px;gap:2px;border-radius:30px}
+#topright #topleft{position:static;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+#topright :is(#fitchip,#menu-btn){min-width:44px;min-height:44px;height:44px;border:0;border-radius:24px;background:transparent;box-shadow:none;color:var(--ink)}
+#topright :is(#fitchip,#menu-btn) .ic{width:22px;height:22px;padding:0;border-radius:0;background:transparent;box-shadow:none}
+#topright .tb:is(#fitchip,#menu-btn)[aria-expanded="true"]{background:rgba(28,25,23,.1)}
 .item-resize-handle .ic{position:relative;width:16px;height:16px}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
@@ -36,7 +42,7 @@
  .mobile-cancel-move{display:block;position:absolute;z-index:13;left:50%;bottom:12px;transform:translateX(-50%);min-height:44px;padding:0 16px;background:var(--panel);box-shadow:0 3px 16px #0002}
  .mobile-feedback{display:block;position:absolute;z-index:25;left:50%;top:calc(68px + var(--safe-top));transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;padding:10px 14px;background:var(--ink);color:var(--panel);border-radius:12px;font-size:13px;text-align:center;pointer-events:none}
  #topleft{right:max(8px,env(safe-area-inset-right,0px));top:calc(10px + var(--safe-top));padding:3px}
- #topright{right:70px;top:calc(10px + var(--safe-top));padding:3px}
+ #topright{right:max(8px,env(safe-area-inset-right,0px));top:calc(10px + var(--safe-top));padding:5px}
  #toolbar{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(8px + var(--safe-bottom));padding:5px;gap:2px;justify-content:space-between}
  #toolbar .tb{min-width:44px;min-height:48px;height:48px;flex-shrink:0}
  #toolbar .tb.add,#toolbar .tb.smart{font-size:13px;padding:0 10px;gap:5px}

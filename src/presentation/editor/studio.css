@@ -72,7 +72,7 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
  #toolbar[data-context]{max-width:calc(var(--contextual-action-count,5) * 96px + 10px);margin-inline:auto}
 }
 /* Every wardrobe removed: only the floor or room is left. Wardrobe controls go, and Wardrobe leads the toolbar. */
-#app[data-no-wardrobe] :is(#add-anchor,#launch-wizard,#topright,#props-btn,#left,#empty-scene,.wardrobe-actions,.contextual-defaults>:not(#walls-btn,#wardrobe-btn)){display:none!important}
+#app[data-no-wardrobe] :is(#add-anchor,#launch-wizard,#fitchip,#props-btn,#left,#empty-scene,.wardrobe-actions,.contextual-defaults>:not(#walls-btn,#wardrobe-btn)){display:none!important}
 @media(min-width:901px){#app[data-no-wardrobe] #wardrobe-btn{background:#282824;color:#fff}}
 @media(max-width:900px){
  .contextual-popover .ceiling-choice{flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;padding:10px 6px;font-size:13px;line-height:1.2;text-align:center;background:rgba(120,100,70,.07)}
