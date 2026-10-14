@@ -204,7 +204,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         },
         replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
         controls: key => {
-            if (key === 'wall-size' || key === 'opening-size' || key === 'ceiling-size') { room.fields.render(); return [room.fields.root]; }
             if (key === 'ceiling' || key === 'ceiling-shape') return [room.ceilingChoices.root];
             const divider = model.activeCabinet().state.divider >= 0;
             if (key === 'stores') {
@@ -215,7 +214,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
-            if (key === 'ceiling-size') { room.resizePanel.open(); return; }
+            if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) { room.resizePanel.open(); return; }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;

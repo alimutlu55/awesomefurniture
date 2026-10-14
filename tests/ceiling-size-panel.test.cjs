@@ -45,5 +45,6 @@ test('ceiling sizing takes the existing wardrobe panel, reuses its section and r
     selection = null; panel.sync();
     assert.equal(dom.$('#left').dataset.roomResize, undefined); assert.equal(dom.$('#app').classList.contains('props-open'), true);
     selection = { kind: 'ceiling', id: 'k1' }; panel.open(); selection = { kind: 'wall', id: 'w1' }; panel.sync();
-    assert.equal(dom.$('#app').classList.contains('props-open'), false);
+    assert.equal(dom.$('#app').classList.contains('props-open'), true);
+    assert.equal(dom.$('#left').dataset.roomResize, '', 'switching from a ceiling to a wall keeps the same sizing host');
 });
