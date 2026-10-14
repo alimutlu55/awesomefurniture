@@ -2,8 +2,9 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
- try { for(const [width,height] of (process.env.TOOLBAR_LANDSCAPE ? [[844,390]] : [[320,568],[390,844],[430,932],[768,1024],[844,390],[1440,900]])) {
-  const page=await browser.newPage({viewport:{width,height},isMobile:width<=900,hasTouch:width<=900});
+ try { for(const [width,height] of (process.env.TOOLBAR_WIDTH ? [[Number(process.env.TOOLBAR_WIDTH),Number(process.env.TOOLBAR_HEIGHT || 900)]] : process.env.TOOLBAR_LANDSCAPE ? [[844,390]] : [[320,568],[390,844],[430,932],[768,1024],[844,390],[901,768],[1440,900],[1920,1080]])) {
+  const page=await browser.newPage({viewport:{width,height},isMobile:width<=900,hasTouch:width<=900,reducedMotion:'reduce'});
+  page.setDefaultTimeout(10000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173');
   const el=id=>page.locator(`[data-editor-id="${id}"]`);
@@ -14,11 +15,10 @@ const assert=require('node:assert/strict');
    await page.mouse.click(box.x+box.width/2,box.y+box.height*.45);
    await page.waitForTimeout(350);
   };
-  if(width>900) { assert.equal(await el('props-btn').isVisible(),true);assert.equal(await toolbar.locator('.contextual-actions').isVisible(),false); }
-  else {
+  {
    assert.equal(await el('props-btn').isVisible(),false);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   assert.equal(await el('launch-wizard').isVisible(),false);
+   assert.equal(await el('launch-wizard').isVisible(),true);
    const checkActionSlots=async()=>{
     const buttons=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width};}));
     assert.ok(buttons.length>=4);
@@ -33,7 +33,7 @@ const assert=require('node:assert/strict');
    await checkActionSlots();
    await selected();
    assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','sections','more']);
+   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','shape','sections','more']);
    assert.equal(await page.locator('.lbl.add').isVisible(),true,'First tap shows internal Add item');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
@@ -76,7 +76,7 @@ const assert=require('node:assert/strict');
    await el('d').blur();
    await page.evaluate(()=>{delete window.innerHeight;delete window.visualViewport.height;delete window.visualViewport.offsetTop;window.visualViewport.dispatchEvent(new Event('resize'));});
    await page.waitForTimeout(100);
-   assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'mobile-sheet-enter');
+   assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'none');
    const closeProperties=async()=>{
     await el('left').locator('.mobile-sheet-handle').evaluate(e=>{
      const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;
@@ -86,6 +86,7 @@ const assert=require('node:assert/strict');
      }
     });
     await page.waitForTimeout(350);
+    await toolbar.waitFor({state:'visible',timeout:10000});
     assert.equal(await toolbar.isVisible(),true,'Closing restores contextual actions');
    };
    await closeProperties();
@@ -93,8 +94,8 @@ const assert=require('node:assert/strict');
    assert.equal(await el('section-row').isVisible(),true);
    assert.equal(await el('w').isVisible(),false);
    await closeProperties();
-   await toolbar.locator('[data-action="more"]').click();
-   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Shape','Material','Max reach size','Doors','Duplicate','Reset','Remove']);
+   await toolbar.locator('.contextual-actions [data-action="more"]').click();
+   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Material','Doors','Duplicate','Reset','Remove']);
    await page.locator('.contextual-popover button').filter({hasText:'Material'}).click();
    assert.equal(await el('fins').isVisible(),true);
    await page.locator('.lbl.add').click();await page.waitForTimeout(320);
@@ -118,18 +119,19 @@ const assert=require('node:assert/strict');
      if(await toolbar.getAttribute('data-context')==='item' && !await el('pop2').isVisible()) break selection;
     }
    }
+   await toolbar.waitFor({state:'visible',timeout:10000}); // Let the catalogue exit release the toolbar.
    assert.equal(await el('pop3').isVisible(),false,'Selecting an item does not open the old item sheet');
    assert.equal(await el('pop2').isVisible(),false,'Catalogue relinquishes the bottom surface');
    assert.equal(await toolbar.isVisible(),true,'Item contextual actions take over the bottom surface');
    // Select the inserted item through the scene's real hit testing.
    assert.equal(await toolbar.getAttribute('data-context'),'item');
-   assert.deepEqual(await toolbar.locator('[data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['duplicate','remove','resize','more']);
+   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['duplicate','remove','resize','more']);
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();
    await page.waitForTimeout(320);
    assert.equal(await el('pop3').isVisible(),true,'Item Resize opens the shared bottom sheet');
    assert.equal(await toolbar.isVisible(),false,'Resize replaces the toolbar instead of stacking');
-   assert.equal(await el('pop3').evaluate(e=>getComputedStyle(e).animationName),'mobile-sheet-enter');
+   assert.equal(await el('pop3').evaluate(e=>getComputedStyle(e).animationName),'none');
    assert.ok(Math.abs((await el('pop3').boundingBox()).height-wardrobeResizeHeight)<2,'Wardrobe and item Resize use the same initial height: '+JSON.stringify({wardrobeResizeHeight,item:await el('pop3').boundingBox()}));
    const resizeBox=await el('pop3').boundingBox();
    assert.ok(Math.abs(resizeBox.y+resizeBox.height-height)<1,'Resize sheet is attached to the bottom in every orientation');
@@ -164,13 +166,13 @@ const assert=require('node:assert/strict');
    assert.equal(Number(await el('ih').inputValue()),itemHeight-1,'One undo restores the whole slider drag');
    assert.equal(await el('pop3').getAttribute('data-sheet-position'),'compact','Each Resize opening uses the same initial sheet setting');
    await el('ix').click();await page.waitForTimeout(350);
-   await toolbar.locator('[data-action="more"]').click();
+   await toolbar.locator('.contextual-actions [data-action="more"]').click();
    assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Replace','Stores']);
    await page.locator('.contextual-popover button').filter({hasText:'Stores'}).click();
    assert.equal(await el('ipurpose').isVisible(),true,'Stores reuses the storage selector');
    assert.equal(await el('ih').isVisible(),false,'Stores only exposes storage controls');
    await page.keyboard.press('Escape');
-   await toolbar.locator('[data-action="more"]').click();
+   await toolbar.locator('.contextual-actions [data-action="more"]').click();
    await page.locator('.contextual-popover button').filter({hasText:'Replace'}).click();
    assert.ok(await page.locator('.contextual-popover button').count()>3);
    await page.locator('.contextual-popover button').filter({hasText:/^Shelf$/}).click();await page.waitForTimeout(350);
@@ -178,13 +180,14 @@ const assert=require('node:assert/strict');
    const canvas=await el('view').boundingBox();
    await page.mouse.click(canvas.x+8,canvas.y+8);await page.waitForTimeout(350);
    assert.equal(await toolbar.getAttribute('data-context'),'none');
-   assert.equal(await el('launch-wizard').isVisible(),false);
+   assert.equal(await el('launch-wizard').isVisible(),true);
+   await page.emulateMedia({reducedMotion:'no-preference'});
    await el('launch-wizard').evaluate(b=>b.click());await page.waitForTimeout(330);
    const sheet=el('wizard').locator('.wizard-shell'),box=await sheet.boundingBox();
    assert.ok(Math.abs(box.height-height*.85)<2,'Auto design opens at 85%');
    await el('close-wizard').click();
    assert.equal(await page.locator('[data-mobile-sheet-exit]').count(),1,'Animated exit snapshot');
-   await page.waitForTimeout(350);
+   await page.locator('[data-mobile-sheet-exit]').waitFor({state:'detached'});
    assert.equal(await page.locator('[data-mobile-sheet-exit]').count(),0,'Exit cleaned up');
    await page.screenshot({path:`/tmp/contextual-${width}.png`});
   }

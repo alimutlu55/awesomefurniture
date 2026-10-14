@@ -195,7 +195,7 @@ export function createMeasurementInspector({ dom, geometry, shell, commands, ren
             heightRow.style.display = vertical ? '' : 'none';
             if (vertical) /** @type {HTMLInputElement} */ ($('#dheight')).value = measureNumber(d.y1 - d.y0);
             const w = callbacks.divWord(model.activeCabinet().state.divider);
-            $('#divider-title').textContent = dom.width <= 900 && panel.dataset.contextSection === 'resize' ? 'Size' : capWord(w);
+            $('#divider-title').textContent = panel.dataset.contextSection === 'resize' ? 'Size' : capWord(w);
             $('#divider-remove').title = 'Remove this ' + w;
             $('#divider-close').setAttribute('aria-label', 'Close ' + w + ' settings');
             panel.querySelector('.pmin')?.setAttribute('aria-label', 'Collapse ' + w + ' panel');

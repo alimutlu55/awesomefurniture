@@ -7,17 +7,21 @@ const {createEditorGestures}=require('../src/presentation/editor/editor-gestures
 const {bindCanvasPointerdown,bindCanvasPointerup,bindCanvasLostpointercapture}=require('../src/presentation/editor/bindings/canvas.js');
 function fixture(){
  const handlers={};const context=vm.createContext({handlers,allHits:'bays',allItemHits:'items',ihits:'items',ptrs:new Map(),focusOn:false,deep:false,pillOn:false,activeWardrobe:1,S:{sel:0,item:-1,doors:'none'},wardrobeGesture:null,rotationGesture:null,rotationClick:false,drag:null,hit:null,itemHit:null,panel:null,wardrobeDrag:false,camRelease(){},beginWardrobeDrag(){context.wardrobeDrag=true},cv:{addEventListener(name,fn){handlers[name]=fn},focus(){},setPointerCapture(){}},frontPoint(){return null},clearFocus(){context.focusOn=false;context.deep=false;context.S.item=-1},cancelMovement(){},hidePop(){context.panel=null},update(){context.focusOn=true},showPop(e,p){context.panel=p},selectCabinet(id){context.activeWardrobe=id;context.S={sel:0,item:-1,doors:'none'};context.deep=false;context.pillOn=false;context.panel=null;context.focusOn=true},cast(e,arr){return arr==='bays'?context.hit:context.itemHit}});
+ context.frameMobileInspector=()=>{};
  context.inside=()=>context.deep||context.S.item>=0;
- context.pick=createEditorGestures(dependencies(context)).pick;
+ const ports=dependencies(context);
+ ports.dom.$=()=>({dataset:{},matches:()=>false,querySelector:()=>null});
+ context.pick=createEditorGestures(ports).pick;
  context.lifetime={listen:(target,name,fn)=>target.addEventListener(name,fn)};
- bindCanvasPointerdown(dependencies(context));
+ ports.lifetime=context.lifetime;
+ bindCanvasPointerdown(ports);
  const hit=(wardrobe=1,i=0,j=0)=>({object:{userData:{wardrobe,i,j},position:{x:0,y:0},geometry:{parameters:{width:50,height:30}}}});
  context.hit=hit();context.itemHit=hit();
  return {context,run:code=>vm.runInContext(code,context),hit};
 }
 test('first click on an item selects its wardrobe, second click edits the item',()=>{
  const {context:c,run}=fixture();run('pick({})');assert.equal(c.focusOn,true);assert.equal(c.deep,false);assert.equal(c.S.item,-1);assert.equal(c.panel,null);
- run('pick({})');assert.equal(c.deep,true);assert.equal(c.S.item,0);assert.equal(c.panel,'#pop3');
+ run('pick({})');assert.equal(c.deep,true);assert.equal(c.S.item,0);assert.equal(c.panel,null);
 });
 test('switching to another occupied wardrobe resets selection to wardrobe level',()=>{
  const {context:c,run,hit}=fixture();run('pick({});pick({})');c.hit=hit(2);c.itemHit=hit(2);run('pick({})');

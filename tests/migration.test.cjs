@@ -6,7 +6,7 @@ const path=require('node:path');
 const read=p=>readFileSync(path.join(__dirname,'..',p),'utf8');
 const baseline=require('./fixtures/editor-baseline.json');
 const hash=s=>createHash('sha256').update(s).digest('hex');
-test('planner and controls match reviewed feature baselines; original styles remain unchanged',()=>{
+test('planner and controls match reviewed feature baselines; styles match the shared mobile and desktop baseline',()=>{
  assert.equal(hash(read('src/domain/planner/wardrobe-planner.js').replace('export const WardrobePlanner','const WardrobePlanner')),baseline.planner);
  assert.equal(hash(read('src/presentation/editor/editor.css')),baseline.css);
  assert.equal(hash(read('src/presentation/editor/editor.html')),baseline.markup);

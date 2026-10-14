@@ -1,10 +1,9 @@
 import { dropdowns } from './editor-dom.js';
 import { dismissMobileSheetExits } from './mobile-sheet-motion.js';
-/** Every mobile panel takes ownership of the same bottom editing surface. */
+/** Every editor panel takes ownership of the same bottom editing surface. */
 /** @param {ReturnType<typeof import('./editor-dom.js').createEditorDom>} dom
  * @param {HTMLElement} panel */
 export function takeMobilePanel(dom, panel) {
-    if (dom.width > 900) return;
     const { $ } = dom, app = $('#app');
     for (const id of ['#pop2','#pop3','#pop4']) {
         const other = $(id);

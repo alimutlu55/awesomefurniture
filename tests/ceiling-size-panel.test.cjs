@@ -7,7 +7,7 @@ const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
 
 function node() {
     const classes = new Set();
-    return { dataset: {}, children: [], handlers: {}, classList: { add: (...xs) => xs.forEach(x => classes.add(x)),
+    return { hidden: true, setAttribute() {}, getRootNode: () => ({querySelectorAll: () => []}), dataset: {}, children: [], handlers: {}, classList: { add: (...xs) => xs.forEach(x => classes.add(x)),
         remove: (...xs) => xs.forEach(x => classes.delete(x)), contains: x => classes.has(x) },
         append(...xs) { this.children.push(...xs); }, replaceWith() {}, closest() { return this.label; } };
 }

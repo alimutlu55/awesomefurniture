@@ -3,7 +3,7 @@ const mounted = new WeakMap();
 const snapshots = new WeakMap();
 const appearance = ['display','position','box-sizing','width','height','min-width','min-height','max-width','max-height','padding','margin','gap','grid-template-columns','grid-template-rows','flex','flex-direction','flex-wrap','align-items','justify-content','overflow','background','border','border-radius','box-shadow','color','font','letter-spacing','line-height','text-align','opacity','transform','white-space','object-fit','appearance','stroke','stroke-width','fill'];
 /** @param {HTMLElement} panel
- * @param {{desktop:{matches:boolean};lifetime:Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'cleanup'>}} options */
+ * @param {{lifetime:Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'cleanup'>}} options */
 export function registerMobileSheetMotion(panel, options) {
     if (!panel.animate) return;
     mounted.set(panel, options);
@@ -20,7 +20,7 @@ export function animateMobileSheetClose(panel) {
     const options = mounted.get(panel);
     if (!options) return;
     const win = panel.ownerDocument?.defaultView;
-    if (options.desktop.matches || win?.matchMedia('(prefers-reduced-motion: reduce)').matches || snapshots.has(panel)) return;
+    if (win?.matchMedia('(prefers-reduced-motion: reduce)').matches || snapshots.has(panel)) return;
     const r = panel.getBoundingClientRect(), css = win.getComputedStyle(panel);
     if (!r.width || !r.height || css.display === 'none' || css.visibility === 'hidden') return;
     const root = panel.getRootNode(), parent = /** @type {ShadowRoot} */ (root).host || panel.parentElement;

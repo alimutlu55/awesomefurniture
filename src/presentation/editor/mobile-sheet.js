@@ -1,11 +1,11 @@
 import { registerMobileSheetMotion } from './mobile-sheet-motion.js';
 /** Shared sheet affordance. Events belong to the mounted editor lifetime. */
-/** @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>; desktop: ReturnType<ReturnType<typeof import('./editor-dom.js').createEditorDom>['matchMedia']>; panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement }} options */
-export function mountMobileSheet({ document, lifetime, desktop, panel, name, close, bottom = false, fullscreen = false, scene }) {
+/** @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>; panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement }} options */
+export function mountMobileSheet({ document, lifetime, panel, name, close, bottom = false, fullscreen = false, scene }) {
     panel.classList.add('mobile-sheet');
     if (bottom) {
         panel.classList.add('mobile-bottom-sheet');
-        registerMobileSheetMotion(panel, { desktop, lifetime });
+        registerMobileSheetMotion(panel, { lifetime });
         panel.dataset.sheetPosition = fullscreen ? 'full' : 'compact';
     }
     const handle = document.createElement('button');
@@ -40,7 +40,7 @@ export function mountMobileSheet({ document, lifetime, desktop, panel, name, clo
     };
     const start = (id, x, y, target, touch = false) => {
         suppressClick = false;
-        if (desktop.matches || !usableSurface(target)) return false;
+        if (!usableSurface(target)) return false;
         gesture = { id, x, y, distance: 0, height: panel.getBoundingClientRect().height, position: panel.dataset.sheetPosition, touch, active: !touch, onHandle: !target || handle.contains(target), scroll: target ? scrollArea(target) : null };
         if (!touch) panel.classList.add('sheet-dragging');
         return true;
@@ -71,7 +71,7 @@ export function mountMobileSheet({ document, lifetime, desktop, panel, name, clo
         const { distance, position, active } = gesture;
         suppressClick = active && Math.abs(distance) > 5;
         reset();
-        if (desktop.matches || !active) return;
+        if (!active) return;
         if (bottom && distance <= -64) panel.dataset.sheetPosition = fullscreen ? 'full' : 'expanded';
         else if (bottom && distance >= 64 && position !== 'compact') panel.dataset.sheetPosition = 'compact';
         else if (distance >= 64) close();
@@ -102,12 +102,11 @@ export function mountMobileSheet({ document, lifetime, desktop, panel, name, clo
     }, { passive: false });
     lifetime.listen(panel, 'touchend', finish);
     lifetime.listen(panel, 'touchcancel', reset);
-    lifetime.listen(desktop, 'change', reset);
     lifetime.listen(panel, 'click', e => {
         if (suppressClick && e.isTrusted) { e.preventDefault(); e.stopPropagation(); suppressClick = false; }
     }, { capture: true });
     lifetime.listen(handle, 'click', () => {
-        if (!desktop.matches && !suppressClick) {
+        if (!suppressClick) {
             if (bottom) panel.dataset.sheetPosition = panel.dataset.sheetPosition === 'compact' ? (fullscreen ? 'full' : 'expanded') : 'compact';
             else close();
         }

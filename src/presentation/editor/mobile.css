@@ -1,4 +1,4 @@
-/* Mobile overrides follow the preserved desktop design. All viewport units are
+/* Shared controls use the mobile interaction design at every screen size. All viewport units are
    scoped to the editor container by scopeEditorStyles. */
 :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);padding:0}
 .mobile-settings-label,.mobile-section-label,.mobile-cancel-move,.mobile-feedback{display:none}
@@ -14,7 +14,7 @@
 .item-resize-handle .ic{position:relative;width:16px;height:16px}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}
-@media(max-width:900px){
+
  .mobile-sheet-handle{display:flex;align-items:center;justify-content:center;position:sticky;top:-14px;z-index:4;width:100%;height:44px;min-height:44px;flex-shrink:0;margin:-14px 0 0;padding:0;border:0;border-radius:0;background:var(--panel);touch-action:none;cursor:grab}
  .mobile-sheet-handle span{width:42px;height:3px;border-radius:3px;background:var(--mute);opacity:.5}
  .mobile-sheet-handle:active{transform:none;cursor:grabbing}
@@ -87,8 +87,8 @@
  #empty-scene button{min-height:44px}#empty-x{min-width:44px}
  #toast{z-index:25;top:calc(64px + var(--safe-top));font-size:13px;max-width:calc(100% - 24px);width:max-content;transform:translate(-50%,-180px);text-align:center}
  #toast.show{transform:translate(-50%,0)}
-}
-@media(max-width:359px){
+
+@media (max-width:359px){
  #toolbar .tb.smart .tl{display:none}#toolbar .tb.smart{padding:0 10px}
  #fitchip>span:not(.badge){display:none}
 }
@@ -98,10 +98,10 @@
  #app.props-open:not(.props-hidden) #view,#app.inspecting #view{left:264px}
  #left,#app.inspecting #left,.pop,.pop.docked{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(68px + var(--safe-top));bottom:calc(76px + var(--safe-bottom));width:248px;height:auto;max-height:calc(100% - 144px - var(--safe-top) - var(--safe-bottom))}
 }
-@media(prefers-reduced-motion:reduce){.pop.show{animation:none}#view,#left,.pop,.dd,.wizard-shell{transition:none}}
+@media (prefers-reduced-motion:reduce){.pop.show{animation:none}#view,#left,.pop,.dd,.wizard-shell{transition:none}}
 
 /* The mobile catalogue leaves the model visible above a compact bottom sheet. */
-@media(max-width:900px){
+
  #app.inspecting:not(.adding){--panel-height:min(28vh,240px,calc(100% - 176px - var(--safe-top) - var(--safe-bottom)))}
  #pop3 .item-size-pair{margin-top:0;margin-bottom:6px;gap:8px}
  #pop3 .item-size-pair .item-size-field{padding:0 8px}
@@ -129,14 +129,14 @@
  .mobile-add-products button[hidden]{display:none}
  .mobile-add-products .product-art{width:86px;height:80px;border-radius:12px;background:#eae5de;filter:none;padding:2px}
  .mobile-add-products button.no{opacity:.4}
-}
+
 @container (max-height:500px){
  #app.adding .mobile-add-products .product-art{height:52px}
  #app.adding .mobile-add-products button{min-height:80px}
 }
 
 /* Use the visible area for editing while the software keyboard is present. */
-@media(max-width:900px){
+
  :host([data-keyboard-open]) #app{--sheet:0px}
  :host([data-keyboard-open]) #view{inset:0;visibility:hidden}
  :host([data-keyboard-open]) #toolbar,:host([data-keyboard-open]) #topright,
@@ -147,16 +147,16 @@
   left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));
   top:calc(62px + var(--safe-top));bottom:8px;width:auto;height:auto;max-height:none;
  }
-}
 
-@media(max-width:900px){
+
+
  .wardrobe-actions{pointer-events:auto}
-}
+
 
 /* One reusable contextual action row, with history anchored on its right. */
 .contextual-defaults,.contextual-history{display:contents}
 .contextual-actions,.contextual-popover{display:none}
-@media(max-width:900px){
+
  #sidebar-toggle{display:none!important}
  #toolbar{display:flex!important;z-index:40;justify-content:flex-start}
  #toolbar .contextual-defaults{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto}
@@ -180,20 +180,20 @@
  #left[data-context-section] [data-wardrobe-controls]{display:none}
  #left[data-context-section="resize"] [data-wardrobe-controls="resize"],#left[data-context-section="sections"] [data-wardrobe-controls="sections"],#left[data-context-section="material"] [data-wardrobe-controls="material"],#left[data-context-section="reach"] [data-wardrobe-controls="reach"],#left[data-context-section="doors"] [data-wardrobe-controls="doors"]{display:block}
  #app.props-open #left{visibility:visible;pointer-events:auto}
-}
 
-@media(max-width:900px){:host([data-keyboard-open]) #toolbar{display:none!important}}
-@media(max-width:900px){
+
+:host([data-keyboard-open]) #toolbar{display:none!important}
+
  #app.adding #pop2.mobile-bottom-sheet{bottom:calc(76px + var(--safe-bottom))}
  #app.adding{--sheet:calc(var(--catalog-height) + 76px + var(--safe-bottom))}
-}
+
 
 /* Equal action slots: no empty flex spacer before persistent history. */
 .contextual-history-label{display:none}
-@media(max-width:430px){
+@media (max-width:430px){
  #toolbar[data-context="none"] .contextual-defaults .tb>span{display:flex;align-items:center;justify-content:center;min-height:22px;white-space:normal;font-size:10px;line-height:11px}
 }
-@media(max-width:900px){
+
  #toolbar{gap:0;padding:5px 8px}
  /* The floating toolbar sits over the canvas, without an outer reserved strip. */
  #app:not(.props-open):not(.auto-design-open):not(:has(.mobile-bottom-sheet.show,.dd:not([hidden]),.mobile-sheet-exit)) #view{bottom:0}
@@ -203,7 +203,7 @@
  #toolbar .contextual-defaults #add-anchor{flex:1;min-width:0}
  #toolbar .contextual-defaults #more-btn{width:100%}
  #toolbar .contextual-defaults #launch-wizard{flex:1;min-width:0}
- #toolbar .contextual-actions .tb{flex:1;min-width:44px}
+ #toolbar .contextual-actions .tb{flex:1;min-width:0}
  #toolbar .contextual-history{flex:0 0 calc(200% / var(--contextual-action-count,4));margin-left:0;position:relative;padding-left:0}
  #toolbar .contextual-history::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}
  #toolbar .contextual-history .tb{flex:1;min-width:0}
@@ -217,7 +217,7 @@
  #toolbar .contextual-history .tb:disabled{opacity:1;color:var(--mute)}
  #toolbar .contextual-history .tb:disabled .ic{opacity:.45}
  #toolbar[data-context="item"] .contextual-history{flex-basis:max(88px,calc(200% / var(--contextual-action-count,7)))}
-}
+
 
 .mobile-add-categories [hidden]{display:none}
 

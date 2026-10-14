@@ -50,26 +50,26 @@ function cameraFixture(){
  gestureFixture(c);
  return {c,calls,run:code=>vm.runInContext(code,c)};
 }
-test('resizing responds immediately without focusing the camera or hiding the panel',()=>{
+test('resizing responds immediately without hiding the panel, then restores the movement camera',()=>{
  const {c,calls,run}=cameraFixture();
  run('moveItemEdgeResize({pointerId:1,clientX:130,clientY:100})');assert.equal(c.target.w,80);assert.equal(calls.focus,0);
  c.cameraX=100;c.scale=2;
  run('moveItemEdgeResize({pointerId:1,clientX:130,clientY:100})');assert.equal(c.target.w,80);
  run('moveItemEdgeResize({pointerId:1,clientX:140,clientY:100})');assert.equal(c.target.w,85);
- run('finishItemEdgeResize()');assert.equal(calls.return,0);assert.equal(calls.reopen,0);assert.equal(c.hist.length,1);
+ run('finishItemEdgeResize()');assert.equal(calls.return,1);assert.equal(calls.reopen,0);assert.equal(c.hist.length,1);
 });
 test('a click without dragging leaves size and undo history unchanged',()=>{
  const {c,calls,run}=cameraFixture();
  run('moveItemEdgeResize({pointerId:1,clientX:102,clientY:100});finishItemEdgeResize()');
- assert.equal(c.target,undefined);assert.equal(c.hist.length,0);assert.equal(calls.return,0);
+ assert.equal(c.target,undefined);assert.equal(c.hist.length,0);assert.equal(calls.return,1);
 });
-test('cancelled resizing restores the item without moving the camera',()=>{
+test('cancelled resizing restores the item and returns the movement camera',()=>{
  const {c,calls,run}=cameraFixture();
  run('moveItemEdgeResize({pointerId:1,clientX:130,clientY:100});finishItemEdgeResize(true)');
- assert.equal(calls.restored,true);assert.equal(calls.return,0);assert.equal(calls.focus,0);assert.equal(c.hist.length,0);
+ assert.equal(calls.restored,true);assert.equal(calls.return,1);assert.equal(calls.focus,0);assert.equal(c.hist.length,0);
 });
 
- test('mobile edge resizing uses the movement camera while desktop keeps its current view',()=>{
+ test('edge resizing uses the same movement camera on mobile and desktop',()=>{
  const {createItemResize}=require('../src/presentation/editor/item-resize.js');
  for(const width of [390,1200]){
   const calls=[];
@@ -78,8 +78,8 @@ test('cancelled resizing restores the item without moving the camera',()=>{
   const handle={classList:{add(){},remove(){}},setPointerCapture(){},hasPointerCapture(){return false}};
   const api=createItemResize({dom:{width},geometry:{itemGeom:()=>({...g,freeTop:50}),resizeObstacles:()=>[],itemMinW:()=>25,effectiveMin:()=>15,widths:()=>[200],ih:()=>190},model:{activeCabinet:()=>({state}),scene:{activeWardrobe:1},snapshot:()=> 'original'},picking:{frontPoint:()=>({x:0,y:0})},camera:{camRelease(){},moveViewOn(){calls.push('movement framing')},moveViewOff(){calls.push('restore')}},cameraState:{tgt:{y:100},vs:0,vz:1},interactionState:{},commands:{},history:{},shellState:{},inspector:{update(){}},renderState:{},callbacks:{cancelMovement(){}}});
   api.beginItemEdgeResize({button:0,pointerId:1,clientX:100,clientY:100,preventDefault(){},stopPropagation(){}},'right',handle);
-  assert.deepEqual(calls,width<=900?['movement framing']:[]);
+  assert.deepEqual(calls,['movement framing']);
   api.finishItemEdgeResize();
-  assert.deepEqual(calls,width<=900?['movement framing','restore']:[]);
+  assert.deepEqual(calls,['movement framing','restore']);
  }
 });

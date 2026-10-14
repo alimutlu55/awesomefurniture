@@ -16,7 +16,7 @@ import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, roomFields }) {
-    const { $, document, matchMedia } = dom;
+    const { $, document } = dom;
     const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
@@ -62,20 +62,19 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         model.activeCabinet().state.item = -1;
         model.activeCabinet().state.divider = -1;
         model.activeCabinet().state.space = null;
-        selectionState.pillOn = dom.width <= 900;
-        selectionState.deep = dom.width <= 900;
+        selectionState.pillOn = true;
+        selectionState.deep = true;
         update();
-        if (dom.width <= 900) camera.frameMobileInspector(true);
-        else camera.focusSelection(true);
+        camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
         const w = sceneCommands.addCabinet(copy, template, wall);
         if (template && template !== 'regular') selectionState.shapeEditing = true;
         hidePop();
-        selectionState.pillOn = dom.width <= 900;
-        if (dom.width <= 900) selectionState.deep = true;
+        selectionState.pillOn = true;
+        selectionState.deep = true;
         update();
-        if (dom.width <= 900) camera.frameMobileInspector(true); else camera.focusSelection(true); // frame the new wardrobe, not all of them
+        camera.frameMobileInspector(true); // frame the new wardrobe, not all of them
         shell.toast(w.name + ' added');
     }
     function wardrobeUI() {
@@ -129,27 +128,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         }
         $('#move-cancel').hidden = !interactionState.moveMode;
     }
-    function reopenItemPanel() {
-        if (dom.width <= 900) return;
-        if (interactionState.ptrs.size || interactionState.drag || interactionState.moveMode || interactionState.wardrobeGesture || interactionState.rotationGesture || !selectionState.focusOn || !$('#wizard').hidden || document.querySelector('.pop.show')) {
-            return;
-        }
-        if (!model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item]) {
-            return;
-        }
-        showPop({ clientX: 0, clientY: 0 }, '#pop3');
-    }
+    // Selection stays in the contextual toolbar until an explicit action opens a sheet.
+    function reopenItemPanel() {}
     function syncResponsive() {
-        const desk = matchMedia('(min-width:901px)').matches, design = model.activeCabinet().state;
         $('#remove-wardrobe').hidden = !model.scene.wardrobes.length;
-        const div = desk && design.divider >= 0, item = desk && !div && !!design.secs[design.sel]?.[design.item];
-        elements.app.classList.toggle('v-div', div);
-        elements.app.classList.toggle('v-item', item);
-        const key = div ? 'd' : item ? 'i' : 'w';
-        if (key !== selectionState.responsivePanel) {
-            selectionState.responsivePanel = key;
-            $('#left').scrollTop = 0;
-        }
     }
     function ui() {
         refreshContextualToolbar($('#toolbar'));
@@ -265,7 +247,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         // Leaving the wardrobe ends any shape session: handles disappear with it.
         selectionState.shapeEditing = false;
         delete elements.app.dataset.toolbarMode;
-        if (dom.width <= 900) { elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); }
+        elements.app.classList.remove('props-open');
+        elements.app.classList.add('props-hidden');
         if (interactionState.wardrobeGesture) {
             interactions.finishWardrobeDrag();
         }
@@ -390,7 +373,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         movementUI();
         const m = MODS[it.k], mx = Math.min(m.mx, it.h + geometry.itemFreeAbove(model.activeCabinet().state.sel, model.activeCabinet().state.item));
         $('#iback').textContent = '← Add another item';
-        $('#ititle').textContent = dom.width <= 900 && p.dataset.contextSection === 'resize' ? 'Size' : itemName(it);
+        $('#ititle').textContent = p.dataset.contextSection === 'resize' ? 'Size' : itemName(it);
         $('#ipurpose').innerHTML = compatiblePurposes(it.k).map(value => '<option value="' + value + '">' + PURPOSE[value] + '</option>').join('');
         $('#ipurpose').value = it.purpose || m.purpose;
         $('#ih').value = measureNumber(it.h);

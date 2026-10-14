@@ -34,6 +34,19 @@ runs the editor regression and architecture suites, and builds the workspace and
 `editor.html` and the multiple-editor example. The build bundles the same Three.js r128 used by the supplied HTML,
 so the migrated renderer does not require a CDN connection.
 
+## Shared mobile and desktop editor
+
+Both layouts use the same contextual toolbar, category catalogue, bottom sheets,
+and selection and camera behavior. Select a wardrobe, fitting, or room surface to
+see its actions. Resize, Shape, Sections, materials, and doors open the same
+editing surface at every width. Panels replace one another and release their
+space when closed. Drag a sheet's handle down to close it, or up to expand it;
+tapping the handle changes its height. Mouse, keyboard, and touch remain supported.
+
+With the development server running, `npm run check:mobile` verifies the shared
+workflows on phone, tablet, and desktop screens, mouse and touch sheet gestures,
+and resizing an open panel across the former desktop breakpoint.
+
 ## Structure
 
 | Directory | Responsibility |
@@ -71,7 +84,7 @@ non-strict checker; the original numerical planner stays behind its typed interf
 ## Wardrobe shapes
 
 Wardrobes can be regular, sloped, stepped, under-stairs, recessed or custom. Choose a
-shape under **Shape** in the wardrobe settings (on phones: **More › Shape**), then
+shape by selecting the wardrobe and choosing **Shape** in its toolbar, then
 drag the break-point handles on the model or enter exact heights, positions and
 angles under **Adjust panels**. Fittings under a slope are cut to its angle
 automatically. All shapes share one top-profile model; fittings,

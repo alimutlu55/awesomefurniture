@@ -107,8 +107,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             }
             // While a point is dragged only its own rulers and guides show, so nothing competes for space.
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
-            const phone = dom.width <= 900;
-            for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(phone)) {
+
+            for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(true)) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
                 bindRuler(el, a, b, q.axis);
@@ -165,7 +165,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
             // While the skeleton is edited on a phone, the model shows only the panels and their handles.
-            const shapeFocus = shapeSheetOpen() && dom.width <= 900;
+            const shapeFocus = shapeSheetOpen();
             const selected = !shapeFocus && renderState.renderActive && selectionState.focusOn && i === getRenderDesign().sel;
             const cx = x + sw / 2, sel = selected && inspector.inside(), H = geometry.ih(i), outline = sectionOutline(i, x, 0, sw);
             const aoMaterial = new THREE.MeshBasicMaterial({ map: resources.aoTexture, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
@@ -324,7 +324,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     ev.stopPropagation();
                     // A selection release can create this button beneath the finger.
                     // Only accept a pointer click that actually began on this button.
-                    if (dom.width <= 900 && ev.isTrusted && ev.detail > 0 && !pressed) return;
+                    if (ev.isTrusted && ev.detail > 0 && !pressed) return;
                     pressed = false;
                     if (fallbackSpace) {
                         const c = geometry.spaceCentre(i, addSpace);
@@ -371,7 +371,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + d + ' cm');
         }
         if (renderState.renderActive && (getRenderDesign().reachLine ?? getRenderDesign().profile.engaged)) {
-            const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color(dom.width <= 900 ? '#75664f' : '#8d7d65').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: dom.width <= 900 ? 2 : 3, transparent: true, opacity: dom.width <= 900 ? .9 : .7, depthTest: false }));
+            const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
             renderState.Gr.add(reachLine);

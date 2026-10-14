@@ -206,7 +206,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.moveIcons = [];
         dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
         if (selectionState.focusOn && model.scene.wardrobes.length) {
-            if (!inspector.inside() || (dom.width <= 900 && dom.$('#app').dataset.toolbarMode === 'move')) {
+            if (!inspector.inside() || (dom.$('#app').dataset.toolbarMode === 'move')) {
                 addRotationIndicator();
                 addWardrobeActions();
                 addWardrobeMoveHandles();
@@ -284,7 +284,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
         const shapePlaced = [];
-        const measurementPanel = document.querySelector('#pop2.show'), leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, rightLimit = dom.width > 900 && measurementPanel ? measurementPanel.getBoundingClientRect().left - r.left - 10 : r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
+        const leftLimit = 6, rightLimit = r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
             const q = l.p.clone();
             if (l.owner) {
                 l.owner.localToWorld(q);
@@ -339,19 +339,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                     y = oy;
                 }
                 else {
-                    if (dom.width <= 900) {
-                        // A close mobile view has no margin for text: keep the guide,
-                        // but never clamp its label back over the wardrobe.
-                        l.el.style.display = 'none';
-                        return;
-                    }
-                    x = bx;
-                    y = by;
-                }
-                if (dom.width <= 900) {
-                    l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
+                    // Keep the guide, but never clamp an out-of-frame label over the wardrobe.
+                    l.el.style.display = 'none';
                     return;
                 }
+                l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
+                return;
             }
             if (l.ruler) {
                 const q = drawScreenRuler(l, r, ew, eh, { left: leftLimit, right: rightLimit, bottom: r.height - 56 });

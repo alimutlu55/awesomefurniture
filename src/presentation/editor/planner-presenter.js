@@ -136,7 +136,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         shell.closeDD();
         plannerState.wizardTrigger = document.activeElement;
         inspector.hidePop();
-        if (dom.width <= 900) $('#app').classList.remove('props-open');
+        $('#app').classList.remove('props-open');
         takeMobilePanel(dom, $('#wizard'));
         syncPreferences();
         const sheet = /** @type {HTMLElement | null} */ ($('#wizard').querySelector('.wizard-shell'));

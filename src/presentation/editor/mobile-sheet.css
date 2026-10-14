@@ -1,4 +1,4 @@
-/* Shared mobile sheet tokens and frame. Content defines its own height. */
+/* Shared editor sheet tokens and frame. Content defines its own height. */
 :root{
  --mobile-sheet-radius:18px;
  --mobile-sheet-duration:280ms;
@@ -10,7 +10,7 @@
  --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
 }
 .size-range.mobile-resize-range{display:none}
-@media(max-width:900px){
+
  #app :is(#pop3,#pop4)[data-context-section="resize"] .item-size-pair{display:flex;flex-direction:column;gap:0;margin:0}
  .size-range.mobile-resize-range{display:block}
  .resize-field-control[data-axis="width"]{order:0}
@@ -56,7 +56,7 @@
  #app .mobile-bottom-sheet[data-sheet-dragging],#wizard .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - var(--safe-top))}
  #app.adding #pop2.mobile-bottom-sheet{padding:0 var(--mobile-sheet-padding) var(--safe-bottom);overflow:hidden}
  #app.adding #pop2.mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
-}
+
 @container (min-width:600px) and (max-width:900px) and (max-height:500px){
  #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(76px + var(--safe-bottom))}
  #app.props-open:not(.inspecting){--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
@@ -65,21 +65,21 @@
  #app :is(#pop3,#pop4).mobile-bottom-sheet{left:max(8px,env(safe-area-inset-left,0px));right:auto;width:248px;border-radius:var(--mobile-sheet-radius)}
 }
 
-@media(max-width:900px){
+
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - 76px - var(--safe-bottom))}
-}
+
 
 @keyframes mobile-sheet-enter{from{opacity:0;transform:translateY(calc(100% + 80px))}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.mobile-sheet.mobile-bottom-sheet,#wizard:not([hidden]) .mobile-bottom-sheet{transition:none;animation:none}}
-@media(max-width:900px){
+@media (prefers-reduced-motion:reduce){.mobile-sheet.mobile-bottom-sheet,#wizard:not([hidden]) .mobile-bottom-sheet{transition:none;animation:none}}
+
  :host([data-keyboard-open]) #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{
   top:12px;bottom:8px;height:auto!important;max-height:none!important;animation:none;transition:none;
  }
-}
+
 
 /* Panels replace the action bar instead of stacking above another surface. */
-@media(max-width:900px){
+
  #app.props-open #toolbar,#app:has(.mobile-bottom-sheet.show) #toolbar,#app.auto-design-open #toolbar,#app:has(.dd:not([hidden])) #toolbar,#app:has(.mobile-sheet-exit) #toolbar{display:none!important}
  #app.props-open .contextual-popover,#app:has(.mobile-bottom-sheet.show) .contextual-popover{display:none!important}
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#app .dd.mobile-sheet,#app.adding #pop2.mobile-bottom-sheet{bottom:0}
@@ -89,4 +89,3 @@
  #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + var(--safe-bottom))}
  #app:has(.mobile-sheet-exit){background:var(--mobile-scene-background)}
  #app:has(.mobile-sheet-exit) #view{background:transparent}
-}

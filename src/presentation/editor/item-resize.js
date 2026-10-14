@@ -21,7 +21,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         interactionState.itemEdgeGesture.snap = buildSnapContext(interactionState.itemEdgeGesture);
         interactionState.itemEdgeGesture.guide = null;
         interactionState.itemEdgeGesture.lock = null;
-        if (dom.width <= 900) camera.moveViewOn();
+        camera.moveViewOn();
         handle.classList.add('resizing');
         handle.setPointerCapture(e.pointerId);
     }
@@ -83,7 +83,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (a.handle.hasPointerCapture(a.pointer)) {
             a.handle.releasePointerCapture(a.pointer);
         }
-        if (dom.width <= 900) camera.moveViewOff();
+        camera.moveViewOff();
         inspector.update(true);
     }
     function buildSnapContext(a) {

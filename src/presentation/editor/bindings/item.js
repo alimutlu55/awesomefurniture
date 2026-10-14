@@ -23,13 +23,11 @@ export function bindItemDimensions({ dom, camera, interactions, inspector, lifet
     for (const [id, edge] of [['ih', 'top'], ['iw', 'right']]) {
         const input = $('#' + id);
         lifetime.listen(input, 'focus', () => {
-            if (dom.width <= 900) {
-                camera.camRelease();
-                camera.moveViewOn();
-            }
+            camera.camRelease();
+            camera.moveViewOn();
         });
         lifetime.listen(input, 'blur', () => {
-            if (dom.width <= 900) camera.moveViewOff();
+            camera.moveViewOff();
         });
         for (const event of ['change', 'blur']) {
             lifetime.listen(input, event, () => interactions.setManualItemSize(edge, ( /** @type {HTMLInputElement} */(input)).valueAsNumber));

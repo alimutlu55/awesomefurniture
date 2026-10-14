@@ -94,7 +94,7 @@ export function createItemActions({ dom, selectionState, model, commands, intera
                 selectionState.itemBar.setAttribute('aria-label', capWord(w) + ' actions');
             }
             selectionState.itemBar.hidden = false;
-            const bw = selectionState.itemBar.offsetWidth, bh = selectionState.itemBar.offsetHeight, leftLimit = dom.width > 900 ? $('#left').getBoundingClientRect().right - r.left + 10 : 6, l = Math.min(tl.x, tr.x), rt = Math.max(tl.x, tr.x);
+            const bw = selectionState.itemBar.offsetWidth, bh = selectionState.itemBar.offsetHeight, leftLimit = 6, l = Math.min(tl.x, tr.x), rt = Math.max(tl.x, tr.x);
             let cx = rt - l > bw + 60 ? rt - bw / 2 - 14 : (l + rt) / 2;
             cx = Math.max(leftLimit + bw / 2, Math.min(r.width - 6 - bw / 2, cx));
             let cy = tl.y - 26 - bh / 2;

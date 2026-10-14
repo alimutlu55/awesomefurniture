@@ -11,9 +11,8 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
         elements.app.classList.toggle('adding', $('#pop2').classList.contains('show'));
         if (on) {
             elements.app.classList.remove('props-open');
-            if (dom.width > 900 && document.querySelector('#left .pop.show')) elements.app.classList.remove('props-hidden');
         }
-        const visible = !elements.app.classList.contains('props-hidden') && (dom.width > 900 || elements.app.classList.contains('props-open'));
+        const visible = !elements.app.classList.contains('props-hidden') && elements.app.classList.contains('props-open');
         const label = visible ? 'Hide settings' : 'Show settings';
         elements.propsButton.setAttribute('aria-pressed', String(visible));
         elements.propsButton.setAttribute('aria-expanded', String(visible));
@@ -26,21 +25,12 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
         ['full', 'Tetris Master', 'Fill a section to 95%+', 100, s => s.maxFill >= .95],
         ['speed', 'Speed Builder', '3 quests in under 2 minutes', 150, s => Object.keys(shellState.G.done).length >= 3 && Date.now() - shellState.t0 < 12e4]];
     let feedback = null, feedbackTimer = null;
-    // A phone has no hover hints or keyboard shortcuts to explain a failed edit.
-    // Keep feedback brief; Undo remains an explicit toolbar action.
-    /** Messages reach people on both layouts. Phones use the bottom-anchored feedback
-     * line; desktop shows the same message under the toolbar. */
+    /** Shared feedback stays readable above the editing surface on every screen. */
     function toast(message, _action, hold = 4000) {
         if (!Number.isFinite(dom.width)) return;
-        const mode = dom.width > 900 ? 'desktop' : 'mobile';
-        if (feedback && feedback.dataset.mode !== mode) {
-            feedback.remove();
-            feedback = null;
-        }
         if (!feedback) {
             feedback = document.createElement('div');
-            feedback.className = mode === 'desktop' ? 'desktop-feedback' : 'mobile-feedback';
-            feedback.dataset.mode = mode;
+            feedback.className = 'mobile-feedback';
             feedback.setAttribute('role', 'status');
             feedback.setAttribute('aria-live', 'polite');
             elements.app.append(feedback);

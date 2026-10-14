@@ -40,7 +40,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (m && m.object.userData.wardrobe === model.scene.activeWardrobe) {
             // A selection replaces the open editing surface instead of leaving stale content.
             const app = dom.$('#app');
-            const replacePanel = dom.width > 900 || app.matches('.props-open,.inspecting,.auto-design-open') || !!app.querySelector('.mobile-bottom-sheet.show,.dd:not([hidden])');
+            const replacePanel = app.matches('.props-open,.inspecting,.auto-design-open') || !!app.querySelector('.mobile-bottom-sheet.show,.dd:not([hidden])');
             const item = m.object.userData;
             if (item.divider !== undefined) {
                 model.activeCabinet().state.divider = item.divider;

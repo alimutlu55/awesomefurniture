@@ -102,7 +102,7 @@ test('mobile fitting focus keeps every cabinet corner in view, including low and
  }
 });
 
-test('mobile move mode backs away while desktop movement keeps its existing distance',t=>{
+test('move mode uses the same framing margin on mobile and desktop',t=>{
  const previous=global.getComputedStyle;
  global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
@@ -111,7 +111,7 @@ test('mobile move mode backs away while desktop movement keeps its existing dist
   const{run}=fixture(width,{$:()=>element,document:{documentElement:{},querySelector:()=>null}});
   const front=run('camFront().dist');
   run('moveViewOn()');
-  near(run('camGoal.dist'),front*(width<=900 ? 1.12 : 1));
+  near(run('camGoal.dist'),front*1.12);
   near(run('camGoal.y'),100);
  }
 });

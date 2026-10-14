@@ -113,14 +113,13 @@ export function bindZoomOut({ dom, camera }) {
 }
 /** @param {import('./shell-bindings.ports').BindPropertiesTogglePorts} ports */
 export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements }) {
-    const { document, matchMedia } = dom;
-    const desktop = matchMedia('(min-width:901px)');
+    const { document } = dom;
     const settingsLabel = document.createElement('span');
     settingsLabel.className = 'mobile-settings-label';
     settingsLabel.textContent = 'Settings';
     elements.propsButton.append(settingsLabel);
     const syncToggle = () => {
-        const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
+        const visible = !elements.app.classList.contains('props-hidden') && elements.app.classList.contains('props-open');
         const label = visible ? 'Hide settings' : 'Show settings';
         elements.propsButton.setAttribute('aria-pressed', String(visible));
         elements.propsButton.setAttribute('aria-expanded', String(visible));
@@ -129,7 +128,7 @@ export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements
     };
     lifetime.listen(elements.propsButton, 'click', () => {
         shell.closeDD();
-        const visible = !elements.app.classList.contains('props-hidden') && (desktop.matches || elements.app.classList.contains('props-open'));
+        const visible = !elements.app.classList.contains('props-hidden') && elements.app.classList.contains('props-open');
         if (visible) {
             animateMobileSheetClose(dom.$('#left'));
             inspector.clearFocus();
@@ -143,12 +142,11 @@ export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements
         }
         syncToggle();
     });
-    lifetime.listen(desktop, 'change', syncToggle);
     const view = dom.$('#view');
     // Touch gestures need not produce a compatibility click. Dismiss after
     // the canvas handles the release, including taps on its overlaid labels.
     lifetime.listen(view, 'pointerup', e => {
-        if (desktop.matches || !e.isPrimary || !elements.app.classList.contains('props-open')) return;
+        if (!e.isPrimary || !elements.app.classList.contains('props-open')) return;
         animateMobileSheetClose(dom.$('#left'));
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');
@@ -163,61 +161,37 @@ export function observeInspectorPanels({ dom, shell, lifetime }) {
 }
 /** @param {import('./shell-bindings.ports').BindResponsiveInspectorsPorts} ports */
 export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elements }) {
-    const { $, matchMedia, document } = dom;
-    {
-        const mq = matchMedia('(min-width:901px)'), left = $('#left');
-        /** @type {Array<[HTMLElement, string, () => void]>} */
-        const sheets = [
-            [left, 'Settings', () => {
-                if (mq.matches) { elements.propsButton.click(); return; }
-                animateMobileSheetClose(left);
-                elements.app.classList.add('props-hidden');
-                elements.app.classList.remove('props-open');
-                elements.propsButton.setAttribute('aria-expanded','false');
-                elements.propsButton.setAttribute('aria-pressed','false');
-            }],
-            [$('#pop2'), 'Add item', () => inspector.hidePop()],
-            [$('#pop3'), 'Item settings', () => inspector.hidePop()],
-            [$('#pop4'), 'Divider settings', () => inspector.hidePop()],
-            [$('#plan-panel'), 'Storage details', () => $('#fitchip').click()],
-            [$('#menu'), 'Menu', () => $('#menu-btn').click()],
-            [/** @type {HTMLElement} */ ($('#wizard').querySelector('.wizard-shell')), 'Auto design', () => $('#close-wizard').click()],
-        ];
-        for (const [panel, name, close] of sheets) {
-            mountMobileSheet({ document, lifetime, desktop: mq, panel, name, close, scene: elements.app, fullscreen: panel === $('#wizard').querySelector('.wizard-shell'), bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), $('#wizard').querySelector('.wizard-shell')].includes(panel) });
-        }
-        const place = () => {
-            // Anchor menus to the whole editor on phones, so a narrow toolbar
-            // button cannot push a full-width menu outside the screen.
-            for (const [panel, anchor] of [['#plan-panel', '#topright'], ['#menu', '#topleft']]) {
-                const p = $(panel), parent = mq.matches ? $(anchor) : elements.app;
-                if (p.parentNode !== parent) parent.appendChild(p);
-            }
-            // Touch users need an alternative to dragging and keyboard swaps.
-            const movement = $('#move-controls').closest('details');
-            movement.hidden = mq.matches;
-            movement.style.display = mq.matches ? 'none' : '';
-            const dividerActions = $('#divider-dup').parentElement;
-            dividerActions.style.display = mq.matches ? 'none' : '';
-            for (const id of ['#pop3', '#pop4']) {
-                const p = $(id);
-                if (mq.matches) {
-                    if (p.parentNode !== left) {
-                        left.appendChild(p);
-                    }
-                }
-                else if (p.parentNode !== elements.app) {
-                    elements.app.appendChild(p);
-                }
-            }
-            inspector.syncResponsive();
-        };
-        lifetime.listen(mq, 'change', place);
-        place();
-        const back = () => mq.matches ? inspector.goUp('section') : inspector.hidePop();
-        $('#ix').onclick = back;
-        $('#divider-close').onclick = back;
+    const { $, document } = dom;
+    const left = $('#left');
+    /** @type {Array<[HTMLElement, string, () => void]>} */
+    const sheets = [
+        [left, 'Settings', () => {
+            animateMobileSheetClose(left);
+            elements.app.classList.add('props-hidden');
+            elements.app.classList.remove('props-open');
+            elements.propsButton.setAttribute('aria-expanded', 'false');
+            elements.propsButton.setAttribute('aria-pressed', 'false');
+        }],
+        [$('#pop2'), 'Add item', () => inspector.hidePop()],
+        [$('#pop3'), 'Item settings', () => inspector.hidePop()],
+        [$('#pop4'), 'Divider settings', () => inspector.hidePop()],
+        [$('#plan-panel'), 'Storage details', () => $('#fitchip').click()],
+        [$('#menu'), 'Menu', () => $('#menu-btn').click()],
+        [/** @type {HTMLElement} */ ($('#wizard').querySelector('.wizard-shell')), 'Auto design', () => $('#close-wizard').click()],
+    ];
+    const wizard = $('#wizard').querySelector('.wizard-shell');
+    for (const [panel, name, close] of sheets) {
+        mountMobileSheet({ document, lifetime, panel, name, close, scene: elements.app,
+            fullscreen: panel === wizard, bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), wizard].includes(panel) });
     }
+    // Every panel belongs to the editor, independent of screen width.
+    for (const id of ['#plan-panel', '#menu', '#pop3', '#pop4']) {
+        const panel = $(id);
+        if (panel.parentNode !== elements.app) elements.app.appendChild(panel);
+    }
+    inspector.syncResponsive();
+    $('#ix').onclick = () => inspector.hidePop();
+    $('#divider-close').onclick = () => inspector.hidePop();
 }
 /** @param {import('./shell-bindings.ports').BindRemoveWardrobePorts} ports */
 export function bindRemoveWardrobe({ dom, camera, interactions, inspector, shell, interactionState, selectionState, model, sceneCommands }) {
@@ -236,8 +210,8 @@ export function bindRemoveWardrobe({ dom, camera, interactions, inspector, shell
         const name = sceneCommands.removeCabinet();
         selectionState.shapeEditing = false;
         inspector.hidePop();
-        selectionState.pillOn = dom.width <= 900;
-        selectionState.deep = dom.width <= 900;
+        selectionState.pillOn = true;
+        selectionState.deep = true;
         inspector.update();
         camera.fit();
         shell.toast(name + ' removed. Undo (Ctrl/Cmd+Z) brings it back.');

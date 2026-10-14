@@ -46,7 +46,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         dockPop(p);
     }
     function showPop(e, id, mode = null) {
-        if (dom.width <= 900 && (id === '#pop3' || id === '#pop4') && mode !== 'resize') {
+        if ((id === '#pop3' || id === '#pop4') && mode !== 'resize') {
             callbacks.hidePop();
             takeMobilePanel(dom, $(id));
             camera.frameMobileInspector(true);
@@ -55,7 +55,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         const p = $(id), v = $('#view').getBoundingClientRect();
         if (mode === 'resize') p.dataset.contextSection = 'resize';
         else delete p.dataset.contextSection;
-        if (dom.width <= 900) { animateMobileSheetClose($('#left')); $('#app').classList.remove('props-open'); }
+        animateMobileSheetClose($('#left'));
+        $('#app').classList.remove('props-open');
         callbacks.hidePop();
         takeMobilePanel(dom, p);
         if (id === '#pop2') {
@@ -69,12 +70,12 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         callbacks.itemUI();
         callbacks.dividerUI();
         placePop(p, e, v);
-        if (id === '#pop2' && dom.width <= 900) {
+        if (id === '#pop2') {
             $('#app').classList.add('adding', 'inspecting');
             // Adding to the scene frames the scene: its opener does that.
             if (!p.dataset.addContext) camera.frameMobileInspector();
         }
-        else if (dom.width <= 900) {
+        else {
             $('#app').classList.remove('adding');
             $('#app').classList.add('inspecting');
             camera.frameMobileInspector(true);
@@ -99,7 +100,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         }
     }
     function swapPop(to) {
-        if (dom.width <= 900 && (to === '#pop3' || to === '#pop4')) {
+        if (to === '#pop3' || to === '#pop4') {
             showPop(null, to);
             return;
         }
@@ -118,11 +119,9 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         t.classList.add('show');
         syncMin(t);
         layoutPop(t);
-        if (dom.width <= 900) {
-            $('#app').classList.add('inspecting');
-            $('#app').classList.toggle('adding', to === '#pop2');
-            camera.frameMobileInspector(to !== '#pop2');
-        }
+        $('#app').classList.add('inspecting');
+        $('#app').classList.toggle('adding', to === '#pop2');
+        camera.frameMobileInspector(to !== '#pop2');
     }
     return { sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop };
 }

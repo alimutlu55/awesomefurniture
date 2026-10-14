@@ -43,25 +43,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return Math.min(1, frac) * r.width / 2;
     }
-    function baseShift(g) {
-        if (cameraState.initialCameraFraming || dom.width <= 900) {
-            return 0;
-        }
-        const css = getComputedStyle(document.documentElement), left = $('#app').classList.contains('props-hidden') ? 0 : parseFloat(css.getPropertyValue('--pw')) + 32, right = document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 56 : 0, fallback = (left - right) / 2;
-        try {
-            const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = 24, lo = left + gap - (W / 2 - half), hi = right ? W - right - gap - (W / 2 + half) : Infinity;
-            if (!Number.isFinite(half) || half <= 0) {
-                return fallback;
-            }
-            if (lo > hi) {
-                return (lo + hi) / 2;
-            }
-            return Math.max(lo, Math.min(hi, 0));
-        }
-        catch (err) {
-            return fallback;
-        }
-    }
+    // Sheets reserve their own canvas space, so no sidebar offset is needed.
+    function baseShift(g) { return 0; }
     function applyView() {
         const r = resources.cv.getBoundingClientRect();
         resources.cam.aspect = r.width / r.height;
@@ -75,8 +58,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         resources.cam.updateProjectionMatrix();
     }
     function availableRoom() {
-        const r = $('#view').getBoundingClientRect(), css = getComputedStyle(document.documentElement), desktop = dom.width > 900;
-        return { w: Math.max(160, r.width - (desktop && !$('#app').classList.contains('props-hidden') ? parseFloat(css.getPropertyValue('--pw')) + 48 : 28) - (desktop && document.querySelector('#pop2.show') ? parseFloat(css.getPropertyValue('--rw')) + 60 : 0)), h: Math.max(140, r.height - (desktop ? 180 : 115)) };
+        const r = $('#view').getBoundingClientRect();
+        return { w: Math.max(160, r.width - 28), h: Math.max(140, r.height - 115) };
     }
     /** @param {import('./camera-types').CameraPose} from
      * @param {import('./camera-types').CameraPose} to
@@ -102,7 +85,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function cameraTransition(goal, duration = 560) {
         const pending = cameraState.camGoal;
-        if (dom.width <= 900 && pending && duration > 0 &&
+        if (pending && duration > 0 &&
             Math.hypot(goal.x - pending.x, goal.y - pending.y, goal.z - pending.z) < 1 &&
             Math.abs(Math.log(goal.dist / pending.dist)) < .002 &&
             Math.abs(cameraAngleDelta(goal.az, pending.az)) < .001 && Math.abs(goal.el - pending.el) < .001) return;
@@ -117,14 +100,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function cameraFlyTo(goal, pan = false) {
         const from = camNow(), travel = Math.hypot(goal.x - from.x, goal.y - from.y, goal.z - from.z), dr = Math.abs(Math.log(goal.dist / from.dist));
-        const mobile = dom.width <= 900, turn = Math.abs(cameraAngleDelta(from.az, goal.az)) + Math.abs(goal.el - from.el);
-        if (travel < 2 && dr < .02 && (!mobile || turn < .01)) {
+        const turn = Math.abs(cameraAngleDelta(from.az, goal.az)) + Math.abs(goal.el - from.el);
+        if (travel < 2 && dr < .02 && turn < .01) {
             return;
         }
-        const arc = mobile || pan ? 0 : Math.min(.3, travel / Math.max(goal.dist, from.dist) * .3), duration = mobile
-            ? Math.round(Math.max(280, Math.min(650, 280 + travel / Math.max(goal.dist, from.dist) * 300 + dr * 200 + turn * 70)))
-            : Math.round(Math.max(600, Math.min(1100, 540 + travel * .8 + dr * 280)));
-        cameraTransition({ ...goal, arc }, duration);
+        const duration = Math.round(Math.max(280, Math.min(650, 280 + travel / Math.max(goal.dist, from.dist) * 300 + dr * 200 + turn * 70)));
+        cameraTransition({ ...goal, arc: 0 }, duration);
     }
     function cameraFitDistance(bounds, angle, elevation, aspect) {
         const tanV = Math.tan(35 * Math.PI / 360), tanH = tanV * aspect;
@@ -182,7 +163,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function cameraFocusPoint() {
         if (cameraState.panned) return cameraState.tgt.clone();
-        if (dom.width <= 900 && !mobileSelectionFraming) {
+        if (!mobileSelectionFraming) {
             const w = model.activeCabinet();
             return new THREE.Vector3(w.x, (w.y || 0) + w.state.h / 2, w.z);
         }
@@ -206,7 +187,6 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: (w.y || 0) + model.activeCabinet().state.h / 2, dist: cameraFitDistance({ w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d }, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
     }
     function frameMobileInspector(selected = false, resizing = false) {
-        if (dom.width > 900) return;
         cameraState.camHome = cameraState.camRestore = null;
         cameraState.vsT = 0;
         cameraState.vzT = 1;
@@ -240,7 +220,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         cameraState.camRestore = null;
         const goal = camFront();
-        if (dom.width <= 900) goal.dist *= 1.12;
+        goal.dist *= 1.12;
         cameraTransition(goal, 480);
     }
     /** The whole scene: the room and the wardrobes in it, or without a room the wardrobes with floor around them. */
@@ -364,7 +344,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             }
         }
         if (cameraState.zoomTarget !== null) {
-            const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * (dom.width <= 900 ? 18 : 22));
+            const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * 18);
             cameraZoomDistance(Math.exp(Math.log(cameraState.dist) + (Math.log(cameraState.zoomTarget) - Math.log(cameraState.dist)) * k));
             if (cameraState.zoomFocus) {
                 cameraState.tgt.lerp(cameraState.zoomFocus, k);
@@ -391,7 +371,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (p) {
             inspector.layoutPop(p);
         }
-        if (dom.width <= 900 && mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
+        if (mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
         else if (wardrobeFraming && changed && r.width > 0 && r.height > 0) frameWardrobe({ resizing: true });
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
