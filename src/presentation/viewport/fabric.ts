@@ -42,8 +42,8 @@ export function fabricTexture(document: Document) {
   return texture;
 }
 
-/** Colours of the clothes on the rails: the calm neutrals of a styled wardrobe. */
-export const GARMENT_COLOURS = ['#ecebe6', '#d8cfbe', '#9a9488', '#5f6650', '#3b3c3a', '#c4b59c', '#46505f', '#b9b4aa'] as const;
+/** Colours of the clothes on the rails: warm and elegant pastel tones. */
+export const GARMENT_COLOURS = ['#9bbfe0', '#a3c9a8', '#c4b5e6', '#f2b59d', '#ebb2c3', '#9cd9c8', '#f2dc99', '#acc0ea'] as const;
 
 /** A box with softly rounded edges, for things made of cloth: a folded garment, a fabric storage box. */
 export function softBox(w: number, h: number, d: number, material: THREE.Material, radius = 1.2) {

@@ -72,7 +72,7 @@ export const GARMENT_TYPES = {
     len: 78, sh: 21.5, chest: 19.0, drop: 5.5, neck: 8.0, neckF: 4.0, neckB: 1.5, armH: 17, hemDrop: 3.0, waist: 2.0, flare: 0,
     sleeve: 58, sr0: 6.0, sr1: 4.0, dChest: 3.6, dHem: 1.4, stiff: 0.8, fab: 'poplin', collar: 'shirt', cuff: 'band', placket: true,
     buttons: { n: 7, t0: 0.11, dt: 0.115, r: 0.65 }, cuffButtons: 1, pocket: 'chest',
-    palette: ['#f1f0ec', '#c9d3e0', '#e3ded4', '#9fb2cc', '#d9d3c4', '#4c5872'],
+    palette: ['#9bbfe0', '#a3c9a8', '#c4b5e6', '#f2b59d', '#ebb2c3', '#9cd9c8', '#f2dc99', '#acc0ea'],
   },
   jacket: {
     len: 76, sh: 22.5, chest: 20.5, drop: 6.0, neck: 9.0, neckF: 7.0, neckB: 2.0, armH: 18, hemDrop: 0, waist: 5.0, flare: 3.0,

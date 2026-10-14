@@ -140,7 +140,11 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             r.position.set(coreX, ry, 0);
             r.castShadow = true;
             group.add(r);
-            const c = Math.max(1, WardrobePlanner.geo.hangCount(coreW, front, d, k)), sp = WardrobePlanner.geo.spacing(k), gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : coreH - 12, coreH - 10, coreH - riseAt() - 9), gz = Math.min(d - 14, 42);
+            const maxHang = WardrobePlanner.geo.hangCount(coreW, front, d, k);
+            const c = Math.min(12, Math.max(1, maxHang));
+            const defaultSp = WardrobePlanner.geo.spacing(k);
+            const sp = front ? defaultSp : Math.min(14, Math.max(defaultSp, (len - 24) / Math.max(1, c - 1)));
+            const gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : coreH - 12, coreH - 10, coreH - riseAt() - 9), gz = Math.min(d - 14, 42);
             for (let j = 0; j < c; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
                 if (front) {

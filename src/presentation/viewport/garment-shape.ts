@@ -224,7 +224,7 @@ export function buildGarmentGeometry(sp: GarmentSpec): THREE.BufferGeometry {
 
   const F: Surface = (s, t, o) => panel(sp, 1, s, t, o), B: Surface = (s, t, o) => panel(sp, -1, s, t, o);
   const sleeveFn = (side: number): Surface => (th, v, o) => sleeve(sp, side, th, v, o);
-  const [pu, pv, su, sv] = [26, 44, 22, 28];
+  const [pu, pv, su, sv] = [16, 24, 14, 18];
 
   patch(F, -1, 1, 0, 1, pu, pv, 0, 0);
   patch(B, -1, 1, 0, 1, pu, pv, 0, 0);
@@ -245,28 +245,28 @@ export function buildGarmentGeometry(sp: GarmentSpec): THREE.BufferGeometry {
     }
 
     if (ty.collar === 'rib') {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, false, 2.2), 0, TAU, 0, 1, 24, 2, 0.25, 1);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, false, 2.2), 0, TAU, 0, 1, 18, 2, 0.25, 1);
     } else if (ty.collar === 'shirt') {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 2.8), 0, TAU, 0, 1, 24, 2, 0.1, 0);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 2.8), 0, TAU, 0, 1, 18, 2, 0.1, 0);
       for (const sg of [-1, 1]) {
-        patch((u, w, o) => panel(sp, 1, sg * (0.03 + (sp.neck / sp.sh * 1.08 - 0.03) * u), w * 0.075 * (1 - u), o), 0, 1, 0, 1, 6, 6, 0.3, 0);
+        patch((u, w, o) => panel(sp, 1, sg * (0.03 + (sp.neck / sp.sh * 1.08 - 0.03) * u), w * 0.075 * (1 - u), o), 0, 1, 0, 1, 5, 5, 0.3, 0);
       }
     } else {
-      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 3.2), 0, TAU, 0, 1, 24, 2, 0.1, 1);
+      patch((phi, w, o) => collarRing(sp, phi, w, o, true, 3.2), 0, TAU, 0, 1, 18, 2, 0.1, 1);
       for (const sg of [-1, 1]) {
         patch((u, w, o) => {
           const sIn = sg * 0.035, sOut = sg * (0.38 * (1 - w) + 0.035 * w);
           return panel(sp, 1, sIn + (sOut - sIn) * u, w * 0.34, o);
-        }, 0, 1, 0, 1, 6, 10, 0.35, 1);
+        }, 0, 1, 0, 1, 5, 8, 0.35, 1);
       }
     }
 
     if (ty.placket) {
-      patch(F, -0.04, 0.04, 0.02, 1, 2, 30, 0.15, 0);
-      patch(F, -0.044, -0.037, 0.02, 1, 1, 30, 0.2, 1);
-      patch(F, 0.037, 0.044, 0.02, 1, 1, 30, 0.2, 1);
+      patch(F, -0.04, 0.04, 0.02, 1, 2, 16, 0.15, 0);
+      patch(F, -0.044, -0.037, 0.02, 1, 1, 16, 0.2, 1);
+      patch(F, 0.037, 0.044, 0.02, 1, 1, 16, 0.2, 1);
     } else if (ty.buttons) {
-      patch(F, -0.006, 0.006, ty.buttons.t0 - 0.05, 1, 1, 20, 0.2, 1);
+      patch(F, -0.006, 0.006, ty.buttons.t0 - 0.05, 1, 1, 16, 0.2, 1);
     }
 
     const bt = ty.buttons, scale = ty.len / sp.len;
