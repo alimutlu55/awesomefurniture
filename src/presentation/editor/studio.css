@@ -148,3 +148,10 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #app[data-view-mode="studio"].props-open #left[data-room-resize]{display:block!important;pointer-events:auto;visibility:visible}
 #left[data-room-resize] .room-fields{display:block}
 #left[data-room-resize] .room-field-hint{display:block;font-size:11px;font-weight:400;margin-top:3px}
+
+/* More is a compact action menu, sized to its labels rather than an editing panel. */
+.contextual-popover[role="menu"]:not([hidden]){width:max-content;min-width:160px;max-width:calc(100% - 24px);padding:4px;border-radius:14px;background:var(--glass);box-shadow:0 3px 12px #45392312}
+.contextual-popover[role="menu"] button[role="menuitem"]{gap:10px;min-height:36px;padding:7px 10px;font-size:13px;line-height:18px}
+.contextual-popover[role="menu"] button .ic{width:18px;height:18px}
+.contextual-popover[role="menu"]::before,.contextual-popover[role="menu"]::after{width:10px;height:10px;bottom:-5px}
+@media(max-width:900px){.contextual-popover[role="menu"] button[role="menuitem"]{min-height:44px}}
