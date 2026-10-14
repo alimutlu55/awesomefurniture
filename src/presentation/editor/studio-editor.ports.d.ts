@@ -11,6 +11,7 @@ export interface RoomHandle {
     readonly label: string;
     /** A ceiling pill: which point of the profile, and the height it shows. */
     readonly index?: number; readonly text?: string;
+    readonly position?: number;
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
 }

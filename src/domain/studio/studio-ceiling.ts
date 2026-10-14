@@ -175,12 +175,14 @@ export function moveCeilingPoint(studio: Studio, id: string, index: number, t: n
   });
 }
 
-/** Adds a bend halfway along a panel, preserving its current underside until the new point is moved. */
-export function splitCeilingPanel(studio: Studio, id: string, index: number): Studio | null {
+/** Adds a bend at the chosen position (the midpoint by default), preserving the current underside. */
+export function splitCeilingPanel(studio: Studio, id: string, index: number, position?: number): Studio | null {
   return swap(studio, id, c => {
     const a = c.profile[index], b = c.profile[index + 1];
     if (!a || !b || b.t - a.t < 10) return null;
-    const point = { t: round((a.t + b.t) / 2), y: round((a.y + b.y) / 2) };
+    const t = round(position ?? (a.t + b.t) / 2);
+    if (!Number.isFinite(t) || t < a.t + 5 || t > b.t - 5) return null;
+    const point = { t, y: round(a.y + (b.y - a.y) * (t - a.t) / (b.t - a.t)) };
     return { ...c, profile: [...c.profile.slice(0, index + 1), point, ...c.profile.slice(index + 1)] };
   });
 }

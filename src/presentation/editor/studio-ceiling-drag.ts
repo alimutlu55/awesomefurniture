@@ -25,7 +25,7 @@ export function pointAt(fr: Frame, c: StudioCeiling, k: number) {
 
 /** A dot on every point of the selected ceiling, and a grip on its edge to set how far it reaches into the
  * room (a ceiling along a wall; a sloped roof reaches to its last point). */
-export function ceilingHandles(room: Studio, c: StudioCeiling): RoomHandle[] {
+export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number): RoomHandle[] {
   const fr = ceilingFrame(room, c);
   if (!fr) return [];
   // A dot a finger can cover: the height it sets is drawn beside it as a dimension line, not on the dot.
@@ -34,12 +34,13 @@ export function ceilingHandles(room: Studio, c: StudioCeiling): RoomHandle[] {
     label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag up or down, or along to move it; tap to type its height', ux: axis.x, uz: axis.z,
   }));
   const panels = c.profile.slice(0, -1).map((p, k) => ({ p, k, span: c.profile[k + 1]!.t - p.t }))
-    .filter(p => p.span >= 10).sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 2).sort((a, b) => a.k - b.k);
+    .filter(p => p.span >= 10).sort((a, b) => position === undefined ? b.span - a.span || a.k - b.k
+      : Math.abs(position - Math.max(a.p.t + 5, Math.min(a.p.t + a.span - 5, position))) - Math.abs(position - Math.max(b.p.t + 5, Math.min(b.p.t + b.span - 5, position))) || a.k - b.k).slice(0, 1);
   panels.forEach(({ p, k }) => {
     const next = c.profile[k + 1]!;
-    const t = (p.t + next.t) / 2, floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
-    out.push({ key: 'ceiling-split:' + c.id + ':' + k, kind: 'ceiling-split', id: c.id, index: k,
-      ...floor, y: (p.y + next.y) / 2, label: 'Add a ceiling shape point here' });
+    const t = Math.max(p.t + 5, Math.min(next.t - 5, position ?? (p.t + next.t) / 2)), floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
+    out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: k, position: t,
+      ...floor, y: p.y + (next.y - p.y) * (t - p.t) / (next.t - p.t), label: 'Add a ceiling shape point here. Drag along the edge to choose where; tap to divide' });
   });
   if (c.run === 'along') {
     // Away from the midpoint's add-point handle.
