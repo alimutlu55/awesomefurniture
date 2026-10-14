@@ -36,7 +36,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),door:icon('room-door'),window:icon('room-window'),
         ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),'wardrobe-here':icon('wardrobe')};
     const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
-        archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
+        door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
     const moreActions = {item:itemMoreActions,wall:wallMoreActions};
     function positionMenu(trigger) {
         menuTrigger = trigger;

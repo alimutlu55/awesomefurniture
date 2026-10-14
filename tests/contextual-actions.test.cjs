@@ -7,9 +7,9 @@ for(const [selection,expected] of [['none',['add','walls','wardrobe']],['wardrob
 test('secondary wardrobe commands remain available in More',()=>assert.deepEqual(wardrobeMoreActions.map(([key])=>key),['shape','material','reach','doors','duplicate','reset','remove']));
 test('item More exposes replacement and storage purpose',()=>assert.deepEqual(itemMoreActions,[['replace','Replace'],['stores','Stores']]));
 const {wallMoreActions,fieldActions}=require('../src/domain/wardrobe/contextual-actions.js');
-test('a selected wall offers a door, window, ceiling and wardrobe, with its size and more in More',()=>{
- assert.deepEqual(contextualActions('wall').map(([key])=>key),['door','window','ceiling','wardrobe-here','more','undo','redo']);
- assert.deepEqual(wallMoreActions.map(([key])=>key),['wall-size','archway','split','add-wall','remove']);
+test('a selected wall offers Size and Split directly, with Door and Window in More',()=>{
+ assert.deepEqual(contextualActions('wall').map(([key])=>key),['wall-size','split','ceiling','wardrobe-here','more','undo','redo']);
+ assert.deepEqual(wallMoreActions.map(([key])=>key),['door','archway','window','add-wall','remove']);
  assert.deepEqual(contextualActions('opening').map(([key])=>key),['opening-size','remove','undo','redo']);
  assert.deepEqual(contextualActions('ceiling').map(([key])=>key),['ceiling-size','ceiling-shape','flip','remove','undo','redo']);
  assert.ok(fieldActions.every(key=>['wall','opening','ceiling'].some(s=>contextualActions(s).some(([k])=>k===key))||wallMoreActions.some(([k])=>k===key)));
