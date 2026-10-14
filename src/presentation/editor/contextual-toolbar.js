@@ -1,4 +1,4 @@
-import { contextualActions, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
+import { contextualActions, wardrobeMoreActions, defaultWardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. */
@@ -30,7 +30,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         for (const [node, placeholder] of borrowed) placeholder.replaceWith(node);
         borrowed = [];
         menu.hidden = true;
-        row.querySelectorAll('[aria-haspopup]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        root.querySelectorAll('[data-action="more"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
@@ -38,6 +38,13 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
         door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
     const moreActions = {item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
+    const defaultMore = document.createElement('button');
+    defaultMore.type = 'button'; defaultMore.className = 'tb'; defaultMore.dataset.action = 'more';
+    defaultMore.setAttribute('aria-label', 'More'); defaultMore.setAttribute('aria-haspopup', 'menu');
+    defaultMore.setAttribute('aria-expanded', 'false');
+    defaultMore.innerHTML = icon('more') + '<span>More</span>';
+    defaultMore.onclick = () => showMenu(defaultWardrobeMoreActions, defaultMore);
+    defaults.append(defaultMore);
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();
@@ -105,7 +112,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         root.dataset.context = selection;
         root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
         root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
-        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','wardrobe'].includes(key)).map(([key,label]) => {
+        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','wardrobe'].includes(key) && !(selection === 'none' && key === 'more')).map(([key,label]) => {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);
@@ -117,8 +124,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             return b;
         }));
     };
-    lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target)) close(); });
-    lifetime.listen(app, 'keydown', e => { if (e.key === 'Escape' && !menu.hidden) {close(); row.querySelector('[aria-haspopup="menu"]')?.focus();} });
+    lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target) && !defaultMore.contains(e.target)) close(); });
+    lifetime.listen(app, 'keydown', e => { if (e.key === 'Escape' && !menu.hidden) {close(); (context === 'none' ? defaultMore : row.querySelector('[aria-haspopup="menu"]'))?.focus();} });
     lifetime.listen(menu, 'keydown', e => {
         if (e.key !== 'Escape' || menu.getAttribute('role') !== 'dialog') return;
         e.preventDefault(); e.stopPropagation(); close(); menuTrigger?.focus();
