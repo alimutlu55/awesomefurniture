@@ -7,7 +7,7 @@ import { createCeilingViews } from './studio-ceilings';
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
   wall: '#e2d9cc', cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
-  ceiling: '#f4f1ec', soffit: '#d4c9b8', select: '#2f2a22',
+  select: '#2f2a22',
 });
 /** Height of a wall lowered because it stands between the camera and the room: low enough to see over,
  * tall enough to still read as the room's outline. A camera near eye level would see a stub as a band
@@ -64,9 +64,9 @@ export function createStudioRenderer(scene: THREE.Scene) {
     trimMaterial: material('#fbfaf7', { side: THREE.DoubleSide }), lampMaterial: new THREE.MeshBasicMaterial({ color: linear('#fff3dc'), side: THREE.DoubleSide, toneMapped: false }),
   };
   const lineMaterial = new THREE.LineBasicMaterial({ color: linear(LOOK.select), toneMapped: false, transparent: true, opacity: .85, depthTest: false });
-  // Stairs, landings, sloped roofs and boxes: plastered, a shade deeper than the walls so the volume reads
-  // against the wall behind it; their undersides face down and fall into soft shade.
-  const ceilings = createCeilingViews(scene, material(LOOK.soffit), lineMaterial);
+  // Match the wall paint on every ceiling, with indirect fill to keep downward faces from turning brown.
+  const ceilingPaint = { emissive: linear(LOOK.wall), emissiveIntensity: .3 };
+  const ceilings = createCeilingViews(scene, material(LOOK.wall, ceilingPaint), lineMaterial);
 
   function clear() {
     root.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
@@ -252,7 +252,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.rotateX(-Math.PI / 2);
     // Seen from below only: its face points down.
-    const mesh = new THREE.Mesh(geometry, material(LOOK.ceiling, { side: THREE.BackSide, emissive: linear(LOOK.ceiling), emissiveIntensity: .3 }));
+    const mesh = new THREE.Mesh(geometry, material(LOOK.wall, { ...ceilingPaint, side: THREE.BackSide }));
     mesh.position.y = Math.min(...studio.walls.map(w => w.height));
     mesh.visible = false;
     // Recessed downlights on a grid about 1.3 m apart, kept clear of the walls.
