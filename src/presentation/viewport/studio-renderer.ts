@@ -3,10 +3,11 @@ import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../.
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
 import { createCeilingViews } from './studio-ceilings';
+import { WALL_FINISHES, wallAppearance } from '../../domain/studio/studio-paint';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
-  wall: '#e2d9cc', cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
+  cut: '#857a6b', skirting: '#f6f3ee', frame: '#eee9e1', door: '#f3efe7', handle: '#9d978e', glass: '#bcd5df',
   select: '#2f2a22',
 });
 /** Height of a wall lowered because it stands between the camera and the room: low enough to see over,
@@ -65,8 +66,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
   };
   const lineMaterial = new THREE.LineBasicMaterial({ color: linear(LOOK.select), toneMapped: false, transparent: true, opacity: .85, depthTest: false });
   // Match the wall paint on every ceiling, with indirect fill to keep downward faces from turning brown.
-  const ceilingPaint = { emissive: linear(LOOK.wall), emissiveIntensity: .3 };
-  const ceilings = createCeilingViews(scene, material(LOOK.wall, ceilingPaint), lineMaterial);
+  const paintMaterial = (wall?: StudioWall, ceiling = false) => {
+    const paint = wallAppearance(wall), finish = WALL_FINISHES.find(f => f.id === paint.finish)!;
+    return material(paint.color, { roughness: finish.roughness, envMapIntensity: finish.reflection,
+      ...(ceiling ? { emissive: linear(paint.color), emissiveIntensity: .3 } : {}) });
+  };
+  const ceilings = createCeilingViews(scene, id => paintMaterial(room?.walls.find(w => w.id === id), true), lineMaterial);
 
   function clear() {
     root.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
@@ -138,7 +143,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
     const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
     geometry.translate(0, 0, -w.thickness / 2);
-    const solid = new THREE.Mesh(geometry, material(LOOK.wall));
+    const solid = new THREE.Mesh(geometry, paintMaterial(w));
     solid.userData.studioWall = w.id;
     // Walls take the sun's shadows and cast them: light falls through a window onto the floor.
     solid.receiveShadow = solid.castShadow = true;
@@ -252,7 +257,9 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const geometry = new THREE.ShapeGeometry(shape);
     geometry.rotateX(-Math.PI / 2);
     // Seen from below only: its face points down.
-    const mesh = new THREE.Mesh(geometry, material(LOOK.wall, { ...ceilingPaint, side: THREE.BackSide }));
+    const paint = paintMaterial(studio.walls[0], true);
+    const mesh = new THREE.Mesh(geometry, material(wallAppearance(studio.walls[0]).color,
+      { roughness: paint.roughness, envMapIntensity: paint.envMapIntensity, emissive: paint.emissive, emissiveIntensity: .3, side: THREE.BackSide }));
     mesh.position.y = Math.min(...studio.walls.map(w => w.height));
     mesh.visible = false;
     // Recessed downlights on a grid about 1.3 m apart, kept clear of the walls.

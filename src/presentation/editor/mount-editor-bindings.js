@@ -220,6 +220,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (key === 'wall-paint') { room.resizePanel.openPaint(); return; }
             if (key === 'walls') { $('#walls-btn').click(); return; }
             if (selectionState.viewMode === 'studio' && ['door', 'window', 'archway'].includes(key)) {
                 room.actOnWall(key); return;

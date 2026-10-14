@@ -43,8 +43,25 @@ test('ceiling sizing takes the existing wardrobe panel, reuses its section and r
     assert.equal(dom.$('#left').dataset.contextSection, 'resize'); assert.equal(dom.$('#left').dataset.roomResize, '');
     assert.equal(dom.$('#app').classList.contains('props-open'), true); assert.equal(renders, 2); assert.equal(frames, 2);
     selection = null; panel.sync();
-    assert.equal(dom.$('#left').dataset.roomResize, undefined); assert.equal(dom.$('#app').classList.contains('props-open'), true);
+    assert.equal(dom.$('#left').dataset.roomResize, undefined); assert.equal(dom.$('#app').classList.contains('props-open'), false);
     selection = { kind: 'ceiling', id: 'k1' }; panel.open(); selection = { kind: 'wall', id: 'w1' }; panel.sync();
     assert.equal(dom.$('#app').classList.contains('props-open'), true);
     assert.equal(dom.$('#left').dataset.roomResize, '', 'switching from a ceiling to a wall keeps the same sizing host');
+});
+
+test('wall paint reuses the same editing drawer without creating a popover', () => {
+    const nodes = {}, dom = { width: 1280, $: key => nodes[key] ??= node(), document: { createElement: node } };
+    let selection = { kind: 'wall', id: 'w1' }, renders = 0;
+    const paint = { root: node(), render: () => renders++ };
+    const panel = createStudioResizePanel({ dom, fields: { root: node(), render() {} }, paint,
+        selection: () => selection, prepare() {}, frame() {} });
+    panel.openPaint(); panel.openPaint();
+    assert.equal(dom.$('#left-body').children.length, 1);
+    assert.equal(dom.$('#left-body').children[0].children[1], paint.root);
+    assert.equal(dom.$('#left').dataset.contextSection, 'wall-paint');
+    assert.equal(dom.$('#left').dataset.sheetPosition, 'compact');
+    assert.equal(dom.$('#app').classList.contains('props-open'), true);
+    assert.equal(renders, 2);
+    selection = null; panel.sync();
+    assert.equal(dom.$('#app').classList.contains('props-open'), false);
 });

@@ -1,6 +1,7 @@
 import { STUDIO_LIMITS as L, corner, wallLine } from './studio';
 import type { Studio, StudioOpening, StudioWall } from './studio';
 import { ceilingProblems } from './studio-ceiling';
+import { WALL_FINISHES } from './studio-paint';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
@@ -11,6 +12,8 @@ export function studioProblems(studio: Studio): string[] {
     ids.add(item.id);
   }
   for (const w of studio.walls) {
+    if (w.color !== undefined && !/^#[0-9a-f]{6}$/i.test(w.color)) problems.push('Choose a valid wall paint color.');
+    if (w.finish !== undefined && !WALL_FINISHES.some(f => f.id === w.finish)) problems.push('Choose a valid wall surface finish.');
     const line = wallLine(studio, w);
     if (!line) { problems.push('A wall is missing one of its corners.'); continue; }
     if (w.a === w.b) problems.push('A wall needs two different corners.');

@@ -14,7 +14,7 @@ test('switching spatial modes clears editing selection and frames the correct sc
     const selectionState = createSelectionState(), calls = [], classes = new Set(['props-open']);
     selectionState.viewMode = 'studio';
     const buttons = ['studio', 'wardrobe'].map(mode => ({ dataset: { viewMode: mode }, setAttribute(k, v) { this[k] = v; } }));
-    const app = { dataset: {}, classList: { add: c => classes.add(c), remove: c => classes.delete(c) } };
+    const app = { dataset: {}, classList: { add: c => classes.add(c), remove: c => classes.delete(c), contains: c => classes.has(c) } };
     const wizard = { hidden: true }, switcher = { querySelectorAll: () => buttons };
     const modes = createViewModes({
         dom: { $: id => ({ '#app': app, '#view-modes': switcher, '#wizard': wizard })[id] }, selectionState,
@@ -23,6 +23,8 @@ test('switching spatial modes clears editing selection and frames the correct sc
         shell: { closeDD: () => calls.push('close menus') }, planner: { closeWizard: () => calls.push('close wizard') },
         lifetime: { listen() {} },
     });
+    modes.sync();
+    assert.equal(classes.has('props-hidden'), false, 'Studio refresh must not hide an open room drawer');
     selectionState.room = { kind: 'wall', id: 'w1' };
     selectionState.pendingStudioAction = 'door';
     selectionState.focusOn = true;

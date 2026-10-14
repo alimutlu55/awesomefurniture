@@ -131,7 +131,8 @@ const wardrobe = z.strictObject({
 const studio = z.strictObject({
   template: z.enum([...STUDIO_TEMPLATES.map(t => t.id), 'custom'] as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StudioTemplateId]: K }>,
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
-  walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive })),
+  walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive,
+    color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: z.enum(['door', 'window', 'archway']), offset: finite, width: positive, height: positive, sill: nonnegative })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, profile: z.array(z.strictObject({ t: finite, y: positive })) })).optional(),
 }).superRefine((room, context) => {

@@ -23,6 +23,18 @@
 .room-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .room-fields .shape-field{font-size:11px}
 .room-field-hint{font-size:10px;opacity:.55}
+.wall-paint-current{margin:0 0 12px;color:var(--mute);font-size:12px}
+.wall-paint-swatches{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wall-paint-panel .wall-paint-swatches button{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:8px;min-width:0;min-height:64px;padding:4px 0;border:0;background:transparent;font-size:10px;line-height:12px;text-align:center}
+.wall-paint-swatches i{display:block;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px #0002}
+.wall-paint-swatches button[aria-pressed="true"] i{outline:2px solid var(--ink);outline-offset:3px}
+.wall-finish-label{display:block;margin:14px 0 8px;font-size:12px}
+.wall-finish-options{display:flex;gap:4px}
+.wall-paint-panel .wall-finish-options button{flex:1;justify-content:center;min-height:44px;padding:0 4px;border:0;border-radius:12px;background:transparent;font-size:12px}
+.wall-paint-panel .wall-finish-options button[aria-pressed="true"]{background:rgba(28,25,23,.1)}
+.wall-paint-scope{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:10px;font-size:12px}
+.wall-paint-scope input{width:18px;height:18px;accent-color:var(--ink)}
+@media(max-width:900px){#toolbar .tb[data-action="wall-paint"] span{white-space:normal;font-size:10px;line-height:11px}}
 /* On a desktop the toolbar shows the room's actions in place of Add item and Auto design. */
 @media(min-width:901px){
  #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-defaults{display:none}
@@ -82,9 +94,11 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #toolbar .contextual-defaults #walls-btn{display:none}
 #toolbar:not([data-context="none"]) .contextual-defaults{display:none}
 #toolbar:not([data-context="none"]) .contextual-actions{display:flex;align-items:center;gap:2px}
-#app[data-view-mode="studio"] :is(#left,#props-btn,.wardrobe-actions,.wardrobe-name,.ground-rotate,.wardrobe-move,.lbl.add,.selection-action-bar,.item-resize-handle){display:none!important}
+#app[data-view-mode="studio"] :is(#left:not([data-room-resize]),#props-btn,.wardrobe-actions,.wardrobe-name,.ground-rotate,.wardrobe-move,.lbl.add,.selection-action-bar,.item-resize-handle){display:none!important}
 @media(min-width:901px){
  #toolbar{top:auto;bottom:24px;left:50%;transform:translateX(-50%)}
+ .contextual-popover:not([hidden]){top:auto;bottom:92px}
+ .contextual-popover::before{top:auto;bottom:-7px}
  #left,#app.inspecting #left{top:96px;max-height:calc(100% - 128px)}
  #toolbar .contextual-actions .tb{display:inline-flex;align-items:center;gap:6px}
 }
@@ -128,6 +142,9 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #labels[data-room-edit] :is(.lbl.dim:not(.room-label),.lbl.add,.lbl.space-tag){display:none!important}
 #left:not([data-room-resize]) [data-studio-resize]{display:none!important}
 #left[data-room-resize] :is(.wardrobe-header,[data-wardrobe-controls]:not([data-studio-resize])){display:none!important}
-#left[data-room-resize] [data-studio-resize]{display:block!important}
+#left[data-room-resize] [data-studio-resize]{display:none!important}
+#left[data-room-resize][data-context-section="resize"] [data-studio-resize][data-wardrobe-controls="resize"],
+#left[data-room-resize][data-context-section="wall-paint"] [data-studio-resize][data-wardrobe-controls="wall-paint"]{display:block!important}
+#app[data-view-mode="studio"].props-open #left[data-room-resize]{display:block!important;pointer-events:auto;visibility:visible}
 #left[data-room-resize] .room-fields{display:block}
 #left[data-room-resize] .room-field-hint{display:block;font-size:11px;font-weight:400;margin-top:3px}

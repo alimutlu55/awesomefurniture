@@ -8,7 +8,7 @@ const actions = {
     divider: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize']],
     // The room: a selected wall, a door, window or archway on one, or a ceiling that comes down (stairs, a slope, a box).
     // Size and Split stay directly accessible; adding openings is grouped in More.
-    wall: [['wall-size', 'Size'], ['split', 'Split'], ['more', 'More']],
+    wall: [['wall-size', 'Size'], ['split', 'Split'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
     ceiling: [['ceiling-size', 'Size'], ['ceiling-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
 };

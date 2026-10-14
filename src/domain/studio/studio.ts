@@ -15,6 +15,7 @@
 import type { StudioTemplateId } from './studio-templates';
 
 export interface StudioCorner { readonly id: string; readonly x: number; readonly z: number }
+export type WallFinish = 'matte' | 'eggshell' | 'satin';
 
 export interface StudioWall {
   readonly id: string;
@@ -23,6 +24,9 @@ export interface StudioWall {
   /** Centred on the line from a to b. */
   readonly thickness: number;
   readonly height: number;
+  /** Optional for compatibility with rooms saved before wall paint controls. */
+  readonly color?: string | undefined;
+  readonly finish?: WallFinish | undefined;
 }
 
 export type OpeningKind = 'door' | 'window' | 'archway';

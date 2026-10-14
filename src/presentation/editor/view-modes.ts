@@ -14,7 +14,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
     const switcher = $('#view-modes');
     const sync = () => {
         $('#app').dataset.viewMode = selectionState.viewMode;
-        if (selectionState.viewMode === 'studio') $('#app').classList.add('props-hidden');
+        if (selectionState.viewMode === 'studio' && !$('#app').classList.contains('props-open')) $('#app').classList.add('props-hidden');
         switcher.querySelectorAll<HTMLButtonElement>('[data-view-mode]').forEach(button => {
             button.setAttribute('aria-pressed', String(button.dataset.viewMode === selectionState.viewMode));
         });

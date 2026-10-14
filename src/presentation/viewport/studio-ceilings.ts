@@ -9,7 +9,7 @@ interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THRE
  * is below it and their wall stands; from above, or behind a lowered wall, they are drawn as thin lines, so
  * they never hide the wardrobes under them. Centimetres, in each wall's frame (x along it from corner a,
  * z into the room). */
-export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material, select: THREE.LineBasicMaterial) {
+export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material | ((wall: string) => THREE.Material), select: THREE.LineBasicMaterial) {
   const group = new THREE.Group();
   group.name = 'studio-ceilings';
   root.add(group);
@@ -45,7 +45,7 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
       const holder = new THREE.Group();
       holder.rotation.y = built.line.angle * Math.PI / 180;
       holder.position.set(built.line.a.x, 0, built.line.a.z);
-      const solid = new THREE.Mesh(built.g, plaster);
+      const solid = new THREE.Mesh(built.g, typeof plaster === 'function' ? plaster(c.wall) : plaster);
       solid.userData.studioCeiling = c.id;
       solid.castShadow = solid.receiveShadow = true;
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(built.g, 20), lines);
