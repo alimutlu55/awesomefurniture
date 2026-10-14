@@ -1,6 +1,6 @@
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
-import { emptyCabinet } from '../projects/editor-model';
+import { emptyCabinet, createEditorModel } from '../projects/editor-model';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
@@ -43,6 +43,13 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         return collision.cabinetCollides(candidate) ? blockedMessage('That shape', candidate) : null;
     };
     return {
+        /** A new default design, replacing every wardrobe and the entire room in one undo step. */
+        resetScene() {
+            checkpoint();
+            const scene = getScene();
+            delete scene.studio;
+            Object.assign(scene, createEditorModel().scene);
+        },
         shapeEditProblem,
         /** A front handle can use its clearance while the rear stays at its previous height. */
         frontShape(shape: WardrobeShape, original = resolveShape(active().state)): WardrobeShape {

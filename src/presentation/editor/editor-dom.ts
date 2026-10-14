@@ -1,4 +1,5 @@
 interface EditorControls {
+    "#reset-scene": HTMLElementTagNameMap["button"];
     "#view-modes": HTMLElementTagNameMap["div"];
     "#app": HTMLElementTagNameMap["div"];
     "#view": HTMLElementTagNameMap["main"];

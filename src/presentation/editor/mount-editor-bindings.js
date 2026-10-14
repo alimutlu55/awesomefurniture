@@ -1,6 +1,7 @@
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
 import { createViewModes } from './view-modes';
+import { bindSceneReset } from './scene-reset';
 import { createResizePresenter } from './resize-presenter.js';
 import { mountResizeFields } from './resize-fields.js';
 import { bindDividerClose, bindDividerGap, bindDividerHeight, bindDividerRemove, bindDividerDragMove, bindDividerDragEnd, bindDividerDragCancel, bindDividerDragBlur, bindDividerDragEscape } from './bindings/divider.js';
@@ -21,6 +22,8 @@ import { MODS } from '../../domain/wardrobe/catalog.js';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room }) {
     const { $, document } = dom;
+    bindSceneReset({ dom, selectionState, interactionState, plannerState, shellState, inspector,
+        interactions, planner, shell, camera, sceneCommands, lifetime });
     mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),
         fields: [{ input: $('#iw'), axis: 'width' }, { input: $('#ih'), axis: 'height' },
             { input: $('#dgap0'), axis: 'before' }, { input: $('#dgap1'), axis: 'after' }],
