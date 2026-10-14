@@ -96,8 +96,7 @@ export function createGarmentMaterials(
   const hsl = { h: 0, s: 0, l: 0 };
   c.getHSL(hsl);
 
-  // Sheen matching fabric hue so pastel colors remain rich without a white film.
-  const sheenColor = c.clone().lerp(new THREE.Color(1, 1, 1), 0.15).multiplyScalar(fab.sheen * 0.6);
+  const sheenColor = c.clone().lerp(new THREE.Color(1, 1, 1), 0.55).multiplyScalar(fab.sheen);
   const base = new THREE.MeshPhysicalMaterial({
     color: c,
     roughness: fab.rough,

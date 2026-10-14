@@ -96,7 +96,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
                     for (let q = 0; q < layers; q++) {
                         if (!clears(px - fw / 2, px + fw / 2, base + 3.2 + q * 3.5)) break;
                         // Each folded garment a little different in width and set, as a real stack is.
-                        const lay = ((j * 7 + q * 3) % 5) / 4 - .5, fold = softBox(fw - 1 + lay, 3.4, Math.min(30, d - 5), cloth(GARMENT_COLOURS[(j * 2 + q) % 8]!), 1.5);
+                        const lay = ((j * 7 + q * 3) % 5) / 4 - .5, fold = softBox(fw - 1 + lay, 3.4, Math.min(30, d - 5), cloth(GARMENT_COLOURS[(j * 2 + q) % GARMENT_COLOURS.length]!), 1.5);
                         fold.position.set(px + lay * 1.2, base + 1.7 + q * 3.5, 2 + lay);
                         group.add(fold);
                     }
@@ -130,7 +130,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (let j = 0; j < count; j++) {
                 const px = coreX - (count - 1) * 3 + j * 6;
                 box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, mh);
-                box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % 8]!));
+                box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % GARMENT_COLOURS.length]!));
             }
         }
         else {
@@ -147,11 +147,12 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             const gh = Math.min(k === 'long' ? getRenderDesign().profile.longDrop : coreH - 12, coreH - 10, coreH - riseAt() - 9), gz = Math.min(d - 14, 42);
             for (let j = 0; j < c; j++) {
                 const g = gh * (.92 + .08 * ((j * 7) % 5) / 4);
+                const color = GARMENT_COLOURS[j % GARMENT_COLOURS.length]!;
                 if (front) {
-                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), GARMENT_COLOURS[(j * 3) % 8]!, true);
+                    garment(coreX, ry - 3, -(c - 1) * sp / 2 + j * sp, g, Math.min(coreW - 8, 42), color, true);
                 }
                 else {
-                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, GARMENT_COLOURS[(j * 3) % 8]!);
+                    garment(coreX - (c - 1) * sp / 2 + j * sp, ry - 3, 0, g, gz, color);
                 }
             }
             if (k === 'lift') {

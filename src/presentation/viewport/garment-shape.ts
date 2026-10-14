@@ -64,9 +64,10 @@ export function makeGarmentSpec(
     color.setHSL(hsl.h + (roll(5) - 0.5) * 0.03 * v, clamp(hsl.s + (roll(6) - 0.5) * 0.12 * v, 0, 1), clamp(hsl.l + (roll(7) - 0.5) * 0.09 * v, 0, 1));
   }
 
-  const len = Math.max(25, (targetHeight - HOOK_CM - ty.hemDrop) * sL);
+  const maxLen = Math.max(20, targetHeight - HOOK_CM - 2);
+  const len = Math.min(ty.len, maxLen) * sL;
   const sr0 = ty.sr0 * sW;
-  const sleeve = Math.min(ty.sleeve * fit * sS, len - ty.drop - sr0 * 0.6 - 3.0);
+  const sleeve = Math.min(ty.sleeve * fit * sS, len - ty.drop - sr0 * 0.6 - 2.0);
   const baseRot = front ? 0 : (DRAPE.turn * Math.PI) / 180;
 
   return {
