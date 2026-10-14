@@ -43,8 +43,21 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return Math.min(1, frac) * r.width / 2;
     }
-    // Sheets reserve their own canvas space, so no sidebar offset is needed.
-    function baseShift(g) { return 0; }
+    // Desktop inspector gently offsets the camera so the model is centered in the remaining view.
+    function baseShift(g) {
+        if (cameraState.initialCameraFraming || dom.width <= 900) return 0;
+        const hasLeft = $('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show');
+        if (!hasLeft) return 0;
+        const left = 340, fallback = left / 2;
+        try {
+            const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = 24, lo = left + gap - (W / 2 - half), hi = W - gap - (W / 2 + half);
+            if (!Number.isFinite(half) || half <= 0) return fallback;
+            if (lo > hi) return (lo + hi) / 2;
+            return Math.max(lo, Math.min(hi, fallback));
+        } catch (err) {
+            return fallback;
+        }
+    }
     function applyView() {
         const r = resources.cv.getBoundingClientRect();
         resources.cam.aspect = r.width / r.height;
@@ -58,8 +71,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         resources.cam.updateProjectionMatrix();
     }
     function availableRoom() {
-        const r = $('#view').getBoundingClientRect();
-        return { w: Math.max(160, r.width - 28), h: Math.max(140, r.height - 115) };
+        const r = $('#view').getBoundingClientRect(), desktop = dom.width > 900;
+        const hasLeft = desktop && ($('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show'));
+        return { w: Math.max(160, r.width - (hasLeft ? 360 : 28)), h: Math.max(140, r.height - (desktop ? 140 : 115)) };
     }
     /** @param {import('./camera-types').CameraPose} from
      * @param {import('./camera-types').CameraPose} to
@@ -188,7 +202,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function frameMobileInspector(selected = false, resizing = false) {
         cameraState.camHome = cameraState.camRestore = null;
-        cameraState.vsT = 0;
+        cameraState.vsT = dom.width > 900 ? baseShift() : 0;
         cameraState.vzT = 1;
         const goal = camFront();
         if (selected) {

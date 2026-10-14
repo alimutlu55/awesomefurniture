@@ -1,4 +1,5 @@
 import { takeMobilePanel } from './mobile-panel-owner.js';
+import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
 import { createViewModes } from './view-modes';
 import { bindSceneReset } from './scene-reset';
@@ -175,12 +176,43 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         }
         group.append(child);
     }
+    const leftHeader = document.createElement('div');
+    leftHeader.className = 'ph left-ph';
+    const leftTitle = document.createElement('b');
+    leftTitle.id = 'left-title';
+    leftTitle.textContent = 'Size';
+    const leftBtns = document.createElement('span');
+    leftBtns.className = 'pbtns';
+    const leftClose = document.createElement('button');
+    leftClose.id = 'left-close';
+    leftClose.type = 'button';
+    leftClose.setAttribute('aria-label', 'Close settings');
+    leftClose.title = 'Close';
+    leftClose.textContent = '×';
+    leftClose.onclick = () => {
+        animateMobileSheetClose($('#left'));
+        elements.app.classList.add('props-hidden');
+        elements.app.classList.remove('props-open');
+        elements.propsButton.setAttribute('aria-expanded', 'false');
+        elements.propsButton.setAttribute('aria-pressed', 'false');
+    };
+    leftBtns.append(leftClose);
+    leftHeader.append(leftTitle, leftBtns);
+    $('#left').prepend(leftHeader);
+    const sectionTitles = { resize: 'Size', shape: 'Shape', sections: 'Sections', material: 'Finish', doors: 'Doors', reach: 'Max Reach' };
     const openControls = key => {
+        if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === key) {
+            animateMobileSheetClose($('#left'));
+            elements.app.classList.add('props-hidden');
+            elements.app.classList.remove('props-open');
+            return;
+        }
         inspector.hidePop();
         if (key !== 'shape' && selectionState.shapeEditing) { selectionState.shapeEditing = false; rendering.build(); }
         takeMobilePanel(dom, $('#left'));
         delete $('#left').dataset.roomResize;
         $('#left').dataset.contextSection = key;
+        leftTitle.textContent = sectionTitles[key] || ($('#left').dataset.studioResize ? 'Wall Size' : 'Settings');
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
@@ -220,17 +252,42 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
-            if (key === 'wall-paint') { room.resizePanel.openPaint(); return; }
-            if (key === 'walls') { $('#walls-btn').click(); return; }
+            if (key === 'wall-paint') {
+                if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'material') {
+                    animateMobileSheetClose($('#left'));
+                    elements.app.classList.add('props-hidden');
+                    elements.app.classList.remove('props-open');
+                    return;
+                }
+                room.resizePanel.openPaint();
+                leftTitle.textContent = 'Paint & Finish';
+                return;
+            }
+            if (key === 'walls') {
+                if ($('#pop2').classList.contains('show')) { inspector.hidePop(); return; }
+                $('#walls-btn').click(); return;
+            }
             if (selectionState.viewMode === 'studio' && ['door', 'window', 'archway'].includes(key)) {
                 room.actOnWall(key); return;
             }
-            if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) { room.resizePanel.open(); return; }
+            if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) {
+                leftTitle.textContent = 'Wall Size';
+                room.resizePanel.open(); return;
+            }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;
-            if (key === 'resize') { resize.open(); return; }
+            if (key === 'resize') {
+                if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'resize') {
+                    animateMobileSheetClose($('#left'));
+                    elements.app.classList.add('props-hidden');
+                    elements.app.classList.remove('props-open');
+                    return;
+                }
+                leftTitle.textContent = 'Size';
+                resize.open(); return;
+            }
             if (key.startsWith('t-')) { inspector.itemAction(key); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();

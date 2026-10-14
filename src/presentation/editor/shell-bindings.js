@@ -113,7 +113,8 @@ export function bindZoomOut({ dom, camera }) {
 }
 /** @param {import('./shell-bindings.ports').BindPropertiesTogglePorts} ports */
 export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements }) {
-    const { document } = dom;
+    const { document, matchMedia } = dom;
+    const desktop = matchMedia?.('(min-width:901px)') ?? { matches: false };
     const settingsLabel = document.createElement('span');
     settingsLabel.className = 'mobile-settings-label';
     settingsLabel.textContent = 'Settings';
@@ -146,7 +147,7 @@ export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements
     // Touch gestures need not produce a compatibility click. Dismiss after
     // the canvas handles the release, including taps on its overlaid labels.
     lifetime.listen(view, 'pointerup', e => {
-        if (!e.isPrimary || !elements.app.classList.contains('props-open')) return;
+        if (desktop.matches || !e.isPrimary || !elements.app.classList.contains('props-open')) return;
         animateMobileSheetClose(dom.$('#left'));
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');
@@ -161,7 +162,8 @@ export function observeInspectorPanels({ dom, shell, lifetime }) {
 }
 /** @param {import('./shell-bindings.ports').BindResponsiveInspectorsPorts} ports */
 export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elements }) {
-    const { $, document } = dom;
+    const { $, document, matchMedia } = dom;
+    const desktop = matchMedia?.('(min-width:901px)') ?? { matches: false };
     const left = $('#left');
     /** @type {Array<[HTMLElement, string, () => void]>} */
     const sheets = [
@@ -182,7 +184,7 @@ export function bindResponsiveInspectors({ dom, inspector, model, lifetime, elem
     const wizard = $('#wizard').querySelector('.wizard-shell');
     for (const [panel, name, close] of sheets) {
         mountMobileSheet({ document, lifetime, panel, name, close, scene: elements.app,
-            fullscreen: panel === wizard, bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), wizard].includes(panel) });
+            fullscreen: panel === wizard, bottom: [left, $('#pop2'), $('#pop3'), $('#pop4'), wizard].includes(panel), docked: desktop });
     }
     // Every panel belongs to the editor, independent of screen width.
     for (const id of ['#plan-panel', '#menu', '#pop3', '#pop4']) {

@@ -18,10 +18,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    assert.ok(box && box.x>=-1 && box.y>=-1 && box.x+box.width<=size.width+1 && box.y+box.height<=size.height+1,JSON.stringify({box,size}));
   };
   const closeSettings=async()=>{
-   // Desktop mouse dragging has the same expand/lower/close contract as touch.
-   const handle=el('left').locator('.mobile-sheet-handle'),box=await handle.boundingBox();
-   const x=box.x+box.width/2,y=box.y+box.height/2;
-   await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x,y+100,{steps:5});await page.mouse.up();
+   await el('left-close').click();
    await waitLayout();
    assert.equal(await el('left').isVisible(),false);
   };
@@ -33,8 +30,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','shape','sections','more']);
   await action('resize').click();await waitLayout();
-  assert.equal(await toolbar.isVisible(),false);
+  assert.equal(await toolbar.isVisible(),true,'Toolbar remains visible on desktop');
   assert.equal(await el('left').isVisible(),true);
+  const initialLeft=await el('left').boundingBox();
+  assert.ok(initialLeft.x < 100, 'Desktop panel floats on the left side');
+  assert.ok(initialLeft.width <= 360, 'Desktop panel has compact sidebar width');
   const original=await el('w').inputValue();
   await el('w').fill('210');await el('w').press('Tab');
   assert.equal(await el('w-range').inputValue(),'210');
@@ -44,9 +44,17 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    assert.equal(await el('w').inputValue(),'210');
    assert.equal(await el('left').evaluate(e=>e.parentElement.dataset.editorId),'app');
    assert.equal(await el('left').getAttribute('data-context-section'),'resize');
-   assert.equal(await toolbar.isVisible(),false);await inBounds(el('left'));
-   const canvas=await el('view').boundingBox(),sheet=await el('left').boundingBox();
-   assert.ok(canvas.y+canvas.height<=sheet.y+1,'Settings leave the canvas unobstructed');
+   if(width<=900) {
+    assert.equal(await toolbar.isVisible(),false);
+    const canvas=await el('view').boundingBox(),sheet=await el('left').boundingBox();
+    assert.ok(canvas.y+canvas.height<=sheet.y+1,'Mobile settings leave the canvas unobstructed');
+   } else {
+    assert.equal(await toolbar.isVisible(),true,'Desktop toolbar stays visible');
+    const sheet=await el('left').boundingBox();
+    assert.ok(sheet.x < 100, 'Desktop panel is on the left');
+    assert.ok(sheet.width <= 360, 'Desktop panel is compact');
+   }
+   await inBounds(el('left'));
   }
   await closeSettings();
   await page.keyboard.press('ControlOrMeta+z');await waitLayout();

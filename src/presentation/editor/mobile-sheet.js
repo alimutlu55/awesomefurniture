@@ -1,7 +1,9 @@
 import { registerMobileSheetMotion } from './mobile-sheet-motion.js';
 /** Shared sheet affordance. Events belong to the mounted editor lifetime. */
-/** @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>; panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement }} options */
-export function mountMobileSheet({ document, lifetime, panel, name, close, bottom = false, fullscreen = false, scene }) {
+/** `docked` matches while the panel is the desktop inspector: it keeps its place, so drag gestures are off.
+ * @param {{ document: Pick<Document, 'createElement'>; lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>;
+ *   panel: HTMLElement; name: string; close: () => void; bottom?: boolean; fullscreen?: boolean; scene?: HTMLElement; docked?: { readonly matches: boolean } }} options */
+export function mountMobileSheet({ document, lifetime, panel, name, close, bottom = false, fullscreen = false, scene, docked }) {
     panel.classList.add('mobile-sheet');
     if (bottom) {
         panel.classList.add('mobile-bottom-sheet');
@@ -40,7 +42,7 @@ export function mountMobileSheet({ document, lifetime, panel, name, close, botto
     };
     const start = (id, x, y, target, touch = false) => {
         suppressClick = false;
-        if (!usableSurface(target)) return false;
+        if (docked?.matches || !usableSurface(target)) return false;
         gesture = { id, x, y, distance: 0, height: panel.getBoundingClientRect().height, position: panel.dataset.sheetPosition, touch, active: !touch, onHandle: !target || handle.contains(target), scroll: target ? scrollArea(target) : null };
         if (!touch) panel.classList.add('sheet-dragging');
         return true;

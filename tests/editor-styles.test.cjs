@@ -10,7 +10,8 @@ test('mounting preserves Auto design layout selectors at desktop and mobile widt
  assert.ok(scoped.includes('.wizard-body{grid-template-columns:220px 1fr}'));
  assert.ok(scoped.includes('.wizard-body{display:block;overflow:auto}'));
  assert.ok(scoped.includes('.wizard-body{display:block;overflow:auto;overscroll-behavior:contain}'));
- assert.doesNotMatch(scoped, /@container\s*\((?:min-width:\s*901px|max-width:\s*900px)\)\s*\{/);
+ assert.match(scoped, /@container\s*\(min-width:\s*901px\)\s*\{/);
+ assert.match(scoped, /@container\s*\(max-width:\s*900px\)\s*\{/);
  assert.ok(scoped.includes(':host{background:var(--bg)'));
  assert.match(scoped, /@container\s*\(max-width:620px\)/);
  assert.ok(scoped.includes('height:min(850px,94cqh)'));

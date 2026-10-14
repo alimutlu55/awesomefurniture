@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
- try { for(const [width,height] of (process.env.TOOLBAR_WIDTH ? [[Number(process.env.TOOLBAR_WIDTH),Number(process.env.TOOLBAR_HEIGHT || 900)]] : process.env.TOOLBAR_LANDSCAPE ? [[844,390]] : [[320,568],[390,844],[430,932],[768,1024],[844,390],[901,768],[1440,900],[1920,1080]])) {
+ try { for(const [width,height] of (process.env.TOOLBAR_WIDTH ? [[Number(process.env.TOOLBAR_WIDTH),Number(process.env.TOOLBAR_HEIGHT || 900)]] : process.env.TOOLBAR_LANDSCAPE ? [[844,390]] : [[320,568],[390,844],[430,932],[768,1024],[844,390]])) {
   const page=await browser.newPage({viewport:{width,height},isMobile:width<=900,hasTouch:width<=900,reducedMotion:'reduce'});
   page.setDefaultTimeout(10000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));

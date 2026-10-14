@@ -47,7 +47,9 @@ export function animateMobileSheetClose(panel) {
     snapshots.set(panel, copy);
     const duration = parseFloat(css.getPropertyValue('--mobile-sheet-duration')) || 280;
     const easing = css.getPropertyValue('--mobile-sheet-easing').trim() || 'cubic-bezier(.22,1,.36,1)';
-    const animation = copy.animate([{transform:'translateY(0)',opacity:css.opacity},{transform:'translateY(calc(100% + 80px))',opacity:0}], {duration,easing,fill:'forwards'});
+    // Phone sheets drop down; the desktop inspector sets its own direction (a slide back to the left).
+    const exit = css.getPropertyValue('--mobile-sheet-exit').trim() || 'translateY(calc(100% + 80px))';
+    const animation = copy.animate([{transform:'translateY(0)',opacity:css.opacity},{transform:exit,opacity:0}], {duration,easing,fill:'forwards'});
     const finish = () => { copy.remove(); if (snapshots.get(panel) === copy) snapshots.delete(panel); };
     animation.finished.then(finish, finish);
 }
