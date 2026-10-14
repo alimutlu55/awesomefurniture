@@ -1,4 +1,5 @@
 import { resizeHeightMinimum } from '../../domain/wardrobe/cabinet-size-limits';
+import { bindSizeSlider } from './size-control';
 
 /** Keep the slider's scale stable while a gesture changes the front/rear height difference.
  * @param {ReturnType<typeof import('./editor-dom.js').createEditorDom>} dom
@@ -14,6 +15,11 @@ export function syncCabinetHeightMinimum(dom, design, editingSize) {
 /** Wrap existing bound dimension inputs in the shared value-and-slider layout. */
 export function mountResizeFields({ dom, lifetime, fields, preview, model, history, refresh, commit = () => {} }) {
     for (const { input, axis } of fields) {
+        const existing = input.closest('.resize-field-control')?.querySelector?.('input[type="range"]');
+        if (existing) {
+            bindSizeSlider({ range: existing, lifetime, model, history, preview: value => preview(input, value), refresh, commit });
+            continue;
+        }
         const label = input.closest('label'), control = dom.document.createElement('div');
         control.className = 'resize-field-control';
         control.dataset.axis = axis;
@@ -24,23 +30,7 @@ export function mountResizeFields({ dom, lifetime, fields, preview, model, histo
         range.type = 'range';
         range.className = 'size-range mobile-resize-range';
         control.append(range);
-        let before = null;
-        const finish = (cancel = false) => {
-            if (before === null) return;
-            const original = before;
-            before = null;
-            if (cancel) model.restore(original);
-            else { commit(); if (model.snapshot() !== original) history.checkpoint(original); }
-            refresh();
-        };
-        lifetime.listen(range, 'input', () => {
-            if (before === null) before = model.snapshot();
-            preview(input, range.valueAsNumber);
-            refresh();
-        });
-        lifetime.listen(range, 'change', () => finish());
-        lifetime.listen(range, 'blur', () => finish());
-        lifetime.listen(range, 'pointercancel', () => finish(true));
+        bindSizeSlider({ range, lifetime, model, history, preview: value => preview(input, value), refresh, commit });
     }
 }
 

@@ -7,6 +7,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import { esc } from './editor-format.js';
 import { mountResizeFields, syncResizeFields } from './resize-fields.js';
 import type { StudioEditorPorts } from './studio-editor.ports';
+import { sizeControlMarkup, bindSizeNumber } from './size-control';
 
 interface StudioFieldsPorts {
     readonly document: { createElement: Document['createElement']; activeElement?: Element | null };
@@ -69,16 +70,18 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
             root.innerHTML = list.map(x => {
+                if (ceiling) return sizeControlMarkup({ label: x.label, min: x.min, max: x.max, hint: x.hint, hintKey: x.key,
+                    inputAttributes: { 'data-room-field': x.key, 'aria-label': x.label } });
                 const hint = x.hint ? '<small class="room-field-hint" data-room-hint="' + x.key + '">' + esc(x.hint) + '</small>' : '';
-                const label = '<label class="' + (ceiling ? 'size-row' : 'shape-field') + '"><span>' + esc(x.label) + (ceiling ? hint : '') + '</span>';
-                return label + '<span class="' + (ceiling ? 'size-field' : 'shape-input') + '"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
-                    + '" min="' + x.min + '" max="' + x.max + '" aria-label="' + esc(x.label) + '"><small>cm</small></span>' + (ceiling ? '' : hint) + '</label>';
+                return '<label class="shape-field"><span>' + esc(x.label) + '</span><span class="shape-input"><input type="number" inputmode="decimal" step="1" data-room-field="' + x.key
+                    + '" min="' + x.min + '" max="' + x.max + '" aria-label="' + esc(x.label) + '"><small>cm</small></span>' + hint + '</label>';
             }).join('');
             if (ceiling && resize) {
                 mountResizeFields({ dom: { document }, lifetime: { listen }, model: resize.model, history: resize.history, commit: resize.commit,
                     fields: list.map(x => ({ input: root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]')!, axis: x.key })),
                     preview: (input: HTMLInputElement, value: number) => apply(input.dataset.roomField!, value, true), refresh: () => { refresh(); render(); } });
-                root.querySelectorAll('.mobile-resize-range').forEach(el => el.classList.remove('mobile-resize-range'));
+                for (const x of list) bindSizeNumber({ input: root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]')!,
+                    lifetime: { listen }, commit: value => apply(x.key, value), finished: render });
             }
         }
         for (const x of list) {
@@ -113,11 +116,11 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
 
     listen(root, 'change', e => {
         const input = e.target as HTMLInputElement;
-        if (input.dataset.roomField) apply(input.dataset.roomField, input.valueAsNumber);
+        if (input.dataset.roomField && !input.closest('.resize-field-control')) apply(input.dataset.roomField, input.valueAsNumber);
     });
     listen(root, 'keydown', e => {
         const input = e.target as HTMLInputElement;
-        if ((e as KeyboardEvent).key === 'Enter' && input.dataset.roomField) input.blur();
+        if ((e as KeyboardEvent).key === 'Enter' && input.dataset.roomField && !input.closest('.resize-field-control')) input.blur();
     });
     listen(root, 'focusout', () => render());
 

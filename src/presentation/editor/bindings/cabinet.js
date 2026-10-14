@@ -1,4 +1,5 @@
 import { FIN } from '../../../domain/wardrobe/catalog.js';
+import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 /** Whole-wardrobe controls: size, finish, reach, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
@@ -6,7 +7,9 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
     const { $ } = dom;
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', 35, 80]];
     dimensions.forEach(([id, t, mi, ma]) => {
-        $('#sliders').insertAdjacentHTML('beforeend', `<div class="size-control"><label class="size-row" for="${id}"><span>${t}<b id="${id}v"></b></span><span class="size-field"><input type="number" inputmode="numeric" id="${id}" min="${mi}" max="${ma}" step="1" aria-label="Wardrobe ${t.toLowerCase()}"><small>cm</small></span></label><input class="size-range" type="range" id="${id}-range" data-dimension="${id}" min="${mi}" max="${ma}" step="1" aria-label="Adjust wardrobe ${t.toLowerCase()}"></div>`);
+        $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
+            inputAttributes: { id, inputmode: 'numeric', 'aria-label': 'Wardrobe ' + t.toLowerCase() },
+            rangeAttributes: { id: id + '-range', 'data-dimension': id, 'aria-label': 'Adjust wardrobe ' + t.toLowerCase() } }));
         const el = $('#' + id);
         const range = /** @type {HTMLInputElement} */ ($('#' + id + '-range'));
         const commit = value => {
@@ -17,40 +20,11 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
             range.value = model.activeCabinet().state[id];
             range.setAttribute('aria-valuetext', range.value + ' cm');
         };
-        lifetime.listen(el, 'change', () => commit(( /** @type {HTMLInputElement} */(el)).valueAsNumber));
-        let before = null;
-        const finishSlide = (cancel = false) => {
-            if (before === null) return;
-            const snapshot = before;
-            before = null;
-            selectionState.editingSize = false;
-            if (cancel) model.restore(snapshot);
-            else if (model.snapshot() !== snapshot) history.checkpoint(snapshot);
-            inspector.update(true);
-        };
-        lifetime.listen(range, 'input', () => {
-            if (before === null) before = model.snapshot();
-            selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id);
-            sceneCommands.setCabinetSize(id, range.valueAsNumber, false);
-            inspector.update(true);
-        });
-        // Preview each input, but save only the original state in Undo.
-        lifetime.listen(range, 'change', () => finishSlide());
-        lifetime.listen(range, 'blur', () => finishSlide());
-        lifetime.listen(range, 'pointercancel', () => finishSlide(true));
-        lifetime.listen(el, 'focus', () => {
-            selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id);
-            rendering.build();
-        });
-        lifetime.listen(el, 'blur', () => {
-            selectionState.editingSize = false;
-            inspector.update(true);
-        });
-        lifetime.listen(el, 'keydown', e => {
-            if (e.key === 'Enter') {
-                el.blur();
-            }
-        });
+        const started = () => { selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id); };
+        bindSizeSlider({ range, lifetime, model, history, started, finished: () => { selectionState.editingSize = false; },
+            preview: value => sceneCommands.setCabinetSize(id, value, false), refresh: () => inspector.update(true) });
+        bindSizeNumber({ input: /** @type {HTMLInputElement} */ (el), lifetime, commit,
+            started: () => { started(); rendering.build(); }, finished: () => { selectionState.editingSize = false; inspector.update(true); } });
     });
 }
 /** @param {import('./cabinet.ports').BindFinishSwatchesPorts} ports */
