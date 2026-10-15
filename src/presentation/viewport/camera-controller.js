@@ -58,8 +58,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             return fallback;
         }
     }
-    function applyView() {
-        const r = resources.cv.getBoundingClientRect();
+    /** @param {{width:number,height:number}} [size] Drawing-buffer layout, when already known by the resize observer. */
+    function applyView(size) {
+        const r = size ?? resources.cv.getBoundingClientRect();
         resources.cam.aspect = r.width / r.height;
         resources.cam.zoom = cameraState.vz;
         if (Math.abs(cameraState.vs) > .5) {

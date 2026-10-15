@@ -125,3 +125,13 @@ test('mobile selection fills the view more closely than move mode without aggres
  assert.ok(run('camGoal.dist < camFront().dist*1.12'),'Selection should be closer than movement');
  assert.ok(run('camGoal.y > 85'),'Low items must not push the wardrobe out of the frame');
 });
+
+test('drawer resizing uses the new canvas dimensions even before its DOM rectangle catches up',()=>{
+ const THREE=require('three'),cam=new THREE.PerspectiveCamera(35,375/812,5,50000);
+ const camera=createCameraController({dom:{},resources:{cam,cv:{getBoundingClientRect:()=>({width:375,height:812})}},cameraState:{vs:0,vz:1}});
+ for(const size of [{width:375,height:406},{width:844,height:195},{width:1440,height:900}]) {
+  camera.applyView(size);
+  near(cam.aspect,size.width/size.height);
+  near(cam.projectionMatrix.elements[5]/cam.projectionMatrix.elements[0],size.width/size.height);
+ }
+});

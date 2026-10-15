@@ -4,7 +4,7 @@ Size and Shape panels hide the Studio/Wardrobe switch, Storage, global Menu, act
 internal Add item prompts and transient feedback. The model, editing handles and relevant panel remain.
 Item/divider sizing and room sizing use the same rule. Direct item resize gestures also hide chrome
 until the gesture ends. Closing a panel, swiping it away or pressing Escape restores normal controls.
-On phones the compact Size/Shape drawer uses 25% of the editor height and the model uses 75%.
+On phones the compact Size/Shape drawer uses 50% of the editor height and the model uses 50%.
 Safe-area padding is included in that drawer height. Dragging/tapping the existing handle still expands
 it for more controls, and the keyboard retains its existing accessible layout.
 The CSS derives this from existing visible-panel and gesture state, without another UI mode to reset.
@@ -21,3 +21,22 @@ The background saving regression verifies draft retention and successful retry w
 Physical iPhone Safari was not available for testing.
 
 Screenshots: [desktop](focused-editing-desktop.jpg), [375px phone](focused-editing-mobile.jpg).
+
+## Shape-editing regression
+
+A real mobile pointer release bubbled from the on-model shape handle to the view's generic settings
+dismissal handler. The geometry committed, but the Shape sheet closed immediately. Releases on
+shape/room handles and item resize grips now remain within the editing session. Generic canvas taps,
+Escape, Close and sheet dismissal retain their existing exit behavior. Returning to Regular also keeps
+the active shape session instead of disabling its handles.
+
+Changing the drawer height also exposed a stale camera aspect ratio: the renderer resized its buffer
+but read an old canvas rectangle for its projection. The resize callback now supplies the known new
+width/height to the camera so handles remain on-screen.
+
+`npm run check:mobile` now includes `scripts/check-shape-editing.cjs`. This reproduced the original
+first-release failure before the fix. It exercises a populated wardrobe with real CDP touch input and
+mouse drags at 375×812, touch at 844×390, and mouse at 1440×900. It checks two consecutive drags,
+cancellation, undo/redo, tapping a break-point marker, repeated numeric edits, Sloped → Regular →
+Custom, another drag and explicit exit. Geometry changes and panel/focus visibility are asserted after
+each operation. Separate unit regressions cover projection dimensions and the Regular shape session.

@@ -9,13 +9,13 @@
 }
 
 @media (max-width:900px){
- /* Compact editing gives the model 75% and the drawer 25% of the editor.
+ /* Compact editing splits the model and drawer equally.
     Expanded sheets and the keyboard keep their existing space requirements. */
  #app:is(
   .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ){
-  --mobile-settings-sheet-height:25vh;
+  --mobile-settings-sheet-height:50vh;
  }
  #app:is(
   .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])[data-sheet-position="compact"]:not([data-sheet-dragging])),

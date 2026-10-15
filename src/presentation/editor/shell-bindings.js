@@ -148,6 +148,9 @@ export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements
     // the canvas handles the release, including taps on its overlaid labels.
     lifetime.listen(view, 'pointerup', e => {
         if (desktop.matches || !e.isPrimary || !elements.app.classList.contains('props-open')) return;
+        // Releasing an editing handle commits its change; it does not leave the tool.
+        const target = /** @type {Element} */ (e.target);
+        if (target.closest('.shape-handle,.item-resize-handle')) return;
         animateMobileSheetClose(dom.$('#left'));
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');

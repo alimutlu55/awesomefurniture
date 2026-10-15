@@ -57,7 +57,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             return;
         }
         if (sceneCommands.applyShapeTemplate(id)) {
-            selectionState.shapeEditing = id !== 'regular';
+            selectionState.shapeEditing = true;
             callbacks.refresh();
         }
     }

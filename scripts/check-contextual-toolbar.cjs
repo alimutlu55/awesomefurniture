@@ -12,8 +12,8 @@ const assert=require('node:assert/strict');
   const toolbar=el('toolbar');
   const checkEditingRatio=async id=>{
    const sheet=await el(id).boundingBox(),view=await el('view').boundingBox();
-   assert.ok(Math.abs(sheet.height-height*.25)<1,'Compact editing drawer uses 25%: '+JSON.stringify(sheet));
-   assert.ok(Math.abs(view.height-height*.75)<1,'Model uses 75%: '+JSON.stringify(view));
+   assert.ok(Math.abs(sheet.height-height*.5)<1,'Compact editing drawer uses 50%: '+JSON.stringify(sheet));
+   assert.ok(Math.abs(view.height-height*.5)<1,'Model uses 50%: '+JSON.stringify(view));
    assert.ok(Math.abs(view.y+view.height-sheet.y)<1,'Model and drawer meet without overlap or a gap');
   };
   const selected=async()=>{
@@ -45,7 +45,7 @@ const assert=require('node:assert/strict');
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
    await checkEditingRatio('left');
-   // The safe-area inset belongs inside the 25% drawer, rather than taking model space twice.
+   // The safe-area inset belongs inside the 50% drawer, rather than taking model space twice.
    await el('app').evaluate(e=>e.style.setProperty('--safe-bottom','34px'));
    await page.waitForTimeout(320);await checkEditingRatio('left');
    await el('app').evaluate(e=>e.style.removeProperty('--safe-bottom'));

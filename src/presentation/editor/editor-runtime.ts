@@ -126,7 +126,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             resizeSurface: (width, height) => {
                 resources.R.setSize(width, height);
-                camera.applyView();
+                camera.applyView({ width, height });
                 // Resizing clears the WebGL drawing buffer. Repaint before the browser
                 // composites the animated sheet resize, rather than leaving a blank frame.
                 resources.R.render(resources.scene, resources.cam);
