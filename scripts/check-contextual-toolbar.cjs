@@ -16,6 +16,32 @@ const assert=require('node:assert/strict');
    assert.ok(Math.abs(view.height-height*(1-drawerRatio))<1,'Incorrect model ratio: '+JSON.stringify(view));
    assert.ok(Math.abs(view.y+view.height-sheet.y)<1,'Model and drawer meet without overlap or a gap');
   };
+  const checkKeyboardSplit=async(field)=>{
+   await field.focus();
+   const keyboardHeight=Math.min(300,height-150);
+   await page.evaluate(visibleHeight=>{
+    Object.defineProperty(window,'innerHeight',{configurable:true,get:()=>visibleHeight});
+    Object.defineProperty(window.visualViewport,'height',{configurable:true,get:()=>visibleHeight});
+    Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>110});
+    window.visualViewport.dispatchEvent(new Event('resize'));
+   },keyboardHeight);
+   await page.waitForTimeout(100);
+   assert.equal(await field.evaluate(e=>e.getRootNode().activeElement===e),true);
+   assert.equal(await toolbar.isVisible(),false,'Keyboard preserves focused input and hides toolbar');
+   const editorBox=await page.locator('#editor-root').boundingBox(),inputBox=await field.boundingBox();
+   const keyboardSheet=await field.locator('xpath=ancestor::*[contains(@class,"mobile-bottom-sheet")][1]').boundingBox(),keyboardView=await el('view').boundingBox();
+   assert.equal(await el('view').isVisible(),true,'Keyboard keeps the model visible');
+   assert.ok(Math.abs(keyboardSheet.height-editorBox.height*.5)<1,'Size drawer keeps half the visible viewport with keyboard open');
+   assert.ok(Math.abs(keyboardView.height-editorBox.height*.5)<1,'Model keeps half the visible viewport with keyboard open');
+   assert.ok(Math.abs(keyboardView.y+keyboardView.height-keyboardSheet.y)<1,'Model and size drawer meet above keyboard');
+   assert.ok(inputBox.y>=keyboardSheet.y && inputBox.y+inputBox.height<=keyboardSheet.y+keyboardSheet.height,'Focused input scrolls inside the drawer');
+   assert.ok(inputBox.y>=editorBox.y && inputBox.y+inputBox.height<=editorBox.y+editorBox.height,'Depth stays above keyboard');
+   await page.locator('#editor-root').screenshot({path:'/tmp/wardrobe-keyboard-'+width+'-'+await field.getAttribute('data-editor-id')+'.png'});
+   await field.blur();
+   await page.evaluate(()=>{delete window.innerHeight;delete window.visualViewport.height;delete window.visualViewport.offsetTop;window.visualViewport.dispatchEvent(new Event('resize'));});
+   await page.waitForTimeout(100);
+   assert.ok(Math.abs((await el('view').boundingBox()).height-height*.5)<1,'Dismissing keyboard restores the regular size split');
+  };
   const selected=async()=>{
    const box=await el('view').boundingBox();
    await page.mouse.click(box.x+box.width/2,box.y+box.height*.45);
@@ -74,22 +100,7 @@ const assert=require('node:assert/strict');
     await slider.dispatchEvent('pointercancel',{pointerType:'touch',isPrimary:true});
     assert.equal(await el(key).inputValue(),before);
    }
-   await el('d').focus();
-   const keyboardHeight=Math.min(300,height-150);
-   await page.evaluate(visibleHeight=>{
-    Object.defineProperty(window,'innerHeight',{configurable:true,get:()=>visibleHeight});
-    Object.defineProperty(window.visualViewport,'height',{configurable:true,get:()=>visibleHeight});
-    Object.defineProperty(window.visualViewport,'offsetTop',{configurable:true,get:()=>110});
-    window.visualViewport.dispatchEvent(new Event('resize'));
-   },keyboardHeight);
-   await page.waitForTimeout(100);
-   assert.equal(await el('d').evaluate(e=>e.getRootNode().activeElement===e),true);
-   assert.equal(await toolbar.isVisible(),false,'Keyboard preserves focused input and hides toolbar');
-   const editorBox=await page.locator('#editor-root').boundingBox(),inputBox=await el('d').boundingBox();
-   assert.ok(inputBox.y>=editorBox.y && inputBox.y+inputBox.height<=editorBox.y+editorBox.height,'Depth stays above keyboard');
-   await el('d').blur();
-   await page.evaluate(()=>{delete window.innerHeight;delete window.visualViewport.height;delete window.visualViewport.offsetTop;window.visualViewport.dispatchEvent(new Event('resize'));});
-   await page.waitForTimeout(100);
+   await checkKeyboardSplit(el('d'));
    assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'none');
    const closeProperties=async()=>{
     await el('left').locator('.mobile-sheet-handle').evaluate(e=>{
@@ -164,6 +175,7 @@ const assert=require('node:assert/strict');
    if(width===390)await page.screenshot({path:'/tmp/contextual-resize-sheet.png'});
    assert.equal(await el('ih').isVisible(),true,'Resize reuses item height');
    assert.equal(await el('iw').isVisible(),true,'Resize reuses item width');
+   await checkKeyboardSplit(el('ih'));
    assert.equal(await el('ipurpose').isVisible(),false,'Resize only exposes size controls');
    assert.equal(await el('ititle').textContent(),'Size');
    const fields=el('pop3').locator('.resize-field-control');

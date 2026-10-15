@@ -10,7 +10,7 @@
 
 @media (max-width:900px){
  /* Shape prioritizes the model; sizing splits the available space equally.
-    Expanded sheets and the keyboard keep their existing space requirements. */
+    Expanded sheets keep their existing space requirements outside keyboard editing. */
  #app.props-open:has(#left[data-context-section="shape"]){
   --mobile-settings-sheet-height:25vh;
  }
@@ -26,5 +26,30 @@
  ){
   /* Safe-area padding is already inside the drawer's border-box height. */
   --sheet:var(--panel-height);
+ }
+}
+
+/* The keyboard shrinks the editor's container. Keep the focused split within
+   that visible space instead of letting the keyboard fallback cover the model. */
+@media (max-width:900px){
+ :host([data-keyboard-open]) #app:is(
+  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
+ ){
+  --panel-height:var(--mobile-settings-sheet-height);
+  --sheet:var(--panel-height);
+ }
+ :host([data-keyboard-open]) #app:is(
+  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
+ ) #view{
+  inset:0 0 var(--sheet);visibility:visible;transition:none;
+ }
+ :host([data-keyboard-open]) #app:is(
+  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
+ ) :is(#left,#pop3,#pop4).mobile-bottom-sheet{
+  top:auto;bottom:0;left:0;right:0;width:auto;
+  height:var(--panel-height)!important;max-height:var(--panel-height)!important;
  }
 }
