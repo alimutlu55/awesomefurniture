@@ -1,6 +1,7 @@
 // Current mobile interaction contract plus desktop regression coverage.
 const {spawnSync}=require('node:child_process');
-for(const script of ['check-contextual-toolbar.cjs','check-mobile-sheets.cjs','check-desktop-regression.cjs','check-shape-editing.cjs']) {
- const result=spawnSync(process.execPath,[require('node:path').join(__dirname,script)],{stdio:'inherit',env:process.env});
+for(const script of ['check-contextual-toolbar.cjs','check-mobile-sheets.cjs','check-desktop-regression.cjs','check-shape-editing.cjs','check-studio-placement.cjs']) {
+ const args=[...(script==='check-studio-placement.cjs'?['--import','tsx']:[]),require('node:path').join(__dirname,script)];
+ const result=spawnSync(process.execPath,args,{stdio:'inherit',env:process.env});
  if(result.status!==0) process.exit(result.status || 1);
 }

@@ -34,16 +34,22 @@ export function flushAgainst(studio: Studio, wallId: string, from: number, size:
 
 /** The first free spot flush against a wall, facing into the room: longest walls first, from the middle
  * of each wall outwards. Null when no wall has room. */
-export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides): Pose | null {
-  const walls = studio.walls.map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line && x.line.length >= size.w).sort((p, q) => q.line!.length - p.line!.length);
-  for (const { w, line } of walls) {
-    const min = size.w / 2, max = line!.length - size.w / 2, mid = line!.length / 2;
+export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides, wallId?: string): Pose | null {
+  const walls = studio.walls.filter(w => wallId === undefined || w.id === wallId).map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line && x.line.length >= size.w).sort((p, q) => q.line!.length - p.line!.length);
+  for (const { w } of walls) {
+    const face = wallFace(studio, w);
+    if (!face || face.length < size.w - .01) continue;
+    const min = face.start + size.w / 2, max = face.end - size.w / 2, mid = (min + max) / 2;
     for (let step = 0; mid - step >= min - .01 || mid + step <= max + .01; step += 5) {
       for (const along of step ? [mid - step, mid + step] : [mid]) {
         if (along < min - .01 || along > max + .01) continue;
         const pose = flush(studio, w, along, size);
         if (pose && !collides(pose)) return pose;
       }
+    }
+    for (const along of [min, max]) {
+      const pose = flush(studio, w, along, size);
+      if (pose && !collides(pose)) return pose;
     }
   }
   return null;

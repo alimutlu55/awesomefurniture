@@ -29,8 +29,8 @@ test('the photographed space under the stairs is built from its description', ()
   assert.deepEqual(report.ceilings[0]!.points, [[95, 205], [185, 205], [320, 105], [380, 105]], 'the stairs as described');
   const w = report.wardrobes[0]!;
   assert.equal(w.against, 1);
-  assert.equal(w.from, 0);
-  assert.equal(w.width, 380, 'fills the wall');
+  assert.equal(w.from, 50, 'keeps access to the door on the adjacent wall');
+  assert.equal(w.width, 330, 'fills the physically available stretch');
   assert.ok(w.top.some((p, k) => k > 0 && w.top[k - 1]![0] === p[0]), 'its top steps under the landing');
   assert.equal(w.gaps.top, 0, 'fitted under the stairs');
   assert.ok(w.holds.short!.holds >= 20 && w.holds.pants!.holds >= 10, 'holds what it was planned for: ' + JSON.stringify(w.holds));

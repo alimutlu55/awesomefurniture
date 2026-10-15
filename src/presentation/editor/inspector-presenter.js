@@ -69,6 +69,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     }
     function addCabinet(copy = false, template, wall) {
         const w = sceneCommands.addCabinet(copy, template, wall);
+        if (!w) return false;
+        selectionState.room = null;
         if (template && template !== 'regular') selectionState.shapeEditing = true;
         hidePop();
         selectionState.pillOn = true;
@@ -76,6 +78,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         update();
         camera.frameMobileInspector(true); // frame the new wardrobe, not all of them
         shell.toast(w.name + ' added');
+        return true;
     }
     function wardrobeUI() {
         const select = $('#wardrobe-select');

@@ -274,7 +274,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 leftTitle.textContent = 'Wall Size';
                 room.resizePanel.open(); return;
             }
-            if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; selectionState.room = null; inspector.addCabinet(false, undefined, wall); return; }
+            if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
             delete elements.app.dataset.toolbarMode;

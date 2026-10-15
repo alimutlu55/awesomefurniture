@@ -54,6 +54,7 @@ test('room-fitted shape edits cannot rise into the stairs, including live previe
   s.commands.placeStudio('under-stairs');
   s.model.scene.wardrobes = [];
   const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  assert.ok(cabinet);
   const original = structuredClone(cabinet.state), checkpoints = s.checkpoints();
   const shape = structuredClone(original.shape!);
   const low = shape.top.find(p => p.y < original.h - 10)!;
@@ -76,6 +77,7 @@ test('lowering a room-fitted top is allowed and stays a manual shape after settl
   s.commands.placeStudio('under-stairs');
   s.model.scene.wardrobes = [];
   const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  assert.ok(cabinet);
   const shape = structuredClone(cabinet.state.shape!);
   assert.equal(s.commands.shapeEditProblem(shape), null, 'matching steps can touch the ceiling');
   shape.top.forEach(p => { p.y -= 5; });
@@ -119,6 +121,7 @@ test('a handle stops at the ceiling, can move back down, and commits one undo st
   s.commands.placeStudio('under-stairs');
   s.model.scene.wardrobes = [];
   const cabinet = s.commands.addCabinet(false, undefined, 'w1');
+  assert.ok(cabinet);
   const shape = structuredClone(cabinet.state.shape!);
   const index = shape.top.length - 1, point = shape.top[index]!;
   const state = () => s.w(cabinet.id).state;
@@ -193,15 +196,19 @@ test('Wardrobe on a wall fills its free stretch, fitted under the ceiling and di
   s.commands.placeStudio('under-stairs');
   s.model.scene.wardrobes = [];
   const added = s.commands.addCabinet(false, undefined, 'w1');
-  assert.equal(added.state.w, 380, 'the whole wall');
+  assert.ok(added);
+  assert.equal(added.state.w, 330, 'the free width leaves access to the adjacent door');
   assert.equal(added.angle, 0);
   assert.equal(added.state.shape?.template, 'room');
   assert.equal(added.state.n, 4);
   assert.deepEqual(s.overlapping(), []);
+  const before = s.model.snapshot(), history = s.checkpoints();
   const second = s.commands.addCabinet(false, undefined, 'w1');
-  assert.match(s.messages.at(-1)!, /no free stretch/, 'no room left on that wall: says so and puts it where there is room');
-  assert.deepEqual(s.overlapping(), [], 'and nothing overlaps');
-  assert.ok(second);
+  assert.equal(second, null, 'the requested occupied wall never falls back outside the room');
+  assert.match(s.messages.at(-1)!, /does not fit/);
+  assert.equal(s.model.snapshot(), before);
+  assert.equal(s.checkpoints(), history);
+  assert.deepEqual(s.overlapping(), []);
 });
 
 test('wardrobes against a wall go with it when it moves, and stop it when they would run into something', () => {

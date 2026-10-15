@@ -31,7 +31,7 @@ test('check builds without changing the editor; build shows it as one undo step 
   assert.equal(api.check(api.example()).ok, true);
   assert.equal(e.loaded.length, 0, 'check leaves the editor alone');
   const built = api.build(api.example());
-  assert.ok(built.ok && built.report.wardrobes[0]!.width === 380);
+  assert.ok(built.ok && built.report.wardrobes[0]!.width === 330);
   assert.equal(e.loaded.length, 1);
   assert.match(e.said[0]!, /Undo restores yours/);
   const bad = api.build({ specVersion: 1, wardrobes: [{ against: 3 }] });

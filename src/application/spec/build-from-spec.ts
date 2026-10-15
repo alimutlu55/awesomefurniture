@@ -78,6 +78,7 @@ export function buildFromSpec(spec: DesignSpec, id: string): SpecBuild {
     const cabinet = commands.addCabinet(false, w.shape as ShapeTemplateId | undefined, w.against !== undefined ? wallId(w.against) : undefined,
       { ...(w.width !== undefined && !fill ? { w: w.width } : {}), ...(w.height !== undefined ? { h: w.height } : {}), ...(w.depth !== undefined ? { d: w.depth } : {}), ...(w.from !== undefined ? { from: w.from } : {}) });
     const refused = said.find(m => /does not fit|no free stretch|too low/.test(m));
+    if (!cabinet) return problems.push({ path, message: refused ?? said.at(-1) ?? 'The wardrobe does not fit in this studio.' });
     if (refused) return problems.push({ path, message: refused.replace(' It went where there is room.', '') });
     const collides = createCabinetGeometry(() => scene.wardrobes, () => studioObstacles(scene.studio)).cabinetCollides(cabinet);
     if (collides) return problems.push({ path, message: 'It would run into a wall or another wardrobe. Give it a place on a wall with room for it.' });

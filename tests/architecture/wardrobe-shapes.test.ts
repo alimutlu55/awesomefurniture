@@ -235,6 +235,7 @@ test('applying a template on an empty wardrobe takes its sections; height follow
   assert.equal(s.state().shape, undefined);
   // New wardrobes can start from a template.
   const added = s.commands.addCabinet(false, 'stepped');
+  assert.ok(added);
   assert.equal(added.state.shape!.template, 'stepped');
   assert.equal(s.model.scene.wardrobes[0]!.state.shape, undefined);
 });

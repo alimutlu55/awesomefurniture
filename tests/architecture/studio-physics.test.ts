@@ -91,6 +91,7 @@ test('a new wardrobe goes flush against a free wall inside the room', () => {
   const s = scene();
   s.commands.placeStudio('bedroom');
   const added = s.commands.addCabinet();
+  assert.ok(added);
   assert.deepEqual(s.overlapping(), []);
   const b = studioBounds(s.model.scene.studio!)!;
   assert.ok(added.x > b.x0 && added.x < b.x1 && added.z > b.z0 && added.z < b.z1, 'inside the room');
