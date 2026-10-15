@@ -48,3 +48,6 @@
 .lbl.shape-handle.split-handle::before{content:none}
 .lbl.shape-reason{background:#9a4d3a;color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:9px;max-width:260px;white-space:normal;line-height:1.3;text-align:center;pointer-events:none;box-shadow:0 3px 10px rgba(0,0,0,.2)}
 .shape-caption{margin:6px 0 4px}
+
+/* Rear-edge dots remain distinct when both top edges are visible. */
+.lbl.shape-handle.point.rear::before{background:var(--panel);box-shadow:0 0 0 2px var(--ink)}

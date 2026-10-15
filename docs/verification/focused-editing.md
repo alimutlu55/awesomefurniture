@@ -4,6 +4,7 @@ Size and Shape panels hide the Studio/Wardrobe switch, Storage, global Menu, act
 internal Add item prompts and transient feedback. The model, editing handles and relevant panel remain.
 Item/divider sizing and room sizing use the same rule. Direct item resize gestures also hide chrome
 until the gesture ends. Closing a panel, swiping it away or pressing Escape restores normal controls.
+Shape keeps its drawer open while orbiting the model to reach rear handles.
 On phones compact Shape uses 75% model / 25% drawer. Resize uses 50% model / 50% drawer.
 Safe-area padding is included in that drawer height. Dragging/tapping the existing handle still expands
 it for more controls, and the keyboard retains its existing accessible layout.
@@ -26,8 +27,9 @@ Screenshots: [desktop](focused-editing-desktop.jpg), [Shape 75:25](shape-mobile.
 
 A real mobile pointer release bubbled from the on-model shape handle to the view's generic settings
 dismissal handler. The geometry committed, but the Shape sheet closed immediately. Releases on
-shape/room handles and item resize grips now remain within the editing session. Generic canvas taps,
-Escape, Close and sheet dismissal retain their existing exit behavior. Returning to Regular also keeps
+shape/room handles and item resize grips now remain within the editing session. Canvas releases keep
+Shape open so orbiting reaches the rear edge. Escape, Close and sheet dismissal still end panel editing;
+canvas taps dismiss other settings as before. Returning to Regular also keeps
 the active shape session instead of disabling its handles.
 
 Changing the drawer height also exposed a stale camera aspect ratio: the renderer resized its buffer
@@ -41,3 +43,30 @@ the distinct 50/50 and 75/25 ratios, then checks two consecutive drags,
 cancellation, undo/redo, tapping a break-point marker, repeated numeric edits, Sloped → Regular →
 Custom, another drag and explicit exit. Geometry changes and panel/focus visibility are asserted after
 each operation. Separate unit regressions cover projection dimensions and the Regular shape session.
+
+
+## Rear handles and horizontal shaping
+
+Shape exposes filled front-edge dots and outlined rear-edge dots. Both edges have independent heights;
+front height/angle/rise edits preserve the rear profile. The existing panel list also offers rear heights
+for side corners and interior break points. Adding a break point creates its paired rear handle.
+Joins share x positions through the cabinet depth so the boards stay connected.
+
+All dots accept horizontal dragging and arrow keys. Interior joins slide along the top. Outer corners
+change width, anchored at the opposite side; interior joins stay in world space. The cabinet centre
+moves along its local width axis, including when rotated. The camera reframes after a width commit
+to keep the next corner reachable, preserving its angle and remaining still during the drag.
+Width, position and both profiles commit in one undo step. Live previews skip refitting fittings; commit refits once, and cancel restores the full scene.
+Width limits, minimum module widths, panel lengths/slopes, room ceilings, walls and neighbouring
+wardrobes constrain the same candidate before either preview or commit.
+
+Shaping preserves the viewing angle when opened. The model body or background can be dragged to
+orbit while Shape stays open. Expanded touch targets resolve the nearest dot when front/rear targets
+overlap in projection. Rear drags intersect the rear plane; rulers follow the active edge.
+
+Validation adds real touch/mouse rear drags, rear undo/redo and cancellation, horizontal outer-corner
+width changes and interior-join movement, orbiting in Shape and editing from that angle. Unit cases
+cover both edges at 0°, 37° and 90°, fixed opposite corners, stationary-pointer drift, cancellation,
+serialization, rear ceiling clearance, neighbours and width limits. Physical iPhone Safari remains unverified.
+
+Screenshots: [rear shaping on phone](rear-shaping-mobile.jpg), [desktop](rear-shaping-desktop.png).

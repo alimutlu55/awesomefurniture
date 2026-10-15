@@ -53,11 +53,11 @@ for (const pointerType of ['mouse', 'touch']) test(`${pointerType}: the existing
   f.model.restore(before); assert.equal(f.model.snapshot(), before, 'undo restores both profiles and pose');
 });
 
-test('free-standing black handles preserve the existing full-depth shape behaviour', () => {
+test('free-standing front handles leave the rear edge unchanged', () => {
   const f = fixture(false), e = f.event('mouse');
   f.inspector.beginHandleDrag(e, 0, f.target); f.move(240); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag();
   assert.equal(f.state().shape!.top[0]!.y, 240);
-  assert.equal(f.state().shape!.back, undefined);
+  assert.deepEqual(f.state().shape!.back, [220, 220]);
   assert.equal(f.state().shape!.top[1]!.y, 220);
 });
 
@@ -91,4 +91,20 @@ test('the independent rear survives topology edits and saving', () => {
   const document = sceneToProject(createProject('front-shape', 'Front shape'), f.model.scene);
   const restored = projectToScene(deserializeProject(serializeProject(document)))!;
   assert.deepEqual(restored.wardrobes[0]!.state.shape, f.state().shape);
+});
+
+
+test('rear handles lower independently, stop at the rear ceiling and reverse without leaving the session', () => {
+  const f = fixture(), before = f.model.snapshot(), e = f.event('touch');
+  f.inspector.beginHandleDrag(e, 0, f.target, 'rear');
+  f.move(80); f.inspector.moveHandleDrag(e);
+  assert.equal(f.state().shape!.top[0]!.y, 100);
+  assert.equal(f.state().shape!.back![0], 80);
+  f.move(130); f.inspector.moveHandleDrag(e);
+  assert.ok(f.state().shape!.back![0]! <= 100.5, 'rear cannot enter the ceiling at the wall');
+  f.move(85); f.inspector.moveHandleDrag(e);
+  assert.equal(f.state().shape!.back![0], 85);
+  f.inspector.endHandleDrag();
+  assert.deepEqual(f.checkpoints, [before]);
+  assert.deepEqual(f.messages, []);
 });

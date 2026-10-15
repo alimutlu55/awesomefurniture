@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createShapeHandleButtons } from './shape-handle-buttons';
 import { createCabinetMaterials } from './cabinet-materials';
 import { renderCabinetFrame, renderUpright, panelBuilder } from './frame-geometry';
 import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
@@ -12,52 +13,9 @@ import { createItemDimensions } from './item-dimensions.js';
 export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
-    /** Break-point handles are pooled: rebuilding during a drag reuses the
-     * captured element instead of replacing it. */
-    const shapeHandlePool = [];
-    function shapeHandle(n) {
-        let el = shapeHandlePool[n];
-        if (!el) {
-            el = document.createElement('button');
-            el.type = 'button';
-            el.className = 'lbl shape-handle point';
-            el.onpointerdown = e => shapeInspector.beginHandleDrag(e, +el.dataset.index, el);
-            el.onpointermove = e => shapeInspector.moveHandleDrag(e);
-            el.onpointerup = () => shapeInspector.endHandleDrag();
-            el.onpointercancel = () => shapeInspector.endHandleDrag(true);
-            // Keyboard users see the point's live rulers while the handle has focus.
-            el.onfocus = () => shapeInspector.setFocusedPoint(+el.dataset.index);
-            el.onblur = () => shapeInspector.setFocusedPoint(null);
-            el.onlostpointercapture = () => shapeInspector.endHandleDrag();
-            el.onkeydown = e => {
-                const step = e.shiftKey ? .5 : 1, dy = e.key === 'ArrowUp' ? step : e.key === 'ArrowDown' ? -step : 0, dx = e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0;
-                if (dx || dy) {
-                    e.preventDefault();
-                    shapeInspector.nudge(+el.dataset.index, el.classList.contains('fixed-x') ? 0 : dx, dy);
-                }
-            };
-            shapeHandlePool[n] = el;
-        }
-        return el;
-    }
-    /** On a phone, skeleton editing lives in the Shape sheet; elsewhere in the side panel. */
-    /** Break-point handles and split markers belong to an explicit shape session only. */
+    const { shapeHandle, splitHandle, shapeHandlePool, splitPool } = createShapeHandleButtons({ document, shapeInspector });
+    /** Handles belong to an explicit shape session. */
     const shapeSheetOpen = () => !!selectionState.shapeEditing;
-    const splitPool = [];
-    function splitHandle(n) {
-        let el = splitPool[n];
-        if (!el) {
-            el = document.createElement('button');
-            el.type = 'button';
-            el.className = 'lbl shape-handle split-handle';
-            el.textContent = '+';
-            el.setAttribute('aria-label', 'Add a break point to this top panel');
-            el.title = 'Add a break point here';
-            el.onclick = e => { e.stopPropagation(); shapeInspector.split(+el.dataset.index); };
-            splitPool[n] = el;
-        }
-        return el;
-    }
     function placeShapeHandles() {
         if (!renderState.renderActive) {
             return;
@@ -71,7 +29,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             el.title = q.ok ? 'Add a break point here' : 'Too narrow to split';
             el.setAttribute('aria-label', q.ok ? 'Add a break point to this top panel' : 'This top panel is too narrow to split');
             if (!el.isConnected) $('#labels').appendChild(el);
-            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
+            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
         });
         splitPool.slice(splits.length).forEach(el => el.remove());
         if (editing) {
@@ -79,26 +37,26 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             const near = renderState.Gr.localToWorld(new THREE.Vector3(0, 100, d / 2 + 3)), far = renderState.Gr.localToWorld(new THREE.Vector3(10, 100, d / 2 + 3));
             const A = picking.screenPoint(near), B = picking.screenPoint(far);
             shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
-            const w = getRenderDesign().w, h = getRenderDesign().h;
+            const w = getRenderDesign().w, h = getRenderDesign().h, z = (shapeInspector.profileSide() === 'rear' ? -1 : 1) * (d / 2 + 4);
             const pv = shapeInspector.pivot();
             if (pv) {
-                label(new THREE.Vector3(pv.x, pv.y, d / 2 + 4), '', 'lbl pivot-dot');
+                label(new THREE.Vector3(pv.x, pv.y, z), '', 'lbl pivot-dot');
             }
             const why = shapeInspector.dragReason();
             if (why) {
                 // Say why the point stopped short of the pointer, beside the point.
-                label(new THREE.Vector3(why.x, why.y + 12, d / 2 + 4), why.text, 'lbl shape-reason');
+                label(new THREE.Vector3(why.x, why.y + 12, z), why.text, 'lbl shape-reason');
             }
             for (const q of shapeInspector.dragRulers()) {
-                const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
+                const a = new THREE.Vector3(q.a.x, q.a.y, z), b = new THREE.Vector3(q.b.x, q.b.y, z);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-coord');
                 bindRuler(el, a, b, q.axis);
             }
             for (const g of shapeInspector.guides()) {
                 // A guide across the model: horizontal for a shared height, vertical for a shared position.
                 const pts = g.orient === 'h'
-                    ? [new THREE.Vector3(-w / 2, g.pos, d / 2 + 3), new THREE.Vector3(w / 2, g.pos, d / 2 + 3)]
-                    : [new THREE.Vector3(g.pos - w / 2, 0, d / 2 + 3), new THREE.Vector3(g.pos - w / 2, h, d / 2 + 3)];
+                    ? [new THREE.Vector3(-w / 2, g.pos, z), new THREE.Vector3(w / 2, g.pos, z)]
+                    : [new THREE.Vector3(g.pos - w / 2, 0, z), new THREE.Vector3(g.pos - w / 2, h, z)];
                 const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(), toneMapped: false, dashSize: 4, gapSize: 3, transparent: true, opacity: .9, depthTest: false }));
                 line.computeLineDistances();
                 line.renderOrder = 16;
@@ -109,7 +67,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
 
             for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(true)) {
-                const a = new THREE.Vector3(q.a.x, q.a.y, d / 2 + 4), b = new THREE.Vector3(q.b.x, q.b.y, d / 2 + 4);
+                const a = new THREE.Vector3(q.a.x, q.a.y, z), b = new THREE.Vector3(q.b.x, q.b.y, z);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
                 bindRuler(el, a, b, q.axis);
             }
@@ -117,13 +75,15 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         handles.forEach((q, n) => {
             const el = shapeHandle(n);
             el.dataset.index = String(q.index);
+            el.dataset.side = q.side;
+            el.classList.toggle('rear', q.side === 'rear');
             // The handle is a plain dot; its position is read from the live rulers while dragging.
             el.textContent = '';
             el.classList.toggle('fixed-x', !q.movesX);
-            el.setAttribute('aria-label', 'Break point ' + (q.index + 1) + ', ' + q.label + ' cm high. Drag or use arrow keys to ' + (q.movesX ? 'move it' : 'change the height'));
-            el.title = q.movesX ? 'Drag to move this break point' : 'Drag up or down to change this side height';
+            el.setAttribute('aria-label', (q.side === 'rear' ? 'Rear break point ' : 'Break point ') + (q.index + 1) + ', ' + q.label + ' cm high. Drag or use arrow keys to move it');
+            el.title = 'Drag up/down for height; left/right to ' + (q.index === 0 || q.index === handles.length / 2 - 1 ? 'change width' : 'move the break point');
             if (!el.isConnected) $('#labels').appendChild(el);
-            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, d / 2 + 2), el, owner: renderState.Gr });
+            renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
         });
         shapeHandlePool.slice(handles.length).forEach(el => el.remove());
     }

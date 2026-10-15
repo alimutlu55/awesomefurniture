@@ -48,7 +48,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         }
         // Drag the selected wardrobe with one finger, as with the mouse.
         // Register the touch so another finger can safely take over for pinch.
-        if (selectionState.focusOn && (!inspector.inside() || (dom.$('#app').dataset.toolbarMode === 'move'))) {
+        if (!selectionState.shapeEditing && selectionState.focusOn && (!inspector.inside() || (dom.$('#app').dataset.toolbarMode === 'move'))) {
             const hit = picking.cast(e, renderState.allHits);
             if (hit?.object.userData.wardrobe === model.scene.activeWardrobe) {
                 resources.cv.focus({ preventScroll: true });

@@ -2,8 +2,8 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {bindPropertiesToggle}=require('../src/presentation/editor/shell-bindings.js');
 
-function fixture(desktop=false) {
- const classes=new Set(['props-open']),view={},left={},events=new Map();
+function fixture(desktop=false,section='resize') {
+ const classes=new Set(['props-open']),view={},left={dataset:{contextSection:section}},events=new Map();
  const app={classList:{contains:name=>classes.has(name),add:name=>classes.add(name),remove:name=>classes.delete(name)}};
  const button={append(){},setAttribute(){}};
  bindPropertiesToggle({
@@ -27,4 +27,8 @@ test('desktop canvas releases keep the docked inspector open',()=>{
 });
 test('secondary pointers cannot dismiss the editing panel',()=>{
  const f=fixture();f.release({closest:()=>null},false);assert.equal(f.open(),true);
+});
+
+test('Shape keeps its drawer open while the user orbits to the rear edge',()=>{
+ const f=fixture(false,'shape');f.release({closest:()=>null});assert.equal(f.open(),true);
 });

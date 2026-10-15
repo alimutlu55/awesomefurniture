@@ -1,5 +1,5 @@
 import type { ShapePoint, WardrobeShape } from './wardrobe-shape';
-/** The existing black handles edit the front. An optional rear profile keeps ceiling contact fixed. */
+/** An independent rear profile shares the front board joins and can keep its own ceiling contact. */
 export function rearShape(shape: WardrobeShape): WardrobeShape {
   return { template: shape.template, top: shape.top.map((p, i) => ({ ...p, y: shape.back?.[i] ?? p.y })) };
 }

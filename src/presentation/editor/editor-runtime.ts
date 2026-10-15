@@ -140,7 +140,9 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             placed: () => { selectionState.viewMode = 'studio'; selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             // A part just added is selected; a ceiling also turns the view to eye level to shape it.
             added: selection => { inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
-        const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: { refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(), report: message => shell.toast(message) } });
+        const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: {
+            refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(),
+            frame: () => camera.frameMobileInspector(true), report: message => shell.toast(message) } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector, studioEditor: room.editor }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room: room.room }));

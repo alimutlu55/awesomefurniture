@@ -14,7 +14,7 @@ test('switching back to Regular keeps the active reshape session and its handles
   inspector.chooseTemplate('regular');
   assert.equal(model.activeCabinet().state.shape, undefined);
   assert.equal(selectionState.shapeEditing, true);
-  assert.equal(inspector.handles().length, 2);
+  assert.equal(inspector.handles().length, 4);
   inspector.nudge(0, 0, -10);
   assert.equal(model.activeCabinet().state.shape?.top[0]?.y, 220, 'the next edit works in the same session');
   assert.equal(selectionState.shapeEditing, true);

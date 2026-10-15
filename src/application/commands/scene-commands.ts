@@ -12,6 +12,7 @@ import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
 import { friendlyProblem, resolveShape, regularShape, shapePanels, maxHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { resizeHeightMinimum } from '../../domain/wardrobe/cabinet-size-limits';
+export interface ShapeFrame { w: number; x: number; z: number }
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
@@ -34,12 +35,15 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         ? change + ' would go through a wall of the room.'
         : change + ' would overlap another wardrobe. Move it first.';
     /** The same constraints apply to numeric edits, keyboard nudges and live handles. */
-    const shapeEditProblem = (shape: WardrobeShape): string | null => {
-        const cabinet = active(), problem = shapeProblems(shape, cabinet.state.w)[0];
+    const shapeEditProblem = (shape: WardrobeShape, frame?: ShapeFrame): string | null => {
+        const cabinet = active(), w = frame?.w ?? cabinet.state.w;
+        if (!Number.isFinite(w) || (w !== cabinet.state.w && (w < Math.max(80, geometry.minTotal()) - .01 || w > 400))) return 'Keep the wardrobe within its allowed width.';
+        if (frame && (!Number.isFinite(frame.x) || !Number.isFinite(frame.z))) return 'Wardrobe position must be a number.';
+        const problem = shapeProblems(shape, w)[0];
         if (problem) return friendlyProblem(problem);
-        const underCeiling = ceilings.shapeBlocked(cabinet, shape);
+        const candidate = { ...cabinet, ...(frame ? { x: frame.x, z: frame.z } : {}), state: { ...cabinet.state, w, shape, h: maxHeight(shape) } };
+        const underCeiling = ceilings.shapeBlocked(candidate, shape);
         if (underCeiling) return underCeiling;
-        const candidate = { ...cabinet, state: { ...cabinet.state, shape, h: maxHeight(shape) } };
         return collision.cabinetCollides(candidate) ? blockedMessage('That shape', candidate) : null;
     };
     return {
@@ -302,25 +306,29 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         /** Commit an edited skeleton. Invalid geometry is rejected with its reason;
          * fittings and shelf boards that no longer fit are compacted or removed. */
-        setShape(shape: WardrobeShape, recordHistory = true, refit = true) {
-            const cabinet = active(), state = cabinet.state, problem = shapeEditProblem(shape);
+        setShape(shape: WardrobeShape, recordHistory = true, refit = true, frame?: ShapeFrame) {
+            const cabinet = active(), state = cabinet.state, problem = shapeEditProblem(shape, frame);
             if (problem) {
                 // Room boundaries silently stop the edit. Keep feedback for
                 // malformed skeletons, such as a panel that is too narrow.
-                const geometryProblem = shapeProblems(shape, state.w)[0];
+                const geometryProblem = shapeProblems(shape, frame?.w ?? state.w)[0];
                 if (geometryProblem) report(friendlyProblem(geometryProblem));
                 return false;
             }
-            const h = maxHeight(shape);
-            if (JSON.stringify(shape) === JSON.stringify(state.shape)) return false;
+            const h = maxHeight(shape), widthChanged = frame && frame.w !== state.w;
+            if (JSON.stringify(shape) === JSON.stringify(state.shape) && (!frame || (frame.w === state.w && frame.x === cabinet.x && frame.z === cabinet.z))) return false;
             if (recordHistory) checkpoint();
+            if (frame) { state.w = frame.w; cabinet.x = frame.x; cabinet.z = frame.z; }
             state.shape = structuredClone(shape);
             if (state.shape.template === 'room') state.shape.template = 'custom';
             state.h = h;
             state.proposal = null;
             // Live previews skip refitting so a drag never destroys fittings; the
             // final commit refits once.
-            if (refit) design.fitToShape();
+            if (refit) {
+                if (widthChanged) design.refitAfterSize();
+                design.fitToShape();
+            }
             return true;
         },
         resetCabinet() {

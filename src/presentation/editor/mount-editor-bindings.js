@@ -216,7 +216,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
-        camera.frameMobileInspector();
+        camera.frameMobileInspector(key === 'shape');
     };
     const resize = createResizePresenter({
         getSelection: () => model.activeCabinet().state,

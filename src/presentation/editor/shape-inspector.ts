@@ -1,38 +1,29 @@
-import type { EditorState } from '../../application/projects/editor-scene';
 import type { createSceneCommands } from '../../application/commands/scene-commands';
-import { PANEL } from '../../domain/wardrobe/catalog.js';
 import {
-    addStep, MIN_SEGMENT, partitionPositions, removePoint, resolveShape, setPanelAngle, setPoint, setStepRise, shapePanels, shapeProblems, splitPanel,
-    type ShapeTemplateId, type WardrobeShape, friendlyProblem,
+    addStep, MIN_SEGMENT, removePoint, resolveShape, setPanelAngle, setStepRise, shapePanels, splitPanel,
+    type ShapeTemplateId, type WardrobeShape,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
-import { alignTo, type Align } from './align-snap';
+import { createShapeHandleEditing, type ShapeHandlePorts } from './shape-handle-editing';
+import { editProfilePoint, profileAt } from '../../domain/wardrobe/shape/shape-handle-edit';
 
 interface ShapeInspectorPorts {
     dom: {
         $<E extends HTMLElement = HTMLElement>(selector: string): E;
         document: { createElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K] };
     };
-    model: { activeCabinet(): { state: EditorState }; snapshot(): string; restore(raw: string): void };
+    model: ShapeHandlePorts['model'];
     sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem' | 'frontShape'>;
-    picking: { frontPoint(e: PointerEvent): { x: number; y: number } | null };
+    picking: ShapeHandlePorts['picking'];
     selectionState: { shapeEditing?: boolean; focusOn: boolean };
-    callbacks: { refresh(): void; rebuild(): void; histUI(): void; report?(message: string): void };
+    callbacks: { refresh(): void; rebuild(): void; histUI(): void; frame?(): void; report?(message: string): void };
 }
-interface HandleDrag {
-    index: number; pointer: number; target: HTMLElement; snapshot: string;
-    start: { x: number; y: number }; original: WardrobeShape; last: WardrobeShape; moved: boolean;
-    lockX: { v: number; label: string } | null; lockY: { v: number; label: string } | null;
-    guides: { orient: 'h' | 'v'; pos: number; label: string }[];
-    reason: string | null;
-}
-
 /** Wardrobe-level skeleton editing: template choice, a precise panel list and
  * draggable break points on the model. Every change goes through scene commands,
  * which validate the geometry and refit fittings. */
 export function createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks }: ShapeInspectorPorts) {
-    let drag: HandleDrag | null = null;
+    const editing = createShapeHandleEditing({ model, sceneCommands, picking, callbacks });
     const state = () => model.activeCabinet().state;
     /** Editable skeleton; a regular wardrobe becomes a custom one once edited. */
     const current = (): WardrobeShape => resolveShape(state());
@@ -45,7 +36,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
 
     const report = (message: string) => callbacks.report?.(message);
     function commit(next: WardrobeShape) {
-        if (sceneCommands.setShape(sceneCommands.frontShape(editable(next)))) callbacks.refresh();
+        if (sceneCommands.setShape(editable(next))) callbacks.refresh();
         else render();
     }
     function chooseTemplate(id: ShapeTemplateId) {
@@ -81,7 +72,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         fold.open = !!selectionState.shapeEditing;
         const shape = current(), pts = shape.top, rows: string[] = [], panelsList = shapePanels(shape);
         const point = (k: number, label: string, withX: boolean) => {
-            rows.push(row('', k, label, '', withX ? action('remove', 'Remove ' + label.toLowerCase(), { p: k }, TRASH) : '', (withX ? field('From left', { p: k, k: 'x' }, pts[k]!.x, { min: 0, max: state().w }) : '') + field('Height', { p: k, k: 'y' }, pts[k]!.y, { min: 40, max: 280 })));
+            rows.push(row('', k, label, '', withX ? action('remove', 'Remove ' + label.toLowerCase(), { p: k }, TRASH) : '', (withX ? field('From left', { p: k, k: 'x' }, pts[k]!.x, { min: 0, max: state().w }) : '') + field('Height', { p: k, k: 'y' }, pts[k]!.y, { min: 40, max: 280 }) + field('Rear height', { p: k, k: 'y', side: 'rear' }, shape.back?.[k] ?? pts[k]!.y, { min: 40, max: 280 })));
         };
         let breaks = 0, steps = 0;
         point(0, 'Left side', false);
@@ -108,9 +99,9 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     function onChange(input: HTMLInputElement) {
         const value = input.valueAsNumber, shape = current();
         if (!Number.isFinite(value)) { render(); return; }
-        if (input.dataset.k === 'angle') commit(setPanelAngle(shape, Number(input.dataset.s), value));
-        else if (input.dataset.k === 'rise') commit(setStepRise(shape, Number(input.dataset.p), value));
-        else commit(setPoint(shape, Number(input.dataset.p), input.dataset.k === 'x' ? { x: value } : { y: value }));
+        if (input.dataset.k === 'angle') commit({ ...setPanelAngle(shape, Number(input.dataset.s), value), back: shape.back ?? shape.top.map(p => p.y) });
+        else if (input.dataset.k === 'rise') commit({ ...setStepRise(shape, Number(input.dataset.p), value), back: shape.back ?? shape.top.map(p => p.y) });
+        else commit(editProfilePoint(shape, input.dataset.side === 'rear' ? 'rear' : 'front', Number(input.dataset.p), input.dataset.k === 'x' ? { x: value } : { y: value }));
     }
     function onAction(button: HTMLButtonElement) {
         const shape = current(), name = button.dataset.action;
@@ -184,11 +175,10 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     /** Break points are always reachable on the model; the panel list only adds precision. */
     function handles() {
         const shape = current(), w = state().w;
-        return shape.top.map((p, index, all) => ({
-            index, x: p.x - w / 2, y: p.y,
-            movesX: index > 0 && index < all.length - 1,
-            label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),  // accessible name only; the handle shows a dot
-        }));
+        return (['front', 'rear'] as const).flatMap(side => profileAt(shape, side).top.map((p, index) => ({
+            index, side, x: p.x - w / 2, y: p.y, z: (side === 'rear' ? -1 : 1) * (state().d / 2 + 2),
+            movesX: true, label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),
+        })));
     }
     /** "+" markers at the middle of every top panel wide enough to split. */
     function splitMarkers() {
@@ -220,21 +210,22 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     /** Live measurements while a point is dragged: only the panels and steps that touch it,
      * so their length, angle or rise update as the point moves. */
     function dragMeasures() {
-        const g = drag;
+        const g = editing.drag();
         if (!g) return [];
         // The X and Y rulers already give the point's distances, so a touching panel
         // shows only its live angle. Steps keep their rise, which the rulers do not show.
-        return shapePanels(g.last).filter(p => p.from === g.index || p.to === g.index).map(p => {
-            const m = panelMeasure(g.last, p);
+        const profile = profileAt(g.last, g.side);
+        return shapePanels(profile).filter(p => p.from === g.index || p.to === g.index).map(p => {
+            const m = panelMeasure(profile, p);
             if (!m) return m;
             return p.kind === 'top' ? { ...m, text: Math.round(p.angle) + '°' } : m;
         }).filter((m): m is NonNullable<typeof m> => m !== null);
     }
     /** Why a drag stopped short of the pointer, in plain language. */
     function dragReason() {
-        const g = drag;
+        const g = editing.drag();
         if (!g || !g.reason) return null;
-        const p = g.last.top[g.index]!, w = state().w;
+        const p = profileAt(g.last, g.side).top[g.index]!, w = state().w;
         return { text: g.reason, x: p.x - w / 2, y: p.y };
     }
     function split(index: number) {
@@ -242,134 +233,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         if (next !== shape) commit(next);
         else report('This panel is too narrow to split. It needs at least ' + 2 * MIN_SEGMENT + ' cm.');
     }
-    /** Snapping and guides follow the item rules: a tolerance of about 8 screen pixels
-     * (so it feels the same at any zoom), a lock that holds the line it caught, and a
-     * guide drawn across the model with its name. */
-    let pxPerCm = 4;
-    function setScale(value: number) { pxPerCm = Math.max(.5, value); }
-    const tolerance = () => Math.max(.4, Math.min(4, 8 / pxPerCm));
-    function breakName(shape: WardrobeShape, k: number) {
-        if (k === 0) return 'left side';
-        if (k === shape.top.length - 1) return 'right side';
-        let n = 0;
-        for (let j = 1; j <= k; j++) if (Math.abs(shape.top[j]!.x - shape.top[j - 1]!.x) > 1e-6 || j === k) n++;
-        return 'break ' + n;
-    }
-    /** Heights a point can level with: the other break points. */
-    function heightTargets(o: WardrobeShape, index: number): Align[] {
-        return o.top.flatMap((q, k) => k === index ? [] : [{ v: q.y, label: 'Level with ' + breakName(o, k) }]);
-    }
-    /** Positions a point can align with: sides, centre, partitions and other break points. */
-    function positionTargets(o: WardrobeShape, index: number): Align[] {
-        const w = state().w, out: Align[] = [{ v: 0, label: 'Flush with left side' }, { v: w, label: 'Flush with right side' }, { v: w / 2, label: 'Centred' }];
-        for (const x of partitionPositions(state())) out.push({ v: x, label: 'Aligned with partition' }, { v: x + PANEL, label: 'Aligned with partition' });
-        o.top.forEach((q, k) => { if (k !== index && k > 0 && k < o.top.length - 1) out.push({ v: q.x, label: 'Aligned with ' + breakName(o, k) }); });
-        return out;
-    }
-    const roundCm = (v: number) => Math.round(v * 10) / 10;
-    /** Live X and Y rulers for the break point being dragged: X from the left side,
-     * Y from the floor. Cabinet-centred endpoints, rebuilt on every move. */
-    function dragRulers() {
-        const index = drag?.index ?? focusedPoint, shape = drag?.last ?? current();
-        if (index === null || !shape.top[index]) return [];
-        const p = shape.top[index]!, w = state().w, x = p.x - w / 2, out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
-        // An X ruler only for a point inside the wardrobe: on a side it repeats the full width.
-        const interior = index > 0 && index < shape.top.length - 1;
-        if (interior && p.x > .5 && p.x < w - .5) out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + cm(p.x) + ' cm', axis: 'width' });
-        if (p.y > .5) out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + cm(p.y) + ' cm', axis: 'height' });
-        return out;
-    }
-    /** Guides for the current drag: horizontal for heights, vertical for positions. */
-    function guides(): { orient: 'h' | 'v'; pos: number; label: string }[] {
-        return drag?.guides ?? [];
-    }
-    function beginHandleDrag(e: PointerEvent, index: number, target: HTMLElement) {
-        const start = picking.frontPoint(e);
-        if (!start) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const original = current();
-        drag = { index, pointer: e.pointerId, target, snapshot: model.snapshot(), start: { x: start.x, y: start.y }, original, last: original, moved: false, lockX: null, lockY: null, guides: [], reason: null };
-        // Capture can fail if the pointer already ended; the drag still works from the handle's own events.
-        try { target.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
-    }
-    /** Browsers already deliver pointer moves aligned to frames, so each one is applied directly. */
-    function moveHandleDrag(e: PointerEvent) {
-        const g = drag;
-        if (!g || e.pointerId !== g.pointer) return;
-        const p = picking.frontPoint(e);
-        if (!p) return;
-        const o = g.original, point = o.top[g.index]!;
-        const movesX = g.index > 0 && g.index < o.top.length - 1;
-        // Targets follow the pointer from where the handle was grabbed.
-        const rawY = point.y + p.y - g.start.y, rawX = point.x + p.x - g.start.x;
-        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY, tolerance());
-        const alignX = movesX ? alignTo(rawX, positionTargets(o, g.index), g.lockX, tolerance()) : null;
-        g.lockY = alignY;
-        g.lockX = alignX;
-        g.guides = [
-            ...(alignY ? [{ orient: 'h' as const, pos: alignY.v, label: alignY.label }] : []),
-            ...(alignX ? [{ orient: 'v' as const, pos: alignX.v, label: alignX.label }] : []),
-        ];
-        const wantY = alignY ? alignY.v : roundCm(rawY);
-        // A break point stays inside the wardrobe; the rules then decide how far it may go.
-        const wantX = movesX ? Math.max(0, Math.min(state().w, alignX ? alignX.v : roundCm(rawX))) : point.x;
-        const want = setPoint(o, g.index, { x: wantX, y: wantY });
-        const geometryProblem = shapeProblems(want, state().w)[0];
-        g.reason = geometryProblem ? friendlyProblem(geometryProblem) : null;
-        // Move as far toward the target as the rules allow, rather than stopping dead
-        // at the first invalid position. Bisect between the last valid shape and the target.
-        const valid = (t: number) => {
-            const from = g.last.top[g.index]!;
-            const at = setPoint(g.last, g.index, { x: from.x + (want.top[g.index]!.x - from.x) * t, y: from.y + (want.top[g.index]!.y - from.y) * t });
-            const front = sceneCommands.frontShape(editable(at), g.original);
-            return sceneCommands.shapeEditProblem(front) === null ? front : null;
-        };
-        let next = valid(1);
-        if (!next) {
-            let lo = 0, hi = 1, best = g.last;
-            for (let n = 0; n < 14; n++) {
-                const mid = (lo + hi) / 2, cand = valid(mid);
-                if (cand) { lo = mid; best = cand; } else hi = mid;
-            }
-            next = best;
-        }
-        if (JSON.stringify(next.top) === JSON.stringify(g.last.top)) {
-            // Only the guides changed (the point is held on a line): redraw them.
-            callbacks.rebuild();
-            return;
-        }
-        if (sceneCommands.setShape(editable(next), false, false)) {
-            g.last = next;
-            g.moved = true;
-            callbacks.rebuild();
-        }
-    }
-    function endHandleDrag(cancel = false) {
-        if (!drag) return;
-        const g = drag;
-        drag = null;
-        if (g.target.hasPointerCapture(g.pointer)) g.target.releasePointerCapture(g.pointer);
-        const final = state().shape;
-        model.restore(g.snapshot);
-        if (!cancel && g.moved && final) sceneCommands.setShape(final);
-        callbacks.histUI();
-        callbacks.refresh();
-    }
-    /** Keyboard access for handles: arrows move by 1 cm, Shift by 0.5 cm. */
-    function nudge(index: number, dx: number, dy: number) {
-        const shape = current(), p = shape.top[index];
-        if (!p) return;
-        commit(setPoint(shape, index, { y: p.y + dy, ...(dx && index > 0 && index < shape.top.length - 1 ? { x: p.x + dx } : {}) }));
-    }
-    const dragging = () => drag !== null;
     /** Keyboard focus on a break point or the angle field shows that point's or panel's measures. */
-    let focusedPoint: number | null = null, focusedSegment: number | null = null;
-    function setFocusedPoint(index: number | null) {
-        if (focusedPoint === index) return;
-        focusedPoint = index;
-        callbacks.rebuild();
-    }
+    let focusedSegment: number | null = null;
     function focusMeasures(phone: boolean) {
         if (focusedSegment !== null) {
             return measures().filter((_, i) => shapePanels(current())[i]?.from === focusedSegment);
@@ -381,5 +246,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const shape = current(), a = shape.top[focusedSegment];
         return a ? { x: a.x - state().w / 2, y: a.y } : null;
     }
-    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, focusMeasures, pivot, setFocusedPoint, guides, dragRulers, setScale, split, beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, dragging, chooseTemplate };
+    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, focusMeasures, pivot, ...editing, split, chooseTemplate };
 }

@@ -1,10 +1,12 @@
 import * as THREE from "three";
 /** @param {import('./scene-picking.ports').CreateScenePickingPorts} ports */
 export function createScenePicking({ dom, interactionState, renderState, resources, model }) {
-    function frontPoint(e) {
+    function frontPoint(e, side = 'front') {
         const r = resources.cv.getBoundingClientRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -model.activeCabinet().state.d / 2).applyMatrix4(renderState.Gr.matrixWorld), point = interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
+        const depth = (side === 'rear' ? 1 : -1) * model.activeCabinet().state.d / 2;
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), depth).applyMatrix4(renderState.Gr.matrixWorld);
+        const point = interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
         return point ? renderState.Gr.worldToLocal(point) : null;
     }
     function cast(e, arr) {

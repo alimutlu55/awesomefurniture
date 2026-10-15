@@ -55,7 +55,7 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
 }
 
-/** Side panels and partitions join the edited front to its fixed rear. */
+/** Side panels and partitions join the independently edited front and rear. */
 export function renderUpright(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'n' | 'wt' | 'shape'>,
     x0: number, x1: number, y0: number, depth: number, material: Material, box: BoxBuilder, prism: PrismBuilder) {
     const shape = resolveShape(design), points = boardUnderTop(design, x0, x1, y0);

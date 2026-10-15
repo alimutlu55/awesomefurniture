@@ -151,6 +151,8 @@ export function bindPropertiesToggle({ dom, inspector, shell, lifetime, elements
         // Releasing an editing handle commits its change; it does not leave the tool.
         const target = /** @type {Element} */ (e.target);
         if (target.closest('.shape-handle,.item-resize-handle')) return;
+        // Orbiting to reach the rear edge stays inside the Shape session.
+        if (dom.$('#left').dataset.contextSection === 'shape') return;
         animateMobileSheetClose(dom.$('#left'));
         elements.app.classList.add('props-hidden');
         elements.app.classList.remove('props-open');
