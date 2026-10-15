@@ -38,6 +38,8 @@
  ){
   --panel-height:var(--mobile-settings-sheet-height);
   --sheet:var(--panel-height);
+  /* Transparent space around the room meets the drawer without a gray band. */
+  background:var(--panel);
  }
  :host([data-keyboard-open]) #app:is(
   .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
