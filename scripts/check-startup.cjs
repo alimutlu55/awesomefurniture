@@ -37,6 +37,7 @@ const fs=require('node:fs/promises');
    assert.ok(profile.resources.every(r=>r.bytes>0), 'Every texture must load successfully');
    assert.ok(profile.resources.every(r=>r.name.endsWith('.webp')), 'Never request the source JPEGs');
    assert.deepEqual(profile.grade, [], 'Colour grading must happen offline');
+   assert.equal(await page.locator('.mobile-feedback').count(),0,'Offline startup must not create background-saving notifications');
   }
   await page.screenshot({path:out+'.png'});await fs.writeFile(out+'.json',JSON.stringify({...profile,errors},null,2));
   console.log(JSON.stringify({textureBytes:bytes,textureReady:Math.max(...profile.resources.map(e=>e.end)),resources:profile.resources,grade:profile.grade,longTasks:profile.longTasks.sort((a,b)=>b.duration-a.duration).slice(0,8),errors},null,2));

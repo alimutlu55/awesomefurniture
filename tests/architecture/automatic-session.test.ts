@@ -68,3 +68,33 @@ test('the existing menu publishes only when Share is clicked, and copies the ret
   await listeners.get(item)!();
   assert.equal(publications, 1); assert.equal(new URL(copies).searchParams.get('session'), 'current-session');
 });
+
+test('background save failures stay silent, retain the draft and retry on the next tick', async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  let tick = () => {}; let unavailable = true; let attempts = 0; let recovered = 0;
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    setInterval: (callback: () => void) => { tick = callback; return 0; },
+    addEventListener: () => undefined, removeEventListener: () => undefined,
+  } });
+  const memory = new MemoryProjectRepository(), model = createEditorModel();
+  const repository = { async save(document: Parameters<typeof memory.save>[0], revision: number | null) {
+    attempts++;
+    if (unavailable) throw new Error('Network unavailable');
+    return memory.save(document, revision);
+  } };
+  let connection: ReturnType<typeof connectSessions> | undefined;
+  try {
+    connection = connectSessions({ repository, drafts: { write: async () => { recovered++; } },
+      draft: { document: createProject('quiet-retry', 'Wardrobe design'), expectedRevision: null }, saved: false } as never,
+    { snapshot: model.snapshot, scene: () => model.scene, notify: () => assert.fail('Background saving must not show a notification') } as never);
+    await connection.ready;
+    assert.equal(attempts, 1); assert.ok(recovered > 0, 'browser recovery precedes the failed request');
+    unavailable = false; tick();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(attempts, 2);
+    assert.equal((await memory.load('quiet-retry'))?.revision, 1, 'the retry still saves the design');
+  } finally {
+    connection?.dispose();
+    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
+  }
+});

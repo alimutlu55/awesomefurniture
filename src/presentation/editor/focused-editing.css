@@ -1,0 +1,9 @@
+/* Size and shape panels own the workspace until they close. Derive this from
+   visible panels so selection changes, Escape and sheet dismissal restore chrome. */
+#app:is(
+ .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+ :has(:is(#pop3,#pop4)[data-context-section="resize"].show),
+ :has(.item-resize-handle.resizing)
+) :is(#view-modes,#topright,#topleft,#toolbar,#br,#hint,.mobile-feedback,.contextual-popover,.lbl.add){
+ display:none!important;
+}

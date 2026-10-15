@@ -17,6 +17,10 @@ export function bindEscapeKey({ dom, interactions, inspector, planner, shell, in
                 inspector.hidePop();
                 planner.closeWizard();
             }
+            else if ($('#app').classList.contains('props-open')) {
+                $('#left-close').click();
+                return;
+            }
             else if (model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0) {
                 inspector.goUp('section');
             }

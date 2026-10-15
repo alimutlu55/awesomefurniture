@@ -24,7 +24,6 @@ async function main(): Promise<void> {
  const mounted=mountEditor({root:root!,initialScene:projectToScene(platform.draft.document),
   shareLink:scene=>sessions?sessions.share():designLink(scene,location.href.split('#')[0]!)});
  editor=mounted;
- if(platform.warning) mounted.notify(platform.warning);
  const unbindViewport=bindPageViewport(root!,window);
  // A design link opens that design, on loading and when the link changes: #design= is a design someone
  // shared (the whole design), #spec= one an assistant described.

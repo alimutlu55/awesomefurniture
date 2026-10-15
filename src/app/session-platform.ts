@@ -10,7 +10,6 @@ import type { SessionPlatform } from './session-bootstrap';
 export function connectSessions(platform: SessionPlatform, editor: ReturnType<typeof mountEditor>) {
   const { repository, drafts } = platform;
   let disposed = false;
-  let lastError = '';
   const capture = () => { editor.snapshot(); return structuredClone(editor.scene()); };
   const createSaver = (draft: SessionDraft, saved = false) => createSessionAutosave({
     ...draft, document: sceneToProject(draft.document, capture()),
@@ -35,16 +34,11 @@ export function connectSessions(platform: SessionPlatform, editor: ReturnType<ty
       await saver.flush();
     }
   }
-  function failed(error: unknown) {
-    if (disposed) return;
-    const message = error instanceof Error ? error.message : String(error);
-    if (message !== lastError) editor.notify('Saving is unavailable. Keep this tab open while the connection recovers.');
-    lastError = message;
-  }
+  // Background failures stay quiet. Autosave keeps the browser draft and the next tick retries.
   const tick = () => {
-    if (!disposed) void ordered(flush).then(() => { lastError = ''; }, failed);
+    if (!disposed) void ordered(flush).catch(() => undefined);
   };
-  const ready = ordered(flush).catch(failed); // Creates the stored design as soon as the editor lands.
+  const ready = ordered(flush).catch(() => undefined); // Creates the stored design as soon as the editor lands.
   const timer = window.setInterval(tick, 2500);
   const beforeUnload = (event: BeforeUnloadEvent) => {
     try { void drafts.write({ document: sceneToProject(saver.document, capture()), expectedRevision: saver.revision }); }
