@@ -4,6 +4,9 @@ Size and Shape panels hide the Studio/Wardrobe switch, Storage, global Menu, act
 internal Add item prompts and transient feedback. The model, editing handles and relevant panel remain.
 Item/divider sizing and room sizing use the same rule. Direct item resize gestures also hide chrome
 until the gesture ends. Closing a panel, swiping it away or pressing Escape restores normal controls.
+On phones the compact Size/Shape drawer uses 25% of the editor height and the model uses 75%.
+Safe-area padding is included in that drawer height. Dragging/tapping the existing handle still expands
+it for more controls, and the keyboard retains its existing accessible layout.
 The CSS derives this from existing visible-panel and gesture state, without another UI mode to reset.
 
 Escape now closes settings before navigating out of the current selection. On phones the existing
