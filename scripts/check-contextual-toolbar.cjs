@@ -29,9 +29,7 @@ const assert=require('node:assert/strict');
     const buttons=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,width:r.width};}));
     assert.ok(buttons.length>=4);
     for(let i=1;i<buttons.length;i++){
-     // Actions share one slot width; history (Undo, Redo) has its own pair of slots.
-     const first=i<buttons.length-2?0:buttons.length-2;
-     assert.ok(Math.abs(buttons[i].width-buttons[first].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
+     assert.ok(Math.abs(buttons[i].width-buttons[0].width)<1,'Every visible action gets an equal-width slot: '+JSON.stringify(buttons));
      assert.ok(Math.abs(buttons[i].x-(buttons[i-1].x+buttons[i-1].width))<1,'No unused spacer between actions');
     }
     assert.deepEqual(await toolbar.locator('button.tb:visible').evaluateAll(es=>es.slice(-2).map(e=>e.dataset.editorId)),['undo2','redo2'],'History occupies the last two slots');

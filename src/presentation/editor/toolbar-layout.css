@@ -1,0 +1,21 @@
+/* One automatic grid column per visible action. Group wrappers retain their
+   semantics without reserving tracks for hidden buttons or a history spacer. */
+@media (max-width:900px){
+ #toolbar[data-context]{
+  display:grid!important;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(0,1fr);
+  width:max-content;
+  max-width:calc(100% - 16px);
+  left:50%;right:auto;transform:translateX(-50%);margin-inline:0;
+ }
+ #toolbar[data-context="none"] .contextual-defaults,
+ #toolbar:not([data-context="none"]) .contextual-actions,
+ #toolbar .contextual-history{display:contents}
+ #toolbar .contextual-history::before{display:none}
+ #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb,
+ #toolbar :is(#undo2,#redo2),#toolbar .contextual-defaults #add-anchor{
+  width:96px;max-width:100%;min-width:0;box-sizing:border-box;
+ }
+ #toolbar #undo2{border-left:1px solid var(--line);border-radius:0}
+}
