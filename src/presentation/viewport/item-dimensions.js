@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import * as THREE from "three";
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
@@ -40,7 +41,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         const ruler = (a, b, text, axis, dragged) => {
             const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension' + (dragged ? ' assist-size' : ''));
             if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
-                'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal');
+                'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? MIN_CABINET_DEPTH - 2 : 0, axis === 'depth' ? 78 : 2000);
             bindRuler(el, a, b, axis);
         };
         if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + ' cm', 'width', !!edge);

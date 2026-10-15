@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../wardrobe/cabinet-limits';
 /**
  * Placing wardrobes in a room: against a wall, out of a wall, and snapping to a wall while dragged.
  * The caller supplies `collides`, the scene's own collision test (wardrobes and walls), so these rules
@@ -125,7 +126,7 @@ export function wallSpot(studio: Studio, wallId: string, standing: readonly Stan
   if (!best || best[1] - best[0] < limits.min) return null;
   const width = Math.floor(Math.min(limits.max, best[1] - best[0])), along = best[0] + width / 2;
   const room = reachAt(studio, wallId, along), depth = Math.min(limits.depth, room === null ? limits.depth : Math.floor(room - 50));
-  if (depth < 35) return null;
+  if (depth < MIN_CABINET_DEPTH) return null;
   const pose = flush(studio, w, along, { w: width, d: depth });
   return pose && { pose, w: width, d: depth };
 }

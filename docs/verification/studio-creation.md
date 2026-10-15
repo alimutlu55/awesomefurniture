@@ -8,7 +8,7 @@ and a room too small for any wardrobe still received one.
 
 Creation now prepares detached candidates in `place-created-cabinet.ts` before committing anything.
 It searches inward-facing wall positions and validates physical walls, other wardrobes and opening access.
-Default width/depth can shrink within the existing 80–400 / 35–80 cm limits. Explicit width/depth and
+Default width/depth can shrink within the existing 80–400 / 15–80 cm limits. Explicit width/depth and
 copied footprints remain fixed. A selected wall/offset never falls back to another wall or the open floor.
 The automatic top follows the studio ceiling, including slopes across the hidden rear edge; a final
 full-surface ceiling check catches any penetration missed by the fitting approximation. Flat room height

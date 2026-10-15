@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
 import { FIN } from '../../../domain/wardrobe/catalog.js';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 /** Whole-wardrobe controls: size, finish, reach, doors, wardrobe list, reset.
@@ -5,7 +6,7 @@ import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-contr
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
 export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
     const { $ } = dom;
-    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', 35, 80]];
+    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', MIN_CABINET_DEPTH, 80]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
             inputAttributes: { id, inputmode: 'numeric', 'aria-label': 'Wardrobe ' + t.toLowerCase() },

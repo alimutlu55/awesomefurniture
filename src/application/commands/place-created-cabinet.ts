@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
@@ -13,6 +14,7 @@ export interface CreationSize { w?: number; h?: number; d?: number; from?: numbe
  * selection, identity counters or undo history. Requested dimensions stay exact;
  * unrequested default width/depth can shrink to the available room. */
 export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet, copy: boolean, wall?: string, size: CreationSize = {}): EditorCabinet | null {
+  if (!Number.isFinite(original.state.d) || original.state.d < MIN_CABINET_DEPTH || original.state.d > 80) return null;
   const studio = scene.studio;
   const targetWall = wall ?? size.placementWall;
   const collision = createCabinetGeometry(() => scene.wardrobes, () => studioPlacementObstacles(studio));
@@ -20,7 +22,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   const wallsOnly = createCabinetGeometry(() => [], () => studioObstacles(studio));
   const ceilings = createCeilingCommands(() => scene, () => {});
   function prepare(pose: Pose, w: number, d: number): EditorCabinet | null {
-    if (w < 80 || w > 400 || d < 35 || d > 80) return null;
+    if (w < 80 || w > 400 || d < MIN_CABINET_DEPTH || d > 80) return null;
     const footprint = { ...original, ...pose, state: { ...original.state, w, d } };
     if (wallsOnly.cabinetCollides(footprint)) return null;
     // Even the shortest buildable cabinet cannot occupy an already filled
@@ -62,7 +64,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   }
   const walls = studio.walls.filter(w => targetWall === undefined || w.id === targetWall)
     .sort((a, b) => (wallFace(studio, b)?.length ?? 0) - (wallFace(studio, a)?.length ?? 0));
-  const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35].filter(d => d <= original.state.d))];
+  const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35, 30, 25, 20, MIN_CABINET_DEPTH].filter(d => d <= original.state.d))];
   for (const d of depths) for (const roomWall of walls) {
     const face = wallFace(studio, roomWall);
     if (!face) continue;

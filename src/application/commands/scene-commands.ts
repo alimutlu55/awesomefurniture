@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet, createEditorModel } from '../projects/editor-model';
@@ -186,7 +187,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         setCabinetSize(key: string, value: number, recordHistory = true) {
             const cabinet = active(), state = cabinet.state;
-            const ranges = { w: [80, 400], h: [resizeHeightMinimum(state), 280], d: [35, 80] }, range = ranges[key as keyof typeof ranges];
+            const ranges = { w: [80, 400], h: [resizeHeightMinimum(state), 280], d: [MIN_CABINET_DEPTH, 80] }, range = ranges[key as keyof typeof ranges];
             if (!range || !Number.isFinite(value)) {
                 return false;
             }

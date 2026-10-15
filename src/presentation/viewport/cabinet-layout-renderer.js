@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import * as THREE from "three";
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import { createShapeHandleButtons } from './shape-handle-buttons';
@@ -228,7 +229,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                         hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0, hor ? 'horizontal' : 'vertical');
                     bindRuler(el, ra, rb, hor ? 'under' : 'height');
                     const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, -d / 2 + .5), db = new V(x + vr.x0, iy + vr.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
-                    sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', d - 2, 'horizontal', 33, 78);
+                    sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', d - 2, 'horizontal', MIN_CABINET_DEPTH - 2, 78);
                     bindRuler(depthLabel, da, db, 'depth');
                     const depthEntry = renderState.labs[renderState.labs.length - 1], handle = renderState.dividerMoveHandle || (renderState.dividerMoveHandle = document.createElement('button'));
                     handle.type = 'button';

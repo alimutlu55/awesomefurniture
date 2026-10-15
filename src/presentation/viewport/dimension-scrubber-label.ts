@@ -1,3 +1,4 @@
+import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import { decorateMeasurementBadge } from '../components/measurement-badge';
 /** Cabinet metadata adapts its rulers to the shared measurement control. */
 export function decorateDimensionScrubber(el: HTMLElement) {
@@ -9,7 +10,7 @@ export function decorateDimensionScrubber(el: HTMLElement) {
     decorateMeasurementBadge(el, { id: key, value, orientation: height ? 'vertical' : 'horizontal',
         label: key === 'w' ? 'Wardrobe width' : key === 'd' ? 'Wardrobe depth'
             : key === 'h-left' ? 'Wardrobe left height' : key === 'h-right' ? 'Wardrobe right height' : 'Wardrobe height',
-        min: key === 'w' ? 80 : key === 'd' ? 35 : 40, max: key === 'w' ? 400 : key === 'd' ? 80 : 280 });
+        min: key === 'w' ? 80 : key === 'd' ? MIN_CABINET_DEPTH : 40, max: key === 'w' ? 400 : key === 'd' ? 80 : 280 });
 }
 
 /** Interactive pills must remain above the toolbar even after zooming. */
