@@ -41,6 +41,28 @@ function assertPhysics(f: ReturnType<typeof fixture>) {
   }
 }
 
+test('a view-targeted wall keeps default size rather than filling a longer or different wall', () => {
+  const f = fixture(rectangleStudio(300, 500));
+  const added = f.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' });
+  assert.ok(added); assert.equal(added.angle, 0); assert.equal(added.state.w, 200);
+  assertPhysics(f);
+});
+test('a view-targeted wall adapts to its width and never falls back to a side wall', () => {
+  const f = fixture(rectangleStudio(150, 400));
+  const added = f.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' });
+  assert.ok(added); assert.equal(added.angle, 0); assert.ok(added.state.w <= 150);
+  assertPhysics(f);
+  const narrow = fixture(rectangleStudio(70, 400)), before = narrow.model.snapshot();
+  assert.equal(narrow.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' }), null);
+  assert.equal(narrow.model.snapshot(), before); assert.equal(narrow.history.length, 0);
+  assert.ok(narrow.commands.addCabinet(), 'a side wall could fit, but must not override the requested wall');
+});
+test('an explicitly selected wall takes priority over the view target', () => {
+  const f = fixture(rectangleStudio(300, 500));
+  const added = f.commands.addCabinet(false, undefined, 'w2', { w: 180, placementWall: 'w1' });
+  assert.ok(added); assert.equal(added.angle, -90); assertPhysics(f);
+});
+
 test('explicit dimensions and a duplicate that cannot fit are refused atomically', () => {
   const f = fixture(rectangleStudio(150, 115)), empty = f.model.snapshot();
   assert.equal(f.commands.addCabinet(false, undefined, undefined, { w: 200 }), null);

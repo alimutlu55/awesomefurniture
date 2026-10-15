@@ -1,4 +1,5 @@
 import { createAddMenuPresenter } from './add-menu-presenter.js';
+import { viewedWall } from '../../domain/studio/viewed-wall';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
@@ -68,7 +69,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
-        const w = sceneCommands.addCabinet(copy, template, wall);
+        const studio = model.scene.studio;
+        const placementWall = !copy && !wall && studio
+            ? viewedWall(studio, resources.cam.position, resources.cam.getWorldDirection(resources.cam.position.clone())) : undefined;
+        const w = sceneCommands.addCabinet(copy, template, wall, { placementWall });
         if (!w) return false;
         selectionState.room = null;
         if (template && template !== 'regular') selectionState.shapeEditing = true;

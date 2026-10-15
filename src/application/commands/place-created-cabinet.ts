@@ -8,14 +8,15 @@ import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { resizeShape, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { createCeilingCommands } from './ceiling-commands';
 
-export interface CreationSize { w?: number; h?: number; d?: number; from?: number }
+export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string }
 /** Prepare detached candidates. A failed search never changes the scene, its
  * selection, identity counters or undo history. Requested dimensions stay exact;
  * unrequested default width/depth can shrink to the available room. */
 export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet, copy: boolean, wall?: string, size: CreationSize = {}): EditorCabinet | null {
   const studio = scene.studio;
+  const targetWall = wall ?? size.placementWall;
   const collision = createCabinetGeometry(() => scene.wardrobes, () => studioPlacementObstacles(studio));
-  if (!studio) return wall || collision.cabinetCollides(original) ? null : original;
+  if (!studio) return targetWall || collision.cabinetCollides(original) ? null : original;
   const wallsOnly = createCabinetGeometry(() => [], () => studioObstacles(studio));
   const ceilings = createCeilingCommands(() => scene, () => {});
   function prepare(pose: Pose, w: number, d: number): EditorCabinet | null {
@@ -56,10 +57,10 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   }
   // Preserve the normal default size whenever it can actually fit.
   if (!wall || copy) {
-    const same = search(original.state.w, original.state.d, wall);
+    const same = search(original.state.w, original.state.d, targetWall);
     if (same || copy) return same;
   }
-  const walls = studio.walls.filter(w => wall === undefined || w.id === wall)
+  const walls = studio.walls.filter(w => targetWall === undefined || w.id === targetWall)
     .sort((a, b) => (wallFace(studio, b)?.length ?? 0) - (wallFace(studio, a)?.length ?? 0));
   const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35].filter(d => d <= original.state.d))];
   for (const d of depths) for (const roomWall of walls) {

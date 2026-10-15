@@ -16,14 +16,14 @@ export function bindMoreBtn({ dom, inspector, shell, selectionState, model, came
         $('#px').focus({ preventScroll: true });
     });
     // Walls and Wardrobe add to the scene, not to a wardrobe: nothing stays selected, the sheet shows only their
-    // products, and the camera shows the whole scene, where the new walls or wardrobe will go.
+    // products. Keep the wardrobe view: its facing wall determines where it is added.
     for (const [button, context, fold] of [['#walls-btn', 'room', '.room-add'], ['#wardrobe-btn', 'wardrobe', '.shape-add']]) {
         lifetime.listen($(button), 'click', () => {
             shell.closeDD();
             inspector.clearFocus();
             inspector.showPop(null, '#pop2', context);
             /** @type {HTMLDetailsElement} */ ($('#pop2').querySelector(fold)).open = true;
-            camera.frameScene();
+            if (context === 'room') camera.frameScene();
         });
     }
 }

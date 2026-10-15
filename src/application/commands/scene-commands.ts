@@ -1,7 +1,7 @@
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet, createEditorModel } from '../projects/editor-model';
-import { placeCreatedCabinet } from './place-created-cabinet';
+import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
@@ -89,7 +89,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it
          * fills that wall's free stretch instead, as wide as it allows. */
-        addCabinet(copy = false, template?: ShapeTemplateId, wall?: string, size: { w?: number; h?: number; d?: number; from?: number } = {}) {
+        addCabinet(copy = false, template?: ShapeTemplateId, wall?: string, size: CreationSize = {}) {
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId;
             const state = copy ? structuredClone(original.state) : initialDesign();
             // A size asked for (a design spec): set before the shape and the place are worked out.
@@ -102,7 +102,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
             const placed = placeCreatedCabinet(scene, cabinet, copy, wall, size);
             if (!placed) {
-                report(wall ? 'The wardrobe does not fit on this wall within the room and its ceiling.'
+                report(wall || size.placementWall ? 'The wardrobe does not fit on this wall within the room and its ceiling.'
                     : 'The wardrobe does not fit in the available studio space.');
                 return null;
             }
