@@ -17,7 +17,7 @@ const colour = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 
 /** The measuring assistant on the model while something is moved or resized: a dimension line from each
  * face being changed to the nearest surface (wall, neighbour, ceiling) with its distance. Numbers only, no
- * words: green where it lines up (centred gaps, a green bar where it touches, a green dashed line along
+ * words: aligned gaps have no tags (a green bar where it touches, a green dashed line along
  * fronts in line or tops level), amber where doors would not open. It replaces what it drew last, and the
  * editor hides other handles while it shows. Scene centimetres. */
 export function createAssistOverlay({ document, labels, scene, renderState }: AssistOverlayPorts) {
@@ -71,7 +71,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
       }
       dimension(a, b, good ? ok : short ? tight : ink);
       // Near the wardrobe being changed, so a long gap's tag stays in view: half way, or 25 cm out at most.
-      tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + ' cm', good ? 'ok' : short ? 'tight' : '');
+      if (!good) tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + ' cm', short ? 'tight' : '');
     }
     // Fronts in line, tops level: a green dashed line along them, no words.
     for (const a of aligned) {
