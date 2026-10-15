@@ -77,3 +77,16 @@ test('the renderer applies per-wall color and sheen, including ceilings attached
     assert.ok(ceiling.material.color.equals(expected));
     assert.ok(ceiling.material.emissive.equals(expected));
 });
+
+test('deleting the last wall clears its floor and supports rendering a new first wall', t => {
+    const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
+    roomRenderFixture(t, { wardrobes: 0 });
+    const { createStudioRenderer } = require('../src/presentation/viewport/studio-renderer.ts');
+    const { removeWall } = require('../src/domain/studio/studio-edit.ts');
+    const renderer = createStudioRenderer(new THREE.Scene()), wall = createStudio('wall');
+    t.after(() => renderer.dispose());
+    renderer.sync(wall); assert.ok(renderer.pickables().length > 0);
+    assert.doesNotThrow(() => renderer.sync(removeWall(wall, 'w1')));
+    assert.equal(renderer.pickables().length, 0);
+    assert.doesNotThrow(() => renderer.sync(wall)); assert.ok(renderer.pickables().length > 0);
+});

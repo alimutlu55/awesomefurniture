@@ -5,7 +5,7 @@ import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { cornerDegree, wallFace, wallLine } from '../../src/domain/studio/studio';
-import { extendFromCorner, mergeCorners, moveWall, setInsideLength, suggestWall } from '../../src/domain/studio/studio-edit';
+import { extendFromCorner, mergeCorners, moveWall, setInsideLength, suggestWall, removeWall } from '../../src/domain/studio/studio-edit';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 
 /** Building a room by hand: inside lengths, adding walls and openings, joining wall ends. */
@@ -101,4 +101,26 @@ test('studioProblem checks a room without changing anything, for drags that stop
   const count = s.messages.length;
   assert.equal(s.commands.editStudio(room => moveWall(room, 'w1', 40), false, true), false);
   assert.equal(s.messages.length, count, 'a quiet preview reports nothing');
+});
+
+test('adding a wall after deleting the last one treats the empty Studio as a fresh start', () => {
+  const s = scene(); s.model.scene.wardrobes = []; s.model.scene.activeWardrobe = 0;
+  assert.equal(s.commands.addStudioWall(), 'w1');
+  assert.ok(s.commands.editStudio(room => removeWall(room, 'w1')));
+  assert.equal(s.room().walls.length, 0);
+  const before = s.model.snapshot(), checkpoints = s.checkpoints(); s.messages.length = 0;
+  assert.equal(s.commands.addStudioWall(), 'w1');
+  assert.equal(s.room().walls.length, 1); assert.ok(valid(s.room()));
+  assert.equal(s.checkpoints(), checkpoints + 1);
+  assert.ok(s.messages.every(m => !m.includes('no free space')));
+  s.model.restore(before); assert.equal(s.room().walls.length, 0, 'The original empty Studio is restorable');
+});
+
+test('a first wall in an empty saved Studio is placed safely behind existing wardrobes', () => {
+  const s = scene();
+  s.model.scene.studio = { ...createStudio('wall'), template: 'custom', corners: [], walls: [], openings: [], ceilings: [] };
+  const cabinet = structuredClone(s.model.activeCabinet());
+  assert.equal(s.commands.addStudioWall(), 'w1');
+  assert.equal(s.commands.studioProblem(s.room()), null);
+  assert.deepEqual(s.model.activeCabinet(), cabinet);
 });

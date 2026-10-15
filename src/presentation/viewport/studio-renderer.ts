@@ -76,7 +76,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
   function clear() {
     root.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
     root.clear();
-    walls = []; hits = []; ceiling = null; selected = null;
+    walls = []; hits = []; outline = []; ceiling = null; selected = null;
   }
 
   let builds = 0;
@@ -91,7 +91,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const lifts = new Map(walls.map(v => [v.id, v.lift]));
     clear();
     ceilings.sync(studio);
-    if (!studio) return;
+    if (!studio?.walls.length) return;
     outline = roomOutline(studio) ?? [];
     root.add(floor(studio));
     if (outline.length) root.add(ceiling = roof(studio));

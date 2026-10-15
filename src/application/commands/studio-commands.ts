@@ -119,7 +119,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
    * no room yet, a wall behind the wardrobes. Returns the new wall's id, or null with the reason. */
   function addStudioWall(prefer?: string): string | null {
     const room = getScene().studio;
-    if (!room) return placeStudio('wall') ? getScene().studio!.walls[0]!.id : null;
+    if (!room?.walls.length) return placeStudio('wall') ? getScene().studio!.walls[0]!.id : null;
     // Prefer a spot that leaves the wardrobes room to open: no new wall within 70 cm of one.
     const clear = (next: Studio) => { const w = next.walls.at(-1)!; return !crowds(next, w.id) && !studioProblem(next); };
     const found = suggestWall(room, clear, prefer) ?? suggestWall(room, next => !studioProblem(next), prefer);
