@@ -78,3 +78,9 @@ test('an accordion in another visible wardrobe edits that wardrobe and undo rest
     f.edits.beginShelves(0, 50, 100, 2); assert.equal(f.edits.finish(), false);
     assert.equal(f.model.snapshot(), before); assert.equal(f.history.undoCount, 0);
 });
+test('cabinet exact entry preserves tenths for overall dimensions and shaped edges', () => {
+    const f = fixture();
+    f.edits.beginDimension('w'); assert.equal(f.edits.previewDimension(11.5), 211.5); f.edits.finish();
+    f.edits.beginDimension('h-left'); assert.equal(f.edits.previewDimension(-2.3), 227.7); f.edits.finish();
+    f.history.undo(); assert.equal(f.model.activeCabinet().state.h, 230);
+});

@@ -91,6 +91,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {
         const k = e as KeyboardEvent, target = k.target as HTMLElement | null;
+        if (dom.$('#app').dataset.scrubbing !== undefined || target?.closest?.('[data-measurement-badge]')) return;
         if (k.key === 'Escape' && selectionState.pendingStudioAction && !target?.closest?.('.contextual-popover')) {
             selectionState.pendingStudioAction = null;
             k.preventDefault();

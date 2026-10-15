@@ -190,7 +190,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (!range || !Number.isFinite(value)) {
                 return false;
             }
-            let requested = Math.max(range[0]!, Math.min(range[1]!, Math.round(value)));
+            let requested = Math.max(range[0]!, Math.min(range[1]!, Math.round(value * 10) / 10));
             if (key === 'w') {
                 requested = Math.max(requested, geometry.minTotal());
             }

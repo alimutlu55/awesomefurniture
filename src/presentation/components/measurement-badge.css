@@ -1,0 +1,8 @@
+.measurement-badge[data-measurement-badge]{pointer-events:auto;touch-action:none;user-select:none;cursor:ew-resize}
+.measurement-badge[data-measurement-badge][aria-orientation="vertical"]{cursor:ns-resize}
+.measurement-badge[data-measurement-badge]::after{content:"";position:absolute;inset:-10px;border-radius:12px}
+.measurement-badge[data-measurement-badge]:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.measurement-badge[data-measurement-badge].is-scrubbing{background:var(--ink);color:var(--panel);font-weight:600}
+.measurement-badge[data-measurement-badge].is-editing{cursor:text}
+.measurement-badge[data-measurement-badge].is-editing::after{display:none}
+.measurement-badge[data-measurement-badge] input{width:7ch;min-width:45px;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:center;user-select:text;touch-action:auto}

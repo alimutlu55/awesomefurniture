@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
 
@@ -18,6 +19,7 @@ interface StudioOverlayPorts {
         begin(e: PointerEvent, h: RoomHandle, el: HTMLElement): void; move(e: PointerEvent): void; end(cancel?: boolean): boolean;
         nudge(h: RoomHandle, key: string, shift: boolean): boolean; dragging(): boolean; editMeasure(m: RoomMeasure): void; dragKey(): string | null;
         click(h: RoomHandle): void;
+        selection(): import('./studio-renderer').RoomSelection;
     };
 }
 
@@ -117,8 +119,10 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         }
         for (const m of editor.measures()) {
             const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.edit ? ' room-measure-edit' : ''));
-            // Tap a length to type it.
-            if (m.edit) { el.setAttribute('role', 'button'); el.title = m.axis === 'height' ? 'Type the height' : 'Type the length'; el.onclick = () => editor.editMeasure(m); }
+            const selected = editor.selection();
+            if (m.edit && selected) sceneMeasurementBadge(el, { kind: 'studio', selection: selected.kind, id: selected.id, field: m.edit },
+                selected.kind === 'ceiling' ? 'Ceiling height' : selected.kind === 'opening' ? 'Opening ' + m.edit : 'Wall length',
+                Math.hypot(m.b.x - m.a.x, m.b.y - m.a.y, m.b.z - m.a.z), m.axis === 'height' ? 'vertical' : 'horizontal');
             track(el, a.clone().add(b).multiplyScalar(.5));
             bindRuler(el, a, b, m.axis ?? 'width');
         }

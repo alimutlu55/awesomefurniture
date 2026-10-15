@@ -123,7 +123,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       if (!o || !line || !face) return [];
       const y = o.sill + o.height + 14, z = w.thickness / 2 + 4, at = (t: number) => ({ x: line.a.x + line.ux * t + line.nx * z, y, z: line.a.z + line.uz * t + line.nz * z });
       const l = o.offset - o.width / 2, r = o.offset + o.width / 2;
-      return [[face.start, l], [l, r], [r, face.end]].filter(([p, q]) => q! - p! > .5).map(([p, q]) => ({ a: at(p!), b: at(q!), text: f(q! - p!) }));
+      return [[face.start, l], [l, r], [r, face.end]].map(([p, q], k) => ({ a: at(p!), b: at(q!), text: f(q! - p!),
+        ...(!drag ? { edit: ['left', 'width', 'right'][k]! } : {}) })).filter(m => Math.hypot(m.b.x - m.a.x, m.b.z - m.a.z) > .5);
     }
     const moving = drag && (drag.handle.kind === 'wall' || drag.handle.kind === 'corner' || drag.created) ? drag : null;
     const ids = new Set([w.id]);

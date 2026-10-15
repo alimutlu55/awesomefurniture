@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { measureNumber } from '../editor/editor-format.js';
 
@@ -38,6 +39,8 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         // Individual size rulers use the same fine lines as selected free spaces; the size being dragged is a dark tag.
         const ruler = (a, b, text, axis, dragged) => {
             const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension' + (dragged ? ' assist-size' : ''));
+            if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
+                'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal');
             bindRuler(el, a, b, axis);
         };
         if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + ' cm', 'width', !!edge);
@@ -71,7 +74,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         }
         const clear = (y0, y1, value, side, cls = 'lbl dim clearance') => {
             const el = y1 - y0 > .1 || cls.includes('assist') ? gap(Pt(mid, y0), Pt(mid, y1), value, cls) : label(Pt(mid, y0 + (y0 >= h / 2 ? 6 : -6)), '0 cm', cls);
-            if (el) inspector.editableItemClearance(el, i, j, side);
+            if (el && !edge) inspector.editableItemClearance(el, i, j, side);
         };
         if (edge === 'top') {
             clear(g.y1, g.y1 + g.top, g.top, 'top', 'lbl assist-gap');

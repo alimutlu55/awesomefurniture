@@ -10,6 +10,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
   const toolbar=page.locator('[data-editor-id="toolbar"]');
   await page.getByRole('button',{name:'Add wardrobe',exact:true}).waitFor();
+  await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});
   const check=async(expected)=>{
    const b=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
    assert.equal(b.length,expected);

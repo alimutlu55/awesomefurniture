@@ -39,7 +39,7 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
             if (Math.abs(amount) < .01) return true;
             if (g.dimension === 'h-left' || g.dimension === 'h-right') {
                 const shape = resolveShape(model.activeCabinet().state), index = g.dimension === 'h-left' ? 0 : shape.top.length - 1;
-                const next = editProfilePoint(shape, 'front', index, { y: Math.round(g.start + amount) });
+                const next = editProfilePoint(shape, 'front', index, { y: Math.round((g.start + amount) * 10) / 10 });
                 return commands.setShape({ ...next, template: 'custom' }, false);
             }
             return commands.setCabinetSize(g.dimension, g.start + amount, false);

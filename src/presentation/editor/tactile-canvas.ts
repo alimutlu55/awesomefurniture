@@ -5,6 +5,6 @@ import type { MountEditorBindingsPorts } from './mount-editor-bindings.ports';
 
 export function bindTactileCanvas(ports: MountEditorBindingsPorts) {
     const edits = createTactileEdits({ model: ports.model, checkpoint: ports.history.checkpoint });
-    bindDimensionScrubbers({ ...ports, edits });
-    bindAccordionGestures({ ...ports, edits });
+    const badges = bindDimensionScrubbers({ ...ports, edits });
+    bindAccordionGestures({ ...ports, edits: { ...edits, active: () => edits.active() || badges.active() } });
 }

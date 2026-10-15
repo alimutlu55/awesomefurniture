@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import { createShapeHandleButtons } from './shape-handle-buttons';
 import { createCabinetMaterials } from './cabinet-materials';
 import { renderCabinetFrame, renderUpright, panelBuilder } from './frame-geometry';
@@ -223,8 +224,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     const front = d / 2 + 4, a = new V(x + vr.x0, iy + vr.y0, front), b = new V(x + vr.x1, iy + vr.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
                     const hor = q.orientation === 'horizontal', ra = hor ? new V(x + vr.x0, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y0, front), rb = hor ? new V(x + vr.x1, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y1, front);
                     const el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0) + ' cm', 'lbl dim space-ruler item-dimension');
+                    sceneMeasurementBadge(el, { kind: 'board-size', index: j, axis: hor ? 'w' : 'h' }, hor ? 'Shelf width' : 'Divider height',
+                        hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0, hor ? 'horizontal' : 'vertical');
                     bindRuler(el, ra, rb, hor ? 'under' : 'height');
                     const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, -d / 2 + .5), db = new V(x + vr.x0, iy + vr.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
+                    sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', d - 2, 'horizontal', 33, 78);
                     bindRuler(depthLabel, da, db, 'depth');
                     const depthEntry = renderState.labs[renderState.labs.length - 1], handle = renderState.dividerMoveHandle || (renderState.dividerMoveHandle = document.createElement('button'));
                     handle.type = 'button';
@@ -335,7 +339,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
             renderState.Gr.add(reachLine);
-            label(new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5), 'Reach ' + measureNumber(getRenderDesign().profile.reach) + ' cm', 'lbl dim reach-dimension');
+            const reachLabel = label(new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5), 'Reach ' + measureNumber(getRenderDesign().profile.reach) + ' cm', 'lbl dim reach-dimension');
+            if (!getRenderDesign().profile.accessible) sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Reach height', getRenderDesign().profile.reach, 'vertical', 140, 210);
             renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5);
         }
         const lg = new THREE.BufferGeometry().setFromPoints(lp), ls = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, transparent: true, opacity: .65, depthTest: false }));

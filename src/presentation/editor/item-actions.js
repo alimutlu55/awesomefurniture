@@ -52,7 +52,7 @@ export function createItemActions({ dom, selectionState, model, commands, intera
             return;
         }
         try {
-            const it = model.activeCabinet().state.item >= 0 ? model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item] : null, dvt = model.activeCabinet().state.divider >= 0 ? model.activeCabinet().state.dividers?.[model.activeCabinet().state.divider] : null, show = ((!!it && model.activeCabinet().state.divider < 0) || !!dvt) && selectionState.focusOn && callbacks.inside() && !interactionState.moveMode && !interactionState.drag && !interactionState.dividerGesture && !interactionState.wardrobeGesture && !interactionState.rotationGesture && !interactionState.itemEdgeGesture && !renderState.overlayHeld && !document.querySelector('#labels .editable-clearance.editing');
+            const it = model.activeCabinet().state.item >= 0 ? model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item] : null, dvt = model.activeCabinet().state.divider >= 0 ? model.activeCabinet().state.dividers?.[model.activeCabinet().state.divider] : null, show = ((!!it && model.activeCabinet().state.divider < 0) || !!dvt) && selectionState.focusOn && callbacks.inside() && !interactionState.moveMode && !interactionState.drag && !interactionState.dividerGesture && !interactionState.wardrobeGesture && !interactionState.rotationGesture && !interactionState.itemEdgeGesture && !renderState.overlayHeld && !document.querySelector('#labels .measurement-badge.is-editing');
             if (!show) {
                 selectionState.itemBar.hidden = true;
                 selectionState.itemTypeMenu.hidden = true;
