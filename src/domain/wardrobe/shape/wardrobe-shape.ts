@@ -355,12 +355,13 @@ export function setPanelRun(shape: WardrobeShape, from: number, run: number): Wa
   if (!a || from + 1 >= shape.top.length - 1) return shape;
   return setPoint(shape, from + 1, { x: a.x + run });
 }
-/** Split a top panel at its middle, adding a break point that can be raised or lowered. */
-export function splitPanel(shape: WardrobeShape, from: number): WardrobeShape {
+/** Split a top panel at the chosen position (its middle by default). */
+export function splitPanel(shape: WardrobeShape, from: number, position?: number): WardrobeShape {
   const a = shape.top[from], b = shape.top[from + 1];
   if (!a || !b || b.x - a.x < 2 * MIN_SEGMENT) return shape;
   const top = shape.top.map(p => ({ ...p }));
-  top.splice(from + 1, 0, { x: round((a.x + b.x) / 2), y: round((a.y + b.y) / 2) });
+  const x = round(Math.max(a.x + MIN_SEGMENT, Math.min(b.x - MIN_SEGMENT, position ?? (a.x + b.x) / 2)));
+  top.splice(from + 1, 0, { x, y: round(a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)) });
   return withRear(shape, top);
 }
 /** Add a step in the middle of a top panel: the right part drops by `drop` cm. */

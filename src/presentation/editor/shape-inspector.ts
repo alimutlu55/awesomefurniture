@@ -7,6 +7,7 @@ import { shapeTemplates, templateArt } from './shape-art';
 import { measureNumber, esc } from './editor-format.js';
 import { createShapeHandleEditing, type ShapeHandlePorts } from './shape-handle-editing';
 import { editProfilePoint, profileAt } from '../../domain/wardrobe/shape/shape-handle-edit';
+import { createShapeSplitCursor } from './shape-split-cursor';
 
 interface ShapeInspectorPorts {
     dom: {
@@ -27,6 +28,9 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     const state = () => model.activeCabinet().state;
     /** Editable skeleton; a regular wardrobe becomes a custom one once edited. */
     const current = (): WardrobeShape => resolveShape(state());
+    const cursor = createShapeSplitCursor({ current: () => ({ id: model.activeCabinet().id, w: state().w, d: state().d, shape: current() }),
+        point: (e, side) => { const p = picking.frontPoint(e, side); return p ? { x: p.x + state().w / 2, y: p.y } : null; },
+        rebuild: callbacks.rebuild, insert: (index, x) => split(index, x) });
     const editable = (shape: WardrobeShape): WardrobeShape => state().shape ? shape : { ...shape, template: 'custom' };
     const f = (v: number) => measureNumber(Math.round(v * 10) / 10);
     /** Coordinates keep their sign and one decimal, unlike the clamped measure format. */
@@ -180,15 +184,6 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             movesX: true, label: 'x ' + cm(p.x) + ' · y ' + cm(p.y),
         })));
     }
-    /** "+" markers at the middle of every top panel wide enough to split. */
-    function splitMarkers() {
-        const shape = current(), w = state().w, out: { index: number; x: number; y: number; ok: boolean }[] = [];
-        for (let k = 0; k < shape.top.length - 1; k++) {
-            const a = shape.top[k]!, b = shape.top[k + 1]!;
-            if (b.x - a.x > 1e-6) out.push({ index: k, x: (a.x + b.x) / 2 - w / 2, y: (a.y + b.y) / 2, ok: b.x - a.x >= 2 * MIN_SEGMENT - 1e-6 });
-        }
-        return out;
-    }
     /** One ruler for a panel or step, offset beside it. */
     function panelMeasure(shape: WardrobeShape, panel: ReturnType<typeof shapePanels>[number]) {
         const w = state().w, OFF = 8;
@@ -228,8 +223,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const p = profileAt(g.last, g.side).top[g.index]!, w = state().w;
         return { text: g.reason, x: p.x - w / 2, y: p.y };
     }
-    function split(index: number) {
-        const shape = current(), next = splitPanel(shape, index);
+    function split(index: number, position?: number) {
+        const shape = current(), next = splitPanel(shape, index, position);
         if (next !== shape) commit(next);
         else report('This panel is too narrow to split. It needs at least ' + 2 * MIN_SEGMENT + ' cm.');
     }
@@ -246,5 +241,5 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const shape = current(), a = shape.top[focusedSegment];
         return a ? { x: a.x - state().w / 2, y: a.y } : null;
     }
-    return { render, bind, handles, splitMarkers, measures, dragMeasures, dragReason, focusMeasures, pivot, ...editing, split, chooseTemplate };
+    return { render, bind, handles, measures, dragMeasures, dragReason, focusMeasures, pivot, ...editing, ...cursor, split, chooseTemplate };
 }

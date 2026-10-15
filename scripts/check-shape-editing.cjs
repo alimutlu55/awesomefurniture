@@ -29,7 +29,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
    await page.getByRole('button',{name:'Shape',exact:true}).click();
    await page.waitForTimeout(350);
-   const handle=()=>page.getByRole('button',{name:/Break point 1,/});
+   const handle=()=>page.locator('.shape-handle.point[data-side="front"][data-index="0"]');
    const pointField=()=>page.locator('.shape-row[data-point="0"] input[data-k="y"]:not([data-side="rear"])');
    const label=()=>handle().getAttribute('aria-label');
    const focused=async()=>{
@@ -61,7 +61,12 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     } else {
      await page.mouse.move(x,y);await page.mouse.down();
      await page.mouse.move(x+dx,y+dy,{steps:8});
-     if(cancel) await target.dispatchEvent('pointercancel',{pointerId:1,isPrimary:true});
+     if(cancel) {
+      await target.dispatchEvent('pointercancel',{pointerId:1,isPrimary:true});
+      // Native cancellation has no subsequent pointerup. Release Playwright's
+      // held mouse over the original control rather than clicking the canvas.
+      await page.mouse.move(x,y);
+     }
      await page.mouse.up();
     }
     await page.waitForTimeout(350);
@@ -84,7 +89,13 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(300);await focused();
    assert.equal(await label(),second,'Redo restores it without leaving Shape');
    // Tap the real on-model + marker: pointerup precedes click and must not dismiss the sheet.
-   const plus=page.locator('.shape-handle.split-handle').first();
+   const plus=page.locator('.shape-handle.split-handle:visible');
+   assert.equal(await plus.count(),1,'Only one insertion cursor is visible');
+   const cursorBefore=await stableHandle(plus);
+   await drag(0,true,plus,35);
+   assert.ok(Math.abs((await plus.boundingBox()).x-cursorBefore.x)<1,'Cancelled cursor movement restores its position');
+   await drag(0,false,plus,35);
+   assert.ok(Math.abs((await plus.boundingBox()).x-cursorBefore.x)>8,'The single cursor moves along the top');
    const count=await page.locator('.shape-handle.point').count();
    if(pointer==='touch') await plus.tap(); else await plus.click();
    await page.waitForTimeout(300);await focused();
@@ -96,7 +107,21 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await page.waitForTimeout(250);await focused();
     assert.equal(Number(await pointField().inputValue()),value);
    }
-   const rear=page.getByRole('button',{name:/Rear break point 1,/});
+   const orbit=async()=>{
+    const box=await el('view').boundingBox(),x=box.x+box.width/2,y=box.y+box.height-18;
+    for(let n=0;n<4;n++){
+     if(pointer==='touch'){
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
+      for(let k=1;k<=8;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+112*k/8,y,id:1}]});
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+     }else{await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+112,y,{steps:8});await page.mouse.up();}
+    }
+    await page.waitForTimeout(350);await focused();
+   };
+   assert.equal(await page.locator('.shape-handle.point[data-side="rear"]:visible').count(),0,'Rear controls do not crowd the front');
+   await orbit();
+   assert.equal(await page.locator('.shape-handle.point[data-side="front"]:visible').count(),0,'Orbit swaps to a single rear edge');
+   const rear=page.locator('.shape-handle.point[data-side="rear"][data-index="0"]');
    const frontBeforeRear=await label(),rearBefore=await rear.getAttribute('aria-label');
    await drag(18,false,rear);await focused();
    assert.notEqual(await rear.getAttribute('aria-label'),rearBefore,'Rear handle changes its own profile');
@@ -113,6 +138,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     const text=await page.locator('.shape-handle.point[data-side="front"]').last().getAttribute('aria-label');
     return Number(text.match(/x ([\d.]+)/)[1]);
    };
+   await orbit();
    const oldWidth=await widthRead();
    await drag(0,false,handle(),-22);await focused();
    assert.ok(await widthRead()>oldWidth+2,'Outer corner drags horizontally to grow width');
@@ -123,6 +149,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    assert.equal(await widthRead(),oldWidth,'Width and pose undo together');
    await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(300);await focused();
    assert.equal(await widthRead(),grownWidth);
+   await orbit();
    const join=page.locator('.shape-handle.point[data-side="rear"][data-index="1"]');
    const joinBefore=await join.getAttribute('aria-label');
    await drag(0,false,join,16);await focused();
@@ -130,6 +157,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    assert.equal(await widthRead(),grownWidth,'Moving an interior join keeps the width');
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-rear-shaping-mobile.png'});
    if(width===1440) await page.screenshot({path:'/tmp/wardrobe-rear-shaping-desktop.png'});
+   await orbit();
    for(const template of ['Sloped','Regular','Custom']) {
     const chip=page.getByRole('button',{name:template,exact:true});
     if(pointer==='touch') await chip.tap();else await chip.click();
@@ -139,8 +167,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    // Orbit in the Shape session to reach the back edge. Model-body movement
    // and canvas release must not move the wardrobe or dismiss its drawer.
    const surface=await el('view').boundingBox(),ox=surface.x+surface.width/2,oy=surface.y+surface.height-18;
-   const rearBoxBefore=await rear.boundingBox(),frontBoxBefore=await handle().boundingBox();
-   const separationBefore=rearBoxBefore.x-frontBoxBefore.x;
+   await orbit();
+   assert.equal(await rear.isVisible(),true,'Rear edge is reachable by orbiting');
    if(pointer==='touch') {
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:ox,y:oy,id:1}]});
     for(let step=1;step<=10;step++) {
@@ -152,8 +180,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await page.mouse.move(ox,oy);await page.mouse.down();await page.mouse.move(ox+80,oy,{steps:10});await page.mouse.up();
    }
    await page.waitForTimeout(350);await focused();
-   const rearBoxAfter=await rear.boundingBox(),frontBoxAfter=await handle().boundingBox();
-   assert.ok(Math.abs(rearBoxAfter.x-frontBoxAfter.x-separationBefore)>8,'Orbit exposes the rear edge');
+   assert.equal(await rear.isVisible(),true,'Rear controls stay available at an angle');
    const angleRearBefore=await rear.getAttribute('aria-label');
    await drag(14,false,rear);await focused();
    assert.notEqual(await rear.getAttribute('aria-label'),angleRearBefore,'Rear handles work from an angled view');

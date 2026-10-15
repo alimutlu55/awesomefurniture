@@ -2,7 +2,8 @@ import type { createShapeInspector } from '../editor/shape-inspector';
 type Inspector = ReturnType<typeof createShapeInspector>;
 interface Ports {
     document: Pick<Document, 'createElement'>;
-    shapeInspector: Pick<Inspector, 'beginHandleDrag' | 'moveHandleDrag' | 'endHandleDrag' | 'setFocusedPoint' | 'nudge' | 'split'>;
+    shapeInspector: Pick<Inspector, 'beginHandleDrag' | 'moveHandleDrag' | 'endHandleDrag' | 'setFocusedPoint' | 'nudge'
+        | 'moveSplitCursor' | 'splitPosition' | 'restoreSplitCursor' | 'nudgeSplitCursor' | 'insertSplitPoint'>;
 }
 /** Retain the captured DOM node across geometry rebuilds. */
 export function createShapeHandleButtons({ document, shapeInspector }: Ports) {
@@ -52,7 +53,33 @@ export function createShapeHandleButtons({ document, shapeInspector }: Ports) {
             el = document.createElement('button');
             el.type = 'button'; el.className = 'lbl shape-handle split-handle'; el.textContent = '+';
             const button = el;
-            button.onclick = e => { e.stopPropagation(); shapeInspector.split(Number(button.dataset.index)); };
+            let gesture: { pointer: number; x: number; y: number; moved: boolean; before: number | undefined } | null = null;
+            button.onpointerdown = e => {
+                e.preventDefault(); e.stopPropagation();
+                gesture = { pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, before: shapeInspector.splitPosition(side(button)) };
+                button.setPointerCapture(e.pointerId);
+            };
+            button.onpointermove = e => {
+                if (!gesture || gesture.pointer !== e.pointerId) return;
+                if (Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) < 5 && !gesture.moved) return;
+                gesture.moved = true; shapeInspector.moveSplitCursor(e, side(button));
+            };
+            const end = (cancel: boolean) => {
+                const g = gesture; gesture = null;
+                if (!g) return;
+                if (button.hasPointerCapture(g.pointer)) button.releasePointerCapture(g.pointer);
+                if (cancel) shapeInspector.restoreSplitCursor(side(button), g.before);
+                else if (!g.moved) shapeInspector.insertSplitPoint(side(button));
+            };
+            button.onpointerup = () => end(false);
+            button.onpointercancel = () => end(true);
+            button.onlostpointercapture = () => end(true);
+            button.onclick = e => { e.stopPropagation(); if (e.detail === 0) shapeInspector.insertSplitPoint(side(button)); };
+            button.onkeydown = e => {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    e.preventDefault(); shapeInspector.nudgeSplitCursor(side(button), (e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? .5 : 1));
+                }
+            };
             splitPool[n] = button;
         }
         return el;

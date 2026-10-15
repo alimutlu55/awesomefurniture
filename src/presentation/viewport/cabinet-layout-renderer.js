@@ -24,10 +24,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         splits.forEach((q, n) => {
             const el = splitHandle(n);
             el.dataset.index = String(q.index);
-            // Narrow panels keep a dimmed marker that explains why it cannot split.
-            el.classList.toggle('off', !q.ok);
-            el.title = q.ok ? 'Add a break point here' : 'Too narrow to split';
-            el.setAttribute('aria-label', q.ok ? 'Add a break point to this top panel' : 'This top panel is too narrow to split');
+            el.dataset.side = q.side;
+            el.title = 'Drag along the top to choose where; tap to add a point';
+            el.setAttribute('aria-label', 'Add a wardrobe shape point here. Drag along the edge to choose where; tap to divide');
             if (!el.isConnected) $('#labels').appendChild(el);
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
         });

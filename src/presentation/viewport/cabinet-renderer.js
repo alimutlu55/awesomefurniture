@@ -1,4 +1,5 @@
 import { loftGeometry } from './loft-geometry';
+import { shapeHandleVisible } from './shape-handle-visibility';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
@@ -301,7 +302,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             renderState.pv.project(resources.cam);
             // Labels of a wardrobe hidden because it blocks the view are hidden with it.
-            const visible = renderState.pv.z < 1 && l.owner?.visible !== false && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
+            const visible = renderState.pv.z < 1 && l.owner?.visible !== false && shapeHandleVisible(l.el, l.owner, resources.cam, shapeInspector.drag())
+                && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
             l.el.style.display = visible ? (l.el.classList.contains('wardrobe-actions') ? 'flex' : 'block') : 'none';
             if (!visible) {
                 if (l.rulerNode) {
