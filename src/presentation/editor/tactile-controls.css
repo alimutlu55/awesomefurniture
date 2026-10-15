@@ -1,0 +1,11 @@
+.dimension-scrubber{pointer-events:auto;touch-action:none;user-select:none;cursor:ew-resize}
+.dimension-scrubber[aria-orientation="vertical"]{cursor:ns-resize}
+.dimension-scrubber::after{content:"";position:absolute;inset:-10px;border-radius:12px}
+.dimension-scrubber:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+#app:is([data-scrubbing],[data-accordion]) :is(#view-modes,#topright,#topleft,#toolbar,#br,#hint,.lbl.add,.wardrobe-actions){
+ visibility:hidden!important;pointer-events:none!important
+}
+#app[data-scrubbing="w"] .scrub-w,#app[data-scrubbing="d"] .scrub-d,
+#app[data-scrubbing="h"] .scrub-h,#app[data-scrubbing="h-left"] .scrub-h-left,#app[data-scrubbing="h-right"] .scrub-h-right{
+ background:var(--ink);color:var(--panel);font-weight:600
+}

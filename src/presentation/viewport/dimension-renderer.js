@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { decorateDimensionScrubber } from './dimension-scrubber-label';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources'>} ports */
 export function createDimensionRenderer({ dom, renderState, resources }) {
     const { $, document } = dom;
@@ -6,6 +7,7 @@ export function createDimensionRenderer({ dom, renderState, resources }) {
         const el = document.createElement('div');
         el.className = cls;
         el.textContent = text;
+        decorateDimensionScrubber(el);
         if (renderState.renderActive) {
             $('#labels').appendChild(el);
             renderState.labs.push({ p, el, owner: renderState.Gr });
