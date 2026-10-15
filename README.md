@@ -12,15 +12,16 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite. Create or open a project and choose **Edit wardrobe**.
-Use **Save project** in the editor's top-right menu to save the complete design
-locally. Reopening the project restores its cabinets, fittings, finishes, section
-widths, divider regions, placements, and planner preferences.
+Open the URL printed by Vite. A design session is created and stored automatically
+when the page opens, and edits autosave in the background. Returning to the same
+browser restores the session. No sign-in or session-management UI is required.
+The existing three-dot menu's **Share design** action copies a link containing
+`?session=<id>`. Recipients open the saved design and edit their own session.
 
-**Open wardrobe editor** starts a new design. Its first save creates a project
-named “Wardrobe design”; rename it in the project workspace. Saving is explicit.
-The browser warns before leaving a changed design. Projects stay in this browser;
-cloud storage is not implemented.
+The app includes its public Supabase connection settings, so local and Cloudflare
+builds work without environment configuration. To use another Supabase project,
+override both values from `.env.example` together. See [Supabase setup](docs/supabase-setup.md) and
+[the persistence architecture](docs/supabase-architecture.md).
 
 ## Verify and build
 

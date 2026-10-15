@@ -1,7 +1,8 @@
 # Wardrobe Forge
 
 A browser editor for built-in wardrobes: shape the cabinet, add fittings, and let Auto design
-plan storage for what someone owns. Vite + Three.js r128, one package, no backend.
+plan storage for what someone owns. Vite + Three.js r128, one frontend package,
+Supabase Auth and Postgres for saved design sessions. See docs/supabase-architecture.md.
 
 ## Commands
 

@@ -26,6 +26,8 @@ export async function designLink(scene: EditorScene, href: string, name = 'Share
   const project = sceneToProject(createProject('shared', name), scene);
   const packed = await through(new TextEncoder().encode(serializeProject(project)), new CompressionStream('deflate-raw'));
   const url = new URL(href);
+  url.searchParams.delete('session');
+  url.searchParams.delete('project');
   url.hash = KEY + '=' + toBase64Url(packed);
   return url.toString();
 }

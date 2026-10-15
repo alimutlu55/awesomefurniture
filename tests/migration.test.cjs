@@ -16,7 +16,9 @@ test('both application entries open the editor without project screens',()=>{
  assert.ok(!read('vite.config.ts').includes('Wardrobe_Forge-4-16-7-4'));
  assert.match(read('index.html'), /id="editor-root"/);
  assert.match(read('src/app/main.ts'), /import '\.\/editor'/);
- assert.doesNotMatch(read('src/app/editor.ts'), /projectToScene|projects\.open|initialScene/);
+ // Persisted sessions now restore into the same editor entry, without a separate workspace screen.
+ assert.match(read('src/app/editor.ts'), /prepareSession/);
+ assert.match(read('src/app/editor.ts'), /initialScene:projectToScene/);
  assert.doesNotMatch(read('src/presentation/editor/mount-editor.ts'), /mountProjectControls|projectStyles/);
  assert.equal(require('node:fs').existsSync(path.join(__dirname,'../src/presentation/projects/project-workspace.ts')),false);
 });

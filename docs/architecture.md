@@ -20,7 +20,7 @@ code cannot import external packages; presentation cannot import infrastructure.
 
 ## Migrated editor
 
-`src/app/editor.ts` composes IndexedDB, the project service, and the mounted editor.
+`src/app/editor.ts` composes session bootstrap, Supabase, browser recovery, and the mounted editor.
 The original standalone HTML has been removed; neither production nor tests load it.
 `editor.html` is the Vite entry. The presentation HTML fragment and CSS preserve the
 supplied controls and appearance. Three.js is pinned to 0.128.0 and bundled locally.
@@ -130,7 +130,10 @@ The dirty comparison also excludes transient state.
 
 ## Saving and concurrency
 
-The existing repository contract and IndexedDB schema are unchanged. A new
+The existing repository contract and IndexedDB schema are unchanged. Supabase
+implements the same contract with owner-scoped queries and atomic revision
+predicates. Browser recovery drafts are separate and scoped to the current user.
+A new
 project uses `expectedRevision: null`. Updates use the latest successfully saved
 revision. IndexedDB performs revision checking and writing in one transaction;
 errors or conflicts do not overwrite saved data or replace the open design.
@@ -142,9 +145,13 @@ while saving stay unsaved and are reported after completion. The standalone
 editor creates a project on first save; existing workspace projects open through
 `editor.html?project=<id>`.
 
-Saving is explicit through the editor menu. Autosave, cloud synchronization,
-authentication, backend persistence, and import/export UI are not implemented.
-Browser-local storage can be cleared by the browser or user.
+The browser app automatically creates an anonymous Supabase identity and a stored
+design session on landing, restores browser drafts, and autosaves complete documents.
+There are no account, session-management or follow controls. The existing Share
+menu action saves the current session and copies its ID in the URL. Recipients
+open that saved design with independent ownership for their edits. Concurrent
+writes preserve both versions by creating a separate session automatically.
+See [Supabase architecture](supabase-architecture.md) for the extension plan.
 
 ## Regression strategy
 

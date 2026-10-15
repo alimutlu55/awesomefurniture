@@ -1,7 +1,9 @@
-# Future backend adapter
+# Backend adapters
 
-Implement `ProjectRepository` here after the API and authentication are defined.
-No endpoint or credentials are assumed by the skeleton.
+Supabase now implements `ProjectRepository` in
+`src/infrastructure/supabase/project-repository.ts`. Authentication and connection
+wiring live in `src/app/session-bootstrap.ts`, outside application/domain code.
+This directory remains available for a future custom HTTP adapter.
 
 - Map API payloads through validated serialization; keep transport details here.
 - Use an atomic expected-revision check on the server and map conflicts to
@@ -11,4 +13,5 @@ No endpoint or credentials are assumed by the skeleton.
   retries, local recovery, and explicit multi-device conflict handling.
 - Do not send an old snapshot again with a newer revision to bypass a conflict.
 
-Local IndexedDB persistence is implemented. Remote sync is not.
+IndexedDB remains available for local consumers. The browser app uses Supabase
+for automatic anonymous-session persistence and separate identity-scoped browser recovery drafts.

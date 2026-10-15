@@ -35,3 +35,11 @@ test('a damaged or cut-short link is refused, never half-opened', async () => {
   await assert.rejects(designFromLink('#spec={}'));
   assert.equal(hasDesign('#spec={}'), false);
 });
+
+test('portable design links do not depend on a cloud session that may later become private', async () => {
+  const url = new URL(await designLink(scene(), 'https://example.test/?session=shared-owner&project=private-owner&x=1'));
+  assert.equal(url.searchParams.has('session'), false);
+  assert.equal(url.searchParams.has('project'), false);
+  assert.equal(url.searchParams.get('x'), '1');
+  assert.ok(hasDesign(url.hash));
+});
