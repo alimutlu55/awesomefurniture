@@ -9,10 +9,13 @@
 }
 
 @media (max-width:900px){
- /* Compact editing splits the model and drawer equally.
+ /* Shape prioritizes the model; sizing splits the available space equally.
     Expanded sheets and the keyboard keep their existing space requirements. */
+ #app.props-open:has(#left[data-context-section="shape"]){
+  --mobile-settings-sheet-height:25vh;
+ }
  #app:is(
-  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ){
   --mobile-settings-sheet-height:50vh;

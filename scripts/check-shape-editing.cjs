@@ -19,6 +19,14 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await page.waitForTimeout(450);
    const view=await el('view').boundingBox();
    await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);
+   await page.getByRole('button',{name:'Resize',exact:true}).click();
+   await page.waitForTimeout(350);
+   if(width<=900) {
+    assert.ok(Math.abs((await el('left').boundingBox()).height-height*.5)<1,'Resize drawer gets 50%');
+    assert.ok(Math.abs((await el('view').boundingBox()).height-height*.5)<1,'Resize model gets 50%');
+   }
+   if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-sizing-mobile.png'});
+   await page.keyboard.press('Escape');await page.waitForTimeout(300);
    await page.getByRole('button',{name:'Shape',exact:true}).click();
    await page.waitForTimeout(350);
    const handle=()=>page.getByRole('button',{name:/Break point 1,/});
@@ -61,8 +69,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await focused();
    if(width<=900) {
     const sheet=await el('left').boundingBox(),canvas=await el('view').boundingBox();
-    assert.ok(Math.abs(sheet.height-height/2)<1,'Editing drawer gets 50%');
-    assert.ok(Math.abs(canvas.height-height/2)<1,'Model gets 50%');
+    assert.ok(Math.abs(sheet.height-height*.25)<1,'Shape drawer gets 25%');
+    assert.ok(Math.abs(canvas.height-height*.75)<1,'Shape model gets 75%');
    }
    const before=await label();
    await drag(22);await focused();

@@ -4,7 +4,7 @@ Size and Shape panels hide the Studio/Wardrobe switch, Storage, global Menu, act
 internal Add item prompts and transient feedback. The model, editing handles and relevant panel remain.
 Item/divider sizing and room sizing use the same rule. Direct item resize gestures also hide chrome
 until the gesture ends. Closing a panel, swiping it away or pressing Escape restores normal controls.
-On phones the compact Size/Shape drawer uses 50% of the editor height and the model uses 50%.
+On phones compact Shape uses 75% model / 25% drawer. Resize uses 50% model / 50% drawer.
 Safe-area padding is included in that drawer height. Dragging/tapping the existing handle still expands
 it for more controls, and the keyboard retains its existing accessible layout.
 The CSS derives this from existing visible-panel and gesture state, without another UI mode to reset.
@@ -20,7 +20,7 @@ Validation: `npm run check`; `npm run check:mobile` at portrait, landscape and d
 The background saving regression verifies draft retention and successful retry without a notification.
 Physical iPhone Safari was not available for testing.
 
-Screenshots: [desktop](focused-editing-desktop.jpg), [375px phone](focused-editing-mobile.jpg).
+Screenshots: [desktop](focused-editing-desktop.jpg), [Shape 75:25](shape-mobile.png), [Resize 50:50](resize-mobile.png).
 
 ## Shape-editing regression
 
@@ -36,7 +36,8 @@ width/height to the camera so handles remain on-screen.
 
 `npm run check:mobile` now includes `scripts/check-shape-editing.cjs`. This reproduced the original
 first-release failure before the fix. It exercises a populated wardrobe with real CDP touch input and
-mouse drags at 375×812, touch at 844×390, and mouse at 1440×900. It checks two consecutive drags,
+mouse drags at 375×812, touch at 844×390, and mouse at 1440×900. It verifies Resize → Shape uses
+the distinct 50/50 and 75/25 ratios, then checks two consecutive drags,
 cancellation, undo/redo, tapping a break-point marker, repeated numeric edits, Sloped → Regular →
 Custom, another drag and explicit exit. Geometry changes and panel/focus visibility are asserted after
 each operation. Separate unit regressions cover projection dimensions and the Regular shape session.

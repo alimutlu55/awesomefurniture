@@ -10,10 +10,10 @@ const assert=require('node:assert/strict');
   const el=id=>page.locator(`[data-editor-id="${id}"]`);
   await el('more-btn').waitFor();
   const toolbar=el('toolbar');
-  const checkEditingRatio=async id=>{
+  const checkEditingRatio=async (id,drawerRatio)=>{
    const sheet=await el(id).boundingBox(),view=await el('view').boundingBox();
-   assert.ok(Math.abs(sheet.height-height*.5)<1,'Compact editing drawer uses 50%: '+JSON.stringify(sheet));
-   assert.ok(Math.abs(view.height-height*.5)<1,'Model uses 50%: '+JSON.stringify(view));
+   assert.ok(Math.abs(sheet.height-height*drawerRatio)<1,'Incorrect drawer ratio: '+JSON.stringify(sheet));
+   assert.ok(Math.abs(view.height-height*(1-drawerRatio))<1,'Incorrect model ratio: '+JSON.stringify(view));
    assert.ok(Math.abs(view.y+view.height-sheet.y)<1,'Model and drawer meet without overlap or a gap');
   };
   const selected=async()=>{
@@ -44,10 +44,10 @@ const assert=require('node:assert/strict');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
-   await checkEditingRatio('left');
+   await checkEditingRatio('left',.5);
    // The safe-area inset belongs inside the 50% drawer, rather than taking model space twice.
    await el('app').evaluate(e=>e.style.setProperty('--safe-bottom','34px'));
-   await page.waitForTimeout(320);await checkEditingRatio('left');
+   await page.waitForTimeout(320);await checkEditingRatio('left',.5);
    await el('app').evaluate(e=>e.style.removeProperty('--safe-bottom'));
    await page.waitForTimeout(320);
    const wardrobeResizeHeight=(await el('left').boundingBox()).height;
@@ -110,7 +110,7 @@ const assert=require('node:assert/strict');
    assert.equal(await el('view-modes').isVisible(),false,'Shape hides mode switching');
    assert.equal(await el('topright').isVisible(),false,'Shape hides Storage and Menu');
    assert.equal(await el('left').isVisible(),true,'Shape controls remain available');
-   await checkEditingRatio('left');
+   await checkEditingRatio('left',.25);
    if(width===390) await page.screenshot({path:'/tmp/focused-shape-mobile.png'});
    await closeProperties();
    assert.equal(await el('view-modes').isVisible(),true,'Leaving Shape restores mode switching');
@@ -155,7 +155,7 @@ const assert=require('node:assert/strict');
    await toolbar.locator('[data-action="resize"]').click();
    await page.waitForTimeout(320);
    assert.equal(await el('pop3').isVisible(),true,'Item Resize opens the shared bottom sheet');
-   await checkEditingRatio('pop3');
+   await checkEditingRatio('pop3',.5);
    assert.equal(await el('topright').isVisible(),false,'Item resizing hides global controls');
    assert.equal(await toolbar.isVisible(),false,'Resize replaces the toolbar instead of stacking');
    assert.equal(await el('pop3').evaluate(e=>getComputedStyle(e).animationName),'none');
