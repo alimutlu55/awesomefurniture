@@ -1,75 +1,55 @@
 import * as THREE from 'three';
 
-/** Photographed oak (Poly Haven, CC0; see public/textures/MANIFEST.md), graded once on a canvas the way the
- * Cycles benchmark grades it (scripts/realism/benchmark_scene.py), and shared by every editor on the page.
- *
- * - Veneer: the cabinet's boards. Its colour map becomes a neutral grain image near white, so each finish
- *   colour (oak, walnut, white...) tints it, with the grain's contrast raised to read at phone size.
- *   1 m square, grain along the image width.
- * - Planks: the floor. Lightened and desaturated towards the light oak of the reference. 1.2 m square, boards
- *   along the image width.
- *
- * Textures are returned at once and filled in when their image arrives, so building a scene never waits;
- * where images cannot load (tests, a missing file) they stay blank and the material shows its plain colour. */
+/** Photographed CC0 oak, graded and filtered offline by scripts/prepare-wood-textures.py.
+ * Browser work is limited to image decoding/upload; no 2K pixel readback or colour-grading loops.
+ * Each editor owns its textures; decoded images are shared within its document. */
 export const VENEER_TILE = 100, PLANK_TILE_CM = 120;
 
 type Kind = 'veneer' | 'planks';
 type MapName = 'diff' | 'rough' | 'nor_gl';
-const ASSET: Record<Kind, string> = { veneer: 'oak_veneer_02', planks: 'oak_wood_planks' };
-const images = new Map<string, Promise<CanvasImageSource | null>>();
+// Literal URLs let Vite fingerprint assets and share the HTML preloads' cache entries.
+const ASSET: Record<Kind, Record<MapName, string>> = {
+  veneer: {
+    diff: new URL('./textures/oak_veneer_02_diff.webp', import.meta.url).href,
+    rough: new URL('./textures/oak_veneer_02_rough.webp', import.meta.url).href,
+    nor_gl: new URL('./textures/oak_veneer_02_nor_gl.webp', import.meta.url).href,
+  },
+  planks: {
+    diff: new URL('./textures/oak_wood_planks_diff.webp', import.meta.url).href,
+    rough: new URL('./textures/oak_wood_planks_rough.webp', import.meta.url).href,
+    nor_gl: new URL('./textures/oak_wood_planks_nor_gl.webp', import.meta.url).href,
+  },
+};
+interface ImageAsset { source: HTMLImageElement | null; ready: Promise<HTMLImageElement | null> }
+const documents = new WeakMap<Document, Map<string, ImageAsset>>();
 
-function textureUrl(kind: Kind, map: MapName) {
-  const base = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
-  return `${base}textures/${ASSET[kind]}/${ASSET[kind]}_${map}_2k.jpg`;
-}
-
-/** The image for one map, loaded and (for colour) graded once per page. */
-function image(document: Document, kind: Kind, map: MapName): Promise<CanvasImageSource | null> {
+function image(document: Document, kind: Kind, map: MapName): ImageAsset {
+  let images = documents.get(document);
+  if (!images) { images = new Map(); documents.set(document, images); }
   const key = kind + ':' + map;
-  let pending = images.get(key);
-  if (!pending) {
-    pending = new Promise<CanvasImageSource | null>(resolve => {
+  let asset = images.get(key);
+  if (!asset) {
+    const loaded: ImageAsset = { source: null, ready: Promise.resolve(null) };
+    loaded.ready = new Promise<HTMLImageElement | null>(resolve => {
       const view = document.defaultView;
       if (!view || typeof view.Image !== 'function') { resolve(null); return; }
       const img = new view.Image();
       img.decoding = 'async';
-      img.onload = () => resolve(map === 'diff' ? grade(document, img, kind) : img);
+      img.onload = () => { loaded.source = img; resolve(img); };
       img.onerror = () => resolve(null);
-      img.src = textureUrl(kind, map);
+      img.src = ASSET[kind][map];
     });
-    images.set(key, pending);
+    images.set(key, loaded);
+    asset = loaded;
   }
-  return pending;
+  return asset;
 }
 
-/** Colour grading, in sRGB on a canvas. */
-function grade(document: Document, img: HTMLImageElement, kind: Kind): CanvasImageSource {
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  const g = canvas.getContext('2d', { willReadFrequently: true });
-  if (!g) return img;
-  g.drawImage(img, 0, 0);
-  const data = g.getImageData(0, 0, canvas.width, canvas.height), px = data.data;
-  let mean = 0;
-  for (let i = 0; i < px.length; i += 4) mean += .2126 * px[i]! + .7152 * px[i + 1]! + .0722 * px[i + 2]!;
-  mean /= px.length / 4;
-  for (let i = 0; i < px.length; i += 4) {
-    const r = px[i]!, gr = px[i + 1]!, b = px[i + 2]!, l = .2126 * r + .7152 * gr + .0722 * b;
-    if (kind === 'veneer') {
-      // Grain around 92 % white with the veneer's own warmth, its contrast raised about 2.2 times.
-      const v = Math.max(0, Math.min(255, 235 + (l - mean) * 2.2));
-      px[i] = Math.min(255, v * 1.06); px[i + 1] = v * .96; px[i + 2] = v * .9;
-    } else {
-      // 72 % of the original colour, lightened so the mean sits near the reference floor.
-      const lift = 150 / mean;
-      px[i] = Math.min(255, (l + (r - l) * .72) * lift);
-      px[i + 1] = Math.min(255, (l + (gr - l) * .72) * lift);
-      px[i + 2] = Math.min(255, (l + (b - l) * .72) * lift);
-    }
+/** Overlap texture downloads with identity/session restoration, before the renderer is mounted. */
+export function preloadOakTextures(document: Document): void {
+  for (const kind of ['veneer', 'planks'] as const) {
+    for (const map of ['diff', 'rough', 'nor_gl'] as const) void image(document, kind, map);
   }
-  g.putImageData(data, 0, 0);
-  return canvas;
 }
 
 function placeholder(document: Document, colour: string) {
@@ -88,13 +68,16 @@ export function oakMaps(document: Document, kind: Kind, anisotropy = 8): OakMaps
   const make = (map: MapName) => {
     // Until its image arrives, a texture is one neutral pixel: white colour, full roughness (the material's
     // own value), a flat normal. An empty texture would sample black.
-    const texture = new THREE.Texture(placeholder(document, map === 'nor_gl' ? '#8080ff' : '#ffffff'));
+    const asset = image(document, kind, map);
+    const texture = new THREE.Texture(asset.source ?? placeholder(document, map === 'nor_gl' ? '#8080ff' : '#ffffff'));
     texture.needsUpdate = true;
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.anisotropy = anisotropy;
     if (map === 'diff') texture.encoding = THREE.sRGBEncoding;
-    void image(document, kind, map).then(source => {
-      if (!source) return;
+    let disposed = false;
+    texture.addEventListener('dispose', () => { disposed = true; });
+    void asset.ready.then(source => {
+      if (!source || disposed || texture.image === source) return;
       texture.image = source;
       texture.needsUpdate = true;
     });

@@ -1,3 +1,4 @@
+import { preloadOakTextures } from '../presentation/viewport/wood-textures';
 import { mountEditor } from '../presentation/editor/mount-editor';
 import { bindPageViewport } from '../presentation/editor/page-viewport';
 import { checkSpec, createAgentApi, registerWebMcpTools, specFromLink } from './agent-api';
@@ -17,6 +18,7 @@ registerWebMcpTools(agents,document,navigator);
 console.info('Wardrobe Forge: AI agents can design here. Call window.wardrobeForge.help() for the guide, or read /llms.txt.');
 async function main(): Promise<void> {
  const url=new URL(location.href);
+ preloadOakTextures(document);
  const platform=await prepareSession(url);
  let sessions:ReturnType<typeof connectSessions>|undefined;
  const mounted=mountEditor({root:root!,initialScene:projectToScene(platform.draft.document),
