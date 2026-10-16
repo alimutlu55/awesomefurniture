@@ -276,11 +276,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             let addSpace, fallbackSpace = false;
             if (selected && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) && !interactionState.moveMode) {
                 addSpace = geometry.sectionSpaceMeasurements(i);
-                const point = getRenderDesign().space;
-                const targeted = point?.i === i && point.x >= addSpace.x0 - .01 && point.x <= addSpace.x1 + .01
-                    && point.y >= addSpace.y0 - .01 && point.y <= addSpace.y1 + .01;
-                // A slope can leave a thin upper sliver. An untargeted Add should use a usable space below it.
-                if (addSpace.h < 15 && !targeted) {
+                // A tapped roof sliver must not hide Add while usable space remains in this section.
+                if (addSpace.h < 15) {
                     addSpace = geometry.sectionSpaces(i).filter(q => q.h >= 15).sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0];
                     fallbackSpace = true;
                 }
@@ -309,7 +306,10 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 // The pill sits at the centre of mass of the clear area, so it is in the middle of
                 // the room the shape leaves, whatever the shape.
                 const c = geometry.spaceCentre(i, addSpace);
-                renderState.labs.push({ p: new V(x + c.x, c.y, d / 2), el: ab, owner: renderState.Gr });
+                const top = Math.min(addSpace.y1, iy + geometry.ceilingIn(i, c.x, c.x + .01));
+                renderState.labs.push({ p: new V(x + c.x, c.y, d / 2), el: ab, owner: renderState.Gr, addArea: {
+                    left: new V(x + addSpace.x0, c.y, d / 2), right: new V(x + addSpace.x1, c.y, d / 2),
+                    bottom: new V(x + c.x, addSpace.y0, d / 2), top: new V(x + c.x, top, d / 2) } });
             }
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
                 const space = geometry.sectionSpaceMeasurements(i);

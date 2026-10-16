@@ -133,12 +133,15 @@ test('a filled section with less than 15 cm free still omits Add item', t => {
     assert.equal(f.build().length, 0);
 });
 
-test('an explicitly selected tiny space is not silently replaced with another space', t => {
+test('a tapped roof sliver keeps Add item available in usable space in the same section', t => {
     const f = fixture(t, 375), space = f.geometry.sectionSpaceMeasurements(0);
     assert.ok(space.h < 15);
     const c = f.geometry.spaceCentre(0, space);
     f.state().space = { i: 0, x: c.x, y: c.y };
-    assert.equal(f.build().length, 0);
+    const [button] = f.build(); assert.equal(f.buttons().length, 1);
+    button.onclick({ detail: 0, stopPropagation() {} });
+    assert.ok(f.geometry.sectionSpaceMeasurements(0).h >= 15);
+    assert.equal(f.state().space.i, 0);
 });
 
 for (const width of [375, 1280]) {

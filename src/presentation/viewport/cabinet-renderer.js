@@ -1,4 +1,5 @@
 import { loftGeometry } from './loft-geometry';
+import { sizeCanvasAdd } from './canvas-add-sizing';
 import { scrubberBottom } from './dimension-scrubber-label';
 import { shapeHandleVisible } from './shape-handle-visibility';
 import { createStudioRenderer } from './studio-renderer';
@@ -279,6 +280,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         inspector.updateItemBar();
         overlay?.orient();
         const r = resources.cv.getBoundingClientRect();
+        renderState.labs.forEach(l => sizeCanvasAdd(l, resources.cam, r));
         updateItemResizeHandles();
         updateMoveIcons();
         const resizeOccupied = [...document.querySelectorAll('.item-resize-handle:not([hidden])')].map(el => {
@@ -292,7 +294,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 l.owner.localToWorld(q);
             }
             q.project(resources.cam);
-            return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height, w: l.el.offsetWidth, h: l.el.offsetHeight };
+            return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height, w: l.el.offsetWidth * (l.canvasScale ?? 1), h: l.el.offsetHeight * (l.canvasScale ?? 1) };
         }).concat(resizeOccupied);
         // Handles place first and stay on their points; other shape text makes room around them.
         const rank = l => (l.el.classList.contains('shape-handle') ? 2 : 0) + (l.el.classList.contains('reach-dimension') ? 1 : 0);
@@ -313,7 +315,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 return;
             }
             let x = (renderState.pv.x * .5 + .5) * r.width, y = (-renderState.pv.y * .5 + .5) * r.height;
-            const ew = l.el.offsetWidth, eh = l.el.offsetHeight;
+            const ew = l.el.offsetWidth * (l.canvasScale ?? 1), eh = l.el.offsetHeight * (l.canvasScale ?? 1);
             if (l.reachFrom) {
                 renderState.pv2.copy(l.reachFrom);
                 if (l.owner) {
@@ -377,7 +379,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 if (spot) { x = spot[0]; y = spot[1]; }
                 shapePlaced.push({ x, y, w: ew, h: eh });
             }
-            l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
+            l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)` + (l.canvasScale === undefined ? '' : ` scale(${l.canvasScale})`);
         });
     }
     return { assist, redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
