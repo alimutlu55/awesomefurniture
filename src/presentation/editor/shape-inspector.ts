@@ -15,7 +15,7 @@ interface ShapeInspectorPorts {
         document: { createElement<K extends keyof HTMLElementTagNameMap>(tag: K): HTMLElementTagNameMap[K] };
     };
     model: ShapeHandlePorts['model'];
-    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem' | 'frontShape'>;
+    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'applyShapeTemplate' | 'setShape' | 'shapeEditProblem' | 'frontShape' | 'growFrontShape'>;
     picking: ShapeHandlePorts['picking'];
     selectionState: { shapeEditing?: boolean; focusOn: boolean };
     callbacks: { refresh(): void; rebuild(): void; histUI(): void; frame?(): void; report?(message: string): void };
@@ -40,7 +40,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
 
     const report = (message: string) => callbacks.report?.(message);
     function commit(next: WardrobeShape) {
-        if (sceneCommands.setShape(editable(next))) callbacks.refresh();
+        if (sceneCommands.setShape(editable(sceneCommands.growFrontShape(next, current())))) callbacks.refresh();
         else render();
     }
     function chooseTemplate(id: ShapeTemplateId) {
@@ -105,7 +105,10 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         if (!Number.isFinite(value)) { render(); return; }
         if (input.dataset.k === 'angle') commit({ ...setPanelAngle(shape, Number(input.dataset.s), value), back: shape.back ?? shape.top.map(p => p.y) });
         else if (input.dataset.k === 'rise') commit({ ...setStepRise(shape, Number(input.dataset.p), value), back: shape.back ?? shape.top.map(p => p.y) });
-        else commit(editProfilePoint(shape, input.dataset.side === 'rear' ? 'rear' : 'front', Number(input.dataset.p), input.dataset.k === 'x' ? { x: value } : { y: value }));
+        else {
+            const next = editProfilePoint(shape, input.dataset.side === 'rear' ? 'rear' : 'front', Number(input.dataset.p), input.dataset.k === 'x' ? { x: value } : { y: value });
+            commit(next);
+        }
     }
     function onAction(button: HTMLButtonElement) {
         const shape = current(), name = button.dataset.action;

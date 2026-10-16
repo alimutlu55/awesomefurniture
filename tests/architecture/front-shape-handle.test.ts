@@ -53,11 +53,11 @@ for (const pointerType of ['mouse', 'touch']) test(`${pointerType}: the existing
   f.model.restore(before); assert.equal(f.model.snapshot(), before, 'undo restores both profiles and pose');
 });
 
-test('free-standing front handles leave the rear edge unchanged', () => {
+test('free-standing front growth raises the corresponding rear edge', () => {
   const f = fixture(false), e = f.event('mouse');
   f.inspector.beginHandleDrag(e, 0, f.target); f.move(240); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag();
   assert.equal(f.state().shape!.top[0]!.y, 240);
-  assert.deepEqual(f.state().shape!.back, [220, 220]);
+  assert.deepEqual(f.state().shape!.back, [240, 220]);
   assert.equal(f.state().shape!.top[1]!.y, 220);
 });
 
@@ -107,4 +107,47 @@ test('rear handles lower independently, stop at the rear ceiling and reverse wit
   f.inspector.endHandleDrag();
   assert.deepEqual(f.checkpoints, [before]);
   assert.deepEqual(f.messages, []);
+});
+
+for (const type of ['mouse', 'touch']) test(`${type}: front growth uses rear headroom up to the physical ceiling and reverses without drift`, () => {
+  const f = fixture(), room = f.model.scene.studio!;
+  f.model.scene.studio = { ...room, ceilings: room.ceilings!.map(c => ({ ...c, profile: [{ t: 0, y: 140 }, { t: 150, y: 260 }] })) };
+  const before = f.model.snapshot(), e = f.event(type);
+  f.inspector.beginHandleDrag(e, 0, f.target);
+  f.move(130); f.inspector.moveHandleDrag(e);
+  assert.equal(f.state().shape!.top[0]!.y, 130); assert.deepEqual(f.state().shape!.back, [130, 100]);
+  f.move(160); f.inspector.moveHandleDrag(e);
+  assert.equal(f.state().shape!.top[0]!.y, 160); assert.deepEqual(f.state().shape!.back, [140, 100]);
+  const blocked = ceilingClearance(f.model.scene.studio, { ...f.model.activeCabinet(), w: 160, d: 60 }, 0);
+  assert.equal(blocked(f.state().shape!), false, 'The entire top remains below the ceiling');
+  f.move(120); f.inspector.moveHandleDrag(e); assert.deepEqual(f.state().shape!.back, [120, 100]);
+  f.move(160); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag();
+  assert.deepEqual(f.checkpoints, [before]); assert.deepEqual(f.state().shape!.back, [140, 100]);
+  const saved = f.model.snapshot();
+  f.inspector.beginHandleDrag(e, 0, f.target); f.move(175); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag(true);
+  assert.equal(f.model.snapshot(), saved);
+});
+test('overall height edits also consume rear headroom before separating the front from the rear ceiling contact', () => {
+  const f = fixture(), room = f.model.scene.studio!;
+  f.model.scene.studio = { ...room, ceilings: room.ceilings!.map(c => ({ ...c, profile: [{ t: 0, y: 140 }, { t: 150, y: 260 }] })) };
+  assert.equal(f.commands.setCabinetSize('h', 160), true);
+  assert.deepEqual(f.state().shape!.top.map(p => p.y), [160, 160]);
+  assert.deepEqual(f.state().shape!.back, [140, 140]);
+});
+
+test('several adjoining front points can raise a flat rear together to its ceiling', () => {
+  const f = fixture(), room = f.model.scene.studio!;
+  f.model.scene.studio = { ...room, ceilings: room.ceilings!.map(c => ({ ...c, profile: [{ t: 0, y: 140 }, { t: 150, y: 260 }] })) };
+  const original = { template: 'custom' as const, top: [0, 70, 80, 160].map(x => ({ x, y: 100 })), back: [100, 100, 100, 100] };
+  const requested = { ...original, top: original.top.map(p => ({ ...p, y: 160 })) };
+  assert.deepEqual(f.commands.growFrontShape(requested, original).back, [140, 140, 140, 140]);
+});
+
+test('the rear does not fall back down when the front reaches its own ceiling contact', () => {
+  const f = fixture(), room = f.model.scene.studio!;
+  f.model.scene.studio = { ...room, ceilings: room.ceilings!.map(c => ({ ...c, profile: [{ t: 0, y: 140 }, { t: 150, y: 260 }] })) };
+  const e = f.event('touch'); f.inspector.beginHandleDrag(e, 0, f.target);
+  f.move(300); f.inspector.moveHandleDrag(e);
+  assert.ok(f.state().shape!.top[0]!.y > 187); assert.deepEqual(f.state().shape!.back, [140, 100]);
+  f.inspector.endHandleDrag(); assert.deepEqual(f.state().shape!.back, [140, 100]);
 });

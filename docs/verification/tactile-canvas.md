@@ -2,7 +2,7 @@
 
 Cabinet dimension pills now act as scrubbers. Drag Width/Depth left or right,
 and Height up or down. On stepped/sloped wardrobes each height pill changes its
-own front edge while preserving the opposite edge and independent rear profile.
+own front edge while preserving the opposite edge. Upward edits raise the matching rear edge where ceiling clearance allows; direct rear edits remain independent.
 Keyboard arrows change a centimetre (Shift: five); Home/End request the range
 limits. Physics can stop a request earlier. Interactive pills stay above the
 toolbar after camera zoom.

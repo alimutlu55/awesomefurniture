@@ -48,7 +48,7 @@ each operation. Separate unit regressions cover projection dimensions and the Re
 ## Rear handles and horizontal shaping
 
 Shape exposes filled front-edge dots and outlined rear-edge dots. Both edges have independent heights;
-front height/angle/rise edits preserve the rear profile. The existing panel list also offers rear heights
+upward front height/angle/rise edits raise the matching rear where there is clearance, stopping at the physical ceiling. Lowering the front preserves the rear profile. The existing panel list also offers rear heights
 for side corners and interior break points. Adding a break point creates its paired rear handle.
 Joins share x positions through the cabinet depth so the boards stay connected.
 

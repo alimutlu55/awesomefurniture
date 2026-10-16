@@ -35,12 +35,12 @@ test('scrubbing stops at a studio wall and stays there instead of resetting to t
     assert.equal(collision.cabinetCollides(f.model.activeCabinet()), false); f.edits.finish();
     assert.equal(f.history.undoCount, 1);
 });
-test('each stepped height badge edits its own edge while the other edge and rear retain their heights', () => {
+test('each stepped height badge grows its matching rear while the other edge retains its height', () => {
     const f = fixture(), state = f.model.activeCabinet().state;
     state.shape = { template: 'sloped', top: [{ x: 0, y: 205 }, { x: 200, y: 141 }], back: [210, 150] }; state.h = 210;
     f.edits.beginDimension('h-right'); assert.equal(f.edits.previewDimension(10), 151); f.edits.finish();
     const shape = f.model.activeCabinet().state.shape!;
-    assert.deepEqual(shape.top.map(p => p.y), [205, 151]); assert.deepEqual(shape.back, [210, 150]);
+    assert.deepEqual(shape.top.map(p => p.y), [205, 151]); assert.deepEqual(shape.back, [210, 151]);
 });
 test('accordion adds several valid shelves, reverses, cancels and records the whole gesture once', () => {
     const f = fixture(), before = f.model.snapshot();

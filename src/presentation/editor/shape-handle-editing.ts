@@ -7,7 +7,7 @@ import { alignTo, type Align } from './align-snap';
 
 export interface ShapeHandlePorts {
     model: { activeCabinet(): EditorCabinet; snapshot(): string; restore(raw: string): void };
-    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'setShape' | 'shapeEditProblem'>;
+    sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'setShape' | 'shapeEditProblem' | 'growFrontShape'>;
     picking: { frontPoint(e: PointerEvent, side?: ShapeSide): { x: number; y: number } | null };
     callbacks: { refresh(): void; rebuild(): void; histUI(): void; frame?(): void };
 }
@@ -78,7 +78,9 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         const candidate = (t: number) => {
             const atX = g.dx + (dx - g.dx) * t, atY = g.dy + (dy - g.dy) * t;
             const edit = moveShapeHandle(g.original, g.side, g.index, atX, atY, g.frame.w);
-            return { shape: editable(edit.shape), frame: frameFor(g.frame, g.angle, edit.offset, edit.w), dx: atX, dy: atY };
+            const frame = frameFor(g.frame, g.angle, edit.offset, edit.w);
+            const shape = g.side === 'front' ? sceneCommands.growFrontShape(edit.shape, g.original, frame) : edit.shape;
+            return { shape: editable(shape), frame, dx: atX, dy: atY };
         };
         const want = candidate(1), problem = shapeProblems(want.shape, want.frame.w)[0];
         g.reason = problem ? friendlyProblem(problem) : null;
@@ -119,7 +121,8 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         const oldWidth = state().w;
         const edit = moveShapeHandle(shape, side, index, dx, dy, oldWidth);
         const frame = frameFor({ w: state().w, x: cabinet.x, z: cabinet.z }, cabinet.angle, edit.offset, edit.w);
-        sceneCommands.setShape(editable(edit.shape), true, true, frame);
+        const next = side === 'front' ? sceneCommands.growFrontShape(edit.shape, shape, frame) : edit.shape;
+        sceneCommands.setShape(editable(next), true, true, frame);
         focusedSide = side; callbacks.refresh();
         if (state().w !== oldWidth) callbacks.frame?.();
     }

@@ -9,6 +9,7 @@ import { topSurface } from '../wardrobe/shape/depth-shape';
 type Point = { x: number; z: number };
 type Plane = { footprint: Point[]; height: (p: Point) => number };
 const EPS = 1e-8;
+export const CEILING_CLEARANCE_TOLERANCE = .5;
 
 /** Clips a convex polygon to a half-plane, keeping points with a nonnegative distance. */
 function clip(points: Point[], distance: (p: Point) => number): Point[] {
@@ -36,7 +37,7 @@ function hasArea(points: Point[]) {
 
 /** Prepares ceiling planes in cabinet coordinates. Reuse while a handle edits the same footprint.
  * The front and rear heights are checked together over the actual top surface. */
-export function ceilingClearance(studio: Studio | undefined, f: Placed): (shape: WardrobeShape) => boolean {
+export function ceilingClearance(studio: Studio | undefined, f: Placed, tolerance = CEILING_CLEARANCE_TOLERANCE): (shape: WardrobeShape) => boolean {
   if (!studio) return () => false;
   const angle = f.angle * Math.PI / 180, c = Math.cos(angle), s = Math.sin(angle), base = f.y ?? 0;
   const world = (p: Point) => ({ x: f.x + (p.x - f.w / 2) * c + p.z * s, z: f.z - (p.x - f.w / 2) * s + p.z * c });
@@ -69,7 +70,7 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed): (shape:
           patch = clip(patch, r => (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x));
         }
         if (!hasArea(patch)) continue;
-        if (patch.some(p => a.y + mx * (p.x - a.x) + mz * (p.z - a.z) > plane.height(p) + .5 + EPS)) return true;
+        if (patch.some(p => a.y + mx * (p.x - a.x) + mz * (p.z - a.z) > plane.height(p) + tolerance + EPS)) return true;
       }
     }
     return false;

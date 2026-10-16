@@ -1,3 +1,5 @@
+import { growRearWithFront } from './front-growth';
+import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
@@ -48,6 +50,12 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         if (underCeiling) return underCeiling;
         return collision.cabinetCollides(candidate) ? blockedMessage('That shape', candidate) : null;
     };
+    const growFrontShape = (shape: WardrobeShape, original = resolveShape(active().state), frame?: ShapeFrame): WardrobeShape => {
+        const c = active(), w = frame?.w ?? c.state.w;
+        const blocked = ceilingClearance(getScene().studio, { ...c, ...(frame ?? {}), w, d: c.state.d }, 0);
+        return growRearWithFront(original, shape, next => shapeProblems(next, w).length > 0 || blocked({ ...next,
+            top: next.top.map(p => ({ ...p, y: p.y - CEILING_CLEARANCE_TOLERANCE })) }));
+    };
     return {
         /** A new default design, replacing every wardrobe and the entire room in one undo step. */
         resetScene() {
@@ -56,7 +64,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             delete scene.studio;
             Object.assign(scene, createEditorModel().scene);
         },
-        shapeEditProblem,
+        shapeEditProblem, growFrontShape,
         /** A front handle can use its clearance while the rear stays at its previous height. */
         frontShape(shape: WardrobeShape, original = resolveShape(active().state)): WardrobeShape {
             if (shape.back || !original || !ceilings.shapeBlocked(active(), shape)) return shape;
@@ -207,7 +215,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 const top = next ?? regularShape(state.w, requested);
                 let blocked = ceilings.shapeBlocked({ ...cabinet, ...pose }, top);
                 if (blocked && requested > state.h) {
-                    const original = resolveShape(state), front = { ...top, template: 'custom' as const, back: original.back ?? original.top.map(p => p.y) };
+                    const original = resolveShape(state), front = growFrontShape(
+                        { ...top, template: 'custom', back: original.back ?? original.top.map(p => p.y) }, original, { w: state.w, x: pose.x, z: pose.z });
                     if (!ceilings.shapeBlocked({ ...cabinet, ...pose }, front)) { next = front; blocked = null; }
                     else if (pose.y >= requested - state.h) {
                         const lowered = { ...pose, y: pose.y - (requested - state.h) };
