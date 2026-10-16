@@ -21,6 +21,7 @@ Verification:
 - Component tests cover batching, accessibility, dragging, keyboard limits, inline entry, cancellation, disposal, and feedback only after accepted changes.
 - Application tests cover single-step undo/redo, reversible previews, fitting limits, shelf geometry, empty Studio wall editing, openings, ceilings, and reach limits.
 - `scripts/check-measurement-badges.cjs` exercises real cabinet/item/gap/Studio interactions at 375 px and 1440 px. It is included in `npm run check:mobile`.
+- `scripts/check-label-entry.cjs` repeats six width/depth/height taps at each width, types values gradually and verifies one-step undo. The phone case shrinks the viewport to simulate the keyboard and checks that the same inline field stays visible and focused. Inline editing keeps the canvas visible under the keyboard; hiding it would blur and immediately dismiss the field. Numeric editor text is 16 px to avoid Safari's automatic small-input zoom.
 - Existing tactile regressions exercise touch at 375×812 and 844×390, desktop mouse at 1440×900, shelf gestures, and prepared Studio constraints.
 
 Physical iPhone Safari and hardware vibration require device verification.

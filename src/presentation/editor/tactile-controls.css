@@ -5,3 +5,6 @@
 #app[data-scrubbing="h"] .scrub-h,#app[data-scrubbing="h-left"] .scrub-h-left,#app[data-scrubbing="h-right"] .scrub-h-right{
  background:var(--ink);color:var(--panel);font-weight:600
 }
+/* Inline number fields live in the canvas. Hiding it for the software keyboard
+   blurs the field and immediately closes the editor. */
+:host([data-keyboard-open]) #app[data-scrubbing] #view{visibility:visible;inset:0}
