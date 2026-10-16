@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
-const {chromium}=require('playwright');
-(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
+const {chromium,webkit}=require('playwright');
+const engine=process.env.LABEL_BROWSER==='webkit'?webkit:chromium;
+(async()=>{const browser=await engine.launch({headless:true,...(engine===chromium?{executablePath:process.env.CHROME_PATH}:{})});try{
  for(const width of [375,1440]){
   const page=await browser.newPage({viewport:{width,height:812},hasTouch:true,isMobile:width===375,reducedMotion:'reduce'}),errors=[];
   page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
@@ -8,24 +9,30 @@ const {chromium}=require('playwright');
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60}]})));
   await page.locator('.scrub-w:visible').waitFor();await page.waitForTimeout(500);
   await page.evaluate(()=>{
-   window.entryEvents=[];
+   window.entryEvents=[];window.entryClick=null;
+   const focus=HTMLElement.prototype.focus;
+   HTMLElement.prototype.focus=function(...args){
+    if(this.matches('.measurement-badge input'))window.entryEvents.push({type:'focus-call',clickActive:!!window.entryClick?.isTrusted && window.entryClick.eventPhase!==0});
+    return focus.apply(this,args);
+   };
    for(const type of ['pointerup','click','focusin'])window.addEventListener(type,e=>{
+    if(type==='click')window.entryClick=e;
     const target=e.composedPath()[0];window.entryEvents.push({type,input:target.tagName==='INPUT'});
    },true);
   });
-  const cdp=await page.context().newCDPSession(page);
+  const cdp=engine===chromium?await page.context().newCDPSession(page):null;
   for(const [index,key] of ['w','d','h','w','d','h'].entries()){
    const badge=()=>page.locator(`.scrub-${key}:visible`),original=Number(await badge().getAttribute('aria-valuenow'));
    const b=await badge().boundingBox(),x=b.x+b.width/2,y=b.y+b.height/2;
    await page.evaluate(()=>window.entryEvents=[]);
-   if(width===375){
+   if(width===375 && cdp){
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-   }else await badge().click();
+   }else if(width===375)await badge().tap();else await badge().click();
    const input=page.locator('.measurement-badge.is-editing input');await input.waitFor();await page.waitForTimeout(400);
    assert.equal(await input.evaluate(e=>e.getRootNode().activeElement===e),true,'The completed tap keeps the input focused');
    const trace=await page.evaluate(()=>window.entryEvents);
-   assert.ok(trace.some(e=>e.type==='focusin'&&e.input),'The tap focuses the inline editor: '+JSON.stringify(trace));
+   assert.ok(trace.some(e=>e.type==='focus-call'&&e.clickActive),'Focus runs synchronously inside the trusted native click: '+JSON.stringify(trace));
    assert.ok(Number(await input.evaluate(e=>getComputedStyle(e).fontSize.replace('px','')))>=16,'No small-input Safari auto zoom');
    if(width===375){
     await page.setViewportSize({width,height:420});await page.waitForTimeout(350);
