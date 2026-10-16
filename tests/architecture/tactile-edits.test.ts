@@ -41,6 +41,8 @@ test('each stepped height badge grows its matching rear while the other edge ret
     f.edits.beginDimension('h-right'); assert.equal(f.edits.previewDimension(10), 151); f.edits.finish();
     const shape = f.model.activeCabinet().state.shape!;
     assert.deepEqual(shape.top.map(p => p.y), [205, 151]); assert.deepEqual(shape.back, [210, 151]);
+    f.edits.beginDimension('h-right'); assert.equal(f.edits.previewDimension(-20), 131); f.edits.finish();
+    assert.deepEqual(f.model.activeCabinet().state.shape!.back, [210, 131], 'lowering a badge follows the same rear rule');
 });
 test('accordion adds several valid shelves, reverses, cancels and records the whole gesture once', () => {
     const f = fixture(), before = f.model.snapshot();

@@ -61,6 +61,32 @@ test('free-standing front growth raises the corresponding rear edge', () => {
   assert.equal(f.state().shape!.top[1]!.y, 220);
 });
 
+for (const pointerType of ['mouse', 'touch']) test(`${pointerType}: front lowering brings the rear down, reverses, and commits both as one edit`, () => {
+  const f = fixture(false), before = f.model.snapshot(), e = f.event(pointerType);
+  f.inspector.beginHandleDrag(e, 0, f.target);
+  f.move(180); f.inspector.moveHandleDrag(e);
+  assert.equal(f.state().shape!.top[0]!.y, 180); assert.deepEqual(f.state().shape!.back, [180, 220]);
+  f.move(200); f.inspector.moveHandleDrag(e);
+  assert.deepEqual(f.state().shape!.back, [200, 220], 'reversal follows the front without accumulated drift');
+  f.move(175); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag();
+  assert.deepEqual(f.state().shape!.back, [175, 220]); assert.deepEqual(f.checkpoints, [before]);
+  const committed = f.model.snapshot();
+  f.inspector.beginHandleDrag(e, 0, f.target); f.move(150); f.inspector.moveHandleDrag(e); f.inspector.endHandleDrag(true);
+  assert.equal(f.model.snapshot(), committed, 'cancel restores both edges');
+  f.model.restore(before); assert.equal(f.model.snapshot(), before, 'undo restores both edges');
+});
+
+test('lowering the front preserves a lower rear ceiling contact until the front goes below it', () => {
+  const f = fixture(), room = f.model.scene.studio!;
+  f.model.scene.studio = { ...room, ceilings: room.ceilings!.map(c => ({ ...c, profile: [{ t: 0, y: 140 }, { t: 150, y: 260 }] })) };
+  assert.equal(f.commands.setCabinetSize('h', 160), true);
+  const e = f.event('touch'); f.move(160); f.inspector.beginHandleDrag(e, 0, f.target);
+  f.move(150); f.inspector.moveHandleDrag(e); assert.deepEqual(f.state().shape!.back, [140, 140]);
+  f.move(120); f.inspector.moveHandleDrag(e); assert.deepEqual(f.state().shape!.back, [120, 140]);
+  f.move(150); f.inspector.moveHandleDrag(e); assert.deepEqual(f.state().shape!.back, [140, 140]);
+  f.inspector.endHandleDrag();
+});
+
 test('front and rear geometry are rendered separately, and fittings use the lower depth clearance', () => {
   const f = fixture(), next = f.commands.frontShape(setPoint(resolveShape(f.state()), 0, { y: 140 }));
   assert.equal(f.commands.setShape(next), true);

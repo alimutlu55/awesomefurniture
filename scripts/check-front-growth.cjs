@@ -46,7 +46,16 @@ const {chromium}=require('playwright');
   await drag(20,true);assert.deepEqual(await heights(),capped,'Cancel restores both edges');
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),beforeFinal,'Undo restores both edges in one step');
   await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),capped);
+  await front().fill('150');await front().press('Tab');await page.waitForTimeout(350);
+  assert.deepEqual(await heights(),[150,150],'Lowering below the rear lowers both edges');
+  await page.locator(`.shape-handle.point[data-side="front"][data-index="${index}"]:visible`).focus();
+  if(width===1440){await page.mouse.move(v.x+v.width*.7,v.y+v.height*.7);await page.mouse.wheel(0,650);await page.waitForTimeout(450);}
+  await drag(-25);const lowered=await heights();
+  assert.ok(lowered[0]<150,JSON.stringify({width,lowered}));assert.equal(lowered[1],lowered[0],'Rear follows downward drag');
+  await drag(-20,true);assert.deepEqual(await heights(),lowered,'Downward cancellation restores both edges');
+  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),[150,150]);
+  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),lowered);
   await page.screenshot({path:'/tmp/wardrobe-front-growth-'+width+'.png'});assert.deepEqual(errors,[]);
-  console.log(`PASS ${width}px: rear follows front growth, stops at ceiling, cancellation and single-step undo/redo`);await page.close();
+  console.log(`PASS ${width}px: rear follows upward and downward edits, stops at ceiling, cancellation and single-step undo/redo`);await page.close();
  }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

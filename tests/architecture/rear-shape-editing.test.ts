@@ -38,12 +38,12 @@ for (const side of ['front', 'rear'] as const) test(`${side} edge has its own ed
   assert.equal(f.state().shape![side === 'front' ? 'top' : 'back']?.length, 2);
   f.inspector.endHandleDrag();
   assert.equal(f.state().shape!.top[0]!.y, side === 'front' ? 210 : 230);
-  assert.equal(f.state().shape!.back![0], side === 'rear' ? 210 : 230);
+  assert.equal(f.state().shape!.back![0], 210);
   assert.equal(f.checkpoints.length, 1);
   assert.ok(f.planes.every(p => p === side));
   f.inspector.nudge(0, 0, -1, side);
   assert.equal(f.state().shape!.top[0]!.y, side === 'front' ? 209 : 230);
-  assert.equal(f.state().shape!.back![0], side === 'rear' ? 209 : 230);
+  assert.equal(f.state().shape!.back![0], 209);
   assert.deepEqual(f.reports, []);
 });
 
@@ -80,7 +80,7 @@ test('interior joins move horizontally on either edge without changing width, an
     f.inspector.beginHandleDrag(f.e, 1, f.target, side); f.point(30, 220); f.inspector.moveHandleDrag(f.e); f.inspector.endHandleDrag();
     assert.equal(f.state().w, 200); assert.equal(f.state().shape!.top[1]!.x, 130);
     assert.equal(f.state().shape!.top[1]!.y, side === 'front' ? 220 : 230);
-    assert.equal(f.state().shape!.back![1], side === 'rear' ? 220 : 230);
+    assert.equal(f.state().shape!.back![1], 220);
     f.inspector.beginHandleDrag(f.e, 1, f.target, side); f.point(200, 220); f.inspector.moveHandleDrag(f.e); f.inspector.endHandleDrag();
     assert.ok(f.state().shape!.top[1]!.x <= 195);
     assert.deepEqual(shapeProblems(resolveShape(f.state()), f.state().w), []);
