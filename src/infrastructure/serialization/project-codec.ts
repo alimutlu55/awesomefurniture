@@ -34,7 +34,7 @@ const editorItem = z.strictObject({
 const area = z.strictObject({x0:nonnegative,x1:positive,y0:nonnegative,y1:positive});
 const editorDivider = z.strictObject({
   id:id.optional(),
-  i: count.max(5), orientation:z.enum(['horizontal','vertical']), want: nonnegative.optional(),
+  i: count.max(5), orientation:z.enum(['horizontal','vertical']), want: nonnegative.optional(), roofFit: z.boolean().optional(),
   x: nonnegative.optional(), y: nonnegative.optional(), x0: nonnegative.optional(), x1: positive.optional(), y0: nonnegative.optional(), y1: positive.optional(),
   area:area.optional(),
 }).superRefine((d,ctx)=>{

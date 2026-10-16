@@ -113,7 +113,7 @@ export function createDividersRules(ctx, deps) {
         if ((d.orientation || 'vertical') === orientation) {
             return { ...d };
         }
-        const a = dividerBounds(d), next = { ...d, area: { ...a }, orientation };
+        const a = dividerBounds(d), next = { ...d, roofFit: false, area: { ...a }, orientation };
         if (orientation === 'horizontal') {
             if (a.y1 - a.y0 < T + 30) {
                 return null;

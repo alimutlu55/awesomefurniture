@@ -58,7 +58,7 @@ export function createAttachmentRules(ctx, deps) {
             // sloped top that is the section's lowest point), or exactly what is above it. Any other height is one
             // someone chose: it keeps it.
             const full = ceilingTop(i, 0, widths()[i]), wanted = before.want ?? before.y1, made = before.area?.y1;
-            const filling = !was || before.want === undefined || wanted >= full - .5 || (made !== undefined && Math.abs(wanted - made) < .5)
+            const filling = before.roofFit || !was || before.want === undefined || wanted >= full - .5 || (made !== undefined && Math.abs(wanted - made) < .5)
                 || (before.y1 >= was.hi - .5 && wanted <= was.hi + .5);
             const run = gap(i, 'y', [d.x - T / 2, d.x + T / 2], d.y0 + .5, all, self);
             // A part lower than its top is in the way: it stops there rather than shrinking under it.
@@ -67,7 +67,7 @@ export function createAttachmentRules(ctx, deps) {
             const across = gap(i, 'x', [run.lo, y1], d.x, all, self) ?? { lo: 0, hi: widths()[i] };
             // Filling up to the top, it grows with the wardrobe (clampDivider cuts it to the slope); up to a part, it ends there.
             const want = filling ? (run.hiPart ? undefined : full) : run.lo + length;
-            return { ...d, y0: run.lo, y1, want, area: { x0: across.lo, x1: across.hi, y0: run.lo, y1 } };
+            return { ...d, y0: run.lo, y1, want, roofFit: filling && !run.hiPart, area: { x0: across.lo, x1: across.hi, y0: run.lo, y1 } };
         }
         const mid = (b) => (b.x0 + b.x1) / 2, was = gap(i, 'x', [before.y - T / 2, before.y + T / 2], mid(before), old, self);
         const left = was && near(before.x0, was.lo), right = was && near(before.x1, was.hi);

@@ -88,6 +88,7 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         }
         run(() => {
             // The wanted height is kept, so the divider returns to it when the slope allows.
+            getDesign().dividers[index]!.roofFit = false;
             getDesign().dividers[index]!.want = wanted;
             getDesign().dividers[index]!.y1 = top;
             getDesign().space = null;

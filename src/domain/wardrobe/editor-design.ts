@@ -13,6 +13,8 @@ export interface EditorDivider {
   i: number; orientation: 'horizontal' | 'vertical';
   /** Wanted top, in section coordinates. The drawn top is the lower of this and the slope, so a divider grows back when the slope rises. */
   want?: number | undefined;
+  /** An automatic divider follows the roof across its depth, rather than ending on a flat plane. */
+  roofFit?: boolean | undefined;
   x?: number | undefined; y?: number | undefined; x0?: number | undefined; x1?: number | undefined; y0?: number | undefined; y1?: number | undefined;
   area?: { x0: number; x1: number; y0: number; y1: number } | undefined;
 }

@@ -1,3 +1,4 @@
+import { roofDividerMesh } from './roof-divider-mesh';
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import * as THREE from "three";
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
@@ -214,10 +215,18 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             geometry.sectionDividers(i).forEach(q => {
                 // Shelf boards and dividers meeting a sloped top are cut to its angle. A divider
                 // is drawn to the top the slope allows, never to a stored top above it.
-                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(geometry.clampDivider(q)), cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut, panel = boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null) : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp);
-                // Picking, outline, handle and measurements follow the part that is built (a shelf cut by a slope).
-                const vr = geometry.visibleRect(q), vcx = x + (vr.x0 + vr.x1) / 2, vcy = iy + (vr.y0 + vr.y1) / 2, hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(5, vr.x1 - vr.x0), Math.max(5, vr.y1 - vr.y0), d), resources.HM);
-                hit.position.set(vcx, vcy, 0);
+                const j = getRenderDesign().dividers.indexOf(q), r = geometry.dividerRect(geometry.clampDivider(q));
+                const cx = x + (r.x0 + r.x1) / 2, cy = iy + (r.y0 + r.y1) / 2, boardCut = geometry.boardFit(i, r, q.orientation)?.cut;
+                const roofFit = q.orientation === 'vertical' && (q.roofFit ?? (q.want !== undefined
+                    && q.want >= geometry.ceilingTop(i, 0, sw) - .5 && r.y1 >= geometry.ceilingIn(i, r.x0, r.x1) - .05));
+                const roof = roofFit ? roofDividerMesh(getRenderDesign(), x + w / 2 + r.x0, x + w / 2 + r.x1, iy + r.y0, mp) : null;
+                if (roof) renderState.Gr.add(roof);
+                const panel = roof ? null : boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null)
+                    : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp);
+                // Picking follows the cut roof, including the taller front/rear area.
+                const vr = geometry.visibleRect(q), vcx = x + (vr.x0 + vr.x1) / 2, vcy = iy + (vr.y0 + vr.y1) / 2;
+                const hit = new THREE.Mesh(roof ? roof.geometry.clone() : new THREE.BoxGeometry(Math.max(5, vr.x1 - vr.x0), Math.max(5, vr.y1 - vr.y0), d), resources.HM);
+                if (!roof) hit.position.set(vcx, vcy, 0);
                 hit.userData = { i, divider: j };
                 renderState.Gr.add(hit);
                 renderState.ihits.push(hit);
