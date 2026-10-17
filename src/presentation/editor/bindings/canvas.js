@@ -36,6 +36,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         }
         // A second pointer always joins the camera gesture before hit testing.
         if (interactionState.ptrs.size > 0) {
+            interactionState.pendingFurniture = null;
             kitchenArray?.holdCancel();
             if (kitchenArray?.active()) kitchenArray.end(true);
             resources.cv.setPointerCapture(e.pointerId);
@@ -48,11 +49,15 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
             interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
             return;
         }
-        // An item or a divider is dragged by default, by mouse or finger, without choosing it first. A press on one
-        // when no wardrobe is chosen chooses that wardrobe, as a tap does. The wardrobe body moves only with the body.
-        const part = !selectionState.shapeEditing ? picking.cast(e, renderState.ihits)?.object ?? null : null;
-        const onPart = !!part && (!selectionState.focusOn || part.userData.wardrobe === model.scene.activeWardrobe);
-        if (onPart && !selectionState.focusOn) inspector.selectCabinet(part.userData.wardrobe);
+        // Inside the chosen wardrobe, an item or a divider is dragged by a press, by mouse or finger.
+        const chosen = selectionState.focusOn;
+        const part = chosen && !selectionState.shapeEditing ? picking.cast(e, renderState.ihits)?.object ?? null : null;
+        const onPart = !!part && part.userData.wardrobe === model.scene.activeWardrobe;
+        // Anywhere else on a wardrobe or cabinet, a press then a drag moves the whole piece, chosen or not; the view
+        // stays put. It starts once the pointer moves, so a tap still chooses it as before.
+        const body = !onPart && !selectionState.shapeEditing ? picking.cast(e, renderState.allHits)?.object.userData.wardrobe : undefined;
+        interactionState.pendingFurniture = body !== undefined && !(chosen && body === model.scene.activeWardrobe && !inspector.inside())
+            ? { id: body, event: e } : null;
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
             // Pressing a divider selects it, as a tap does, then drags it.
@@ -117,7 +122,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointermovePorts} ports */
-export function bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room, kitchenArray }) {
+export function bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room, kitchenArray }) {
     const { $ } = dom;
     lifetime.listen(resources.cv, 'pointermove', e => {
         if (room?.dragging()) {
@@ -160,6 +165,18 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
         const o = interactionState.ptrs.get(e.pointerId);
         interactionState.moved = Math.max(interactionState.moved, Math.hypot(e.clientX - interactionState.sx, e.clientY - interactionState.sy));
         if (interactionState.ptrs.size === 1) {
+            const pending = interactionState.pendingFurniture;
+            if (pending && interactionState.moved >= 5) {
+                // Pressed on a wardrobe or cabinet: it follows the pointer across the floor. Its frame becomes the
+                // active one so the drag measures against it; nothing else about the selection or the view changes.
+                interactionState.pendingFurniture = null;
+                const was = model.scene.activeWardrobe;
+                if (model.select(pending.id) && was !== pending.id) rendering.build();
+                if (e.pointerType !== 'touch') interactionState.ptrs.delete(e.pointerId);
+                interactions.beginWardrobeDrag(pending.event, 'floor');
+                interactions.moveWardrobeFromPointer(e);
+                return;
+            }
             if (interactionState.drag) {
                 if (interactionState.moved >= 6) {
                     if (!interactionState.drag.started) {
@@ -208,6 +225,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
 export function bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
+        interactionState.pendingFurniture = null;
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) {
             interactionState.ptrs.delete(e.pointerId);
@@ -287,6 +305,7 @@ export function bindCanvasPointerup({ dom, interactions, shell, interactionState
 /** @param {import('./canvas.ports').BindCanvasPointercancelPorts} ports */
 export function bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointercancel', e => {
+        interactionState.pendingFurniture = null;
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) kitchenArray.end(true);
         if (room?.dragging()) room.end(true);

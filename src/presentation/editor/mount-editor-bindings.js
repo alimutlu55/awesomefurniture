@@ -51,7 +51,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerDragEscape({ dom, interactions, interactionState, lifetime });
     observeViewportSize({ dom, camera, lifetime });
     bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     // Escape during a pull puts the copies back.

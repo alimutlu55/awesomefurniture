@@ -28,7 +28,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   const view=await el('view').boundingBox();
   await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);await waitLayout();
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['move','resize','shape','sections','more']);
+  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['resize','shape','more']);
   await action('resize').click();await waitLayout();
   assert.equal(await toolbar.isVisible(),false,'Focused sizing hides the desktop toolbar');
   assert.equal(await el('view-modes').isVisible(),false);
@@ -64,7 +64,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   assert.equal(await el('topright').isVisible(),true);
   await page.keyboard.press('ControlOrMeta+z');await waitLayout();
   await action('resize').click();await waitLayout();assert.equal(await el('w').inputValue(),original);await closeSettings();
-  await action('sections').click();await waitLayout();
+  // Sections is in a wardrobe's More menu.
+  await action('more').click();await menuItem('Sections').click();await waitLayout();
   await el('sec-plus').click();assert.equal((await el('section-count').textContent()).trim(),'2');await closeSettings();
   await action('shape').click();await waitLayout();
   assert.equal(await el('topright').isVisible(),false);
