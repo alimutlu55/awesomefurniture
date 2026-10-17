@@ -9,6 +9,20 @@ test('domain geometry checks movement without browser or changing the design',as
  design.dividers=[{i:1,orientation:'vertical',x:30,y0:0,y1:218.4}];
  assert.equal(rules.planItemMove({i:0,j:0},1,1).valid,false);
 });
+test('moving into a stack of pinned items restacks it in the new order only when asked',async()=>{
+ const {createWardrobeGeometry}=await import('../src/domain/geometry/wardrobe-geometry.js');
+ const design=state();
+ // A full bay laid out as Auto design leaves it: every item pinned at its height.
+ design.n=1;design.secs=[[{k:'drawer',h:22,y:0},{k:'drawer',h:22,y:22},{k:'shelf',h:30,y:44},{k:'shelf',h:30,y:74}],[],[],[],[],[]];
+ const before=structuredClone(design),rules=createWardrobeGeometry(()=>design);
+ const pinned=rules.planItemMove({i:0,j:0},0,4);
+ assert.equal(pinned.valid,true);assert.deepEqual(pinned.secs[0].map(it=>it.y),[22,44,74,0],'without restack the items keep their pins, so nothing shows');
+ const restacked=rules.planItemMove({i:0,j:0},0,4,false,undefined,true);
+ assert.equal(restacked.valid,true);
+ assert.deepEqual(restacked.layouts[0].map(q=>Math.round(q.relY0)),[0,22,52,82],'the drawer goes to the top and the others close up below it');
+ assert.deepEqual(restacked.secs[0].map(it=>it.k),['drawer','shelf','shelf','drawer']);
+ assert.deepEqual(design,before,'planning changes nothing');
+});
 test('cabinet collision rules use explicit scene inputs and stop tunnelling',async()=>{
  const {createCabinetGeometry}=await import('../src/domain/geometry/cabinet-geometry.js');
  const cabinets=[{id:1,x:0,y:0,z:0,angle:0,state:state()},{id:2,x:250,y:0,z:0,angle:0,state:state()}];

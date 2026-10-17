@@ -65,3 +65,49 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   }
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+// A full wardrobe from Auto design: every bay is stacked to the top, so there is no free space to drop into. Dragging a
+// drawer up into the shelves puts it there and the others make room; the drawer visibly follows the pointer meanwhile.
+(async()=>{
+ if(process.exitCode)return;
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
+ try {
+  for(const [width,height,pointer] of [[1280,800,'mouse'],[375,812,'touch']]) for(const studio of [false,true]) {
+   const touch=pointer==='touch';
+   const context=await browser.newContext({viewport:{width,height},isMobile:touch,hasTouch:true,reducedMotion:'reduce'});
+   const page=await context.newPage(),cdp=await context.newCDPSession(page);
+   page.setDefaultTimeout(15000);
+   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
+   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,for:{short:12,shoes:6,folded:20}}]})));
+   const el=id=>page.locator(`[data-editor-id="${id}"]`).first();
+   await el('wardrobe-btn').waitFor();await page.waitForTimeout(1500);
+   if(studio){await el('view-modes').locator('[data-view-mode="studio"]').click();await page.waitForTimeout(900);await el('view-modes').locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(900);await el('view-modes').locator('[data-view-mode="studio"]').click();await page.waitForTimeout(900);}
+   const bay=()=>page.evaluate(()=>window.wardrobeForge.describe().wardrobes[0].sections[0].fittings.map(f=>f.kind+'@'+f.from));
+   const before=await bay();
+   assert.ok(before[0].startsWith('drawer@0'),'The left bay starts with drawers: '+before);
+   // Find the bottom drawer of the left bay from the wardrobe's size pills: the width pill hangs below the floor line.
+   const wBox=await page.locator('.scrub-w:visible').boundingBox(),hBox=await page.locator('.scrub-h:visible').boundingBox();
+   const floorY=wBox.y-4,midY=hBox.y+hBox.height/2,cm=(floorY-midY)/(4+115),x=wBox.x+wBox.width/2-75*cm,y=floorY-(4+20)*cm,dy=-130*cm;
+   if(touch){
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
+    for(let i=1;i<=14;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+dy*i/14,id:1}]});await page.waitForTimeout(30);}
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+   } else {
+    await page.mouse.move(x,y);await page.mouse.down();
+    for(let i=1;i<=14;i++){await page.mouse.move(x,y+dy*i/14);await page.waitForTimeout(30);}
+    await page.mouse.up();
+   }
+   await page.waitForTimeout(900);
+   const after=await bay();
+   assert.notDeepEqual(after,before,`${pointer} ${width}px${studio?' in Studio':''}: the drawer moved into the full bay`);
+   const drawerTops=list=>list.filter(f=>f.startsWith('drawer')).map(f=>Number(f.split('@')[1]));
+   assert.ok(Math.max(...drawerTops(after))>Math.max(...drawerTops(before)),'A drawer now sits higher than any did: '+after);
+   assert.equal(await el('toolbar').getAttribute('data-context'),'item');
+   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(500);
+   assert.deepEqual(await bay(),before,'One undo restores the bay');
+   assert.deepEqual(errors,[]);
+   console.log(`PASS ${pointer} ${width}px${studio?' in Studio':''}: a drawer dragged into a full bay takes its place there; one undo`);
+   await context.close();
+  }
+ } finally {await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

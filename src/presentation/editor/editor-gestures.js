@@ -25,6 +25,8 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             queueMicrotask(inspector.reopenItemPanel);
         }
         camera.moveViewOff();
+        // A cancelled drag puts the item back where it was (a placed one is rebuilt where it lands).
+        interactionState.drag?.lifted?.position.set(0, 0, 0);
         interactionState.drag = null;
         interactionState.moveMode = null;
         interactionState.lastMoveEvent = null;
@@ -102,7 +104,24 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             }
             else {
                 plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (PLINTH + PANEL) }, { free: e.altKey });
+                // No free space there (in a full stack the free move stays where it was), but dropped onto another item:
+                // it goes into the stack there (before that item, or after it in its upper half) and the others make room;
+                // if the stack cannot take it, the two swap places.
+                const under = plan.valid && !plan.unchanged ? -1 : lay.findIndex((q, j) => !(to === from.i && j === from.j) && py >= q.y0 && py <= q.y1 && local >= q.x0 && local <= q.x1);
+                if (under >= 0) {
+                    const q = lay[under], slot = py > (q.y0 + q.y1) / 2 ? under + 1 : under;
+                    const inserted = geometry.planItemMove(from, to, slot, false, undefined, true), swapped = inserted.valid ? null : geometry.planItemMove(from, to, under, true);
+                    plan = inserted.valid ? inserted : swapped?.valid ? swapped : plan;
+                }
             }
+        }
+        // The item itself follows the pointer, a little in front of the wardrobe, kept inside it.
+        const lifted = interactionState.drag && renderState.itemGroups.find(g => g.i === from.i && g.j === from.j);
+        if (lifted && interactionState.drag.started) {
+            const d = interactionState.drag, hw = WardrobePlanner.itemWidth(it, ws[from.i]) / 2, hh = it.h / 2;
+            const fx = Math.max(xL + hw, Math.min(xR - hw, px - d.offsetX)), fy = Math.max(yB + hh, Math.min(yT - hh, py - d.offsetY));
+            lifted.group.position.set(fx - d.cx, fy - d.cy, 4);
+            d.lifted = lifted.group;
         }
         rendering.clearPreview(false);
         interactionState.previewPlan = plan;
