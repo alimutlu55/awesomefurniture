@@ -27,7 +27,7 @@ export function bindSceneReset({ dom, selectionState, interactionState, plannerS
         Object.assign(plannerState, createPlannerState());
         Object.assign(shellState, createShellState());
         sceneCommands.resetScene();
-        selectionState.viewMode = 'wardrobe';
+        selectionState.viewMode = 'furniture';
         selectionState.room = null;
         selectionState.pendingStudioAction = null;
         selectionState.editingSize = false;

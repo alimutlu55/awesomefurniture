@@ -23,7 +23,7 @@ export function bindDimensionScrubbers({ dom, model, lifetime, inspector, select
             const refresh = () => { inspector.update(true); room.fields.render(); };
             const key = el.dataset.scrubDimension as ScrubDimension | undefined;
             if (key) {
-                if (selectionState.shapeEditing || selectionState.viewMode !== 'wardrobe') return null;
+                if (selectionState.shapeEditing || selectionState.viewMode !== 'furniture') return null;
                 return { id, selector, orientation, min, max, entry: true, read: () => edits.value(key),
                     begin: () => edits.beginDimension(key), preview: delta => edits.previewDimension(delta), finish: cancel => edits.finish(cancel), refresh };
             }

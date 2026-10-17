@@ -108,7 +108,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 model.restore(JSON.stringify(next));
                 history.clear();
                 Object.assign(selectionState, flags);
-                selectionState.viewMode = 'wardrobe';
+                selectionState.viewMode = 'furniture';
                 selectionState.room = null;
                 selectionState.pendingStudioAction = null;
                 inspector.hidePop();

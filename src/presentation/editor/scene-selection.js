@@ -14,7 +14,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
     function pick(e) {
         const studioMode = selectionState.viewMode === 'studio';
         const h = studioMode ? null : picking.cast(e, renderState.allHits);
-        const part = selectionState.viewMode === 'wardrobe' ? null : roomHit(e, h);
+        const part = selectionState.viewMode === 'furniture' ? null : roomHit(e, h);
         if (part && room.pick(part)) return;
         // A click anywhere else leaves the room part it had selected.
         selectionState.room = null;
@@ -96,7 +96,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             o.visible = x === h || !!o.userData.s;
         });
         const wardrobe = h || i >= 0 ? null : picking.cast(e, renderState.allHits);
-        resources.cv.style.cursor = h || i >= 0 || wardrobe || (selectionState.viewMode !== 'wardrobe' && roomHit(e, wardrobe)) ? 'pointer' : 'grab';
+        resources.cv.style.cursor = h || i >= 0 || wardrobe || (selectionState.viewMode !== 'furniture' && roomHit(e, wardrobe)) ? 'pointer' : 'grab';
     }
     return { pick, hover };
 }

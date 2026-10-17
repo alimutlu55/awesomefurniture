@@ -18,7 +18,7 @@ interface RoomWiringPorts {
         cast(e: PointerEvent, objects: THREE.Object3D[]): THREE.Intersection | undefined;
     };
     readonly selectionState: StudioEditorPorts['selectionState'] & {
-        viewMode?: 'studio' | 'wardrobe'; pendingStudioAction?: string | null;
+        viewMode?: 'studio' | 'furniture'; pendingStudioAction?: string | null;
     };
     /** Late-bound editor parts: called only after the editor is mounted. */
     readonly late: {

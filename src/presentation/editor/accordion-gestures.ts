@@ -22,7 +22,7 @@ export function bindAccordionGestures(ports: Ports) {
     function bayAt(e: PointerEvent): Bay | null {
         const control = (e.target as HTMLElement).closest('button,input,[role="slider"],.shape-handle,.mobile-bottom-sheet');
         if (control && !control.matches('.lbl.add')) return null;
-        if (selectionState.viewMode !== 'wardrobe' || selectionState.shapeEditing || selectionState.editingSize
+        if (selectionState.viewMode !== 'furniture' || selectionState.shapeEditing || selectionState.editingSize
             || app.matches('.props-open,.auto-design-open,.adding') || room.surface.dragging() || !model.scene.wardrobes.length) return null;
         const hit = picking.cast(e, renderState.allHits), data = hit?.object.userData;
         const cabinet = model.scene.wardrobes.find(c => c.id === data?.wardrobe);

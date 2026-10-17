@@ -277,7 +277,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             interactions.cancelMovement();
         }
         if (!keep) {
-            selectionState.viewMode = 'wardrobe';
+            selectionState.viewMode = 'furniture';
             selectionState.room = null;
             selectionState.pendingStudioAction = null;
             selectionState.focusOn = true;

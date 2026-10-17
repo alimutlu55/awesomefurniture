@@ -59,7 +59,7 @@ function fixture(t, width, studio = true) {
 for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
     test(`${pointerType}: Wardrobe mode starts at the same wider overview as an empty-canvas tap`, t => {
         const f = fixture(t, width);
-        f.selectionState.viewMode = 'wardrobe';
+        f.selectionState.viewMode = 'furniture';
         f.setHeight(812);
         f.camera.frameScene({ instant: true });
         const initial = f.camera.camNow();
@@ -138,14 +138,14 @@ test('Studio mode selects room parts and ignores wardrobes', t => {
 
 test('Wardrobe mode ignores room selection but background taps restore the whole-scene overview', t => {
     const f = fixture(t, 375);
-    f.selectionState.viewMode = 'wardrobe';
+    f.selectionState.viewMode = 'furniture';
     f.wall(); f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.selectionState.room, null);
     assert.equal(f.overviewCalls, 1);
     assert.equal(f.cameraState.tgt.x, 0);
     assert.equal(f.cameraState.tgt.z, 175);
     assert.equal(f.cameraState.el, .5);
-    assert.equal(f.selectionState.viewMode, 'wardrobe');
+    assert.equal(f.selectionState.viewMode, 'furniture');
     const distance = f.cameraState.dist;
     f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.cameraState.dist, distance);

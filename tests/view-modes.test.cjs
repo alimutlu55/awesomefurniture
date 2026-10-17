@@ -5,7 +5,7 @@ const { createSelectionState } = require('../src/presentation/editor/selection-s
 
 test('a fresh editor starts in Wardrobe mode without an object selection', () => {
     const state = createSelectionState();
-    assert.equal(state.viewMode, 'wardrobe');
+    assert.equal(state.viewMode, 'furniture');
     assert.equal(state.focusOn, false);
     assert.equal(state.room, null);
 });
@@ -13,7 +13,7 @@ test('a fresh editor starts in Wardrobe mode without an object selection', () =>
 test('switching spatial modes clears editing selection and frames the correct scope without opening settings', () => {
     const selectionState = createSelectionState(), calls = [], classes = new Set(['props-open']);
     selectionState.viewMode = 'studio';
-    const buttons = ['studio', 'wardrobe'].map(mode => ({ dataset: { viewMode: mode }, setAttribute(k, v) { this[k] = v; } }));
+    const buttons = ['studio', 'furniture'].map(mode => ({ dataset: { viewMode: mode }, setAttribute(k, v) { this[k] = v; } }));
     const app = { dataset: {}, classList: { add: c => classes.add(c), remove: c => classes.delete(c), contains: c => classes.has(c) } };
     const wizard = { hidden: true }, switcher = { querySelectorAll: () => buttons };
     const modes = createViewModes({
@@ -28,16 +28,16 @@ test('switching spatial modes clears editing selection and frames the correct sc
     selectionState.room = { kind: 'wall', id: 'w1' };
     selectionState.pendingStudioAction = 'door';
     selectionState.focusOn = true;
-    modes.change('wardrobe');
+    modes.change('furniture');
     assert.equal(selectionState.room, null);
     assert.equal(selectionState.pendingStudioAction, null);
     assert.equal(selectionState.focusOn, false);
-    assert.equal(app.dataset.viewMode, 'wardrobe');
+    assert.equal(app.dataset.viewMode, 'furniture');
     assert.deepEqual(buttons.map(b => b['aria-pressed']), ['false', 'true']);
     assert.equal(classes.has('props-open'), false);
     assert.equal(classes.has('props-hidden'), true);
     assert.deepEqual(calls, ['close menus', 'clear', 'update', 'wardrobe']);
-    modes.change('wardrobe');
+    modes.change('furniture');
     assert.equal(calls.length, 4, 'reselecting the current mode does not reset the camera');
     wizard.hidden = false;
     modes.change('studio');

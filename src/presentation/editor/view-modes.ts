@@ -19,7 +19,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
             button.setAttribute('aria-pressed', String(button.dataset.viewMode === selectionState.viewMode));
         });
     };
-    const change = (mode: 'studio' | 'wardrobe') => {
+    const change = (mode: 'studio' | 'furniture') => {
         if (selectionState.viewMode === mode) return;
         shell.closeDD();
         if (!$('#wizard').hidden) planner.closeWizard();
@@ -35,7 +35,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
     };
     lifetime.listen(switcher, 'click', (e: Event) => {
         const mode = (e.target as Element).closest<HTMLButtonElement>('[data-view-mode]')?.dataset.viewMode;
-        if (mode === 'studio' || mode === 'wardrobe') change(mode);
+        if (mode === 'studio' || mode === 'furniture') change(mode);
     });
     sync();
     return { change, sync };

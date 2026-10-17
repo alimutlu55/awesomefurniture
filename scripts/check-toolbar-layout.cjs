@@ -39,7 +39,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   if(width===375)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-mobile.png'});
   if(width===1440)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-desktop.png'});
   await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(350);await check(4);
-  await page.locator('[data-view-mode="wardrobe"]').click();await page.waitForTimeout(350);await check(3);
+  await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(3);
   await page.getByRole('button',{name:'Add wardrobe',exact:true}).click();
   await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(7);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);await check(3);
