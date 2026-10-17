@@ -11,7 +11,7 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
         const m = geometry.itemMeasurements(i, j);
         if (!m) return;
         sceneMeasurementBadge(el, { kind: 'item-gap', section: i, index: j, side },
-            side === 'top' ? 'Distance above item' : 'Distance below item', m[side], 'vertical');
+            side === 'top' ? 'Distance above item' : 'Distance below item', side === 'top' ? m.gapAbove : m.gapBelow, 'vertical');
     }
     function editableDividerClearance(el, index, side) {
         const m = geometry.dividerMeasurements(index);

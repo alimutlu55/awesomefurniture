@@ -7,6 +7,7 @@ import { createAttachmentRules } from './wardrobe-rules/attachments.js';
 import { createBoxesRules } from './wardrobe-rules/boxes.js';
 import { createSpacesRules } from './wardrobe-rules/spaces.js';
 import { createMovementRules } from './wardrobe-rules/movement.js';
+import { createClearanceRules } from './wardrobe-rules/clearances.js';
 import { createMeasurementsRules } from './wardrobe-rules/measurements.js';
 import { createCostingRules } from './wardrobe-rules/costing.js';
 import { createPlannerConfigRules } from './wardrobe-rules/planner-config.js';
@@ -27,7 +28,8 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     const boxesRules = createBoxesRules(ctx, { ...dividersRules });
     const spacesRules = createSpacesRules(ctx, { ...sizesRules, ...ceilingRules, ...layoutRules, ...dividersRules });
     const movementRules = createMovementRules(ctx, { ...sizesRules, ...layoutRules, ...fitRules, ...dividersRules, ...spacesRules });
-    const measurementsRules = createMeasurementsRules(ctx, { ...ceilingRules, ...layoutRules, ...fitRules, ...spacesRules });
+    const clearanceRules = createClearanceRules(ctx, { ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules });
+    const measurementsRules = createMeasurementsRules(ctx, { ...ceilingRules, ...layoutRules, ...fitRules, ...spacesRules, ...clearanceRules });
     const costingRules = createCostingRules(ctx, { ...ceilingRules, ...layoutRules });
     const plannerConfigRules = createPlannerConfigRules(ctx, { ...ceilingRules, ...layoutRules });
     const {
@@ -39,10 +41,10 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         boxCapped, boxSupported, sectionSpaces, spaceCentre, sectionSpaceMeasurements, spaceSpan, narrowToFit,
         edgeGap, itemFreeAbove, planItemMove, planFreeMove, verticalNeighbor, itemYBounds, sectionLayoutValid,
         duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, itemGeom, itemMeasurements, cost,
-        stats, plannerConfig, planCfg, moveWithAttachments, carryOnMove,
+        stats, plannerConfig, planCfg, moveWithAttachments, carryOnMove, sectionObstacles, gapsAround, itemGaps, railDrop, drawerStack, netOpening, spaceTallest,
     } = {
         ...sizesRules, ...ceilingRules, ...layoutRules, ...fitRules, ...dividersRules, ...attachmentRules, ...boxesRules,
-        ...spacesRules, ...movementRules, ...measurementsRules, ...costingRules, ...plannerConfigRules,
+        ...spacesRules, ...movementRules, ...clearanceRules, ...measurementsRules, ...costingRules, ...plannerConfigRules,
     };
     return {
         spaceCentre, clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear,
@@ -53,6 +55,6 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
         sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg,
         plannerConfig, currentLayout, effectiveMin, itemFeasible, newItem, splitFor, edgeGap, bayMinW,
         minTotal, okItem, duplicateSideSpot, resizeObstacles, itemEdgeSize, widthEdgeFor, dividerDupSpot,
-        moveWithAttachments, carryOnMove,
+        moveWithAttachments, carryOnMove, sectionObstacles, gapsAround, itemGaps, railDrop, drawerStack, netOpening, spaceTallest,
     };
 }

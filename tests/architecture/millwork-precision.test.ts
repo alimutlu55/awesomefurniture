@@ -75,3 +75,51 @@ test('carcass boards never run into each other along the depth', async () => {
     assert.ok(Math.abs(interiorDepth(d) - (d - BACK_PANEL)) < 1e-9);
   }
 });
+
+test('a fitting measures its gaps to the real neighbour, never through it', async () => {
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const S: any = { w: 200, h: 230, d: 60, n: 3, wt: [100, 100, 100], dividers: [], profile: { longDrop: 160 },
+    secs: [[{ k: 'short', h: 102.4 }, { k: 'shelf', h: 27.8 }, { k: 'shelf', h: 27.8 }], [], []] };
+  const g = createWardrobeGeometry(() => S), m = g.itemMeasurements(0, 1)!;
+  assert.equal(m.gapBelow, 0, 'the shelf stands on the rail fitting below');
+  assert.equal(m.lineBelow.to, 'fitting');
+  assert.equal(m.gapAbove, 0, 'the next shelf sits directly on it');
+  assert.ok(m.bottom > 100 && m.top > 30, 'the carcass-referenced figures still exist for placing the fitting');
+  const top = g.itemMeasurements(0, 2)!;
+  assert.equal(top.lineAbove.to, 'top');
+  assert.ok(Math.abs(top.gapAbove - top.top) < .01, 'the top shelf of a regular bay runs to the top');
+});
+
+test('rail drop, drawer stack and an open shelf’s clear opening', async () => {
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const { RAIL_DROP, INTERIOR_FLOOR } = await import('../../src/domain/wardrobe/carcass');
+  const S: any = { w: 200, h: 230, d: 60, n: 3, wt: [100, 100, 100], dividers: [], profile: { longDrop: 160 },
+    secs: [[{ k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'short', h: 106 }], [{ k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }], []] };
+  const g = createWardrobeGeometry(() => S);
+  const rail = g.railDrop(0, 3)!;
+  assert.ok(Math.abs(rail.y - (INTERIOR_FLOOR + 66 + 106 - RAIL_DROP)) < .01, 'rail centre is RAIL_DROP under the fitting top');
+  assert.ok(Math.abs(rail.drop - (106 - RAIL_DROP)) < .01, 'drop runs from the rail to the drawer stack it hangs over');
+  assert.equal(g.railDrop(0, 0), null, 'a drawer has no rail');
+  const stack = g.drawerStack(0, 1)!;
+  assert.equal(stack.count, 3);
+  assert.ok(Math.abs(stack.h - 66) < .01);
+  assert.equal(stack.above.gap, 0, 'the rail fitting sits on the stack');
+  const lower = g.netOpening(1, 0)!, upper = g.netOpening(1, 1)!;
+  assert.ok(lower.h < lower.pitch && upper.h < upper.pitch, 'the clear opening is the pitch less the boards');
+  assert.ok(Math.abs(lower.h - (30 - 1.8)) < .01, 'on the base board: only its own top board is deducted');
+});
+
+test('under a sloped top a free space is measured where it is tallest, and stays under the top', async () => {
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const { createFromTemplate } = await import('../../src/domain/wardrobe/shape/shape-templates');
+  const start = createFromTemplate('sloped', { w: 200, h: 230, maxN: 6 });
+  const S: any = { w: 200, h: 230, d: 60, n: start.n, wt: start.wt, shape: start.shape, dividers: [], profile: { longDrop: 160 }, secs: [[], [], [], [], [], []] };
+  const g = createWardrobeGeometry(() => S);
+  for (let i = 0; i < S.n; i++) {
+    const space = g.sectionSpaceMeasurements(i) as { x0: number; x1: number; y0: number; y1: number; h: number; hMin: number }, tall = g.spaceTallest(i, space);
+    assert.ok(tall.x >= space.x0 && tall.x <= space.x1);
+    assert.ok(tall.h <= space.h + .01 && tall.h >= space.hMin - .01);
+    // The ruler's top is under the top board at the x where it stands.
+    assert.ok(space.y0 + tall.h <= 9.8 + g.ceilingIn(i, tall.x - .01, tall.x + .01) + .02, `bay ${i + 1}`);
+  }
+});

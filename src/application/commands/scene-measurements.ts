@@ -42,7 +42,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         }
         if (!scene().wardrobes.length) return null;
         if (ref.kind === 'reach') return state().profile.reach;
-        if (ref.kind === 'item-gap') return geometry.itemMeasurements(ref.section, ref.index)?.[ref.side] ?? null;
+        // The net gap to what is really above or below the fitting, not to the carcass top or base.
+        if (ref.kind === 'item-gap') return geometry.itemMeasurements(ref.section, ref.index)?.[ref.side === 'top' ? 'gapAbove' : 'gapBelow'] ?? null;
         if (ref.kind === 'board-gap') return geometry.dividerMeasurements(ref.index)?.[ref.side] ?? null;
         if (ref.kind === 'item-size') {
             const item = geometry.itemMeasurements(ref.section, ref.index);
@@ -70,7 +71,11 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         }, false, true);
         const before = read(ref);
         if (ref.kind === 'reach') design.setWardrobeReach(value);
-        else if (ref.kind === 'item-gap') design.setItemClearance(ref.section, ref.index, ref.side, value);
+        else if (ref.kind === 'item-gap') {
+            // setItemClearance places the fitting by its distance to the carcass top or base; shift that by the change in net gap.
+            const m = geometry.itemMeasurements(ref.section, ref.index)!, net = ref.side === 'top' ? m.gapAbove : m.gapBelow;
+            design.setItemClearance(ref.section, ref.index, ref.side, m[ref.side] - net + value);
+        }
         else if (ref.kind === 'board-gap') design.setDividerClearance(ref.index, ref.side, value);
         else if (ref.axis === 'd') commands.setCabinetSize('d', depthForFitting(value), false);
         else if (ref.kind === 'item-size') {

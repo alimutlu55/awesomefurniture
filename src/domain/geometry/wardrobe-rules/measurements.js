@@ -4,13 +4,14 @@ import { fittingDepth } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
 /** @typedef {ReturnType<typeof import('./spaces.js').createSpacesRules>} SpacesRules */
+/** @typedef {ReturnType<typeof import('./clearances.js').createClearanceRules>} ClearanceRules */
 /** Measurements of a placed fitting for the dimension labels.
  * Part of the wardrobe rules (see ../wardrobe-geometry.js). Centimetres; only the design is read.
  * @param {import('./context.js').GeometryContext} ctx
- * @param {CeilingRules & LayoutRules & FitRules & SpacesRules} deps Rules from the modules created before this one. */
+ * @param {CeilingRules & LayoutRules & FitRules & SpacesRules & ClearanceRules} deps Rules from the modules created before this one. */
 export function createMeasurementsRules(ctx, deps) {
     const { getDesign } = ctx;
-    const { ceilingTop, computeLayout, itemFit, itemFreeAbove, widths } = deps;
+    const { ceilingTop, computeLayout, itemFit, itemFreeAbove, itemGaps, widths } = deps;
 
     function itemGeom(i, j) {
         const ws = widths(), sec = getDesign().secs[i], it = sec && sec[j];
@@ -41,7 +42,13 @@ export function createMeasurementsRules(ctx, deps) {
             }
         }
         const fit = itemFit(i, current, getDesign().secs[i][j]);
-        return { ...g, cut: !!fit?.cut, core: fit?.core && { x0: g.bayL + fit.core.x0, x1: g.bayL + fit.core.x1, w: fit.core.x1 - fit.core.x0, h: fit.core.y1 - fit.core.y0 }, top: Math.max(0, PL + T + ceilingTop(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T), freeBelow: Math.max(0, g.y0 - support) };
+        const core = fit?.core && { x0: g.bayL + fit.core.x0, x1: g.bayL + fit.core.x1, w: fit.core.x1 - fit.core.x0, h: fit.core.y1 - fit.core.y0 };
+        // `top`/`bottom` run to the carcass top and base board; `gapAbove`/`gapBelow` are the net gaps to whatever is
+        // really there (the next fitting, a shelf board, the top or the base), measured at `lineAbove`/`lineBelow`.
+        const gaps = itemGaps(i, j);
+        return { ...g, cut: !!fit?.cut, core, top: Math.max(0, PL + T + ceilingTop(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T),
+            freeBelow: Math.max(0, g.y0 - support), gapAbove: gaps.above.gap, gapBelow: gaps.below.gap,
+            lineAbove: { x: g.bayL + gaps.above.x, to: gaps.above.to }, lineBelow: { x: g.bayL + gaps.below.x, to: gaps.below.to } };
     }
     return { itemGeom, itemMeasurements };
 }
