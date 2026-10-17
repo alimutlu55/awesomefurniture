@@ -24,7 +24,7 @@ export interface Footprint { x: number; z: number; angle: number; w: number; d: 
 
 /** What is selected in the room: drawn with its outline at full height, even while its wall is lowered. */
 export type RoomSelection = { readonly kind: 'wall' | 'opening' | 'ceiling'; readonly id: string } | null;
-interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number }
+interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number; free: boolean }
 
 /** Draws the studio around the wardrobes. Walls between the camera and the room lower to a short cut
  * stub, so nothing ghosts over the wardrobes; the ceiling shows only from inside the room. `sync`
@@ -110,7 +110,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(-camera.getWorldDirection(new THREE.Vector3()).y);
     for (const view of walls) {
       to.copy(camera.position).sub(view.mid);
-      const target = to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
+      const target = !view.free && to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
       if (view.lift !== target) setLift(view, Math.abs(view.lift - target) < .003 ? target : view.lift + (target - view.lift) * k);
     }
     // The ceiling closes the room whenever you look from below it, as in a photograph of the room.
@@ -211,7 +211,9 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.rotation.y = line.angle * Math.PI / 180;
     group.position.set(line.a.x, 0, line.a.z);
     const mid = new THREE.Vector3(line.a.x + line.ux * line.length / 2, w.height / 2, line.a.z + line.uz * line.length / 2);
-    return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1 };
+    // A wall with no room on either side (a free-standing wall) has nothing to reveal, so it never lowers.
+    const free = cornerDegree(studio, w.a) < 2 && cornerDegree(studio, w.b) < 2;
+    return { id: w.id, group, body, details, cap, normal: new THREE.Vector3(line.nx, 0, line.nz), mid, height: w.height, lift: 1, free };
   }
 
   /** The selected wall or opening keeps a full-height outline, so it reads even while its wall is low. */

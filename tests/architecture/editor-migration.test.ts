@@ -36,8 +36,10 @@ test('complete designs survive validated persistence with layout intent intact',
  assert.deepEqual(initial,scene(),'mapping must not mutate the editor scene');
 });
 
-test('fresh editors start with one empty wardrobe and no generated layout',async()=>{
- assert.equal(projectToScene(createProject('empty','Empty')),undefined);
+test('fresh editors start with one wall and no wardrobe, so the user picks furniture to add',async()=>{
+ const fresh=projectToScene(createProject('empty','Empty'));
+ assert.equal(fresh?.wardrobes.length,0);
+ assert.equal(fresh?.studio?.walls.length,1);
  const {createEditorModel}=await import('../../src/application/projects/editor-model');
  const model=createEditorModel();
  assert.equal(model.scene.wardrobes.length,1);

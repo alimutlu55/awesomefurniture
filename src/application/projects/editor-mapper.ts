@@ -3,6 +3,7 @@ import type { EditorScene, EditorState } from './editor-scene';
 import type { EditorItem, EditorDivider } from '../../domain/wardrobe/editor-design';
 import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { defaultNeeds } from '../../domain/wardrobe/possessions';
+import { singleWallStudio } from '../../domain/studio/studio-edit';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 
@@ -42,8 +43,8 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
 }
 
 export function projectToScene(project: ProjectDocument): EditorScene | undefined {
- // A room whose wardrobes were all removed stays empty. Without a room, an empty project starts with a wardrobe.
- if (!project.wardrobes.length) return project.studio ? {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:structuredClone(project.studio)} : undefined;
+ // A room whose wardrobes were all removed stays empty. An empty project with no room starts with one wall, so the user picks furniture to add.
+ if (!project.wardrobes.length) return {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:project.studio ? structuredClone(project.studio) : singleWallStudio()};
  const wardrobes=project.wardrobes.map((w,index)=>{
   const layout=w.editorLayout;
   const {budget: _budget,...profile}=w.preferences;

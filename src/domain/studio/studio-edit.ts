@@ -111,6 +111,11 @@ export function addWall(studio: Studio, x0: number, z0: number, x1: number, z1: 
   return custom(studio, { corners: [...studio.corners, a, b], walls: [...studio.walls, w] });
 }
 
+/** A new project's room: one free-standing wall, centred on x = 0 at the back, with nothing on it yet. */
+export function singleWallStudio(length = 300): Studio {
+  return addWall({ template: 'custom', corners: [], walls: [], openings: [] }, -length / 2, 0, length / 2, 0);
+}
+
 /** Joins two corners into one, so walls that ended at `from` now end at `into`: dropping a free wall end
  * on another closes the room there. Walls left with both ends on one corner are removed. */
 export function mergeCorners(studio: Studio, from: string, into: string): Studio | null {
