@@ -36,7 +36,7 @@ test('switching spatial modes clears editing selection and frames the correct sc
     assert.deepEqual(buttons.map(b => b['aria-pressed']), ['false', 'true']);
     assert.equal(classes.has('props-open'), false);
     assert.equal(classes.has('props-hidden'), true);
-    assert.deepEqual(calls, ['close menus', 'clear', 'update', 'wardrobe']);
+    assert.deepEqual(calls, ['close menus', 'clear', 'update', 'room'], 'Furniture shows the whole scene, as far away as Studio');
     modes.change('furniture');
     assert.equal(calls.length, 4, 'reselecting the current mode does not reset the camera');
     wizard.hidden = false;

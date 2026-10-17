@@ -1,7 +1,7 @@
 interface ViewModePorts {
     dom: ReturnType<typeof import('./editor-dom').createEditorDom>;
     selectionState: ReturnType<typeof import('./selection-state.js').createSelectionState>;
-    camera: Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameScene' | 'frameWardrobe'>;
+    camera: Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameScene'>;
     inspector: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'update'>;
     shell: Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>;
     planner: Pick<ReturnType<typeof import('./planner-presenter.js').createPlannerPresenter>, 'closeWizard'>;
@@ -31,7 +31,8 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
         $('#app').classList.add('props-hidden');
         sync();
         inspector.update(true);
-        if (mode === 'studio') camera.frameScene(); else camera.frameWardrobe();
+        // Both modes show the whole scene from the same distance; choosing a piece of furniture brings it closer.
+        camera.frameScene();
     };
     lifetime.listen(switcher, 'click', (e: Event) => {
         const mode = (e.target as Element).closest<HTMLButtonElement>('[data-view-mode]')?.dataset.viewMode;
