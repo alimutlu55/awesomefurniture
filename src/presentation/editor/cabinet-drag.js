@@ -6,7 +6,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         camera.camRelease();
         inspector.hidePop();
         const w = model.activeCabinet(), p = e && picking.groundPoint(e);
-        interactionState.rotationGesture = { id: w.id, original: w.angle, from: { x: w.x, z: w.z }, snapshot: model.snapshot(), handle, x: e?.clientX ?? null, polar: p ? Math.atan2(p.x - w.x, p.z - w.z) : null, spatial: cameraState.el > .15, moved: false };
+        const polar = p ? Math.atan2(p.x - w.x, p.z - w.z) : null;
+        // `from`: where the turn started, so a piece slid out from a wall comes back there.
+        interactionState.rotationGesture = { id: w.id, original: w.angle, from: { x: w.x, z: w.z }, snapshot: model.snapshot(), handle,
+            x: e?.clientX ?? null, polar, spatial: cameraState.el > .15, moved: false };
         handle.classList.add('rotating');
         handle.setAttribute('aria-pressed', 'true');
         resources.cv.style.cursor = 'grabbing';
