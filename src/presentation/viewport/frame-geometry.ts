@@ -36,11 +36,13 @@ export function boardUnderTop(design: Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' 
     return [{ x: x0, y: y0 }, { x: x1, y: y0 }, ...top.reverse()].map(p => ({ x: p.x - design.w / 2, y: p.y }));
 }
 
+/** `sidesFrom`: where the sides start (a kitchen unit's sides stand on the run's plinth); `plinth`: whether the
+ * cabinet draws its own plinth (a kitchen run draws one along all its units). Wardrobes use the defaults. */
 export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'n' | 'wt' | 'shape'>, box: BoxBuilder, prism: PrismBuilder, materials: {
     panel: Material;
     back: Material;
     plinth: Material;
-}): void {
+}, { sidesFrom = 0, plinth = true }: { sidesFrom?: number; plinth?: boolean } = {}): void {
     const { w, d } = design, panel = panelBuilder(box, prism), shape = resolveShape(design);
     const back = rearShape(shape), tops = shapeBoards(shape), rearTops = shapeBoards(back);
     tops.forEach((board, i) => {
@@ -48,11 +50,11 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
         if (shape.back) prism(points, d, 0, materials.panel, undefined, rearTops[i]!.points.map(p => ({ x: p.x - w / 2, y: p.y })));
         else panel(points, d, 0, materials.panel);
     });
-    renderUpright(design, 0, PANEL, 0, d, materials.panel, box, prism);
-    renderUpright(design, w - PANEL, w, 0, d, materials.panel, box, prism);
+    renderUpright(design, 0, PANEL, sidesFrom, d, materials.panel, box, prism);
+    renderUpright(design, w - PANEL, w, sidesFrom, d, materials.panel, box, prism);
     box(w - 2 * PANEL, PANEL, d - 1, 0, PLINTH + PANEL / 2, 0, materials.panel);
     panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), .6, -d / 2 + .3, materials.back);
-    box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
+    if (plinth) box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
 }
 
 /** Side panels and partitions join the independently edited front and rear. */

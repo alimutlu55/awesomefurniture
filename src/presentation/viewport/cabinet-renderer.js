@@ -22,6 +22,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { createGarmentRenderer } from './garment-renderer';
 import { createHandbagRenderer } from './handbag-renderer';
 import { createTrouserRenderer } from './trouser-renderer';
+import { createKitchenRunRenderer } from './kitchen-run-renderer';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -38,6 +39,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // Optional: renderer tests build this without a 3D scene.
     const studio = resources?.scene ? createStudioRenderer(resources.scene) : null;
     if (studio) lifetime.cleanup(() => studio.dispose());
+    // Kitchen runs: the worktop, plinth, sinks and hobs that neighbouring kitchen units share.
+    const kitchenRuns = resources?.scene ? createKitchenRunRenderer(resources.scene, resources) : null;
+    if (kitchenRuns) lifetime.cleanup(() => kitchenRuns.dispose());
     // Another wardrobe between the camera and the selected one steps aside, leaving an outline.
     const occlusion = resources?.scene ? createWardrobeOcclusion(resources.scene) : null;
     if (occlusion) lifetime.cleanup(() => occlusion.dispose());
@@ -50,6 +54,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     };
     const sceneFrame = { shadowKey, frame: (cam, dt) => {
         studio?.frame(cam, dt);
+        // Follows units while they are dragged, turned or pulled out into copies.
+        kitchenRuns?.sync(model.scene.wardrobes);
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
         // Which wardrobes stepped aside, for assistive tools and checks (no visible label shows it).
         const hidden = occlusion?.hiddenIds().join(' ') ?? '', view = $('#view');
@@ -196,6 +202,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         clothes.endBuild();
         bags.endBuild();
         trousers.endBuild();
+        kitchenRuns?.sync(model.scene.wardrobes);
         // Every wardrobe removed: an empty stand-in keeps the active-wardrobe handles pointing at nothing.
         activeRender ??= { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
         renderDesign = selected.state;

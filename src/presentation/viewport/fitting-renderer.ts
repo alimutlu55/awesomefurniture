@@ -14,6 +14,8 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import type { createViewportResources } from './viewport-resources.js';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { BoxBuilder } from './frame-geometry';
+import { createKitchenFittingRenderer } from './kitchen-fitting-renderer';
+import { isKitchen } from '../../domain/furniture/furniture';
 interface FittingRendererPorts {
     resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'fabric'>>;
     mp: THREE.Material;
@@ -43,10 +45,18 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
     const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
+    // Kitchen cabinets draw their own fronts (drawers, doors, appliances).
+    const design = getRenderDesign(), kitchen = isKitchen(design)
+        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, materials: { front: mp, inside: md, M: resources.M } }) : null;
+    if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
     function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut) {
+        if (kitchen) {
+            kitchen.kitchenFitting(it, cx, y, sw, { bottom: PLINTH + PANEL, top: ceiling });
+            return;
+        }
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
         const slab: BoxBuilder = cut ? cut.slab : box;
         // Working core: the full fitting unless the top cuts into it.
@@ -178,5 +188,5 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             }
         }
     }
-    return { mod };
+    return { mod, lightRail: kitchen?.lightRail };
 }

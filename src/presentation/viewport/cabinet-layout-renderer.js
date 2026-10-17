@@ -13,6 +13,8 @@ import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
+import { isKitchen } from '../../domain/furniture/furniture';
+import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
 export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
@@ -109,7 +111,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         renderState.Gr.add(shadow);
         const { w, h, d, n } = getRenderDesign(), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = PLINTH + PANEL, V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         renderState.Gr.userData.ownedMaterials = materials.owned;
-        renderCabinetFrame(getRenderDesign(), box, prism, materials);
+        // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
+        const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
+        renderCabinetFrame(getRenderDesign(), box, prism, materials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? PLINTH : 0, plinth: false } : {});
         /** Section-local outline of a span under the top, in cabinet-centred coordinates. */
         const sectionOutline = (i, sx, x0, x1, y0 = 0) => [{ x: sx + x0, y: iy + y0 }, { x: sx + x1, y: iy + y0 }, ...geometry.ceilingOutline(i, x0, x1).reverse().map(p => ({ x: sx + p.x, y: iy + p.y }))];
         const lp = [], spaceRulerPoints = [], dimLine = (a, b, txt, cls = 'lbl dim', points = lp) => {
@@ -122,7 +126,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
+        const { mod, lightRail } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
+        if (kitchenUnit && !kitchenUnit.plinth) lightRail?.(w);
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h);
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
