@@ -19,6 +19,8 @@ interface KitchenArrayPorts {
     rebuild(): void;
     /** After the pull: refresh panels and history buttons. */
     finished(): void;
+    /** Copies were kept: show the whole run, new cabinets included. */
+    added(): void;
     toast(message: string): void;
     /** A copy came or went: a light tick where the device can. */
     tick(count: number): void;
@@ -95,6 +97,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     const appliance = original?.state.secs.flat().some(it => hasTrait(it.k, 'appliance'));
     callbacks.toast(g.count + (g.count === 1 ? ' cabinet' : ' cabinets') + ' added' + (appliance ? ', with plain storage in place of the appliances' : ''));
     callbacks.finished();
+    callbacks.added();
   }
 
   function grip(side: Side) {

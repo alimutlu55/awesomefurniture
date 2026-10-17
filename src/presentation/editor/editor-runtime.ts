@@ -156,7 +156,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         // Pull-to-array: copies of a kitchen unit pulled out from its side or after a long press.
         const arrayFeedback = createTactileFeedback(dom);
         const kitchenArray = createKitchenArrayGesture({ dom, model, sceneCommands, history: { checkpoint: snapshot => history.checkpoint(snapshot) }, lifetime, picking, renderState,
-            callbacks: { rebuild: () => rendering.build(), finished: () => { inspector.update(true); inspector.histUI(); }, toast: message => shell.toast(message), tick: count => arrayFeedback.tick(count) } });
+            callbacks: { rebuild: () => rendering.build(), finished: () => { inspector.update(true); inspector.histUI(); }, added: () => framing.frame(), toast: message => shell.toast(message), tick: count => arrayFeedback.tick(count) } });
         lifetime.cleanup(() => kitchenArray.dispose());
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: {
             refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(),

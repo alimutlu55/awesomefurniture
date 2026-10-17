@@ -14,7 +14,7 @@ function fixture(preset = 'cooking') {
   const scene: EditorScene = { activeWardrobe: 1, nextWardrobeId: 2, wardrobes: [
     { id: 1, name: 'Hob and oven 1', x: 0, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign('base', preset), sel: 0, item: -1, divider: -1, space: null, open: false } }] };
   const model = createEditorModel(scene), checkpoints: string[] = [], toasts: string[] = [], ticks: number[] = [];
-  let rebuilt = 0, finished = 0;
+  let rebuilt = 0, finished = 0, added = 0;
   const sceneCommands = createSceneCommands(() => model.scene);
   const timers = new Map<number, () => void>();
   let nextTimer = 1;
@@ -23,9 +23,9 @@ function fixture(preset = 'cooking') {
     lifetime: { timeout: (fn: () => void) => { timers.set(nextTimer, fn); return nextTimer++; }, cancelTimeout: (id: never) => { timers.delete(id); } },
     picking: { screenPoint: p => ({ x: 500 + p.x * 2, y: 400 - p.y * 2 }) },
     renderState: { Gr: new THREE.Object3D(), labs: [] },
-    callbacks: { rebuild: () => rebuilt++, finished: () => finished++, toast: m => toasts.push(m), tick: n => ticks.push(n) },
+    callbacks: { added: () => added++, rebuild: () => rebuilt++, finished: () => finished++, toast: m => toasts.push(m), tick: n => ticks.push(n) },
   });
-  return { model, gesture, checkpoints, toasts, ticks, timers, counts: () => ({ rebuilt, finished }) };
+  return { model, gesture, checkpoints, toasts, ticks, timers, counts: () => ({ rebuilt, finished, added }) };
 }
 
 test('pulling a grip adds copies as the pull passes most of a unit width, and lets them go when pulled back', () => {
@@ -43,6 +43,7 @@ test('pulling a grip adds copies as the pull passes most of a unit width, and le
   assert.equal(f.model.scene.activeWardrobe, 1, 'the pulled unit stays selected');
   f.gesture.end();
   assert.equal(f.checkpoints.length, 1, 'one undo step for the whole pull');
+  assert.equal(f.counts().added, 1, 'the view then shows the whole run');
   assert.equal((JSON.parse(f.checkpoints[0]!) as EditorScene).wardrobes.length, 1, 'undo returns to before the pull');
   assert.match(f.toasts[0]!, /1 cabinet added, with plain storage in place of the appliances/);
   const copy = f.model.scene.wardrobes[1]!;
@@ -69,6 +70,7 @@ test('a long press then a slide pulls copies towards the side it slides to; a ca
   f.gesture.end(true);
   assert.equal(f.model.scene.wardrobes.length, 1, 'cancel puts the scene back');
   assert.equal(f.checkpoints.length, 0, 'and records nothing');
+  assert.equal(f.counts().added, 0, 'and leaves the view alone');
   f.gesture.holdStart(500, 400, () => started++);
   f.gesture.holdMoved(520, 400);
   assert.equal(f.timers.size, 0, 'moving off before the hold completes is an ordinary drag');
@@ -81,6 +83,6 @@ test('a pull with no copies records nothing; wardrobes never start a pull', () =
   assert.equal(f.checkpoints.length, 0);
   const w = createEditorModel(), g = createKitchenArrayGesture({ dom: {} as never, model: w, sceneCommands: createSceneCommands(() => w.scene),
     history: { checkpoint: () => {} }, lifetime: { timeout: () => 0, cancelTimeout: () => {} }, picking: { screenPoint: () => ({ x: 0, y: 0 }) },
-    renderState: { Gr: new THREE.Object3D(), labs: [] }, callbacks: { rebuild() {}, finished() {}, toast() {}, tick() {} } });
+    renderState: { Gr: new THREE.Object3D(), labs: [] }, callbacks: { rebuild() {}, finished() {}, added() {}, toast() {}, tick() {} } });
   assert.equal(g.begin(0, 0, 1), false);
 });
