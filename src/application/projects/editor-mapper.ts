@@ -42,9 +42,13 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
  })};
 }
 
+/** A new design, and what Reset returns to: one free wall, no wardrobe, so the user picks the furniture to add. */
+export function startingScene(): EditorScene {
+ return {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:singleWallStudio()};
+}
 export function projectToScene(project: ProjectDocument): EditorScene | undefined {
  // A room whose wardrobes were all removed stays empty. An empty project with no room starts with one wall, so the user picks furniture to add.
- if (!project.wardrobes.length) return {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:project.studio ? structuredClone(project.studio) : singleWallStudio()};
+ if (!project.wardrobes.length) return project.studio ? {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:structuredClone(project.studio)} : startingScene();
  const wardrobes=project.wardrobes.map((w,index)=>{
   const layout=w.editorLayout;
   const {budget: _budget,...profile}=w.preferences;

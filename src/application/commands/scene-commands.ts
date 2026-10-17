@@ -2,7 +2,8 @@ import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
-import { emptyCabinet, createEditorModel } from '../projects/editor-model';
+import { emptyCabinet } from '../projects/editor-model';
+import { startingScene } from '../projects/editor-mapper';
 import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
@@ -74,7 +75,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             checkpoint();
             const scene = getScene();
             delete scene.studio;
-            Object.assign(scene, createEditorModel().scene);
+            Object.assign(scene, startingScene());
         },
         shapeEditProblem, growFrontShape,
         /** A front handle can use its clearance while the rear stays at its previous height. */
