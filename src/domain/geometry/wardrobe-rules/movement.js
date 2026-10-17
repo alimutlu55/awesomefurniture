@@ -13,9 +13,7 @@ export function createMovementRules(ctx, deps) {
     const { getDesign } = ctx;
     const { computeLayout, dividerOverlaps, dividerRect, effectiveMin, fitsCeiling, free, ih, itemFreeAbove, itemMinW, sectionDividers, widths } = deps;
 
-    /** `restack`: inserting into a stack of items pinned at their heights (as Auto design places them), the stacks it
-     * changes are laid out again from the floor in their new order, so the move shows. */
-    function planItemMove(from, to, slot, swap = false, align, restack = false) {
+    function planItemMove(from, to, slot, swap = false, align) {
         const ws = widths(), it = getDesign().secs[from.i]?.[from.j], target = getDesign().secs[to]?.[slot];
         const fail = reason => ({ valid: false, reason });
         if (!it || to < 0 || to >= getDesign().n || !Number.isInteger(slot)) {
@@ -69,7 +67,6 @@ export function createMovementRules(ctx, deps) {
             secs[from.i].splice(from.j, 1);
             index = slot - (to === from.i && slot > from.j ? 1 : 0);
             secs[to].splice(index, 0, moved);
-            if (restack) for (const i of new Set([from.i, to])) secs[i] = secs[i].map(({ y, ...rest }) => (void y, rest));
         }
         const affected = [...new Set([from.i, to])], layouts = {};
         for (const i of affected) {

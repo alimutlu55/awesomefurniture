@@ -52,10 +52,9 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         // A press on one in a wardrobe that is not chosen chooses that wardrobe without moving the view: the camera
         // must stay put under the pointer, or the drag lands somewhere else. (A tap frames it on release.)
         // The wardrobe body moves only with the body.
-        // In Studio too: pressing a fitting there goes to Furniture with it chosen (selectCabinet updates the mode).
-        const part = !selectionState.shapeEditing ? picking.cast(e, renderState.allItemHits)?.object ?? null : null;
+        const part = !selectionState.shapeEditing && selectionState.viewMode !== 'studio' ? picking.cast(e, renderState.allItemHits)?.object ?? null : null;
         const onPart = !!part;
-        if (onPart && (!selectionState.focusOn || selectionState.viewMode === 'studio' || part.userData.wardrobe !== model.scene.activeWardrobe)) inspector.selectCabinet(part.userData.wardrobe, false);
+        if (onPart && (!selectionState.focusOn || part.userData.wardrobe !== model.scene.activeWardrobe)) inspector.selectCabinet(part.userData.wardrobe, false);
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
             // Pressing a divider selects it, as a tap does, then drags it.
