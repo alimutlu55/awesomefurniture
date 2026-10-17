@@ -19,6 +19,12 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
     const { shapeHandle, splitHandle, shapeHandlePool, splitPool } = createShapeHandleButtons({ document, shapeInspector });
+    /** Takes a handle off the model. A focused one is blurred first: its blur handler rebuilds the model, which may
+     * already have removed it. */
+    const dropHandle = el => {
+        if (el.getRootNode().activeElement === el) el.blur();
+        if (el.isConnected) el.remove();
+    };
     /** Handles belong to an explicit shape session. */
     const shapeSheetOpen = () => !!selectionState.shapeEditing;
     function placeShapeHandles() {
@@ -35,7 +41,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             if (!el.isConnected) $('#labels').appendChild(el);
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
         });
-        splitPool.slice(splits.length).forEach(el => el.remove());
+        splitPool.slice(splits.length).forEach(dropHandle);
         if (editing) {
             // Tolerance is in screen pixels: convert with the current zoom.
             const near = renderState.Gr.localToWorld(new THREE.Vector3(0, 100, d / 2 + 3)), far = renderState.Gr.localToWorld(new THREE.Vector3(10, 100, d / 2 + 3));
@@ -89,7 +95,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             if (!el.isConnected) $('#labels').appendChild(el);
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
         });
-        shapeHandlePool.slice(handles.length).forEach(el => el.remove());
+        shapeHandlePool.slice(handles.length).forEach(dropHandle);
     }
     function buildCabinet() {
         renderState.buildStamp++;
