@@ -123,3 +123,16 @@ test('under a sloped top a free space is measured where it is tallest, and stays
     assert.ok(space.y0 + tall.h <= 9.8 + g.ceilingIn(i, tall.x - .01, tall.x + .01) + .02, `bay ${i + 1}`);
   }
 });
+
+test('kitchen elevations reconcile: plinth, base carcass, worktop, splashback gap, wall unit', async () => {
+  const { kitchenUnit, WORKTOP } = await import('../../src/domain/kitchen/kitchen-units');
+  const { PLINTH } = await import('../../src/domain/wardrobe/catalog.js');
+  const base = kitchenUnit('base'), upper = kitchenUnit('upper'), tall = kitchenUnit('tall');
+  const counter = base.elevation + base.h + WORKTOP.thickness;
+  assert.equal(base.h - PLINTH, 78, 'base carcass above the plinth');
+  assert.equal(counter, 90, 'work surface height');
+  assert.equal(upper.elevation - counter, 52, 'clear splashback gap between worktop and wall units');
+  assert.ok(upper.d < base.d, 'wall units are recessed behind the base run');
+  // Known: wall-unit tops (212) sit 3 cm under tall-unit tops (215); see docs/millwork-precision.md.
+  assert.equal(tall.h - (upper.elevation + upper.h), 3);
+});

@@ -39,6 +39,9 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Kitchen units, presets, runs (worktop, plinth), pull-to-array | `src/domain/kitchen/`, `application/commands/kitchen-commands.ts`, `presentation/editor/kitchen-*.ts`. See [docs/furniture.md](docs/furniture.md) |
 | Something that stands on a shelf (bags, hats...) | One entry in `src/domain/wardrobe/possessions.ts`. See [docs/adding-a-possession.md](docs/adding-a-possession.md) |
 | Geometry or feasibility rule | The module that owns the concern in `src/domain/geometry/wardrobe-rules/`. `wardrobe-geometry.js` only composes them. |
+| Board thickness, setback, back board, rail drop, interior floor | `src/domain/wardrobe/carcass.ts`. Never write `d - 2` or `± .5` again. See [docs/millwork-precision.md](docs/millwork-precision.md) |
+| Sharing a length into parts (bays, boards) | `shareMillimetres` in `src/domain/geometry/millimetres.ts`: whole millimetres that add back up exactly |
+| Clearances a fitting shows (gaps, rail drop, drawer stack, clear opening) | `src/domain/geometry/wardrobe-rules/clearances.js`; drawn by `viewport/item-dimensions.js` and `component-dimensions.js` |
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
