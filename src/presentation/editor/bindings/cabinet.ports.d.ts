@@ -74,4 +74,5 @@ readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-present
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').createEditorShell>, 'toast'>>;
 readonly plannerState: Pick<ReturnType<typeof import('../planner-state.js').createPlannerState>, 'emptyDismissed'>;
 readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/scene-commands.js').createSceneCommands>, 'resetCabinet'>>;
+readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
 }

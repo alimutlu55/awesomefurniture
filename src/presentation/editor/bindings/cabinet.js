@@ -112,7 +112,7 @@ export function bindWardrobeAdd({ dom, inspector }) {
     $('#wardrobe-add').onclick = () => inspector.addCabinet();
 }
 /** @param {import('./cabinet.ports').BindResetAllPorts} ports */
-export function bindResetAll({ dom, inspector, shell, plannerState, sceneCommands }) {
+export function bindResetAll({ dom, inspector, shell, plannerState, sceneCommands, model }) {
     const { $ } = dom;
     $('#reset-all').onclick = () => {
         if (!sceneCommands.resetCabinet()) {
@@ -121,6 +121,6 @@ export function bindResetAll({ dom, inspector, shell, plannerState, sceneCommand
         inspector.hidePop();
         plannerState.emptyDismissed = false;
         inspector.update();
-        shell.toast('Wardrobe reset. Undo (Ctrl/Cmd+Z) brings it back.');
+        shell.toast(model.activeCabinet().name + ' reset. Undo (Ctrl/Cmd+Z) brings it back.');
     };
 }

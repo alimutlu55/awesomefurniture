@@ -84,7 +84,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWardrobeSelect({ dom, inspector });
     bindWardrobeAdd({ dom, inspector });
     bindCanvasGestureEscape({ dom, interactions, interactionState, lifetime });
-    bindResetAll({ dom, inspector, shell, plannerState, sceneCommands });
+    bindResetAll({ dom, inspector, shell, plannerState, sceneCommands, model });
     bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, lifetime });
     bindPanelMinimize({ dom, inspector, selectionState, lifetime });
     bindPanelHeaderDrag({ dom, camera, inspector, cameraState, selectionState, lifetime });

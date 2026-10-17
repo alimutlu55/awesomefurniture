@@ -123,3 +123,13 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1 }, 'a unit on another wall is another kitchen');
   assert.deepEqual(s.notes, ['No hob yet: add one to a base cabinet, under the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });
+
+test('Reset keeps a kitchen cabinet a cabinet: an empty unit of its kind at its standard size', () => {
+  const s = scene(unit(1, 'upper', 0, -11.5, 0, 90, 'upper'));
+  s.wardrobes[0]!.state.secs[0] = [{ k: 'flap', h: 30 }];
+  let checkpoints = 0;
+  assert.equal(createSceneCommands(() => s, { checkpoint: () => checkpoints++ }).resetCabinet(), true);
+  const state = s.wardrobes[0]!.state;
+  assert.deepEqual([state.product, state.unit, state.w, state.h, state.d, state.secs[0]!.length], ['kitchen', 'upper', 60, 70, 35, 0]);
+  assert.equal(checkpoints, 1);
+});

@@ -356,9 +356,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return true;
         },
         resetCabinet() {
-            const state = initialDesign();
+            // A kitchen cabinet goes back to an empty unit of its kind; a wardrobe to the new-wardrobe design.
+            const current = active().state, module = furnitureModule(current), fresh = module.reset?.(current);
+            const state = fresh ? { ...createEditorState(), ...fresh } : initialDesign();
             if (collision.cabinetCollides({ ...active(), state })) {
-                report('Move this wardrobe before resetting its size.');
+                report('Move this ' + module.noun + ' before resetting its size.');
                 return false;
             }
             checkpoint();

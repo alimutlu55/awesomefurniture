@@ -22,8 +22,6 @@ export interface FurnitureModule {
   readonly autoDesign: boolean;
   /** Doors across the whole front (wardrobes); otherwise each fitting shows its own front. */
   readonly wholeDoors: boolean;
-  /** New ones can start from a shape template (sloped, stepped...). */
-  readonly shapes: boolean;
   /** Outer width, height and depth limits in centimetres. */
   sizes(design: FurnitureDesign): { readonly w: SizeRange; readonly h: SizeRange; readonly d: SizeRange };
   /** Whether a fitting kind can go inside it. */
@@ -32,4 +30,6 @@ export interface FurnitureModule {
   fittingKinds(design: FurnitureDesign): readonly FittingKind[];
   /** The design a duplicate starts from. */
   duplicate<T extends EditorDesign>(design: T): T;
+  /** What Reset returns it to. Absent: the editor's new-wardrobe design. */
+  reset?(design: FurnitureDesign): EditorDesign;
 }
