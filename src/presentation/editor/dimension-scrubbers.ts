@@ -56,11 +56,8 @@ export function bindDimensionScrubbers({ dom, model, lifetime, inspector, select
         pressed = null;
         if (!tap || Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) return;
         if (!selectionState.focusOn || model.scene.activeWardrobe !== tap.id) inspector.selectCabinet(tap.id);
-        // The reading measures the whole piece: Size opens on it, not on the space the tap may have chosen inside.
-        const state = model.activeCabinet().state;
-        Object.assign(state, { item: -1, divider: -1, space: null });
-        selectionState.deep = false;
-        inspector.update(true);
+        // The reading measures the whole piece (Size leaves a space chosen inside), not an item the tap may have chosen.
+        Object.assign(model.activeCabinet().state, { item: -1, divider: -1 });
         openSize();
         const field = tap.key in SIZE_FIELDS ? dom.$(SIZE_FIELDS[tap.key as keyof typeof SIZE_FIELDS]) : null;
         field?.focus({ preventScroll: true }); field?.select();

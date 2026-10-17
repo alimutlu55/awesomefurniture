@@ -226,7 +226,12 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return;
         }
         inspector.hidePop();
-        if (key !== 'shape' && selectionState.shapeEditing) { selectionState.shapeEditing = false; rendering.build(); }
+        // Size and Shape measure the whole piece: leave the space chosen inside, so its W, H and D show as controls.
+        const whole = (key === 'resize' || key === 'shape') && (selectionState.deep || model.activeCabinet().state.space);
+        if (whole) { selectionState.deep = false; model.activeCabinet().state.space = null; }
+        const leaveShape = key !== 'shape' && selectionState.shapeEditing;
+        if (leaveShape) selectionState.shapeEditing = false;
+        if (whole || leaveShape) rendering.build();
         takeMobilePanel(dom, $('#left'));
         delete $('#left').dataset.roomResize;
         $('#left').dataset.contextSection = key;

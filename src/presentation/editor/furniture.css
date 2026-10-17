@@ -20,6 +20,8 @@ svg.kitchen-art{filter:none}
  padding:2px 8px;border-radius:10px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
 @media (max-width:900px){.lbl.array-grip{width:40px;height:40px}}
 #app[data-view-mode="studio"] .lbl.array-grip{display:none!important}
+/* The grips belong to a selected cabinet alone: a sheet open over it (Size, Fronts, Add item...) hides them. */
+#app:is(.props-open,.auto-design-open):not(.props-hidden) .lbl.array-grip,#app:has(.pop.show) .lbl.array-grip{display:none!important}
 
 /* A wardrobe's eight tools on a narrow phone: smaller labels, and Auto design reads "Auto" (its accessible name
    stays "Auto design"), so no label runs into its neighbour. */
