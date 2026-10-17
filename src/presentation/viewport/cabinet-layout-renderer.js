@@ -22,8 +22,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
     /** Takes a handle off the model. A focused one is blurred first: its blur handler rebuilds the model, which may
      * already have removed it. */
     const dropHandle = el => {
-        if (el.getRootNode().activeElement === el) el.blur();
-        if (el.isConnected) el.remove();
+        if (el.getRootNode?.().activeElement === el) el.blur();
+        if (el.isConnected !== false) el.remove();
     };
     /** Handles belong to an explicit shape session. */
     const shapeSheetOpen = () => !!selectionState.shapeEditing;
