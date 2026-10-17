@@ -1,6 +1,6 @@
 import { loftGeometry } from './loft-geometry';
 import { sizeCanvasAdd } from './canvas-add-sizing';
-import { scrubberBottom } from './dimension-scrubber-label';
+import { scrubberAside, scrubberBottom } from './dimension-scrubber-label';
 import { shapeHandleVisible } from './shape-handle-visibility';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
@@ -365,6 +365,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             else if (l.el.classList.contains('dim') && !l.el.classList.contains('space-ruler') && !l.el.classList.contains('clearance')) {
                 x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, x));
+                ({ x, y } = scrubberAside(l.el, x, y, ew, eh, l.owner && (() => l.owner.getWorldPosition(renderState.pv2).project(resources.cam).x * .5 * r.width + .5 * r.width)));
                 const bottom = scrubberBottom(l.el, r, () => $('#toolbar').getBoundingClientRect());
                 y = Math.max(eh / 2 + 6, Math.min(r.height - eh / 2 - bottom, y));
                 for (let n = 0; n < 8 && !l.el.classList.contains('space-ruler') && placed.some(q => Math.abs(x - q.x) < (ew + q.w) / 2 + 4 && Math.abs(y - q.y) < (eh + q.h) / 2 + 3); n++) {

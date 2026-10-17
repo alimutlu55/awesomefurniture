@@ -6,7 +6,7 @@ const {dependencies}=require('./helpers/editor-fixture.cjs');
 const {createEditorGestures}=require('../src/presentation/editor/editor-gestures.js');
 const {bindCanvasPointerdown,bindCanvasPointerup,bindCanvasLostpointercapture}=require('../src/presentation/editor/bindings/canvas.js');
 function fixture(){
- const handlers={};const context=vm.createContext({handlers,allHits:'bays',allItemHits:'items',ihits:'items',ptrs:new Map(),focusOn:false,deep:false,pillOn:false,activeWardrobe:1,S:{sel:0,item:-1,doors:'none'},wardrobeGesture:null,rotationGesture:null,rotationClick:false,drag:null,hit:null,itemHit:null,panel:null,wardrobeDrag:false,camRelease(){},beginWardrobeDrag(){context.wardrobeDrag=true},cv:{addEventListener(name,fn){handlers[name]=fn},focus(){},setPointerCapture(){}},frontPoint(){return null},clearFocus(){context.focusOn=false;context.deep=false;context.S.item=-1},cancelMovement(){},hidePop(){context.panel=null},update(){context.focusOn=true},showPop(e,p){context.panel=p},selectCabinet(id){context.activeWardrobe=id;context.S={sel:0,item:-1,doors:'none'};context.deep=false;context.pillOn=false;context.panel=null;context.focusOn=true},cast(e,arr){return arr==='bays'?context.hit:context.itemHit}});
+ const handlers={};const context=vm.createContext({handlers,allHits:'bays',allItemHits:'items',ihits:'items',ptrs:new Map(),focusOn:false,deep:false,pillOn:false,activeWardrobe:1,S:{sel:0,item:-1,doors:'none'},wardrobeGesture:null,rotationGesture:null,rotationClick:false,drag:null,hit:null,itemHit:null,panel:null,wardrobeDrag:false,camRelease(){},beginWardrobeDrag(){context.wardrobeDrag=true},cv:{addEventListener(name,fn){handlers[name]=fn},focus(){},setPointerCapture(){}},frontPoint(){return null},clearFocus(){context.focusOn=false;context.deep=false;context.S.item=-1},cancelMovement(){},hidePop(){context.panel=null},update(){context.focusOn=true},showPop(e,p){context.panel=p},frames:[],selectCabinet(id,frame=true){context.frames.push(frame);context.activeWardrobe=id;context.S={sel:0,item:-1,doors:'none'};context.deep=false;context.pillOn=false;context.panel=null;context.focusOn=true},cast(e,arr){return arr==='bays'?context.hit:context.itemHit}});
  context.frameMobileInspector=()=>{};
  context.inside=()=>context.deep||context.S.item>=0;
  const ports=dependencies(context);
@@ -36,6 +36,21 @@ test('a press on the body drags the cabinet at wardrobe level; a press on an ite
  c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true);assert.equal(c.drag,null);
  c.wardrobeDrag=false;c.itemHit=hit(1,0,1);
  c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,1);
+});
+test('with no wardrobe chosen, a press on an item chooses its wardrobe without moving the view and drags the item',()=>{
+ for(const pointerType of ['mouse','touch']){
+  const {context:c,hit}=fixture();c.itemHit=hit(1,0,2);
+  c.handlers.pointerdown({button:0,pointerType,pointerId:1,clientX:100,clientY:100});
+  assert.equal(c.activeWardrobe,1);assert.equal(c.focusOn,true,pointerType+': its wardrobe is chosen');
+  assert.deepEqual(c.frames,[false],pointerType+': the camera stays put under the pointer');
+  assert.equal(c.S.item,2,pointerType+': the pressed item is selected');assert.equal(c.drag.from.j,2,pointerType+': and dragged');
+  assert.equal(c.wardrobeDrag,false);
+ }
+});
+test('a press on an item of another wardrobe chooses that wardrobe and drags its item',()=>{
+ const {context:c,run,hit}=fixture();run('pick({})');c.frames.length=0;c.itemHit=hit(2,1,0);
+ c.handlers.pointerdown({button:0,pointerId:3,clientX:100,clientY:100});
+ assert.equal(c.activeWardrobe,2);assert.deepEqual(c.frames,[false]);assert.equal(c.S.sel,1);assert.equal(c.S.item,0);assert.equal(c.drag.from.i,1);
 });
 test('touch drags the selected wardrobe body; empty background remains available for orbit',()=>{
  const {context:c,run}=fixture();run('pick({})');c.itemHit=null;

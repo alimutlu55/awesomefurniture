@@ -121,7 +121,10 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             }
             const edge = handle.dataset.edge, x = edge === 'left' ? g.x0 : edge === 'right' ? g.x1 : (g.x0 + g.x1) / 2, y = edge === 'top' ? g.y1 : (g.y0 + g.y1) / 2, q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, getRenderDesign().d / 2 + 1)).project(resources.cam), r = resources.cv.getBoundingClientRect();
             handle.hidden = q.z >= 1;
-            handle.style.transform = `translate(-50%,-50%) translate(${(q.x * .5 + .5) * r.width}px,${(-q.y * .5 + .5) * r.height}px)`;
+            // A handle sits just outside its edge, so the item's own front stays free to press and drag (on a drawer,
+            // a handle centred on the top edge would cover most of it).
+            const out = edge === 'top' ? [0, -(handle.offsetHeight / 2 + 2)] : [(edge === 'left' ? -1 : 1) * (handle.offsetWidth / 2 + 2), 0];
+            handle.style.transform = `translate(-50%,-50%) translate(${(q.x * .5 + .5) * r.width + out[0]}px,${(-q.y * .5 + .5) * r.height + out[1]}px)`;
         });
     }
     return { addRotationIndicator, addWardrobeActions, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles };

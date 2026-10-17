@@ -42,7 +42,9 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
             const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension' + (dragged ? ' assist-size' : ''));
             if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? MIN_CABINET_DEPTH - 2 : 0, axis === 'depth' ? 78 : 2000);
-            bindRuler(el, a, b, axis);
+            // The width and depth read below the fitting and the height beside it: its front stays free to press and
+            // drag, and the side resize handles keep their room.
+            bindRuler(el, a, b, axis === 'height' ? axis : 'under');
         };
         if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + ' cm', 'width', !!edge);
         if (!edge || edge === 'top') ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + ' cm', 'height', !!edge);
