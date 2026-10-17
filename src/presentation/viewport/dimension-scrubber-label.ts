@@ -19,15 +19,6 @@ export function decorateDimensionScrubber(el: HTMLElement, design?: FurnitureDes
         min: height && !sizes ? 40 : min, max });
 }
 
-/** Size pills sit beside their lines, away from the furniture: the width below the floor, the depth and heights on
- * the side facing away from its middle (`middleX`, its screen x). Centred on their lines they would cover the
- * fittings at its edges, and a finger pressing one of those would land on the pill instead. Screen pixels. */
-export function scrubberAside(el: HTMLElement, x: number, y: number, ew: number, eh: number, middleX?: () => number) {
-    if (el.classList.contains('scrub-w')) return { x, y: y + eh / 2 + 4 };
-    if (!el.classList.contains('dimension-scrubber') || !middleX) return { x, y };
-    return { x: x + Math.sign(x - middleX() || 1) * (ew / 2 + 4), y };
-}
-
 /** Interactive pills must remain above the toolbar even after zooming. */
 export function scrubberBottom(el: HTMLElement, canvas: { top: number; height: number }, toolbar: () => { top: number; height: number }) {
     if (!el.classList.contains('measurement-badge')) return 56;

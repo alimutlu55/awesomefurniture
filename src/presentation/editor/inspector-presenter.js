@@ -47,8 +47,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         cameraState.vsT = camera.baseShift();
         cameraState.vzT = 1;
     };
-    /** `frame` false keeps the view: a press that starts a drag must not move the camera under the pointer. */
-    function selectCabinet(id, frame = true) {
+    function selectCabinet(id) {
         selectionState.shapeEditing = false;
         camera.camRelease();
         if (interactionState.wardrobeGesture) {
@@ -66,7 +65,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.pillOn = true;
         selectionState.deep = true;
         update();
-        if (frame) camera.frameMobileInspector(true);
+        camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
         const studio = model.scene.studio;

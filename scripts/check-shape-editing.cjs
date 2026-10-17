@@ -17,8 +17,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const el=id=>page.locator(`[data-editor-id="${id}"]`);
    await el('wardrobe-btn').waitFor();
    await page.waitForTimeout(450);
-   // A press on a fitting chooses that fitting; Wardrobe chooses the wardrobe itself.
-   if(pointer==='touch')await el('wardrobe-btn').tap();else await el('wardrobe-btn').click();await page.waitForTimeout(450);
+   const view=await el('view').boundingBox();
+   await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);
    await page.getByRole('button',{name:'Resize',exact:true}).click();
    await page.waitForTimeout(350);
    if(width<=900) {
