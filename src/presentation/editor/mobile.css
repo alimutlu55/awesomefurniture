@@ -70,7 +70,7 @@
  .pop .addgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .pop .addgrid button{min-width:0;min-height:110px}
  .pop .addgrid button small{font-size:12px}
- .item-resize-handle,.wardrobe-move{width:44px;height:44px;min-height:44px}
+ .item-resize-handle{width:44px;height:44px;min-height:44px}
  .selection-action-bar button{width:44px;height:44px}
  #item-type-menu,#ctx-menu{max-height:calc(100% - 12px);max-width:calc(100% - 12px);overflow:auto;overscroll-behavior:contain}
  #pop3 #move-controls{font-size:13px}#move-controls select{font-size:16px}
@@ -111,7 +111,7 @@
  #pop3 #ialign:has([data-iwfull]:disabled):not(:has(button:not(:disabled))){display:none}
  .selection-action-bar{gap:0;padding:2px}
  .selection-action-bar .ic{width:20px;height:20px}
- .wardrobe-move[data-move-axis="z"] .mv-ic{transform:rotate(-45deg)!important}
+
 @media (max-width:900px){
  #app.adding{--catalog-height:min(210px,40vh);--sheet:calc(var(--catalog-height) + var(--safe-bottom))}
  #app.adding #view{left:0}
@@ -236,7 +236,7 @@
  #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .ic{flex:none;width:22px;height:22px;padding:0;background:transparent;border-radius:0;box-shadow:none}
  /* Highlight the whole active tap target, including its label, on the glass surface. */
  #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb:is([aria-expanded="true"],[aria-pressed="true"],.on),
- #app[data-toolbar-mode="move"] #toolbar .tb[data-action="move"]{background:rgba(28,25,23,.1)}
+ 
  #toolbar .contextual-history-label,#toolbar .tb.smart .tl{display:block;font-size:11px}
  #toolbar .contextual-history small{display:none}
  #toolbar .contextual-history .tb:disabled{opacity:1;color:var(--mute)}
@@ -247,4 +247,4 @@
 .mobile-add-categories [hidden]{display:none}
 
 /* Moving a wardrobe: nothing is added meanwhile, so its Add item button steps aside. */
-#app[data-toolbar-mode="move"] #labels .lbl.add{display:none!important}
+

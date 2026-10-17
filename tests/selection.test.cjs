@@ -31,24 +31,26 @@ test('clearing selection or returning to wardrobe level does not reuse a remembe
  const {context:c,run}=fixture();run('pick({});pick({});clearFocus();pick({})');assert.equal(c.deep,false);assert.equal(c.S.item,-1);
  run('selectCabinet(1)');assert.equal(c.deep,false);assert.equal(c.S.item,-1);
 });
-test('an occupied area drags the cabinet at wardrobe level and the item at item level',()=>{
- const {context:c,run}=fixture();run('pick({})');c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true);assert.equal(c.drag,null);
- c.wardrobeDrag=false;run('pick({})');c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,0);
+test('a press on the body drags the cabinet at wardrobe level; a press on an item drags that item, selected or not',()=>{
+ const {context:c,run,hit}=fixture();run('pick({})');c.itemHit=null;
+ c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true);assert.equal(c.drag,null);
+ c.wardrobeDrag=false;c.itemHit=hit(1,0,1);
+ c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,1);
 });
 test('touch drags the selected wardrobe body; empty background remains available for orbit',()=>{
- const {context:c,run}=fixture();run('pick({})');
+ const {context:c,run}=fixture();run('pick({})');c.itemHit=null;
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
  assert.equal(c.wardrobeDrag,true);assert.equal(c.ptrs.size,1);
  c.ptrs.clear();c.wardrobeDrag=false;c.hit=null;c.itemHit=null;
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:150,clientY:100});
  assert.equal(c.wardrobeDrag,false);assert.equal(c.ptrs.size,1);
 });
-test('touch on a selected divider remains available for orbit and pinch',()=>{
+test('touch drags a divider where it is, by default, and selects it',()=>{
  const {context:c,run,hit}=fixture();run('pick({})');
- c.deep=true;c.S.divider=0;c.itemHit=hit();c.itemHit.object.userData.divider=0;
- c.beginDividerDrag=()=>assert.fail('Touch body must not start divider dragging');
+ c.deep=true;const divider=hit(1,0,0);divider.object.userData.divider=0;c.itemHit=divider;
+ let dragged=null;c.beginDividerDrag=(e,index)=>{dragged=index};
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:100,clientY:100});
- assert.equal(c.ptrs.size,1);
+ assert.equal(dragged,0);assert.equal(c.S.divider,0);assert.equal(c.S.item,-1);assert.notEqual(c.wardrobeDrag,true);
 });
 test('a second finger cancels wardrobe translation before taking over pinch',()=>{
  const {context:c,run}=fixture();run('pick({})');

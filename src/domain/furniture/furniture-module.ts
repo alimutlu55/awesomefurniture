@@ -22,6 +22,10 @@ export interface FurnitureModule {
   readonly autoDesign: boolean;
   /** Doors across the whole front (wardrobes); otherwise each fitting shows its own front. */
   readonly wholeDoors: boolean;
+  /** Its top can be reshaped with the Shape tool (wardrobes only). */
+  readonly shaped: boolean;
+  /** Its sections are opened from the More menu instead of a toolbar tool. */
+  readonly sectionsInMore: boolean;
   /** Outer width, height and depth limits in centimetres. */
   sizes(design: FurnitureDesign): { readonly w: SizeRange; readonly h: SizeRange; readonly d: SizeRange };
   /** Whether a fitting kind can go inside it. */

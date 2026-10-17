@@ -83,7 +83,7 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #toolbar .contextual-defaults #walls-btn{display:none}
 #toolbar:not([data-context="none"]) .contextual-defaults{display:none}
 #toolbar:not([data-context="none"]) .contextual-actions{display:flex;align-items:center;gap:2px}
-#app[data-view-mode="studio"] :is(#left:not([data-room-resize]),#props-btn,.wardrobe-actions,.wardrobe-name,.ground-rotate,.wardrobe-move,.lbl.add,.selection-action-bar,.item-resize-handle){display:none!important}
+#app[data-view-mode="studio"] :is(#left:not([data-room-resize]),#props-btn,.wardrobe-actions,.wardrobe-name,.ground-rotate,.lbl.add,.selection-action-bar,.item-resize-handle){display:none!important}
 
 
  #view-modes{left:max(8px,env(safe-area-inset-left,0px));top:calc(10px + var(--safe-top))}
@@ -107,18 +107,18 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 .lbl.assist-gap.ok{background:#2f8a57}
 .lbl.assist-gap.tight{background:#b86e22}
 .lbl.assist-gap.note{background:transparent;color:#24774a;box-shadow:none;font-size:11px;padding:0 4px;text-shadow:0 1px 3px #fff,0 0 4px #fff}
-#labels:is([data-assist="move"],[data-assist="size"]) :is(.wardrobe-move:not(.moving),.ground-rotate,.wardrobe-actions,.lbl.add,.wardrobe-name,.lbl.space-tag,.lbl.space-ruler,.measurement-line){display:none!important}
+#labels:is([data-assist="move"],[data-assist="size"]) :is(.ground-rotate,.wardrobe-actions,.lbl.add,.wardrobe-name,.lbl.space-tag,.lbl.space-ruler,.measurement-line){display:none!important}
 /* A fitting's edge dragged: its size and the gaps it closes; the other edges' handles and other tags step aside. */
-#labels[data-assist="item"] :is(.lbl.add,.lbl.space-tag,.lbl.dim:not(.assist-size):not(.assist-gap),.wardrobe-move,.ground-rotate,.wardrobe-actions){display:none!important}
+#labels[data-assist="item"] :is(.lbl.add,.lbl.space-tag,.lbl.dim:not(.assist-size):not(.assist-gap),.ground-rotate,.wardrobe-actions){display:none!important}
 #app:has(.item-resize-handle.resizing) .item-resize-handle:not(.resizing){display:none!important}
 .lbl.dim.assist-size{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;text-shadow:none;font-variant-numeric:tabular-nums}
 #labels[data-assist="move"] .lbl.dim:not(.assist-gap){display:none!important}
-#labels[data-room-drag] :is(.room-handle:not(.dragging),.lbl.add,.wardrobe-move,.ground-rotate,.wardrobe-actions,.lbl.dim:not(.room-label)){display:none!important}
+#labels[data-room-drag] :is(.room-handle:not(.dragging),.lbl.add,.ground-rotate,.wardrobe-actions,.lbl.dim:not(.room-label)){display:none!important}
 /* A corner's angle while it is dragged: a plain reading; it turns green (a guide) when square or straight. */
 .lbl.room-angle{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
 /* While a wall or corner moves, the lengths it changes read as clearly as the wardrobe's gaps. */
 #labels[data-room-drag] .lbl.room-label.shape-measure{background:#2f2a22;color:#fff;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600;text-shadow:none;font-variant-numeric:tabular-nums}
-#labels[data-assist="divider"] :is(.lbl.add,.lbl.space-tag,.wardrobe-move:not([aria-label^="Move divider"]):not([aria-label^="Move shelf"]),.ground-rotate,.wardrobe-actions){display:none!important}
+#labels[data-assist="divider"] :is(.lbl.add,.lbl.space-tag,.ground-rotate,.wardrobe-actions){display:none!important}
 #labels[data-assist="divider"] .lbl.dim.divider-clearance{background:#2f2a22;color:#fff;border:0;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:600}
 /* The pivot an angle turns about: a green dot, no words. */
 .lbl.pivot-dot{width:10px;height:10px;padding:0;border-radius:50%;background:#2f8a57;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);pointer-events:none}

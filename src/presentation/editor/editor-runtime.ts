@@ -124,9 +124,6 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 else if (session.openPanel === 'properties') {
                     inspector.showPop(null, model.activeCabinet().state.divider >= 0 ? '#pop4' : model.activeCabinet().state.item >= 0 ? '#pop3' : '#pop2');
                 }
-                if (session.tool === 'move' && model.activeCabinet().state.item >= 0) {
-                    interactions.armMovement('move');
-                }
             },
             resizeSurface: (width, height) => {
                 resources.R.setSize(width, height);

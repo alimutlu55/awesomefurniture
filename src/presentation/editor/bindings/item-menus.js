@@ -24,7 +24,7 @@ export function bindItemMenus({ dom, inspector, picking, renderState, selectionS
         dom.setId(selectionState.ctxMenu, 'ctx-menu');
         selectionState.ctxMenu.hidden = true;
         selectionState.ctxMenu.setAttribute('role', 'menu');
-        selectionState.ctxMenu.innerHTML = [['dup', 'Duplicate', 'Ctrl/Cmd+D'], ['del', 'Remove', 'Del'], ['mov', 'Move on model', ''], ['swap', 'Swap with another item', ''], ['al-l', 'Align left', ''], ['al-c', 'Centre', ''], ['al-r', 'Align right', ''], ['full', 'Full width', '']].map(([k, t, h]) => '<button type="button" role="menuitem" data-cm="' + k + '"' + (k === 'del' ? ' class="dl"' : '') + '>' + t + (h ? '<kbd>' + h + '</kbd>' : '') + '</button>').join('');
+        selectionState.ctxMenu.innerHTML = [['dup', 'Duplicate', 'Ctrl/Cmd+D'], ['del', 'Remove', 'Del'], ['swap', 'Swap with another item', ''], ['al-l', 'Align left', ''], ['al-c', 'Centre', ''], ['al-r', 'Align right', ''], ['full', 'Full width', '']].map(([k, t, h]) => '<button type="button" role="menuitem" data-cm="' + k + '"' + (k === 'del' ? ' class="dl"' : '') + '>' + t + (h ? '<kbd>' + h + '</kbd>' : '') + '</button>').join('');
         $('#view').append(selectionState.itemBar, selectionState.itemTypeMenu, selectionState.ctxMenu);
         for (const el of [selectionState.itemBar, selectionState.itemTypeMenu, selectionState.ctxMenu]) {
             lifetime.listen(el, 'pointerdown', e => e.stopPropagation());

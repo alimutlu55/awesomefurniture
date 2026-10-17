@@ -42,11 +42,11 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   if(width===1440)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-desktop.png'});
   await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(350);await check(4);
   await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(4);
-  // A new wardrobe is selected: Auto design, Move, Resize, Shape, Sections, More, Undo, Redo.
+  // A new wardrobe is selected: Auto design, Resize, Shape, More (Sections live in More), Undo, Redo.
   await furniture.click();
-  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(8);
+  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(6);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);await check(4);
-  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(350);await check(8);
+  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(350);await check(6);
   console.log('PASS '+width+': empty, Studio, new actions, hidden actions, add, undo and redo');await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

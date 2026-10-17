@@ -93,10 +93,6 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
             selectionState.pillOn = true;
             inspector.update();
         }
-        else if (d.ia === 'sec') {
-            $('#move-section').open = true;
-            $('#move-bay').focus({ preventScroll: true });
-        }
         else if (d.ia === 'del') {
             commands.deleteItem(i, j);
         }

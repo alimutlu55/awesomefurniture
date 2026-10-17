@@ -251,27 +251,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, -d / 2 + .5), db = new V(x + vr.x0, iy + vr.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
                     sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', d - 2, 'horizontal', MIN_CABINET_DEPTH - 2, 78);
                     bindRuler(depthLabel, da, db, 'depth');
-                    const depthEntry = renderState.labs[renderState.labs.length - 1], handle = renderState.dividerMoveHandle || (renderState.dividerMoveHandle = document.createElement('button'));
-                    handle.type = 'button';
-                    handle.className = 'lbl wardrobe-move';
-                    handle.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="' + (hor ? 'M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4' : 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4') + '"/></svg>';
-                    handle.setAttribute('aria-label', hor ? 'Move shelf up or down' : 'Move divider left or right');
-                    handle.onpointerdown = e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        interactions.beginDividerDrag(e, j, handle);
-                    };
-                    handle.onkeydown = e => {
-                        const step = e.shiftKey ? .5 : 1, dir = hor ? (e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0) : (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
-                        if (dir) {
-                            e.preventDefault();
-                            commands.run(() => commands.moveDividerTo(j, (hor ? q.y : q.x) + dir * step));
-                        }
-                    };
-                    $('#labels').appendChild(handle);
-                    renderState.labs.push({ p: new V(hor ? x + vr.x1 : vcx, vcy, front), el: handle, owner: renderState.Gr });
-                    const handleEntry = renderState.labs[renderState.labs.length - 1], clearances = createDividerClearances(j, x);
-                    renderState.dividerVisuals[j] = { panel, hit, outline, sizeEntry, depthEntry, handleEntry, clearances, baseX: x };
+                    const depthEntry = renderState.labs[renderState.labs.length - 1], clearances = createDividerClearances(j, x);
+                    renderState.dividerVisuals[j] = { panel, hit, outline, sizeEntry, depthEntry, clearances, baseX: x };
                 }
             });
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {

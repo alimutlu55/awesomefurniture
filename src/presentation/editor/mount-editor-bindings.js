@@ -12,7 +12,7 @@ import { bindCabinetDimensions, bindFinishSwatches, bindReachChange, bindReachBl
 import { bindPillAddMenu, bindPillMenuDismiss, bindAddPanel } from './bindings/add-menu.js';
 import { bindUndoButton, bindRedoButton, bindEditShortcuts } from './bindings/history.js';
 import { bindItemResizeEscape, bindItemResizeBlur, bindItemDimensions, bindItemPanelClose, bindItemPanel, populateStoragePurposes, bindItemPurpose } from './bindings/item.js';
-import { bindMoveMode, bindSwapMode, bindMoveCancel, bindMoveBay, bindMoveSlot, bindMoveApply, bindMovePreviewKeydown, bindMovePreviewKeyup } from './bindings/move.js';
+import { bindSwapMode, bindMoveCancel, bindMovePreviewKeydown, bindMovePreviewKeyup } from './bindings/move.js';
 import { bindEmptySceneDismiss, bindLaunchWizard, bindEmptySceneLaunch, bindCloseWizard, bindWizardInputs, bindIdeaApply, bindWizardBackdropClose, bindWizardFocusTrap } from './bindings/wizard.js';
 import { bindColorSchemeChange, addToolbarSeparator, bindPanelMinimize, bindPanelHeaderDrag, bindPropertiesPanelClose } from './bindings/panels.js';
 import { observeViewportSize, bindCanvasPointerdown, bindCanvasPointermove, bindCanvasPointerup, bindCanvasPointercancel, bindCanvasLostpointercapture, bindCanvasGestureBlur, bindCanvasWheel, bindCanvasPointerleave, bindCanvasGestureEscape } from './bindings/canvas.js';
@@ -92,12 +92,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindAddPanel({ dom, inspector, model, commands, lifetime });
     bindItemResizeEscape({ dom, interactions, interactionState, lifetime });
     bindItemResizeBlur({ dom, interactions, lifetime });
-    bindMoveMode({ dom, interactions });
     bindSwapMode({ dom, interactions });
     bindMoveCancel({ dom, interactions });
-    bindMoveBay({ dom, inspector });
-    bindMoveSlot({ dom, inspector });
-    bindMoveApply({ dom, interactions, geometry, model });
     bindMovePreviewKeydown({ dom, interactions, interactionState, lifetime });
     bindMovePreviewKeyup({ dom, interactions, interactionState, lifetime });
     bindItemDimensions({ dom, camera, interactions, inspector, lifetime });
@@ -287,7 +283,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
-            delete elements.app.dataset.toolbarMode;
             if (key === 'resize') {
                 if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'resize') {
                     animateMobileSheetClose($('#left'));
@@ -310,14 +305,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 else if (state.item >= 0) inspector.itemAction('del');
                 else $('#remove-wardrobe').click();
             } else if (key === 'reset') $('#reset-all').click();
-            else if (key === 'move') {
-                inspector.hidePop(); elements.app.classList.remove('props-open');
-                elements.app.dataset.toolbarMode = 'move';
-                // Ease back and rise a little so the floor around the wardrobe shows where it can go.
-                camera.moveOverview();
-                selectionState.deep = true; selectionState.pillOn = true;
-                inspector.update();
-            } else {
+            else {
                 openControls(key);
                 // The shape sheet opens with its panel list and break-point handles.
                 if (key === 'shape' && !selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); }
@@ -330,7 +318,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         const keysOf = product => '<div class="kc">' + Object.entries(MODS).filter(([key]) => fittingProduct(key) === product).map(([, m]) => '<span><kbd>' + m.k + '</kbd>' + m.n + '</span>').join('') + '</div>';
         document.getElementById('keys').innerHTML = h('Add to the selected section') + keysOf('wardrobe') + h('Add to a kitchen cabinet') + keysOf('kitchen')
             + h('Move around') + k('← →', 'Previous / next section') + k('↑ ↓', 'Next item up / down') + k('Esc', 'Deselect or cancel a move')
-            + h('Edit') + k('⌫', 'Remove the selected item') + k('Shift + arrows', 'Move the selected item') + k('Ctrl/⌘ Z', 'Undo') + k('Ctrl/⌘ ⇧ Z', 'Redo')
+            + h('Edit') + k('⌫', 'Remove the selected item') + k('Shift + arrows', 'Move the selected item or divider') + k('Ctrl/⌘ Z', 'Undo') + k('Ctrl/⌘ ⇧ Z', 'Redo')
             + h('Mouse and touch') + k('Click', 'Select a section or item') + k('Drag item', 'Move freely, view turns to the front · Alt = no snap · Shift-drag swaps') + k('Drag background', 'Orbit') + k('Scroll / pinch', 'Zoom');
     })();
 }

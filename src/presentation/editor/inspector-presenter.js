@@ -6,7 +6,6 @@ import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 import { syncResizeFields, syncCabinetSizeLimits } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
-import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
 import { createItemActions } from './item-actions.js';
 import { createInspectorPanels } from './inspector-panels.js';
@@ -50,7 +49,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     };
     function selectCabinet(id) {
         selectionState.shapeEditing = false;
-        delete elements.app.dataset.toolbarMode;
         camera.camRelease();
         if (interactionState.wardrobeGesture) {
             interactions.finishWardrobeDrag();
@@ -129,11 +127,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     function movementUI() {
         const mobileCancel = document.querySelector('.mobile-cancel-move');
         if (mobileCancel) mobileCancel.hidden = !interactionState.moveMode;
-        for (const [id, mode] of [['move-mode', 'move'], ['swap-mode', 'swap']]) {
-            const on = interactionState.moveMode === mode;
-            $('#' + id).classList.toggle('on', on);
-            $('#' + id).setAttribute('aria-pressed', String(on));
-        }
+        const swapping = interactionState.moveMode === 'swap';
+        $('#swap-mode').classList.toggle('on', swapping);
+        $('#swap-mode').setAttribute('aria-pressed', String(swapping));
         $('#move-cancel').hidden = !interactionState.moveMode;
     }
     // Selection stays in the contextual toolbar until an explicit action opens a sheet.
@@ -254,7 +250,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     function clearFocus() {
         // Leaving the wardrobe ends any shape session: handles disappear with it.
         selectionState.shapeEditing = false;
-        delete elements.app.dataset.toolbarMode;
         elements.app.classList.remove('props-open');
         elements.app.classList.add('props-hidden');
         if (interactionState.wardrobeGesture) {
@@ -349,24 +344,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             update(true);
         }
     }
-    function moveDestinationUI() {
-        const bay = $('#move-bay'), key = model.activeCabinet().state.sel + ',' + model.activeCabinet().state.item + ',' + geometry.widths().join(',');
-        if (bay.dataset.source !== key) {
-            bay.dataset.source = key;
-            $('#move-slot').value = '';
-            bay.innerHTML = geometry.widths().map((w, i) => '<option value="' + i + '">Section ' + (i + 1) + ' · ' + w.toFixed(1) + ' cm wide</option>').join('');
-            bay.value = String(model.activeCabinet().state.sel);
-        }
-        moveSlotUI();
-    }
-    function moveSlotUI() {
-        const to = +$('#move-bay').value, sec = model.activeCabinet().state.secs[to] || [], slot = $('#move-slot'), value = slot.value;
-        slot.innerHTML = sec.map((it, j) => '<option value="' + j + '">Below ' + (j + 1) + ': ' + esc(itemName(it)) + '</option>').join('') + '<option value="' + sec.length + '">Top of section' + (!sec.length ? ' (empty)' : '') + '</option>';
-        slot.value = String([...slot.options].some(o => o.value === value) ? value : sec.length);
-        const plan = geometry.planItemMove({ i: model.activeCabinet().state.sel, j: model.activeCabinet().state.item }, to, +slot.value);
-        $('#move-apply').disabled = !plan.valid || plan.unchanged;
-        $('#move-apply').title = noticeLabels(plan.reason).join(' · ');
-    }
     function itemUI(force = false) {
         const p = $('#pop3');
         if (!force && !p.classList.contains('show') && !$('#app').classList.contains('v-item') && !document.querySelector('.contextual-control-popover:not([hidden])')) {
@@ -377,7 +354,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             hidePop();
             return;
         }
-        moveDestinationUI();
         movementUI();
         const m = MODS[it.k], mx = Math.min(m.mx, it.h + geometry.itemFreeAbove(model.activeCabinet().state.sel, model.activeCabinet().state.item));
         $('#iback').textContent = '← Add another item';
@@ -425,5 +401,5 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#ifin').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.f || null) === (it.f || null)));
         syncResizeFields(p);
     }
-    return { syncResponsive, selectCabinet, addCabinet, wardrobeUI, histUI, editableItemClearance, selectSpaceAt, reachUI, measurementUI, editableDividerClearance, dividerUI, movementUI, reopenItemPanel, closeItemMenus, itemAction, placeFloating, placeItemTypeMenu, updateItemBar, ui, inside, goUp, crumbUI, clearFocus, update, sectionsUI, openPillMenu, renderAddChoices, undo, redo, setCabinetPose, sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop, moveDestinationUI, moveSlotUI, itemUI, divWord, bar, hidePop };
+    return { syncResponsive, selectCabinet, addCabinet, wardrobeUI, histUI, editableItemClearance, selectSpaceAt, reachUI, measurementUI, editableDividerClearance, dividerUI, movementUI, reopenItemPanel, closeItemMenus, itemAction, placeFloating, placeItemTypeMenu, updateItemBar, ui, inside, goUp, crumbUI, clearFocus, update, sectionsUI, openPillMenu, renderAddChoices, undo, redo, setCabinetPose, sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop, itemUI, divWord, bar, hidePop };
 }

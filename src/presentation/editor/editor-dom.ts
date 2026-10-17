@@ -32,13 +32,8 @@ interface EditorControls {
     "#imeas": HTMLElementTagNameMap["div"];
     "#itype": HTMLElementTagNameMap["div"];
     "#move-controls": HTMLElementTagNameMap["div"];
-    "#move-mode": HTMLElementTagNameMap["button"];
     "#swap-mode": HTMLElementTagNameMap["button"];
     "#move-cancel": HTMLElementTagNameMap["button"];
-    "#move-section": HTMLElementTagNameMap["details"];
-    "#move-bay": HTMLElementTagNameMap["select"];
-    "#move-slot": HTMLElementTagNameMap["select"];
-    "#move-apply": HTMLElementTagNameMap["button"];
     "#iback": HTMLElementTagNameMap["button"];
     "#pop4": HTMLElementTagNameMap["div"];
     "#divider-title": HTMLElementTagNameMap["b"];

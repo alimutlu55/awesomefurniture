@@ -5,7 +5,7 @@ export interface EditorSession {
     readonly itemId: string | null;
     readonly dividerId: string | null;
   } | null;
-  readonly tool: 'select' | 'move' | 'resize';
+  readonly tool: 'select' | 'resize';
   readonly openPanel: 'properties' | 'planner' | null;
 }
 

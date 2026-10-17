@@ -8,6 +8,6 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').cre
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'drag' | 'moveMode' | 'moved' | 'ptrs'>;
 readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn'>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'addMod' | 'removeTop'>>;
+readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'addMod' | 'moveDividerTo' | 'removeTop' | 'run'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

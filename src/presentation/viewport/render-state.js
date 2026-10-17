@@ -17,7 +17,6 @@ export function createRenderState() {
         itemGroups: [],
         settling: [],
         dividerVisuals: [],
-        dividerMoveHandle: null,
         buildStamp: 0,
         previewGroup: null,
         prevLab: {},

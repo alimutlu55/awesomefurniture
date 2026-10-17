@@ -40,6 +40,15 @@ export function bindEscapeKey({ dom, interactions, inspector, planner, shell, in
             interactions.keyboardMove(e.key);
             return;
         }
+        // A selected divider or shelf moves 1 cm with Shift and the arrows across it (up and down for a shelf).
+        if (e.shiftKey && model.activeCabinet().state.divider >= 0 && e.key.startsWith('Arrow')) {
+            const state = model.activeCabinet().state, divider = state.dividers?.[state.divider];
+            const hor = divider?.orientation === 'horizontal';
+            const dir = hor ? (e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0) : (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
+            e.preventDefault();
+            if (divider && dir) commands.run(() => commands.moveDividerTo(state.divider, (hor ? divider.y : divider.x) + dir));
+            return;
+        }
         if (e.key === 'ArrowRight') {
             model.activeCabinet().state.sel = (model.activeCabinet().state.sel + 1) % model.activeCabinet().state.n;
             model.activeCabinet().state.item = -1;

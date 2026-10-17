@@ -1,9 +1,4 @@
 /** Explicit dependencies consumed by ./move.js. */
-export interface BindMoveModePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'armMovement'>>;
-}
-
 export interface BindSwapModePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'armMovement'>>;
@@ -12,23 +7,6 @@ readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gesture
 export interface BindMoveCancelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement'>>;
-}
-
-export interface BindMoveBayPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'moveSlotUI'>>;
-}
-
-export interface BindMoveSlotPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'moveSlotUI'>>;
-}
-
-export interface BindMoveApplyPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'performMove'>>;
-readonly geometry: Readonly<Pick<ReturnType<typeof import('../../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'planItemMove'>>;
-readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
 }
 
 export interface BindMovePreviewKeydownPorts {

@@ -161,7 +161,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
             // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
-            if (l.el !== renderState.dividerMoveHandle && !l.el.classList.contains('shape-handle') && !l.el.classList.contains('array-grip')) {
+            if (!l.el.classList.contains('shape-handle') && !l.el.classList.contains('array-grip')) {
                 l.el.remove();
             }
             l.rulerNode?.remove();
@@ -217,7 +217,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.moveIcons = [];
         dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
         if (selectionState.focusOn && model.scene.wardrobes.length) {
-            if (!inspector.inside() || (dom.$('#app').dataset.toolbarMode === 'move')) {
+            if (!inspector.inside()) {
                 addRotationIndicator();
                 addWardrobeActions();
                 addWardrobeMoveHandles();
@@ -230,9 +230,6 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         resources.contact.visible = false;
         overlay?.draw();
         if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
-        if (renderState.dividerMoveHandle && !renderState.labs.some(l => l.el === renderState.dividerMoveHandle)) {
-            renderState.dividerMoveHandle.remove();
-        }
         positionLabels();
     }
     const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
@@ -269,7 +266,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         v.hit.position.x = pos.x;
         v.hit.position.y = pos.y;
         v.outline.position.add(delta);
-        for (const entry of [v.sizeEntry, v.depthEntry, v.handleEntry]) {
+        for (const entry of [v.sizeEntry, v.depthEntry]) {
             entry.p.add(delta);
             if (entry.ruler) {
                 entry.ruler.a.add(delta);
@@ -298,7 +295,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
         });
         const shapePlaced = [];
-        const leftLimit = 6, rightLimit = r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-move,.wardrobe-name,.lbl.add')).map(l => {
+        const leftLimit = 6, rightLimit = r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-name,.lbl.add')).map(l => {
             const q = l.p.clone();
             if (l.owner) {
                 l.owner.localToWorld(q);

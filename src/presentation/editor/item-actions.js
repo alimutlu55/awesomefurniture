@@ -24,9 +24,6 @@ export function createItemActions({ dom, selectionState, model, commands, intera
         else if (a === 'del') {
             commands.deleteItem();
         }
-        else if (a === 'mov') {
-            interactions.armMovement('move');
-        }
         else if (a === 'swap') {
             interactions.armMovement('swap');
         }

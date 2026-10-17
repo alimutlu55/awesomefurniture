@@ -1,12 +1,12 @@
 import { FURNITURE } from '../furniture/furniture';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
-/** The tools every kind of furniture shares. Auto design leads them where the furniture's module can plan it. */
-const furnitureTools = [['move', 'Move'], ['resize', 'Resize'], ['shape', 'Shape'], ['sections', 'Sections'], ['more', 'More']];
-/** @param {import('../furniture/furniture').FurnitureModule} module */
-const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ...furnitureTools];
-/** A selected piece of furniture's More menu: add another, then its finish, its doors where it has whole-front
- * doors, and duplicating, resetting or removing it. @param {import('../furniture/furniture').FurnitureModule} module */
-const moreOf = module => [['new', module.addLabel], ['material', 'Material'],
+/** The tools a piece of furniture shows beside More. Moving needs no tool: an item or a divider is dragged where it goes.
+ * Auto design leads them where the furniture's module can plan it. @param {import('../furniture/furniture').FurnitureModule} module */
+const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ['resize', 'Resize'],
+    ...(module.shaped ? [['shape', 'Shape']] : []), ...(module.sectionsInMore ? [] : [['sections', 'Sections']]), ['more', 'More']];
+/** A selected piece of furniture's More menu: add another, its sections where they are not a tool, then its finish,
+ * its doors where it has whole-front doors, and duplicating, resetting or removing it. @param {import('../furniture/furniture').FurnitureModule} module */
+const moreOf = module => [['new', module.addLabel], ...(module.sectionsInMore ? [['sections', 'Sections']] : []), ['material', 'Material'],
     ...(module.wholeDoors ? [['doors', 'Doors']] : []), ['duplicate', 'Duplicate'], ['reset', 'Reset'], ['remove', 'Remove']];
 const actions = {
     // Nothing selected in Furniture: choose the furniture to work on (one button each, see furniture.ts).

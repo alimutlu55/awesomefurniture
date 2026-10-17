@@ -26,7 +26,7 @@ export const zoneRuns = items => {
     return out;
 };
 export const SHARED_NOTE = /^Open folded shelves are/;
-export const IBI = { rot: 'M19 8a8 8 0 1 0 1 8M19 3v5h-5', dup: 'M9 9h11v11H9zM4 15V4h11', del: 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13', mov: 'M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5', typ: 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4' };
+export const IBI = { rot: 'M19 8a8 8 0 1 0 1 8M19 3v5h-5', dup: 'M9 9h11v11H9zM4 15V4h11', del: 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13', typ: 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4' };
 export const ibIcon = k => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + IBI[k] + '"/></svg>';
 export const ICONP = { "menu": "M4 7h16M4 12h16M4 17h16", "chev": "M6 9l6 6 6-6", "more": "M5 12h.01M12 12h.01M19 12h.01", "undo": "M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3", "redo": "m15 14 5-5-5-5M20 9H10a6 6 0 0 0 0 12h3", "zin": "M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM20 20l-4.2-4.2M11 8v6M8 11h6", "zout": "M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM20 20l-4.2-4.2M8 11h6", "help": "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01", "sliders": "M5 7h8M17 7h2M5 17h2M11 17h8M15 4v6M9 14v6", "spark": "M5 19 17 7M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z", "reset": "M4 12a8 8 0 1 0 3-6.2M4 4v4h4", "view": "M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" };
 export const icon = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONP[n] + '"/></svg>';
