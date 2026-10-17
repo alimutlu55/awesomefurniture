@@ -1,8 +1,9 @@
 # Wardrobe Forge
 
-A browser editor for built-in wardrobes: shape the cabinet, add fittings, and let Auto design
-plan storage for what someone owns. Vite + Three.js r128, one frontend package,
-Supabase Auth and Postgres for saved design sessions. See docs/supabase-architecture.md.
+A browser editor for built-in furniture: wardrobes (shape the cabinet, add fittings, and let Auto
+design plan storage for what someone owns) and kitchen cabinets (modular base, wall and tall units
+sharing a worktop and plinth). Vite + Three.js r128, one frontend package, Supabase Auth and Postgres
+for saved design sessions. See docs/supabase-architecture.md and docs/furniture.md.
 
 ## Commands
 
@@ -34,6 +35,8 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Change | Place |
 |---|---|
 | New fitting kind, purpose, or a rule shared by several kinds (trait) | One entry in `src/domain/wardrobe/fittings.ts` / `purposes.ts`. See [docs/adding-a-fitting.md](docs/adding-a-fitting.md) |
+| Something that differs between wardrobes and kitchen cabinets (limits, allowed fittings, toolbar, duplicate) | The furniture module: `src/domain/furniture/`, `wardrobe/wardrobe-module.ts`, `kitchen/kitchen-module.ts`. See [docs/furniture.md](docs/furniture.md) |
+| Kitchen units, presets, runs (worktop, plinth), pull-to-array | `src/domain/kitchen/`, `application/commands/kitchen-commands.ts`, `presentation/editor/kitchen-*.ts`. See [docs/furniture.md](docs/furniture.md) |
 | Something that stands on a shelf (bags, hats...) | One entry in `src/domain/wardrobe/possessions.ts`. See [docs/adding-a-possession.md](docs/adding-a-possession.md) |
 | Geometry or feasibility rule | The module that owns the concern in `src/domain/geometry/wardrobe-rules/`. `wardrobe-geometry.js` only composes them. |
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
@@ -41,8 +44,9 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
-Never copy registry contents (kind names, possession keys, purpose labels) into another file.
-Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`, `PURPOSES`.
+Never copy registry contents (kind names, possession keys, purpose labels, furniture kinds, kitchen
+units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
+`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`.
 
 ## Guards that must stay green
 
@@ -74,6 +78,8 @@ Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`, `PURPOSES`
 
 ## Known gaps
 
+- Kitchen cabinets: design specs and the agent API build wardrobes only; runs do not turn corners;
+  sinks and hobs sit on the worktop without a cut-out (docs/furniture.md, Known limits).
 - Auto design plans each bay of a shaped wardrobe only up to the lowest point of the top above it
   (`planner/bay-ceilings.ts`), so the space above that point under a slope stays empty. On narrow
   fixed bays the planner can give a whole tall bay to long garments and leave shirts out

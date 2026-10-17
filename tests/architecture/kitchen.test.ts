@@ -119,3 +119,22 @@ test('a kitchen unit saves and reopens as the same unit; a wardrobe saves withou
   delete broken.wardrobes[1]!.product;
   assert.throws(() => parseProject(broken), /names its unit/);
 });
+
+test('kitchen Add item · every kitchen fitting is offered inside a unit it fits, and nothing else is', async () => {
+  const { kitchenSuggestions } = await import('../../src/presentation/editor/kitchen-suggestions');
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const offered = new Set<string>();
+  for (const unit of KITCHEN_UNIT_KEYS) {
+    // The plain unit of each kind starts empty (its preset has the unit's key).
+    const design = { ...createKitchenDesign(unit, unit), sel: 0, item: -1, divider: -1, space: null, open: false };
+    assert.equal(design.secs[0]!.length, 0);
+    const { list, intent } = kitchenSuggestions(design, createWardrobeGeometry(() => design));
+    assert.match(intent, /Inside the/);
+    for (const card of list) {
+      if (card.k === 'divider') continue;
+      assert.equal(fittingProduct(card.k), 'kitchen', `${unit}: ${card.k} is a kitchen fitting`);
+      if (card.fit) offered.add(card.k);
+    }
+  }
+  for (const f of kitchenDefs) assert.ok(offered.has(f.key), `${f.key}: fits an empty unit of one of its kinds`);
+});

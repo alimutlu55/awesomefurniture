@@ -22,6 +22,10 @@ or possessions.
    - **`menu`**: Add item order, group and label; leave it out if users never add it directly.
    - **`zone`**: colour and label in layout diagrams, with a `ZONE_PRIORITY` level.
    - **`icon`**: a 24 px line icon path.
+   - **`kitchen`**: only for a kitchen cabinet fitting: the units it fits in, its Add item score and
+     the reason shown on its card. Kitchen fittings draw their own fronts in
+     `src/presentation/viewport/kitchen-fitting-renderer.ts` and their card in `kitchen-art.ts`.
+     See [furniture](furniture.md).
 2. Run `npm test`. `tests/architecture/fittings.test.ts` checks the new entry everywhere it is
    used: catalogue, planner limits, saved projects, Add item, zone style, icon.
    The golden Add item snapshots also change, because the menu has a new card. Re-record them
