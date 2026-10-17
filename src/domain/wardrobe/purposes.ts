@@ -27,6 +27,13 @@ export const GENERAL_PURPOSES = [
   { key: 'luggage', label: 'Bags & luggage', zone: TINT },
   { key: 'linen', label: 'Bedding & linen', zone: TINT },
   { key: 'laundry', label: 'Laundry' },
+  // Kitchen cabinets.
+  { key: 'dishes', label: 'Plates & glasses' },
+  { key: 'utensils', label: 'Cutlery & utensils' },
+  { key: 'cookware', label: 'Pots & pans' },
+  { key: 'food', label: 'Food & pantry' },
+  { key: 'cleaning', label: 'Cleaning & bins' },
+  { key: 'appliance', label: 'Appliance' },
 ] as const satisfies readonly GeneralPurposeDef[];
 
 export type GeneralPurpose = typeof GENERAL_PURPOSES[number]['key'];

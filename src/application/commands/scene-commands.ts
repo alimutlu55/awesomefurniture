@@ -1,6 +1,5 @@
 import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
-import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
 import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet, createEditorModel } from '../projects/editor-model';
@@ -15,7 +14,7 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
 import { friendlyProblem, resolveShape, regularShape, shapePanels, maxHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
-import { resizeHeightMinimum } from '../../domain/wardrobe/cabinet-size-limits';
+import { furnitureModule } from '../../domain/furniture/furniture';
 export interface ShapeFrame { w: number; x: number; z: number }
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
@@ -41,7 +40,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     /** The same constraints apply to numeric edits, keyboard nudges and live handles. */
     const shapeEditProblem = (shape: WardrobeShape, frame?: ShapeFrame): string | null => {
         const cabinet = active(), w = frame?.w ?? cabinet.state.w;
-        if (!Number.isFinite(w) || (w !== cabinet.state.w && (w < Math.max(80, geometry.minTotal()) - .01 || w > 400))) return 'Keep the wardrobe within its allowed width.';
+        const [minW, maxW] = furnitureModule(cabinet.state).sizes(cabinet.state).w;
+        if (!Number.isFinite(w) || (w !== cabinet.state.w && (w < Math.max(minW, geometry.minTotal()) - .01 || w > maxW))) return 'Keep the wardrobe within its allowed width.';
         if (frame && (!Number.isFinite(frame.x) || !Number.isFinite(frame.z))) return 'Wardrobe position must be a number.';
         const problem = shapeProblems(shape, w)[0];
         if (problem) return friendlyProblem(problem);
@@ -195,7 +195,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         setCabinetSize(key: string, value: number, recordHistory = true) {
             const cabinet = active(), state = cabinet.state;
-            const ranges = { w: [80, 400], h: [resizeHeightMinimum(state), 280], d: [MIN_CABINET_DEPTH, 80] }, range = ranges[key as keyof typeof ranges];
+            const ranges = furnitureModule(state).sizes(state), range = ranges[key as keyof typeof ranges];
             if (!range || !Number.isFinite(value)) {
                 return false;
             }

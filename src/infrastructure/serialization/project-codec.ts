@@ -11,6 +11,7 @@ import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import type { Studio } from '../../domain/studio/studio';
+import { KITCHEN_UNIT_KEYS } from '../../domain/kitchen/kitchen-units';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -80,6 +81,9 @@ const wardrobe = z.strictObject({
   doors: z.enum(['none', 'solid', 'glass']),
   sections: z.array(section),
   shape: shape.optional(),
+  // Furniture other than a wardrobe (domain/furniture). Absent in every older project.
+  product: z.enum(['kitchen']).optional(),
+  unit: z.enum(KITCHEN_UNIT_KEYS as unknown as [string, ...string[]]).optional() as unknown as z.ZodOptional<z.ZodEnum<{ [K in typeof KITCHEN_UNIT_KEYS[number]]: K }>>,
   preferences: z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
     composition:z.enum(['balanced','storage']).optional(),
@@ -93,6 +97,7 @@ const wardrobe = z.strictObject({
 }).superRefine((cabinet, context) => {
   const fail = (message: string) => context.addIssue({code:'custom', message});
   const close = (a: number, b: number) => Math.abs(a-b)<.001;
+  if ((cabinet.product === 'kitchen') !== (cabinet.unit !== undefined)) fail('A kitchen cabinet names its unit, and only a kitchen cabinet has one.');
   if (cabinet.editorLayout) {
     const n=cabinet.sections.length, weights=cabinet.editorLayout.weights;
     if(n<1 || n>6) fail('An editor wardrobe must have between one and six sections.');

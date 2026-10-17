@@ -4,6 +4,7 @@ import type { WardrobeShape } from './shape/wardrobe-shape';
 import type { Needs } from './possessions';
 import type { Purpose } from './purposes';
 import type { FittingKind } from './fittings';
+import type { KitchenUnitKey } from '../kitchen/kitchen-units';
 
 /** Fitting kinds come from the fittings registry (fittings.ts). */
 export type ItemKind = FittingKind;
@@ -74,4 +75,8 @@ export interface Wardrobe {
   readonly preferences: WardrobePreferences;
   /** Built-in skeleton; absent for regular rectangular wardrobes (and older projects). */
   readonly shape?: WardrobeShape | undefined;
+  /** What kind of furniture this is (domain/furniture). Absent: a wardrobe, as in every older project. */
+  readonly product?: 'kitchen' | undefined;
+  /** Kitchen cabinets: which unit (base, wall or tall). */
+  readonly unit?: KitchenUnitKey | undefined;
 }

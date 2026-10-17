@@ -1,5 +1,6 @@
 /**
- * Fittings: every kind of thing that goes inside a wardrobe bay (drawer, shelf, rail...).
+ * Fittings: every kind of thing that goes inside a bay of a wardrobe or a kitchen cabinet (drawer, shelf,
+ * rail, cupboard door, sink...). An entry with `kitchen` belongs to kitchen cabinets; the others to wardrobes.
  *
  * THIS IS THE ONLY PLACE THAT DEFINES A FITTING KIND. The catalogue (`MODS`), the planner's size
  * limits, the saved-project format, the purposes each kind offers, the Add item menu (order, group,
@@ -17,7 +18,9 @@ import { ZONE_PRIORITY as Z } from './zone-style';
 import type { ZoneStyle } from './zone-style';
 import type { Purpose } from './purposes';
 
-export type MenuGroup = 'hanging' | 'drawers' | 'shelves' | 'storage';
+import type { KitchenUnitKey } from '../kitchen/kitchen-units';
+
+export type MenuGroup = 'hanging' | 'drawers' | 'shelves' | 'storage' | 'doors' | 'appliances';
 
 /** What a fitting kind is like. Rules ask for a trait, never for a list of kinds, so a new kind only
  * declares its traits here. Add a trait only when rules in more than one place need it. */
@@ -28,6 +31,9 @@ export const FITTING_TRAITS = Object.freeze({
   pullout: 'Pulls out towards you and is reached at its top edge.',
   openShelf: 'An open shelf; folded clothes at the back of a deep wardrobe are harder to reach.',
   foldedStacks: 'Holds stacks of folded clothes when its purpose is folded clothes or trousers.',
+  front: 'Shows its own front (a drawer front, a door, an appliance) instead of standing behind the cabinet doors.',
+  appliance: 'A fixture or appliance (sink, hob, oven, fridge): a duplicated cabinet gets plain storage in its place.',
+  worktop: 'Sits in the worktop above its cabinet (sink, hob).',
 });
 export type FittingTrait = keyof typeof FITTING_TRAITS;
 
@@ -64,11 +70,16 @@ export interface FittingDef {
   readonly icon: string;
   /** Its traits (see FITTING_TRAITS). Empty when none apply. */
   readonly traits: readonly FittingTrait[];
+  /** Kitchen cabinets only: the units it fits in, and how the Add item menu ranks and explains it. */
+  readonly kitchen?: { readonly units: readonly KitchenUnitKey[]; readonly score: number; readonly why: string };
 }
 
 const HANG = { color: '#477fac', priority: Z.hanging } as const;
 const PLAIN = { color: '#4b9277', label: 'Folded', priority: Z.fitting } as const;
 const SHELF_PURPOSES = ['folded', 'pants', 'accessories', 'seasonal', 'linen'] as const;
+const KITCHEN = { color: '#7f9a86', priority: Z.fitting } as const;
+const APPLIANCE = { color: '#8a8f96', priority: Z.fitting } as const;
+const KITCHEN_PURPOSES = ['dishes', 'utensils', 'cookware', 'food', 'cleaning'] as const;
 
 export const FITTINGS = [
   { key: 'drawer', name: 'Drawer', code: 'D', height: 22, min: 15, max: 30, minWidth: 25, minDepth: 35, price: 45, purpose: 'folded',
@@ -108,6 +119,38 @@ export const FITTINGS = [
   { key: 'lift', name: 'Pull-down rail', code: 'P', height: 106, min: 100, max: 120, minWidth: 55, minDepth: 55, price: 130, purpose: 'short',
     purposes: ['short', 'seasonal'], frontName: 'Front-facing short hang',
     menu: { order: 10, group: 'hanging' }, zone: { ...HANG, label: 'Pull-down' }, icon: 'M12 4v12M7 11l5 5 5-5M5 20h14', traits: ['hanging'] },
+  { key: 'cutlery', name: 'Cutlery drawer', code: 'C', height: 15, min: 10, max: 22, minWidth: 30, minDepth: 40, price: 55, purpose: 'utensils',
+    purposes: KITCHEN_PURPOSES, menu: { order: 11, group: 'drawers', mobileRank: 0 }, zone: { ...KITCHEN, label: 'Drawer' },
+    icon: 'M4 8h16v8H4zM9.5 12h5', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 60, why: 'Cutlery and utensils at hand' } },
+  { key: 'pan', name: 'Pan drawer', code: 'N', height: 28, min: 18, max: 40, minWidth: 30, minDepth: 40, price: 70, purpose: 'cookware',
+    purposes: KITCHEN_PURPOSES, menu: { order: 12, group: 'drawers', mobileRank: 1 }, zone: { ...KITCHEN, label: 'Pan drawer' },
+    icon: 'M4 6h16v13H4zM9.5 10h5', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 55, why: 'Deep drawer for pots and pans' } },
+  { key: 'cupboard', name: 'Cupboard door', code: 'K', height: 72, min: 25, max: 220, minWidth: 25, minDepth: 25, price: 60, purpose: 'dishes',
+    purposes: KITCHEN_PURPOSES, itemName: 'Cupboard', menu: { order: 13, group: 'doors', mobileRank: 2 }, zone: { ...KITCHEN, label: 'Cupboard' },
+    icon: 'M6 3h12v18H6zM15 11v2M6 12h12', traits: ['front'], kitchen: { units: ['base', 'upper', 'tall'], score: 50, why: 'Hinged door, shelves inside' } },
+  { key: 'flap', name: 'Lift-up flap', code: 'Y', height: 36, min: 25, max: 60, minWidth: 30, minDepth: 25, price: 75, purpose: 'dishes',
+    purposes: KITCHEN_PURPOSES, menu: { order: 14, group: 'doors' }, zone: { ...KITCHEN, label: 'Flap' },
+    icon: 'M4 9h16v10H4zM4 9l3-5h10l3 5M10.5 15h3', traits: ['front'], kitchen: { units: ['upper'], score: 45, why: 'Opens upwards, out of the way' } },
+  { key: 'niche', name: 'Open shelf', code: 'Q', height: 30, min: 15, max: 60, minWidth: 25, minDepth: 20, price: 20, purpose: 'dishes',
+    purposes: KITCHEN_PURPOSES, menu: { order: 15, group: 'shelves' }, zone: { ...KITCHEN, label: 'Open' },
+    icon: 'M4 5h16v14H4zM4 12h16', traits: ['openShelf'], kitchen: { units: ['base', 'upper', 'tall'], score: 30, why: 'Things on show, within reach' } },
+  { key: 'sink', name: 'Sink and tap', code: 'I', height: 72, min: 50, max: 80, minWidth: 45, minDepth: 50, price: 180, purpose: 'cleaning',
+    purposes: ['cleaning'], menu: { order: 16, group: 'appliances' }, zone: { color: '#6b8ea8', label: 'Sink', priority: Z.fitting },
+    icon: 'M3 12h18M5 12l1.5 7h11L19 12M12 12V6a2 2 0 0 1 4 0', traits: ['front', 'appliance', 'worktop'],
+    kitchen: { units: ['base'], score: 40, why: 'Sink in the worktop, doors below' } },
+  { key: 'hob', name: 'Hob', code: 'O', height: 14, min: 10, max: 20, minWidth: 55, minDepth: 50, price: 220, purpose: 'appliance',
+    purposes: ['appliance'], menu: { order: 17, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Hob' },
+    icon: 'M3 6h18v12H3zM8.5 10a1.5 1.5 0 1 0 0 .01M15.5 10a1.5 1.5 0 1 0 0 .01M8.5 15h.01M15.5 15h.01', traits: ['front', 'appliance', 'worktop'],
+    kitchen: { units: ['base'], score: 35, why: 'Cooktop in the worktop over a shallow drawer' } },
+  { key: 'oven', name: 'Built-in oven', code: 'E', height: 60, min: 56, max: 62, minWidth: 55, minDepth: 55, price: 320, purpose: 'appliance',
+    purposes: ['appliance'], menu: { order: 18, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Oven' },
+    icon: 'M4 4h16v16H4zM4 8h16M7 12h10v5H7z', traits: ['front', 'appliance'], kitchen: { units: ['base', 'tall'], score: 35, why: 'Oven at a comfortable height' } },
+  { key: 'fridge', name: 'Integrated fridge', code: 'G', height: 178, min: 82, max: 200, minWidth: 55, minDepth: 55, price: 450, purpose: 'food',
+    purposes: ['food'], menu: { order: 19, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Fridge' },
+    icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', traits: ['front', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
+  { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
+    purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },
+    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', traits: ['pullout', 'front'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
 ] as const satisfies readonly FittingDef[];
 
 export type FittingKind = typeof FITTINGS[number]['key'];
@@ -119,8 +162,14 @@ const TRAIT_KINDS = Object.fromEntries((Object.keys(FITTING_TRAITS) as FittingTr
 /** Whether a fitting kind has a trait. Use this instead of listing kinds. */
 export const hasTrait = (kind: string | undefined, trait: FittingTrait) => kind !== undefined && TRAIT_KINDS[trait].has(kind);
 
-/** Kinds in Add item menu order. */
-export const MENU_KINDS = (FITTINGS as readonly FittingDef[]).filter(f => f.menu).sort((a, b) => a.menu!.order - b.menu!.order).map(f => f.key as FittingKind);
+/** Which furniture a fitting kind goes in: kitchen cabinets when it names its kitchen units, else wardrobes. */
+export const fittingProduct = (key: string | undefined): 'wardrobe' | 'kitchen' => fitting(key)?.kitchen ? 'kitchen' : 'wardrobe';
+const menuOrder = (product: 'wardrobe' | 'kitchen') => (FITTINGS as readonly FittingDef[])
+  .filter(f => f.menu && fittingProduct(f.key) === product).sort((a, b) => a.menu!.order - b.menu!.order).map(f => f.key as FittingKind);
+/** Wardrobe kinds in Add item menu order. */
+export const MENU_KINDS = menuOrder('wardrobe');
+/** Kitchen cabinet kinds in Add item menu order. */
+export const KITCHEN_MENU_KINDS = menuOrder('kitchen');
 
 /** The planner's limits per kind: [min, max, minWidth, minDepth, default height, price]. */
 export function plannerLimits(): Record<string, [number, number, number, number, number, number]> {

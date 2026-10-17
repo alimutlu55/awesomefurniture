@@ -1,4 +1,5 @@
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
+import { furnitureModule } from '../../domain/furniture/furniture';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
@@ -14,7 +15,9 @@ export interface CreationSize { w?: number; h?: number; d?: number; from?: numbe
  * selection, identity counters or undo history. Requested dimensions stay exact;
  * unrequested default width/depth can shrink to the available room. */
 export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet, copy: boolean, wall?: string, size: CreationSize = {}): EditorCabinet | null {
-  if (!Number.isFinite(original.state.d) || original.state.d < MIN_CABINET_DEPTH || original.state.d > 80) return null;
+  const sizes = furnitureModule(original.state).sizes(original.state);
+  const [minW, maxW] = sizes.w, [minD, maxD] = sizes.d;
+  if (!Number.isFinite(original.state.d) || original.state.d < minD || original.state.d > maxD) return null;
   const studio = scene.studio;
   const targetWall = wall ?? size.placementWall;
   const collision = createCabinetGeometry(() => scene.wardrobes, () => studioPlacementObstacles(studio));
@@ -22,7 +25,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   const wallsOnly = createCabinetGeometry(() => [], () => studioObstacles(studio));
   const ceilings = createCeilingCommands(() => scene, () => {});
   function prepare(pose: Pose, w: number, d: number): EditorCabinet | null {
-    if (w < 80 || w > 400 || d < MIN_CABINET_DEPTH || d > 80) return null;
+    if (w < minW || w > maxW || d < minD || d > maxD) return null;
     const footprint = { ...original, ...pose, state: { ...original.state, w, d } };
     if (wallsOnly.cabinetCollides(footprint)) return null;
     // Even the shortest buildable cabinet cannot occupy an already filled
@@ -30,8 +33,8 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
     if (collision.cabinetCollides({ ...footprint, state: { ...footprint.state, h: 40 } })) return null;
     const candidate = structuredClone(footprint), state = candidate.state;
     if (state.shape && w !== original.state.w) state.shape = resizeShape(state.shape, original.state.w, w, state.h, state.h);
-    const cap = Math.min(280, roomHeight(studio!) - (candidate.y || 0));
-    if (cap < 40) return null;
+    const cap = Math.min(sizes.h[1], roomHeight(studio!) - (candidate.y || 0));
+    if (cap < Math.min(40, sizes.h[0])) return null;
     if (state.h > cap) {
       if (copy || size.h !== undefined) return null;
       if (state.shape) state.shape = resizeShape(state.shape, w, w, state.h, cap);
@@ -64,13 +67,13 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   }
   const walls = studio.walls.filter(w => targetWall === undefined || w.id === targetWall)
     .sort((a, b) => (wallFace(studio, b)?.length ?? 0) - (wallFace(studio, a)?.length ?? 0));
-  const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35, 30, 25, 20, MIN_CABINET_DEPTH].filter(d => d <= original.state.d))];
+  const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35, 30, 25, 20, MIN_CABINET_DEPTH].filter(d => d <= original.state.d && d >= minD))];
   for (const d of depths) for (const roomWall of walls) {
     const face = wallFace(studio, roomWall);
     if (!face) continue;
-    const spot = wallSpot(studio, roomWall.id, standing, { min: size.w ?? 80, max: size.w ?? (wall ? 400 : original.state.w), depth: d });
-    const max = size.w ?? Math.floor(Math.min(face.length, spot?.w ?? (wall ? 400 : original.state.w)));
-    const min = size.w ?? 80;
+    const spot = wallSpot(studio, roomWall.id, standing, { min: size.w ?? minW, max: size.w ?? (wall ? maxW : original.state.w), depth: d });
+    const max = size.w ?? Math.floor(Math.min(face.length, spot?.w ?? (wall ? maxW : original.state.w)));
+    const min = size.w ?? minW;
     for (let width = max; width >= min; width -= 10) {
       const result = search(width, d, roomWall.id);
       if (result) return result;
