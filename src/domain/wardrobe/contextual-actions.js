@@ -2,7 +2,7 @@ import { FURNITURE } from '../furniture/furniture';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
 /** The tools a piece of furniture shows beside More. Moving needs no tool: an item or a divider is dragged where it goes.
  * Auto design leads them where the furniture's module can plan it. @param {import('../furniture/furniture').FurnitureModule} module */
-const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ...(module.addItemTool ? [['add', 'Add item']] : []), ['resize', 'Resize'],
+const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ...(module.addInToolbar ? [['new', module.addLabel]] : []), ['resize', 'Resize'],
     ...(module.shaped ? [['shape', 'Shape']] : []), ...(module.sectionsInMore ? [] : [['sections', 'Sections']]), ['more', 'More']];
 /** A selected piece of furniture's More menu: add another, its sections where they are not a tool, then its finish,
  * its doors where it has whole-front doors, and duplicating, resetting or removing it. @param {import('../furniture/furniture').FurnitureModule} module */

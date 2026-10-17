@@ -6,7 +6,7 @@ import { MAX_OUTER_HEIGHT } from './shape/wardrobe-shape';
 
 /** Wardrobes: one carcass divided into bays of rails, drawers and shelves, planned by Auto design. */
 export const WARDROBE_MODULE: FurnitureModule = {
-  key: 'wardrobe', label: 'Wardrobe', noun: 'wardrobe', addLabel: 'New wardrobe', autoDesign: true, wholeDoors: true, shaped: true, sectionsInMore: true, addItemTool: false,
+  key: 'wardrobe', label: 'Wardrobe', noun: 'wardrobe', addLabel: 'New wardrobe', autoDesign: true, wholeDoors: true, shaped: true, sectionsInMore: true, addInToolbar: false,
   sizes: design => ({ w: [80, 400], h: [resizeHeightMinimum(design), MAX_OUTER_HEIGHT], d: [MIN_CABINET_DEPTH, 80] }),
   allows: kind => fittingProduct(kind) === 'wardrobe',
   fittingKinds: () => MENU_KINDS,

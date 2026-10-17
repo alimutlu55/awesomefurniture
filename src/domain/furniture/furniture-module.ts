@@ -26,8 +26,8 @@ export interface FurnitureModule {
   readonly shaped: boolean;
   /** Its sections are opened from the More menu instead of a toolbar tool. */
   readonly sectionsInMore: boolean;
-  /** Add item is a toolbar tool, ahead of Resize (cabinets), instead of only the label on the model. */
-  readonly addItemTool: boolean;
+  /** Add another one ("Add cabinet") is a toolbar tool, ahead of Resize, instead of only a More entry. */
+  readonly addInToolbar: boolean;
   /** Outer width, height and depth limits in centimetres. */
   sizes(design: FurnitureDesign): { readonly w: SizeRange; readonly h: SizeRange; readonly d: SizeRange };
   /** Whether a fitting kind can go inside it. */
