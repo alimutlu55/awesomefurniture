@@ -7,6 +7,7 @@ import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet'
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
+import { createKitchenCommands } from './kitchen-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
@@ -14,7 +15,7 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import { createDesignCommands } from './design-commands.js';
 import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates';
 import { friendlyProblem, resolveShape, regularShape, shapePanels, maxHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
-import { furnitureModule } from '../../domain/furniture/furniture';
+import { furnitureModule, isKitchen } from '../../domain/furniture/furniture';
 export interface ShapeFrame { w: number; x: number; z: number }
 /** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
@@ -33,6 +34,15 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const design = createDesignCommands(() => active().state, { report });
     const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report });
     const ceilings = createCeilingCommands(getScene, report);
+    /** A cabinet with nothing to stand beside goes where a new wardrobe would: beside the others, or against a free wall. */
+    const placeAlone = (cabinet: EditorCabinet) => {
+        const scene = getScene(), bounds = collision.sceneBounds();
+        if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
+        const placed = placeCreatedCabinet(scene, cabinet, false);
+        if (placed) createDesignCommands(() => placed.state, { report }).fitToShape();
+        return placed;
+    };
+    const kitchen = createKitchenCommands(getScene, { checkpoint, report, placeAlone });
     /** Why a change is refused: it would run into a wall of the room, or into another wardrobe. */
     const blockedMessage = (change: string, candidate: EditorCabinet) => collision.cabinetObstruction(candidate) === 'wall'
         ? change + ' would go through a wall of the room.'
@@ -71,6 +81,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return { ...shape, back: original.back ?? original.top.map(p => p.y) };
         },
         ...studio,
+        ...kitchen,
         ...createAlignCommands(getScene, collision),
         /** Room edits reshape the wardrobes under any ceiling they move. */
         placeStudio(id: Parameters<typeof studio.placeStudio>[0]) {
@@ -99,6 +110,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it
          * fills that wall's free stretch instead, as wide as it allows. */
         addCabinet(copy = false, template?: ShapeTemplateId, wall?: string, size: CreationSize = {}) {
+            // A kitchen unit is copied along its run, without its appliances.
+            if (copy && isKitchen(active().state)) return kitchen.duplicateKitchenUnit();
             const scene = getScene(), original = active(), bounds = collision.sceneBounds(), id = scene.nextWardrobeId;
             const state = copy ? structuredClone(original.state) : initialDesign();
             // A size asked for (a design spec): set before the shape and the place are worked out.
