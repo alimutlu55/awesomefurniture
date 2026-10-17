@@ -20,9 +20,11 @@ const {chromium}=require('playwright');
   await page.locator('.shape-handle.point[data-side="front"]').first().focus();
   await page.keyboard.press('Escape');await page.waitForTimeout(350);
   // Add item is on the model, in the selected section.
-  for(let tries=0;tries<3&&!await page.locator('.lbl.add:visible').count();tries++){
+  // Add item is on the model: leave Shape editing, then choose the wardrobe's space.
+  for(let tries=0;tries<4&&!await page.locator('.lbl.add:visible').count();tries++){
+   if(await page.locator('.shape-handle.point:visible').count()){await page.keyboard.press('Escape');await page.waitForTimeout(350);continue;}
    if(await el('wardrobe-btn').isVisible())await el('wardrobe-btn').click();
-   else await page.mouse.click(v.x+v.width/2,h.y+h.height/2);
+   else await page.mouse.click(v.x+v.width/2,v.y+v.height*.55);
    await page.waitForTimeout(500);
   }
   await page.locator('.lbl.add:visible').first().click();await page.locator('[data-a="divider"]:visible').click();await page.waitForTimeout(350);
