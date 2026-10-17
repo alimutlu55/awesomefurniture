@@ -10,7 +10,8 @@ import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { resizeShape, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { createCeilingCommands } from './ceiling-commands';
 
-export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string }
+/** `placementWall`: the wall a new piece goes against (the one in view); `placementAlong`: where on it to start looking, cm along it. */
+export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string; placementAlong?: number }
 /** Prepare detached candidates. A failed search never changes the scene, its
  * selection, identity counters or undo history. Requested dimensions stay exact;
  * unrequested default width/depth can shrink to the available room. */
@@ -57,7 +58,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
     placeAgainstWall(studio!, { w, d }, pose => {
       found = prepare(pose, w, d);
       return found === null;
-    }, wallId);
+    }, wallId, wallId !== undefined && wallId === size.placementWall ? size.placementAlong : undefined);
     return found;
   }
   // Preserve the normal default size whenever it can actually fit.

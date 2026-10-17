@@ -1,6 +1,6 @@
 import { isKitchen } from '../../domain/furniture/furniture';
 import { createAddMenuPresenter } from './add-menu-presenter.js';
-import { viewedWall } from '../../domain/studio/viewed-wall';
+import { viewedPlacement } from './viewed-placement';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
@@ -68,10 +68,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
-        const studio = model.scene.studio;
-        const placementWall = !copy && !wall && studio
-            ? viewedWall(studio, resources.cam.position, resources.cam.getWorldDirection(resources.cam.position.clone())) : undefined;
-        const w = sceneCommands.addCabinet(copy, template, wall, { placementWall });
+        // A new wardrobe stands against the wall in view, in front of the viewer.
+        const w = sceneCommands.addCabinet(copy, template, wall, !copy && !wall ? viewedPlacement(model.scene.studio, resources.cam) : {});
         if (!w) return false;
         selectionState.room = null;
         if (template && template !== 'regular') selectionState.shapeEditing = true;

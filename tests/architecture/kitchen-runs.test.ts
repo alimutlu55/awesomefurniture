@@ -133,3 +133,24 @@ test('Reset keeps a kitchen cabinet a cabinet: an empty unit of its kind at its 
   assert.deepEqual([state.product, state.unit, state.w, state.h, state.d, state.secs[0]!.length], ['kitchen', 'upper', 60, 70, 35, 0]);
   assert.equal(checkpoints, 1);
 });
+
+test('Add furniture puts a cabinet against the wall in view, in front of the viewer; a cabinet\'s own Add joins it', async () => {
+  const { standsAgainst } = await import('../../src/domain/studio/studio-placement');
+  const { wallFace, wallLine } = await import('../../src/domain/studio/studio');
+  const room = rectangleStudio(400, 300, 260), s: EditorScene = { ...scene(), studio: room };
+  const commands = createSceneCommands(() => s, { initialDesign: createEditorState });
+  const along = (c: EditorCabinet, id: string) => { const l = wallLine(room, room.walls.find(w => w.id === id)!)!; return (c.x - l.a.x) * l.ux + (c.z - l.a.z) * l.uz; };
+  const [first, second] = [room.walls[0]!, room.walls[2]!], face = wallFace(room, first)!;
+  const target = face.start + 80;
+  const a = commands.addKitchenUnit('base', { placementWall: first.id, placementAlong: target })!;
+  assert.ok(standsAgainst(room, first.id, a, a.state), 'on the wall in view');
+  near(along(a, first.id), target, 'at the point in view, not the middle of the wall');
+  const b = commands.addKitchenUnit('base', { placementWall: second.id, placementAlong: wallFace(room, second)!.start + 200 })!;
+  assert.ok(standsAgainst(room, second.id, b, b.state), 'looking at another wall puts it there, not beside the last kitchen');
+  const c = commands.addKitchenUnit('drawers', { placementWall: first.id, placementAlong: face.end - 40 })!;
+  assert.ok(standsAgainst(room, first.id, c, c.state));
+  near(Math.abs(along(c, first.id) - along(a, first.id)), 60, 'a kitchen already on the wall in view is joined');
+  s.activeWardrobe = a.id;
+  const d = commands.addKitchenUnit('base', { placementWall: second.id, beside: true })!;
+  assert.ok(standsAgainst(room, first.id, d, d.state), 'a cabinet\'s own Add stands beside it whatever is in view');
+});

@@ -34,13 +34,14 @@ export function flushAgainst(studio: Studio, wallId: string, from: number, size:
 }
 
 /** The first free spot flush against a wall, facing into the room: longest walls first, from the middle
- * of each wall outwards. Null when no wall has room. */
-export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides, wallId?: string): Pose | null {
+ * of each wall outwards, or from `near` (cm along the wall, as wallFace counts) when given. Null when no wall has room. */
+export function placeAgainstWall(studio: Studio, size: Footprint, collides: Collides, wallId?: string, near?: number): Pose | null {
   const walls = studio.walls.filter(w => wallId === undefined || w.id === wallId).map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line && x.line.length >= size.w).sort((p, q) => q.line!.length - p.line!.length);
   for (const { w } of walls) {
     const face = wallFace(studio, w);
     if (!face || face.length < size.w - .01) continue;
-    const min = face.start + size.w / 2, max = face.end - size.w / 2, mid = (min + max) / 2;
+    const min = face.start + size.w / 2, max = face.end - size.w / 2;
+    const mid = near === undefined ? (min + max) / 2 : Math.max(min, Math.min(max, near));
     for (let step = 0; mid - step >= min - .01 || mid + step <= max + .01; step += 5) {
       for (const along of step ? [mid - step, mid + step] : [mid]) {
         if (along < min - .01 || along > max + .01) continue;
@@ -54,6 +55,14 @@ export function placeAgainstWall(studio: Studio, size: Footprint, collides: Coll
     }
   }
   return null;
+}
+
+/** Whether a piece of furniture at `pose` stands with its back flush against wall `wallId`, square to it. */
+export function standsAgainst(studio: Studio, wallId: string, pose: Pose, size: Footprint): boolean {
+  const w = studio.walls.find(x => x.id === wallId), line = w && wallLine(studio, w);
+  if (!w || !line || Math.abs(((pose.angle - line.angle) % 360 + 540) % 360 - 180) > .5) return false;
+  const out = (pose.x - line.a.x) * line.nx + (pose.z - line.a.z) * line.nz;
+  return Math.abs(out - (w.thickness / 2 + size.d / 2)) < 2;
 }
 
 /** Moves a wardrobe that overlaps walls out to their room side, the shortest way. Null if it cannot be

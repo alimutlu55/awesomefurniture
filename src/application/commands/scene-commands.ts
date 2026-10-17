@@ -35,11 +35,12 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const design = createDesignCommands(() => active().state, { report });
     const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report });
     const ceilings = createCeilingCommands(getScene, report);
-    /** A cabinet with nothing to stand beside goes where a new wardrobe would: beside the others, or against a free wall. */
-    const placeAlone = (cabinet: EditorCabinet) => {
+    /** A cabinet with nothing to stand beside goes where a new wardrobe would: beside the others, or against a free
+     * wall (the wall in view, from the point in view, when `placement` names them). */
+    const placeAlone = (cabinet: EditorCabinet, placement: CreationSize = {}) => {
         const scene = getScene(), bounds = collision.sceneBounds();
         if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
-        const placed = placeCreatedCabinet(scene, cabinet, false);
+        const placed = placeCreatedCabinet(scene, cabinet, false, undefined, placement);
         if (placed) createDesignCommands(() => placed.state, { report }).fitToShape();
         return placed;
     };

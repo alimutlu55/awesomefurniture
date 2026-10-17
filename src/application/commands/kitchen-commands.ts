@@ -5,13 +5,17 @@ import { createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { arrayPoses, besidePose, isKitchenUnit, kitchenRuns, stackedPose, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { roomHeight } from '../../domain/studio/studio';
+import { roomHeight, wallLine } from '../../domain/studio/studio';
+import { standsAgainst } from '../../domain/studio/studio-placement';
+
+/** Where a new unit goes: against the wall in view from the point in view, or `beside` the selected unit. */
+export interface KitchenPlacement { readonly placementWall?: string; readonly placementAlong?: number; readonly beside?: boolean }
 
 interface KitchenCommandOptions {
   checkpoint?: () => void;
   report?: (message: string) => void;
   /** Places a cabinet that has no kitchen neighbour, the way a new wardrobe is placed (in a room: against a free wall). */
-  placeAlone: (cabinet: EditorCabinet) => EditorCabinet | null;
+  placeAlone: (cabinet: EditorCabinet, placement?: Omit<KitchenPlacement, 'beside'>) => EditorCabinet | null;
 }
 
 /**
@@ -66,24 +70,37 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     return cabinet;
   }
 
+  /** Adds a placed unit, or says why there was no room for it. */
+  function keep(placed: EditorCabinet | null, name: string): EditorCabinet | null {
+    if (placed) return add(placed);
+    report('The ' + name.toLowerCase() + ' does not fit beside the other cabinets or against a free wall.');
+    return null;
+  }
+
   const named = (unit: KitchenUnitKey | undefined, id: number) => kitchenUnit(unit).name + ' ' + id;
   /** A copy of a unit's design with nothing chosen inside it (no item, divider or space). */
   const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state), item: -1, divider: -1, space: null, open: false });
 
   return {
-    /** Adds a unit from a preset (Base cabinet, Sink unit, Wall cabinet...) beside the kitchen it belongs to. */
-    addKitchenUnit(presetKey: string): EditorCabinet | null {
+    /** Adds a unit from a preset (Base cabinet, Sink unit, Wall cabinet...). Asked `beside` the selected unit, or with no
+     * wall in view, it joins the kitchen it belongs to. Otherwise it goes on the wall in view: beside a kitchen standing
+     * against that wall, else in front of the viewer; another wall only when the one in view is full. */
+    addKitchenUnit(presetKey: string, placement: KitchenPlacement = {}): EditorCabinet | null {
       const preset = kitchenPreset(presetKey);
       if (!preset) return null;
       const scene = getScene(), id = scene.nextWardrobeId, state = { ...createKitchenDesign(preset.unit, preset.key), sel: 0, item: -1, divider: -1, space: null, open: false };
       const fresh: EditorCabinet = { id, name: preset.name + ' ' + id, x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
-      const anchor = anchorFor(), placed = anchor ? placeNear(anchor, fresh) ?? placeAlone(fresh) : placeAlone(fresh);
-      if (!placed) {
-        report('The ' + preset.name.toLowerCase() + ' does not fit beside the other cabinets or against a free wall.');
-        return null;
-      }
-      return add(placed);
+      const anchor = anchorFor(), { beside, ...spot } = placement, studio = scene.studio, wall = spot.placementWall;
+      const near = anchor ? placeNear(anchor, structuredClone(fresh)) : null;
+      if (beside || !wall || !studio) return keep(near ?? placeAlone(fresh, spot), preset.name);
+      // On the wall in view: beside the kitchen already against it (the unit nearest the point in view), else in front of the viewer.
+      const line = wallLine(studio, studio.walls.find(w => w.id === wall)!), alongOf = (c: EditorCabinet) => line ? (c.x - line.a.x) * line.ux + (c.z - line.a.z) * line.uz : 0;
+      const onWall = scene.wardrobes.filter(c => isKitchenUnit(c) && standsAgainst(studio, wall, c, c.state))
+        .sort((p, q) => Math.abs(alongOf(p) - (spot.placementAlong ?? alongOf(p))) - Math.abs(alongOf(q) - (spot.placementAlong ?? alongOf(q))));
+      const local = onWall.map(c => placeNear(c, structuredClone(fresh))).find(c => !!c && standsAgainst(studio, wall, c, c.state)) ?? null;
+      return keep(local ?? placeAlone(structuredClone(fresh), spot) ?? near ?? placeAlone(fresh), preset.name);
     },
+
     /** A copy of the selected unit beside it, with its appliances turned into plain storage. */
     duplicateKitchenUnit(): EditorCabinet | null {
       const original = active();

@@ -3,6 +3,7 @@ import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
 import { createKitchenPanel } from './kitchen-panel';
 import { createFurnitureFraming } from './furniture-framing';
+import { viewedPlacement } from './viewed-placement';
 import { createKitchenArrayGesture } from './kitchen-array-gesture';
 import { createTactileFeedback } from './tactile-feedback';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
@@ -144,7 +145,9 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         const framing = createFurnitureFraming({ model, camera });
         // Kitchen cabinets: a new unit is selected and framed with its run, ready for Add item and the pull-out gesture.
         const kitchenPanel = createKitchenPanel({ dom, add: preset => {
-            const unit = sceneCommands.addKitchenUnit(preset);
+            // From a selected cabinet's Add it joins that cabinet; from Add furniture it goes on the wall in view.
+            const beside = dom.$('#pop2').dataset.addContext === 'kitchen';
+            const unit = sceneCommands.addKitchenUnit(preset, { ...viewedPlacement(model.scene.studio, resources.cam), beside });
             if (!unit) return false;
             Object.assign(selectionState, { room: null, pillOn: true, deep: true, shapeEditing: false });
             inspector.hidePop();
