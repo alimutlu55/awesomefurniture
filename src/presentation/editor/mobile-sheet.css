@@ -230,18 +230,16 @@
 
  /* Hide internal redundant title inside #pop2 on desktop since header .ph #ptitle is visible */
  #pop2 .add-context-title{display:none!important}
- #pop2[data-add-context] .mobile-add-categories{display:none!important}
+ #pop2[data-add-context]:not([data-add-context="furniture"]) .mobile-add-categories{display:none!important}
 
  /* Highlight active contextual action on desktop */
  #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
  #app:has(#pop3[data-context-section="resize"].show) #toolbar [data-action="resize"],
- #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="shape"],
- #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="sections"],
+ #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="resize"],
+ #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  #app:has(#pop4.show) #toolbar [data-action="sections"],
- #app.props-open:has(#left[data-context-section="material"]) #toolbar [data-action="more"],
- #app.props-open:has(#left[data-context-section="doors"]) #toolbar [data-action="more"],
- #app:has(#pop2[data-add-context="wardrobe"].show) #toolbar #wardrobe-btn,
- #app:has(#pop2[data-add-context="kitchen"].show) #toolbar #cabinets-btn,
+ #app.props-open:has(#left[data-context-section="fronts"]) #toolbar [data-action="fronts"],
+ #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
  #app:has(#pop2.show) #toolbar #walls-btn,
  #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(60,52,42,0.12);
@@ -251,11 +249,10 @@
  }
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
  :host([data-theme="dark"]) #app:has(#pop3[data-context-section="resize"].show) #toolbar [data-action="resize"],
- :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="shape"],
- :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="sections"],
+ :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="resize"],
+ :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  :host([data-theme="dark"]) #app:has(#pop4.show) #toolbar [data-action="sections"],
- :host([data-theme="dark"]) #app:has(#pop2[data-add-context="wardrobe"].show) #toolbar #wardrobe-btn,
- :host([data-theme="dark"]) #app:has(#pop2[data-add-context="kitchen"].show) #toolbar #cabinets-btn,
+ :host([data-theme="dark"]) #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #walls-btn,
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(255,255,255,0.16);
@@ -304,7 +301,7 @@
  #pop2 .mobile-add-categories button[data-auto-design]{
   display:none!important;
  }
- #pop2 .mobile-add-categories button[data-category="all"]{
+ #pop2:not([data-add-context="furniture"]) .mobile-add-categories button[data-category="all"]{
   display:flex!important;
  }
  .ph b{

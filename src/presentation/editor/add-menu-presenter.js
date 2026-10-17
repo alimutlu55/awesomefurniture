@@ -2,7 +2,7 @@ import { categoriesForSpace, createAddSuggestions, menuGroup, orderForSpace } fr
 import { productArt as wardrobeFittingArt } from './product-art.js';
 import { kitchenFittingArt } from './kitchen-art';
 import { fittingProduct } from '../../domain/wardrobe/fittings';
-import { furnitureModule } from '../../domain/furniture/furniture';
+import { FURNITURE, furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 /** Card art: a kitchen fitting's front, or the wardrobe fitting's drawing. @param {string} k */
 const productArt = k => fittingProduct(k) === 'kitchen' ? kitchenFittingArt(k) : wardrobeFittingArt(k);
 import { shelfPossession } from '../../domain/wardrobe/possessions';
@@ -45,7 +45,9 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         // Auto design takes the Add item pill's place in this row. Add item stays as the hidden "all" filter the sheet opens on.
         // Only furniture that Auto design can plan offers it (wardrobes, not cabinets).
         const autoDesign = furnitureModule(model.activeCabinet().state).autoDesign ? '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>' : '';
-        categories.innerHTML = autoDesign + [['all','All','plus'],['room','Walls','room-wall'],['wardrobe','Wardrobe','wardrobe'],['kitchen','Cabinets','cupboard'],...pills].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'"'+(key==='all'||SCENE_CATEGORIES.includes(key)?' hidden':'')+'>'+icon(ic)+'<span>'+name+'</span></button>').join('');
+        // Add furniture (the 'furniture' context) shows one tab per kind of furniture, from the registry.
+        const tab = key => FURNITURE.some(m => m.key === key) ? ' data-furniture-tab' : '';
+        categories.innerHTML = autoDesign + [['all','All','plus'],['room','Walls','room-wall'],['wardrobe','Wardrobe','wardrobe'],['kitchen','Cabinets','cupboard'],...pills].map(([key,name,ic]) => '<button type="button" data-category="'+key+'" aria-pressed="'+(key==='all')+'"'+tab(key)+(key==='all'||SCENE_CATEGORIES.includes(key)?' hidden':'')+'>'+icon(ic)+'<span>'+name+'</span></button>').join('');
         const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
         products.innerHTML = '<button type="button" data-product-category="wardrobe" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + forSpace.map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('') + roomProducts();
         (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
@@ -64,9 +66,11 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         // Add item shows what goes into the wardrobe; Walls and Wardrobe only their own products, under their name.
         const context = $('#pop2').dataset.addContext, heading = categories.ownerDocument.createElement('b');
         heading.className = 'add-context-title';
-        heading.textContent = context === 'room' ? 'Walls and rooms' : context === 'kitchen' ? 'Add a cabinet' : 'Add a wardrobe';
+        heading.textContent = context === 'room' ? 'Walls and rooms' : context === 'kitchen' ? 'Add a cabinet' : context === 'furniture' ? 'Add furniture' : 'Add a wardrobe';
         categories.prepend(heading);
-        show(context ?? 'all');
+        if (context === 'furniture') categories.querySelectorAll('[data-furniture-tab]').forEach(t => t.removeAttribute('hidden'));
+        // Add furniture opens on the kind last worked on.
+        show(context === 'furniture' ? furnitureKind(model.activeCabinet().state) : context ?? 'all');
     }
     return { renderAddChoices };
 }

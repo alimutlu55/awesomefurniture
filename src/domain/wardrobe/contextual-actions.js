@@ -1,34 +1,40 @@
 import { FURNITURE } from '../furniture/furniture';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
-/** The tools a piece of furniture shows beside More. Moving needs no tool: an item or a divider is dragged where it goes.
- * Auto design leads them where the furniture's module can plan it. @param {import('../furniture/furniture').FurnitureModule} module */
-const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ...(module.addInToolbar ? [['new', module.addLabel]] : []), ['resize', 'Resize'],
-    ...(module.shaped ? [['shape', 'Shape']] : []), ...(module.sectionsInMore ? [] : [['sections', 'Sections']]), ['more', 'More']];
-/** A selected piece of furniture's More menu: add another, its sections where they are not a tool, then its finish,
- * its doors where it has whole-front doors, and duplicating, resetting or removing it. @param {import('../furniture/furniture').FurnitureModule} module */
-const moreOf = module => [['new', module.addLabel], ...(module.sectionsInMore ? [['sections', 'Sections']] : []), ['material', 'Material'],
-    ...(module.wholeDoors ? [['doors', 'Doors']] : []), ['duplicate', 'Duplicate'], ['reset', 'Reset'], ['remove', 'Remove']];
+/** Every piece of furniture shows the same tools in the same order, the steps furniture planners use: add another,
+ * its interior, its size, its fronts, then More. Moving needs no tool: furniture, an item or a divider is dragged where it goes.
+ * Add is named for what it adds ("New wardrobe", "Add cabinet"): a tool's third entry is its accessible name.
+ * @param {import('../furniture/furniture').FurnitureModule} module */
+const toolsOf = module => [['new', 'Add', module.addLabel], ['interior', 'Interior'], ['resize', 'Size'], ['fronts', 'Fronts'], ['more', 'More']];
+/** What a furniture tool's menu offers. Interior: Auto design where the module plans, its sections, Add item.
+ * More: duplicating, resetting or removing it, the same for every kind. @param {import('../furniture/furniture').FurnitureModule} module */
+const menusOf = module => ({
+    interior: [...(module.autoDesign ? [['auto', 'Auto design']] : []), ['sections', 'Sections'], ['add-item', 'Add item']],
+    more: [['duplicate', 'Duplicate'], ['reset', 'Reset'], ['remove', 'Remove']],
+});
 const actions = {
-    // Nothing selected in Furniture: choose the furniture to work on (one button each, see furniture.ts).
-    none: [...FURNITURE.map(m => [m.key, m.label]), ['more', 'More']],
+    // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
+    none: [['add', 'Add'], ['more', 'More']],
     studio: [['walls', 'Walls'], ['ceiling', 'Ceiling']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
-    item: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize'], ['more', 'More']],
-    divider: [['duplicate', 'Duplicate'], ['remove', 'Remove'], ['resize', 'Resize']],
+    // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
+    item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
+    divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
     // The room: a selected wall, a door, window or archway on one, or a ceiling that comes down (stairs, a slope, a box).
     // Size and Split stay directly accessible; adding openings is grouped in More.
     wall: [['wall-size', 'Size'], ['split', 'Split'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
     ceiling: [['ceiling-size', 'Size'], ['ceiling-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
 };
+/** The menus of each kind of furniture's tools (Interior, More), by its furniture kind. */
+export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m)]));
 /** The More menu of each kind of furniture, by its furniture kind. */
-export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, moreOf(m)]));
+export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
 export const defaultWardrobeMoreActions = [['reach', 'Max reach size']];
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [['door', 'Door'], ['window', 'Window'], ['archway', 'Archway']];
 export const wallMoreActions = [...studioMoreActions, ['remove', 'Remove wall']];
-export const itemMoreActions = [['replace', 'Replace'], ['stores', 'Stores']];
+export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = ['ceiling', 'ceiling-shape'];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */

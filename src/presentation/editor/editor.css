@@ -360,4 +360,4 @@ button:hover:not(:disabled):not(.on){background:#e3ddd3}
 #app.props-hidden #left,#app.props-hidden.inspecting #left{display:none;pointer-events:none}
 #left,#app.inspecting #left{width:min(300px,calc(100% - 16px));padding:20px}#app.props-open:not(.inspecting){--sheet:76px}
 
-@media (max-width:430px){#toolbar #walls-btn .tl,#toolbar #wardrobe-btn .tl{display:none}#toolbar #walls-btn,#toolbar #wardrobe-btn{padding:0 10px}}
+@media (max-width:430px){#toolbar #walls-btn .tl{display:none}#toolbar #walls-btn{padding:0 10px}}

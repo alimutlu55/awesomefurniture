@@ -9,7 +9,7 @@ const {chromium}=require('playwright');
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
   const spec={specVersion:1,room:{width:220,depth:500},wardrobes:[]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
-  await page.locator('[data-editor-id="wardrobe-btn"]').waitFor();await page.waitForTimeout(500);
+  await page.locator('[data-editor-id="add-furniture-btn"]').waitFor();await page.waitForTimeout(500);
   const view=await page.locator('[data-editor-id="view"]').boundingBox();
   const delta=(.32-az)/.007,steps=Math.ceil(Math.abs(delta)/120);
   for(let i=0;i<steps;i++){
@@ -18,7 +18,7 @@ const {chromium}=require('playwright');
    await page.mouse.move(x+delta/steps,y,{steps:12});await page.mouse.up();
   }
   await page.waitForTimeout(300);
-  await page.locator('[data-editor-id="wardrobe-btn"]').click();
+  await page.locator('[data-editor-id="add-furniture-btn"]').click();
   // Waiting catches a picker which unexpectedly rotates back to the default wall.
   await page.waitForTimeout(900);
   await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);

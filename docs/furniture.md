@@ -28,11 +28,23 @@ flowchart LR
 | `reset(design)` | More › Reset (a kitchen cabinet goes back to an empty unit of its kind) |
 | `autoDesign` | Auto design leads the toolbar; the planner refuses others |
 | `wholeDoors` | whole-front doors (More › Doors); kitchen fittings show their own fronts |
-| `label`, `noun`, `addLabel` | toolbar buttons, messages, More › New wardrobe / Add cabinet |
+| `label`, `noun`, `addLabel` | Add sheet tabs, messages, the Add tool's name (New wardrobe / Add cabinet) |
+| `shaped` | a Shape tab beside Size |
 
-Toolbars come from the registry too (`domain/wardrobe/contextual-actions.js`): with nothing
-selected, Furniture shows one button per module, then More, Undo, Redo; a selected piece
-shows its module's tools, with Auto design first where the module plans.
+Toolbars come from the registry too (`domain/wardrobe/contextual-actions.js`). Every kind of furniture
+shows the same tools in the same order, the steps furniture planners use, so learning one teaches the other:
+
+| Tool | What it opens |
+|---|---|
+| **Add** | The Add sheet on this kind: another one beside the selected piece |
+| **Interior** | A menu: Auto design (where the module plans), Sections, Add item |
+| **Size** | Width, height, depth; a Shape tab where the module is `shaped` |
+| **Fronts** | Doors (where the module has `wholeDoors`) and the finish, on one sheet |
+| **More** | Duplicate, Reset, Remove |
+
+With nothing selected, Furniture shows only Add, Undo and Redo: Add opens one sheet with a tab per kind
+(the Add context `furniture`), and furniture already in the room is selected by tapping it. A new project
+starts without furniture.
 
 ## Kitchen cabinets
 

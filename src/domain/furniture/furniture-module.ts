@@ -24,10 +24,6 @@ export interface FurnitureModule {
   readonly wholeDoors: boolean;
   /** Its top can be reshaped with the Shape tool (wardrobes only). */
   readonly shaped: boolean;
-  /** Its sections are opened from the More menu instead of a toolbar tool. */
-  readonly sectionsInMore: boolean;
-  /** Add another one ("Add cabinet") is a toolbar tool, ahead of Resize, instead of only a More entry. */
-  readonly addInToolbar: boolean;
   /** Outer width, height and depth limits in centimetres. */
   sizes(design: FurnitureDesign): { readonly w: SizeRange; readonly h: SizeRange; readonly d: SizeRange };
   /** Whether a fitting kind can go inside it. */

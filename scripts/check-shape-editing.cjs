@@ -15,7 +15,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const spec={specVersion:1,wardrobes:[{width:200,height:230,for:{short:12,shoes:4}}]};
    await page.goto(baseURL+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
    const el=id=>page.locator(`[data-editor-id="${id}"]`);
-   await el('wardrobe-btn').waitFor();
+   await el('add-furniture-btn').waitFor();
    await page.waitForTimeout(450);
    // A press on a fitting chooses that fitting; Wardrobe chooses the wardrobe itself.
    if(pointer==='touch')await el('wardrobe-btn').tap();else await el('wardrobe-btn').click();await page.waitForTimeout(450);

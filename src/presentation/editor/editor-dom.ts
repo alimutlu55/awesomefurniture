@@ -53,8 +53,7 @@ interface EditorControls {
     "#share-menu": HTMLElementTagNameMap["button"];
     "#toolbar": HTMLElementTagNameMap["div"];
     "#props-btn": HTMLElementTagNameMap["button"];
-    "#wardrobe-btn": HTMLElementTagNameMap["button"];
-    "#cabinets-btn": HTMLElementTagNameMap["button"];
+    "#add-furniture-btn": HTMLElementTagNameMap["button"];
     "#padd-kitchen": HTMLElementTagNameMap["div"];
     "#launch-wizard": HTMLElementTagNameMap["button"];
     "#topright": HTMLElementTagNameMap["div"];

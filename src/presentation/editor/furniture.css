@@ -32,3 +32,18 @@ svg.kitchen-art{filter:none}
  #toolbar .contextual-actions .tb span{font-size:9px!important;letter-spacing:-.2px}
  #toolbar .contextual-actions #launch-wizard .tl::after{font-size:9px}
 }
+
+/* Fronts: a piece of furniture's doors (where it has whole-front doors) and its finish, on one sheet. */
+#left[data-context-section="fronts"] [data-wardrobe-controls="material"],
+#left[data-context-section="fronts"][data-whole-doors] [data-wardrobe-controls="doors"]{display:block}
+#app #left[data-context-section="fronts"] [data-wardrobe-controls] > h2{display:block!important;margin:4px 0 10px;font-size:13px;font-weight:600}
+/* Size and Shape: tabs of one sheet for furniture whose top can be reshaped. */
+#left .size-tabs{display:none;gap:4px;margin:0 0 12px;padding:3px;border-radius:12px;background:rgba(0,0,0,.05)}
+#left[data-shaped]:is([data-context-section="resize"],[data-context-section="shape"]) .size-tabs{display:flex}
+#left .size-tabs button{flex:1;height:32px;min-height:32px;border:0;border-radius:9px;background:transparent;color:var(--ink);font-size:13px;cursor:pointer}
+#left .size-tabs button[aria-selected="true"]{background:var(--panel,#fff);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+:host([data-theme="dark"]) #left .size-tabs{background:rgba(255,255,255,.08)}
+:host([data-theme="dark"]) #left .size-tabs button[aria-selected="true"]{background:rgba(255,255,255,.16)}
+/* Add furniture: the chosen kind's tab stays dark under the pointer. */
+#pop2 .mobile-add-categories button[aria-pressed="true"]:hover{background:var(--ink);color:var(--panel)}
+:host([data-theme="dark"]) #pop2 .mobile-add-categories button[aria-pressed="true"]:hover{background:#fff;color:#181c24}

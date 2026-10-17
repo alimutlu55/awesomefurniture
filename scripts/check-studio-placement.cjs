@@ -24,10 +24,10 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
    const studio=projectToScene(built.project).studio;
    await page.goto(baseURL+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
    const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
-   await page.locator('[data-editor-id="wardrobe-btn"]').waitFor();await page.waitForTimeout(500);
+   await page.locator('[data-editor-id="add-furniture-btn"]').waitFor();await page.waitForTimeout(500);
    assert.equal((await report()).wardrobes.length,0);
    if(scenario==='sloped' && width===375) await page.screenshot({path:'/tmp/wardrobe-studio-ui-before.png'});
-   await page.locator('[data-editor-id="wardrobe-btn"]').click();
+   await page.locator('[data-editor-id="add-furniture-btn"]').click();
    await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
    if(tiny) {
     assert.equal((await report()).wardrobes.length,0,'No invalid wardrobe is added');

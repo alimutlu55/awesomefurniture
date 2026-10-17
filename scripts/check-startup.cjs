@@ -25,7 +25,7 @@ const fs=require('node:fs/promises');
   await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.PROFILE_URL||'http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:60000});
-  await page.locator('[data-editor-id="wardrobe-btn"]').waitFor({timeout:60000});
+  await page.locator('[data-editor-id="add-furniture-btn"]').waitFor({timeout:60000});
   await page.waitForFunction(()=>performance.getEntriesByType('resource').filter(e=>/\.(webp|jpg)(?:$|\?)/.test(e.name)).length===6,{},{timeout:60000});
   await page.waitForTimeout(1500);
   const profile=await page.evaluate(()=>({...window.startupProfile,resources:performance.getEntriesByType('resource').filter(e=>/\.(webp|jpg)(?:$|\?)/.test(e.name)).map(e=>({name:e.name.split('/').at(-1),start:e.startTime,end:e.responseEnd,bytes:e.encodedBodySize})),navigation:performance.getEntriesByType('navigation').map(e=>({dom:e.domContentLoadedEventEnd,load:e.loadEventEnd}))}));

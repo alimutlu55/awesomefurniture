@@ -22,7 +22,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    await waitLayout();
    assert.equal(await el('left').isVisible(),false);
   };
-  await page.goto(baseURL);await el('wardrobe-btn').waitFor();
+  await page.goto(baseURL);await el('add-furniture-btn').waitFor();
   assert.equal(await el('props-btn').isVisible(),false);
   assert.equal(await el('left').isVisible(),false);
   const view=await el('view').boundingBox();

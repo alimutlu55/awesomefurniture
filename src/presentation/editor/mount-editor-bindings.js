@@ -24,7 +24,7 @@ import { MODS } from '../../domain/wardrobe/catalog.js';
 import { fittingProduct } from '../../domain/wardrobe/fittings';
 import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
-export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray, framing }) {
+export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
     const { $, document } = dom;
     bindTactileCanvas({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState,
         renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
@@ -111,7 +111,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWizardFocusTrap({ dom, lifetime });
     addToolbarSeparator({ dom, });
     renderDoorChoices({ dom, });
-    shellBindings.bindFurnitureButtons({ dom, inspector, shell, model, camera, lifetime, frame: () => framing ? framing.frame() : camera.frameWardrobe() });
+    shellBindings.bindFurnitureButtons({ dom, inspector, shell, camera, lifetime });
     shellBindings.bindDropdownOpen({ dom, shell, lifetime });
     shellBindings.bindHelpMenu({ dom, shell, lifetime });
     shellBindings.bindResetClosesDropdown({ dom, shell, lifetime });
@@ -204,7 +204,19 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     leftBtns.append(leftClose);
     leftHeader.append(leftTitle, leftBtns);
     $('#left').prepend(leftHeader);
-    const sectionTitles = { resize: 'Size', shape: 'Shape', sections: 'Sections', material: 'Finish', doors: 'Doors', reach: 'Max Reach' };
+    // Size and Shape are tabs of one sheet for furniture whose top can be reshaped (wardrobes).
+    const sizeTabs = document.createElement('div');
+    sizeTabs.className = 'size-tabs';
+    sizeTabs.setAttribute('role', 'tablist');
+    sizeTabs.setAttribute('aria-label', 'Size or shape');
+    for (const [key, label] of [['resize', 'Size'], ['shape', 'Shape']]) {
+        const tab = document.createElement('button');
+        tab.type = 'button'; tab.dataset.sizeTab = key; tab.setAttribute('role', 'tab'); tab.textContent = label;
+        tab.onclick = () => { if ($('#left').dataset.contextSection !== key) key === 'shape' ? openShape() : resize.open(); };
+        sizeTabs.append(tab);
+    }
+    $('#left-body').prepend(sizeTabs);
+    const sectionTitles = { resize: 'Size', shape: 'Size', sections: 'Sections', material: 'Finish', doors: 'Doors', fronts: 'Fronts', reach: 'Max Reach' };
     const openControls = key => {
         if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === key) {
             animateMobileSheetClose($('#left'));
@@ -217,12 +229,18 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         takeMobilePanel(dom, $('#left'));
         delete $('#left').dataset.roomResize;
         $('#left').dataset.contextSection = key;
+        const module = furnitureModule(model.activeCabinet().state);
+        $('#left').toggleAttribute('data-shaped', module.shaped);
+        $('#left').toggleAttribute('data-whole-doors', module.wholeDoors);
+        sizeTabs.querySelectorAll('[data-size-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab.getAttribute('data-size-tab') === key)));
         leftTitle.textContent = sectionTitles[key] || ($('#left').dataset.studioResize ? 'Wall Size' : 'Settings');
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
         camera.frameMobileInspector(key === 'shape');
     };
+    // The shape sheet opens with its panel list and break-point handles.
+    const openShape = () => { openControls('shape'); if (!selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); } };
     const resize = createResizePresenter({
         getSelection: () => model.activeCabinet().state,
         prepare: target => {
@@ -296,6 +314,9 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (key.startsWith('t-')) { inspector.itemAction(key); return; }
             // Another of the selected kind: a new wardrobe or kitchen cabinet, chosen in the Add sheet.
             if (key === 'new') { shellBindings.openSceneAdd({ dom, inspector, shell }, furnitureKind(state)); return; }
+            // Add item fills the selected section, as the + on the model does.
+            if (key === 'add-item') { inspector.showPop(null, '#pop2'); return; }
+            if (key === 'shape') { openShape(); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();
                 else if (state.item >= 0) inspector.itemAction('dup');
@@ -305,11 +326,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 else if (state.item >= 0) inspector.itemAction('del');
                 else $('#remove-wardrobe').click();
             } else if (key === 'reset') $('#reset-all').click();
-            else {
-                openControls(key);
-                // The shape sheet opens with its panel list and break-point handles.
-                if (key === 'shape' && !selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); }
-            }
+            else openControls(key);
         }
     });
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';
