@@ -33,7 +33,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         menu.hidden = true;
         root.querySelectorAll('[data-action="more"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
-    const icons = {resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
+    const icons = {add:icon('plus'),resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),walls:icon('room-wall')};
     const menuIcons = {new:icon('plus'),shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),

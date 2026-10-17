@@ -283,6 +283,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
+            if (key === 'add') { inspector.openPillMenu(); return; }
             if (key === 'resize') {
                 if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'resize') {
                     animateMobileSheetClose($('#left'));

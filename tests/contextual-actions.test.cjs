@@ -3,13 +3,13 @@ const assert=require('node:assert/strict');
 const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreActions}=require('../src/domain/wardrobe/contextual-actions.js');
 // Furniture: nothing selected chooses Wardrobe or Cabinets; a wardrobe leads with Auto design; a kitchen cabinet has no Shape
 // tool. Add item is on the model (in the selected space), not in the bar.
-for(const [selection,expected] of [['none',['wardrobe','kitchen','more']],['studio',['walls','ceiling']],['wardrobe',['auto','resize','shape','more']],['kitchen',['resize','sections','more']],['item',['duplicate','remove','resize','more']],['divider',['duplicate','remove','resize']]]) {
+for(const [selection,expected] of [['none',['wardrobe','kitchen','more']],['studio',['walls','ceiling']],['wardrobe',['auto','resize','shape','more']],['kitchen',['add','resize','sections','more']],['item',['duplicate','remove','resize','more']],['divider',['duplicate','remove','resize']]]) {
  test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
 }
 test('secondary wardrobe commands remain available in More, with its sections',()=>assert.deepEqual(wardrobeMoreActions.map(([key])=>key),['new','sections','material','doors','duplicate','reset','remove']));
 test('no toolbar offers Move: an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});
 test('a kitchen cabinet More adds another cabinet and has no whole-front doors',()=>assert.deepEqual(furnitureMoreActions.kitchen.map(([key,label])=>key==='new'?label:key),['Add cabinet','material','duplicate','reset','remove']));
-test('no toolbar offers Add item: it is on the model',()=>{for(const s of ['none','studio','wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='add'),s);});
+test('a wardrobe offers Add item only on the model; a cabinet offers it in the toolbar',()=>{for(const s of ['none','studio','wardrobe','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='add'),s);});
 test('default Wardrobe More owns Max reach size',()=>assert.deepEqual(require('../src/domain/wardrobe/contextual-actions.js').defaultWardrobeMoreActions,[['reach','Max reach size']]));
 test('item More exposes replacement and storage purpose',()=>assert.deepEqual(itemMoreActions,[['replace','Replace'],['stores','Stores']]));
 const {wallMoreActions,studioMoreActions,fieldActions}=require('../src/domain/wardrobe/contextual-actions.js');
