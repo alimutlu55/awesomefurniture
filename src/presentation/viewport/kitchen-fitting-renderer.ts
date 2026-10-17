@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { barPull } from './hardware';
+import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
 /** What a kitchen front is drawn with. Fronts use the unit's finish; appliances their own metal and glass. */
@@ -23,28 +23,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
   const face = d / 2 + PANEL / 2, gap = .3;
-  const pull = (length: number, x: number, y: number, vertical = false) => {
-    const bar = barPull(length, steel, vertical);
-    bar.position.set(x, y, face + PANEL / 2);
-    group.add(bar);
-  };
-  /** One front panel from y0 to y1 across x0..x1 (cabinet-centred), standing proud of the carcass. */
-  const panel = (x0: number, x1: number, y0: number, y1: number, material = materials.front) =>
-    box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), PANEL, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
-  /** Hinged leaves across a span: one up to 60 cm, two above it, each with a vertical pull by its free edge. */
-  const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean) => {
-    const leaves = x1 - x0 > 62 ? 2 : 1, w = (x1 - x0) / leaves, py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
-    for (let n = 0; n < leaves; n++) {
-      const a = x0 + n * w, b = a + w;
-      panel(a, b, y0, y1);
-      const free = leaves === 2 ? (n === 0 ? b - 4 : a + 4) : b - 4;
-      pull(Math.min(18, (y1 - y0) * .5), free, py, true);
-    }
-  };
-  const shelves = (x0: number, x1: number, y0: number, y1: number) => {
-    const count = Math.floor((y1 - y0) / 34);
-    for (let n = 1; n <= count; n++) box(x1 - x0 - 1, 1.6, d - 6, (x0 + x1) / 2, y0 + (y1 - y0) * n / (count + 1), -1, materials.inside);
-  };
+  const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: steel });
 
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards. */
   function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }) {
@@ -55,8 +34,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
       case 'cutlery': case 'pan': case 'hob': {
         panel(x0, x1, y0, y1);
         pull(Math.min(32, sw * .45), cx, it.k === 'pan' ? y1 - Math.min(7, (y1 - y0) / 3) : mid);
-        // The drawer box behind the front.
-        box(Math.max(4, sw - 4), Math.max(4, hh - 4), d - 6, cx, y + hh / 2, -1, materials.inside);
+        drawerBox(cx, y, sw, hh);
         break;
       }
       case 'cupboard': case 'sink':
