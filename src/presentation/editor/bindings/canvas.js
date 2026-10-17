@@ -64,7 +64,8 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         }
         // A finger held still on the selected kitchen unit pulls out copies, also while a space in it is chosen.
         if (kitchenArray && selectionState.focusOn && !selectionState.shapeEditing && picking.cast(e, renderState.allHits)?.object.userData.wardrobe === model.scene.activeWardrobe) {
-            kitchenArray.holdStart(e.clientX, e.clientY, () => { interactionState.moved = 99; });
+            // Once held, the press is a pull: no tap, orbit or item drag follows from it.
+            kitchenArray.holdStart(e.clientX, e.clientY, () => { interactionState.moved = 99; interactionState.drag = null; });
         }
         if (e.pointerType !== 'touch' && model.activeCabinet().state.divider >= 0 && selectionState.focusOn && inspector.inside()) {
             const hit = picking.cast(e, renderState.ihits);
