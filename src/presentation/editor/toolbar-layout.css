@@ -14,7 +14,7 @@
  #toolbar .contextual-history{display:contents}
  #toolbar .contextual-history::before{display:none}
  #toolbar :is(.contextual-defaults,.contextual-actions,.contextual-history) .tb,
- #toolbar :is(#undo2,#redo2),#toolbar .contextual-defaults #add-anchor{
+ #toolbar :is(#undo2,#redo2){
   width:96px;max-width:100%;min-width:0;box-sizing:border-box;
  }
  #toolbar #undo2{border-left:1px solid var(--line);border-radius:0}

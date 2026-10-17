@@ -2,28 +2,34 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
+import { furnitureKind } from '../../domain/furniture/furniture';
 /** DOM event bindings call application commands through the mounted view ports. */
-/** @param {import('./shell-bindings.ports').BindMoreBtnPorts} ports */
-export function bindMoreBtn({ dom, inspector, shell, selectionState, model, camera, lifetime }) {
-    const { $ } = dom;
-    lifetime.listen($('#more-btn'), 'click', () => {
-        shell.closeDD();
-        model.activeCabinet().state.item = -1;
-        model.activeCabinet().state.divider = -1;
-        selectionState.pillOn = true;
-        inspector.update();
-        inspector.showPop(null, '#pop2');
-        $('#px').focus({ preventScroll: true });
-    });
-    // Walls and Wardrobe add to the scene, not to a wardrobe: nothing stays selected, the sheet shows only their
-    // products. Keep the wardrobe view: its facing wall determines where it is added.
-    for (const [button, context, fold] of [['#walls-btn', 'room', '.room-add'], ['#wardrobe-btn', 'wardrobe', '.shape-add']]) {
-        lifetime.listen($(button), 'click', () => {
-            shell.closeDD();
-            inspector.clearFocus();
-            inspector.showPop(null, '#pop2', context);
-            /** @type {HTMLDetailsElement} */ ($('#pop2').querySelector(fold)).open = true;
-            if (context === 'room') camera.frameScene();
+/** What each add context of the Add sheet opens on. */
+const ADD_FOLDS = { room: '.room-add', wardrobe: '.shape-add', kitchen: '.kitchen-add' };
+/** Opens the Add sheet on what can be added to the scene: the room's parts, a new wardrobe or kitchen cabinets.
+ * Nothing stays selected while it is open.
+ * @param {Pick<import('./shell-bindings.ports').BindFurnitureButtonsPorts, 'dom' | 'inspector' | 'shell'>} ports @param {'room' | 'wardrobe' | 'kitchen'} context */
+export function openSceneAdd({ dom, inspector, shell }, context) {
+    shell.closeDD();
+    inspector.clearFocus();
+    inspector.showPop(null, '#pop2', context);
+    /** @type {HTMLDetailsElement} */ (dom.$('#pop2').querySelector(ADD_FOLDS[context])).open = true;
+}
+/** Walls adds to the room. Wardrobe and Cabinets choose what to work on: the selected one of that kind, else the
+ * last one added; with none yet, they open what can be added. Keep the view: its facing wall decides where.
+ * @param {import('./shell-bindings.ports').BindFurnitureButtonsPorts} ports */
+export function bindFurnitureButtons(ports) {
+    const { dom, inspector, model, camera, lifetime } = ports, { $ } = dom;
+    lifetime.listen($('#walls-btn'), 'click', () => { openSceneAdd(ports, 'room'); camera.frameScene(); });
+    for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ ($('#toolbar').querySelectorAll('[data-furniture]'))) {
+        const kind = /** @type {import('../../domain/furniture/furniture').FurnitureKind} */ (button.dataset.furniture);
+        lifetime.listen(button, 'click', () => {
+            const units = model.scene.wardrobes.filter(w => furnitureKind(w.state) === kind);
+            const pick = units.find(w => w.id === model.scene.activeWardrobe) ?? units[units.length - 1];
+            if (!pick) { openSceneAdd(ports, kind); return; }
+            ports.shell.closeDD();
+            inspector.selectCabinet(pick.id);
+            camera.frameWardrobe();
         });
     }
 }
@@ -56,7 +62,7 @@ export function bindResetClosesDropdown({ dom, shell, lifetime }) {
 export function bindDropdownOutsideClose({ dom, shell, lifetime }) {
     const { window } = dom;
     lifetime.listen(window, 'pointerdown', e => {
-        if (!e.target.closest(dom.selector('.dd,#menu-btn,#more-btn,#fitchip,#help-btn'))) {
+        if (!e.target.closest(dom.selector('.dd,#menu-btn,#fitchip,#help-btn'))) {
             shell.closeDD();
         }
     }, true);

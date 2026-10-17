@@ -74,7 +74,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const preset = kitchenPreset(presetKey);
       if (!preset) return null;
       const scene = getScene(), id = scene.nextWardrobeId, state = { ...createKitchenDesign(preset.unit, preset.key), sel: 0, item: -1, divider: -1, space: null, open: false };
-      const fresh: EditorCabinet = { id, name: named(preset.unit, id), x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
+      const fresh: EditorCabinet = { id, name: preset.name + ' ' + id, x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
       const anchor = anchorFor(), placed = anchor ? placeNear(anchor, fresh) ?? placeAlone(fresh) : placeAlone(fresh);
       if (!placed) {
         report('The ' + preset.name.toLowerCase() + ' does not fit beside the other cabinets or against a free wall.');

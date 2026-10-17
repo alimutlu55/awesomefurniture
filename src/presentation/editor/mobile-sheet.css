@@ -240,7 +240,8 @@
  #app:has(#pop4.show) #toolbar [data-action="sections"],
  #app.props-open:has(#left[data-context-section="material"]) #toolbar [data-action="more"],
  #app.props-open:has(#left[data-context-section="doors"]) #toolbar [data-action="more"],
- #app:has(#pop2.show) #toolbar #more-btn,
+ #app:has(#pop2[data-add-context="wardrobe"].show) #toolbar #wardrobe-btn,
+ #app:has(#pop2[data-add-context="kitchen"].show) #toolbar #cabinets-btn,
  #app:has(#pop2.show) #toolbar #walls-btn,
  #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(60,52,42,0.12);
@@ -253,7 +254,8 @@
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="shape"],
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="sections"],
  :host([data-theme="dark"]) #app:has(#pop4.show) #toolbar [data-action="sections"],
- :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #more-btn,
+ :host([data-theme="dark"]) #app:has(#pop2[data-add-context="wardrobe"].show) #toolbar #wardrobe-btn,
+ :host([data-theme="dark"]) #app:has(#pop2[data-add-context="kitchen"].show) #toolbar #cabinets-btn,
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #walls-btn,
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(255,255,255,0.16);

@@ -9,7 +9,8 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   const spec={specVersion:1,room:{width:150,depth:115},wardrobes:[]};
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
   const toolbar=page.locator('[data-editor-id="toolbar"]');
-  await page.getByRole('button',{name:'Add wardrobe',exact:true}).waitFor();
+  const furniture=page.locator('[data-editor-id="wardrobe-btn"]');
+  await furniture.waitFor();
   await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});
   const check=async(expected)=>{
    const b=await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
@@ -24,26 +25,28 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    assert.ok(Math.abs(frame.x+frame.width/2-width/2)<1,'Toolbar stays centred');
    if(width<=900)assert.ok(frame.width<=expected*96+20,'Toolbar width follows actual visible actions');
   };
-  await check(3);
+  // Nothing in the room yet: Wardrobe, Cabinets, Undo, Redo (Add item lives on the model).
+  await check(4);
   if(width<=900){
    // New actions need no layout-specific count or CSS change.
    await toolbar.locator('.contextual-defaults').evaluate(e=>{
     const template=e.querySelector('[data-editor-id="wardrobe-btn"]');
     for(let n=0;n<5;n++){const b=template.cloneNode(true);b.removeAttribute('id');b.dataset.editorId='wardrobe-btn';b.dataset.layoutProbe='true';e.append(b);}
    });
-   await check(8);
+   await check(9);
    await toolbar.locator('[data-layout-probe]').evaluateAll(es=>es.forEach(e=>e.hidden=true));
-   await check(3);
+   await check(4);
    await toolbar.locator('[data-layout-probe]').evaluateAll(es=>es.forEach(e=>e.remove()));
   }
   if(width===375)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-mobile.png'});
   if(width===1440)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-desktop.png'});
   await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(350);await check(4);
-  await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(3);
-  await page.getByRole('button',{name:'Add wardrobe',exact:true}).click();
-  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(7);
-  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);await check(3);
-  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(350);await check(7);
+  await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(4);
+  // A new wardrobe is selected: Auto design, Move, Resize, Shape, Sections, More, Undo, Redo.
+  await furniture.click();
+  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(8);
+  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);await check(4);
+  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(350);await check(8);
   console.log('PASS '+width+': empty, Studio, new actions, hidden actions, add, undo and redo');await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

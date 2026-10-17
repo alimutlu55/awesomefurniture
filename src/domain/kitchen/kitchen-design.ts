@@ -7,16 +7,17 @@ import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
 
 /**
  * Kitchen presets: a unit and what it holds, offered in the Cabinets add panel. Each part is
- * [kind, share]; parts share the unit's inside height in proportion, from the floor up.
+ * [kind, share]; parts share the unit's inside height in proportion, from the floor up. The plain
+ * units start empty, to be filled with Add item; the others come ready made.
  * A preset only names a unit and its contents: sizes and rules come from the unit and fittings registries.
  */
 export const KITCHEN_PRESETS = [
-  { key: 'base', unit: 'base', name: 'Base cabinet', parts: [['cupboard', 1]] },
+  { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
   { key: 'sink', unit: 'base', name: 'Sink unit', parts: [['sink', 1]] },
   { key: 'cooking', unit: 'base', name: 'Hob and oven', parts: [['oven', 4.3], ['hob', 1]] },
-  { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [['cupboard', 1]] },
-  { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [['cupboard', 1]] },
+  { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
+  { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
   { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
   { key: 'larder', unit: 'tall', name: 'Pantry', parts: [['pantry', 160], ['cupboard', 43.4]] },
 ] as const satisfies readonly { key: string; unit: KitchenUnitKey; name: string; parts: readonly (readonly [string, number])[] }[];

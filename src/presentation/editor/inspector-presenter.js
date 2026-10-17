@@ -3,7 +3,7 @@ import { viewedWall } from '../../domain/studio/viewed-wall';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
-import { syncResizeFields, syncCabinetHeightMinimum } from './resize-fields.js';
+import { syncResizeFields, syncCabinetSizeLimits } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { tags, noticeLabels } from './storage-tags.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
@@ -16,9 +16,9 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { shapeTemplates, templateArt } from './shape-art';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
-export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, roomFields }) {
+export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields }) {
     const { $, document } = dom;
-    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() });
+    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() + (kitchenPanel?.products() ?? '') });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
             }, get hidePop() {
@@ -153,8 +153,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             $('#' + key + 'v').textContent = model.activeCabinet().state[key] + ' cm';
             if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
         });
-        syncCabinetHeightMinimum(dom, model.activeCabinet().state, selectionState.editingSize);
-        for (const panel of [shapeInspector, studioPanel, roomFields]) panel?.render();
+        syncCabinetSizeLimits(dom, model.activeCabinet().state, selectionState.editingSize);
+        for (const panel of [shapeInspector, studioPanel, kitchenPanel, roomFields]) panel?.render();
         sectionsUI();
         $('#fins').querySelectorAll('button').forEach(b => {
             b.classList.toggle('on', b.dataset.f === model.activeCabinet().state.fin);

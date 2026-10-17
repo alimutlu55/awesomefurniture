@@ -1,24 +1,7 @@
 import { MODS, ADD_ORDER } from '../../../domain/wardrobe/catalog.js';
 import { icon } from '../editor-format.js';
-/** Add item: the panel, the More items menu and the pill menu.
+/** Add item: the panel and the pill menu.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
-/** @param {import('./add-menu.ports').BindMoreAddMenuPorts} ports */
-export function bindMoreAddMenu({ dom, shell, commands }) {
-    const { $, document } = dom;
-    for (const k of ADD_ORDER) {
-        const m = MODS[k], b = document.createElement('button');
-        b.className = 'mi';
-        b.dataset.m = k;
-        b.setAttribute('role', 'menuitem');
-        b.setAttribute('aria-keyshortcuts', m.k);
-        b.innerHTML = icon(k) + '<span>' + m.n + '</span><kbd>' + m.k + '</kbd>';
-        b.onclick = () => {
-            commands.addMod(/** @type {import('../../../domain/wardrobe/wardrobe').ItemKind} */ (k));
-            shell.closeDD();
-        };
-        $('#more-menu').appendChild(b);
-    }
-}
 /** @param {import('./add-menu.ports').BindPillAddMenuPorts} ports */
 export function bindPillAddMenu({ dom, commands, elements }) {
     const { document } = dom;

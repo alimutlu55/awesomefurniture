@@ -8,14 +8,19 @@ const assert = require('node:assert/strict');
    const page=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
    await page.goto(process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173');
    const control=id=>page.locator(`[data-editor-id="${id}"]`);
-   await control('more-btn').waitFor();
+   await control('wardrobe-btn').waitFor();
    if(id==='left') {
     const box=await control('view').boundingBox();
     await page.touchscreen.tap(box.x+box.width/2,box.y+box.height*.45);
     assert.equal(await control('pop2').isVisible(),false,'Selecting a wardrobe does not trigger a new Add item button');
     await control('toolbar').locator('[data-action="resize"]').tap();
    }
-   else if(id==='pop2') await control('more-btn').tap();
+   else if(id==='pop2') {
+    // Add item is on the model: select the wardrobe, then its section's Add item.
+    const box=await control('view').boundingBox();
+    await page.touchscreen.tap(box.x+box.width/2,box.y+box.height*.45);await page.waitForTimeout(400);
+    await page.locator('.lbl.add:visible').first().tap();
+   }
    else if(id==='wizard') await control('launch-wizard').evaluate(b=>b.click());
    else {
     // Mount the item/divider sheet independently of scene selection. Their

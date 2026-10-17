@@ -15,7 +15,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const spec={specVersion:1,wardrobes:[{width:200,height:230,for:{short:12,shoes:4}}]};
    await page.goto(baseURL+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
    const el=id=>page.locator(`[data-editor-id="${id}"]`);
-   await el('more-btn').waitFor();
+   await el('wardrobe-btn').waitFor();
    await page.waitForTimeout(450);
    const view=await el('view').boundingBox();
    await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);

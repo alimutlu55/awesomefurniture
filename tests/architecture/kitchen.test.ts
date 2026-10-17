@@ -59,7 +59,8 @@ test('kitchen presets · contents fit their unit, within each fitting limit, and
   for (const p of KITCHEN_PRESETS) {
     const design = createKitchenDesign(p.unit, p.key), module = furnitureModule(design);
     const total = design.secs[0]!.reduce((s, it) => s + it.h, 0);
-    assert.ok(Math.abs(total - kitchenInside(design.h)) < .05, `${p.key}: fills the inside (${total} of ${kitchenInside(design.h)})`);
+    if (!p.parts.length) assert.equal(total, 0, `${p.key}: a plain unit starts empty, ready for Add item`);
+    else assert.ok(Math.abs(total - kitchenInside(design.h)) < .05, `${p.key}: fills the inside (${total} of ${kitchenInside(design.h)})`);
     for (const it of design.secs[0]!) {
       const def = defs.find(f => f.key === it.k)!;
       assert.ok(def.min <= it.h && it.h <= def.max, `${p.key}/${it.k}: height ${it.h} within ${def.min}-${def.max}`);

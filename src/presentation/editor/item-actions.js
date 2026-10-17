@@ -1,3 +1,4 @@
+import { furnitureModule } from '../../domain/furniture/furniture';
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { capWord } from './editor-format.js';
@@ -44,6 +45,9 @@ export function createItemActions({ dom, selectionState, model, commands, intera
         el.style.transform = 'translate(' + Math.round(Math.max(6, Math.min(vr.width - w - 6, x))) + 'px,' + Math.round(Math.max(6, Math.min(vr.height - h - 6, y))) + 'px)';
     }
     function placeItemTypeMenu() {
+        // Only the kinds this furniture takes (kitchen fittings in a kitchen cabinet, wardrobe fittings in a wardrobe).
+        const state = model.activeCabinet().state, module = furnitureModule(state);
+        selectionState.itemTypeMenu.querySelectorAll('[data-itm]').forEach(o => { o.hidden = !module.allows(o.dataset.itm, state); });
         const b = selectionState.itemBar.getBoundingClientRect(), vr = $('#view').getBoundingClientRect(), h = selectionState.itemTypeMenu.offsetHeight, below = b.bottom - vr.top + 6;
         placeFloating(selectionState.itemTypeMenu, b.right - vr.left - selectionState.itemTypeMenu.offsetWidth, below + h > vr.height - 6 ? b.top - vr.top - h - 6 : below);
     }

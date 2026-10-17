@@ -8,7 +8,9 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import type { EditorState } from '../projects/editor-scene';
 import type { CommandEffects } from './command-effects';
 import { isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
-import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { MODS, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { furnitureModule } from '../../domain/furniture/furniture';
+import type { ItemKind } from '../../domain/wardrobe/wardrobe';
 /** Compatibility facade: compose independent command families around one workflow. */
 export function createDesignCommands(getDesign: () => EditorState, supplied: CommandEffects = {}) {
     const { effects, run } = createCommandWorkflow(getDesign, supplied);
@@ -25,13 +27,30 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
      * steps are anchored to, so the chosen idea is applied as it is. The fit is a safety net: it says
      * so if anything still had to change. */
     const applyProposal: typeof layouts.applyProposal = (p, selected) => {
+        if (!planned()) return;
         layouts.applyProposal(p, selected);
         if (shaped()) sizing.fitToShape();
     };
     const autofill: typeof layouts.autofill = i => {
+        if (!planned()) return;
         if (!shaped()) return layouts.autofill(i);
         layouts.autofill(i, bayHeight(i));
         sizing.fitToShape();
+    };
+    /** A fitting goes only in the furniture it belongs to: no rail in a kitchen cabinet, no sink in a wardrobe. */
+    const refused = (k: ItemKind) => {
+        const module = furnitureModule(getDesign());
+        if (module.allows(k, getDesign())) return false;
+        effects.report(MODS[k].n + ' does not go in a ' + (getDesign().unit ? getDesign().unit + ' ' : '') + module.noun);
+        return true;
+    };
+    const addMod: typeof items.addMod = k => { if (!refused(k)) items.addMod(k); };
+    const editItem: typeof items.editItem = (i, j, edit) => edit.kind && refused(edit.kind) ? false : items.editItem(i, j, edit);
+    /** Only furniture that Auto design plans can have a bay filled for it. */
+    const planned = () => {
+        if (furnitureModule(getDesign()).autoDesign) return true;
+        effects.report('Auto design plans wardrobes. Add drawers, doors and appliances to a cabinet with Add item.');
+        return false;
     };
     const changeSections: typeof layouts.changeSections = delta => {
         layouts.changeSections(delta);
@@ -39,5 +58,5 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
         sizing.fitToShape();
         effects.changed();
     };
-    return { run, ...dividers, ...sizing, ...items, ...layouts, applyProposal, autofill, changeSections, ...appearance };
+    return { run, ...dividers, ...sizing, ...items, addMod, editItem, ...layouts, applyProposal, autofill, changeSections, ...appearance };
 }

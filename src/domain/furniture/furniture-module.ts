@@ -16,6 +16,8 @@ export interface FurnitureModule {
   /** Toolbar and panel name, and the word for one of them in messages. */
   readonly label: string;
   readonly noun: string;
+  /** The More menu entry that adds another one ("New wardrobe", "Add cabinet"). */
+  readonly addLabel: string;
   /** Auto design can plan its contents. */
   readonly autoDesign: boolean;
   /** Doors across the whole front (wardrobes); otherwise each fitting shows its own front. */

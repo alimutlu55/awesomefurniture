@@ -11,7 +11,7 @@ const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts')
 const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
 const { resizeHeightMinimum } = require('../src/domain/wardrobe/cabinet-size-limits.ts');
 const { bindCabinetDimensions } = require('../src/presentation/editor/bindings/cabinet.js');
-const { syncCabinetHeightMinimum } = require('../src/presentation/editor/resize-fields.js');
+const { syncCabinetSizeLimits } = require('../src/presentation/editor/resize-fields.js');
 
 function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true } = {}) {
     const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -180,21 +180,23 @@ function controls(f) {
 }
 
 test('height slider bounds stay fixed during growth under a slope, then refresh at release', () => {
-    const f = fixture(), number = { min: '' }, range = { min: '' };
-    const dom = { $: () => number, document: { querySelector: () => range } };
+    const f = fixture(), fields = {}, ranges = {};
+    const dom = { $: id => fields[id] ??= { min: '', max: '' }, document: { querySelector: selector => ranges[selector] ??= { min: '', max: '' } } };
+    const number = () => fields['#h'], range = () => ranges['[data-dimension="h"]'];
     f.model.scene.studio.ceilings = [{ id: 'k1', wall: 'w1', run: 'across', depth: 160,
         profile: [{ t: 0, y: 100 }, { t: 160, y: 260 }] }];
     f.commands.followCeilings();
-    syncCabinetHeightMinimum(dom, f.cabinet().state, false);
-    assert.equal(range.min, '60');
+    syncCabinetSizeLimits(dom, f.cabinet().state, false);
+    assert.equal(range().min, '60');
     for (const value of [120, 140, 150]) {
         assert.equal(f.commands.setCabinetSize('h', value, false), true);
-        syncCabinetHeightMinimum(dom, f.cabinet().state, 'h');
-        assert.equal(range.min, '60', 'the thumb does not change scale under the pointer'); f.fits();
+        syncCabinetSizeLimits(dom, f.cabinet().state, 'h');
+        assert.equal(range().min, '60', 'the thumb does not change scale under the pointer'); f.fits();
     }
-    syncCabinetHeightMinimum(dom, f.cabinet().state, false);
-    assert.equal(range.min, number.min);
-    assert.ok(Number(range.min) > 60, 'after release the scale reflects the newly shaped wardrobe');
+    syncCabinetSizeLimits(dom, f.cabinet().state, false);
+    assert.equal(range().min, number().min);
+    assert.ok(Number(range().min) > 60, 'after release the scale reflects the newly shaped wardrobe');
+    assert.deepEqual([fields['#w'].min, fields['#w'].max, fields['#d'].min, fields['#d'].max, number().max], ['80', '400', '15', '80', '280'], 'wardrobe limits');
 });
 
 for (const width of [375, 1280]) {

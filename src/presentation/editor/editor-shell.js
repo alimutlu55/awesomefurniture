@@ -6,7 +6,6 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
     const { $, document } = dom;
     const sync = () => {
         const on = !!document.querySelector('.pop.show');
-        $('#more-btn').setAttribute('aria-expanded', String($('#pop2').classList.contains('show')));
         elements.app.classList.toggle('inspecting', on);
         elements.app.classList.toggle('adding', $('#pop2').classList.contains('show'));
         if (on) {

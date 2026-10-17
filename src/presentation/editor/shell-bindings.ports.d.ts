@@ -1,11 +1,10 @@
 /** Explicit dependencies consumed by this module. */
-export interface BindMoreBtnPorts {
+export interface BindFurnitureButtonsPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'showPop' | 'update' | 'clearFocus'>>;
+readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'showPop' | 'clearFocus' | 'selectCabinet'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;
-readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'pillOn'>;
-readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
-readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameScene'>>;
+readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene'>;
+readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameScene' | 'frameWardrobe'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 

@@ -226,11 +226,8 @@
  /* The floating toolbar sits over the canvas, without an outer reserved strip. */
  #app:not(.props-open):not(.auto-design-open):not(:has(.mobile-bottom-sheet.show,.dd:not([hidden]),.mobile-sheet-exit)) #view{bottom:0}
  #toolbar .contextual-defaults,#toolbar .contextual-actions{flex:1 1 0; width:auto;gap:0;scrollbar-width:none}
- #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ #toolbar[data-context="none"] .contextual-defaults{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
  #toolbar .contextual-defaults .sep{display:none}
- #toolbar .contextual-defaults #add-anchor{flex:1;min-width:0}
- #toolbar .contextual-defaults #more-btn{width:100%}
- #toolbar .contextual-defaults #launch-wizard{flex:1;min-width:0}
  #toolbar .contextual-actions .tb{flex:1;min-width:0}
  #toolbar .contextual-history{flex:0 0 calc(200% / var(--contextual-action-count,4));margin-left:0;position:relative;padding-left:0}
  #toolbar .contextual-history::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:1px;background:var(--line)}

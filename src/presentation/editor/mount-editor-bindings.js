@@ -9,7 +9,7 @@ import { mountResizeFields } from './resize-fields.js';
 import { bindDividerClose, bindDividerGap, bindDividerHeight, bindDividerRemove, bindDividerDragMove, bindDividerDragEnd, bindDividerDragCancel, bindDividerDragBlur, bindDividerDragEscape } from './bindings/divider.js';
 import { bindSecMinus, bindSecPlus, bindSectionDiagram } from './bindings/sections.js';
 import { bindCabinetDimensions, bindFinishSwatches, bindReachChange, bindReachBlur, bindReachEnter, bindReachLineToggle, bindDoorChoice, renderDoorChoices, bindDoorsOpenToggle, bindWardrobeSelect, bindWardrobeAdd, bindResetAll } from './bindings/cabinet.js';
-import { bindMoreAddMenu, bindPillAddMenu, bindPillMenuDismiss, bindAddPanel } from './bindings/add-menu.js';
+import { bindPillAddMenu, bindPillMenuDismiss, bindAddPanel } from './bindings/add-menu.js';
 import { bindUndoButton, bindRedoButton, bindEditShortcuts } from './bindings/history.js';
 import { bindItemResizeEscape, bindItemResizeBlur, bindItemDimensions, bindItemPanelClose, bindItemPanel, populateStoragePurposes, bindItemPurpose } from './bindings/item.js';
 import { bindMoveMode, bindSwapMode, bindMoveCancel, bindMoveBay, bindMoveSlot, bindMoveApply, bindMovePreviewKeydown, bindMovePreviewKeyup } from './bindings/move.js';
@@ -21,6 +21,8 @@ import { bindEscapeKey } from './bindings/keyboard.js';
 import * as wizardBindings from './wizard-bindings.js';
 import * as shellBindings from './shell-bindings.js';
 import { MODS } from '../../domain/wardrobe/catalog.js';
+import { fittingProduct } from '../../domain/wardrobe/fittings';
+import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room }) {
     const { $, document } = dom;
@@ -67,7 +69,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindReachBlur({ dom, inspector, model, commands, lifetime });
     bindReachEnter({ dom, inspector, commands, lifetime });
     bindReachLineToggle({ dom, commands, lifetime });
-    bindMoreAddMenu({ dom, shell, commands });
     bindPillAddMenu({ dom, commands, elements });
     bindPillMenuDismiss({ dom, lifetime, elements });
     bindDoorChoice({ dom, commands });
@@ -109,7 +110,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWizardFocusTrap({ dom, lifetime });
     addToolbarSeparator({ dom, });
     renderDoorChoices({ dom, });
-    shellBindings.bindMoreBtn({ dom, inspector, shell, selectionState, model, camera, lifetime });
+    shellBindings.bindFurnitureButtons({ dom, inspector, shell, model, camera, lifetime });
     shellBindings.bindDropdownOpen({ dom, shell, lifetime });
     shellBindings.bindHelpMenu({ dom, shell, lifetime });
     shellBindings.bindResetClosesDropdown({ dom, shell, lifetime });
@@ -234,16 +235,17 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
     const viewModes = createViewModes({ dom, selectionState, camera, inspector, shell, planner, lifetime });
-    createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime,
+    createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime, autoDesign:$('#launch-wizard'),
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
             if (selectionState.viewMode === 'studio') return selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
-            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : 'wardrobe';
+            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : furnitureKind(state);
         },
-        replacements: () => Object.entries(MODS).filter(([key]) => key !== 'void').map(([key,value]) => ['t-' + key,value.n]),
+        replacements: () => { const state = model.activeCabinet().state, module = furnitureModule(state);
+            return Object.entries(MODS).filter(([key]) => key !== 'void' && module.allows(key, state)).map(([key,value]) => ['t-' + key,value.n]); },
         controls: key => {
             if (key === 'ceiling' || key === 'ceiling-shape') return [room.ceilingChoices.root];
             const divider = model.activeCabinet().state.divider >= 0;
@@ -292,6 +294,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 resize.open(); return;
             }
             if (key.startsWith('t-')) { inspector.itemAction(key); return; }
+            // Another of the selected kind: a new wardrobe or kitchen cabinet, chosen in the Add sheet.
+            if (key === 'new') { shellBindings.openSceneAdd({ dom, inspector, shell }, furnitureKind(state)); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();
                 else if (state.item >= 0) inspector.itemAction('dup');
@@ -318,7 +322,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';
     (() => {
         const k = (a, b) => '<kbd>' + a + '</kbd><span>' + b + '</span>', h = t => '<h3>' + t + '</h3>';
-        document.getElementById('keys').innerHTML = h('Add to the selected section') + '<div class="kc">' + Object.values(MODS).map(m => '<span><kbd>' + m.k + '</kbd>' + m.n + '</span>').join('') + '</div>'
+        const keysOf = product => '<div class="kc">' + Object.entries(MODS).filter(([key]) => fittingProduct(key) === product).map(([, m]) => '<span><kbd>' + m.k + '</kbd>' + m.n + '</span>').join('') + '</div>';
+        document.getElementById('keys').innerHTML = h('Add to the selected section') + keysOf('wardrobe') + h('Add to a kitchen cabinet') + keysOf('kitchen')
             + h('Move around') + k('← →', 'Previous / next section') + k('↑ ↓', 'Next item up / down') + k('Esc', 'Deselect or cancel a move')
             + h('Edit') + k('⌫', 'Remove the selected item') + k('Shift + arrows', 'Move the selected item') + k('Ctrl/⌘ Z', 'Undo') + k('Ctrl/⌘ ⇧ Z', 'Redo')
             + h('Mouse and touch') + k('Click', 'Select a section or item') + k('Drag item', 'Move freely, view turns to the front · Alt = no snap · Shift-drag swaps') + k('Drag background', 'Orbit') + k('Scroll / pinch', 'Zoom');

@@ -21,7 +21,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38],stairs:[.70,.3
   const tap=async locator=>{ if(phone) await locator.tap(); else await locator.click(); await page.waitForTimeout(250); };
   const shot=name=>page.screenshot({path:path.join(shots,`studio-${name}-${view.name}.jpg`)});
   const context=()=>toolbar.getAttribute('data-context');
-  await el('more-btn').waitFor();
+  await el('wardrobe-btn').waitFor();
 
   // A room comes from the Walls button: its sheet holds only walls and rooms.
   if(phone) {
@@ -135,7 +135,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38],stairs:[.70,.3
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base+'/editor.html');
- await page.locator('[data-editor-id="more-btn"]').waitFor();
+ await page.locator('[data-editor-id="wardrobe-btn"]').waitFor();
  await page.evaluate(async()=>{
   const { createEditorState } = await import('/src/application/projects/editor-state.ts');
   const { mountEditor } = await import('/src/presentation/editor/mount-editor.ts');
@@ -145,7 +145,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900,wall:[.68,.38],stairs:[.70,.3
    { id: 2, name: 'Wardrobe 2', x: 0, y: 0, z: 150, angle: 180, state: createEditorState() }] } });
  });
  await page.waitForTimeout(800);
- await page.locator('[data-editor-id="more-btn"]').tap();await page.waitForTimeout(1500);
+ await page.locator('[data-editor-id="wardrobe-btn"]').tap();await page.waitForTimeout(1500);
  const hidden=await page.locator('[data-editor-id="view"]').getAttribute('data-hidden-wardrobes');
  assert.equal(hidden,'2','the wardrobe in front steps aside: '+hidden);
  await page.screenshot({path:path.join(shots,'studio-facing-wardrobes-phone.jpg')});

@@ -1,10 +1,4 @@
 /** Explicit dependencies consumed by ./add-menu.js. */
-export interface BindMoreAddMenuPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').createEditorShell>, 'closeDD'>>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'addMod'>>;
-}
-
 export interface BindPillAddMenuPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'addMod'>>;

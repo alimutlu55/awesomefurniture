@@ -1,8 +1,9 @@
-import { contextualActions, wardrobeMoreActions, defaultWardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
+import { contextualActions, furnitureMoreActions, wardrobeMoreActions, defaultWardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
-/** Reusable selection toolbar. Command execution and selection stay with its host. */
-export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime }) {
+/** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
+ * button: it joins the tools of furniture that Auto design can plan, and waits hidden among the defaults otherwise. */
+export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime, autoDesign }) {
     const defaults = document.createElement('div');
     defaults.className = 'contextual-defaults';
     defaults.append(...root.childNodes);
@@ -35,9 +36,9 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     const icons = {move:ibIcon('mov'),resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),walls:icon('room-wall')};
-    const menuIcons = {shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
+    const menuIcons = {new:icon('plus'),shape:icon('wardrobe'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),stores:icon('drawer'),replace:ibIcon('typ'),
         door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
-    const moreActions = {item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
+    const moreActions = {...furnitureMoreActions,item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     const defaultMore = document.createElement('button');
     defaultMore.type = 'button'; defaultMore.className = 'tb'; defaultMore.dataset.action = 'more';
     defaultMore.setAttribute('aria-label', 'More'); defaultMore.setAttribute('aria-haspopup', 'menu');
@@ -111,8 +112,11 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         close();
         root.dataset.context = selection;
         root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
-        root.setAttribute('aria-label', selection === 'none' ? 'Wardrobe actions' : selection + ' editing actions');
-        row.replaceChildren(...contextualActions(selection).filter(([key]) => !['undo','redo','add','auto','wardrobe'].includes(key) && !(selection === 'none' && key === 'more')).map(([key,label]) => {
+        root.setAttribute('aria-label', selection === 'none' ? 'Furniture' : selection + ' editing actions');
+        if (autoDesign && row.contains(autoDesign)) defaults.append(autoDesign);
+        // Nothing selected: the defaults (the furniture to choose, More) show instead of a row.
+        row.replaceChildren(...(selection === 'none' ? [] : contextualActions(selection)).filter(([key]) => !['undo','redo'].includes(key)).map(([key,label]) => {
+            if (key === 'auto' && autoDesign) return autoDesign;
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
             b.setAttribute('aria-label', label);

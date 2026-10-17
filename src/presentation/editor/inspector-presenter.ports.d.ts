@@ -20,5 +20,6 @@ readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../applicatio
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint' | 'redo' | 'redoCount' | 'undo' | 'undoCount'>>;
 readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('./shape-inspector').createShapeInspector>, 'render'>>;
 readonly studioPanel: Readonly<Pick<ReturnType<typeof import('./studio-panel').createStudioPanel>, 'render' | 'products'>>;
+readonly kitchenPanel?: Readonly<Pick<ReturnType<typeof import('./kitchen-panel').createKitchenPanel>, 'render' | 'products'>>;
 readonly roomFields?: { render(): void };
 }

@@ -7,7 +7,7 @@ export function createDimensionRenderer({ dom, renderState, resources }) {
         const el = document.createElement('div');
         el.className = cls;
         el.textContent = text;
-        decorateDimensionScrubber(el);
+        decorateDimensionScrubber(el, renderState.renderCabinet?.state);
         if (renderState.renderActive) {
             $('#labels').appendChild(el);
             renderState.labs.push({ p, el, owner: renderState.Gr });

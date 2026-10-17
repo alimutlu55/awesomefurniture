@@ -1,15 +1,20 @@
-import { resizeHeightMinimum } from '../../domain/wardrobe/cabinet-size-limits';
+import { furnitureModule } from '../../domain/furniture/furniture';
 import { bindSizeSlider } from './size-control';
 
-/** Keep the slider's scale stable while a gesture changes the front/rear height difference.
+/** Size fields and sliders take the selected furniture's limits (a wall cabinet's are not a wardrobe's). A slider
+ * being dragged keeps its scale while a gesture changes the front/rear height difference.
  * @param {ReturnType<typeof import('./editor-dom.js').createEditorDom>} dom
- * @param {import('../../domain/wardrobe/shape/wardrobe-shape').ShapedDesign} design
+ * @param {import('../../domain/furniture/furniture-module').FurnitureDesign} design
  * @param {false | 'w' | 'h' | 'd'} editingSize */
-export function syncCabinetHeightMinimum(dom, design, editingSize) {
-    const min = String(resizeHeightMinimum(design));
-    dom.$('#h').min = min;
-    const range = /** @type {HTMLInputElement | null} */ (dom.document.querySelector('[data-dimension="h"]'));
-    if (range && editingSize !== 'h') range.min = min;
+export function syncCabinetSizeLimits(dom, design, editingSize) {
+    const sizes = furnitureModule(design).sizes(design);
+    for (const axis of /** @type {const} */ (['w', 'h', 'd'])) {
+        const [min, max] = sizes[axis].map(String), input = /** @type {HTMLInputElement} */ (dom.$('#' + axis));
+        input.min = min;
+        input.max = max;
+        const range = /** @type {HTMLInputElement | null} */ (dom.document.querySelector('[data-dimension="' + axis + '"]'));
+        if (range && editingSize !== axis) { range.min = min; range.max = max; }
+    }
 }
 
 /** Wrap existing bound dimension inputs in the shared value-and-slider layout. */

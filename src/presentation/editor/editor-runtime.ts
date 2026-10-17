@@ -1,6 +1,7 @@
 import { createClothingWarmup } from '../viewport/clothing-warmup';
 import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
+import { createKitchenPanel } from './kitchen-panel';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { ProjectDocument } from '../../domain/project/project';
@@ -140,6 +141,17 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             placed: () => { selectionState.viewMode = 'studio'; selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             // A part just added is selected; a ceiling also turns the view to eye level to shape it.
             added: selection => { inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
+        // Kitchen cabinets: a new unit is selected and framed, ready for Add item and the pull-out gesture.
+        const kitchenPanel = createKitchenPanel({ dom, add: preset => {
+            const unit = sceneCommands.addKitchenUnit(preset);
+            if (!unit) return false;
+            Object.assign(selectionState, { room: null, pillOn: true, deep: true, shapeEditing: false });
+            inspector.hidePop();
+            inspector.update();
+            camera.frameWardrobe();
+            shell.toast(unit.name + ' added');
+            return true;
+        } });
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: {
             refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(),
             frame: () => camera.frameMobileInspector(true), report: message => shell.toast(message) } });
@@ -147,13 +159,14 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector, studioEditor: room.editor }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room: room.room }));
         inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState,
-            renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, roomFields: room.fields }));
+            renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields: room.fields }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
+        kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         rendering.theme();
 
         // Keep the default Wardrobe dock, with the wider framing used by an empty-canvas tap.

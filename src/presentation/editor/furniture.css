@@ -1,0 +1,11 @@
+/* Furniture mode: nothing selected shows the furniture to work on (Wardrobe, Cabinets) and More. Auto design waits
+   among the defaults until a piece of furniture it can plan is selected, then leads that furniture's tools. */
+#toolbar .contextual-defaults #launch-wizard{display:none}
+#toolbar .contextual-actions #launch-wizard{min-height:0;box-shadow:none}
+
+/* Kitchen cabinets in the Add sheet: cards with the unit's front drawn from its preset. */
+.pop .addgrid.kitchen-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pop .addgrid .kitchen-product{flex-direction:column;align-items:stretch;gap:4px;padding:6px;min-height:0}
+.pop .addgrid .kitchen-product .product-art{width:100%;height:auto;aspect-ratio:146/110;border-radius:10px;background:#eae5de}
+.pop .addgrid .kitchen-product span{font-size:12px;text-align:center}
+svg.kitchen-art{filter:none}
