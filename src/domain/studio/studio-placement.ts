@@ -80,7 +80,9 @@ export function pushOutOfWalls(studio: Studio, pose: Pose, size: Footprint, coll
       const distance = (current.x - line.a.x) * line.nx + (current.z - line.a.z) * line.nz;
       const needed = w.thickness / 2 + reach(current, size, line.nx, line.nz) - distance;
       if (needed <= 0 || distance < -w.thickness / 2 - reach(current, size, line.nx, line.nz)) continue;
-      if (needed < bestMove) { bestMove = needed; best = { ...current, x: round(current.x + line.nx * needed), z: round(current.z + line.nz * needed) }; }
+      // A hair more than touching: the collision test counts a shared face as overlap, and the pose is rounded.
+      const move = needed + .1;
+      if (needed < bestMove) { bestMove = needed; best = { ...current, x: round(current.x + line.nx * move), z: round(current.z + line.nz * move) }; }
     }
     if (!best) break;
     current = best;

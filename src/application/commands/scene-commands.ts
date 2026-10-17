@@ -11,6 +11,7 @@ import { createAlignCommands } from './align-commands';
 import { createKitchenCommands } from './kitchen-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
+import { pushOutOfWalls } from '../../domain/studio/studio-placement';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createDesignCommands } from './design-commands.js';
@@ -160,10 +161,21 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             state.space = null;
             return removed!.name;
         },
-        previewRotation(id: number, angle: number) {
-            const cabinet = getScene().wardrobes.find(w => w.id === id);
+        /** Turns a piece about its centre. Given `from` (where the turn started), a piece against a wall slides
+         * straight out of the walls it would cut into, the shortest way, and comes back to `from` when turned back.
+         * Otherwise, or when other furniture is in the way, it turns as far as it is free to. */
+        previewRotation(id: number, angle: number, from?: Pick<EditorCabinet, 'x' | 'z'>) {
+            const cabinet = getScene().wardrobes.find(w => w.id === id), room = getScene().studio;
             if (!cabinet) {
                 return false;
+            }
+            if (room && from) {
+                const walls = createCabinetGeometry(() => [], () => studioObstacles(room));
+                const pose = pushOutOfWalls(room, { x: from.x, z: from.z, angle }, cabinet.state, p => walls.cabinetCollides({ ...cabinet, ...p }));
+                if (pose && !collision.cabinetCollides({ ...cabinet, ...pose })) {
+                    Object.assign(cabinet, pose);
+                    return true;
+                }
             }
             cabinet.angle = collision.safeCabinetRotation(cabinet, angle);
             return true;

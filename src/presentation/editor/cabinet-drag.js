@@ -6,7 +6,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         camera.camRelease();
         inspector.hidePop();
         const w = model.activeCabinet(), p = e && picking.groundPoint(e);
-        interactionState.rotationGesture = { id: w.id, original: w.angle, snapshot: model.snapshot(), handle, x: e?.clientX ?? null, polar: p ? Math.atan2(p.x - w.x, p.z - w.z) : null, spatial: cameraState.el > .15, moved: false };
+        interactionState.rotationGesture = { id: w.id, original: w.angle, from: { x: w.x, z: w.z }, snapshot: model.snapshot(), handle, x: e?.clientX ?? null, polar: p ? Math.atan2(p.x - w.x, p.z - w.z) : null, spatial: cameraState.el > .15, moved: false };
         handle.classList.add('rotating');
         handle.setAttribute('aria-pressed', 'true');
         resources.cv.style.cursor = 'grabbing';
@@ -35,7 +35,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
                 angle = right;
             }
         }
-        sceneCommands.previewRotation(w.id, ((angle % 360) + 360) % 360);
+        sceneCommands.previewRotation(w.id, ((angle % 360) + 360) % 360, g.from);
         g.moved = g.moved || Math.abs(delta) > 2;
         renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.updateMatrixWorld(true);
@@ -48,11 +48,13 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         interactionState.rotationGesture = null;
         const w = model.scene.wardrobes.find(w => w.id === g.id);
+        // A turn may have slid the piece out from a wall: undoing it puts it back where it started.
+        const start = { angle: g.original, ...g.from };
         if (cancel) {
-            sceneCommands.restorePose(g.id, { angle: g.original });
+            sceneCommands.restorePose(g.id, start);
         }
         else if (w.angle !== g.original) {
-            if (sceneCommands.settleCabinet(g.id)) sceneCommands.restorePose(g.id, { angle: g.original });
+            if (sceneCommands.settleCabinet(g.id)) sceneCommands.restorePose(g.id, start);
             else history.checkpoint(g.snapshot);
         }
         resources.cv.style.cursor = 'grab';

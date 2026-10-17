@@ -55,6 +55,19 @@ test('turning a wardrobe against a wall is stopped by the wall', () => {
   assert.deepEqual(s.overlapping(), []);
 });
 
+test('turning by the handle slides a wardrobe out from the wall it stands against, and back when turned back', () => {
+  const s = scene();
+  s.commands.placeStudio('bedroom');
+  const from = { x: s.w().x, z: s.w().z };
+  s.commands.previewRotation(1, 30, from);
+  assert.equal(s.w().angle, 30, 'it turns as far as asked');
+  assert.ok(s.w().z > from.z + 1, `it steps out from the back wall to make room (z ${s.w().z})`);
+  assert.deepEqual(s.overlapping(), [], 'and never cuts into the wall');
+  s.commands.previewRotation(1, 0, from);
+  assert.equal(s.w().angle, 0);
+  assert.deepEqual({ x: s.w().x, z: s.w().z }, from, 'turned back, it stands where it started, flush against the wall');
+});
+
 test('resizing into a wall is refused and says it is the wall', () => {
   const s = scene();
   s.commands.placeStudio('walk-in');

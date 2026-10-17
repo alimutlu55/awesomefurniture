@@ -217,8 +217,10 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.moveIcons = [];
         dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
         if (selectionState.focusOn && model.scene.wardrobes.length) {
+            const chosen = model.activeCabinet().state;
+            // Turning, like moving, needs only the piece selected: also while a space in it is chosen, not a fitting or divider.
+            if (!selectionState.shapeEditing && chosen.item < 0 && chosen.divider < 0) addRotationIndicator();
             if (!inspector.inside()) {
-                addRotationIndicator();
                 addWardrobeActions();
                 addWardrobeMoveHandles();
             }
