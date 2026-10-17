@@ -73,3 +73,12 @@ svg.kitchen-art{filter:none}
 #app[data-view-mode="furniture"]:has(:is(#pop3,#pop4)[data-context-section="resize"].show) #labels .measurement-badge[data-measurement-badge][aria-orientation="vertical"]{cursor:ns-resize}
 #app[data-view-mode="furniture"].props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])) #labels .measurement-badge[data-measurement-badge]::after,
 #app[data-view-mode="furniture"]:has(:is(#pop3,#pop4)[data-context-section="resize"].show) #labels .measurement-badge[data-measurement-badge]::after{display:block}
+/* Net measurements (clear openings between boards: gaps, free space, a rail's drop, a drawer stack, a shelf's
+   clear opening) are marked by a dashed rule; outer sizes keep solid pills on extension lines outside the cabinet. */
+#labels .lbl.dim.clearance.net{border:1px dashed #a8987c;background:#fffdf8f2}
+#labels .lbl.dim.space-ruler.net,#labels .lbl.dim.hover-dim.net{text-decoration:underline dashed #a8987c;text-underline-offset:3px}
+#labels .lbl.dim.rail-height{background:transparent;border:0;box-shadow:none;padding:1px 4px;color:#5d5342;font-size:10.5px;font-weight:500;text-shadow:0 1px 3px #fff,0 0 5px #fff}
+#labels .lbl.dim.rail-height.over-reach{color:#9a4b2c}
+/* Measurements follow the camera every frame; their position never transitions (reduced motion would otherwise turn
+   each frame's placement into a restarting transition and leave a label behind its line). */
+#labels .lbl.dim{transition-property:background-color,border-color,color,opacity!important}

@@ -23,6 +23,7 @@ import { createGarmentRenderer } from './garment-renderer';
 import { createHandbagRenderer } from './handbag-renderer';
 import { createTrouserRenderer } from './trouser-renderer';
 import { createKitchenRunRenderer } from './kitchen-run-renderer';
+import { deconflictLabels } from './label-deconflict';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -390,6 +391,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)` + (l.canvasScale === undefined ? '' : ` scale(${l.canvasScale})`);
         });
+        deconflictLabels($('#labels'), r);
     }
     return { assist, redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
 }

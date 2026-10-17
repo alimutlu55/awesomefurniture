@@ -135,7 +135,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         };
         const { mod, lightRail } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         if (kitchenUnit && !kitchenUnit.plinth) lightRail?.(w);
-        const itemDims = (i, j) => drawItemDims(i, j, w, d, h);
+        const itemDims = (i, j) => drawItemDims(i, j, w, d, h, getRenderDesign().profile?.reach);
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
             // While the skeleton is edited on a phone, the model shows only the panels and their handles.
@@ -257,13 +257,16 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 }
             });
             if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
-                const space = geometry.sectionSpaceMeasurements(i), sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler';
-                dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), measureNumber(space.w) + ' cm', cls, spaceRulerPoints);
-                dimLine(new V(ex - 4, space.y0, zf), new V(ex - 4, space.y1, zf), measureNumber(space.h) + ' cm', cls, spaceRulerPoints);
-                dimLine(new V(sx + 5, space.y0 + 5, -d / 2 + .5), new V(sx + 5, space.y0 + 5, d / 2 - 1.5), measureNumber(space.dep) + ' cm', cls, spaceRulerPoints);
+                // Net clear opening of the selected space. Under a slope the height runs from lowest to tallest, and its
+                // ruler stands where the space is tallest so it never pokes through the top.
+                const space = geometry.sectionSpaceMeasurements(i), sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler net';
+                const tall = space.sloped ? geometry.spaceTallest(i, space) : { x: space.x1 - 4, h: space.h }, hx = x + tall.x, f = measureNumber;
+                dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), 'W ' + f(space.w) + ' cm', cls, spaceRulerPoints);
+                dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + ' cm', cls, spaceRulerPoints);
+                dimLine(new V(sx + 5, space.y0 + 5, fd.z0 - d / 2), new V(sx + 5, space.y0 + 5, fd.z1 - d / 2), 'D ' + f(space.dep) + ' cm', cls, spaceRulerPoints);
             }
             else if (!sel && getRenderDesign().item < 0) {
-                ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), sw.toFixed(1) + ' cm', 'lbl dim hover-dim');
+                ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), 'W ' + measureNumber(sw) + ' cm', 'lbl dim hover-dim net');
             }
             // Add item belongs to the selected wardrobe even outside the section-inspection scope.
             let addSpace, fallbackSpace = false;
@@ -327,7 +330,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             }
         });
         if (renderState.renderActive && ((selectionState.showDimensions && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
-            dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + w + ' cm', 'lbl dim dimension-scrubber scrub-w');
+            dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + ' cm', 'lbl dim dimension-scrubber scrub-w');
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
             dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + ' cm',
                 'lbl dim dimension-scrubber ' + (Math.abs(right - left) > .05 ? 'scrub-h-left' : 'scrub-h'));
@@ -335,7 +338,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 dimLine(new V(w / 2 + 9, 0, d / 2 + 2), new V(w / 2 + 9, right, d / 2 + 2), 'H ' + f(right) + ' cm', 'lbl dim dimension-scrubber scrub-h-right');
             }
             // The wardrobe depth remains available on the model alongside width and height.
-            dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + d + ' cm', 'lbl dim dimension-scrubber scrub-d');
+            dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + measureNumber(d) + ' cm', 'lbl dim dimension-scrubber scrub-d');
         }
         if (renderState.renderActive && (getRenderDesign().reachLine ?? getRenderDesign().profile.engaged)) {
             const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));

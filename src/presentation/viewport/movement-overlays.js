@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
@@ -57,21 +57,21 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         if (!q) {
             return;
         }
-        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i], zf = getRenderDesign().d / 2 + 4, f = measureNumber, x0 = left + q.x0, x1 = left + q.x1, mid = (x0 + x1) / 2, midY = (q.y0 + q.y1) / 2, ceil = getRenderDesign().h - PANEL, floor = PLINTH + PANEL, bar = (w, h, x, y) => {
+        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i], zf = getRenderDesign().d / 2 + 4, f = measureNumber, x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2, bar = (w, h, x, y) => {
             const horizontal = w > h;
             callbacks.dimensionStroke([new THREE.Vector3(x - (horizontal ? w / 2 : 0), y - (horizontal ? 0 : h / 2), zf), new THREE.Vector3(x + (horizontal ? w / 2 : 0), y + (horizontal ? 0 : h / 2), zf)], renderState.previewGroup, 22);
         }, lab = (key, x, y, text, cls = 'lbl dim clearance preview') => {
             keep.add(key);
             setPreviewLabel(key, new THREE.Vector3(x, y, zf), text, cls);
-        }, vert = (key, ya, yb) => {
+        }, vert = (key, ya, yb, mid) => {
             if (yb - ya > .1) {
                 bar(.6, yb - ya, mid, (ya + yb) / 2);
                 bar(5, .6, mid, ya);
                 bar(5, .6, mid, yb);
-                lab(key, mid, (ya + yb) / 2, f(yb - ya) + ' cm');
+                lab(key, mid, (ya + yb) / 2, f(yb - ya) + ' cm', 'lbl dim clearance net preview');
             }
             else {
-                lab(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), '0 cm');
+                lab(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), '0 cm', 'lbl dim clearance net preview');
             }
         }, side = (key, xa, xb) => {
             if (xb - xa > .1) {
@@ -84,8 +84,12 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
                 lab(key, key === 'left' ? xa - 6 : xb + 6, midY, '0 cm');
             }
         };
-        vert('top', q.y1, ceil);
-        vert('bottom', floor, q.y0);
+        // Net gaps where the fitting would land: to the fitting, board or top really above it and to what it would
+        // stand on, never through them and never to the flat outer height (wrong under a sloped top).
+        const others = geometry.sectionObstacles(i, plan.layouts[i]).filter((_, k) => k !== plan.index);
+        const { above, below } = geometry.gapsAround(i, { x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1 }, others);
+        vert('top', q.y1, above.y, left + above.x);
+        vert('bottom', below.y, q.y0, left + below.x);
         if (bw - q.w > .1) {
             side('left', left, x0);
             side('right', x1, left + bw);
