@@ -67,6 +67,8 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
   }
 
   const named = (unit: KitchenUnitKey | undefined, id: number) => kitchenUnit(unit).name + ' ' + id;
+  /** A copy of a unit's design with nothing chosen inside it (no item, divider or space). */
+  const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state), item: -1, divider: -1, space: null, open: false });
 
   return {
     /** Adds a unit from a preset (Base cabinet, Sink unit, Wall cabinet...) beside the kitchen it belongs to. */
@@ -86,7 +88,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     duplicateKitchenUnit(): EditorCabinet | null {
       const original = active();
       if (!original || !isKitchenUnit(original)) return null;
-      const id = getScene().nextWardrobeId, state = furnitureModule(original.state).duplicate(original.state);
+      const id = getScene().nextWardrobeId, state = copyOf(original);
       const copy: EditorCabinet = { ...structuredClone(original), id, name: named(state.unit, id), state };
       const placed = placeNear(original, copy);
       if (!placed) { report('There is no room for another cabinet beside this one.'); return null; }
@@ -103,7 +105,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const copies: EditorCabinet[] = [];
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!;
       for (const pose of arrayPoses(original, count, side, end)) {
-        const id = scene.nextWardrobeId + copies.length, state = furnitureModule(original.state).duplicate(original.state);
+        const id = scene.nextWardrobeId + copies.length, state = copyOf(original);
         const copy = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, pose);
         // Copies line up end to end, so each only has to clear the room and the other furniture.
         if (!fits(copy)) break;
