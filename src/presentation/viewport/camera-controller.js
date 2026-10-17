@@ -258,6 +258,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     /** @param {{ instant?: boolean }} options */
     function frameScene(options = {}) {
         const room = !!model.scene.studio, facing = (model.activeCabinet().angle ?? 0) * Math.PI / 180;
+        // A room with no wardrobe yet (a new design's wall): look straight at it, from a little above and further back.
+        if (room && !model.scene.wardrobes.length) { frameBox(sceneBox(), facing, .25, 1.6, false, options.instant); return; }
         frameBox(sceneBox(), room ? facing + .32 : cameraState.az, .5, room ? 1.04 : 1.1, false, options.instant);
     }
     /** Frame the active wardrobe. @param {{ resizing?: boolean; instant?: boolean }} options */
