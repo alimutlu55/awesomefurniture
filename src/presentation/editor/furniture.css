@@ -20,3 +20,15 @@ svg.kitchen-art{filter:none}
  padding:2px 8px;border-radius:10px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
 @media (max-width:900px){.lbl.array-grip{width:40px;height:40px}}
 #app[data-view-mode="studio"] .lbl.array-grip,#app[data-toolbar-mode="move"] .lbl.array-grip{display:none!important}
+
+/* A wardrobe's eight tools on a narrow phone: smaller labels, and Auto design reads "Auto" (its accessible name
+   stays "Auto design"), so no label runs into its neighbour. */
+@media (max-width:430px){
+ #toolbar .contextual-actions .tb span{font-size:10px!important;letter-spacing:-.1px;white-space:nowrap}
+ #toolbar .contextual-actions #launch-wizard .tl{font-size:0!important}
+ #toolbar .contextual-actions #launch-wizard .tl::after{content:'Auto';font-size:10px;letter-spacing:-.1px}
+}
+@media (max-width:340px){
+ #toolbar .contextual-actions .tb span{font-size:9px!important;letter-spacing:-.2px}
+ #toolbar .contextual-actions #launch-wizard .tl::after{font-size:9px}
+}
