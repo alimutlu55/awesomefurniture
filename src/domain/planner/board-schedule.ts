@@ -9,7 +9,8 @@ export interface PlanBoard {source:'frame'|'divider'|'fitting';position:{x:numbe
 export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConfig,dividers:readonly EditorDivider[]):PlanBoard[] {
  const c=selectionContext(cfg),w=number(cfg.w,200),h=number(cfg.h,230),d=c.depth/10,t=R.panel/10,boards:PlanBoard[]=[];
  const add=(source:PlanBoard['source'],x:number,y:number,width:number,height:number,reason:string)=>boards.push({source,position:{x,y,z:0},size:{w:width,h:height,d},reason});
- add('frame',t/2,h/2,t,h,'Left cabinet side');add('frame',w-t/2,h/2,t,h,'Right cabinet side');
+ // The top board lies on the sides, so a side is one board shorter than the cabinet.
+ add('frame',t/2,(h-t)/2,t,h-t,'Left cabinet side');add('frame',w-t/2,(h-t)/2,t,h-t,'Right cabinet side');
  add('frame',w/2,h-t/2,w,t,'Cabinet ceiling');add('frame',w/2,R.base/10-t/2,w-2*t,t,'Cabinet floor');
  let offset=t;
  sections.forEach((s,bay)=>{

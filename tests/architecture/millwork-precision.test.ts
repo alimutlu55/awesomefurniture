@@ -60,3 +60,18 @@ test('Auto design plans bays in whole millimetres that close on the inner width'
     }
   }
 });
+
+test('carcass boards never run into each other along the depth', async () => {
+  const { BACK_PANEL, fittingDepth, partitionDepth, interiorDepth, depthForFitting } = await import('../../src/domain/wardrobe/carcass');
+  for (const d of [35, 45, 58.6, 60, 78]) {
+    for (const board of [fittingDepth(d), partitionDepth(d)]) {
+      assert.ok(Math.abs(board.z0 - BACK_PANEL) < 1e-9, 'starts on the back board face');
+      assert.ok(board.z1 <= d + 1e-9 && board.z1 > board.z0);
+      assert.ok(Math.abs(board.centre - ((board.z0 + board.z1) / 2 - d / 2)) < 1e-9);
+      assert.ok(board.centre - board.depth / 2 >= -d / 2 + BACK_PANEL - 1e-9, 'rear face is in front of the back board');
+    }
+    assert.ok(Math.abs(fittingDepth(d).depth - (d - 2)) < 1e-9, 'usable fitting depth stays d - 2');
+    assert.ok(Math.abs(depthForFitting(fittingDepth(d).depth) - d) < 1e-9);
+    assert.ok(Math.abs(interiorDepth(d) - (d - BACK_PANEL)) < 1e-9);
+  }
+});

@@ -2,6 +2,7 @@ import { rearShape } from '../../domain/wardrobe/shape/depth-shape';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { Material, Object3D } from 'three';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { BACK_PANEL, partitionDepth } from '../../domain/wardrobe/carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../../domain/wardrobe/shape/wardrobe-shape';
 export type BoxBuilder = (w: number, h: number, d: number, x: number, y: number, z: number, material: Material, group?: Object3D) => Object3D;
 export interface Point2 { x: number; y: number }
@@ -52,17 +53,19 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     });
     renderUpright(design, 0, PANEL, sidesFrom, d, materials.panel, box, prism);
     renderUpright(design, w - PANEL, w, sidesFrom, d, materials.panel, box, prism);
-    box(w - 2 * PANEL, PANEL, d - 1, 0, PLINTH + PANEL / 2, 0, materials.panel);
-    panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), .6, -d / 2 + .3, materials.back);
+    // The base board stops at the back board's face; the back sits between the sides (carcass.ts).
+    const base = partitionDepth(d);
+    box(w - 2 * PANEL, PANEL, base.depth, 0, PLINTH + PANEL / 2, base.centre, materials.panel);
+    panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), BACK_PANEL, -d / 2 + BACK_PANEL / 2, materials.back);
     if (plinth) box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
 }
 
 /** Side panels and partitions join the independently edited front and rear. */
 export function renderUpright(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'n' | 'wt' | 'shape'>,
-    x0: number, x1: number, y0: number, depth: number, material: Material, box: BoxBuilder, prism: PrismBuilder) {
+    x0: number, x1: number, y0: number, depth: number, material: Material, box: BoxBuilder, prism: PrismBuilder, z = 0) {
     const shape = resolveShape(design), points = boardUnderTop(design, x0, x1, y0);
-    if (!shape.back) return panelBuilder(box, prism)(points, depth, 0, material);
+    if (!shape.back) return panelBuilder(box, prism)(points, depth, z, material);
     const pieces = ceilingPieces(rearShape(shape));
     const back = points.map((p, i) => i < 2 ? p : { x: p.x, y: ceilingMin(pieces, p.x + design.w / 2, p.x + design.w / 2) });
-    return prism(points, depth, 0, material, undefined, back);
+    return prism(points, depth, z, material, undefined, back);
 }

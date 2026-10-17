@@ -1,17 +1,19 @@
 import { rearShape, type SurfacePoint } from './depth-shape';
 import { shapeBoards, type WardrobeShape } from './wardrobe-shape';
+import { fittingDepth } from '../carcass';
 
 /** Roof underside patches clipped to a divider's actual footprint. Keeping the
  * roof's triangle diagonal also handles independently sloping front/rear edges. */
 export function dividerRoofPatches(shape: WardrobeShape, depth: number, x0: number, x1: number): SurfacePoint[][] {
-  const front = shapeBoards(shape), rear = shapeBoards(rearShape(shape)), out: SurfacePoint[][] = [];
+  // A divider is a fitting board: it runs from the back board's face to the fitting setback.
+  const front = shapeBoards(shape), rear = shapeBoards(rearShape(shape)), out: SurfacePoint[][] = [], reach = fittingDepth(depth);
   front.forEach((board, i) => {
     if (board.kind !== 'top') return;
     const a = { ...board.points[0]!, z: depth / 2 }, b = { ...board.points[1]!, z: depth / 2 };
     const ra = { ...rear[i]!.points[0]!, z: -depth / 2 }, rb = { ...rear[i]!.points[1]!, z: -depth / 2 };
     for (let poly of [[ra, rb, a], [rb, b, a]]) {
       for (const distance of [(p: SurfacePoint) => p.x - x0, (p: SurfacePoint) => x1 - p.x,
-        (p: SurfacePoint) => p.z + depth / 2 - .5, (p: SurfacePoint) => depth / 2 - 1.5 - p.z]) poly = clip(poly, distance);
+        (p: SurfacePoint) => p.z - reach.centre + reach.depth / 2, (p: SurfacePoint) => reach.centre + reach.depth / 2 - p.z]) poly = clip(poly, distance);
       const area = poly.reduce((sum, p, k) => { const q = poly[(k + 1) % poly.length]!; return sum + p.x * q.z - q.x * p.z; }, 0);
       if (Math.abs(area) > 1e-7) out.push(poly);
     }

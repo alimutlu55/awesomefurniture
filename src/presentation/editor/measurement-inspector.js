@@ -2,6 +2,7 @@ import { sceneMeasurementBadge } from './scene-measurement-badge';
 import { tags } from './storage-tags.js';
 import { syncResizeFields } from './resize-fields.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber, capWord, esc } from './editor-format.js';
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'shell' | 'commands' | 'rendering' | 'model' | 'history'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'histUI' | 'hidePop' | 'divWord'> }} ports */
 export function createMeasurementInspector({ dom, geometry, model, callbacks }) {
@@ -59,7 +60,7 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
                         ( /** @type {HTMLInputElement} */(input)).value = f(k ? m.after : m.before);
                     }
                 });
-                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + ' cm'], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + ' cm'], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + ' cm'], ['Y · bottom → top from floor', f(PLINTH + PANEL + m.y0) + ' → ' + f(PLINTH + PANEL + m.y1) + ' cm'], ['Z · back → front', f(.5) + ' → ' + f(model.activeCabinet().state.d - 1.5) + ' cm']];
+                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + ' cm'], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + ' cm'], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + ' cm'], ['Y · bottom → top from floor', f(PLINTH + PANEL + m.y0) + ' → ' + f(PLINTH + PANEL + m.y1) + ' cm'], ['Z · back → front', f(fittingDepth(model.activeCabinet().state.d).z0) + ' → ' + f(fittingDepth(model.activeCabinet().state.d).z1) + ' cm']];
                 const cut = geometry.boardFit(d.i, geometry.dividerRect(d), d.orientation);
                 if (cut?.cut) {
                     rows.splice(1, 0, ['Cut to the top', hor ? 'angled · ' + f(cut.length) + ' cm whole board' : 'angled top']);

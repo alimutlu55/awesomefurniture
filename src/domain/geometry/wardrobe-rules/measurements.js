@@ -1,4 +1,5 @@
 import { PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { fittingDepth } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
@@ -22,7 +23,9 @@ export function createMeasurementsRules(ctx, deps) {
             return null;
         }
         const wd = pos.w, off = pos.off, y0 = pos.y0, y1 = pos.y1;
-        return { bw, bayL, w: wd, x0: bayL + off, x1: bayL + off + wd, gapL: off, gapR: bw - wd - off, y0, y1, h: it.h, z0: .5, z1: getDesign().d - 1.5, dep: getDesign().d - 2, freeTop: itemFreeAbove(i, j) };
+        const depth = fittingDepth(getDesign().d);
+        return { bw, bayL, w: wd, x0: bayL + off, x1: bayL + off + wd, gapL: off, gapR: bw - wd - off, y0, y1, h: it.h,
+            z0: depth.z0, z1: depth.z1, dep: depth.depth, freeTop: itemFreeAbove(i, j) };
     }
     function itemMeasurements(i, j) {
         const g = itemGeom(i, j);

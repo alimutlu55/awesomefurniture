@@ -1,4 +1,5 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
+import { fittingDepth } from '../../wardrobe/carcass';
 import { MIN_CUT_BOARD } from '../../wardrobe/shape/angle-cut';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -62,7 +63,7 @@ export function createDividersRules(ctx, deps) {
                 }
             }
         });
-        return { ...r, hor, low, high, before: Math.max(0, (hor ? r.y0 : r.x0) - low), after: Math.max(0, high - (hor ? r.y1 : r.x1)), width: r.x1 - r.x0, height: r.y1 - r.y0, depth: getDesign().d - 2 };
+        return { ...r, hor, low, high, before: Math.max(0, (hor ? r.y0 : r.x0) - low), after: Math.max(0, high - (hor ? r.y1 : r.x1)), width: r.x1 - r.x0, height: r.y1 - r.y0, depth: fittingDepth(getDesign().d).depth };
     }
     function dividerBounds(d) {
         return d.area || { x0: 0, x1: widths()[d.i], y0: d.y0, y1: d.y1 };

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
 import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
@@ -58,7 +59,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             return;
         }
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
-        const slab: BoxBuilder = cut ? cut.slab : box;
+        const slab: BoxBuilder = cut ? cut.slab : box, board = fittingDepth(d);
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;
         const clears = (x0: number, x1: number, top: number) => !cut || top <= cut.clearAt(x0, x1) + .01;
@@ -66,10 +67,10 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             if (y + hh >= ceiling - .05) {
                 return;
             }
-            for (const span of topSpans) slab(span.x1-span.x0, PANEL, d - 2, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, -.5, P);
+            for (const span of topSpans) slab(span.x1-span.x0, PANEL, board.depth, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, board.centre, P);
         };
         deck();
-        if(y>PLINTH+PANEL+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,d-2,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,-.5,P);
+        if(y>PLINTH+PANEL+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,board.depth,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,board.centre,P);
         const riseAt=(x0=0,x1=sw)=>Math.max(0,...support.filter(span=>span.x1>x0+.01&&span.x0<x1-.01).map(span=>span.rise));
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {
@@ -160,7 +161,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
         }
         else {
             // Rails hang only across the part of the fitting where garments clear the top.
-            const ry = y + coreH - 6, front = !!it.front, len = front ? d - 8 : Math.max(4, coreW - 3), r = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, len, 12), mh);
+            const ry = y + coreH - RAIL_DROP, front = !!it.front, len = front ? d - 8 : Math.max(4, coreW - 3), r = new THREE.Mesh(new THREE.CylinderGeometry(RAIL_RADIUS, RAIL_RADIUS, len, 12), mh);
             r.rotation[front ? 'x' : 'z'] = Math.PI / 2;
             r.position.set(coreX, ry, 0);
             r.castShadow = true;

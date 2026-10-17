@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources' | 'interactionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'label' | 'dimensionStroke' | 'bindRuler'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
@@ -96,7 +97,8 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         };
         ruler('width', new THREE.Vector3(x0, q.y0, zf), new THREE.Vector3(x1, q.y0, zf), 'W ' + f(q.w) + ' cm');
         ruler('height', new THREE.Vector3(x1, q.y0, zf), new THREE.Vector3(x1, q.y1, zf), 'H ' + f(it.h) + ' cm');
-        ruler('depth', new THREE.Vector3(x0, q.y0, -getRenderDesign().d / 2 + .5), new THREE.Vector3(x0, q.y0, getRenderDesign().d / 2 - 1.5), 'D ' + f(getRenderDesign().d - 2) + ' cm');
+        const fd = fittingDepth(getRenderDesign().d), back = -getRenderDesign().d / 2;
+        ruler('depth', new THREE.Vector3(x0, q.y0, back + fd.z0), new THREE.Vector3(x0, q.y0, back + fd.z1), 'D ' + f(fd.depth) + ' cm');
     }
     function clearPreview(hide = true) {
         if (hide) {

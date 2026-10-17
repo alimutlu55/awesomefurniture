@@ -1,4 +1,5 @@
 import { MODS, PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { fittingDepth } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -85,7 +86,7 @@ export function createSpacesRules(ctx, deps) {
         }
         return regions.map(q => {
             const y1 = Math.min(q.y1, ceilingTop(i, q.x0, q.x1)), low = Math.min(y1, ceilingIn(i, q.x0, q.x1));
-            return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: getDesign().d - 2, y0: q.y0 + PL + T, y1: y1 + PL + T };
+            return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: fittingDepth(getDesign().d).depth, y0: q.y0 + PL + T, y1: y1 + PL + T };
         }).filter(q => q.h > .01);
     }
     /** Centre of mass of a free space's clear area: the true middle of the room left after the
@@ -109,7 +110,8 @@ export function createSpacesRules(ctx, deps) {
     function sectionSpaceMeasurements(i) {
         const spaces = sectionSpaces(i), point = getDesign().space?.i === i ? getDesign().space : null;
         const selected = point && spaces.find(q => point.x >= q.x0 - .01 && point.x <= q.x1 + .01 && point.y >= q.y0 - .01 && point.y <= q.y1 + .01);
-        return selected || spaces.sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0] || { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, hMin: 0, sloped: false, dep: getDesign().d - 2, y0: PL + T + ih(i), y1: PL + T + ih(i) };
+        const top = PL + T + ih(i), none = { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, hMin: 0, sloped: false, dep: fittingDepth(getDesign().d).depth, y0: top, y1: top };
+        return selected || spaces.sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0] || none;
     }
     function edgeGap(k) {
         const i = getDesign().sel, bw = widths()[i], mn = effectiveMin(k), front = (k === 'short' || k === 'long') && getDesign().d < 55, minW = Math.max(25, front ? 55 : MODS[k].w), lay = computeLayout(i);

@@ -11,7 +11,7 @@ const near = (actual, expected) => assert.ok(Math.abs(actual-expected)<.001, `${
 test('bottom drawer: outer coordinates, internal top/base and XYZ are distinct', () => {
   const m=fixture([[{k:'drawer',h:22}],[],[]])(0,0);
   near(m.w,64.3); near(m.h,22); near(m.dep,58);
-  near(m.x0,1.8); near(m.y0,9.8); near(m.z0,.5); near(m.z1,58.5);
+  near(m.x0,1.8); near(m.y0,9.8); near(m.z0,.6); near(m.z1,58.6); // from the back board (0.6) to the 1.4 cm fitting setback
   near(m.top,196.4); near(m.bottom,0); near(m.freeTop,196.4); near(m.freeBelow,0);
 });
 test('stacked drawer: top distance includes other items but free space does not', () => {

@@ -2,6 +2,7 @@ import type { EditorScene } from '../projects/editor-scene';
 import { createSceneCommands } from './scene-commands';
 import { createDesignCommands } from './design-commands';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
+import { depthForFitting } from '../../domain/wardrobe/carcass';
 import { wallFace } from '../../domain/studio/studio';
 import { setInsideLength, setWallSize, setOpeningSize, moveOpening } from '../../domain/studio/studio-edit';
 import { moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
@@ -71,7 +72,7 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         if (ref.kind === 'reach') design.setWardrobeReach(value);
         else if (ref.kind === 'item-gap') design.setItemClearance(ref.section, ref.index, ref.side, value);
         else if (ref.kind === 'board-gap') design.setDividerClearance(ref.index, ref.side, value);
-        else if (ref.axis === 'd') commands.setCabinetSize('d', value + 2, false);
+        else if (ref.axis === 'd') commands.setCabinetSize('d', depthForFitting(value), false);
         else if (ref.kind === 'item-size') {
             state().sel = ref.section; state().item = ref.index;
             if (ref.axis === 'w') design.setItemW(value); else design.setItemH(value);

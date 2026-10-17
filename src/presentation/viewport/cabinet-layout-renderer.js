@@ -9,6 +9,7 @@ import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardro
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth, partitionDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
@@ -115,7 +116,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);
         shadow.userData.floorShadow = true;
         renderState.Gr.add(shadow);
-        const { w, h, d, n } = getRenderDesign(), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = PLINTH + PANEL, V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
+        const { w, h, d, n } = getRenderDesign(), fd = fittingDepth(d), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = PLINTH + PANEL, V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         renderState.Gr.userData.ownedMaterials = materials.owned;
         // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
         const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
@@ -232,8 +233,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     && q.want >= geometry.ceilingTop(i, 0, sw) - .5 && r.y1 >= geometry.ceilingIn(i, r.x0, r.x1) - .05));
                 const roof = roofFit ? roofDividerMesh(getRenderDesign(), x + w / 2 + r.x0, x + w / 2 + r.x1, iy + r.y0, mp) : null;
                 if (roof) renderState.Gr.add(roof);
-                const panel = roof ? null : boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp), null)
-                    : box(r.x1 - r.x0, r.y1 - r.y0, d - 2, cx, cy, -.5, mp);
+                const panel = roof ? null : boardCut ? (slabIn(x, r.x1 - r.x0, r.y1 - r.y0, fd.depth, cx, cy, fd.centre, mp), null)
+                    : box(r.x1 - r.x0, r.y1 - r.y0, fd.depth, cx, cy, fd.centre, mp);
                 // Picking follows the cut roof, including the taller front/rear area.
                 const vr = geometry.visibleRect(q), vcx = x + (vr.x0 + vr.x1) / 2, vcy = iy + (vr.y0 + vr.y1) / 2;
                 const hit = new THREE.Mesh(roof ? roof.geometry.clone() : new THREE.BoxGeometry(Math.max(5, vr.x1 - vr.x0), Math.max(5, vr.y1 - vr.y0), d), resources.HM);
@@ -248,8 +249,8 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                     sceneMeasurementBadge(el, { kind: 'board-size', index: j, axis: hor ? 'w' : 'h' }, hor ? 'Shelf width' : 'Divider height',
                         hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0, hor ? 'horizontal' : 'vertical');
                     bindRuler(el, ra, rb, hor ? 'under' : 'height');
-                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, -d / 2 + .5), db = new V(x + vr.x0, iy + vr.y0, d / 2 - 1.5), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(d - 2) + ' cm', 'lbl dim space-ruler item-dimension');
-                    sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', d - 2, 'horizontal', MIN_CABINET_DEPTH - 2, 78);
+                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, fd.z0 - d / 2), db = new V(x + vr.x0, iy + vr.y0, fd.z1 - d / 2), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(fd.depth) + ' cm', 'lbl dim space-ruler item-dimension');
+                    sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', fd.depth, 'horizontal', fittingDepth(MIN_CABINET_DEPTH).depth, 78);
                     bindRuler(depthLabel, da, db, 'depth');
                     const depthEntry = renderState.labs[renderState.labs.length - 1], clearances = createDividerClearances(j, x);
                     renderState.dividerVisuals[j] = { panel, hit, outline, sizeEntry, depthEntry, clearances, baseX: x };
@@ -321,7 +322,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             x += sw;
             if (i < n - 1) {
                 // Partitions run from the base board up to the top's underside.
-                renderUpright(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy, d - 1, mp, box, prism);
+                renderUpright(getRenderDesign(), x + w / 2, x + w / 2 + PANEL, iy, pd.depth, mp, box, prism, pd.centre);
                 x += PANEL;
             }
         });
