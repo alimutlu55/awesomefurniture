@@ -62,6 +62,10 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
                 return;
             }
         }
+        // A finger held still on the selected kitchen unit pulls out copies, also while a space in it is chosen.
+        if (kitchenArray && selectionState.focusOn && !selectionState.shapeEditing && picking.cast(e, renderState.allHits)?.object.userData.wardrobe === model.scene.activeWardrobe) {
+            kitchenArray.holdStart(e.clientX, e.clientY, () => { interactionState.moved = 99; });
+        }
         if (e.pointerType !== 'touch' && model.activeCabinet().state.divider >= 0 && selectionState.focusOn && inspector.inside()) {
             const hit = picking.cast(e, renderState.ihits);
             if (hit?.object.userData.divider === model.activeCabinet().state.divider) {
@@ -106,6 +110,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
             kitchenArray.move(e.clientX, e.clientY);
             return;
         }
+        kitchenArray?.holdMoved(e.clientX, e.clientY);
         const pan = interactionState.panGesture;
         if (pan?.id === e.pointerId) {
             camera.panBy(e.clientX - pan.x, e.clientY - pan.y);
@@ -119,7 +124,6 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
         }
         if (interactionState.wardrobeGesture) {
             if (interactionState.ptrs.has(e.pointerId)) interactionState.ptrs.set(e.pointerId, e);
-            kitchenArray?.holdMoved(e.clientX, e.clientY);
             interactions.moveWardrobeFromPointer(e);
             return;
         }
