@@ -4,6 +4,7 @@ import { hob, sinkWithTap, spanSlab } from './furniture-parts';
 import { WORKTOP, kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { hasTrait } from '../../domain/wardrobe/fittings';
 import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
+import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 
@@ -38,9 +39,8 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   }
   /** Section centres along a unit's width, cabinet-centred. */
   function sectionCentres(state: Unit['state']) {
-    const n = state.n, weights = state.wt.slice(0, n), total = weights.reduce((a, b) => a + b, 0), inner = state.w - (n + 1) * PANEL;
     let x = -state.w / 2 + PANEL;
-    return weights.map(weight => { const w = inner * weight / total, c = x + w / 2; x += w + PANEL; return { c, w }; });
+    return sectionWidths(state).map(w => { const c = x + w / 2; x += w + PANEL; return { c, w }; });
   }
   function build(units: readonly Unit[]) {
     clear();

@@ -1,9 +1,9 @@
 [
  {
   "title": "Best match",
-  "score": 74.38,
+  "score": 77.99,
   "complete": false,
-  "cost": 915,
+  "cost": 974,
   "coverage": {
    "short": 0,
    "long": 0,
@@ -23,80 +23,79 @@
    "handbags": 0,
    "seasonalBoxes": 0,
    "seasonalLitres": 0,
-   "drawerFolded": 0
+   "drawerFolded": 12
   },
   "warnings": [
-   "Estimated cost 915 is over your 900 budget.",
-   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
-   "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
+   "Estimated cost 974 is over your 900 budget.",
+   "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
   ],
   "sections": [
    {
-    "width": 30.933,
+    "width": 31,
     "items": [
      {
-      "k": "folded",
-      "purpose": "pants",
-      "h": 28.8,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 31
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 28.8,
-      "w": 30.933
+      "y": 18,
+      "w": 31
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 46.8,
-      "w": 30.933
+      "y": 36,
+      "w": 31
      },
      {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
       "x": 0,
-      "y": 64.8,
-      "w": 30.933
+      "y": 54,
+      "w": 31
+     },
+     {
+      "k": "drawer",
+      "purpose": "folded",
+      "h": 23,
+      "x": 0,
+      "y": 77,
+      "w": 31
      },
      {
       "k": "folded",
       "purpose": "folded",
       "h": 22.8,
       "x": 0,
-      "y": 82.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 105.6,
-      "w": 30.933
+      "y": 100,
+      "w": 31
      },
      {
       "k": "folded",
       "purpose": "pants",
       "h": 22.4,
       "x": 0,
-      "y": 128.4,
-      "w": 30.933
+      "y": 122.8,
+      "w": 31
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 30.4,
+      "h": 36,
       "x": 0,
-      "y": 150.8,
-      "w": 30.933
+      "y": 145.2,
+      "w": 31
      },
      {
       "k": "shelf",
@@ -104,84 +103,161 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 31
      }
     ]
    },
    {
-    "width": 30.933,
+    "width": 30.9,
     "items": [
      {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 21.8,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
       "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 21.8,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 34.6,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 47.4,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 60.2,
-      "w": 30.933
+      "y": 18,
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 78.2,
-      "w": 30.933
+      "y": 36,
+      "w": 30.9
      },
      {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
       "x": 0,
-      "y": 96.2,
-      "w": 30.933
+      "y": 54,
+      "w": 30.9
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 66.8,
+      "w": 30.9
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 79.6,
+      "w": 30.9
      },
      {
       "k": "folded",
       "purpose": "folded",
       "h": 22.8,
       "x": 0,
-      "y": 114.2,
-      "w": 30.933
+      "y": 92.4,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 115.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 138,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 24,
+      "x": 0,
+      "y": 157.2,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 30.9
+     }
+    ]
+   },
+   {
+    "width": 30.9,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 57.6,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 86.4,
+      "w": 30.9
      },
      {
       "k": "folded",
       "purpose": "folded",
       "h": 22.4,
       "x": 0,
-      "y": 137,
-      "w": 30.933
+      "y": 115.2,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 21.8,
+      "x": 0,
+      "y": 137.6,
+      "w": 30.9
      },
      {
       "k": "shelf",
@@ -189,7 +265,7 @@
       "h": 21.8,
       "x": 0,
       "y": 159.4,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shelf",
@@ -197,84 +273,7 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
-     }
-    ]
-   },
-   {
-    "width": 30.933,
-    "items": [
-     {
-      "k": "folded",
-      "purpose": "pants",
-      "h": 28.8,
-      "x": 0,
-      "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 28.8,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 46.8,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 64.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 82.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 105.6,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 128.4,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 34.8,
-      "x": 0,
-      "y": 146.4,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 37.2,
-      "x": 0,
-      "y": 181.2,
-      "w": 30.933
+      "w": 30.9
      }
     ]
    }
@@ -283,9 +282,9 @@
  },
  {
   "title": "Open & Simple",
-  "score": 73.36,
+  "score": 73.96,
   "complete": false,
-  "cost": 915,
+  "cost": 896,
   "coverage": {
    "short": 0,
    "long": 0,
@@ -308,13 +307,97 @@
    "drawerFolded": 0
   },
   "warnings": [
-   "Estimated cost 915 is over your 900 budget.",
    "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
    "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
   ],
   "sections": [
    {
-    "width": 30.933,
+    "width": 31,
+    "items": [
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 21,
+      "x": 0,
+      "y": 0,
+      "w": 31
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 21,
+      "w": 31
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 33.8,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 46.6,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 69.4,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 92.2,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 115,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 22.4,
+      "x": 0,
+      "y": 137.8,
+      "w": 31
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 21,
+      "x": 0,
+      "y": 160.2,
+      "w": 31
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 31
+     }
+    ]
+   },
+   {
+    "width": 30.9,
     "items": [
      {
       "k": "folded",
@@ -322,156 +405,71 @@
       "h": 28.8,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 30.9
      },
      {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
       "y": 28.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 51.6,
-      "w": 30.933
+      "y": 46.8,
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 69.6,
-      "w": 30.933
+      "y": 64.8,
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 87.6,
-      "w": 30.933
+      "y": 82.8,
+      "w": 30.9
      },
      {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
-      "y": 105.6,
-      "w": 30.933
+      "y": 100.8,
+      "w": 30.9
      },
      {
-      "k": "folded",
-      "purpose": "pants",
-      "h": 22.4,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
-      "y": 128.4,
-      "w": 30.933
+      "y": 118.8,
+      "w": 30.9
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 30.4,
+      "h": 22.2,
       "x": 0,
-      "y": 150.8,
-      "w": 30.933
+      "y": 136.8,
+      "w": 30.9
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 37.2,
+      "h": 22.2,
       "x": 0,
-      "y": 181.2,
-      "w": 30.933
-     }
-    ]
-   },
-   {
-    "width": 30.933,
-    "items": [
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 21.8,
-      "x": 0,
-      "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 21.8,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 34.6,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 47.4,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 60.2,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 78.2,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 96.2,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 114.2,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.4,
-      "x": 0,
-      "y": 137,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 21.8,
-      "x": 0,
-      "y": 159.4,
-      "w": 30.933
+      "y": 159,
+      "w": 30.9
      },
      {
       "k": "shelf",
@@ -479,12 +477,12 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 30.9
      }
     ]
    },
    {
-    "width": 30.933,
+    "width": 30.9,
     "items": [
      {
       "k": "folded",
@@ -492,63 +490,63 @@
       "h": 28.8,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 30.9
      },
      {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
       "x": 0,
       "y": 28.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 51.6,
-      "w": 30.933
+      "y": 46.8,
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 69.6,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 87.6,
-      "w": 30.933
+      "y": 64.8,
+      "w": 30.9
      },
      {
       "k": "folded",
       "purpose": "folded",
       "h": 22.8,
       "x": 0,
+      "y": 82.8,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.4,
+      "x": 0,
       "y": 105.6,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 18,
       "x": 0,
-      "y": 128.4,
-      "w": 30.933
+      "y": 128,
+      "w": 30.9
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 34.8,
+      "h": 35.2,
       "x": 0,
-      "y": 146.4,
-      "w": 30.933
+      "y": 146,
+      "w": 30.9
      },
      {
       "k": "shelf",
@@ -556,7 +554,7 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 30.9
      }
     ]
    }
@@ -564,10 +562,10 @@
   "dividers": []
  },
  {
-  "title": "Balanced storage",
-  "score": 72.42,
+  "title": "Open & Simple",
+  "score": 73.96,
   "complete": false,
-  "cost": 907,
+  "cost": 897,
   "coverage": {
    "short": 0,
    "long": 0,
@@ -590,85 +588,84 @@
    "drawerFolded": 0
   },
   "warnings": [
-   "Estimated cost 907 is over your 900 budget.",
    "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.",
    "Some daily items sit outside the 60–150 cm prime zone. Frequent items are easier to use nearer to it."
   ],
   "sections": [
    {
-    "width": 30.933,
+    "width": 31,
     "items": [
      {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 21,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 31
      },
      {
       "k": "sdrawer",
       "purpose": "small",
       "h": 12.8,
       "x": 0,
-      "y": 12.8,
-      "w": 30.933
+      "y": 21,
+      "w": 31
      },
      {
       "k": "sdrawer",
       "purpose": "small",
       "h": 12.8,
       "x": 0,
-      "y": 25.6,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 19.2,
-      "x": 0,
-      "y": 38.4,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 19.2,
-      "x": 0,
-      "y": 57.6,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 19.2,
-      "x": 0,
-      "y": 76.8,
-      "w": 30.933
+      "y": 33.8,
+      "w": 31
      },
      {
       "k": "folded",
       "purpose": "folded",
       "h": 22.8,
       "x": 0,
-      "y": 96,
-      "w": 30.933
+      "y": 46.6,
+      "w": 31
      },
      {
       "k": "folded",
       "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 69.4,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 92.2,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 22.8,
+      "x": 0,
+      "y": 115,
+      "w": 31
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
       "h": 22.4,
       "x": 0,
-      "y": 118.8,
-      "w": 30.933
+      "y": 137.8,
+      "w": 31
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 40,
+      "h": 21,
       "x": 0,
-      "y": 141.2,
-      "w": 30.933
+      "y": 160.2,
+      "w": 31
      },
      {
       "k": "shelf",
@@ -676,12 +673,97 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 31
      }
     ]
    },
    {
-    "width": 30.933,
+    "width": 30.9,
+    "items": [
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 20.4,
+      "x": 0,
+      "y": 0,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 20.4,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 49.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 67.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 18,
+      "x": 0,
+      "y": 85.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 103.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 122.4,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 141.6,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 20.4,
+      "x": 0,
+      "y": 160.8,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 30.9
+     }
+    ]
+   },
+   {
+    "width": 30.9,
     "items": [
      {
       "k": "folded",
@@ -689,7 +771,7 @@
       "h": 28.8,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
@@ -697,7 +779,7 @@
       "h": 18,
       "x": 0,
       "y": 28.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
@@ -705,7 +787,7 @@
       "h": 18,
       "x": 0,
       "y": 46.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
@@ -713,7 +795,7 @@
       "h": 18,
       "x": 0,
       "y": 64.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "folded",
@@ -721,108 +803,31 @@
       "h": 22.8,
       "x": 0,
       "y": 82.8,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "folded",
       "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 105.6,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "pants",
       "h": 22.4,
       "x": 0,
-      "y": 128.4,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 30.4,
-      "x": 0,
-      "y": 150.8,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 37.2,
-      "x": 0,
-      "y": 181.2,
-      "w": 30.933
-     }
-    ]
-   },
-   {
-    "width": 30.933,
-    "items": [
-     {
-      "k": "folded",
-      "purpose": "pants",
-      "h": 28.8,
-      "x": 0,
-      "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 28.8,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 46.8,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 64.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 82.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
       "y": 105.6,
-      "w": 30.933
+      "w": 30.9
      },
      {
       "k": "shoe",
       "purpose": "shoes",
       "h": 19.2,
       "x": 0,
-      "y": 128.4,
-      "w": 30.933
+      "y": 128,
+      "w": 30.9
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 33.6,
+      "h": 34,
       "x": 0,
-      "y": 147.6,
-      "w": 30.933
+      "y": 147.2,
+      "w": 30.9
      },
      {
       "k": "shelf",
@@ -830,7 +835,7 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 30.9
      }
     ]
    }
@@ -839,9 +844,9 @@
  },
  {
   "title": "Daily Driver",
-  "score": 77.62,
+  "score": 77.24,
   "complete": false,
-  "cost": 912,
+  "cost": 972,
   "coverage": {
    "short": 0,
    "long": 0,
@@ -861,185 +866,15 @@
    "handbags": 0,
    "seasonalBoxes": 0,
    "seasonalLitres": 0,
-   "drawerFolded": 0
+   "drawerFolded": 12
   },
   "warnings": [
-   "Estimated cost 912 is over your 900 budget.",
+   "Estimated cost 972 is over your 900 budget.",
    "Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use."
   ],
   "sections": [
    {
-    "width": 30.933,
-    "items": [
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 18,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 36,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 54,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 66.8,
-      "w": 30.933
-     },
-     {
-      "k": "sdrawer",
-      "purpose": "small",
-      "h": 12.8,
-      "x": 0,
-      "y": 79.6,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 92.4,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 115.2,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 21.6,
-      "x": 0,
-      "y": 138,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 21.6,
-      "x": 0,
-      "y": 159.6,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 37.2,
-      "x": 0,
-      "y": 181.2,
-      "w": 30.933
-     }
-    ]
-   },
-   {
-    "width": 30.933,
-    "items": [
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 0,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 18,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 36,
-      "w": 30.933
-     },
-     {
-      "k": "shoe",
-      "purpose": "shoes",
-      "h": 18,
-      "x": 0,
-      "y": 54,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "pants",
-      "h": 28.8,
-      "x": 0,
-      "y": 72,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.8,
-      "x": 0,
-      "y": 100.8,
-      "w": 30.933
-     },
-     {
-      "k": "folded",
-      "purpose": "folded",
-      "h": 22.4,
-      "x": 0,
-      "y": 123.6,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 35.2,
-      "x": 0,
-      "y": 146,
-      "w": 30.933
-     },
-     {
-      "k": "shelf",
-      "purpose": "reserve",
-      "h": 37.2,
-      "x": 0,
-      "y": 181.2,
-      "w": 30.933
-     }
-    ]
-   },
-   {
-    "width": 30.933,
+    "width": 31,
     "items": [
      {
       "k": "shoe",
@@ -1047,7 +882,7 @@
       "h": 19.2,
       "x": 0,
       "y": 0,
-      "w": 30.933
+      "w": 31
      },
      {
       "k": "shoe",
@@ -1055,7 +890,7 @@
       "h": 19.2,
       "x": 0,
       "y": 19.2,
-      "w": 30.933
+      "w": 31
      },
      {
       "k": "shoe",
@@ -1063,47 +898,47 @@
       "h": 19.2,
       "x": 0,
       "y": 38.4,
-      "w": 30.933
+      "w": 31
      },
      {
-      "k": "folded",
-      "purpose": "pants",
+      "k": "drawer",
+      "purpose": "folded",
       "h": 28.8,
       "x": 0,
       "y": 57.6,
-      "w": 30.933
+      "w": 31
      },
      {
-      "k": "folded",
+      "k": "drawer",
       "purpose": "folded",
-      "h": 22.8,
+      "h": 28.8,
       "x": 0,
       "y": 86.4,
-      "w": 30.933
+      "w": 31
      },
      {
       "k": "folded",
       "purpose": "folded",
-      "h": 22.8,
+      "h": 22.4,
       "x": 0,
-      "y": 109.2,
-      "w": 30.933
+      "y": 115.2,
+      "w": 31
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 24.6,
+      "h": 21.8,
       "x": 0,
-      "y": 132,
-      "w": 30.933
+      "y": 137.6,
+      "w": 31
      },
      {
       "k": "shelf",
       "purpose": "reserve",
-      "h": 24.6,
+      "h": 21.8,
       "x": 0,
-      "y": 156.6,
-      "w": 30.933
+      "y": 159.4,
+      "w": 31
      },
      {
       "k": "shelf",
@@ -1111,7 +946,169 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 30.933
+      "w": 31
+     }
+    ]
+   },
+   {
+    "width": 30.9,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 30.9
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 57.6,
+      "w": 30.9
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 70.4,
+      "w": 30.9
+     },
+     {
+      "k": "sdrawer",
+      "purpose": "small",
+      "h": 12.8,
+      "x": 0,
+      "y": 83.2,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 96,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 28.8,
+      "x": 0,
+      "y": 124.8,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 27.6,
+      "x": 0,
+      "y": 153.6,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 30.9
+     }
+    ]
+   },
+   {
+    "width": 30.9,
+    "items": [
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 0,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 19.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 38.4,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 57.6,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "pants",
+      "h": 28.8,
+      "x": 0,
+      "y": 86.4,
+      "w": 30.9
+     },
+     {
+      "k": "folded",
+      "purpose": "folded",
+      "h": 30,
+      "x": 0,
+      "y": 115.2,
+      "w": 30.9
+     },
+     {
+      "k": "shoe",
+      "purpose": "shoes",
+      "h": 19.2,
+      "x": 0,
+      "y": 145.2,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 16.8,
+      "x": 0,
+      "y": 164.4,
+      "w": 30.9
+     },
+     {
+      "k": "shelf",
+      "purpose": "reserve",
+      "h": 37.2,
+      "x": 0,
+      "y": 181.2,
+      "w": 30.9
      }
     ]
    }
@@ -1120,7 +1117,7 @@
  },
  {
   "title": "Drawer First",
-  "score": 76.22,
+  "score": 75.84,
   "complete": false,
   "cost": 1063,
   "coverage": {
@@ -1141,7 +1138,7 @@
    "small": 36,
    "handbags": 0,
    "seasonalBoxes": 2,
-   "seasonalLitres": 110.96,
+   "seasonalLitres": 110.99,
    "drawerFolded": 18
   },
   "warnings": [
@@ -1149,7 +1146,7 @@
   ],
   "sections": [
    {
-    "width": 33.143,
+    "width": 33.2,
     "items": [
      {
       "k": "drawer",
@@ -1157,7 +1154,7 @@
       "h": 28.8,
       "x": 0,
       "y": 0,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "drawer",
@@ -1165,7 +1162,7 @@
       "h": 28.8,
       "x": 0,
       "y": 28.8,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "drawer",
@@ -1173,7 +1170,7 @@
       "h": 28.8,
       "x": 0,
       "y": 57.6,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1181,7 +1178,7 @@
       "h": 19.2,
       "x": 0,
       "y": 86.4,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1189,7 +1186,7 @@
       "h": 19.2,
       "x": 0,
       "y": 105.6,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1197,7 +1194,7 @@
       "h": 19.2,
       "x": 0,
       "y": 124.8,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1205,7 +1202,7 @@
       "h": 19.2,
       "x": 0,
       "y": 144,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shelf",
@@ -1213,7 +1210,7 @@
       "h": 18,
       "x": 0,
       "y": 163.2,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "seasonal",
@@ -1221,13 +1218,13 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 33.143,
+      "w": 33.2,
       "boxes": 1
      }
     ]
    },
    {
-    "width": 26.514,
+    "width": 26.5,
     "items": [
      {
       "k": "shelf",
@@ -1235,7 +1232,7 @@
       "h": 35.4,
       "x": 0,
       "y": 0,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1243,7 +1240,7 @@
       "h": 35.4,
       "x": 0,
       "y": 35.4,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "sdrawer",
@@ -1251,7 +1248,7 @@
       "h": 12.8,
       "x": 0,
       "y": 70.8,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "sdrawer",
@@ -1259,7 +1256,7 @@
       "h": 12.8,
       "x": 0,
       "y": 83.6,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "sdrawer",
@@ -1267,7 +1264,7 @@
       "h": 14,
       "x": 0,
       "y": 96.4,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1275,7 +1272,7 @@
       "h": 35.4,
       "x": 0,
       "y": 110.4,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1283,7 +1280,7 @@
       "h": 35.4,
       "x": 0,
       "y": 145.8,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1291,12 +1288,12 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 26.514
+      "w": 26.5
      }
     ]
    },
    {
-    "width": 33.143,
+    "width": 33.1,
     "items": [
      {
       "k": "drawer",
@@ -1304,7 +1301,7 @@
       "h": 28.8,
       "x": 0,
       "y": 0,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "drawer",
@@ -1312,7 +1309,7 @@
       "h": 28.8,
       "x": 0,
       "y": 28.8,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "drawer",
@@ -1320,7 +1317,7 @@
       "h": 28.8,
       "x": 0,
       "y": 57.6,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1328,7 +1325,7 @@
       "h": 19.2,
       "x": 0,
       "y": 86.4,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1336,7 +1333,7 @@
       "h": 19.2,
       "x": 0,
       "y": 105.6,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1344,7 +1341,7 @@
       "h": 19.2,
       "x": 0,
       "y": 124.8,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1352,7 +1349,7 @@
       "h": 19.2,
       "x": 0,
       "y": 144,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shelf",
@@ -1360,7 +1357,7 @@
       "h": 18,
       "x": 0,
       "y": 163.2,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "seasonal",
@@ -1368,7 +1365,7 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 33.143,
+      "w": 33.1,
       "boxes": 1
      }
     ]
@@ -1378,7 +1375,7 @@
  },
  {
   "title": "Daily Driver",
-  "score": 72.28,
+  "score": 72.08,
   "complete": false,
   "cost": 910,
   "coverage": {
@@ -1399,7 +1396,7 @@
    "small": 36,
    "handbags": 0,
    "seasonalBoxes": 2,
-   "seasonalLitres": 110.96,
+   "seasonalLitres": 110.99,
    "drawerFolded": 12
   },
   "warnings": [
@@ -1408,7 +1405,7 @@
   ],
   "sections": [
    {
-    "width": 33.143,
+    "width": 33.2,
     "items": [
      {
       "k": "shoe",
@@ -1416,7 +1413,7 @@
       "h": 19.2,
       "x": 0,
       "y": 0,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1424,7 +1421,7 @@
       "h": 19.2,
       "x": 0,
       "y": 19.2,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1432,7 +1429,7 @@
       "h": 19.2,
       "x": 0,
       "y": 38.4,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "sdrawer",
@@ -1440,7 +1437,7 @@
       "h": 12.8,
       "x": 0,
       "y": 57.6,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "sdrawer",
@@ -1448,7 +1445,7 @@
       "h": 12.8,
       "x": 0,
       "y": 70.4,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "folded",
@@ -1456,7 +1453,7 @@
       "h": 30,
       "x": 0,
       "y": 83.2,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "folded",
@@ -1464,7 +1461,7 @@
       "h": 30,
       "x": 0,
       "y": 113.2,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shoe",
@@ -1472,7 +1469,7 @@
       "h": 19.2,
       "x": 0,
       "y": 143.2,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "shelf",
@@ -1480,7 +1477,7 @@
       "h": 18.8,
       "x": 0,
       "y": 162.4,
-      "w": 33.143
+      "w": 33.2
      },
      {
       "k": "seasonal",
@@ -1488,13 +1485,13 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 33.143,
+      "w": 33.2,
       "boxes": 1
      }
     ]
    },
    {
-    "width": 26.514,
+    "width": 26.5,
     "items": [
      {
       "k": "shelf",
@@ -1502,7 +1499,7 @@
       "h": 30.2,
       "x": 0,
       "y": 0,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1510,7 +1507,7 @@
       "h": 30.2,
       "x": 0,
       "y": 30.2,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1518,7 +1515,7 @@
       "h": 30.2,
       "x": 0,
       "y": 60.4,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1526,7 +1523,7 @@
       "h": 30.2,
       "x": 0,
       "y": 90.6,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1534,7 +1531,7 @@
       "h": 30.2,
       "x": 0,
       "y": 120.8,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1542,7 +1539,7 @@
       "h": 30.2,
       "x": 0,
       "y": 151,
-      "w": 26.514
+      "w": 26.5
      },
      {
       "k": "shelf",
@@ -1550,12 +1547,12 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 26.514
+      "w": 26.5
      }
     ]
    },
    {
-    "width": 33.143,
+    "width": 33.1,
     "items": [
      {
       "k": "shoe",
@@ -1563,7 +1560,7 @@
       "h": 19.2,
       "x": 0,
       "y": 0,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1571,7 +1568,7 @@
       "h": 19.2,
       "x": 0,
       "y": 19.2,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1579,7 +1576,7 @@
       "h": 19.2,
       "x": 0,
       "y": 38.4,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "drawer",
@@ -1587,7 +1584,7 @@
       "h": 28.8,
       "x": 0,
       "y": 57.6,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "drawer",
@@ -1595,7 +1592,7 @@
       "h": 28.8,
       "x": 0,
       "y": 86.4,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "folded",
@@ -1603,7 +1600,7 @@
       "h": 22.4,
       "x": 0,
       "y": 115.2,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shoe",
@@ -1611,7 +1608,7 @@
       "h": 19.2,
       "x": 0,
       "y": 137.6,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "shelf",
@@ -1619,7 +1616,7 @@
       "h": 24.4,
       "x": 0,
       "y": 156.8,
-      "w": 33.143
+      "w": 33.1
      },
      {
       "k": "seasonal",
@@ -1627,7 +1624,7 @@
       "h": 37.2,
       "x": 0,
       "y": 181.2,
-      "w": 33.143,
+      "w": 33.1,
       "boxes": 1
      }
     ]

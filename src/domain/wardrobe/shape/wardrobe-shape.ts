@@ -1,5 +1,6 @@
 import { PANEL, PLINTH } from '../catalog.js';
 import { rearShape, withRear } from './depth-shape';
+import { shareMillimetres, toMm } from '../../geometry/millimetres';
 
 /** Built-in wardrobe skeletons share one model: an x-monotone outer top profile
  * over the full cabinet width. Every template, sloped or stepped, is data in this
@@ -64,10 +65,14 @@ export function isRegularShape(shape: WardrobeShape | undefined): boolean {
   return Math.max(...ys) - Math.min(...ys) < .05;
 }
 
-/** Inner section widths: identical to the editor's long-standing weight rule. */
+/** Net inner section widths, shared out by weight in whole millimetres (shareMillimetres), so the bays
+ * plus every side panel and partition add up to the outer width exactly, with nothing lost to rounding.
+ * A width off the millimetre grid (older saves) keeps its fraction in the last bay. */
 export function sectionWidths(design: Pick<ShapedDesign, 'w' | 'n' | 'wt'>): number[] {
-  const iw = design.w - (design.n + 1) * PANEL, wt = design.wt.slice(0, design.n), total = wt.reduce((a, b) => a + b, 0);
-  return wt.map(x => iw * x / total);
+  const iw = design.w - (design.n + 1) * PANEL, mm = toMm(iw);
+  const ws = shareMillimetres(mm, design.wt.slice(0, design.n)).map(v => v / 10), residual = iw - mm / 10;
+  if (ws.length && Math.abs(residual) > 1e-9) ws[ws.length - 1]! += residual;
+  return ws;
 }
 /** Left face of each partition between section k and k+1. */
 export function partitionPositions(design: Pick<ShapedDesign, 'w' | 'n' | 'wt'>): number[] {

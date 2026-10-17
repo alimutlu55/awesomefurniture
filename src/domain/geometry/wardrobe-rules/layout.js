@@ -1,5 +1,6 @@
 import { WardrobePlanner } from '../../planner/wardrobe-planner.js';
-import { PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { PLINTH as PL, PANEL as T } from '../../wardrobe/catalog.js';
+import { sectionWidths } from '../../wardrobe/shape/wardrobe-shape';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** Section widths, fitting positions in a section, and used and free height.
  * Part of the wardrobe rules (see ../wardrobe-geometry.js). Centimetres; only the design is read.
@@ -9,10 +10,8 @@ export function createLayoutRules(ctx, deps) {
     const { getDesign } = ctx;
     const { ceilingIn, ceilingTop } = deps;
 
-    const widths = () => {
-        const n = getDesign().n, iw = getDesign().w - (n + 1) * T, wt = getDesign().wt.slice(0, n), s = wt.reduce((a, b) => a + b);
-        return wt.map(x => iw * x / s);
-    };
+    /** Net bay widths in whole millimetres; they close exactly on the outer width (sectionWidths). */
+    const widths = () => sectionWidths(getDesign());
     function computeLayout(i, secArg, bwArg) {
         const bw = bwArg !== undefined ? bwArg : widths()[i], sec = secArg !== undefined ? secArg : getDesign().secs[i];
         if (!sec || !sec.length) {

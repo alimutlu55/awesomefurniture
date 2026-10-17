@@ -260,7 +260,9 @@ test('auto design on a shaped wardrobe keeps every fitting under the top', async
   const geometry = createWardrobeGeometry(() => state);
   const proposal = selectStorageLayouts({ ...geometry.plannerConfig(), engaged: true })[0]!;
   commands.applyProposal(proposal);
-  assert.equal(state.n, 3, 'the shape-aligned partitions are kept');
+  // Under-stairs has no steps anchored to partitions, so the bays are the proposal's own (whole millimetres).
+  assert.equal(state.n, proposal.sections.length, 'the proposal\'s bays are applied');
+  assert.deepEqual(geometry.widths(), proposal.sections.map(s => s.width), 'bay widths are exactly the proposal\'s');
   assert.ok(state.secs.slice(0, state.n).some(items => items.length));
   for (let i = 0; i < state.n; i++) assert.equal(geometry.sectionLayoutValid(i), true, 'section ' + i);
   state.dividers.forEach((d, j) => assert.equal(geometry.dividerValid(d, j), true));

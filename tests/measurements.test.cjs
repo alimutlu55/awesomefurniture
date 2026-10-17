@@ -10,7 +10,7 @@ function fixture(sections, extra = {}) {
 const near = (actual, expected) => assert.ok(Math.abs(actual-expected)<.001, `${actual} should equal ${expected}`);
 test('bottom drawer: outer coordinates, internal top/base and XYZ are distinct', () => {
   const m=fixture([[{k:'drawer',h:22}],[],[]])(0,0);
-  near(m.w,64.2666666667); near(m.h,22); near(m.dep,58);
+  near(m.w,64.3); near(m.h,22); near(m.dep,58);
   near(m.x0,1.8); near(m.y0,9.8); near(m.z0,.5); near(m.z1,58.5);
   near(m.top,196.4); near(m.bottom,0); near(m.freeTop,196.4); near(m.freeBelow,0);
 });
@@ -27,13 +27,13 @@ test('side by side items do not obstruct one another; centered bridge sees actua
 });
 test('resized cabinets and narrow aligned items retain correct coordinates', () => {
   const m=fixture([[],[{k:'drawer',w:30,ax:'r',h:25}],[]],{h:250,d:45})(1,0);
-  near(m.dep,43); near(m.gapR,0); near(m.gapL,34.2666666667);
-  near(m.top,213.4); near(m.bottom,0); near(m.x0,102.1333333333);
+  near(m.dep,43); near(m.gapR,0); near(m.gapL,34.3);
+  near(m.top,213.4); near(m.bottom,0); near(m.x0,102.2);
 });
 test('missing item gives no measurement record', () => assert.equal(fixture([[],[],[]])(0,0),null));
 
 test('selected empty space uses internal width, height and depth',()=>{
- const m=fixture([[],[],[]]).space(2);near(m.w,64.2666666667);near(m.h,218.4);near(m.dep,58);near(m.y0,9.8);near(m.y1,228.2);
+ const m=fixture([[],[],[]]).space(2);near(m.w,64.2);near(m.h,218.4);near(m.dep,58);near(m.y0,9.8);near(m.y1,228.2);
 });
 test('selected free space excludes occupied height and follows resized cabinets',()=>{
  const m=fixture([[{k:'drawer',h:22},{k:'shelf',h:30}],[],[]],{h:250,d:45}).space(0);near(m.h,186.4);near(m.dep,43);near(m.y0,61.8);

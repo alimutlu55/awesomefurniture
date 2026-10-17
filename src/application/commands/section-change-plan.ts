@@ -6,6 +6,8 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { selectStorageLayouts,rankStoragePlans } from '../../domain/planner/selection-planner';
 import { partitionOptions } from '../../domain/planner/selection-spaces';
+import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { shareMillimetres, toMm } from '../../domain/geometry/millimetres';
 
 export interface SectionChangePlan {
  sourceKey:string;count:number;selected:number;widths:number[];affected:number;moved:number;resized:number;
@@ -25,8 +27,8 @@ export function planSectionChange(state:EditorState,delta:number,cfg:PlannerConf
  if(delta!==1&&delta!==-1)return null;
  const count=state.n+delta;
  if(count<1||count>6)return null;
- const total=state.w-(state.n+1)*PANEL,weights=state.wt.slice(0,state.n),sum=weights.reduce((a,b)=>a+b,0);
- const widths=weights.map(w=>w*total/sum),selected=Math.max(0,Math.min(state.sel,state.n-1));
+ // Bays are whole millimetres (sectionWidths); a split or merge keeps them whole.
+ const widths=sectionWidths(state),selected=Math.max(0,Math.min(state.sel,state.n-1));
  const sections:PlannerSection[]=widths.map((width,i)=>({width,items:state.secs[i]!.map((it,j)=>{
   const p=WardrobePlanner.layoutSection(state.secs[i]!,width)[j]!;
   return {...structuredClone(it),x:p.x0,y:p.y0,w:p.w};
@@ -34,11 +36,11 @@ export function planSectionChange(state:EditorState,delta:number,cfg:PlannerConf
  let boards=structuredClone(state.dividers),affected=0,moved=0,resized=0,blocked=false;
  let target=selected;
  if(delta>0){
-  const original=sections[selected]!,left=(original.width-PANEL)/2,right=original.width-PANEL-left;
+  const original=sections[selected]!,inner=toMm(original.width-PANEL),left=Math.floor(inner/2)/10,right=(inner-Math.floor(inner/2))/10;
   if(left<25-.01||right<25-.01){
-   const equal=(state.w-(count+1)*PANEL)/count;
-   if(equal<25-.01)return null;
-   return {sourceKey:sectionChangeKey(state),count,selected,widths:Array(count).fill(equal),affected:original.items.length,moved:0,resized:0,proposal:null,redesigned:false};
+   const equal=shareMillimetres(toMm(state.w-(count+1)*PANEL),Array(count).fill(1)).map(mm=>mm/10);
+   if(Math.min(...equal)<25-.01)return null;
+   return {sourceKey:sectionChangeKey(state),count,selected,widths:equal,affected:original.items.length,moved:0,resized:0,proposal:null,redesigned:false};
   }
   const halves:PlannerSection[]=[{width:left,items:[]},{width:right,items:[]}];
   affected=original.items.length;
@@ -59,7 +61,7 @@ export function planSectionChange(state:EditorState,delta:number,cfg:PlannerConf
   boards=transformed;sections.splice(selected,1,...halves);
  }else{
   target=selected<state.n-1?selected:selected-1;
-  const a=sections[target]!,b=sections[target+1]!,width=a.width+b.width+PANEL;
+  const a=sections[target]!,b=sections[target+1]!,width=toMm(a.width+b.width+PANEL)/10;
   affected=a.items.length+b.items.length;
   const items:EditorItem[]=[];let y=0;
   for(const section of [a,b])for(const item of [...section.items].sort((x,z)=>(x.y??0)-(z.y??0))){

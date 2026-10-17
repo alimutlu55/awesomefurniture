@@ -3,6 +3,7 @@ import type { PlannerConfig,PlannerSection } from './wardrobe-planner';
 import { WardrobePlanner } from './wardrobe-planner.js';
 import { number,selectionContext,SELECTION_RULES as R } from './selection-config';
 import { bayClearHeights } from './bay-ceilings';
+import { shareMillimetres } from '../geometry/millimetres';
 export interface OpenSpace {bay:number;x:number;y:number;w:number;h:number;depth:number}
 export interface Rect {x:number;y:number;w:number;h:number}
 export function boardRect(board:EditorDivider):Rect {
@@ -36,7 +37,8 @@ export function createSpaceModel(cfg:PlannerConfig) {
 export function partitionOptions(cfg:PlannerConfig):number[][] {
  if(cfg.fixedSections||cfg.bayWidths)return[createSpaceModel(cfg).sections.map(s=>s.width)];
  const outer=number(cfg.w,200)*10,max=Math.min(R.maxSections,Math.floor((outer-R.panel)/(R.minBay+R.panel))),out:number[][]=[];
- const add=(ws:number[])=>{if(ws.every(w=>w>=R.minBay-.1)&&!out.some(o=>JSON.stringify(o)===JSON.stringify(ws.map(w=>w/10))))out.push(ws.map(w=>Math.round(w*100)/1000));};
+ // Bays are cut in whole millimetres that add back up to the inner width exactly (shareMillimetres).
+ const add=(ws:number[])=>{const mm=shareMillimetres(Math.round(ws.reduce((a,b)=>a+b,0)),ws).map(w=>w/10);if(ws.every(w=>w>=R.minBay-.1)&&!out.some(o=>JSON.stringify(o)===JSON.stringify(mm)))out.push(mm);};
  for(let n=1;n<=max;n++){
   const total=outer-(n+1)*R.panel;
   add(Array.from({length:n},()=>total/n));
