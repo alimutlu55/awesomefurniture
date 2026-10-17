@@ -1,3 +1,4 @@
+import { framedExtent } from './framed-extent';
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
@@ -198,8 +199,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraFlyTo(goal, panOnly);
     }
     function camFront() {
-        const w = model.activeCabinet(), room = availableRoom(), r = $('#view').getBoundingClientRect();
-        return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: (w.y || 0) + model.activeCabinet().state.h / 2, dist: cameraFitDistance({ w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d }, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
+        const w = model.activeCabinet(), room = availableRoom(), r = $('#view').getBoundingClientRect(), f = framedExtent(w);
+        return { az: w.angle * Math.PI / 180, el: 0, x: w.x, z: w.z, y: f.y, dist: cameraFitDistance(f, 0, 0, room.w / room.h) * (r.height / room.h) * 1.06 };
     }
     function frameMobileInspector(selected = false, resizing = false) {
         cameraState.camHome = cameraState.camRestore = null;
@@ -212,11 +213,11 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.el = cameraState.camGoal?.el ?? cameraState.el;
             const room = availableRoom(), view = $('#view').getBoundingClientRect();
             // Bias toward the selection without moving the cabinet centre out of frame.
-            const focusX = box.x * .12, focusY = (box.y - w.state.h / 2) * .12;
+            const focusX = box.x * .12, focusY = (box.y - w.state.h / 2) * .12, f = framedExtent(w);
             goal.x = w.x + focusX * Math.cos(angle);
-            goal.y = (w.y || 0) + w.state.h / 2 + focusY;
+            goal.y = f.y + focusY;
             goal.z = w.z - focusX * Math.sin(angle);
-            const contextDistance = cameraFitDistance({ w: w.state.w + 2 * Math.abs(focusX), h: w.state.h + 2 * Math.abs(focusY), d: w.state.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
+            const contextDistance = cameraFitDistance({ w: f.w + 2 * Math.abs(focusX), h: f.h + 2 * Math.abs(focusY), d: f.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
             goal.dist = contextDistance * 1.025;
         }
         if (resizing && cameraState.camGoal) {
