@@ -7,8 +7,11 @@ import type { createTactileEdits, ScrubDimension } from '../../application/comma
 
 type Ports = Pick<MountEditorBindingsPorts, 'dom' | 'model' | 'lifetime' | 'inspector' | 'selectionState' | 'camera' | 'history' | 'room' | 'interactionState'>
     & { edits: ReturnType<typeof createTactileEdits> };
+/** The size fields a furniture reading opens on. */
+const SIZE_FIELDS = { w: '#w', h: '#h', d: '#d' } as const;
 /** The editor adapter supplies values and validation to one shared component. */
-export function bindDimensionScrubbers({ dom, model, lifetime, inspector, selectionState, camera, edits, history, room, interactionState }: Ports) {
+/** `openSize` opens the selected furniture's Size sheet. */
+export function bindDimensionScrubbers({ dom, model, lifetime, inspector, selectionState, camera, edits, history, room, interactionState, openSize }: Ports & { openSize: () => void }) {
     const scene = createMeasurementPreview({ model, checkpoint: history.checkpoint });
     const active = () => edits.active() || scene.active();
     bindMeasurementBadges({ layer: dom.$('#labels'), boundary: dom.$('#app'), windowEvents: dom.window,
@@ -33,6 +36,34 @@ export function bindDimensionScrubbers({ dom, model, lifetime, inspector, select
             return { id, selector, orientation, min, max, entry: true, read: () => scene.read(ref) ?? 0,
                 begin: () => scene.begin(ref), preview: delta => scene.preview(delta), finish: cancel => scene.finish(cancel), refresh };
         },
+    });
+    // In Furniture, a reading lets touches through to the furniture until Size is open (furniture.css). A tap on
+    // the furniture's width, height or depth opens Size on that field, ready to type. The reading is found when the
+    // finger lands: by the click, the tap may have reached the floor under it and cleared the selection.
+    let pressed: { key: string; id: number; x: number; y: number } | null = null;
+    lifetime.listen(dom.$('#c'), 'pointerdown', (raw: Event) => {
+        const e = raw as PointerEvent, app = dom.$('#app');
+        pressed = null;
+        if (selectionState.viewMode !== 'furniture' || (app.classList.contains('props-open') && dom.$('#left').dataset.contextSection === 'resize')) return;
+        const hit = [...dom.$('#labels').querySelectorAll<HTMLElement>('[data-scrub-dimension]')].find(b => {
+            const r = b.getBoundingClientRect();
+            return r.width > 0 && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        if (hit?.dataset.scrubDimension) pressed = { key: hit.dataset.scrubDimension, id: model.scene.activeWardrobe, x: e.clientX, y: e.clientY };
+    }, true);
+    lifetime.listen(dom.$('#c'), 'click', (raw: Event) => {
+        const e = raw as MouseEvent, tap = pressed;
+        pressed = null;
+        if (!tap || Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) return;
+        if (!selectionState.focusOn || model.scene.activeWardrobe !== tap.id) inspector.selectCabinet(tap.id);
+        // The reading measures the whole piece: Size opens on it, not on the space the tap may have chosen inside.
+        const state = model.activeCabinet().state;
+        Object.assign(state, { item: -1, divider: -1, space: null });
+        selectionState.deep = false;
+        inspector.update(true);
+        openSize();
+        const field = tap.key in SIZE_FIELDS ? dom.$(SIZE_FIELDS[tap.key as keyof typeof SIZE_FIELDS]) : null;
+        field?.focus({ preventScroll: true }); field?.select();
     });
     return { active: scene.active };
 }

@@ -27,7 +27,8 @@ import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
     const { $, document } = dom;
     bindTactileCanvas({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState,
-        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
+        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room,
+        openSize: () => resize.open() });
     bindSceneReset({ dom, selectionState, interactionState, plannerState, shellState, inspector,
         interactions, planner, shell, camera, sceneCommands, lifetime });
     mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),

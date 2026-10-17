@@ -1,6 +1,9 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
+// A tap on a measurement opens Size (focusing its field); while Size is open the measurements are controls.
+const armSize=async page=>{const b=await page.locator('.scrub-w:visible').boundingBox();await page.mouse.click(b.x+b.width/2,b.y+b.height/2);await page.waitForTimeout(600);
+ await page.evaluate(()=>{const r=document.querySelector('#editor-root')?.getRootNode?.()??document;(r.activeElement??document.activeElement)?.blur?.();});await page.waitForTimeout(300);};
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try{for(const width of [375,1440]){
@@ -9,6 +12,8 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
   const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
   const load=async spec=>{await page.goto('about:blank');await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));await el('view').waitFor();await page.waitForTimeout(700);};
+  // In Furniture the measurements are controls while a Size sheet is open.
+  const arm=async()=>armSize(page);
   const exact=async(badge,value,cancel=false)=>{
    const id=await badge.getAttribute('data-measurement-badge');
    if(width===375)await badge.tap();else await badge.click();const input=el('labels').locator(`[data-measurement-badge="${id}"] input`);await input.waitFor();await page.waitForTimeout(300);
@@ -24,10 +29,13 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    if(cancel)await page.keyboard.press('Escape');await page.mouse.up();await page.waitForTimeout(250);
   };
   await load({specVersion:1,wardrobes:[{width:200,height:230,depth:60}]});
+  await arm();
   const w=page.locator('.scrub-w:visible');await exact(w,211.5);assert.equal((await report()).wardrobes[0].width,211.5);
   await exact(w,220,true);assert.equal((await report()).wardrobes[0].width,211.5);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(200);assert.equal((await report()).wardrobes[0].width,200);
   // Add and select a real fitting through the existing UI and scene hit testing.
+  await el('left-close').dispatchEvent('click');await page.waitForTimeout(400);
+  if(!await page.locator('.lbl.add:visible').count()){const b=await el('view').boundingBox();await page.mouse.click(b.x+b.width/2,b.y+b.height*.5);await page.waitForTimeout(400);}
   await page.locator('.lbl.add:visible').first().click();await page.waitForTimeout(300);
   await el('pop2').locator('[data-m="short"]').first().click();await page.waitForTimeout(350);
   select:for(const y of [.6,.55,.65,.5,.75,.8,.4,.3])for(const x of [.5,.35,.45,.6,.65]){
@@ -35,6 +43,8 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    if(await el('toolbar').getAttribute('data-context')==='item')break select;
   }
   await page.waitForTimeout(400);
+  // An item's measurements are controls while its Size sheet is open.
+  await el('toolbar').locator('[data-action="resize"]').click();await page.waitForTimeout(500);
   const item=page.getByRole('slider',{name:'Item height',exact:true});await item.waitFor();
   const old=Number(await item.getAttribute('aria-valuenow'));
   await drag(item,0,12);assert.equal(Number(await item.getAttribute('aria-valuenow')),old-4);

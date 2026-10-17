@@ -58,3 +58,16 @@ svg.kitchen-art{filter:none}
  /* Every card in a row has the same art box, so their names line up; a shape drawing keeps its smaller size inside it. */
  #pop2 .mobile-add-products .shape-product .product-art{height:80px;padding:9px 2px 6px;box-sizing:border-box}
 }
+
+/* Furniture: touching the furniture moves it, so its measurements are readings that a drag or a tap passes
+   through, until a Size sheet is open (the piece's Size or Shape, an item's or a divider's Size). Then they
+   are controls again: drag to change, tap to type. A tap on a reading opens Size (dimension-scrubbers.ts). */
+#app[data-view-mode="furniture"] #labels .measurement-badge[data-measurement-badge]{pointer-events:none;cursor:default}
+#app[data-view-mode="furniture"] #labels .measurement-badge[data-measurement-badge]::after{display:none}
+#app[data-view-mode="furniture"].props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])) #labels .measurement-badge[data-measurement-badge],
+#app[data-view-mode="furniture"]:has(:is(#pop3,#pop4)[data-context-section="resize"].show) #labels .measurement-badge[data-measurement-badge]{
+ pointer-events:auto;cursor:ew-resize;box-shadow:0 0 0 1.5px var(--ink)}
+#app[data-view-mode="furniture"].props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])) #labels .measurement-badge[data-measurement-badge][aria-orientation="vertical"],
+#app[data-view-mode="furniture"]:has(:is(#pop3,#pop4)[data-context-section="resize"].show) #labels .measurement-badge[data-measurement-badge][aria-orientation="vertical"]{cursor:ns-resize}
+#app[data-view-mode="furniture"].props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])) #labels .measurement-badge[data-measurement-badge]::after,
+#app[data-view-mode="furniture"]:has(:is(#pop3,#pop4)[data-context-section="resize"].show) #labels .measurement-badge[data-measurement-badge]::after{display:block}

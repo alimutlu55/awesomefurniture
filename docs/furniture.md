@@ -46,6 +46,12 @@ With nothing selected, Furniture shows only Add, Undo and Redo: Add opens one sh
 (the Add context `furniture`), and furniture already in the room is selected by tapping it. A new project
 starts without furniture.
 
+**Measurements on the model** (W, H, D, an item's or a divider's sizes) are readings in Furniture: a drag
+or a tap passes through them to the furniture, so touching a piece always moves it. While a Size sheet is open
+(the piece's Size or Shape, an item's or a divider's Size) they are controls: drag to change, tap to type. A
+tap on a piece's W, H or D with Size closed opens Size with that field focused (`dimension-scrubbers.ts`,
+`furniture.css`). Studio keeps its measurements as controls.
+
 ## Kitchen cabinets
 
 | File | What it owns |
