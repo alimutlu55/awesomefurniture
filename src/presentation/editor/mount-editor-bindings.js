@@ -24,7 +24,7 @@ import { MODS } from '../../domain/wardrobe/catalog.js';
 import { fittingProduct } from '../../domain/wardrobe/fittings';
 import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
-export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room }) {
+export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray, framing }) {
     const { $, document } = dom;
     bindTactileCanvas({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState,
         renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room });
@@ -50,10 +50,15 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerDragBlur({ dom, interactions, lifetime });
     bindDividerDragEscape({ dom, interactions, interactionState, lifetime });
     observeViewportSize({ dom, camera, lifetime });
-    bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface });
-    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface });
-    bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room: room.surface });
-    bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room: room.surface });
+    bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    // Escape during a pull puts the copies back.
+    if (kitchenArray) lifetime.listen(dom.window, 'keydown', e => {
+        if (e.key !== 'Escape' || !kitchenArray.active()) return;
+        e.preventDefault(); e.stopImmediatePropagation(); kitchenArray.end(true);
+    }, true);
     bindCanvasLostpointercapture({ dom, interactions, interactionState, resources, lifetime });
     bindCanvasGestureBlur({ dom, interactions, interactionState, lifetime });
     bindCanvasWheel({ dom, camera, interactions, interactionState, resources, lifetime });
@@ -110,7 +115,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWizardFocusTrap({ dom, lifetime });
     addToolbarSeparator({ dom, });
     renderDoorChoices({ dom, });
-    shellBindings.bindFurnitureButtons({ dom, inspector, shell, model, camera, lifetime });
+    shellBindings.bindFurnitureButtons({ dom, inspector, shell, model, camera, lifetime, frame: () => framing ? framing.frame() : camera.frameWardrobe() });
     shellBindings.bindDropdownOpen({ dom, shell, lifetime });
     shellBindings.bindHelpMenu({ dom, shell, lifetime });
     shellBindings.bindResetClosesDropdown({ dom, shell, lifetime });

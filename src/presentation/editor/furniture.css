@@ -9,3 +9,14 @@
 .pop .addgrid .kitchen-product .product-art{width:100%;height:auto;aspect-ratio:146/110;border-radius:10px;background:#eae5de}
 .pop .addgrid .kitchen-product span{font-size:12px;text-align:center}
 svg.kitchen-art{filter:none}
+
+/* Pull-to-array grips on the sides of a selected kitchen unit: drag outwards to lay copies along the run. */
+.lbl.array-grip{position:absolute;left:0;top:0;width:34px;height:34px;padding:0;border-radius:50%;border:1px solid rgba(60,52,42,.18);
+ background:rgba(255,255,255,.94);color:var(--ink);box-shadow:0 2px 10px rgba(0,0,0,.14);cursor:ew-resize;touch-action:none;
+ display:grid;place-items:center;pointer-events:auto;z-index:6}
+.lbl.array-grip svg{width:18px;height:18px}
+.lbl.array-grip:hover,.lbl.array-grip.pulling{background:var(--ink);color:#fff}
+.lbl.array-grip[data-count]:not([data-count=""])::after{content:attr(data-count);position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+ padding:2px 8px;border-radius:10px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;white-space:nowrap}
+@media (max-width:900px){.lbl.array-grip{width:40px;height:40px}}
+#app[data-view-mode="studio"] .lbl.array-grip,#app[data-toolbar-mode="move"] .lbl.array-grip{display:none!important}

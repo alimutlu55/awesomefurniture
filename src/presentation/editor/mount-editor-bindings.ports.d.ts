@@ -24,4 +24,8 @@ readonly lifetime: Readonly<ReturnType<typeof import('../viewport/editor-lifetim
 readonly elements: ReturnType<typeof import('./editor-dom.js').getEditorElements>;
 /** The room editor and its Size fields, for the contextual toolbar. */
 readonly room: Pick<ReturnType<typeof import('./room-wiring').createRoomWiring>, 'editor' | 'fields' | 'surface' | 'ceilingChoices' | 'resizePanel' | 'actOnWall' | 'paintPanel'>;
+/** Frames the selected furniture (a kitchen cabinet with its run). */
+readonly framing?: ReturnType<typeof import('./furniture-framing').createFurnitureFraming>;
+/** Pull-to-array on a selected kitchen unit, for the canvas bindings and Escape. */
+readonly kitchenArray?: ReturnType<typeof import('./kitchen-array-gesture').createKitchenArrayGesture>;
 }

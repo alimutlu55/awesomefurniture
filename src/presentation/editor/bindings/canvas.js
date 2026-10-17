@@ -7,7 +7,7 @@ export function observeViewportSize({ dom, camera, lifetime }) {
     lifetime.observe(new ResizeObserver(camera.resize), $('#view'));
 }
 /** @param {import('./canvas.ports').BindCanvasPointerdownPorts} ports */
-export function bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room }) {
+export function bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
     // The right button pans; it opens no menu on the model.
     lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
@@ -36,6 +36,8 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         }
         // A second pointer always joins the camera gesture before hit testing.
         if (interactionState.ptrs.size > 0) {
+            kitchenArray?.holdCancel();
+            if (kitchenArray?.active()) kitchenArray.end(true);
             resources.cv.setPointerCapture(e.pointerId);
             interactionState.ptrs.set(e.pointerId, e);
             if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
@@ -55,6 +57,8 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
                 resources.cv.setPointerCapture(e.pointerId);
                 if (e.pointerType === 'touch') interactionState.ptrs.set(e.pointerId, e);
                 interactions.beginWardrobeDrag(e, 'floor');
+                // A kitchen unit held still for a moment pulls out copies instead of moving.
+                kitchenArray?.holdStart(e.clientX, e.clientY, () => interactions.finishWardrobeDrag(true));
                 return;
             }
         }
@@ -88,7 +92,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointermovePorts} ports */
-export function bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room }) {
+export function bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room, kitchenArray }) {
     const { $ } = dom;
     lifetime.listen(resources.cv, 'pointermove', e => {
         if (room?.dragging()) {
@@ -96,6 +100,10 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
             return;
         }
         if (interactionState.dividerGesture) {
+            return;
+        }
+        if (kitchenArray?.active()) {
+            kitchenArray.move(e.clientX, e.clientY);
             return;
         }
         const pan = interactionState.panGesture;
@@ -111,6 +119,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
         }
         if (interactionState.wardrobeGesture) {
             if (interactionState.ptrs.has(e.pointerId)) interactionState.ptrs.set(e.pointerId, e);
+            kitchenArray?.holdMoved(e.clientX, e.clientY);
             interactions.moveWardrobeFromPointer(e);
             return;
         }
@@ -172,8 +181,15 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
-export function bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room }) {
+export function bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
+        kitchenArray?.holdCancel();
+        if (kitchenArray?.active()) {
+            interactionState.ptrs.delete(e.pointerId);
+            if (resources.cv.hasPointerCapture(e.pointerId)) resources.cv.releasePointerCapture(e.pointerId);
+            kitchenArray.end();
+            return;
+        }
         // A tap on the selected part (no drag) selects what is under the pointer, as any tap does.
         if (room?.dragging()) {
             if (!room.end()) interactions.pick(e);
@@ -244,8 +260,10 @@ export function bindCanvasPointerup({ dom, interactions, shell, interactionState
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointercancelPorts} ports */
-export function bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room }) {
+export function bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointercancel', e => {
+        kitchenArray?.holdCancel();
+        if (kitchenArray?.active()) kitchenArray.end(true);
         if (room?.dragging()) room.end(true);
         if (interactionState.panGesture?.id === e.pointerId) interactionState.panGesture = null;
         if (interactionState.wardrobeGesture) {

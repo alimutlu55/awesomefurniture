@@ -1,3 +1,4 @@
+import { isKitchen } from '../../domain/furniture/furniture';
 import { createAddMenuPresenter } from './add-menu-presenter.js';
 import { viewedWall } from '../../domain/studio/viewed-wall';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
@@ -178,7 +179,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#score-sub').hidden = true;
         planner.planUI(assessment);
         const iw = ws.reduce((a, b) => a + b);
-        $('#specs').innerHTML = [['Outer', model.activeCabinet().state.w + ' × ' + model.activeCabinet().state.h + ' × ' + model.activeCabinet().state.d], ['Inner height', geometry.ih().toFixed(1) + ' cm'], ['Inner width (total)', iw.toFixed(1) + ' cm'], ['Hanging length', s.hang.toFixed(2) + ' m'], ['Shelf area', s.shelf.toFixed(2) + ' m²'], ['Drawers', s.drawers], ['Space used', Math.round(s.avg * 100) + '%']].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+        $('#specs').innerHTML = isKitchen(model.activeCabinet().state) ? planner.kitchenSpecs() : [['Outer', model.activeCabinet().state.w + ' × ' + model.activeCabinet().state.h + ' × ' + model.activeCabinet().state.d], ['Inner height', geometry.ih().toFixed(1) + ' cm'], ['Inner width (total)', iw.toFixed(1) + ' cm'], ['Hanging length', s.hang.toFixed(2) + ' m'], ['Shelf area', s.shelf.toFixed(2) + ' m²'], ['Drawers', s.drawers], ['Space used', Math.round(s.avg * 100) + '%']].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
         const lv = Math.floor(shellState.G.xp / 150) + 1;
         $('#lvl').textContent = String(lv);
         $('#xp').textContent = String(shellState.G.xp);

@@ -90,6 +90,9 @@ test('duplicate and pull-to-array copy size and finish but never the appliance',
   }
   assert.ok(s.wardrobes[0]!.state.secs[0]!.some(it => it.k === 'oven'), 'the original keeps its oven');
   assert.deepEqual(kitchenSpans(s.wardrobes).filter(x => x.kind === 'worktop').map(x => x.length), [320], 'the worktop runs over all four');
+  assert.equal(commands.arrayKitchenUnit(1, 1), 1, 'pulling the same side again continues after the copies');
+  assert.equal(commands.arrayKitchenUnit(1, -1), 1, 'and the other side starts before the run');
+  assert.deepEqual(s.wardrobes.map(c => c.x).sort((a, b) => a - b), [-80, 0, 80, 160, 240, 320]);
   const copy = commands.addCabinet(true)!;
   assert.equal(copy.state.unit, 'base');
   assert.ok(copy.state.secs[0]!.every(it => !hasTrait(it.k, 'appliance')));
@@ -107,4 +110,16 @@ test('copies stop at a wall of the room and at other furniture', () => {
   const free = scene(unit(1, 'base', 0), blocked);
   const second = createSceneCommands(() => free).arrayKitchenUnit(40, 1);
   assert.equal(second, 15, 'stops before the unit 1000 cm away');
+});
+
+test('the Storage panel counts the whole kitchen along the wall and says what it still lacks', async () => {
+  const { kitchenStorage } = await import('../../src/domain/kitchen/kitchen-storage');
+  const units = [unit(1, 'base', 0, 0, 0, 60, 'sink'), unit(2, 'base', 60, 0, 0, 60, 'drawers'), unit(3, 'tall', 120, 0, 0, 60, 'fridge'), unit(4, 'upper', 0, -11.5, 0, 60, 'upper'), unit(9, 'base', 0, 400)];
+  const s = kitchenStorage(units, units[1]!);
+  assert.equal(s.drawers, 3);
+  assert.equal(s.doors, 1, 'the fridge housing cupboard; the sink and fridge fronts are appliances');
+  assert.deepEqual(s.appliances, ['Sink and tap', 'Integrated fridge']);
+  assert.equal(s.worktop, 120, 'the worktop stops at the tall unit');
+  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1 }, 'a unit on another wall is another kitchen');
+  assert.deepEqual(s.notes, ['No hob yet: add one to a base cabinet, under the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });

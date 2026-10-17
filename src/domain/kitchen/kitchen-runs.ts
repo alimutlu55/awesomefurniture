@@ -102,16 +102,36 @@ export function stackedPose(anchor: UnitPose, d: number, y: number): Pose {
   return { ...toScene(along(anchor, angle), backLine(anchor, angle) + d / 2, angle), y, angle };
 }
 
-/** Poses for `count` copies of `anchor` laid side by side from it towards `side`, nearest first. */
-export function arrayPoses(anchor: UnitPose, count: number, side: 1 | -1): Pose[] {
+/** Poses for `count` copies of `unit` laid side by side towards `side`, nearest first, starting beside `from`
+ * (the unit itself, or the end of the run it stands in). */
+export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: UnitPose = unit): Pose[] {
   const poses: Pose[] = [];
-  let from: UnitPose = anchor;
+  let last: UnitPose = from;
   for (let n = 0; n < count; n++) {
-    const pose = besidePose(from, anchor.state.w, anchor.state.d, side);
+    const pose = besidePose(last, unit.state.w, unit.state.d, side, unit.y || 0);
     poses.push(pose);
-    from = { ...anchor, ...pose };
+    last = { ...unit, ...pose };
   }
   return poses;
+}
+
+/** The run a unit stands in among the units at its height, left to right. */
+export function runOf(units: readonly UnitPose[], unit: UnitPose): UnitPose[] {
+  const level = units.filter(c => isKitchenUnit(c) && Math.abs((c.y || 0) - (unit.y || 0)) < .5);
+  return kitchenRuns(level).find(r => r.some(c => c.id === unit.id)) ?? [unit];
+}
+
+/** Every kitchen unit along the same wall as `unit` (same direction, backs in line), at any height: the kitchen
+ * it belongs to, for framing it whole. */
+export function kitchenAlong(units: readonly UnitPose[], unit: UnitPose): UnitPose[] {
+  const back = backLine(unit, unit.angle);
+  return units.filter(c => isKitchenUnit(c) && sameAngle(c.angle, unit.angle) && Math.abs(backLine(c, unit.angle) - back) < RUN_TOLERANCE);
+}
+
+/** How far the ends of a unit's run are from its centre, along its width: [left (negative), right]. */
+export function runReach(units: readonly UnitPose[], unit: UnitPose): [number, number] {
+  const run = runOf(units, unit), angle = unit.angle, at = along(unit, angle);
+  return [Math.min(...run.map(c => along(c, angle) - c.state.w / 2)) - at, Math.max(...run.map(c => along(c, angle) + c.state.w / 2)) - at];
 }
 
 /** How many copies of a unit `width` wide a pull of `distance` centimetres from its side asks for. A copy

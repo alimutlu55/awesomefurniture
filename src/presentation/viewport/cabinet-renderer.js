@@ -26,7 +26,7 @@ import { createKitchenRunRenderer } from './kitchen-run-renderer';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
-    shapeInspector, studioEditor }) {
+    shapeInspector, studioEditor, kitchenArray }) {
     const { $, document } = dom;
     let renderDesign = model.activeCabinet().state;
     const geometry = createWardrobeGeometry(() => renderDesign, () => settings.budget);
@@ -161,11 +161,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.dividerVisuals = [];
         renderState.labs.forEach(l => {
             // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
-            if (l.el !== renderState.dividerMoveHandle && !l.el.classList.contains('shape-handle')) {
+            if (l.el !== renderState.dividerMoveHandle && !l.el.classList.contains('shape-handle') && !l.el.classList.contains('array-grip')) {
                 l.el.remove();
             }
             l.rulerNode?.remove();
         });
+        kitchenArray?.beginBuild();
         renderState.wardrobeGroups.forEach(g => {
             resources.scene.remove(g);
             disposeCabinetGroup(g, new Set([resources.HM, ...clothes.sharedMaterials, ...bags.sharedMaterials, ...trousers.sharedMaterials]), new Set([...clothes.sharedGeometries, ...bags.sharedGeometries, ...trousers.sharedGeometries]));
@@ -221,6 +222,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 addWardrobeActions();
                 addWardrobeMoveHandles();
             }
+            // A selected kitchen unit can be pulled out into copies from either side, also while a space in it is chosen.
+            if (!selectionState.shapeEditing && model.activeCabinet().state.item < 0) kitchenArray?.place();
         }
         WardrobePlanner.configure(geometry.plannerConfig());
         inspector.crumbUI();

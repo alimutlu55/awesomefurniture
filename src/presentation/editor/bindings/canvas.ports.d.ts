@@ -1,6 +1,8 @@
 /** Explicit dependencies consumed by ./canvas.js. */
 /** The room editor's surface drags: the selected wall, opening or ceiling, grabbed on the model. */
 type RoomSurface = Readonly<Pick<ReturnType<typeof import('../room-wiring').createRoomWiring>['surface'], 'grab' | 'move' | 'end' | 'dragging'>>;
+/** Pull-to-array on a selected kitchen unit: a long press on it, then a slide, pulls out copies. */
+type KitchenArray = Readonly<Pick<ReturnType<typeof import('../kitchen-array-gesture').createKitchenArrayGesture>, 'active' | 'move' | 'end' | 'holdStart' | 'holdMoved' | 'holdCancel'>>;
 
 
 export interface ObserveViewportSizePorts {
@@ -22,6 +24,7 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
+readonly kitchenArray?: KitchenArray;
 }
 
 export interface BindCanvasPointermovePorts {
@@ -35,6 +38,7 @@ readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.j
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
+readonly kitchenArray?: KitchenArray;
 }
 
 export interface BindCanvasPointerupPorts {
@@ -45,6 +49,7 @@ readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.j
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
+readonly kitchenArray?: KitchenArray;
 }
 
 export interface BindCanvasPointercancelPorts {
@@ -54,6 +59,7 @@ readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.j
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
+readonly kitchenArray?: KitchenArray;
 }
 
 export interface BindCanvasLostpointercapturePorts {

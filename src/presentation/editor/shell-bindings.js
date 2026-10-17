@@ -29,7 +29,7 @@ export function bindFurnitureButtons(ports) {
             if (!pick) { openSceneAdd(ports, kind); return; }
             ports.shell.closeDD();
             inspector.selectCabinet(pick.id);
-            camera.frameWardrobe();
+            ports.frame();
         });
     }
 }

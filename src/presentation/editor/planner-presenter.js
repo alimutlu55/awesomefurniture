@@ -1,3 +1,5 @@
+import { furnitureModule, isKitchen } from '../../domain/furniture/furniture';
+import { createKitchenPlan } from './kitchen-plan';
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { PANEL, PLINTH, PURPOSE, purposeName, itemName, r1 } from '../../domain/wardrobe/catalog.js';
@@ -9,6 +11,7 @@ import { planInBackground } from './planner-worker-client';
 /** wizard presentation behavior; the view ports provide transient UI state and application commands. */
 /** @param {import('./planner-presenter.ports').CreatePlannerPresenterPorts} ports */
 export function createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }) {
+    const kitchenPlan = createKitchenPlan({ $: dom.$, model });
     const { $, document } = dom;
     const planned = k => Math.ceil((model.activeCabinet().state.profile.needs[k] || 0) * (1 + (model.activeCabinet().state.profile.growth ?? 15) / 100) - 1e-9);
     function miniPlan(p) {
@@ -134,6 +137,11 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
     }
     function openWizard() {
         shell.closeDD();
+        // Auto design plans wardrobes; a kitchen cabinet is filled with Add item.
+        if (!furnitureModule(model.activeCabinet().state).autoDesign) {
+            shell.toast('Auto design plans wardrobes. Fill a cabinet with Add item, in the space you select.');
+            return;
+        }
         plannerState.wizardTrigger = document.activeElement;
         inspector.hidePop();
         $('#app').classList.remove('props-open');
@@ -185,7 +193,9 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
     }
     function planUI(a) {
         prewarm();
-        $('#empty-scene').hidden = geometry.stats().mods > 0 || plannerState.emptyDismissed;
+        $('#empty-scene').hidden = geometry.stats().mods > 0 || plannerState.emptyDismissed || !furnitureModule(model.activeCabinet().state).autoDesign;
+        // A kitchen cabinet's Storage is what its kitchen holds, not a wardrobe's capacity.
+        if (isKitchen(model.activeCabinet().state)) { kitchenPlan.render(); return; }
         $('#plan-title').textContent = model.activeCabinet().state.proposal?.title || (geometry.stats().mods ? 'Custom wardrobe' : 'Make it yours');
         const profile = model.activeCabinet().state.profile;
         const requested = Object.keys(profile.needs).filter(k => profile.needs[k] > 0);
@@ -221,5 +231,5 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         showCalculating('Settings changed · updating');
         plannerState.ideasTimer = lifetime.timeout(() => refreshIdeas(true), 350);
     }
-    return { miniPlan, renderIdeas, syncPreferences, readPreferences, refreshIdeas, openWizard, closeWizard, storedNow, planUI, markIdeasDirty, planned };
+    return { miniPlan, renderIdeas, syncPreferences, readPreferences, refreshIdeas, openWizard, closeWizard, storedNow, planUI, markIdeasDirty, planned, kitchenSpecs: kitchenPlan.specs };
 }

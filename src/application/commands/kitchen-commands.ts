@@ -93,15 +93,16 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       return add(placed);
     },
     /**
-     * Copies of the selected unit pulled out from its side (`side` 1: right, -1: left): as many as fit up to
-     * `count`, nearest first. Returns how many stand. The caller restores and checkpoints around live previews,
+     * Copies of the selected unit pulled out from its run (`side` 1: after its right end, -1: before its left end):
+     * as many as fit up to `count`, nearest first. Returns how many stand. The caller restores and checkpoints around live previews,
      * like any drag; `recordHistory` false adds them without a checkpoint.
      */
     arrayKitchenUnit(count: number, side: 1 | -1, recordHistory = true): number {
       const scene = getScene(), original = active();
       if (!original || !isKitchenUnit(original) || count < 1) return 0;
       const copies: EditorCabinet[] = [];
-      for (const pose of arrayPoses(original, count, side)) {
+      const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!;
+      for (const pose of arrayPoses(original, count, side, end)) {
         const id = scene.nextWardrobeId + copies.length, state = furnitureModule(original.state).duplicate(original.state);
         const copy = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, pose);
         // Copies line up end to end, so each only has to clear the room and the other furniture.

@@ -76,7 +76,9 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   await action('more').click();await menuItem('Remove').click();await waitLayout();assert.equal(await el('wardrobe-select').locator('option').count(),1);
   await el('undo2').click();assert.equal(await el('wardrobe-select').locator('option').count(),2);
   await el('redo2').click();assert.equal(await el('wardrobe-select').locator('option').count(),1);
-  await el('wardrobe-btn').click();await waitLayout();await page.locator('.lbl.add:visible').first().click();await waitLayout();
+  // Add item is on the model: select the wardrobe (Wardrobe in the bar when nothing is selected), then its space's Add item.
+  if(await el('wardrobe-btn').isVisible())await el('wardrobe-btn').click();
+  await waitLayout();await page.locator('.lbl.add:visible').first().click();await waitLayout();
   assert.equal(await page.locator('.mobile-add-browser').isVisible(),true);
   await page.locator('.mobile-add-categories [data-category="hanging"]').click();
   assert.equal(await page.locator('.mobile-add-products [data-m="short"]').isVisible(),true);
@@ -93,6 +95,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   assert.equal(await el('pop2').isVisible(),false);
   assert.equal(await toolbar.isVisible(),true);
   await page.locator('[data-view-mode="furniture"]').click();await waitLayout();
+  // Auto design leads the tools of a selected wardrobe.
+  await el('wardrobe-btn').click();await waitLayout();
   await el('launch-wizard').click();
   const apply=page.locator('.idea button.apply').first();await apply.waitFor({timeout:30000});
   await apply.click();await waitLayout();assert.equal(await el('wizard').isVisible(),false);

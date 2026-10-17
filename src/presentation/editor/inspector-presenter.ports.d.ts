@@ -5,7 +5,7 @@ readonly elements: Pick<ReturnType<typeof import('./editor-dom.js').getEditorEle
 readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'baseShift' | 'camRelease' | 'frameMobileInspector' | 'fit' | 'focusSelection'>>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../viewport/cabinet-renderer.js').createCabinetRenderer>, 'build' | 'positionLabels' | 'refreshDividerVisual'>>;
 readonly interactions: Readonly<Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'armMovement' | 'cancelMovement' | 'finishItemEdgeResize' | 'finishRotation' | 'finishWardrobeDrag'>>;
-readonly planner: Readonly<Pick<ReturnType<typeof import('./planner-presenter.js').createPlannerPresenter>, 'planUI'>>;
+readonly planner: Readonly<Pick<ReturnType<typeof import('./planner-presenter.js').createPlannerPresenter>, 'planUI' | 'kitchenSpecs'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'Q' | 'check' | 'toast'>>;
 readonly cameraState: Pick<ReturnType<typeof import('../viewport/camera-state.js').createCameraState>, 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'moveMode' | 'ptrs' | 'rotationGesture' | 'wardrobeGesture'>;

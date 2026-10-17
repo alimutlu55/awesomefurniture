@@ -43,10 +43,12 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         return placed;
     };
     const kitchen = createKitchenCommands(getScene, { checkpoint, report, placeAlone });
-    /** Why a change is refused: it would run into a wall of the room, or into another wardrobe. */
-    const blockedMessage = (change: string, candidate: EditorCabinet) => collision.cabinetObstruction(candidate) === 'wall'
-        ? change + ' would go through a wall of the room.'
-        : change + ' would overlap another wardrobe. Move it first.';
+    /** Why a change is refused: it would run into a wall of the room, or into another piece of furniture (named by its kind). */
+    const blockedMessage = (change: string, candidate: EditorCabinet) => {
+        if (collision.cabinetObstruction(candidate) === 'wall') return change + ' would go through a wall of the room.';
+        const other = getScene().wardrobes.find(c => c.id !== candidate.id && collision.cabinetOverlaps(candidate, c));
+        return change + ' would overlap another ' + (other ? furnitureModule(other.state).noun : 'wardrobe') + '. Move it first.';
+    };
     /** The same constraints apply to numeric edits, keyboard nudges and live handles. */
     const shapeEditProblem = (shape: WardrobeShape, frame?: ShapeFrame): string | null => {
         const cabinet = active(), w = frame?.w ?? cabinet.state.w;
