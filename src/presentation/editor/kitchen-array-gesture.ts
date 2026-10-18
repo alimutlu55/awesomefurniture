@@ -12,7 +12,7 @@ type Side = 1 | -1;
 interface KitchenArrayPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'activeCabinet' | 'snapshot' | 'restore'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'arrayKitchenUnit' | 'closeRunGap' | 'fitUnitInGap'>>;
+  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'arrayKitchenUnit' | 'closeRunGap'>>;
   readonly history: { checkpoint(snapshot: string): void };
   /** The editor lifetime's timers (editor-lifetime.js), so a pending hold stops with the editor. */
   readonly lifetime: { timeout(fn: () => void, delay: number): unknown; cancelTimeout(id: never): void };
@@ -140,14 +140,14 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
       if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
       // A click without a pull adds one copy on that side.
       if (!gesture.count && closeGap(side)) return;
-      if (!gesture.count) gesture.count = sceneCommands.arrayKitchenUnit(1, side, false) || (sceneCommands.fitUnitInGap(side, false) ? 1 : 0);
+      if (!gesture.count) gesture.count = sceneCommands.arrayKitchenUnit(1, side, false);
       end();
     };
     button.onpointercancel = () => end(true);
     button.onkeydown = e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      if (begin(0, 0, side) && !closeGap(side)) { gesture!.count = sceneCommands.arrayKitchenUnit(1, side, false) || (sceneCommands.fitUnitInGap(side, false) ? 1 : 0); end(); }
+      if (begin(0, 0, side) && !closeGap(side)) { gesture!.count = sceneCommands.arrayKitchenUnit(1, side, false); end(); }
     };
     grips.set(side, button);
     return button;

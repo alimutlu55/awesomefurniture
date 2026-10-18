@@ -103,27 +103,6 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       return keep(local ?? placeAlone(structuredClone(fresh), spot) ?? near ?? placeAlone(fresh), preset.name);
     },
 
-    /** Room beside the end of the selected unit's run that is narrower than a copy but at least as wide as the narrowest unit:
-     * a copy of the unit made as wide as the room allows (whole millimetres), towards `side`. Null when there is no such room. */
-    fitUnitInGap(side: 1 | -1, recordHistory = true): EditorCabinet | null {
-      const original = active();
-      if (!original || !isKitchenUnit(original)) return null;
-      const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, [narrowest] = kitchenUnit(original.state.unit).sizes.w;
-      for (let w = Math.floor((original.state.w - .1) * 10) / 10; w >= narrowest - 1e-9; w = Math.round((w - .1) * 10) / 10) {
-        const id = getScene().nextWardrobeId, state = { ...copyOf(original), w };
-        const candidate = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, besidePose(end, w, state.d, side, original.y || 0));
-        if (!fits(candidate)) continue;
-        if (recordHistory) return add(candidate);
-        const scene = getScene();
-        applyMaxReach(candidate.state, scene.maxReach);
-        scene.wardrobes.push(candidate);
-        scene.activeWardrobe = id;
-        scene.nextWardrobeId = id + 1;
-        return candidate;
-      }
-      return null;
-    },
-
     /** A copy of the selected unit beside it, with its appliances turned into plain storage. */
     duplicateKitchenUnit(): EditorCabinet | null {
       const original = active();

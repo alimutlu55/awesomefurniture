@@ -2,7 +2,7 @@ import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { FILL_REACH, measureAround } from './align-commands';
 import { isKitchenUnit, kitchenRuns } from '../../domain/kitchen/kitchen-runs';
-import { kitchenUnit, SENSIBLE_UNIT_WIDTH } from '../../domain/kitchen/kitchen-units';
+import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 
 interface Ports {
   getScene(): EditorScene;
@@ -37,7 +37,7 @@ export function createFillCommands({ getScene, active, checkpoint, discardCheckp
       discardCheckpoint();
       return false;
     },
-    /** A gap at an end of the selected unit's run that is too small for a sensible cabinet (under SENSIBLE_UNIT_WIDTH) is closed
+    /** A gap at an end of the selected unit's run that is too small for any cabinet (less than the narrowest unit) is closed
      * by making the unit at that end wider, rather than leaving a sliver: the far side stays where it is. `side` 1 is the
      * run's right end, -1 its left. False when there is no such gap (none, or room for a cabinet), or the unit cannot grow that
      * far. `recordHistory` false leaves the undo step to the caller. */
@@ -50,7 +50,7 @@ export function createFillCommands({ getScene, active, checkpoint, discardCheckp
       if (!end) return false;
       const name = side > 0 ? 'right' : 'left', gap = measureAround(getScene(), end, [name]).gaps.find(g => g.side === name)?.distance;
       const [narrowest, widest] = kitchenUnit(end.state.unit).sizes.w;
-      if (gap === undefined || gap <= .05 || gap >= Math.max(narrowest, SENSIBLE_UNIT_WIDTH)) return false;
+      if (gap === undefined || gap <= .05 || gap >= narrowest) return false;
       const width = Math.floor((end.state.w + gap) * 10 + 1e-6) / 10;
       if (width > widest) return false;
       const turn = end.angle * Math.PI / 180, shift = side * (width - end.state.w) / 2, before = { x: end.x, z: end.z }, was = getScene().activeWardrobe;
