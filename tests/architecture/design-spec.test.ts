@@ -48,10 +48,10 @@ test('a design built from a spec saves and reopens as the same design: a backend
 });
 
 test('a spec that cannot be built returns every problem with where it is, and nothing half-built', () => {
-  const built = buildFromSpec(parseDesignSpec({ specVersion: 1, room: { width: 300, depth: 200 }, ceilings: [{ wall: 9, shape: 'stairs' }], wardrobes: [{ against: 1, width: 500 }] }), 'p');
+  const built = buildFromSpec(parseDesignSpec({ specVersion: 1, room: { width: 300, depth: 200 }, ceilings: [{ wall: 9, shape: 'stairs' }], wardrobes: [{ against: 1, width: 700 }] }), 'p');
   assert.equal(built.ok, false);
   assert.deepEqual(!built.ok && built.problems.map(p => p.path), ['ceilings[0].wall']);
-  const wardrobes = buildFromSpec(parseDesignSpec({ specVersion: 1, room: { width: 300, depth: 200 }, wardrobes: [{ against: 7 }, { against: 1, width: 500 }, { against: 1, width: 250, from: 100 }] }), 'p');
+  const wardrobes = buildFromSpec(parseDesignSpec({ specVersion: 1, room: { width: 300, depth: 200 }, wardrobes: [{ against: 7 }, { against: 1, width: 700 }, { against: 1, width: 250, from: 100 }] }), 'p');
   assert.equal(wardrobes.ok, false);
   assert.deepEqual(!wardrobes.ok && wardrobes.problems.map(p => p.path), ['wardrobes[0].against', 'wardrobes[1].width', 'wardrobes[2]']);
   assert.match(!wardrobes.ok ? wardrobes.problems[0]!.message : '', /walls are 1 to 4/);

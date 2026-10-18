@@ -10,11 +10,11 @@ import { projectToScene } from '../../src/application/projects/editor-mapper';
 import { deserializeProject, serializeProject } from '../../src/infrastructure/serialization/project-codec';
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
 
-test('wardrobe depth reaches 15 cm, clamps smaller requests and preserves the 80 cm maximum', () => {
+test('wardrobe depth reaches 15 cm, clamps smaller requests and preserves the 90 cm maximum', () => {
     const model = createEditorModel(), commands = createSceneCommands(() => model.scene);
     assert.equal(commands.setCabinetSize('d', 15), true); assert.equal(model.activeCabinet().state.d, 15);
     assert.equal(commands.setCabinetSize('d', 14), false); assert.equal(model.activeCabinet().state.d, 15);
-    commands.setCabinetSize('d', 100); assert.equal(model.activeCabinet().state.d, 80);
+    commands.setCabinetSize('d', 100); assert.equal(model.activeCabinet().state.d, 90);
 });
 test('shallow depth previews never leave incompatible fittings and cancellation/undo restore them', () => {
     const model = createEditorModel(), history = createSceneHistory(model.snapshot, model.restore);

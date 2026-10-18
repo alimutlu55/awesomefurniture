@@ -28,11 +28,11 @@ export interface KitchenUnitDef {
 
 export const KITCHEN_UNITS = [
   { key: 'base', name: 'Base cabinet', description: 'Stands on the floor under the worktop', w: 60, h: 86, d: 58, elevation: 0,
-    sizes: { w: [30, 120], h: [70, 100], d: [30, 65] }, worktop: true, plinth: true, storage: [['cupboard', 72]] },
+    sizes: { w: [30, 150], h: [70, 100], d: [30, 80] }, worktop: true, plinth: true, storage: [['cupboard', 72]] },
   { key: 'upper', name: 'Wall cabinet', description: 'Hangs on the wall above the worktop', w: 60, h: 70, d: 35, elevation: 142,
-    sizes: { w: [30, 120], h: [35, 110], d: [25, 45] }, worktop: false, plinth: false, storage: [['cupboard', 56]] },
+    sizes: { w: [30, 150], h: [35, 130], d: [25, 70] }, worktop: false, plinth: false, storage: [['cupboard', 56]] },
   { key: 'tall', name: 'Tall cabinet', description: 'Floor to top: larder, fridge or ovens', w: 60, h: 215, d: 58, elevation: 0,
-    sizes: { w: [40, 80], h: [150, 250], d: [30, 65] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
+    sizes: { w: [30, 100], h: [150, 270], d: [30, 80] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
 ] as const satisfies readonly KitchenUnitDef[];
 
 export type KitchenUnitKey = typeof KITCHEN_UNITS[number]['key'];

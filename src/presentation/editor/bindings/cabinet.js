@@ -7,7 +7,7 @@ import { measureNumber, unitSuffix } from '../editor-format.js';
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
 export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
     const { $ } = dom;
-    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', MIN_CABINET_DEPTH, 80], ['y', 'From floor', 0, 200]];
+    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 600], ['h', 'Height', 180, 300], ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
             inputAttributes: { id, inputmode: 'numeric', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },

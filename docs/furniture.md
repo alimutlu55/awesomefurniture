@@ -99,6 +99,20 @@ pulling back removes them, and release keeps them as one undo step. A long press
    with `data-furniture="<key>"`.
 5. Run `npm test`: `tests/architecture/kitchen*.test.ts` show the checks a module needs.
 
+## Size limits
+
+Centimetres, width × height × depth. Kitchen limits are in `kitchen-units.ts` (`sizes`), the wardrobe's in
+`wardrobe-module.ts`; a fitting can still need more than a size allows (its own minimum width, depth and height).
+
+| Piece | Width | Height | Depth |
+|---|---|---|---|
+| Wardrobe | 80–600 | 180–300 (down to 60 once short or shaped) | 15–90 |
+| Base cabinet | 30–150 | 70–100 | 30–80 |
+| Wall cabinet | 30–150 | 35–130 | 25–70 |
+| Tall cabinet | 30–100 | 150–270 | 30–80 |
+
+The 30 cm width floor comes from the engine's 25 cm minimum bay (see Known limits).
+
 ## Known limits
 
 - Kitchen units use the wardrobe engine's 8 cm base: floor units stand on an 8 cm plinth, and

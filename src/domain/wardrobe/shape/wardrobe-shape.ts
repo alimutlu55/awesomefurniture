@@ -25,7 +25,7 @@ export interface WardrobeShape {
 
 /** Lowest outer height of any part of the cabinet. */
 export const MIN_OUTER_HEIGHT = 40;
-export const MAX_OUTER_HEIGHT = 280;
+export const MAX_OUTER_HEIGHT = 300;
 /** Steeper tops are built as vertical steps. */
 export const MAX_SLOPE_DEG = 70;
 /** Shortest horizontal top panel and smallest step rise. */
