@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 /** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
- * stands on a worktop instead: it slides across it at its own height. */
-const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && !kitchenUnit(state.unit).fixture;
+ * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
+const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> & { wallGuide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null): void; assist(sides: import('../../domain/studio/scene-gaps').GapSide[] | null): void } }} ports */
 export function createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks }) {
     function beginRotation(e, handle) {

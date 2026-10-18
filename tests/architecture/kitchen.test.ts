@@ -195,6 +195,10 @@ test('a sink and a hob are placed on their own on a worktop, sized by themselves
     assert.ok(unit.sizes.w[1] > 100 && unit.sizes.w[0] < 50, `${key}: any width a person wants`);
     assert.equal(KITCHEN_PRESETS.filter(p => p.unit === key).length, 1, `${key}: one card`);
   }
+  const shelf = kitchenUnit('shelf'), shelfDesign = createKitchenDesign('shelf', 'shelf');
+  assert.ok(isFixture(shelfDesign), 'a wall shelf is a fixture: a board with no inside');
+  assert.ok(shelf.elevation > 0 && shelf.sizes.w[1] >= 200 && shelf.sizes.d[0] <= 15, 'hangs on the wall, wide and shallow when wanted');
+  assert.equal(KITCHEN_PRESETS.filter(p => p.unit === 'shelf').length, 1, 'one card');
   assert.ok(!isFixture(createKitchenDesign('base')));
   const base = { id: 1, name: 'B', x: 0, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign('base'), sel: 0, item: -1, divider: -1, space: null, open: false } };
   const sink = { id: 2, name: 'S', x: 0, y: 90, z: 0, angle: 0, state: { ...createKitchenDesign('sink-top'), sel: 0, item: -1, divider: -1, space: null, open: false } };

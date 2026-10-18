@@ -114,8 +114,10 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         resources.scene.add(renderState.Gr);
         // A sink or hob placed on its own is just the fixture: no carcass, sections or shadow.
         const owned = [], focused = renderState.renderActive && selectionState.focusOn;
+        const own = isKitchen(getRenderDesign()) && kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' ? createCabinetMaterials(resources, getRenderDesign().fin) : null;
+        if (own) owned.push(...own.owned);
         const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), stroke: dimensionStroke } : null;
-        if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, M: resources.M, owned, hits: renderState.hits, measure })) {
+        if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, panel: own?.panel, M: resources.M, owned, hits: renderState.hits, measure })) {
             renderState.Gr.userData.ownedMaterials = owned;
             renderState.Gr.updateMatrixWorld(true);
             return;

@@ -17,6 +17,12 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
       + `<path d="M${W / 2 - 3} ${ty - 2}v-26h9v5" fill="none" stroke="#8a8f96" stroke-width="2.4" stroke-linecap="round"/>`;
     const burners = [.3, .7].map(bx => `<circle cx="${fx + fw * bx}" cy="${ty - 1}" r="5" fill="none" stroke="#5d636a" stroke-width="1.2"/>`).join('');
     const hobArt = `<rect x="${fx + 6}" y="${ty - 3}" width="${fw - 12}" height="3" fill="#1b1e22"/>${burners}`;
+    if (def.fixture === 'shelf') {
+      const board = `<rect x="${fx - 10}" y="52" width="${fw + 20}" height="6" rx="1" fill="#efe9df" stroke="#8d7d65" stroke-width="1"/>`
+        + [fx + 4, fx + fw - 8].map(bx => `<path d="M${bx} 58v12l-8 0" fill="none" stroke="#8a8f96" stroke-width="1.6" stroke-linecap="round"/>`).join('')
+        + `<rect x="${fx + 18}" y="38" width="12" height="14" rx="2" fill="#c9b79c"/><rect x="${fx + 36}" y="42" width="10" height="10" rx="2" fill="#9fb2a6"/>`;
+      return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${board}</svg>`;
+    }
     return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${slab}${def.fixture === 'sink' ? sink : hobArt}</svg>`;
   }
   const unit = { ...def, ...own }, tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);

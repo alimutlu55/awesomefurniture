@@ -21,6 +21,7 @@ export const KITCHEN_PRESETS = [
   { key: 'dishwasher', unit: 'base', name: 'Dishwasher', parts: [['dishwasher', 1]] },
   { key: 'fridge-under', unit: 'base', name: 'Under-counter fridge', parts: [['fridge', 1]] },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
+  { key: 'shelf', unit: 'shelf', name: 'Wall shelf', parts: [] },
   { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
   { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 48 } },
   { key: 'hood', unit: 'upper', name: 'Cooker hood', parts: [['hood', 1]], size: { w: 60, h: 40 } },

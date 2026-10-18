@@ -22,8 +22,8 @@ export interface KitchenUnitDef {
   readonly worktop: boolean;
   /** It stands on a plinth that runs along neighbouring units on the floor. */
   readonly plinth: boolean;
-  /** A sink or hob that stands on its own on a worktop: placed, moved and sized by itself, with no cabinet under it. */
-  readonly fixture?: 'sink' | 'hob';
+  /** A sink or hob that stands on its own on a worktop, or a shelf on the wall: placed, moved and sized by itself, with no cabinet. */
+  readonly fixture?: 'sink' | 'hob' | 'shelf';
   /** What a new unit holds, and what replaces an appliance when a unit is duplicated: [kind, height][]. */
   readonly storage: readonly (readonly [string, number])[];
 }
@@ -40,6 +40,9 @@ export const KITCHEN_UNITS = [
     sizes: { w: [40, 200], h: [30, 30], d: [35, 70] }, worktop: false, plinth: false, fixture: 'sink', storage: [] },
   { key: 'hob-top', name: 'Hob', description: 'A hob, placed on any worktop', w: 60, h: 2, d: 52, elevation: 90,
     sizes: { w: [30, 120], h: [2, 2], d: [35, 70] }, worktop: false, plinth: false, fixture: 'hob', storage: [] },
+  // A shelf hangs on the wall like a wall unit: a board with no sides, doors or inside.
+  { key: 'shelf', name: 'Wall shelf', description: 'An open board on the wall', w: 80, h: 3, d: 25, elevation: 142,
+    sizes: { w: [30, 200], h: [2, 5], d: [15, 40] }, worktop: false, plinth: false, fixture: 'shelf', storage: [] },
 ] as const satisfies readonly KitchenUnitDef[];
 
 /** A sink or hob placed on its own on a worktop (a design of that unit). */
