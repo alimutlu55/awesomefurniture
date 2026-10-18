@@ -330,7 +330,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 x += PANEL;
             }
         });
-        if (renderState.renderActive && ((selectionState.showDimensions && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
+        if (renderState.renderActive && ((selectionState.showDimensions && selectionState.focusOn && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
             dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w');
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
             dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + unitSuffix(),
@@ -344,7 +344,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         // The project's max reach, where it matters: on the selected piece when it rises to that height (a wall unit's floor
         // may be above it; a base unit never reaches it).
         const reach = maxReach(), cabinetY = renderState.renderCabinet?.y || 0;
-        if (renderState.renderActive && reach !== undefined && cabinetY + h >= reach - 25) {
+        if (renderState.renderActive && selectionState.focusOn && reach !== undefined && cabinetY + h >= reach - 25) {
             const ry = reach - cabinetY, reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, ry, d / 2 + 5), new V(w / 2 + 5, ry, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
