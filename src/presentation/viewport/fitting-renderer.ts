@@ -3,8 +3,8 @@ import { shelfPossession, unitsOnShelf } from '../../domain/wardrobe/possessions
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
-import { FIN, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
+import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
 import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
@@ -53,9 +53,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>interiorFloorOf(getRenderDesign())+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut) {
         if (kitchen) {
-            kitchen.kitchenFitting(it, cx, y, sw, { bottom: PLINTH + PANEL, top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
+            kitchen.kitchenFitting(it, cx, y, sw, { bottom: interiorFloorOf(getRenderDesign()), top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
             return;
         }
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
@@ -70,7 +70,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (const span of topSpans) slab(span.x1-span.x0, PANEL, board.depth, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, board.centre, P);
         };
         deck();
-        if(y>PLINTH+PANEL+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,board.depth,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,board.centre,P);
+        if(y>interiorFloorOf(getRenderDesign())+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,board.depth,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,board.centre,P);
         const riseAt=(x0=0,x1=sw)=>Math.max(0,...support.filter(span=>span.x1>x0+.01&&span.x0<x1-.01).map(span=>span.rise));
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {

@@ -60,7 +60,7 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
                         ( /** @type {HTMLInputElement} */(input)).value = f(k ? m.after : m.before);
                     }
                 });
-                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + unitSuffix()], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + unitSuffix()], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + unitSuffix()], ['Y · bottom → top from floor', f(PLINTH + PANEL + m.y0) + ' → ' + f(PLINTH + PANEL + m.y1) + unitSuffix()], ['Z · back → front', f(fittingDepth(model.activeCabinet().state.d).z0) + ' → ' + f(fittingDepth(model.activeCabinet().state.d).z1) + unitSuffix()]];
+                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + unitSuffix()], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + unitSuffix()], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + unitSuffix()], ['Y · bottom → top from floor', f(geometry.interiorFloor() + m.y0) + ' → ' + f(geometry.interiorFloor() + m.y1) + unitSuffix()], ['Z · back → front', f(fittingDepth(model.activeCabinet().state.d).z0) + ' → ' + f(fittingDepth(model.activeCabinet().state.d).z1) + unitSuffix()]];
                 const cut = geometry.boardFit(d.i, geometry.dividerRect(d), d.orientation);
                 if (cut?.cut) {
                     rows.splice(1, 0, ['Cut to the top', hor ? 'angled · ' + f(cut.length) + unitSuffix() + ' whole board' : 'angled top']);

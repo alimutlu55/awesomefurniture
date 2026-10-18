@@ -1,4 +1,5 @@
-import { PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { PANEL as T } from '../../wardrobe/catalog.js';
+import { plinthOf } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./dividers.js').createDividersRules>} DividersRules */
 /** Boxed fittings: whether they are capped and supported.
  * Part of the wardrobe rules (see ../wardrobe-geometry.js). Centimetres; only the design is read.
@@ -6,6 +7,8 @@ import { PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
  * @param {DividersRules} deps Rules from the modules created before this one. */
 export function createBoxesRules(ctx, deps) {
     const { getDesign } = ctx;
+    /** The plinth under this design's carcass (none under a wall unit). */
+    const plinth = () => plinthOf(getDesign());
     const { dividerRect, sectionDividers } = deps;
 
     const isBoxed = it => ['shelf', 'seasonal', 'basket'].includes(it.k) && !(it.k === 'shelf' && ['folded', 'pants'].includes(it.purpose)) && (it.k === 'seasonal' || ['seasonal', 'linen', 'luggage'].includes(it.purpose));
@@ -25,7 +28,7 @@ export function createBoxesRules(ctx, deps) {
         return lay.some((q, k) => k !== j && sec[k] && q.x0 < p.x1 - .01 && p.x0 < q.x1 - .01 && Math.abs(q.y1 - p.y0) < .06 && !isBoxed(sec[k]))
             || sectionDividers(i).some(d => {
                 const r = dividerRect(d);
-                return d.orientation === 'horizontal' && r.x0 < p.x1 - .01 && r.x1 > p.x0 + .01 && Math.abs(PL + T + r.y1 - p.y0) < .06;
+                return d.orientation === 'horizontal' && r.x0 < p.x1 - .01 && r.x1 > p.x0 + .01 && Math.abs(plinth() + T + r.y1 - p.y0) < .06;
             });
     }
     return { isBoxed, boxCapped, boxSupported };

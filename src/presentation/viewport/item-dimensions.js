@@ -22,7 +22,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         const others = geometry.computeLayout(i).filter((_, k) => k !== j).map(q => ({ x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1 }))
             .concat(geometry.sectionDividers(i).filter(d => d.orientation === 'vertical').map(d => {
                 const r = geometry.dividerRect(geometry.clampDivider(d));
-                return { x0: r.x0, x1: r.x1, y0: PLINTH + PANEL + r.y0, y1: PLINTH + PANEL + r.y1 };
+                return { x0: r.x0, x1: r.x1, y0: geometry.interiorFloor() + r.y0, y1: geometry.interiorFloor() + r.y1 };
             }));
         const x0 = g.x0 - g.bayL, x1 = g.x1 - g.bayL;
         let lo = 0, hi = g.bw;

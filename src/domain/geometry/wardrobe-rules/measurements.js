@@ -1,5 +1,6 @@
-import { PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { PANEL as T } from '../../wardrobe/catalog.js';
 import { fittingDepth } from '../../wardrobe/carcass';
+import { plinthOf } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
@@ -11,6 +12,8 @@ import { fittingDepth } from '../../wardrobe/carcass';
  * @param {CeilingRules & LayoutRules & FitRules & SpacesRules & ClearanceRules} deps Rules from the modules created before this one. */
 export function createMeasurementsRules(ctx, deps) {
     const { getDesign } = ctx;
+    /** The plinth under this design's carcass (none under a wall unit). */
+    const plinth = () => plinthOf(getDesign());
     const { ceilingTop, computeLayout, itemFit, itemFreeAbove, itemGaps, widths } = deps;
 
     function itemGeom(i, j) {
@@ -34,7 +37,7 @@ export function createMeasurementsRules(ctx, deps) {
             return null;
         }
         const layout = computeLayout(i), current = layout[j];
-        let support = PL + T;
+        let support = plinth() + T;
         for (let k = 0; k < layout.length; k++) {
             const q = layout[k];
             if (k !== j && q.x0 < current.x1 - .01 && current.x0 < q.x1 - .01 && q.y1 <= g.y0 + .01) {
@@ -46,7 +49,7 @@ export function createMeasurementsRules(ctx, deps) {
         // `top`/`bottom` run to the carcass top and base board; `gapAbove`/`gapBelow` are the net gaps to whatever is
         // really there (the next fitting, a shelf board, the top or the base), measured at `lineAbove`/`lineBelow`.
         const gaps = itemGaps(i, j);
-        return { ...g, cut: !!fit?.cut, core, top: Math.max(0, PL + T + ceilingTop(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - PL - T),
+        return { ...g, cut: !!fit?.cut, core, top: Math.max(0, plinth() + T + ceilingTop(i, current.x0, current.x1) - g.y1), bottom: Math.max(0, g.y0 - plinth() - T),
             freeBelow: Math.max(0, g.y0 - support), gapAbove: gaps.above.gap, gapBelow: gaps.below.gap,
             lineAbove: { x: g.bayL + gaps.above.x, to: gaps.above.to }, lineBelow: { x: g.bayL + gaps.below.x, to: gaps.below.to } };
     }

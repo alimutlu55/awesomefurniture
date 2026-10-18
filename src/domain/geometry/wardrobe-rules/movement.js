@@ -1,5 +1,6 @@
 import { WardrobePlanner } from '../../planner/wardrobe-planner.js';
-import { MODS, PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { MODS, PANEL as T } from '../../wardrobe/catalog.js';
+import { plinthOf } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
@@ -11,6 +12,8 @@ import { MODS, PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
  * @param {SizesRules & LayoutRules & FitRules & DividersRules & SpacesRules} deps Rules from the modules created before this one. */
 export function createMovementRules(ctx, deps) {
     const { getDesign } = ctx;
+    /** The plinth under this design's carcass (none under a wall unit). */
+    const plinth = () => plinthOf(getDesign());
     const { computeLayout, dividerOverlaps, dividerRect, effectiveMin, fitsCeiling, free, ih, itemFreeAbove, itemMinW, sectionDividers, widths } = deps;
 
     function planItemMove(from, to, slot, swap = false, align) {
@@ -262,7 +265,7 @@ export function createMovementRules(ctx, deps) {
     function resizeObstacles(i) {
         return [...computeLayout(i), ...sectionDividers(i).map(d => {
                 const r = dividerRect(d);
-                return { ...r, y0: PL + T + r.y0, y1: PL + T + r.y1 };
+                return { ...r, y0: plinth() + T + r.y0, y1: plinth() + T + r.y1 };
             })];
     }
     function itemEdgeSize(g, edge, delta, neighbors, index, minW, minH, maxH) {

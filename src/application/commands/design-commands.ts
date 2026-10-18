@@ -8,7 +8,8 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import type { EditorState } from '../projects/editor-scene';
 import type { CommandEffects } from './command-effects';
 import { isRegularShape } from '../../domain/wardrobe/shape/wardrobe-shape';
-import { MODS, PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
+import { plinthOf } from '../../domain/wardrobe/carcass';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import type { ItemKind } from '../../domain/wardrobe/wardrobe';
 /** Compatibility facade: compose independent command families around one workflow. */
@@ -22,7 +23,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const appearance = createAppearanceCommands({ getDesign, effects, run });
     const shaped = () => !isRegularShape(getDesign().shape);
     /** Outer height a bay planner should assume: the lowest clear point across the bay. */
-    const bayHeight = (i: number) => Math.floor(rules.ceilingIn(i, 0, rules.widths()[i]!) + PLINTH + 2 * PANEL);
+    const bayHeight = (i: number) => Math.floor(rules.ceilingIn(i, 0, rules.widths()[i]!) + plinthOf(getDesign()) + 2 * PANEL);
     /** Auto design plans under the wardrobe's top (see planner/bay-ceilings.ts) and keeps bays that
      * steps are anchored to, so the chosen idea is applied as it is. The fit is a safety net: it says
      * so if anything still had to change. */

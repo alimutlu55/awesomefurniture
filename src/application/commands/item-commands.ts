@@ -2,11 +2,11 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { ItemKind } from '../../domain/wardrobe/wardrobe';
 import type { ItemEdit, ItemMovePlan, ItemResizeSession, ItemResizeTarget } from './command-types';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
-import { itemName, MODS, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
+import { itemName, MODS } from '../../domain/wardrobe/catalog.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
-    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'ih' | 'fitsCeiling' | 'sectionFits' | 'itemFit' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN' | 'carryOnMove'>;
+    rules: Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'computeLayout' | 'interiorFloor' | 'ih' | 'fitsCeiling' | 'sectionFits' | 'itemFit' | 'dividerOverlaps' | 'itemMeasurements' | 'itemYBounds' | 'sectionDividers' | 'sectionSpaceMeasurements' | 'effectiveMin' | 'itemFeasible' | 'newItem' | 'widths' | 'itemFreeAbove' | 'free' | 'edgeGap' | 'splitFor' | 'sectionLayoutValid' | 'duplicateSideSpot' | 'itemMinW' | 'used' | 'itemGeom' | 'maxN' | 'carryOnMove'>;
     callbacks: Pick<ReturnType<typeof import('./divider-commands').createDividerCommands>, 'addShelfBoard'>;
     run(fn: () => void): void;
 };
@@ -70,7 +70,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             return;
         }
         run(() => {
-            const it = { ...rules.newItem('shelf', h), purpose: held.key, w: space.w, x: space.x0, y: space.y0 - PL - T };
+            const it = { ...rules.newItem('shelf', h), purpose: held.key, w: space.w, x: space.x0, y: space.y0 - rules.interiorFloor() };
             getDesign().secs[i]!.push(it);
             getDesign().item = getDesign().secs[i]!.length - 1;
             getDesign().space = null;
@@ -109,7 +109,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             }
             // Under a sloped or stepped top the fitting fills the space and is cut to
             // the angle; its working core keeps the default height where it fits.
-            const y0 = space.y0 - PL - T, fit = (h: number) => rules.itemFit(getDesign().sel, { x0: space.x0!, x1: space.x1!, relY0: y0, relY1: y0 + h }, rules.newItem(k, h));
+            const y0 = space.y0 - rules.interiorFloor(), fit = (h: number) => rules.itemFit(getDesign().sel, { x0: space.x0!, x1: space.x1!, relY0: y0, relY1: y0 + h }, rules.newItem(k, h));
             let hh = Math.min(Math.max(m.h, mn), space.h), place = fit(hh);
             for (let h = hh; !place && h >= mn - .01; h = Math.round((h - .5) * 10) / 10) {
                 if ((place = fit(h))) hh = h;

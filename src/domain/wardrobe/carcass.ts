@@ -1,4 +1,5 @@
 import { PANEL, PLINTH } from './catalog.js';
+import { kitchenUnit } from '../kitchen/kitchen-units';
 
 /** How a wardrobe carcass is built up, in centimetres: the one place every board deduction comes from.
  *
@@ -13,6 +14,12 @@ export const PARTITION_SETBACK = .5;
 export const FITTING_SETBACK = 1.4;
 /** Height of the base board's top face: where the clear interior starts. */
 export const INTERIOR_FLOOR = PLINTH + PANEL;
+/** The plinth under a carcass: 8 cm, except for a unit that hangs on a wall (a kitchen wall unit), whose bottom board is
+ * its lower edge. Everything vertical in the engine starts from this, so a wall unit has no dead space under its floor. */
+export const plinthOf = (design: { product?: string | undefined; unit?: string | undefined }) =>
+  design.product === 'kitchen' && kitchenUnit(design.unit).elevation > 0 ? 0 : PLINTH;
+/** Height of the top face of the base board of a design: where its clear interior starts. */
+export const interiorFloorOf = (design: { product?: string | undefined; unit?: string | undefined }) => plinthOf(design) + PANEL;
 
 /** A board running from the back board's face to `setback` behind the front edge of a cabinet `d` deep.
  * `z0`/`z1` are measured from the back (z = 0); `centre` is cabinet-centred, as the renderer places boards. */

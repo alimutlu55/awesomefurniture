@@ -62,7 +62,7 @@ export function createItemActions({ dom, selectionState, model, commands, intera
             if (!selectionState.itemBarCache || selectionState.itemBarCache.stamp !== renderState.buildStamp || selectionState.itemBarCache.S !== model.activeCabinet().state || selectionState.itemBarCache.sel !== model.activeCabinet().state.sel || selectionState.itemBarCache.item !== model.activeCabinet().state.item || selectionState.itemBarCache.dv !== model.activeCabinet().state.divider) {
                 if (dvt) {
                     const m = geometry.dividerMeasurements(model.activeCabinet().state.divider), ws = geometry.widths(), bayL = PANEL + ws.slice(0, dvt.i).reduce((a, b) => a + b + PANEL, 0);
-                    selectionState.itemBarCache = { stamp: renderState.buildStamp, S: model.activeCabinet().state, sel: model.activeCabinet().state.sel, item: model.activeCabinet().state.item, dv: model.activeCabinet().state.divider, g: m && { x0: bayL + m.x0, x1: bayL + m.x1, y0: PLINTH + PANEL + m.y0, y1: PLINTH + PANEL + m.y1 }, canDup: geometry.dividerDupSpot(model.activeCabinet().state.divider) != null };
+                    selectionState.itemBarCache = { stamp: renderState.buildStamp, S: model.activeCabinet().state, sel: model.activeCabinet().state.sel, item: model.activeCabinet().state.item, dv: model.activeCabinet().state.divider, g: m && { x0: bayL + m.x0, x1: bayL + m.x1, y0: geometry.interiorFloor() + m.y0, y1: geometry.interiorFloor() + m.y1 }, canDup: geometry.dividerDupSpot(model.activeCabinet().state.divider) != null };
                 }
                 else {
                     const g = geometry.itemMeasurements(model.activeCabinet().state.sel, model.activeCabinet().state.item);

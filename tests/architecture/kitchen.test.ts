@@ -32,7 +32,7 @@ test('kitchen fittings · each names units that exist and fits inside at least o
     assert.equal(fittingProduct(f.key), 'kitchen');
     assert.ok(f.kitchen!.units.length, `${f.key}: names its units`);
     for (const unit of f.kitchen!.units) assert.ok(KITCHEN_UNIT_KEYS.includes(unit), `${f.key}: unknown unit ${unit}`);
-    const room = f.kitchen!.units.map(u => kitchenUnit(u)).some(u => f.min <= kitchenInside(u.sizes.h[1]) && f.minWidth <= u.sizes.w[1] && f.minDepth <= u.sizes.d[1]);
+    const room = f.kitchen!.units.map(u => kitchenUnit(u)).some(u => f.min <= kitchenInside(u.sizes.h[1], u.key as KitchenUnitKey) && f.minWidth <= u.sizes.w[1] && f.minDepth <= u.sizes.d[1]);
     assert.ok(room, `${f.key}: fits inside one of its units`);
     assert.ok(KITCHEN_MENU_KINDS.includes(f.key as never), `${f.key}: offered in the kitchen Add item menu`);
     assert.ok(!MENU_KINDS.includes(f.key as never), `${f.key}: not offered in a wardrobe`);
@@ -51,7 +51,7 @@ test('kitchen units · defaults are inside their limits and their plain storage 
     assert.equal(design.unit, u.key);
     assert.deepEqual(furnitureModule(design).sizes(design), u.sizes);
     const total = design.secs[0]!.reduce((s, it) => s + it.h, 0);
-    assert.ok(Math.abs(total - kitchenInside(u.h)) < .01, `${u.key}: storage fills the inside (${total})`);
+    assert.ok(Math.abs(total - kitchenInside(u.h, u.key)) < .01, `${u.key}: storage fills the inside (${total})`);
   }
 });
 
@@ -60,7 +60,7 @@ test('kitchen presets · contents fit their unit, within each fitting limit, and
     const design = createKitchenDesign(p.unit, p.key), module = furnitureModule(design);
     const total = design.secs[0]!.reduce((s, it) => s + it.h, 0);
     if (!p.parts.length) assert.equal(total, 0, `${p.key}: a plain unit starts empty, ready for Add item`);
-    else assert.ok(Math.abs(total - kitchenInside(design.h)) < .05, `${p.key}: fills the inside (${total} of ${kitchenInside(design.h)})`);
+    else assert.ok(Math.abs(total - kitchenInside(design.h, p.unit)) < .05, `${p.key}: fills the inside (${total} of ${kitchenInside(design.h, p.unit)})`);
     for (const it of design.secs[0]!) {
       const def = defs.find(f => f.key === it.k)!;
       assert.ok(def.min <= it.h && it.h <= def.max, `${p.key}/${it.k}: height ${it.h} within ${def.min}-${def.max}`);
@@ -145,7 +145,7 @@ test('wall units · a lift-up cabinet and a microwave unit, at their own size, w
   const lift = createKitchenDesign('upper', 'lift'), micro = createKitchenDesign('upper', 'microwave');
   assert.deepEqual([lift.w, lift.h, lift.unit], [80, 40, 'upper']);
   assert.deepEqual(lift.secs[0]!.map(it => it.k), ['flap']);
-  assert.deepEqual([micro.w, micro.h], [60, 50]);
+  assert.deepEqual([micro.w, micro.h], [60, 48]);
   assert.deepEqual(micro.secs[0]!.map(it => it.k), ['microwave']);
   for (const unit of ['upper', 'tall'] as const) {
     const design = createKitchenDesign(unit);
@@ -174,4 +174,16 @@ test('built-in appliances · each has a unit prepared for it, and a cooker stand
   const unitAt = (id: number, x: number, key: 'base' | 'cooker') => ({ id, name: 'U' + id, x, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign(key, key === 'cooker' ? 'cooker' : undefined), sel: 0, item: -1, divider: -1, space: null, open: false } });
   const run = [unitAt(1, 0, 'base'), unitAt(2, 60, 'cooker'), unitAt(3, 120, 'base')];
   assert.deepEqual(kitchenSpans(run as never).filter(s => s.kind === 'worktop').map(s => s.units), [[1], [3]], 'the worktop stops at the cooker');
+});
+
+test('a wall unit has no plinth: its bottom board is its lower edge, a floor unit keeps the 8 cm plinth', async () => {
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const { plinthOf } = await import('../../src/domain/wardrobe/carcass');
+  const floor = (unit: KitchenUnitKey, preset?: string) => { const d = { ...createKitchenDesign(unit, preset), sel: 0, item: -1, divider: -1, space: null, open: false }; return { d, g: createWardrobeGeometry(() => d) }; };
+  const wall = floor('upper', 'lift'), base = floor('base', 'cargo');
+  assert.equal(plinthOf(wall.d), 0); assert.equal(plinthOf(base.d), 8);
+  assert.equal(wall.g.interiorFloor(), 1.8); assert.equal(base.g.interiorFloor(), 9.8);
+  assert.equal(wall.g.computeLayout(0)[0]!.y0, 1.8, 'the first fitting stands on the bottom board of the wall unit');
+  assert.equal(wall.g.itemMeasurements(0, 0)!.gapBelow, 0, 'and nothing is left under it');
+  assert.ok(Math.abs(wall.d.secs[0]!.reduce((s, it) => s + it.h, 0) - (wall.d.h - 3.6)) < .05, 'the fittings fill the whole inside, 3.6 cm of boards less than the height');
 });

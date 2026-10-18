@@ -2,7 +2,8 @@ import type { EditorDesign, EditorItem } from '../wardrobe/editor-design';
 import type { ItemKind } from '../wardrobe/wardrobe';
 import { createInitialDesign } from '../wardrobe/default-design';
 import { fitting, hasTrait } from '../wardrobe/fittings';
-import { PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { PANEL } from '../wardrobe/catalog.js';
+import { plinthOf } from '../wardrobe/carcass';
 import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
 
 /**
@@ -22,7 +23,7 @@ export const KITCHEN_PRESETS = [
   { key: 'cooker', unit: 'cooker', name: 'Cooker', parts: [['cooker', 1]] },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
   { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
-  { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 50 } },
+  { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 48 } },
   { key: 'hood', unit: 'upper', name: 'Cooker hood', parts: [['hood', 1]], size: { w: 60, h: 40 } },
   { key: 'cargo', unit: 'base', name: 'Cargo pull-out', parts: [['cargo', 1]], size: { w: 30 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
@@ -38,7 +39,7 @@ export const kitchenPreset = (key: string | undefined) => KITCHEN_PRESETS.find(p
 export const presetSize = (preset: object | undefined): { w?: number; h?: number } => (preset && 'size' in preset ? (preset as { size: { w?: number; h?: number } }).size : {});
 
 /** Clear height inside a unit, between its bottom and top boards. */
-export const kitchenInside = (h: number) => Math.round((h - PLINTH - 2 * PANEL) * 100) / 100;
+export const kitchenInside = (h: number, unitKey: KitchenUnitKey = 'base') => Math.round((h - plinthOf({ product: 'kitchen', unit: unitKey }) - 2 * PANEL) * 100) / 100;
 
 /** Items that share `height` in proportion to their parts, rounded so they fill it exactly. */
 function shareHeight(parts: readonly (readonly [string, number])[], height: number): EditorItem[] {
@@ -58,7 +59,7 @@ export function createKitchenDesign(unitKey: KitchenUnitKey, presetKey?: string)
   const design = createInitialDesign();
   const secs: EditorItem[][] = [[], [], [], [], [], []];
   const own = preset && preset.unit === unitKey ? preset : undefined, size = presetSize(own), h = size.h ?? unit.h;
-  secs[0] = shareHeight(own ? own.parts : unit.storage, kitchenInside(h));
+  secs[0] = shareHeight(own ? own.parts : unit.storage, kitchenInside(h, unitKey));
   return { ...design, w: size.w ?? unit.w, h, d: unit.d, n: 1, secs, fin: 'White', doors: 'none', product: 'kitchen', unit: unitKey };
 }
 

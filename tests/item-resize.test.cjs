@@ -76,7 +76,7 @@ test('cancelled resizing restores the item and returns the movement camera',()=>
   const item={k:'drawer',h:22};
   const state={sel:0,item:0,doors:'none',secs:[[item]]};
   const handle={classList:{add(){},remove(){}},setPointerCapture(){},hasPointerCapture(){return false}};
-  const api=createItemResize({dom:{width},geometry:{itemGeom:()=>({...g,freeTop:50}),resizeObstacles:()=>[],itemMinW:()=>25,effectiveMin:()=>15,widths:()=>[200],ih:()=>190},model:{activeCabinet:()=>({state}),scene:{activeWardrobe:1},snapshot:()=> 'original'},picking:{frontPoint:()=>({x:0,y:0})},camera:{camRelease(){},moveViewOn(){calls.push('movement framing')},moveViewOff(){calls.push('restore')}},cameraState:{tgt:{y:100},vs:0,vz:1},interactionState:{},commands:{},history:{},shellState:{},inspector:{update(){}},renderState:{},callbacks:{cancelMovement(){}}});
+  const api=createItemResize({dom:{width},geometry:{itemGeom:()=>({...g,freeTop:50}),resizeObstacles:()=>[],itemMinW:()=>25,effectiveMin:()=>15,widths:()=>[200],ih:()=>190,interiorFloor:()=>9.8},model:{activeCabinet:()=>({state}),scene:{activeWardrobe:1},snapshot:()=> 'original'},picking:{frontPoint:()=>({x:0,y:0})},camera:{camRelease(){},moveViewOn(){calls.push('movement framing')},moveViewOff(){calls.push('restore')}},cameraState:{tgt:{y:100},vs:0,vz:1},interactionState:{},commands:{},history:{},shellState:{},inspector:{update(){}},renderState:{},callbacks:{cancelMovement(){}}});
   api.beginItemEdgeResize({button:0,pointerId:1,clientX:100,clientY:100,preventDefault(){},stopPropagation(){}},'right',handle);
   assert.deepEqual(calls,['movement framing']);
   api.finishItemEdgeResize();

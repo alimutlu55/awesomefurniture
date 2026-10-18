@@ -6,6 +6,7 @@ import { createCabinetDrag } from './cabinet-drag.js';
 import { createDividerDrag } from './divider-drag.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./editor-gestures.ports').CreateEditorGesturesPorts} ports */
 export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room }) {
@@ -73,7 +74,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
         let to = -1, bayL = -model.activeCabinet().state.w / 2 + PANEL;
         // The pointer is held inside the wardrobe interior, so the item stops at the borders instead of following the pointer out.
         // More than 30 cm outside is the cancel zone. The gaps between sections snap to the nearest section.
-        const xL = -model.activeCabinet().state.w / 2 + PANEL, xR = model.activeCabinet().state.w / 2 - PANEL, yB = PLINTH + PANEL, yT = model.activeCabinet().state.h - PANEL, cancelZone = !p || Math.max(xL - p.x, p.x - xR, yB - p.y, p.y - yT) > 30, px = p ? Math.max(xL, Math.min(xR, p.x)) : 0, py = p ? Math.max(yB, Math.min(yT, p.y)) : 0;
+        const xL = -model.activeCabinet().state.w / 2 + PANEL, xR = model.activeCabinet().state.w / 2 - PANEL, yB = interiorFloorOf(model.activeCabinet().state), yT = model.activeCabinet().state.h - PANEL, cancelZone = !p || Math.max(xL - p.x, p.x - xR, yB - p.y, p.y - yT) > 30, px = p ? Math.max(xL, Math.min(xR, p.x)) : 0, py = p ? Math.max(yB, Math.min(yT, p.y)) : 0;
         if (!cancelZone) {
             let best = Infinity;
             for (let i = 0, l = xL; i < model.activeCabinet().state.n; l += ws[i] + PANEL, i++) {
@@ -101,7 +102,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
                 plan = slot === undefined ? { valid: false, reason: 'Point at another item to swap. Both items must fit their new sections.' } : geometry.planItemMove(from, to, slot, true);
             }
             else {
-                plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (PLINTH + PANEL) }, { free: e.altKey });
+                plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (interiorFloorOf(model.activeCabinet().state)) }, { free: e.altKey });
             }
         }
         rendering.clearPreview(false);

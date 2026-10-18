@@ -123,8 +123,9 @@ The 30 cm width floor comes from the engine's 25 cm minimum bay (see Known limit
 
 ## Known limits
 
-- Kitchen units use the wardrobe engine's 8 cm base: floor units stand on an 8 cm plinth, and
-  wall units have an 8 cm light rail under them.
+- Floor units use the wardrobe engine's 8 cm base: they stand on an 8 cm plinth. A wall unit has none: its bottom
+  board is its lower edge (`plinthOf` in `carcass.ts`; everything vertical starts from it), so its height is the whole
+  visible height and its fittings fill it less 3.6 cm of boards.
 - Sinks and hobs are drawn on the worktop; the worktop is not cut out under them.
 - Design specs (`#spec=`, the agent API) build wardrobes only.
 - Corner units and worktops that turn a corner are not modelled: each straight run has its own.

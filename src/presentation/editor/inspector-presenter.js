@@ -375,7 +375,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             $('#iw').max = f1(maxWidth);
             ( /** @type {HTMLInputElement} */(p.querySelector('[data-iwfull]'))).disabled = full || geometry.sectionDividers(model.activeCabinet().state.sel).some(d => {
                 const r = geometry.dividerRect(d);
-                return g.y0 < PLINTH + PANEL + r.y1 - .01 && g.y1 > PLINTH + PANEL + r.y0 + .01;
+                return g.y0 < geometry.interiorFloor() + r.y1 - .01 && g.y1 > geometry.interiorFloor() + r.y0 + .01;
             });
             $('#ialign').querySelectorAll('[data-al]').forEach(b => {
                 ( /** @type {HTMLInputElement} */(b)).disabled = full;

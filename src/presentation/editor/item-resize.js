@@ -98,7 +98,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
                 others.push({ i, j, div: j >= count, bayL, x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1 });
             });
         }
-        return { others, bw: a.g.bw, top: PLINTH + PANEL + geometry.ih() };
+        return { others, bw: a.g.bw, top: geometry.interiorFloor() + geometry.ih() };
     }
     function snapPxPerCm(a) {
         const g = a.g, y = (g.y0 + g.y1) / 2, A = picking.screenPoint(renderState.Gr.localToWorld(new THREE.Vector3(g.x0 - model.activeCabinet().state.w / 2, y, model.activeCabinet().state.d / 2 + 1))), B = picking.screenPoint(renderState.Gr.localToWorld(new THREE.Vector3(g.x0 - model.activeCabinet().state.w / 2 + 10, y, model.activeCabinet().state.d / 2 + 1)));

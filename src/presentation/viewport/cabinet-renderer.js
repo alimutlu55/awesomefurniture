@@ -238,8 +238,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
-        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = PLINTH + PANEL + (m.y0 + m.y1) / 2;
-        return m.hor ? [[new V(midX, PLINTH + PANEL + m.low, front), new V(midX, PLINTH + PANEL + m.y0, front), m.before], [new V(midX, PLINTH + PANEL + m.y1, front), new V(midX, PLINTH + PANEL + m.high, front), m.after]] : [[new V(baseX + m.low, midY, front), new V(baseX + m.x0, midY, front), m.before], [new V(baseX + m.x1, midY, front), new V(baseX + m.high, midY, front), m.after]];
+        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
+        return m.hor ? [[new V(midX, geometry.interiorFloor() + m.low, front), new V(midX, geometry.interiorFloor() + m.y0, front), m.before], [new V(midX, geometry.interiorFloor() + m.y1, front), new V(midX, geometry.interiorFloor() + m.high, front), m.after]] : [[new V(baseX + m.low, midY, front), new V(baseX + m.x0, midY, front), m.before], [new V(baseX + m.x1, midY, front), new V(baseX + m.high, midY, front), m.after]];
     }
     function clearanceSegments(a, b) {
         const tick = Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? new THREE.Vector3(2, 0, 0) : new THREE.Vector3(0, 2, 0);
@@ -264,7 +264,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             build();
             return;
         }
-        const r = geometry.dividerRect(d), pos = new THREE.Vector3(v.baseX + (r.x0 + r.x1) / 2, PLINTH + PANEL + (r.y0 + r.y1) / 2, -.5), delta = pos.clone().sub(v.panel.position);
+        const r = geometry.dividerRect(d), pos = new THREE.Vector3(v.baseX + (r.x0 + r.x1) / 2, geometry.interiorFloor() + (r.y0 + r.y1) / 2, -.5), delta = pos.clone().sub(v.panel.position);
         v.panel.position.copy(pos);
         v.hit.position.x = pos.x;
         v.hit.position.y = pos.y;

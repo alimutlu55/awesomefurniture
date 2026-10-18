@@ -150,7 +150,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         else if (model.activeCabinet().state.divider >= 0) {
             const d = model.activeCabinet().state.dividers[model.activeCabinet().state.divider], r = geometry.dividerRect(d), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, d.i).reduce((a, b) => a + b + PANEL, 0);
-            box = { x: base + (r.x0 + r.x1) / 2, y: PLINTH + PANEL + (r.y0 + r.y1) / 2, w: Math.max(50, r.x1 - r.x0 + 24), h: Math.max(50, r.y1 - r.y0 + 24), d: model.activeCabinet().state.d };
+            box = { x: base + (r.x0 + r.x1) / 2, y: geometry.interiorFloor() + (r.y0 + r.y1) / 2, w: Math.max(50, r.x1 - r.x0 + 24), h: Math.max(50, r.y1 - r.y0 + 24), d: model.activeCabinet().state.d };
         }
         else if (inspector.inside()) {
             const r = geometry.sectionSpaceMeasurements(model.activeCabinet().state.sel), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, model.activeCabinet().state.sel).reduce((a, b) => a + b + PANEL, 0);

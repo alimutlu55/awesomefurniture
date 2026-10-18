@@ -1,6 +1,7 @@
 import type { EditorState } from '../projects/editor-scene';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
-import { PANEL, PLINTH } from '../../domain/wardrobe/catalog';
+import { PANEL } from '../../domain/wardrobe/catalog';
+import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 
 /** Add an independent shelf in open space, or remove the nearest shelf board.
  * Existing fittings and their positions must survive unchanged. */
@@ -14,7 +15,7 @@ export function changeAccordionShelf(state: EditorState, section: number, x: num
             && q.x0 <= x && q.x1 >= x && q.w >= 25 && q.hMin >= 32 + PANEL)
             .sort((a, b) => Math.abs((a.y0 + a.y1) / 2 - y) - Math.abs((b.y0 + b.y1) / 2 - y) || b.hMin - a.hMin);
         for (const space of spaces) {
-            const base = PLINTH + PANEL, low = space.y0 - base, high = low + space.hMin;
+            const base = interiorFloorOf(state), low = space.y0 - base, high = low + space.hMin;
             const shelf = { i: section, orientation: 'horizontal' as const, x0: space.x0!, x1: space.x1!, y: (low + high) / 2,
                 area: { x0: space.x0!, x1: space.x1!, y0: low, y1: high } };
             state.dividers = [...before, shelf];
@@ -26,7 +27,7 @@ export function changeAccordionShelf(state: EditorState, section: number, x: num
     } else {
         const candidates = before.map((board, index) => ({ board, index }))
             .filter(({ board }) => board.i === section && board.orientation === 'horizontal' && board.x0! <= x && board.x1! >= x)
-            .sort((a, b) => Math.abs(a.board.y! + PLINTH + PANEL - y) - Math.abs(b.board.y! + PLINTH + PANEL - y));
+            .sort((a, b) => Math.abs(a.board.y! + interiorFloorOf(state) - y) - Math.abs(b.board.y! + interiorFloorOf(state) - y));
         for (const { index } of candidates) {
             state.dividers = before.filter((_, k) => k !== index);
             if (layouts() === originalLayout && state.dividers.every((d, k) => geometry.dividerValid(d, k))) {

@@ -1,4 +1,5 @@
-import { PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
+import { PANEL as T } from '../../domain/wardrobe/catalog.js';
+import { plinthOf } from '../../domain/wardrobe/carcass';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'selectionChanged' | 'milestone' | 'closeInspector'>;
@@ -114,7 +115,7 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
             return;
         }
         // A new divider starts at the most the slope allows above its position.
-        const d = rules.clampDivider({ i, orientation: ('vertical' as const), x: (space.x0! + space.x1!) / 2, y0: space.y0 - PL - T, y1: space.y1 - PL - T, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } });
+        const d = rules.clampDivider({ i, orientation: ('vertical' as const), x: (space.x0! + space.x1!) / 2, y0: space.y0 - plinthOf(getDesign()) - T, y1: space.y1 - plinthOf(getDesign()) - T, area: { x0: space.x0, x1: space.x1, y0: space.y0 - plinthOf(getDesign()) - T, y1: space.y1 - plinthOf(getDesign()) - T } });
         run(() => {
             getDesign().dividers = (getDesign().dividers || []).concat(d);
             // Under a sloped or stepped top it reaches up to the top where it stands, not only the section's lowest point.
@@ -152,13 +153,13 @@ export function createDividerCommands({ getDesign, effects, rules, run }: Ports)
         }
         if (space.x0 === undefined || space.x1 === undefined)
             return;
-        const y = (space.y0 + space.y1) / 2 - PL - T, d = { i, orientation: ('horizontal' as const), x0: space.x0, x1: space.x1, y, area: { x0: space.x0, x1: space.x1, y0: space.y0 - PL - T, y1: space.y1 - PL - T } };
+        const y = (space.y0 + space.y1) / 2 - plinthOf(getDesign()) - T, d = { i, orientation: ('horizontal' as const), x0: space.x0, x1: space.x1, y, area: { x0: space.x0, x1: space.x1, y0: space.y0 - plinthOf(getDesign()) - T, y1: space.y1 - plinthOf(getDesign()) - T } };
         run(() => {
             getDesign().dividers = (getDesign().dividers || []).concat(d);
             getDesign().item = -1;
             getDesign().divider = -1;
             getDesign().proposal = null;
-            getDesign().space = { i, x: (space.x0! + space.x1!) / 2, y: (space.y0 + y + PL + T - T / 2) / 2 };
+            getDesign().space = { i, x: (space.x0! + space.x1!) / 2, y: (space.y0 + y + plinthOf(getDesign()) + T - T / 2) / 2 };
         });
     }
     function removeDivider() {

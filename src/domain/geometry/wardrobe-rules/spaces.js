@@ -1,5 +1,6 @@
-import { MODS, PANEL as T, PLINTH as PL } from '../../wardrobe/catalog.js';
+import { MODS, PANEL as T } from '../../wardrobe/catalog.js';
 import { fittingDepth } from '../../wardrobe/carcass';
+import { plinthOf } from '../../wardrobe/carcass';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -10,6 +11,8 @@ import { fittingDepth } from '../../wardrobe/carcass';
  * @param {SizesRules & CeilingRules & LayoutRules & DividersRules} deps Rules from the modules created before this one. */
 export function createSpacesRules(ctx, deps) {
     const { getDesign } = ctx;
+    /** The plinth under this design's carcass (none under a wall unit). */
+    const plinth = () => plinthOf(getDesign());
     const { ceilingIn, ceilingOutline, ceilingTop, clearSpans, computeLayout, dividerRect, effectiveMin, ih, itemMinW, sectionDividers, widths } = deps;
 
     function itemFreeAbove(i, j) {
@@ -86,7 +89,7 @@ export function createSpacesRules(ctx, deps) {
         }
         return regions.map(q => {
             const y1 = Math.min(q.y1, ceilingTop(i, q.x0, q.x1)), low = Math.min(y1, ceilingIn(i, q.x0, q.x1));
-            return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: fittingDepth(getDesign().d).depth, y0: q.y0 + PL + T, y1: y1 + PL + T };
+            return { ...q, w: q.x1 - q.x0, h: y1 - q.y0, hMin: Math.max(0, low - q.y0), sloped: y1 - low > .05, dep: fittingDepth(getDesign().d).depth, y0: q.y0 + plinth() + T, y1: y1 + plinth() + T };
         }).filter(q => q.h > .01);
     }
     /** Centre of mass of a free space's clear area: the true middle of the room left after the
@@ -96,7 +99,7 @@ export function createSpacesRules(ctx, deps) {
         let area = 0, sx = 0, sy = 0;
         for (let k = 0; k < N; k++) {
             const x = x0 + (x1 - x0) * (k + .5) / N;
-            const top = Math.min(cap, ceilingIn(i, x, x + .01) + PL + T);
+            const top = Math.min(cap, ceilingIn(i, x, x + .01) + plinth() + T);
             const h = Math.max(0, top - base);
             area += h;
             sx += x * h;
@@ -110,7 +113,7 @@ export function createSpacesRules(ctx, deps) {
     function sectionSpaceMeasurements(i) {
         const spaces = sectionSpaces(i), point = getDesign().space?.i === i ? getDesign().space : null;
         const selected = point && spaces.find(q => point.x >= q.x0 - .01 && point.x <= q.x1 + .01 && point.y >= q.y0 - .01 && point.y <= q.y1 + .01);
-        const top = PL + T + ih(i), none = { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, hMin: 0, sloped: false, dep: fittingDepth(getDesign().d).depth, y0: top, y1: top };
+        const top = plinth() + T + ih(i), none = { x0: 0, x1: widths()[i] || 0, w: widths()[i] || 0, h: 0, hMin: 0, sloped: false, dep: fittingDepth(getDesign().d).depth, y0: top, y1: top };
         return selected || spaces.sort((a, b) => b.y1 - a.y1 || b.w * b.h - a.w * a.h)[0] || none;
     }
     function edgeGap(k) {
@@ -139,7 +142,7 @@ export function createSpacesRules(ctx, deps) {
     /** Widest part of a free space where a fitting of height h clears the top.
      * Section-local; null when no part is at least minW wide. */
     function spaceSpan(i, space, h, minW) {
-        const y0 = space.y0 - PL - T, spans = clearSpans(i, space.x0, space.x1, y0 + h).filter(q => q.x1 - q.x0 >= minW - .01);
+        const y0 = space.y0 - plinth() - T, spans = clearSpans(i, space.x0, space.x1, y0 + h).filter(q => q.x1 - q.x0 >= minW - .01);
         return spans.sort((a, b) => (b.x1 - b.x0) - (a.x1 - a.x0))[0] || null;
     }
     /** Narrowest change that brings a fitting back under a lowered or sloped top:

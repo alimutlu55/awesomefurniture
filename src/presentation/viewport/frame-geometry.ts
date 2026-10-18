@@ -43,7 +43,7 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     panel: Material;
     back: Material;
     plinth: Material;
-}, { sidesFrom = 0, plinth = true, solidBottom = false }: { sidesFrom?: number; plinth?: boolean; solidBottom?: boolean } = {}): void {
+}, { sidesFrom = 0, plinth = true, base: lift = PLINTH }: { sidesFrom?: number; plinth?: boolean; base?: number } = {}): void {
     const { w, d } = design, panel = panelBuilder(box, prism), shape = resolveShape(design);
     const back = rearShape(shape), tops = shapeBoards(shape), rearTops = shapeBoards(back);
     tops.forEach((board, i) => {
@@ -55,11 +55,9 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     renderUpright(design, w - PANEL, w, sidesFrom, d, materials.panel, box, prism);
     // The base board stops at the back board's face; the back sits between the sides (carcass.ts).
     const base = partitionDepth(d);
-    box(w - 2 * PANEL, PANEL, base.depth, 0, PLINTH + PANEL / 2, base.centre, materials.panel);
-    // A unit whose sides run to the floor line without a plinth (a wall unit) has a solid bottom down to its lower edge.
-    if (solidBottom) box(w - 2 * PANEL, PLINTH, base.depth, 0, PLINTH / 2, base.centre, materials.panel);
-    panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), BACK_PANEL, -d / 2 + BACK_PANEL / 2, materials.back);
-    if (plinth) box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
+    box(w - 2 * PANEL, PANEL, base.depth, 0, lift + PANEL / 2, base.centre, materials.panel);
+    panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, lift), BACK_PANEL, -d / 2 + BACK_PANEL / 2, materials.back);
+    if (plinth) box(w - 2 * PANEL, lift, d - 6, 0, lift / 2, -1, materials.plinth);
 }
 
 /** Side panels and partitions join the independently edited front and rear. */

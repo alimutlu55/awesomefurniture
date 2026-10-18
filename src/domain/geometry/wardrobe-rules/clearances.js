@@ -1,6 +1,6 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
 import { hasTrait } from '../../wardrobe/fittings';
-import { INTERIOR_FLOOR, RAIL_DROP } from '../../wardrobe/carcass';
+import { interiorFloorOf, RAIL_DROP } from '../../wardrobe/carcass';
 import { fittingPanels } from '../shared-board-spans';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -18,6 +18,8 @@ import { fittingPanels } from '../shared-board-spans';
  * @param {CeilingRules & LayoutRules & FitRules & DividersRules} deps Rules from the modules created before this one. */
 export function createClearanceRules(ctx, deps) {
     const { getDesign } = ctx;
+    /** Where the clear interior starts: the top of the base board (the floor of a wall unit is its lower edge). */
+    const floor = () => interiorFloorOf(getDesign());
     const { ceilingIn, ceilingTop, ceilingOutline, computeLayout, sectionDividers, dividerRect, clampDivider, itemFit } = deps;
     const round = v => Math.round(v * 100) / 100;
     /** Everything fixed in a section: fittings (layout) and shelf boards and dividers, as section rects.
@@ -25,7 +27,7 @@ export function createClearanceRules(ctx, deps) {
     function sectionObstacles(i, layout = computeLayout(i)) {
         const boards = sectionDividers(i).map(d => {
             const r = dividerRect(d.orientation === 'vertical' ? clampDivider(d) : d);
-            return { x0: r.x0, x1: r.x1, y0: INTERIOR_FLOOR + r.y0, y1: INTERIOR_FLOOR + r.y1, to: /** @type {Limit} */ ('board') };
+            return { x0: r.x0, x1: r.x1, y0: floor() + r.y0, y1: floor() + r.y1, to: /** @type {Limit} */ ('board') };
         });
         return layout.map(q => ({ x0: q.x0, x1: q.x1, y0: q.y0, y1: q.y1, to: /** @type {Limit} */ ('fitting') })).concat(boards);
     }
@@ -36,9 +38,9 @@ export function createClearanceRules(ctx, deps) {
     function gapsAround(i, rect, obstacles) {
         const over = o => o.x0 < rect.x1 - .01 && rect.x0 < o.x1 - .01, mid = (rect.x0 + rect.x1) / 2;
         const lineX = o => (Math.max(rect.x0, o.x0) + Math.min(rect.x1, o.x1)) / 2;
-        const topAt = INTERIOR_FLOOR + ceilingIn(i, mid - .5, mid + .5);
+        const topAt = floor() + ceilingIn(i, mid - .5, mid + .5);
         let above = { y: Math.max(rect.y1, topAt), x: mid, to: /** @type {Limit} */ ('top') };
-        let below = { y: INTERIOR_FLOOR, x: mid, to: /** @type {Limit} */ ('base') };
+        let below = { y: floor(), x: mid, to: /** @type {Limit} */ ('base') };
         for (const o of obstacles) {
             if (!over(o)) continue;
             if (o.y0 >= rect.y1 - .01 && o.y0 < above.y) above = { y: o.y0, x: lineX(o), to: o.to ?? 'fitting' };
@@ -85,19 +87,19 @@ export function createClearanceRules(ctx, deps) {
         if (!sec?.[j] || !q || !hasTrait(sec[j].k, 'openShelf')) return null;
         const shared = sectionDividers(i).filter(d => d.orientation === 'horizontal').map(d => {
             const r = dividerRect(d);
-            return { ...r, y0: INTERIOR_FLOOR + r.y0, y1: INTERIOR_FLOOR + r.y1 };
+            return { ...r, y0: floor() + r.y0, y1: floor() + r.y1 };
         });
-        const panels = fittingPanels(layout, INTERIOR_FLOOR, (x0, x1) => INTERIOR_FLOOR + ceilingTop(i, x0, x1), shared)[j];
+        const panels = fittingPanels(layout, floor(), (x0, x1) => floor() + ceilingTop(i, x0, x1), shared)[j];
         const top = panels.top.length ? T : 0, rise = Math.max(0, ...panels.support.map(s => s.rise));
         return { y0: q.y0 + rise, y1: q.y1 - top, h: round(Math.max(0, q.y1 - top - q.y0 - rise)), pitch: sec[j].h };
     }
     /** Where a free space under a sloped top is tallest, so its height ruler stands there and stays under the top.
      * @param {number} i @param {{ x0: number; x1: number; y0: number; y1: number }} space Section-local x, y from the floor. */
     function spaceTallest(i, space) {
-        const cap = space.y1 - INTERIOR_FLOOR, inset = Math.min(2, (space.x1 - space.x0) / 4);
+        const cap = space.y1 - floor(), inset = Math.min(2, (space.x1 - space.x0) / 4);
         let best = { x: space.x1 - inset, h: 0 };
         for (const p of ceilingOutline(i, space.x0 + inset, space.x1 - inset)) {
-            const h = Math.min(p.y, cap) - (space.y0 - INTERIOR_FLOOR);
+            const h = Math.min(p.y, cap) - (space.y0 - floor());
             if (h > best.h + 1e-6) best = { x: p.x, h: round(h) };
         }
         return best;

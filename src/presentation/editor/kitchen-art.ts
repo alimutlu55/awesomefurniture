@@ -13,13 +13,14 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
   const unit = { ...def, ...own }, tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);
   const S = Math.min(96 / tall, 110 / unit.w), w = unit.w * S, x = (W - w) / 2;
   const top = unit.elevation ? (H - unit.h * S) / 2 : FLOOR - unit.h * S, bottom = top + unit.h * S;
-  const inside = unit.h - PLINTH - 2 * PANEL, total = preset.parts.reduce((s, [, share]) => s + share, 0);
+  const base = unit.elevation > 0 ? 0 : PLINTH, inside = unit.h - base - 2 * PANEL, total = preset.parts.reduce((s, [, share]) => s + share, 0);
   const out: string[] = [];
   // The carcass, the plinth (or a wall unit's light rail) and the worktop.
   out.push(`<rect x="${x}" y="${top}" width="${w}" height="${unit.h * S}" rx="1" fill="#efe9df" stroke="#8d7d65" stroke-width="1"/>`);
   if (unit.worktop) out.push(`<rect x="${x - 2}" y="${top - WORKTOP.thickness * S}" width="${w + 4}" height="${WORKTOP.thickness * S}" fill="#d9d4cb" stroke="#8d7d65" stroke-width=".8"/>`);
-  const railY = bottom - PLINTH * S;
-  out.push(`<rect x="${x + (unit.plinth ? 3 : 0)}" y="${railY}" width="${w - (unit.plinth ? 6 : 0)}" height="${PLINTH * S}" fill="#cbbfac"/>`);
+  // The plinth under a floor unit; a wall unit's bottom is its lower edge.
+  const railY = bottom - base * S;
+  if (base) out.push(`<rect x="${x + (unit.plinth ? 3 : 0)}" y="${railY}" width="${w - (unit.plinth ? 6 : 0)}" height="${base * S}" fill="#cbbfac"/>`);
   // An empty unit shows its open inside; a filled one its fronts from the floor up, in proportion to their parts.
   if (!preset.parts.length) out.push(`<rect x="${x + 2}" y="${top + 2}" width="${w - 4}" height="${railY - top - 3}" fill="#ddd2c2"/>`);
   let y = railY;

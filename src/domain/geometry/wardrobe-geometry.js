@@ -35,7 +35,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     const {
         itemMinW, effectiveMin, itemFeasible, newItem, splitFor, okItem, bayMinW, minTotal, maxN, shapeInfo,
         floor2, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear, cutOutline, widths,
-        computeLayout, ih, used, free, currentLayout, itemFit, fitsCeiling, itemOverflow, overflow,
+        computeLayout, ih, used, free, currentLayout, interiorFloor, itemFit, fitsCeiling, itemOverflow, overflow,
         sectionFits, fittingFit, dividerRect, visibleRect, sectionDividers, dividerBounds, boardFit, clampDivider,
         dividerValid, dividerOrientation, dividerOverlaps, dividerMeasurements, dividerDupSpot, isBoxed,
         boxCapped, boxSupported, sectionSpaces, spaceCentre, sectionSpaceMeasurements, spaceSpan, narrowToFit,
@@ -49,7 +49,7 @@ export function createWardrobeGeometry(getDesign, getBudget = () => 900) {
     return {
         spaceCentre, clampDivider, shapeInfo, ceilingIn, ceilingTop, ceilingOutline, clearSpans, windowClear,
         itemFit, fittingFit, cutOutline, boardFit, fitsCeiling, overflow, sectionFits, spaceSpan, narrowToFit,
-        widths, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free,
+        widths, interiorFloor, computeLayout, planItemMove, planFreeMove, verticalNeighbor, itemFreeAbove, ih, used, free,
         maxN, cost, stats, itemGeom, itemMeasurements, dividerRect, visibleRect, dividerMeasurements, dividerBounds,
         dividerValid, dividerOrientation, itemYBounds, sectionDividers, dividerOverlaps, sectionLayoutValid,
         sectionSpaces, sectionSpaceMeasurements, itemMinW, isBoxed, boxCapped, boxSupported, planCfg,
