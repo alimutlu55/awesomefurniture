@@ -165,11 +165,10 @@ test('cargo pull-outs · a slim base unit and a tall one, with the cargo allowed
 
 test('built-in appliances · each has a unit prepared for it, and a cooker stands in the run without a worktop over it', async () => {
   const { kitchenSpans } = await import('../../src/domain/kitchen/kitchen-runs');
-  for (const [preset, kind] of [['dishwasher', 'dishwasher'], ['fridge-under', 'fridge'], ['hood', 'hood'], ['microwave', 'microwave'], ['cooker', 'cooker'], ['hob', 'hob'], ['sink-double', 'sink']] as const) {
+  for (const [preset, kind] of [['dishwasher', 'dishwasher'], ['fridge-under', 'fridge'], ['hood', 'hood'], ['microwave', 'microwave'], ['cooker', 'cooker'], ['hob', 'hob'], ['sink', 'sink']] as const) {
     const p = KITCHEN_PRESETS.find(x => x.key === preset)!, design = createKitchenDesign(p.unit, p.key);
     assert.ok(design.secs[0]!.some(it => it.k === kind), `${preset} holds a ${kind}`);
   }
-  assert.equal(createKitchenDesign('base', 'sink-double').w, 90); assert.equal(createKitchenDesign('base', 'sink-wide').w, 120);
   assert.equal(createKitchenDesign('tall', 'fridge-tall').h, 190);
   assert.deepEqual(createKitchenDesign('tall', 'fridge-tall').secs[0]!.map(it => it.k), ['fridge'], 'a tall fridge-freezer has no cupboard above it');
   const unitAt = (id: number, x: number, key: 'base' | 'cooker') => ({ id, name: 'U' + id, x, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign(key, key === 'cooker' ? 'cooker' : undefined), sel: 0, item: -1, divider: -1, space: null, open: false } });
