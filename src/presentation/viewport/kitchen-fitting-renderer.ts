@@ -25,9 +25,13 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
   const face = d / 2 + PANEL / 2, gap = .3;
   const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: steel });
 
-  /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards. */
-  function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }) {
-    const hh = it.h, x0 = cx - sw / 2 - PANEL / 2, x1 = cx + sw / 2 + PANEL / 2;
+  /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
+   * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
+  function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
+    // Like the top and bottom, a front reaches over the whole side panel where it stands at the unit's edge (less a 3 mm
+    // gap to the next unit); beside another front in the same unit it stops halfway across their shared partition.
+    const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL - gap / 2 : PANEL / 2;
+    const hh = it.h, x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
     const y0 = Math.abs(y - inside.bottom) < .05 ? y - PANEL : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
     const mid = (y0 + y1) / 2, high = unit === 'upper';
     switch (it.k) {

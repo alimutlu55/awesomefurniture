@@ -55,7 +55,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
      * the core rectangle; shelf contents that would touch the top are left out. */
     function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>PLINTH+PANEL+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut) {
         if (kitchen) {
-            kitchen.kitchenFitting(it, cx, y, sw, { bottom: PLINTH + PANEL, top: ceiling });
+            kitchen.kitchenFitting(it, cx, y, sw, { bottom: PLINTH + PANEL, top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
             return;
         }
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;

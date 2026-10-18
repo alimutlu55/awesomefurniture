@@ -44,7 +44,9 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
     // Prefer staying on the line: slide across it first (sideways for a vertical label), then along it.
     const steps = [[0, 0], [w / 2 + 8, 0], [-(w / 2 + 8), 0], [0, -(h + 4)], [0, h + 4], [w + 12, 0], [-(w + 12), 0], [0, -2 * (h + 4)], [0, 2 * (h + 4)],
       [w / 2 + 8, -(h + 4)], [-(w / 2 + 8), -(h + 4)], [w / 2 + 8, h + 4], [-(w / 2 + 8), h + 4]];
-    const free = steps.find(([dx, dy]) => { const b = shifted(box, dx!, dy!); return inside(b) && !taken.some(t => hits(b, t)); });
+    // A gap figure belongs to its line: it may only slide along the line's height, never float off it to another place.
+    const allowed = el.classList.contains('clearance') ? steps.filter(([, dy]) => dy === 0) : steps;
+    const free = allowed.find(([dx, dy]) => { const b = shifted(box, dx!, dy!); return inside(b) && !taken.some(t => hits(b, t)); });
     // A read-only figure with no free spot steps aside rather than cover a control; an editable one stays.
     if (!free && !el.hasAttribute('data-measurement-badge')) { el.style.display = 'none'; continue; }
     const spot = free ?? [0, 0];
