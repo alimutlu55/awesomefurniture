@@ -22,6 +22,8 @@ export interface KitchenUnitDef {
   readonly worktop: boolean;
   /** It stands on a plinth that runs along neighbouring units on the floor. */
   readonly plinth: boolean;
+  /** A sink or hob that stands on its own on a worktop: placed, moved and sized by itself, with no cabinet under it. */
+  readonly fixture?: 'sink' | 'hob';
   /** What a new unit holds, and what replaces an appliance when a unit is duplicated: [kind, height][]. */
   readonly storage: readonly (readonly [string, number])[];
 }
@@ -33,8 +35,15 @@ export const KITCHEN_UNITS = [
     sizes: { w: [30, 150], h: [35, 130], d: [25, 70] }, worktop: false, plinth: false, storage: [['cupboard', 56]] },
   { key: 'tall', name: 'Tall cabinet', description: 'Floor to top: larder, fridge or ovens', w: 60, h: 215, d: 58, elevation: 0,
     sizes: { w: [30, 100], h: [150, 270], d: [30, 80] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
+  // A sink or hob is placed by itself on the worktop (its underside is the worktop's top), never part of a cabinet.
+  { key: 'sink-top', name: 'Sink', description: 'A sink and tap, placed on any worktop', w: 80, h: 30, d: 50, elevation: 90,
+    sizes: { w: [40, 200], h: [30, 30], d: [35, 70] }, worktop: false, plinth: false, fixture: 'sink', storage: [] },
+  { key: 'hob-top', name: 'Hob', description: 'A hob, placed on any worktop', w: 60, h: 2, d: 52, elevation: 90,
+    sizes: { w: [30, 120], h: [2, 2], d: [35, 70] }, worktop: false, plinth: false, fixture: 'hob', storage: [] },
 ] as const satisfies readonly KitchenUnitDef[];
 
+/** A sink or hob placed on its own on a worktop (a design of that unit). */
+export const isFixture = (design: { product?: string | undefined; unit?: string | undefined }) => design.product === 'kitchen' && !!kitchenUnit(design.unit).fixture;
 export type KitchenUnitKey = typeof KITCHEN_UNITS[number]['key'];
 export const KITCHEN_UNIT_KEYS = KITCHEN_UNITS.map(u => u.key) as readonly KitchenUnitKey[];
 export const kitchenUnit = (key: string | undefined): KitchenUnitDef =>

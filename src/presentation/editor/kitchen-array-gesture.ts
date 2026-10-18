@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { arrayCount, runReach } from '../../domain/kitchen/kitchen-runs';
 import { isKitchen } from '../../domain/furniture/furniture';
+import { isFixture } from '../../domain/kitchen/kitchen-units';
+
+/** Units that can be pulled out into a row: a sink or hob stands alone. */
+const arrayable = (state: Parameters<typeof isKitchen>[0] & Parameters<typeof isFixture>[0]) => isKitchen(state) && !isFixture(state);
 import { hasTrait } from '../../domain/wardrobe/fittings';
 import type { EditorScene } from '../../application/projects/editor-scene';
 
@@ -53,7 +57,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
   }
   function begin(x: number, y: number, side: Side | 0, grip?: HTMLButtonElement) {
     const unit = model.activeCabinet();
-    if (!isKitchen(unit.state)) return false;
+    if (!arrayable(unit.state)) return false;
     gesture = { snapshot: model.snapshot(), id: unit.id, side, axis: screenAxis(), x, y, count: 0, ...(grip ? { grip } : {}) };
     grip?.classList.add('pulling');
     // A long press has turned into a pull: a tick tells the finger.
@@ -144,7 +148,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     /** Puts the grips at the two ends of the selected unit's run, at its height: pulling makes the run longer. */
     place() {
       const c = model.activeCabinet(), owner = renderState.Gr;
-      if (!isKitchen(c.state) || !owner) return;
+      if (!arrayable(c.state) || !owner) return;
       const reach = runReach(model.scene.wardrobes, c);
       for (const side of [-1, 1] as const) {
         const el = grip(side);
@@ -158,7 +162,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     /** A finger or button rests on the selected kitchen unit: after a moment, sliding pulls out copies. */
     holdStart(x: number, y: number, started: () => void) {
       this.holdCancel();
-      if (!isKitchen(model.activeCabinet().state)) return;
+      if (!arrayable(model.activeCabinet().state)) return;
       hold = { x, y, timer: lifetime.timeout(() => { hold = null; if (begin(x, y, 0)) started(); }, HOLD_MS) };
     },
     /** The pointer moved off before the hold completed: it is an ordinary drag. */

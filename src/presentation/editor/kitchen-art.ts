@@ -10,6 +10,15 @@ const W = 146, H = 110, FLOOR = 104;
  * panel shows. A wall unit hangs in the middle of the card; floor units stand at its foot. */
 export function kitchenPresetArt(preset: Preset, className = 'product-art kitchen-art'): string {
   const def = kitchenUnit(preset.unit), own = { w: preset.size?.w ?? def.w, h: preset.size?.h ?? def.h };
+  // A sink or hob placed on its own: a slice of worktop with the fixture on it, no cabinet.
+  if (def.fixture) {
+    const fw = 100, fx = (W - fw) / 2, ty = 70, slab = `<rect x="${fx - 10}" y="${ty}" width="${fw + 20}" height="9" fill="#d9d4cb" stroke="#8d7d65" stroke-width=".8"/>`;
+    const sink = `<rect x="${fx + 8}" y="${ty - 2}" width="${fw - 16}" height="2.4" fill="#c4c8cc" stroke="#8d7d65" stroke-width=".7"/><rect x="${fx + 14}" y="${ty - 1}" width="${fw - 28}" height="1.6" fill="#7d8389"/>`
+      + `<path d="M${W / 2 - 3} ${ty - 2}v-26h9v5" fill="none" stroke="#8a8f96" stroke-width="2.4" stroke-linecap="round"/>`;
+    const burners = [.3, .7].map(bx => `<circle cx="${fx + fw * bx}" cy="${ty - 1}" r="5" fill="none" stroke="#5d636a" stroke-width="1.2"/>`).join('');
+    const hobArt = `<rect x="${fx + 6}" y="${ty - 3}" width="${fw - 12}" height="3" fill="#1b1e22"/>${burners}`;
+    return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${slab}${def.fixture === 'sink' ? sink : hobArt}</svg>`;
+  }
   const unit = { ...def, ...own }, tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);
   const S = Math.min(96 / tall, 110 / unit.w), w = unit.w * S, x = (W - w) / 2;
   const top = unit.elevation ? (H - unit.h * S) / 2 : FLOOR - unit.h * S, bottom = top + unit.h * S;

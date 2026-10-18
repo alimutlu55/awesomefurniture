@@ -136,6 +136,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             const key = i.dataset.dimension || dom.controlId(i), cabinet = model.activeCabinet(), value = key === 'y' ? cabinet.y || 0 : cabinet.state[key];
             // Height above the floor is only for what hangs on a wall.
             if (key === 'y') /** @type {HTMLElement} */ (i.closest('.resize-field-control')).hidden = !(isKitchen(cabinet.state) && kitchenUnit(cabinet.state.unit).elevation > 0);
+            // A sink or hob has no height to set: its thickness is fixed.
+            if (key === 'h') /** @type {HTMLElement} */ (i.closest('.resize-field-control')).hidden = isKitchen(cabinet.state) && !!kitchenUnit(cabinet.state.unit).fixture;
             i.value = value;
             $('#' + key + 'v').textContent = measureNumber(value) + unitSuffix();
             if (i.type === 'range') i.setAttribute('aria-valuetext', measureNumber(Number(i.value)) + unitSuffix());

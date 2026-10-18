@@ -10,7 +10,7 @@ import { hasTrait } from '../../src/domain/wardrobe/fittings';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
 
 /** A kitchen unit selected in a model, seen square on at 2 px per centimetre, with the gesture wired to fakes. */
-function fixture(preset = 'cooking') {
+function fixture(preset = 'oven-under') {
   const scene: EditorScene = { activeWardrobe: 1, nextWardrobeId: 2, wardrobes: [
     { id: 1, name: 'Hob and oven 1', x: 0, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign('base', preset), sel: 0, item: -1, divider: -1, space: null, open: false } }] };
   const model = createEditorModel(scene), checkpoints: string[] = [], toasts: string[] = [], ticks: number[] = [];

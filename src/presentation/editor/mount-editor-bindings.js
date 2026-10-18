@@ -23,6 +23,7 @@ import * as shellBindings from './shell-bindings.js';
 import { MODS } from '../../domain/wardrobe/catalog.js';
 import { fittingProduct } from '../../domain/wardrobe/fittings';
 import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
+import { isFixture } from '../../domain/kitchen/kitchen-units';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
     const { $, document } = dom;
@@ -264,7 +265,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.viewMode === 'studio') return selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
-            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : furnitureKind(state);
+            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : isFixture(state) ? 'fixture' : furnitureKind(state);
         },
         replacements: () => { const state = model.activeCabinet().state, module = furnitureModule(state);
             return Object.entries(MODS).filter(([key]) => key !== 'void' && module.allows(key, state)).map(([key,value]) => ['t-' + key,value.n]); },

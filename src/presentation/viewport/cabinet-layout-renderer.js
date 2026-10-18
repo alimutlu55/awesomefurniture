@@ -16,6 +16,7 @@ import { fittingPanels } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
+import { drawKitchenFixture } from './kitchen-fixture-renderer';
 export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
@@ -111,6 +112,14 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         renderState.settling = [];
         renderState.Gr = new THREE.Group();
         resources.scene.add(renderState.Gr);
+        // A sink or hob placed on its own is just the fixture: no carcass, sections or shadow.
+        const owned = [], focused = renderState.renderActive && selectionState.focusOn;
+        const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), stroke: dimensionStroke } : null;
+        if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, M: resources.M, owned, hits: renderState.hits, measure })) {
+            renderState.Gr.userData.ownedMaterials = owned;
+            renderState.Gr.updateMatrixWorld(true);
+            return;
+        }
         const shadow = new THREE.Mesh(new THREE.PlaneGeometry(getRenderDesign().w * 1.45, getRenderDesign().d * 2.7), resources.contact.material.clone());
         shadow.rotation.x = -Math.PI / 2;
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);

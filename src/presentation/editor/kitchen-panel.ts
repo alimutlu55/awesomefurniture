@@ -20,7 +20,7 @@ export function createKitchenPanel({ dom, add }: KitchenPanelPorts) {
   };
 
   /** The panel's sections: cabinets by where they stand, and what holds an appliance or a sink on its own. */
-  const sectionOf = (p: typeof KITCHEN_PRESETS[number]) => (p.parts as readonly (readonly [string, number])[]).some(([kind]) => hasTrait(kind, 'appliance')) ? 'Sinks and appliances'
+  const sectionOf = (p: typeof KITCHEN_PRESETS[number]) => kitchenUnit(p.unit).fixture || (p.parts as readonly (readonly [string, number])[]).some(([kind]) => hasTrait(kind, 'appliance')) ? 'Sinks and appliances'
     : p.unit === 'upper' ? 'Wall cabinets' : p.unit === 'tall' ? 'Tall cabinets' : 'Base cabinets';
   const SECTIONS = ['Base cabinets', 'Sinks and appliances', 'Wall cabinets', 'Tall cabinets'];
   /** Every card in the order of the sections, so related ones sit together. */

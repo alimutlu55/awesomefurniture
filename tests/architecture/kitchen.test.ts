@@ -50,6 +50,7 @@ test('kitchen units · defaults are inside their limits and their plain storage 
     assert.equal(design.product, 'kitchen');
     assert.equal(design.unit, u.key);
     assert.deepEqual(furnitureModule(design).sizes(design), u.sizes);
+    if (kitchenUnit(u.key).fixture) { assert.deepEqual(design.secs[0], [], `${u.key}: a sink or hob holds nothing`); continue; }
     const total = design.secs[0]!.reduce((s, it) => s + it.h, 0);
     assert.ok(Math.abs(total - kitchenInside(u.h, u.key)) < .01, `${u.key}: storage fills the inside (${total})`);
   }
@@ -72,6 +73,7 @@ test('kitchen presets · contents fit their unit, within each fitting limit, and
 
 test('kitchen module · each unit offers only the fittings that fit it', () => {
   for (const unit of KITCHEN_UNIT_KEYS) {
+    if (kitchenUnit(unit).fixture) continue; // a sink or hob has no inside to fit things in
     const design = createKitchenDesign(unit), offered = furnitureModule(design).fittingKinds(design);
     assert.ok(offered.length >= 3, `${unit}: offers a choice`);
     for (const k of offered) assert.ok((defs.find(f => f.key === k)!.kitchen!.units as readonly string[]).includes(unit));
@@ -162,7 +164,7 @@ test('cargo pull-outs · a slim base unit and a tall one, with the cargo allowed
 });
 
 test('built-in appliances · each has a unit prepared for it', async () => {
-  for (const [preset, kind] of [['dishwasher', 'dishwasher'], ['fridge-under', 'fridge'], ['hood', 'hood'], ['microwave', 'microwave'], ['hob', 'hob'], ['sink', 'sink']] as const) {
+  for (const [preset, kind] of [['dishwasher', 'dishwasher'], ['fridge-under', 'fridge'], ['hood', 'hood'], ['microwave', 'microwave'], ['oven-under', 'oven']] as const) {
     const p = KITCHEN_PRESETS.find(x => x.key === preset)!, design = createKitchenDesign(p.unit, p.key);
     assert.ok(design.secs[0]!.some(it => it.k === kind), `${preset} holds a ${kind}`);
   }
@@ -180,4 +182,22 @@ test('a wall unit has no plinth: its bottom board is its lower edge, a floor uni
   assert.equal(wall.g.computeLayout(0)[0]!.y0, 1.8, 'the first fitting stands on the bottom board of the wall unit');
   assert.equal(wall.g.itemMeasurements(0, 0)!.gapBelow, 0, 'and nothing is left under it');
   assert.ok(Math.abs(wall.d.secs[0]!.reduce((s, it) => s + it.h, 0) - (wall.d.h - 3.6)) < .05, 'the fittings fill the whole inside, 3.6 cm of boards less than the height');
+});
+
+test('a sink and a hob are placed on their own on a worktop, sized by themselves, never part of a cabinet', async () => {
+  const { isFixture } = await import('../../src/domain/kitchen/kitchen-units');
+  const { kitchenSpans } = await import('../../src/domain/kitchen/kitchen-runs');
+  for (const key of ['sink-top', 'hob-top'] as const) {
+    const unit = kitchenUnit(key), design = createKitchenDesign(key, key);
+    assert.ok(isFixture(design), `${key} is a fixture`);
+    assert.equal(unit.elevation, 90, `${key}: its underside is the worktop's top (86 cm unit and 4 cm worktop)`);
+    assert.ok(!unit.worktop && !unit.plinth, `${key}: no worktop or plinth of its own`);
+    assert.ok(unit.sizes.w[1] > 100 && unit.sizes.w[0] < 50, `${key}: any width a person wants`);
+    assert.equal(KITCHEN_PRESETS.filter(p => p.unit === key).length, 1, `${key}: one card`);
+  }
+  assert.ok(!isFixture(createKitchenDesign('base')));
+  const base = { id: 1, name: 'B', x: 0, y: 0, z: 0, angle: 0, state: { ...createKitchenDesign('base'), sel: 0, item: -1, divider: -1, space: null, open: false } };
+  const sink = { id: 2, name: 'S', x: 0, y: 90, z: 0, angle: 0, state: { ...createKitchenDesign('sink-top'), sel: 0, item: -1, divider: -1, space: null, open: false } };
+  assert.deepEqual(kitchenSpans([base, sink] as never).filter(s => s.kind === 'worktop').map(s => s.units), [[1]], 'the worktop belongs to the cabinet, not the sink');
+  assert.equal(KITCHEN_PRESETS.filter(p => (p.parts as readonly (readonly [string, number])[]).some(([k]) => k === 'sink' || k === 'hob')).length, 0, 'no cabinet comes with a sink or hob');
 });

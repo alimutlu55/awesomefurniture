@@ -11,7 +11,9 @@ import type { EditorCabinet, EditorScene } from '../../src/application/projects/
 import type { KitchenUnitKey } from '../../src/domain/kitchen/kitchen-units';
 
 const unit = (id: number, unitKey: KitchenUnitKey, x: number, z = 0, angle = 0, w = 60, preset?: string): EditorCabinet => {
-  const design = createKitchenDesign(unitKey, preset);
+  const design = createKitchenDesign(unitKey, preset === 'sink' ? undefined : preset);
+  // A base cabinet that holds a sink fitting (a sink on its own is a fixture unit: see kitchen.test.ts).
+  if (preset === 'sink') design.secs[0] = [{ k: 'sink', h: 74.4 }];
   return { id, name: 'U' + id, x, y: unitKey === 'upper' ? 142 : 0, z, angle, state: { ...design, w, sel: 0, item: -1, divider: -1, space: null, open: false } };
 };
 const scene = (...wardrobes: EditorCabinet[]): EditorScene => ({ wardrobes, activeWardrobe: wardrobes[0]?.id ?? 0, nextWardrobeId: Math.max(0, ...wardrobes.map(w => w.id)) + 1 });
@@ -77,7 +79,7 @@ test('adding units: beside the selected one, wall units above it, one undo step 
 });
 
 test('duplicate and pull-to-array copy size and finish but never the appliance', () => {
-  const s = scene(unit(1, 'base', 0, 0, 0, 80, 'cooking'));
+  const s = scene(unit(1, 'base', 0, 0, 0, 80, 'oven-under'));
   s.wardrobes[0]!.state.fin = 'Walnut';
   let checkpoints = 0;
   const commands = createSceneCommands(() => s, { checkpoint: () => checkpoints++ });
@@ -120,8 +122,8 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   assert.equal(s.doors, 1, 'the fridge housing cupboard; the sink and fridge fronts are appliances');
   assert.deepEqual(s.appliances, ['Sink and tap', 'Integrated fridge']);
   assert.equal(s.worktop, 120, 'the worktop stops at the tall unit');
-  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1 }, 'a unit on another wall is another kitchen');
-  assert.deepEqual(s.notes, ['No hob yet: add one to a base cabinet, under the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
+  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1, 'sink-top': 0, 'hob-top': 0 }, 'a unit on another wall is another kitchen');
+  assert.deepEqual(s.notes, ['No hob yet: add one from Sinks and appliances, then place it on the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });
 
 test('Reset keeps a kitchen cabinet a cabinet: an empty unit of its kind at its standard size', () => {

@@ -15,9 +15,9 @@ import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
 export const KITCHEN_PRESETS = [
   { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
-  { key: 'sink', unit: 'base', name: 'Sink unit', parts: [['sink', 1]] },
-  { key: 'hob', unit: 'base', name: 'Hob unit', parts: [['hob', 14], ['pan', 30.2], ['pan', 30.2]], size: { w: 60 } },
-  { key: 'cooking', unit: 'base', name: 'Hob and oven', parts: [['oven', 4.3], ['hob', 1]] },
+  { key: 'oven-under', unit: 'base', name: 'Oven unit', parts: [['cutlery', 1], ['oven', 5]] },
+  { key: 'sink-top', unit: 'sink-top', name: 'Sink', parts: [] },
+  { key: 'hob-top', unit: 'hob-top', name: 'Hob', parts: [] },
   { key: 'dishwasher', unit: 'base', name: 'Dishwasher', parts: [['dishwasher', 1]] },
   { key: 'fridge-under', unit: 'base', name: 'Under-counter fridge', parts: [['fridge', 1]] },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
