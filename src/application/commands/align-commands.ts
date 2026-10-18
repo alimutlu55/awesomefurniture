@@ -15,25 +15,32 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
   /** While a wardrobe is dragged: the nearest of touching its neighbour or the wall on either side, sitting
    * centred between them, or putting its front in line with another wardrobe's, within `tolerance` cm. The
    * pose to use (unchanged when nothing is that close, or when it would run into something). */
-  function alignSnap(cabinet: EditorCabinet, tolerance: number): Pick<EditorCabinet, 'x' | 'z'> {
+  function alignSnap(cabinet: EditorCabinet, tolerance: number, depth = true): Pick<EditorCabinet, 'x' | 'z'> {
     const a = cabinet.angle * Math.PI / 180, u = { x: Math.cos(a), z: -Math.sin(a) }, f = { x: Math.sin(a), z: Math.cos(a) };
     const { gaps } = measureAround(getScene(), cabinet, ['left', 'right', 'back']), at = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
-    const left = at('left'), right = at('right'), moves: { s: number; t: number }[] = [];
-    if (left !== undefined) moves.push({ s: -left, t: 0 });
-    if (right !== undefined) moves.push({ s: right, t: 0 });
-    if (left !== undefined && right !== undefined) moves.push({ s: (right - left) / 2, t: 0 });
-    // Fronts in line with a wardrobe turned the same way.
-    for (const o of getScene().wardrobes) {
+    const left = at('left'), right = at('right');
+    // Along its width: touching a neighbour or the wall on either side, or centred between them.
+    const across: number[] = [];
+    if (left !== undefined) across.push(-left);
+    if (right !== undefined) across.push(right);
+    if (left !== undefined && right !== undefined) across.push((right - left) / 2);
+    // Along its depth: its front in line with a wardrobe turned the same way (not when it is pressed to a wall: the wall wins).
+    const along: number[] = [];
+    if (depth) for (const o of getScene().wardrobes) {
       if (o.id === cabinet.id || Math.abs(((o.angle - cabinet.angle) % 360 + 540) % 360 - 180) > .5) continue;
-      const off = (o.x - cabinet.x) * f.x + (o.z - cabinet.z) * f.z + (o.state.d - cabinet.state.d) / 2;
-      moves.push({ s: 0, t: off });
+      along.push((o.x - cabinet.x) * f.x + (o.z - cabinet.z) * f.z + (o.state.d - cabinet.state.d) / 2);
     }
-    const best = moves.filter(m => Math.abs(m.s) + Math.abs(m.t) > .05 && Math.abs(m.s) <= tolerance && Math.abs(m.t) <= tolerance)
-      .sort((p, q) => Math.abs(p.s) + Math.abs(p.t) - Math.abs(q.s) - Math.abs(q.t))[0];
-    if (!best) return { x: cabinet.x, z: cabinet.z };
+    // The two are separate choices: a front that is nearly in line must not stop it closing a gap beside a neighbour.
+    const nearest = (moves: number[]) => moves.filter(m => Math.abs(m) > .05 && Math.abs(m) <= tolerance).sort((p, q) => Math.abs(p) - Math.abs(q))[0] ?? 0;
+    const s = nearest(across), t = nearest(along);
+    if (!s && !t) return { x: cabinet.x, z: cabinet.z };
     const round = (v: number) => Math.round(v * 10) / 10;
-    const pose = { x: round(cabinet.x + u.x * best.s + f.x * best.t), z: round(cabinet.z + u.z * best.s + f.z * best.t) };
-    return collision.cabinetCollides({ ...cabinet, ...pose }) ? { x: cabinet.x, z: cabinet.z } : pose;
+    for (const [ds, dt] of [[s, t], [s, 0], [0, t]] as const) {
+      if (!ds && !dt) continue;
+      const pose = { x: round(cabinet.x + u.x * ds + f.x * dt), z: round(cabinet.z + u.z * ds + f.z * dt) };
+      if (!collision.cabinetCollides({ ...cabinet, ...pose })) return pose;
+    }
+    return { x: cabinet.x, z: cabinet.z };
   }
   return { alignSnap };
 }

@@ -154,3 +154,14 @@ test('Add furniture puts a cabinet against the wall in view, in front of the vie
   const d = commands.addKitchenUnit('base', { placementWall: second.id, beside: true })!;
   assert.ok(standsAgainst(room, first.id, d, d.state), 'a cabinet\'s own Add stands beside it whatever is in view');
 });
+
+test('dragging a unit to a neighbour: a front almost in line does not stop it closing the gap', () => {
+  // The second unit stands 3 cm from the first and 0.4 cm out of line: both snaps apply, not just the smaller one.
+  const s = scene(unit(1, 'base', 0), { ...unit(2, 'base', 63), z: 0.4 });
+  const commands = createSceneCommands(() => s);
+  const pose = commands.alignSnap(s.wardrobes[1]!, 6);
+  near(pose.x, 60, 'touching the first unit'); near(pose.z, 0, 'and its front in line');
+  // Pressed to a wall (depth = false) the unit keeps the wall's line and only closes the gap.
+  const wall = commands.alignSnap(s.wardrobes[1]!, 6, false);
+  near(wall.x, 60, 'touching'); near(wall.z, 0.4, 'depth left to the wall');
+});
