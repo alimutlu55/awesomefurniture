@@ -7,24 +7,27 @@ import { measureNumber, unitSuffix } from '../editor-format.js';
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
 export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
     const { $ } = dom;
-    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', MIN_CABINET_DEPTH, 80]];
+    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 400], ['h', 'Height', 180, 280], ['d', 'Depth', MIN_CABINET_DEPTH, 80], ['y', 'From floor', 0, 200]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
-            inputAttributes: { id, inputmode: 'numeric', 'aria-label': 'Wardrobe ' + t.toLowerCase() },
-            rangeAttributes: { id: id + '-range', 'data-dimension': id, 'aria-label': 'Adjust wardrobe ' + t.toLowerCase() } }));
+            inputAttributes: { id, inputmode: 'numeric', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },
+            rangeAttributes: { id: id + '-range', 'data-dimension': id, 'aria-label': id === 'y' ? 'Adjust height above the floor' : 'Adjust wardrobe ' + t.toLowerCase() } }));
         const el = $('#' + id);
         const range = /** @type {HTMLInputElement} */ ($('#' + id + '-range'));
+        // A wall unit also has a height above the floor: part of its place in the room, not of its size.
+        const lift = id === 'y', read = () => lift ? model.activeCabinet().y || 0 : model.activeCabinet().state[id];
         const commit = value => {
-            if (value !== model.activeCabinet().state[id] && sceneCommands.setCabinetSize(id, value)) {
+            if (value !== read() && (lift ? sceneCommands.setCabinetPose('y', value) : sceneCommands.setCabinetSize(id, value))) {
                 inspector.update();
             }
-            ( /** @type {HTMLInputElement} */(el)).value = model.activeCabinet().state[id];
-            range.value = model.activeCabinet().state[id];
+            ( /** @type {HTMLInputElement} */(el)).value = read();
+            range.value = read();
             range.setAttribute('aria-valuetext', measureNumber(Number(range.value)) + unitSuffix());
         };
         const started = () => { selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id); };
         bindSizeSlider({ range, lifetime, model, history, started, finished: () => { selectionState.editingSize = false; },
-            preview: value => sceneCommands.setCabinetSize(id, value, false), refresh: () => inspector.update(true) });
+            preview: value => lift ? sceneCommands.previewTranslation(model.activeCabinet().id, { x: model.activeCabinet().x, y: value, z: model.activeCabinet().z }) : sceneCommands.setCabinetSize(id, value, false),
+            refresh: () => inspector.update(true) });
         bindSizeNumber({ input: /** @type {HTMLInputElement} */ (el), lifetime, commit,
             started: () => { started(); rendering.build(); }, finished: () => { selectionState.editingSize = false; inspector.update(true); } });
     });

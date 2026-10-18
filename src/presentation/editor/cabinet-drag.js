@@ -1,4 +1,8 @@
 import * as THREE from "three";
+import { isKitchen } from '../../domain/furniture/furniture';
+import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
+/** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. */
+const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0;
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> & { wallGuide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null): void; assist(sides: import('../../domain/studio/scene-gaps').GapSide[] | null): void } }} ports */
 export function createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks }) {
     function beginRotation(e, handle) {
@@ -76,6 +80,11 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             const a = picking.screenPoint(anchor), b = picking.screenPoint(q);
             projected[key] = { x: (b.x - a.x) / 50, y: (b.y - a.y) / 50 };
         }
+        // Along the piece's own width: where a wall unit's left-right drag goes, whichever way its wall faces.
+        const turn = w.angle * Math.PI / 180, along = anchor.clone();
+        along.x += Math.cos(turn) * 50; along.z -= Math.sin(turn) * 50;
+        const a0 = picking.screenPoint(anchor), a1 = picking.screenPoint(along);
+        projected.along = { x: (a1.x - a0.x) / 50, y: (a1.y - a0.y) / 50 };
         const planeHeight = axis === 'floor' ? (picking.cast(e, renderState.hits)?.point.y || 0) : 0;
         interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false };
         resources.cv.style.cursor = 'grabbing';
@@ -97,7 +106,15 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         g.moved = true;
         let delta = {};
-        if (g.axis === 'floor') {
+        if (g.axis === 'floor' && hangs(model.activeCabinet().state)) {
+            // Wall units: the pointer moves them in the plane of their wall: along it and up or down.
+            const u = g.projected.along, v = g.projected.y, det = u.x * v.y - u.y * v.x, turn = model.activeCabinet().angle * Math.PI / 180;
+            if (Math.abs(det) > .01) {
+                const along = (dx * v.y - dy * v.x) / det, up = (u.x * dy - u.y * dx) / det;
+                delta = { x: along * Math.cos(turn), y: up, z: -along * Math.sin(turn) };
+            }
+        }
+        else if (g.axis === 'floor') {
             const p = picking.groundPoint(e, g.planeHeight);
             if (cameraState.el > .15 && p && g.ground) {
                 delta = { x: p.x - g.ground.x, z: p.z - g.ground.z };
