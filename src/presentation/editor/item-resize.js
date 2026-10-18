@@ -44,7 +44,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!p || !previous) {
             return;
         }
-        a.delta += a.edge === 'top' ? p.y - previous.y : p.x - previous.x;
+        a.delta += a.edge === 'top' || a.edge === 'bottom' ? p.y - previous.y : p.x - previous.x;
         a.lastX = e.clientX;
         a.lastY = e.clientY;
         let target = geometry.itemEdgeSize(a.g, a.edge, a.delta, a.layout, a.index, a.minW, a.minH, a.maxH);
@@ -58,7 +58,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
                 a.guide = null;
             }
         }
-        if (a.edge === 'top' ? Math.abs(target.h - a.g.h) < .001 : Math.abs(target.w - a.g.w) < .001 && Math.abs(target.x - (a.g.x0 - a.g.bayL)) < .001) {
+        const vertical = a.edge === 'top' || a.edge === 'bottom';
+        if (vertical ? Math.abs(target.h - a.g.h) < .001 && (a.edge === 'top' || Math.abs(target.y - (a.g.y0 - geometry.interiorFloor())) < .001) : Math.abs(target.w - a.g.w) < .001 && Math.abs(target.x - (a.g.x0 - a.g.bayL)) < .001) {
             commands.restoreSection(a.section, a.original);
             return;
         }
@@ -109,7 +110,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!c) {
             return null;
         }
-        const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [], add = (pos, kind, label, src) => cand.push({ pos, kind, label, src });
+        const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [], add = (pos, kind, label, src) => cand.push({ pos, kind, label, src });
         let maxW = Infinity;
         if (top) {
             add(c.top, 'wall', 'Flush with top');
@@ -119,6 +120,15 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
                 if (!o.div) {
                     add(g.y0 + (o.y1 - o.y0), 'size', 'Same height', o);
                 }
+            });
+        }
+        else if (bottom) {
+            // The bottom edge lines up with the base board and with the edges of the fittings and boards beside it.
+            add(geometry.interiorFloor(), 'wall', 'Flush with the base');
+            c.others.forEach(o => {
+                add(o.y1, 'edge', 'Aligned', o);
+                add(o.y0, 'edge', 'Aligned', o);
+                if (!o.div) add(g.y1 - (o.y1 - o.y0), 'size', 'Same height', o);
             });
         }
         else {
@@ -139,8 +149,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             });
         }
         const valid = cand.filter(k => {
-            const v = top ? k.pos - g.y0 : (a.edge === 'right' ? k.pos - left : right - k.pos);
-            return top ? (v >= a.minH - 1e-6 && v <= a.maxH + 1e-6) : (v >= Math.min(a.minW, g.w) - 1e-6 && v <= maxW + 1e-6);
+            const v = top ? k.pos - g.y0 : bottom ? g.y1 - k.pos : (a.edge === 'right' ? k.pos - left : right - k.pos);
+            return top || bottom ? (v >= a.minH - 1e-6 && v <= a.maxH + 1e-6) : (v >= Math.min(a.minW, g.w) - 1e-6 && v <= maxW + 1e-6);
         });
         let best = null;
         if (a.lock) {
@@ -165,8 +175,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             return null;
         }
         a.lock = { kind: best.kind, pos: best.pos };
-        const target = top ? { h: best.pos - g.y0 } : (a.edge === 'right' ? { w: best.pos - left, x: left } : { w: right - best.pos, x: best.pos });
-        return { target, guide: { orient: top ? 'h' : 'v', pos: top ? best.pos : g.bayL + best.pos, kind: best.kind, label: best.label, src: best.src } };
+        const target = top ? { h: best.pos - g.y0 } : bottom ? { h: g.y1 - best.pos, y: best.pos - geometry.interiorFloor() } : (a.edge === 'right' ? { w: best.pos - left, x: left } : { w: right - best.pos, x: best.pos });
+        return { target, guide: { orient: top || bottom ? 'h' : 'v', pos: top || bottom ? best.pos : g.bayL + best.pos, kind: best.kind, label: best.label, src: best.src } };
     }
     function setManualItemSize(edge, value, recordHistory = true) {
         const g = geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item), it = model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item];

@@ -98,3 +98,5 @@ svg.kitchen-art{filter:none}
 /* The Cabinets panel is sectioned: base, sinks and appliances, wall, tall. */
 .kitchen-group{grid-column:1/-1;margin:8px 2px 0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7d725f}
 .kitchen-group:first-child{margin-top:0}
+/* The bottom edge of a fitting resizes its height like the top edge. */
+.item-resize-handle[data-edge="bottom"]{cursor:ns-resize}

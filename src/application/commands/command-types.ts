@@ -17,6 +17,8 @@ export interface ItemMovePlan {
 }
 export type ItemResizeTarget = {
     h: number;
+    /** Where the bottom stands above the base board, when the bottom edge is what moved. */
+    y?: number;
 } | {
     w: number;
     x: number;

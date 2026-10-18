@@ -273,6 +273,16 @@ export function createMovementRules(ctx, deps) {
         if (edge === 'top') {
             return { h: clamp(round(g.h + delta), minH, maxH) };
         }
+        if (edge === 'bottom') {
+            // The bottom edge moves and the top stays: down to what is under it (a fitting, a board or the base board),
+            // up until the height is its smallest. `y` is where the bottom stands above the base board.
+            let floor = plinth() + T;
+            neighbors.forEach((q, j) => {
+                if (j !== index && q.y1 <= g.y0 + .01 && q.x0 < g.x1 - g.bayL - .01 && g.x0 - g.bayL < q.x1 - .01) floor = Math.max(floor, q.y1);
+            });
+            const bottom = clamp(round(g.y0 + delta), Math.max(floor, g.y1 - maxH), g.y1 - minH);
+            return { h: g.y1 - bottom, y: bottom - plinth() - T };
+        }
         const left = g.x0 - g.bayL, right = g.x1 - g.bayL;
         let low = 0, high = g.bw;
         neighbors.forEach((q, j) => {

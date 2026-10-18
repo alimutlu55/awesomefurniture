@@ -136,3 +136,22 @@ test('kitchen elevations reconcile: plinth, base carcass, worktop, splashback ga
   // Known: wall-unit tops (212) sit 3 cm under tall-unit tops (215); see docs/millwork-precision.md.
   assert.equal(tall.h - (upper.elevation + upper.h), 3);
 });
+
+test('a fitting resizes from its bottom edge: the top stays, the bottom stops at what is under it', async () => {
+  const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
+  const { sectionAfterEdgeResize } = await import('../../src/application/commands/item-edge-resize');
+  const S: any = { w: 200, h: 230, d: 60, n: 3, wt: [100, 100, 100], dividers: [], profile: { longDrop: 160 },
+    secs: [[{ k: 'drawer', h: 22 }, { k: 'shelf', h: 30, y: 40 }], [], []] };
+  const g = createWardrobeGeometry(() => S), geom = g.itemGeom(0, 1)!, layout = g.resizeObstacles(0);
+  assert.equal(geom.y0, 9.8 + 40); assert.equal(geom.y1, 9.8 + 70);
+  // Down: the bottom stops on the drawer below (22 cm), the top stays at 70.
+  const down = g.itemEdgeSize(geom, 'bottom', -100, layout, 1, 25, 15, 65);
+  assert.equal(down.y, 22); assert.equal(down.h, 48);
+  assert.ok(Math.abs(down.y + down.h - 70) < 1e-9, 'the top edge did not move');
+  // Up: the smallest height (15) keeps the top where it is.
+  const up = g.itemEdgeSize(geom, 'bottom', 100, layout, 1, 25, 15, 65);
+  assert.equal(up.h, 15); assert.equal(up.y, 55);
+  const session = { edge: 'bottom', original: S.secs[0], index: 1, section: 0, g: { bw: geom.bw }, layout } as never;
+  const sec = sectionAfterEdgeResize(session, { h: 30, y: 28 })!;
+  assert.deepEqual([sec[1]!.y, sec[1]!.h, sec[0]!.y], [28, 30, 0], 'the bottom moved, the others stand where they were');
+});

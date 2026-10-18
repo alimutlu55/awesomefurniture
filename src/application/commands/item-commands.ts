@@ -3,6 +3,7 @@ import type { ItemKind } from '../../domain/wardrobe/wardrobe';
 import type { ItemEdit, ItemMovePlan, ItemResizeSession, ItemResizeTarget } from './command-types';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { itemName, MODS } from '../../domain/wardrobe/catalog.js';
+import { sectionAfterEdgeResize } from './item-edge-resize';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
@@ -12,26 +13,9 @@ type Ports = {
 };
 export function createItemCommands({ getDesign, effects, rules, callbacks, run }: Ports) {
     function applyItemEdgeSize(a: ItemResizeSession, target: ItemResizeTarget) {
-        const sec = structuredClone(a.original), it = sec[a.index];
-        if (!it)
+        const sec = sectionAfterEdgeResize(a, target);
+        if (!sec)
             return false;
-        if (a.edge === 'top') {
-            if (!('h' in target))
-                return false;
-            it.h = target.h;
-        }
-        else {
-            if (!('w' in target))
-                return false;
-            sec.forEach((o, j) => o.y = a.layout[j]!.relY0);
-            it.w = target.w;
-            it.x = target.x;
-            delete it.ax;
-            if (target.w >= a.g.bw - .05) {
-                delete it.w;
-                delete it.x;
-            }
-        }
         const layout = rules.computeLayout(a.section, sec), valid = layout.every((q, j) => rules.fitsCeiling(a.section, q, sec[j]) && layout.every((r, k) => j === k || q.x0 >= r.x1 - .01 || r.x0 >= q.x1 - .01 || q.y0 >= r.y1 - .01 || r.y0 >= q.y1 - .01));
         if (!valid || rules.dividerOverlaps(a.section, layout)) {
             return false;

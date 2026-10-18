@@ -128,15 +128,16 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     shellBindings.bindRemoveWardrobe({ dom, camera, interactions, inspector, shell, interactionState, selectionState, model, sceneCommands });
     shellBindings.bindDividerDup({ dom, commands });
     shellBindings.bindCanvasHintDismiss({ dom, lifetime });
-    renderState.itemEdgeHandles = ['left', 'right', 'top'].map(edge => {
+    renderState.itemEdgeHandles = ['left', 'right', 'top', 'bottom'].map(edge => {
+        const vertical = edge === 'top' || edge === 'bottom';
         const handle = document.createElement('button');
         handle.type = 'button';
         handle.className = 'item-resize-handle';
         handle.dataset.edge = edge;
         handle.hidden = true;
-        handle.setAttribute('aria-label', edge === 'top' ? 'Resize item height' : 'Resize item width from ' + edge);
-        handle.title = edge === 'top' ? 'Drag to resize height' : 'Drag to resize width';
-        handle.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (edge === 'top' ? 'M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4' : 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4') + '"/></svg>';
+        handle.setAttribute('aria-label', vertical ? 'Resize item height from the ' + edge : 'Resize item width from ' + edge);
+        handle.title = vertical ? 'Drag to resize height' : 'Drag to resize width';
+        handle.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + (vertical ? 'M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4' : 'M4 12h16M8 8l-4 4 4 4m8-8 4 4-4 4') + '"/></svg>';
         $('#item-resize-handles').appendChild(handle);
         handle.onpointerdown = e => interactions.beginItemEdgeResize(e, edge, handle);
         handle.onpointermove = interactions.moveItemEdgeResize;

@@ -119,7 +119,7 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
             if (!front) {
                 return;
             }
-            const edge = handle.dataset.edge, x = edge === 'left' ? g.x0 : edge === 'right' ? g.x1 : (g.x0 + g.x1) / 2, y = edge === 'top' ? g.y1 : (g.y0 + g.y1) / 2, q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, getRenderDesign().d / 2 + 1)).project(resources.cam), r = resources.cv.getBoundingClientRect();
+            const edge = handle.dataset.edge, x = edge === 'left' ? g.x0 : edge === 'right' ? g.x1 : (g.x0 + g.x1) / 2, y = edge === 'top' ? g.y1 : edge === 'bottom' ? g.y0 : (g.y0 + g.y1) / 2, q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, getRenderDesign().d / 2 + 1)).project(resources.cam), r = resources.cv.getBoundingClientRect();
             handle.hidden = q.z >= 1;
             handle.style.transform = `translate(-50%,-50%) translate(${(q.x * .5 + .5) * r.width}px,${(-q.y * .5 + .5) * r.height}px)`;
         });

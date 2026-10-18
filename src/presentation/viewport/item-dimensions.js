@@ -49,8 +49,9 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? fittingDepth(MIN_CABINET_DEPTH).depth : 0, axis === 'depth' ? 78 : 2000);
             bindRuler(el, a, b, axis);
         };
-        if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + unitSuffix(), 'width', !!edge);
-        if (!edge || edge === 'top') ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + unitSuffix(), 'height', !!edge);
+        const vertical = edge === 'top' || edge === 'bottom';
+        if (!edge || !vertical) ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + unitSuffix(), 'width', !!edge);
+        if (!edge || vertical) ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + unitSuffix(), 'height', !!edge);
         if (!edge) ruler(Pt(g.x0, g.y0, g.z0 - d / 2), Pt(g.x0, g.y0, g.z1 - d / 2), 'D ' + f(g.dep) + unitSuffix(), 'depth', false);
         // Selected item and clearances use the same fine strokes as the wardrobe rulers.
         const fz = d / 2 + .6, A = Pt(g.x0, g.y0, fz), B = Pt(g.x1, g.y0, fz), C = Pt(g.x1, g.y1, fz), D = Pt(g.x0, g.y1, fz);
@@ -85,6 +86,10 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         const xAbove = g.lineAbove.x, xBelow = g.lineBelow.x;
         if (edge === 'top') {
             clear(xAbove, g.y1, g.y1 + g.gapAbove, g.gapAbove, 'top', 'lbl assist-gap');
+            return;
+        }
+        if (edge === 'bottom') {
+            clear(xBelow, g.y0 - g.gapBelow, g.y0, g.gapBelow, 'bottom', 'lbl assist-gap');
             return;
         }
         clear(xAbove, g.y1, g.y1 + g.gapAbove, g.gapAbove, 'top');
