@@ -19,7 +19,9 @@ export const KITCHEN_PRESETS = [
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
   { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
   { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 50 } },
+  { key: 'cargo', unit: 'base', name: 'Cargo pull-out', parts: [['cargo', 1]], size: { w: 30 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
+  { key: 'cargo-tall', unit: 'tall', name: 'Tall cargo', parts: [['cargo', 160], ['cupboard', 43.4]], size: { w: 40 } },
   { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
   { key: 'larder', unit: 'tall', name: 'Pantry', parts: [['pantry', 160], ['cupboard', 43.4]] },
 ] as const satisfies readonly { key: string; unit: KitchenUnitKey; name: string; parts: readonly (readonly [string, number])[]; size?: { w?: number; h?: number } }[];

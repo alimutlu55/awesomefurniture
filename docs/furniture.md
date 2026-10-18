@@ -69,7 +69,7 @@ tap on a piece's W, H or D with Size closed opens Size with that field focused (
 | `presentation/editor/kitchen-plan.ts`, `furniture-framing.ts` | Storage panel for a kitchen; framing a kitchen run |
 
 Kitchen fittings (cutlery and pan drawers, cupboard door, lift-up flap, open shelf, sink, hob,
-oven, microwave, fridge, pantry) are entries in the one fittings registry, each with a `kitchen` field
+oven, microwave, fridge, pantry, cargo) are entries in the one fittings registry, each with a `kitchen` field
 naming the units it fits and how Add item ranks it. Traits carry the rules: `front` (shows its
 own front), `appliance` (a copy gets plain storage instead), `worktop` (sits in the worktop).
 

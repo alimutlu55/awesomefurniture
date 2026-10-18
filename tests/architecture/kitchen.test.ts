@@ -152,3 +152,11 @@ test('wall units · a lift-up cabinet and a microwave unit, at their own size, w
   const base = createKitchenDesign('base');
   assert.equal(furnitureModule(base).allows('microwave', base), false, 'not in a base unit under the worktop');
 });
+
+test('cargo pull-outs · a slim base unit and a tall one, with the cargo allowed in base and tall units only', () => {
+  const base = createKitchenDesign('base', 'cargo'), tall = createKitchenDesign('tall', 'cargo-tall');
+  assert.equal(base.w, 30); assert.deepEqual(base.secs[0]!.map(it => it.k), ['cargo']);
+  assert.equal(tall.w, 40); assert.deepEqual(tall.secs[0]!.map(it => it.k), ['cargo', 'cupboard']);
+  const upper = createKitchenDesign('upper');
+  assert.equal(furnitureModule(upper).allows('cargo', upper), false, 'not in a wall cabinet');
+});

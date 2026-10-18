@@ -85,7 +85,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         } else { panel(x0, x1, y0, y1); pull(Math.min(28, hh * .4), x1 - 4, y1 - 16, true); }
         break;
       }
-      case 'pantry':
+      case 'pantry': case 'cargo':
         panel(x0, x1, y0, y1);
         pull(Math.min(60, hh * .35), x1 - 4, mid, true);
         shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
