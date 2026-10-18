@@ -49,6 +49,9 @@ export const KITCHEN_UNIT_KEYS = KITCHEN_UNITS.map(u => u.key) as readonly Kitch
 export const kitchenUnit = (key: string | undefined): KitchenUnitDef =>
   (KITCHEN_UNITS as readonly KitchenUnitDef[]).find(u => u.key === key) ?? KITCHEN_UNITS[0];
 
+/** The narrowest gap worth its own cabinet. A smaller one at the end of a run is closed by widening the unit beside it. */
+export const SENSIBLE_UNIT_WIDTH = 40;
+
 /** Worktop thickness, its overhang at the front, and the plinth's setback from the front. */
 export const WORKTOP = { thickness: 4, overhang: 2 } as const;
 export const KITCHEN_PLINTH_SETBACK = 6;

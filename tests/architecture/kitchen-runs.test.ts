@@ -210,10 +210,20 @@ test('tapping + at the end of a run closes a gap too small for a cabinet by wide
   near(s.wardrobes[0]!.x, 6, 'the far side stays where it was');
   assert.equal(checkpoints, 1); assert.equal(discarded, 0);
   assert.equal(commands.closeRunGap(1), false, 'nothing left to close');
-  // Room for a cabinet (30 cm or more) is not closed: the + adds one instead.
-  const wide = scene(unit(1, 'base', 0), unit(2, 'base', 100));
-  assert.equal(createSceneCommands(() => wide, { checkpoint: () => {} }).closeRunGap(1), false);
+  // 35 cm is still too little for a sensible cabinet (under 40): closed too.
+  const corner = scene(unit(1, 'base', 0), unit(2, 'base', 95));
+  assert.equal(createSceneCommands(() => corner, { checkpoint: () => {} }).closeRunGap(1), true);
+  assert.equal(corner.wardrobes[0]!.state.w, 95);
+  // Room for a cabinet (40 cm or more) is not closed: the + adds one instead, as wide as the room allows when a whole copy does not fit.
+  const wide = scene(unit(1, 'base', 0), unit(2, 'base', 105));
+  const wideCommands = createSceneCommands(() => wide, { checkpoint: () => {} });
+  assert.equal(wideCommands.closeRunGap(1), false);
   assert.equal(wide.wardrobes[0]!.state.w, 60);
+  assert.equal(wideCommands.arrayKitchenUnit(1, 1), 0, 'a whole copy does not fit in 45 cm');
+  const narrow = wideCommands.fitUnitInGap(1)!;
+  assert.ok(narrow.state.w >= 44 && narrow.state.w <= 45, 'a copy made to fit the 45 cm room (' + narrow.state.w + ')');
+  near(narrow.x, 30 + narrow.state.w / 2, 'right beside it');
+  assert.ok(wideCommands.fitUnitInGap(1)!.x > 105, 'the filled gap joins the run: the next goes beyond its end');
   // A gap the unit cannot grow across (past its widest) is left.
   const big = scene({ ...unit(1, 'base', 0), state: { ...unit(1, 'base', 0).state, w: 140 } }, unit(2, 'base', 160));
   assert.equal(createSceneCommands(() => big, { checkpoint: () => {} }).closeRunGap(1), false);
