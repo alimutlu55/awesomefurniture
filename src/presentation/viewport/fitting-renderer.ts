@@ -189,5 +189,5 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             }
         }
     }
-    return { mod, lightRail: kitchen?.lightRail };
+    return { mod };
 }

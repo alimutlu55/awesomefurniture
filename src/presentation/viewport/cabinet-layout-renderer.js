@@ -133,8 +133,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod, lightRail } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
-        if (kitchenUnit && !kitchenUnit.plinth) lightRail?.(w);
+        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, getRenderDesign().profile?.reach);
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {

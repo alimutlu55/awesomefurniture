@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -32,7 +32,8 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
     // gap to the next unit); beside another front in the same unit it stops halfway across their shared partition.
     const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL - gap / 2 : PANEL / 2;
     const hh = it.h, x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
-    const y0 = Math.abs(y - inside.bottom) < .05 ? y - PANEL : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
+    // A wall unit's bottom is solid down to its lower edge (frame-geometry.ts), so its lowest front reaches that edge.
+    const y0 = Math.abs(y - inside.bottom) < .05 ? (unit === 'upper' ? 0 : y - PANEL) : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
     const mid = (y0 + y1) / 2, high = unit === 'upper';
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
@@ -98,9 +99,5 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         panel(x0, x1, y0, y1);
     }
   }
-  /** A wall unit's light rail: a board across the front, under its bottom, hiding the worktop lights. */
-  function lightRail(w: number) {
-    box(w - gap, PLINTH, PANEL, 0, PLINTH / 2, face, materials.front);
-  }
-  return { kitchenFitting, lightRail, owned };
+  return { kitchenFitting, owned };
 }

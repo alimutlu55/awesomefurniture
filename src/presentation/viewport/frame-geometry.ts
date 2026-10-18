@@ -56,6 +56,8 @@ export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 
     // The base board stops at the back board's face; the back sits between the sides (carcass.ts).
     const base = partitionDepth(d);
     box(w - 2 * PANEL, PANEL, base.depth, 0, PLINTH + PANEL / 2, base.centre, materials.panel);
+    // A unit whose sides run to the floor line without a plinth (a wall unit) has a solid bottom down to its lower edge.
+    if (sidesFrom === 0 && !plinth) box(w - 2 * PANEL, PLINTH, base.depth, 0, PLINTH / 2, base.centre, materials.panel);
     panel(boardUnderTop({ ...design, shape: back }, PANEL, w - PANEL, PLINTH), BACK_PANEL, -d / 2 + BACK_PANEL / 2, materials.back);
     if (plinth) box(w - 2 * PANEL, PLINTH, d - 6, 0, PLINTH / 2, -1, materials.plinth);
 }
