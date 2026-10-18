@@ -88,22 +88,30 @@ export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio:
 /** A wall this close behind a wardrobe, or closer, is the one it stands against. */
 const AGAINST = 10;
 
-/** Where the wall a wardrobe stands against stops beside it, on its left and right: the wall's free end, or the
- * edge of a door, window or archway in it at the wardrobe's height. Only read on screen while it is moved or
- * resized (past it a cabinet stands off the wall or in a doorway); a filler never closes it. */
-export function wallEndsAround(box: PlacedBox, studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
-  if (!studio) return [];
-  const { u, f } = axes(box.angle), y0 = box.y ?? 0, top = y0 + box.h, back = { x: box.x - f.x * box.d / 2, z: box.z - f.z * box.d / 2 };
+/** The wall a wardrobe stands against: facing the same way as its room side, at most AGAINST behind it, and
+ * along it. `t` is where the middle of its back is along the wall's face (from corner `a`, as an opening's
+ * offset), `dist` how far its back stands off the face. Null when it stands against none. */
+export function wallAgainst(box: Pick<PlacedBox, 'x' | 'z' | 'angle' | 'd'>, studio: Studio | undefined) {
+  if (!studio) return null;
+  const { f } = axes(box.angle), back = { x: box.x - f.x * box.d / 2, z: box.z - f.z * box.d / 2 };
   let against: { id: string; dist: number; t: number; line: NonNullable<ReturnType<typeof wallLine>>; face: NonNullable<ReturnType<typeof wallFace>> } | null = null;
   for (const w of studio.walls) {
     const line = wallLine(studio, w), face = wallFace(studio, w);
-    // Facing the same way as the wall's room side, close behind, and along it.
     if (!line || !face || line.nx * f.x + line.nz * f.z < .999) continue;
     const dist = (back.x - face.from.x) * line.nx + (back.z - face.from.z) * line.nz;
     const t = face.start + (back.x - face.from.x) * line.ux + (back.z - face.from.z) * line.uz;
     if (dist < -SAME || dist > AGAINST || t < face.start || t > face.end || (against && against.dist <= dist)) continue;
     against = { id: w.id, dist, t, line, face };
   }
+  return against;
+}
+
+/** Where the wall a wardrobe stands against stops beside it, on its left and right: the wall's free end, or the
+ * edge of a door, window or archway in it at the wardrobe's height. Only read on screen while it is moved or
+ * resized (past it a cabinet stands off the wall or in a doorway); a filler never closes it. */
+export function wallEndsAround(box: PlacedBox, studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
+  if (!studio) return [];
+  const { u } = axes(box.angle), y0 = box.y ?? 0, top = y0 + box.h, against = wallAgainst(box, studio);
   if (!against) return [];
   const { line, face, t, dist } = against, lo = t - box.w / 2, hi = t + box.w / 2;
   // Openings it would stand in front of at its height; one it already covers is not an end.
