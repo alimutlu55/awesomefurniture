@@ -23,6 +23,8 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
   const face = d / 2 + PANEL / 2, gap = .3;
+  /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
+  const HANDLE_REACH = 110;
   const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: steel });
 
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
@@ -34,7 +36,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
     const hh = it.h, x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
     // A wall unit's bottom is solid down to its lower edge (frame-geometry.ts), so its lowest front reaches that edge.
     const y0 = Math.abs(y - inside.bottom) < .05 ? (kitchenUnit(unit).plinth ? y - PANEL : 0) : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
-    const mid = (y0 + y1) / 2, high = unit === 'upper';
+    const mid = (y0 + y1) / 2;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
         panel(x0, x1, y0, y1);
@@ -43,7 +45,9 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         break;
       }
       case 'cupboard': case 'sink':
-        doors(x0, x1, y0, y1, !high);
+        // The handle goes on the edge nearest the height a hand reaches: at the top of a door below the middle of a person's
+        // reach, at the bottom of one above it (a wall unit's door, the cupboard at the top of a tall unit).
+        doors(x0, x1, y0, y1, kitchenUnit(unit).elevation + mid < HANDLE_REACH);
         if (it.k === 'cupboard') shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
         break;
       case 'flap':
