@@ -95,6 +95,7 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             side('right', x1, left + bw);
         }
         const ruler = (key, a, b, text) => {
+            if (a.distanceTo(b) < .05) return;
             keep.add(key);
             setPreviewLabel(key, a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension preview');
             callbacks.bindRuler(renderState.prevLab[key].el, a, b, key);

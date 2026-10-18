@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { moveCorner, translateStudio } from '../../src/domain/studio/studio-edit';
-import { alignments, gapsAround, type PlacedBox } from '../../src/domain/studio/scene-gaps';
+import { alignments, gapsAround, nearerWallEnds, wallEndsAround, type PlacedBox } from '../../src/domain/studio/scene-gaps';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
@@ -28,6 +28,25 @@ test('a gap is the smallest of three readings, as a tape at the top, middle and 
   const room = moveCorner(bedroom(), 'c4', -186, 320)!, a = box();
   const left = gapsAround(a, [a], room, ['left'])[0]!;
   assert.ok(left.distance < 20, 'smaller than at the back wall: ' + left.distance);
+});
+
+test('beside a wardrobe, where the wall behind it ends or a doorway in it starts', () => {
+  // One free wall 300 cm long, its room side towards +z; a 60 cm unit against it, 70 cm from its left end.
+  const wall = { template: 'custom' as const, openings: [] as { id: string; wall: string; kind: 'door'; offset: number; width: number; height: number; sill: number }[],
+    corners: [{ id: 'c1', x: 0, z: 0 }, { id: 'c2', x: 300, z: 0 }], walls: [{ id: 'w1', a: 'c1', b: 'c2', thickness: 10, height: 260 }] };
+  const unit = box({ x: 100, z: 35, w: 60, d: 60, h: 215 });
+  assert.deepEqual(read(gapsAround(unit, [unit], wall, ['left', 'right'])), {}, 'nothing beside it to hit');
+  assert.deepEqual(read(wallEndsAround(unit, wall, ['left', 'right'])), { left: 70, right: 170 });
+  wall.openings.push({ id: 'o1', wall: 'w1', kind: 'door', offset: 200, width: 90, height: 205, sill: 0 });
+  const ends = wallEndsAround(unit, wall, ['left', 'right']);
+  assert.deepEqual(read(ends), { left: 70, right: 25 }, 'to the doorway');
+  assert.equal(ends[0]!.target, 'wall-end');
+  assert.deepEqual(read(wallEndsAround(box({ x: 200, z: 35, w: 120, d: 60 }), wall, ['left', 'right'])), { left: 140, right: 40 }, 'a doorway it covers is no end');
+  assert.deepEqual(read(wallEndsAround(box({ x: 100, z: 135, w: 60, d: 60 }), wall, ['left', 'right'])), {}, 'away from the wall');
+  // A wall beside it nearer than the end counts; one farther does not.
+  const side = { side: 'right' as const, distance: 10, from: { x: 0, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, target: 'wall' as const };
+  assert.deepEqual(read(nearerWallEnds([side], ends)), { right: 10, left: 70 });
+  assert.deepEqual(read(nearerWallEnds([{ ...side, distance: 90 }], ends)), { right: 25, left: 70 });
 });
 
 test('what it lines up with: centred, flush, fronts in line, tops level', () => {

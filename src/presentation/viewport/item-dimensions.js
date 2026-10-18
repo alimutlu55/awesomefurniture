@@ -44,6 +44,8 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         const gesture = interactionState.itemEdgeGesture, edge = gesture?.moved && gesture.section === i && gesture.index === j ? gesture.edge : null;
         // Individual size rulers use the same fine lines as selected free spaces; the size being dragged is a dark tag.
         const ruler = (a, b, text, axis, dragged) => {
+            // Nothing to measure, nothing shown: a size of 0 is never drawn.
+            if (a.distanceTo(b) < .05) return;
             const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension item-' + axis + (dragged ? ' assist-size' : ''));
             if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? fittingDepth(MIN_CABINET_DEPTH).depth : 0, axis === 'depth' ? 78 : 2000);

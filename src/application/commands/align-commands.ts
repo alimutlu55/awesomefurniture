@@ -1,14 +1,16 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
-import { alignments, gapsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
+import { alignments, gapsAround, nearerWallEnds, wallEndsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
 
 type Collision = { cabinetCollides(cabinet: EditorCabinet): boolean };
 
 const box = (c: EditorCabinet): PlacedBox => ({ id: c.id, x: c.x, z: c.z, y: c.y || 0, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h });
 /** A gap this small beside a unit is one to fill; a bigger one is room for another cabinet. Centimetres. */
 export const FILL_REACH = 15;
-/** The gaps on the given sides of a wardrobe in a scene, and what it lines up with. */
-export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[]) {
-  const all = scene.wardrobes.map(box), gaps = gapsAround(box(cabinet), all, scene.studio, sides);
+/** The gaps on the given sides of a wardrobe in a scene, and what it lines up with. With `wallEnds`, a side reads
+ * to where the wall behind stops (its end, a doorway) when that comes first: for the eye, never for fillers or snaps. */
+export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[], { wallEnds = false } = {}) {
+  const all = scene.wardrobes.map(box), found = gapsAround(box(cabinet), all, scene.studio, sides);
+  const gaps = wallEnds ? nearerWallEnds(found, wallEndsAround(box(cabinet), scene.studio, sides)) : found;
   return { gaps, aligned: alignments(box(cabinet), gaps, all) };
 }
 

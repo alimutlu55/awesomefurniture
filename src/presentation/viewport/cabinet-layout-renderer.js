@@ -147,7 +147,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         };
         const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
-        let x = -w / 2 + PANEL;
+        let x = -w / 2 + PANEL, noFreeSpace = false;
         ws.forEach((sw, i) => {
             // While the skeleton is edited on a phone, the model shows only the panels and their handles.
             const shapeFocus = shapeSheetOpen();
@@ -267,10 +267,13 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                     renderState.dividerVisuals[j] = { panel, hit, outline, sizeEntry, depthEntry, clearances, baseX: x };
                 }
             });
-            if (sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0)) {
+            const chosenSpace = sel && getRenderDesign().item < 0 && !(getRenderDesign().divider >= 0) ? geometry.sectionSpaceMeasurements(i) : null;
+            // A section its fittings fill has no opening to measure: the piece's own sizes show instead, never a 0.
+            if (chosenSpace && (chosenSpace.w <= .1 || chosenSpace.h <= .1)) noFreeSpace = true;
+            else if (chosenSpace) {
                 // Net clear opening of the selected space. Under a slope the height runs from lowest to tallest, and its
                 // ruler stands where the space is tallest so it never pokes through the top.
-                const space = geometry.sectionSpaceMeasurements(i), sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler net';
+                const space = chosenSpace, sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler net';
                 const tall = space.sloped ? geometry.spaceTallest(i, space) : { x: space.x1 - 4, h: space.h }, hx = x + tall.x, f = measureNumber;
                 dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), 'W ' + f(space.w) + unitSuffix(), cls, spaceRulerPoints);
                 dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + unitSuffix(), cls, spaceRulerPoints);
@@ -340,7 +343,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 x += PANEL;
             }
         });
-        if (renderState.renderActive && ((selectionState.showDimensions && selectionState.focusOn && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
+        if (renderState.renderActive && ((selectionState.showDimensions && selectionState.focusOn && getRenderDesign().item < 0 && (!inspector.inside() || noFreeSpace)) || selectionState.editingSize)) {
             dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w');
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
             dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + unitSuffix(),

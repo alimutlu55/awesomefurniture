@@ -5,7 +5,7 @@
  * a tape is at the top, middle and bottom of an opening, and the smallest reading counts: walls are rarely
  * square. Plain data in scene centimetres; a wardrobe's x/z is its centre and its front faces +z at angle 0.
  */
-import { roomHeight, wallBox } from './studio';
+import { roomHeight, wallBox, wallFace, wallLine } from './studio';
 import type { Studio } from './studio';
 import { ceilingAt } from './studio-ceiling';
 
@@ -18,7 +18,7 @@ export interface Gap {
   readonly distance: number;
   /** The line to draw: from the wardrobe's face to the surface, at a sensible height. */
   readonly from: P3; readonly to: P3;
-  readonly target: 'wall' | 'wardrobe' | 'ceiling';
+  readonly target: 'wall' | 'wardrobe' | 'ceiling' | 'wall-end';
   /** The wardrobe it reaches, for alignment. */
   readonly other?: number;
 }
@@ -83,6 +83,50 @@ export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio:
     out.push({ side, distance: Math.round(best.t * 10) / 10, from: { x: o.x, y, z: o.z }, to: { x: end.x, y, z: end.z }, target: best.r.target, ...(best.r.other !== undefined ? { other: best.r.other } : {}) });
   }
   return out;
+}
+
+/** A wall this close behind a wardrobe, or closer, is the one it stands against. */
+const AGAINST = 10;
+
+/** Where the wall a wardrobe stands against stops beside it, on its left and right: the wall's free end, or the
+ * edge of a door, window or archway in it at the wardrobe's height. Only read on screen while it is moved or
+ * resized (past it a cabinet stands off the wall or in a doorway); a filler never closes it. */
+export function wallEndsAround(box: PlacedBox, studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
+  if (!studio) return [];
+  const { u, f } = axes(box.angle), y0 = box.y ?? 0, top = y0 + box.h, back = { x: box.x - f.x * box.d / 2, z: box.z - f.z * box.d / 2 };
+  let against: { id: string; dist: number; t: number; line: NonNullable<ReturnType<typeof wallLine>>; face: NonNullable<ReturnType<typeof wallFace>> } | null = null;
+  for (const w of studio.walls) {
+    const line = wallLine(studio, w), face = wallFace(studio, w);
+    // Facing the same way as the wall's room side, close behind, and along it.
+    if (!line || !face || line.nx * f.x + line.nz * f.z < .999) continue;
+    const dist = (back.x - face.from.x) * line.nx + (back.z - face.from.z) * line.nz;
+    const t = face.start + (back.x - face.from.x) * line.ux + (back.z - face.from.z) * line.uz;
+    if (dist < -SAME || dist > AGAINST || t < face.start || t > face.end || (against && against.dist <= dist)) continue;
+    against = { id: w.id, dist, t, line, face };
+  }
+  if (!against) return [];
+  const { line, face, t, dist } = against, lo = t - box.w / 2, hi = t + box.w / 2;
+  // Openings it would stand in front of at its height; one it already covers is not an end.
+  const holes = studio.openings.filter(o => o.wall === against.id && o.sill < top - SAME && o.sill + o.height > y0 + SAME)
+    .map(o => [o.offset - o.width / 2, o.offset + o.width / 2] as const).filter(([a, b]) => b <= lo + SAME || a >= hi - SAME);
+  const up = Math.min(face.end, ...holes.filter(([a]) => a >= hi - SAME).map(([a]) => a));
+  const down = Math.max(face.start, ...holes.filter(([, b]) => b <= lo + SAME).map(([, b]) => b));
+  const y = y0 + box.h * .8, off = Math.max(0, dist) + 1, at = (s: number) => ({ x: face.from.x + line.ux * (s - face.start) + line.nx * off, y, z: face.from.z + line.uz * (s - face.start) + line.nz * off });
+  // The wardrobe's right runs the wall's way or against it.
+  const along = u.x * line.ux + u.z * line.uz > 0, out: Gap[] = [];
+  for (const side of sides) {
+    if (side !== 'left' && side !== 'right') continue;
+    const forward = (side === 'right') === along, [from, to] = forward ? [hi, up] : [lo, down], distance = Math.abs(to - from);
+    if ((forward ? to < from - SAME : to > from + SAME) || distance >= REACH) continue;
+    out.push({ side, distance: Math.round(distance * 10) / 10, from: at(from), to: at(to), target: 'wall-end' });
+  }
+  return out;
+}
+
+/** The side gaps, each replaced by where the wall behind ends when that comes first. */
+export function nearerWallEnds(gaps: readonly Gap[], ends: readonly Gap[]): Gap[] {
+  const first = (e: Gap) => !gaps.some(g => g.side === e.side && g.distance <= e.distance + SAME);
+  return [...gaps.filter(g => !ends.some(e => e.side === g.side && first(e))), ...ends.filter(first)];
 }
 
 /** What the wardrobe lines up with: centred between the surfaces on its sides, flush against something,

@@ -101,7 +101,7 @@ export function createWardrobeAssist(ports: AssistOverlayPorts) {
     const host = ports.labels();
     // Clearing leaves the marks of other assistants (a fitting's or a divider's drag) alone.
     if (!sides || !cabinet) { overlay.clear(); if (host && (host.dataset.assist === 'move' || host.dataset.assist === 'size')) delete host.dataset.assist; return; }
-    const m = measureAround(scene, cabinet, sides), sideways = sides.includes('left'), keep = mode === 'size' && editing ? SIZE_ALIGN[editing] : null;
+    const m = measureAround(scene, cabinet, sides, { wallEnds: true }), sideways = sides.includes('left'), keep = mode === 'size' && editing ? SIZE_ALIGN[editing] : null;
     // Moved sideways, the room in front matters only when it is getting tight.
     overlay.draw(m.gaps.filter(g => !(sideways && g.side === 'front' && g.distance > 120)), m.aligned.filter(a => !keep || keep.includes(a.kind)));
     if (host) host.dataset.assist = mode;

@@ -27,8 +27,11 @@ export function bindDimensionScrubbers({ dom, model, lifetime, inspector, select
             const key = el.dataset.scrubDimension as ScrubDimension | undefined;
             if (key) {
                 if (selectionState.shapeEditing || selectionState.viewMode !== 'furniture') return null;
+                // Dragged like the Size slider, it shows the gaps it changes (to the walls, the wall's end, the next unit).
+                const axis = key.startsWith('h') ? 'h' as const : key as 'w' | 'd';
                 return { id, selector, orientation, min, max, entry: true, read: () => edits.value(key),
-                    begin: () => edits.beginDimension(key), preview: delta => edits.previewDimension(delta), finish: cancel => edits.finish(cancel), refresh };
+                    begin: () => { selectionState.editingSize = axis; edits.beginDimension(key); }, preview: delta => edits.previewDimension(delta),
+                    finish: cancel => { selectionState.editingSize = false; return edits.finish(cancel); }, refresh };
             }
             if (!el.dataset.sceneMeasurement) return null;
             const ref = JSON.parse(decodeURIComponent(el.dataset.sceneMeasurement)) as SceneMeasurement;
