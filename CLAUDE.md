@@ -88,8 +88,8 @@ units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`,
   (`planner/bay-ceilings.ts`), so the space above that point under a slope stays empty. On narrow
   fixed bays the planner can give a whole tall bay to long garments and leave shirts out
   (under-stairs default: 0 of 24 shirts).
-- Technical drawings: plan and wall elevations only; unit details, cutting list and door swings are not drawn yet
-  (docs/technical-drawings.md).
+- Technical drawings: plan and wall elevations only; unit details, cutting list and room door swings are not drawn
+  yet (docs/technical-drawings.md).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,

@@ -2,6 +2,7 @@ import { mm, type PieceRow, type Sheet } from './drawing';
 import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeometry } from './room-pieces';
 import { planView } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
+import { designChecks } from './checks';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -29,13 +30,16 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
     const at = { x: g.face.from.x + g.line.ux * t + g.line.nx * out, z: g.face.from.z + g.line.uz * t + g.line.nz * out };
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }
-  const sheets: Sheet[] = [{ number: 1, title: 'Plan', items: plan, pieces: pieces.map(p => row(p, letters)) }];
+  const checks = designChecks(studio, pieces, letters), about = (marks: readonly string[]) =>
+    checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
+  const sheets: Sheet[] = [{ number: 1, title: 'Plan', items: plan, pieces: pieces.map(p => row(p, letters)), checks }];
   for (const [id, letter] of letters) {
+    const mine = pieces.filter(p => p.wall === id);
     sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces),
-      pieces: pieces.filter(p => p.wall === id).map(p => row(p, letters)) });
+      pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
   for (const p of pieces.filter(q => q.wall === null)) {
-    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, items: pieceElevation(p), pieces: [row(p, letters)] });
+    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, items: pieceElevation(p), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   return sheets;
 }

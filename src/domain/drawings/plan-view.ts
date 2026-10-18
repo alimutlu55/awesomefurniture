@@ -6,9 +6,8 @@ import { isKitchen } from '../furniture/furniture';
 import { type Dimensions, type Item, type Line, type P, line, mm, note, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { openingNote } from './opening-notes';
+import { freePosition, pieceSymbols, plan } from './plan-symbols';
 
-/** A point of the room seen from above, in millimetres: x to the right, the room's back (−z) up the sheet. */
-const plan = (x: number, z: number): P => ({ x: mm(x), y: -mm(z) });
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
 const readable = (deg: number) => deg > 90.01 ? deg - 180 : deg <= -90 ? deg + 180 : deg;
@@ -67,8 +66,10 @@ function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[]): Item[] 
     if (!g) continue;
     const mine = pieces.filter(p => p.wall === w.id), floor = mine.filter(p => !p.hung && !p.fixture);
     const centres = mine.filter(p => p.fixture === 'sink' || p.fixture === 'hob').map(p => (p.lo + p.hi) / 2);
-    const units = floor.flatMap(p => [p.lo, p.hi]), openings = [...g.openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), ...centres];
-    const rows = [units, openings].filter(r => r.length);
+    // Wall units and shelves get their own row: they are set out on the wall, not on the floor.
+    const units = floor.flatMap(p => [p.lo, p.hi]), hung = mine.filter(p => p.hung).flatMap(p => [p.lo, p.hi]);
+    const openings = [...g.openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), ...centres];
+    const rows = [units, hung, openings].filter(r => r.length);
     [...rows, []].forEach((values, row) => { const dims = along(studio, w.id, values, row); if (dims) out.push(dims); });
     if (!floor.length) continue;
     // Depth from the wall: the deepest carcass, and the worktop's front where one runs over them. Drawn at the end of
@@ -103,7 +104,9 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     // A wall unit's mark sits towards the wall, so it never covers the mark of the unit under it.
     const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d / 8;
     out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
+    out.push(...pieceSymbols(p));
     if (p.wall === null) {
+      out.push(...freePosition(p, pieces, studio));
       const [a, b, , d] = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
       const dir = (q: P) => { const n = Math.hypot(q.x, q.y) || 1; return { x: q.x / n, y: q.y / n }; };
       out.push({ kind: 'dims', origin: a!, dir: dir({ x: b!.x - a!.x, y: b!.y - a!.y }), side: -1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });

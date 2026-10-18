@@ -6,8 +6,9 @@
 export interface P { readonly x: number; readonly y: number }
 
 /** The weight of a line, heaviest first: cut through (walls on a plan, the floor on an elevation), seen
- * outlines, thin detail, hidden or overhead (dashed), and centre lines (chain). */
-export type Stroke = 'cut' | 'outline' | 'thin' | 'hidden' | 'centre';
+ * outlines, thin detail, hidden or overhead (dashed), centre lines (chain), and how a door or flap swings
+ * (long dashes: an elevation's triangle pointing at the hinges, a door drawn open on a plan). */
+export type Stroke = 'cut' | 'outline' | 'thin' | 'hidden' | 'centre' | 'swing';
 
 export interface Line {
   readonly kind: 'line';
@@ -24,7 +25,11 @@ export interface Note {
   readonly align: 'start' | 'middle' | 'end';
   /** Degrees anticlockwise, for a note written along a sloping or vertical edge. */
   readonly angle?: number | undefined;
+  /** Smaller lettering, for a name written on a front (Oven, Fridge). */
+  readonly small?: boolean | undefined;
 }
+/** Which way something opens or pulls out, on a plan: an arrow from `at` along `dir`. */
+export interface Arrow { readonly kind: 'arrow'; readonly at: P; readonly dir: P }
 /** A piece's mark (K1, W2): the same mark on the plan, its wall's elevation and later the schedules. */
 export interface Tag { readonly kind: 'tag'; readonly at: P; readonly text: string }
 /**
@@ -46,7 +51,7 @@ export interface Dimensions {
 /** Where an elevation is seen from, marked on the plan: a pointer at `at` looking along `dir`, with the
  * elevation's letter. */
 export interface ViewMark { readonly kind: 'view-mark'; readonly at: P; readonly dir: P; readonly text: string }
-export type Item = Line | Note | Tag | Dimensions | ViewMark;
+export type Item = Line | Note | Tag | Dimensions | ViewMark | Arrow;
 
 /** One row of the list of pieces on a sheet: its mark, what it is, and its outer size. */
 export interface PieceRow { readonly mark: string; readonly name: string; readonly size: string; readonly where: string }
@@ -56,6 +61,8 @@ export interface Sheet {
   readonly items: readonly Item[];
   /** The pieces this sheet shows, listed beside the drawing. */
   readonly pieces: readonly PieceRow[];
+  /** What to check before making: pieces that overlap, cover an opening or run past their wall. */
+  readonly checks: readonly string[];
 }
 
 /** Centimetres (the design's unit) to whole millimetres. */

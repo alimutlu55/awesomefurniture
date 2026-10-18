@@ -29,6 +29,13 @@ test('fittings · keys, codes and sizes are valid', () => {
   }
 });
 
+test('fittings · every kind that shows its own front says how it opens, for the drawings', () => {
+  for (const f of defs) {
+    const front = (f.traits as readonly string[]).includes('front');
+    assert.equal(f.opens !== undefined, front, `${f.key}: ${front ? 'give it opens: how its front opens' : 'opens is only for kinds with the front trait'}`);
+  }
+});
+
 test('fittings · purposes they offer exist, and every purpose is offered somewhere', () => {
   for (const f of defs) {
     assert.ok(f.purposes.includes(f.purpose), `${f.key}: its starting purpose is one it offers`);

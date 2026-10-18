@@ -10,6 +10,8 @@ export const DIM = { first: 6, row: 7, text: 2.5, gap: 1.5 } as const;
 const SCALES = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500] as const;
 /** Height of one row of the list of pieces. */
 export const LIST_ROW = 4.6;
+/** Length of an arrow on paper. */
+export const ARROW = 6;
 
 /** Turns the drawing's millimetres (y up) into paper millimetres (y down) at 1:`scale`, with its origin at `at`. */
 export interface Paper { scale: number; at: P; (p: P): P }
@@ -26,6 +28,7 @@ function reach(item: Item, scale: number): P[] {
   switch (item.kind) {
     case 'line': return item.points.map(at);
     case 'tag': case 'view-mark': { const c = at(item.at); return [{ x: c.x - 5, y: c.y - 5 }, { x: c.x + 5, y: c.y + 5 }]; }
+    case 'arrow': { const c = at(item.at); return [c, { x: c.x + item.dir.x * ARROW, y: c.y - item.dir.y * ARROW }]; }
     case 'note': { const c = at(item.at), w = Math.max(...item.lines.map(l => l.length)) * 1.6; return [{ x: c.x - w / 2, y: c.y - 3 }, { x: c.x + w / 2, y: c.y + 3 * item.lines.length }]; }
     case 'dims': {
       const n = normal(item), off = dimOffset(item, scale) + DIM.text + 1, ends = [item.stops[0]!, item.stops[item.stops.length - 1]!];
@@ -39,7 +42,7 @@ function reach(item: Item, scale: number): P[] {
 
 /** Where a sheet's drawing goes: the frame less the title strip, whose height grows with the list of pieces. */
 export function drawingArea(sheet: Sheet) {
-  const strip = Math.max(TITLE.h, Math.ceil(sheet.pieces.length / 2) * LIST_ROW + 10);
+  const strip = Math.max(TITLE.h, (Math.ceil(sheet.pieces.length / 2) + sheet.checks.length) * LIST_ROW + 10);
   return { x: PAPER.left + 6, y: PAPER.edge + 14, w: PAPER.w - PAPER.left - PAPER.edge - 12, h: PAPER.h - 2 * PAPER.edge - strip - 20, strip };
 }
 

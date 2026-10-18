@@ -6,6 +6,7 @@
 .drawings-bar h2{margin:0;font-size:16px;font-weight:650;color:var(--ink);white-space:nowrap}
 .drawings-count{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .drawings-tools{display:flex;align-items:center;gap:8px}
+.drawings-count.has-checks{color:var(--bad)}
 .drawings-zoom{display:flex;gap:4px}
 .drawings-zoom button,.drawings-close{width:36px;height:36px;padding:0;font-size:20px;line-height:1;border-radius:10px}
 .drawings-zoom button:disabled{opacity:.4;cursor:default}

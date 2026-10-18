@@ -71,7 +71,9 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     // Each sheet is its own SVG document, as it prints: its hatching and styles resolve inside it, not in the editor.
     list.innerHTML = sheets.map(sheet => '<figure class="drawings-sheet"><img alt="' + (sheet.number + ' ' + sheet.title).replace(/"/g, '') + '" src="data:image/svg+xml;charset=utf-8,'
       + encodeURIComponent(sheetSvg(sheet, info)) + '"></figure>').join('');
-    count.textContent = sheets.length + (sheets.length === 1 ? ' sheet' : ' sheets') + ' · A3 · mm';
+    const checks = sheets[0]?.checks.length ?? 0;
+    count.textContent = sheets.length + (sheets.length === 1 ? ' sheet' : ' sheets') + ' · A3 · mm' + (checks ? ' · ' + checks + (checks === 1 ? ' thing' : ' things') + ' to check' : '');
+    count.classList.toggle('has-checks', checks > 0);
     panel.hidden = false;
     scale = 1;
     zoomTo(1);

@@ -1,13 +1,13 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
-import { interiorFloorOf, plinthOf } from '../wardrobe/carcass';
+import { plinthOf } from '../wardrobe/carcass';
 import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
-import { cabinetDoorAreas } from '../wardrobe/door-layout';
-import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { kitchenFrontRect } from '../kitchen/kitchen-fronts';
-import { isKitchen } from '../furniture/furniture';
-import { type Item, type P, line, mm, note, rect } from './drawing';
+import { type Item, type Line, type P, line, mm, note, rect } from './drawing';
+import { type Front, piecefronts } from './fronts';
 import { type PlacedPiece, pieceName } from './room-pieces';
+
+/** How far a hidden outline stands in from its true edges. Centimetres. */
+const INSET = 1;
 
 /** The height of a design's top at `x` from its left face: the lower of two points at a step. Centimetres. */
 export function topAt(design: EditorDesign, x: number) {
@@ -21,48 +21,45 @@ export function topAt(design: EditorDesign, x: number) {
   return Number.isFinite(best) ? best : design.h;
 }
 
-/** What a piece's front is divided into, from its left face and its bottom, centimetres: its doors across the whole front
- * (a wardrobe with doors), each fitting's own front (a kitchen unit), or, open, its fittings, shelves and partitions. */
-function fronts(design: EditorDesign) {
-  // The rules read a design being edited; nothing is selected in a drawing.
-  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), out: { x0: number; x1: number; y0: number; y1: number }[] = [];
-  if (!isKitchen(design) && design.doors !== 'none') return cabinetDoorAreas(design, widths);
-  let bayL = PANEL;
-  widths.forEach((sw, i) => {
-    for (const [j, pos] of geometry.computeLayout(i).entries()) {
-      const it = design.secs[i]![j]!, cx = bayL + pos.off + pos.w / 2;
-      out.push(isKitchen(design)
-        ? kitchenFrontRect(design.unit, cx, pos.y0, pos.w, it.h, { bottom: interiorFloorOf(design), top: design.h - PANEL }, { left: PANEL, right: design.w - PANEL })
-        : { x0: bayL + pos.off, x1: bayL + pos.off + pos.w, y0: pos.y0, y1: pos.y1 });
-    }
-    if (!isKitchen(design)) {
-      for (const d of geometry.sectionDividers(i)) {
-        const r = geometry.visibleRect(d);
-        out.push({ x0: bayL + r.x0, x1: bayL + r.x1, y0: geometry.interiorFloor() + r.y0, y1: geometry.interiorFloor() + r.y1 });
-      }
-      if (i < widths.length - 1) out.push({ x0: bayL + sw, x1: bayL + sw + PANEL, y0: interiorFloorOf(design), y1: topAt(design, bayL + sw + PANEL / 2) - PANEL });
-    }
-    bayL += sw + PANEL;
-  });
-  return out;
+/** How a front opens, drawn on it: two long-dashed lines from the edge that moves meeting at the hinges (a door at
+ * its hinge side, a lift-up flap at its top, a fall-down door at its bottom). Drawers and fixed fronts have none. */
+function swing(f: Front, at: (x: number, y: number) => P, top: (x: number) => number): Line[] {
+  const y1 = (x: number) => Math.min(f.y1, top(x)), mid = (f.x0 + f.x1) / 2, path = (a: P, apex: P, b: P): Line => ({ kind: 'line', stroke: 'swing', points: [a, apex, b] });
+  if (f.opens === 'side') {
+    const hinge = f.hinge === 'right' ? f.x1 : f.x0, free = f.hinge === 'right' ? f.x0 : f.x1;
+    return [path(at(free, f.y0), at(hinge, (f.y0 + y1(hinge)) / 2), at(free, y1(free)))];
+  }
+  if (f.opens === 'up') return [path(at(f.x0, f.y0), at(mid, y1(mid)), at(f.x1, f.y0))];
+  if (f.opens === 'down') return [path(at(f.x0, y1(f.x0)), at(mid, f.y0), at(f.x1, y1(f.x1)))];
+  return [];
 }
 
 /** A piece seen from the front, its left face `left` along the elevation and its bottom at its own height: the outline
- * (following a sloped or stepped top), the plinth, what its front is divided into, and its mark. A sink or hob is its
- * centre line on the worktop; a shelf its board. Millimetres. */
+ * (following a sloped or stepped top), the plinth, its fronts with how each opens and what appliance it is, what is
+ * behind them dashed (a cupboard's shelves, a wardrobe's fittings and rails), and its mark. A sink or hob is its centre
+ * line on the worktop; a shelf its board. Millimetres. */
 export function pieceFront(p: PlacedPiece, left: number): Item[] {
   const d = p.design, at = (x: number, y: number): P => ({ x: mm(left + x), y: mm(p.y + y) }), mid = d.w / 2;
   if (p.fixture === 'sink' || p.fixture === 'hob') {
     return [line(at(mid, -12), at(mid, 16), 'centre'), note(at(mid, 20), pieceName(p))];
   }
   if (p.fixture === 'shelf') return [rect(mm(left), mm(p.y), mm(left + d.w), mm(p.y + d.h), 'outline'), { kind: 'tag', at: at(mid, d.h + 12), text: p.mark }];
-  const top = resolveShape(d).top, out: Item[] = [];
+  const top = resolveShape(d).top, out: Item[] = [], under = (x: number) => topAt(d, Math.min(d.w, Math.max(0, x)));
   out.push({ kind: 'line', stroke: 'outline', closed: true, points: [at(0, 0), at(d.w, 0), ...top.slice().reverse().map(q => at(q.x, q.y))] });
   const plinth = plinthOf(d);
   if (plinth > 0) out.push(line(at(0, plinth), at(d.w, plinth), 'thin'));
-  for (const f of fronts(d)) {
-    const y1 = Math.min(f.y1, topAt(d, Math.min(d.w, Math.max(0, (f.x0 + f.x1) / 2))));
-    out.push(rect(mm(left + f.x0), mm(p.y + f.y0), mm(left + f.x1), mm(p.y + y1), 'thin'));
+  const { fronts, inside, covered } = piecefronts(d), behind = covered || fronts.length > 0;
+  for (const b of inside) {
+    const y1 = Math.min(b.y1, under((b.x0 + b.x1) / 2) - PANEL), stroke = behind ? 'hidden' : b.kind === 'rail' ? 'centre' : 'thin';
+    // Behind the fronts each outline stands a little in, so two dashed edges never merge into what reads as a solid one.
+    const k = behind && b.kind === 'box' ? Math.min(INSET, (b.x1 - b.x0) / 4, (y1 - b.y0) / 4) : 0;
+    out.push(b.kind === 'box' ? rect(mm(left + b.x0 + k), mm(p.y + b.y0 + k), mm(left + b.x1 - k), mm(p.y + y1 - k), stroke) : line(at(b.x0 + 2, b.y0), at(b.x1 - 2, b.y0), stroke));
+  }
+  for (const f of fronts) {
+    const y1 = (x: number) => Math.min(f.y1, under(x));
+    out.push({ kind: 'line', stroke: 'thin', closed: true, points: [at(f.x0, f.y0), at(f.x1, f.y0), at(f.x1, y1(f.x1)), at(f.x0, y1(f.x0))] });
+    out.push(...swing(f, at, under));
+    if (f.label) out.push({ ...note(at((f.x0 + f.x1) / 2, y1((f.x0 + f.x1) / 2) - 7), f.label), small: true });
   }
   const tall = Math.min(...top.map(q => q.y));
   out.push({ kind: 'tag', at: at(mid, (plinth + tall) / 2), text: p.mark });
@@ -75,4 +72,3 @@ export function pieceHeights(p: PlacedPiece): number[] {
   const d = p.design, plinth = plinthOf(d), top = Math.max(...resolveShape(d).top.map(q => q.y));
   return [p.y, ...(plinth > 0 ? [p.y + plinth] : []), p.y + (p.fixture ? d.h : top)];
 }
-

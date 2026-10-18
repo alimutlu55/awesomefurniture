@@ -37,6 +37,8 @@ export const FITTING_TRAITS = Object.freeze({
 });
 export type FittingTrait = keyof typeof FITTING_TRAITS;
 
+export type FrontOpening = 'side' | 'up' | 'down' | 'pull' | 'fixed';
+
 export interface FittingDef {
   readonly key: string;
   /** Catalogue name. */
@@ -70,6 +72,9 @@ export interface FittingDef {
   readonly icon: string;
   /** Its traits (see FITTING_TRAITS). Empty when none apply. */
   readonly traits: readonly FittingTrait[];
+  /** How its own front opens (fittings with the `front` trait), as drawings show it: hinged at a side, lifting up, falling
+   * down from a bottom hinge, pulling out, or fixed (an appliance fascia). */
+  readonly opens?: FrontOpening;
   /** Kitchen cabinets only: the units it fits in, and how the Add item menu ranks and explains it. */
   readonly kitchen?: { readonly units: readonly KitchenUnitKey[]; readonly score: number; readonly why: string };
 }
@@ -121,52 +126,52 @@ export const FITTINGS = [
     menu: { order: 10, group: 'hanging' }, zone: { ...HANG, label: 'Pull-down' }, icon: 'M12 4v12M7 11l5 5 5-5M5 20h14', traits: ['hanging'] },
   { key: 'cutlery', name: 'Cutlery drawer', code: 'C', height: 15, min: 10, max: 22, minWidth: 30, minDepth: 40, price: 55, purpose: 'utensils',
     purposes: KITCHEN_PURPOSES, menu: { order: 11, group: 'drawers', mobileRank: 0 }, zone: { ...KITCHEN, label: 'Drawer' },
-    icon: 'M4 8h16v8H4zM9.5 12h5', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 60, why: 'Cutlery and utensils at hand' } },
+    icon: 'M4 8h16v8H4zM9.5 12h5', opens: 'pull', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 60, why: 'Cutlery and utensils at hand' } },
   { key: 'pan', name: 'Pan drawer', code: 'N', height: 28, min: 18, max: 40, minWidth: 30, minDepth: 40, price: 70, purpose: 'cookware',
     purposes: KITCHEN_PURPOSES, menu: { order: 12, group: 'drawers', mobileRank: 1 }, zone: { ...KITCHEN, label: 'Pan drawer' },
-    icon: 'M4 6h16v13H4zM9.5 10h5', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 55, why: 'Deep drawer for pots and pans' } },
+    icon: 'M4 6h16v13H4zM9.5 10h5', opens: 'pull', traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 55, why: 'Deep drawer for pots and pans' } },
   { key: 'cupboard', name: 'Cupboard door', code: 'K', height: 72, min: 25, max: 220, minWidth: 25, minDepth: 25, price: 60, purpose: 'dishes',
     purposes: KITCHEN_PURPOSES, itemName: 'Cupboard', menu: { order: 13, group: 'doors', mobileRank: 2 }, zone: { ...KITCHEN, label: 'Cupboard' },
-    icon: 'M6 3h12v18H6zM15 11v2M6 12h12', traits: ['front'], kitchen: { units: ['base', 'upper', 'tall'], score: 50, why: 'Hinged door, shelves inside' } },
+    icon: 'M6 3h12v18H6zM15 11v2M6 12h12', opens: 'side', traits: ['front'], kitchen: { units: ['base', 'upper', 'tall'], score: 50, why: 'Hinged door, shelves inside' } },
   { key: 'flap', name: 'Lift-up flap', code: 'Y', height: 36, min: 25, max: 60, minWidth: 30, minDepth: 25, price: 75, purpose: 'dishes',
     purposes: KITCHEN_PURPOSES, menu: { order: 14, group: 'doors' }, zone: { ...KITCHEN, label: 'Flap' },
-    icon: 'M4 9h16v10H4zM4 9l3-5h10l3 5M10.5 15h3', traits: ['front'], kitchen: { units: ['upper'], score: 45, why: 'Opens upwards, out of the way' } },
+    icon: 'M4 9h16v10H4zM4 9l3-5h10l3 5M10.5 15h3', opens: 'up', traits: ['front'], kitchen: { units: ['upper'], score: 45, why: 'Opens upwards, out of the way' } },
   { key: 'niche', name: 'Open shelf', code: 'Q', height: 30, min: 15, max: 60, minWidth: 25, minDepth: 20, price: 20, purpose: 'dishes',
     purposes: KITCHEN_PURPOSES, menu: { order: 15, group: 'shelves' }, zone: { ...KITCHEN, label: 'Open' },
     icon: 'M4 5h16v14H4zM4 12h16', traits: ['openShelf'], kitchen: { units: ['base', 'upper', 'tall'], score: 30, why: 'Things on show, within reach' } },
   { key: 'sink', name: 'Sink and tap', code: 'I', height: 72, min: 50, max: 80, minWidth: 45, minDepth: 50, price: 180, purpose: 'cleaning',
     purposes: ['cleaning'], menu: { order: 16, group: 'appliances' }, zone: { color: '#6b8ea8', label: 'Sink', priority: Z.fitting },
-    icon: 'M3 12h18M5 12l1.5 7h11L19 12M12 12V6a2 2 0 0 1 4 0', traits: ['front', 'appliance', 'worktop'],
+    icon: 'M3 12h18M5 12l1.5 7h11L19 12M12 12V6a2 2 0 0 1 4 0', opens: 'side', traits: ['front', 'appliance', 'worktop'],
     kitchen: { units: ['base'], score: 40, why: 'Sink in the worktop, doors below' } },
   { key: 'hob', name: 'Hob', code: 'O', height: 14, min: 10, max: 20, minWidth: 55, minDepth: 50, price: 220, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 17, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Hob' },
-    icon: 'M3 6h18v12H3zM8.5 10a1.5 1.5 0 1 0 0 .01M15.5 10a1.5 1.5 0 1 0 0 .01M8.5 15h.01M15.5 15h.01', traits: ['front', 'appliance', 'worktop'],
+    icon: 'M3 6h18v12H3zM8.5 10a1.5 1.5 0 1 0 0 .01M15.5 10a1.5 1.5 0 1 0 0 .01M8.5 15h.01M15.5 15h.01', opens: 'pull', traits: ['front', 'appliance', 'worktop'],
     kitchen: { units: ['base'], score: 35, why: 'Cooktop in the worktop over a shallow drawer' } },
   { key: 'oven', name: 'Built-in oven', code: 'E', height: 60, min: 56, max: 62, minWidth: 55, minDepth: 55, price: 320, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 18, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Oven' },
-    icon: 'M4 4h16v16H4zM4 8h16M7 12h10v5H7z', traits: ['front', 'appliance'], kitchen: { units: ['base', 'tall'], score: 35, why: 'Oven at a comfortable height' } },
+    icon: 'M4 4h16v16H4zM4 8h16M7 12h10v5H7z', opens: 'down', traits: ['front', 'appliance'], kitchen: { units: ['base', 'tall'], score: 35, why: 'Oven at a comfortable height' } },
   { key: 'fridge', name: 'Integrated fridge', code: 'G', height: 178, min: 60, max: 200, minWidth: 55, minDepth: 55, price: 450, purpose: 'food',
     purposes: ['food'], menu: { order: 19, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Fridge' },
-    icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', traits: ['front', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
+    icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', opens: 'side', traits: ['front', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
   { key: 'microwave', name: 'Built-in microwave', code: 'W', height: 38, min: 29, max: 46, minWidth: 45, minDepth: 30, price: 240, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 21, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Microwave' },
-    icon: 'M3 6h18v12H3zM15 6v12M6 9.5h6v5H6zM17.5 9h.01M17.5 12h.01', traits: ['front', 'appliance'],
+    icon: 'M3 6h18v12H3zM15 6v12M6 9.5h6v5H6zM17.5 9h.01M17.5 12h.01', opens: 'fixed', traits: ['front', 'appliance'],
     kitchen: { units: ['upper', 'tall'], score: 36, why: 'Microwave at eye level, out of the worktop' } },
   { key: 'dishwasher', name: 'Built-in dishwasher', code: 'X', height: 74, min: 60, max: 82, minWidth: 45, minDepth: 55, price: 420, purpose: 'cleaning',
     purposes: ['cleaning'], menu: { order: 23, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Dishwasher' },
-    icon: 'M4 3h16v18H4zM4 8h16M7 5.5h.01M10 5.5h.01M8 14h8v4H8z', traits: ['front', 'appliance'],
+    icon: 'M4 3h16v18H4zM4 8h16M7 5.5h.01M10 5.5h.01M8 14h8v4H8z', opens: 'down', traits: ['front', 'appliance'],
     kitchen: { units: ['base'], score: 38, why: 'Dishwasher next to the sink, behind a matching door' } },
   { key: 'hood', name: 'Cooker hood', code: 'A', height: 24, min: 15, max: 60, minWidth: 45, minDepth: 25, price: 210, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 24, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Hood' },
-    icon: 'M3 13h18l-3-6H6zM8 13v3M16 13v3M12 16v4', traits: ['front', 'appliance'],
+    icon: 'M3 13h18l-3-6H6zM8 13v3M16 13v3M12 16v4', opens: 'fixed', traits: ['front', 'appliance'],
     kitchen: { units: ['upper'], score: 34, why: 'Extractor over the hob' } },
   { key: 'cargo', name: 'Cargo pull-out', code: 'Z', height: 74, min: 50, max: 200, minWidth: 25, minDepth: 40, price: 210, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 22, group: 'storage' }, zone: { ...KITCHEN, label: 'Cargo' },
-    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', traits: ['pullout', 'front'],
+    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', traits: ['pullout', 'front'],
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },
   { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },
-    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', traits: ['pullout', 'front'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
+    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', opens: 'pull', traits: ['pullout', 'front'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
 ] as const satisfies readonly FittingDef[];
 
 export type FittingKind = typeof FITTINGS[number]['key'];

@@ -1,6 +1,6 @@
 import type { Item, Sheet } from '../../domain/drawings/drawing';
-import { dimensionSvg } from './dimension-svg';
-import { LIST_ROW, PAPER, TITLE, type Paper, drawingArea, fitSheet } from './sheet-layout';
+import { type Box, dimensionSvg } from './dimension-svg';
+import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, fitSheet } from './sheet-layout';
 
 /** What the title block says about the whole set. */
 export interface SheetSetInfo { readonly project: string; readonly date: string; readonly total: number }
@@ -12,32 +12,58 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const STYLE = `
 .cut{stroke:#111;stroke-width:.5;fill:none;stroke-linejoin:miter}.outline{stroke:#111;stroke-width:.35;fill:none}
 .thin{stroke:#333;stroke-width:.18;fill:none}.hidden{stroke:#333;stroke-width:.25;fill:none;stroke-dasharray:2 1}
-.centre{stroke:#333;stroke-width:.18;fill:none;stroke-dasharray:6 1 1 1}.glass{fill:#e4ecf2}
+.centre{stroke:#333;stroke-width:.18;fill:none;stroke-dasharray:6 1 1 1}.swing{stroke:#333;stroke-width:.18;fill:none;stroke-dasharray:3 1.5}.glass{fill:#e4ecf2}
 .dl{stroke:#111;stroke-width:.13}.dt{stroke:#111;stroke-width:.35}
 text{font-family:Helvetica,Arial,sans-serif;fill:#111}.dv{font-size:3.2px;text-anchor:middle}
-.nt{font-size:3px}.tg circle{fill:#fff;stroke:#111;stroke-width:.25}.tg text{font-size:2.9px;text-anchor:middle;dominant-baseline:central;font-weight:600}
+.nt{font-size:3px}.ns{font-size:2.4px;fill:#444}.ck{font-size:2.9px;fill:#b3261e;font-weight:700}.tg circle{fill:#fff;stroke:#111;stroke-width:.25}.tg text{font-size:2.9px;text-anchor:middle;dominant-baseline:central;font-weight:600}
 .vm circle{fill:#fff;stroke:#111;stroke-width:.3}.vm path{fill:#111}.vm text{font-size:3.4px;text-anchor:middle;dominant-baseline:central;font-weight:700}
 .frame{fill:#fff;stroke:#111;stroke-width:.7}.tb{fill:none;stroke:#111;stroke-width:.35}.tbl{stroke:#111;stroke-width:.18}
 .tk{font-size:2.2px;fill:#555}.tv{font-size:3.4px}.tp{font-size:5px;font-weight:700}.vt{font-size:4.2px;font-weight:700}.vs{font-size:3.2px}
 .ls{font-size:2.7px}.lm{font-size:2.7px;font-weight:700}`;
 
-function item(i: Item, paper: Paper, hatch: string): string {
+/** A note's box on paper with its text moved `shift` along its own up direction. */
+function noteBox(text: readonly string[], small: boolean, c: { x: number; y: number }, angle: number, shift: number): Box {
+  const size = small ? 2.4 : 3, w = Math.max(...text.map(l => l.length)) * size * .52, th = -angle * Math.PI / 180;
+  const local = [[-w / 2, -size * .8 - shift], [w / 2, -size * .8 - shift], [w / 2, size * .3 + (text.length - 1) * 3.6 - shift], [-w / 2, size * .3 + (text.length - 1) * 3.6 - shift]];
+  const pts = local.map(([x, y]) => ({ x: c.x + x! * Math.cos(th) - y! * Math.sin(th), y: c.y + x! * Math.sin(th) + y! * Math.cos(th) }));
+  return { x0: Math.min(...pts.map(p => p.x)), x1: Math.max(...pts.map(p => p.x)), y0: Math.min(...pts.map(p => p.y)), y1: Math.max(...pts.map(p => p.y)) };
+}
+const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+/** Shifts tried for a note that lands on a mark or a figure, nearest first. Paper millimetres. */
+const SHIFTS = [0, 3.6, -3.6, 7.2, -7.2, 10.8, -10.8, 14.4];
+
+function item(i: Item, paper: Paper, hatch: string, taken: Box[]): string {
   switch (i.kind) {
     case 'line': {
       const pts = i.points.map(paper).map(p => f(p.x) + ',' + f(p.y)).join(' ');
       const fill = i.fill === 'hatch' ? ` style="fill:url(#${hatch})"` : i.fill === 'glass' ? ' style="fill:#e4ecf2"' : '';
       return i.closed ? `<polygon class="${i.stroke}" points="${pts}"${fill}/>` : `<polyline class="${i.stroke}" points="${pts}"/>`;
     }
-    case 'dims': return dimensionSvg(i, paper);
-    case 'tag': { const c = paper(i.at); return `<g class="tg"><circle cx="${f(c.x)}" cy="${f(c.y)}" r="3.4"/><text x="${f(c.x)}" y="${f(c.y)}">${esc(i.text)}</text></g>`; }
+    case 'dims': return dimensionSvg(i, paper, taken);
+    case 'tag': {
+      const c = paper(i.at);
+      taken.push({ x0: c.x - 3.6, x1: c.x + 3.6, y0: c.y - 3.6, y1: c.y + 3.6 });
+      return `<g class="tg"><circle cx="${f(c.x)}" cy="${f(c.y)}" r="3.4"/><text x="${f(c.x)}" y="${f(c.y)}">${esc(i.text)}</text></g>`;
+    }
+    case 'arrow': {
+      const c = paper(i.at), d = { x: i.dir.x, y: -i.dir.y }, tip = { x: c.x + d.x * ARROW, y: c.y + d.y * ARROW };
+      const barb = (turn: number) => ({ x: tip.x - (d.x * Math.cos(turn) - d.y * Math.sin(turn)) * 1.8, y: tip.y - (d.x * Math.sin(turn) + d.y * Math.cos(turn)) * 1.8 });
+      const a = barb(.45), b = barb(-.45);
+      return `<path class="outline" d="M${f(c.x)} ${f(c.y)}L${f(tip.x)} ${f(tip.y)}M${f(a.x)} ${f(a.y)}L${f(tip.x)} ${f(tip.y)}L${f(b.x)} ${f(b.y)}"/>`;
+    }
     case 'note': {
-      const c = paper(i.at), anchor = i.align;
+      // Moved along its own up direction until it is clear of the marks, figures and notes already placed.
+      const c = paper(i.at), angle = i.angle ?? 0, small = !!i.small, th = -angle * Math.PI / 180;
+      const shift = SHIFTS.find(k => !taken.some(t => hits(t, noteBox(i.lines, small, c, angle, k)))) ?? 0;
+      taken.push(noteBox(i.lines, small, c, angle, shift));
+      const at = { x: c.x + Math.sin(th) * shift, y: c.y - Math.cos(th) * shift };
       const lines = i.lines.map((l, k) => `<tspan x="0" dy="${k ? 3.6 : 0}">${esc(l)}</tspan>`).join('');
-      return `<text class="nt" text-anchor="${anchor}" transform="translate(${f(c.x)} ${f(c.y)}) rotate(${f(-(i.angle ?? 0))})">${lines}</text>`;
+      return `<text class="${small ? 'ns' : 'nt'}" text-anchor="${i.align}" transform="translate(${f(at.x)} ${f(at.y)}) rotate(${f(-angle)})">${lines}</text>`;
     }
     case 'view-mark': {
       const c = paper(i.at), d = { x: i.dir.x, y: -i.dir.y }, s = { x: -d.y, y: d.x }, tip = { x: c.x + d.x * 7, y: c.y + d.y * 7 };
       const b1 = { x: c.x + d.x * 3 + s.x * 3, y: c.y + d.y * 3 + s.y * 3 }, b2 = { x: c.x + d.x * 3 - s.x * 3, y: c.y + d.y * 3 - s.y * 3 };
+      taken.push({ x0: c.x - 4, x1: c.x + 4, y0: c.y - 4, y1: c.y + 4 });
       return `<g class="vm"><path d="M${f(tip.x)} ${f(tip.y)}L${f(b1.x)} ${f(b1.y)}L${f(b2.x)} ${f(b2.y)}Z"/><circle cx="${f(c.x)}" cy="${f(c.y)}" r="3.6"/>`
         + `<text x="${f(c.x)}" y="${f(c.y)}">${esc(i.text)}</text></g>`;
     }
@@ -57,9 +83,11 @@ function titleBlock(sheet: Sheet, paper: Paper, info: SheetSetInfo, strip: numbe
   // The list of pieces: two columns across the rest of the strip.
   const lx = PAPER.left, lw = x - lx, col = lw / 2, rows = Math.ceil(sheet.pieces.length / 2);
   out += `<rect class="tb" x="${lx}" y="${f(y)}" width="${f(lw)}" height="${f(strip)}"/>`;
-  out += `<text class="tk" x="${lx + 2}" y="${f(y + 3.5)}">Pieces · width × height × depth · verify every dimension on site before making; do not scale from the drawing</text>`;
+  out += `<text class="tk" x="${lx + 2}" y="${f(y + 3.5)}">Pieces · width × height × depth · door triangles point to the hinges · verify every dimension on site before making; do not scale from the drawing</text>`;
+  sheet.checks.forEach((c, k) => { out += `<text class="ck" x="${lx + 2}" y="${f(y + 8.5 + k * LIST_ROW)}">Check before making: ${esc(c)}</text>`; });
+  const first = y + 8.5 + sheet.checks.length * LIST_ROW;
   sheet.pieces.forEach((p, k) => {
-    const cx = lx + 2 + Math.floor(k / rows) * col, cy = y + 8.5 + (k % rows) * LIST_ROW;
+    const cx = lx + 2 + Math.floor(k / rows) * col, cy = first + (k % rows) * LIST_ROW;
     out += `<text class="lm" x="${f(cx)}" y="${f(cy)}">${esc(p.mark)}</text><text class="ls" x="${f(cx + 7)}" y="${f(cy)}">${esc(p.name)}</text>`
       + `<text class="ls" x="${f(cx + 38)}" y="${f(cy)}">${esc(p.size)}</text><text class="ls" x="${f(cx + 66)}" y="${f(cy)}">${esc(p.where)}</text>`;
   });
@@ -76,7 +104,9 @@ export function sheetSvg(sheet: Sheet, info: SheetSetInfo): string {
     + `<rect class="frame" x="${PAPER.left}" y="${PAPER.edge}" width="${PAPER.w - PAPER.left - PAPER.edge}" height="${PAPER.h - 2 * PAPER.edge}"/>`;
   const heading = `<text class="vt" x="${area.x}" y="${PAPER.edge + 8}">${esc(sheet.number + '  ' + sheet.title)}</text>`
     + `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">1:${paper.scale}</text>`;
-  const body = sheet.items.map(i => item(i, paper, hatch)).join('');
+  // Lines first, then figures and marks, then the notes placed clear of them.
+  const ORDER = { line: 0, arrow: 1, dims: 2, tag: 3, 'view-mark': 3, note: 4 } as const, taken: Box[] = [];
+  const body = sheet.items.slice().sort((a, b) => ORDER[a.kind] - ORDER[b.kind]).map(i => item(i, paper, hatch, taken)).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAPER.w} ${PAPER.h}" width="${PAPER.w}mm" height="${PAPER.h}mm" role="img" aria-label="${esc(sheet.title)}">`
     + defs + frame + heading + `<g class="drawing">${body}</g>` + titleBlock(sheet, paper, info, area.strip) + '</svg>';
 }

@@ -2,6 +2,8 @@ import type { Dimensions } from '../../domain/drawings/drawing';
 import { DIM, type Paper, dimOffset, normal } from './sheet-layout';
 
 const f = (n: number) => String(Math.round(n * 100) / 100);
+/** A box on paper, millimetres. */
+export interface Box { x0: number; x1: number; y0: number; y1: number }
 /** Width of a dimension figure on paper, about. */
 const figureWidth = (text: string) => text.length * DIM.text * .62 + 1;
 
@@ -11,7 +13,7 @@ const figureWidth = (text: string) => text.length * DIM.text * .62 + 1;
  * line, read from the bottom or the right of the sheet. A figure too long for its space steps up beside it, alternately,
  * so neighbours never sit on each other.
  */
-export function dimensionSvg(d: Dimensions, paper: Paper): string {
+export function dimensionSvg(d: Dimensions, paper: Paper, figures: Box[] = []): string {
   const n = normal(d), off = dimOffset(d, paper.scale), clear = d.clear / paper.scale + DIM.gap;
   // Paper directions: along the string and away from what it measures.
   const along = { x: d.dir.x, y: -d.dir.y }, out = { x: n.x, y: -n.y };
@@ -33,7 +35,11 @@ export function dimensionSvg(d: Dimensions, paper: Paper): string {
   for (let k = 0; k < d.stops.length - 1; k++) {
     const s0 = d.stops[k]!, s1 = d.stops[k + 1]!, text = String(s1 - s0), room = (s1 - s0) / paper.scale;
     const lift = room >= figureWidth(text) ? 0 : (stepped++ % 2 === 0 ? DIM.text + 1.2 : 2 * (DIM.text + 1.2));
-    const c = at((s0 + s1) / 2, off);
+    const c = at((s0 + s1) / 2, off), half = figureWidth(text) / 2, rise = .9 + lift + DIM.text / 2;
+    // Where the figure sits on paper, for notes to keep clear of it.
+    const rad = angle * Math.PI / 180, mid = { x: c.x + Math.sin(rad) * rise, y: c.y - Math.cos(rad) * rise };
+    const ex = Math.abs(Math.cos(rad)) * half + Math.abs(Math.sin(rad)) * DIM.text / 2, ey = Math.abs(Math.sin(rad)) * half + Math.abs(Math.cos(rad)) * DIM.text / 2;
+    figures.push({ x0: mid.x - ex, x1: mid.x + ex, y0: mid.y - ey, y1: mid.y + ey });
     parts.push(`<text class="dv" transform="translate(${f(c.x)} ${f(c.y)}) rotate(${f(angle)})" y="${f(-0.9 - lift)}">${text}</text>`);
     if (!lift) stepped = 0;
   }
