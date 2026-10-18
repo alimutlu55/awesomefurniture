@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { barPull } from './hardware';
+import { hingedLeaves, shelfHeights } from '../../domain/kitchen/kitchen-fronts';
 import type { BoxBuilder } from './frame-geometry';
 
 /**
@@ -35,18 +36,15 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
     box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), PANEL, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
   /** Hinged leaves across a span: one up to 62 cm, two above it, each with an upright pull by its free edge. */
   const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean) => {
-    const leaves = x1 - x0 > 62 ? 2 : 1, w = (x1 - x0) / leaves, py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
-    for (let n = 0; n < leaves; n++) {
-      const a = x0 + n * w, b = a + w;
-      panel(a, b, y0, y1);
-      const free = leaves === 2 ? (n === 0 ? b - 4 : a + 4) : b - 4;
-      pull(Math.min(18, (y1 - y0) * .5), free, py, true);
+    const py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
+    for (const leaf of hingedLeaves(x0, x1)) {
+      panel(leaf.x0, leaf.x1, y0, y1);
+      pull(Math.min(18, (y1 - y0) * .5), leaf.hinge === 'left' ? leaf.x1 - 4 : leaf.x0 + 4, py, true);
     }
   };
   /** Adjustable shelves inside a cupboard, about one every 34 cm. */
   const shelves = (x0: number, x1: number, y0: number, y1: number) => {
-    const count = Math.floor((y1 - y0) / 34);
-    for (let n = 1; n <= count; n++) box(x1 - x0 - 1, 1.6, depth - 6, (x0 + x1) / 2, y0 + (y1 - y0) * n / (count + 1), -1, inside);
+    for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, 1.6, depth - 6, (x0 + x1) / 2, y, -1, inside);
   };
   /** The box of a drawer behind its front. */
   const drawerBox = (cx: number, y: number, w: number, h: number) => box(Math.max(4, w - 4), Math.max(4, h - 4), depth - 6, cx, y + h / 2, -1, inside);

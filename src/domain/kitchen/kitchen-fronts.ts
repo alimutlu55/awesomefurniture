@@ -19,3 +19,21 @@ export function kitchenFrontRect(unit: KitchenUnitKey | undefined, cx: number, y
   const y0 = Math.abs(y - inside.bottom) < .05 ? (kitchenUnit(unit).plinth ? y - PANEL : 0) : y, y1 = Math.abs(y + h - inside.top) < .05 ? y + h + PANEL : y + h;
   return { x0, x1, y0, y1 };
 }
+
+/** Above this width a hinged front is two leaves. Centimetres. */
+export const DOUBLE_DOOR_OVER = 62;
+/** Hinged leaves across x0..x1: one up to DOUBLE_DOOR_OVER wide, hinged on the left; two above it, hinged on the outer
+ * sides and meeting in the middle. */
+export function hingedLeaves(x0: number, x1: number): { x0: number; x1: number; hinge: 'left' | 'right' }[] {
+  if (x1 - x0 <= DOUBLE_DOOR_OVER) return [{ x0, x1, hinge: 'left' }];
+  const mid = (x0 + x1) / 2;
+  return [{ x0, x1: mid, hinge: 'left' }, { x0: mid, x1, hinge: 'right' }];
+}
+/** Where a fridge front splits into a freezer door below and a fridge door above: only in a tall housing (a fitting
+ * over 140 cm). Null for one door. */
+export const fridgeSplit = (y0: number, y1: number, h: number) => h > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
+/** Heights of the adjustable shelves in a cupboard from y0 to y1: about one every 34 cm, evenly spaced. */
+export function shelfHeights(y0: number, y1: number): number[] {
+  const count = Math.floor((y1 - y0) / 34);
+  return Array.from({ length: count }, (_, n) => y0 + (y1 - y0) * (n + 1) / (count + 1));
+}

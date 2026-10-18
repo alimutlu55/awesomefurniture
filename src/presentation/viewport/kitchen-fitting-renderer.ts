@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { fridgeSplit, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -94,7 +94,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
       }
       case 'fridge': {
         // An integrated fridge behind a door that matches the fronts; a freezer door below in a tall unit.
-        const split = hh > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
+        const split = fridgeSplit(y0, y1, hh);
         if (split !== null) {
           panel(x0, x1, y0, split); panel(x0, x1, split, y1);
           pull(Math.min(28, (split - y0) * .45), x1 - 4, split - 14, true);
