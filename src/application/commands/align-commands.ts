@@ -22,10 +22,12 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
     const { gaps } = measureAround(getScene(), cabinet, ['left', 'right', 'back']), at = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
     const left = at('left'), right = at('right');
     // Along its width: touching a neighbour or the wall on either side, or centred between them.
+    // A piece already touching something stays touching it: a snap never pulls it away from the side it was put against.
+    const touchingLeft = left !== undefined && left <= .05, touchingRight = right !== undefined && right <= .05;
     const across: number[] = [];
-    if (left !== undefined) across.push(-left);
-    if (right !== undefined) across.push(right);
-    if (left !== undefined && right !== undefined) across.push((right - left) / 2);
+    if (left !== undefined && !touchingRight) across.push(-left);
+    if (right !== undefined && !touchingLeft) across.push(right);
+    if (left !== undefined && right !== undefined && !touchingLeft && !touchingRight) across.push((right - left) / 2);
     // Along its depth: its front in line with a wardrobe turned the same way (not when it is pressed to a wall: the wall wins).
     const along: number[] = [];
     if (depth) for (const o of getScene().wardrobes) {

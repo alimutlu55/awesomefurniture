@@ -182,3 +182,18 @@ test('a gap between two kitchen units is filled by widening the unit between the
   assert.equal(commands.fillSpace(), false, 'nothing left to fill');
   assert.equal(createSceneCommands(() => scene(unit(1, 'base', 0))).fillableSpace(), 0, 'a lone unit has no gap beside it');
 });
+
+test('a unit put against a neighbour stays there however far out the view is zoomed', () => {
+  // Touching the unit on its left, 4 cm from the one on its right: the snap tolerance grows as the view zooms out
+  // (it is a number of screen pixels), and touching the right one would have pulled it away from the left.
+  const s = scene(unit(1, 'base', -60), unit(2, 'base', 0), unit(3, 'base', 64));
+  s.activeWardrobe = 2;
+  const commands = createSceneCommands(() => s);
+  for (const tolerance of [0.5, 1, 3, 6, 15]) {
+    const pose = commands.alignSnap(s.wardrobes[1]!, tolerance);
+    near(pose.x, 0, `x at tolerance ${tolerance}`);
+  }
+  // Still snaps to touch a neighbour when it is not touching anything.
+  const free = scene(unit(1, 'base', 0), unit(2, 'base', 63));
+  near(createSceneCommands(() => free).alignSnap(free.wardrobes[1]!, 6).x, 60, 'closes a free gap');
+});
