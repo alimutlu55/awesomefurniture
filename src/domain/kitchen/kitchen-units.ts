@@ -42,7 +42,7 @@ export const KITCHEN_UNITS = [
     sizes: { w: [30, 120], h: [2, 2], d: [35, 70] }, worktop: false, plinth: false, fixture: 'hob', storage: [] },
   // A shelf hangs on the wall like a wall unit: a board with no sides, doors or inside.
   { key: 'shelf', name: 'Wall shelf', description: 'An open board on the wall', w: 80, h: 3, d: 25, elevation: 142,
-    sizes: { w: [30, 200], h: [2, 5], d: [15, 40] }, worktop: false, plinth: false, fixture: 'shelf', storage: [] },
+    sizes: { w: [30, 400], h: [2, 5], d: [15, 40] }, worktop: false, plinth: false, fixture: 'shelf', storage: [] },
 ] as const satisfies readonly KitchenUnitDef[];
 
 /** A sink or hob placed on its own on a worktop (a design of that unit). */
