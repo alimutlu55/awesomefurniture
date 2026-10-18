@@ -3,13 +3,14 @@ import { kitchenUnit, WORKTOP } from '../../domain/kitchen/kitchen-units';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 
-type Preset = { readonly unit: typeof KITCHEN_PRESETS[number]['unit']; readonly parts: readonly (readonly [string, number])[] };
+type Preset = { readonly unit: typeof KITCHEN_PRESETS[number]['unit']; readonly parts: readonly (readonly [string, number])[]; readonly size?: { readonly w?: number; readonly h?: number } };
 const W = 146, H = 110, FLOOR = 104;
 
 /** Front view of a kitchen preset, drawn from its unit and parts and scaled to fill the card: what the Cabinets add
  * panel shows. A wall unit hangs in the middle of the card; floor units stand at its foot. */
 export function kitchenPresetArt(preset: Preset, className = 'product-art kitchen-art'): string {
-  const unit = kitchenUnit(preset.unit), tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);
+  const def = kitchenUnit(preset.unit), own = { w: preset.size?.w ?? def.w, h: preset.size?.h ?? def.h };
+  const unit = { ...def, ...own }, tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);
   const S = Math.min(96 / tall, 110 / unit.w), w = unit.w * S, x = (W - w) / 2;
   const top = unit.elevation ? (H - unit.h * S) / 2 : FLOOR - unit.h * S, bottom = top + unit.h * S;
   const inside = unit.h - PLINTH - 2 * PANEL, total = preset.parts.reduce((s, [, share]) => s + share, 0);
@@ -26,7 +27,7 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
     const h = inside * share / total * S, def = fitting(kind);
     y -= h;
     // An oven shows its own glass; every other front matches the unit.
-    const appliance = kind === 'oven';
+    const appliance = kind === 'oven' || kind === 'microwave';
     out.push(`<rect x="${x + 1.5}" y="${y + .6}" width="${w - 3}" height="${h - 1.2}" rx=".8" fill="${appliance ? '#3a3e44' : '#fbf8f3'}" stroke="#8d7d65" stroke-width=".7"/>`);
     // A pull: across drawers and flaps, up a door.
     const drawer = def?.traits.includes('pullout') || kind === 'hob' || kind === 'flap';
@@ -58,6 +59,10 @@ export function kitchenFittingArt(kind: string): string {
     front(y, h, '#b9bdc2');
     out.push(`<rect x="${x + 4}" y="${y + h * .25}" width="${w - 8}" height="${h * .65}" rx="1" fill="#1b1e22"/><rect x="${x + 4}" y="${y + 3}" width="${w - 8}" height="${h * .14}" fill="#2a2e33"/>`);
     bar(x + 10, y + h * .2, w - 20, 0);
+  } else if (kind === 'microwave') {
+    front(y, h, '#b9bdc2');
+    out.push(`<rect x="${x + 4}" y="${y + 4}" width="${w * .62}" height="${h - 8}" rx="1" fill="#1b1e22"/><rect x="${x + w * .62 + 8}" y="${y + 6}" width="${w * .38 - 14}" height="${h - 12}" rx="1" fill="#2a2e33"/>`);
+    bar(x + w * .62 + 5, y + 8, 0, h - 16);
   } else if (kind === 'fridge') {
     const split = y + h * .62;
     front(y, split - y); front(split, y + h - split);

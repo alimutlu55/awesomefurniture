@@ -138,3 +138,17 @@ test('kitchen Add item · every kitchen fitting is offered inside a unit it fits
   }
   for (const f of kitchenDefs) assert.ok(offered.has(f.key), `${f.key}: fits an empty unit of one of its kinds`);
 });
+
+test('wall units · a lift-up cabinet and a microwave unit, at their own size, with a microwave offered in wall and tall units', () => {
+  const lift = createKitchenDesign('upper', 'lift'), micro = createKitchenDesign('upper', 'microwave');
+  assert.deepEqual([lift.w, lift.h, lift.unit], [80, 40, 'upper']);
+  assert.deepEqual(lift.secs[0]!.map(it => it.k), ['flap']);
+  assert.deepEqual([micro.w, micro.h], [60, 50]);
+  assert.deepEqual(micro.secs[0]!.map(it => it.k), ['microwave']);
+  for (const unit of ['upper', 'tall'] as const) {
+    const design = createKitchenDesign(unit);
+    assert.ok(furnitureModule(design).allows('microwave', design), `a microwave goes in a ${unit} unit`);
+  }
+  const base = createKitchenDesign('base');
+  assert.equal(furnitureModule(base).allows('microwave', base), false, 'not in a base unit under the worktop');
+});

@@ -17,12 +17,16 @@ export const KITCHEN_PRESETS = [
   { key: 'sink', unit: 'base', name: 'Sink unit', parts: [['sink', 1]] },
   { key: 'cooking', unit: 'base', name: 'Hob and oven', parts: [['oven', 4.3], ['hob', 1]] },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
+  { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
+  { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 50 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
   { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
   { key: 'larder', unit: 'tall', name: 'Pantry', parts: [['pantry', 160], ['cupboard', 43.4]] },
-] as const satisfies readonly { key: string; unit: KitchenUnitKey; name: string; parts: readonly (readonly [string, number])[] }[];
+] as const satisfies readonly { key: string; unit: KitchenUnitKey; name: string; parts: readonly (readonly [string, number])[]; size?: { w?: number; h?: number } }[];
 export type KitchenPresetKey = typeof KITCHEN_PRESETS[number]['key'];
 export const kitchenPreset = (key: string | undefined) => KITCHEN_PRESETS.find(p => p.key === key);
+/** A preset's own width and height where it differs from its unit's default (a wide, low lift-up cabinet). */
+export const presetSize = (preset: object | undefined): { w?: number; h?: number } => (preset && 'size' in preset ? (preset as { size: { w?: number; h?: number } }).size : {});
 
 /** Clear height inside a unit, between its bottom and top boards. */
 export const kitchenInside = (h: number) => Math.round((h - PLINTH - 2 * PANEL) * 100) / 100;
@@ -44,8 +48,9 @@ export function createKitchenDesign(unitKey: KitchenUnitKey, presetKey?: string)
   const unit = kitchenUnit(unitKey), preset = kitchenPreset(presetKey);
   const design = createInitialDesign();
   const secs: EditorItem[][] = [[], [], [], [], [], []];
-  secs[0] = shareHeight(preset && preset.unit === unitKey ? preset.parts : unit.storage, kitchenInside(unit.h));
-  return { ...design, w: unit.w, h: unit.h, d: unit.d, n: 1, secs, fin: 'White', doors: 'none', product: 'kitchen', unit: unitKey };
+  const own = preset && preset.unit === unitKey ? preset : undefined, size = presetSize(own), h = size.h ?? unit.h;
+  secs[0] = shareHeight(own ? own.parts : unit.storage, kitchenInside(h));
+  return { ...design, w: size.w ?? unit.w, h, d: unit.d, n: 1, secs, fin: 'White', doors: 'none', product: 'kitchen', unit: unitKey };
 }
 
 /**

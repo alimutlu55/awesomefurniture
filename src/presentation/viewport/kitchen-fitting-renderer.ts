@@ -66,6 +66,15 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         pull(Math.min(44, sw * .7), cx, y0 + (y1 - y0) * .8);
         break;
       }
+      case 'microwave': {
+        // A steel front: a dark glass window on the left, the controls in a column on the right, a handle between them.
+        const fw = x1 - x0, front = face + PANEL / 2 + .2, win = fw * .68, wx = x0 + 3 + (win - 3) / 2;
+        panel(x0, x1, y0, y1, steel);
+        box(Math.max(4, win - 3), Math.max(4, (y1 - y0) - 8), .4, wx, mid, front, glass);
+        box(2.2, Math.max(4, (y1 - y0) * .5), .6, x0 + 3 + win, mid, front + .1, materials.M('#8a8f96', { metalness: .8, roughness: .3 }));
+        box(Math.max(3, fw - win - 9), Math.max(3, (y1 - y0) * .55), .4, x1 - (fw - win - 3) / 2 - 1.5, mid, front, glass);
+        break;
+      }
       case 'fridge': {
         // An integrated fridge behind a door that matches the fronts; a freezer door below in a tall unit.
         const split = hh > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
