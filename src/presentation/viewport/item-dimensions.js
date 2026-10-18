@@ -44,7 +44,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         const gesture = interactionState.itemEdgeGesture, edge = gesture?.moved && gesture.section === i && gesture.index === j ? gesture.edge : null;
         // Individual size rulers use the same fine lines as selected free spaces; the size being dragged is a dark tag.
         const ruler = (a, b, text, axis, dragged) => {
-            const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension' + (dragged ? ' assist-size' : ''));
+            const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension item-' + axis + (dragged ? ' assist-size' : ''));
             if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? fittingDepth(MIN_CABINET_DEPTH).depth : 0, axis === 'depth' ? 78 : 2000);
             bindRuler(el, a, b, axis);
@@ -80,7 +80,9 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
             return;
         }
         const clear = (x, y0, y1, value, side, cls = 'lbl dim clearance net') => {
-            const el = y1 - y0 > .1 || cls.includes('assist') ? gap(Pt(x, y0), Pt(x, y1), value, cls) : label(Pt(x, y0 + (y0 >= h / 2 ? 6 : -6)), '0' + unitSuffix(), cls);
+            // No gap, nothing to read: a touching edge shows only the green bar, never a "0".
+            if (y1 - y0 <= .1 && !cls.includes('assist')) { touching(Pt(x - 4, y0), Pt(x + 4, y0)); return; }
+            const el = gap(Pt(x, y0), Pt(x, y1), value, cls);
             if (el && !edge) inspector.editableItemClearance(el, i, j, side);
         };
         const xAbove = g.lineAbove.x, xBelow = g.lineBelow.x;

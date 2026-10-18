@@ -48,7 +48,10 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
     const steps = xs.flatMap(dx => ys.map(dy => [dx, dy] as const)).sort((p, q) => Math.hypot(p[0], p[1] * 1.6) - Math.hypot(q[0], q[1] * 1.6));
     // A gap figure belongs to its line: it may only slide along the line's height, never float off it to another place.
     const allowed = el.classList.contains('clearance') ? steps.filter(([, dy]) => dy === 0) : steps;
-    const free = allowed.find(([dx, dy]) => { const b = shifted(box, dx!, dy!); return inside(b) && !taken.some(t => hits(b, t)); });
+    const fits = ([dx, dy]: readonly [number, number]) => { const b = shifted(box, dx, dy); return inside(b) && !taken.some(t => hits(b, t)); };
+    // A selected fitting's height reads along its own edge: slide it up or down that edge before moving it aside, so it never
+    // lands where it looks like another part's height.
+    const free = (el.classList.contains('item-height') ? allowed.filter(([dx]) => dx === 0).find(fits) : undefined) ?? allowed.find(fits);
     // A read-only figure with no free spot steps aside rather than cover a control; an editable one stays.
     if (!free && !el.hasAttribute('data-measurement-badge')) { el.style.display = 'none'; continue; }
     const spot = free ?? [0, 0];
