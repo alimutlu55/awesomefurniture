@@ -1,12 +1,14 @@
-/** Keeps in-scene measurements readable: after every label is placed, a measurement that would sit on an item
- * handle, the + Add item button or another measurement is nudged to the nearest free spot beside its own line.
- * It runs right after positionLabels has written each label's transform for this frame, and appends the nudge
- * to that transform, so nothing accumulates between frames. Handles and Add never move. */
+/** Keeps in-scene measurements readable: after every label is placed, a measurement that would sit on a control (an
+ * item handle, the + buttons, the toolbar and the top bars) or on another measurement is nudged to the nearest free spot
+ * beside its own line. It runs right after positionLabels has written each label's transform for this frame, and
+ * appends the nudge to that transform, so nothing accumulates between frames. Controls never move; a read-only figure
+ * that finds no free spot is hidden for that frame rather than left on top of something. */
 
 /** Measurements that may be nudged, most important first: what is being dragged, then sizes, then gaps. */
-const MOVABLE = ['.assist-size', '.assist-gap', '.item-dimension', '.clearance', '.rail-height', '.space-ruler'];
+const MOVABLE = ['.assist-size', '.assist-gap', '.item-dimension', '.clearance', '.rail-height', '.space-ruler', '.dim:not(.hover-dim):not(.reach-dimension)'];
 /** Things a measurement must never cover. */
-const FIXED = '.item-resize-handle:not([hidden]), .lbl.add, .lbl.shape-handle, .ground-rotate, .wardrobe-actions, [data-editor-id="toolbar"]';
+const FIXED = '.item-resize-handle:not([hidden]), .lbl.add, .lbl.shape-handle, .lbl.array-grip, .ground-rotate, .wardrobe-actions, [data-editor-id="toolbar"], '
+  + '[data-editor-id="view-modes"], [data-editor-id="topright"], [data-editor-id="topleft"], [data-editor-id="bl"], [data-editor-id="br"]';
 const GAP = 3;
 
 interface Box { left: number; top: number; right: number; bottom: number }
@@ -31,7 +33,7 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
     for (const el of labels.querySelectorAll<HTMLElement>('.lbl' + selector)) {
       if (seen.has(el)) continue;
       seen.add(el);
-      if (shown(el) && !el.classList.contains('dimension-scrubber') && !el.classList.contains('hover-dim')) movable.push(el);
+      if (shown(el) && !el.classList.contains('hover-dim')) movable.push(el);
     }
   }
   if (!movable.length) return;
@@ -41,9 +43,9 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
   const inside = (b: Box) => b.left >= bounds.left + 4 && b.right <= bounds.right - 4 && b.top >= bounds.top + 4 && b.bottom <= bounds.bottom - 4;
   for (const el of movable) {
     const box = placed(el, bounds), w = box.right - box.left, h = box.bottom - box.top;
-    // Prefer staying on the line: slide across it first (sideways for a vertical label), then along it.
-    const steps = [[0, 0], [w / 2 + 8, 0], [-(w / 2 + 8), 0], [0, -(h + 4)], [0, h + 4], [w + 12, 0], [-(w + 12), 0], [0, -2 * (h + 4)], [0, 2 * (h + 4)],
-      [w / 2 + 8, -(h + 4)], [-(w / 2 + 8), -(h + 4)], [w / 2 + 8, h + 4], [-(w / 2 + 8), h + 4]];
+    // Prefer staying where it is, then the nearest free spot: first along its own line, then a row up or down.
+    const xs = [0, w / 2 + 8, -(w / 2 + 8), w + 12, -(w + 12), 1.5 * w + 20, -(1.5 * w + 20)], ys = [0, -(h + 4), h + 4, -2 * (h + 4), 2 * (h + 4), -3 * (h + 4), 3 * (h + 4)];
+    const steps = xs.flatMap(dx => ys.map(dy => [dx, dy] as const)).sort((p, q) => Math.hypot(p[0], p[1] * 1.6) - Math.hypot(q[0], q[1] * 1.6));
     // A gap figure belongs to its line: it may only slide along the line's height, never float off it to another place.
     const allowed = el.classList.contains('clearance') ? steps.filter(([, dy]) => dy === 0) : steps;
     const free = allowed.find(([dx, dy]) => { const b = shifted(box, dx!, dy!); return inside(b) && !taken.some(t => hits(b, t)); });
