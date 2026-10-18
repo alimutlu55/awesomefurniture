@@ -3,6 +3,7 @@ import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../domain/ward
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenSuggestions } from './kitchen-suggestions';
+import { measureNumber, unitSuffix } from './editor-format.js';
 /** Add item menu content for the selected space: which fittings fit, ranked, with the reason and the
  * hint shown on each card, and a one-line description of the space. This is presentation copy; the
  * sizing rules it asks come from the wardrobe rules (domain/geometry/wardrobe-rules).
@@ -28,7 +29,9 @@ export function createAddSuggestions(getDesign, rules) {
                 const m = MODS[k], mn = effectiveMin(k), front = (k === 'short' || k === 'long') && getDesign().d < 55, needW = front ? 55 : m.w, needD = front ? 35 : m.d;
                 fit = itemFeasible(k, w) && ((mn <= H + .01 && !!spaceSpan(getDesign().sel, sp, mn, front ? 55 : m.w)) || !!edgeGap(k));
                 if (!fit) {
-                    hint = k === 'lift' && !getDesign().profile.allowLift ? 'Pull-down is off' : w < needW - .01 ? 'Needs ' + needW + ' cm width' : getDesign().d < needD ? 'Needs ' + needD + ' cm depth' : 'Needs ' + r1(mn) + ' cm height';
+                    const needs = (cm, what) => 'Needs ' + measureNumber(cm) + unitSuffix() + ' ' + what;
+                    hint = k === 'lift' && !getDesign().profile.allowLift ? 'Pull-down is off' : w < needW - .01 ? needs(needW, 'width')
+                        : getDesign().d < needD ? needs(needD, 'depth') : needs(mn, 'height');
                 }
                 else {
                     const top = b + mn, ok = k === 'seasonal' || k === 'shelf' || k === 'void' ? true : k === 'short' || k === 'long' ? top - 6 <= reach + .03 : k === 'lift' ? top - 6 - 65 <= reach + .03 : hasTrait(k, 'drawerBox') ? top <= Math.min(reach, dMax) + .03 : top <= reach + .03;
@@ -95,9 +98,9 @@ export function createAddSuggestions(getDesign, rules) {
             }
             list.push({ k, o, fit, s, why, hint, warn });
         });
-        const intent = high ? '<b>High space</b>, above your ' + reach + ' cm reach. Best for seasonal boxes and occasional storage.'
+        const intent = high ? '<b>High space</b>, above your ' + measureNumber(reach) + unitSuffix() + ' reach. Best for seasonal boxes and occasional storage.'
             : onFloor && H >= 130 ? '<b>Full-height space.</b> Good for hanging, long garments and pull-outs.'
-                : above >= 34 ? '<b>Reaches above your ' + reach + ' cm line.</b> Keep daily items below it and boxes on top.'
+                : above >= 34 ? '<b>Reaches above your ' + measureNumber(reach) + unitSuffix() + ' line.</b> Keep daily items below it and boxes on top.'
                     : onFloor && H <= 60 ? '<b>Low space at floor level.</b> Good for shoes, drawers and folded clothes.'
                         : H >= 100 ? '<b>Roomy space within reach.</b> Good for hanging and everyday storage.'
                             : b >= 100 ? '<b>Upper shelf zone.</b> Good for folded clothes and light storage.'
@@ -105,7 +108,7 @@ export function createAddSuggestions(getDesign, rules) {
         // Possessions that stand on a shelf (handbags...): suggested where a shelf can hold them, ranked with the shelves.
         SHELF_POSSESSIONS.forEach((p, n) => {
             const fits = shelfFits(p.holder, w, H), minWidth = p.holder.pitch + p.holder.margin;
-            list.push({ k: p.key, possession: p.key, o: ADD_ORDER.length + 1 + n, fit: fits, s: p.menu.score + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: p.menu.why, hint: fits ? '' : unitsOnShelf(p.holder, w) < 1 ? 'Needs ' + minWidth + ' cm width' : 'Needs ' + p.holder.height + ' cm height', warn: false });
+            list.push({ k: p.key, possession: p.key, o: ADD_ORDER.length + 1 + n, fit: fits, s: p.menu.score + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: p.menu.why, hint: fits ? '' : unitsOnShelf(p.holder, w) < 1 ? 'Needs ' + measureNumber(minWidth) + unitSuffix() + ' width' : 'Needs ' + measureNumber(p.holder.height) + unitSuffix() + ' height', warn: false });
         });
         return { list, intent };
     }

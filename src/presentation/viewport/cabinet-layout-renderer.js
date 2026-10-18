@@ -10,7 +10,7 @@ import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth, partitionDepth } from '../../domain/wardrobe/carcass';
-import { measureNumber } from '../editor/editor-format.js';
+import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
@@ -91,7 +91,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             // The handle is a plain dot; its position is read from the live rulers while dragging.
             el.textContent = '';
             el.classList.toggle('fixed-x', !q.movesX);
-            el.setAttribute('aria-label', (q.side === 'rear' ? 'Rear break point ' : 'Break point ') + (q.index + 1) + ', ' + q.label + ' cm high. Drag or use arrow keys to move it');
+            el.setAttribute('aria-label', (q.side === 'rear' ? 'Rear break point ' : 'Break point ') + (q.index + 1) + ', ' + q.label + unitSuffix() + ' high. Drag or use arrow keys to move it');
             el.title = 'Drag up/down for height; left/right to ' + (q.index === 0 || q.index === handles.length / 2 - 1 ? 'change width' : 'move the break point');
             if (!el.isConnected) $('#labels').appendChild(el);
             renderState.labs.push({ p: new THREE.Vector3(q.x, q.y, q.z ?? d / 2 + 2), el, owner: renderState.Gr });
@@ -245,11 +245,11 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 if (renderState.renderActive && selectionState.focusOn && getRenderDesign().divider === j) {
                     const front = d / 2 + 4, a = new V(x + vr.x0, iy + vr.y0, front), b = new V(x + vr.x1, iy + vr.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
                     const hor = q.orientation === 'horizontal', ra = hor ? new V(x + vr.x0, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y0, front), rb = hor ? new V(x + vr.x1, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y1, front);
-                    const el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0) + ' cm', 'lbl dim space-ruler item-dimension');
+                    const el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0) + unitSuffix(), 'lbl dim space-ruler item-dimension');
                     sceneMeasurementBadge(el, { kind: 'board-size', index: j, axis: hor ? 'w' : 'h' }, hor ? 'Shelf width' : 'Divider height',
                         hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0, hor ? 'horizontal' : 'vertical');
                     bindRuler(el, ra, rb, hor ? 'under' : 'height');
-                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, fd.z0 - d / 2), db = new V(x + vr.x0, iy + vr.y0, fd.z1 - d / 2), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(fd.depth) + ' cm', 'lbl dim space-ruler item-dimension');
+                    const sizeEntry = renderState.labs[renderState.labs.length - 1], da = new V(x + vr.x0, iy + vr.y0, fd.z0 - d / 2), db = new V(x + vr.x0, iy + vr.y0, fd.z1 - d / 2), depthLabel = label(da.clone().add(db).multiplyScalar(.5), 'D ' + measureNumber(fd.depth) + unitSuffix(), 'lbl dim space-ruler item-dimension');
                     sceneMeasurementBadge(depthLabel, { kind: 'board-size', index: j, axis: 'd' }, 'Board depth', fd.depth, 'horizontal', fittingDepth(MIN_CABINET_DEPTH).depth, 78);
                     bindRuler(depthLabel, da, db, 'depth');
                     const depthEntry = renderState.labs[renderState.labs.length - 1], clearances = createDividerClearances(j, x);
@@ -261,12 +261,12 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
                 // ruler stands where the space is tallest so it never pokes through the top.
                 const space = geometry.sectionSpaceMeasurements(i), sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler net';
                 const tall = space.sloped ? geometry.spaceTallest(i, space) : { x: space.x1 - 4, h: space.h }, hx = x + tall.x, f = measureNumber;
-                dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), 'W ' + f(space.w) + ' cm', cls, spaceRulerPoints);
-                dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + ' cm', cls, spaceRulerPoints);
-                dimLine(new V(sx + 5, space.y0 + 5, fd.z0 - d / 2), new V(sx + 5, space.y0 + 5, fd.z1 - d / 2), 'D ' + f(space.dep) + ' cm', cls, spaceRulerPoints);
+                dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), 'W ' + f(space.w) + unitSuffix(), cls, spaceRulerPoints);
+                dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + unitSuffix(), cls, spaceRulerPoints);
+                dimLine(new V(sx + 5, space.y0 + 5, fd.z0 - d / 2), new V(sx + 5, space.y0 + 5, fd.z1 - d / 2), 'D ' + f(space.dep) + unitSuffix(), cls, spaceRulerPoints);
             }
             else if (!sel && getRenderDesign().item < 0) {
-                ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), 'W ' + measureNumber(sw) + ' cm', 'lbl dim hover-dim net');
+                ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), 'W ' + measureNumber(sw) + unitSuffix(), 'lbl dim hover-dim net');
             }
             // Add item belongs to the selected wardrobe even outside the section-inspection scope.
             let addSpace, fallbackSpace = false;
@@ -330,22 +330,22 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             }
         });
         if (renderState.renderActive && ((selectionState.showDimensions && getRenderDesign().item < 0 && !inspector.inside()) || selectionState.editingSize)) {
-            dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + ' cm', 'lbl dim dimension-scrubber scrub-w');
+            dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w');
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
-            dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + ' cm',
+            dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + unitSuffix(),
                 'lbl dim dimension-scrubber ' + (Math.abs(right - left) > .05 ? 'scrub-h-left' : 'scrub-h'));
             if (Math.abs(right - left) > .05) {
-                dimLine(new V(w / 2 + 9, 0, d / 2 + 2), new V(w / 2 + 9, right, d / 2 + 2), 'H ' + f(right) + ' cm', 'lbl dim dimension-scrubber scrub-h-right');
+                dimLine(new V(w / 2 + 9, 0, d / 2 + 2), new V(w / 2 + 9, right, d / 2 + 2), 'H ' + f(right) + unitSuffix(), 'lbl dim dimension-scrubber scrub-h-right');
             }
             // The wardrobe depth remains available on the model alongside width and height.
-            dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + measureNumber(d) + ' cm', 'lbl dim dimension-scrubber scrub-d');
+            dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + measureNumber(d) + unitSuffix(), 'lbl dim dimension-scrubber scrub-d');
         }
         if (renderState.renderActive && (getRenderDesign().reachLine ?? getRenderDesign().profile.engaged)) {
             const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
             renderState.Gr.add(reachLine);
-            const reachLabel = label(new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5), 'Reach ' + measureNumber(getRenderDesign().profile.reach) + ' cm', 'lbl dim reach-dimension');
+            const reachLabel = label(new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5), 'Reach ' + measureNumber(getRenderDesign().profile.reach) + unitSuffix(), 'lbl dim reach-dimension');
             if (!getRenderDesign().profile.accessible) sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Reach height', getRenderDesign().profile.reach, 'vertical', 140, 210);
             renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5);
         }

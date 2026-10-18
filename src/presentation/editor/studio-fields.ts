@@ -2,7 +2,7 @@ import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain
 import type { Studio } from '../../domain/studio/studio';
 import { moveOpening, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
-import { measureNumber } from './editor-format.js';
+import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { mountResizeFields, syncResizeFields } from './resize-fields.js';
 import type { StudioEditorPorts } from './studio-editor.ports';
@@ -35,7 +35,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             const c = studio.ceilings?.find(x => x.id === s.id), fr = c && ceilingFrame(studio, c);
             if (!c || !fr) return [];
             // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
-            const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + ' cm ' + (c.run === 'along' ? 'along' : 'out');
+            const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + unitSuffix() + ' ' + (c.run === 'along' ? 'along' : 'out');
             return [
                 ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },

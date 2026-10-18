@@ -2,7 +2,7 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import * as THREE from "three";
 import { PANEL, itemName } from '../../domain/wardrobe/catalog.js';
-import { measureNumber, esc } from './editor-format.js';
+import { measureNumber, esc, unitSuffix } from './editor-format.js';
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'model' | 'resources' | 'cameraState' | 'camera' | 'selectionState'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'hidePop' | 'renderAddChoices' | 'itemUI' | 'dividerUI'> }} ports */
 export function createInspectorPanels({ dom, geometry, model, resources, cameraState, camera, selectionState, callbacks }) {
     const { $ } = dom;
@@ -90,11 +90,11 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         const ws = geometry.widths(), i = model.activeCabinet().state.sel, iw = ws.reduce((a, b) => a + b), w = ws[i], one = model.activeCabinet().state.n < 2;
         $('#ptitle').textContent = ({ room: 'Walls', wardrobe: 'Add a wardrobe', kitchen: 'Add a cabinet', furniture: 'Add furniture' })[p.dataset.addContext] ?? 'Add to this space';
         const space = geometry.sectionSpaceMeasurements(i);
-        $('#section-meta').textContent = 'Space · W ' + measureNumber(space.w) + ' × H ' + measureNumber(space.h) + ' × D ' + measureNumber(space.dep) + ' cm free';
-        $('#pfree').textContent = geometry.free(i) + ' cm free';
+        $('#section-meta').textContent = 'Space · W ' + measureNumber(space.w) + ' × H ' + measureNumber(space.h) + ' × D ' + measureNumber(space.dep) + unitSuffix() + ' free';
+        $('#pfree').textContent = measureNumber(geometry.free(i)) + unitSuffix() + ' free';
         const content = dom.document.querySelector('#pcont');
         if (content) {
-            content.innerHTML = model.activeCabinet().state.secs[i].length ? model.activeCabinet().state.secs[i].map((it, j) => '<button type="button" data-r="' + j + '"><span>' + esc(itemName(it)) + '</span><small>' + it.h + ' cm</small></button>').reverse().join('') : '<p class="sub">Empty · Add fitting</p>';
+            content.innerHTML = model.activeCabinet().state.secs[i].length ? model.activeCabinet().state.secs[i].map((it, j) => '<button type="button" data-r="' + j + '"><span>' + esc(itemName(it)) + '</span><small>' + measureNumber(it.h) + unitSuffix() + '</small></button>').reverse().join('') : '<p class="sub">Empty · Add fitting</p>';
         }
         if (selectionState.addKey !== model.activeCabinet().state.sel) {
             callbacks.renderAddChoices();

@@ -10,7 +10,7 @@ import { createMeasurementInspector } from './measurement-inspector.js';
 import { createItemActions } from './item-actions.js';
 import { createInspectorPanels } from './inspector-panels.js';
 import { PANEL, PLINTH, MODS, PURPOSE, compatiblePurposes, itemName } from '../../domain/wardrobe/catalog.js';
-import { measureNumber, capWord, esc, icon, ICONP, RANKS } from './editor-format.js';
+import { measureNumber, capWord, esc, icon, ICONP, RANKS, unitSuffix } from './editor-format.js';
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { shapeTemplates, templateArt } from './shape-art';
@@ -145,8 +145,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#sliders').querySelectorAll('input').forEach(i => {
             const key = i.dataset.dimension || dom.controlId(i);
             i.value = model.activeCabinet().state[key];
-            $('#' + key + 'v').textContent = model.activeCabinet().state[key] + ' cm';
-            if (i.type === 'range') i.setAttribute('aria-valuetext', i.value + ' cm');
+            $('#' + key + 'v').textContent = measureNumber(model.activeCabinet().state[key]) + unitSuffix();
+            if (i.type === 'range') i.setAttribute('aria-valuetext', measureNumber(Number(i.value)) + unitSuffix());
         });
         syncCabinetSizeLimits(dom, model.activeCabinet().state, selectionState.editingSize);
         for (const panel of [shapeInspector, studioPanel, kitchenPanel, roomFields]) panel?.render();
@@ -165,7 +165,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             const m = b.dataset.m, bad = (geometry.effectiveMin(m) > effF && !geometry.edgeGap(m)) || !geometry.itemFeasible(m, ws[model.activeCabinet().state.sel]);
             b.classList.toggle('no', bad);
             b.setAttribute('aria-disabled', String(bad));
-            b.title = MODS[m].n + ' · ' + MODS[m].h + ' cm tall · shortcut ' + MODS[m].k + (bad ? ' · no room in this section' : '');
+            b.title = MODS[m].n + ' · ' + measureNumber(MODS[m].h) + unitSuffix() + ' tall · shortcut ' + MODS[m].k + (bad ? ' · no room in this section' : '');
         });
         const eng = model.activeCabinet().state.profile.engaged, rating = scoreLayout(geometry.currentLayout().sections, geometry.planCfg(), model.activeCabinet().state.dividers), assessment = rating.metrics;
         const score = s.mods ? Math.round(rating.score) : 0;
@@ -173,7 +173,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#score-sub').hidden = true;
         planner.planUI(assessment);
         const iw = ws.reduce((a, b) => a + b);
-        $('#specs').innerHTML = isKitchen(model.activeCabinet().state) ? planner.kitchenSpecs() : [['Outer', model.activeCabinet().state.w + ' × ' + model.activeCabinet().state.h + ' × ' + model.activeCabinet().state.d], ['Inner height', geometry.ih().toFixed(1) + ' cm'], ['Inner width (total)', iw.toFixed(1) + ' cm'], ['Hanging length', s.hang.toFixed(2) + ' m'], ['Shelf area', s.shelf.toFixed(2) + ' m²'], ['Drawers', s.drawers], ['Space used', Math.round(s.avg * 100) + '%']].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+        $('#specs').innerHTML = isKitchen(model.activeCabinet().state) ? planner.kitchenSpecs() : [['Outer', measureNumber(model.activeCabinet().state.w) + ' × ' + measureNumber(model.activeCabinet().state.h) + ' × ' + measureNumber(model.activeCabinet().state.d) + unitSuffix()], ['Inner height', measureNumber(geometry.ih()) + unitSuffix()], ['Inner width (total)', measureNumber(iw) + unitSuffix()], ['Hanging length', s.hang.toFixed(2) + ' m'], ['Shelf area', s.shelf.toFixed(2) + ' m²'], ['Drawers', s.drawers], ['Space used', Math.round(s.avg * 100) + '%']].map(r => `<div class="stat"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
         const lv = Math.floor(shellState.G.xp / 150) + 1;
         $('#lvl').textContent = String(lv);
         $('#xp').textContent = String(shellState.G.xp);
@@ -293,7 +293,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#section-count').textContent = String(model.activeCabinet().state.n);
         $('#sec-minus').disabled = model.activeCabinet().state.n <= 1;
         $('#sec-plus').disabled = model.activeCabinet().state.n >= mn;
-        $('#section-diagram').innerHTML = ws.map((w, i) => '<button type="button" data-sec="' + i + '" aria-label="Section ' + (i + 1) + '" aria-pressed="' + (i === model.activeCabinet().state.sel) + '" title="Section ' + (i + 1) + ' · ' + (Math.round(w * 10) / 10) + ' cm" class="' + (i === model.activeCabinet().state.sel ? 'on' : '') + '" style="flex:' + w + '"><span class="mobile-section-label">' + (i + 1) + '</span></button>').join('');
+        $('#section-diagram').innerHTML = ws.map((w, i) => '<button type="button" data-sec="' + i + '" aria-label="Section ' + (i + 1) + '" aria-pressed="' + (i === model.activeCabinet().state.sel) + '" title="Section ' + (i + 1) + ' · ' + measureNumber(w) + unitSuffix() + '" class="' + (i === model.activeCabinet().state.sel ? 'on' : '') + '" style="flex:' + w + '"><span class="mobile-section-label">' + (i + 1) + '</span></button>').join('');
     }
     function openPillMenu(btn) {
         showPop(null, '#pop2');
@@ -375,22 +375,22 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
                 b.classList.toggle('on', !full && (Number.isFinite(it.x) ? (g.gapL < .05 ? 'l' : g.gapR < .05 ? 'r' : Math.abs(g.gapL - g.gapR) < .05 ? 'c' : '') : (it.ax || 'c')) === ( /** @type {HTMLElement} */(b)).dataset.al);
             });
             const q = geometry.itemMeasurements(model.activeCabinet().state.sel, model.activeCabinet().state.item), A = WardrobePlanner.accessInfo(it, g.y0, geometry.plannerConfig()), f = measureNumber;
-            const rows = [['Free above (next fitting / top)', f(q.freeTop) + ' cm'], ['Free below (next fitting / base)', f(q.freeBelow) + ' cm'], ['Section side gaps (left / right)', f(g.gapL) + ' / ' + f(g.gapR) + ' cm'], ['X · left → right edge', f(g.x0) + ' → ' + f(g.x1) + ' cm'], ['Y · bottom → top from floor', f(g.y0) + ' → ' + f(g.y1) + ' cm'], ['Z · back → front', f(g.z0) + ' → ' + f(g.z1) + ' cm']];
+            const rows = [['Free above (next fitting / top)', f(q.freeTop) + unitSuffix()], ['Free below (next fitting / base)', f(q.freeBelow) + unitSuffix()], ['Section side gaps (left / right)', f(g.gapL) + ' / ' + f(g.gapR) + unitSuffix()], ['X · left → right edge', f(g.x0) + ' → ' + f(g.x1) + unitSuffix()], ['Y · bottom → top from floor', f(g.y0) + ' → ' + f(g.y1) + unitSuffix()], ['Z · back → front', f(g.z0) + ' → ' + f(g.z1) + unitSuffix()]];
             if (hasTrait(it.k, 'hanging')) {
-                rows.push(['Rail above floor', f(A.railHeight) + ' cm']);
+                rows.push(['Rail above floor', f(A.railHeight) + unitSuffix()]);
                 if (it.k === 'lift') {
-                    rows.push(['Handle above floor', f(A.handleHeight) + ' cm']);
+                    rows.push(['Handle above floor', f(A.handleHeight) + unitSuffix()]);
                 }
             }
-            rows.unshift(['Size · width × height × depth', f(g.w) + ' × ' + f(g.h) + ' × ' + f(g.dep) + ' cm'], ['To inside top / base', f(q.top) + ' / ' + f(q.bottom) + ' cm']);
+            rows.unshift(['Size · width × height × depth', f(g.w) + ' × ' + f(g.h) + ' × ' + f(g.dep) + unitSuffix()], ['To inside top / base', f(q.top) + ' / ' + f(q.bottom) + unitSuffix()]);
             if (q.cut && q.core) {
                 // Boards and front follow the top's angle; the working part keeps a full rectangle.
-                rows.splice(1, 0, ['Cut to the top', 'angled · usable ' + f(q.core.w) + ' × ' + f(q.core.h) + ' cm']);
+                rows.splice(1, 0, ['Cut to the top', 'angled · usable ' + f(q.core.w) + ' × ' + f(q.core.h) + unitSuffix()]);
             }
             if (model.activeCabinet().state.profile.engaged) {
-                rows.push(['Max reach', f(model.activeCabinet().state.profile.reach) + ' cm'], ['Access height', f(A.height) + ' cm' + (A.height > model.activeCabinet().state.profile.reach + .03 ? ' · above max reach' : '')]);
+                rows.push(['Max reach', f(model.activeCabinet().state.profile.reach) + unitSuffix()], ['Access height', f(A.height) + unitSuffix() + (A.height > model.activeCabinet().state.profile.reach + .03 ? ' · above max reach' : '')]);
                 if (A.limit) {
-                    rows.push(['Comfortable access limit', f(A.limit) + ' cm']);
+                    rows.push(['Comfortable access limit', f(A.limit) + unitSuffix()]);
                 }
             }
             $('#imeas').innerHTML = rows.map(r => '<b>' + r[0] + '</b><span>' + esc(r[1]) + '</span>').join('');

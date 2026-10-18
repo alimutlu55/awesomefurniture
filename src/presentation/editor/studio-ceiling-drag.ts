@@ -3,13 +3,13 @@ import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 import { ceilingFrame, profileAt } from '../../domain/studio/studio-ceiling';
 import { alignTo, type Align } from './align-snap';
 import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
-import { measureNumber } from './editor-format.js';
+import { measureNumber, unitSuffix } from './editor-format.js';
 
 /** The geometry of shaping a ceiling on the model: where its height pills and depth grip sit, which way
  * they move, what a dragged point snaps to, and the ruler that says where it is. Plain data in scene
  * centimetres; the room editor turns it into edits. */
 
-const f = (v: number) => measureNumber(Math.round(v)) + ' cm';
+const f = (v: number) => measureNumber(Math.round(v)) + unitSuffix();
 type Frame = NonNullable<ReturnType<typeof ceilingFrame>>;
 
 /** The direction a ceiling's points move in on the floor: along its wall, or into the room. */

@@ -1,4 +1,4 @@
-import { measureNumber as f } from '../editor/editor-format.js';
+import { measureNumber as f, unitSuffix } from '../editor/editor-format.js';
 
 /** What a selected fitting needs measured beyond its size and gaps, by what it is (from the domain clearance
  * rules, never from kind names): an open shelf's clear opening between its own boards, a hanging rail's height
@@ -18,22 +18,22 @@ export function createComponentDimensions({ geometry, label, bindRuler }) {
     return function componentDims(i, j, g, Pt, reach) {
         // Inside an open shelf: its clear opening, a little in from the left so the H ruler keeps the right edge.
         const open = geometry.netOpening(i, j);
-        if (open && Math.abs(open.h - g.h) > .05) ruler(Pt(g.x0 + Math.min(6, g.w / 4), open.y0), Pt(g.x0 + Math.min(6, g.w / 4), open.y1), f(open.h) + ' cm clear');
+        if (open && Math.abs(open.h - g.h) > .05) ruler(Pt(g.x0 + Math.min(6, g.w / 4), open.y0), Pt(g.x0 + Math.min(6, g.w / 4), open.y1), f(open.h) + unitSuffix() + ' clear');
         // A rail: the drop below it to what is there, and its height against Reach.
         const rail = geometry.railDrop(i, j);
         if (rail) {
             const x = g.x0 + Math.min(6, g.w / 4), lip = rail.y - rail.drop;
-            if (rail.drop > .1) ruler(Pt(x, lip), Pt(x, rail.y), 'Drop ' + f(rail.drop) + ' cm');
+            if (rail.drop > .1) ruler(Pt(x, lip), Pt(x, rail.y), 'Drop ' + f(rail.drop) + unitSuffix());
             const over = reach === undefined ? 0 : rail.y - reach;
-            const relation = reach === undefined ? '' : over > .05 ? ' · ' + f(over) + ' cm above Reach' : ' · within Reach';
-            label(Pt(g.x1 - Math.min(6, g.w / 4), rail.y + 4), 'Rail ' + f(rail.y) + ' cm' + relation, 'lbl dim rail-height net' + (over > .05 ? ' over-reach' : ''));
+            const relation = reach === undefined ? '' : over > .05 ? ' · ' + f(over) + unitSuffix() + ' above Reach' : ' · within Reach';
+            label(Pt(g.x1 - Math.min(6, g.w / 4), rail.y + 4), 'Rail ' + f(rail.y) + unitSuffix() + relation, 'lbl dim rail-height net' + (over > .05 ? ' over-reach' : ''));
         }
         // A drawer in a stack: the whole stack's height, and what is left clear above the stack.
         const stack = geometry.drawerStack(i, j);
         if (stack && stack.count > 1) {
             const x = g.x0 + Math.min(6, g.w / 4);
-            ruler(Pt(x, stack.y0), Pt(x, stack.y1), 'Stack ' + f(stack.h) + ' cm · ' + stack.count + ' drawers');
-            if (stack.y1 > g.y1 + .05 && stack.above.gap > .1) ruler(Pt(g.bayL + stack.above.x, stack.y1), Pt(g.bayL + stack.above.x, stack.y1 + stack.above.gap), f(stack.above.gap) + ' cm above stack');
+            ruler(Pt(x, stack.y0), Pt(x, stack.y1), 'Stack ' + f(stack.h) + unitSuffix() + ' · ' + stack.count + ' drawers');
+            if (stack.y1 > g.y1 + .05 && stack.above.gap > .1) ruler(Pt(g.bayL + stack.above.x, stack.y1), Pt(g.bayL + stack.above.x, stack.y1 + stack.above.gap), f(stack.above.gap) + unitSuffix() + ' above stack');
         }
     };
 }

@@ -4,9 +4,9 @@ import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
+import { measureNumber, unitSuffix } from './editor-format.js';
 
 type Rules = Pick<ReturnType<typeof createWardrobeGeometry>, 'effectiveMin' | 'itemFeasible' | 'sectionSpaceMeasurements' | 'spaceSpan'>;
-const r1 = (v: number) => Math.round(v * 10) / 10;
 
 /** Add item cards for a space in a kitchen unit: the fittings its unit allows, ranked by the fittings registry
  * (`kitchen.score`), with the reason it gives and a hint when one does not fit. A unit's sink or hob is
@@ -17,7 +17,8 @@ export function kitchenSuggestions(design: Pick<EditorState, 'sel' | 'n' | 'd' |
   const list = furnitureModule(design).fittingKinds(design).map((k, o) => {
     const def = fitting(k)!, mn = rules.effectiveMin(k);
     const fit = rules.itemFeasible(k, w) && mn <= H + .01 && !!rules.spaceSpan(design.sel, sp, mn, def.minWidth);
-    const hint = fit ? '' : w < def.minWidth - .01 ? 'Needs ' + def.minWidth + ' cm width' : design.d < def.minDepth ? 'Needs ' + def.minDepth + ' cm depth' : 'Needs ' + r1(mn) + ' cm height';
+    const needs = (cm: number, what: string) => 'Needs ' + measureNumber(cm) + unitSuffix() + ' ' + what;
+    const hint = fit ? '' : w < def.minWidth - .01 ? needs(def.minWidth, 'width') : design.d < def.minDepth ? needs(def.minDepth, 'depth') : needs(mn, 'height');
     const s = def.kitchen!.score - (hasTrait(k, 'worktop') && has(k) ? 40 : 0);
     return { k: k as string, o, fit, s, why: def.kitchen!.why, hint, warn: false };
   });

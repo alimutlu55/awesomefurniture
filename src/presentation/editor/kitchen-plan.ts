@@ -1,5 +1,5 @@
 import { kitchenStorage } from '../../domain/kitchen/kitchen-storage';
-import { esc } from './editor-format.js';
+import { esc, measureNumber, unitSuffix } from './editor-format.js';
 import { tags } from './storage-tags.js';
 
 interface KitchenPlanPorts {
@@ -19,7 +19,7 @@ export function createKitchenPlan({ $, model }: KitchenPlanPorts) {
       $('#plan-title').textContent = 'Kitchen';
       $('#plan-summary').hidden = true;
       const held = ([['Drawers', s.drawers], ['Cupboards', s.doors], ['Open shelves', s.open], ['Pantry pull-outs', s.tall]] as const).filter(([, n]) => n > 0);
-      $('#plan-capacity').innerHTML = (held.length ? rows(held) : '') + rows([['Appliances', s.appliances.join(', ') || 'None yet'], ['Worktop', s.worktop + ' cm']])
+      $('#plan-capacity').innerHTML = (held.length ? rows(held) : '') + rows([['Appliances', s.appliances.join(', ') || 'None yet'], ['Worktop', measureNumber(s.worktop) + unitSuffix()]])
         + tags([s.units.base + ' base · ' + s.units.upper + ' wall · ' + s.units.tall + ' tall']);
       const warn = $('#fit-warn');
       warn.hidden = !s.notes.length;
@@ -31,7 +31,7 @@ export function createKitchenPlan({ $, model }: KitchenPlanPorts) {
     /** Outer size and what sets it, in place of a wardrobe's hanging length and reach. */
     specs() {
       const c = model.activeCabinet().state;
-      return [['Outer', c.w + ' × ' + c.h + ' × ' + c.d + ' cm'], ['Sections', String(c.n)], ['Finish', c.fin]]
+      return [['Outer', measureNumber(c.w) + ' × ' + measureNumber(c.h) + ' × ' + measureNumber(c.d) + unitSuffix()], ['Sections', String(c.n)], ['Finish', c.fin]]
         .map(([k, v]) => '<div class="stat"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('');
     },
   };

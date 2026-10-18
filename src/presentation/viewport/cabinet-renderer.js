@@ -16,7 +16,7 @@ import { createFrameRenderer } from './frame-renderer.js';
 import { createMovementOverlays } from './movement-overlays.js';
 import { createDimensionRenderer } from './dimension-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { measureNumber } from '../editor/editor-format.js';
+import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { createGarmentRenderer } from './garment-renderer';
@@ -249,7 +249,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         return dividerClearancePoints(index, baseX).map(([a, b, value], j) => {
             const line = dimensionStroke(clearanceSegments(a, b));
             line.visible = value > .1;
-            const el = label(a.clone().add(b).multiplyScalar(.5), measureNumber(value) + ' cm', 'lbl dim clearance divider-clearance'), entry = renderState.labs[renderState.labs.length - 1];
+            const el = label(a.clone().add(b).multiplyScalar(.5), measureNumber(value) + unitSuffix(), 'lbl dim clearance divider-clearance'), entry = renderState.labs[renderState.labs.length - 1];
             inspector.editableDividerClearance(el, index, j === 0 ? 'before' : 'after');
             return { line, entry };
         });
@@ -281,7 +281,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             q.line.geometry.setFromPoints(clearanceSegments(a, b));
             q.line.visible = value > .1;
             q.entry.p.copy(a).add(b).multiplyScalar(.5);
-            q.entry.el.textContent = measureNumber(value) + ' cm';
+            q.entry.el.textContent = measureNumber(value) + unitSuffix();
         });
         positionLabels();
         inspector.dividerUI();

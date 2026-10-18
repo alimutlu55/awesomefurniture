@@ -3,7 +3,7 @@ import { fittingDepth } from '../../domain/wardrobe/carcass';
 import * as THREE from "three";
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { measureNumber } from '../editor/editor-format.js';
+import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createComponentDimensions } from './component-dimensions.js';
 
 /** The selected fitting's measurements on the model. At rest: its width, height and depth, and the net gaps
@@ -49,9 +49,9 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? fittingDepth(MIN_CABINET_DEPTH).depth : 0, axis === 'depth' ? 78 : 2000);
             bindRuler(el, a, b, axis);
         };
-        if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + ' cm', 'width', !!edge);
-        if (!edge || edge === 'top') ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + ' cm', 'height', !!edge);
-        if (!edge) ruler(Pt(g.x0, g.y0, g.z0 - d / 2), Pt(g.x0, g.y0, g.z1 - d / 2), 'D ' + f(g.dep) + ' cm', 'depth', false);
+        if (!edge || edge !== 'top') ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + unitSuffix(), 'width', !!edge);
+        if (!edge || edge === 'top') ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + unitSuffix(), 'height', !!edge);
+        if (!edge) ruler(Pt(g.x0, g.y0, g.z0 - d / 2), Pt(g.x0, g.y0, g.z1 - d / 2), 'D ' + f(g.dep) + unitSuffix(), 'depth', false);
         // Selected item and clearances use the same fine strokes as the wardrobe rulers.
         const fz = d / 2 + .6, A = Pt(g.x0, g.y0, fz), B = Pt(g.x1, g.y0, fz), C = Pt(g.x1, g.y1, fz), D = Pt(g.x0, g.y1, fz);
         renderState.selMarks.push(dimensionStroke([A, B, B, C, C, D, D, A], renderState.Gr, 14));
@@ -69,7 +69,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
                 touching(a.clone().sub(tick.clone().multiplyScalar(4)), a.clone().add(tick.clone().multiplyScalar(4)));
                 return null;
             }
-            return label(value > .1 ? a.clone().add(b).multiplyScalar(.5) : a, value > .1 ? f(value) + ' cm' : '0 cm', cls);
+            return label(value > .1 ? a.clone().add(b).multiplyScalar(.5) : a, value > .1 ? f(value) + unitSuffix() : '0' + unitSuffix(), cls);
         };
         if (edge === 'left' || edge === 'right') {
             const s = sideGaps(i, j, g), y = (g.y0 + g.y1) / 2;
@@ -79,7 +79,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
             return;
         }
         const clear = (x, y0, y1, value, side, cls = 'lbl dim clearance net') => {
-            const el = y1 - y0 > .1 || cls.includes('assist') ? gap(Pt(x, y0), Pt(x, y1), value, cls) : label(Pt(x, y0 + (y0 >= h / 2 ? 6 : -6)), '0 cm', cls);
+            const el = y1 - y0 > .1 || cls.includes('assist') ? gap(Pt(x, y0), Pt(x, y1), value, cls) : label(Pt(x, y0 + (y0 >= h / 2 ? 6 : -6)), '0' + unitSuffix(), cls);
             if (el && !edge) inspector.editableItemClearance(el, i, j, side);
         };
         const xAbove = g.lineAbove.x, xBelow = g.lineBelow.x;

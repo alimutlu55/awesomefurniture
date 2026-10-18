@@ -1,6 +1,7 @@
 import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
 import { FIN } from '../../../domain/wardrobe/catalog.js';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
+import { measureNumber, unitSuffix } from '../editor-format.js';
 /** Whole-wardrobe controls: size, finish, reach, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
@@ -19,7 +20,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
             }
             ( /** @type {HTMLInputElement} */(el)).value = model.activeCabinet().state[id];
             range.value = model.activeCabinet().state[id];
-            range.setAttribute('aria-valuetext', range.value + ' cm');
+            range.setAttribute('aria-valuetext', measureNumber(Number(range.value)) + unitSuffix());
         };
         const started = () => { selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id); };
         bindSizeSlider({ range, lifetime, model, history, started, finished: () => { selectionState.editingSize = false; },

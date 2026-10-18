@@ -3,7 +3,7 @@ import { createKitchenPlan } from './kitchen-plan';
 import { takeMobilePanel } from './mobile-panel-owner.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { PANEL, PLINTH, PURPOSE, purposeName, itemName, r1 } from '../../domain/wardrobe/catalog.js';
-import { esc, zoneColor, zoneText } from './editor-format.js';
+import { esc, measureNumber, zoneColor, zoneText, unitSuffix } from './editor-format.js';
 import { tags, issueTags } from './storage-tags.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { POSSESSION_KEYS, possession } from '../../domain/wardrobe/possessions';
@@ -24,22 +24,23 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
                 const access = WardrobePlanner.accessInfo(it, q.y0 + PLINTH + PANEL, model.activeCabinet().state.profile);
                 const high = access.type === 'occasional' && access.aboveReach;
                 const label = high ? (it.k === 'seasonal' ? 'High boxes' : 'High storage') : it.purpose === 'small' ? 'Socks' : zoneText(it);
-                const detail = purposeName(it)+' · '+itemName(it)+' · Height '+r1(it.h)+' cm · '+access.label;
-                return '<div class="mini-zone" title="'+esc(detail)+'" aria-label="'+esc(detail)+'" style="position:absolute;box-sizing:border-box;min-height:0;border-top:1px solid #ffffff80;left:'+q.x0/s.width*100+'%;bottom:'+q.y0/H*100+'%;width:'+q.w/s.width*100+'%;height:'+q.h/H*100+'%;background:'+zoneColor(it)+'"><span>'+esc(label)+' · '+r1(it.h)+' cm</span></div>';
+                const detail = purposeName(it)+' · '+itemName(it)+' · Height '+measureNumber(it.h)+unitSuffix() + ' · '+access.label;
+                return '<div class="mini-zone" title="'+esc(detail)+'" aria-label="'+esc(detail)+'" style="position:absolute;box-sizing:border-box;min-height:0;border-top:1px solid #ffffff80;left:'+q.x0/s.width*100+'%;bottom:'+q.y0/H*100+'%;width:'+q.w/s.width*100+'%;height:'+q.h/H*100+'%;background:'+zoneColor(it)+'"><span>'+esc(label)+' · '+measureNumber(it.h)+unitSuffix() + '</span></div>';
             }).join('');
             const boards=(p.dividers||[]).filter(d=>d.i===i).map(d=>{
                 const horizontal=d.orientation==='horizontal',x=horizontal?d.x0:d.x-PANEL/2,y=horizontal?d.y-PANEL/2:d.y0,w=horizontal?d.x1-d.x0:PANEL,h=horizontal?PANEL:d.y1-d.y0;
                 return '<div aria-hidden="true" style="position:absolute;left:'+x/s.width*100+'%;bottom:'+y/H*100+'%;width:'+w/s.width*100+'%;height:'+h/H*100+'%;background:var(--line)"></div>';
             }).join('');
-            return '<div class="mini-bay" style="flex:'+s.width+'">'+zones+boards+'<div class="mini-reach" style="bottom:'+Math.max(0,Math.min(100,(reach-PLINTH-PANEL)/H*100))+'%">'+(i===0?'<span>'+reach+' cm</span>':'')+'</div></div>';
-        }).join('')+'</div><div class="mini-widths">'+p.sections.map(s=>'<span style="flex:'+s.width+'">'+s.width.toFixed(1)+' cm</span>').join('')+'</div>';
+            const reachLabel = i===0?'<span>'+measureNumber(reach)+unitSuffix()+'</span>':'';
+            return '<div class="mini-bay" style="flex:'+s.width+'">'+zones+boards+'<div class="mini-reach" style="bottom:'+Math.max(0,Math.min(100,(reach-PLINTH-PANEL)/H*100))+'%">'+reachLabel+'</div></div>';
+        }).join('')+'</div><div class="mini-widths">'+p.sections.map(s=>'<span style="flex:'+s.width+'">'+measureNumber(s.width)+unitSuffix() + '</span>').join('')+'</div>';
     }
     function renderIdeas() {
         const cfg = geometry.plannerConfig();
         const tag = (text, tone = '') => '<span class="pill '+tone+'">'+esc(text)+'</span>';
         $('#ideas-note').innerHTML = '';
         $('#ideas-note').hidden = true;
-        $('#wizard-size').textContent = model.activeCabinet().state.w + ' × ' + model.activeCabinet().state.h + ' × ' + model.activeCabinet().state.d + ' cm';
+        $('#wizard-size').textContent = measureNumber(model.activeCabinet().state.w) + ' × ' + measureNumber(model.activeCabinet().state.h) + ' × ' + measureNumber(model.activeCabinet().state.d) + unitSuffix();
         $('#ideas-count').textContent = plannerState.ideas.length + ' designs';
         $('#ideas').innerHTML = plannerState.ideas.length ? plannerState.ideas.map((p, index) => {
             const m = p.metrics;
@@ -70,7 +71,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         syncValue('#coats', p.coats ?? 0);
         syncValue('#reach', p.reachStd ?? p.reach ?? 185);
         $('#reach').disabled = !!p.accessible;
-        $('#reach-value').textContent = p.reach + ' cm' + (p.accessible ? ' · seated' : '');
+        $('#reach-value').textContent = measureNumber(p.reach) + unitSuffix() + (p.accessible ? ' · seated' : '');
         WardrobePlanner.configure(p);
     }
     function readPreferences() {
@@ -223,7 +224,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         lifetime.cancelTimeout(plannerState.ideasTimer);
         const p = model.activeCabinet().state.profile;
         const reach = readPreferences().reach;
-        $('#reach-value').textContent = reach + ' cm' + (p.accessible ? ' · seated' : '');
+        $('#reach-value').textContent = measureNumber(reach) + unitSuffix() + (p.accessible ? ' · seated' : '');
         if (event?.type === 'input' && /** @type {HTMLInputElement} */ (event.target).type === 'range') {
             plannerState.ideasTimer = null;
             return;

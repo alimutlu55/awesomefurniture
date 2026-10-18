@@ -7,7 +7,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
 import { centredOffset, cornerAngle, furthestValid, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
-import { measureNumber } from './editor-format.js';
+import { measureNumber, unitSuffix } from './editor-format.js';
 import { createCeilingSplitCursor } from './studio-ceiling-split';
 import type { Carried } from '../../application/commands/studio-commands';
 
@@ -24,7 +24,7 @@ interface Drag {
   at: P | null;
 }
 
-const f = (v: number) => measureNumber(Math.round(v * 10) / 10) + ' cm';
+const f = (v: number) => measureNumber(Math.round(v * 10) / 10) + unitSuffix();
 /** Rulers stand this far into the room from the face they measure. */
 const RULER = 4;
 
@@ -364,7 +364,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       if (id) selectionState.room = { kind: 'opening', id };
       callbacks.refresh();
     } else if (key === 'split' && w) {
-      if (!sceneCommands.editStudio(r => splitWall(r, w.id)) ) callbacks.report('This wall is too short to split. Each part needs ' + STUDIO_LIMITS.minWallLength + ' cm.');
+      if (!sceneCommands.editStudio(r => splitWall(r, w.id)) ) callbacks.report('This wall is too short to split. Each part needs ' + STUDIO_LIMITS.minWallLength + unitSuffix() + '.');
       callbacks.refresh();
     } else if (key.startsWith('ceiling:') && w) {
       // A ceiling shape on this wall (replacing the one it had), selected to shape it on the model.

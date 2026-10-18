@@ -4,7 +4,7 @@ import {
     type ShapeTemplateId, type WardrobeShape,
 } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { shapeTemplates, templateArt } from './shape-art';
-import { measureNumber, esc } from './editor-format.js';
+import { measureNumber, esc, unitSuffix } from './editor-format.js';
 import { createShapeHandleEditing, type ShapeHandlePorts } from './shape-handle-editing';
 import { editProfilePoint, profileAt } from '../../domain/wardrobe/shape/shape-handle-edit';
 import { createShapeSplitCursor } from './shape-split-cursor';
@@ -84,8 +84,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
             const a = pts[k]!, b = pts[k + 1]!;
             if (b.x - a.x > 1e-6) {
                 const panel = panelsList.find(p => p.kind === 'top' && p.from === k)!;
-                rows.push(row('panel', k, panel.label, 'Board ' + f(panel.length) + ' cm', action('split', 'Add a break point to ' + panel.label.toLowerCase(), { s: k }, 'M4 16 12 8l8 8M12 8v.01') + action('step', 'Add a step to ' + panel.label.toLowerCase(), { s: k }, 'M4 8h8v8h8'),
-                    field('Angle', { s: k, k: 'angle' }, panel.angle, { min: -70, max: 70, step: .5, unit: '°' }) + '<span class="shape-field shape-readout"><span>Width</span><b>' + f(b.x - a.x) + ' cm</b></span>'));
+                rows.push(row('panel', k, panel.label, 'Board ' + f(panel.length) + unitSuffix(), action('split', 'Add a break point to ' + panel.label.toLowerCase(), { s: k }, 'M4 16 12 8l8 8M12 8v.01') + action('step', 'Add a step to ' + panel.label.toLowerCase(), { s: k }, 'M4 8h8v8h8'),
+                    field('Angle', { s: k, k: 'angle' }, panel.angle, { min: -70, max: 70, step: .5, unit: '°' }) + '<span class="shape-field shape-readout"><span>Width</span><b>' + f(b.x - a.x) + unitSuffix() + '</b></span>'));
                 if (k + 1 < pts.length - 1 && !(pts[k + 2] && Math.abs(pts[k + 2]!.x - b.x) < 1e-6)) point(k + 1, 'Break ' + ++breaks, true);
             }
             else {
@@ -96,7 +96,8 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         }
         point(pts.length - 1, 'Right side', false);
         const lowest = Math.min(...pts.map(p => p.y)), tallest = Math.max(...pts.map(p => p.y));
-        panels.innerHTML = '<p class="shape-summary">' + (lowest === tallest ? 'Flat top · ' + f(tallest) + ' cm' : f(lowest) + '–' + f(tallest) + ' cm tall') + ' · drag the dots on the model or enter exact sizes.</p>' + rows.join('');
+        const heights = lowest === tallest ? 'Flat top · ' + f(tallest) + unitSuffix() : f(lowest) + '–' + f(tallest) + unitSuffix() + ' tall';
+        panels.innerHTML = '<p class="shape-summary">' + heights + ' · drag the dots on the model or enter exact sizes.</p>' + rows.join('');
     }
 
     /** Commit a typed value. Angles pivot on the panel's left end. */
@@ -192,11 +193,11 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
         const w = state().w, OFF = 8;
         if (panel.kind === 'top') {
             const a = shape.top[panel.from]!, b = shape.top[panel.to]!;
-            return { a: { x: a.x - w / 2, y: a.y + OFF }, b: { x: b.x - w / 2, y: b.y + OFF }, text: f(panel.length) + ' cm · ' + Math.round(panel.angle) + '°', axis: 'width' as const };
+            return { a: { x: a.x - w / 2, y: a.y + OFF }, b: { x: b.x - w / 2, y: b.y + OFF }, text: f(panel.length) + unitSuffix() + ' · ' + Math.round(panel.angle) + '°', axis: 'width' as const };
         }
         if (panel.kind === 'step') {
             const a = shape.top[panel.from]!, b = shape.top[panel.to]!, rise = b.y - a.y, x = a.x - w / 2 + (rise > 0 ? -OFF : OFF);
-            return { a: { x, y: Math.min(a.y, b.y) }, b: { x, y: Math.max(a.y, b.y) }, text: (rise > 0 ? '+' : '') + String(Math.round(rise * 10) / 10) + ' cm', axis: 'height' as const };
+            return { a: { x, y: Math.min(a.y, b.y) }, b: { x, y: Math.max(a.y, b.y) }, text: (rise > 0 ? '+' : rise < 0 ? '−' : '') + measureNumber(Math.abs(rise)) + unitSuffix(), axis: 'height' as const };
         }
         return null;
     }
@@ -229,7 +230,7 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
     function split(index: number, position?: number) {
         const shape = current(), next = splitPanel(shape, index, position);
         if (next !== shape) commit(next);
-        else report('This panel is too narrow to split. It needs at least ' + 2 * MIN_SEGMENT + ' cm.');
+        else report('This panel is too narrow to split. It needs at least ' + measureNumber(2 * MIN_SEGMENT) + unitSuffix() + '.');
     }
     /** Keyboard focus on a break point or the angle field shows that point's or panel's measures. */
     let focusedSegment: number | null = null;

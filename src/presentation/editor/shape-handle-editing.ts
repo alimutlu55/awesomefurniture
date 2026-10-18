@@ -4,6 +4,7 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { friendlyProblem, partitionPositions, resolveShape, shapeProblems, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { moveShapeHandle, profileAt, type ShapeSide } from '../../domain/wardrobe/shape/shape-handle-edit';
 import { alignTo, type Align } from './align-snap';
+import { lengthText, unitSuffix } from './length-unit-state';
 
 export interface ShapeHandlePorts {
     model: { activeCabinet(): EditorCabinet; snapshot(): string; restore(raw: string): void };
@@ -136,9 +137,9 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         const p = shape.top[index]!, w = state().w, x = p.x - w / 2;
         const out: { a: { x: number; y: number }; b: { x: number; y: number }; text: string; axis: 'width' | 'height' }[] = [];
         if (index > 0 && index < shape.top.length - 1 && p.x > .5 && p.x < w - .5)
-            out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + round(p.x) + ' cm', axis: 'width' });
-        else out.push({ a: { x: -w / 2, y: p.y }, b: { x: w / 2, y: p.y }, text: 'W ' + round(w) + ' cm', axis: 'width' });
-        out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + round(p.y) + ' cm', axis: 'height' });
+            out.push({ a: { x: -w / 2, y: p.y }, b: { x, y: p.y }, text: 'x ' + lengthText(p.x) + unitSuffix(), axis: 'width' });
+        else out.push({ a: { x: -w / 2, y: p.y }, b: { x: w / 2, y: p.y }, text: 'W ' + lengthText(w) + unitSuffix(), axis: 'width' });
+        out.push({ a: { x, y: 0 }, b: { x, y: p.y }, text: 'y ' + lengthText(p.y) + unitSuffix(), axis: 'height' });
         return out;
     }
     return { beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, setFocusedPoint, dragRulers, profileSide,

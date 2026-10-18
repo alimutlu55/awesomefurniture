@@ -1,7 +1,7 @@
 import { cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCorner, StudioWall } from '../../domain/studio/studio';
 import { alignTo, type Align } from './align-snap';
-import { measureNumber } from './editor-format.js';
+import { measureNumber, unitSuffix } from './editor-format.js';
 
 /** The geometry of dragging a room's corners, walls and openings: where the pointer wants the part to
  * go, the lines it can snap to, and the guides that show why it snapped. Plain data in scene
@@ -130,7 +130,7 @@ export function wardrobeGap(room: Studio, w: StudioWall, standing: readonly { id
   // Touching it there is nothing to read; the wall stops and says why.
   if (!best || best.out < .5) return null;
   const at = (d: number) => ({ x: line.a.x + line.ux * best!.along + line.nx * (w.thickness / 2 + d), y: 100, z: line.a.z + line.uz * best!.along + line.nz * (w.thickness / 2 + d) });
-  return { a: at(0), b: at(Math.max(0, best.out)), text: measureNumber(Math.round(best.out * 10) / 10) + ' cm' };
+  return { a: at(0), b: at(Math.max(0, best.out)), text: measureNumber(Math.round(best.out * 10) / 10) + unitSuffix() };
 }
 /** `wardrobeGap` for the scene's wardrobes, leaving out those carried with the wall. */
 export function wallGap(room: Studio, w: StudioWall, wardrobes: readonly { id: number; x: number; z: number; angle: number; state: { w: number; d: number } }[], carry: { list: readonly { id: number }[] } | null) {

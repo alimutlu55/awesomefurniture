@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth } from '../../domain/wardrobe/carcass';
-import { measureNumber } from '../editor/editor-format.js';
+import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources' | 'interactionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'label' | 'dimensionStroke' | 'bindRuler'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createMovementOverlays({ dom, geometry, callbacks, renderState, resources, interactionState, getRenderDesign }) {
@@ -68,20 +68,20 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
                 bar(.6, yb - ya, mid, (ya + yb) / 2);
                 bar(5, .6, mid, ya);
                 bar(5, .6, mid, yb);
-                lab(key, mid, (ya + yb) / 2, f(yb - ya) + ' cm', 'lbl dim clearance net preview');
+                lab(key, mid, (ya + yb) / 2, f(yb - ya) + unitSuffix(), 'lbl dim clearance net preview');
             }
             else {
-                lab(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), '0 cm', 'lbl dim clearance net preview');
+                lab(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), '0' + unitSuffix(), 'lbl dim clearance net preview');
             }
         }, side = (key, xa, xb) => {
             if (xb - xa > .1) {
                 bar(xb - xa, .6, (xa + xb) / 2, midY);
                 bar(.6, 5, xa, midY);
                 bar(.6, 5, xb, midY);
-                lab(key, (xa + xb) / 2, midY, f(xb - xa) + ' cm');
+                lab(key, (xa + xb) / 2, midY, f(xb - xa) + unitSuffix());
             }
             else {
-                lab(key, key === 'left' ? xa - 6 : xb + 6, midY, '0 cm');
+                lab(key, key === 'left' ? xa - 6 : xb + 6, midY, '0' + unitSuffix());
             }
         };
         // Net gaps where the fitting would land: to the fitting, board or top really above it and to what it would
@@ -99,10 +99,10 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             setPreviewLabel(key, a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension preview');
             callbacks.bindRuler(renderState.prevLab[key].el, a, b, key);
         };
-        ruler('width', new THREE.Vector3(x0, q.y0, zf), new THREE.Vector3(x1, q.y0, zf), 'W ' + f(q.w) + ' cm');
-        ruler('height', new THREE.Vector3(x1, q.y0, zf), new THREE.Vector3(x1, q.y1, zf), 'H ' + f(it.h) + ' cm');
+        ruler('width', new THREE.Vector3(x0, q.y0, zf), new THREE.Vector3(x1, q.y0, zf), 'W ' + f(q.w) + unitSuffix());
+        ruler('height', new THREE.Vector3(x1, q.y0, zf), new THREE.Vector3(x1, q.y1, zf), 'H ' + f(it.h) + unitSuffix());
         const fd = fittingDepth(getRenderDesign().d), back = -getRenderDesign().d / 2;
-        ruler('depth', new THREE.Vector3(x0, q.y0, back + fd.z0), new THREE.Vector3(x0, q.y0, back + fd.z1), 'D ' + f(fd.depth) + ' cm');
+        ruler('depth', new THREE.Vector3(x0, q.y0, back + fd.z0), new THREE.Vector3(x0, q.y0, back + fd.z1), 'D ' + f(fd.depth) + unitSuffix());
     }
     function clearPreview(hide = true) {
         if (hide) {

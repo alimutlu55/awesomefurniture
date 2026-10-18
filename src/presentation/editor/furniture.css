@@ -82,3 +82,11 @@ svg.kitchen-art{filter:none}
 /* Measurements follow the camera every frame; their position never transitions (reduced motion would otherwise turn
    each frame's placement into a restarting transition and leave a label behind its line). */
 #labels .lbl.dim{transition-property:background-color,border-color,color,opacity!important}
+/* Units in the menu: a labelled segmented choice that does not close the menu. */
+#menu .mi.unit-row{display:flex;align-items:center;gap:10px;cursor:default}
+#menu .unit-row span:first-of-type{flex:1;min-width:0}
+#menu .unit-seg{display:inline-flex;flex:none;border:1px solid var(--line,#d9cfbd);border-radius:9px;overflow:hidden}
+#menu .unit-seg button{border:0;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:600;padding:5px 8px;min-width:34px;cursor:pointer}
+#menu .unit-seg button+button{border-left:1px solid var(--line,#d9cfbd)}
+#menu .unit-seg button[aria-pressed="true"]{background:var(--ink,#3d3528);color:var(--panel,#fff)}
+#menu .unit-seg button:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:-2px}

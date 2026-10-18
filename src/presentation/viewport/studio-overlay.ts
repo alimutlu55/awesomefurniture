@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
+import { unitSuffix } from '../editor/length-unit-state';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; rulerNode?: Element; ruler?: unknown };
 interface StudioOverlayPorts {
@@ -78,7 +79,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         el.title = h.label;
         // A height pill shows its height: it is the handle and the measurement at once.
         // On a phone the unit is left out, so pills a short way apart do not overlap.
-        const pill = h.text === undefined ? '' : h.text.replace(/ cm$/, '') + '<small> cm</small>';
+        const pill = h.text === undefined ? '' : h.text.replace(/ (cm|mm|in)$/, '') + '<small>' + unitSuffix() + '</small>';
         if (h.text !== undefined && el.innerHTML !== pill) el.innerHTML = pill;
         return el;
     }

@@ -2,8 +2,11 @@ import { SHELF_POSSESSIONS } from '../../domain/wardrobe/possessions';
 import { FITTINGS, fitting } from '../../domain/wardrobe/fittings';
 import { purposeDef } from '../../domain/wardrobe/purposes';
 import { resolveZone } from '../../domain/wardrobe/zone-style';
+import { lengthText } from './length-unit-state';
 export const COL = ['#58584c', '#b6ab94', '#e6dfd0', '#a49680', '#343831', '#827d70', '#c7bca5', '#727862'];
-export const measureNumber = v => String(Math.round(Math.max(0, v) * 10) / 10);
+/** A length (centimetres) as a number in the unit the person chose (mm, cm or in); follow it with `unitSuffix()`. */
+export const measureNumber = v => lengthText(v);
+export { unitSuffix } from './length-unit-state';
 export const capWord = w => w.charAt(0).toUpperCase() + w.slice(1);
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const drawerN = p => p.sections.reduce((n, s) => n + s.items.filter(it => it.k === 'drawer' || it.k === 'sdrawer').length, 0);

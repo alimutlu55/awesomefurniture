@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Alignment, Gap, GapSide } from '../../domain/studio/scene-gaps';
 import { measureAround } from '../../application/commands/align-commands';
 import type { EditorCabinet, EditorScene } from '../../application/projects/editor-scene';
-import { measureNumber } from '../editor/editor-format.js';
+import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D };
 interface AssistOverlayPorts {
@@ -71,7 +71,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
       }
       dimension(a, b, good ? ok : short ? tight : ink);
       // Near the wardrobe being changed, so a long gap's tag stays in view: half way, or 25 cm out at most.
-      if (!good) tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + ' cm', short ? 'tight' : '');
+      if (!good) tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + unitSuffix(), short ? 'tight' : '');
     }
     // Fronts in line, tops level: a green dashed line along them, no words.
     for (const a of aligned) {

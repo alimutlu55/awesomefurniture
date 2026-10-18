@@ -1,3 +1,5 @@
+import { currentLengthUnit, unitSuffix, lengthText } from '../editor/length-unit-state';
+import { fromCm, toCm, lengthUnit } from '../../domain/geometry/length-units';
 /** Reusable measurement control. Features own values, validation and history;
  * this component owns pointer capture, keyboard access and exact number entry. */
 export interface MeasurementBadgeBinding {
@@ -17,7 +19,7 @@ export function decorateMeasurementBadge(el: HTMLElement, options: {
 }) {
     el.classList.add('measurement-badge'); el.dataset.measurementBadge = options.id; el.tabIndex = 0;
     el.setAttribute('role', 'slider'); el.setAttribute('aria-label', options.label);
-    el.setAttribute('aria-valuenow', String(options.value)); el.setAttribute('aria-valuetext', options.value + ' centimetres');
+    el.setAttribute('aria-valuenow', String(options.value)); el.setAttribute('aria-valuetext', lengthText(options.value) + unitSuffix());
     el.setAttribute('aria-orientation', options.orientation);
     if (options.min !== undefined) el.setAttribute('aria-valuemin', String(options.min));
     if (options.max !== undefined) el.setAttribute('aria-valuemax', String(options.max));
@@ -36,7 +38,7 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
         b.refresh(); const el = layer.querySelector<HTMLElement>(b.selector);
         if (el) {
             const value = b.read(); el.setAttribute('role', 'slider');
-            el.setAttribute('aria-valuenow', String(value)); el.setAttribute('aria-valuetext', value + ' centimetres');
+            el.setAttribute('aria-valuenow', String(value)); el.setAttribute('aria-valuetext', lengthText(value) + unitSuffix());
             el.classList.toggle('is-scrubbing', !!drag);
         }
         if (focused) el?.focus({ preventScroll: true });
@@ -55,16 +57,18 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
         const el = layer.querySelector<HTMLElement>(b.selector);
         if (!el) return;
         const initial = b.read(), input = el.ownerDocument.createElement('input');
-        input.type = 'number'; input.inputMode = 'decimal'; input.step = '0.1'; input.value = String(initial);
-        if (b.min !== undefined) input.min = String(b.min);
-        if (b.max !== undefined) input.max = String(b.max);
-        input.setAttribute('aria-label', el.getAttribute('aria-label') ?? 'Measurement in centimetres');
+        // The control owns centimetres; the field shows and reads the unit the person chose.
+        const unit = currentLengthUnit(), shown = (cm: number) => String(fromCm(cm, unit, true));
+        input.type = 'number'; input.inputMode = 'decimal'; input.step = unit === 'in' ? 'any' : unit === 'mm' ? '1' : '0.1'; input.value = shown(initial);
+        if (b.min !== undefined) input.min = shown(b.min);
+        if (b.max !== undefined) input.max = shown(b.max);
+        input.setAttribute('aria-label', el.getAttribute('aria-label') ?? 'Measurement in ' + lengthUnit(unit).name.toLowerCase());
         b.begin(); feedback.begin(initial); active(b.id); el.classList.add('is-editing');
         el.removeAttribute('role'); el.replaceChildren(input);
         let done = false;
         const finish = (cancel = false) => {
             if (done) return; done = true; entry = null;
-            const value = input.valueAsNumber;
+            const value = toCm(input.valueAsNumber, unit);
             if (!cancel && Number.isFinite(value)) { const actual = b.preview(value - initial); if (actual !== null) feedback.tick(actual); }
             const changed = b.finish(cancel || !Number.isFinite(value)); active(null);
             el.classList.remove('is-editing');
