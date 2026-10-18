@@ -1,0 +1,82 @@
+import type { Item, Sheet } from '../../domain/drawings/drawing';
+import { dimensionSvg } from './dimension-svg';
+import { LIST_ROW, PAPER, TITLE, type Paper, drawingArea, fitSheet } from './sheet-layout';
+
+/** What the title block says about the whole set. */
+export interface SheetSetInfo { readonly project: string; readonly date: string; readonly total: number }
+
+const f = (n: number) => String(Math.round(n * 100) / 100);
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Line weights on paper (ISO 128): cut 0.5, seen outlines 0.35, thin 0.18, hidden 0.25 dashed, centre lines chain. */
+const STYLE = `
+.cut{stroke:#111;stroke-width:.5;fill:none;stroke-linejoin:miter}.outline{stroke:#111;stroke-width:.35;fill:none}
+.thin{stroke:#333;stroke-width:.18;fill:none}.hidden{stroke:#333;stroke-width:.25;fill:none;stroke-dasharray:2 1}
+.centre{stroke:#333;stroke-width:.18;fill:none;stroke-dasharray:6 1 1 1}.glass{fill:#e4ecf2}
+.dl{stroke:#111;stroke-width:.13}.dt{stroke:#111;stroke-width:.35}
+text{font-family:Helvetica,Arial,sans-serif;fill:#111}.dv{font-size:3.2px;text-anchor:middle}
+.nt{font-size:3px}.tg circle{fill:#fff;stroke:#111;stroke-width:.25}.tg text{font-size:2.9px;text-anchor:middle;dominant-baseline:central;font-weight:600}
+.vm circle{fill:#fff;stroke:#111;stroke-width:.3}.vm path{fill:#111}.vm text{font-size:3.4px;text-anchor:middle;dominant-baseline:central;font-weight:700}
+.frame{fill:#fff;stroke:#111;stroke-width:.7}.tb{fill:none;stroke:#111;stroke-width:.35}.tbl{stroke:#111;stroke-width:.18}
+.tk{font-size:2.2px;fill:#555}.tv{font-size:3.4px}.tp{font-size:5px;font-weight:700}.vt{font-size:4.2px;font-weight:700}.vs{font-size:3.2px}
+.ls{font-size:2.7px}.lm{font-size:2.7px;font-weight:700}`;
+
+function item(i: Item, paper: Paper, hatch: string): string {
+  switch (i.kind) {
+    case 'line': {
+      const pts = i.points.map(paper).map(p => f(p.x) + ',' + f(p.y)).join(' ');
+      const fill = i.fill === 'hatch' ? ` style="fill:url(#${hatch})"` : i.fill === 'glass' ? ' style="fill:#e4ecf2"' : '';
+      return i.closed ? `<polygon class="${i.stroke}" points="${pts}"${fill}/>` : `<polyline class="${i.stroke}" points="${pts}"/>`;
+    }
+    case 'dims': return dimensionSvg(i, paper);
+    case 'tag': { const c = paper(i.at); return `<g class="tg"><circle cx="${f(c.x)}" cy="${f(c.y)}" r="3.4"/><text x="${f(c.x)}" y="${f(c.y)}">${esc(i.text)}</text></g>`; }
+    case 'note': {
+      const c = paper(i.at), anchor = i.align;
+      const lines = i.lines.map((l, k) => `<tspan x="0" dy="${k ? 3.6 : 0}">${esc(l)}</tspan>`).join('');
+      return `<text class="nt" text-anchor="${anchor}" transform="translate(${f(c.x)} ${f(c.y)}) rotate(${f(-(i.angle ?? 0))})">${lines}</text>`;
+    }
+    case 'view-mark': {
+      const c = paper(i.at), d = { x: i.dir.x, y: -i.dir.y }, s = { x: -d.y, y: d.x }, tip = { x: c.x + d.x * 7, y: c.y + d.y * 7 };
+      const b1 = { x: c.x + d.x * 3 + s.x * 3, y: c.y + d.y * 3 + s.y * 3 }, b2 = { x: c.x + d.x * 3 - s.x * 3, y: c.y + d.y * 3 - s.y * 3 };
+      return `<g class="vm"><path d="M${f(tip.x)} ${f(tip.y)}L${f(b1.x)} ${f(b1.y)}L${f(b2.x)} ${f(b2.y)}Z"/><circle cx="${f(c.x)}" cy="${f(c.y)}" r="3.6"/>`
+        + `<text x="${f(c.x)}" y="${f(c.y)}">${esc(i.text)}</text></g>`;
+    }
+  }
+}
+
+/** The title block (bottom right) and, to its left, the list of the pieces on the sheet. */
+function titleBlock(sheet: Sheet, paper: Paper, info: SheetSetInfo, strip: number): string {
+  const x = PAPER.w - PAPER.edge - TITLE.w, y = PAPER.h - PAPER.edge - strip, w = TITLE.w, r = (yy: number) => `<line class="tbl" x1="${x}" y1="${f(yy)}" x2="${x + w}" y2="${f(yy)}"/>`;
+  const cell = (cx: number, cy: number, key: string, value: string, cls = 'tv') => `<text class="tk" x="${f(cx + 1.5)}" y="${f(cy + 3)}">${esc(key)}</text><text class="${cls}" x="${f(cx + 1.5)}" y="${f(cy + 8)}">${esc(value)}</text>`;
+  const top = PAPER.h - PAPER.edge - TITLE.h;
+  let out = `<rect class="tb" x="${x}" y="${f(y)}" width="${w}" height="${f(strip)}"/>`;
+  out += `<text class="tk" x="${x + 1.5}" y="${f(top + 3)}">Project</text><text class="tp" x="${x + 1.5}" y="${f(top + 9)}">${esc(info.project)}</text>`;
+  out += r(top + 11) + cell(x, top + 11, 'Drawing', sheet.title) + cell(x + 110, top + 11, 'Sheet', sheet.number + ' of ' + info.total);
+  out += r(top + 22) + cell(x, top + 22, 'Scale', '1:' + paper.scale) + cell(x + 40, top + 22, 'Units', 'millimetres') + cell(x + 110, top + 22, 'Date', info.date);
+  out += `<line class="tbl" x1="${x + 108}" y1="${f(top + 11)}" x2="${x + 108}" y2="${f(top + 33)}"/><line class="tbl" x1="${x + 38}" y1="${f(top + 22)}" x2="${x + 38}" y2="${f(top + 33)}"/>`;
+  // The list of pieces: two columns across the rest of the strip.
+  const lx = PAPER.left, lw = x - lx, col = lw / 2, rows = Math.ceil(sheet.pieces.length / 2);
+  out += `<rect class="tb" x="${lx}" y="${f(y)}" width="${f(lw)}" height="${f(strip)}"/>`;
+  out += `<text class="tk" x="${lx + 2}" y="${f(y + 3.5)}">Pieces · width × height × depth · verify every dimension on site before making; do not scale from the drawing</text>`;
+  sheet.pieces.forEach((p, k) => {
+    const cx = lx + 2 + Math.floor(k / rows) * col, cy = y + 8.5 + (k % rows) * LIST_ROW;
+    out += `<text class="lm" x="${f(cx)}" y="${f(cy)}">${esc(p.mark)}</text><text class="ls" x="${f(cx + 7)}" y="${f(cy)}">${esc(p.name)}</text>`
+      + `<text class="ls" x="${f(cx + 38)}" y="${f(cy)}">${esc(p.size)}</text><text class="ls" x="${f(cx + 66)}" y="${f(cy)}">${esc(p.where)}</text>`;
+  });
+  return out;
+}
+
+/** One sheet as an A3 SVG drawn in paper millimetres: frame, the view's title and scale, the drawing, the list of
+ * pieces and the title block. Self-contained, so it prints and shows the same. */
+export function sheetSvg(sheet: Sheet, info: SheetSetInfo): string {
+  const paper = fitSheet(sheet), area = drawingArea(sheet), hatch = 'hatch-' + sheet.number;
+  const defs = `<defs><style>${STYLE}</style><pattern id="${hatch}" width="1.4" height="1.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<rect width="1.4" height="1.4" fill="#fff"/><line x1="0" y1="0" x2="0" y2="1.4" stroke="#333" stroke-width=".13"/></pattern></defs>`;
+  const frame = `<rect class="frame" x="0" y="0" width="${PAPER.w}" height="${PAPER.h}" style="stroke:none"/>`
+    + `<rect class="frame" x="${PAPER.left}" y="${PAPER.edge}" width="${PAPER.w - PAPER.left - PAPER.edge}" height="${PAPER.h - 2 * PAPER.edge}"/>`;
+  const heading = `<text class="vt" x="${area.x}" y="${PAPER.edge + 8}">${esc(sheet.number + '  ' + sheet.title)}</text>`
+    + `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">1:${paper.scale}</text>`;
+  const body = sheet.items.map(i => item(i, paper, hatch)).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAPER.w} ${PAPER.h}" width="${PAPER.w}mm" height="${PAPER.h}mm" role="img" aria-label="${esc(sheet.title)}">`
+    + defs + frame + heading + `<g class="drawing">${body}</g>` + titleBlock(sheet, paper, info, area.strip) + '</svg>';
+}

@@ -1,0 +1,23 @@
+/* Technical drawings: the A3 sheets over the editor, scrolled and zoomed; white paper in either theme. */
+.drawings{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg);color:var(--ink)}
+.drawings[hidden]{display:none}
+.drawings-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+.drawings-title{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
+.drawings-bar h2{margin:0;font-size:16px;font-weight:650;color:var(--ink);white-space:nowrap}
+.drawings-count{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.drawings-tools{display:flex;align-items:center;gap:8px}
+.drawings-zoom{display:flex;gap:4px}
+.drawings-zoom button,.drawings-close{width:36px;height:36px;padding:0;font-size:20px;line-height:1;border-radius:10px}
+.drawings-zoom button:disabled{opacity:.4;cursor:default}
+.drawings-pdf{height:36px;border-radius:10px;background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:600;white-space:nowrap}
+.drawings-sheets{flex:1;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain;--sheet-zoom:1}
+.drawings-sheet{margin:0 auto 16px;width:calc(min(100%,1400px) * var(--sheet-zoom));background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18);border-radius:2px}
+.drawings-sheet img{display:block;width:100%;height:auto;aspect-ratio:420/297;-webkit-user-drag:none;user-select:none}
+@media (max-width:600px){
+  /* Phone: title and close on top, zoom and Save as PDF in a row under them. */
+  .drawings-bar{flex-wrap:wrap;row-gap:8px}
+  .drawings-title{flex-direction:column;gap:1px}
+  .drawings-tools{order:3;flex-basis:100%;justify-content:space-between}
+  .drawings-pdf{flex:1;margin-left:4px}
+  .drawings-sheets{padding:10px}
+}

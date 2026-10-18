@@ -44,6 +44,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Clearances a fitting shows (gaps, rail drop, drawer stack, clear opening) | `src/domain/geometry/wardrobe-rules/clearances.js`; drawn by `viewport/item-dimensions.js` and `component-dimensions.js` |
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
+| Technical drawings (plan, wall elevations, sheets, PDF) | `src/domain/drawings/` (data, mm) and `src/presentation/drawings/` (SVG, viewer). See [docs/technical-drawings.md](docs/technical-drawings.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
@@ -87,6 +88,8 @@ units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`,
   (`planner/bay-ceilings.ts`), so the space above that point under a slope stays empty. On narrow
   fixed bays the planner can give a whole tall bay to long garments and leave shirts out
   (under-stairs default: 0 of 24 shirts).
+- Technical drawings: plan and wall elevations only; unit details, cutting list and door swings are not drawn yet
+  (docs/technical-drawings.md).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,
