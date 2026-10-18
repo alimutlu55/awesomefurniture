@@ -151,6 +151,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             $('#' + key + 'v').textContent = measureNumber(value) + unitSuffix();
             if (i.type === 'range') i.setAttribute('aria-valuetext', measureNumber(Number(i.value)) + unitSuffix());
         });
+        // The room beside a kitchen unit that it could grow to fill.
+        const fill = /** @type {HTMLButtonElement} */ ($('#fill-gap')), room = sceneCommands.fillableSpace();
+        fill.hidden = room < .05;
+        if (!fill.hidden) fill.textContent = 'Fill the ' + measureNumber(room) + unitSuffix() + ' gap beside it';
         syncCabinetSizeLimits(dom, model.activeCabinet().state, selectionState.editingSize);
         for (const panel of [shapeInspector, studioPanel, kitchenPanel, roomFields]) panel?.render();
         sectionsUI();

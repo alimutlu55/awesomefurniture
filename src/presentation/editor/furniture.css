@@ -90,3 +90,6 @@ svg.kitchen-art{filter:none}
 #menu .unit-seg button+button{border-left:1px solid var(--line,#d9cfbd)}
 #menu .unit-seg button[aria-pressed="true"]{background:var(--ink,#3d3528);color:var(--panel,#fff)}
 #menu .unit-seg button:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:-2px}
+/* Fill the gap beside a kitchen unit: a quiet text button under Width. */
+.fill-gap{display:block;margin:2px 0 10px;padding:7px 12px;border:1px dashed #a8987c;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.fill-gap[hidden]{display:none}

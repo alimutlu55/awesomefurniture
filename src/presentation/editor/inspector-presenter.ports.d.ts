@@ -16,7 +16,7 @@ readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cam' | 'cv'>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene' | 'select' | 'snapshot'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'deleteItem' | 'duplicateItem' | 'normalizeSelection' | 'setDividerClearance' | 'setItemClearance'>>;
-readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'addCabinet' | 'setCabinetPose'>>;
+readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands.js').createSceneCommands>, 'addCabinet' | 'setCabinetPose' | 'fillableSpace'>>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../application/history/scene-history.js').createSceneHistory>, 'checkpoint' | 'redo' | 'redoCount' | 'undo' | 'undoCount'>>;
 readonly shapeInspector: Readonly<Pick<ReturnType<typeof import('./shape-inspector').createShapeInspector>, 'render'>>;
 readonly studioPanel: Readonly<Pick<ReturnType<typeof import('./studio-panel').createStudioPanel>, 'render' | 'products'>>;

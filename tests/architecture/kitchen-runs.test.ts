@@ -165,3 +165,20 @@ test('dragging a unit to a neighbour: a front almost in line does not stop it cl
   const wall = commands.alignSnap(s.wardrobes[1]!, 6, false);
   near(wall.x, 60, 'touching'); near(wall.z, 0.4, 'depth left to the wall');
 });
+
+test('a gap between two kitchen units is filled by widening the unit between them, whatever the split', () => {
+  // 2.4 cm to the unit on one side and 2.6 cm to the one on the other: neither a centred nor a one-sided growth fits.
+  const s = scene({ ...unit(1, 'base', 62.4), id: 1 }, unit(2, 'base', 0), unit(3, 'base', 125));
+  s.activeWardrobe = 1;
+  let checkpoints = 0;
+  const commands = createSceneCommands(() => s, { checkpoint: () => checkpoints++ });
+  near(commands.fillableSpace(), 5, 'the room beside it');
+  assert.equal(commands.fillSpace(), true);
+  const middle = s.wardrobes[0]!;
+  near(middle.state.w, 65, 'as wide as the room');
+  near(middle.x, 62.5, 'between its neighbours');
+  assert.equal(checkpoints, 1, 'one undo step');
+  assert.equal(kitchenRuns(s.wardrobes).length, 1, 'the three units are one run again');
+  assert.equal(commands.fillSpace(), false, 'nothing left to fill');
+  assert.equal(createSceneCommands(() => scene(unit(1, 'base', 0))).fillableSpace(), 0, 'a lone unit has no gap beside it');
+});

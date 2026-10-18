@@ -4,6 +4,8 @@ import { alignments, gapsAround, type GapSide, type PlacedBox } from '../../doma
 type Collision = { cabinetCollides(cabinet: EditorCabinet): boolean };
 
 const box = (c: EditorCabinet): PlacedBox => ({ id: c.id, x: c.x, z: c.z, y: c.y || 0, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h });
+/** A gap this small beside a unit is one to fill; a bigger one is room for another cabinet. Centimetres. */
+export const FILL_REACH = 15;
 /** The gaps on the given sides of a wardrobe in a scene, and what it lines up with. */
 export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[]) {
   const all = scene.wardrobes.map(box), gaps = gapsAround(box(cabinet), all, scene.studio, sides);
@@ -42,5 +44,11 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
     }
     return { x: cabinet.x, z: cabinet.z };
   }
-  return { alignSnap };
+  /** Room beside a kitchen unit that a wider unit could fill: its gaps to the walls and units on either side, where
+   * those are close (a gap that is a whole other cabinet wide is not one to fill). Centimetres. */
+  function fillableGap(cabinet: EditorCabinet): number {
+    const { gaps } = measureAround(getScene(), cabinet, ['left', 'right']);
+    return Math.round(gaps.filter(g => g.distance > .05 && g.distance <= FILL_REACH).reduce((sum, g) => sum + g.distance, 0) * 10) / 10;
+  }
+  return { alignSnap, fillableGap };
 }

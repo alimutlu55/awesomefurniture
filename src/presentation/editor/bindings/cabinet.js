@@ -12,6 +12,11 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
             inputAttributes: { id, inputmode: 'numeric', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },
             rangeAttributes: { id: id + '-range', 'data-dimension': id, 'aria-label': id === 'y' ? 'Adjust height above the floor' : 'Adjust wardrobe ' + t.toLowerCase() } }));
+        // A kitchen unit with a gap beside it, between the wall or its neighbours: one tap widens it to fill the room.
+        if (id === 'w') {
+            $('#sliders').insertAdjacentHTML('beforeend', '<button type="button" id="fill-gap" class="fill-gap" hidden></button>');
+            lifetime.listen($('#fill-gap'), 'click', () => { if (sceneCommands.fillSpace()) inspector.update(true); });
+        }
         const el = $('#' + id);
         const range = /** @type {HTMLInputElement} */ ($('#' + id + '-range'));
         // A wall unit also has a height above the floor: part of its place in the room, not of its size.

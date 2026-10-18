@@ -8,6 +8,7 @@ import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet'
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
+import { createFillCommands } from './fill-commands';
 import { createKitchenCommands } from './kitchen-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
@@ -71,7 +72,10 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         return growRearWithFront(original, shape, next => shapeProblems(next, w).length > 0 || blocked({ ...next,
             top: next.top.map(p => ({ ...p, y: p.y - CEILING_CLEARANCE_TOLERANCE })) }));
     };
-    return {
+    const align = createAlignCommands(getScene, collision);
+    const late = { resize: (_width: number) => false };
+    const fill = createFillCommands({ getScene, active, checkpoint, discardCheckpoint, report, resize: width => late.resize(width) });
+    const commands = {
         /** A new default design, replacing every wardrobe and the entire room in one undo step. */
         resetScene() {
             checkpoint();
@@ -87,7 +91,8 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         ...studio,
         ...kitchen,
-        ...createAlignCommands(getScene, collision),
+        ...align,
+        ...fill,
         /** Room edits reshape the wardrobes under any ceiling they move. */
         placeStudio(id: Parameters<typeof studio.placeStudio>[0]) {
             const ok = studio.placeStudio(id);
@@ -233,7 +238,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 requested = Math.max(requested, geometry.minTotal());
             }
             if (state[key as 'w' | 'h' | 'd'] === requested) return false;
-            const pose = collision.cabinetResizePose(cabinet, key, requested);
+            const pose = collision.cabinetResizePose(cabinet, key, requested, isKitchen(state));
             if (!pose) {
                 report(blockedMessage('That size', { ...cabinet, state: { ...state, [key]: requested } }));
                 return false;
@@ -382,4 +387,6 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return true;
         },
     };
+    late.resize = width => commands.setCabinetSize('w', width, false);
+    return commands;
 }
