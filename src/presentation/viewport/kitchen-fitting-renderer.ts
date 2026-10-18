@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
+import { kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -22,7 +23,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
-  const face = d / 2 + PANEL / 2, gap = .3;
+  const face = d / 2 + PANEL / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
   const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: steel });
@@ -30,12 +31,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
   function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
-    // Like the top and bottom, a front reaches over the whole side panel where it stands at the unit's edge (less a 3 mm
-    // gap to the next unit); beside another front in the same unit it stops halfway across their shared partition.
-    const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL - gap / 2 : PANEL / 2;
-    const hh = it.h, x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
-    // A wall unit's bottom is solid down to its lower edge (frame-geometry.ts), so its lowest front reaches that edge.
-    const y0 = Math.abs(y - inside.bottom) < .05 ? (kitchenUnit(unit).plinth ? y - PANEL : 0) : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
+    const hh = it.h, { x0, x1, y0, y1 } = kitchenFrontRect(unit, cx, y, sw, hh, inside, outer);
     const mid = (y0 + y1) / 2;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
