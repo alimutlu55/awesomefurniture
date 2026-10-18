@@ -74,11 +74,13 @@ test('ceiling height badge retains physical validation and cancellation', async 
     edit.begin(ref); assert.equal(edit.preview(-10), start - 10); edit.finish(false); assert.equal(history.undoCount, 1);
     history.undo(); assert.equal(model.snapshot(), before);
 });
-test('reach badge follows profile limits and can be cancelled without a checkpoint', () => {
+test('reach badge edits the project max reach, stops at its limits and cancels without a checkpoint', () => {
     const { model, edit, history } = fixture(), ref = { kind: 'reach' } as const;
+    assert.equal(edit.read(ref), null, 'no max reach set: nothing to edit');
+    model.scene.maxReach = 185;
     const before = model.snapshot();
-    edit.begin(ref); assert.equal(edit.preview(1000), 210); edit.finish(true);
+    edit.begin(ref); assert.equal(edit.preview(1000), 250); edit.finish(true);
     assert.equal(model.snapshot(), before); assert.equal(history.undoCount, 0);
-    model.activeCabinet().state.profile.accessible = true;
-    const locked = edit.read(ref); edit.begin(ref); assert.equal(edit.preview(5), locked); assert.equal(edit.finish(false), false);
+    edit.begin(ref); assert.equal(edit.preview(-500), 100); edit.preview(15); edit.finish(false);
+    assert.equal(model.scene.maxReach, 200); assert.equal(model.activeCabinet().state.profile.reachStd, 200); assert.equal(history.undoCount, 1);
 });

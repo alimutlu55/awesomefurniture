@@ -100,3 +100,14 @@ svg.kitchen-art{filter:none}
 .kitchen-group:first-child{margin-top:0}
 /* The bottom edge of a fitting resizes its height like the top edge. */
 .item-resize-handle[data-edge="bottom"]{cursor:ns-resize}
+#menu .mi.reach-menu-row{display:flex;align-items:center;gap:10px;cursor:default}
+#menu .reach-menu-row>span:first-of-type{flex:1;min-width:0;white-space:nowrap}
+#menu .reach-field{display:inline-flex;align-items:center;gap:4px;flex:none}
+#menu .reach-field input{width:56px;height:32px;min-height:0;box-sizing:border-box;font:inherit;font-size:13px;padding:0 4px;text-align:center;border:1px solid var(--line,#d9cfbd);border-radius:8px;background:transparent;color:inherit}
+#menu .reach-menu-row.is-off .reach-field{opacity:.4}
+#menu .reach-menu-row .reach-switch{flex:none;width:38px;min-width:0;box-sizing:border-box;height:20px;border:0;border-radius:10px;padding:2px;background:var(--line,#d9cfbd);cursor:pointer;display:inline-flex;align-items:center;min-height:0}
+@media (min-width:769px){#app #menu:has(.reach-menu-row){width:284px!important;min-width:284px!important}}
+#menu .reach-switch i{flex:none;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .12s}
+#menu .reach-menu-row .reach-switch[aria-checked="true"]{background:var(--ink,#3d3528)}
+#menu .reach-switch[aria-checked="true"] i{transform:translateX(16px)}
+#menu .reach-switch:focus-visible,#menu .reach-field input:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:2px}

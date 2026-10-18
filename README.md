@@ -94,7 +94,7 @@ doors, measurements, Undo and saved projects follow it. See
 
 ## Smarter Auto design
 
-Auto design shows clothing quantities and **Max reach**, followed by storage ideas.
+Auto design shows clothing quantities, followed by storage ideas; **Max reach** is a project setting in the three-dot menu (off by default, one height for every wardrobe and cabinet).
 Independent archetype searches use existing fittings and divider cuts, recover usable
 gaps and show Best Overall plus up to three specialists. Specialists must improve
 their hero metric by at least 15% and pass structural diversity and quality floors.

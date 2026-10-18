@@ -78,9 +78,6 @@ interface EditorControls {
     "#section-count": HTMLElementTagNameMap["span"];
     "#sec-plus": HTMLElementTagNameMap["button"];
     "#section-diagram": HTMLElementTagNameMap["div"];
-    "#wardrobe-reach-line": HTMLElementTagNameMap["input"];
-    "#reach-height-row": HTMLElementTagNameMap["span"];
-    "#wardrobe-reach": HTMLElementTagNameMap["input"];
     "#fins": HTMLElementTagNameMap["div"];
     "#open": HTMLElementTagNameMap["button"];
     "#reset-all": HTMLElementTagNameMap["button"];
@@ -113,8 +110,6 @@ interface EditorControls {
     "#need-folded": HTMLElementTagNameMap["input"];
     "#need-shoes": HTMLElementTagNameMap["input"];
     "#need-small": HTMLElementTagNameMap["input"];
-    "#reach": HTMLElementTagNameMap["input"];
-    "#reach-value": HTMLElementTagNameMap["b"];
     "#ideas-count": HTMLElementTagNameMap["span"];
     "#ideas-note": HTMLElementTagNameMap["p"];
     "#ideas": HTMLElementTagNameMap["div"];

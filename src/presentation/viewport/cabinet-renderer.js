@@ -235,7 +235,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
         positionLabels();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+    const { buildCabinet } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
         const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
@@ -353,6 +353,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                     x = ox;
                     y = oy;
                 }
+                else if (l.el.classList.contains('reach-dimension')) { x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, bx)); y = by - eh / 2; } // stays readable on a phone
                 else {
                     // Keep the guide, but never clamp an out-of-frame label over the wardrobe.
                     l.el.style.display = 'none';

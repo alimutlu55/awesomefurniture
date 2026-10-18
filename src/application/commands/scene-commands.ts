@@ -9,6 +9,8 @@ import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
 import { createFillCommands } from './fill-commands';
+import { createReachCommands } from './reach-commands';
+import { applyMaxReach } from '../../domain/wardrobe/max-reach';
 import { createKitchenCommands } from './kitchen-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
@@ -93,6 +95,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         ...kitchen,
         ...align,
         ...fill,
+        ...createReachCommands(getScene, { checkpoint, report }),
         /** Room edits reshape the wardrobes under any ceiling they move. */
         placeStudio(id: Parameters<typeof studio.placeStudio>[0]) {
             const ok = studio.placeStudio(id);
@@ -146,6 +149,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             createDesignCommands(() => cabinet.state, { report }).fitToShape();
             checkpoint();
+            applyMaxReach(cabinet.state, scene.maxReach);
             scene.wardrobes.push(cabinet);
             scene.activeWardrobe = id;
             scene.nextWardrobeId++;

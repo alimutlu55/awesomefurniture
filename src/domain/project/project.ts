@@ -10,6 +10,8 @@ export interface ProjectDocument {
   readonly wardrobes: readonly Wardrobe[];
   /** The room the wardrobes stand in. Absent: no room, wardrobes on an open floor. */
   readonly studio?: Studio | undefined;
+  /** The highest a person comfortably reaches, in centimetres, for the whole project. Absent: not set. */
+  readonly maxReach?: number | undefined;
 }
 
 export function projectName(value: string): string {

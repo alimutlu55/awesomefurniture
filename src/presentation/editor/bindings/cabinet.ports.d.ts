@@ -15,34 +15,6 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setFinish'>>;
 }
 
-export interface BindReachChangePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'reachUI'>>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setWardrobeReach'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindReachBlurPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'reachUI'>>;
-readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet'>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setWardrobeReach'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindReachEnterPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'reachUI'>>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setWardrobeReach'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindReachLineTogglePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setReachLine'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
 export interface BindDoorChoicePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setDoors'>>;

@@ -30,7 +30,6 @@ const actions = {
 export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m)]));
 /** The More menu of each kind of furniture, by its furniture kind. */
 export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
-export const defaultWardrobeMoreActions = [['reach', 'Max reach size']];
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [['door', 'Door'], ['window', 'Window'], ['archway', 'Archway']];
 export const wallMoreActions = [...studioMoreActions, ['remove', 'Remove wall']];

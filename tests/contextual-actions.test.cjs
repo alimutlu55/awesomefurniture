@@ -17,7 +17,6 @@ test('every kind of furniture has the same More: duplicate, reset, remove',()=>{
  assert.deepEqual(wardrobeMoreActions,furnitureMoreActions.wardrobe);
 });
 test('no toolbar offers Move: furniture, an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});
-test('default Wardrobe More owns Max reach size',()=>assert.deepEqual(require('../src/domain/wardrobe/contextual-actions.js').defaultWardrobeMoreActions,[['reach','Max reach size']]));
 test('item More exposes its storage purpose; Replace is a tool',()=>assert.deepEqual(itemMoreActions,[['stores','Stores']]));
 const {wallMoreActions,studioMoreActions,fieldActions}=require('../src/domain/wardrobe/contextual-actions.js');
 test('a selected wall offers Size and Split directly, with Door and Window in More',()=>{

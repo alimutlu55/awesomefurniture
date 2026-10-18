@@ -106,16 +106,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         const left = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, i).reduce((a, b) => a + b + PANEL, 0);
         model.activeCabinet().state.space = { i, x: point.x - left, y: point.y };
     }
-    function reachUI() {
-        const p = model.activeCabinet().state.profile, input = $('#wardrobe-reach');
-        input.value = String(p.reach);
-        input.disabled = !!p.accessible;
-        input.min = p.accessible ? '100' : '140';
-        $('#wardrobe-reach-line').checked = !!(model.activeCabinet().state.reachLine ?? p.engaged);
-        input.title = p.accessible ? 'Seated reach is fixed at 122 cm. Change it in Auto design.' : 'Maximum comfortable reach height';
-        const enabled = !!(model.activeCabinet().state.reachLine ?? p.engaged);
-        $('#reach-height-row').hidden = !enabled;
-    }
     function measurementUI() {
         const control = document.querySelector('#studio-measure');
         if (control) {
@@ -141,7 +131,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         syncResponsive();
         wardrobeUI();
         measurementUI();
-        reachUI();
         const s = geometry.stats(), f = geometry.free(model.activeCabinet().state.sel), ws = geometry.widths(), mn = geometry.maxN();
         $('#sliders').querySelectorAll('input').forEach(i => {
             const key = i.dataset.dimension || dom.controlId(i), cabinet = model.activeCabinet(), value = key === 'y' ? cabinet.y || 0 : cabinet.state[key];
@@ -394,7 +383,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
                 // Boards and front follow the top's angle; the working part keeps a full rectangle.
                 rows.splice(1, 0, ['Cut to the top', 'angled · usable ' + f(q.core.w) + ' × ' + f(q.core.h) + unitSuffix()]);
             }
-            if (model.activeCabinet().state.profile.engaged) {
+            if (model.activeCabinet().state.profile.engaged && model.scene.maxReach !== undefined) {
                 rows.push(['Max reach', f(model.activeCabinet().state.profile.reach) + unitSuffix()], ['Access height', f(A.height) + unitSuffix() + (A.height > model.activeCabinet().state.profile.reach + .03 ? ' · above max reach' : '')]);
                 if (A.limit) {
                     rows.push(['Comfortable access limit', f(A.limit) + unitSuffix()]);
@@ -406,5 +395,5 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#ifin').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.f || null) === (it.f || null)));
         syncResizeFields(p);
     }
-    return { syncResponsive, selectCabinet, addCabinet, wardrobeUI, histUI, editableItemClearance, selectSpaceAt, reachUI, measurementUI, editableDividerClearance, dividerUI, movementUI, reopenItemPanel, closeItemMenus, itemAction, placeFloating, placeItemTypeMenu, updateItemBar, ui, inside, goUp, crumbUI, clearFocus, update, sectionsUI, openPillMenu, renderAddChoices, undo, redo, setCabinetPose, sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop, itemUI, divWord, bar, hidePop };
+    return { syncResponsive, selectCabinet, addCabinet, wardrobeUI, histUI, editableItemClearance, selectSpaceAt, measurementUI, editableDividerClearance, dividerUI, movementUI, reopenItemPanel, closeItemMenus, itemAction, placeFloating, placeItemTypeMenu, updateItemBar, ui, inside, goUp, crumbUI, clearFocus, update, sectionsUI, openPillMenu, renderAddChoices, undo, redo, setCabinetPose, sideFor, layoutPop, dockPop, syncMin, placePop, showPop, popUI, swapPop, itemUI, divWord, bar, hidePop };
 }

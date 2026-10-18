@@ -49,7 +49,7 @@ the old surplus-space policy below. Generated cabinets receive explicit adjustab
 storage, and recovery coalesces fragmented clear rectangles before fitting them.
 
 Auto design uses the existing fitting catalog and inputs. Inventory quantities,
-jackets/coats subcounts and **Max reach** remain unchanged. Input edits regenerate
+jackets/coats subcounts remain unchanged (Max reach comes from the project setting in the menu). Input edits regenerate
 ideas automatically. Saved planning preferences, measured boxes and growth allowance
 are preserved. Search works in millimetres and returns the existing centimetre model.
 

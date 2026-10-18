@@ -8,7 +8,7 @@ import { createResizePresenter } from './resize-presenter.js';
 import { mountResizeFields } from './resize-fields.js';
 import { bindDividerClose, bindDividerGap, bindDividerHeight, bindDividerRemove, bindDividerDragMove, bindDividerDragEnd, bindDividerDragCancel, bindDividerDragBlur, bindDividerDragEscape } from './bindings/divider.js';
 import { bindSecMinus, bindSecPlus, bindSectionDiagram } from './bindings/sections.js';
-import { bindCabinetDimensions, bindFinishSwatches, bindReachChange, bindReachBlur, bindReachEnter, bindReachLineToggle, bindDoorChoice, renderDoorChoices, bindDoorsOpenToggle, bindWardrobeSelect, bindWardrobeAdd, bindResetAll } from './bindings/cabinet.js';
+import { bindCabinetDimensions, bindFinishSwatches, bindDoorChoice, renderDoorChoices, bindDoorsOpenToggle, bindWardrobeSelect, bindWardrobeAdd, bindResetAll } from './bindings/cabinet.js';
 import { bindPillAddMenu, bindPillMenuDismiss, bindAddPanel } from './bindings/add-menu.js';
 import { bindUndoButton, bindRedoButton, bindEditShortcuts } from './bindings/history.js';
 import { bindItemResizeEscape, bindItemResizeBlur, bindItemDimensions, bindItemPanelClose, bindItemPanel, populateStoragePurposes, bindItemPurpose } from './bindings/item.js';
@@ -71,10 +71,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindSectionDiagram({ dom, inspector, model, lifetime });
     bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
     bindFinishSwatches({ dom, commands });
-    bindReachChange({ dom, inspector, commands, lifetime });
-    bindReachBlur({ dom, inspector, model, commands, lifetime });
-    bindReachEnter({ dom, inspector, commands, lifetime });
-    bindReachLineToggle({ dom, commands, lifetime });
     bindPillAddMenu({ dom, commands, elements });
     bindPillMenuDismiss({ dom, lifetime, elements });
     bindDoorChoice({ dom, commands });
@@ -175,10 +171,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     const body = $('#left-body');
     let group;
     for (const child of [...body.children]) {
-        if (child.tagName === 'H2' || !group || child.classList.contains('reach-row') || child.classList.contains('reset-row')) {
+        if (child.tagName === 'H2' || !group || child.classList.contains('reset-row')) {
             group = document.createElement('section');
             const label = child.textContent.trim();
-            group.dataset.wardrobeControls = child.classList.contains('reach-row') ? 'reach' : child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Shape:'shape',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
+            group.dataset.wardrobeControls = child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Shape:'shape',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
             body.insertBefore(group,child);
         }
         group.append(child);
@@ -218,7 +214,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         sizeTabs.append(tab);
     }
     $('#left-body').prepend(sizeTabs);
-    const sectionTitles = { resize: 'Size', shape: 'Size', sections: 'Sections', material: 'Finish', doors: 'Doors', fronts: 'Fronts', reach: 'Max Reach' };
+    const sectionTitles = { resize: 'Size', shape: 'Size', sections: 'Sections', material: 'Finish', doors: 'Doors', fronts: 'Fronts' };
     const openControls = key => {
         if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === key) {
             animateMobileSheetClose($('#left'));

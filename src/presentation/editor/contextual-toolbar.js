@@ -1,4 +1,4 @@
-import { contextualActions, furnitureMenus, wardrobeMoreActions, defaultWardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
+import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
@@ -37,20 +37,13 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),walls:icon('room-wall')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
-        shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),reach:icon('reach'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
+        shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
     const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
         : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : undefined;
     const opensMenu = key => key === 'more' || key === 'interior' || key === 'replace';
-    const defaultMore = document.createElement('button');
-    defaultMore.type = 'button'; defaultMore.className = 'tb'; defaultMore.dataset.action = 'more';
-    defaultMore.setAttribute('aria-label', 'More'); defaultMore.setAttribute('aria-haspopup', 'menu');
-    defaultMore.setAttribute('aria-expanded', 'false');
-    defaultMore.innerHTML = icon('more') + '<span>More</span>';
-    defaultMore.onclick = () => showMenu(defaultWardrobeMoreActions, defaultMore);
-    defaults.append(defaultMore);
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();
@@ -133,8 +126,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             return b;
         }));
     };
-    lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target) && !defaultMore.contains(e.target)) close(); });
-    lifetime.listen(app, 'keydown', e => { if (e.key === 'Escape' && !menu.hidden) {close(); (context === 'none' ? defaultMore : row.querySelector('[aria-haspopup="menu"]'))?.focus();} });
+    lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target)) close(); });
+    lifetime.listen(app, 'keydown', e => { if (e.key === 'Escape' && !menu.hidden) {close(); row.querySelector('[aria-haspopup="menu"]')?.focus();} });
     lifetime.listen(menu, 'keydown', e => {
         if (e.key !== 'Escape' || menu.getAttribute('role') !== 'dialog') return;
         e.preventDefault(); e.stopPropagation(); close(); menuTrigger?.focus();

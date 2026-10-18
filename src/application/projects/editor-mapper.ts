@@ -11,8 +11,8 @@ import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
 
 export function sceneToProject(project: ProjectDocument, scene: EditorScene): ProjectDocument {
- const {studio: _previousStudio,...base}=project;
- return {...base, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), wardrobes: scene.wardrobes.map(cabinet=>{
+ const {studio: _previousStudio,maxReach: _previousReach,...base}=project;
+ return {...base, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), ...(scene.maxReach===undefined?{}:{maxReach:scene.maxReach}), wardrobes: scene.wardrobes.map(cabinet=>{
   const s=cabinet.state, weights=s.wt.slice(0,s.n), total=weights.reduce((a,b)=>a+b,0);
   const widths=weights.map(w=>(s.w-(s.n+1)*PANEL)*w/total);
   const prefix=`${project.id}/cabinet/${cabinet.id}`;
@@ -48,7 +48,11 @@ export function startingScene(): EditorScene {
 }
 export function projectToScene(project: ProjectDocument): EditorScene | undefined {
  // A room whose wardrobes were all removed stays empty. An empty project with no room starts with one wall, so the user picks furniture to add.
- if (!project.wardrobes.length) return project.studio ? {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:structuredClone(project.studio)} : startingScene();
+ const reach = project.maxReach===undefined?{}:{maxReach:project.maxReach};
+ if (!project.wardrobes.length) {
+  const empty: EditorScene = project.studio ? {wardrobes:[],activeWardrobe:0,nextWardrobeId:1,studio:structuredClone(project.studio)} : startingScene();
+  return {...empty,...reach};
+ }
  const wardrobes=project.wardrobes.map((w,index)=>{
   const layout=w.editorLayout;
   const {budget: _budget,...profile}=w.preferences;
@@ -68,7 +72,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};
  });
- return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{})};
+ return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
 }
 
 /** Selection, open doors, and the next ID counter are transient UI state. */

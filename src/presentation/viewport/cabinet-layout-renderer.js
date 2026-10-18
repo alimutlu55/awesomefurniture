@@ -16,7 +16,7 @@ import { fittingPanels } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
-export function createCabinetLayoutRenderer({ dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
     const { shapeHandle, splitHandle, shapeHandlePool, splitPool } = createShapeHandleButtons({ document, shapeInspector });
@@ -136,7 +136,7 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             }
         };
         const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
-        const itemDims = (i, j) => drawItemDims(i, j, w, d, h, getRenderDesign().profile?.reach);
+        const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
         let x = -w / 2 + PANEL;
         ws.forEach((sw, i) => {
             // While the skeleton is edited on a phone, the model shows only the panels and their handles.
@@ -341,14 +341,17 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
             // The wardrobe depth remains available on the model alongside width and height.
             dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + measureNumber(d) + unitSuffix(), 'lbl dim dimension-scrubber scrub-d');
         }
-        if (renderState.renderActive && (getRenderDesign().reachLine ?? getRenderDesign().profile.engaged)) {
-            const reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5), new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
+        // The project's max reach, where it matters: on the selected piece when it rises to that height (a wall unit's floor
+        // may be above it; a base unit never reaches it).
+        const reach = maxReach(), cabinetY = renderState.renderCabinet?.y || 0;
+        if (renderState.renderActive && reach !== undefined && cabinetY + h >= reach - 25) {
+            const ry = reach - cabinetY, reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, ry, d / 2 + 5), new V(w / 2 + 5, ry, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
             reachLine.computeLineDistances();
             reachLine.renderOrder = 15;
             renderState.Gr.add(reachLine);
-            const reachLabel = label(new V(w / 2 + 5, getRenderDesign().profile.reach, d / 2 + 5), 'Reach ' + measureNumber(getRenderDesign().profile.reach) + unitSuffix(), 'lbl dim reach-dimension');
-            if (!getRenderDesign().profile.accessible) sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Reach height', getRenderDesign().profile.reach, 'vertical', 140, 210);
-            renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, getRenderDesign().profile.reach, d / 2 + 5);
+            const reachLabel = label(new V(w / 2 + 5, ry, d / 2 + 5), 'Max reach ' + measureNumber(reach) + unitSuffix(), 'lbl dim reach-dimension');
+            sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Max reach height', reach, 'vertical', 100, 250);
+            renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, ry, d / 2 + 5);
         }
         const lg = new THREE.BufferGeometry().setFromPoints(lp), ls = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, transparent: true, opacity: .65, depthTest: false }));
         ls.renderOrder = 10;

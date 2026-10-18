@@ -79,7 +79,7 @@ export function bindPlanPanel({ dom, shell, lifetime }) {
 export function bindDocumentFocusin({ dom, camera, lifetime }) {
     const { document } = dom;
     lifetime.listen(document, 'focusin', e => {
-        if (e.target.matches('#sliders input,#wardrobe-reach,#ih,#iw,.measurement-badge input')) {
+        if (e.target.matches('#sliders input,#ih,#iw,.measurement-badge input')) {
             camera.camRelease();
         }
     });

@@ -2,7 +2,7 @@ import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
 import { FIN } from '../../../domain/wardrobe/catalog.js';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 import { measureNumber, unitSuffix } from '../editor-format.js';
-/** Whole-wardrobe controls: size, finish, reach, doors, wardrobe list, reset.
+/** Whole-wardrobe controls: size, finish, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
 export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
@@ -49,45 +49,6 @@ export function bindFinishSwatches({ dom, commands }) {
         b.onclick = () => commands.setFinish(/** @type {import('../../../domain/wardrobe/editor-design').EditorDesign['fin']} */ (n));
         $('#fins').appendChild(b);
     });
-}
-/** @param {import('./cabinet.ports').BindReachChangePorts} ports */
-export function bindReachChange({ dom, inspector, commands, lifetime }) {
-    const { $ } = dom;
-    lifetime.listen($('#wardrobe-reach'), 'change', e => {
-        commands.setWardrobeReach(e.target.valueAsNumber);
-        inspector.reachUI();
-    });
-}
-/** @param {import('./cabinet.ports').BindReachBlurPorts} ports */
-export function bindReachBlur({ dom, inspector, model, commands, lifetime }) {
-    const { $ } = dom;
-    lifetime.listen($('#wardrobe-reach'), 'blur', e => {
-        if (Number.isFinite(e.target.valueAsNumber) && e.target.valueAsNumber !== model.activeCabinet().state.profile.reach) {
-            commands.setWardrobeReach(e.target.valueAsNumber);
-        }
-        inspector.reachUI();
-    });
-}
-/** @param {import('./cabinet.ports').BindReachEnterPorts} ports */
-export function bindReachEnter({ dom, inspector, commands, lifetime }) {
-    const { $ } = dom;
-    lifetime.listen($('#wardrobe-reach'), 'keydown', e => {
-        if (e.key === 'Enter') {
-            commands.setWardrobeReach(e.target.valueAsNumber);
-            inspector.reachUI();
-            e.target.blur();
-        }
-        else if (e.key === 'Escape') {
-            e.stopPropagation();
-            inspector.reachUI();
-            e.target.blur();
-        }
-    });
-}
-/** @param {import('./cabinet.ports').BindReachLineTogglePorts} ports */
-export function bindReachLineToggle({ dom, commands, lifetime }) {
-    const { $ } = dom;
-    lifetime.listen($('#wardrobe-reach-line'), 'change', e => commands.setReachLine(e.target.checked));
 }
 /** @param {import('./cabinet.ports').BindDoorChoicePorts} ports */
 export function bindDoorChoice({ dom, commands }) {

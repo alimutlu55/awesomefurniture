@@ -69,9 +69,6 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         }
         syncValue('#jackets', p.jackets ?? 0);
         syncValue('#coats', p.coats ?? 0);
-        syncValue('#reach', p.reachStd ?? p.reach ?? 185);
-        $('#reach').disabled = !!p.accessible;
-        $('#reach-value').textContent = measureNumber(p.reach) + unitSuffix() + (p.accessible ? ' · seated' : '');
         WardrobePlanner.configure(p);
     }
     function readPreferences() {
@@ -84,7 +81,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             needs[k] = bounded('#need-' + k, 0, possession(k)?.need.max ?? 80, model.activeCabinet().state.profile.needs[k] ?? 0);
         }
         const p = model.activeCabinet().state.profile;
-        const reachStd = bounded('#reach', 140, 210, p.reachStd ?? p.reach ?? 185);
+        const reachStd = p.reachStd ?? p.reach ?? 185;
         return { ...p, reach: p.accessible ? 122 : reachStd, reachStd, needs, jackets: bounded('#jackets', 0, needs.short, 0), coats: bounded('#coats', 0, needs.long, 0), engaged: true };
     }
     function refreshIdeas(read = false) {
@@ -222,9 +219,6 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             return;
         }
         lifetime.cancelTimeout(plannerState.ideasTimer);
-        const p = model.activeCabinet().state.profile;
-        const reach = readPreferences().reach;
-        $('#reach-value').textContent = measureNumber(reach) + unitSuffix() + (p.accessible ? ' · seated' : '');
         if (event?.type === 'input' && /** @type {HTMLInputElement} */ (event.target).type === 'range') {
             plannerState.ideasTimer = null;
             return;

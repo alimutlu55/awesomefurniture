@@ -5,6 +5,7 @@ import { createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { arrayPoses, besidePose, isKitchenUnit, kitchenRuns, stackedPose, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
+import { applyMaxReach } from '../../domain/wardrobe/max-reach';
 import { roomHeight, wallLine } from '../../domain/studio/studio';
 import { standsAgainst } from '../../domain/studio/studio-placement';
 
@@ -64,6 +65,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
   function add(cabinet: EditorCabinet): EditorCabinet {
     const scene = getScene();
     checkpoint();
+    applyMaxReach(cabinet.state, scene.maxReach);
     scene.wardrobes.push(cabinet);
     scene.activeWardrobe = cabinet.id;
     scene.nextWardrobeId = Math.max(scene.nextWardrobeId, cabinet.id + 1);
@@ -130,6 +132,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       }
       if (!copies.length) return 0;
       if (recordHistory) checkpoint();
+      for (const copy of copies) applyMaxReach(copy.state, scene.maxReach);
       scene.wardrobes.push(...copies);
       scene.nextWardrobeId += copies.length;
       return copies.length;

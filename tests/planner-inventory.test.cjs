@@ -11,11 +11,11 @@ async function fixture(){
  const presenter=createPlannerPresenter({dom:{$:key=>{assert.ok(elements[key],`Removed control queried: ${key}`);return elements[key]}},model:{activeCabinet:()=>({state:{profile}})},plannerState:{ideasTimer:null},lifetime:{cancelTimeout(){},timeout(callback,ms){delay=ms;return 1}}});
  return {presenter,profile,elements,getDelay:()=>delay};
 }
-test('Auto design contains inventory controls with Max reach but without other advanced settings or explanatory sections',()=>{
+test('Auto design contains inventory controls but without other advanced settings or explanatory sections',()=>{
  const html=readFileSync(new URL('../src/presentation/editor/editor.html',`file://${__filename}`),'utf8');
  assert.doesNotMatch(html,/Advanced settings|id="(?:long-drop|density|density-note|growth|accessible|composition-pref|box-width|box-height|box-depth|upper-pref|drawer-pref|allow-lift)"/);
  assert.doesNotMatch(html,/id="generate-ideas"|Find storage ideas/);
- assert.match(html,/id="reach"/);
+ assert.doesNotMatch(html,/id="reach"|wardrobe-reach/,'Max reach is a project setting in the menu');
  assert.doesNotMatch(html,/Your current cabinet size stays fixed|Where these ideas come from|Dashed line =|id="preferences-note"/);
 });
 test('inventory edits preserve saved planning preferences without querying removed controls',async()=>{
@@ -33,15 +33,12 @@ test('inventory changes still schedule new proposals without advanced controls',
  assert.match(elements['#ideas-count'].textContent,/updating/);
 });
 
-test('Max reach edits are bounded and update planning reach while retaining other preferences',async()=>{
- const {presenter,profile,elements}=await fixture();
- profile.accessible=false;profile.reach=185;
- presenter.syncPreferences();
- elements['#reach'].value='195';
- assert.deepEqual(presenter.readPreferences(),{...profile,reach:195,reachStd:195,engaged:true});
- elements['#reach'].value='999';assert.equal(presenter.readPreferences().reach,210);
- elements['#reach'].value='';assert.equal(presenter.readPreferences().reach,185);
- presenter.markIdeasDirty();assert.equal(elements['#reach-value'].textContent,'185 cm');
+test('Auto design plans for the project reach and keeps the seated reach',async()=>{
+ const {presenter,profile}=await fixture();
+ profile.accessible=false;profile.reach=195;profile.reachStd=195;
+ assert.deepEqual(presenter.readPreferences(),{...profile,engaged:true});
+ profile.accessible=true;
+ assert.equal(presenter.readPreferences().reach,122);assert.equal(presenter.readPreferences().reachStd,195);
 });
 
 test('wizard input and change events refresh ideas automatically without a generate button',async()=>{
@@ -91,14 +88,3 @@ test('debounced refresh preserves an unfinished focused quantity and commits the
  assert.equal(shoes.value,'12','normalize once editing finishes');
 });
 
-test('dragging Max reach only moves its label; recommendations wait for release',async()=>{
- const {presenter,getDelay,elements,profile}=await fixture();
- profile.accessible=false;
- elements['#reach'].value='190';
- const range={type:'range'};
- presenter.markIdeasDirty({type:'input',target:range});
- assert.equal(getDelay(),undefined,'no recalculation is scheduled while dragging');
- assert.match(elements['#reach-value'].textContent,/190 cm/);
- presenter.markIdeasDirty({type:'change',target:range});
- assert.equal(getDelay(),350,'release schedules the recalculation');
-});

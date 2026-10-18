@@ -15,4 +15,6 @@ export interface EditorScene {
   wardrobes: EditorCabinet[]; activeWardrobe: number; nextWardrobeId: number;
   /** The room around the wardrobes. Absent: an open floor. */
   studio?: Studio | undefined;
+  /** The project's max reach height (cm), shared by every wardrobe and cabinet in it. Absent: not set. */
+  maxReach?: number | undefined;
 }

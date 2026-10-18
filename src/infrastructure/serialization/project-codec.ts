@@ -144,7 +144,7 @@ const studio = z.strictObject({
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });
 const projectSchema = z.strictObject({
-  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(),
+  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
 }).superRefine((project, context) => {
   const ids = new Set<string>([project.id]);
   const cabinetIds = new Set<number>();
