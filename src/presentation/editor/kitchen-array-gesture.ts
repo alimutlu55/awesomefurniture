@@ -12,7 +12,7 @@ type Side = 1 | -1;
 interface KitchenArrayPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'activeCabinet' | 'snapshot' | 'restore'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'arrayKitchenUnit' | 'closeRunGap'>>;
+  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'arrayKitchenUnit'>>;
   readonly history: { checkpoint(snapshot: string): void };
   /** The editor lifetime's timers (editor-lifetime.js), so a pending hold stops with the editor. */
   readonly lifetime: { timeout(fn: () => void, delay: number): unknown; cancelTimeout(id: never): void };
@@ -104,19 +104,6 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     callbacks.added();
   }
 
-  /** A tap on a grip where the run ends in a gap too small for a cabinet closes the gap instead (see fill-commands.ts). */
-  function closeGap(side: Side): boolean {
-    const g = gesture;
-    if (!g || !sceneCommands.closeRunGap(side, false)) return false;
-    gesture = null;
-    g.grip?.classList.remove('pulling');
-    history.checkpoint(g.snapshot);
-    callbacks.toast('Gap closed');
-    callbacks.finished();
-    callbacks.rebuild();
-    return true;
-  }
-
   function grip(side: Side) {
     let el = grips.get(side);
     if (el) return el;
@@ -125,7 +112,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     el.className = 'lbl array-grip';
     el.dataset.side = side > 0 ? 'right' : 'left';
     el.setAttribute('aria-label', 'Pull to add cabinets on the ' + (side > 0 ? 'right' : 'left'));
-    el.title = 'Drag outwards to add copies of this cabinet · Click to add one, or to close a gap too small for one';
+    el.title = 'Drag outwards to add copies of this cabinet · Click to add one';
     el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>';
     const button = el;
     button.onpointerdown = e => {
@@ -139,7 +126,6 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
       if (gesture?.grip !== button) return;
       if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
       // A click without a pull adds one copy on that side.
-      if (!gesture.count && closeGap(side)) return;
       if (!gesture.count) gesture.count = sceneCommands.arrayKitchenUnit(1, side, false);
       end();
     };
@@ -147,7 +133,7 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     button.onkeydown = e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      if (begin(0, 0, side) && !closeGap(side)) { gesture!.count = sceneCommands.arrayKitchenUnit(1, side, false); end(); }
+      if (begin(0, 0, side)) { gesture!.count = sceneCommands.arrayKitchenUnit(1, side, false); end(); }
     };
     grips.set(side, button);
     return button;

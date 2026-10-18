@@ -1,8 +1,6 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { FILL_REACH, measureAround } from './align-commands';
-import { isKitchenUnit, kitchenRuns } from '../../domain/kitchen/kitchen-runs';
-import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 
 interface Ports {
   getScene(): EditorScene;
@@ -35,32 +33,6 @@ export function createFillCommands({ getScene, active, checkpoint, discardCheckp
       if (resize(Math.floor((cabinet.state.w + space) * 10 + 1e-6) / 10)) return true;
       Object.assign(cabinet, before);
       discardCheckpoint();
-      return false;
-    },
-    /** A gap at an end of the selected unit's run that is too small for any cabinet (less than the narrowest unit) is closed
-     * by making the unit at that end wider, rather than leaving a sliver: the far side stays where it is. `side` 1 is the
-     * run's right end, -1 its left. False when there is no such gap (none, or room for a cabinet), or the unit cannot grow that
-     * far. `recordHistory` false leaves the undo step to the caller. */
-    closeRunGap(side: 1 | -1, recordHistory = true): boolean {
-      const selected = active();
-      if (!selected || !isKitchenUnit(selected)) return false;
-      const level = getScene().wardrobes.filter(c => isKitchenUnit(c) && Math.abs((c.y || 0) - (selected.y || 0)) < .5);
-      const run = kitchenRuns(level).find(r => r.some(c => c.id === selected.id)) ?? [selected], last = (side > 0 ? run[run.length - 1] : run[0])!;
-      const end = getScene().wardrobes.find(c => c.id === last.id);
-      if (!end) return false;
-      const name = side > 0 ? 'right' : 'left', gap = measureAround(getScene(), end, [name]).gaps.find(g => g.side === name)?.distance;
-      const [narrowest, widest] = kitchenUnit(end.state.unit).sizes.w;
-      if (gap === undefined || gap <= .05 || gap >= narrowest) return false;
-      const width = Math.floor((end.state.w + gap) * 10 + 1e-6) / 10;
-      if (width > widest) return false;
-      const turn = end.angle * Math.PI / 180, shift = side * (width - end.state.w) / 2, before = { x: end.x, z: end.z }, was = getScene().activeWardrobe;
-      if (recordHistory) checkpoint();
-      getScene().activeWardrobe = end.id;
-      end.x += Math.cos(turn) * shift; end.z -= Math.sin(turn) * shift;
-      if (resize(width)) return true;
-      Object.assign(end, before);
-      getScene().activeWardrobe = was;
-      if (recordHistory) discardCheckpoint();
       return false;
     },
   };

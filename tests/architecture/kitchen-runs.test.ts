@@ -199,22 +199,3 @@ test('a unit put against a neighbour stays there however far out the view is zoo
   const free = scene(unit(1, 'base', 0), unit(2, 'base', 63));
   near(createSceneCommands(() => free).alignSnap(free.wardrobes[1]!, 6).x, 60, 'closes a free gap');
 });
-
-test('tapping + at the end of a run closes a gap too small for a cabinet by widening that unit', () => {
-  // Two base units 12 cm apart: too little for the narrowest (30 cm) cabinet, so the unit grows into it.
-  const s = scene(unit(1, 'base', 0), unit(2, 'base', 72));
-  let checkpoints = 0, discarded = 0;
-  const commands = createSceneCommands(() => s, { checkpoint: () => checkpoints++, discardCheckpoint: () => discarded++ });
-  assert.equal(commands.closeRunGap(1), true);
-  assert.equal(s.wardrobes[0]!.state.w, 72, 'grew by the gap');
-  near(s.wardrobes[0]!.x, 6, 'the far side stays where it was');
-  assert.equal(checkpoints, 1); assert.equal(discarded, 0);
-  assert.equal(commands.closeRunGap(1), false, 'nothing left to close');
-  // Room for a cabinet (30 cm or more) is not closed: the + adds one instead.
-  const wide = scene(unit(1, 'base', 0), unit(2, 'base', 100));
-  assert.equal(createSceneCommands(() => wide, { checkpoint: () => {} }).closeRunGap(1), false);
-  assert.equal(wide.wardrobes[0]!.state.w, 60);
-  // A gap the unit cannot grow across (past its widest) is left.
-  const big = scene({ ...unit(1, 'base', 0), state: { ...unit(1, 'base', 0).state, w: 140 } }, unit(2, 'base', 160));
-  assert.equal(createSceneCommands(() => big, { checkpoint: () => {} }).closeRunGap(1), false);
-});
