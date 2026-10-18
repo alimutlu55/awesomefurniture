@@ -74,12 +74,13 @@ naming the units it fits and how Add item ranks it. Traits carry the rules: `fro
 own front), `appliance` (a copy gets plain storage instead), `worktop` (sits in the worktop).
 
 Built-in appliances have a unit prepared for each (Cabinets panel, under *Sinks and appliances*): a sink unit,
-hob unit, hob and oven, dishwasher, under-counter fridge, microwave and cooker hood wall units, a freestanding
-**cooker** and an oven tower. There is one card per kind, never one per size. A cooker is a unit of its own
-(`appliance: true`): it stands in the run at worktop height with its hob on top, so no worktop runs over it, and a
-copy of it is a cooker. A tall fridge-freezer (190 cm, no cupboard above) and the fridge housing (215 cm, fridge
+hob unit, hob and oven, dishwasher, under-counter fridge, microwave and cooker hood wall units and an oven
+tower. There is one card per kind, never one per size. There is no freestanding cooker: a hob is a fitting in a
+base cabinet. A tall fridge-freezer (190 cm, no cupboard above) and the fridge housing (215 cm, fridge
 over a 25 cm cupboard, the usual way a 178 cm fridge-freezer is housed) differ only in the unit's height.
-Every one is resized with Size like any other cabinet (a 90 cm sink or hob unit is the same card at 90 cm).
+Every one is resized with Size like any other cabinet. A sink or hob is drawn as wide as its own fitting, wherever
+that stands in the bay: set the fitting's width and the sink or hob on the worktop follows, so a 90 cm cabinet can hold
+an 80 cm sink beside a 40 cm cupboard.
 
 Presets name a unit and its contents, and may give their own width and height (`size`): the lift-up wall
 cabinet is 80 × 40 cm and the microwave wall unit 60 × 50 cm, both wall units.

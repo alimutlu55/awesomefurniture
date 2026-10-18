@@ -20,7 +20,6 @@ export const KITCHEN_PRESETS = [
   { key: 'cooking', unit: 'base', name: 'Hob and oven', parts: [['oven', 4.3], ['hob', 1]] },
   { key: 'dishwasher', unit: 'base', name: 'Dishwasher', parts: [['dishwasher', 1]] },
   { key: 'fridge-under', unit: 'base', name: 'Under-counter fridge', parts: [['fridge', 1]] },
-  { key: 'cooker', unit: 'cooker', name: 'Cooker', parts: [['cooker', 1]] },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
   { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
   { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 48 } },
@@ -81,8 +80,7 @@ export function plainStorageFor(item: EditorItem, unitKey: KitchenUnitKey | unde
 export function duplicateKitchenDesign<T extends EditorDesign>(design: T): T {
   const copy = structuredClone(design);
   copy.secs = copy.secs.map(items => items.flatMap(item => {
-    // A cooker stands in the run as itself; in any other unit an appliance becomes plain storage.
-    if (!hasTrait(item.k, 'appliance') || kitchenUnit(copy.unit).appliance) return [item];
+    if (!hasTrait(item.k, 'appliance')) return [item];
     let y = item.y;
     // Same place in the bay: its width and alignment, and a pinned height stacks the parts from there.
     return plainStorageFor(item, copy.unit).map(plain => {

@@ -87,25 +87,6 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         box(Math.max(4, x1 - x0 - 6), Math.max(1.5, (y1 - y0) * .25), .4, cx, y0 + (y1 - y0) * .3, face + PANEL / 2 + .2, glass);
         break;
       }
-      case 'cooker': {
-        // A freestanding cooker: a steel body with the controls along the top, an oven door in glass with a handle, and
-        // a glass hob on top with four burners.
-        const fw = x1 - x0, front = face + PANEL / 2 + .2, top = y1;
-        panel(x0, x1, y0, y1, steel);
-        box(Math.max(4, fw - 8), Math.max(4, (y1 - y0) * .55), .4, cx, y0 + (y1 - y0) * .4, front, glass);
-        pull(Math.min(fw - 8, 60), cx, y0 + (y1 - y0) * .78);
-        for (let n = 0; n < 4; n++) box(2.4, 2.4, .6, cx - fw * .3 + n * fw * .2, y1 - 3, front, materials.M('#8a8f96', { metalness: .8, roughness: .3 }));
-        box(Math.max(4, fw - 6), .8, Math.max(4, d - 6), cx, top + .4, -1, glass);
-        const rings = [[-.25, -.22, 7.5], [.25, -.22, 6], [-.25, .22, 6], [.25, .22, 7.5]] as const;
-        for (const [rx, rz, r] of rings) {
-          const ring = new THREE.Mesh(new THREE.RingGeometry(r - 1.2, r, 28), materials.M('#8a8f96', { metalness: .8, roughness: .3 }));
-          ring.rotation.x = -Math.PI / 2;
-          ring.position.set(cx + rx * fw, top + .85, -1 + rz * (d - 6));
-          owned.push(ring.material as THREE.Material);
-          group.add(ring);
-        }
-        break;
-      }
       case 'microwave': {
         // A steel front: a dark glass window on the left, the controls in a column on the right, a handle between them.
         const fw = x1 - x0, front = face + PANEL / 2 + .2, win = fw * .68, wx = x0 + 3 + (win - 3) / 2;

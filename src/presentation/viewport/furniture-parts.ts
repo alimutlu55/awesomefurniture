@@ -68,8 +68,9 @@ export function spanSlab(span: { kind: string; x: number; z: number; y: number; 
 }
 
 /** A sink set in a worktop whose top is at `top`, centred on x over a space `w` wide, with its tap behind it. */
-export function sinkWithTap(parent: THREE.Object3D, x: number, top: number, w: number, z: number, m: { steel: THREE.Material; basin: THREE.Material; drain: THREE.Material }) {
-  const bw = Math.min(w - 8, 54), bd = 40;
+export function sinkWithTap(parent: THREE.Object3D, x: number, top: number, w: number, depth: number, z: number, m: { steel: THREE.Material; basin: THREE.Material; drain: THREE.Material }) {
+  // The bowl fills the fitting, leaving a rim; the tap stands behind it in the worktop's back strip.
+  const bw = Math.max(20, w - 8), bd = Math.max(24, Math.min(depth - 18, 46));
   partMesh(new THREE.BoxGeometry(bw, .3, bd), m.steel, parent, x, top + .15, z);
   partMesh(new THREE.BoxGeometry(bw - 4, .32, bd - 5), m.basin, parent, x, top + .16, z + .5);
   partMesh(new THREE.CylinderGeometry(1.8, 1.8, .34, 20), m.drain, parent, x, top + .17, z + .5);
@@ -84,8 +85,8 @@ export function sinkWithTap(parent: THREE.Object3D, x: number, top: number, w: n
 }
 
 /** A glass hob set in a worktop whose top is at `top`, centred on x over a space `w` wide, with four rings. */
-export function hob(parent: THREE.Object3D, x: number, top: number, w: number, z: number, m: { glass: THREE.Material; ring: THREE.Material }) {
-  const hw = Math.min(w - 4, 58), hd = 50;
+export function hob(parent: THREE.Object3D, x: number, top: number, w: number, depth: number, z: number, m: { glass: THREE.Material; ring: THREE.Material }) {
+  const hw = Math.max(20, w - 4), hd = Math.max(30, Math.min(depth - 8, 52));
   partMesh(new THREE.BoxGeometry(hw, .6, hd), m.glass, parent, x, top + .3, z);
   for (const [dx, dz, r] of [[-.25, -.22, 9], [.25, -.22, 7], [-.25, .22, 7], [.25, .22, 9]] as const) {
     const burner = partMesh(new THREE.RingGeometry(r - .6, r, 40), m.ring, parent, x + dx * hw, top + .62, z + dz * hd);

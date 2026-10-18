@@ -22,7 +22,7 @@ export function kitchenStorage(scene: readonly Unit[], selected: Unit) {
   const has = (kind: string) => items.some(it => it.k === kind);
   const notes: string[] = [];
   if (!has('sink')) notes.push('No sink yet: add one to a base cabinet with Add item.');
-  if (!has('hob') && !has('cooker')) notes.push('No hob yet: add one to a base cabinet, under the worktop.');
+  if (!has('hob')) notes.push('No hob yet: add one to a base cabinet, under the worktop.');
   const empty = kitchen.filter(u => !u.state.secs.slice(0, u.state.n).some(s => s.length)).length;
   if (empty) notes.push(empty + (empty === 1 ? ' cabinet is' : ' cabinets are') + ' still empty: select a space and use Add item.');
   return { drawers, doors, open, tall, appliances, worktop: Math.round(worktop), units, notes };

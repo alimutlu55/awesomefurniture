@@ -3,6 +3,7 @@ import { kitchenSpans, isKitchenUnit, type UnitPose } from '../../domain/kitchen
 import { hob, sinkWithTap, spanSlab } from './furniture-parts';
 import { WORKTOP, kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { hasTrait } from '../../domain/wardrobe/fittings';
+import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
 import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
@@ -40,7 +41,7 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   /** Section centres along a unit's width, cabinet-centred. */
   function sectionCentres(state: Unit['state']) {
     let x = -state.w / 2 + PANEL;
-    return sectionWidths(state).map(w => { const c = x + w / 2; x += w + PANEL; return { c, w }; });
+    return sectionWidths(state).map(w => { const left = x; x += w + PANEL; return { left, w }; });
   }
   function build(units: readonly Unit[]) {
     clear();
@@ -56,11 +57,14 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
       frame.position.set(unit.x, unit.y || 0, unit.z);
       frame.rotation.y = unit.angle * Math.PI / 180;
       unit.state.secs.slice(0, unit.state.n).forEach((items, i) => {
-        for (const it of items) {
-          if (!hasTrait(it.k, 'worktop')) continue;
-          if (it.k === 'sink') sinkWithTap(frame, centres[i]!.c, top, centres[i]!.w, WORKTOP.overhang / 2, { steel, basin, drain: glass });
-          else hob(frame, centres[i]!.c, top, centres[i]!.w, WORKTOP.overhang / 2, { glass, ring });
-        }
+        // A sink or hob is as wide as its own fitting, wherever that stands in the bay: change the fitting's width and it follows.
+        const places = WardrobePlanner.layoutSection(items, centres[i]!.w);
+        items.forEach((it, j) => {
+          if (!hasTrait(it.k, 'worktop')) return;
+          const at = places[j]!, c = centres[i]!.left + at.x0 + at.w / 2, z = WORKTOP.overhang / 2;
+          if (it.k === 'sink') sinkWithTap(frame, c, top, at.w, unit.state.d, z, { steel, basin, drain: glass });
+          else hob(frame, c, top, at.w, unit.state.d, z, { glass, ring });
+        });
       });
       if (frame.children.length) group.add(frame);
     }
@@ -71,7 +75,7 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     let next = '';
     for (const u of units) {
       const pose = [u.x, u.y || 0, u.z, u.angle].map(v => v.toFixed(2)), size = [u.state.w, u.state.h, u.state.d, u.state.n, u.state.wt.join(':')];
-      next += [u.id, ...pose, ...size, u.state.fin, u.state.unit, u.state.secs.map(s => s.map(it => it.k).join('.')).join('/')].join(',') + ';';
+      next += [u.id, ...pose, ...size, u.state.fin, u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
     }
     if (next === key) return;
     key = next;
