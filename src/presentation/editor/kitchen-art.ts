@@ -27,7 +27,7 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
     const h = inside * share / total * S, def = fitting(kind);
     y -= h;
     // An oven shows its own glass; every other front matches the unit.
-    const appliance = kind === 'oven' || kind === 'microwave';
+    const appliance = kind === 'oven' || kind === 'microwave' || kind === 'cooker' || kind === 'hood';
     out.push(`<rect x="${x + 1.5}" y="${y + .6}" width="${w - 3}" height="${h - 1.2}" rx=".8" fill="${appliance ? '#3a3e44' : '#fbf8f3'}" stroke="#8d7d65" stroke-width=".7"/>`);
     // A pull: across drawers and flaps, up a door.
     const drawer = def?.traits.includes('pullout') || kind === 'hob' || kind === 'flap';
@@ -38,6 +38,8 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
   // What sits in the worktop: a tap over a sink, a hob's glass.
   const worktopTop = top - WORKTOP.thickness * S;
   if (preset.parts.some(part => part[0] === 'sink')) out.push(`<path d="M${W / 2 - 2} ${worktopTop}v-${Math.min(worktopTop - 2, 12)}h8v4" fill="none" stroke="#8a8f96" stroke-width="1.6" stroke-linecap="round"/>`);
+  // A cooker's own hob: four burners on its top.
+  if (preset.parts.some(part => part[0] === 'cooker')) for (const bx of [.3, .7, .3, .7] as const) out.push(`<circle cx="${x + w * bx}" cy="${top - 1}" r="${Math.max(1.4, w * .06)}" fill="#8a8f96"/>`);
   if (preset.parts.some(part => part[0] === 'hob')) out.push(`<rect x="${x + 3}" y="${worktopTop - 1.2}" width="${w - 6}" height="1.4" fill="#1b1e22"/>`);
   return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${out.join('')}</svg>`;
 }
@@ -59,6 +61,18 @@ export function kitchenFittingArt(kind: string): string {
     front(y, h, '#b9bdc2');
     out.push(`<rect x="${x + 4}" y="${y + h * .25}" width="${w - 8}" height="${h * .65}" rx="1" fill="#1b1e22"/><rect x="${x + 4}" y="${y + 3}" width="${w - 8}" height="${h * .14}" fill="#2a2e33"/>`);
     bar(x + 10, y + h * .2, w - 20, 0);
+  } else if (kind === 'cooker') {
+    front(y, h, '#b9bdc2');
+    out.push(`<rect x="${x + 5}" y="${y + h * .3}" width="${w - 10}" height="${h * .55}" rx="1" fill="#1b1e22"/>`);
+    for (let n = 0; n < 4; n++) out.push(`<circle cx="${x + w * (.2 + n * .2)}" cy="${y + 5}" r="2" fill="#2a2e33"/>`);
+    bar(x + 10, y + h * .22, w - 20, 0);
+  } else if (kind === 'hood') {
+    front(y, h, '#b9bdc2');
+    out.push(`<rect x="${x + 6}" y="${y + h * .55}" width="${w - 12}" height="${h * .25}" fill="#2a2e33"/>`);
+  } else if (kind === 'dishwasher') {
+    front(y, h);
+    bar(x + 12, y + 7, w - 24, 0);
+    out.push(`<rect x="${x + w - 18}" y="${y + 11}" width="12" height="3" rx="1" fill="#cbbfac"/>`);
   } else if (kind === 'microwave') {
     front(y, h, '#b9bdc2');
     out.push(`<rect x="${x + 4}" y="${y + 4}" width="${w * .62}" height="${h - 8}" rx="1" fill="#1b1e22"/><rect x="${x + w * .62 + 8}" y="${y + 6}" width="${w * .38 - 14}" height="${h - 12}" rx="1" fill="#2a2e33"/>`);

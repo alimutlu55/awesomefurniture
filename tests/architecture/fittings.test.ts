@@ -23,7 +23,7 @@ test('fittings · keys, codes and sizes are valid', () => {
   assert.equal(new Set(defs.map(f => f.code)).size, defs.length, 'one-letter codes are unique');
   for (const f of defs) {
     assert.match(f.key, /^[a-z]+$/, `${f.key}: one lowercase word, it is saved in projects`);
-    assert.match(f.code, /^[A-Z]$/, `${f.key}: code is one capital letter`);
+    assert.match(f.code, /^[A-Z0-9]$/, `${f.key}: code is one capital letter or digit`);
     assert.ok(f.min <= f.height && f.height <= f.max, `${f.key}: default height is between min and max`);
     assert.ok(f.price >= 0 && f.minWidth >= 0 && f.minDepth >= 0, `${f.key}: price and sizes are not negative`);
   }

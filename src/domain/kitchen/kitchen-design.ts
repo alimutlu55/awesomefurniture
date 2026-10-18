@@ -15,14 +15,26 @@ export const KITCHEN_PRESETS = [
   { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
   { key: 'sink', unit: 'base', name: 'Sink unit', parts: [['sink', 1]] },
+  { key: 'sink-double', unit: 'base', name: 'Double sink unit', parts: [['sink', 1]], size: { w: 90 } },
+  { key: 'sink-wide', unit: 'base', name: 'Sink unit 120', parts: [['sink', 1]], size: { w: 120 } },
+  { key: 'hob', unit: 'base', name: 'Hob unit', parts: [['hob', 14], ['pan', 30.2], ['pan', 30.2]], size: { w: 60 } },
+  { key: 'hob-wide', unit: 'base', name: 'Hob unit 90', parts: [['hob', 14], ['pan', 30.2], ['pan', 30.2]], size: { w: 90 } },
   { key: 'cooking', unit: 'base', name: 'Hob and oven', parts: [['oven', 4.3], ['hob', 1]] },
+  { key: 'dishwasher', unit: 'base', name: 'Dishwasher', parts: [['dishwasher', 1]] },
+  { key: 'fridge-under', unit: 'base', name: 'Under-counter fridge', parts: [['fridge', 1]] },
+  { key: 'cooker', unit: 'cooker', name: 'Cooker', parts: [['cooker', 1]] },
+  { key: 'cooker-wide', unit: 'cooker', name: 'Range cooker 90', parts: [['cooker', 1]], size: { w: 90 } },
   { key: 'upper', unit: 'upper', name: 'Wall cabinet', parts: [] },
   { key: 'lift', unit: 'upper', name: 'Lift-up wall cabinet', parts: [['flap', 1]], size: { w: 80, h: 40 } },
   { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 50 } },
+  { key: 'hood', unit: 'upper', name: 'Cooker hood', parts: [['hood', 1]], size: { w: 60, h: 40 } },
+  { key: 'hood-wide', unit: 'upper', name: 'Cooker hood 90', parts: [['hood', 1]], size: { w: 90, h: 40 } },
   { key: 'cargo', unit: 'base', name: 'Cargo pull-out', parts: [['cargo', 1]], size: { w: 30 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
   { key: 'cargo-tall', unit: 'tall', name: 'Tall cargo', parts: [['cargo', 160], ['cupboard', 43.4]], size: { w: 40 } },
   { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
+  { key: 'fridge-tall', unit: 'tall', name: 'Tall fridge-freezer', parts: [['fridge', 1]], size: { h: 190 } },
+  { key: 'oven-tower', unit: 'tall', name: 'Oven tower', parts: [['pan', 28], ['cupboard', 52.4], ['oven', 60], ['microwave', 38], ['cupboard', 25]] },
   { key: 'larder', unit: 'tall', name: 'Pantry', parts: [['pantry', 160], ['cupboard', 43.4]] },
 ] as const satisfies readonly { key: string; unit: KitchenUnitKey; name: string; parts: readonly (readonly [string, number])[]; size?: { w?: number; h?: number } }[];
 export type KitchenPresetKey = typeof KITCHEN_PRESETS[number]['key'];
@@ -73,7 +85,8 @@ export function plainStorageFor(item: EditorItem, unitKey: KitchenUnitKey | unde
 export function duplicateKitchenDesign<T extends EditorDesign>(design: T): T {
   const copy = structuredClone(design);
   copy.secs = copy.secs.map(items => items.flatMap(item => {
-    if (!hasTrait(item.k, 'appliance')) return [item];
+    // A cooker stands in the run as itself; in any other unit an appliance becomes plain storage.
+    if (!hasTrait(item.k, 'appliance') || kitchenUnit(copy.unit).appliance) return [item];
     let y = item.y;
     // Same place in the bay: its width and alignment, and a pinned height stacks the parts from there.
     return plainStorageFor(item, copy.unit).map(plain => {

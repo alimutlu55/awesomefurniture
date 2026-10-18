@@ -120,7 +120,9 @@ export function createCabinetLayoutRenderer({ dom, createDividerClearances, rend
         renderState.Gr.userData.ownedMaterials = materials.owned;
         // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
         const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
-        renderCabinetFrame(getRenderDesign(), box, prism, materials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? PLINTH : 0, plinth: false } : {});
+        // A cooker's body is steel; a wall unit has a solid bottom down to its lower edge.
+        const frameMaterials = kitchenUnit?.appliance ? { ...materials, panel: resources.M('#b9bdc2', { metalness: .85, roughness: .32 }) } : materials;
+        renderCabinetFrame(getRenderDesign(), box, prism, frameMaterials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? PLINTH : 0, plinth: false, solidBottom: kitchenUnit.elevation > 0 } : {});
         /** Section-local outline of a span under the top, in cabinet-centred coordinates. */
         const sectionOutline = (i, sx, x0, x1, y0 = 0) => [{ x: sx + x0, y: iy + y0 }, { x: sx + x1, y: iy + y0 }, ...geometry.ceilingOutline(i, x0, x1).reverse().map(p => ({ x: sx + p.x, y: iy + p.y }))];
         const lp = [], spaceRulerPoints = [], dimLine = (a, b, txt, cls = 'lbl dim', points = lp) => {

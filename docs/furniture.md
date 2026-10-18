@@ -73,6 +73,14 @@ oven, microwave, fridge, pantry, cargo) are entries in the one fittings registry
 naming the units it fits and how Add item ranks it. Traits carry the rules: `front` (shows its
 own front), `appliance` (a copy gets plain storage instead), `worktop` (sits in the worktop).
 
+Built-in appliances have a unit prepared for each (Cabinets panel, under *Sinks and appliances*): sink units
+(60, 90 and 120 cm), hob units (60 and 90), hob and oven, dishwasher, under-counter fridge, microwave and
+cooker hood wall units, a freestanding **cooker** (60 and range 90) and an oven tower. A cooker is a unit of its own
+(`appliance: true`): it stands in the run at worktop height with its hob on top, so no worktop runs over it, and a
+copy of it is a cooker. A tall fridge-freezer (190 cm, no cupboard above) and the fridge housing (215 cm, fridge
+over a 25 cm cupboard, the usual way a 178 cm fridge-freezer is housed) differ only in the unit's height.
+Every one is resized with Size like any other cabinet.
+
 Presets name a unit and its contents, and may give their own width and height (`size`): the lift-up wall
 cabinet is 80 × 40 cm and the microwave wall unit 60 × 50 cm, both wall units.
 

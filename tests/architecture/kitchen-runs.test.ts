@@ -120,7 +120,7 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   assert.equal(s.doors, 1, 'the fridge housing cupboard; the sink and fridge fronts are appliances');
   assert.deepEqual(s.appliances, ['Sink and tap', 'Integrated fridge']);
   assert.equal(s.worktop, 120, 'the worktop stops at the tall unit');
-  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1 }, 'a unit on another wall is another kitchen');
+  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1, cooker: 0 }, 'a unit on another wall is another kitchen');
   assert.deepEqual(s.notes, ['No hob yet: add one to a base cabinet, under the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });
 

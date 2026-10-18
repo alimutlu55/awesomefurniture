@@ -93,3 +93,6 @@ svg.kitchen-art{filter:none}
 /* Fill the gap beside a kitchen unit: a quiet text button under Width. */
 .fill-gap{display:block;margin:2px 0 10px;padding:7px 12px;border:1px dashed #a8987c;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .fill-gap[hidden]{display:none}
+/* The Cabinets panel is sectioned: base, sinks and appliances, wall, tall. */
+.kitchen-group{grid-column:1/-1;margin:8px 2px 0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7d725f}
+.kitchen-group:first-child{margin-top:0}

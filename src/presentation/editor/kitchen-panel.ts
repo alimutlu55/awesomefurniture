@@ -2,6 +2,7 @@ import { KITCHEN_PRESETS } from '../../domain/kitchen/kitchen-design';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { kitchenPresetArt } from './kitchen-art';
 import { esc } from './editor-format.js';
+import { hasTrait } from '../../domain/wardrobe/fittings';
 
 interface KitchenPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
@@ -13,12 +14,23 @@ interface KitchenPanelPorts {
  * fridge, pantry), drawn from the presets. On a desktop it is a fold of the Add panel; on a phone a category of
  * the catalogue. New units go beside the selected one; Add item fills them in. */
 export function createKitchenPanel({ dom, add }: KitchenPanelPorts) {
-  const buttons = (extra: string) => KITCHEN_PRESETS.map(p => {
+  const card = (p: typeof KITCHEN_PRESETS[number], extra: string) => {
     const unit = kitchenUnit(p.unit), title = esc(p.name + ' · ' + unit.description);
     return `<button type="button" class="kitchen-product" data-add-kitchen="${p.key}"${extra} title="${title}">${kitchenPresetArt(p)}<span>${esc(p.name)}</span></button>`;
-  }).join('');
+  };
+
+  /** The panel's sections: cabinets by where they stand, and what holds an appliance or a sink on its own. */
+  const sectionOf = (p: typeof KITCHEN_PRESETS[number]) => p.unit === 'cooker' || (p.parts as readonly (readonly [string, number])[]).some(([kind]) => hasTrait(kind, 'appliance')) ? 'Sinks and appliances'
+    : p.unit === 'upper' ? 'Wall cabinets' : p.unit === 'tall' ? 'Tall cabinets' : 'Base cabinets';
+  const SECTIONS = ['Base cabinets', 'Sinks and appliances', 'Wall cabinets', 'Tall cabinets'];
+  /** Every card in the order of the sections, so related ones sit together. */
+  const buttons = (extra: string) => SECTIONS.flatMap(section => KITCHEN_PRESETS.filter(p => sectionOf(p) === section)).map(p => card(p, extra)).join('');
   function render() {
-    dom.$('#padd-kitchen').innerHTML = buttons('');
+    const sections = SECTIONS;
+    dom.$('#padd-kitchen').innerHTML = sections.map(section => {
+      const cards = KITCHEN_PRESETS.filter(p => sectionOf(p) === section).map(p => card(p, '')).join('');
+      return cards ? `<p class="kitchen-group">${esc(section)}</p>${cards}` : '';
+    }).join('');
   }
   /** The phone catalogue's Cabinets category. */
   const products = () => buttons(' data-product-category="kitchen" hidden');

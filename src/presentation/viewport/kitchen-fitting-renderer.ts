@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
-import type { KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
+import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
@@ -33,7 +33,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
     const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL - gap / 2 : PANEL / 2;
     const hh = it.h, x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
     // A wall unit's bottom is solid down to its lower edge (frame-geometry.ts), so its lowest front reaches that edge.
-    const y0 = Math.abs(y - inside.bottom) < .05 ? (unit === 'upper' ? 0 : y - PANEL) : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
+    const y0 = Math.abs(y - inside.bottom) < .05 ? (kitchenUnit(unit).plinth ? y - PANEL : 0) : y, y1 = Math.abs(y + hh - inside.top) < .05 ? y + hh + PANEL : y + hh;
     const mid = (y0 + y1) / 2, high = unit === 'upper';
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
@@ -69,6 +69,37 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         box(Math.max(4, x1 - x0 - 6), Math.max(4, (y1 - y0) * .62), .4, cx, y0 + (y1 - y0) * .4, face + PANEL / 2 + .2, glass);
         box(Math.max(4, x1 - x0 - 6), 5, .4, cx, y1 - 5, face + PANEL / 2 + .2, glass);
         pull(Math.min(44, sw * .7), cx, y0 + (y1 - y0) * .8);
+        break;
+      }
+      case 'dishwasher': {
+        // An integrated dishwasher: a door that matches the fronts, with its handle along the top edge and a thin control strip.
+        panel(x0, x1, y0, y1);
+        pull(Math.min(60, sw * .75), cx, y1 - 5);
+        break;
+      }
+      case 'hood': {
+        // A canopy hood: a steel front with a darker filter strip along its lower edge.
+        panel(x0, x1, y0, y1, steel);
+        box(Math.max(4, x1 - x0 - 6), Math.max(1.5, (y1 - y0) * .25), .4, cx, y0 + (y1 - y0) * .3, face + PANEL / 2 + .2, glass);
+        break;
+      }
+      case 'cooker': {
+        // A freestanding cooker: a steel body with the controls along the top, an oven door in glass with a handle, and
+        // a glass hob on top with four burners.
+        const fw = x1 - x0, front = face + PANEL / 2 + .2, top = y1;
+        panel(x0, x1, y0, y1, steel);
+        box(Math.max(4, fw - 8), Math.max(4, (y1 - y0) * .55), .4, cx, y0 + (y1 - y0) * .4, front, glass);
+        pull(Math.min(fw - 8, 60), cx, y0 + (y1 - y0) * .78);
+        for (let n = 0; n < 4; n++) box(2.4, 2.4, .6, cx - fw * .3 + n * fw * .2, y1 - 3, front, materials.M('#8a8f96', { metalness: .8, roughness: .3 }));
+        box(Math.max(4, fw - 6), .8, Math.max(4, d - 6), cx, top + .4, -1, glass);
+        const rings = [[-.25, -.22, 7.5], [.25, -.22, 6], [-.25, .22, 6], [.25, .22, 7.5]] as const;
+        for (const [rx, rz, r] of rings) {
+          const ring = new THREE.Mesh(new THREE.RingGeometry(r - 1.2, r, 28), materials.M('#8a8f96', { metalness: .8, roughness: .3 }));
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.set(cx + rx * fw, top + .85, -1 + rz * (d - 6));
+          owned.push(ring.material as THREE.Material);
+          group.add(ring);
+        }
         break;
       }
       case 'microwave': {

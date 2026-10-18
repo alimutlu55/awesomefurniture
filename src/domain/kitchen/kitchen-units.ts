@@ -22,6 +22,8 @@ export interface KitchenUnitDef {
   readonly worktop: boolean;
   /** It stands on a plinth that runs along neighbouring units on the floor. */
   readonly plinth: boolean;
+  /** The unit is an appliance in the run (a cooker): it always holds that appliance, and a copy keeps it. */
+  readonly appliance?: true;
   /** What a new unit holds, and what replaces an appliance when a unit is duplicated: [kind, height][]. */
   readonly storage: readonly (readonly [string, number])[];
 }
@@ -33,6 +35,9 @@ export const KITCHEN_UNITS = [
     sizes: { w: [30, 150], h: [35, 130], d: [25, 70] }, worktop: false, plinth: false, storage: [['cupboard', 56]] },
   { key: 'tall', name: 'Tall cabinet', description: 'Floor to top: larder, fridge or ovens', w: 60, h: 215, d: 58, elevation: 0,
     sizes: { w: [30, 100], h: [150, 270], d: [30, 80] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
+  // A freestanding cooker stands in the run at worktop height: its own top is the hob, so no worktop runs over it.
+  { key: 'cooker', name: 'Cooker', description: 'Freestanding cooker (oven and hob) in the run', w: 60, h: 90, d: 60, elevation: 0,
+    sizes: { w: [50, 100], h: [85, 95], d: [55, 70] }, worktop: false, plinth: false, appliance: true, storage: [['cooker', 1]] },
 ] as const satisfies readonly KitchenUnitDef[];
 
 export type KitchenUnitKey = typeof KITCHEN_UNITS[number]['key'];
