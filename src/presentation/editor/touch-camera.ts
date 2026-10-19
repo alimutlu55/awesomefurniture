@@ -1,32 +1,32 @@
 import type { Vector3 } from 'three';
 
 type ScreenPoint = { clientX: number; clientY: number };
-type Point = { x: number; y: number; z: number };
 interface TouchCameraPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>,
-    'panBy' | 'cameraZoomPoint' | 'cameraZoomDistance' | 'cameraDistance' | 'zoomOutTo' | 'cameraFitDistance' | 'availableRoom'>>;
+    'panBy' | 'cameraZoomPoint' | 'cameraZoomDistance' | 'cameraDistance' | 'zoomOutTo'>>;
   readonly cameraState: { az: number; el: number; dist: number; tgt: Vector3; tgtY: number; panned?: boolean };
-  /** The furniture in the scene, and whether the active piece is chosen: what a turn of the view goes around. */
-  readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'activeCabinet'>;
-  readonly selectionState: { readonly focusOn: boolean };
+  /** The surface the view looks at: what a turn goes around (scene-picking.js). */
+  readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').createScenePicking>, 'surfaceAlong'>>;
   /** The editor lifetime's frames (editor-lifetime.js), so a view following a drag stops with the editor. */
   readonly lifetime: { frame(fn: (now: number) => void): unknown; cancelFrame(id: never): void; cleanup(fn: () => void): void };
 }
 
 /** How close to the edge of the view a dragging finger starts moving the view, and how fast at the very edge. */
 export const EDGE_ZONE = 48, EDGE_SPEED = 720;
+/** How far a finger turns the view (radians per pixel: about a quarter turn across a phone); how far it moves before
+ * the swipe's direction is read; and how far it then strays across a locked direction before turning freely. */
+export const TURN_RATE = .0045, LOCK_AFTER = 12, UNLOCK_AFTER = 40;
 
 /**
  * The camera under a person's fingers on a touch screen.
  * - Spreading the fingers zooms in about what is between them: that point stays under them, as on a map. Pinching
  *   them together zooms out toward the middle of the studio, so zooming out always ends on all of it.
- * - One finger turns the view around the furniture (the chosen piece, or the one nearest the view), not around
- *   whatever was last zoomed into: the piece keeps its place on screen and comes round to the middle as the view turns,
- *   backing off if needed until it is seen whole, so there is room around it to keep turning.
+ * - One finger turns the view around what is in the middle of it (a wall, the floor, a piece of furniture), and only
+ *   turns it: no zoom, no slide. A mostly sideways swipe only turns, a mostly upright one only tilts.
  * - A drag held near the edge of the view moves the view on, so a piece can be taken further than the screen shows.
  */
-export function createTouchCamera({ dom, camera, cameraState, lifetime, model, selectionState }: TouchCameraPorts) {
+export function createTouchCamera({ dom, camera, cameraState, lifetime, picking }: TouchCameraPorts) {
   /** The point being zoomed in about, chosen once per pinch: what was under the fingers when it began zooming in. */
   let anchor: Vector3 | null = null;
   let follow: { at: ScreenPoint; move(at: ScreenPoint): void; holding(): boolean; frame: unknown; last: number } | null = null;
@@ -45,51 +45,36 @@ export function createTouchCamera({ dom, camera, cameraState, lifetime, model, s
     }
     cameraState.panned = true;
   }
-  /** What a turn goes around: the chosen piece, or the piece nearest the view's target, and the middle of it. */
-  function pivot() {
-    const pieces = model.scene.wardrobes, t = cameraState.tgt;
-    if (!pieces.length) return null;
-    const near = (c: { x: number; z: number }) => Math.hypot(c.x - t.x, c.z - t.z);
-    const c = selectionState.focusOn ? model.activeCabinet() : pieces.reduce((a, b) => near(b) < near(a) ? b : a);
-    return { piece: c, at: { x: c.x, y: (c.y || 0) + c.state.h / 2, z: c.z } as Point };
+  /** The swipe turning the view: how far it has gone each way, and the direction it keeps to. */
+  let swipe: { x: number; y: number; lock: 'turn' | 'tilt' | 'free' | null; stray: number } | null = null;
+  /** A swipe begins: the view now turns around the surface in the middle of it. The camera stays where it is, so
+   * nothing on screen moves; only the point it turns around comes to rest on what is seen there. */
+  function settleOnSurface() {
+    const s = cameraState, d = { x: Math.cos(s.el) * Math.sin(s.az), y: Math.sin(s.el), z: Math.cos(s.el) * Math.cos(s.az) };
+    const eye = { x: s.tgt.x + s.dist * d.x, y: s.tgt.y + s.dist * d.y, z: s.tgt.z + s.dist * d.z };
+    const at = picking.surfaceAlong(eye, s.tgt, s.dist * 3);
+    const along = at && (at.x - eye.x) * -d.x + (at.y - eye.y) * -d.y + (at.z - eye.z) * -d.z;
+    if (!at || !along || along < 20) return;
+    s.tgt.set(eye.x - d.x * along, eye.y - d.y * along, eye.z - d.z * along); s.tgtY = s.tgt.y; s.dist = along; s.panned = true;
   }
-  /** How far back the camera must be to see a piece whole from a turn and tilt, with a little room around it. */
-  function whole(piece: { angle: number; state: { w: number; h: number; d: number } }, az: number, el: number) {
-    const room = camera.availableRoom(), view = dom.$('#view').getBoundingClientRect();
-    return camera.cameraFitDistance(piece.state, az - piece.angle * Math.PI / 180, el, room.w / room.h) * (view.height / room.h) * 1.15;
-  }
-  /** The camera's direction from its target, and its right, up and forward axes, at a turn and tilt. */
-  function frame(az: number, el: number) {
-    const d = { x: Math.cos(el) * Math.sin(az), y: Math.sin(el), z: Math.cos(el) * Math.cos(az) }, f = { x: -d.x, y: -d.y, z: -d.z };
-    const r = { x: Math.cos(az), y: 0, z: -Math.sin(az) }, u = { x: r.y * f.z - r.z * f.y, y: r.z * f.x - r.x * f.z, z: r.x * f.y - r.y * f.x };
-    return { d, r, u, f };
-  }
-  const dot = (a: Point, b: Point) => a.x * b.x + a.y * b.y + a.z * b.z;
-  /** One finger turned the view by `turn` and tilted it by `tilt` (radians). The camera and its target go round the
-   * pivot together, so the piece stays where it is on screen, and the target eases onto it as the view turns. */
-  function orbit(turn: number, tilt: number) {
-    const s = cameraState, found = pivot(), az = s.az + turn;
-    let el = Math.max(0, Math.min(1.35, s.el + tilt));
-    if (!found) { s.az = az; s.el = el; return; }
-    const p = found.at;
-    const old = frame(s.az, s.el), c = { x: s.tgt.x + s.dist * old.d.x, y: s.tgt.y + s.dist * old.d.y, z: s.tgt.z + s.dist * old.d.z };
-    const v = { x: p.x - c.x, y: p.y - c.y, z: p.z - c.z }, local = { x: dot(v, old.r), y: dot(v, old.u), z: dot(v, old.f) };
-    const place = (e: number) => {
-      const n = frame(az, e), cam = { x: p.x - local.x * n.r.x - local.y * n.u.x - local.z * n.f.x, y: p.y - local.x * n.r.y - local.y * n.u.y - local.z * n.f.y, z: p.z - local.x * n.r.z - local.y * n.u.z - local.z * n.f.z };
-      return { cam, n };
-    };
-    let next = place(el);
-    // Tilting round a high pivot must not take the camera under the floor: then it only turns.
-    if (next.cam.y < 5) { el = s.el; next = place(el); }
-    const ease = 1 - Math.exp(-3 * (Math.abs(turn) + Math.abs(el - s.el)));
-    const t = { x: next.cam.x - s.dist * next.n.d.x, y: next.cam.y - s.dist * next.n.d.y, z: next.cam.z - s.dist * next.n.d.z };
-    s.tgt.set(t.x + (p.x - t.x) * ease, t.y + (p.y - t.y) * ease, t.z + (p.z - t.z) * ease);
-    const back = whole(found.piece, az, el);
-    if (s.dist < back) s.dist += (back - s.dist) * ease;
-    s.tgtY = s.tgt.y; s.az = az; s.el = el; s.panned = true;
+  /** One finger moved by `dx`, `dy` pixels. Its first few pixels say whether the swipe turns, tilts or both; a turning
+   * swipe that then strays far up or down starts tilting too (and the other way round). */
+  function turn(dx: number, dy: number) {
+    if (!swipe) { swipe = { x: 0, y: 0, lock: null, stray: 0 }; settleOnSurface(); }
+    swipe.x += Math.abs(dx); swipe.y += Math.abs(dy);
+    if (!swipe.lock && Math.hypot(swipe.x, swipe.y) >= LOCK_AFTER) swipe.lock = swipe.x >= 2 * swipe.y ? 'turn' : swipe.y >= 2 * swipe.x ? 'tilt' : 'free';
+    // Until the direction is known the view holds still, so a sideways swipe never starts with a tilt.
+    if (!swipe.lock) return;
+    if (swipe.lock === 'turn' || swipe.lock === 'tilt') {
+      swipe.stray += Math.abs(swipe.lock === 'turn' ? dy : dx);
+      if (swipe.stray > UNLOCK_AFTER) swipe.lock = 'free';
+    }
+    const s = cameraState;
+    if (swipe.lock !== 'tilt') s.az -= dx * TURN_RATE;
+    if (swipe.lock !== 'turn') s.el = Math.max(0, Math.min(1.35, s.el + dy * TURN_RATE));
   }
   /** A finger came or went: the next pinch zooms about what is under its fingers then. */
-  const release = () => { anchor = null; };
+  const release = () => { anchor = null; swipe = null; };
 
   /** How far into the edge zone a point is on each side: 0 outside it, 1 at the edge. */
   function push(at: ScreenPoint) {
@@ -122,5 +107,5 @@ export function createTouchCamera({ dom, camera, cameraState, lifetime, model, s
     follow = null;
   }
   lifetime.cleanup(stopFollowing);
-  return { pinch, orbit, release, followEdge, stopFollowing, push };
+  return { pinch, turn, release, followEdge, stopFollowing, push };
 }

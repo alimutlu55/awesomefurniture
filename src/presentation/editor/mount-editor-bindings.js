@@ -53,7 +53,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerDragBlur({ dom, interactions, lifetime });
     bindDividerDragEscape({ dom, interactions, interactionState, lifetime });
     observeViewportSize({ dom, camera, lifetime });
-    const touch = createTouchCamera({ dom, camera, cameraState, lifetime, model, selectionState });
+    const touch = createTouchCamera({ dom, camera, cameraState, lifetime, picking });
     bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });

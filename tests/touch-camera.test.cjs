@@ -1,26 +1,24 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { Vector3 } = require('three');
-const { createTouchCamera, EDGE_ZONE } = require('../src/presentation/editor/touch-camera.ts');
+const { createTouchCamera, EDGE_ZONE, TURN_RATE } = require('../src/presentation/editor/touch-camera.ts');
 
-function fixture(pieces = [], chosen = false) {
+function fixture(surface = null) {
     const calls = [], frames = [], cleanups = [];
     const view = { left: 0, top: 0, right: 375, bottom: 812, width: 375, height: 812 }, bar = { top: 735, height: 70 };
     const dom = { $: id => ({ getBoundingClientRect: () => id === '#toolbar' ? bar : view }) };
     const cameraState = { az: 0, el: .3, dist: 1000, tgt: new Vector3(0, 100, 0), tgtY: 100, panned: false };
-    const model = { scene: { wardrobes: pieces }, activeCabinet: () => pieces[0] }, selectionState = { focusOn: chosen };
+    const picking = { surfaceAlong: (from, toward, far) => surface && surface(from, toward, far) };
     let anchors = 0;
     const camera = {
         panBy: (dx, dy) => calls.push(['pan', dx, dy]),
         cameraZoomPoint: p => { anchors++; return { x: p.clientX, y: p.clientY, z: 0 }; },
         cameraDistance: d => Math.max(120, Math.min(15000, d)),
-        availableRoom: () => ({ w: 347, h: 697 }),
-        cameraFitDistance: (b) => Math.max(b.w, b.h) * 1.6,
         cameraZoomDistance: (d, anchor) => { calls.push(['zoom', d, anchor]); cameraState.dist = d; },
         zoomOutTo: d => { calls.push(['out', d]); cameraState.dist = d; }
     };
     const lifetime = { frame: fn => { frames.push(fn); return frames.length; }, cancelFrame() {}, cleanup: fn => cleanups.push(fn) };
-    const touch = createTouchCamera({ dom, camera, cameraState, lifetime, model, selectionState });
+    const touch = createTouchCamera({ dom, camera, cameraState, lifetime, picking });
     const run = now => { const fn = frames.shift(); fn?.(now); };
     return { touch, calls, cameraState, frames, run, get anchors() { return anchors; } };
 }
@@ -82,48 +80,42 @@ test('the edge zone begins above the toolbar and is strongest at the edge', () =
     assert.ok(f.touch.push(at(10, 400)).x < f.touch.push(at(2, 400)).x);
 });
 
-/** Where a point is seen from the camera: across, up, and how far in front (perspective-free view coordinates). */
-function seen(state, p) {
-    const { az, el, dist, tgt } = state, d = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
-    const c = [tgt.x + dist * d[0], tgt.y + dist * d[1], tgt.z + dist * d[2]], v = [p.x - c[0], p.y - c[1], p.z - c[2]];
-    const f = d.map(x => -x), r = [Math.cos(az), 0, -Math.sin(az)], u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
-    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-    return { across: dot(v, r) / dot(v, f), up: dot(v, u) / dot(v, f), ahead: dot(v, f) };
-}
-const wardrobe = { id: 1, x: 0, y: 0, z: 30, angle: 0, state: { w: 200, h: 240, d: 60 } };
+const eye = s => { const { az, el, dist, tgt } = s; return [tgt.x + dist * Math.cos(el) * Math.sin(az), tgt.y + dist * Math.sin(el), tgt.z + dist * Math.cos(el) * Math.cos(az)]; };
+const close = (a, b) => a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < 1e-6, `${a} != ${b}`));
 
-test('one finger turns the view around the furniture: after zooming into a corner it stays in view and comes to the middle', () => {
-    const f = fixture([wardrobe]), middle = { x: 0, y: 120, z: 30 };
-    // Zoomed into the room's corner: close, looking well to the side of the wardrobe.
-    f.cameraState.tgt.set(260, 60, -40); f.cameraState.dist = 260;
-    const start = seen(f.cameraState, middle);
-    let previous = Math.hypot(start.across, start.up);
-    for (let n = 0; n < 40; n++) {
-        f.touch.orbit(.04, 0);
-        const now = seen(f.cameraState, middle), off = Math.hypot(now.across, now.up);
-        assert.ok(now.ahead > 0, 'the wardrobe stays in front of the camera');
-        assert.ok(off <= previous + 1e-9, 'and keeps coming toward the middle of the view');
-        previous = off;
-    }
-    assert.ok(previous < Math.hypot(start.across, start.up) * .15, 'after a turn of about 90 degrees it is nearly in the middle');
-    assert.ok(f.cameraState.dist > 260, 'zoomed in closer than the wardrobe needs, the view backs off to see it whole');
+test('a swipe turns the view around the surface in the middle of it, without moving anything on screen when it starts', () => {
+    // The wall the view looks at is 300 cm further than the point the view last turned around.
+    const f = fixture((from, toward) => { const d = [toward.x - from.x, toward.y - from.y, toward.z - from.z], n = Math.hypot(...d);
+        return { x: from.x + d[0] / n * 1300, y: from.y + d[1] / n * 1300, z: from.z + d[2] / n * 1300 }; });
+    const before = eye(f.cameraState), dir = [f.cameraState.tgt.x - before[0], f.cameraState.tgt.y - before[1], f.cameraState.tgt.z - before[2]];
+    f.touch.turn(1, 0);
+    assert.ok(Math.abs(f.cameraState.dist - 1300) < 1e-6, 'the view turns around the wall');
+    close(eye(f.cameraState), before);
+    const now = [f.cameraState.tgt.x - before[0], f.cameraState.tgt.y - before[1], f.cameraState.tgt.z - before[2]], n0 = Math.hypot(...dir), n1 = Math.hypot(...now);
+    close(now.map(v => v / n1), dir.map(v => v / n0));
 });
 
-test('the chosen piece is what the view turns around; tilting never takes the camera under the floor', () => {
-    const other = { id: 2, x: 400, y: 0, z: 30, angle: 0, state: { w: 100, h: 90, d: 60 } };
-    const f = fixture([wardrobe, other], true);
-    f.cameraState.tgt.set(380, 40, 20);
-    for (let n = 0; n < 60; n++) f.touch.orbit(.03, -.05);
-    const near = seen(f.cameraState, { x: 0, y: 120, z: 30 });
-    assert.ok(Math.hypot(near.across, near.up) < .1, 'the chosen wardrobe, not the nearer cabinet, ends near the middle');
-    const { az, el, dist, tgt } = f.cameraState;
-    assert.ok(tgt.y + dist * Math.sin(el) >= 0, 'the camera stays above the floor');
-    assert.ok(el >= 0 && el <= 1.35);
+test('a mostly sideways swipe only turns, a mostly upright one only tilts, and neither zooms or slides the view', () => {
+    const f = fixture(), s = f.cameraState;
+    for (let n = 0; n < 10; n++) f.touch.turn(10, 3);
+    assert.equal(s.el, .3, 'a sideways swipe with a little wobble does not tilt');
+    assert.ok(Math.abs(s.az + 90 * TURN_RATE) < 1e-9, 'it turns from the second move on, once its direction is known');
+    assert.equal(s.dist, 1000); assert.deepEqual(s.tgt.toArray(), [0, 100, 0]);
+    f.touch.release();
+    const az = s.az;
+    for (let n = 0; n < 6; n++) f.touch.turn(2, 8);
+    assert.equal(s.az, az, 'an upright swipe does not turn');
+    assert.ok(Math.abs(s.el - (.3 + 40 * TURN_RATE)) < 1e-9);
 });
 
-test('without furniture one finger simply turns and tilts the view', () => {
-    const f = fixture();
-    f.touch.orbit(.2, .1);
-    assert.equal(f.cameraState.az, .2); assert.ok(Math.abs(f.cameraState.el - .4) < 1e-12);
-    assert.deepEqual(f.cameraState.tgt.toArray(), [0, 100, 0]);
+test('a diagonal swipe turns and tilts; a locked swipe that strays far the other way frees up', () => {
+    const f = fixture(), s = f.cameraState;
+    f.touch.turn(8, 8); f.touch.turn(8, 8);
+    assert.ok(s.az < 0 && s.el > .3, 'both at once');
+    f.touch.release(); const el = s.el;
+    for (let n = 0; n < 4; n++) f.touch.turn(10, 0);
+    for (let n = 0; n < 4; n++) f.touch.turn(0, 8);
+    assert.equal(s.el, el, 'small strays stay locked');
+    for (let n = 0; n < 4; n++) f.touch.turn(0, 8);
+    assert.ok(s.el > el, 'past 40 px it tilts too');
 });

@@ -117,7 +117,7 @@ test('front and rear picking intersect the correct plane on a translated, rotate
   cam.position.set(400, 300, 600); cam.lookAt(20, 130, -30); cam.updateMatrixWorld(true);
   const ray = new THREE.Raycaster(), rect = { left: 5, top: 10, width: 600, height: 600 };
   const picking = createScenePicking({ model, dom: {} as never, interactionState: { ray }, renderState: { Gr: group, hits: [] } as never,
-    resources: { cam, cv: { getBoundingClientRect: () => rect } as HTMLCanvasElement } });
+    resources: { cam, cv: { getBoundingClientRect: () => rect } as HTMLCanvasElement, scene: new THREE.Scene() } });
   for (const side of ['front', 'rear'] as const) {
     const local = new THREE.Vector3(-50, 180, (side === 'rear' ? -1 : 1) * model.activeCabinet().state.d / 2);
     const p = group.localToWorld(local.clone()).project(cam);
