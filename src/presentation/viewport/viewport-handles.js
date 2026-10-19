@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { createActionBar } from '../editor/action-bar.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
+/** The least distance, in pixels, between the centres of a fitting's opposite resize handles (44 px targets). */
+const HANDLE_GAP = 52;
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'model' | 'renderState' | 'interactionState' | 'interactions' | 'shell' | 'inspector' | 'resources' | 'selectionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'dimensionStroke' | 'drawSnapGuides'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createViewportHandles({ dom, geometry, callbacks, model, renderState, interactionState, interactions, shell, inspector, resources, selectionState, getRenderDesign }) {
     const { $, document } = dom;
@@ -114,15 +116,25 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         }
         const g = selectionState.focusOn && getRenderDesign().item >= 0 && !interactionState.drag?.started && !interactionState.moveMode && !(getRenderDesign().doors !== 'none' && !getRenderDesign().open) ? geometry.itemGeom(getRenderDesign().sel, getRenderDesign().item) : null;
         const front = g && renderState.Gr.worldToLocal(resources.cam.position.clone()).z > getRenderDesign().d / 2;
+        const r = resources.cv.getBoundingClientRect(), at = {};
         renderState.itemEdgeHandles.forEach(handle => {
             handle.hidden = !front;
             if (!front) {
                 return;
             }
-            const edge = handle.dataset.edge, x = edge === 'left' ? g.x0 : edge === 'right' ? g.x1 : (g.x0 + g.x1) / 2, y = edge === 'top' ? g.y1 : edge === 'bottom' ? g.y0 : (g.y0 + g.y1) / 2, q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, getRenderDesign().d / 2 + 1)).project(resources.cam), r = resources.cv.getBoundingClientRect();
+            const edge = handle.dataset.edge, x = edge === 'left' ? g.x0 : edge === 'right' ? g.x1 : (g.x0 + g.x1) / 2, y = edge === 'top' ? g.y1 : edge === 'bottom' ? g.y0 : (g.y0 + g.y1) / 2, q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, getRenderDesign().d / 2 + 1)).project(resources.cam);
             handle.hidden = q.z >= 1;
-            handle.style.transform = `translate(-50%,-50%) translate(${(q.x * .5 + .5) * r.width}px,${(-q.y * .5 + .5) * r.height}px)`;
+            at[edge] = { handle, x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
         });
+        // On a short or narrow fitting the opposite handles move apart around its middle, so a finger can take either
+        // one without the camera having to come closer.
+        const apart = (a, b, key) => {
+            if (!a || !b || b[key] - a[key] >= HANDLE_GAP) return;
+            const mid = (a[key] + b[key]) / 2;
+            a[key] = mid - HANDLE_GAP / 2; b[key] = mid + HANDLE_GAP / 2;
+        };
+        apart(at.top, at.bottom, 'y'); apart(at.left, at.right, 'x');
+        for (const p of Object.values(at)) p.handle.style.transform = `translate(-50%,-50%) translate(${p.x}px,${p.y}px)`;
     }
     return { addRotationIndicator, addWardrobeActions, updateMoveIcons, addWardrobeMoveHandles, updateItemResizeHandles };
 }

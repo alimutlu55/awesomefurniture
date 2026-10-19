@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
 import { zoomOutTarget } from './zoom-out';
+import { phoneFraming } from './phone-framing';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
@@ -212,17 +213,16 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.z = w.z - focusX * Math.sin(angle);
             const contextDistance = cameraFitDistance({ w: f.w + 2 * Math.abs(focusX), h: f.h + 2 * Math.abs(focusY), d: f.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
             goal.dist = contextDistance * 1.025;
-            // On a phone a chosen fitting or board comes close enough to fill about half the view, so its handles stand
-            // apart: no further than the whole cabinet, and never backing out of a view that is already closer.
-            if (dom.width <= 900 && (w.state.item >= 0 || w.state.divider >= 0)) {
-                const near = Math.min(goal.dist, cameraFitDistance(box, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h) * 2);
-                Object.assign(goal, { x: w.x + box.x * Math.cos(angle), y: (w.y || 0) + box.y, z: w.z - box.x * Math.sin(angle), dist: Math.min(near, cameraState.camGoal?.dist ?? cameraState.dist) });
+            // On a phone the camera moves as little as it can for what was chosen (the piece, or its fitting or board):
+            // not at all when it is in view at a workable size, else just enough (phone-framing.ts).
+            if (dom.width <= 900) {
+                const part = w.state.item >= 0 || w.state.divider >= 0, at = part ? box : { x: 0, y: w.state.h / 2, w: w.state.w, h: w.state.h, d: w.state.d };
+                const now = cameraState.camGoal ?? camNow(), fit = cameraFitDistance(at, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
+                Object.assign(goal, phoneFraming({ cam: resources.cam, view, pose: { ...w, angle }, box: at, fit, dist: now.dist, part }) ?? { x: now.x, y: now.y, z: now.z, dist: now.dist });
             }
         }
-        if (resizing && cameraState.camGoal) {
-            // Panel resizing changes the destination, not the animation's origin or clock.
-            Object.assign(cameraState.camGoal, goal);
-        }
+        // Panel resizing changes the destination, not the animation's origin or clock.
+        if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
         else cameraFlyTo(goal, true);
         mobileInspectorFraming = true;
         mobileSelectionFraming = selected;
