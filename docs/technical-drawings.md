@@ -1,8 +1,10 @@
 # Technical drawings
 
 Menu (⋮) → **Technical drawings** turns the design into a carpenter's drawing set on A3 landscape
-sheets: read on screen (zoom with the buttons, two fingers or Ctrl + wheel) and **Save as PDF**
-through the browser's print, one A3 page per sheet. Every figure is a whole millimetre.
+sheets: read on screen (zoom with the buttons, two fingers or Ctrl + wheel) and **Save as PDF**: the app
+writes the PDF itself, one vector A3 landscape page per sheet, and hands it over (the share sheet on a
+phone, a download elsewhere). The file is made from the sheets, never from the screen, so the viewer's
+zoom or scroll cannot cut or move it (printing a frame was blank or cropped in iPhone Safari). Every figure is a whole millimetre.
 
 ## The set
 
@@ -79,8 +81,10 @@ with the 3D view.
 | Construction details | `construction-details.ts` |
 | Cutting list, hardware list | `cutting-list.ts`, `hardware-list.ts` |
 | The set of sheets | `technical-drawings.ts` |
-| Sheet layout (views side by side at one scale), SVG, dimension strings, tables | `src/presentation/drawings/sheet-layout.ts`, `sheet-svg.ts`, `dimension-svg.ts`, `table-svg.ts` |
-| Menu item, viewer, print | `src/presentation/drawings/drawings-viewer.ts`, `drawings.css` |
+| Sheet layout (views side by side at one scale), dimension strings, tables | `src/presentation/drawings/sheet-layout.ts`, `dimension-marks.ts`, `table-marks.ts` |
+| Paper marks (shapes, circles, words with ISO pens and fonts) and their SVG | `src/presentation/drawings/paper-marks.ts`, `sheet-marks.ts` |
+| The PDF file (vector, Helvetica with its metrics, no library) | `pdf-writer.ts`, `helvetica-metrics.ts` |
+| Menu item, viewer, saving the PDF | `src/presentation/drawings/drawings-viewer.ts`, `drawings.css` |
 
 A dimension string is a list of stops along a line, so its figures always add up to its total. The
 domain says which side a string stands on and how far it must clear (a wall's thickness); the

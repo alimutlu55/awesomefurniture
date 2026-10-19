@@ -2,10 +2,12 @@ import type { EditorScene } from '../../application/projects/editor-scene';
 import type { Sheet } from '../../domain/drawings/drawing';
 import { technicalDrawings } from '../../domain/drawings/technical-drawings';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { type SheetSetInfo, sheetSvg } from './sheet-marks';
+import { type SheetSetInfo, sheetMarks, sheetSvg } from './sheet-marks';
+import { marksToPdf } from './pdf-writer';
+import { PAPER } from './sheet-layout';
 
 interface Ports {
-  /** The editor's controls, and the page it is mounted in (the print frame belongs to the page). */
+  /** The editor's controls, and the page it is mounted in (a download link belongs to the page). */
   dom: { $(selector: string): HTMLElement; document: { createElement: Document['createElement'] }; host: HTMLElement };
   lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void; cleanup(callback: () => void): void };
   /** The scene the drawings are made from, read when they open. */
@@ -22,17 +24,15 @@ function project(scene: EditorScene) {
   return (labels.length ? labels.join(' and ') : 'Room') + ' design';
 }
 
-/** Every sheet in one document, one A3 landscape page each, for the browser to print or save as a PDF. */
-export function printableDocument(sheets: readonly Sheet[], info: SheetSetInfo) {
-  const pages = sheets.map(s => sheetSvg(s, info)).join('');
-  return '<!doctype html><html><head><meta charset="utf-8"><title>' + info.project.replace(/</g, '') + ' – technical drawings</title><style>'
-    + '@page{size:420mm 297mm;margin:0}html,body{margin:0;padding:0;background:#fff}'
-    + 'svg{display:block;width:420mm;height:297mm;break-after:page;page-break-after:always}svg:last-child{break-after:auto;page-break-after:auto}'
-    + '</style></head><body>' + pages + '</body></html>';
+/** Every sheet as one page of an A3 landscape PDF, the same marks the screen shows. */
+export function drawingsPdf(sheets: readonly Sheet[], info: SheetSetInfo) {
+  return marksToPdf(sheets.map(s => sheetMarks(s, info)), { w: PAPER.w, h: PAPER.h }, info.project + ' - technical drawings');
 }
+/** A file name for the set: "cabinets-design-technical-drawings.pdf". */
+const fileName = (project: string) => project.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-technical-drawings.pdf';
 
 /** "Technical drawings" in the editor menu: the design as a carpenter's drawing set (plan and wall elevations, every
- * dimension in millimetres) on A3 sheets to read on screen, zoomed, and saved as a PDF through the browser's print. */
+ * dimension in millimetres) on A3 sheets to read on screen, zoomed, and saved as a PDF file the app writes itself. */
 export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
   const { document } = dom, page = dom.host.ownerDocument, menu = dom.$('#menu'), item = document.createElement('button');
   item.className = 'mi'; item.type = 'button'; item.setAttribute('role', 'menuitem');
@@ -81,28 +81,26 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     panel.querySelector<HTMLButtonElement>('.drawings-close')!.focus();
   }
   const close = () => { panel.hidden = true; list.innerHTML = ''; current = null; item.focus(); };
-  /** Prints the sheets from a frame of their own, so only the drawings print, each on its own A3 page. */
-  function print() {
+  /** Writes the PDF and hands it over: through the share sheet on a phone (Save to Files, Mail), downloaded elsewhere.
+   * The file is made from the sheets, not from the screen, so the zoom or scroll of the viewer never changes it. */
+  async function savePdf() {
     if (!current) return;
-    const frame = page.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
-    frame.srcdoc = printableDocument(current.sheets, current.info);
-    let done = false;
-    const remove = () => { if (!done) { done = true; frame.remove(); } };
-    frame.onload = () => {
-      const win = frame.contentWindow;
-      if (!win) return remove();
-      win.addEventListener('afterprint', () => setTimeout(remove, 0));
-      win.focus();
-      win.print();
-      setTimeout(remove, 120000);
-    };
-    page.body.append(frame);
+    const name = fileName(current.info.project), bytes = drawingsPdf(current.sheets, current.info);
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }), win = page.defaultView;
+    const file = typeof File === 'function' ? new File([blob], name, { type: 'application/pdf' }) : null, nav = win?.navigator;
+    if (file && nav?.canShare?.({ files: [file] }) && win?.matchMedia('(pointer: coarse)').matches) {
+      try { await nav.share({ files: [file], title: name }); return; } catch (e) { if ((e as Error).name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(blob), link = page.createElement('a');
+    link.href = url; link.download = name; link.rel = 'noopener';
+    page.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
   lifetime.listen(item, 'click', open);
   lifetime.listen(panel.querySelector('.drawings-close')!, 'click', close);
-  lifetime.listen(panel.querySelector('.drawings-pdf')!, 'click', print);
+  lifetime.listen(panel.querySelector('.drawings-pdf')!, 'click', () => { void savePdf(); });
   lifetime.listen(panel.querySelector('.drawings-zoom')!, 'click', e => {
     const dir = Number((e.target as HTMLElement).closest('button')?.dataset.zoom);
     if (dir) step(dir);

@@ -6,7 +6,7 @@ import type { DrawingPiece } from '../../src/domain/drawings/room-pieces';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { FURNITURE } from '../../src/domain/furniture/furniture';
-import { printableDocument } from '../../src/presentation/drawings/drawings-viewer';
+import { drawingsPdf } from '../../src/presentation/drawings/drawings-viewer';
 
 /** Technical drawings: what a carpenter builds and fits from, every figure in whole millimetres. */
 
@@ -123,12 +123,18 @@ test('every dimension string is whole millimetres (half in a construction detail
   }
 });
 
-test('the printed set is one A3 landscape page per sheet', () => {
+test('the PDF is one A3 landscape page per sheet, a valid file made from the sheets, not the screen', () => {
   const sheets = technicalDrawings({ studio: room(), pieces: kitchen() });
-  const html = printableDocument(sheets, { project: 'Kitchen <test>', date: '19.10.2026', total: sheets.length });
-  assert.match(html, /@page\{size:420mm 297mm;margin:0\}/);
-  assert.equal(html.match(/<svg /g)?.length, sheets.length);
-  assert.ok(!html.includes('<test>'), 'text is escaped');
+  const pdf = new TextDecoder().decode(drawingsPdf(sheets, { project: 'Kitchen (test)', date: '19.10.2026', total: sheets.length }));
+  assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
+  assert.equal(pdf.match(/\/Type \/Page /g)?.length, sheets.length, 'a page for every sheet');
+  assert.equal(pdf.match(/\/MediaBox \[0 0 1190\.551 841\.89\]/g)?.length, sheets.length, 'every page A3 landscape: 420 × 297 mm');
+  // The cross-reference table points at every object exactly.
+  const xref = Number(pdf.slice(pdf.lastIndexOf('startxref') + 9).trim().split('\n')[0]);
+  const offsets = pdf.slice(xref).split('\n').slice(3).filter(l => / 00000 n $/.test(l)).map(l => Number(l.slice(0, 10)));
+  offsets.forEach((o, k) => assert.ok(pdf.startsWith(k + 1 + ' 0 obj', o), 'object ' + (k + 1) + ' at ' + o));
+  assert.ok(pdf.includes('<36303020d72032313530'), 'a size, 600 × 2150, with its × written in WinAnsi');
+  assert.ok(pdf.includes('/Title (Kitchen test - technical drawings)'), 'its title, without the brackets a PDF string would choke on');
 });
 
 const sheetNamed = (title: string, pieces = kitchen()) => technicalDrawings({ studio: room(), pieces }).find(s => s.title === title)!;
