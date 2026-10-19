@@ -8,6 +8,7 @@ import { createKitchenArrayGesture } from './kitchen-array-gesture';
 import { bindLengthUnits } from './length-units-menu';
 import { bindMaxReachMenu } from './max-reach-menu';
 import { bindDrawingsViewer } from '../drawings/drawings-viewer';
+import { arrangeMenu } from './menu-layout';
 import { createTactileFeedback } from './tactile-feedback';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import type { EditorScene } from '../../application/projects/editor-scene';
@@ -179,6 +180,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
         bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
+        // Every row is in the menu now: lay it out in groups.
+        arrangeMenu({ dom, lifetime });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));

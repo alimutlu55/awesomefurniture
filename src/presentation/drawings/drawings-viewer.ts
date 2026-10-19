@@ -35,7 +35,7 @@ const fileName = (project: string) => project.toLowerCase().replace(/[^a-z0-9]+/
  * dimension in millimetres) on A3 sheets to read on screen, zoomed, and saved as a PDF file the app writes itself. */
 export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
   const { document } = dom, page = dom.host.ownerDocument, menu = dom.$('#menu'), item = document.createElement('button');
-  item.className = 'mi'; item.type = 'button'; item.setAttribute('role', 'menuitem');
+  item.className = 'mi drawings-menu'; item.type = 'button'; item.setAttribute('role', 'menuitem');
   item.innerHTML = ICON + '<span>Technical drawings</span>';
   const help = menu.querySelector('[data-editor-id="help-menu"]');
   if (help) menu.insertBefore(item, help); else menu.append(item);
