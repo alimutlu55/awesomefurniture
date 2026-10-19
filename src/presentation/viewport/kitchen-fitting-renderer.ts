@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { cornerFrontSplit, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { cornerDoorSide, cornerFrontSplit, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -34,7 +34,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
   function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
     const hh = it.h, { x0, x1, y0, y1 } = kitchenFrontRect(unit, cx, y, sw, hh, inside, outer);
-    const mid = (y0 + y1) / 2, hinge = itemHingeSide(it, { doorHang }), pullX = hinge === 'right' ? x0 + 4 : x1 - 4;
+    const mid = (y0 + y1) / 2, hinge = itemHingeSide(it, { doorHang }), explicit = !!(it.hinge ?? doorHang), pullX = hinge === 'right' ? x0 + 4 : x1 - 4;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
         panel(x0, x1, y0, y1);
@@ -45,17 +45,17 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       case 'cupboard': case 'sink':
         // The handle goes on the edge nearest the height a hand reaches: at the top of a door below the middle of a person's
         // reach, at the bottom of one above it (a wall unit's door, the cupboard at the top of a tall unit).
-        doors(x0, x1, y0, y1, kitchenUnit(unit).elevation + mid < HANDLE_REACH, hinge);
+        doors(x0, x1, y0, y1, kitchenUnit(unit).elevation + mid < HANDLE_REACH, hinge, explicit);
         if (it.k === 'cupboard') shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
         break;
       case 'corner': {
         // A blind-corner unit: one half is a fixed blind panel where the perpendicular run meets it, the other half
         // is the hinged door with two swing-out kidney trays on a post inside.
-        const { blind, door } = cornerFrontSplit(x0, x1, hinge), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
         panel(blind.x0, blind.x1, y0, y1);
         panel(door.x0, door.x1, y0, y1);
         pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
-        const postX = (blind.x0 + blind.x1) / 2 + (hinge === 'right' ? 6 : -6), trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12);
+        const postX = (blind.x0 + blind.x1) / 2 + (doorSide === 'right' ? 6 : -6), trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12);
         box(2.2, Math.max(8, hh - 4), 2.2, postX, y + hh / 2, 0, steel);
         for (const ty of [y + hh * .28, y + hh * .66]) {
           box(trayW, 1.4, trayD, cx, ty, 0, materials.inside);

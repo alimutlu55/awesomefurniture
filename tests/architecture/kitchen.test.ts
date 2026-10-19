@@ -258,10 +258,10 @@ test('corner pull-out and filler cover · blind panel + hinged door, kidney mech
   assert.equal(corner.secs[0]![0]!.k, 'corner');
   const frontsLeft = piecefronts(corner).fronts;
   assert.equal(frontsLeft.length, 2, 'blind panel and hinged door');
-  assert.deepEqual(frontsLeft.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'left']]);
-  corner.secs[0]![0]!.hinge = 'right';
+  assert.deepEqual(frontsLeft.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'right']]);
+  corner.secs[0]![0]!.ax = 'r'; corner.secs[0]![0]!.hinge = 'left';
   const frontsRight = piecefronts(corner).fronts;
-  assert.deepEqual(frontsRight.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'right']]);
+  assert.deepEqual(frontsRight.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'left']]);
   assert.ok(frontsRight[0]!.x0 < frontsRight[1]!.x0, 'when hinged on the right, the blind panel sits on the left half');
 
   const cover = { ...createKitchenCover(corner, 15), sel: 0, item: -1, divider: -1, space: null, open: false };

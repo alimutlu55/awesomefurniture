@@ -56,11 +56,14 @@ export function bindDoorChoice({ dom, commands }) {
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-d]')).forEach(b => b.onclick = () => commands.setDoors(/** @type {import('../../../domain/wardrobe/editor-design').EditorDesign['doors']} */ (b.dataset.d)));
     const fins = $('#fins');
     if (fins?.insertAdjacentHTML && !document.querySelector('#door-hang')) {
-        fins.insertAdjacentHTML('afterend', '<div id="door-hang" class="door-hang" role="group" aria-label="Door hinge and handle side"><span>Hinge side</span><div class="door-hang-seg">'
-            + '<button type="button" data-hang="" title="Hang doors towards the outer ends">Auto</button>'
-            + '<button type="button" data-hang="left" title="Hinges on the left · handle on the right">Left</button>'
-            + '<button type="button" data-hang="right" title="Hinges on the right · handle on the left">Right</button></div></div>');
-        /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('#door-hang [data-hang]')).forEach(b => b.onclick = () => commands.setDoorHang(/** @type {'left' | 'right' | null} */ (b.dataset.hang || null)));
+        fins.insertAdjacentHTML('afterend', '<div id="door-hang" class="door-hang" role="group" aria-label="Door handle and hinge side"><span>Handle side</span><div class="door-hang-seg">'
+            + '<button type="button" data-hang="" title="Automatic handle placement">Auto</button>'
+            + '<button type="button" data-hang="right" title="Handle on the left · hinges on the right">Left</button>'
+            + '<button type="button" data-hang="left" title="Handle on the right · hinges on the left">Right</button></div></div>'
+            + '<div id="corner-side" class="door-hang" role="group" aria-label="Corner door side" hidden><span>Corner door</span><div class="door-hang-seg">'
+            + '<button type="button" data-hang="corner-l" title="Door on the left half · blind panel on the right">Left half</button>'
+            + '<button type="button" data-hang="corner-r" title="Door on the right half · blind panel on the left">Right half</button></div></div>');
+        /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('#door-hang [data-hang],#corner-side [data-hang]')).forEach(b => b.onclick = () => commands.setDoorHang(/** @type {'left' | 'right' | 'corner-l' | 'corner-r' | null} */ (b.dataset.hang || null)));
     }
 }
 /** @param {import('./cabinet.ports').RenderDoorChoicesPorts} ports */

@@ -35,10 +35,15 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
             getDesign().open = false;
         });
     }
-    function setDoorHang(doorHang: 'left' | 'right' | null) {
+    function setDoorHang(doorHang: 'left' | 'right' | 'corner-l' | 'corner-r' | null) {
         run(() => {
+            if (doorHang === 'corner-l' || doorHang === 'corner-r') {
+                for (const sec of getDesign().secs) for (const it of sec) if (it.k === 'corner') it.ax = doorHang === 'corner-r' ? 'r' : 'l';
+                return;
+            }
             if (!doorHang) delete getDesign().doorHang;
             else getDesign().doorHang = doorHang;
+            for (const sec of getDesign().secs) for (const it of sec) delete it.hinge;
         });
     }
     function setReachLine(enabled: boolean) {

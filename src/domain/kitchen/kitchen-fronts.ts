@@ -23,23 +23,33 @@ export function kitchenFrontRect(unit: KitchenUnitKey | undefined, cx: number, y
 /** Above this width a hinged front is two leaves. Centimetres. */
 export const DOUBLE_DOOR_OVER = 62;
 /** Hinged leaves across x0..x1: one up to DOUBLE_DOOR_OVER wide, hinged on `hinge` ('left' by default, handle on the
- * opposite edge); two above it, hinged on the outer sides and meeting in the middle. */
-export function hingedLeaves(x0: number, x1: number, hinge: 'left' | 'right' = 'left'): { x0: number; x1: number; hinge: 'left' | 'right' }[] {
+ * opposite edge); two above it, hinged on the outer sides and meeting in the middle unless `explicit` is true. */
+export function hingedLeaves(x0: number, x1: number, hinge: 'left' | 'right' = 'left', explicit = false): { x0: number; x1: number; hinge: 'left' | 'right' }[] {
   if (x1 - x0 <= DOUBLE_DOOR_OVER) return [{ x0, x1, hinge }];
   const mid = (x0 + x1) / 2;
-  return [{ x0, x1: mid, hinge: 'left' }, { x0: mid, x1, hinge: 'right' }];
+  return explicit
+    ? [{ x0, x1: mid, hinge }, { x0: mid, x1, hinge }]
+    : [{ x0, x1: mid, hinge: 'left' }, { x0: mid, x1, hinge: 'right' }];
 }
-/** Which side a single-leaf kitchen front hinges on (or which side of a corner pull-out holds the door): the item's
- * own choice first, then the cabinet's doorHang, defaulting to 'left' (handle on the right). */
-export const itemHingeSide = (item?: { readonly hinge?: 'left' | 'right' | undefined }, design?: { readonly doorHang?: 'left' | 'right' | undefined }): 'left' | 'right' =>
-  item?.hinge ?? design?.doorHang ?? 'left';
+/** Which half of a blind-corner pull-out holds the door ('left' by default, or 'right' when aligned right via ax === 'r'). */
+export const cornerDoorSide = (item?: { readonly ax?: 'l' | 'c' | 'r' | undefined }): 'left' | 'right' =>
+  item?.ax === 'r' ? 'right' : 'left';
+/** Which side a single-leaf kitchen front hinges on: the item's own choice first, then the cabinet's doorHang.
+ * In Auto mode, a blind-corner pull-out hinges at its centre post so its handle sits on the outer edge away from the
+ * inner corner; other single-leaf doors hinge on the left (handle on the right). */
+export const itemHingeSide = (
+  item?: { readonly k?: string | undefined; readonly hinge?: 'left' | 'right' | undefined; readonly ax?: 'l' | 'c' | 'r' | undefined },
+  design?: { readonly doorHang?: 'left' | 'right' | undefined },
+): 'left' | 'right' =>
+  item?.hinge ?? design?.doorHang ?? (item?.k === 'corner' ? (cornerDoorSide(item) === 'left' ? 'right' : 'left') : 'left');
 /** Where a blind-corner pull-out front divides into its hinged door leaf and the fixed blind panel that tucks into the
- * corner: `hinge` 'left' puts the door on the left half and the blind corner on the right; 'right' swaps them. */
-export function cornerFrontSplit(x0: number, x1: number, hinge: 'left' | 'right' = 'left') {
+ * corner: `doorSide` chooses which half holds the door ('left' by default, 'right' when flipped), while `hinge` sets
+ * which edge of that door leaf has the hinges ('right' puts the handle on the left edge; 'left' on the right edge). */
+export function cornerFrontSplit(x0: number, x1: number, hinge: 'left' | 'right' = 'right', doorSide: 'left' | 'right' = 'left') {
   const mid = (x0 + x1) / 2;
-  return hinge === 'right'
-    ? { blind: { x0, x1: mid }, door: { x0: mid, x1, hinge: 'right' as const } }
-    : { blind: { x0: mid, x1 }, door: { x0, x1: mid, hinge: 'left' as const } };
+  return doorSide === 'right'
+    ? { blind: { x0, x1: mid }, door: { x0: mid, x1, hinge } }
+    : { blind: { x0: mid, x1 }, door: { x0, x1: mid, hinge } };
 }
 /** Where a fridge front splits into a freezer door below and a fridge door above: only in a tall housing (a fitting
  * over 140 cm). Null for one door. */

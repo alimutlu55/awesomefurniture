@@ -57,9 +57,9 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
     const { $ } = dom;
     const align = $('#ialign');
     if (align?.insertAdjacentHTML && !$('#pop3')?.querySelector?.('#ihinge')) {
-        align.insertAdjacentHTML('afterend', '<div class="pr door-hang" id="ihinge" role="group" aria-label="Door hinge and handle side" hidden><span>Hinge side</span><div class="door-hang-seg">'
-            + '<button type="button" data-hinge="left" title="Hinges on the left · handle on the right">Left</button>'
-            + '<button type="button" data-hinge="right" title="Hinges on the right · handle on the left">Right</button></div></div>');
+        align.insertAdjacentHTML('afterend', '<div class="pr door-hang" id="ihinge" role="group" aria-label="Door handle and hinge side" hidden><span>Handle side</span><div class="door-hang-seg">'
+            + '<button type="button" data-hinge="right" title="Handle on the left · hinges on the right">Left</button>'
+            + '<button type="button" data-hinge="left" title="Handle on the right · hinges on the left">Right</button></div></div>');
     }
     lifetime.listen($('#pop3'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));

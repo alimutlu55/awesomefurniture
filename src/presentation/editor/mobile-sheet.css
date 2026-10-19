@@ -21,7 +21,7 @@
  #app :is(#left,#pop3,#pop4)[data-context-section="resize"] :is(.size-field,.item-size-field) small{font-size:12px}
  #app :is(#pop3,#pop4)[data-context-section="resize"] .ph{border:0;margin-bottom:14px;min-height:38px}
  #app :is(#pop3,#pop4)[data-context-section="resize"] .ph b{font-size:13px;font-weight:600;letter-spacing:0}
- #app :is(#pop3,#pop4)[data-context-section="resize"]>:not(.ph):not(.item-size-pair):not(.mobile-sheet-handle){display:none!important}
+ #app :is(#pop3,#pop4)[data-context-section="resize"]>:not(.ph):not(.item-size-pair):not(#ihinge):not(.mobile-sheet-handle){display:none!important}
  @media (max-width:900px){
  .left-ph{display:none!important}
  #app :is(#pop3,#pop4).mobile-bottom-sheet[data-context-section="resize"]{left:0;right:0;top:auto;width:auto;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;height:var(--panel-height);max-height:var(--panel-height)}

@@ -35,9 +35,9 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   const panel = (x0: number, x1: number, y0: number, y1: number, material = front) =>
     box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), PANEL, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
   /** Hinged leaves across a span: one up to 62 cm, two above it, each with an upright pull by its free edge. */
-  const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean, hinge: 'left' | 'right' = 'left') => {
+  const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean, hinge: 'left' | 'right' = 'left', explicit = false) => {
     const py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
-    for (const leaf of hingedLeaves(x0, x1, hinge)) {
+    for (const leaf of hingedLeaves(x0, x1, hinge, explicit)) {
       panel(leaf.x0, leaf.x1, y0, y1);
       pull(Math.min(18, (y1 - y0) * .5), leaf.hinge === 'left' ? leaf.x1 - 4 : leaf.x0 + 4, py, true);
     }

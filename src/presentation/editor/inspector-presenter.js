@@ -158,11 +158,20 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             b.classList.toggle('on', b.dataset.d === model.activeCabinet().state.doors);
             b.setAttribute('aria-pressed', String(b.dataset.d === model.activeCabinet().state.doors));
         });
-        const hang = /** @type {HTMLElement | null} */ (document.querySelector('#door-hang')), cabState = model.activeCabinet().state;
+        const hang = /** @type {HTMLElement | null} */ (document.querySelector('#door-hang')), cornerSide = /** @type {HTMLElement | null} */ (document.querySelector('#corner-side')), cabState = model.activeCabinet().state;
+        const cornerItem = cabState.secs.flatMap(sec => sec).find(it => it.k === 'corner');
         if (hang) {
             hang.hidden = (!isKitchen(cabState) && cabState.doors === 'none') || (isKitchen(cabState) && !!kitchenUnit(cabState.unit).fixture);
             hang.querySelectorAll('[data-hang]').forEach(b => {
                 const on = (b.getAttribute('data-hang') || '') === (cabState.doorHang || '');
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-pressed', String(on));
+            });
+        }
+        if (cornerSide) {
+            cornerSide.hidden = !cornerItem;
+            cornerSide.querySelectorAll('[data-hang]').forEach(b => {
+                const on = b.getAttribute('data-hang') === (cornerItem?.ax === 'r' ? 'corner-r' : 'corner-l');
                 b.classList.toggle('on', on);
                 b.setAttribute('aria-pressed', String(on));
             });

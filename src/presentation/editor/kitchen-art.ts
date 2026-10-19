@@ -48,7 +48,7 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
     // A pull: across drawers and flaps, up a door (or on the door half of a blind-corner pull-out).
     if (kind === 'corner') {
       out.push(`<rect x="${x + w / 2}" y="${y + 1}" width="${w / 2 - 2}" height="${h - 2}" fill="#e9e2d6" stroke="#8d7d65" stroke-width=".6"/>`);
-      out.push(`<path d="M${x + w / 2 - 4} ${y + 5}v7" stroke="#8a8f96" stroke-width="1.4" stroke-linecap="round"/>`);
+      out.push(`<path d="M${x + 6} ${y + 5}v7" stroke="#8a8f96" stroke-width="1.4" stroke-linecap="round"/>`);
     } else if (kind !== 'cover') {
       const drawer = def?.traits.includes('pullout') || kind === 'hob' || kind === 'flap';
       out.push(drawer ? `<path d="M${x + w / 2 - 7} ${y + Math.min(5, h / 2)}h14" stroke="#8a8f96" stroke-width="1.4" stroke-linecap="round"/>`
@@ -98,7 +98,7 @@ export function kitchenFittingArt(kind: string): string {
   } else if (kind === 'corner') {
     front(y, h);
     out.push(`<rect x="${x + w / 2}" y="${y + 1}" width="${w / 2 - 1}" height="${h - 2}" fill="#e9e2d6" stroke="#8d7d65" stroke-width=".8"/>`);
-    bar(x + w / 2 - 6, y + 8, 0, Math.min(18, h / 3));
+    bar(x + 6, y + 8, 0, Math.min(18, h / 3));
   } else if (kind === 'cover') {
     const cw = Math.max(16, w * .28), cx = (W - cw) / 2;
     out.push(`<rect x="${cx}" y="${y}" width="${cw}" height="${h}" rx="1.5" fill="#fbf8f3" stroke="#8d7d65" stroke-width="1"/>`);
