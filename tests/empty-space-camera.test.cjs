@@ -28,7 +28,7 @@ function fixture(t, width, studio = true) {
     const element = { dataset: {}, getBoundingClientRect: () => ({ width, height }), classList: { contains: () => true }, matches: () => false, querySelector: () => null };
     const dom = { width, $: () => element, document: { documentElement: {}, querySelector: () => null } };
     const handlers = {}, cv = { ...element, style: {}, focus() {}, setPointerCapture() {}, hasPointerCapture: () => false };
-    const resources = { cv }, picking = { hitAt: () => -1,
+    const resources = { cv }, picking = { hitAt: () => -1, pieceAt: () => undefined,
         cast: (_e, objects) => objects === renderState.allHits ? hit : objects === roomObjects ? roomHit : null };
     const inspector = {
         inside: () => selectionState.deep, layoutPop() {}, hidePop() {}, update() {}, selectCabinet() { selectionState.focusOn = true; }, showPop() {},

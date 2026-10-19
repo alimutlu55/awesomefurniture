@@ -37,7 +37,7 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const cv = { ...element(), style: {}, focus() {}, setPointerCapture() {}, hasPointerCapture: () => false }, resources = { cv };
     const renderState = { allHits: [], allItemHits: [], ihits: [], outs: [], wardrobeGroups: [] }, roomObjects = [];
     let roomHit = { object: { userData: { studioCeiling: 'k1' } }, point: { x: 0, y: 150, z: 100 }, distance: 5 };
-    const picking = { cast: (_e, objects) => objects === roomObjects ? roomHit : undefined, hitAt: () => -1,
+    const picking = { cast: (_e, objects) => objects === roomObjects ? roomHit : undefined, hitAt: () => -1, pieceAt: () => undefined,
         groundPoint: e => ({ x: e.clientX, z: e.clientY }), screenPoint: p => ({ x: p.x + p.z * .4, y: -p.y + p.z * .3 }) };
     const inspector = { inside: () => false, layoutPop() {}, hidePop() {}, histUI() {}, update() {},
         clearFocus() { selectionState.focusOn = selectionState.deep = selectionState.pillOn = false; } };

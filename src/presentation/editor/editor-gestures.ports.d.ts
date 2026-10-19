@@ -5,7 +5,7 @@ readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-cont
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../viewport/cabinet-renderer.js').createCabinetRenderer>, 'assist' | 'build' | 'clearPreview' | 'clearSettling' | 'drawClearances' | 'dropPreviewLabels' | 'holdOverlay' | 'refreshDividerVisual' | 'setPreviewLabel' | 'wallGuide'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'hidePop' | 'histUI' | 'inside' | 'itemUI' | 'movementUI' | 'reopenItemPanel' | 'selectCabinet' | 'selectSpaceAt' | 'showPop' | 'update'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'toast'>>;
-readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').createScenePicking>, 'cast' | 'frontPoint' | 'groundPoint' | 'hitAt' | 'screenPoint'>>;
+readonly picking: Readonly<Pick<ReturnType<typeof import('./scene-picking.js').createScenePicking>, 'cast' | 'frontPoint' | 'groundPoint' | 'hitAt' | 'screenPoint' | 'pieceAt'>>;
 readonly cameraState: Pick<ReturnType<typeof import('../viewport/camera-state.js').createCameraState>, 'camGoal' | 'el' | 'tgt' | 'tgtY' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'lastMoveEvent' | 'moveMode' | 'panelWasOpen' | 'previewPlan' | 'rotationGesture' | 'wardrobeGesture'>;
 readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'hits' | 'ihits' | 'itemGroups' | 'outs' | 'previewGroup' | 'settling' | 'wardrobeGroups'>;

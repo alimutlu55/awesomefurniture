@@ -30,14 +30,23 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         return interactionState.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -height), new THREE.Vector3());
     }
+    /** Whether a mesh is drawn: it and everything it hangs from are visible, and it is not a shadow. */
+    const onShow = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return o.isMesh && o.material?.visible !== false && !o.userData.floorShadow; };
+    /** The wardrobe or cabinet whose boards are under the pointer, its frame (sides, top, plinth) included, or undefined. */
+    function pieceAt(e) {
+        const r = resources.cv.getBoundingClientRect();
+        interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
+        let g = interactionState.ray.intersectObjects(renderState.wardrobeGroups, true).find(h => onShow(h.object))?.object;
+        while (g && !renderState.wardrobeGroups.includes(g)) g = g.parent;
+        return g?.userData.wardrobe;
+    }
     /** The first surface on show (a wall, the floor, furniture) on the line from `origin` through `toward`, no further
      * than `far` centimetres, or null. Hit boxes and hidden parts are seen through. */
     function surfaceAlong(origin, toward, far) {
         const from = new THREE.Vector3(origin.x, origin.y, origin.z), ray = interactionState.ray;
         ray.set(from, new THREE.Vector3(toward.x, toward.y, toward.z).sub(from).normalize());
         ray.far = far;
-        const seen = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return o.isMesh && o.material?.visible !== false && !o.userData.floorShadow; };
-        const hit = ray.intersectObjects(resources.scene.children, true).find(h => seen(h.object));
+        const hit = ray.intersectObjects(resources.scene.children, true).find(h => onShow(h.object));
         ray.far = Infinity;
         return hit ? hit.point.clone() : null;
     }
@@ -45,5 +54,5 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         const r = resources.cv.getBoundingClientRect(), q = p.clone().project(resources.cam);
         return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
     }
-    return { frontPoint, cast, hitAt, groundPoint, screenPoint, surfaceAlong };
+    return { frontPoint, cast, hitAt, groundPoint, screenPoint, surfaceAlong, pieceAt };
 }

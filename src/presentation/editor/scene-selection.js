@@ -20,6 +20,12 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (part && room.pick(part)) return;
         // A click anywhere else leaves the room part it had selected.
         selectionState.room = null;
+        // A tap on a wardrobe's frame (its sides, top or plinth) chooses it, or keeps it chosen, instead of letting go.
+        const frame = !h && !studioMode ? picking.pieceAt(e) : undefined;
+        if (frame !== undefined) {
+            if (!selectionState.focusOn || frame !== model.scene.activeWardrobe) { inspector.selectCabinet(frame); inspector.update(); }
+            return;
+        }
         if (!h) {
             inspector.clearFocus();
             selectionState.pendingStudioAction = null;

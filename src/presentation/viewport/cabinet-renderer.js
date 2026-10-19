@@ -189,7 +189,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             renderState.Gr.position.set(wardrobe.x, wardrobe.y || 0, wardrobe.z);
             renderState.Gr.rotation.y = wardrobe.angle * Math.PI / 180;
             renderState.Gr.updateMatrixWorld(true);
-            renderState.wardrobeGroups.push(renderState.Gr);
+            renderState.wardrobeGroups.push(renderState.Gr); renderState.Gr.userData.wardrobe = wardrobe.id;
             renderState.hits.forEach(h => h.userData.wardrobe = wardrobe.id);
             renderState.ihits.forEach(h => h.userData.wardrobe = wardrobe.id);
             renderState.pivots.forEach(p => p.userData.state = renderDesign);
