@@ -37,27 +37,14 @@ test('a press on the body drags the cabinet at wardrobe level; a press on an ite
  c.wardrobeDrag=false;c.itemHit=hit(1,0,1);
  c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,1);
 });
-test('with no wardrobe chosen, a mouse press anywhere on one prepares a move of the whole wardrobe, not of its fittings',()=>{
- const {context:c,hit}=fixture();c.hit=hit(2);c.itemHit=hit(2,0,1);
- c.handlers.pointerdown({button:0,pointerType:'mouse',pointerId:1,clientX:100,clientY:100});
- assert.equal(c.pendingFurniture.id,2,'the pressed wardrobe will move once the pointer moves');
- assert.equal(c.drag,null,'its fittings stay put');assert.equal(c.focusOn,false,'nothing is chosen yet (a tap still chooses it)');
- assert.equal(c.wardrobeDrag,false);
-});
-test('with no wardrobe chosen, a finger on one turns the view instead of moving it',()=>{
- const {context:c,hit}=fixture();c.hit=hit(2);c.itemHit=hit(2,0,1);
- c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
- assert.equal(c.pendingFurniture,null);assert.equal(c.drag,null);assert.equal(c.wardrobeDrag,false);
- assert.equal(c.ptrs.size,1,'the finger is the camera gesture');assert.equal(c.focusOn,false);
-});
-test('inside a chosen space, a finger moves only the chosen fitting: on another one it turns the view',()=>{
- const {context:c,run,hit}=fixture();run('pick({})');c.deep=true;c.S.item=-1;c.S.divider=-1;c.itemHit=hit(1,0,1);
- c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
- assert.equal(c.drag,null,'an unchosen fitting stays put');assert.equal(c.pendingFurniture,null,'the wardrobe stays put');
- assert.equal(c.wardrobeDrag,false);assert.equal(c.S.item,-1,'a press does not choose it; a tap does');assert.equal(c.ptrs.size,1);
- c.ptrs.clear();c.S.item=1;
- c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:100,clientY:100});
- assert.equal(c.drag.from.j,1,'the chosen fitting follows the finger');
+test('with no wardrobe chosen, a press anywhere on one prepares a move of the whole wardrobe, not of its fittings',()=>{
+ for(const pointerType of ['mouse','touch']){
+  const {context:c,hit}=fixture();c.hit=hit(2);c.itemHit=hit(2,0,1);
+  c.handlers.pointerdown({button:0,pointerType,pointerId:1,clientX:100,clientY:100});
+  assert.equal(c.pendingFurniture.id,2,pointerType+': the pressed wardrobe will move once the pointer moves');
+  assert.equal(c.drag,null,pointerType+': its fittings stay put');assert.equal(c.focusOn,false,pointerType+': nothing is chosen yet (a tap still chooses it)');
+  assert.equal(c.wardrobeDrag,false);
+ }
 });
 test('with a wardrobe chosen, a press on another one prepares moving that other one',()=>{
  const {context:c,run,hit}=fixture();run('pick({})');c.hit=hit(3);c.itemHit=hit(3,0,0);
@@ -72,14 +59,20 @@ test('touch drags the selected wardrobe body; empty background remains available
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:150,clientY:100});
  assert.equal(c.wardrobeDrag,false);assert.equal(c.ptrs.size,1);
 });
-test('touch drags the chosen divider where it is; on a divider not chosen a finger turns the view',()=>{
+test('a finger on a fitting prepares dragging it but chooses it only once the drag starts, so a pinch leaves the selection alone',()=>{
+ const {context:c,run,hit}=fixture();run('pick({})');c.deep=true;c.S.item=-1;c.S.divider=-1;c.itemHit=hit(1,0,1);
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
+ assert.equal(c.drag.from.j,1,'the fitting will follow the finger');assert.equal(c.S.item,-1,'not chosen yet');
+ c.drag.select();assert.equal(c.S.item,1,'chosen when the drag starts');
+ c.drag=null;c.S.item=-1;c.ptrs.clear();
+ c.handlers.pointerdown({button:0,pointerType:'mouse',pointerId:2,clientX:100,clientY:100});
+ assert.equal(c.S.item,1,'a mouse press chooses it at once');
+});
+test('touch drags a divider where it is, by default, and selects it',()=>{
  const {context:c,run,hit}=fixture();run('pick({})');
- c.deep=true;c.S.divider=-1;const divider=hit(1,0,0);divider.object.userData.divider=0;c.itemHit=divider;
+ c.deep=true;const divider=hit(1,0,0);divider.object.userData.divider=0;c.itemHit=divider;
  let dragged=null;c.beginDividerDrag=(e,index)=>{dragged=index};
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:2,clientX:100,clientY:100});
- assert.equal(dragged,null);assert.equal(c.S.divider,-1);assert.equal(c.pendingFurniture,null);assert.equal(c.ptrs.size,1);
- c.ptrs.clear();c.S.divider=0;
- c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:3,clientX:100,clientY:100});
  assert.equal(dragged,0);assert.equal(c.S.divider,0);assert.equal(c.S.item,-1);assert.notEqual(c.wardrobeDrag,true);
 });
 test('a second finger cancels wardrobe translation before taking over pinch',()=>{
