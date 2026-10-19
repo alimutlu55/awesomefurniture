@@ -1,5 +1,6 @@
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
+import { itemHingeSide } from '../../domain/kitchen/kitchen-fronts';
 import { createAddMenuPresenter } from './add-menu-presenter.js';
 import { viewedPlacement } from './viewed-placement';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
@@ -157,6 +158,15 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             b.classList.toggle('on', b.dataset.d === model.activeCabinet().state.doors);
             b.setAttribute('aria-pressed', String(b.dataset.d === model.activeCabinet().state.doors));
         });
+        const hang = /** @type {HTMLElement | null} */ (document.querySelector('#door-hang')), cabState = model.activeCabinet().state;
+        if (hang) {
+            hang.hidden = (!isKitchen(cabState) && cabState.doors === 'none') || (isKitchen(cabState) && !!kitchenUnit(cabState.unit).fixture);
+            hang.querySelectorAll('[data-hang]').forEach(b => {
+                const on = (b.getAttribute('data-hang') || '') === (cabState.doorHang || '');
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-pressed', String(on));
+            });
+        }
         $('#open').disabled = model.activeCabinet().state.doors === 'none';
         const effF = model.activeCabinet().state.item < 0 ? geometry.sectionSpaceMeasurements(model.activeCabinet().state.sel).h : (model.activeCabinet().state.secs[model.activeCabinet().state.sel][model.activeCabinet().state.item]?.w ? geometry.itemFreeAbove(model.activeCabinet().state.sel, model.activeCabinet().state.item) : f);
         /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('#toolbar [data-m],#pop2 [data-m],#pill-menu [data-m]')).forEach(b => {
@@ -392,6 +402,16 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
                 }
             }
             $('#imeas').innerHTML = rows.map(r => '<b>' + r[0] + '</b><span>' + esc(r[1]) + '</span>').join('');
+        }
+        const ihinge = /** @type {HTMLElement | null} */ (p.querySelector?.('#ihinge'));
+        if (ihinge) {
+            const side = itemHingeSide(it, model.activeCabinet().state);
+            ihinge.hidden = !hasTrait(it.k, 'sideHandle');
+            ihinge.querySelectorAll('[data-hinge]').forEach(b => {
+                const on = b.getAttribute('data-hinge') === side;
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-pressed', String(on));
+            });
         }
         $('#itype').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === it.k));
         $('#ifin').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.f || null) === (it.f || null)));

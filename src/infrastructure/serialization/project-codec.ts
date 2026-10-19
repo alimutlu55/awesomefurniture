@@ -30,7 +30,7 @@ const editorItem = z.strictObject({
   f: z.enum(['Oak','White','Walnut','Graphite','Sage']).nullable().optional(),
   h: nonnegative, purpose: purposeEnum.optional(),
   w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
-  front: z.boolean().optional(), boxes: count.optional(),
+  front: z.boolean().optional(), boxes: count.optional(), hinge: z.enum(['left', 'right']).optional(),
 });
 const area = z.strictObject({x0:nonnegative,x1:positive,y0:nonnegative,y1:positive});
 const editorDivider = z.strictObject({
@@ -44,6 +44,7 @@ const editorDivider = z.strictObject({
 });
 const editorLayout = z.strictObject({
   cabinetId:count.positive(), weights:z.array(positive).length(6), reachStd:positive.optional(), engaged:z.boolean().optional(), reachLine:z.boolean().optional(),
+  doorHang:z.enum(['left','right']).optional(),
   proposal:z.strictObject({title:z.string(),summary:z.string()}).nullable(),
 });
 const shape = z.strictObject({

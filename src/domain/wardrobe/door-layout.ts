@@ -9,6 +9,14 @@ export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
 /** Front coordinates, measured from the left outer face and the floor.
  * An infinite cap means the leaf follows the outer roof profile. */
 export interface DoorArea { x0: number; x1: number; y0: number; y1: number }
+export type DoorHang = 'auto' | 'left' | 'right';
+
+/** Which side a wardrobe door leaf hinges on: the cabinet's chosen hang ('left' puts the handle on the right;
+ * 'right' on the left), or by default the side nearer the wardrobe's end so handles meet towards the middle. */
+export function doorHingeSide(area: Pick<DoorArea, 'x0' | 'x1'>, design: Pick<EditorDesign, 'w' | 'doorHang'>): 'left' | 'right' {
+    if (design.doorHang === 'left' || design.doorHang === 'right') return design.doorHang;
+    return (area.x0 + area.x1) / 2 <= design.w / 2 ? 'left' : 'right';
+}
 
 /** Only structural boards that span a compartment divide its doors. Ordinary
  * fittings do not, and a free-standing partial divider cannot support a seam.

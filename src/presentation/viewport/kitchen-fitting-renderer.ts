@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { fridgeSplit, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { cornerFrontSplit, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -19,7 +19,9 @@ export interface KitchenFrontMaterials {
  * as overlay fronts do. Cabinet-centred x, floor-relative y, centimetres. What sits in the worktop (sink,
  * hob) is drawn with the worktop (kitchen-run-renderer.ts).
  */
-export function createKitchenFittingRenderer({ box, group, d, unit, materials }: { box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; materials: KitchenFrontMaterials }) {
+export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials }: {
+  box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; doorHang?: 'left' | 'right' | undefined; materials: KitchenFrontMaterials;
+}) {
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
@@ -32,7 +34,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
   function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
     const hh = it.h, { x0, x1, y0, y1 } = kitchenFrontRect(unit, cx, y, sw, hh, inside, outer);
-    const mid = (y0 + y1) / 2;
+    const mid = (y0 + y1) / 2, hinge = itemHingeSide(it, { doorHang }), pullX = hinge === 'right' ? x0 + 4 : x1 - 4;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
         panel(x0, x1, y0, y1);
@@ -43,9 +45,24 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
       case 'cupboard': case 'sink':
         // The handle goes on the edge nearest the height a hand reaches: at the top of a door below the middle of a person's
         // reach, at the bottom of one above it (a wall unit's door, the cupboard at the top of a tall unit).
-        doors(x0, x1, y0, y1, kitchenUnit(unit).elevation + mid < HANDLE_REACH);
+        doors(x0, x1, y0, y1, kitchenUnit(unit).elevation + mid < HANDLE_REACH, hinge);
         if (it.k === 'cupboard') shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
         break;
+      case 'corner': {
+        // A blind-corner unit: one half is a fixed blind panel where the perpendicular run meets it, the other half
+        // is the hinged door with two swing-out kidney trays on a post inside.
+        const { blind, door } = cornerFrontSplit(x0, x1, hinge), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        panel(blind.x0, blind.x1, y0, y1);
+        panel(door.x0, door.x1, y0, y1);
+        pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
+        const postX = (blind.x0 + blind.x1) / 2 + (hinge === 'right' ? 6 : -6), trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12);
+        box(2.2, Math.max(8, hh - 4), 2.2, postX, y + hh / 2, 0, steel);
+        for (const ty of [y + hh * .28, y + hh * .66]) {
+          box(trayW, 1.4, trayD, cx, ty, 0, materials.inside);
+          box(trayW + .8, 3.6, trayD + .8, cx, ty + 2, 0, steel);
+        }
+        break;
+      }
       case 'flap':
         panel(x0, x1, y0, y1);
         pull(Math.min(32, sw * .45), cx, y0 + 4);
@@ -97,9 +114,9 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         const split = fridgeSplit(y0, y1, hh);
         if (split !== null) {
           panel(x0, x1, y0, split); panel(x0, x1, split, y1);
-          pull(Math.min(28, (split - y0) * .45), x1 - 4, split - 14, true);
-          pull(Math.min(40, (y1 - split) * .3), x1 - 4, split + 20, true);
-        } else { panel(x0, x1, y0, y1); pull(Math.min(28, hh * .4), x1 - 4, y1 - 16, true); }
+          pull(Math.min(28, (split - y0) * .45), pullX, split - 14, true);
+          pull(Math.min(40, (y1 - split) * .3), pullX, split + 20, true);
+        } else { panel(x0, x1, y0, y1); pull(Math.min(28, hh * .4), pullX, y1 - 16, true); }
         break;
       }
       case 'cargo':
@@ -110,7 +127,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, materials }:
         break;
       case 'pantry':
         panel(x0, x1, y0, y1);
-        pull(Math.min(60, hh * .35), x1 - 4, mid, true);
+        pull(Math.min(60, hh * .35), pullX, mid, true);
         shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
         break;
       default:

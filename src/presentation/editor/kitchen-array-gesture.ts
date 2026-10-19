@@ -6,13 +6,15 @@ import { isFixture } from '../../domain/kitchen/kitchen-units';
 /** Units that can be pulled out into a row: a sink or hob stands alone. */
 const arrayable = (state: Parameters<typeof isKitchen>[0] & Parameters<typeof isFixture>[0]) => isKitchen(state) && !isFixture(state);
 import { hasTrait } from '../../domain/wardrobe/fittings';
+import { isCoverUnit } from '../../domain/kitchen/kitchen-design';
 import type { EditorScene } from '../../application/projects/editor-scene';
 
 type Side = 1 | -1;
+type SceneCommands = ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>;
 interface KitchenArrayPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'activeCabinet' | 'snapshot' | 'restore'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'arrayKitchenUnit'>>;
+  readonly sceneCommands: Readonly<Pick<SceneCommands, 'arrayKitchenUnit'> & Partial<Pick<SceneCommands, 'extendKitchenRun'>>>;
   readonly history: { checkpoint(snapshot: string): void };
   /** The editor lifetime's timers (editor-lifetime.js), so a pending hold stops with the editor. */
   readonly lifetime: { timeout(fn: () => void, delay: number): unknown; cancelTimeout(id: never): void };
@@ -98,12 +100,25 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
     }
     history.checkpoint(g.snapshot);
     const original = (JSON.parse(g.snapshot) as EditorScene).wardrobes.find(w => w.id === g.id);
+    const last = model.scene.wardrobes[model.scene.wardrobes.length - 1];
     const appliance = original?.state.secs.flat().some(it => hasTrait(it.k, 'appliance'));
-    callbacks.toast(g.count + (g.count === 1 ? ' cabinet' : ' cabinets') + ' added' + (appliance ? ', with plain storage in place of the appliances' : ''));
+    if (g.count === 1 && last && isCoverUnit(last.state)) {
+      callbacks.toast('Corner cover (' + Math.round(last.state.w * 10) / 10 + ' cm) fitted to close the corner');
+    } else if (g.count === 1 && last && original && last.state.w < original.state.w - .5) {
+      callbacks.toast(Math.round(last.state.w * 10) / 10 + ' cm cabinet fitted into the remaining space');
+    } else {
+      callbacks.toast(g.count + (g.count === 1 ? ' cabinet' : ' cabinets') + ' added' + (appliance ? ', with plain storage in place of the appliances' : ''));
+    }
     callbacks.finished();
     callbacks.added();
   }
 
+  function addOne(side: Side) {
+    const count = sceneCommands.extendKitchenRun ? (sceneCommands.extendKitchenRun(side, false) ? 1 : 0) : sceneCommands.arrayKitchenUnit(1, side, false);
+    if (count) callbacks.rebuild();
+    else callbacks.toast('There is no room for another cabinet on this side.');
+    return count;
+  }
   function grip(side: Side) {
     let el = grips.get(side);
     if (el) return el;
@@ -126,14 +141,14 @@ export function createKitchenArrayGesture({ dom, model, sceneCommands, history, 
       if (gesture?.grip !== button) return;
       if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
       // A click without a pull adds one copy on that side.
-      if (!gesture.count) gesture.count = sceneCommands.arrayKitchenUnit(1, side, false);
+      if (!gesture.count) gesture.count = addOne(side);
       end();
     };
     button.onpointercancel = () => end(true);
     button.onkeydown = e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
-      if (begin(0, 0, side)) { gesture!.count = sceneCommands.arrayKitchenUnit(1, side, false); end(); }
+      if (begin(0, 0, side)) { gesture!.count = addOne(side); end(); }
     };
     grips.set(side, button);
     return button;

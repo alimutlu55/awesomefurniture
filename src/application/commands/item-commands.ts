@@ -343,6 +343,11 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             if (edit.purpose !== undefined) {
                 it.purpose = edit.purpose;
             }
+            if (edit.hinge !== undefined) {
+                if (edit.hinge === null) delete it.hinge;
+                else it.hinge = edit.hinge;
+                effects.milestone('tune');
+            }
         });
         return accepted;
     }

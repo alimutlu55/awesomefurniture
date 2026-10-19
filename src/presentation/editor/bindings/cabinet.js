@@ -52,8 +52,16 @@ export function bindFinishSwatches({ dom, commands }) {
 }
 /** @param {import('./cabinet.ports').BindDoorChoicePorts} ports */
 export function bindDoorChoice({ dom, commands }) {
-    const { document } = dom;
+    const { $, document } = dom;
     /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-d]')).forEach(b => b.onclick = () => commands.setDoors(/** @type {import('../../../domain/wardrobe/editor-design').EditorDesign['doors']} */ (b.dataset.d)));
+    const fins = $('#fins');
+    if (fins?.insertAdjacentHTML && !document.querySelector('#door-hang')) {
+        fins.insertAdjacentHTML('afterend', '<div id="door-hang" class="door-hang" role="group" aria-label="Door hinge and handle side"><span>Hinge side</span><div class="door-hang-seg">'
+            + '<button type="button" data-hang="" title="Hang doors towards the outer ends">Auto</button>'
+            + '<button type="button" data-hang="left" title="Hinges on the left · handle on the right">Left</button>'
+            + '<button type="button" data-hang="right" title="Hinges on the right · handle on the left">Right</button></div></div>');
+        /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('#door-hang [data-hang]')).forEach(b => b.onclick = () => commands.setDoorHang(/** @type {'left' | 'right' | null} */ (b.dataset.hang || null)));
+    }
 }
 /** @param {import('./cabinet.ports').RenderDoorChoicesPorts} ports */
 export function renderDoorChoices({ dom, }) {

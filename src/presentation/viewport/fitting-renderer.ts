@@ -48,7 +48,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
     const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
     // Kitchen cabinets draw their own fronts (drawers, doors, appliances).
     const design = getRenderDesign(), kitchen = isKitchen(design)
-        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, materials: { front: mp, inside: md, M: resources.M } }) : null;
+        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, materials: { front: mp, inside: md, M: resources.M } }) : null;
     if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use

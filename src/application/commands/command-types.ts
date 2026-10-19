@@ -7,6 +7,7 @@ export interface ItemEdit {
     stretch?: boolean;
     finish?: EditorItem['f'];
     purpose?: StoragePurpose;
+    hinge?: 'left' | 'right' | null;
 }
 export interface ItemMovePlan {
     valid: boolean;

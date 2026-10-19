@@ -8,6 +8,8 @@ export interface EditorItem {
   id?: string | undefined;
   k: ItemKind; h: number; f?: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage' | null | undefined; purpose?: StoragePurpose | undefined;
   w?: number | undefined; x?: number | undefined; y?: number | undefined; ax?: 'l' | 'c' | 'r' | undefined; front?: boolean | undefined; boxes?: number | undefined;
+  /** Which side a side-hung door or upright pull hinges on ('left' puts the handle on the right; 'right' on the left). */
+  hinge?: 'left' | 'right' | undefined;
 }
 export interface EditorDivider {
   id?: string | undefined;
@@ -26,12 +28,15 @@ export interface EditorLayout {
   reachStd?: number | undefined;
   engaged?: boolean | undefined;
   reachLine?: boolean | undefined;
+  doorHang?: 'left' | 'right' | undefined;
   proposal: { title: string; summary: string } | null;
 }
 export interface EditorDesign {
   w: number; h: number; d: number; n: number; wt: number[];
   secs: EditorItem[][]; dividers: EditorDivider[];
   fin: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage'; doors: 'none' | 'hinged' | 'glass';
+  /** Which side single-leaf doors hinge on across the cabinet; absent means outward (each leaf hinged nearer the cabinet's end, or left for a single kitchen door). */
+  doorHang?: 'left' | 'right' | undefined;
   profile: EditorProfile; proposal: EditorLayout['proposal']; reachLine?: boolean | undefined;
   /** Built-in skeleton; absent means the regular rectangular wardrobe. */
   shape?: WardrobeShape | undefined;

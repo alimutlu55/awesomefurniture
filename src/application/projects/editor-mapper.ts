@@ -24,7 +24,8 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    preferences:{...preferences,budget:900},
    ...(s.shape?{shape:structuredClone(s.shape)}:{}),
    ...(s.product?{product:s.product}:{}),...(s.unit?{unit:s.unit}:{}),
-   editorLayout:{cabinetId:cabinet.id,weights:structuredClone(s.wt),...(reachStd===undefined?{}:{reachStd}),...(engaged===undefined?{}:{engaged}),...(s.reachLine===undefined?{}:{reachLine:s.reachLine}),proposal:structuredClone(s.proposal)},
+   editorLayout:{cabinetId:cabinet.id,weights:structuredClone(s.wt),...(reachStd===undefined?{}:{reachStd}),
+    ...(engaged===undefined?{}:{engaged}),...(s.reachLine===undefined?{}:{reachLine:s.reachLine}),...(s.doorHang===undefined?{}:{doorHang:s.doorHang}),proposal:structuredClone(s.proposal)},
    sections:widths.map((width,i)=>{
     const positions=WardrobePlanner.layoutSection(s.secs[i]!,width);
     return {id:`${prefix}/section/${i}`,width,
@@ -65,7 +66,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
    // Projects saved before a possession existed get its default count.
    profile:{...profile,needs:{...defaultNeeds(),...profile.needs},...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
-   proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),
+   proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),...(layout?.doorHang===undefined?{}:{doorHang:layout.doorHang}),
    ...(w.shape?{shape:structuredClone(w.shape)}:{}),
    ...(w.product?{product:w.product}:{}),...(w.unit?{unit:w.unit}:{}),
    sel:0,item:-1,divider:-1,space:null,open:false,

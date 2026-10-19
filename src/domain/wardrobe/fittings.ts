@@ -32,6 +32,8 @@ export const FITTING_TRAITS = Object.freeze({
   openShelf: 'An open shelf; folded clothes at the back of a deep wardrobe are harder to reach.',
   foldedStacks: 'Holds stacks of folded clothes when its purpose is folded clothes or trousers.',
   front: 'Shows its own front (a drawer front, a door, an appliance) instead of standing behind the cabinet doors.',
+  sideHandle: 'Has a side-hung door or upright side handle whose left or right side can be chosen.',
+  filler: 'A fixed filler or corner cover panel with no interior storage.',
   appliance: 'A fixture or appliance (sink, hob, oven, fridge): a duplicated cabinet gets plain storage in its place.',
   worktop: 'Sits in the worktop above its cabinet (sink, hob).',
 });
@@ -48,6 +50,7 @@ export const FITTING_HARDWARE = Object.freeze({
   basket: 'Pull-out wire basket on runners',
   liftFitting: 'Lift-up flap fitting, one set',
   shelfSupports: 'Shelf supports, four to a shelf',
+  cornerMechanism: 'Corner pull-out mechanism, two swing trays',
 });
 export type FittingHardware = keyof typeof FITTING_HARDWARE;
 
@@ -151,7 +154,7 @@ export const FITTINGS = [
     icon: 'M4 6h16v13H4zM9.5 10h5', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front'], kitchen: { units: ['base', 'tall'], score: 55, why: 'Deep drawer for pots and pans' } },
   { key: 'cupboard', name: 'Cupboard door', code: 'K', height: 72, min: 25, max: 220, minWidth: 25, minDepth: 25, price: 60, purpose: 'dishes',
     purposes: KITCHEN_PURPOSES, itemName: 'Cupboard', menu: { order: 13, group: 'doors', mobileRank: 2 }, zone: { ...KITCHEN, label: 'Cupboard' },
-    icon: 'M6 3h12v18H6zM15 11v2M6 12h12', opens: 'side', hardware: ['shelfSupports'], traits: ['front'], kitchen: { units: ['base', 'upper', 'tall'], score: 50, why: 'Hinged door, shelves inside' } },
+    icon: 'M6 3h12v18H6zM15 11v2M6 12h12', opens: 'side', hardware: ['shelfSupports'], traits: ['front', 'sideHandle'], kitchen: { units: ['base', 'upper', 'tall'], score: 50, why: 'Hinged door, shelves inside' } },
   { key: 'flap', name: 'Lift-up flap', code: 'Y', height: 36, min: 25, max: 60, minWidth: 30, minDepth: 25, price: 75, purpose: 'dishes',
     purposes: KITCHEN_PURPOSES, menu: { order: 14, group: 'doors' }, zone: { ...KITCHEN, label: 'Flap' },
     icon: 'M4 9h16v10H4zM4 9l3-5h10l3 5M10.5 15h3', opens: 'up', hardware: ['liftFitting'], traits: ['front'], kitchen: { units: ['upper'], score: 45, why: 'Opens upwards, out of the way' } },
@@ -160,7 +163,7 @@ export const FITTINGS = [
     icon: 'M4 5h16v14H4zM4 12h16', traits: ['openShelf'], kitchen: { units: ['base', 'upper', 'tall'], score: 30, why: 'Things on show, within reach' } },
   { key: 'sink', name: 'Sink and tap', code: 'I', height: 72, min: 50, max: 80, minWidth: 45, minDepth: 50, price: 180, purpose: 'cleaning',
     purposes: ['cleaning'], menu: { order: 16, group: 'appliances' }, zone: { color: '#6b8ea8', label: 'Sink', priority: Z.fitting },
-    icon: 'M3 12h18M5 12l1.5 7h11L19 12M12 12V6a2 2 0 0 1 4 0', opens: 'side', traits: ['front', 'appliance', 'worktop'],
+    icon: 'M3 12h18M5 12l1.5 7h11L19 12M12 12V6a2 2 0 0 1 4 0', opens: 'side', traits: ['front', 'sideHandle', 'appliance', 'worktop'],
     kitchen: { units: ['base'], score: 40, why: 'Sink in the worktop, doors below' } },
   { key: 'hob', name: 'Hob', code: 'O', height: 14, min: 10, max: 20, minWidth: 55, minDepth: 50, price: 220, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 17, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Hob' },
@@ -171,7 +174,7 @@ export const FITTINGS = [
     icon: 'M4 4h16v16H4zM4 8h16M7 12h10v5H7z', opens: 'down', ownFront: true, traits: ['front', 'appliance'], kitchen: { units: ['base', 'tall'], score: 35, why: 'Oven at a comfortable height' } },
   { key: 'fridge', name: 'Integrated fridge', code: 'G', height: 178, min: 60, max: 200, minWidth: 55, minDepth: 55, price: 450, purpose: 'food',
     purposes: ['food'], menu: { order: 19, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Fridge' },
-    icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', opens: 'side', traits: ['front', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
+    icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', opens: 'side', traits: ['front', 'sideHandle', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
   { key: 'microwave', name: 'Built-in microwave', code: 'W', height: 38, min: 29, max: 46, minWidth: 45, minDepth: 30, price: 240, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 21, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Microwave' },
     icon: 'M3 6h18v12H3zM15 6v12M6 9.5h6v5H6zM17.5 9h.01M17.5 12h.01', opens: 'fixed', ownFront: true, traits: ['front', 'appliance'],
@@ -190,7 +193,15 @@ export const FITTINGS = [
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },
   { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },
-    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
+    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front', 'sideHandle'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
+  { key: 'corner', name: 'Corner pull-out', code: '8', height: 72, min: 50, max: 82, minWidth: 50, minDepth: 45, price: 290, purpose: 'cookware',
+    purposes: KITCHEN_PURPOSES, menu: { order: 25, group: 'storage' }, zone: { ...KITCHEN, label: 'Corner' },
+    icon: 'M3 5h18v14H3zM12 5v14M7 9.5a2.5 2.5 0 1 0 0 5h2.5v-5zM15 11v2', opens: 'side', hardware: ['cornerMechanism'], traits: ['pullout', 'front', 'sideHandle'],
+    kitchen: { units: ['base'], score: 44, why: 'Swing-out trays reach into a blind corner' } },
+  { key: 'cover', name: 'Filler cover', code: '0', height: 72, min: 20, max: 260, minWidth: 2, minDepth: 20, price: 25, purpose: 'dishes',
+    purposes: KITCHEN_PURPOSES, itemName: 'Corner / filler cover', menu: { order: 26, group: 'doors' }, zone: { ...KITCHEN, label: 'Cover' },
+    icon: 'M6 3h12v18H6zM9 3v18', opens: 'fixed', traits: ['front', 'filler'],
+    kitchen: { units: ['base', 'upper', 'tall'], score: 25, why: 'Blank cover for a narrow gap or blind corner' } },
 ] as const satisfies readonly FittingDef[];
 
 export type FittingKind = typeof FITTINGS[number]['key'];

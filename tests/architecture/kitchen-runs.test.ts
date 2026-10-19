@@ -199,3 +199,51 @@ test('a unit put against a neighbour stays there however far out the view is zoo
   const free = scene(unit(1, 'base', 0), unit(2, 'base', 63));
   near(createSceneCommands(() => free).alignSnap(free.wardrobes[1]!, 6).x, 60, 'closes a free gap');
 });
+
+
+test('side copies preserve exact contact at fractional positions and rotated walls', () => {
+  for (const angle of [0, 15, 30, 45, 90, 135]) for (const side of [-1, 1] as const) {
+    const original = { ...unit(1, 'upper', .12345678, -55.123456789, angle), y: 142.123456789 };
+    original.state.h = 117.4;
+    const s = scene(original), commands = createSceneCommands(() => s);
+    assert.equal(commands.arrayKitchenUnit(1, side), 1, `one copy at angle ${angle}, side ${side}`);
+    const copy = s.wardrobes[1]!, expected = besidePose(original, original.state.w, original.state.d, side);
+    near(copy.x, expected.x, 'exact side position'); near(copy.z, expected.z, 'same back line');
+    assert.equal(copy.y, original.y, 'height is preserved without rounding');
+    assert.equal(commands.arrayKitchenUnit(2, side), 2, 'the same side can continue extending the run');
+  }
+});
+
+test('extending a run with + fits a narrower cabinet (>= 30 cm), a filler cover (< 30 cm), or a corner cover in a dead corner pocket', async () => {
+  const { isCoverUnit } = await import('../../src/domain/kitchen/kitchen-design');
+  // 1. A 45 cm gap before another cabinet: fits a 45 cm cabinet.
+  const s1 = scene(unit(1, 'base', 0, 0, 0, 60, 'oven-under'), unit(2, 'base', 105, 0, 0, 60));
+  const cmd1 = createSceneCommands(() => s1);
+  const fitted = cmd1.extendKitchenRun(1)!;
+  assert.ok(fitted, 'fits a narrower cabinet into the 45 cm gap');
+  near(fitted.state.w, 45, '45 cm wide');
+  assert.equal(isCoverUnit(fitted.state), false, 'a 45 cm unit is a working cabinet, not a cover');
+  assert.ok(fitted.state.secs[0]!.every(it => !hasTrait(it.k, 'appliance')), 'replaces the oven with plain storage that fits 45 cm');
+  assert.deepEqual(kitchenSpans(s1.wardrobes).filter(x => x.kind === 'worktop').map(x => x.length), [165], 'one continuous worktop over all three');
+
+  // 2. An 18 cm gap where a proper cabinet (< 30 cm) cannot fit: places an 18 cm filler cover.
+  const s2 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 78, 0, 0, 60));
+  const cmd2 = createSceneCommands(() => s2);
+  const filler = cmd2.extendKitchenRun(1)!;
+  assert.ok(filler, 'fits a cover into the 18 cm gap');
+  near(filler.state.w, 18, '18 cm wide');
+  assert.equal(isCoverUnit(filler.state), true, 'uses a flush cover unit when < 30 cm is left');
+  assert.deepEqual(kitchenSpans(s2.wardrobes).filter(x => x.kind === 'worktop').map(x => x.length), [138], 'continuous worktop bridges across the cover');
+
+  // 3. A 58 x 58 cm dead corner pocket blocked in front by a perpendicular kitchen cabinet (d = 58 cm): places a 58 cm corner cover.
+  // Unit 1 stands at x: -30..30, z: -29..29 facing +z (angle 0).
+  // Perpendicular Unit 2 (d = 58 cm) stands at x: 30..88, z: 29..89 facing -x (angle -90), right in front of the corner pocket (x: 30..88, z: -29..29).
+  const s3 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 59, 59, -90, 60));
+  const cmd3 = createSceneCommands(() => s3);
+  const cornerCover = cmd3.extendKitchenRun(1)!;
+  assert.ok(cornerCover, 'places a unit into the corner pocket');
+  near(cornerCover.state.w, 58, 'fills the 58 cm corner pocket behind the perpendicular run');
+  assert.equal(isCoverUnit(cornerCover.state), true, 'places an empty corner cover because the perpendicular run stands in front of it');
+  assert.deepEqual(kitchenSpans(s3.wardrobes).filter(x => x.kind === 'worktop' && x.units.includes(1)).map(x => x.length), [118], 'worktop continues into the corner');
+});
+

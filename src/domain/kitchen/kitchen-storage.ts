@@ -13,7 +13,7 @@ export function kitchenStorage(scene: readonly Unit[], selected: Unit) {
   const items = kitchen.flatMap(u => u.state.secs.slice(0, u.state.n).flat());
   const count = (test: (it: EditorItem) => boolean) => items.filter(test).length;
   const drawers = count(it => hasTrait(it.k, 'pullout') && hasTrait(it.k, 'front') && !hasTrait(it.k, 'appliance') && (fitting(it.k)?.height ?? 0) < 60);
-  const doors = count(it => hasTrait(it.k, 'front') && !hasTrait(it.k, 'pullout') && !hasTrait(it.k, 'appliance'));
+  const doors = count(it => hasTrait(it.k, 'front') && !hasTrait(it.k, 'pullout') && !hasTrait(it.k, 'appliance') && !hasTrait(it.k, 'filler'));
   const open = count(it => hasTrait(it.k, 'openShelf'));
   const tall = count(it => hasTrait(it.k, 'pullout') && (fitting(it.k)?.height ?? 0) >= 60);
   const appliances = [...new Set(items.filter(it => hasTrait(it.k, 'appliance')).map(it => fitting(it.k)!.name))];

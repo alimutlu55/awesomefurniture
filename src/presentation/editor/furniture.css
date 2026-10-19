@@ -114,3 +114,12 @@ svg.kitchen-art{filter:none}
 #app #menu .reach-switch[aria-checked="true"] i{transform:translateX(18px)}
 #app #menu .reach-switch:focus-visible,#app #menu .reach-field input:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){#app #menu .reach-switch,#app #menu .reach-switch i{transition:none}}
+/* Door hinge and handle side selector in Fronts and Item panels. */
+.door-hang{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 4px}
+.door-hang[hidden]{display:none!important}
+.door-hang>span{font-size:12.5px;font-weight:600;color:var(--mute,#7d725f)}
+.door-hang-seg{display:inline-flex;gap:3px;padding:3px;border-radius:10px;background:rgba(0,0,0,.05)}
+.door-hang-seg button{min-width:48px;height:28px;min-height:28px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:var(--ink,#3d3528);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.door-hang-seg button.on,.door-hang-seg button[aria-pressed="true"]{background:var(--panel,#fff);color:var(--ink,#3d3528);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+:host([data-theme="dark"]) .door-hang-seg{background:rgba(255,255,255,.08)}
+:host([data-theme="dark"]) .door-hang-seg button.on,:host([data-theme="dark"]) .door-hang-seg button[aria-pressed="true"]{background:rgba(255,255,255,.16);color:#fff}

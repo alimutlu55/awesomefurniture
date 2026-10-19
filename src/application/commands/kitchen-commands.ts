@@ -1,10 +1,12 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
-import { createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
+import { createKitchenCover, createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { arrayPoses, besidePose, isKitchenUnit, kitchenRuns, stackedPose, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { arrayPoses, besidePose, isKitchenUnit, kitchenRuns, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
+import { fitting } from '../../domain/wardrobe/fittings';
+import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { applyMaxReach } from '../../domain/wardrobe/max-reach';
 import { roomHeight, wallLine } from '../../domain/studio/studio';
 import { standsAgainst } from '../../domain/studio/studio-placement';
@@ -28,7 +30,8 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
   const active = () => getScene().wardrobes.find(w => w.id === getScene().activeWardrobe);
   const fits = (candidate: EditorCabinet) => !collision.cabinetCollides(candidate)
     && (!getScene().studio || (candidate.y || 0) + candidate.state.h <= roomHeight(getScene().studio!) + .01);
-  const at = (cabinet: EditorCabinet, pose: Pose): EditorCabinet => ({ ...cabinet, x: round(pose.x), y: round(pose.y), z: round(pose.z), angle: pose.angle });
+  // Preserve contact exactly: rounding a pose can nudge a copy into the original or the wall.
+  const at = (cabinet: EditorCabinet, pose: Pose): EditorCabinet => ({ ...cabinet, ...pose });
 
   /** The unit a new one goes next to: the selected kitchen unit, else the one added last. */
   function anchorFor(): EditorCabinet | null {
@@ -137,8 +140,63 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       scene.nextWardrobeId += copies.length;
       return copies.length;
     },
+    /**
+     * Extends the selected unit's run by one step on `side` (what clicking the `+` grip does):
+     * 1. If a full-width copy fits and its front is not blocked by a perpendicular kitchen run, places that copy.
+     * 2. If at least 30 cm is free in front of any perpendicular run, fits a narrower cabinet (`30..w cm`) into that space.
+     * 3. Otherwise, if at least 5 cm is free (either a narrow end-of-run gap `< 30 cm` or a dead corner pocket behind a
+     *    perpendicular kitchen run), fits a flush Corner / Filler cover (`createKitchenCover`) that carries the continuous
+     *    worktop and plinth into the corner or to the wall.
+     */
+    extendKitchenRun(side: 1 | -1, recordHistory = true): EditorCabinet | null {
+      const scene = getScene(), original = active();
+      if (!original || !isKitchenUnit(original)) return null;
+      const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, y = original.y || 0, d = original.state.d;
+      const probeAt = (w: number): EditorCabinet => at({ ...original, id: -1, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
+      const fitsWidth = (w: number) => w >= 5 && fits(probeAt(w));
+      const blockedInFront = (w: number) => {
+        const p = probeAt(w), { v } = unitAxes(p.angle), front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20, state: { ...p.state, w: Math.max(4, w - 2) } };
+        return scene.wardrobes.some(o => o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && collision.cabinetOverlaps(front, o));
+      };
+      const farEdgeBlocked = (w: number) => {
+        const p = at({ ...original, id: -1, state: { ...original.state, w: .2 } }, besidePose(end, 2 * w - .2, d, side, y)), { v } = unitAxes(p.angle);
+        const front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20 };
+        return scene.wardrobes.some(o => o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && collision.cabinetOverlaps(front, o));
+      };
+      if (fitsWidth(original.state.w) && !blockedInFront(original.state.w)) {
+        return this.arrayKitchenUnit(1, side, recordHistory) ? scene.wardrobes[scene.wardrobes.length - 1]! : null;
+      }
+      let clearW = 0, unblockedW = 0, pocketW = 0;
+      const maxSearch = Math.max(original.state.w, 65);
+      for (let w = 5; w <= maxSearch + .01; w = Math.round((w + .5) * 10) / 10) {
+        if (!fitsWidth(w)) break;
+        if (w <= original.state.w) clearW = w;
+        if (w <= original.state.w && !blockedInFront(w)) unblockedW = w;
+        if (farEdgeBlocked(w)) pocketW = w;
+      }
+      if (unblockedW >= 30) {
+        const id = scene.nextWardrobeId, state = copyOf(original);
+        state.w = unblockedW;
+        for (const it of state.secs[0]!) if ((fitting(it.k)?.minWidth ?? 0) > unblockedW - 2 * PANEL) it.k = 'cupboard';
+        const narrowed = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, besidePose(end, unblockedW, d, side, y));
+        if (recordHistory) checkpoint();
+        applyMaxReach(narrowed.state, scene.maxReach);
+        scene.wardrobes.push(narrowed);
+        scene.nextWardrobeId = Math.max(scene.nextWardrobeId, id + 1);
+        return narrowed;
+      }
+      const coverW = pocketW >= 5 ? pocketW : clearW;
+      if (coverW >= 5) {
+        const id = scene.nextWardrobeId, state = { ...createKitchenCover(original.state, coverW), sel: 0, item: -1, divider: -1, space: null, open: false };
+        const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePose(end, coverW, d, side, y));
+        if (recordHistory) checkpoint();
+        applyMaxReach(cover.state, scene.maxReach);
+        scene.wardrobes.push(cover);
+        scene.nextWardrobeId = Math.max(scene.nextWardrobeId, id + 1);
+        return cover;
+      }
+      return null;
+    },
   };
 }
 
-/** Tidy numbers without moving units apart or into each other. */
-const round = (v: number) => Math.round(v * 1e6) / 1e6;

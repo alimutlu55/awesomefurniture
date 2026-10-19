@@ -205,3 +205,78 @@ test('a sink and a hob are placed on their own on a worktop, sized by themselves
   assert.deepEqual(kitchenSpans([base, sink] as never).filter(s => s.kind === 'worktop').map(s => s.units), [[1]], 'the worktop belongs to the cabinet, not the sink');
   assert.equal(KITCHEN_PRESETS.filter(p => (p.parts as readonly (readonly [string, number])[]).some(([k]) => k === 'sink' || k === 'hob')).length, 0, 'no cabinet comes with a sink or hob');
 });
+
+test('door and handle side · wardrobe doorHang and kitchen item hinge control 2D drawings, 3D pivots and persistence', async () => {
+  const { createDesignCommands } = await import('../../src/application/commands/design-commands');
+  const { piecefronts } = await import('../../src/domain/drawings/fronts');
+  const { renderCabinetDoors } = await import('../../src/presentation/viewport/door-renderer');
+  const THREE = await import('three');
+  const wardrobe = createEditorState();
+  wardrobe.w = 100; wardrobe.n = 1; wardrobe.doors = 'hinged';
+  const wCmd = createDesignCommands(() => wardrobe);
+  assert.equal(piecefronts(wardrobe).fronts[0]!.hinge, 'left', 'single wardrobe door defaults to left hinge');
+  wCmd.setDoorHang('right');
+  assert.equal(wardrobe.doorHang, 'right');
+  assert.equal(piecefronts(wardrobe).fronts[0]!.hinge, 'right', 'doorHang flips wardrobe door hinge to the right');
+  const group = new THREE.Group(), mat = new THREE.MeshStandardMaterial();
+  const box = (w: number, h: number, d: number, x: number, y: number, z: number, m: unknown, parent: { add(o: unknown): void } = group) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m as THREE.Material); mesh.position.set(x, y, z); parent.add(mesh); return mesh;
+  };
+  const pivots = renderCabinetDoors(wardrobe, [96.4], group, box as never, (() => new THREE.Mesh()) as never, { M: () => mat }, mat, mat);
+  assert.equal(pivots.length, 1);
+  assert.ok(pivots[0]!.position.x > 0, 'right-hung wardrobe door pivots on its right edge');
+  assert.equal(pivots[0]!.userData.t, 1.6, 'and swings open to the right');
+
+  // Kitchen cabinet and item-level hinge override:
+  const base = { ...createKitchenDesign('base'), sel: 0, item: 0, divider: -1, space: null, open: false };
+  const kCmd = createDesignCommands(() => base);
+  assert.equal(piecefronts(base).fronts[0]!.hinge, 'left', 'a 60 cm base door hinges on the left by default');
+  kCmd.setDoorHang('right');
+  assert.equal(piecefronts(base).fronts[0]!.hinge, 'right', 'cabinet doorHang sets the default hinge side');
+  kCmd.editItem(0, 0, { hinge: 'left' });
+  assert.equal(base.secs[0]![0]!.hinge, 'left');
+  assert.equal(piecefronts(base).fronts[0]!.hinge, 'left', 'item hinge overrides the cabinet default');
+
+  // Persistence round-trip for both wardrobe doorHang and kitchen item hinge:
+  const scene: EditorScene = { activeWardrobe: 1, nextWardrobeId: 3, wardrobes: [
+    { id: 1, name: 'Wardrobe 1', x: 0, y: 0, z: 0, angle: 0, state: wardrobe },
+    { id: 2, name: 'Base 2', x: 150, y: 0, z: 0, angle: 0, state: base },
+  ] };
+  const reopened = projectToScene(deserializeProject(serializeProject(sceneToProject(createProject('p', 'Hinges'), scene))))!;
+  assert.equal(reopened.wardrobes[0]!.state.doorHang, 'right');
+  assert.equal(reopened.wardrobes[1]!.state.doorHang, 'right');
+  assert.equal(reopened.wardrobes[1]!.state.secs[0]![0]!.hinge, 'left');
+});
+
+test('corner pull-out and filler cover · blind panel + hinged door, kidney mechanism hardware, and 5 cm filler width', async () => {
+  const { createKitchenCover, isCoverUnit } = await import('../../src/domain/kitchen/kitchen-design');
+  const { piecefronts } = await import('../../src/domain/drawings/fronts');
+  const { hardwareList } = await import('../../src/domain/drawings/hardware-list');
+  const { placePieces } = await import('../../src/domain/drawings/room-pieces');
+  const corner = { ...createKitchenDesign('base', 'corner'), sel: 0, item: 0, divider: -1, space: null, open: false };
+  assert.equal(corner.w, 100, 'corner pull-out preset is 100 cm wide');
+  assert.equal(corner.secs[0]![0]!.k, 'corner');
+  const frontsLeft = piecefronts(corner).fronts;
+  assert.equal(frontsLeft.length, 2, 'blind panel and hinged door');
+  assert.deepEqual(frontsLeft.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'left']]);
+  corner.secs[0]![0]!.hinge = 'right';
+  const frontsRight = piecefronts(corner).fronts;
+  assert.deepEqual(frontsRight.map(f => [f.opens, f.hinge]), [['fixed', undefined], ['side', 'right']]);
+  assert.ok(frontsRight[0]!.x0 < frontsRight[1]!.x0, 'when hinged on the right, the blind panel sits on the left half');
+
+  const cover = { ...createKitchenCover(corner, 15), sel: 0, item: -1, divider: -1, space: null, open: false };
+  assert.equal(isCoverUnit(cover), true);
+  assert.equal(cover.w, 15);
+  assert.deepEqual(furnitureModule(cover).sizes(cover).w, [5, 150], 'a cover unit can narrow down to 5 cm');
+  assert.deepEqual(piecefronts(cover).fronts.map(f => f.opens), ['fixed'], 'a cover has a fixed flush front with no hinges or handle');
+
+  const pieces = placePieces({ pieces: [
+    { id: 1, name: 'Corner 1', x: 0, y: 0, z: 0, angle: 0, design: corner },
+    { id: 2, name: 'Corner cover 2', x: 100, y: 0, z: 0, angle: 0, design: cover },
+  ] });
+  const rows = hardwareList(pieces).flatMap(t => t.rows);
+  assert.ok(rows.some(r => r[0] === 'Corner pull-out mechanism, two swing trays' && r[2] === '1'), 'lists the corner pull-out mechanism');
+  const handles = rows.find(r => r[0] === 'Handle');
+  assert.equal(handles?.[2], '1', 'only the corner door leaf takes a handle; the blind panel and cover take none');
+});
+

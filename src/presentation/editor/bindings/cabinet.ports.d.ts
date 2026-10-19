@@ -17,7 +17,7 @@ readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/
 
 export interface BindDoorChoicePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setDoors'>>;
+readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setDoors' | 'setDoorHang'>>;
 }
 
 export interface RenderDoorChoicesPorts {

@@ -55,6 +55,12 @@ export function bindItemPanelClose({ dom, inspector }) {
 /** @param {import('./item.ports').BindItemPanelPorts} ports */
 export function bindItemPanel({ dom, interactions, inspector, selectionState, geometry, model, commands, lifetime }) {
     const { $ } = dom;
+    const align = $('#ialign');
+    if (align?.insertAdjacentHTML && !$('#pop3')?.querySelector?.('#ihinge')) {
+        align.insertAdjacentHTML('afterend', '<div class="pr door-hang" id="ihinge" role="group" aria-label="Door hinge and handle side" hidden><span>Hinge side</span><div class="door-hang-seg">'
+            + '<button type="button" data-hinge="left" title="Hinges on the left · handle on the right">Left</button>'
+            + '<button type="button" data-hinge="right" title="Hinges on the right · handle on the left">Right</button></div></div>');
+    }
     lifetime.listen($('#pop3'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));
         if (!b || dom.controlId(b) === 'ix') {
@@ -69,6 +75,9 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
         }
         else if (d.al !== undefined) {
             commands.editItem(i, j, { align: d.al });
+        }
+        else if (d.hinge === 'left' || d.hinge === 'right') {
+            commands.editItem(i, j, { hinge: d.hinge });
         }
         else if (d.t) {
             commands.editItem(i, j, { kind: d.t });

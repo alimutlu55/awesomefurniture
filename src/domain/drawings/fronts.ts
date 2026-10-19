@@ -1,10 +1,10 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
-import { cabinetDoorAreas } from '../wardrobe/door-layout';
+import { cabinetDoorAreas, doorHingeSide } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { fridgeSplit, hingedLeaves, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
+import { cornerFrontSplit, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
 import { isKitchen } from '../furniture/furniture';
 
 interface Box { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number }
@@ -42,10 +42,15 @@ export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: In
       }
       const r = kitchenFrontRect(design.unit, cx, pos.y0, pos.w, it.h, { bottom: interiorFloorOf(design), top: design.h - PANEL }, { left: PANEL, right: design.w - PANEL });
       const opens = def.opens ?? 'open', label = hasTrait(it.k, 'appliance') ? def.zone.label : undefined, own = !!def.ownFront;
-      const name = (def.zone.label ?? def.name) + (opens === 'side' ? ' door' : ' front');
-      if (opens === 'side') {
+      const name = (def.zone.label ?? def.name) + (opens === 'side' ? ' door' : ' front'), hinge = itemHingeSide(it, design);
+      if (it.k === 'corner') {
+        const { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge);
+        fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
+        fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name });
+        for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) inside.push({ kind: 'shelf', x0: cx - pos.w / 2, x1: cx + pos.w / 2, y0: y, y1: y });
+      } else if (opens === 'side') {
         const split = fridgeSplit(r.y0, r.y1, it.h), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
-        for (const [y0, y1] of rows) for (const leaf of hingedLeaves(r.x0, r.x1)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
+        for (const [y0, y1] of rows) for (const leaf of hingedLeaves(r.x0, r.x1, hinge)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
         if (!label) for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) inside.push({ kind: 'shelf', x0: cx - pos.w / 2, x1: cx + pos.w / 2, y0: y, y1: y });
       } else fronts.push({ ...r, opens, label, name, own });
     }
@@ -58,8 +63,8 @@ export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: In
     }
     bayL += sw + PANEL;
   });
-  // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end, as the 3D view hangs them.
+  // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end unless doorHang overrides it.
   const covered = !kitchen && design.doors !== 'none';
-  if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: (a.x0 + a.x1) / 2 <= design.w / 2 ? 'left' : 'right', name: 'Door' });
+  if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
   return { fronts, inside, covered };
 }

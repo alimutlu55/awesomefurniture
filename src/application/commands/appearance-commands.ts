@@ -35,10 +35,16 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
             getDesign().open = false;
         });
     }
+    function setDoorHang(doorHang: 'left' | 'right' | null) {
+        run(() => {
+            if (!doorHang) delete getDesign().doorHang;
+            else getDesign().doorHang = doorHang;
+        });
+    }
     function setReachLine(enabled: boolean) {
         effects.checkpoint();
         getDesign().reachLine = enabled;
         effects.changed(true);
     }
-    return { setWardrobeReach, setPreferences, setFinish, setDoors, setReachLine };
+    return { setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
 }

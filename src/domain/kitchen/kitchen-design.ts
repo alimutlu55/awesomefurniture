@@ -26,6 +26,7 @@ export const KITCHEN_PRESETS = [
   { key: 'microwave', unit: 'upper', name: 'Microwave wall unit', parts: [['microwave', 1]], size: { w: 60, h: 48 } },
   { key: 'hood', unit: 'upper', name: 'Cooker hood', parts: [['hood', 1]], size: { w: 60, h: 40 } },
   { key: 'cargo', unit: 'base', name: 'Cargo pull-out', parts: [['cargo', 1]], size: { w: 30 } },
+  { key: 'corner', unit: 'base', name: 'Corner pull-out', parts: [['corner', 1]], size: { w: 100 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
   { key: 'cargo-tall', unit: 'tall', name: 'Tall cargo', parts: [['cargo', 160], ['cupboard', 43.4]], size: { w: 40 } },
   { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
@@ -40,6 +41,17 @@ export const presetSize = (preset: object | undefined): { w?: number; h?: number
 
 /** Clear height inside a unit, between its bottom and top boards. */
 export const kitchenInside = (h: number, unitKey: KitchenUnitKey = 'base') => Math.round((h - plinthOf({ product: 'kitchen', unit: unitKey }) - 2 * PANEL) * 100) / 100;
+
+/** Whether a kitchen unit holds only a fixed filler or corner cover panel, so it can narrow down to 5 cm. */
+export const isCoverUnit = (design: { readonly product?: EditorDesign['product']; readonly n?: number | undefined; readonly secs?: readonly (readonly EditorItem[])[] | undefined }) =>
+  design.product === 'kitchen' && (design.secs?.[0]?.length ?? 0) > 0 && (design.secs ?? []).slice(0, design.n ?? 1).every(s => s.length > 0 && s.every(it => hasTrait(it.k, 'filler')));
+
+/** An empty filler or corner cover unit matching `from` in height, depth and finish, at `width` cm wide. */
+export function createKitchenCover(from: EditorDesign, width: number): EditorDesign {
+  const unitKey = from.unit ?? 'base', inside = kitchenInside(from.h, unitKey), def = fitting('cover')!;
+  const secs: EditorItem[][] = [[{ k: 'cover', h: Math.max(def.min, Math.min(def.max, inside)), purpose: def.purpose }], [], [], [], [], []];
+  return { ...structuredClone(from), w: Math.round(width * 10) / 10, n: 1, wt: [100, 100, 100, 100, 100, 100], secs, dividers: [] };
+}
 
 /** Items that share `height` in proportion to their parts, rounded so they fill it exactly. */
 function shareHeight(parts: readonly (readonly [string, number])[], height: number): EditorItem[] {
@@ -86,7 +98,7 @@ export function duplicateKitchenDesign<T extends EditorDesign>(design: T): T {
     // Same place in the bay: its width and alignment, and a pinned height stacks the parts from there.
     return plainStorageFor(item, copy.unit).map(plain => {
       const placed: EditorItem = { ...plain, ...(item.w !== undefined ? { w: item.w } : {}), ...(item.x !== undefined ? { x: item.x } : {}),
-        ...(item.ax ? { ax: item.ax } : {}), ...(y !== undefined ? { y } : {}) };
+        ...(item.ax ? { ax: item.ax } : {}), ...(item.hinge ? { hinge: item.hinge } : {}), ...(y !== undefined ? { y } : {}) };
       if (y !== undefined) y = Math.round((y + plain.h) * 100) / 100;
       return placed;
     });
