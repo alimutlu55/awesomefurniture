@@ -9,15 +9,21 @@ type Ports = Pick<MountEditorBindingsPorts, 'dom' | 'model' | 'lifetime' | 'pick
     | 'selectionState' | 'interactionState' | 'interactions' | 'resources' | 'camera' | 'inspector' | 'room'>
     & { edits: ReturnType<typeof createTactileEdits> };
 type Bay = { cabinet: number; section: number; x: number; y: number };
-/** Two fingers starting in the same visible bay edit its shelf boards. All
- * other pinches retain the camera gesture. The remaining finger is drained
- * after release so finishing a shelf edit never becomes a camera jump or tap. */
+/** Two fingers that start in the same visible bay and rest there for a moment (HOLD_MS) edit its shelf boards.
+ * Fingers that move sooner, and all other pinches, keep the camera gesture: a pinch to zoom never edits shelves.
+ * The remaining finger is drained after release so finishing a shelf edit never becomes a camera jump or tap. */
+export const HOLD_MS = 280;
 export function bindAccordionGestures(ports: Ports) {
     const { dom, model, lifetime, picking, renderState, geometry, selectionState, interactionState,
         interactions, resources, camera, inspector, room, edits } = ports;
     const cv = resources.cv, app = dom.$('#app'), feedback = createTactileFeedback(dom);
     const pointers = new Map<number, { start: PointerEvent; current: PointerEvent; bay: Bay | null }>();
     let gesture: { span: number; requested: number } | null = null, draining = false, queued = false, suppressClickUntil = 0;
+    /** Two fingers resting in one bay, waiting to become a shelf edit. */
+    let hold: unknown = null;
+    const cancelHold = () => { if (hold !== null) lifetime.cancelTimeout(hold as never); hold = null; };
+    /** While a finger rests on the model, the bays' Add labels let further fingers through to it, so a pinch over one zooms. */
+    const lifted = () => { if (!pointers.size) delete app.dataset.fingerDown; };
     const stop = (e: Event) => { e.preventDefault(); e.stopImmediatePropagation(); };
     function bayAt(e: PointerEvent): Bay | null {
         const control = (e.target as HTMLElement).closest('button,input,[role="slider"],.shape-handle,.mobile-bottom-sheet');
@@ -55,13 +61,14 @@ export function bindAccordionGestures(ports: Ports) {
         interactionState.moved = 99; inspector.update(true);
     }
     const reset = () => {
-        finish(true); draining = false;
-        const ids = [...pointers.keys()]; pointers.clear();
+        cancelHold(); finish(true); draining = false;
+        const ids = [...pointers.keys()]; pointers.clear(); lifted();
         for (const id of ids) if (cv.hasPointerCapture(id)) cv.releasePointerCapture(id);
     };
     lifetime.listen(app, 'pointerdown', (raw: Event) => {
         const e = raw as PointerEvent;
         if (e.pointerType !== 'touch') return;
+        if (!(e.target as HTMLElement).closest('.lbl.add')) app.dataset.fingerDown = '';
         if (gesture || draining) {
             stop(e); pointers.set(e.pointerId, { start: e, current: e, bay: null });
             finish(true); draining = true; cv.setPointerCapture(e.pointerId); return;
@@ -73,21 +80,26 @@ export function bindAccordionGestures(ports: Ports) {
         if (!a?.bay || !b?.bay || a.bay.cabinet !== b.bay.cabinet || a.bay.section !== b.bay.section || e.timeStamp - a.start.timeStamp > 450) return;
         if (model.scene.wardrobes.find(c => c.id === bay.cabinet)!.state.dividers.some(d => d.i === bay.section && d.orientation === 'vertical'
             && d.x! > Math.min(a.bay!.x, b.bay!.x) && d.x! < Math.max(a.bay!.x, b.bay!.x))) return;
-        stop(e);
+        hold = lifetime.timeout(() => { hold = null; begin(); }, HOLD_MS);
+    }, true);
+    /** Both fingers rested in the bay: from here they edit its shelves, and the camera lets go of them. */
+    function begin() {
+        const [a, b] = [...pointers.values()], bay = a?.bay;
+        if (pointers.size !== 2 || !bay || !b?.bay || edits.active()) return;
         if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
         if (interactionState.dividerGesture) interactions.finishDividerDrag(true);
         interactions.cancelMovement(); interactionState.ptrs.clear(); interactionState.moved = 99; camera.camRelease();
-        edits.beginShelves(bay.section, (a.bay.x + b.bay.x) / 2, (a.bay.y + b.bay.y) / 2, bay.cabinet);
+        edits.beginShelves(bay.section, (bay.x + b.bay.x) / 2, (bay.y + b.bay.y) / 2, bay.cabinet);
         feedback.begin(0);
         gesture = { span: Math.hypot(a.current.clientX - b.current.clientX, a.current.clientY - b.current.clientY), requested: 0 };
         app.dataset.accordion = String(bay.section);
         for (const id of pointers.keys()) cv.setPointerCapture(id);
-    }, true);
+    }
     lifetime.listen(app, 'pointermove', (raw: Event) => {
         const e = raw as PointerEvent, p = pointers.get(e.pointerId);
         if (p) {
             p.current = e;
-            if (!gesture && Math.hypot(e.clientX - p.start.clientX, e.clientY - p.start.clientY) > 8) p.bay = null;
+            if (!gesture && Math.hypot(e.clientX - p.start.clientX, e.clientY - p.start.clientY) > 8) { p.bay = null; cancelHold(); }
         }
         if (!gesture && !draining) return;
         stop(e);
@@ -95,8 +107,9 @@ export function bindAccordionGestures(ports: Ports) {
     }, true);
     const end = (raw: Event, cancel: boolean) => {
         const e = raw as PointerEvent;
-        if (!gesture && !draining) { pointers.delete(e.pointerId); return; }
-        stop(e); finish(cancel); pointers.delete(e.pointerId); draining = pointers.size > 0;
+        cancelHold();
+        if (!gesture && !draining) { pointers.delete(e.pointerId); lifted(); return; }
+        stop(e); finish(cancel); pointers.delete(e.pointerId); lifted(); draining = pointers.size > 0;
     };
     lifetime.listen(app, 'pointerup', (e: Event) => end(e, false), true);
     lifetime.listen(app, 'pointercancel', (e: Event) => end(e, true), true);

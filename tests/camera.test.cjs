@@ -47,20 +47,20 @@ test('mobile button zoom centres the wardrobe instead of chasing a low selected 
  near(run('zoomTarget'),400);
 });
 
-test('mobile item focus animates to the fitting, retains context and keeps zoom on its focus',t=>{
+test('mobile item focus animates to the fitting, comes close to it and keeps zoom on its focus',t=>{
  const previous=global.getComputedStyle;
  global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
  const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
  run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:10,y1:50,w:180,h:40});frameMobileInspector(true);savedGoal=camGoal');
  assert.ok(run('camGoal'),'Selecting a fitting should animate');
- near(run('camGoal.y'),91.6);
- assert.ok(run('camGoal.dist >= camFront().dist*.8'),'Keep cabinet context around thin fittings');
+ near(run('camGoal.y'),30);
+ assert.ok(run('camGoal.dist < camFront().dist'),'A fitting comes closer than the whole cabinet');
  const duration=run('camGoal.duration');
  time(duration/2);run(`cameraTick(${duration/2},1/60)`);
- assert.ok(run('tgt.y')<100&&run('tgt.y')>91.6,'Focus must move gradually');
+ assert.ok(run('tgt.y')<100&&run('tgt.y')>30,'Focus must move gradually');
  run('frameMobileInspector(true)');assert.equal(run('camGoal===savedGoal'),true);
- run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),91.6);
+ run(`cameraTick(${duration},1/60)`);near(run('tgt.y'),30);
  run('cameraZoom(.9)');near(run('zoomFocus.y'),30);
 });
 
@@ -80,26 +80,31 @@ test('mobile selection preserves the current view and panel resizing does not re
  assert.equal(run('JSON.stringify(camNow())'),run('mid'));
  assert.equal(run('JSON.stringify(camGoal.from)'),run('origin'));
  assert.equal(run('camGoal.start'),run('start'));
- run('cameraTick(1000,1/60)');near(run('tgt.y'),91.6);near(run('az'),.65);near(run('el'),.3);
+ run('cameraTick(1000,1/60)');near(run('tgt.y'),30);near(run('az'),.65);near(run('el'),.3);
 });
 
-test('mobile fitting focus keeps every cabinet corner in view, including low and side items',t=>{
+test('a chosen fitting on a phone fills about half the view, wholly in view, wherever it is and however it is seen',t=>{
  const previous=global.getComputedStyle;
  global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
  for(const az of [0,.65,1.3])for(const el of [0,.3])for(const item of [{x:0,y:30},{x:65,y:170}]) {
   const{run}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
-  run(`az=${az};el=${el};S.item=0;S.sel=0;itemGeom=()=>({x0:${item.x+80},x1:${item.x+120},y0:${item.y-10},y1:${item.y+10},w:40,h:20});frameMobileInspector(true)`);
-  const distance=run('camGoal.dist'),tan=Math.tan(35*Math.PI/360);
-  for(const x of [-100,100])for(const y of [0,200])for(const z of [-30,30]) {
-   const dx=x-item.x*.12,dy=y-(100+(item.y-100)*.12);
-   const depth=dx*Math.cos(el)*Math.sin(az)+dy*Math.sin(el)+z*Math.cos(el)*Math.cos(az);
-   const horizontal=dx*Math.cos(az)-z*Math.sin(az);
-   const vertical=-dx*Math.sin(el)*Math.sin(az)+dy*Math.cos(el)-z*Math.sin(el)*Math.cos(az);
-   assert.ok(Math.abs(horizontal)<(distance-depth)*tan*390/600,'Cabinet sides remain visible');
-   assert.ok(Math.abs(vertical)<(distance-depth)*tan*(600-115)/600,'Cabinet top and bottom fit the usable view');
-  }
+  run(`az=${az};el=${el};dist=2000;S.item=0;S.sel=0;itemGeom=()=>({x0:${item.x+80},x1:${item.x+120},y0:${item.y-10},y1:${item.y+10},w:40,h:20});frameMobileInspector(true)`);
+  // The usable view on a phone: the canvas less its side margins and the toolbar (availableRoom).
+  const box={w:58,h:38,d:60},fit=run(`cameraFitDistance(${JSON.stringify(box)},${az},${el},362/485)*600/485`);
+  near(run('camGoal.x'),item.x);near(run('camGoal.y'),item.y);
+  near(run('camGoal.dist'),fit*2);
+  assert.ok(run('camGoal.dist')<run('camFront().dist'),'Closer than the whole cabinet');
  }
+});
+
+test('choosing a fitting on a phone never backs out of a view that is already closer',t=>{
+ const previous=global.getComputedStyle;
+ global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+ t.after(()=>{global.getComputedStyle=previous});
+ const{run}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:600})}),document:{documentElement:{}}});
+ run('dist=140;S.item=0;S.sel=0;itemGeom=()=>({x0:80,x1:120,y0:20,y1:40,w:40,h:20});frameMobileInspector(true)');
+ near(run('camGoal.dist'),140);near(run('camGoal.y'),30);
 });
 
 test('move mode uses the same framing margin on mobile and desktop',t=>{
@@ -116,14 +121,14 @@ test('move mode uses the same framing margin on mobile and desktop',t=>{
  }
 });
 
-test('mobile selection fills the view more closely than move mode without aggressive item-centering',t=>{
+test('mobile selection fills the view more closely than move mode and centres a low fitting',t=>{
  const previous=global.getComputedStyle;
  global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
  const{run}=fixture(390,{$:()=>({getBoundingClientRect:()=>({width:390,height:768})}),document:{documentElement:{}}});
  run('S.item=0;S.sel=0;itemGeom=()=>({x0:10,x1:190,y0:0,y1:20,w:180,h:20});frameMobileInspector(true)');
  assert.ok(run('camGoal.dist < camFront().dist*1.12'),'Selection should be closer than movement');
- assert.ok(run('camGoal.y > 85'),'Low items must not push the wardrobe out of the frame');
+ near(run('camGoal.y'),10);
 });
 
 test('drawer resizing uses the new canvas dimensions even before its DOM rectangle catches up',()=>{

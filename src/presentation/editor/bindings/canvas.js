@@ -7,7 +7,7 @@ export function observeViewportSize({ dom, camera, lifetime }) {
     lifetime.observe(new ResizeObserver(camera.resize), $('#view'));
 }
 /** @param {import('./canvas.ports').BindCanvasPointerdownPorts} ports */
-export function bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
+export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
     // The right button pans; it opens no menu on the model.
     lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
@@ -37,6 +37,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         // A second pointer always joins the camera gesture before hit testing.
         if (interactionState.ptrs.size > 0) {
             interactionState.pendingFurniture = null;
+            touch.release();
             kitchenArray?.holdCancel();
             if (kitchenArray?.active()) kitchenArray.end(true);
             resources.cv.setPointerCapture(e.pointerId);
@@ -52,12 +53,16 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         // Inside the chosen wardrobe, an item or a divider is dragged by a press, by mouse or finger.
         const chosen = selectionState.focusOn;
         const part = chosen && !selectionState.shapeEditing ? picking.cast(e, renderState.ihits)?.object ?? null : null;
-        const onPart = !!part && part.userData.wardrobe === model.scene.activeWardrobe;
-        // Anywhere else on a wardrobe or cabinet, a press then a drag moves the whole piece, chosen or not; the view
-        // stays put. It starts once the pointer moves, so a tap still chooses it as before.
-        const body = !onPart && !selectionState.shapeEditing ? picking.cast(e, renderState.allHits)?.object.userData.wardrobe : undefined;
-        interactionState.pendingFurniture = body !== undefined && !(chosen && body === model.scene.activeWardrobe && !inspector.inside())
-            ? { id: body, event: e } : null;
+        // A finger moves only what is chosen: on a fitting or board not chosen yet it turns the view, and a tap chooses it.
+        const state = model.activeCabinet().state, finger = e.pointerType === 'touch', u = part?.userData;
+        const onPart = !!part && u.wardrobe === model.scene.activeWardrobe && (!finger || (u.divider !== undefined
+            ? state.divider === u.divider : state.divider < 0 && state.sel === u.i && state.item === u.j));
+        // Anywhere else on a wardrobe or cabinet, a press then a drag moves the whole piece (by finger, only the chosen
+        // one); the view stays put. It starts once the pointer moves, so a tap still chooses it as before.
+        const otherPart = !onPart && u?.wardrobe === model.scene.activeWardrobe;
+        const body = !onPart && !otherPart && !selectionState.shapeEditing ? picking.cast(e, renderState.allHits)?.object.userData.wardrobe : undefined;
+        const mine = chosen && body === model.scene.activeWardrobe;
+        interactionState.pendingFurniture = body !== undefined && !(mine && !inspector.inside()) && (!finger || mine) ? { id: body, event: e } : null;
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
             // Pressing a divider selects it, as a tap does, then drags it.
@@ -99,9 +104,8 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
         interactionState.sy = e.clientY;
         if (interactionState.ptrs.size === 1) {
             if (onPart && part.userData.divider === undefined && !doorsShut) {
-                const u = part.userData, p = picking.frontPoint(e), mesh = /** @type {import('three').Mesh<import('three').BoxGeometry>} */(part);
+                const p = picking.frontPoint(e), mesh = /** @type {import('three').Mesh<import('three').BoxGeometry>} */(part);
                 // Pressing an item selects it, as a tap does, so the panels and the moved item follow the drag.
-                const state = model.activeCabinet().state;
                 if (state.divider >= 0 || state.sel !== u.i || state.item !== u.j) {
                     state.divider = -1;
                     state.sel = u.i;
@@ -122,7 +126,7 @@ export function bindCanvasPointerdown({ dom, camera, interactions, inspector, pi
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointermovePorts} ports */
-export function bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room, kitchenArray }) {
+export function bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room, kitchenArray }) {
     const { $ } = dom;
     lifetime.listen(resources.cv, 'pointermove', e => {
         if (room?.dragging()) {
@@ -151,6 +155,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
         if (interactionState.wardrobeGesture) {
             if (interactionState.ptrs.has(e.pointerId)) interactionState.ptrs.set(e.pointerId, e);
             interactions.moveWardrobeFromPointer(e);
+            if (e.pointerType === 'touch' && interactionState.wardrobeGesture?.follows) touch.followEdge(e, interactions.moveWardrobeFromPointer, () => !!interactionState.wardrobeGesture);
             return;
         }
         if (!interactionState.ptrs.has(e.pointerId)) {
@@ -190,6 +195,7 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
                         rendering.clearSettling();
                     }
                     interactions.previewAt(e);
+                    if (e.pointerType === 'touch') touch.followEdge(e, interactions.previewAt, () => !!interactionState.drag?.started);
                 }
             }
             else if (interactionState.moveMode) {
@@ -201,31 +207,29 @@ export function bindCanvasPointermove({ dom, camera, rendering, interactions, in
                 inspector.hidePop();
             }
             else if (interactionState.moved >= 5) {
-                cameraState.az -= (e.clientX - o.clientX) * .007;
-                cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * .007));
+                // A finger turns the view more gently than a mouse: about a quarter turn across a phone.
+                const rate = e.pointerType === 'touch' ? .0045 : .007;
+                cameraState.az -= (e.clientX - o.clientX) * rate;
+                cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * rate));
                 inspector.hidePop();
             }
         }
         const before = interactionState.ptrs.size === 2 ? [...interactionState.ptrs.values()] : null;
         interactionState.ptrs.set(e.pointerId, e);
         if (interactionState.ptrs.size === 2) {
-            const [a, b] = [...interactionState.ptrs.values()], nd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-            // Two fingers moving together pan the view while they pinch.
-            if (before) camera.panBy(((a.clientX + b.clientX) - (before[0].clientX + before[1].clientX)) / 2, ((a.clientY + b.clientY) - (before[0].clientY + before[1].clientY)) / 2);
-            if (nd > 0 && interactionState.pd > 0) {
-                camera.cameraZoomDistance(camera.cameraDistance(cameraState.dist * interactionState.pd / nd), null);
-                cameraState.tgt.lerp(camera.cameraFocusPoint(), .12);
-                cameraState.tgtY = cameraState.tgt.y;
-            }
-            interactionState.pd = nd;
+            const [a, b] = [...interactionState.ptrs.values()];
+            // Two fingers moving together pan the view while they pinch, which zooms about the point between them.
+            if (before) touch.pinch([before[0], before[1]], [a, b]);
+            interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
             interactionState.moved = 99;
         }
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
-export function bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
+export function bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
         interactionState.pendingFurniture = null;
+        touch.release(); touch.stopFollowing();
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) {
             interactionState.ptrs.delete(e.pointerId);
@@ -303,9 +307,10 @@ export function bindCanvasPointerup({ dom, interactions, shell, interactionState
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointercancelPorts} ports */
-export function bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room, kitchenArray }) {
+export function bindCanvasPointercancel({ dom, touch, interactions, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointercancel', e => {
         interactionState.pendingFurniture = null;
+        touch.release(); touch.stopFollowing();
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) kitchenArray.end(true);
         if (room?.dragging()) room.end(true);

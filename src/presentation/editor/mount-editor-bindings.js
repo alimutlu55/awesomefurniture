@@ -15,6 +15,7 @@ import { bindItemResizeEscape, bindItemResizeBlur, bindItemDimensions, bindItemP
 import { bindSwapMode, bindMoveCancel, bindMovePreviewKeydown, bindMovePreviewKeyup } from './bindings/move.js';
 import { bindEmptySceneDismiss, bindLaunchWizard, bindEmptySceneLaunch, bindCloseWizard, bindWizardInputs, bindIdeaApply, bindWizardBackdropClose, bindWizardFocusTrap } from './bindings/wizard.js';
 import { bindColorSchemeChange, addToolbarSeparator, bindPanelMinimize, bindPanelHeaderDrag, bindPropertiesPanelClose } from './bindings/panels.js';
+import { createTouchCamera } from './touch-camera';
 import { observeViewportSize, bindCanvasPointerdown, bindCanvasPointermove, bindCanvasPointerup, bindCanvasPointercancel, bindCanvasLostpointercapture, bindCanvasGestureBlur, bindCanvasWheel, bindCanvasPointerleave, bindCanvasGestureEscape } from './bindings/canvas.js';
 import { bindItemMenus } from './bindings/item-menus.js';
 import { bindEscapeKey } from './bindings/keyboard.js';
@@ -52,10 +53,11 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerDragBlur({ dom, interactions, lifetime });
     bindDividerDragEscape({ dom, interactions, interactionState, lifetime });
     observeViewportSize({ dom, camera, lifetime });
-    bindCanvasPointerdown({ dom, camera, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointermove({ dom, camera, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointerup({ dom, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointercancel({ dom, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    const touch = createTouchCamera({ dom, camera, cameraState, lifetime });
+    bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointercancel({ dom, touch, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     // Escape during a pull puts the copies back.
     if (kitchenArray) lifetime.listen(dom.window, 'keydown', e => {
         if (e.key !== 'Escape' || !kitchenArray.active()) return;

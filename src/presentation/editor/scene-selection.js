@@ -11,6 +11,8 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         while (group && !renderState.wardrobeGroups.includes(group)) group = group.parent;
         return group ? group.worldToLocal(point.clone()) : null;
     };
+    /** The last tap on empty space by finger: a second one soon after, close by, shows the whole scene. */
+    let emptyTap = null;
     function pick(e) {
         const studioMode = selectionState.viewMode === 'studio';
         const h = studioMode ? null : picking.cast(e, renderState.allHits);
@@ -21,9 +23,14 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (!h) {
             inspector.clearFocus();
             selectionState.pendingStudioAction = null;
-            camera.frameScene();
+            // A finger lets go of the selection and leaves the view where it was; a double tap shows everything.
+            // A mouse click still backs away to the whole scene.
+            const now = e.timeStamp ?? 0, again = emptyTap && now - emptyTap.at < 400 && Math.hypot(e.clientX - emptyTap.x, e.clientY - emptyTap.y) < 40;
+            emptyTap = e.pointerType === 'touch' && !again ? { at: now, x: e.clientX, y: e.clientY } : null;
+            if (e.pointerType !== 'touch' || again) camera.frameScene();
             return;
         }
+        emptyTap = null;
         const u = h.object.userData;
         // Decide the selection scope before switching cabinet or rebuilding its hit boxes.
         if (!selectionState.focusOn || u.wardrobe !== model.scene.activeWardrobe) {

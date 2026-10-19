@@ -41,16 +41,21 @@ function fixture(t, width, studio = true) {
     camera.frameScene = options => { overviewCalls++; frameScene(options); };
     const roomObjects = [], room = { pickables: () => roomObjects, pick: () => { selectionState.room = { kind: 'wall', id: 'w1' }; return true; } };
     const interactions = { ...createSceneSelection({ dom, inspector, picking, camera, selectionState, renderState, model, resources, room }), cancelMovement() {} };
-    const ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState,
+    const ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState, touch: { pinch() {}, release() {}, followEdge() {}, stopFollowing() {} },
         lifetime: { listen: (_target, event, fn) => { handlers[event] = fn; } } };
     bindCanvasPointerdown(ports); bindCanvasPointerup(ports);
     // The fitting has just been added with its panel open and its wardrobe framed.
     camera.frameMobileInspector(); camera.cameraTick(1000, 1 / 60);
-    const tap = pointerType => {
-        const e = { button: 0, pointerId: 1, pointerType, clientX: 10, clientY: 20 };
+    // Taps are a second apart unless `gap` (ms) says otherwise: two finger taps close together are a double tap.
+    let clock = 0;
+    const tap = (pointerType, gap = 1000) => {
+        clock += gap;
+        const e = { button: 0, pointerId: 1, pointerType, clientX: 10, clientY: 20, timeStamp: clock };
         handlers.pointerdown(e); handlers.pointerup(e);
     };
-    return { camera, cameraState, interactionState, selectionState, model, tap,
+    /** Asks for the whole scene from empty space: a click with a mouse, a double tap with a finger. */
+    const overview = pointerType => { tap(pointerType); if (pointerType === 'touch') tap(pointerType, 200); };
+    return { camera, cameraState, interactionState, selectionState, model, tap, overview,
         get overviewCalls() { return overviewCalls; }, setHeight: n => { height = n; },
         hit: () => { hit = { object: { userData: { wardrobe: 1, i: 0 } }, distance: 10 }; },
         wall: () => { roomHit = { object: { userData: { studioWall: 'w1' } }, distance: 5 }; } };
@@ -99,10 +104,10 @@ for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
             assert.equal(f.cameraState.tgt.z, initial.z);
         });
     }
-    test(`${pointerType}: empty-space tap after adding a fitting frames the studio and both wardrobes`, t => {
+    test(`${pointerType}: ${pointerType === 'touch' ? 'double tap' : 'click'} on empty space after adding a fitting frames the studio and both wardrobes`, t => {
         const f = fixture(t, width), snapshot = JSON.stringify(f.model.scene);
         const before = f.cameraState.dist;
-        f.tap(pointerType);
+        f.overview(pointerType);
         assert.equal(f.selectionState.focusOn, false);
         assert.equal(f.overviewCalls, 1);
         f.camera.cameraTick(2000, 1 / 60);
@@ -111,7 +116,7 @@ for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
         assert.equal(f.cameraState.tgt.y, 130);
         assert.equal(JSON.stringify(f.model.scene), snapshot, 'a background tap does not alter the design');
         const distance = f.cameraState.dist;
-        f.tap(pointerType); f.camera.cameraTick(2000, 1 / 60);
+        f.overview(pointerType); f.camera.cameraTick(2000, 1 / 60);
         assert.equal(f.cameraState.dist, distance, 'repeated taps do not keep zooming out');
         f.setHeight(650); f.camera.resize(); f.camera.cameraTick(2000, 1 / 60);
         assert.equal(f.cameraState.tgt.z, 175, 'viewport changes retain studio framing');
@@ -119,9 +124,20 @@ for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
     });
 }
 
+test('touch: a single tap on empty space lets go of the selection and leaves the view where it was', t => {
+    const f = fixture(t, 375), before = f.camera.camNow();
+    f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    assert.equal(f.selectionState.focusOn, false);
+    assert.equal(f.overviewCalls, 0);
+    assert.deepEqual(f.camera.camNow(), before);
+    // Taps further apart in time are not a double tap.
+    f.tap('touch'); f.camera.cameraTick(4000, 1 / 60);
+    assert.equal(f.overviewCalls, 0);
+});
+
 test('background overview works without room walls and contains every wardrobe', t => {
     const f = fixture(t, 375, false);
-    f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    f.overview('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.cameraState.tgt.x, -10); assert.equal(f.cameraState.tgt.z, 30);
     assert.equal(f.cameraState.tgt.y, 115);
 });
@@ -129,7 +145,7 @@ test('background overview works without room walls and contains every wardrobe',
 test('Studio mode selects room parts and ignores wardrobes', t => {
     const f = fixture(t, 375);
     f.selectionState.viewMode = 'studio';
-    f.hit(); f.tap('touch');
+    f.hit(); f.overview('touch');
     assert.equal(f.selectionState.focusOn, false);
     assert.equal(f.overviewCalls, 1);
     f.wall(); f.tap('touch');
@@ -139,7 +155,7 @@ test('Studio mode selects room parts and ignores wardrobes', t => {
 test('Wardrobe mode ignores room selection but background taps restore the whole-scene overview', t => {
     const f = fixture(t, 375);
     f.selectionState.viewMode = 'furniture';
-    f.wall(); f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    f.wall(); f.overview('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.selectionState.room, null);
     assert.equal(f.overviewCalls, 1);
     assert.equal(f.cameraState.tgt.x, 0);
@@ -147,7 +163,7 @@ test('Wardrobe mode ignores room selection but background taps restore the whole
     assert.equal(f.cameraState.el, .5);
     assert.equal(f.selectionState.viewMode, 'furniture');
     const distance = f.cameraState.dist;
-    f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
+    f.overview('touch'); f.camera.cameraTick(2000, 1 / 60);
     assert.equal(f.cameraState.dist, distance);
     f.hit(); f.tap('touch');
     assert.equal(f.selectionState.focusOn, true);
@@ -166,7 +182,7 @@ test('orbit drags and pinch releases on empty space do not trigger the overview'
     // Pointerup only dispatches selection for a tap, never after an orbit or pinch.
     f.interactionState.moved = 20;
     f.interactionState.ptrs.set(1, {});
-    const ports = { interactions: { pick: () => assert.fail('drag must not select'), hover() {} },
+    const ports = { touch: { pinch() {}, release() {}, followEdge() {}, stopFollowing() {} }, interactions: { pick: () => assert.fail('drag must not select'), hover() {} },
         interactionState: f.interactionState, resources: { cv: { hasPointerCapture: () => false } }, lifetime: { listen: (_target, _event, fn) => fn({ pointerId: 1 }) } };
     bindCanvasPointerup(ports);
     f.interactionState.moved = 99; f.interactionState.ptrs.set(1, {}); f.interactionState.ptrs.set(2, {});

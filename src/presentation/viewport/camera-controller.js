@@ -117,9 +117,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function cameraFlyTo(goal, pan = false) {
         const from = camNow(), travel = Math.hypot(goal.x - from.x, goal.y - from.y, goal.z - from.z), dr = Math.abs(Math.log(goal.dist / from.dist));
         const turn = Math.abs(cameraAngleDelta(from.az, goal.az)) + Math.abs(goal.el - from.el);
-        if (travel < 2 && dr < .02 && turn < .01) {
-            return;
-        }
+        if (travel < 2 && dr < .02 && turn < .01) return;
         const duration = Math.round(Math.max(280, Math.min(650, 280 + travel / Math.max(goal.dist, from.dist) * 300 + dr * 200 + turn * 70)));
         cameraTransition({ ...goal, arc: 0 }, duration);
     }
@@ -219,6 +217,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.z = w.z - focusX * Math.sin(angle);
             const contextDistance = cameraFitDistance({ w: f.w + 2 * Math.abs(focusX), h: f.h + 2 * Math.abs(focusY), d: f.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
             goal.dist = contextDistance * 1.025;
+            // On a phone a chosen fitting or board comes close enough to fill about half the view, so its handles stand
+            // apart: no further than the whole cabinet, and never backing out of a view that is already closer.
+            if (dom.width <= 900 && (w.state.item >= 0 || w.state.divider >= 0)) {
+                const near = Math.min(goal.dist, cameraFitDistance(box, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h) * 2);
+                Object.assign(goal, { x: w.x + box.x * Math.cos(angle), y: (w.y || 0) + box.y, z: w.z - box.x * Math.sin(angle), dist: Math.min(near, cameraState.camGoal?.dist ?? cameraState.dist) });
+            }
         }
         if (resizing && cameraState.camGoal) {
             // Panel resizing changes the destination, not the animation's origin or clock.
@@ -282,9 +286,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         else cameraTransition(goal, resizing ? 240 : 700);
     }
     function moveViewOff() {
-        if (!cameraState.camHome) {
-            return;
-        }
+        if (!cameraState.camHome) return;
         const home = cameraState.camHome;
         cameraState.camHome = null;
         cameraState.camRestore = home;
@@ -316,9 +318,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.vzT = cameraState.vz;
     }
     function cameraAnchoredTarget(target, anchor, ratio) {
-        if (!anchor) {
-            return { x: target.x, y: target.y, z: target.z };
-        }
+        if (!anchor) return { x: target.x, y: target.y, z: target.z };
         return { x: anchor.x + (target.x - anchor.x) * ratio, y: anchor.y + (target.y - anchor.y) * ratio, z: anchor.z + (target.z - anchor.z) * ratio };
     }
     function cameraZoomPoint(e) {
@@ -338,9 +338,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.dist = next;
     }
     function cameraZoom(factor) {
-        if (!Number.isFinite(factor) || factor <= 0) {
-            return;
-        }
+        if (!Number.isFinite(factor) || factor <= 0) return;
         const base = cameraState.zoomTarget ?? cameraState.dist;
         camRelease();
         cameraState.zoomFocus = cameraFocusPoint();

@@ -53,7 +53,9 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    const start=30;
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-start,id:1}]});
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-start,id:1},{x,y:y+start,id:2}]});
-   assert.notEqual(await el('app').getAttribute('data-accordion'),null,'Same-bay pinch owns the gesture');
+   assert.equal(await el('app').getAttribute('data-accordion'),null,'A same-bay pinch is still the camera until the fingers rest');
+   await page.waitForTimeout(400);
+   assert.notEqual(await el('app').getAttribute('data-accordion'),null,'Fingers resting in one bay own the gesture');
    for(let n=1;n<=10;n++){
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-start-spread*n/20,id:1},{x,y:y+start+spread*n/20,id:2}]});
     await page.waitForTimeout(20);
@@ -77,6 +79,18 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await accordion(80,'third');assert.deepEqual(await shelves(),addedShelves,'A third finger cancels the preview without editing');
   // A pinch removes one board; its initial separation leaves room to pinch.
   await accordion(-40);assert.notDeepEqual(await waitShelves(1),addedShelves,'Pinching removes a shelf board');
+  // A pinch that starts moving at once in one bay zooms: it never edits shelves.
+  {
+   const before=await report();
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-30,id:1}]});
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-30,id:1},{x,y:y+30,id:2}]});
+   for(let n=1;n<=8;n++){
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-30-5*n,id:1},{x,y:y+30+5*n,id:2}]});await page.waitForTimeout(20);
+   }
+   assert.equal(await el('app').getAttribute('data-accordion'),null,'A moving pinch in one bay stays with the camera');
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(400);
+   assert.deepEqual(await report(),before,'A zoom inside a bay does not edit shelves');
+  }
   const designBeforeZoom=await report(),labelBeforeZoom=await page.locator('.scrub-w:visible').boundingBox();
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:30,y:100,id:1},{x:90,y:100,id:2}]});
   assert.equal(await el('app').getAttribute('data-accordion'),null,'Outside-bay pinches stay with the camera');

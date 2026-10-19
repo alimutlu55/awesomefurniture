@@ -54,7 +54,7 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
             report() {}, camera: () => camera } });
     const interactions = { ...createSceneSelection({ dom, inspector, picking, camera, selectionState, renderState, model, resources, room: wiring.room }),
         cancelMovement() {} };
-    const handlers = {}, ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState,
+    const handlers = {}, ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState, touch: { pinch() {}, release() {}, followEdge() {}, stopFollowing() {} },
         room: wiring.surface, lifetime: { listen: (_target, event, fn) => { handlers[event] = fn; } } };
     bindCanvasPointerdown(ports); bindCanvasPointerup(ports);
     const event = (pointerType = width === 375 ? 'touch' : 'mouse', x = 0, y = 0) => ({ button: 0, pointerId: 1, pointerType,

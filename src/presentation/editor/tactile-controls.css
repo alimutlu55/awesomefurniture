@@ -8,3 +8,5 @@
 /* Inline number fields live in the canvas. Hiding it for the software keyboard
    blurs the field and immediately closes the editor. */
 :host([data-keyboard-open]) #app[data-scrubbing] #view{visibility:visible;inset:0}
+/* A second finger over a bay's Add label reaches the model, so a pinch there zooms (accordion-gestures.ts). */
+#app[data-finger-down] #labels .lbl.add{pointer-events:none}

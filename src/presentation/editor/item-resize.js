@@ -21,7 +21,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         interactionState.itemEdgeGesture.snap = buildSnapContext(interactionState.itemEdgeGesture);
         interactionState.itemEdgeGesture.guide = null;
         interactionState.itemEdgeGesture.lock = null;
-        camera.moveViewOn();
+        // Under a finger the view holds still, so the edge stays under it; a mouse turns to the front for precision.
+        if (e.pointerType !== 'touch') camera.moveViewOn();
         handle.classList.add('resizing');
         handle.setPointerCapture(e.pointerId);
     }

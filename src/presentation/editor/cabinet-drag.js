@@ -87,7 +87,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         const a0 = picking.screenPoint(anchor), a1 = picking.screenPoint(along);
         projected.along = { x: (a1.x - a0.x) / 50, y: (a1.y - a0.y) / 50 };
         const planeHeight = axis === 'floor' ? (picking.cast(e, renderState.hits)?.point.y || 0) : 0;
-        interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false };
+        interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false, follows: false };
         resources.cv.style.cursor = 'grabbing';
         if (handle) {
             handle.classList.add('moving');
@@ -117,7 +117,9 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         else if (g.axis === 'floor') {
             const p = picking.groundPoint(e, g.planeHeight);
-            if (cameraState.el > .15 && p && g.ground) {
+            // Seen from above, the piece stays under the pointer on the floor, so the view can move on under it.
+            g.follows = cameraState.el > .15 && !!p && !!g.ground;
+            if (g.follows) {
                 delta = { x: p.x - g.ground.x, z: p.z - g.ground.z };
             }
             else {
