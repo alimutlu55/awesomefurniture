@@ -175,3 +175,53 @@ test('the hardware list: hinges by door height, runners to the depth, legs, hang
   assert.deepEqual(find('Concealed hinge, 110°')?.slice(2), ['2', 'K1'], 'the tall unit\'s cupboard door over its fridge');
   assert.deepEqual(find('Wall fixing bracket')?.slice(2), ['2', 'K1'], 'the tall unit is fixed to the wall');
 });
+
+test('corner pull-out component is drawn with high precision across plan, elevation, unit detail, construction details and schedules', () => {
+  const cornerPiece = against(1, 'base', 'corner', 100);
+  const sheets = technicalDrawings({ studio: room(), pieces: [cornerPiece] });
+  const [plan, elevation, unitSheet, , detail2, cutting, hardware] = sheets;
+
+  // 1. Plan view: kidney tray dashed outline, pivot post, front split tick, door swing line, and pull-out arrow on the door half.
+  const planItems = all(plan!);
+  const planSwings = planItems.filter(i => i.kind === 'line' && i.stroke === 'swing');
+  assert.equal(planSwings.length, 1, 'hinged door leaf drawn open on the plan');
+  const planArrows = planItems.filter(i => i.kind === 'arrow');
+  assert.equal(planArrows.length, 1, 'pull-out arrow on the door half of the plan');
+  assert.ok(planArrows[0]!.kind === 'arrow' && planArrows[0]!.at.x < 1000, 'arrow emerges from the left (door) half by default');
+  const kidneyHidden = planItems.filter(i => i.kind === 'line' && i.stroke === 'hidden' && i.closed && i.points.length === 6);
+  assert.equal(kidneyHidden.length, 1, 'kidney-shaped swing-out tray silhouette drawn dashed on the plan');
+
+  // 2. Wall elevation: fixed blind panel + hinged door leaf with swing triangle, and dashed pivot post + two trays behind.
+  const elevSwings = all(elevation!).filter(i => i.kind === 'line' && i.stroke === 'swing');
+  assert.equal(elevSwings.length, 1, 'only the door half has a hinge triangle; the blind panel is fixed');
+
+  // 3. Unit detail sheet: Front, Inside, and Section A–A with exact millimetre dimensions for post and swing-out trays.
+  assert.deepEqual(unitSheet!.views.map(v => v.title), ['Front', 'Inside', 'Section A–A']);
+  const frontSizes = unitSheet!.views[0]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
+  assert.deepEqual(frontSizes, ['496 × 777', '496 × 777'], 'blind panel and pull-out door cut sizes on Front view');
+  const insideNotes = unitSheet!.views[1]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
+  assert.deepEqual(insideNotes, ['Corner blind panel', 'Corner pull-out'], 'Inside view labels both the blind panel and pull-out door');
+  const insideArrows = unitSheet!.views[1]!.items.filter(i => i.kind === 'arrow');
+  assert.equal(insideArrows.length, 2, 'two swing arrows on the upper and lower kidney trays in Inside view');
+  const insideHorizontalStops = dims(unitSheet!.views[1]!.items)[1]!.stops;
+  assert.ok(insideHorizontalStops.includes(689), 'Inside view horizontal dimension string locates the pivot post axis (689 mm)');
+  const sectionDepthStops = dims(unitSheet!.views[2]!.items)[0]!.stops;
+  assert.ok(sectionDepthStops.includes(60) && sectionDepthStops.includes(520), 'Section A–A dimensions the 60 mm back/front tray clearances');
+
+  // 4. Construction details include D6 Blind corner and pull-out, and every dimension string is valid.
+  assert.ok(detail2!.views.some(v => v.title === 'D6 Blind corner and pull-out'), 'includes D6 Blind corner and pull-out detail');
+  for (const sheet of sheets) {
+    for (const d of dims(all(sheet))) {
+      const step = sheet.title.startsWith('Construction details') ? 2 : 1;
+      assert.ok(d.stops.every(v => Number.isInteger(v * step)), sheet.title + ': valid millimetre stops ' + d.stops);
+      assert.ok(d.stops.every((s, k) => k === 0 || s > d.stops[k - 1]!), sheet.title + ': ascending stops ' + d.stops);
+    }
+  }
+
+  // 5. Cutting list & Hardware list: blind panel + pull-out door (no fake wooden shelves), and corner pull-out mechanism.
+  const cutParts = cutting!.table!.rows.filter(r => r[0] === 'K1').map(r => r[1]);
+  assert.deepEqual(cutParts, ['Top', 'Side', 'Base', 'Back', 'Corner blind panel', 'Corner pull-out door', 'Worktop', 'Plinth']);
+  const hwItems = hardware!.table!.rows.map(r => r[0]);
+  assert.ok(hwItems.includes('Corner pull-out mechanism, two swing trays'), 'hardware list includes the corner pull-out mechanism');
+  assert.ok(!hwItems.includes('Shelf support'), 'no adjustable wooden shelf pins for a corner pull-out unit');
+});

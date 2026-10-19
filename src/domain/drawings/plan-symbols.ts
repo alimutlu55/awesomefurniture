@@ -35,10 +35,28 @@ export function pieceSymbols(p: PlacedPiece): Item[] {
   if (tallUnit(p)) out.push(line(corners[0], corners[2], 'thin'), line(corners[1], corners[3], 'thin'));
   else if (appliance && !p.hung) out.push(line(corners[0], corners[2], 'hidden'), line(corners[1], corners[3], 'hidden'));
   if (!p.hung && kinds(p).some(k => fitting(k)?.opens === 'pull')) out.push({ kind: 'arrow', at: at(0, d / 2), dir: dirOf(at(0, 0), at(0, 1)) });
+  const { fronts, cornerPullouts } = piecefronts(p.design);
+  if (!p.hung) {
+    for (const c of cornerPullouts) {
+      const splitS = (c.doorSide === 'right' ? c.blind.x1 : c.blind.x0) - w / 2, px = c.post.x - w / 2, r = c.post.size / 2;
+      const s0 = c.cx - c.trayW / 2 - w / 2, s1 = c.cx + c.trayW / 2 - w / 2, t0 = -c.trayD / 2, t1 = c.trayD / 2;
+      const kidney = c.doorSide === 'right'
+        ? [at(s0, t0), at(s1, t0), at(s1, t1), at(px + 3, t1), at(px + 3, 0), at(s0, 0)]
+        : [at(s0, t0), at(s1, t0), at(s1, 0), at(px - 3, 0), at(px - 3, t1), at(s0, t1)];
+      out.push(
+        line(at(splitS, d / 2 - 6), at(splitS, d / 2), 'thin'),
+        { kind: 'line', stroke: 'thin', closed: true, points: [at(px - r, -r), at(px + r, -r), at(px + r, r), at(px - r, r)] },
+        { kind: 'line', stroke: 'hidden', closed: true, points: kidney },
+        line(at((c.door.hinge === 'right' ? c.door.x1 : c.door.x0) - w / 2, d / 2),
+          at((c.door.hinge === 'right' ? c.door.x1 : c.door.x0) - w / 2, d / 2 + (c.door.x1 - c.door.x0)), 'swing'),
+        { kind: 'arrow', at: at((c.door.x0 + c.door.x1) / 2 - w / 2, d / 2), dir: dirOf(at(0, 0), at(0, 1)) },
+      );
+    }
+  }
   const swinging = tallUnit(p) || (!isKitchen(p.design) && p.design.doors !== 'none');
   if (swinging) {
     const seen = new Set<string>();
-    for (const f of piecefronts(p.design).fronts) {
+    for (const f of fronts) {
       if (f.opens !== 'side' || seen.has(f.x0 + ':' + f.x1)) continue;
       seen.add(f.x0 + ':' + f.x1);
       const hinge = (f.hinge === 'right' ? f.x1 : f.x0) - w / 2;

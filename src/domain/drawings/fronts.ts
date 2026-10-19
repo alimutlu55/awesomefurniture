@@ -4,7 +4,7 @@ import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
 import { cabinetDoorAreas, doorHingeSide } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { cornerDoorSide, cornerFrontSplit, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
+import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
 import { isKitchen } from '../furniture/furniture';
 
 interface Box { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number }
@@ -20,6 +20,17 @@ export interface Front extends Box {
 }
 /** What is inside, behind the fronts: fittings and boards, rails, and a cupboard's shelves. */
 export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
+/** A blind-corner pull-out mechanism inside a kitchen bay: its blind panel, hinged door, pivot post and swing-out trays. */
+export type CornerPullout = ReturnType<typeof cornerPulloutGeometry> & {
+  readonly bayIndex: number;
+  readonly cx: number;
+  readonly y0: number;
+  readonly sw: number;
+  readonly hh: number;
+  readonly doorSide: 'left' | 'right';
+  readonly blind: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number };
+  readonly door: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly hinge: 'left' | 'right' };
+};
 
 /**
  * A piece's fronts and what is behind them, centimetres from its left face and its bottom. A wardrobe with doors:
@@ -27,10 +38,10 @@ export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
  * wardrobe: those fittings, nothing over them. A kitchen unit: each fitting's own front where it is built (overlay
  * fronts), a wide door as two leaves, a tall fridge as fridge over freezer, with the cupboards' shelves behind.
  */
-export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: Inside[]; covered: boolean } {
+export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[] } {
   // The rules read a design being edited; nothing is selected in a drawing.
   const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths();
-  const fronts: Front[] = [], inside: Inside[] = [], kitchen = isKitchen(design);
+  const fronts: Front[] = [], inside: Inside[] = [], cornerPullouts: CornerPullout[] = [], kitchen = isKitchen(design);
   let bayL = PANEL;
   widths.forEach((sw, i) => {
     for (const [j, pos] of geometry.computeLayout(i).entries()) {
@@ -44,10 +55,16 @@ export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: In
       const opens = def.opens ?? 'open', label = hasTrait(it.k, 'appliance') ? def.zone.label : undefined, own = !!def.ownFront;
       const name = (def.zone.label ?? def.name) + (opens === 'side' ? ' door' : ' front'), hinge = itemHingeSide(it, design), explicit = !!(it.hinge ?? design.doorHang);
       if (it.k === 'corner') {
-        const { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge, cornerDoorSide(it));
+        const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge, doorSide);
+        const mech = cornerPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, blind, doorSide);
         fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
-        fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name });
-        for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) inside.push({ kind: 'shelf', x0: cx - pos.w / 2, x1: cx + pos.w / 2, y0: y, y1: y });
+        fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name: 'Corner pull-out door' });
+        inside.push({ kind: 'box', x0: mech.post.x0, x1: mech.post.x1, y0: mech.post.y0, y1: mech.post.y1 });
+        for (const t of mech.trays) {
+          inside.push({ kind: 'box', x0: t.rail.x0, x1: t.rail.x1, y0: t.base.y0, y1: t.rail.y1 });
+          inside.push({ kind: 'shelf', x0: t.base.x0, x1: t.base.x1, y0: t.base.y1, y1: t.base.y1 });
+        }
+        cornerPullouts.push({ ...mech, bayIndex: i, cx, y0: pos.y0, sw: pos.w, hh: it.h, doorSide, blind: { ...blind, y0: r.y0, y1: r.y1 }, door: { ...door, y0: r.y0, y1: r.y1 } });
       } else if (opens === 'side') {
         const split = fridgeSplit(r.y0, r.y1, it.h), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
         for (const [y0, y1] of rows) for (const leaf of hingedLeaves(r.x0, r.x1, hinge, explicit)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
@@ -66,5 +83,5 @@ export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: In
   // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end unless doorHang overrides it.
   const covered = !kitchen && design.doors !== 'none';
   if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
-  return { fronts, inside, covered };
+  return { fronts, inside, covered, cornerPullouts };
 }

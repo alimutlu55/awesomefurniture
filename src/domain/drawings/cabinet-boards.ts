@@ -89,7 +89,7 @@ export function cabinetBoards(design: EditorDesign): Board[] {
     if (kitchen) {
       lay.forEach((pos, j) => {
         const it = items[j]!;
-        if (!hasTrait(it.k, 'appliance') && fitting(it.k)?.opens === 'side') for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) {
+        if (!hasTrait(it.k, 'appliance') && fitting(it.k)?.opens === 'side' && it.k !== 'corner') for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) {
           out.push(board('Shelf', 'shelf', { x0: bayL + pos.off + KITCHEN_SHELF.side, x1: bayL + pos.off + pos.w - KITCHEN_SHELF.side, y0: y - KITCHEN_SHELF.thickness / 2,
             y1: y + KITCHEN_SHELF.thickness / 2, z0: KITCHEN_SHELF.back, z1: d - KITCHEN_SHELF.front }, 'L1', 'x', { note: 'adjustable' }));
         }

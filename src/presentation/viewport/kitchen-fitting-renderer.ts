@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { cornerDoorSide, cornerFrontSplit, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 
@@ -55,11 +55,11 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
         panel(blind.x0, blind.x1, y0, y1);
         panel(door.x0, door.x1, y0, y1);
         pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
-        const postX = (blind.x0 + blind.x1) / 2 + (doorSide === 'right' ? 6 : -6), trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12);
-        box(2.2, Math.max(8, hh - 4), 2.2, postX, y + hh / 2, 0, steel);
-        for (const ty of [y + hh * .28, y + hh * .66]) {
-          box(trayW, 1.4, trayD, cx, ty, 0, materials.inside);
-          box(trayW + .8, 3.6, trayD + .8, cx, ty + 2, 0, steel);
+        const { post, trayW, trayD, trays } = cornerPulloutGeometry(cx, y, sw, hh, d, blind, doorSide);
+        box(post.size, post.h, post.size, post.x, y + hh / 2, 0, steel);
+        for (const t of trays) {
+          box(trayW, 1.4, trayD, cx, t.y, 0, materials.inside);
+          box(trayW + .8, 3.6, trayD + .8, cx, t.y + 2, 0, steel);
         }
         break;
       }

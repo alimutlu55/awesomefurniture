@@ -63,16 +63,38 @@ function backPanel(): Item[] {
     note({ x: side + reach / 2, y: back + reach / 2 }, 'Base or shelf')];
 }
 
+/** D6, seen from above at the centre of a blind-corner pull-out unit: the hinged door leaf on one side, the fixed blind
+ * panel and return filler on the other, with the vertical pivot post and swing-out tray setback behind the front. */
+function blindCornerPullout(): Item[] {
+  const reach = 100, setback = 60, post = 22;
+  return [
+    rect(-reach, -90, reach, 0, 'thin'),
+    cut(-reach, 0, -GAP / 2, T),
+    cut(GAP / 2, 0, reach, T),
+    cut(20, T, 20 + T, T + 70),
+    rect(60 - post / 2, -80 - post / 2, 60 + post / 2, -80 + post / 2, 'outline'),
+    rect(-reach + 10, -90, 40, -setback, 'thin'),
+    line({ x: -GAP / 2, y: T }, { x: -GAP / 2, y: T + 65 }, 'swing'),
+    dims(-20, T, 'across', [-20, -GAP / 2, GAP / 2, 20, 20 + T], 1),
+    dims(reach, -setback, 'up', [-setback, 0, T], -1),
+    note({ x: -reach / 2, y: -30 }, 'Door'),
+    note({ x: 60, y: -30 }, 'Blind panel'),
+    note({ x: -30, y: -75 }, 'Swing tray'),
+  ];
+}
+
 /** The construction details that apply to the pieces: how the fronts, plinth and worktop of kitchen units are built, and
  * the shelves and doors of wardrobes; the back panel of any cabinet. Drawn from the same rules the model is built with. */
 export function constructionDetails(pieces: readonly PlacedPiece[]): View[][] {
   const cabinets = pieces.filter(p => !p.fixture), kitchen = cabinets.some(p => isKitchen(p.design)), wardrobe = cabinets.some(p => !isKitchen(p.design));
+  const corner = cabinets.some(p => p.design.secs.flat().some(it => it.k === 'corner'));
   // At most three to a sheet, so each is drawn at 1:2.
   const sheets: View[][] = [];
   if (kitchen) sheets.push([{ title: 'D1 Fronts at a joint', items: frontsAtJoint() }, { title: 'D2 Plinth and base', items: plinthAndBase() }, { title: 'D3 Worktop edge', items: worktopEdge() }]);
   const cabinet: View[] = [];
   if (wardrobe) cabinet.push({ title: 'D4 Shelf and door', items: shelfAndDoor() });
   if (cabinets.length) cabinet.push({ title: 'D5 Back panel', items: backPanel() });
+  if (corner) cabinet.push({ title: 'D6 Blind corner and pull-out', items: blindCornerPullout() });
   if (cabinet.length) sheets.push(cabinet);
   return sheets;
 }

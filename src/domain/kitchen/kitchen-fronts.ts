@@ -51,6 +51,19 @@ export function cornerFrontSplit(x0: number, x1: number, hinge: 'left' | 'right'
     ? { blind: { x0, x1: mid }, door: { x0: mid, x1, hinge } }
     : { blind: { x0: mid, x1 }, door: { x0, x1: mid, hinge } };
 }
+/** High-precision geometry of a blind-corner pull-out mechanism: its vertical pivot post on the blind side and two
+ * swing-out kidney trays with their bases and steel gallery rails. Centimetres, in the caller's X/Y frame and 0..d depth. */
+export function cornerPulloutGeometry(cx: number, y: number, sw: number, hh: number, d: number, blind: { x0: number; x1: number }, doorSide: 'left' | 'right' = 'left') {
+  const postX = (blind.x0 + blind.x1) / 2 + (doorSide === 'right' ? 6 : -6), postH = Math.max(8, hh - 4);
+  const trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12), z0 = (d - trayD) / 2, z1 = (d + trayD) / 2;
+  const post = { x: postX, x0: postX - 1.1, x1: postX + 1.1, y0: y + (hh - postH) / 2, y1: y + (hh + postH) / 2, z0: d / 2 - 1.1, z1: d / 2 + 1.1, size: 2.2, h: postH };
+  const trays = [y + hh * .28, y + hh * .66].map(ty => ({
+    y: ty,
+    base: { x0: cx - trayW / 2, x1: cx + trayW / 2, y0: ty - .7, y1: ty + .7, z0, z1 },
+    rail: { x0: cx - (trayW + .8) / 2, x1: cx + (trayW + .8) / 2, y0: ty + .2, y1: ty + 3.8, z0: z0 - .4, z1: z1 + .4 },
+  }));
+  return { post, trayW, trayD, trays };
+}
 /** Where a fridge front splits into a freezer door below and a fridge door above: only in a tall housing (a fitting
  * over 140 cm). Null for one door. */
 export const fridgeSplit = (y0: number, y1: number, h: number) => h > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
