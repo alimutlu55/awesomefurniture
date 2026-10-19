@@ -196,7 +196,6 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
                         rendering.clearSettling();
                     }
                     interactions.previewAt(e);
-                    if (e.pointerType === 'touch') touch.followEdge(e, interactions.previewAt, () => !!interactionState.drag?.started);
                 }
             }
             else if (interactionState.moveMode) {
@@ -209,9 +208,12 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
             }
             else if (interactionState.moved >= 5) {
                 // A finger turns the view more gently than a mouse: about a quarter turn across a phone.
-                const rate = e.pointerType === 'touch' ? .0045 : .007;
-                cameraState.az -= (e.clientX - o.clientX) * rate;
-                cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * rate));
+                // A finger turns it around the furniture, so the piece stays in view (touch-camera.ts).
+                if (e.pointerType === 'touch') touch.orbit(-(e.clientX - o.clientX) * .0045, (e.clientY - o.clientY) * .0045);
+                else {
+                    cameraState.az -= (e.clientX - o.clientX) * .007;
+                    cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * .007));
+                }
                 inspector.hidePop();
             }
         }

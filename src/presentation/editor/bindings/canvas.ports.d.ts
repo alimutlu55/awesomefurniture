@@ -3,7 +3,7 @@
 type RoomSurface = Readonly<Pick<ReturnType<typeof import('../room-wiring').createRoomWiring>['surface'], 'grab' | 'move' | 'end' | 'dragging'>>;
 /** Pull-to-array on a selected kitchen unit: a long press on it, then a slide, pulls out copies. */
 /** The camera under the fingers: a pinch zooms about the point between them; a drag near the edge moves the view on. */
-type TouchCamera = Readonly<Pick<ReturnType<typeof import('../touch-camera').createTouchCamera>, 'pinch' | 'release' | 'followEdge' | 'stopFollowing'>>;
+type TouchCamera = Readonly<Pick<ReturnType<typeof import('../touch-camera').createTouchCamera>, 'pinch' | 'orbit' | 'release' | 'followEdge' | 'stopFollowing'>>;
 type KitchenArray = Readonly<Pick<ReturnType<typeof import('../kitchen-array-gesture').createKitchenArrayGesture>, 'active' | 'move' | 'end' | 'holdStart' | 'holdMoved' | 'holdCancel'>>;
 
 
