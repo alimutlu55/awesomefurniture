@@ -98,3 +98,66 @@ test('background save failures stay silent, retain the draft and retry on the ne
     if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
   }
 });
+
+test('closing waits for an in-flight save and stops all captures before another editor can mount', async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  let tick = () => {};
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    setInterval: (callback: () => void) => { tick = callback; return 0; }, clearInterval: () => {},
+    addEventListener: () => {}, removeEventListener: () => {},
+  } });
+  let release!: () => void, entered!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const saving = new Promise<void>(resolve => { entered = resolve; });
+  const memory = new MemoryProjectRepository(), model = createEditorModel();
+  let writes = 0, captures = 0, closed = false;
+  const recovered: unknown[] = [];
+  const repository = {
+    async save(document: Parameters<typeof memory.save>[0], revision: number | null) {
+      writes++; if (writes === 1) { entered(); await gate; }
+      return memory.save(document, revision);
+    }, load: memory.load.bind(memory),
+  };
+  let connection: ReturnType<typeof connectSessions> | undefined;
+  try {
+    connection = connectSessions({ repository, drafts: { write: async (draft: unknown) => { recovered.push(draft); } },
+      draft: { document: createProject('outgoing', 'Original'), expectedRevision: null }, saved: false } as never,
+    { snapshot: () => { captures++; return model.snapshot(); }, scene: () => model.scene } as never);
+    await saving;
+    const closing = connection.close().then(result => { closed = true; return result; });
+    await new Promise(resolve => setImmediate(resolve)); assert.equal(closed, false);
+    release(); const result = await closing;
+    assert.equal(result.draft.document.id, 'outgoing'); assert.equal(result.saved, true);
+    const afterClose = captures;
+    tick(); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(captures, afterClose, 'a timer cannot capture the next editor after closing');
+    assert.equal((await memory.load('outgoing'))?.document.wardrobes.length, 1);
+    assert.ok(recovered.length); assert.equal(writes, 1);
+  } finally {
+    release(); await connection?.dispose();
+    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
+  }
+});
+
+test('closing retains local recovery on a cloud failure, but refuses navigation when browser recovery fails', async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    setInterval: () => 0, clearInterval: () => {}, addEventListener: () => {}, removeEventListener: () => {},
+  } });
+  let quota = false; const recovered: unknown[] = [];
+  let connection: ReturnType<typeof connectSessions> | undefined;
+  try {
+    const model = createEditorModel();
+    const platform = { repository: { async save() { throw new Error('Cloud offline'); } },
+      drafts: { write: async (draft: unknown) => { if (quota) throw new Error('Quota exceeded'); recovered.push(draft); } },
+      draft: { document: createProject('local', 'Local design'), expectedRevision: null }, saved: false };
+    connection = connectSessions(platform as never, { snapshot: model.snapshot, scene: () => model.scene } as never);
+    await connection.ready; quota = true;
+    await assert.rejects(connection.close(), /Quota exceeded/);
+    quota = false; const result = await connection.close();
+    assert.equal(result.saved, false); assert.equal(result.draft.document.id, 'local'); assert.ok(recovered.length);
+  } finally {
+    await connection?.dispose();
+    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
+  }
+});

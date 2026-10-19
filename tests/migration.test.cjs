@@ -11,14 +11,15 @@ test('planner and controls match reviewed feature baselines; styles match the sh
  assert.equal(hash(read('src/presentation/editor/editor.css')),baseline.css);
  assert.equal(hash(read('src/presentation/editor/editor.html')),baseline.markup);
 });
-test('both application entries open the editor without project screens',()=>{
+test('application entries restore the editor and delegate collection navigation to the workspace',()=>{
  assert.ok(read('vite.config.ts').includes("editor: 'editor.html'"));
  assert.ok(!read('vite.config.ts').includes('Wardrobe_Forge-4-16-7-4'));
  assert.match(read('index.html'), /id="editor-root"/);
  assert.match(read('src/app/main.ts'), /import '\.\/editor'/);
- // Persisted sessions now restore into the same editor entry, without a separate workspace screen.
+ // The workspace restores the document into an isolated editor mount.
  assert.match(read('src/app/editor.ts'), /prepareSession/);
- assert.match(read('src/app/editor.ts'), /initialScene:projectToScene/);
+ assert.match(read('src/app/editor.ts'), /createDesignWorkspace/);
+ assert.match(read('src/app/design-workspace.ts'), /initialScene:projectToScene/);
  assert.doesNotMatch(read('src/presentation/editor/mount-editor.ts'), /mountProjectControls|projectStyles/);
  assert.equal(require('node:fs').existsSync(path.join(__dirname,'../src/presentation/projects/project-workspace.ts')),false);
 });

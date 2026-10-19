@@ -138,3 +138,19 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 .contextual-popover[role="menu"] button .ic{width:18px;height:18px}
 .contextual-popover[role="menu"]::before,.contextual-popover[role="menu"]::after{width:10px;height:10px;bottom:-5px}
 .contextual-popover[role="menu"] button[role="menuitem"]{min-height:44px}
+
+/* Returning to the document collection shares the existing mode surface. */
+#view-modes #designs-back{width:44px;min-width:44px;padding:0}
+#view-modes #designs-separator{height:22px;width:1px;flex:none;background:var(--line);margin-right:3px}
+#view-modes [hidden]{display:none!important}
+@media(max-width:390px){
+ #view-modes:has(#designs-back:not([hidden])) [data-view-mode]{padding-inline:9px}
+}
+@media(max-width:374px){
+ #app:has(#designs-back:not([hidden])) #topright #fitchip>span:not(.badge){display:none}
+}
+@media(max-width:430px){
+ #app:has(#designs-back:not([hidden])) #fitchip{position:relative}
+ #app:has(#designs-back:not([hidden])) #fitchip .badge{position:absolute;top:0;right:0;min-width:14px;
+  height:16px;padding:0 3px;font-size:10px;line-height:16px;text-align:center;pointer-events:none}
+}

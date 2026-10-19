@@ -19,6 +19,7 @@ import { createThreeViewport } from '../viewport/three-viewport';
 import { applyViewportSession } from '../viewport/project-view';
 import { projectToScene } from '../../application/projects/editor-mapper';
 import { createViewportResources } from '../viewport/viewport-resources.js';
+import { capturePreview } from '../viewport/capture-preview';
 import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
 import { createSceneHistory } from '../../application/history/scene-history.js';
@@ -206,7 +207,15 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             inspector.histUI();
             camera.frameScene();
         }
-        return { snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene, notify: (message: string) => shell.toast(message, undefined, 12000), dispose: () => viewport.dispose() };
+        return {
+            snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene,
+            notify: (message: string) => shell.toast(message, undefined, 12000),
+            preview: () => capturePreview(
+                resources.R, resources.scene, resources.cam, dom.host.ownerDocument,
+                camera.sceneBox(), camera.cameraFitDistance, (model.activeCabinet().angle ?? 0) * Math.PI / 180,
+            ),
+            dispose: () => viewport.dispose(),
+        };
     }
     catch (error) {
         lifetime.dispose();

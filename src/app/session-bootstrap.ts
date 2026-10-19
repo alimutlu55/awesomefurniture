@@ -30,15 +30,26 @@ export async function prepareSession(url: URL) {
   let draft: SessionDraft | null = null;
   let saved = false;
   if (requestedId && repository && client) {
-    const owned = await repository.load(requestedId);
+    let owned;
+    try { owned = await repository.load(requestedId); }
+    catch (error) {
+      draft = drafts.read(requestedId);
+      if (!draft) throw error;
+      warning = 'Cloud saving is unavailable. Your browser draft has been restored.';
+    }
     if (owned) {
       draft = drafts.read(requestedId) ?? { document: owned.document, expectedRevision: owned.revision };
       saved = draft.expectedRevision === owned.revision && JSON.stringify(draft.document) === JSON.stringify(owned.document);
-    } else {
+    } else if (!draft) {
       const shared = await loadPublicSession(client, requestedId);
       // The recipient sees the shared design but edits an independently owned session.
-      draft = { document: { ...shared.document, id: crypto.randomUUID() }, expectedRevision: null };
+      draft = { document: {
+        ...shared.document, id: crypto.randomUUID(), name: shared.document.name.slice(0, 113) + ' · Copy',
+      }, expectedRevision: null };
     }
+  } else if (requestedId) {
+    draft = drafts.read(requestedId);
+    if (!draft) throw new Error('This design is not available in this browser while cloud saving is unavailable.');
   } else if (!hasInline) {
     try { draft = drafts.read(); } catch {
       warning = 'The previous browser draft could not be read. It is still stored.';
@@ -54,7 +65,7 @@ export async function prepareSession(url: URL) {
       if (guest) draft = { document: { ...guest.document, id: crypto.randomUUID() }, expectedRevision: null };
     }
   }
-  draft ??= { document: createProject(crypto.randomUUID(), 'Wardrobe design'), expectedRevision: null };
+  draft ??= { document: createProject(crypto.randomUUID(), 'Untitled design'), expectedRevision: null };
   return { client, user, repository, drafts, draft, saved, warning };
 }
 export type SessionPlatform = Awaited<ReturnType<typeof prepareSession>>;

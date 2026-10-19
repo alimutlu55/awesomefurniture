@@ -18,11 +18,17 @@ export class SupabaseProjectRepository implements ProjectRepository {
   constructor(private readonly client: SupabaseClient<Database>, private readonly ownerId: string) {}
 
   async list() {
-    const { data, error } = await this.client.from('design_sessions')
-      .select('id,name,revision,updated_at').eq('owner_id', this.ownerId).is('deleted_at', null)
-      .order('updated_at', { ascending: false }).limit(100);
-    if (error) throw new Error(error.message);
-    return data.map(row => ({ id: row.id, name: row.name!, revision: row.revision, updatedAt: new Date(row.updated_at).toISOString() }));
+    const records = new Map<string, { id: string; name: string; revision: number; updatedAt: string }>();
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await this.client.from('design_sessions')
+        .select('id,name,revision,updated_at').eq('owner_id', this.ownerId).is('deleted_at', null)
+        .order('updated_at', { ascending: false }).order('id').range(offset, offset + 99);
+      if (error) throw new Error(error.message);
+      for (const row of data) records.set(row.id, {
+        id: row.id, name: row.name!, revision: row.revision, updatedAt: new Date(row.updated_at).toISOString(),
+      });
+      if (data.length < 100) return [...records.values()];
+    }
   }
   async load(id: string) {
     const { data, error } = await this.client.from('design_sessions').select(fields)

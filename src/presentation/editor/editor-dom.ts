@@ -1,4 +1,6 @@
 interface EditorControls {
+    "#designs-back": HTMLElementTagNameMap["button"];
+    "#designs-separator": HTMLElementTagNameMap["span"];
     "#reset-scene": HTMLElementTagNameMap["button"];
     "#view-modes": HTMLElementTagNameMap["div"];
     "#app": HTMLElementTagNameMap["div"];

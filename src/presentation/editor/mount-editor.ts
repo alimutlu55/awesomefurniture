@@ -20,11 +20,12 @@ export interface MountEditorOptions {
     initialScene?: EditorScene | undefined;
     /** Makes a link that opens a design; given, the menu offers Share design. */
     shareLink?: ((scene: EditorScene) => Promise<string>) | undefined;
+    onBack?: (() => void) | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -41,6 +42,13 @@ export function mountEditor({ root, initialScene, shareLink }: MountEditorOption
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
         editor = startEditor(initialScene, dom, shareLink);
+        if (onBack) {
+            dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
+            const back = dom.$('#designs-back');
+            back.hidden = false;
+            dom.$('#designs-separator').hidden = false;
+            back.addEventListener('click', onBack);
+        }
         const mountedEditor=editor;
         let disposed = false;
         return {
@@ -50,6 +58,7 @@ export function mountEditor({ root, initialScene, shareLink }: MountEditorOption
             replaceDesign: mountedEditor.replaceDesign,
             scene: mountedEditor.scene,
             notify: mountedEditor.notify,
+            preview: mountedEditor.preview,
             dispose() {
                 if (disposed)
                     return;

@@ -14,9 +14,13 @@ npm run dev
 
 Open the URL printed by Vite. A design session is created and stored automatically
 when the page opens, and edits autosave in the background. Returning to the same
-browser restores the session. No sign-in or session-management UI is required.
+browser restores the last design without requiring sign-in. Use **Back** beside
+Studio/Furniture to open **Your designs**. Create and name a design with **＋**;
+use **Select** for Rename, Duplicate and Delete. Each opened design has independent
+Undo history. Browser drafts preserve work when cloud saving is unavailable.
 The existing three-dot menu's **Share design** action copies a link containing
 `?session=<id>`. Recipients open the saved design and edit their own session.
+See [multiple named designs](docs/multiple-designs.md) for navigation, recovery and verification.
 
 The app includes its public Supabase connection settings, so local and Cloudflare
 builds work without environment configuration. To use another Supabase project,

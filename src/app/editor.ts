@@ -1,11 +1,9 @@
 import { preloadOakTextures } from '../presentation/viewport/wood-textures';
-import { mountEditor } from '../presentation/editor/mount-editor';
-import { bindPageViewport } from '../presentation/editor/page-viewport';
+import type { mountEditor } from '../presentation/editor/mount-editor';
 import { checkSpec, createAgentApi, registerWebMcpTools, specFromLink } from './agent-api';
-import { designFromLink, designLink, hasDesign } from './design-link';
+import { designFromLink, hasDesign } from './design-link';
 import { prepareSession } from './session-bootstrap';
-import { connectSessions } from './session-platform';
-import { projectToScene } from '../application/projects/editor-mapper';
+import { createDesignWorkspace } from './design-workspace';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
 if(!root) throw new Error('Editor mount point is missing.');
@@ -20,30 +18,24 @@ async function main(): Promise<void> {
  const url=new URL(location.href);
  preloadOakTextures(document);
  const platform=await prepareSession(url);
- let sessions:ReturnType<typeof connectSessions>|undefined;
- const mounted=mountEditor({root:root!,initialScene:projectToScene(platform.draft.document),
-  shareLink:scene=>sessions?sessions.share():designLink(scene,location.href.split('#')[0]!)});
- editor=mounted;
- const unbindViewport=bindPageViewport(root!,window);
  // A design link opens that design, on loading and when the link changes: #design= is a design someone
  // shared (the whole design), #spec= one an assistant described.
  const openLink=async()=>{
   if(hasDesign(location.hash)) {
-   await designFromLink(location.hash).then(project=>{mounted.replaceDesign(project);mounted.notify('This is the shared design. Undo goes back to yours.');},
-    ()=>mounted.notify('This design link could not be opened: it is damaged or cut short. Ask for the link again.'));
+   await designFromLink(location.hash).then(project=>{editor?.replaceDesign(project);editor?.notify('This is the shared design. Undo goes back to yours.');},
+    ()=>editor?.notify('This design link could not be opened: it is damaged or cut short. Ask for the link again.'));
    return;
   }
   if(!new URLSearchParams(location.hash.slice(1)).has('spec')) return;
   let built:ReturnType<typeof checkSpec>|null=null;
   try { built=checkSpec(specFromLink(location.hash)); } catch { /* not a readable link */ }
-  if(built?.project) mounted.replaceDesign(built.project);
-  else mounted.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
+  if(built?.project) editor?.replaceDesign(built.project);
+  else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- await openLink();
- sessions=connectSessions(platform,mounted);
- await sessions.ready;
+ const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;},initialLink:openLink});
+ await workspace.start();
  window.addEventListener('hashchange',openLink);
- const dispose=()=>{window.removeEventListener('hashchange',openLink);sessions?.dispose();unbindViewport();mounted.dispose();editor=null;};
+ const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();};
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});
  import.meta.hot?.dispose(dispose);
 }

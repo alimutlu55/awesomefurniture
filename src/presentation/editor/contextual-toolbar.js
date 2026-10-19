@@ -127,7 +127,11 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         }));
     };
     lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target)) close(); });
-    lifetime.listen(app, 'keydown', e => { if (e.key === 'Escape' && !menu.hidden) {close(); row.querySelector('[aria-haspopup="menu"]')?.focus();} });
+    lifetime.listen(app, 'keydown', e => {
+        if (e.key !== 'Escape' || menu.hidden) return;
+        e.preventDefault(); e.stopPropagation();
+        close(); row.querySelector('[aria-haspopup="menu"]')?.focus();
+    });
     lifetime.listen(menu, 'keydown', e => {
         if (e.key !== 'Escape' || menu.getAttribute('role') !== 'dialog') return;
         e.preventDefault(); e.stopPropagation(); close(); menuTrigger?.focus();
