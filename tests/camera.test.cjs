@@ -54,6 +54,16 @@ test('mobile button zoom centres the wardrobe instead of chasing a low selected 
  near(run('zoomFocus.y'),100);
  near(run('zoomTarget'),400);
 });
+test('desktop wheel zoom-in zooms toward the pointer instead of snapping to the active furniture',()=>{
+ const{run}=fixture(1200);
+ run('activeCabinet=()=>({x:-200,y:0,z:0,angle:0});tgt.set(0,100,0);cast=()=>({point:{clone:()=>({x:180,y:140,z:30})}})');
+ run('cameraZoom(.5,{clientX:900,clientY:250})');
+ assert.equal(run('zoomFocus'),null,'pointer zoom-in must not pull tgt toward activeCabinet');
+ near(run('zoomAnchor.x'),180);near(run('zoomAnchor.y'),140);near(run('zoomAnchor.z'),30);
+ for(let n=0;n<120;n++)run('cameraTick(0,1/60)');
+ near(run('dist'),250);
+ near(run('tgt.x'),90);near(run('tgt.y'),120);near(run('tgt.z'),15);
+});
 
 test('on a phone, choosing a piece brings it to the middle at the same zoom; a tiny fitting is brought closer, and a panel resizing keeps that flight',t=>{
  const previous=global.getComputedStyle;

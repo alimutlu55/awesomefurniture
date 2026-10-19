@@ -315,9 +315,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         return { x: anchor.x + (target.x - anchor.x) * ratio, y: anchor.y + (target.y - anchor.y) * ratio, z: anchor.z + (target.z - anchor.z) * ratio };
     }
     function cameraZoomPoint(e) {
-        resources.cam.updateMatrixWorld(true);
-        resources.scene.updateMatrixWorld(true);
-        const hit = picking.cast(e, [...renderState.allHits, ...renderState.allItemHits]);
+        resources.cam?.updateMatrixWorld(true);
+        resources.scene?.updateMatrixWorld(true);
+        const hit = picking.cast(e, [...(renderState.allHits ?? []), ...(renderState.allItemHits ?? [])]);
         if (hit) return hit.point.clone();
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(resources.cam.getWorldDirection(new THREE.Vector3()), cameraState.tgt);
         return interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
@@ -328,21 +328,22 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.tgtY = target.y;
         cameraState.dist = next;
     }
-    function cameraZoom(factor) {
+    function cameraZoom(factor, pointer = null) {
         if (!Number.isFinite(factor) || factor <= 0) return;
         const base = cameraState.zoomTarget ?? cameraState.dist, from = cameraState.zoomFocus ?? cameraState.tgt.clone();
+        const anchor = pointer && factor < 1 ? cameraZoomPoint(pointer) : null;
         camRelease();
-        // Zooming out heads for the middle of the studio, so it always ends on the whole of it, and stops a little
-        // beyond the view of all of it (zoom-out.ts).
+        // Zooming out heads for the middle of the studio (zoom-out.ts); zooming in with a pointer anchors under the cursor.
         const all = factor > 1 && overview();
+        cameraState.zoomAnchor = anchor;
+        if (anchor) cameraState.panned = true;
         cameraState.zoomTarget = all ? furthest(base * factor, base, all) : cameraDistance(base * factor);
         const out = all && zoomOutTarget(from, all, base, cameraState.zoomTarget);
-        cameraState.zoomFocus = out ? new THREE.Vector3(out.x, out.y, out.z) : cameraFocusPoint();
+        cameraState.zoomFocus = anchor ? null : out ? new THREE.Vector3(out.x, out.y, out.z) : cameraFocusPoint();
         if (cameraState.reducedCameraMotion.matches) {
             cameraZoomDistance(cameraState.zoomTarget);
-            cameraState.tgt.copy(cameraState.zoomFocus);
-            cameraState.tgtY = cameraState.tgt.y;
-            cameraState.zoomTarget = cameraState.zoomFocus = null;
+            if (cameraState.zoomFocus) { cameraState.tgt.copy(cameraState.zoomFocus); cameraState.tgtY = cameraState.tgt.y; }
+            cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         }
     }
     /** The view of the whole scene (the studio, or the wardrobes with floor around them) at the current angle. */
@@ -358,24 +359,15 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         if (cameraState.camGoal) {
             const g = cameraState.camGoal, t = cameraState.reducedCameraMotion.matches ? 1 : Math.min(1, (now - g.start) / g.duration);
             cameraApply(cameraSample(g.from, g, t));
-            if (t === 1) {
-                cameraState.camGoal = null;
-                cameraState.camRestore = null;
-            }
+            if (t === 1) { cameraState.camGoal = null; cameraState.camRestore = null; }
         }
         if (cameraState.zoomTarget !== null) {
             const k = cameraState.reducedCameraMotion.matches ? 1 : 1 - Math.exp(-dt * 18);
             cameraZoomDistance(Math.exp(Math.log(cameraState.dist) + (Math.log(cameraState.zoomTarget) - Math.log(cameraState.dist)) * k));
-            if (cameraState.zoomFocus) {
-                cameraState.tgt.lerp(cameraState.zoomFocus, k);
-                cameraState.tgtY = cameraState.tgt.y;
-            }
+            if (cameraState.zoomFocus) { cameraState.tgt.lerp(cameraState.zoomFocus, k); cameraState.tgtY = cameraState.tgt.y; }
             if (Math.abs(cameraState.dist - cameraState.zoomTarget) < .05) {
                 cameraZoomDistance(cameraState.zoomTarget);
-                if (cameraState.zoomFocus) {
-                    cameraState.tgt.copy(cameraState.zoomFocus);
-                    cameraState.tgtY = cameraState.tgt.y;
-                }
+                if (cameraState.zoomFocus) { cameraState.tgt.copy(cameraState.zoomFocus); cameraState.tgtY = cameraState.tgt.y; }
                 cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
             }
         }

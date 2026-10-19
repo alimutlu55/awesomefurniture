@@ -339,7 +339,7 @@ export function bindCanvasWheel({ dom, camera, interactions, interactionState, r
         }
         interactions.cancelMovement();
         const pixels = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? resources.cv.clientHeight : 1);
-        camera.cameraZoom(Math.exp(Math.max(-.35, Math.min(.35, pixels * .0015))));
+        camera.cameraZoom(Math.exp(Math.max(-.35, Math.min(.35, pixels * .0015))), e);
     }, { passive: false });
 }
 /** @param {import('./canvas.ports').BindCanvasPointerleavePorts} ports */
