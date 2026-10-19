@@ -50,14 +50,20 @@ function hit(o: { x: number; z: number }, dir: { x: number; z: number }, r: Rect
 
 /** The gaps around wardrobe `box` on the requested sides, to the room's walls and the other wardrobes. */
 export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
-  const { u, f } = axes(box.angle), rects: Rect[] = [];
-  for (const o of others) if (o.id !== box.id) { const a = axes(o.angle); rects.push({ cx: o.x, cz: o.z, hu: o.w / 2, hf: o.d / 2, u: a.u, f: a.f, target: 'wardrobe', other: o.id }); }
+  const { u, f } = axes(box.angle), y0 = box.y ?? 0, y1 = y0 + box.h, rects: Rect[] = [];
+  for (const o of others) {
+    const oy0 = o.y ?? 0, oy1 = oy0 + o.h;
+    if (o.id !== box.id && oy0 < y1 - SAME && oy1 > y0 + SAME) {
+      const a = axes(o.angle);
+      rects.push({ cx: o.x, cz: o.z, hu: o.w / 2, hf: o.d / 2, u: a.u, f: a.f, target: 'wardrobe', other: o.id });
+    }
+  }
   for (const w of studio?.walls ?? []) {
     const b = wallBox(studio!, w);
     if (b) { const a = axes(b.angle); rects.push({ cx: b.x, cz: b.z, hu: b.length / 2, hf: b.thickness / 2, u: a.u, f: a.f, target: 'wall' }); }
   }
   // Side gaps are drawn high on the wardrobe, clear of its own height and width measurements.
-  const y0 = box.y ?? 0, mid = y0 + box.h * .8, at = (s: number, t: number) => ({ x: box.x + u.x * s + f.x * t, z: box.z + u.z * s + f.z * t });
+  const mid = y0 + box.h * .8, at = (s: number, t: number) => ({ x: box.x + u.x * s + f.x * t, z: box.z + u.z * s + f.z * t });
   const out: Gap[] = [];
   for (const side of sides) {
     if (side === 'top') {

@@ -21,6 +21,8 @@ test('gaps to the side wall, the next wardrobe, the wall behind, the room in fro
   assert.equal(gaps.find(g => g.side === 'right')!.target, 'wardrobe');
   assert.equal(gaps.find(g => g.side === 'top')!.target, 'ceiling');
   assert.deepEqual(read(gapsAround(a, [a], undefined, ['left', 'right', 'top'])), {}, 'on an open floor, nothing to measure to');
+  const wallCab = box({ id: 3, x: -120, y: 142, w: 60, d: 35, h: 117.4 }), floorBase = box({ id: 4, x: -190, y: 0, w: 60, d: 58, h: 87 });
+  assert.equal(gapsAround(wallCab, [wallCab, floorBase], bedroom(), ['left'])[0]?.target, 'wall', 'a wall cabinet ignores a floor cabinet below its height and measures to the wall');
 });
 
 test('a gap is the smallest of three readings, as a tape at the top, middle and bottom of an opening', () => {

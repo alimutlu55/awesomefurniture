@@ -33,7 +33,8 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
     // Along its depth: its front in line with a wardrobe turned the same way (not when it is pressed to a wall: the wall wins).
     const along: number[] = [];
     if (depth) for (const o of getScene().wardrobes) {
-      if (o.id === cabinet.id || Math.abs(((o.angle - cabinet.angle) % 360 + 540) % 360 - 180) > .5) continue;
+      const y0 = cabinet.y || 0, oy0 = o.y || 0;
+      if (o.id === cabinet.id || oy0 >= y0 + cabinet.state.h - .5 || oy0 + o.state.h <= y0 + .5 || Math.abs(((o.angle - cabinet.angle) % 360 + 540) % 360 - 180) > .5) continue;
       along.push((o.x - cabinet.x) * f.x + (o.z - cabinet.z) * f.z + (o.state.d - cabinet.state.d) / 2);
     }
     // The two are separate choices: a front that is nearly in line must not stop it closing a gap beside a neighbour.
