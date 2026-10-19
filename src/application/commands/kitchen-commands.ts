@@ -2,13 +2,14 @@ import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createKitchenCover, createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
-import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { arrayPoses, besidePose, isKitchenUnit, kitchenRuns, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { isFixture, kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
+import { arrayPoses, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { applyMaxReach } from '../../domain/wardrobe/max-reach';
 import { roomHeight, wallLine } from '../../domain/studio/studio';
+import { CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import { standsAgainst } from '../../domain/studio/studio-placement';
 
 /** Where a new unit goes: against the wall in view from the point in view, or `beside` the selected unit. */
@@ -28,8 +29,12 @@ interface KitchenCommandOptions {
 export function createKitchenCommands(getScene: () => EditorScene, { checkpoint = () => {}, report = () => {}, placeAlone }: KitchenCommandOptions) {
   const collision = createCabinetGeometry(() => getScene().wardrobes, () => studioObstacles(getScene().studio));
   const active = () => getScene().wardrobes.find(w => w.id === getScene().activeWardrobe);
+  const maxTop = () => Math.max(
+    getScene().studio ? roomHeight(getScene().studio!) + CEILING_CLEARANCE_TOLERANCE : Infinity,
+    (active()?.y || 0) + (active()?.state.h || 0) + .01,
+  );
   const fits = (candidate: EditorCabinet) => !collision.cabinetCollides(candidate)
-    && (!getScene().studio || (candidate.y || 0) + candidate.state.h <= roomHeight(getScene().studio!) + .01);
+    && (!getScene().studio || (candidate.y || 0) + candidate.state.h <= maxTop());
   // Preserve contact exactly: rounding a pose can nudge a copy into the original or the wall.
   const at = (cabinet: EditorCabinet, pose: Pose): EditorCabinet => ({ ...cabinet, ...pose });
 
@@ -40,9 +45,9 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     return [...getScene().wardrobes].reverse().find(isKitchenUnit) ?? null;
   }
 
-  const unitsAt = (y: number) => getScene().wardrobes.filter(c => isKitchenUnit(c) && Math.abs((c.y || 0) - y) < .5);
+  const unitsAt = (y: number) => getScene().wardrobes.filter(c => isKitchenUnit(c) && (y < .5 ? Math.abs(c.y || 0) < .5 : (c.y || 0) >= .5));
   /** The run a unit stands in, left to right. */
-  const runOf = (unit: EditorCabinet) => kitchenRuns(unitsAt(unit.y || 0)).find(r => r.some(c => c.id === unit.id)) ?? [unit];
+  const runOf = (unit: EditorCabinet) => runOfUnit(getScene().wardrobes, unit) as EditorCabinet[];
 
   /** Spots at the two ends of the run a unit stands in: after its right end first. */
   function besideRun(unit: EditorCabinet, cabinet: EditorCabinet, y: number): Pose[] {
@@ -154,14 +159,17 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, y = original.y || 0, d = original.state.d;
       const probeAt = (w: number): EditorCabinet => at({ ...original, id: -1, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
       const fitsWidth = (w: number) => w >= 5 && fits(probeAt(w));
+      const isPerpCabinet = (o: EditorCabinet, angle: number) =>
+        o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && !isFixture(o.state)
+        && Math.abs(((o.angle - angle) % 360 + 540) % 360 - 180) > 15;
       const blockedInFront = (w: number) => {
         const p = probeAt(w), { v } = unitAxes(p.angle), front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20, state: { ...p.state, w: Math.max(4, w - 2) } };
-        return scene.wardrobes.some(o => o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && collision.cabinetOverlaps(front, o));
+        return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
       };
       const farEdgeBlocked = (w: number) => {
         const p = at({ ...original, id: -1, state: { ...original.state, w: .2 } }, besidePose(end, 2 * w - .2, d, side, y)), { v } = unitAxes(p.angle);
         const front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20 };
-        return scene.wardrobes.some(o => o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && collision.cabinetOverlaps(front, o));
+        return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
       };
       if (fitsWidth(original.state.w) && !blockedInFront(original.state.w)) {
         return this.arrayKitchenUnit(1, side, recordHistory) ? scene.wardrobes[scene.wardrobes.length - 1]! : null;

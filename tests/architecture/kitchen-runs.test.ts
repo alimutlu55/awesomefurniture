@@ -245,5 +245,15 @@ test('extending a run with + fits a narrower cabinet (>= 30 cm), a filler cover 
   near(cornerCover.state.w, 58, 'fills the 58 cm corner pocket behind the perpendicular run');
   assert.equal(isCoverUnit(cornerCover.state), true, 'places an empty corner cover because the perpendicular run stands in front of it');
   assert.deepEqual(kitchenSpans(s3.wardrobes).filter(x => x.kind === 'worktop' && x.units.includes(1)).map(x => x.length), [118], 'worktop continues into the corner');
+
+  // 4. Ceiling-height wall cabinets (h = 117.4 cm at y = 143 cm in a 260 cm room, or with a slight height offset from a neighbour) still extend on the free side.
+  const u1 = { ...unit(1, 'upper', 0, -100, 0, 60), y: 143 }; u1.state.h = 117.4;
+  const u2 = { ...unit(2, 'upper', 60, -100, 0, 60), y: 142 }; u2.state.h = 117.4;
+  const s4: EditorScene = { ...scene(u1, u2), studio: rectangleStudio(400, 300, 260), activeWardrobe: 2 };
+  const cmd4 = createSceneCommands(() => s4);
+  const addedLeft = cmd4.extendKitchenRun(-1)!;
+  assert.ok(addedLeft, 'extends the wall cabinet run to the left even at ceiling clearance height and across a 1 cm y offset');
+  near(addedLeft.x, -60, 'placed to the left of the leftmost wall unit in the run');
+  near(addedLeft.state.w, 60, 'full 60 cm copy fits in the 170 cm clear space to the left wall');
 });
 

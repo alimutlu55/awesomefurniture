@@ -115,9 +115,12 @@ export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: Un
   return poses;
 }
 
+const sameLevel = (a: UnitPose, b: UnitPose) => onFloor(a) ? onFloor(b)
+  : !onFloor(b) && (a.y || 0) < (b.y || 0) + b.state.h - .5 && (b.y || 0) < (a.y || 0) + a.state.h - .5;
+
 /** The run a unit stands in among the units at its height, left to right. */
 export function runOf(units: readonly UnitPose[], unit: UnitPose): UnitPose[] {
-  const level = units.filter(c => isKitchenUnit(c) && Math.abs((c.y || 0) - (unit.y || 0)) < .5);
+  const level = units.filter(c => isKitchenUnit(c) && sameLevel(c, unit));
   return kitchenRuns(level).find(r => r.some(c => c.id === unit.id)) ?? [unit];
 }
 
