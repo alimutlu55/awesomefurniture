@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { technicalDrawings } from '../../src/domain/drawings/technical-drawings';
-import type { Dimensions, Item } from '../../src/domain/drawings/drawing';
+import type { Dimensions, Item, Sheet } from '../../src/domain/drawings/drawing';
 import type { DrawingPiece } from '../../src/domain/drawings/room-pieces';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
@@ -19,6 +19,8 @@ const against = (id: number, unit: Parameters<typeof createKitchenDesign>[0], pr
   return { id, name: preset, x, y, z: 5 + design.d / 2, angle: 0, design };
 };
 const kitchen = () => [against(1, 'base', 'drawers', 100), against(2, 'upper', 'upper', 100, 142), against(3, 'tall', 'fridge', 30)];
+/** Everything drawn on a sheet, across its views. */
+const all = (sheet: Sheet) => sheet.views.flatMap(v => v.items);
 const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.kind === 'dims');
 
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
@@ -39,16 +41,16 @@ test('marks run along the wall, left to right, each kind of furniture counting o
 
 test('the plan dimensions every piece and gap to the wall ends, the window, the wall, and the depth', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
-  const strings = dims(plan!.items).map(d => d.stops);
+  const strings = dims(all(plan!)).map(d => d.stops);
   assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
-  const notes = plan!.items.filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
+  const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
   assert.deepEqual(notes, ['Window 1000 × 1200, sill 1000']);
 });
 
 test('the elevation stacks every height from the floor and gives the window its sill and head', () => {
   const [, elevation] = technicalDrawings({ studio: room(), pieces: kitchen() });
-  const [floor, wall, above, openings, heights, window] = dims(elevation!.items).map(d => d.stops);
+  const [floor, wall, above, openings, heights, window] = dims(all(elevation!)).map(d => d.stops);
   assert.deepEqual(floor, [0, 600, 700, 1300, 3000]);
   assert.deepEqual(wall, [0, 3000]);
   assert.deepEqual(above, [0, 700, 1300, 3000], 'the wall unit');
@@ -59,7 +61,7 @@ test('the elevation stacks every height from the floor and gives the window its 
 
 test('fronts show how they open: door triangles point at the hinges, a fall-down door at its bottom', () => {
   const [, elevation] = technicalDrawings({ studio: room(), pieces: [against(1, 'base', 'dishwasher', 100), against(2, 'tall', 'fridge', 30)] });
-  const swings = elevation!.items.filter(i => i.kind === 'line' && i.stroke === 'swing').map(i => i.kind === 'line' ? i.points.map(p => [p.x, p.y]) : []);
+  const swings = all(elevation!).filter(i => i.kind === 'line' && i.stroke === 'swing').map(i => i.kind === 'line' ? i.points.map(p => [p.x, p.y]) : []);
   // The fridge housing (0–600): a cupboard over the fridge door over the freezer door, each hinged on the left.
   const tall = swings.filter(([a]) => a![0]! < 650);
   assert.equal(tall.length, 3, 'cupboard, fridge and freezer');
@@ -67,18 +69,18 @@ test('fronts show how they open: door triangles point at the hinges, a fall-down
   // The dishwasher (700–1300) falls down: its apex is at the bottom.
   const [dish] = swings.filter(([a]) => a![0]! > 650);
   assert.ok(dish![1]![1]! < dish![0]![1]! && dish![1]![1]! < dish![2]![1]!, 'apex at the bottom');
-  const names = elevation!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
+  const names = all(elevation!).filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
   assert.deepEqual(names.sort(), ['Dishwasher', 'Fridge', 'Fridge']);
 });
 
 test('the plan marks tall units, appliances under the worktop and drawers', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: [against(1, 'tall', 'fridge', 30), against(2, 'base', 'dishwasher', 90), against(3, 'base', 'drawers', 150)] });
-  const lines = plan!.items.filter(i => i.kind === 'line');
+  const lines = all(plan!).filter(i => i.kind === 'line');
   const cross = (x0: number, x1: number, stroke: string) => lines.filter(i => i.kind === 'line' && i.stroke === stroke && i.points.length === 2
     && i.points.every(p => p.x >= x0 - 1 && p.x <= x1 + 1) && Math.abs(i.points[0]!.x - i.points[1]!.x) > 100).length;
   assert.equal(cross(0, 600, 'thin'), 2, 'a cross over the tall unit');
   assert.equal(cross(600, 1200, 'hidden'), 2, 'a dashed cross over the dishwasher unit');
-  assert.deepEqual(plan!.items.filter(i => i.kind === 'arrow').map(i => i.kind === 'arrow' && i.at.x), [1500], 'an arrow out of the drawer unit');
+  assert.deepEqual(all(plan!).filter(i => i.kind === 'arrow').map(i => i.kind === 'arrow' && i.at.x), [1500], 'an arrow out of the drawer unit');
 });
 
 test('what to check: pieces in one place, in front of a window, past the wall, taller than it', () => {
@@ -98,18 +100,18 @@ test('a run turning a corner is seen from its end on the next wall, and a piece 
   const sheets = technicalDrawings({ studio: corner, pieces });
   assert.deepEqual(sheets.map(s => s.title), ['Plan', 'Elevation A', 'Elevation B', 'Front elevation K3']);
   // On wall A (left), K2 stands in front; K1 on the other wall comes into the corner and is seen from its side.
-  const tags = sheets[1]!.items.filter(i => i.kind === 'tag').map(i => i.kind === 'tag' && i.text);
+  const tags = all(sheets[1]!).filter(i => i.kind === 'tag').map(i => i.kind === 'tag' && i.text);
   assert.deepEqual(tags.sort(), ['K1', 'K2']);
-  const floor = dims(sheets[1]!.items)[0]!.stops;
+  const floor = dims(all(sheets[1]!))[0]!.stops;
   assert.ok(floor.includes(2370) && floor.includes(3000 - 50 - 580 - 600), 'the return and the unit on the floor string: ' + floor);
   // The island: its distance to the wall behind it and to the nearer wall beside it.
-  const free = dims(sheets[0]!.items).filter(d => d.stops.length === 2 && ![600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
+  const free = dims(all(sheets[0]!)).filter(d => d.stops.length === 2 && ![600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
   assert.deepEqual(free.sort((a, b) => a! - b!), [1150, 1660]);
 });
 
 test('every dimension string is whole millimetres, in order, and adds up to its total', () => {
   for (const sheet of technicalDrawings({ studio: room(), pieces: kitchen() })) {
-    for (const d of dims(sheet.items)) {
+    for (const d of dims(all(sheet))) {
       assert.ok(d.stops.every(Number.isInteger), sheet.title + ': whole millimetres ' + d.stops);
       assert.ok(d.stops.every((s, k) => k === 0 || s > d.stops[k - 1]!), sheet.title + ': ascending ' + d.stops);
       const parts = d.stops.slice(1).map((s, k) => s - d.stops[k]!);

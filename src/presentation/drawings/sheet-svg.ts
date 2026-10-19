@@ -1,6 +1,7 @@
 import type { Item, Sheet } from '../../domain/drawings/drawing';
 import { type Box, dimensionSvg } from './dimension-svg';
-import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, fitSheet } from './sheet-layout';
+import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, layoutSheet } from './sheet-layout';
+import { tableSvg } from './table-svg';
 
 /** What the title block says about the whole set. */
 export interface SheetSetInfo { readonly project: string; readonly date: string; readonly total: number }
@@ -19,7 +20,7 @@ text{font-family:Helvetica,Arial,sans-serif;fill:#111}.dv{font-size:3.2px;text-a
 .vm circle{fill:#fff;stroke:#111;stroke-width:.3}.vm path{fill:#111}.vm text{font-size:3.4px;text-anchor:middle;dominant-baseline:central;font-weight:700}
 .frame{fill:#fff;stroke:#111;stroke-width:.7}.tb{fill:none;stroke:#111;stroke-width:.35}.tbl{stroke:#111;stroke-width:.18}
 .tk{font-size:2.2px;fill:#555}.tv{font-size:3.4px}.tp{font-size:5px;font-weight:700}.vt{font-size:4.2px;font-weight:700}.vs{font-size:3.2px}
-.ls{font-size:2.7px}.lm{font-size:2.7px;font-weight:700}`;
+.ls{font-size:2.7px}.vc{font-size:3.6px;font-weight:700;text-anchor:middle}.th{font-size:3px;font-weight:700}.td{font-size:3px}.tbh{stroke:#111;stroke-width:.35}.lm{font-size:2.7px;font-weight:700}`;
 
 /** A note's box on paper with its text moved `shift` along its own up direction. */
 function noteBox(text: readonly string[], small: boolean, c: { x: number; y: number }, angle: number, shift: number): Box {
@@ -71,14 +72,14 @@ function item(i: Item, paper: Paper, hatch: string, taken: Box[]): string {
 }
 
 /** The title block (bottom right) and, to its left, the list of the pieces on the sheet. */
-function titleBlock(sheet: Sheet, paper: Paper, info: SheetSetInfo, strip: number): string {
+function titleBlock(sheet: Sheet, scale: string, info: SheetSetInfo, strip: number): string {
   const x = PAPER.w - PAPER.edge - TITLE.w, y = PAPER.h - PAPER.edge - strip, w = TITLE.w, r = (yy: number) => `<line class="tbl" x1="${x}" y1="${f(yy)}" x2="${x + w}" y2="${f(yy)}"/>`;
   const cell = (cx: number, cy: number, key: string, value: string, cls = 'tv') => `<text class="tk" x="${f(cx + 1.5)}" y="${f(cy + 3)}">${esc(key)}</text><text class="${cls}" x="${f(cx + 1.5)}" y="${f(cy + 8)}">${esc(value)}</text>`;
   const top = PAPER.h - PAPER.edge - TITLE.h;
   let out = `<rect class="tb" x="${x}" y="${f(y)}" width="${w}" height="${f(strip)}"/>`;
   out += `<text class="tk" x="${x + 1.5}" y="${f(top + 3)}">Project</text><text class="tp" x="${x + 1.5}" y="${f(top + 9)}">${esc(info.project)}</text>`;
   out += r(top + 11) + cell(x, top + 11, 'Drawing', sheet.title) + cell(x + 110, top + 11, 'Sheet', sheet.number + ' of ' + info.total);
-  out += r(top + 22) + cell(x, top + 22, 'Scale', '1:' + paper.scale) + cell(x + 40, top + 22, 'Units', 'millimetres') + cell(x + 110, top + 22, 'Date', info.date);
+  out += r(top + 22) + cell(x, top + 22, 'Scale', scale) + cell(x + 40, top + 22, 'Units', 'millimetres') + cell(x + 110, top + 22, 'Date', info.date);
   out += `<line class="tbl" x1="${x + 108}" y1="${f(top + 11)}" x2="${x + 108}" y2="${f(top + 33)}"/><line class="tbl" x1="${x + 38}" y1="${f(top + 22)}" x2="${x + 38}" y2="${f(top + 33)}"/>`;
   // The list of pieces: two columns across the rest of the strip.
   const lx = PAPER.left, lw = x - lx, col = lw / 2, rows = Math.ceil(sheet.pieces.length / 2);
@@ -97,16 +98,18 @@ function titleBlock(sheet: Sheet, paper: Paper, info: SheetSetInfo, strip: numbe
 /** One sheet as an A3 SVG drawn in paper millimetres: frame, the view's title and scale, the drawing, the list of
  * pieces and the title block. Self-contained, so it prints and shows the same. */
 export function sheetSvg(sheet: Sheet, info: SheetSetInfo): string {
-  const paper = fitSheet(sheet), area = drawingArea(sheet), hatch = 'hatch-' + sheet.number;
+  const { scale, placed } = layoutSheet(sheet), area = drawingArea(sheet), hatch = 'hatch-' + sheet.number, ratio = sheet.table ? '—' : '1:' + scale;
   const defs = `<defs><style>${STYLE}</style><pattern id="${hatch}" width="1.4" height="1.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
     + `<rect width="1.4" height="1.4" fill="#fff"/><line x1="0" y1="0" x2="0" y2="1.4" stroke="#333" stroke-width=".13"/></pattern></defs>`;
   const frame = `<rect class="frame" x="0" y="0" width="${PAPER.w}" height="${PAPER.h}" style="stroke:none"/>`
     + `<rect class="frame" x="${PAPER.left}" y="${PAPER.edge}" width="${PAPER.w - PAPER.left - PAPER.edge}" height="${PAPER.h - 2 * PAPER.edge}"/>`;
   const heading = `<text class="vt" x="${area.x}" y="${PAPER.edge + 8}">${esc(sheet.number + '  ' + sheet.title)}</text>`
-    + `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">1:${paper.scale}</text>`;
-  // Lines first, then figures and marks, then the notes placed clear of them.
+    + `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">${ratio}</text>`;
+  // Lines first, then figures and marks, then the notes placed clear of them; each view titled under it.
   const ORDER = { line: 0, arrow: 1, dims: 2, tag: 3, 'view-mark': 3, note: 4 } as const, taken: Box[] = [];
-  const body = sheet.items.slice().sort((a, b) => ORDER[a.kind] - ORDER[b.kind]).map(i => item(i, paper, hatch, taken)).join('');
+  let body = placed.map(({ view, paper }) => view.items.slice().sort((a, b) => ORDER[a.kind] - ORDER[b.kind]).map(i => item(i, paper, hatch, taken)).join('')).join('');
+  if (placed.length > 1) body += placed.map(({ view, box }) => `<text class="vc" x="${f((box.x0 + box.x1) / 2)}" y="${f(box.y1 + 6)}">${esc(view.title)}  1:${scale}</text>`).join('');
+  if (sheet.table) body += tableSvg(sheet.table, { x: area.x, y: area.y, w: area.w });
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PAPER.w} ${PAPER.h}" width="${PAPER.w}mm" height="${PAPER.h}mm" role="img" aria-label="${esc(sheet.title)}">`
-    + defs + frame + heading + `<g class="drawing">${body}</g>` + titleBlock(sheet, paper, info, area.strip) + '</svg>';
+    + defs + frame + heading + `<g class="drawing">${body}</g>` + titleBlock(sheet, ratio, info, area.strip) + '</svg>';
 }

@@ -55,15 +55,29 @@ export type Item = Line | Note | Tag | Dimensions | ViewMark | Arrow;
 
 /** One row of the list of pieces on a sheet: its mark, what it is, and its outer size. */
 export interface PieceRow { readonly mark: string; readonly name: string; readonly size: string; readonly where: string }
+/** One drawing on a sheet, titled under it ("Front", "Section A–A"); a sheet's views share its scale. */
+export interface View { readonly title: string; readonly items: readonly Item[] }
+/** A schedule: columns and rows of text (a cutting list, a hardware list), with notes under it. */
+export interface Table {
+  readonly columns: readonly string[];
+  readonly rows: readonly (readonly string[])[];
+  /** Columns holding numbers, set right-aligned. */
+  readonly numeric: readonly number[];
+  readonly notes: readonly string[];
+}
 export interface Sheet {
   readonly number: number;
   readonly title: string;
-  readonly items: readonly Item[];
+  /** The drawings on it, side by side at one scale. A schedule sheet has none. */
+  readonly views: readonly View[];
+  readonly table?: Table | undefined;
   /** The pieces this sheet shows, listed beside the drawing. */
   readonly pieces: readonly PieceRow[];
   /** What to check before making: pieces that overlap, cover an opening or run past their wall. */
   readonly checks: readonly string[];
 }
+/** Rows of a schedule that fit one A3 sheet at standard lettering; a longer schedule runs on. */
+export const ROWS_PER_SHEET = 34;
 
 /** Centimetres (the design's unit) to whole millimetres. */
 export const mm = (cm: number) => Math.round(cm * 10);

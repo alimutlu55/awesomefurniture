@@ -32,14 +32,14 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
   }
   const checks = designChecks(studio, pieces, letters), about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
-  const sheets: Sheet[] = [{ number: 1, title: 'Plan', items: plan, pieces: pieces.map(p => row(p, letters)), checks }];
+  const sheets: Sheet[] = [{ number: 1, title: 'Plan', views: [{ title: 'Plan', items: plan }], pieces: pieces.map(p => row(p, letters)), checks }];
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
-    sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces),
+    sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, views: [{ title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces) }],
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
   for (const p of pieces.filter(q => q.wall === null)) {
-    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, items: pieceElevation(p), pieces: [row(p, letters)], checks: about([p.mark]) });
+    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p) }], pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   return sheets;
 }

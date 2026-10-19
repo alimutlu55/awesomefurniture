@@ -1,4 +1,4 @@
-import type { Dimensions, Item, P, Sheet } from '../../domain/drawings/drawing';
+import type { Dimensions, Item, P, Sheet, View } from '../../domain/drawings/drawing';
 
 /** An A3 landscape sheet, millimetres on paper (ISO 5457): a 20 mm filing margin on the left, 10 mm elsewhere. */
 export const PAPER = { w: 420, h: 297, left: 20, edge: 10 } as const;
@@ -46,14 +46,32 @@ export function drawingArea(sheet: Sheet) {
   return { x: PAPER.left + 6, y: PAPER.edge + 14, w: PAPER.w - PAPER.left - PAPER.edge - 12, h: PAPER.h - 2 * PAPER.edge - strip - 20, strip };
 }
 
-/** The largest standard scale at which a sheet's drawing, with its dimension strings, fits its area, centred there. */
-export function fitSheet(sheet: Sheet): Paper {
-  const area = drawingArea(sheet);
-  for (const scale of SCALES) {
-    const points = sheet.items.flatMap(i => reach(i, scale));
-    if (!points.length) return toPaper(scale, { x: area.x + area.w / 2, y: area.y + area.h / 2 });
-    const x0 = Math.min(...points.map(p => p.x)), x1 = Math.max(...points.map(p => p.x)), y0 = Math.min(...points.map(p => p.y)), y1 = Math.max(...points.map(p => p.y));
-    if (x1 - x0 <= area.w && y1 - y0 <= area.h) return toPaper(scale, { x: area.x + (area.w - (x1 + x0)) / 2, y: area.y + (area.h - (y1 + y0)) / 2 });
-  }
-  return toPaper(SCALES[SCALES.length - 1]!, { x: area.x + area.w / 2, y: area.y + area.h / 2 });
+/** A view placed on paper: where its drawing's origin lands, and the box it takes with its dimensions. */
+export interface Placed { view: View; paper: Paper; box: { x0: number; x1: number; y0: number; y1: number } }
+/** Space between views on one sheet, and under each for its title. */
+const GAP = 14, CAPTION = 8;
+
+/** The largest standard scale at which a sheet's views, side by side with their dimension strings and titles, fit its
+ * area; the row of views centred there. */
+export function layoutSheet(sheet: Sheet): { scale: number; placed: Placed[] } {
+  const area = drawingArea(sheet), views = sheet.views;
+  const bounds = (view: View, scale: number) => {
+    const points = view.items.flatMap(i => reach(i, scale));
+    if (!points.length) return { x0: 0, x1: 0, y0: 0, y1: 0 };
+    return { x0: Math.min(...points.map(p => p.x)), x1: Math.max(...points.map(p => p.x)), y0: Math.min(...points.map(p => p.y)), y1: Math.max(...points.map(p => p.y)) };
+  };
+  const scale = SCALES.find(k => {
+    const b = views.map(v => bounds(v, k)), titled = views.length > 1 ? CAPTION : 0;
+    return b.reduce((w, q) => w + q.x1 - q.x0, 0) + GAP * (views.length - 1) <= area.w && Math.max(0, ...b.map(q => q.y1 - q.y0)) + titled <= area.h;
+  }) ?? SCALES[SCALES.length - 1]!;
+  const boxes = views.map(v => bounds(v, scale)), total = boxes.reduce((w, q) => w + q.x1 - q.x0, 0) + GAP * Math.max(0, views.length - 1);
+  const height = Math.max(0, ...boxes.map(q => q.y1 - q.y0)) + (views.length > 1 ? CAPTION : 0);
+  let x = area.x + (area.w - total) / 2;
+  const top = area.y + (area.h - height) / 2;
+  const placed = views.map((view, k) => {
+    const b = boxes[k]!, at = { x: x - b.x0, y: top + (height - (views.length > 1 ? CAPTION : 0) - (b.y1 - b.y0)) / 2 - b.y0 };
+    x += b.x1 - b.x0 + GAP;
+    return { view, paper: toPaper(scale, at), box: { x0: b.x0 + at.x, x1: b.x1 + at.x, y0: b.y0 + at.y, y1: b.y1 + at.y } };
+  });
+  return { scale, placed };
 }
