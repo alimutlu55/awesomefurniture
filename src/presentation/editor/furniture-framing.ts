@@ -28,7 +28,8 @@ export function createFurnitureFraming({ model, camera }: FurnitureFramingPorts)
       const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
       // At least the smallest view of any furniture, so one cabinet is seen in the room rather than filling the screen.
       const w = Math.max(x1 - x0, FRAME_MIN.w), d = Math.max(z1 - z0, FRAME_MIN.w);
-      camera.frameBox({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w, d, h: Math.max(h, FRAME_MIN.h) }, unit.angle * Math.PI / 180 + .18, .22, 1.15);
+      // Aimed at the middle of the kitchen's height, so base units sit mid-screen with their handles above the toolbar.
+      camera.frameBox({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w, d, h: Math.max(h, FRAME_MIN.h), y: h / 2 }, unit.angle * Math.PI / 180 + .18, .22, 1.15);
     },
   };
 }
