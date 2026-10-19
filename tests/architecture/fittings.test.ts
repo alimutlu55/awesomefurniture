@@ -36,6 +36,16 @@ test('fittings · every kind that shows its own front says how it opens, for the
   }
 });
 
+test('fittings · what the hardware and cutting lists read from a kind is consistent', () => {
+  for (const f of defs) {
+    const traits = f.traits as readonly string[], hardware = (f.hardware ?? []) as readonly string[];
+    if (f.opens === 'pull') assert.ok(hardware.includes('runners'), `${f.key}: a front that pulls out runs on runners`);
+    if (f.ownFront) assert.ok(traits.includes('appliance'), `${f.key}: only an appliance has its own front`);
+    if (f.innerFront) assert.ok(!traits.includes('front') && traits.includes('drawerBox'), `${f.key}: an inner front is a drawer behind wardrobe doors`);
+    if (traits.includes('hanging')) assert.ok(hardware.length > 0, `${f.key}: say what it hangs garments on`);
+  }
+});
+
 test('fittings · purposes they offer exist, and every purpose is offered somewhere', () => {
   for (const f of defs) {
     assert.ok(f.purposes.includes(f.purpose), `${f.key}: its starting purpose is one it offers`);

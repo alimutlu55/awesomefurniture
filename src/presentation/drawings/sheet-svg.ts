@@ -104,7 +104,7 @@ export function sheetSvg(sheet: Sheet, info: SheetSetInfo): string {
   const frame = `<rect class="frame" x="0" y="0" width="${PAPER.w}" height="${PAPER.h}" style="stroke:none"/>`
     + `<rect class="frame" x="${PAPER.left}" y="${PAPER.edge}" width="${PAPER.w - PAPER.left - PAPER.edge}" height="${PAPER.h - 2 * PAPER.edge}"/>`;
   const heading = `<text class="vt" x="${area.x}" y="${PAPER.edge + 8}">${esc(sheet.number + '  ' + sheet.title)}</text>`
-    + `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">${ratio}</text>`;
+    + (sheet.table ? '' : `<text class="vs" x="${area.x + 4 + sheet.title.length * 2.6 + 6}" y="${PAPER.edge + 8}">${ratio}</text>`);
   // Lines first, then figures and marks, then the notes placed clear of them; each view titled under it.
   const ORDER = { line: 0, arrow: 1, dims: 2, tag: 3, 'view-mark': 3, note: 4 } as const, taken: Box[] = [];
   let body = placed.map(({ view, paper }) => view.items.slice().sort((a, b) => ORDER[a.kind] - ORDER[b.kind]).map(i => item(i, paper, hatch, taken)).join('')).join('');

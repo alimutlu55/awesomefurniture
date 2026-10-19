@@ -34,7 +34,7 @@ export interface Arrow { readonly kind: 'arrow'; readonly at: P; readonly dir: P
 export interface Tag { readonly kind: 'tag'; readonly at: P; readonly text: string }
 /**
  * A string of dimensions along one line, as builders read them: each stop is measured along `dir` from
- * `origin` (whole millimetres, ascending), and each figure is the distance between two neighbouring stops,
+ * `origin` (whole millimetres, ascending; a construction detail may give half millimetres), and each figure is the distance between two neighbouring stops,
  * so the figures always add up to the total. The string stands on the `side` of the measured line given by
  * turning `dir` a quarter anticlockwise (1) or clockwise (-1), `clear` millimetres off it to pass what is in
  * the way (a wall's thickness), then `row` rows out: row 0 nearest, the overall size outermost.

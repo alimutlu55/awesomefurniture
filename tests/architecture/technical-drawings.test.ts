@@ -25,8 +25,10 @@ const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.
 
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
-  assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W1']);
-  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W1'], 'no room: the piece on its own');
+  assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W1',
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W1  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list']);
+  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W1', 'W1  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list'],
+    'no room: the piece on its own');
 });
 
 test('marks run along the wall, left to right, each kind of furniture counting on its own', () => {
@@ -98,7 +100,7 @@ test('a run turning a corner is seen from its end on the next wall, and a piece 
   const pieces = [{ id: 1, name: 'a', x: 5 + 30, y: 0, z: 5 + 29, angle: 0, design: back }, { id: 2, name: 'b', x: 5 + 29, y: 0, z: 5 + 58 + 30, angle: 90, design: side },
     { id: 3, name: 'c', x: 150, y: 0, z: 200, angle: 0, design: island }];
   const sheets = technicalDrawings({ studio: corner, pieces });
-  assert.deepEqual(sheets.map(s => s.title), ['Plan', 'Elevation A', 'Elevation B', 'Front elevation K3']);
+  assert.deepEqual(sheets.map(s => s.title).slice(0, 4), ['Plan', 'Elevation A', 'Elevation B', 'Front elevation K3']);
   // On wall A (left), K2 stands in front; K1 on the other wall comes into the corner and is seen from its side.
   const tags = all(sheets[1]!).filter(i => i.kind === 'tag').map(i => i.kind === 'tag' && i.text);
   assert.deepEqual(tags.sort(), ['K1', 'K2']);
@@ -109,10 +111,11 @@ test('a run turning a corner is seen from its end on the next wall, and a piece 
   assert.deepEqual(free.sort((a, b) => a! - b!), [1150, 1660]);
 });
 
-test('every dimension string is whole millimetres, in order, and adds up to its total', () => {
+test('every dimension string is whole millimetres (half in a construction detail), in order, and adds up to its total', () => {
   for (const sheet of technicalDrawings({ studio: room(), pieces: kitchen() })) {
     for (const d of dims(all(sheet))) {
-      assert.ok(d.stops.every(Number.isInteger), sheet.title + ': whole millimetres ' + d.stops);
+      const step = sheet.title.startsWith('Construction details') ? 2 : 1;
+      assert.ok(d.stops.every(v => Number.isInteger(v * step)), sheet.title + ': whole millimetres ' + d.stops);
       assert.ok(d.stops.every((s, k) => k === 0 || s > d.stops[k - 1]!), sheet.title + ': ascending ' + d.stops);
       const parts = d.stops.slice(1).map((s, k) => s - d.stops[k]!);
       assert.equal(parts.reduce((a, b) => a + b, 0), d.stops[d.stops.length - 1]! - d.stops[0]!);
@@ -126,4 +129,43 @@ test('the printed set is one A3 landscape page per sheet', () => {
   assert.match(html, /@page\{size:420mm 297mm;margin:0\}/);
   assert.equal(html.match(/<svg /g)?.length, sheets.length);
   assert.ok(!html.includes('<test>'), 'text is escaped');
+});
+
+const sheetNamed = (title: string, pieces = kitchen()) => technicalDrawings({ studio: room(), pieces }).find(s => s.title === title)!;
+const rowsOf = (title: string, pieces = kitchen()) => sheetNamed(title, pieces).table!.rows;
+
+test('each cabinet has its own sheet to be made from: front, inside and a section', () => {
+  const sheet = sheetNamed('K2  Base cabinet');
+  assert.deepEqual(sheet.views.map(v => v.title), ['Front', 'Inside', 'Section A–A']);
+  const sizes = sheet.views[0]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
+  assert.deepEqual(sizes, ['594 × 294', '594 × 276', '594 × 201'], 'every front written with its width and height, 3 mm smaller than its opening');
+});
+
+test('the cutting list: every board as built, length with the grain, the run\'s worktop and plinth', () => {
+  const k2 = rowsOf('Cutting list').filter(r => r[0] === 'K2' && r[1] !== 'Worktop' && r[1] !== 'Plinth').map(r => r.slice(1, 8).join(' '));
+  assert.deepEqual(k2, [
+    'Top 1 600 580 18 Board 18 · White L1',
+    'Side 2 762 580 18 Board 18 · White L1',
+    'Base 1 564 569 18 Board 18 · White L1',
+    'Back 1 762 564 6 Back panel 6 —',
+    'Pan drawer front 1 294 594 18 Front 18 · White L2 W2',
+    'Pan drawer front 1 276 594 18 Front 18 · White L2 W2',
+    'Drawer front 1 201 594 18 Front 18 · White L2 W2',
+  ]);
+  const run = rowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
+  assert.deepEqual(run, ['K2 Worktop 1 600 600 40', 'K1 Plinth 1 600 80 16', 'K2 Plinth 1 600 80 16'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
+  const wardrobe = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
+  const w1 = technicalDrawings({ pieces: [wardrobe] }).find(s => s.title === 'Cutting list')!.table!.rows.map(r => r.slice(1, 6).join(' '));
+  assert.deepEqual(w1, ['Top 1 2000 600 18', 'Side 2 2282 600 18', 'Base 1 1964 589 18', 'Back 1 2202 1964 6', 'Plinth rail 1 1964 80 18', 'Plinth rail 1 1964 80 18', 'Plinth bearer 2 504 80 18'],
+    'a plain wardrobe: top over the sides, base and back between them, a plinth frame of two rails and two bearers');
+});
+
+test('the hardware list: hinges by door height, runners to the depth, legs, hangers and fixings', () => {
+  const rows = rowsOf('Hardware list', [...kitchen(), against(4, 'base', 'base', 230)]);
+  const find = (item: string) => rows.find(r => r[0] === item);
+  assert.deepEqual(find('Drawer runners, full extension, pair'), ['Drawer runners, full extension, pair', '550 mm', '3', 'K2'], 'three drawers, 550 runners in a 580 deep unit');
+  assert.deepEqual(find('Adjustable leg')?.slice(2), ['12', 'K1, K2, K4'], 'four under each floor unit');
+  assert.deepEqual(find('Cabinet hanger, adjustable')?.slice(2), ['1', 'K3']);
+  assert.deepEqual(find('Concealed hinge, 110°')?.slice(2), ['2', 'K1'], 'the tall unit\'s cupboard door over its fridge');
+  assert.deepEqual(find('Wall fixing bracket')?.slice(2), ['2', 'K1'], 'the tall unit is fixed to the wall');
 });

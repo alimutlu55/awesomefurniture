@@ -38,7 +38,7 @@ function swing(f: Front, at: (x: number, y: number) => P, top: (x: number) => nu
  * (following a sloped or stepped top), the plinth, its fronts with how each opens and what appliance it is, what is
  * behind them dashed (a cupboard's shelves, a wardrobe's fittings and rails), and its mark. A sink or hob is its centre
  * line on the worktop; a shelf its board. Millimetres. */
-export function pieceFront(p: PlacedPiece, left: number): Item[] {
+export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = true } = {}): Item[] {
   const d = p.design, at = (x: number, y: number): P => ({ x: mm(left + x), y: mm(p.y + y) }), mid = d.w / 2;
   if (p.fixture === 'sink' || p.fixture === 'hob') {
     return [line(at(mid, -12), at(mid, 16), 'centre'), note(at(mid, 20), pieceName(p))];
@@ -49,7 +49,7 @@ export function pieceFront(p: PlacedPiece, left: number): Item[] {
   const plinth = plinthOf(d);
   if (plinth > 0) out.push(line(at(0, plinth), at(d.w, plinth), 'thin'));
   const { fronts, inside, covered } = piecefronts(d), behind = covered || fronts.length > 0;
-  for (const b of inside) {
+  for (const b of showInside ? inside : []) {
     const y1 = Math.min(b.y1, under((b.x0 + b.x1) / 2) - PANEL), stroke = behind ? 'hidden' : b.kind === 'rail' ? 'centre' : 'thin';
     // Behind the fronts each outline stands a little in, so two dashed edges never merge into what reads as a solid one.
     const k = behind && b.kind === 'box' ? Math.min(INSET, (b.x1 - b.x0) / 4, (y1 - b.y0) / 4) : 0;

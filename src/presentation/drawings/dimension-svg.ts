@@ -33,7 +33,7 @@ export function dimensionSvg(d: Dimensions, paper: Paper, figures: Box[] = []): 
   if (angle > 89.99) angle -= 180; else if (angle < -90.01) angle += 180;
   let stepped = 0;
   for (let k = 0; k < d.stops.length - 1; k++) {
-    const s0 = d.stops[k]!, s1 = d.stops[k + 1]!, text = String(s1 - s0), room = (s1 - s0) / paper.scale;
+    const s0 = d.stops[k]!, s1 = d.stops[k + 1]!, text = String(Math.round((s1 - s0) * 10) / 10), room = (s1 - s0) / paper.scale;
     const lift = room >= figureWidth(text) ? 0 : (stepped++ % 2 === 0 ? DIM.text + 1.2 : 2 * (DIM.text + 1.2));
     const c = at((s0 + s1) / 2, off), half = figureWidth(text) / 2, rise = .9 + lift + DIM.text / 2;
     // Where the figure sits on paper, for notes to keep clear of it.

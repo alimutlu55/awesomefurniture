@@ -3,6 +3,10 @@ import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeomet
 import { planView } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
 import { designChecks } from './checks';
+import { unitDetailViews } from './unit-detail';
+import { cuttingList } from './cutting-list';
+import { hardwareList } from './hardware-list';
+import { constructionDetails } from './construction-details';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -40,6 +44,16 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
   }
   for (const p of pieces.filter(q => q.wall === null)) {
     sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p) }], pieces: [row(p, letters)], checks: about([p.mark]) });
+  }
+  // Shop drawings: each cabinet and wardrobe on its own sheet, to make it from.
+  for (const p of pieces.filter(q => !q.fixture)) {
+    sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), views: unitDetailViews(p), pieces: [row(p, letters)], checks: about([p.mark]) });
+  }
+  const details = constructionDetails(pieces);
+  details.forEach((views, k) => sheets.push({ number: sheets.length + 1, title: 'Construction details' + (details.length > 1 ? ' ' + (k + 1) + ' of ' + details.length : ''), views, pieces: [], checks: [] }));
+  // Schedules: the cutting list and the hardware list, each running on over as many sheets as it needs.
+  for (const [title, pages] of [['Cutting list', cuttingList(pieces)], ['Hardware list', hardwareList(pieces)]] as const) {
+    pages.forEach((table, k) => sheets.push({ number: sheets.length + 1, title: title + (pages.length > 1 ? ' ' + (k + 1) + ' of ' + pages.length : ''), views: [], table, pieces: [], checks: [] }));
   }
   return sheets;
 }

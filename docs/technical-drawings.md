@@ -25,6 +25,24 @@ through the browser's print, one A3 page per sheet. Every figure is a whole mill
    the wall. Above: wall units, then openings. Left: the height of everything from the floor; right: each
    opening's sill and head.
 3. **A front elevation of each piece that stands free** (or of every piece when there is no room).
+4. **A shop sheet for each cabinet and wardrobe** (not sinks, hobs or wall shelves), its views at one scale:
+   *Front* with each front's cut size written on it and strings of where the fronts start and end;
+   *Inside* with the fronts taken off: every board's front edge, rails, where the fronts go, the clear
+   width of each section, the clear heights up each section, the carcass heights, and the line of the
+   section; *Section A–A* cut upright through the first section: boards cut through hatched, the side
+   beyond, the worktop and the run's plinth for a kitchen unit, the depth build-up (back board, shelf
+   setback, carcass front, front) and the shelf heights.
+5. **Construction details at 1:2**, at most three to a sheet, only those that apply: fronts at a joint
+   between units, plinth and base, worktop edge (kitchens); shelf and door (wardrobes); back panel. They
+   are drawn from the same constants the model is built with, to the half millimetre.
+6. **Cutting list**: every board of every piece, identical boards counted together, length with the
+   grain, width, thickness, material and finish, edge banding (L1 = one long edge, L2 W2 = all four);
+   each kitchen run's worktop (with its sink and hob cut-outs named) and plinth; the area of each
+   material. Runs on over as many sheets as it needs.
+7. **Hardware list**: added up across the job with the marks it goes to: hinges by door height, drawer
+   runners at the longest standard length that fits, rails cut to width, the fittings' own hardware,
+   shelf supports, handles, legs under kitchen floor units, hangers for wall units, anti-tip brackets for
+   tall pieces.
 
 Each sheet lists its pieces (mark, name, width × height × depth, wall, height above the floor) and, in red,
 what to check before making: pieces that overlap, a piece in front of a window or door at its height, a
@@ -33,6 +51,15 @@ scale, units, date. Scales are the standard ones that fit (1:10, 1:20, 1:25, 1:5
 ISO 128 (cut 0.5, outlines 0.35, thin 0.18, hidden dashed, centre lines chain, swings long dashes);
 dimension figures sit above their line, read from the bottom or the right (ISO 129). Notes move clear of
 marks and figures they would sit on.
+
+The boards come from `cabinetBoards` (`cabinet-boards.ts`), which follows the 3D build: the top boards
+over the sides (`shapeBoards` under a shaped top), the sides under them, the base board between the sides
+from the back board's face to the partition setback, the back between the sides, a wardrobe's plinth as a
+frame of rails and bearers, the partitions, the fitting boards (`fittingPanels`), shelves and dividers,
+the fronts 3 mm smaller than their openings (`kitchenFrontRect`, `FRONT_GAP`) and wardrobe doors
+(`DOOR`). A fitting's hardware, whether its front is the appliance's own (`ownFront`) and whether a
+wardrobe drawer has a front cut from board (`innerFront`) are in `fittings.ts`; the registry tests check
+them.
 
 How a kitchen front opens is the fitting's `opens` in `src/domain/wardrobe/fittings.ts` (every kind with
 the `front` trait has one; the registry test checks it). Door leaves, the fridge/freezer split and shelf
@@ -48,8 +75,11 @@ with the 3D view.
 | Plan, plan symbols, wall elevation | `plan-view.ts`, `plan-symbols.ts`, `wall-elevation.ts` |
 | A piece's front, its fronts and what is behind them | `piece-front.ts`, `fronts.ts` |
 | What to check before making | `checks.ts` |
+| Every board of a piece; a piece's shop views | `cabinet-boards.ts`; `unit-detail.ts` |
+| Construction details | `construction-details.ts` |
+| Cutting list, hardware list | `cutting-list.ts`, `hardware-list.ts` |
 | The set of sheets | `technical-drawings.ts` |
-| Sheet layout, scale, SVG, dimension strings | `src/presentation/drawings/sheet-layout.ts`, `sheet-svg.ts`, `dimension-svg.ts` |
+| Sheet layout (views side by side at one scale), SVG, dimension strings, tables | `src/presentation/drawings/sheet-layout.ts`, `sheet-svg.ts`, `dimension-svg.ts`, `table-svg.ts` |
 | Menu item, viewer, print | `src/presentation/drawings/drawings-viewer.ts`, `drawings.css` |
 
 A dimension string is a list of stops along a line, so its figures always add up to its total. The
@@ -60,7 +90,8 @@ gives the letter of its pieces' marks.
 
 ## Not yet
 
-Unit details (front, inside and section of each piece at 1:10), schedules (cutting list, hardware) and
-room door swings (the room does not store which way a door opens) are the next steps. Sloped ceilings are
-not drawn on elevations. Worktop joints, cut-outs, fillers and materials are not noted. A plain kitchen
-unit with nothing added has no front, as in the 3D view.
+Room door swings (the room does not store which way a door opens), sloped ceilings on elevations,
+worktop joints and cut-out sizes, fillers and scribes, drilling plans (hinge cups, shelf pins on the
+32 mm grid), drawer box parts (the runners' maker sizes the box), and material choices beyond the finish
+are not drawn. The cutting list gives finished sizes: edge banding is not deducted. A plain kitchen unit
+with nothing added has no front, as in the 3D view.
