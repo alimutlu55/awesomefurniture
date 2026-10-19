@@ -4,7 +4,7 @@ type ScreenPoint = { clientX: number; clientY: number };
 interface TouchCameraPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly camera: Readonly<Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>,
-    'panBy' | 'cameraZoomPoint' | 'cameraZoomDistance' | 'cameraDistance'>>;
+    'panBy' | 'cameraZoomPoint' | 'cameraZoomDistance' | 'cameraDistance' | 'zoomOutTo'>>;
   readonly cameraState: { dist: number; panned?: boolean };
   /** The editor lifetime's frames (editor-lifetime.js), so a view following a drag stops with the editor. */
   readonly lifetime: { frame(fn: (now: number) => void): unknown; cancelFrame(id: never): void; cleanup(fn: () => void): void };
@@ -15,22 +15,27 @@ export const EDGE_ZONE = 48, EDGE_SPEED = 720;
 
 /**
  * The camera under a person's fingers on a touch screen.
- * - A pinch zooms about what is between the fingers: that point stays under them, as on a map.
+ * - Spreading the fingers zooms in about what is between them: that point stays under them, as on a map. Pinching
+ *   them together zooms out toward the middle of the studio, so zooming out always ends on all of it.
  * - A drag held near the edge of the view moves the view on, so a piece can be taken further than the screen shows.
  */
 export function createTouchCamera({ dom, camera, cameraState, lifetime }: TouchCameraPorts) {
-  /** The point being zoomed about, chosen once per pinch: what was under the fingers when it began. */
+  /** The point being zoomed in about, chosen once per pinch: what was under the fingers when it began zooming in. */
   let anchor: Vector3 | null = null;
   let follow: { at: ScreenPoint; move(at: ScreenPoint): void; holding(): boolean; frame: unknown; last: number } | null = null;
 
-  /** Two fingers moved from `before` to `now`: they pan the view together and zoom it about the point between them. */
+  /** Two fingers moved from `before` to `now`: they pan the view together, and zoom it in about the point between them
+   * or out toward the middle of the studio. */
   function pinch(before: readonly [ScreenPoint, ScreenPoint], now: readonly [ScreenPoint, ScreenPoint]) {
     const mid = (p: readonly [ScreenPoint, ScreenPoint]) => ({ clientX: (p[0].clientX + p[1].clientX) / 2, clientY: (p[0].clientY + p[1].clientY) / 2 });
     const span = (p: readonly [ScreenPoint, ScreenPoint]) => Math.hypot(p[0].clientX - p[1].clientX, p[0].clientY - p[1].clientY);
     const from = mid(before), to = mid(now);
-    anchor ??= camera.cameraZoomPoint(from);
     camera.panBy(to.clientX - from.clientX, to.clientY - from.clientY);
-    if (span(now) > 0 && span(before) > 0) camera.cameraZoomDistance(camera.cameraDistance(cameraState.dist * span(before) / span(now)), anchor);
+    if (span(now) > 0 && span(before) > 0) {
+      const next = camera.cameraDistance(cameraState.dist * span(before) / span(now));
+      if (next > cameraState.dist) { anchor = null; camera.zoomOutTo(next); }
+      else camera.cameraZoomDistance(next, anchor ??= camera.cameraZoomPoint(to));
+    }
     cameraState.panned = true;
   }
   /** A finger came or went: the next pinch zooms about what is under its fingers then. */

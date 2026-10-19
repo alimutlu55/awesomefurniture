@@ -12,7 +12,8 @@ function fixture() {
         panBy: (dx, dy) => calls.push(['pan', dx, dy]),
         cameraZoomPoint: p => { anchors++; return { x: p.clientX, y: p.clientY, z: 0 }; },
         cameraDistance: d => Math.max(120, Math.min(15000, d)),
-        cameraZoomDistance: (d, anchor) => { calls.push(['zoom', d, anchor]); cameraState.dist = d; }
+        cameraZoomDistance: (d, anchor) => { calls.push(['zoom', d, anchor]); cameraState.dist = d; },
+        zoomOutTo: d => { calls.push(['out', d]); cameraState.dist = d; }
     };
     const lifetime = { frame: fn => { frames.push(fn); return frames.length; }, cancelFrame() {}, cleanup: fn => cleanups.push(fn) };
     const touch = createTouchCamera({ dom, camera, cameraState, lifetime });
@@ -34,6 +35,15 @@ test('a pinch zooms about the point that was between the fingers, by the change 
     f.touch.release();
     f.touch.pinch([at(100, 100), at(200, 100)], [at(90, 100), at(210, 100)]);
     assert.equal(f.anchors, 2, 'a new pinch zooms about what is under its own fingers');
+});
+
+test('pinching the fingers together zooms out toward the middle of the studio, not about the fingers', () => {
+    const f = fixture();
+    f.touch.pinch([at(150, 400), at(250, 400)], [at(175, 400), at(225, 400)]);
+    assert.deepEqual(f.calls.filter(c => c[0] !== 'pan'), [['out', 2000]]);
+    assert.equal(f.anchors, 0, 'no point under the fingers is held');
+    f.touch.pinch([at(175, 400), at(225, 400)], [at(150, 400), at(250, 400)]);
+    assert.deepEqual(f.calls.at(-1), ['zoom', 1000, { x: 200, y: 400, z: 0 }], 'spreading again zooms in about the fingers');
 });
 
 test('a pinch never zooms past the nearest or furthest view', () => {

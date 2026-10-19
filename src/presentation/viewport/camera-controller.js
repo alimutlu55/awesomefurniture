@@ -2,6 +2,7 @@ import { framedExtent } from './framed-extent';
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
+import { zoomOutTarget } from './zoom-out';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
@@ -15,9 +16,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
     const fit = (options = {}) => {
         camRelease();
-        if (!options.instant) {
-            cameraState.initialCameraFraming = false;
-        }
+        if (!options.instant) cameraState.initialCameraFraming = false;
         // With every wardrobe removed there is nothing to frame: show the room, or a small floor area without one.
         const empty = !model.scene.wardrobes.length ? (model.scene.studio ? sceneBox() : { x: 0, z: 0, w: 240, d: 240, h: 120 }) : undefined;
         const goal = fittedCamera(options.az ?? cameraState.az, options.el ?? cameraState.el, options.padding ?? 1.08, empty);
@@ -87,9 +86,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         out.az = from.az + cameraAngleDelta(from.az, to.az) * k;
         out.dist = Math.exp(Math.log(from.dist) + (Math.log(to.dist) - Math.log(from.dist)) * k);
-        if (to.arc) {
-            out.dist *= 1 + to.arc * Math.sin(Math.PI * k);
-        }
+        if (to.arc) out.dist *= 1 + to.arc * Math.sin(Math.PI * k);
         return out;
     }
     function cameraApply(p) {
@@ -190,9 +187,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         cameraState.initialCameraFraming = false;
         const { w, angle, box } = selectionFocusBox();
         const room = availableRoom(), view = $('#view').getBoundingClientRect(), goal = { az: cameraState.az, el: cameraState.el, x: w.x + box.x * Math.cos(angle), z: w.z - box.x * Math.sin(angle), y: (w.y || 0) + box.y, dist: Math.max(120, cameraFitDistance(box, cameraState.az - angle, cameraState.el, room.w / room.h) * (view.height / room.h) * 1.1) };
-        if (panOnly) {
-            goal.dist = keep;
-        }
+        if (panOnly) goal.dist = keep;
         cameraState.vsT = baseShift(goal);
         cameraFlyTo(goal, panOnly);
     }
@@ -235,9 +230,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function moveViewOn() {
         cameraState.initialCameraFraming = false;
         cameraState.vsT = baseShift();
-        if (!cameraState.camHome) {
-            cameraState.camHome = camNow();
-        }
+        if (!cameraState.camHome) cameraState.camHome = camNow();
         cameraState.camRestore = null;
         const goal = camFront();
         goal.dist *= 1.12;
@@ -325,9 +318,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         resources.cam.updateMatrixWorld(true);
         resources.scene.updateMatrixWorld(true);
         const hit = picking.cast(e, [...renderState.allHits, ...renderState.allItemHits]);
-        if (hit) {
-            return hit.point.clone();
-        }
+        if (hit) return hit.point.clone();
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(resources.cam.getWorldDirection(new THREE.Vector3()), cameraState.tgt);
         return interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
     }
@@ -339,16 +330,29 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function cameraZoom(factor) {
         if (!Number.isFinite(factor) || factor <= 0) return;
-        const base = cameraState.zoomTarget ?? cameraState.dist;
+        const base = cameraState.zoomTarget ?? cameraState.dist, from = cameraState.zoomFocus ?? cameraState.tgt.clone();
         camRelease();
-        cameraState.zoomFocus = cameraFocusPoint();
-        cameraState.zoomTarget = cameraDistance(base * factor);
+        // Zooming out heads for the middle of the studio, so it always ends on the whole of it, and stops a little
+        // beyond the view of all of it (zoom-out.ts).
+        const all = factor > 1 && overview();
+        cameraState.zoomTarget = all ? furthest(base * factor, base, all) : cameraDistance(base * factor);
+        const out = all && zoomOutTarget(from, all, base, cameraState.zoomTarget);
+        cameraState.zoomFocus = out ? new THREE.Vector3(out.x, out.y, out.z) : cameraFocusPoint();
         if (cameraState.reducedCameraMotion.matches) {
             cameraZoomDistance(cameraState.zoomTarget);
             cameraState.tgt.copy(cameraState.zoomFocus);
             cameraState.tgtY = cameraState.tgt.y;
             cameraState.zoomTarget = cameraState.zoomFocus = null;
         }
+    }
+    /** The view of the whole scene (the studio, or the wardrobes with floor around them) at the current angle. */
+    const overview = () => fittedCamera(cameraState.az, cameraState.el, 1.05, sceneBox());
+    /** Zooming out to `next` from `from` goes no further than half again the view of the whole scene. */
+    const furthest = (next, from, all) => cameraDistance(Math.min(next, Math.max(from, all.dist * 1.5)));
+    /** A pinch zooming out to `next`: toward the middle of the studio, as the zoom buttons do. */
+    function zoomOutTo(next) {
+        const all = overview(), dist = furthest(next, cameraState.dist, all), t = zoomOutTarget(cameraState.tgt, all, cameraState.dist, dist);
+        cameraState.tgt.set(t.x, t.y, t.z); cameraState.tgtY = t.y; cameraState.dist = dist;
     }
     function cameraTick(now, dt) {
         if (cameraState.camGoal) {
@@ -391,5 +395,5 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         else if (wardrobeFraming && changed && r.width > 0 && r.height > 0) frameWardrobe({ resizing: true });
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, frameWardrobe, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, cameraTick, resize, fit };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, frameWardrobe, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, zoomOutTo, cameraTick, resize, fit };
 }
