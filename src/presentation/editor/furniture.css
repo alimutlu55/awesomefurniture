@@ -87,11 +87,11 @@ svg.kitchen-art{filter:none}
 /* Units in the menu: a labelled segmented choice that does not close the menu. */
 #menu .mi.unit-row{display:flex;align-items:center;gap:10px;cursor:default}
 #menu .unit-row span:first-of-type{flex:1;min-width:0}
-#menu .unit-seg{display:inline-flex;flex:none;border:1px solid var(--line,#d9cfbd);border-radius:9px;overflow:hidden}
-#menu .unit-seg button{border:0;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:600;padding:5px 8px;min-width:34px;cursor:pointer}
-#menu .unit-seg button+button{border-left:1px solid var(--line,#d9cfbd)}
-#menu .unit-seg button[aria-pressed="true"]{background:var(--ink,#3d3528);color:var(--panel,#fff)}
-#menu .unit-seg button:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:-2px}
+#app #menu .unit-seg{display:inline-flex;flex:none;box-sizing:border-box;height:32px;padding:2px;gap:0;border:1px solid var(--line,#d9cfbd);border-radius:10px;overflow:visible}
+#app #menu .unit-seg button{box-sizing:border-box;min-width:40px;min-height:0;height:100%;padding:0 8px;border:0;border-radius:7px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:600;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+#app #menu .unit-seg button+button{border:0}
+#app #menu .unit-seg button[aria-pressed="true"]{background:var(--ink,#3d3528);color:var(--panel,#fff)}
+#app #menu .unit-seg button:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:1px}
 /* Fill the gap beside a kitchen unit: a quiet text button under Width. */
 .fill-gap{display:block;margin:2px 0 10px;padding:7px 12px;border:1px dashed #a8987c;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .fill-gap[hidden]{display:none}
@@ -102,12 +102,15 @@ svg.kitchen-art{filter:none}
 .item-resize-handle[data-edge="bottom"]{cursor:ns-resize}
 #menu .mi.reach-menu-row{display:flex;align-items:center;gap:10px;cursor:default}
 #menu .reach-menu-row>span:first-of-type{flex:1;min-width:0;white-space:nowrap}
-#menu .reach-field{display:inline-flex;align-items:center;gap:4px;flex:none}
-#menu .reach-field input{width:56px;height:32px;min-height:0;box-sizing:border-box;font:inherit;font-size:13px;padding:0 4px;text-align:center;border:1px solid var(--line,#d9cfbd);border-radius:8px;background:transparent;color:inherit}
-#menu .reach-menu-row.is-off .reach-field{opacity:.4}
-#menu .reach-menu-row .reach-switch{flex:none;width:38px;min-width:0;box-sizing:border-box;height:20px;border:0;border-radius:10px;padding:2px;background:var(--line,#d9cfbd);cursor:pointer;display:inline-flex;align-items:center;min-height:0}
+#app #menu .reach-field{display:inline-flex;align-items:center;gap:5px;flex:none;height:32px}
+#app #menu .reach-field input{box-sizing:border-box;width:52px;height:32px;min-height:0!important;margin:0;font:inherit;font-size:13px;font-variant-numeric:tabular-nums;padding:0 4px;text-align:center;border:1px solid var(--line,#d9cfbd);border-radius:9px;background:transparent;color:inherit}
+@media (max-width:900px){#app #menu .reach-field input{font-size:16px!important}}
+#app #menu .reach-field small{font-size:13px;line-height:1;color:var(--mute,#8a8172)}
+#app #menu .reach-menu-row.is-off .reach-field{opacity:.4}
+#app #menu .reach-menu-row .reach-switch{flex:none;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;width:44px;height:26px;min-width:0;min-height:0;padding:2px;border:0;border-radius:13px;background:var(--line,#d9cfbd);cursor:pointer;transition:background .18s}
 @media (min-width:769px){#app #menu:has(.reach-menu-row){width:284px!important;min-width:284px!important}}
-#menu .reach-switch i{flex:none;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .12s}
-#menu .reach-menu-row .reach-switch[aria-checked="true"]{background:var(--ink,#3d3528)}
-#menu .reach-switch[aria-checked="true"] i{transform:translateX(16px)}
-#menu .reach-switch:focus-visible,#menu .reach-field input:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:2px}
+#app #menu .reach-switch i{flex:none;width:22px;height:22px;margin:0;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
+#app #menu .reach-menu-row .reach-switch[aria-checked="true"]{background:var(--ink,#3d3528)}
+#app #menu .reach-switch[aria-checked="true"] i{transform:translateX(18px)}
+#app #menu .reach-switch:focus-visible,#app #menu .reach-field input:focus-visible{outline:2px solid var(--ink,#3d3528);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){#app #menu .reach-switch,#app #menu .reach-switch i{transition:none}}
