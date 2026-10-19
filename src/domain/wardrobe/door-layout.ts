@@ -2,6 +2,10 @@ import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
 import { ceilingMin, ceilingPieces, resolveShape } from './shape/wardrobe-shape';
 
+/** A wardrobe door leaf: its thickness, how far its middle stands in front of the carcass, and the gap left under the
+ * wardrobe's top. Centimetres. */
+export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
+
 /** Front coordinates, measured from the left outer face and the floor.
  * An infinite cap means the leaf follows the outer roof profile. */
 export interface DoorArea { x0: number; x1: number; y0: number; y1: number }
