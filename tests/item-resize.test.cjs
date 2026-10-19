@@ -22,7 +22,7 @@ test('resize clamps to module minimum and height clearance',()=>{
  assert.equal(resize('left',1000).w,25);
  assert.equal(resize('top',1000).h,40);
  assert.equal(resize('top',-1000).h,15);
- assert.equal(resize('top',2.3).h,32.5);
+ assert.equal(resize('top',2.3).h,32.3);
 });
 function model(secs){
  const c=vm.createContext({S:{w:104,h:120,n:1,wt:[100],secs:[secs]},update(){},hist:[],redoH:[],G:{}});

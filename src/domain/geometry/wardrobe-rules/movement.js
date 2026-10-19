@@ -269,7 +269,7 @@ export function createMovementRules(ctx, deps) {
             })];
     }
     function itemEdgeSize(g, edge, delta, neighbors, index, minW, minH, maxH) {
-        const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), round = v => Math.round(v * 2) / 2;
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), round = v => Math.round(v * 10) / 10;
         if (edge === 'top') {
             return { h: clamp(round(g.h + delta), minH, maxH) };
         }

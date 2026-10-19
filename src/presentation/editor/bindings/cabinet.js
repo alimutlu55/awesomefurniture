@@ -10,7 +10,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 600], ['h', 'Height', 180, 300], ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
-            inputAttributes: { id, inputmode: 'numeric', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },
+            inputAttributes: { id, inputmode: 'decimal', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },
             rangeAttributes: { id: id + '-range', 'data-dimension': id, 'aria-label': id === 'y' ? 'Adjust height above the floor' : 'Adjust wardrobe ' + t.toLowerCase() } }));
         // A kitchen unit with a gap beside it, between the wall or its neighbours: one tap widens it to fill the room.
         if (id === 'w') {

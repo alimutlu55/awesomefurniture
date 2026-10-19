@@ -10,8 +10,8 @@ export function sizeControlMarkup({ label, min, max, hint, hintKey, valueLabelId
   const note = hint ? `<small class="room-field-hint"${hintKey ? ` data-room-hint="${esc(hintKey)}"` : ''}>${esc(hint)}</small>` : '';
   const value = valueLabelId ? `<b id="${esc(valueLabelId)}"></b>` : '';
   return `<div class="size-control resize-field-control"><label class="size-row"${inputAttributes.id ? ` for="${esc(inputAttributes.id)}"` : ''}>`
-    + `<span>${esc(label)}${value}${note}</span><span class="size-field"><input type="number" inputmode="${esc(inputmode)}" min="${min}" max="${max}" step="1"`
-    + `${attrs(numberAttributes)}><small>cm</small></span></label><input class="size-range" type="range" min="${min}" max="${max}" step="1"${attrs(rangeAttributes)}></div>`;
+    + `<span>${esc(label)}${value}${note}</span><span class="size-field"><input type="number" inputmode="${esc(inputmode)}" min="${min}" max="${max}" step="0.1"`
+    + `${attrs(numberAttributes)}><small>cm</small></span></label><input class="size-range" type="range" min="${min}" max="${max}" step="0.1"${attrs(rangeAttributes)}></div>`;
 }
 
 /** Shared preview/commit/cancel lifecycle: an entire slider gesture is one undo step. */

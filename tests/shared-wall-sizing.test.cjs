@@ -41,7 +41,7 @@ test('all shared sizing rows use the same numeric and range settings', () => {
     for (const label of ['Wardrobe width', 'Length', 'Height 1', 'Width']) {
         const html = sizeControlMarkup({ label, min: 30, max: 2000 });
         assert.match(html, /class="size-control resize-field-control"/);
-        assert.match(html, /type="number".*min="30" max="2000" step="1"/);
-        assert.match(html, /class="size-range" type="range" min="30" max="2000" step="1"/);
+        assert.match(html, /type="number".*min="30" max="2000" step="0\.1"/);
+        assert.match(html, /class="size-range" type="range" min="30" max="2000" step="0\.1"/);
     }
 });

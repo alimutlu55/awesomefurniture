@@ -240,7 +240,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
     }
     function setItemH(h: number) {
         const it = getDesign().secs[getDesign().sel]![getDesign().item]!;
-        if (!it || isNaN(h)) {
+        if (!it || !Number.isFinite(h)) {
             return;
         }
         const m = MODS[it.k], mn = rules.effectiveMin(it.k), mx = Math.min(m.mx, it.h + rules.itemFreeAbove(getDesign().sel, getDesign().item));
@@ -248,7 +248,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             effects.report('Not enough room for the required clearance');
             return;
         }
-        it.h = Math.max(mn, Math.min(mx, Math.round(h * 2) / 2));
+        it.h = Math.max(mn, Math.min(mx, Math.round(h * 10) / 10));
         getDesign().proposal = null;
         effects.milestone('tune');
         effects.changed();
@@ -259,7 +259,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             return;
         }
         const bw = rules.widths()[getDesign().sel]!, mn = rules.itemMinW(it);
-        x = Math.max(mn, Math.min(bw, Math.round(x * 2) / 2));
+        x = Math.max(mn, Math.min(bw, Math.round(x * 10) / 10));
         const oldW = it.w;
         if (x >= bw - .05) {
             delete it.w;
