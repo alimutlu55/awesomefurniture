@@ -2,7 +2,7 @@ import type { EditorScene } from '../../application/projects/editor-scene';
 import type { Sheet } from '../../domain/drawings/drawing';
 import { technicalDrawings } from '../../domain/drawings/technical-drawings';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { type SheetSetInfo, sheetSvg } from './sheet-svg';
+import { type SheetSetInfo, sheetSvg } from './sheet-marks';
 
 interface Ports {
   /** The editor's controls, and the page it is mounted in (the print frame belongs to the page). */
