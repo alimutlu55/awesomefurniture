@@ -9,7 +9,7 @@ import { roomHeight, wallBox, wallFace, wallLine } from './studio';
 import type { Studio } from './studio';
 import { ceilingAt } from './studio-ceiling';
 
-export type GapSide = 'left' | 'right' | 'back' | 'front' | 'top';
+export type GapSide = 'left' | 'right' | 'back' | 'front' | 'top' | 'bottom';
 type P3 = { x: number; y: number; z: number };
 /** A wardrobe as the room sees it: centre, turn (degrees), height of its base, size, tallest point. */
 export interface PlacedBox { readonly id: number; readonly x: number; readonly z: number; readonly y?: number; readonly angle: number; readonly w: number; readonly d: number; readonly h: number }
@@ -18,7 +18,7 @@ export interface Gap {
   readonly distance: number;
   /** The line to draw: from the wardrobe's face to the surface, at a sensible height. */
   readonly from: P3; readonly to: P3;
-  readonly target: 'wall' | 'wardrobe' | 'ceiling' | 'wall-end';
+  readonly target: 'wall' | 'wardrobe' | 'ceiling' | 'floor' | 'wall-end';
   /** The wardrobe it reaches, for alignment. */
   readonly other?: number;
 }
@@ -48,6 +48,26 @@ function hit(o: { x: number; z: number }, dir: { x: number; z: number }, r: Rect
   return t0 >= -SAME ? Math.max(0, t0) : null;
 }
 
+/** Whether two footprints overlap horizontally on the floor beyond `SAME`. */
+function footprintsOverlap(a: PlacedBox, b: PlacedBox): boolean {
+  const aa = axes(a.angle), ba = axes(b.angle);
+  for (const axis of [aa.u, aa.f, ba.u, ba.f]) {
+    const ra = Math.abs(aa.u.x * axis.x + aa.u.z * axis.z) * a.w / 2 + Math.abs(aa.f.x * axis.x + aa.f.z * axis.z) * a.d / 2;
+    const rb = Math.abs(ba.u.x * axis.x + ba.u.z * axis.z) * b.w / 2 + Math.abs(ba.f.x * axis.x + ba.f.z * axis.z) * b.d / 2;
+    if (Math.abs((a.x - b.x) * axis.x + (a.z - b.z) * axis.z) >= ra + rb - SAME) return false;
+  }
+  return true;
+}
+
+/** Where on `box`'s front face a vertical gap line to `other` (or the ceiling/floor) sits along its width. */
+function verticalAnchor(box: PlacedBox, other: PlacedBox | undefined): number {
+  if (!other) return box.w / 2 - 6;
+  const { u } = axes(box.angle), oa = axes(other.angle), along = (other.x - box.x) * u.x + (other.z - box.z) * u.z;
+  const half = Math.abs(oa.u.x * u.x + oa.u.z * u.z) * other.w / 2 + Math.abs(oa.f.x * u.x + oa.f.z * u.z) * other.d / 2;
+  const s0 = Math.max(-box.w / 2 + 4, along - half), s1 = Math.min(box.w / 2 - 4, along + half);
+  return s0 <= s1 ? (s0 + s1) / 2 : box.w / 2 - 6;
+}
+
 /** The gaps around wardrobe `box` on the requested sides, to the room's walls and the other wardrobes. */
 export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
   const { u, f } = axes(box.angle), y0 = box.y ?? 0, y1 = y0 + box.h, rects: Rect[] = [];
@@ -67,12 +87,31 @@ export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio:
   const out: Gap[] = [];
   for (const side of sides) {
     if (side === 'top') {
-      if (!studio) continue;
-      // The lowest ceiling over the wardrobe's footprint, less its tallest point.
-      let low = roomHeight(studio);
-      for (const [s, t] of [[-.45, -.45], [.45, -.45], [0, 0], [-.45, .45], [.45, .45]] as const) low = Math.min(low, ceilingAt(studio, at(s * box.w, t * box.d)));
-      const top = y0 + box.h, c = at(box.w / 2 - 6, box.d / 2);
-      if (low - top > -SAME && low - top < REACH) out.push({ side, distance: Math.max(0, low - top), from: { ...c, y: top }, to: { ...c, y: low }, target: 'ceiling' });
+      // The lowest ceiling or upper cabinet over the wardrobe's footprint, less its tallest point.
+      let low = studio ? roomHeight(studio) : Infinity, target: Gap['target'] = 'ceiling', otherBox: PlacedBox | undefined;
+      if (studio) for (const [s, t] of [[-.45, -.45], [.45, -.45], [0, 0], [-.45, .45], [.45, .45]] as const) low = Math.min(low, ceilingAt(studio, at(s * box.w, t * box.d)));
+      for (const o of others) {
+        const oy0 = o.y ?? 0;
+        if (o.id !== box.id && oy0 >= y1 - SAME && oy0 < low && footprintsOverlap(box, o)) { low = oy0; target = 'wardrobe'; otherBox = o; }
+      }
+      if (low < Infinity && low - y1 > -SAME && low - y1 < REACH) {
+        const c = at(verticalAnchor(box, otherBox), box.d / 2);
+        out.push({ side, distance: Math.round(Math.max(0, low - y1) * 10) / 10, from: { ...c, y: y1 }, to: { ...c, y: low }, target, ...(otherBox ? { other: otherBox.id } : {}) });
+      }
+      continue;
+    }
+    if (side === 'bottom') {
+      if (y0 <= SAME) continue;
+      // The highest cabinet below an elevated wardrobe's footprint, else the floor.
+      let high = 0, target: Gap['target'] = 'floor', otherBox: PlacedBox | undefined;
+      for (const o of others) {
+        const oy1 = (o.y ?? 0) + o.h;
+        if (o.id !== box.id && oy1 <= y0 + SAME && oy1 > high && footprintsOverlap(box, o)) { high = oy1; target = 'wardrobe'; otherBox = o; }
+      }
+      if (y0 - high > -SAME && y0 - high < REACH) {
+        const c = at(verticalAnchor(box, otherBox), box.d / 2);
+        out.push({ side, distance: Math.round(Math.max(0, y0 - high) * 10) / 10, from: { ...c, y: y0 }, to: { ...c, y: high }, target, ...(otherBox ? { other: otherBox.id } : {}) });
+      }
       continue;
     }
     const along = side === 'left' || side === 'right', sign = side === 'right' || side === 'front' ? 1 : -1;
@@ -148,21 +187,28 @@ export function nearerWallEnds(gaps: readonly Gap[], ends: readonly Gap[]): Gap[
 export function alignments(box: PlacedBox, gaps: readonly Gap[], others: readonly PlacedBox[]): Alignment[] {
   const out: Alignment[] = [], left = gaps.find(g => g.side === 'left'), right = gaps.find(g => g.side === 'right');
   if (left && right && left.distance > SAME && Math.abs(left.distance - right.distance) < SAME) out.push({ kind: 'centred', sides: ['left', 'right'] });
-  const touching = gaps.filter(g => g.side !== 'top' && g.distance < SAME).map(g => g.side);
+  const topGap = gaps.find(g => g.side === 'top'), bottomGap = gaps.find(g => g.side === 'bottom');
+  if (topGap && bottomGap && topGap.distance > SAME && Math.abs(topGap.distance - bottomGap.distance) < SAME) out.push({ kind: 'centred', sides: ['top', 'bottom'] });
+  const touching = gaps.filter(g => g.side !== 'top' && g.side !== 'bottom' && g.distance < SAME).map(g => g.side);
   if (touching.length) out.push({ kind: 'flush', sides: touching });
   const { u, f } = axes(box.angle), front = (b: PlacedBox) => { const a = axes(b.angle); return { x: b.x + a.f.x * b.d / 2, z: b.z + a.f.z * b.d / 2 }; };
-  const mine = front(box), y = (box.y ?? 0) + 1;
+  const mine = front(box), y0 = box.y ?? 0, y = y0 + 1;
   for (const o of others) {
     if (o.id === box.id || Math.abs(((o.angle - box.angle) % 360 + 540) % 360 - 180) > .5) continue;
     const theirs = front(o), off = (theirs.x - mine.x) * f.x + (theirs.z - mine.z) * f.z, along = (theirs.x - mine.x) * u.x + (theirs.z - mine.z) * u.z;
-    if (Math.abs(off) < SAME) {
+    const oy0 = o.y ?? 0;
+    if (Math.abs(off) < SAME && oy0 < y0 + box.h - SAME && oy0 + o.h > y0 + SAME) {
       const s0 = Math.min(-box.w / 2, along - o.w / 2), s1 = Math.max(box.w / 2, along + o.w / 2);
       out.push({ kind: 'fronts', other: o.id, a: { x: mine.x + u.x * s0, y, z: mine.z + u.z * s0 }, b: { x: mine.x + u.x * s1, y, z: mine.z + u.z * s1 } });
     }
     const near = Math.abs(along) - (box.w + o.w) / 2;
-    if (near < 30 && Math.abs((o.y ?? 0) + o.h - ((box.y ?? 0) + box.h)) < SAME) {
-      const top = (box.y ?? 0) + box.h, s0 = Math.min(-box.w / 2, along - o.w / 2), s1 = Math.max(box.w / 2, along + o.w / 2);
+    if (near < 30 && Math.abs(oy0 + o.h - (y0 + box.h)) < SAME) {
+      const top = y0 + box.h, s0 = Math.min(-box.w / 2, along - o.w / 2), s1 = Math.max(box.w / 2, along + o.w / 2);
       out.push({ kind: 'tops', other: o.id, a: { x: mine.x + u.x * s0, y: top, z: mine.z + u.z * s0 }, b: { x: mine.x + u.x * s1, y: top, z: mine.z + u.z * s1 } });
+    }
+    if (y0 > SAME && near < 30 && Math.abs(oy0 - y0) < SAME) {
+      const s0 = Math.min(-box.w / 2, along - o.w / 2), s1 = Math.max(box.w / 2, along + o.w / 2);
+      out.push({ kind: 'tops', other: o.id, a: { x: mine.x + u.x * s0, y: y0, z: mine.z + u.z * s0 }, b: { x: mine.x + u.x * s1, y: y0, z: mine.z + u.z * s1 } });
     }
   }
   return out;

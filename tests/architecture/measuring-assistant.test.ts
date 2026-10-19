@@ -23,6 +23,13 @@ test('gaps to the side wall, the next wardrobe, the wall behind, the room in fro
   assert.deepEqual(read(gapsAround(a, [a], undefined, ['left', 'right', 'top'])), {}, 'on an open floor, nothing to measure to');
   const wallCab = box({ id: 3, x: -120, y: 142, w: 60, d: 35, h: 117.4 }), floorBase = box({ id: 4, x: -190, y: 0, w: 60, d: 58, h: 87 });
   assert.equal(gapsAround(wallCab, [wallCab, floorBase], bedroom(), ['left'])[0]?.target, 'wall', 'a wall cabinet ignores a floor cabinet below its height and measures to the wall');
+  const underCab = box({ id: 5, x: -120, y: 0, w: 60, d: 58, h: 86 }), upperCab = box({ id: 6, x: -120, y: 142, w: 60, d: 35, h: 70 });
+  const vGaps = gapsAround(upperCab, [upperCab, underCab], bedroom(), ['top', 'bottom']);
+  assert.deepEqual(read(vGaps), { top: 48, bottom: 56 }, 'vertical gaps measure to the ceiling above and the base cabinet below');
+  assert.equal(vGaps.find(g => g.side === 'bottom')!.target, 'wardrobe');
+  const floorVGaps = gapsAround(upperCab, [upperCab], bedroom(), ['bottom']);
+  assert.deepEqual(read(floorVGaps), { bottom: 142 }, 'with no cabinet below, bottom measures to the floor');
+  assert.equal(floorVGaps[0]!.target, 'floor');
 });
 
 test('a gap is the smallest of three readings, as a tape at the top, middle and bottom of an opening', () => {

@@ -19,10 +19,10 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
   /** While a wardrobe is dragged: the nearest of touching its neighbour or the wall on either side, sitting
    * centred between them, or putting its front in line with another wardrobe's, within `tolerance` cm. The
    * pose to use (unchanged when nothing is that close, or when it would run into something). */
-  function alignSnap(cabinet: EditorCabinet, tolerance: number, depth = true): Pick<EditorCabinet, 'x' | 'z'> {
+  function alignSnap(cabinet: EditorCabinet, tolerance: number, depth = true): Pick<EditorCabinet, 'x' | 'z'> & { y?: number } {
     const a = cabinet.angle * Math.PI / 180, u = { x: Math.cos(a), z: -Math.sin(a) }, f = { x: Math.sin(a), z: Math.cos(a) };
-    const { gaps } = measureAround(getScene(), cabinet, ['left', 'right', 'back']), at = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
-    const left = at('left'), right = at('right');
+    const { gaps } = measureAround(getScene(), cabinet, ['left', 'right', 'back', 'top', 'bottom']), at = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
+    const left = at('left'), right = at('right'), y0 = cabinet.y || 0;
     // Along its width: touching a neighbour or the wall on either side, or centred between them.
     // A piece already touching something stays touching it: a snap never pulls it away from the side it was put against.
     const touchingLeft = left !== undefined && left <= .05, touchingRight = right !== undefined && right <= .05;
@@ -31,23 +31,32 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
     if (right !== undefined && !touchingLeft) across.push(right);
     if (left !== undefined && right !== undefined && !touchingLeft && !touchingRight) across.push((right - left) / 2);
     // Along its depth: its front in line with a wardrobe turned the same way (not when it is pressed to a wall: the wall wins).
-    const along: number[] = [];
-    if (depth) for (const o of getScene().wardrobes) {
-      const y0 = cabinet.y || 0, oy0 = o.y || 0;
-      if (o.id === cabinet.id || oy0 >= y0 + cabinet.state.h - .5 || oy0 + o.state.h <= y0 + .5 || Math.abs(((o.angle - cabinet.angle) % 360 + 540) % 360 - 180) > .5) continue;
+    const along: number[] = [], vertical: number[] = [];
+    for (const o of getScene().wardrobes) {
+      const oy0 = o.y || 0;
+      if (o.id === cabinet.id || Math.abs(((o.angle - cabinet.angle) % 360 + 540) % 360 - 180) > .5) continue;
+      if (y0 > .5 && oy0 > .5) {
+        vertical.push(oy0 - y0, (oy0 + o.state.h) - (y0 + cabinet.state.h));
+      }
+      if (!depth || oy0 >= y0 + cabinet.state.h - .5 || oy0 + o.state.h <= y0 + .5) continue;
       along.push((o.x - cabinet.x) * f.x + (o.z - cabinet.z) * f.z + (o.state.d - cabinet.state.d) / 2);
     }
     // The two are separate choices: a front that is nearly in line must not stop it closing a gap beside a neighbour.
     const nearest = (moves: number[]) => moves.filter(m => Math.abs(m) > .05 && Math.abs(m) <= tolerance).sort((p, q) => Math.abs(p) - Math.abs(q))[0] ?? 0;
-    const s = nearest(across), t = nearest(along);
-    if (!s && !t) return { x: cabinet.x, z: cabinet.z };
+    const s = nearest(across), t = nearest(along), dy = y0 > .5 ? nearest(vertical) : 0;
+    if (!s && !t && !dy) return { x: cabinet.x, z: cabinet.z };
     const round = (v: number) => Math.round(v * 10) / 10;
+    let out: Pick<EditorCabinet, 'x' | 'z'> & { y?: number } = { x: cabinet.x, z: cabinet.z };
     for (const [ds, dt] of [[s, t], [s, 0], [0, t]] as const) {
       if (!ds && !dt) continue;
       const pose = { x: round(cabinet.x + u.x * ds + f.x * dt), z: round(cabinet.z + u.z * ds + f.z * dt) };
-      if (!collision.cabinetCollides({ ...cabinet, ...pose })) return pose;
+      if (!collision.cabinetCollides({ ...cabinet, ...pose })) { out = pose; break; }
     }
-    return { x: cabinet.x, z: cabinet.z };
+    if (dy) {
+      const nextY = Math.max(0, round(y0 + dy));
+      if (!collision.cabinetCollides({ ...cabinet, ...out, y: nextY })) out = { ...out, y: nextY };
+    }
+    return out;
   }
   /** Room beside a kitchen unit that a wider unit could fill: its gaps to the walls and units on either side, where
    * those are close (a gap that is a whole other cabinet wide is not one to fill). Centimetres. */

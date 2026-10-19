@@ -48,9 +48,9 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
     mine.push(entry);
   }
   /** A dimension line with short ticks across its ends. */
-  function dimension(a: THREE.Vector3, b: THREE.Vector3, m: THREE.Material) {
-    const dir = b.clone().sub(a), vertical = Math.abs(dir.y) > Math.hypot(dir.x, dir.z);
-    const tick = vertical ? new THREE.Vector3(5, 0, 0) : new THREE.Vector3(0, 5, 0);
+  function dimension(a: THREE.Vector3, b: THREE.Vector3, m: THREE.Material, angle = 0) {
+    const dir = b.clone().sub(a), vertical = Math.abs(dir.y) > Math.hypot(dir.x, dir.z), rad = angle * Math.PI / 180;
+    const tick = vertical ? new THREE.Vector3(Math.cos(rad) * 5, 0, -Math.sin(rad) * 5) : new THREE.Vector3(0, 5, 0);
     const pts = [a, b, a.clone().add(tick), a.clone().sub(tick), b.clone().add(tick), b.clone().sub(tick)];
     const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), m);
     line.renderOrder = 30;
@@ -58,18 +58,20 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   }
 
   /** Draws the gaps and alignments given; with nothing, clears. */
-  function draw(gaps: readonly Gap[] = [], aligned: readonly Alignment[] = []) {
+  function draw(gaps: readonly Gap[] = [], aligned: readonly Alignment[] = [], angle = 0) {
     clear();
     const green = new Set(aligned.flatMap(a => a.kind === 'centred' || a.kind === 'flush' ? a.sides ?? [] : []));
+    const rad = angle * Math.PI / 180, alongBar = new THREE.Vector3(Math.cos(rad) * 25, 0, -Math.sin(rad) * 25);
     for (const g of gaps) {
       const a = new THREE.Vector3(g.from.x, g.from.y, g.from.z), b = new THREE.Vector3(g.to.x, g.to.y, g.to.z);
       const short = g.side === 'front' && g.distance < DOOR_ROOM, good = green.has(g.side);
       if (g.distance < .5) {
         // Touching: a short green bar on the face where it meets (the wall strip says so at the back).
-        if (g.side === 'left' || g.side === 'right') dimension(a.clone().add(new THREE.Vector3(0, 25, 0)), a.clone().sub(new THREE.Vector3(0, 25, 0)), ok);
+        if (g.side === 'left' || g.side === 'right') dimension(a.clone().add(new THREE.Vector3(0, 25, 0)), a.clone().sub(new THREE.Vector3(0, 25, 0)), ok, angle);
+        else if (g.side === 'top' || g.side === 'bottom') dimension(a.clone().add(alongBar), a.clone().sub(alongBar), ok, angle);
         continue;
       }
-      dimension(a, b, good ? ok : short ? tight : ink);
+      dimension(a, b, good ? ok : short ? tight : ink, angle);
       // Near the wardrobe being changed, so a long gap's tag stays in view: half way, or 25 cm out at most.
       if (!good) tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + unitSuffix(), short ? 'tight' : '');
     }
@@ -88,10 +90,10 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   };
 }
 
-type Size = 'w' | 'h' | 'd';
+type Size = 'w' | 'h' | 'd' | 'y';
 /** The sides measured while a size changes, and the alignments that matter for it. */
-export const SIZE_SIDES: Record<Size, GapSide[]> = { w: ['left', 'right'], h: ['top'], d: ['front', 'back'] };
-const SIZE_ALIGN: Record<Size, Alignment['kind'][]> = { w: ['centred', 'flush'], h: ['tops'], d: ['fronts', 'flush'] };
+export const SIZE_SIDES: Record<Size, GapSide[]> = { w: ['left', 'right'], h: ['top', 'bottom'], d: ['front', 'back'], y: ['top', 'bottom'] };
+const SIZE_ALIGN: Record<Size, Alignment['kind'][]> = { w: ['centred', 'flush'], h: ['tops', 'flush'], d: ['fronts', 'flush'], y: ['tops', 'centred', 'flush'] };
 
 /** The assistant for the selected wardrobe: measures it in the scene and draws what matters for what is
  * being done (`mode` 'move' or 'size'). While it shows, the label layer is marked so other handles hide. */
@@ -103,7 +105,7 @@ export function createWardrobeAssist(ports: AssistOverlayPorts) {
     if (!sides || !cabinet) { overlay.clear(); if (host && (host.dataset.assist === 'move' || host.dataset.assist === 'size')) delete host.dataset.assist; return; }
     const m = measureAround(scene, cabinet, sides, { wallEnds: true }), sideways = sides.includes('left'), keep = mode === 'size' && editing ? SIZE_ALIGN[editing] : null;
     // Moved sideways, the room in front matters only when it is getting tight.
-    overlay.draw(m.gaps.filter(g => !(sideways && g.side === 'front' && g.distance > 120)), m.aligned.filter(a => !keep || keep.includes(a.kind)));
+    overlay.draw(m.gaps.filter(g => !(sideways && g.side === 'front' && g.distance > 120)), m.aligned.filter(a => !keep || keep.includes(a.kind)), cabinet.angle);
     if (host) host.dataset.assist = mode;
   }
   return { show, dispose: overlay.dispose };

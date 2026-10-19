@@ -150,8 +150,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         // Lines up with what is near (touching, centred, fronts in line) within about 8 pixels; Shift moves freely.
         if (g.axis !== 'y' && !e.shiftKey) sceneCommands.restorePose(g.id, sceneCommands.alignSnap(w, Math.min(15, 8 / Math.max(.05, Math.hypot(g.projected.x.x, g.projected.x.y))), !snap));
         callbacks.wallGuide(snap ? backEdge(snap, w.state) : null);
-        // The gaps it is moved along: to the walls and wardrobes beside it, behind and in front, or the ceiling above.
-        callbacks.assist(g.axis === 'x' ? ['left', 'right'] : g.axis === 'z' ? ['back', 'front'] : g.axis === 'y' ? ['top'] : ['left', 'right', 'back', 'front']);
+        // The gaps it is moved along: to the walls and wardrobes beside it, behind and in front, or the ceiling and units above and below.
+        const sides = g.axis === 'x' ? ['left', 'right'] : g.axis === 'z' ? ['back', 'front'] : g.axis === 'y' ? ['top', 'bottom']
+            : (hangs(w.state) || (w.y || 0) > .5) ? ['left', 'right', 'top', 'bottom', 'back', 'front'] : ['left', 'right', 'back', 'front'];
+        callbacks.assist(/** @type {import('../../domain/studio/scene-gaps').GapSide[]} */ (sides));
         renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.position.set(w.x, w.y, w.z);
         renderState.Gr.children.forEach(o => {
