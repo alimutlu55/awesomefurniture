@@ -19,8 +19,8 @@ test('a chosen piece already in view at a workable size: the camera stays where 
     assert.equal(phoneFraming({ cam: camera({ dist: 800 }), view, pose: piece, box: whole, fit, dist: 800, part: false }), null);
 });
 
-test('a piece seen tiny from far away: the camera comes just close enough for it to fill about half the view', () => {
-    const goal = phoneFraming({ cam: camera({ dist: 3000 }), view, pose: piece, box: whole, fit, dist: 3000, part: false });
+test('a piece seen tiny from far away: the camera comes just close enough for it to fill about a third of the view', () => {
+    const goal = phoneFraming({ cam: camera({ dist: 5000 }), view, pose: piece, box: whole, fit, dist: 5000, part: false });
     assert.deepEqual(goal, { x: 0, y: 100, z: 0, dist: fit / FILL.piece.aim });
 });
 

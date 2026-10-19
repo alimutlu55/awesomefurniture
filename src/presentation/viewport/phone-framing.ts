@@ -2,7 +2,7 @@ import { Vector3, type Camera } from 'three';
 
 /** How much of the usable view a chosen piece, or a chosen fitting or board, may take before the camera moves (lo to
  * hi), and how much it takes when the camera does move (aim). A piece keeps room around it to be moved. */
-export const FILL = { piece: { lo: .3, hi: .85, aim: .55 }, part: { lo: .3, hi: .7, aim: .32 } } as const;
+export const FILL = { piece: { lo: .15, hi: .85, aim: .35 }, part: { lo: .3, hi: .7, aim: .32 } } as const;
 /** The bars over the view on a phone: the mode switch and menu at the top, the toolbar at the bottom (in pixels). */
 export const BARS = { top: 64, bottom: 115, side: 14 } as const;
 
