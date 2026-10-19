@@ -213,12 +213,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.z = w.z - focusX * Math.sin(angle);
             const contextDistance = cameraFitDistance({ w: f.w + 2 * Math.abs(focusX), h: f.h + 2 * Math.abs(focusY), d: f.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
             goal.dist = contextDistance * 1.025;
-            // On a phone the camera moves as little as it can for what was chosen (the piece, or its fitting or board):
-            // not at all when it is in view at a workable size, else just enough (phone-framing.ts).
+            // On a phone what was chosen (the piece, or its fitting or board) comes to the middle of the view, zooming
+            // only when it is too small to work on or too big to see whole (phone-framing.ts).
             if (dom.width <= 900) {
                 const part = w.state.item >= 0 || w.state.divider >= 0, at = part ? box : { x: 0, y: w.state.h / 2, w: w.state.w, h: w.state.h, d: w.state.d };
                 const now = cameraState.camGoal ?? camNow(), fit = cameraFitDistance(at, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
-                Object.assign(goal, phoneFraming({ cam: resources.cam, view, pose: { ...w, angle }, box: at, fit, dist: now.dist, part }) ?? { x: now.x, y: now.y, z: now.z, dist: now.dist });
+                Object.assign(goal, phoneFraming({ pose: { ...w, angle }, box: at, fit, dist: now.dist, part }));
             }
         }
         // Panel resizing changes the destination, not the animation's origin or clock.

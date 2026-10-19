@@ -55,21 +55,17 @@ test('mobile button zoom centres the wardrobe instead of chasing a low selected 
  near(run('zoomTarget'),400);
 });
 
-test('on a phone, choosing something already in view leaves the camera where it is; a tiny fitting is brought closer, and a panel resizing keeps that flight',t=>{
+test('on a phone, choosing a piece brings it to the middle at the same zoom; a tiny fitting is brought closer, and a panel resizing keeps that flight',t=>{
  const previous=global.getComputedStyle;
  global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
  let height=640;
- const THREE=require('three'),{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({left:0,top:0,right:390,bottom:height,width:390,height})}),document:{documentElement:{}}});
- const cam=new THREE.PerspectiveCamera(35,390/640,5,50000);
- const aim=()=>{const s=JSON.parse(run('JSON.stringify({az,el,dist,x:tgt.x,y:tgt.y,z:tgt.z})'));cam.position.set(s.x+s.dist*Math.cos(s.el)*Math.sin(s.az),s.y+s.dist*Math.sin(s.el),s.z+s.dist*Math.cos(s.el)*Math.cos(s.az));cam.lookAt(s.x,s.y,s.z);};
- // The 200 cm wardrobe fills about 70% of the usable view from 900 cm: a workable size.
- run('az=.4;el=.3;dist=900;tgt.set(0,100,0);S.item=-1;S.divider=-1');run('this').cam=cam;aim();
- const before=run('JSON.stringify(camNow())');run('frameMobileInspector(true)');
- assert.equal(run('camGoal'),null,'the wardrobe is in view at a workable size: no move');assert.equal(run('JSON.stringify(camNow())'),before);
- run('S.item=0;S.sel=0;itemGeom=()=>({x0:80,x1:120,y0:20,y1:40,w:40,h:20});dist=4000');aim();
- run('frameMobileInspector(true);savedGoal=camGoal');
- assert.ok(run('camGoal')&&run('camGoal.dist')<4000,'a fitting seen tiny is brought closer');near(run('camGoal.y'),30);
+ const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({left:0,top:0,right:390,bottom:height,width:390,height})}),document:{documentElement:{}}});
+ // Looking past the wardrobe at 900 cm, where it fills a workable part of the view.
+ run('az=.4;el=.3;dist=900;tgt.set(150,60,-80);S.item=-1;S.divider=-1;frameMobileInspector(true)');
+ near(run('camGoal.x'),0);near(run('camGoal.y'),100);near(run('camGoal.z'),0);near(run('camGoal.dist'),900);
+ run('cameraTick(5000,1/60);S.item=0;S.sel=0;itemGeom=()=>({x0:80,x1:120,y0:20,y1:40,w:40,h:20});dist=4000;frameMobileInspector(true);savedGoal=camGoal');
+ assert.ok(run('camGoal.dist')<4000,'a fitting seen tiny is brought closer');near(run('camGoal.y'),30);
  near(run('camGoal.az'),.4);near(run('camGoal.el'),.3);
  time(100);run('cameraTick(100,1/60)');height=520;run('frameMobileInspector(true,true)');
  assert.equal(run('camGoal===savedGoal'),true,'a panel resizing keeps the flight under way');
