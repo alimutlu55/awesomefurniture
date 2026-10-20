@@ -9,7 +9,7 @@ export function observeViewportSize({ dom, camera, lifetime }) {
     lifetime.observe(new ResizeObserver(camera.resize), $('#view'));
 }
 /** @param {import('./canvas.ports').BindCanvasPointerdownPorts} ports */
-export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
+export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
     // The right button pans; it opens no menu on the model.
     lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
@@ -31,7 +31,6 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         resources.cv.setPointerCapture(e.pointerId);
         interactionState.ptrs.set(e.pointerId, e);
         if (interactionState.ptrs.size > 1) {
-            interactionState.pendingFurniture = null;
             touch.release();
             kitchenArray?.holdCancel();
             if (kitchenArray?.active()) kitchenArray.end(true);
@@ -59,9 +58,8 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         }
         // The selected room surface moves unless furniture is in front of it.
         if (room?.grab(e, picking.cast(e, renderState.allHits))) return;
-        // Only what is chosen moves, by mouse or finger: tap first, then drag. A press on the chosen fitting or board drags
-        // it; anywhere else on the chosen piece it moves the whole piece. On anything not chosen a drag turns the view and
-        // a tap chooses it.
+        // Two selection layers: only the furniture layer may move the whole
+        // piece. Inside it, only the chosen fitting or board is draggable.
         const chosen = selectionState.focusOn, state = model.activeCabinet().state;
         const part = chosen && !selectionState.shapeEditing ? picking.cast(e, renderState.ihits)?.object ?? null : null, u = part?.userData;
         const onPart = !!part && u.wardrobe === model.scene.activeWardrobe
@@ -69,7 +67,6 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         // The piece moves once the pointer moves, so a tap on it still chooses what is under it. Its frame counts as the piece.
         const pieceUnder = () => picking.cast(e, renderState.allHits)?.object.userData.wardrobe ?? picking.pieceAt(e);
         const body = !onPart && !selectionState.shapeEditing ? pieceUnder() : undefined;
-        interactionState.pendingFurniture = chosen && body === model.scene.activeWardrobe && inspector.inside() ? { id: body, event: e } : null;
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
             // The chosen divider is dragged where it is.
@@ -86,19 +83,19 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
                 return;
             }
         }
-        // A finger held still on the selected kitchen unit pulls out copies, also while a space in it is chosen.
-        if (kitchenArray && selectionState.focusOn && !selectionState.shapeEditing && pieceUnder() === model.scene.activeWardrobe) {
-            // Once held, the press is a pull: no tap, orbit or item drag follows from it.
-            kitchenArray.holdStart(e.clientX, e.clientY, () => { interactionState.moved = 99; interactionState.drag = null; });
-        }
         if (onPart && part.userData.divider === undefined && !doorsShut) {
-            const p = picking.frontPoint(e), mesh = /** @type {import('three').Mesh<import('three').BoxGeometry>} */(part);
-            interactionState.drag = { from: { i: u.i, j: u.j }, offsetX: p ? p.x - mesh.position.x : 0, offsetY: p ? p.y - mesh.position.y : 0, cx: mesh.position.x, cy: mesh.position.y, hw: mesh.geometry.parameters.width / 2, hh: mesh.geometry.parameters.height / 2, settling: false, started: false, id: e.pointerId };
+            const p = picking.frontPoint(e), g = geometry.itemGeom(u.i, u.j);
+            if (!g) return;
+            // Cut fittings use an extruded outline with its mesh at the origin.
+            // Grabbing is measured from the model, independent of mesh shape.
+            const cx = (g.x0 + g.x1) / 2 - state.w / 2, cy = (g.y0 + g.y1) / 2;
+            interactionState.drag = { from: { i: u.i, j: u.j }, offsetX: p ? p.x - cx : 0, offsetY: p ? p.y - cy : 0,
+                cx, cy, hw: g.w / 2, hh: g.h / 2, settling: false, started: false, id: e.pointerId };
         }
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointermovePorts} ports */
-export function bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room, kitchenArray }) {
+export function bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room, kitchenArray }) {
     const { $ } = dom;
     lifetime.listen(resources.cv, 'pointermove', e => {
         if (room?.dragging()) {
@@ -143,17 +140,6 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
         const o = interactionState.ptrs.get(e.pointerId);
         interactionState.moved = Math.max(interactionState.moved, Math.hypot(e.clientX - interactionState.sx, e.clientY - interactionState.sy));
         if (interactionState.ptrs.size === 1) {
-            const pending = interactionState.pendingFurniture;
-            if (pending && interactionState.moved >= 5) {
-                // Pressed on a wardrobe or cabinet: it follows the pointer across the floor. Its frame becomes the
-                // active one so the drag measures against it; nothing else about the selection or the view changes.
-                interactionState.pendingFurniture = null;
-                const was = model.scene.activeWardrobe;
-                if (model.select(pending.id) && was !== pending.id) rendering.build();
-                interactions.beginWardrobeDrag(pending.event, 'floor');
-                interactions.moveWardrobeFromPointer(e);
-                return;
-            }
             if (interactionState.drag) {
                 if (interactionState.moved >= 6) {
                     if (!interactionState.drag.started) {
@@ -207,7 +193,6 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
         const tracked = interactionState.ptrs.has(e.pointerId), pan = interactionState.panGesture?.id === e.pointerId;
         if (!tracked && !pan) return;
         releaseCanvasPointer(interactionState, resources.cv, e.pointerId);
-        interactionState.pendingFurniture = null;
         touch.release(); touch.stopFollowing();
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) {

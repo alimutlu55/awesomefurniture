@@ -221,15 +221,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.moveIcons = [];
         dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
         if (selectionState.focusOn && model.scene.wardrobes.length) {
-            const chosen = model.activeCabinet().state;
-            // Turning, like moving, needs only the piece selected: also while a space in it is chosen, not a fitting or divider.
-            if (!selectionState.shapeEditing && chosen.item < 0 && chosen.divider < 0) addRotationIndicator();
-            if (!inspector.inside()) {
+            // Movement, rotation and array grips belong to the furniture layer.
+            if (!selectionState.shapeEditing && !inspector.inside()) {
+                addRotationIndicator();
                 addWardrobeActions();
                 addWardrobeMoveHandles();
+                kitchenArray?.place();
             }
-            // A selected kitchen unit can be pulled out into copies from either side, also while a space in it is chosen.
-            if (!selectionState.shapeEditing && model.activeCabinet().state.item < 0) kitchenArray?.place();
         }
         WardrobePlanner.configure(geometry.plannerConfig());
         inspector.crumbUI();

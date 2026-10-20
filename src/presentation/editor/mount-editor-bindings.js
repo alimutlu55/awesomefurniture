@@ -50,8 +50,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerRemove({ dom, commands });
     observeViewportSize({ dom, camera, lifetime });
     const touch = createTouchCamera({ dom, camera, cameraState, lifetime, picking });
-    bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, model, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     bindCanvasPointercancel({ dom, touch, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     // Escape during a pull puts the copies back.

@@ -68,8 +68,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         model.activeCabinet().state.item = -1;
         model.activeCabinet().state.divider = -1;
         model.activeCabinet().state.space = null;
-        selectionState.pillOn = true;
-        selectionState.deep = true;
+        selectionState.pillOn = false;
+        selectionState.deep = false;
         update();
         if (dom.width > 900) camera.frameMobileInspector(true);
     }
@@ -204,7 +204,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#quests').innerHTML = shell.Q.map(q => `<li class="q ${shellState.G.done[q[0]] ? 'done' : ''}"><span class="ck">${shellState.G.done[q[0]] ? '✓' : ''}</span><span>${q[1]}<small>${q[2]}</small></span><em>+${q[3]}</em></li>`).join('');
     }
     function inside() {
-        return selectionState.deep || model.activeCabinet().state.item >= 0;
+        const state = model.activeCabinet().state;
+        return selectionState.deep || state.item >= 0 || state.divider >= 0;
     }
     function goUp(to) {
         model.activeCabinet().state.space = null;

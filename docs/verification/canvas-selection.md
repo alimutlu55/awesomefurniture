@@ -25,3 +25,13 @@ Run `npm run check` for tests, type checks, dependency boundaries, architecture 
 With Vite running at `http://127.0.0.1:4173`, run `node scripts/check-canvas-selection.cjs`. Set `MOBILE_TEST_URL` for a different Vite origin. The browser check mounts the production editor and uses native mouse/touch input and pointer capture at 375, 844 and 1440 pixels. It is also included in `npm run check:mobile`.
 
 The broader `check-tactile-canvas.cjs` script currently times out at its initial `.scrub-w:visible` wait: it assumes the initial wardrobe is already selected. The same startup condition was verified against the unchanged `2c7e9c5` commit and the fixed code (toolbar context `none`, zero visible width labels). It does not exercise an interaction before failing.
+
+## Two selection layers and interior dragging
+
+The first click selects the furniture without selecting its interior. A second click selects an item, divider, shelf board or section. The furniture can move, rotate or expose array grips only at the furniture layer. Interior selection locks those transforms at both the pointer-routing and gesture boundaries; dragging another part or the frame cannot fall back to moving the furniture.
+
+Thin divider pointer targets overlap adjacent fitting volumes. At the same ray depth the divider wins that overlap, independent of mesh build order; a genuinely closer object still wins. Both selection and drag-start picking use this rule.
+
+Fitting grab offsets and bounds come from `itemGeom`, not mesh positions or `BoxGeometry` parameters. Roof-cut fittings have extruded meshes at the origin and use the same model-based dragging as rectangular fittings. Shelves move vertically and vertical dividers move horizontally, within existing collision, attachment and ceiling constraints.
+
+`node scripts/check-interior-drag.cjs` checks the two layers, movement at the furniture layer, direct divider/shelf/fitting dragging, and furniture locking while an item or section is selected, using touch and mouse in wardrobes and kitchen cabinets. It uses the same Vite origin setting as the selection check and is included in `check:mobile`. Unit regressions cover all catalog fitting kinds, rectangular and roof-cut grabs, gesture-boundary locks and divider picking order.

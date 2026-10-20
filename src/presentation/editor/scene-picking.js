@@ -13,7 +13,13 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         const r = resources.cv.getBoundingClientRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         // A wardrobe hidden because it blocks the view takes no clicks: they reach what is behind it.
-        return interactionState.ray.intersectObjects(arr).find(h => shown(h.object));
+        const hits = interactionState.ray.intersectObjects(arr).filter(h => shown(h.object)), first = hits[0];
+        // Thin boards have a wider pointer target, which overlaps adjacent
+        // fitting volumes at the same front plane. The board owns that overlap;
+        // insertion order must not make it impossible to select or drag.
+        return first && (hits.find(h => h.object.userData.divider !== undefined
+            && h.object.userData.wardrobe === first.object.userData.wardrobe
+            && Math.abs(h.distance - first.distance) < .0001) ?? first);
     }
     /** Whether the object's top group (a wardrobe, or the room) is on show. */
     function shown(object) {

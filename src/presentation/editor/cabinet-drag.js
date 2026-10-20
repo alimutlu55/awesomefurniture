@@ -7,6 +7,7 @@ const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> & { wallGuide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null): void; assist(sides: import('../../domain/studio/scene-gaps').GapSide[] | null): void } }} ports */
 export function createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks }) {
     function beginRotation(e, handle) {
+        if (inspector.inside()) return;
         callbacks.cancelMovement();
         camera.camRelease();
         inspector.hidePop();
@@ -24,6 +25,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         if (!g) {
             return;
         }
+        if (inspector.inside()) { finishRotation(true); return; }
         const w = model.activeCabinet(), p = picking.groundPoint(e);
         if (g.x === null) {
             g.x = e.clientX;
@@ -69,6 +71,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         inspector.update(true);
     }
     function beginWardrobeDrag(e, axis, handle = null) {
+        if (inspector.inside()) return;
         if (interactionState.rotationGesture) {
             finishRotation();
         }
@@ -98,6 +101,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         if (!g) {
             return;
         }
+        if (inspector.inside()) { finishWardrobeDrag(true); return; }
         const dx = e.clientX - g.x, dy = e.clientY - g.y;
         if (!g.moved && Math.hypot(dx, dy) < 5) {
             return;

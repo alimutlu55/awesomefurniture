@@ -13,7 +13,7 @@ export function cancelCanvasSession({ touch, interactions, interactionState, res
     const ids = [...interactionState.ptrs.keys()];
     if (interactionState.panGesture) ids.push(interactionState.panGesture.id);
     interactionState.ptrs.clear();
-    interactionState.pendingFurniture = interactionState.panGesture = null;
+    interactionState.panGesture = null;
     interactionState.rotationClick = false;
     interactionState.moved = 99;
     touch.release(); touch.stopFollowing();

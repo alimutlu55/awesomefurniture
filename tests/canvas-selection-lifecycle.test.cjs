@@ -11,6 +11,7 @@ const { createEditorGestures } = require('../src/presentation/editor/editor-gest
 const { createInteractionState } = require('../src/presentation/editor/interaction-state.js');
 const { createSelectionState } = require('../src/presentation/editor/selection-state.js');
 const bindings = require('../src/presentation/editor/bindings/canvas.js');
+const { MODS } = require('../src/domain/wardrobe/catalog.js');
 
 /** Real selection and drag implementations, with a deterministic picking boundary and DOM pointer capture. */
 function fixture(width = 375) {
@@ -32,17 +33,17 @@ function fixture(width = 375) {
         hasPointerCapture: id => captures.has(id), releasePointerCapture: id => { captures.delete(id); lost.add(id); } };
     const dom = { width, window: windowEvents, $: id => { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); }, matchMedia: () => ({ matches: true }) };
     const lifetime = { listen(target, name, fn) { const key = (target === cv ? 'canvas:' : 'window:') + name; handlers.set(key, [...(handlers.get(key) ?? []), fn]); } };
-    const group = new THREE.Group(), bay = new THREE.Mesh(), divider = new THREE.Mesh(new THREE.BoxGeometry(96.4, 5, 60));
-    bay.userData = { wardrobe: 1, i: 0 }; divider.userData = { wardrobe: 1, i: 0, divider: 0 }; group.add(bay, divider);
-    const renderState = { Gr: group, allHits: [bay], hits: [bay], allItemHits: [divider], ihits: [divider], wardrobeGroups: [group], outs: [] };
-    const picking = { cast: (e, arr) => (e.zone === 'divider' && arr.includes(divider) ? { object: divider } : ['bay', 'divider'].includes(e.zone) && arr.includes(bay) ? { object: bay } : undefined),
+    const group = new THREE.Group(), bay = new THREE.Mesh(), divider = new THREE.Mesh(new THREE.BoxGeometry(96.4, 5, 60)), fitting = new THREE.Mesh();
+    bay.userData = { wardrobe: 1, i: 0 }; divider.userData = { wardrobe: 1, i: 0, divider: 0 }; fitting.userData = { wardrobe: 1, i: 0, j: 0 }; group.add(bay, divider, fitting);
+    const renderState = { Gr: group, allHits: [bay], hits: [bay], allItemHits: [divider, fitting], ihits: [divider, fitting], wardrobeGroups: [group], outs: [] };
+    const picking = { cast: (e, arr) => (e.zone === 'fitting' && arr.includes(fitting) ? { object: fitting } : e.zone === 'divider' && arr.includes(divider) ? { object: divider } : ['bay', 'divider', 'fitting'].includes(e.zone) && arr.includes(bay) ? { object: bay } : undefined),
         pieceAt: e => e.zone === 'frame' ? 1 : undefined, hitAt: () => -1,
         frontPoint: e => new THREE.Vector3(e.clientX, e.clientY, 0), groundPoint: e => new THREE.Vector3(e.clientX, 0, e.clientY), screenPoint: p => ({ x: p.x, y: p.z - p.y }) };
     const cameraState = { tgt: new THREE.Vector3(), vs: 0, vz: 1, el: .4 };
     const camera = { camRelease() {}, moveViewOff() {}, frameMobileInspector() {}, frameScene() {}, panBy() {} };
     let panel = '#pop4';
     const reset = () => { Object.assign(state(), { item: -1, divider: -1, space: null }); selectionState.deep = selectionState.pillOn = false; panel = null; };
-    const inspector = { inside: () => selectionState.deep || state().item >= 0, update() {}, histUI() {}, movementUI() {}, reopenItemPanel() {},
+    const inspector = { inside: () => selectionState.deep || state().item >= 0 || state().divider >= 0, update() {}, histUI() {}, movementUI() {}, reopenItemPanel() {},
         hidePop: () => { panel = null; }, showPop: (_e, id) => { panel = id; },
         selectCabinet: () => { reset(); selectionState.focusOn = true; }, clearFocus: () => { reset(); selectionState.focusOn = false; } };
     const rendering = { holdOverlay() {}, clearPreview() {}, wallGuide() {}, assist() {}, build() {}, refreshDividerVisual() {} };
@@ -50,7 +51,7 @@ function fixture(width = 375) {
     const interactions = createEditorGestures({ dom, camera, rendering, inspector, picking, model, cameraState, interactionState, renderState, selectionState,
         geometry, cabinetGeometry: createCabinetGeometry(() => model.scene.wardrobes), commands: createDesignCommands(state),
         sceneCommands: createSceneCommands(() => model.scene), resources: { cv }, history: { checkpoint: s => checkpoints.push(s) } });
-    const ports = { dom, camera, rendering, inspector, picking, model, cameraState, interactionState, renderState, selectionState, interactions,
+    const ports = { dom, camera, rendering, inspector, picking, model, geometry, cameraState, interactionState, renderState, selectionState, interactions,
         resources: { cv }, lifetime, touch: { release() {}, stopFollowing() {}, followEdge() {}, pinch() {}, turn() {} }, shell: { toast() {} } };
     for (const bind of [bindings.bindCanvasPointerdown, bindings.bindCanvasPointermove, bindings.bindCanvasPointerup,
         bindings.bindCanvasPointercancel, bindings.bindCanvasLostpointercapture, bindings.bindCanvasGestureBlur, bindings.bindCanvasGestureEscape]) bind(ports);
@@ -63,7 +64,7 @@ function fixture(width = 375) {
         for (const id of [...lost]) { lost.delete(id); for (const fn of handlers.get('canvas:lostpointercapture') ?? []) fn({ pointerId: id }); }
     };
     const tap = (id, zone = 'background', type = 'touch') => { const e = event(id, zone, type); emit('pointerdown', e); emit('pointerup', e); };
-    return { state, selectionState, interactionState, interactions, cv, emit, event, tap, captures, checkpoints, get panel() { return panel; } };
+    return { state, model, fitting, selectionState, interactionState, interactions, cv, emit, event, tap, captures, checkpoints, get panel() { return panel; } };
 }
 
 for (const width of [375, 1280]) for (const selected of ['item', 'divider']) {
@@ -149,4 +150,46 @@ for (const ending of ['pointercancel', 'lostpointercapture', 'blur']) test(`${en
     f.emit(ending, e); assert.equal(f.interactionState.panGesture, null); assert.equal(f.captures.size, 0);
     f.emit('pointerup', e); f.tap(1, 'background', 'mouse');
     assert.equal(f.selectionState.focusOn, false);
+});
+
+for (const child of ['section', 'item', 'divider']) test(`${child} selection locks furniture movement and rotation at the gesture boundary`, () => {
+    const f = fixture();
+    Object.assign(f.state(), { item: child === 'item' ? 0 : -1, divider: child === 'divider' ? 0 : -1 });
+    f.selectionState.deep = child === 'section';
+    const before = f.model.snapshot();
+    f.interactions.beginWardrobeDrag(f.event(1, 'frame'), 'floor');
+    f.interactions.beginRotation(f.event(1, 'frame'), { classList: { add() {} }, setAttribute() {} });
+    assert.equal(f.interactionState.wardrobeGesture, null); assert.equal(f.interactionState.rotationGesture, null);
+    const e = f.event(1, 'frame'); f.emit('pointerdown', e); f.emit('pointermove', { ...e, clientX: e.clientX + 40 }); f.emit('pointerup', e);
+    assert.equal(f.model.snapshot(), before); assert.equal(f.interactionState.wardrobeGesture, null);
+    assert.equal(f.checkpoints.length, 0);
+});
+
+for (const shape of ['box', 'roof-cut']) test(`${shape} fitting drag measures the selected item rather than assuming a box-shaped hit mesh`, () => {
+    const f = fixture(); Object.assign(f.state(), { item: 0, divider: -1 });
+    f.fitting.geometry = shape === 'box' ? new THREE.BoxGeometry(96.4, 30, 60) : new THREE.ExtrudeGeometry(new THREE.Shape([
+        new THREE.Vector2(-48.2, 9.8), new THREE.Vector2(48.2, 9.8), new THREE.Vector2(48.2, 39.8), new THREE.Vector2(-48.2, 29.8)
+    ]), { depth: 60, bevelEnabled: false });
+    if (shape === 'box') f.fitting.position.y = 24.8;
+    const e = f.event(1, 'fitting'); f.emit('pointerdown', e);
+    const g = f.interactionState.drag;
+    assert.equal(g.cx, 0); assert.ok(Math.abs(g.cy - 24.8) < .001);
+    assert.ok(Math.abs(g.hw - 48.2) < .001); assert.equal(g.hh, 15);
+    assert.equal(g.offsetX, e.clientX); assert.ok(Math.abs(g.offsetY - (e.clientY - 24.8)) < .001);
+    assert.equal(f.interactionState.wardrobeGesture, null);
+});
+
+test('every catalog fitting uses the same interior drag route with finite model-based grab geometry', () => {
+    for (const [kind, spec] of Object.entries(MODS)) {
+        if (kind === 'void') continue;
+        const f = fixture();
+        f.state().h = 500; f.state().dividers = [];
+        f.state().secs[0] = [{ k: kind, h: spec.h, y: 0, x: 0, w: 96.4 }];
+        Object.assign(f.state(), { item: 0, divider: -1 });
+        f.emit('pointerdown', f.event(1, 'fitting'));
+        const g = f.interactionState.drag;
+        assert.deepEqual(g?.from, { i: 0, j: 0 }, kind + ' is grabbed as an item');
+        assert.ok([g.cx, g.cy, g.hw, g.hh, g.offsetX, g.offsetY].every(Number.isFinite), kind + ' has valid grab geometry');
+        assert.equal(f.interactionState.wardrobeGesture, null, kind + ' cannot move its furniture');
+    }
 });
