@@ -96,7 +96,7 @@ export function cabinetBoards(design: EditorDesign): Board[] {
       });
     } else {
       const shared = geometry.sectionDividers(i).filter(q => q.orientation === 'horizontal').map(q => { const r = geometry.dividerRect(q); return { ...r, y0: r.y0 + iy, y1: r.y1 + iy }; });
-      const panels = fittingPanels(lay, iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared);
+      const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared);
       panels.forEach((p, j) => {
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: fit.z0, z1: fit.z1 }, 'L1', 'x'));
         const it = items[j]!, pos = lay[j]!;

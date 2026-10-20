@@ -18,7 +18,7 @@ export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConf
   const explicit=dividers.filter(q=>q.i===bay&&q.orientation==='horizontal').map(q=>{
    const r=boardRect(q);return {x0:r.x/10,x1:(r.x+r.w)/10,y0:r.y/10,y1:(r.y+r.h)/10};
   });
-  fittingPanels(positions,0,c.height/10,explicit).forEach(panels=>{
+  fittingPanels(positions.map((q,index)=>({...q,k:s.items[index]!.k})),0,c.height/10,explicit).forEach(panels=>{
    for(const edge of ['top','bottom'] as const)for(const span of panels[edge])add('fitting',offset+(span.x0+span.x1)/2,(span.y0+span.y1)/2+R.base/10,span.x1-span.x0,t,edge==='top'?'Top board spans this fitting’s clear space':'Bottom board supports this fitting’s contents');
   });
   for(const divider of dividers.filter(q=>q.i===bay)){const r=boardRect(divider);add('divider',offset+(r.x+r.w/2)/10,R.base/10+(r.y+r.h/2)/10,r.w/10,r.h/10,'Board divides an open space without crossing fixed fittings');}

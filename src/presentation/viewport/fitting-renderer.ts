@@ -17,6 +17,7 @@ import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geom
 import type { BoxBuilder } from './frame-geometry';
 import { createKitchenFittingRenderer } from './kitchen-fitting-renderer';
 import { isKitchen } from '../../domain/furniture/furniture';
+import { hasTrait } from '../../domain/wardrobe/fittings';
 interface FittingRendererPorts {
     resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'fabric'>>;
     mp: THREE.Material;
@@ -70,7 +71,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             for (const span of topSpans) slab(span.x1-span.x0, PANEL, board.depth, cx-sw/2+(span.x0+span.x1)/2, y + hh - PANEL / 2, board.centre, P);
         };
         deck();
-        if(y>interiorFloorOf(getRenderDesign())+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,board.depth,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,board.centre,P);
+        if(!hasTrait(k,'hanging')&&y>interiorFloorOf(getRenderDesign())+.05)for(const span of bottomSpans)slab(span.x1-span.x0,PANEL,board.depth,cx-sw/2+(span.x0+span.x1)/2,y+PANEL/2,board.centre,P);
         const riseAt=(x0=0,x1=sw)=>Math.max(0,...support.filter(span=>span.x1>x0+.01&&span.x0<x1-.01).map(span=>span.rise));
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {

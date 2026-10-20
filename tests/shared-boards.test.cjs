@@ -60,7 +60,7 @@ test('box contents sit on the support board, including isolated and shared compa
   assert.equal(meshes.filter(m=>m[6]===mp&&m[1]===1.8).length,shared?1:2);
  }
 });
-test('every fitting renders both boundaries when isolated, including drawers and hanging rails',()=>{
+test('isolated hanging rails omit the bottom board while other fittings retain both boundaries',()=>{
  const {createFittingRenderer}=require('../src/presentation/viewport/fitting-renderer.ts');
  for(const [k,h] of [['drawer',22],['sdrawer',14],['short',106],['long',160],['lift',106],['pants',80],['folded',28],['shoe',30],['shelf',30],['seasonal',40],['basket',40],['void',20]]){
   const meshes=[],mp={};
@@ -68,7 +68,41 @@ test('every fitting renders both boundaries when isolated, including drawers and
    box:(...args)=>meshes.push(args),group:{add(){}},getRenderDesign:()=>({profile:{longDrop:150}}),garment(){}});
   renderer.mod({k,h,purpose:k==='seasonal'?'seasonal':'reserve'},0,50,60);
   const boards=meshes.filter(m=>m[6]===mp&&m[1]===1.8);
-  assert.equal(boards.length,2,k+' has top and bottom boards');
+  assert.equal(boards.length,['short','long','lift'].includes(k)?1:2,k+' has only the boards it needs');
+  if(['short','long','lift'].includes(k))assert.ok(boards.every(b=>b[4]>50+1.8),'No board is drawn at the hanging zone floor');
+ }
+});
+test('hanging rails have no generated bottom board; adjacent shelves and explicit dividers remain',()=>{
+ for(const k of ['short','long','lift']){
+  const rail={k,x0:0,x1:60,y0:80,y1:190};
+  const isolated=fittingPanels([rail],9.8,250,[])[0];
+  assert.equal(isolated.top.length,1);assert.deepEqual(isolated.bottom,[]);assert.deepEqual(isolated.support,[]);
+  const below={k:'shelf',x0:0,x1:60,y0:50,y1:80};
+  const stacked=fittingPanels([below,rail],9.8,250,[]);
+  assert.equal(stacked[0].top.length,1,'The shelf below retains its top board');
+  assert.deepEqual(stacked[1].bottom,[]);
+  const explicit=fittingPanels([rail],9.8,250,[{x0:0,x1:60,y0:78.2,y1:80}])[0];
+  assert.equal(explicit.support.length,1,'An explicitly placed shelf remains below the rail');
+ }
+});
+test('board schedules omit the generated bottom board for every hanging rail',()=>{
+ const {boardSchedule}=require('../src/domain/planner/board-schedule.ts');
+ for(const k of ['short','long','lift']){
+  const boards=boardSchedule([{width:60,items:[{k,h:106,y:50,x:0,w:60}]}],{w:63.6,h:230,d:60},[]).filter(b=>b.source==='fitting');
+  assert.equal(boards.length,1,k+' retains only its top board');
+  assert.ok(boards[0].position.y>9.8+50+1.8);
+ }
+});
+test('cutting drawings omit rail bottom boards and retain an explicitly added shelf',()=>{
+ const {cabinetBoards}=require('../src/domain/drawings/cabinet-boards.ts');
+ const {createEditorState}=require('../src/application/projects/editor-state.ts');
+ for(const k of ['short','long','lift']){
+  const state={...createEditorState(),w:63.6,n:1,secs:[[{k,h:106,y:50,x:0,w:60}]],dividers:[]};
+  const shelves=()=>cabinetBoards(state).filter(b=>b.name==='Shelf');
+  assert.equal(shelves().length,1,k+' has only its top board in the cutting drawings');
+  assert.ok(shelves()[0].y0>9.8+50+1.8);
+  state.dividers.push({i:0,orientation:'horizontal',x0:0,x1:60,y:35});
+  assert.equal(shelves().length,2,'The separately placed shelf is still included');
  }
 });
 test('board schedule records two isolated boards and one shared stacked boundary',()=>{

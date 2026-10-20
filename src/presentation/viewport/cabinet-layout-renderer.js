@@ -182,7 +182,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 const r=geometry.dividerRect(q);
                 return {...r,y0:r.y0+iy,y1:r.y1+iy};
             });
-            const panels = fittingPanels(lay, iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
+            const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: getRenderDesign().secs[i][j].k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
             /** Boxes cut to the top: front outline clipped, depth kept. Cabinet-centred x. */
             const slabIn = (bx, w0, h0, dep, cx0, cy0, z, m, g) => {
                 let last = null;

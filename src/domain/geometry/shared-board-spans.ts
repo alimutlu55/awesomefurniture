@@ -1,4 +1,5 @@
 import { PANEL } from '../wardrobe/catalog.js';
+import { hasTrait } from '../wardrobe/fittings';
 
 export interface BoardRect {x0:number;x1:number;y0:number;y1:number}
 /** Clear-width portions of a fitting's top board that need their own panel.
@@ -21,9 +22,9 @@ export function fittingBoardSpans(top:Pick<BoardRect,'x0'|'x1'> & {y1:number},ce
  return spans;
 }
 
-/** Top boards own touching boundaries before bottom boards. Explicit boards and
- * the cabinet frame take precedence; partially shared widths are split. */
-export function fittingPanels(items:readonly BoardRect[],floor:number,ceiling:Ceiling,explicit:readonly BoardRect[]) {
+/** Top boards own touching boundaries before bottom boards. Hanging rails need
+ * no bottom board. Explicit boards and the cabinet frame take precedence. */
+export function fittingPanels(items:readonly (BoardRect & {k?:string})[],floor:number,ceiling:Ceiling,explicit:readonly BoardRect[]) {
  const owners=[...explicit];
  const result=items.map(()=>({top:[] as BoardRect[],bottom:[] as BoardRect[],support:[] as (Pick<BoardRect,'x0'|'x1'> & {rise:number})[]}));
  items.forEach((item,index)=>{
@@ -33,6 +34,7 @@ export function fittingPanels(items:readonly BoardRect[],floor:number,ceiling:Ce
   }
  });
  items.forEach((item,index)=>{
+  if(hasTrait(item.k,'hanging'))return;
   const mirrored=owners.map(board=>({...board,y0:-board.y1,y1:-board.y0}));
   for(const span of fittingBoardSpans({...item,y1:-item.y0},-floor,mirrored)){
    const panel={...span,y0:item.y0,y1:item.y0+PANEL};

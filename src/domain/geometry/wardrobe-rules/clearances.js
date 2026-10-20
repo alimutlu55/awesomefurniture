@@ -89,7 +89,7 @@ export function createClearanceRules(ctx, deps) {
             const r = dividerRect(d);
             return { ...r, y0: floor() + r.y0, y1: floor() + r.y1 };
         });
-        const panels = fittingPanels(layout, floor(), (x0, x1) => floor() + ceilingTop(i, x0, x1), shared)[j];
+        const panels = fittingPanels(layout.map((q, index) => ({ ...q, k: sec[index].k })), floor(), (x0, x1) => floor() + ceilingTop(i, x0, x1), shared)[j];
         const top = panels.top.length ? T : 0, rise = Math.max(0, ...panels.support.map(s => s.rise));
         return { y0: q.y0 + rise, y1: q.y1 - top, h: round(Math.max(0, q.y1 - top - q.y0 - rise)), pitch: sec[j].h };
     }
