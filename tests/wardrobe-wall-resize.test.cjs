@@ -13,10 +13,10 @@ const { resizeHeightMinimum } = require('../src/domain/wardrobe/cabinet-size-lim
 const { bindCabinetDimensions } = require('../src/presentation/editor/bindings/cabinet.js');
 const { syncCabinetSizeLimits } = require('../src/presentation/editor/resize-fields.js');
 
-function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true } = {}) {
+function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true, roomWidth = 400, roomDepth = 300 } = {}) {
     const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
     const world = (x, z) => ({ x: c * x + s * z, z: -s * x + c * z });
-    const studio = room ? rectangleStudio(400, 300, 300) : undefined;
+    const studio = room ? rectangleStudio(roomWidth, roomDepth, 300) : undefined;
     if (studio) studio.corners.forEach(p => Object.assign(p, world(p.x, p.z)));
     const model = createEditorModel({ studio, wardrobes: [{ id: 1, name: 'Wardrobe 1', ...world(x, z), y, angle,
         state: { ...createEditorState(), w, h, d } }], activeWardrobe: 1, nextWardrobeId: 2 });
@@ -34,6 +34,28 @@ function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, ro
     return { model, history, commands, messages, cabinet, collision, local, fits };
 }
 const close = (a, b, text) => assert.ok(Math.abs(a - b) < 1e-6, `${text}: ${a} vs ${b}`);
+
+for (const angle of [0, 17, 90, 180, 270]) for (const x of [-2.19, 1.37]) {
+    test(`a 2152 mm wardrobe fills the remaining 48 mm between walls from offset ${x} at ${angle} degrees`, () => {
+        const f = fixture({ x, angle, w: 215.2, roomWidth: 220 }), before = f.model.snapshot();
+        assert.equal(f.commands.setCabinetSize('w', 220), true);
+        close(f.cabinet().state.w, 220, 'width fills the opening');
+        close(f.local().x, 0, 'unequal side gaps are both consumed exactly');
+        close(f.local().z, 30, 'the back remains against the wall');
+        f.fits();assert.equal(f.history.undoCount, 1);
+        const filled = f.model.snapshot();
+        assert.equal(f.commands.setCabinetSize('w', 220.1), false, 'one millimetre beyond the walls is still refused');
+        assert.equal(f.model.snapshot(), filled);assert.equal(f.history.undoCount, 1);
+        assert.equal(f.history.undo(), true);assert.equal(f.model.snapshot(), before);
+    });
+}
+
+for (const angle of [0, 17, 90]) test(`depth consumes unequal front and back gaps exactly at ${angle} degrees`, () => {
+    const f = fixture({ z: 30.73, angle, roomDepth: 64.8 });
+    assert.equal(f.commands.setCabinetSize('d', 64.8), true);
+    close(f.cabinet().state.d, 64.8, 'depth fills the opening');
+    close(f.local().z, 32.4, 'both gaps close without a rounding remainder');f.fits();
+});
 
 for (const angle of [0, 17, 90, 180, 270]) {
     for (const side of ['left', 'right']) {

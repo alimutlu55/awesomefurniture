@@ -35,26 +35,41 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         const hit = solids().find(other => other.id !== candidate.id && cabinetOverlaps(candidate, other));
         return !hit ? null : String(hit.id).startsWith('wall:') ? 'wall' : 'wardrobe';
     }
-    /** Size fields normally grow around the centre. At a wall, keep one local face fixed and
-     * grow the opposite face instead. Each growing candidate contains the old footprint. */
+    /** Size fields normally grow around the centre. At a wall, distribute growth
+     * across the available gaps. Each growing candidate contains the old footprint. */
     function cabinetResizePose(w, key, value, slide = false) {
         const pose = { x: w.x, y: w.y || 0, z: w.z }, next = { ...w, state: { ...w.state, [key]: value } };
         if (!cabinetCollides(next)) return pose;
         const growth = value - w.state[key];
         if ((key !== 'w' && key !== 'd') || growth <= 0) return null;
         const axis = cabinetAxes(w)[key === 'w' ? 0 : 1];
-        if (slide) {
-            // Furniture that stands in a run grows into whatever room there is on either side, in any split: from the
-            // middle outwards (it keeps one face where the other side is blocked, and fills a gap between two neighbours).
-            for (let step = 0; step <= Math.ceil(growth * 10); step++) for (const sign of step ? [1, -1] : [1]) {
-                const t = Math.min(growth / 2, step * .05) * sign, shifted = { ...pose, x: pose.x + axis.x * t, z: pose.z + axis.z * t };
-                if (!cabinetCollides({ ...next, ...shifted })) return shifted;
+        if (!slide && !getObstacles().some(wall => cabinetOverlaps(next, wall))) return null;
+        const half = growth / 2, candidates = [0, -half, half];
+        // Intersect the separating-axis constraints to find each solid's forbidden
+        // translation interval. Its endpoints are exact contact poses, unlike a
+        // fixed-step search, which can skip the only pose that fills an opening.
+        for (const other of solids()) {
+            if (other.id === w.id || (w.y || 0) + w.state.h <= (other.y || 0) + 1e-8 ||
+                (other.y || 0) + other.state.h <= (w.y || 0) + 1e-8) continue;
+            let enter = -Infinity, leave = Infinity;
+            for (const normal of [...cabinetAxes(next), ...cabinetAxes(other)]) {
+                const offset = (next.x - other.x) * normal.x + (next.z - other.z) * normal.z;
+                const velocity = axis.x * normal.x + axis.z * normal.z;
+                const radius = cabinetRadius(next, normal) + cabinetRadius(other, normal);
+                if (Math.abs(velocity) < 1e-10) {
+                    if (Math.abs(offset) >= radius - 1e-8) { enter = Infinity; break; }
+                } else {
+                    const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
+                    enter = Math.max(enter, Math.min(a, b));
+                    leave = Math.min(leave, Math.max(a, b));
+                }
             }
-            return null;
+            if (enter < leave) for (const t of [enter, leave]) {
+                if (Number.isFinite(t) && t >= -half - 1e-8 && t <= half + 1e-8) candidates.push(Math.max(-half, Math.min(half, t)));
+            }
         }
-        if (!getObstacles().some(wall => cabinetOverlaps(next, wall))) return null;
-        for (const sign of [1, -1]) {
-            const shifted = { ...pose, x: pose.x + sign * axis.x * growth / 2, z: pose.z + sign * axis.z * growth / 2 };
+        for (const t of candidates.sort((a, b) => Math.abs(a) - Math.abs(b))) {
+            const shifted = { ...pose, x: pose.x + axis.x * t, z: pose.z + axis.z * t };
             if (!cabinetCollides({ ...next, ...shifted })) return shifted;
         }
         return null;
