@@ -5,7 +5,8 @@
  --mobile-sheet-easing:cubic-bezier(.22,1,.36,1);
  --mobile-sheet-padding:12px;
  --mobile-settings-sheet-height:min(44vh,calc(100vh - 176px - var(--safe-top) - var(--safe-bottom)));
- --mobile-expanded-sheet-height:min(78vh,calc(100vh - 144px - var(--safe-top) - var(--safe-bottom)));
+ --mobile-sheet-max-height:50vh;
+ --mobile-expanded-sheet-height:min(var(--mobile-sheet-max-height),calc(100vh - 144px - var(--safe-top) - var(--safe-bottom)));
  --mobile-sheet-handle-height:32px;
  --mobile-scene-background:radial-gradient(ellipse at 60% 20%,#ede8df,#d9d2c6 75%,#c9c0b1);
 }
@@ -30,6 +31,7 @@
  #app:has(.mobile-bottom-sheet.show),#app.props-open:not(.inspecting),#app.auto-design-open{background:var(--mobile-scene-background)}
  #app:has(.mobile-bottom-sheet.show) #view,#app.props-open:not(.inspecting) #view,#app.auto-design-open #view{background:transparent}
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#wizard .mobile-bottom-sheet{left:0;right:0;width:auto;padding:var(--mobile-sheet-padding);border:0;box-shadow:none;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;background:var(--panel);scrollbar-gutter:auto}
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{max-height:var(--mobile-sheet-max-height)}
  .mobile-sheet .mobile-sheet-handle{-webkit-tap-highlight-color:transparent}
  .mobile-sheet .mobile-sheet-handle:hover:not(:disabled):not(.on),.mobile-sheet .mobile-sheet-handle:active:not(:disabled){background:var(--panel);box-shadow:none;transform:none}
  .mobile-sheet .mobile-sheet-handle:focus-visible{outline:none}
@@ -54,7 +56,8 @@
  #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + 76px + var(--safe-bottom))}
  #app .mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
  #wizard .mobile-bottom-sheet[data-sheet-position="full"]{height:85%;max-height:85%;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
- #app .mobile-bottom-sheet[data-sheet-dragging],#wizard .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - var(--safe-top))}
+ #app .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:var(--mobile-sheet-max-height)}
+ #wizard .mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - var(--safe-top))}
  #app.adding #pop2.mobile-bottom-sheet{padding:0 var(--mobile-sheet-padding) var(--safe-bottom);overflow:hidden}
  #app.adding #pop2.mobile-bottom-sheet>.mobile-sheet-handle{top:0;margin:0}
 }
@@ -69,7 +72,7 @@
 
 @media (max-width:900px){
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:calc(100vh - 76px - var(--safe-bottom))}
+ #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:var(--mobile-sheet-max-height)}
 }
 
 @keyframes mobile-sheet-enter{from{opacity:0;transform:translateY(calc(100% + 80px))}to{opacity:1;transform:translateY(0)}}
@@ -77,7 +80,7 @@
 
 @media (max-width:900px){
  :host([data-keyboard-open]) #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{
-  top:12px;bottom:8px;height:auto!important;max-height:none!important;animation:none;transition:none;
+  top:auto;bottom:0;height:auto!important;max-height:var(--mobile-sheet-max-height)!important;animation:none;transition:none;
  }
 
  /* Panels replace the action bar instead of stacking above another surface on mobile. */
@@ -86,8 +89,9 @@
  #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#app .dd.mobile-sheet,#app.adding #pop2.mobile-bottom-sheet{bottom:0}
  #app :is(#left,#pop3,#pop4).mobile-bottom-sheet{padding-bottom:max(var(--mobile-sheet-padding),var(--safe-bottom))}
  #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + var(--safe-bottom))}
- #app.adding{--sheet:calc(var(--catalog-height) + var(--safe-bottom))}
- #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:calc(var(--mobile-expanded-sheet-height) + var(--safe-bottom))}
+ #app.adding{--sheet:min(var(--mobile-sheet-max-height),calc(var(--catalog-height) + var(--safe-bottom)))}
+ /* Safe-area padding is contained in the sheet's capped border-box height. */
+ #app:has(.mobile-bottom-sheet.show[data-sheet-position="expanded"]),#app.props-open:not(.inspecting):has(#left[data-sheet-position="expanded"]){--sheet:var(--mobile-expanded-sheet-height)}
  #app:has(.mobile-sheet-exit){background:var(--mobile-scene-background)}
  #app:has(.mobile-sheet-exit) #view{background:transparent}
 }

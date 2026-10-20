@@ -72,3 +72,14 @@ test('expanded content scrolls, but a downward pull at its top lowers the sheet'
   assert.equal(f.panel.dataset.sheetPosition,'compact');
  }finally{global.getComputedStyle=original;}
 });
+test('overflowing compact content scrolls on the first upward swipe instead of expanding',()=>{
+ const f=fixture();
+ const target={closest:()=>null,scrollHeight:500,clientHeight:100,scrollTop:0,parentElement:null};
+ const original=global.getComputedStyle;global.getComputedStyle=()=>({overflowY:'auto'});
+ try{
+  f.listeners.touchstart({target,touches:[{identifier:2,clientX:100,clientY:200}]});
+  f.listeners.touchmove({touches:[{identifier:2,clientX:100,clientY:100}],preventDefault(){assert.fail('First content swipe intercepted')}});
+  f.listeners.touchend();
+  assert.equal(f.panel.dataset.sheetPosition,'compact');assert.equal(f.values.size,0);
+ }finally{global.getComputedStyle=original;}
+});

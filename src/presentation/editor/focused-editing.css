@@ -10,7 +10,7 @@
 
 @media (max-width:900px){
  /* Shape prioritizes the model; sizing splits the available space equally.
-    Expanded sheets keep their existing space requirements outside keyboard editing. */
+    The shared sheet limit also applies during expansion and dragging. */
  #app.props-open:has(#left[data-context-section="shape"]){
   --mobile-settings-sheet-height:25vh;
  }

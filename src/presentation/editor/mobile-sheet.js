@@ -53,9 +53,9 @@ export function mountMobileSheet({ document, lifetime, panel, name, close, botto
         if (!gesture.active) {
             if (Math.max(Math.abs(x - gesture.x), Math.abs(distance)) < 8) return false;
             if (Math.abs(x - gesture.x) > Math.abs(distance)) { reset(); return false; }
-            // Content scrolls normally. A downward pull at its top belongs to
-            // the sheet; an upward pull expands a compact sheet first.
-            if (!gesture.onHandle && gesture.scroll && (gesture.scroll.scrollTop > 0 || distance < 0 && gesture.position !== 'compact')) { reset(); return false; }
+            // Overflowing content owns upward swipes at every sheet height.
+            // Only a downward pull at its top transfers back to the sheet.
+            if (!gesture.onHandle && gesture.scroll && (gesture.scroll.scrollTop > 0 || distance < 0)) { reset(); return false; }
             gesture.active = true;
             panel.classList.add('sheet-dragging');
         }

@@ -6,8 +6,9 @@ Item/divider sizing and room sizing use the same rule. Direct item resize gestur
 until the gesture ends. Closing a panel, swiping it away or pressing Escape restores normal controls.
 Shape keeps its drawer open while orbiting the model to reach rear handles.
 On phones compact Shape uses 75% model / 25% drawer. Resize uses 50% model / 50% drawer.
-Safe-area padding is included in that drawer height. Dragging/tapping the existing handle still expands
-it for more controls, and the keyboard retains its existing accessible layout.
+Safe-area padding is included in that drawer height. Editor drawers never exceed half the visible
+editor height, including handle dragging, expansion and the reduced space above the keyboard.
+Overflowing content scrolls on the first upward swipe instead of expanding the drawer first.
 The CSS derives this from existing visible-panel and gesture state, without another UI mode to reset.
 
 Escape now closes settings before navigating out of the current selection. On phones the existing
@@ -20,6 +21,13 @@ Validation: `npm run check`; `npm run check:mobile` at portrait, landscape and d
 `node scripts/check-startup.cjs` with mocked unavailable auth confirms silent offline startup.
 The background saving regression verifies draft retention and successful retry without a notification.
 Physical iPhone Safari was not available for testing.
+
+`MOBILE_TEST_URL=http://127.0.0.1:4173 node scripts/check-mobile-sheets.cjs` mounts a known production
+editor independently of saved sessions. It checks settings, item/divider Size, Add and Auto design in
+portrait and landscape, native touch scrolling, handle expansion/lowering/dismissal, the half-height
+limit for editor drawers during dragging and keyboard layout, and canvas continuity with 34 px of bottom
+safe-area padding. Auto design retains its separate full-screen workflow. `tests/mobile-sheet.test.cjs`
+covers gesture ownership for the first content swipe and downward pulls from the top.
 
 Screenshots: [desktop](focused-editing-desktop.jpg), [Shape 75:25](shape-mobile.png), [Resize 50:50](resize-mobile.png).
 
