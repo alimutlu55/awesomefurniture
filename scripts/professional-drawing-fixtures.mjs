@@ -12,6 +12,12 @@ export function drawingFixture(kind = 'l') {
   }
   for (let i = 0; i < 3; i++) { add('base', 'drawers', -181, 100 + i * 60, 90); add('upper', undefined, -192.5, 100 + i * 60, 90, 142); }
   add('sink-top', 'sink-top', -100, 29, 0, 90);
+  if (kind === 'shelf') {
+    for (let i = wardrobes.length - 1; i >= 0; i--)
+      if (wardrobes[i].angle === 90 && wardrobes[i].state.unit === 'upper') wardrobes.splice(i, 1);
+    add('shelf', undefined, -192, 181.5, 90, 153);
+    const shelf = wardrobes.at(-1); shelf.id = 32; shelf.state.w = 293; shelf.state.h = 3; shelf.state.d = 30;
+  }
   if (kind === 'u') for (let i = 0; i < 3; i++) add('base', 'drawers', 181, 110 + i * 60, 270);
   if (kind === 'island') { add('base', 'dishwasher', -100, 150, 180); add('base', 'drawers', -40, 150, 180); }
   if (kind === 'rotated') {
@@ -19,6 +25,6 @@ export function drawingFixture(kind = 'l') {
     studio.corners = studio.corners.map(c => ({ ...c, ...rotate(c.x, c.z) }));
     wardrobes.forEach(p => Object.assign(p, rotate(p.x, p.z), { angle: p.angle + 37 }));
   }
-  return { studio, wardrobes, activeWardrobe: 1, nextWardrobeId: wardrobes.length + 1 };
+  return { studio, wardrobes, activeWardrobe: 1, nextWardrobeId: Math.max(...wardrobes.map(p => p.id)) + 1 };
 }
 export const drawingInput = scene => ({ studio: scene.studio, pieces: scene.wardrobes.map(p => ({ ...p, design: p.state })) });

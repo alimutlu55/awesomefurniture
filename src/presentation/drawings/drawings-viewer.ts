@@ -73,7 +73,7 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
       x: c.x, y: c.y || 0, z: c.z, angle: c.angle, design: c.state })) };
     const sheets = technicalDrawings(input, { clearanceProfile: 'nkba-single' });
     const clearance = technicalDrawings(input, { preset: 'clearances', clearanceProfile: 'nkba-single' })[0];
-    if (clearance) sheets.splice(sheets[1]?.title === 'Upper cabinet plan' ? 2 : 1, 0, { ...clearance, title: 'Clearances plan' });
+    if (clearance) sheets.splice(sheets[1]?.title === 'Upper furniture plan' ? 2 : 1, 0, { ...clearance, title: 'Clearances plan' });
     const pages = paginateDrawingSheets(sheets);
     const info = { project: project(s), date: new Date().toLocaleDateString(), total: pages.length };
     current = { sheets: pages, info };

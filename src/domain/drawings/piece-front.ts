@@ -43,7 +43,8 @@ export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = 
   if (p.fixture === 'sink' || p.fixture === 'hob') {
     return [line(at(mid, -12), at(mid, 16), 'centre'), note(at(mid, 20), pieceName(p))];
   }
-  if (p.fixture === 'shelf') return [rect(mm(left), mm(p.y), mm(left + d.w), mm(p.y + d.h), 'outline'), { kind: 'tag', at: at(mid, d.h + 12), text: p.mark }];
+  if (p.fixture === 'shelf') return [rect(mm(left), mm(p.y), mm(left + d.w), mm(p.y + d.h), 'outline'),
+    { kind: 'tag', at: at(mid, d.h + 12), text: p.mark }, note(at(mid, d.h + 28), pieceName(p))];
   const top = resolveShape(d).top, out: Item[] = [], under = (x: number) => topAt(d, Math.min(d.w, Math.max(0, x)));
   out.push({ kind: 'line', stroke: 'outline', closed: true, points: [at(0, 0), at(d.w, 0), ...top.slice().reverse().map(q => at(q.x, q.y))] });
   const plinth = plinthOf(d);

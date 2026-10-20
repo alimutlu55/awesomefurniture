@@ -5,7 +5,7 @@ import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { type Dimensions, type Item, type Line, type P, line, mm, note, stops } from './drawing';
-import { type PlacedPiece, wallGeometry } from './room-pieces';
+import { type PlacedPiece, pieceName, wallGeometry } from './room-pieces';
 import { openingNote } from './opening-notes';
 import { freePosition, pieceSymbols, plan } from './plan-symbols';
 import { pieceOperations } from './plan-operations';
@@ -122,6 +122,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     // A wall unit's mark sits towards the wall, so it never covers the mark of the unit under it.
     const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d / 8;
     out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
+    if (p.fixture === 'shelf') out.push(note(plan(p.x + v.x * (p.design.d / 2 + 15), p.z + v.z * (p.design.d / 2 + 15)), pieceName(p)));
     if (!upper) out.push(...pieceSymbols(p).filter(i => operations || i.kind !== 'arrow'));
     if (operations) out.push(...pieceOperations(p).flatMap(o => o.items));
     if (p.wall === null) {

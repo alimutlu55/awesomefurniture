@@ -61,7 +61,7 @@ function titleBlock(sheet: Sheet, scale: string, info: SheetSetInfo, strip: numb
     rule(x, top + 22, x + w, top + 22), ...cell(x, top + 22, 'Scale', scale), ...cell(x + 40, top + 22, 'Units', 'millimetres'), ...cell(x + 110, top + 22, 'Date', info.date),
     rule(x + 108, top + 11, x + 108, top + 33), rule(x + 38, top + 22, x + 38, top + 33)];
   const lx = PAPER.left, lw = x - lx;
-  out.push(box(lx, y, lx + lw, y + strip, 'heavy'), words({ x: lx + 2, y: y + 4 }, 'Dimensions in mm · verify on site · see Cabinet schedule and Review issues', 'key'));
+  out.push(box(lx, y, lx + lw, y + strip, 'heavy'), words({ x: lx + 2, y: y + 4 }, 'Dimensions in mm · verify on site · see Furniture schedule and Review issues', 'key'));
   const summary = sheet.pieces.map(p => p.mark).join(', ');
   const lines = summary.match(/.{1,95}(?:, |$)/g) ?? (summary ? [summary] : []);
   lines.slice(0, 2).forEach((l, i) => out.push(words({ x: lx + 2, y: y + 10 + i * 4 }, l, 'list')));

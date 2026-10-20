@@ -52,9 +52,9 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
     preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile' : 'Opening envelopes: Clearance view · exact construction sizes: Cabinet details'];
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
     pieces: pieces.filter(p => p.y < 120).map(p => row(p, letters)), checks: preset === 'clearances' ? checks : geometryChecks }];
-  if (options.upperPlan !== false && pieces.some(p => p.y >= 120)) sheets.push({ number: 2, title: 'Upper cabinet plan', purpose,
+  if (options.upperPlan !== false && pieces.some(p => p.y >= 120)) sheets.push({ number: 2, title: 'Upper furniture plan', purpose,
     legend: ['Upper units only · elevations show exact mounting levels · dimensions in mm'], issues,
-    views: [{ title: 'Upper cabinet plan', items: planView(studio, pieces, { ...config, upperPlan: true }) }],
+    views: [{ title: 'Upper furniture plan', items: planView(studio, pieces, { ...config, upperPlan: true }) }],
     pieces: pieces.filter(p => p.y >= 120).map(p => row(p, letters)), checks: [] });
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
@@ -75,9 +75,9 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const [title, pages] of [['Cutting list', cuttingList(pieces)], ['Hardware list', hardwareList(pieces)]] as const) {
     pages.forEach((table, k) => sheets.push({ number: sheets.length + 1, title: title + (pages.length > 1 ? ' ' + (k + 1) + ' of ' + pages.length : ''), views: [], table, pieces: [], checks: [] }));
   }
-  if (pieces.length) sheets.push({ number: sheets.length + 1, title: 'Cabinet schedule', pieces: [], checks: [], views: [],
-    table: { columns: ['Mark', 'Cabinet', 'W × H × D (mm)', 'Location'], rows: pieces.map(p => { const r = row(p, letters); return [r.mark, r.name, r.size, r.where]; }),
-      numeric: [], notes: ['Identifiers remain stable when furniture moves. Heights and undersides are measured from finished floor.'] } });
+  if (pieces.length) sheets.push({ number: sheets.length + 1, title: 'Furniture schedule', pieces: [], checks: [], views: [],
+    table: { columns: ['Mark', 'Item', 'W × H × D (mm)', 'Location'], rows: pieces.map(p => { const r = row(p, letters); return [r.mark, r.name, r.size, r.where]; }),
+      numeric: [], notes: ['K = kitchen item (cabinet, shelf, sink or hob); W = wardrobe. Identifiers remain stable when furniture moves. Heights and undersides are measured from finished floor.'] } });
   if (issues.length) sheets.push({ number: sheets.length + 1, title: 'Review issues', pieces: [], checks: [], views: [],
     table: { columns: ['Type', 'Elements', 'Finding', 'Rule / reference'], numeric: [], notes: ['Review recommendations separately from confirmed geometry conflicts.'],
       rows: issues.map(i => [i.kind, i.marks.join(', '), i.message, i.rule ?? 'Geometry review']) } });

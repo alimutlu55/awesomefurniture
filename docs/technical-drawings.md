@@ -6,7 +6,7 @@ width immediately; one finger scrolls/pans, two fingers pinch to zoom, and Ctrl 
 **Save as PDF** downloads the complete vector A3 landscape set directly (or opens the phone share
 sheet). There are no view tabs, inspector panels, navigation sidebars or export configuration dialogs.
 
-The set includes the main plan, a separate labelled upper-cabinet plan, a dedicated clearance plan,
+The set includes the main plan, a separate labelled upper-furniture plan, a dedicated clearance plan,
 elevations, every cabinet detail, construction details and paginated schedules. The main plan keeps
 opening envelopes off the room overview; those appear on the clearance sheet. Upper pieces use a
 1200 mm lower-edge visibility threshold, an explicit application view policy.
@@ -156,3 +156,12 @@ worktop joints and cut-out sizes, fillers and scribes, drilling plans (hinge cup
 32 mm grid), drawer box parts (the runners' maker sizes the box), and material choices beyond the finish
 are not drawn. The cutting list gives finished sizes: edge banding is not deducted. A plain kitchen unit
 with nothing added has no front, as in the 3D view.
+
+
+## Shelves and item references
+
+K references identify kitchen items, including shelves, sinks and hobs; they do not classify an item
+as a cabinet. The mixed inventory is named **Furniture schedule**, with an **Item** column, and the
+upper view is **Upper furniture plan**. Standalone shelves also carry a **Wall shelf** note in plan
+and elevation. They retain their original reference and geometry: one shelf board in the cutting
+list and shelf brackets in the hardware list, without a cabinet carcass or cabinet shop sheet.

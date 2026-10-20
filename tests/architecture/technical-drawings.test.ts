@@ -28,8 +28,8 @@ const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W9',
-    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Cabinet schedule']);
-  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Cabinet schedule'],
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule']);
+  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Furniture schedule'],
     'no room: the piece on its own');
 });
 

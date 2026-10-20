@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { drawingFixture } from './professional-drawing-fixtures.mjs';
-const output = 'docs/verification/simple-drawing-viewer'; await mkdir(output, { recursive: true });
+const output = process.env.DRAWING_OUTPUT ?? 'docs/verification/simple-drawing-viewer'; await mkdir(output, { recursive: true });
 const fixture = '.professional-drawings-review.html';
 await writeFile(fixture, `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">
 <main id="fixture" style="height:100dvh;width:100%"></main><script type="module">
 import { mountEditor } from '/src/presentation/editor/mount-editor.ts';
-window.fixtureEditor=mountEditor({root:document.querySelector('#fixture'),initialScene:${JSON.stringify(drawingFixture('l'))}});
+window.fixtureEditor=mountEditor({root:document.querySelector('#fixture'),initialScene:${JSON.stringify(drawingFixture(process.env.DRAWING_FIXTURE ?? 'l'))}});
 </script></body></html>`);
 let browser;
 try {
@@ -26,9 +26,19 @@ try {
   assert.equal(await dialog.getByRole('button').count(), 4, 'only zoom out/in, PDF and close');
   assert.equal(await dialog.locator('input,select,aside,nav').count(), 0, 'no stacked controls or inspectors');
   const count = await dialog.locator('img').count(); assert.ok(count > 20, 'all cabinet and room sheets remain available');
-  for (const title of ['Plan', 'Upper cabinet plan', 'Clearances plan', 'Elevation A', 'Cabinet schedule', 'Review issues'])
+  for (const title of ['Plan', 'Upper furniture plan', 'Clearances plan', 'Elevation A', 'Furniture schedule', 'Review issues'])
     assert.ok(await dialog.locator('img').evaluateAll((images, title) => images.some(img => img.alt.endsWith(' ' + title)), title), title);
   await page.screenshot({ path: output + '/desktop.png' });
+  if (process.env.DRAWING_FIXTURE === 'shelf') {
+    const upper = dialog.locator('img[alt$=" Upper furniture plan"]');
+    assert.match(decodeURIComponent(await upper.getAttribute('src')), /Wall shelf/);
+    await upper.scrollIntoViewIfNeeded(); await page.screenshot({ path: output + '/desktop-shelf.png' });
+    const schedule = dialog.locator('img[alt$=" Furniture schedule"]');
+    const content = decodeURIComponent(await schedule.getAttribute('src'));
+    assert.match(content, /K32/); assert.match(content, /Wall shelf/);
+    assert.match(content, /2930/); assert.ok(!content.includes('Cabinet schedule'));
+    await list.evaluate(el => { el.scrollTop = 0; });
+  }
   await dialog.getByRole('button', { name: 'Zoom in', exact: true }).click();
   const zoomed = await dialog.locator('img').first().boundingBox(); assert.ok(zoomed.width > 1440);
   await dialog.getByRole('button', { name: 'Zoom out', exact: true }).click();

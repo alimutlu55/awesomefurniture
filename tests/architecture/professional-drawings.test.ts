@@ -28,7 +28,7 @@ test('drawing purposes separate visible furniture, overhead labels, exact positi
   const scene = input('l'), before = JSON.stringify(scene);
   const layout = technicalDrawings(scene, { preset: 'layout' }), installation = technicalDrawings(scene, { preset: 'installation' });
   const clearance = technicalDrawings(scene, { preset: 'clearances' });
-  const floor = items(layout[0]!), upper = items(layout.find(s => s.title === 'Upper cabinet plan')!);
+  const floor = items(layout[0]!), upper = items(layout.find(s => s.title === 'Upper furniture plan')!);
   assert.ok(floor.some(i => i.kind === 'line' && i.stroke === 'overhead'));
   assert.equal(floor.filter(i => i.kind === 'arrow').length, 0, 'operation arrows off in Layout');
   assert.equal(floor.filter(i => i.kind === 'line' && i.stroke === 'swing').length, 0, 'cabinet operations off in Layout');
@@ -48,7 +48,7 @@ test('cabinet marks remain stable after moving, reordering or deleting other cab
   assert.equal(after.get(12), 'K12');
 });
 
-for (const kind of ['l', 'u', 'island', 'rotated']) test('annotation quality: ' + kind + ' room, three purposes and every detail sheet', () => {
+for (const kind of ['l', 'u', 'island', 'rotated', 'shelf']) test('annotation quality: ' + kind + ' room, three purposes and every detail sheet', () => {
   for (const preset of ['layout', 'installation', 'clearances'] as const) {
     const pages = paginateDrawingSheets(technicalDrawings(input(kind), { preset }));
     for (const s of pages.filter(s => s.views.length)) {
@@ -130,4 +130,29 @@ test('saved paper positions are applied to the same SVG marks used for export', 
   const adjusted = sheetPresentation(s, info, offset), actual = adjusted.anchors.find(a => a.key === anchor.key)!;
   assert.ok(actual); assert.notEqual(sheetSvg(s, info), sheetSvg(s, info, offset));
   assert.equal(adjusted.warnings.length, 0); assert.equal(adjusted.anchors.length, original.anchors.length);
+});
+
+
+test('K32 wall shelf stays one board, has shelf labels and brackets, and is never described as a cabinet', () => {
+  const shelf = { ...unit(32, 0, 0), y: 153, design: { ...createKitchenDesign('shelf'), w: 293, h: 3, d: 30 } };
+  const model = { pieces: [shelf] }, placed = placePieces(model)[0]!;
+  assert.equal(placed.mark, 'K32'); assert.equal(placed.fixture, 'shelf');
+  const sheets = technicalDrawings(model), upper = sheets.find(s => s.title === 'Upper furniture plan')!;
+  const elevation = sheets.find(s => s.title === 'Front elevation K32')!;
+  for (const s of [upper, elevation]) {
+    assert.ok(items(s).some(i => i.kind === 'tag' && i.text === 'K32'));
+    assert.ok(items(s).some(i => i.kind === 'note' && i.lines.includes('Wall shelf')));
+    const presentation = sheetPresentation(s, info); assert.deepEqual(presentation.warnings, []);
+  }
+  const board = items(elevation).find(i => i.kind === 'line' && i.closed)!;
+  assert.ok(board.kind === 'line');
+  assert.equal(Math.max(...board.points.map(p => p.y)) - Math.min(...board.points.map(p => p.y)), 30, 'a 30 mm board, not a cabinet carcass');
+  assert.ok(!sheets.some(s => /^K32  /.test(s.title)), 'no cabinet shop sheet for a shelf');
+  const schedule = sheets.find(s => s.title === 'Furniture schedule')!.table!;
+  assert.equal(schedule.columns[1], 'Item'); assert.equal(schedule.rows[0]![1], 'Wall shelf');
+  assert.equal(schedule.rows[0]![2], '2930 × 30 × 300'); assert.match(schedule.notes.join(' '), /K = kitchen item/);
+  const cutting = sheets.filter(s => s.title.startsWith('Cutting list')).flatMap(s => s.table!.rows);
+  assert.equal(cutting.length, 1); assert.equal(cutting[0]![1], 'Shelf board');
+  const hardware = sheets.filter(s => s.title.startsWith('Hardware list')).flatMap(s => s.table!.rows);
+  assert.deepEqual(hardware.map(row => row[0]), ['Shelf bracket']); assert.equal(hardware[0]![2], '5');
 });
