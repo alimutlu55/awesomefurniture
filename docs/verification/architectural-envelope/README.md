@@ -2,7 +2,8 @@
 
 Implemented ENV-01, ENV-02 and ENV-03 in the shared technical drawing model used by SVG and PDF.
 
-- Three vertical tiers: unit/zone heights, installation datums, outer floor-to-ceiling total.
+- Three vertical tiers: one reference cabinet stack, key installation levels, outer floor-to-ceiling total.
+  Internal board dimensions and unrelated cabinet tops remain on individual shop sheets.
 - Every room wall has an elevation, including walls without furniture. Wall sections, open-end
   breaks, window Hp/lintel heights, doors and radiators remain in the exported room context.
 - Dashed 90° cabinet and room-door arcs, full-extension drawers and appliance drop-down envelopes.
@@ -10,7 +11,7 @@ Implemented ENV-01, ENV-02 and ENV-03 in the shared technical drawing model used
   rotated layouts and radiator projections. Narrow aisles and static opening clashes are flagged.
 - Short dimension figures spread along their tier with leaders, keeping all three tiers readable.
 
-Verification: `npm run check` (872 tests, boundary/architecture rules, typechecks and production build).
+Verification: `npm run check` (874 tests, boundary/architecture rules, typechecks and production build).
 Run Vite on port 5177, then `node --import tsx scripts/check-architectural-envelope.mjs` to reproduce
 screenshots and PDFs. The script mounts a local fixture without connecting to saved user designs.
 It checks four wall elevations, desktop and 375 px layouts, zoom, closing and the actual PDF download.

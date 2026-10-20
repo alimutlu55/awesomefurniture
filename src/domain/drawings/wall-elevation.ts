@@ -66,7 +66,7 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   if (hung.length) across(hung.flatMap(p => [x(p.lo), x(p.hi)]), true, above++);
   if (g.openings.length) across(g.openings.flatMap(o => [x(o.offset - o.width / 2), x(o.offset + o.width / 2)]), true, above);
   const adjacent = studio.walls.filter(q => q.id !== w.id && (q.a === w.a || q.b === w.a));
-  out.push(...elevationDimensions([...mine, ...returns.map(r => r.p)], worktops, roomHeight(studio), Math.max(0, ...adjacent.map(q => q.thickness))));
+  out.push(...elevationDimensions(mine.length ? mine : returns.map(r => r.p), worktops, roomHeight(studio), Math.max(0, ...adjacent.map(q => q.thickness))));
   if (g.openings.length) {
     const right = studio.walls.filter(q => q.id !== w.id && (q.a === w.b || q.b === w.b));
     out.push({ kind: 'dims', origin: { x: mm(length), y: 0 }, dir: { x: 0, y: 1 }, side: -1,

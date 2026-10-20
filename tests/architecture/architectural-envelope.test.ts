@@ -27,7 +27,7 @@ test('ENV-01: all room elevations have three height tiers and an uninterrupted o
   }
   const [zones, datums] = vertical(elevations[0]!.views[0]!.items);
   assert.ok(zones!.stops.length > datums!.stops.length, 'zone subdivisions belong to the inner chain');
-  for (const value of [80, 860, 900, 1420, 2120]) assert.ok(datums!.stops.includes(value), 'installation datum ' + value);
+  for (const value of [80, 900, 1420]) assert.ok(datums!.stops.includes(value), 'installation datum ' + value);
   const free = technicalDrawings({ studio, pieces: [unit(3, 0, 175)] }).find(s => s.title.startsWith('Front elevation'))!;
   assert.deepEqual(vertical(free.views[0]!.items)[2]!.stops, [0, 2600], 'island uses room height');
   const noRoom = technicalDrawings({ pieces: [p] }).find(s => s.title.startsWith('Front elevation'))!;
@@ -132,4 +132,31 @@ test('ENV-01: compressed height labels remain separated within and between the t
     const a = figures[i]!, b = figures[j]!;
     assert.ok(a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0, 'height labels overlap');
   }
+});
+
+
+test('room elevation keeps construction details and close but unrelated tops out of the shared height chains', () => {
+  const studio = rectangleStudio(400, 300);
+  const pieces = [unit(1, 0, 29), { ...unit(2, -60, 29), design: createKitchenDesign('tall', 'fridge') },
+    { ...unit(3, 0, 17.5), y: 142, design: createKitchenDesign('upper') }];
+  const sheets = technicalDrawings({ studio, pieces }), [units, datums, total] = vertical(sheets[1]!.views[0]!.items);
+  assert.deepEqual(units!.stops, [0, 80, 860, 900, 1420, 2120, 2600]);
+  assert.deepEqual(datums!.stops, [0, 80, 900, 1420, 2600]);
+  assert.deepEqual(total!.stops, [0, 2600]);
+  assert.ok(!units!.stops.includes(2150), 'tall top is not confused with the adjacent upper top');
+  const tall = sheets.find(s => s.title.includes('Tall cabinet'))!;
+  assert.ok(tall.views.some(v => v.items.some(i => i.kind === 'dims' && i.stops.includes(2150))), 'tall cabinet still has its exact shop dimensions');
+  const base = sheets.find(s => s.title.includes('Base cabinet'))!;
+  assert.ok(base.views.some(v => v.items.some(i => i.kind === 'dims' && i.stops.some((s, k) => k > 0 && s - i.stops[k - 1]! === 18))),
+    '18 mm board details remain on the shop sheet');
+});
+
+
+test('a wide base beneath unequal upper units uses a single vertical slice rather than merging their tops', () => {
+  const studio = rectangleStudio(400, 300), upper = createKitchenDesign('upper');
+  const pieces = [{ ...unit(1, 0, 29), design: { ...createKitchenDesign('base'), w: 120 } },
+    { ...unit(2, -30, 17.5), y: 142, design: upper },
+    { ...unit(3, 30, 17.5), y: 142, design: { ...upper, h: upper.h + 1 } }];
+  const [units] = vertical(technicalDrawings({ studio, pieces })[1]!.views[0]!.items);
+  assert.ok(!(units!.stops.includes(2120) && units!.stops.includes(2130)), 'no artificial 10 mm segment between separate cabinets');
 });

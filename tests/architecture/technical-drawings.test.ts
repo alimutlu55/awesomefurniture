@@ -57,8 +57,8 @@ test('the elevation stacks every height from the floor and gives the window its 
   assert.deepEqual(wall, [0, 3000]);
   assert.deepEqual(above, [0, 700, 1300, 3000], 'the wall unit');
   assert.deepEqual(openings, [0, 1700, 2700, 3000]);
-  assert.deepEqual(heights, [0, 80, 860, 900, 1420, 2120, 2150, 2600], 'plinth, carcass, worktop, wall unit underside and top, tall unit, ceiling');
-  assert.ok(zones!.includes(377) && zones!.includes(656), 'individual drawer zones');
+  assert.deepEqual(heights, [0, 80, 900, 1420, 2600], 'only installation levels in the middle chain');
+  assert.deepEqual(zones, [0, 80, 860, 900, 1420, 2120, 2600], 'one actual base and upper stack; no internal board faces or unrelated tall-unit top');
   assert.deepEqual(total, [0, 2600], 'uninterrupted outer floor-to-ceiling height');
   assert.deepEqual(window, [0, 1000, 2200, 2600]);
 });

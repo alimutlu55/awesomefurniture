@@ -26,9 +26,10 @@ zoom or scroll cannot cut or move it (printing a frame was blank or cropped in i
    the hinges (a door at its side, a lift-up flap at its top, an oven or dishwasher door at its bottom);
    drawers and fixed fronts have none; appliances are named. What is behind the fronts is dashed: a
    cupboard's shelves, a wardrobe's fittings, shelves, partitions and rails. Below: pieces and gaps, then
-   the wall. Above: wall units, then openings. Left, three tiers from inside out: individual unit and
-   zone heights; installation datums (plinth, carcass, worktop, upper unit underside/top, including the
-   backsplash gap); one uninterrupted floor-to-ceiling total. Right: each opening's sill and lintel.
+   the wall. Above: wall units, then openings. Left, three tiers from inside out: one reference cabinet
+   stack (preferring a worktop with upper units); key installation levels (plinth, worktop and upper
+   underside); one uninterrupted floor-to-ceiling total. Internal board faces, drawer subdivisions and
+   unrelated cabinet tops stay on the individual shop sheets rather than crowding the room overview. Right: each opening's sill and lintel.
    Adjoining walls appear as hatched sections at their actual thickness; exposed room ends carry break
    marks in plan and elevation.
 3. **A front elevation of each piece that stands free** (or of every piece when there is no room). These
