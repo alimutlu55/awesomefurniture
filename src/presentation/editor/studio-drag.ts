@@ -151,13 +151,14 @@ export function openingMeasures(room: Studio, w: StudioWall, id: string, draggin
   const edit = (name: string) => dragging ? {} : { edit: name };
   const horiz: RoomMeasure[] = [
     { a: at(face.start, yh), b: at(l, yh), text: f(l - face.start), ...edit('left') },
-    { a: at(l, yw), b: at(r, yw), text: f(o.width), ...edit('width') },
+    ...(dragging ? [] : [{ a: at(l, yw), b: at(r, yw), text: f(o.width), ...edit('width') }]),
     { a: at(r, yh), b: at(face.end, yh), text: f(face.end - r), ...edit('right') },
   ].filter(m => Math.hypot(m.b.x - m.a.x, m.b.z - m.a.z) > .5);
   const vert: RoomMeasure[] = [
     ...(b > .5 ? [{ a: at(o.offset, 0), b: at(o.offset, b), text: f(b), axis: 'height' as const, ...edit('sill') }] : []),
     ...(w.height - t > .5 ? [{ a: at(o.offset, t), b: at(o.offset, w.height), text: f(w.height - t), axis: 'height' as const, ...edit('top') }] : []),
-    ...(utility && o.height > .5 ? [{ a: at(r + 6, b), b: at(r + 6, t), text: f(o.height), axis: 'height' as const, ...edit('height') }] : []),
+    ...(!dragging && utility && o.height > .5
+      ? [{ a: at(r + 6, b), b: at(r + 6, t), text: f(o.height), axis: 'height' as const, ...edit('height') }] : []),
   ];
   return [...horiz, ...vert];
 }

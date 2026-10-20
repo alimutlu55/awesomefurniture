@@ -53,6 +53,11 @@ test('selecting or dragging a wall utility shows all four distances (left, right
     const edits = rulers.map(r => r.edit);
     assert.deepEqual(edits, ['left', 'width', 'right', 'sill', 'top', 'height']);
 
+    // When moving/dragging, only the 4 boundary distances (left, right, floor, ceiling) are shown, no width/height.
+    const movingRulers = openingMeasures(model.scene.studio, wall, opening.id, true);
+    assert.equal(movingRulers.length, 4, 'only 4 boundary distances are shown while moving');
+    assert.ok(movingRulers.every(r => r.text !== '24 cm' && r.text !== '20 cm'));
+
     // Edit each of the four distances and dimensions via createSceneMeasurements.
     const sm = createSceneMeasurements(() => model.scene);
     const ref = field => ({ kind: 'studio', selection: 'opening', id: opening.id, field });
