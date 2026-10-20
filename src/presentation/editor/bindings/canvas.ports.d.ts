@@ -17,10 +17,10 @@ export interface BindCanvasPointerdownPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly touch: TouchCamera;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'panBy'>>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'beginDividerDrag' | 'beginWardrobeDrag' | 'cancelMovement' | 'finishRotation' | 'finishWardrobeDrag'>>;
+readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'beginDividerDrag' | 'beginWardrobeDrag' | 'cancelMovement' | 'finishDividerDrag' | 'finishRotation' | 'finishWardrobeDrag'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'inside' | 'selectCabinet' | 'update'>>;
 readonly picking: Readonly<Pick<ReturnType<typeof import('../scene-picking.js').createScenePicking>, 'cast' | 'frontPoint' | 'pieceAt'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'drag' | 'moved' | 'pd' | 'ptrs' | 'rotationClick' | 'rotationGesture' | 'sx' | 'sy' | 'wardrobeGesture' | 'panGesture' | 'pendingFurniture'>;
+readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'moved' | 'pd' | 'ptrs' | 'rotationClick' | 'rotationGesture' | 'sx' | 'sy' | 'wardrobeGesture' | 'panGesture' | 'pendingFurniture'>;
 readonly renderState: Pick<ReturnType<typeof import('../../viewport/render-state.js').createRenderState>, 'allHits' | 'ihits'>;
 readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'shapeEditing'>;
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
@@ -35,7 +35,7 @@ readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly touch: TouchCamera;
 readonly camera: Readonly<Pick<ReturnType<typeof import('../../viewport/camera-controller.js').createCameraController>, 'camRelease' | 'panBy'>>;
 readonly rendering: Readonly<Pick<ReturnType<typeof import('../../viewport/cabinet-renderer.js').createCabinetRenderer>, 'clearSettling' | 'build'>>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'hover' | 'moveWardrobeFromPointer' | 'previewAt' | 'rotateFromPointer' | 'beginWardrobeDrag'>>;
+readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'hover' | 'moveDividerDrag' | 'moveWardrobeFromPointer' | 'previewAt' | 'rotateFromPointer' | 'beginWardrobeDrag'>>;
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'hidePop'>>;
 readonly cameraState: Pick<ReturnType<typeof import('../../viewport/camera-state.js').createCameraState>, 'az' | 'dist' | 'el' | 'tgt' | 'tgtY' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
 readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'moveMode' | 'moved' | 'panelWasOpen' | 'pd' | 'ptrs' | 'rotationGesture' | 'sx' | 'sy' | 'wardrobeGesture' | 'panGesture' | 'pendingFurniture'>;
@@ -61,28 +61,17 @@ readonly kitchenArray?: KitchenArray;
 export interface BindCanvasPointercancelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly touch: TouchCamera;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishWardrobeDrag'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'moved' | 'ptrs' | 'wardrobeGesture' | 'panGesture' | 'pendingFurniture'>;
+readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishDividerDrag' | 'finishRotation' | 'finishWardrobeDrag'>>;
+readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture' | 'moved' | 'ptrs' | 'rotationClick' | 'rotationGesture' | 'wardrobeGesture' | 'panGesture' | 'pendingFurniture'>;
 readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
 readonly kitchenArray?: KitchenArray;
 }
 
-export interface BindCanvasLostpointercapturePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishWardrobeDrag'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'moved' | 'ptrs' | 'wardrobeGesture'>;
-readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resources.js').createViewportResources>, 'cv'>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
+export interface BindCanvasLostpointercapturePorts extends BindCanvasPointercancelPorts {}
 
-export interface BindCanvasGestureBlurPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'cancelMovement' | 'finishRotation' | 'finishWardrobeDrag'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'ptrs' | 'rotationGesture' | 'wardrobeGesture'>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
+export interface BindCanvasGestureBlurPorts extends BindCanvasPointercancelPorts {}
 
 export interface BindCanvasWheelPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
@@ -100,9 +89,4 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
-export interface BindCanvasGestureEscapePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishRotation' | 'finishWardrobeDrag'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'rotationGesture' | 'wardrobeGesture'>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
+export interface BindCanvasGestureEscapePorts extends BindCanvasPointercancelPorts {}

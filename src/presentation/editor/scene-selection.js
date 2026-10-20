@@ -26,7 +26,12 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         // change. A later resize must not restart the old camera flight.
         camera.camRelease();
         if (frame !== undefined) {
-            if (!selectionState.focusOn || frame !== model.scene.activeWardrobe) { inspector.selectCabinet(frame); inspector.update(); }
+            // The frame selects the whole piece, including when a fitting in
+            // that same piece was selected. Use the normal scope transition so
+            // item/divider state, shape handles and the old panel leave together.
+            emptyTap = null;
+            inspector.selectCabinet(frame);
+            inspector.update();
             return;
         }
         if (!h) {

@@ -44,12 +44,12 @@ test('clearing selection or returning to wardrobe level does not reuse a remembe
  run('selectCabinet(1)');assert.equal(c.deep,false);assert.equal(c.S.item,-1);
 });
 test('a press anywhere on the chosen wardrobe, fittings included, moves it; only the chosen fitting is dragged on its own',()=>{
- const {context:c,run,hit}=fixture();run('pick({})');c.S.divider=-1;c.itemHit=null;
- c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true);assert.equal(c.drag,null);
- c.wardrobeDrag=false;c.itemHit=hit(1,0,1);
- c.handlers.pointerdown({button:0,pointerId:2,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,true,'a fitting not chosen is part of the wardrobe');assert.equal(c.drag,null);
- c.wardrobeDrag=false;c.S.item=1;
- c.handlers.pointerdown({button:0,pointerId:3,clientX:100,clientY:100});assert.equal(c.wardrobeDrag,false);assert.equal(c.drag.from.j,1,'the chosen fitting is dragged');
+ for(const [under,selected] of [[null,-1],[1,-1],[1,1]]){
+  const {context:c,run,hit}=fixture();run('pick({})');c.S.divider=-1;c.S.item=selected;c.itemHit=under===null?null:hit(1,0,under);
+  c.handlers.pointerdown({button:0,pointerId:1,clientX:100,clientY:100});
+  assert.equal(c.wardrobeDrag,selected<0,'only the chosen fitting moves independently');
+  if(selected<0)assert.equal(c.drag,null);else assert.equal(c.drag.from.j,1);
+ }
 });
 test('with nothing chosen, a press on a wardrobe moves nothing: a drag turns the view and a tap chooses it',()=>{
  for(const pointerType of ['mouse','touch']){
@@ -114,6 +114,7 @@ test('finishing touch wardrobe movement clears its pointer so the next drag is i
 test('losing pointer capture rolls back an interrupted touch wardrobe move',()=>{
  const {context:c}=fixture();c.ptrs.set(1,{});c.wardrobeGesture={moved:true};let rolledBack=false;
  c.finishWardrobeDrag=cancel=>{rolledBack=cancel;c.wardrobeGesture=null};
+ c.cv.hasPointerCapture=()=>false;
  bindCanvasLostpointercapture(dependencies(c));c.handlers.lostpointercapture({pointerId:1});
  assert.equal(rolledBack,true);assert.equal(c.wardrobeGesture,null);assert.equal(c.ptrs.size,0);
 });

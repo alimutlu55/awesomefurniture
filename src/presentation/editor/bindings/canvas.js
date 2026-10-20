@@ -1,5 +1,7 @@
 /** Pointer and wheel gestures on the 3D canvas: select, orbit, drag, rotate, zoom.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
+import { cancelCanvasSession, releaseCanvasPointer } from './canvas-pointer-lifecycle.js';
+export { bindCanvasPointercancel, bindCanvasLostpointercapture, bindCanvasGestureBlur } from './canvas-pointer-lifecycle.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** @param {import('./canvas.ports').ObserveViewportSizePorts} ports */
 export function observeViewportSize({ dom, camera, lifetime }) {
@@ -12,11 +14,6 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
     lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
         camera.camRelease();
-        if (interactionState.rotationGesture) {
-            interactionState.rotationClick = true;
-            interactions.finishRotation();
-            return;
-        }
         // Right or middle button: pan the view.
         if (e.button === 1 || e.button === 2) {
             e.preventDefault();
@@ -27,29 +24,41 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         if (e.button !== 0) {
             return;
         }
-        // A second finger while a room part is dragged: put it back and pinch or pan instead.
-        if (room?.dragging()) room.end(true);
-        // The selected wall, door, window or ceiling is dragged by its own surface, unless a wardrobe is in front.
-        if (interactionState.ptrs.size === 0 && room?.grab(e, picking.cast(e, renderState.allHits))) {
-            resources.cv.focus({ preventScroll: true });
-            return;
-        }
-        // A second pointer always joins the camera gesture before hit testing.
-        if (interactionState.ptrs.size > 0) {
+        // The canvas owns every press before delegating it to a drag tool.
+        // A divider, room surface and wardrobe must all participate in the same
+        // pointer lifecycle, so a second finger can always take over for pinch.
+        resources.cv.focus({ preventScroll: true });
+        resources.cv.setPointerCapture(e.pointerId);
+        interactionState.ptrs.set(e.pointerId, e);
+        if (interactionState.ptrs.size > 1) {
             interactionState.pendingFurniture = null;
             touch.release();
             kitchenArray?.holdCancel();
             if (kitchenArray?.active()) kitchenArray.end(true);
-            resources.cv.setPointerCapture(e.pointerId);
-            interactionState.ptrs.set(e.pointerId, e);
+            if (room?.dragging()) room.end(true);
+            if (interactionState.dividerGesture) interactions.finishDividerDrag(true);
             if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
             interactions.cancelMovement();
             camera.camRelease();
+            // Finishing a surface/board drag releases its capture. The camera
+            // now owns both live fingers, including the one just handed over.
+            for (const id of interactionState.ptrs.keys()) resources.cv.setPointerCapture(id);
             interactionState.moved = 99;
             const [a, b] = [...interactionState.ptrs.values()];
             interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
             return;
         }
+        interactionState.moved = 0;
+        interactionState.sx = e.clientX;
+        interactionState.sy = e.clientY;
+        interactionState.rotationClick = false;
+        if (interactionState.rotationGesture) {
+            interactionState.rotationClick = true;
+            interactions.finishRotation();
+            return;
+        }
+        // The selected room surface moves unless furniture is in front of it.
+        if (room?.grab(e, picking.cast(e, renderState.allHits))) return;
         // Only what is chosen moves, by mouse or finger: tap first, then drag. A press on the chosen fitting or board drags
         // it; anywhere else on the chosen piece it moves the whole piece. On anything not chosen a drag turns the view and
         // a tap chooses it.
@@ -64,7 +73,6 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
             // The chosen divider is dragged where it is.
-            resources.cv.focus({ preventScroll: true });
             interactions.beginDividerDrag(e, part.userData.divider);
             return;
         }
@@ -72,9 +80,6 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         // Register the touch so another finger can safely take over for pinch.
         if (!onPart && !selectionState.shapeEditing && selectionState.focusOn && !inspector.inside()) {
             if (body === model.scene.activeWardrobe) {
-                resources.cv.focus({ preventScroll: true });
-                resources.cv.setPointerCapture(e.pointerId);
-                if (e.pointerType === 'touch') interactionState.ptrs.set(e.pointerId, e);
                 interactions.beginWardrobeDrag(e, 'floor');
                 // A kitchen unit held still for a moment pulls out copies instead of moving.
                 kitchenArray?.holdStart(e.clientX, e.clientY, () => interactions.finishWardrobeDrag(true));
@@ -86,23 +91,9 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
             // Once held, the press is a pull: no tap, orbit or item drag follows from it.
             kitchenArray.holdStart(e.clientX, e.clientY, () => { interactionState.moved = 99; interactionState.drag = null; });
         }
-        resources.cv.focus({ preventScroll: true });
-        resources.cv.setPointerCapture(e.pointerId);
-        interactionState.ptrs.set(e.pointerId, e);
-        interactionState.moved = 0;
-        interactionState.sx = e.clientX;
-        interactionState.sy = e.clientY;
-        if (interactionState.ptrs.size === 1) {
-            if (onPart && part.userData.divider === undefined && !doorsShut) {
-                const p = picking.frontPoint(e), mesh = /** @type {import('three').Mesh<import('three').BoxGeometry>} */(part);
-                interactionState.drag = { from: { i: u.i, j: u.j }, offsetX: p ? p.x - mesh.position.x : 0, offsetY: p ? p.y - mesh.position.y : 0, cx: mesh.position.x, cy: mesh.position.y, hw: mesh.geometry.parameters.width / 2, hh: mesh.geometry.parameters.height / 2, settling: false, started: false, id: e.pointerId };
-            }
-        }
-        else if (interactionState.ptrs.size === 2) {
-            interactions.cancelMovement();
-            interactionState.moved = 99;
-            const [a, b] = [...interactionState.ptrs.values()];
-            interactionState.pd = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        if (onPart && part.userData.divider === undefined && !doorsShut) {
+            const p = picking.frontPoint(e), mesh = /** @type {import('three').Mesh<import('three').BoxGeometry>} */(part);
+            interactionState.drag = { from: { i: u.i, j: u.j }, offsetX: p ? p.x - mesh.position.x : 0, offsetY: p ? p.y - mesh.position.y : 0, cx: mesh.position.x, cy: mesh.position.y, hw: mesh.geometry.parameters.width / 2, hh: mesh.geometry.parameters.height / 2, settling: false, started: false, id: e.pointerId };
         }
     });
 }
@@ -115,6 +106,7 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
             return;
         }
         if (interactionState.dividerGesture) {
+            interactions.moveDividerDrag(e);
             return;
         }
         if (kitchenArray?.active()) {
@@ -158,7 +150,6 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
                 interactionState.pendingFurniture = null;
                 const was = model.scene.activeWardrobe;
                 if (model.select(pending.id) && was !== pending.id) rendering.build();
-                if (e.pointerType !== 'touch') interactionState.ptrs.delete(e.pointerId);
                 interactions.beginWardrobeDrag(pending.event, 'floor');
                 interactions.moveWardrobeFromPointer(e);
                 return;
@@ -210,12 +201,16 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
 export function bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
+        // Retire the press before any tool can return early or rebuild the scene.
+        // An up from a cancelled session (or a control outside the canvas) is
+        // never a new click, regardless of the last gesture's movement distance.
+        const tracked = interactionState.ptrs.has(e.pointerId), pan = interactionState.panGesture?.id === e.pointerId;
+        if (!tracked && !pan) return;
+        releaseCanvasPointer(interactionState, resources.cv, e.pointerId);
         interactionState.pendingFurniture = null;
         touch.release(); touch.stopFollowing();
         kitchenArray?.holdCancel();
         if (kitchenArray?.active()) {
-            interactionState.ptrs.delete(e.pointerId);
-            if (resources.cv.hasPointerCapture(e.pointerId)) resources.cv.releasePointerCapture(e.pointerId);
             kitchenArray.end();
             return;
         }
@@ -224,9 +219,8 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
             if (!room.end()) interactions.pick(e);
             return;
         }
-        if (interactionState.panGesture?.id === e.pointerId) {
+        if (pan) {
             interactionState.panGesture = null;
-            if (resources.cv.hasPointerCapture(e.pointerId)) resources.cv.releasePointerCapture(e.pointerId);
             return;
         }
         if (interactionState.dividerGesture) {
@@ -239,18 +233,13 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
         }
         if (interactionState.wardrobeGesture) {
             const changed = interactionState.wardrobeGesture.moved;
-            interactionState.ptrs.delete(e.pointerId);
             interactions.finishWardrobeDrag();
-            if (resources.cv.hasPointerCapture(e.pointerId)) {
-                resources.cv.releasePointerCapture(e.pointerId);
-            }
             if (!changed) {
                 interactions.pick(e);
             }
             return;
         }
         const wasDragging = interactionState.drag?.started;
-        interactionState.ptrs.delete(e.pointerId);
         if (wasDragging) {
             interactions.previewAt(e);
             const plan = interactionState.previewPlan;
@@ -281,53 +270,8 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
         }
         interactionState.drag = null;
         if (!interactionState.ptrs.size) {
-            if (resources.cv.hasPointerCapture(e.pointerId)) {
-                resources.cv.releasePointerCapture(e.pointerId);
-            }
             interactions.hover(e);
         }
-    });
-}
-/** @param {import('./canvas.ports').BindCanvasPointercancelPorts} ports */
-export function bindCanvasPointercancel({ dom, touch, interactions, interactionState, resources, lifetime, room, kitchenArray }) {
-    lifetime.listen(resources.cv, 'pointercancel', e => {
-        interactionState.pendingFurniture = null;
-        touch.release(); touch.stopFollowing();
-        kitchenArray?.holdCancel();
-        if (kitchenArray?.active()) kitchenArray.end(true);
-        if (room?.dragging()) room.end(true);
-        if (interactionState.panGesture?.id === e.pointerId) interactionState.panGesture = null;
-        if (interactionState.wardrobeGesture) {
-            interactions.finishWardrobeDrag(true);
-        }
-        interactionState.ptrs.delete(e.pointerId);
-        interactionState.moved = 99;
-        interactions.cancelMovement();
-    });
-}
-/** @param {import('./canvas.ports').BindCanvasLostpointercapturePorts} ports */
-export function bindCanvasLostpointercapture({ dom, interactions, interactionState, resources, lifetime }) {
-    lifetime.listen(resources.cv, 'lostpointercapture', e => {
-        if (interactionState.ptrs.has(e.pointerId)) {
-            if (interactionState.wardrobeGesture) interactions.finishWardrobeDrag(true);
-            interactionState.ptrs.delete(e.pointerId);
-            interactionState.moved = 99;
-            interactions.cancelMovement();
-        }
-    });
-}
-/** @param {import('./canvas.ports').BindCanvasGestureBlurPorts} ports */
-export function bindCanvasGestureBlur({ dom, interactions, interactionState, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'blur', () => {
-        if (interactionState.wardrobeGesture) {
-            interactions.finishWardrobeDrag(true);
-        }
-        if (interactionState.rotationGesture) {
-            interactions.finishRotation(true);
-        }
-        interactionState.ptrs.clear();
-        interactions.cancelMovement();
     });
 }
 /** @param {import('./canvas.ports').BindCanvasWheelPorts} ports */
@@ -359,18 +303,13 @@ export function bindCanvasPointerleave({ dom, renderState, resources, lifetime }
     });
 }
 /** @param {import('./canvas.ports').BindCanvasGestureEscapePorts} ports */
-export function bindCanvasGestureEscape({ dom, interactions, interactionState, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'keydown', e => {
-        if ((interactionState.rotationGesture || interactionState.wardrobeGesture) && e.key === 'Escape') {
+export function bindCanvasGestureEscape(ports) {
+    const { interactionState } = ports;
+    ports.lifetime.listen(ports.dom.window, 'keydown', e => {
+        if ((interactionState.dividerGesture || interactionState.rotationGesture || interactionState.wardrobeGesture) && e.key === 'Escape') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (interactionState.rotationGesture) {
-                interactions.finishRotation(true);
-            }
-            if (interactionState.wardrobeGesture) {
-                interactions.finishWardrobeDrag(true);
-            }
+            cancelCanvasSession(ports);
         }
     }, true);
 }

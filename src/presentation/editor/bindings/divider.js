@@ -73,34 +73,3 @@ export function bindDividerRemove({ dom, commands }) {
     const { $ } = dom;
     $('#divider-remove').onclick = () => commands.removeDivider();
 }
-/** @param {import('./divider.ports').BindDividerDragMovePorts} ports */
-export function bindDividerDragMove({ dom, interactions, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'pointermove', e => interactions.moveDividerDrag(e));
-}
-/** @param {import('./divider.ports').BindDividerDragEndPorts} ports */
-export function bindDividerDragEnd({ dom, interactions, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'pointerup', () => interactions.finishDividerDrag());
-}
-/** @param {import('./divider.ports').BindDividerDragCancelPorts} ports */
-export function bindDividerDragCancel({ dom, interactions, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'pointercancel', () => interactions.finishDividerDrag(true));
-}
-/** @param {import('./divider.ports').BindDividerDragBlurPorts} ports */
-export function bindDividerDragBlur({ dom, interactions, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'blur', () => interactions.finishDividerDrag(true));
-}
-/** @param {import('./divider.ports').BindDividerDragEscapePorts} ports */
-export function bindDividerDragEscape({ dom, interactions, interactionState, lifetime }) {
-    const { window } = dom;
-    lifetime.listen(window, 'keydown', e => {
-        if (interactionState.dividerGesture && e.key === 'Escape') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            interactions.finishDividerDrag(true);
-        }
-    }, true);
-}

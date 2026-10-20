@@ -1,0 +1,27 @@
+# Canvas selection and pointer ownership
+
+The intermittent deselection failures came from three paths:
+
+- A frame hit on the active wardrobe returned without changing the selection scope. A previously selected item or divider and its editing panel remained active. Frame hits now use the same whole-wardrobe selection transition as selecting another wardrobe.
+- Room and divider presses returned before registering their pointers. Divider release returned before removing a pointer registered by another path. Adding a second finger could leave a released pointer in `interactionState.ptrs`, causing later clicks to enter the multi-touch branch and skip selection.
+- A cancelled click finishing rotation left `rotationClick` set, consuming the next independent click.
+
+## Ownership rules
+
+The canvas registers every primary press before handing it to a tool. It removes that pointer before handling release, even when the tool returns early. Unregistered releases cannot select or commit anything.
+
+A second finger cancels the current tool preview and transfers both live pointers to the camera. The canvas reacquires capture released by the tool during this transfer. Both release orders must leave the pointer set empty.
+
+Cancellation, unexpected capture loss, window blur and Escape use the shared cancellation lifecycle. It rolls back previews, clears pointer ownership and click suppression, and releases capture. Later releases from that cancelled session are ignored. Normal completion removes ownership before releasing capture, so its `lostpointercapture` event cannot roll back a committed edit.
+
+Divider movement, release and cancellation are dispatched by the canvas. The previous duplicate window handlers were removed. Room and other controls with their own handles retain their own handle bindings.
+
+## Verification
+
+`tests/canvas-selection-lifecycle.test.cjs` exercises production selection and drag implementations with deterministic picking. It covers scope changes, both finger-release orders, rollback after movement, successful single-history commits, unrelated releases and cancelled rotation clicks. `tests/ceiling-selection-camera.test.cjs` checks the transfer from an actual room surface drag to two-finger camera interaction.
+
+Run `npm run check` for tests, type checks, dependency boundaries, architecture rules and the production build.
+
+With Vite running at `http://127.0.0.1:4173`, run `node scripts/check-canvas-selection.cjs`. Set `MOBILE_TEST_URL` for a different Vite origin. The browser check mounts the production editor and uses native mouse/touch input and pointer capture at 375, 844 and 1440 pixels. It is also included in `npm run check:mobile`.
+
+The broader `check-tactile-canvas.cjs` script currently times out at its initial `.scrub-w:visible` wait: it assumes the initial wardrobe is already selected. The same startup condition was verified against the unchanged `2c7e9c5` commit and the fixed code (toolbar context `none`, zero visible width labels). It does not exercise an interaction before failing.

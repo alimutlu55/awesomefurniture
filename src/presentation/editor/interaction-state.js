@@ -5,6 +5,9 @@ export function createInteractionState() {
         wardrobeGesture: null,
         dividerGesture: null,
         itemEdgeGesture: null,
+        // All primary presses on the canvas, including presses delegated to a
+        // furniture, divider or room drag. Tools must not bypass canvas
+        // registration or release cleanup when taking over a press.
         ptrs: new Map(),
         moved: 0,
         pd: 0,

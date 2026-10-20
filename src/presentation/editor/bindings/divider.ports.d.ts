@@ -27,34 +27,3 @@ export interface BindDividerRemovePorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'removeDivider'>>;
 }
-
-export interface BindDividerDragMovePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'moveDividerDrag'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindDividerDragEndPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindDividerDragCancelPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindDividerDragBlurPorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}
-
-export interface BindDividerDragEscapePorts {
-readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gestures.js').createEditorGestures>, 'finishDividerDrag'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'dividerGesture'>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
-}

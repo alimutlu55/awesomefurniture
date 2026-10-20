@@ -60,7 +60,8 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const event = (pointerType = width === 375 ? 'touch' : 'mouse', x = 0, y = 0) => ({ button: 0, pointerId: 1, pointerType,
         clientX: x, clientY: y, target: cv, shiftKey: true, preventDefault() {}, stopPropagation() {} });
     const tap = () => { const e = event(); handlers.pointerdown(e); handlers.pointerup(e); };
-    return { model, camera, cameraState, wiring, selectionState, cv, event, tap,
+    return { model, camera, cameraState, wiring, selectionState, interactionState, cv, event, tap,
+        pointer: (type, e) => handlers[type](e),
         escape: () => roomKeys.forEach(handler => handler({ key: 'Escape', preventDefault() {}, stopImmediatePropagation() {} })),
         get frames() { return frames; },
         background: () => { roomHit = undefined; }, wall: (id = 'w1') => {
@@ -69,6 +70,18 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
 }
 
 for (const width of [375, 1280]) {
+    test(`${width}px: a second finger hands a selected room surface to the camera and releases both pointers`, t => {
+        const f = fixture(t, width); f.tap();
+        const before = f.model.snapshot(), a = f.event('touch'), b = { ...f.event('touch', 100, 0), pointerId: 2 };
+        f.pointer('pointerdown', a); assert.equal(f.wiring.surface.dragging(), true);
+        assert.equal(f.interactionState.ptrs.size, 1);
+        f.pointer('pointerdown', b);
+        assert.equal(f.wiring.surface.dragging(), false); assert.equal(f.interactionState.ptrs.size, 2);
+        f.pointer('pointerup', b); f.pointer('pointerup', a);
+        assert.equal(f.interactionState.ptrs.size, 0); assert.equal(f.model.snapshot(), before);
+        f.background(); f.tap();
+        assert.equal(f.selectionState.room, null, 'a later empty-canvas tap clears the room selection');
+    });
     test(`${width}px: Escape cancels a pending opening before its wall is selected`, t => {
         const f = fixture(t, width);
         f.selectionState.viewMode = 'studio';
