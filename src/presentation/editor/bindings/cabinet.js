@@ -2,11 +2,15 @@ import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
 import { FIN } from '../../../domain/wardrobe/catalog.js';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 import { measureNumber, unitSuffix } from '../editor-format.js';
+import { createTactileEdits } from '../../../application/commands/tactile-edits';
 /** Whole-wardrobe controls: size, finish, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
 export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
     const { $ } = dom;
+    // Sliders and the canvas labels share one reversible, boundary-clamped resize.
+    // The slider's transaction records history, so previews do not checkpoint again.
+    const edits = createTactileEdits({ model, checkpoint() {} });
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 600], ['h', 'Height', 180, 300], ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
@@ -30,8 +34,11 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
             range.setAttribute('aria-valuetext', measureNumber(Number(range.value)) + unitSuffix());
         };
         const started = () => { selectionState.editingSize = /** @type {'w' | 'h' | 'd'} */ (id); };
-        bindSizeSlider({ range, lifetime, model, history, started, finished: () => { selectionState.editingSize = false; },
-            preview: value => lift ? sceneCommands.previewTranslation(model.activeCabinet().id, { x: model.activeCabinet().x, y: value, z: model.activeCabinet().z }) : sceneCommands.setCabinetSize(id, value, false),
+        let startValue = 0;
+        bindSizeSlider({ range, lifetime, model, history,
+            started: () => { started(); startValue = read(); if (!lift) edits.beginDimension(/** @type {'w' | 'h' | 'd'} */ (id)); },
+            finished: () => { if (!lift) edits.finish(); selectionState.editingSize = false; },
+            preview: value => lift ? sceneCommands.previewTranslation(model.activeCabinet().id, { x: model.activeCabinet().x, y: value, z: model.activeCabinet().z }) : edits.previewDimension(value - startValue),
             refresh: () => inspector.update(true) });
         bindSizeNumber({ input: /** @type {HTMLInputElement} */ (el), lifetime, commit,
             started: () => { started(); rendering.build(); }, finished: () => { selectionState.editingSize = false; inspector.update(true); } });

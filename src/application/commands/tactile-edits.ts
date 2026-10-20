@@ -45,9 +45,15 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
             return commands.setCabinetSize(g.dimension, g.start + amount, false);
         };
         if (!apply(delta)) {
-            let lo = 0, hi = 1;
-            for (let n = 0; n < 9; n++) { const mid = (lo + hi) / 2; if (apply(delta * mid)) lo = mid; else hi = mid; }
-            apply(delta * lo);
+            // Search whole millimetres, so a large pointer jump cannot leave a
+            // visible remainder at a wall after a fixed number of iterations.
+            const sign = Math.sign(delta);
+            let lo = 0, hi = Math.min(Number.MAX_SAFE_INTEGER, Math.ceil(Math.abs(delta) * 10));
+            while (hi - lo > 1) {
+                const mid = Math.floor(lo + (hi - lo) / 2);
+                if (apply(sign * mid / 10)) lo = mid; else hi = mid;
+            }
+            apply(sign * lo / 10);
         }
         return value(g.dimension);
     }

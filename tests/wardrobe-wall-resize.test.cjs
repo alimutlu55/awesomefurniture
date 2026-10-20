@@ -12,6 +12,7 @@ const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts
 const { resizeHeightMinimum } = require('../src/domain/wardrobe/cabinet-size-limits.ts');
 const { bindCabinetDimensions } = require('../src/presentation/editor/bindings/cabinet.js');
 const { syncCabinetSizeLimits } = require('../src/presentation/editor/resize-fields.js');
+const { createTactileEdits } = require('../src/application/commands/tactile-edits.ts');
 
 function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true, roomWidth = 400, roomDepth = 300 } = {}) {
     const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -222,6 +223,43 @@ test('height slider bounds stay fixed during growth under a slope, then refresh 
 });
 
 for (const width of [375, 1280]) {
+    test(`${width}px: height and depth sliders also clamp overshoot to the exact boundary and cancel cleanly`, () => {
+        const height = fixture();
+        height.model.scene.wardrobes.push({ id: 2, name: 'Upper cabinet', x: 0, y: 230.8, z: 30, angle: 0,
+            state: { ...createEditorState(), h: 60 } });
+        const depth = fixture({ roomDepth: 60.8 });
+        for (const [f, axis, requested, limit] of [[height, 'h', 300, 230.8], [depth, 'd', 90, 60.8]]) {
+            const ui = controls(f), before = f.model.snapshot();
+            ui.emit('#' + axis + '-range', 'input', requested);
+            close(f.cabinet().state[axis], limit, axis + ' closes the remaining 8 mm');f.fits();
+            ui.emit('#' + axis + '-range', 'pointercancel');ui.emit('#' + axis + '-range', 'blur');
+            assert.equal(f.model.snapshot(), before);assert.equal(f.history.undoCount, 0);
+        }
+    });
+
+    test(`${width}px: slider overshoot closes the last 8 mm exactly like the label resizer`, () => {
+        const f = fixture({ x: -1.1, w: 215.2, roomWidth: 218.2 }), ui = controls(f);
+        f.cabinet().state.secs[0] = [{ id: 'drawer', k: 'drawer', h: 22 }];
+        const before = f.model.snapshot();
+        ui.emit('#w-range', 'input', 217.4);
+        close(f.cabinet().state.w, 217.4, 'last directly accepted slider value');
+        for (const value of [225, 300, 600]) {
+            ui.emit('#w-range', 'input', value);
+            close(f.cabinet().state.w, 218.2, 'overshoot settles exactly on the walls');
+            close(f.local().x, 0, 'both wall gaps close');f.fits();
+        }
+        const atWall = f.model.snapshot();
+        ui.emit('#w-range', 'input', 215.2);
+        assert.equal(f.model.snapshot(), before, 'returning to the gesture start restores fittings and pose');
+        ui.emit('#w-range', 'input', 600);ui.emit('#w-range', 'change');
+        assert.equal(f.model.snapshot(), atWall);assert.equal(f.history.undoCount, 1);
+        f.model.restore(before);
+        const labels = createTactileEdits({ model: f.model, checkpoint() {} });
+        labels.beginDimension('w');labels.previewDimension(600 - 215.2);labels.finish();
+        assert.equal(f.model.snapshot(), atWall, 'slider and label use the same constraint and fitting behavior');
+        f.history.undo();assert.equal(f.model.snapshot(), before);
+    });
+
     test(`${width}px: numeric width/height controls resize at a wall and undo restores size and placement`, () => {
         const f = fixture({ x: -100 }), ui = controls(f), before = f.model.snapshot();
         ui.emit('#w', 'change', 260); ui.emit('#h', 'change', 250);
