@@ -65,20 +65,23 @@ test('desktop wheel zoom-in zooms toward the pointer instead of snapping to the 
  near(run('tgt.x'),90);near(run('tgt.y'),120);near(run('tgt.z'),15);
 });
 
-test('on a phone, choosing a piece brings it to the middle at the same zoom; a tiny fitting is brought closer, and a panel resizing keeps that flight',t=>{
- const previous=global.getComputedStyle;
- global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
+test('phone tools use the same framing calculation as desktop without a separate fill heuristic',t=>{
+ const previous=global.getComputedStyle;global.getComputedStyle=()=>({getPropertyValue:()=> '0'});
  t.after(()=>{global.getComputedStyle=previous});
- let height=640;
- const{run,time}=fixture(390,{$:()=>({getBoundingClientRect:()=>({left:0,top:0,right:390,bottom:height,width:390,height})}),document:{documentElement:{}}});
- // Looking past the wardrobe at 900 cm, where it fills a workable part of the view.
- run('az=.4;el=.3;dist=900;tgt.set(150,60,-80);S.item=-1;S.divider=-1;frameMobileInspector(true)');
- near(run('camGoal.x'),0);near(run('camGoal.y'),100);near(run('camGoal.z'),0);near(run('camGoal.dist'),900);
- run('cameraTick(5000,1/60);S.item=0;S.sel=0;itemGeom=()=>({x0:80,x1:120,y0:20,y1:40,w:40,h:20});dist=4000;frameMobileInspector(true);savedGoal=camGoal');
- assert.ok(run('camGoal.dist')<4000,'a fitting seen tiny is brought closer');near(run('camGoal.y'),30);
- near(run('camGoal.az'),.4);near(run('camGoal.el'),.3);
- time(100);run('cameraTick(100,1/60)');height=520;run('frameMobileInspector(true,true)');
- assert.equal(run('camGoal===savedGoal'),true,'a panel resizing keeps the flight under way');
+ for(const width of [390,1200]) {
+  let height=640;
+  const element={classList:{contains:()=>false},getBoundingClientRect:()=>({width:1000,height})};
+  const{run,time}=fixture(width,{$:()=>element,document:{documentElement:{},querySelector:()=>null}});
+  run('az=.4;el=.3;dist=4000;tgt.set(150,60,-80);S.item=0;S.sel=0;S.divider=-1;itemGeom=()=>({x0:80,x1:120,y0:20,y1:40,w:40,h:20});frameMobileInspector(true);savedGoal=camGoal');
+  // Both use the same gentle cabinet-context bias, rather than centring a
+  // phone fitting and changing zoom to a fixed fraction of the screen.
+  near(run('camGoal.x'),0);near(run('camGoal.y'),91.6);near(run('camGoal.z'),0);
+  near(run('camGoal.az'),.4);near(run('camGoal.el'),.3);
+  const expected=run('cameraFitDistance({w:200,h:216.8,d:60},.4,.3,availableRoom().w/availableRoom().h)*(640/availableRoom().h)*1.025');
+  near(run('camGoal.dist'),expected);
+  time(100);run('cameraTick(100,1/60)');height=520;run('frameMobileInspector(true,true)');
+  assert.equal(run('camGoal===savedGoal'),true,'resizing an explicit tool retains its current animation');
+ }
 });
 
 test('move mode uses the same framing margin on mobile and desktop',t=>{

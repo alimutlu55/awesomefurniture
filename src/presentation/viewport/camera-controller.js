@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
 import { zoomOutTarget } from './zoom-out';
-import { phoneFraming } from './phone-framing';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
@@ -213,13 +212,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             goal.z = w.z - focusX * Math.sin(angle);
             const contextDistance = cameraFitDistance({ w: f.w + 2 * Math.abs(focusX), h: f.h + 2 * Math.abs(focusY), d: f.d }, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
             goal.dist = contextDistance * 1.025;
-            // On a phone what was chosen (the piece, or its fitting or board) comes to the middle of the view, zooming
-            // only when it is too small to work on or too big to see whole (phone-framing.ts).
-            if (dom.width <= 900) {
-                const part = w.state.item >= 0 || w.state.divider >= 0, at = part ? box : { x: 0, y: w.state.h / 2, w: w.state.w, h: w.state.h, d: w.state.d };
-                const now = cameraState.camGoal ?? camNow(), fit = cameraFitDistance(at, goal.az - angle, goal.el, room.w / room.h) * (view.height / room.h);
-                Object.assign(goal, phoneFraming({ pose: { ...w, angle }, box: at, fit, dist: now.dist, part }));
-            }
+            // Explicit editing tools use the desktop framing rule at every size.
+            // Ordinary phone selection keeps its current view at the call site.
         }
         // Panel resizing changes the destination, not the animation's origin or clock.
         if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);

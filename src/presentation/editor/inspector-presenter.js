@@ -71,7 +71,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.pillOn = true;
         selectionState.deep = true;
         update();
-        camera.frameMobileInspector(true);
+        if (dom.width > 900) camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
         // A new wardrobe stands against the wall in view, in front of the viewer.

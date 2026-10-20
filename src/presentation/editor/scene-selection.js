@@ -22,6 +22,9 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         selectionState.room = null;
         // A tap on a wardrobe's frame (its sides, top or plinth) chooses it, or keeps it chosen, instead of letting go.
         const frame = !h && !studioMode ? picking.pieceAt(e) : undefined;
+        // Selection must cancel a pending fit before panels or selection bounds
+        // change. A later resize must not restart the old camera flight.
+        camera.camRelease();
         if (frame !== undefined) {
             if (!selectionState.focusOn || frame !== model.scene.activeWardrobe) { inspector.selectCabinet(frame); inspector.update(); }
             return;
@@ -63,7 +66,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
                 selectionState.pillOn = false;
                 inspector.update();
                 if (replacePanel) inspector.showPop(e, '#pop4');
-                else camera.frameMobileInspector(true);
+                else if (dom.width > 900) camera.frameMobileInspector(true);
                 return;
             }
             model.activeCabinet().state.divider = -1;
@@ -73,7 +76,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             model.activeCabinet().state.item = item.j;
             inspector.update();
             if (replacePanel) inspector.showPop(e, '#pop3');
-            else camera.frameMobileInspector(true);
+            else if (dom.width > 900) camera.frameMobileInspector(true);
             return;
         }
         inspector.hidePop();

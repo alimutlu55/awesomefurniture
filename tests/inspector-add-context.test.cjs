@@ -4,7 +4,7 @@ const { createInspectorPanels } = require('../src/presentation/editor/inspector-
 const { createEditorState } = require('../src/application/projects/editor-state.ts');
 const { createWardrobeGeometry } = require('../src/domain/geometry/wardrobe-geometry.js');
 
-function fixture() {
+function fixture(width=375) {
  const nodes = new Map();
  const $ = id => {
   if (!nodes.has(id)) {
@@ -20,12 +20,12 @@ function fixture() {
  const state = createEditorState(), selectionState = {popMin:true,addKey:null};
  const model = {activeCabinet:()=>({state})};
  const geometry = createWardrobeGeometry(()=>state);
- const renders=[];
- const panels=createInspectorPanels({dom:{$,document:{querySelector:$}},geometry,model,resources:{},cameraState:{},
-  camera:{baseShift:()=>0,frameMobileInspector(){}},selectionState,
+ const renders=[],frames=[],releases=[];
+ const panels=createInspectorPanels({dom:{width,$,document:{querySelector:$}},geometry,model,resources:{},cameraState:{},
+  camera:{baseShift:()=>0,frameMobileInspector:(...args)=>frames.push(args),camRelease:()=>releases.push(true)},selectionState,
   callbacks:{hidePop:()=>['#pop2','#pop3','#pop4'].forEach(id=>$(id).classList.remove('show')),
    renderAddChoices:()=>{selectionState.addKey=state.sel;renders.push($('#pop2').dataset.addContext);},itemUI(){},dividerUI(){}}});
- return {$,selectionState,renders,panels};
+ return {$,selectionState,renders,panels,frames,releases};
 }
 
 test('opening Add item expands a collapsed inspector and clears furniture catalogue context',()=>{
@@ -39,6 +39,15 @@ test('opening Add item expands a collapsed inspector and clears furniture catalo
  assert.equal(f.$('#pop2').dataset.addContext,undefined);
  assert.equal(f.$('#ptitle').textContent,'Add to this space');
  assert.deepEqual(f.renders,['wardrobe',undefined]);
+});
+
+for(const width of [375,844,1440])test(`${width}px: Add item and passive item selection preserve mobile view and retain desktop framing`,()=>{
+ const f=fixture(width);
+ f.panels.showPop(null,'#pop2');
+ f.panels.showPop(null,'#pop3');
+ f.panels.showPop(null,'#pop4');
+ assert.equal(f.frames.length,width>900?3:0);
+ assert.equal(f.releases.length,width>900?0:3);
 });
 
 test('returning from item editing opens fittings instead of a stale scene catalogue',()=>{

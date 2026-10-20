@@ -5,12 +5,15 @@ const vm=require('node:vm');
 const {dependencies}=require('./helpers/editor-fixture.cjs');
 const {createEditorGestures}=require('../src/presentation/editor/editor-gestures.js');
 const {bindCanvasPointerdown,bindCanvasPointerup,bindCanvasLostpointercapture}=require('../src/presentation/editor/bindings/canvas.js');
-function fixture(){
+function fixture(width=1200){
  const handlers={};const context=vm.createContext({handlers,pendingFurniture:null,allHits:'bays',allItemHits:'items',ihits:'items',ptrs:new Map(),focusOn:false,deep:false,pillOn:false,activeWardrobe:1,S:{sel:0,item:-1,doors:'none'},wardrobeGesture:null,rotationGesture:null,rotationClick:false,drag:null,hit:null,itemHit:null,panel:null,wardrobeDrag:false,camRelease(){},beginWardrobeDrag(){context.wardrobeDrag=true},cv:{addEventListener(name,fn){handlers[name]=fn},focus(){},setPointerCapture(){}},frontPoint(){return null},clearFocus(){context.focusOn=false;context.deep=false;context.S.item=-1},cancelMovement(){},hidePop(){context.panel=null},update(){context.focusOn=true},showPop(e,p){context.panel=p},selectCabinet(id){context.activeWardrobe=id;context.S={sel:0,item:-1,doors:'none'};context.deep=false;context.pillOn=false;context.panel=null;context.focusOn=true},cast(e,arr){return arr==='bays'?context.hit:context.itemHit}});
- context.frameMobileInspector=()=>{};
+ context.frames=0;context.releases=0;
+ context.frameMobileInspector=()=>context.frames++;
+ context.camRelease=()=>context.releases++;
  context.pieceAt=()=>undefined;
  context.inside=()=>context.deep||context.S.item>=0;
  const ports=dependencies(context);
+ ports.dom={...ports.dom,width};
  ports.dom.$=()=>({dataset:{},matches:()=>false,querySelector:()=>null});
  context.pick=createEditorGestures(ports).pick;
  context.lifetime={listen:(target,name,fn)=>target.addEventListener(name,fn)};
@@ -20,6 +23,14 @@ function fixture(){
  context.hit=hit();context.itemHit=hit();
  return {context,run:code=>vm.runInContext(code,context),hit};
 }
+for(const width of [375,844,1280])test(`${width}px: repeated item and space selection retains mobile view and desktop framing policy`,()=>{
+ const {context:c,run}=fixture(width);
+ c.focusOn=true;
+ run('pick({})');assert.equal(c.S.item,0);
+ c.itemHit=null;run('pick({})');assert.equal(c.S.item,-1);
+ assert.equal(c.frames,width>900?1:0);
+ assert.equal(c.releases,2,'selection cancels an old camera fit before changing its target');
+});
 test('first click on an item selects its wardrobe, second click edits the item',()=>{
  const {context:c,run}=fixture();run('pick({})');assert.equal(c.focusOn,true);assert.equal(c.deep,false);assert.equal(c.S.item,-1);assert.equal(c.panel,null);
  run('pick({})');assert.equal(c.deep,true);assert.equal(c.S.item,0);assert.equal(c.panel,null);
