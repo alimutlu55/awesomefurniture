@@ -63,6 +63,50 @@ export function createWardrobeOcclusion(scene: THREE.Scene) {
   };
 }
 
+const GHOST_OPACITY = 0.22;
+
+/**
+ * When a wall or wall item/opening is selected in Studio, furniture (wardrobes, cabinets, worktops, plinths)
+ * becomes semi-transparent (`opacity = 0.22`, `depthWrite = false`) so the wall and its items stay crisp ("net")
+ * and visible right through the furniture. Restores original materials when leaving wall/opening selection.
+ */
+export function syncFurnitureTransparency(
+  groups: readonly THREE.Object3D[],
+  transparent: boolean,
+  scene?: THREE.Scene,
+) {
+  const targets = [...groups];
+  const runs = scene?.getObjectByName('kitchen-runs');
+  if (runs) targets.push(runs);
+  for (const root of targets) {
+    root.userData.furnitureTransparent = transparent;
+    root.traverse((obj: THREE.Object3D) => {
+      const mesh = obj as THREE.Mesh;
+      if (!mesh.isMesh && !(obj as THREE.Line).isLine) return;
+      if (mesh.userData.floorShadow) return;
+      const mat = mesh.material as THREE.Material & { opacity?: number } | undefined;
+      if (!mat || Array.isArray(mat) || mat.visible === false) return;
+      if (transparent) {
+        if (mesh.userData.ghostMaterial) return;
+        const orig = mat;
+        const ghost = orig.clone() as THREE.Material & { opacity: number; transparent: boolean; depthWrite: boolean };
+        ghost.transparent = true;
+        ghost.opacity = Math.min(orig.opacity ?? 1, GHOST_OPACITY);
+        ghost.depthWrite = false;
+        mesh.userData.origMaterial = orig;
+        mesh.userData.ghostMaterial = ghost;
+        mesh.material = ghost;
+      } else if (mesh.userData.origMaterial) {
+        const ghost = mesh.userData.ghostMaterial as THREE.Material | undefined;
+        mesh.material = mesh.userData.origMaterial;
+        delete mesh.userData.origMaterial;
+        delete mesh.userData.ghostMaterial;
+        ghost?.dispose();
+      }
+    });
+  }
+}
+
 /** Points the camera must see: the middle of the wardrobe and four points around it, inset from its
  * edges so a neighbour that only grazes a corner does not count as blocking. */
 function samples(w: Placed) {

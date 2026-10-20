@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { wallFace, wallLine } from '../../domain/studio/studio';
+import { openingNoun, type OpeningKind } from '../../domain/studio/wall-utilities';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
 import { createCeilingChoices } from './studio-ceiling-panel';
@@ -132,15 +133,16 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (model.scene.studio) late.camera().frameScene();
     }
 
-    /** Room-level opening and ceiling tools first ask for their supporting wall. */
+    /** Room-level opening, utility and ceiling tools first ask for their supporting wall. */
     function actOnWall(key: string) {
+        const label = key.startsWith('ceiling:') ? 'ceiling' : openingNoun(key as OpeningKind);
         if (!model.scene.studio?.walls.length) {
-            late.report('Add walls first, then choose a wall for this ' + (key.startsWith('ceiling:') ? 'ceiling.' : 'opening.'));
+            late.report('Add walls first, then choose a wall for this ' + label + '.');
             return;
         }
         if (editor.selection()) { editor.act(key); return; }
         selectionState.pendingStudioAction = key;
-        late.report('Select a wall for the ' + (key.startsWith('ceiling:') ? 'ceiling' : key) + '.');
+        late.report('Select a wall for the ' + label + '.');
         late.camera().frameScene();
     }
 
@@ -149,9 +151,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
-                if (!editor.selection()) return false;
+                const sel = editor.selection();
+                if (!sel) return false;
                 const hit = picking.cast(e, late.rendering().studioPickables());
-                if (!hit || (wardrobe && wardrobe.distance < hit.distance)) return false;
+                const ghosted = sel.kind === 'wall' || sel.kind === 'opening';
+                if (!hit || (!ghosted && wardrobe && wardrobe.distance < hit.distance)) return false;
                 return editor.grab(e, hit as never, e.target as HTMLElement);
             },
             move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),

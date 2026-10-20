@@ -1,6 +1,7 @@
 import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
-import { moveOpening, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
+import { moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
+import { isWallUtility, openingLimits } from '../../domain/studio/wall-utilities';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -52,11 +53,16 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         }
         const o = studio.openings.find(x => x.id === s.id), w = o && studio.walls.find(x => x.id === o.wall), face = w && wallFace(studio, w);
         if (!o || !w || !face) return [];
+        const lim = openingLimits(o.kind), util = isWallUtility(o.kind), hasSill = o.kind === 'window' || util;
         return [
-            { key: 'width', label: 'Width', value: o.width, min: L.minOpeningWidth, max: Math.max(L.minOpeningWidth, face.length) },
-            { key: 'height', label: 'Height', value: o.height, min: 30, max: w.height },
-            ...(o.kind === 'window' ? [{ key: 'sill', label: 'Sill height', value: o.sill, min: 0, max: w.height }] : []),
+            { key: 'width', label: 'Width', value: o.width, min: lim.minWidth, max: Math.max(lim.minWidth, face.length) },
+            { key: 'height', label: 'Height', value: o.height, min: util ? lim.minHeight : 30, max: w.height },
             { key: 'left', label: 'From left end', value: o.offset - o.width / 2 - face.start, min: 0, max: face.length },
+            { key: 'right', label: 'From right end', value: face.end - (o.offset + o.width / 2), min: 0, max: face.length },
+            ...(hasSill ? [
+                { key: 'sill', label: util ? 'From floor' : 'Sill height', value: o.sill, min: 0, max: w.height },
+                { key: 'top', label: 'From ceiling', value: w.height - o.sill - o.height, min: lim.topMargin, max: w.height },
+            ] : []),
         ];
     }
 
@@ -96,10 +102,16 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         } else if (s.kind === 'wall') {
             if (key === 'length') write(r => setInsideLength(r, s.id, value));
             else write(r => setWallSize(r, s.id, { [key]: value }));
-        } else if (key === 'left') {
+        } else if (key === 'left' || key === 'right') {
             write(r => {
                 const o = r.openings.find(x => x.id === s.id)!, w = r.walls.find(x => x.id === o.wall)!, face = wallFace(r, w);
-                return face && wallLine(r, w) ? moveOpening(r, s.id, face.start + value + o.width / 2) : null;
+                if (!face || !wallLine(r, w)) return null;
+                return moveOpening(r, s.id, key === 'left' ? face.start + value + o.width / 2 : face.end - value - o.width / 2);
+            });
+        } else if (key === 'sill' || key === 'top') {
+            write(r => {
+                const o = r.openings.find(x => x.id === s.id)!, w = r.walls.find(x => x.id === o.wall)!;
+                return o && w ? moveOpening2D(r, s.id, o.offset, key === 'sill' ? value : w.height - o.height - value) : null;
             });
         } else write(r => setOpeningSize(r, s.id, { [key]: value }));
         if (!preview) { refresh(); render(); }

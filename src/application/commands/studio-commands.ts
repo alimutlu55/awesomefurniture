@@ -10,6 +10,7 @@ import { flushAgainst, placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } 
 import type { Pose } from '../../domain/studio/studio-placement';
 import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
+import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
 export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
@@ -148,23 +149,23 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return null;
   }
 
-  /** Adds a door, window or archway: to the given wall, or else to the longest wall with room for it
+  /** Adds a door, window, archway or wall utility: to the given wall, or else to the longest wall with room for it
    * where no wardrobe stands in front of it. Returns its id, or null with the reason. */
   function addStudioOpening(kind: OpeningKind, wallId?: string): string | null {
     const room = getScene().studio;
-    if (!room) { report('Add a room first, then its doors and windows.'); return null; }
-    const name = kind === 'door' ? 'door' : kind === 'window' ? 'window' : 'archway';
+    if (!room) { report('Add a room first, then its doors, windows and wall items.'); return null; }
+    const name = openingNoun(kind), utility = isWallUtility(kind);
     const walls = wallId ? room.walls.filter(w => w.id === wallId) : room.walls.slice().sort((p, q) => (wallLine(room, q)?.length ?? 0) - (wallLine(room, p)?.length ?? 0));
     let fallback: Studio | null = null;
     for (const w of walls) {
       const next = addOpening(room, w.id, kind);
       if (!next || studioProblem(next)) continue;
-      if (!inFrontOfOpening(next, next.openings.at(-1)!.id)) return commitOpening(next);
+      if (utility || !inFrontOfOpening(next, next.openings.at(-1)!.id)) return commitOpening(next);
       fallback ??= next;
     }
     if (fallback && wallId) report(`A wardrobe stands in front of this ${name}. Move one of them.`);
     if (fallback) return commitOpening(fallback);
-    report(wallId ? `This wall has no room for a ${name}. Make it longer or move an opening.` : `No wall has room for a ${name}.`);
+    report(wallId ? `This wall has no room for ${name}. Make it longer or move an opening.` : `No wall has room for ${name}.`);
     return null;
   }
   function commitOpening(next: Studio) {

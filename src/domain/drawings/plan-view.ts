@@ -1,5 +1,6 @@
 import type { Studio } from '../studio/studio';
 import { wallExtent } from '../studio/studio';
+import { isWallUtility, wallUtilitySpec } from '../studio/wall-utilities';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
@@ -27,7 +28,7 @@ function walls(studio: Studio, pieces: readonly PlacedPiece[]): Item[] {
     if (!g) continue;
     const { line: l, face } = g, half = w.thickness / 2, { start, end } = wallExtent(studio, w, l.length);
     const at = (t: number, s: number) => plan(l.a.x + l.ux * t + l.nx * s, l.a.z + l.uz * t + l.nz * s);
-    const holes = g.openings.map(o => [o.offset - o.width / 2, o.offset + o.width / 2] as const);
+    const holes = g.openings.filter(o => !isWallUtility(o.kind)).map(o => [o.offset - o.width / 2, o.offset + o.width / 2] as const);
     let from = start;
     for (const [a, b] of [...holes, [end, end] as const]) {
       if (a > from + .05) {
@@ -40,6 +41,11 @@ function walls(studio: Studio, pieces: readonly PlacedPiece[]): Item[] {
     for (const o of g.openings) {
       const a = o.offset - o.width / 2, b = o.offset + o.width / 2;
       if (o.kind === 'window') for (const s of [-half, 0, half]) out.push(line(at(a, s * .7), at(b, s * .7), 'thin'));
+      else if (isWallUtility(o.kind)) {
+        const depth = wallUtilitySpec(o.kind)?.depth ?? 3;
+        out.push({ kind: 'line', stroke: 'thin', closed: true, points: [at(a, half), at(b, half), at(b, half + depth), at(a, half + depth)] });
+        if (o.kind !== 'radiator') out.push(line(at(o.offset, half), at(o.offset, half + depth + 6), 'centre'));
+      }
       // Written in the room, clear of whatever stands in front of the opening.
       const before = pieces.filter(p => p.wall === w.id && p.hi > a && p.lo < b).map(p => p.off + p.design.d);
       out.push(note(at(o.offset, half + Math.max(0, ...before) + 15), openingNote(o), 'middle', readable(Math.atan2(-l.uz, l.ux) * 180 / Math.PI)));

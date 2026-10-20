@@ -1,12 +1,13 @@
 import { STUDIO_LIMITS, cornerDegree, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
-import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { extendFromCorner, mergeCorners, moveCorner, moveOpening, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import type { OpeningKind, Studio, StudioWall } from '../../domain/studio/studio';
+import { extendFromCorner, mergeCorners, moveCorner, moveOpening2D, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
+import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reachAt, removeCeiling, setCeilingDepth, splitCeilingPanel } from '../../domain/studio/studio-ceiling';
 import { ceilingHandles, depthRuler, heightRuler, pointRuler, restHeights, runAxis, snapPoint } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, type Align } from './align-snap';
-import { centredOffset, cornerAngle, furthestValid, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
+import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { createCeilingSplitCursor } from './studio-ceiling-split';
 import type { Carried } from '../../application/commands/studio-commands';
@@ -119,12 +120,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       return list.filter((m): m is RoomMeasure => !!m);
     }
     if (s.kind === 'opening' || drag?.handle.kind === 'opening') {
-      const o = studio.openings.find(x => x.id === (drag?.handle.kind === 'opening' ? drag.handle.id : s.id)), line = wallLine(studio, w), face = wallFace(studio, w);
-      if (!o || !line || !face) return [];
-      const y = o.sill + o.height + 14, z = w.thickness / 2 + 4, at = (t: number) => ({ x: line.a.x + line.ux * t + line.nx * z, y, z: line.a.z + line.uz * t + line.nz * z });
-      const l = o.offset - o.width / 2, r = o.offset + o.width / 2;
-      return [[face.start, l], [l, r], [r, face.end]].map(([p, q], k) => ({ a: at(p!), b: at(q!), text: f(q! - p!),
-        ...(!drag ? { edit: ['left', 'width', 'right'][k]! } : {}) })).filter(m => Math.hypot(m.b.x - m.a.x, m.b.z - m.a.z) > .5);
+      return openingMeasures(studio, w, drag?.handle.kind === 'opening' ? drag.handle.id : s.id, !!drag);
     }
     const moving = drag && (drag.handle.kind === 'wall' || drag.handle.kind === 'corner' || drag.created) ? drag : null;
     const ids = new Set([w.id]);
@@ -239,12 +235,12 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       want = t => moveWall(g.original, h.id, before + (d - before) * t);
     } else if (h.kind === 'opening') {
       const o = g.original.openings.find(x => x.id === h.id)!, w = wallOf(g.original, o.wall)!, centre = centredOffset(g.original, w);
-      const raw = step(o.offset + along(e, h, h.ux!, h.uz!));
+      const d = inPlane(e, h, h.ux!, h.uz!), raw = step(o.offset + d.s), rawSill = step(o.sill + d.y);
       const lock = g.free || centre === null ? null : alignTo(raw, [{ v: centre, label: 'Centred on the wall' }], g.lock, tolerance());
       g.lock = lock;
-      const target = lock ? lock.v : raw, from = g.last.openings.find(x => x.id === h.id)!.offset;
+      const target = lock ? lock.v : raw, cur = g.last.openings.find(x => x.id === h.id)!;
       g.guides = lock ? centreGuide(g.original, w) : [];
-      want = t => moveOpening(g.original, h.id, from + (target - from) * t);
+      want = t => moveOpening2D(g.original, h.id, cur.offset + (target - cur.offset) * t, cur.sill + (rawSill - cur.sill) * t);
     } else if (h.kind === 'ceiling') {
       const c = ceilingOf(g.original, h.id)!, fr = ceilingFrame(g.original, c)!, axis = runAxis(fr, c), d = inPlane(e, h, axis.x, axis.z), p = c.profile[h.index!]!;
       const snapped = g.free ? { at: { t: p.t + d.s, y: p.y + d.y }, locks: { t: null, y: null } } : snapPoint(g.original, c, h.index!, { t: step(p.t + d.s), y: step(p.y + d.y) }, g.pin, tolerance());
@@ -341,7 +337,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
     const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
       : h.kind === 'wall' ? edit(s => moveWall(s, h.id, dir * n))
-        : h.kind === 'opening' ? edit(s => moveOpening(s, h.id, s.openings.find(x => x.id === h.id)!.offset + dir * n))
+        : h.kind === 'opening' ? edit(s => { const o = s.openings.find(x => x.id === h.id)!; return moveOpening2D(s, h.id, o.offset + across, o.sill + deep); })
           : h.kind === 'ceiling' ? edit(s => { const p = ceilingOf(s, h.id)!.profile[h.index!]!; return moveCeilingPoint(s, h.id, h.index!, p.t + across, p.y + deep); })
             : h.kind === 'depth' ? edit(s => setCeilingDepth(s, h.id, ceilingOf(s, h.id)!.depth + dir * n)) : false;
     return ok;
@@ -359,8 +355,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const id = sceneCommands.addStudioWall(w?.id);
       if (id) selectionState.room = { kind: 'wall', id };
       callbacks.refresh();
-    } else if (key === 'door' || key === 'window' || key === 'archway') {
-      const id = sceneCommands.addStudioOpening(key, w?.id);
+    } else if ((OPENING_KINDS as readonly string[]).includes(key)) {
+      const id = sceneCommands.addStudioOpening(key as OpeningKind, w?.id);
       if (id) selectionState.room = { kind: 'opening', id };
       callbacks.refresh();
     } else if (key === 'split' && w) {
@@ -385,7 +381,11 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     select, valid, pick, handles, measures, guides, reason, act, nudge, click,
     begin, grab, move, end,
     /** Tapping a length on the model opens its field. */
-    editMeasure: (m: RoomMeasure) => { if (m.edit) callbacks.openFields(m.edit.startsWith('p') ? 'ceiling-size' : 'wall-size', m.edit); },
+    editMeasure: (m: RoomMeasure) => {
+      if (!m.edit) return;
+      const action = m.edit.startsWith('p') ? 'ceiling-size' : selection()?.kind === 'opening' ? 'opening-size' : 'wall-size';
+      callbacks.openFields(action, m.edit);
+    },
     dragging: () => drag !== null,
     /** The handle being dragged, which stays on show while the others step aside. */
     dragKey: () => drag?.moved ? drag.handle.key : null,

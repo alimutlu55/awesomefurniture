@@ -13,6 +13,8 @@
  * run along a wall too: see studio-ceiling.ts.
  */
 import type { StudioTemplateId } from './studio-templates';
+import type { OpeningKind } from './wall-utilities';
+export type { OpeningKind, WallUtilityKind, StructuralOpeningKind } from './wall-utilities';
 
 export interface StudioCorner { readonly id: string; readonly x: number; readonly z: number }
 export type WallFinish = 'matte' | 'eggshell' | 'satin';
@@ -28,8 +30,6 @@ export interface StudioWall {
   readonly color?: string | undefined;
   readonly finish?: WallFinish | undefined;
 }
-
-export type OpeningKind = 'door' | 'window' | 'archway';
 
 export interface StudioOpening {
   readonly id: string;
@@ -88,6 +88,12 @@ export const STUDIO_DEFAULTS = Object.freeze({
   door: { width: 80, height: 205, sill: 0 },
   window: { width: 120, height: 120, sill: 90 },
   archway: { width: 100, height: 210, sill: 0 },
+  water: { width: 24, height: 20, sill: 50 },
+  socket: { width: 16, height: 10, sill: 110 },
+  duct: { width: 18, height: 18, sill: 215 },
+  gas: { width: 12, height: 16, sill: 65 },
+  radiator: { width: 80, height: 60, sill: 15 },
+  switch: { width: 10, height: 10, sill: 105 },
 });
 
 /** The room's ceiling height: the top of its lowest wall, where the flat ceiling sits. */

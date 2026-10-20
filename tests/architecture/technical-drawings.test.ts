@@ -225,3 +225,38 @@ test('corner pull-out component is drawn with high precision across plan, elevat
   assert.ok(hwItems.includes('Corner pull-out mechanism, two swing trays'), 'hardware list includes the corner pull-out mechanism');
   assert.ok(!hwItems.includes('Shelf support'), 'no adjustable wooden shelf pins for a corner pull-out unit');
 });
+
+test('wall utilities (water pipes, electrical sockets, vents, gas, radiators, switches) appear accurately in plan, elevation and checks', () => {
+  const studioWithUtilities = {
+    ...room(),
+    openings: [
+      ...room().openings,
+      { id: 'o2', wall: 'w1', kind: 'water' as const, offset: 100, width: 24, height: 20, sill: 50 },
+      { id: 'o3', wall: 'w1', kind: 'socket' as const, offset: 100, width: 16, height: 10, sill: 110 },
+      { id: 'o4', wall: 'w1', kind: 'duct' as const, offset: 100, width: 18, height: 18, sill: 215 },
+      { id: 'o5', wall: 'w1', kind: 'radiator' as const, offset: 30, width: 40, height: 60, sill: 15 },
+    ],
+  };
+  const sheets = technicalDrawings({ studio: studioWithUtilities, pieces: kitchen() });
+  const [plan, elevation] = sheets;
+  const planNotes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
+  assert.deepEqual(planNotes, [
+    'Radiator 400 × 600, sill 150',
+    'Water pipes 240 × 200, sill 500',
+    'Electrical point 160 × 100, sill 1100',
+    'Extractor vent 180 × 180, sill 2150',
+    'Window 1000 × 1200, sill 1000',
+  ]);
+  const elevNotes = all(elevation!).filter(i => i.kind === 'note' && !i.small).map(i => i.kind === 'note' && i.lines.join(' '));
+  assert.ok(elevNotes.includes('Water pipes 240 × 200, sill 500'));
+  assert.ok(elevNotes.includes('Electrical point 160 × 100, sill 1100'));
+  assert.ok(elevNotes.includes('Extractor vent 180 × 180, sill 2150'));
+  assert.ok(elevNotes.includes('Radiator 400 × 600, sill 150'));
+  // Right-hand vertical dimension string on the wall elevation includes utility sills and tops in mm.
+  const rightVertStops = dims(all(elevation!)).at(-1)!.stops;
+  for (const mmStop of [150, 500, 700, 750, 1000, 1100, 1200, 2150, 2200, 2330]) {
+    assert.ok(rightVertStops.includes(mmStop), `vertical dimension string includes ${mmStop} mm`);
+  }
+  // Kitchen units may stand in front of water pipes and electrical points, but standing in front of a radiator is flagged.
+  assert.deepEqual(plan!.checks, ['K1 stands in front of the radiator on wall A']);
+});

@@ -1,4 +1,6 @@
 import type { Studio } from '../studio/studio';
+import { isWallUtility, openingNoun } from '../studio/wall-utilities';
+import { isKitchen } from '../furniture/furniture';
 import { unitAxes } from '../kitchen/kitchen-runs';
 import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
 import { mm } from './drawing';
@@ -43,9 +45,11 @@ export function designChecks(studio: Studio | undefined, pieces: readonly Placed
     if (!w || !g) continue;
     const letter = letters.get(w.id) ?? '';
     for (const o of g.openings) {
+      // Kitchen units are meant to connect to water, gas, sockets and vents behind them; radiators, switches and structural openings must stay clear.
+      if (isWallUtility(o.kind) && o.kind !== 'radiator' && o.kind !== 'switch' && isKitchen(p.design)) continue;
       const along = Math.min(p.hi, o.offset + o.width / 2) - Math.max(p.lo, o.offset - o.width / 2);
       const up = Math.min(top(p), o.sill + o.height) - Math.max(p.y, o.sill);
-      if (along > TOUCH && up > TOUCH) out.push(p.mark + ' stands in front of the ' + o.kind + ' on wall ' + letter);
+      if (along > TOUCH && up > TOUCH) out.push(p.mark + ' stands in front of the ' + openingNoun(o.kind) + ' on wall ' + letter);
     }
     const past = Math.max(g.face.start - p.lo, p.hi - g.face.end);
     if (past > TOUCH) out.push(p.mark + ' runs ' + mm(past) + ' past the end of wall ' + letter);

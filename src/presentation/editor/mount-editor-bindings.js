@@ -25,6 +25,7 @@ import { MODS } from '../../domain/wardrobe/catalog.js';
 import { fittingProduct } from '../../domain/wardrobe/fittings';
 import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 import { isFixture } from '../../domain/kitchen/kitchen-units';
+import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
     const { $, document } = dom;
@@ -297,7 +298,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 if ($('#pop2').classList.contains('show')) { inspector.hidePop(); return; }
                 $('#walls-btn').click(); return;
             }
-            if (selectionState.viewMode === 'studio' && ['door', 'window', 'archway'].includes(key)) {
+            if (selectionState.viewMode === 'studio' && OPENING_KINDS.includes(key)) {
                 room.actOnWall(key); return;
             }
             if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) {

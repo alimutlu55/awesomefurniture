@@ -133,7 +133,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         const dragged = editor.dragKey();
         labels().toggleAttribute('data-room-drag', !!dragged);
         // Editing the room, the wardrobes' own measurements step aside.
-        labels().toggleAttribute('data-room-edit', handles.length > 0);
+        labels().toggleAttribute('data-room-edit', handles.length > 0 || !!editor.selection());
         for (const h of handles) {
             const el = handleElement(h);
             el.classList.toggle('dragging', h.key === dragged);

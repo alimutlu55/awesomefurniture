@@ -1,4 +1,6 @@
 import { ROOM_PARTS, roomPartArt, studioChoices } from './studio-art';
+import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
+import type { OpeningKind } from '../../domain/studio/studio';
 import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import type { CeilingShape } from '../../domain/studio/studio-ceiling';
 import { ceilingArt } from './studio-ceiling-panel';
@@ -69,7 +71,8 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
         else callbacks.refresh();
         return;
       }
-      const wall = getSelection()?.kind === 'wall' ? getSelection()!.id : undefined;
+      const sel = getSelection();
+      const wall = sel?.kind === 'wall' ? sel.id : sel?.kind === 'opening' ? model.scene.studio?.openings.find(o => o.id === sel.id)?.wall : undefined;
       if (ceiling) {
         const id = room() ? sceneCommands.addStudioCeiling(ceiling, wall) : null;
         if (id) callbacks.added({ kind: 'ceiling', id });
@@ -78,8 +81,8 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
         const id = sceneCommands.addStudioWall(wall);
         if (id) callbacks.added({ kind: 'wall', id });
         else callbacks.refresh();
-      } else if (part === 'door' || part === 'window' || part === 'archway') {
-        const id = sceneCommands.addStudioOpening(part, wall);
+      } else if (part && (OPENING_KINDS as readonly string[]).includes(part)) {
+        const id = sceneCommands.addStudioOpening(part as OpeningKind, wall);
         if (id) callbacks.added({ kind: 'opening', id });
         else callbacks.refresh();
       }

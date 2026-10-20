@@ -1,5 +1,6 @@
 import { mm, type PieceRow, type Sheet } from './drawing';
 import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeometry } from './room-pieces';
+import { isWallUtility } from '../studio/wall-utilities';
 import { planView } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
 import { designChecks } from './checks';
@@ -25,12 +26,17 @@ function row(p: PlacedPiece, letters: ReadonlyMap<string, string>): PieceRow {
  */
 export function technicalDrawings(input: DrawingInput): Sheet[] {
   const pieces = placePieces(input), studio = input.studio, letters = new Map<string, string>();
-  for (const w of studio?.walls ?? []) if (pieces.some(p => p.wall === w.id)) letters.set(w.id, String.fromCharCode(65 + letters.size));
+  for (const w of studio?.walls ?? []) {
+    if (pieces.some(p => p.wall === w.id) || studio!.openings.some(o => o.wall === w.id && isWallUtility(o.kind))) {
+      letters.set(w.id, String.fromCharCode(65 + letters.size));
+    }
+  }
   const plan = planView(studio, pieces);
   for (const [id, letter] of letters) {
     const g = wallGeometry(studio!, studio!.walls.find(w => w.id === id)!)!, mine = pieces.filter(p => p.wall === id);
-    const lo = Math.min(...mine.map(p => p.lo)), hi = Math.max(...mine.map(p => p.hi)), t = (lo + hi) / 2 - g.face.start;
-    const out = Math.max(...mine.map(p => p.off + p.design.d)) + MARK_OUT;
+    const lo = mine.length ? Math.min(...mine.map(p => p.lo)) : g.face.start, hi = mine.length ? Math.max(...mine.map(p => p.hi)) : g.face.end;
+    const t = (lo + hi) / 2 - g.face.start;
+    const out = (mine.length ? Math.max(...mine.map(p => p.off + p.design.d)) : 0) + MARK_OUT;
     const at = { x: g.face.from.x + g.line.ux * t + g.line.nx * out, z: g.face.from.z + g.line.uz * t + g.line.nz * out };
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }

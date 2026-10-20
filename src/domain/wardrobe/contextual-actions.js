@@ -33,7 +33,11 @@ export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menu
 /** The More menu of each kind of furniture, by its furniture kind. */
 export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
-export const studioMoreActions = [['door', 'Door'], ['window', 'Window'], ['archway', 'Archway']];
+export const studioMoreActions = [
+    ['door', 'Door'], ['window', 'Window'], ['archway', 'Archway'],
+    ['water', 'Water pipes'], ['socket', 'Electrical point'], ['duct', 'Extractor vent'],
+    ['gas', 'Gas point'], ['radiator', 'Radiator'], ['switch', 'Light switch'],
+];
 export const wallMoreActions = [...studioMoreActions, ['remove', 'Remove wall']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */

@@ -4,6 +4,8 @@ import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/stud
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
 import { createCeilingViews } from './studio-ceilings';
 import { WALL_FINISHES, wallAppearance } from '../../domain/studio/studio-paint';
+import { isWallUtility, wallUtilitySpec } from '../../domain/studio/wall-utilities';
+import { addWallUtilityView } from './wall-utility-views';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
@@ -108,9 +110,11 @@ export function createStudioRenderer(scene: THREE.Scene) {
   /** Lowers the walls whose room side faces away from the camera, smoothly so orbiting never flickers. */
   function frame(camera: THREE.Camera, dt: number) {
     const k = 1 - Math.exp(-dt * 12), to = new THREE.Vector3(), stub = stubFor(-camera.getWorldDirection(new THREE.Vector3()).y);
+    const activeWall = selection?.kind === 'wall' ? selection.id
+      : selection?.kind === 'opening' ? room?.openings.find(o => o.id === selection!.id)?.wall : undefined;
     for (const view of walls) {
       to.copy(camera.position).sub(view.mid);
-      const target = !view.free && to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
+      const target = view.id !== activeWall && !view.free && to.dot(view.normal) < -1 ? Math.min(1, stub / view.height) : 1;
       if (view.lift !== target) setLift(view, Math.abs(view.lift - target) < .003 ? target : view.lift + (target - view.lift) * k);
     }
     // The ceiling closes the room whenever you look from below it, as in a photograph of the room.
@@ -162,7 +166,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       parent.add(mesh);
     };
     // Skirting on the room side, interrupted by doors and archways. It stays on a lowered wall.
-    for (const [s, e] of gaps(start, end, openings.filter(o => o.sill < 1))) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
+    const floorCuts = openings.filter(o => !isWallUtility(o.kind) && o.sill < 1);
+    for (const [s, e] of gaps(start, end, floorCuts)) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
     // Contact shading: on the floor along the wall's foot, up the foot of the wall, and into joined corners.
     const inside = wallFace(studio, w), fs = inside?.start ?? start, fe = inside?.end ?? end, z = face + .25;
     group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
@@ -173,6 +178,10 @@ export function createStudioRenderer(scene: THREE.Scene) {
     if (cornerDegree(studio, w.b) > 1) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
     const frameM = material(LOOK.frame);
     for (const o of openings) {
+      if (isWallUtility(o.kind)) {
+        addWallUtilityView(details, hits, w, o, material);
+        continue;
+      }
       const left = o.offset - o.width / 2, right = o.offset + o.width / 2, top = o.sill + o.height, tall = top - o.sill + (o.sill > 0 ? CASING.width : 0);
       // A wardrobe standing against the wall in front of it hides its room-side trim, which would poke through its back.
       const covered = standing.some(f => covers(f, line, left - CASING.width, right + CASING.width, face + 8));
@@ -229,9 +238,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
     const o = selection.kind === 'opening' ? room.openings.find(x => x.id === selection!.id) : undefined;
     const w = room.walls.find(x => x.id === (o ? o.wall : selection!.id)), view = walls.find(v => v.id === w?.id), line = w && wallLine(room, w);
     if (!w || !view || !line) return;
+    if (view.lift < 1) setLift(view, 1);
     let geometry: THREE.BufferGeometry;
     if (o) {
-      const l = o.offset - o.width / 2 - CASING.width, r = o.offset + o.width / 2 + CASING.width, b = Math.max(0, o.sill - CASING.width), t = o.sill + o.height + CASING.width, z = w.thickness / 2 + CASING.depth + .3;
+      const pad = isWallUtility(o.kind) ? 1 : CASING.width;
+      const depth = isWallUtility(o.kind) ? (wallUtilitySpec(o.kind)?.depth ?? 2) : CASING.depth;
+      const l = o.offset - o.width / 2 - pad, r = o.offset + o.width / 2 + pad, b = Math.max(0, o.sill - pad), t = o.sill + o.height + pad, z = w.thickness / 2 + depth + .3;
       geometry = new THREE.BufferGeometry().setFromPoints([[l, b, r, b], [r, b, r, t], [r, t, l, t], [l, t, l, b]].flatMap(([x0, y0, x1, y1]) => [new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z)]));
     } else {
       const { start, end } = wallExtent(room, w, line.length);
@@ -313,14 +325,15 @@ export function createStudioRenderer(scene: THREE.Scene) {
 /** A wall's face outline from `start` to `end` along it, `height` tall: doors and archways are notches
  * from the floor, windows are holes. */
 function faceOutline(start: number, end: number, height: number, openings: readonly StudioOpening[]) {
+  const holes = openings.filter(o => !isWallUtility(o.kind));
   const shape = new THREE.Shape();
   shape.moveTo(start, 0);
-  for (const o of [...openings].filter(o => o.sill < 1).sort((p, q) => p.offset - q.offset)) {
+  for (const o of [...holes].filter(o => o.sill < 1).sort((p, q) => p.offset - q.offset)) {
     const l = o.offset - o.width / 2, r = o.offset + o.width / 2, top = Math.min(height - 1, o.height);
     shape.lineTo(l, 0); shape.lineTo(l, top); shape.lineTo(r, top); shape.lineTo(r, 0);
   }
   shape.lineTo(end, 0); shape.lineTo(end, height); shape.lineTo(start, height); shape.lineTo(start, 0);
-  for (const o of openings.filter(o => o.sill >= 1)) {
+  for (const o of holes.filter(o => o.sill >= 1)) {
     const hole = new THREE.Path(), l = o.offset - o.width / 2, r = o.offset + o.width / 2;
     hole.moveTo(l, o.sill); hole.lineTo(l, o.sill + o.height); hole.lineTo(r, o.sill + o.height); hole.lineTo(r, o.sill); hole.lineTo(l, o.sill);
     shape.holes.push(hole);

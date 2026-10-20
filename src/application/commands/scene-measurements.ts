@@ -4,7 +4,7 @@ import { createDesignCommands } from './design-commands';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
 import { depthForFitting } from '../../domain/wardrobe/carcass';
 import { wallFace } from '../../domain/studio/studio';
-import { setInsideLength, setWallSize, setOpeningSize, moveOpening } from '../../domain/studio/studio-edit';
+import { setInsideLength, setWallSize, setOpeningSize, moveOpening, moveOpening2D } from '../../domain/studio/studio-edit';
 import { moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 
 export type SceneMeasurement =
@@ -35,10 +35,11 @@ export function createSceneMeasurements(scene: () => EditorScene) {
             }
             const opening = room.openings.find(o => o.id === ref.id), wall = opening && room.walls.find(w => w.id === opening.wall);
             const face = wall && wallFace(room, wall);
-            if (!opening || !face) return null;
+            if (!opening || !wall || !face) return null;
             return ref.field === 'left' ? opening.offset - opening.width / 2 - face.start
                 : ref.field === 'right' ? face.end - opening.offset - opening.width / 2
-                    : ref.field === 'width' ? opening.width : ref.field === 'height' ? opening.height : ref.field === 'sill' ? opening.sill : null;
+                    : ref.field === 'width' ? opening.width : ref.field === 'height' ? opening.height
+                        : ref.field === 'sill' ? opening.sill : ref.field === 'top' ? wall.height - opening.sill - opening.height : null;
         }
         if (!scene().wardrobes.length) return null;
         if (ref.kind === 'reach') return scene().maxReach ?? null;
@@ -62,8 +63,13 @@ export function createSceneMeasurements(scene: () => EditorScene) {
                 const k = Number(ref.field.slice(1)), point = room.ceilings?.find(c => c.id === ref.id)?.profile[k];
                 return point ? moveCeilingPoint(room, ref.id, k, point.t, value) : null;
             }
-            if (ref.field !== 'left' && ref.field !== 'right') return setOpeningSize(room, ref.id, { [ref.field]: value });
             const o = room.openings.find(o => o.id === ref.id)!, wall = room.walls.find(w => w.id === o.wall)!;
+            if (!o || !wall) return null;
+            if (ref.field === 'sill' || ref.field === 'top') {
+                const sill = ref.field === 'sill' ? value : wall.height - o.height - value;
+                return moveOpening2D(room, ref.id, o.offset, sill);
+            }
+            if (ref.field !== 'left' && ref.field !== 'right') return setOpeningSize(room, ref.id, { [ref.field]: value });
             const face = wallFace(room, wall);
             if (!face) return null;
             const offset = ref.field === 'left' ? face.start + value + o.width / 2 : face.end - value - o.width / 2;

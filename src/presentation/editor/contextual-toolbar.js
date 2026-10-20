@@ -38,7 +38,9 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),flip:icon('flip'),walls:icon('room-wall')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
-        stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
+        stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
+        water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
+        'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
     const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions

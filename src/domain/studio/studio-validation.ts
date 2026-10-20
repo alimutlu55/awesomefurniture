@@ -2,6 +2,7 @@ import { STUDIO_LIMITS as L, corner, wallLine } from './studio';
 import type { Studio, StudioOpening, StudioWall } from './studio';
 import { ceilingProblems } from './studio-ceiling';
 import { WALL_FINISHES } from './studio-paint';
+import { isWallUtility, openingLimits, openingNoun, openingsOverlap } from './wall-utilities';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
@@ -63,8 +64,8 @@ function segmentsCross(a: P, b: P, c: P, d: P, shareCorner: boolean) {
 }
 
 /** How far along the wall an opening may sit, given the wall's length. */
-export function openingRange(length: number, width: number) {
-  const half = width / 2 + L.openingMargin;
+export function openingRange(length: number, width: number, margin: number = L.openingMargin) {
+  const half = width / 2 + margin;
   return { min: half, max: length - half };
 }
 
@@ -72,15 +73,18 @@ function openingProblems(studio: Studio, o: StudioOpening): string[] {
   const w = studio.walls.find(x => x.id === o.wall) as StudioWall | undefined;
   const line = w && wallLine(studio, w);
   if (!w || !line) return ['An opening is on a wall that no longer exists.'];
-  const out: string[] = [], name = o.kind === 'window' ? 'window' : o.kind === 'door' ? 'door' : 'archway';
-  if (o.width < L.minOpeningWidth - .01) out.push(`A ${name} must be at least ${L.minOpeningWidth} cm wide.`);
-  const range = openingRange(line.length, o.width);
+  const out: string[] = [], name = openingNoun(o.kind), lim = openingLimits(o.kind);
+  if (o.width < lim.minWidth - .01) out.push(`A ${name} must be at least ${lim.minWidth} cm wide.`);
+  const range = openingRange(line.length, o.width, lim.endMargin);
   if (range.max < range.min - .01) out.push(`This ${name} is wider than its wall. Make it narrower or the wall longer.`);
-  else if (o.offset < range.min - .01 || o.offset > range.max + .01) out.push(`The ${name} must stay on its wall, ${L.openingMargin} cm from each end.`);
-  if (o.sill < -.01 || o.height < 30 || o.sill + o.height > w.height - 2 + .01) out.push(`The ${name} must fit below the top of its wall.`);
+  else if (o.offset < range.min - .01 || o.offset > range.max + .01) out.push(`The ${name} must stay on its wall, ${lim.endMargin} cm from each end.`);
+  const minH = isWallUtility(o.kind) ? lim.minHeight : 30;
+  if (o.sill < -.01 || o.height < minH - .01 || o.sill + o.height > w.height - lim.topMargin + .01) out.push(`The ${name} must fit below the top of its wall.`);
   for (const other of studio.openings) {
     if (other === o || other.wall !== o.wall || other.id > o.id) continue;
-    if (Math.abs(other.offset - o.offset) < (other.width + o.width) / 2 + L.openingMargin - .01) out.push('Openings on one wall cannot overlap. Move one along the wall.');
+    const util = isWallUtility(o.kind) || isWallUtility(other.kind);
+    const clash = util ? openingsOverlap(o, other, lim.gap - .01) : Math.abs(other.offset - o.offset) < (other.width + o.width) / 2 + L.openingMargin - .01;
+    if (clash) out.push('Openings on one wall cannot overlap. Move one along the wall.');
   }
   return out;
 }

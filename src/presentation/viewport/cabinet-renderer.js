@@ -5,7 +5,7 @@ import { shapeHandleVisible } from './shape-handle-visibility';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
-import { createWardrobeOcclusion } from './wardrobe-occlusion';
+import { createWardrobeOcclusion, syncFurnitureTransparency } from './wardrobe-occlusion';
 import { createWardrobeAssist, SIZE_SIDES } from './assist-overlay';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
@@ -53,10 +53,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         for (const p of renderState.pivots) k += '|' + p.rotation.y.toFixed(3);
         return k;
     };
+    const syncWallGhosting = () => {
+        const sel = studioEditor?.valid() ?? selectionState.room ?? null;
+        syncFurnitureTransparency(renderState.wardrobeGroups, sel?.kind === 'wall' || sel?.kind === 'opening', resources?.scene);
+    };
     const sceneFrame = { shadowKey, frame: (cam, dt) => {
-        studio?.frame(cam, dt);
-        // Follows units while they are dragged, turned or pulled out into copies.
-        kitchenRuns?.sync(model.scene.wardrobes);
+        studio?.frame(cam, dt); kitchenRuns?.sync(model.scene.wardrobes); syncWallGhosting();
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
         // Which wardrobes stepped aside, for assistive tools and checks (no visible label shows it).
         const hidden = occlusion?.hiddenIds().join(' ') ?? '', view = $('#view');
@@ -77,6 +79,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     function redrawStudio() {
         studio?.sync(model.scene.studio, wardrobeFootprints());
         studio?.select(studioEditor?.valid() ?? null);
+        syncWallGhosting();
         overlay?.draw();
         positionLabels();
     }
@@ -231,6 +234,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         WardrobePlanner.configure(geometry.plannerConfig());
         inspector.crumbUI();
         resources.contact.visible = false;
+        syncWallGhosting();
         overlay?.draw();
         if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
         positionLabels();
@@ -335,30 +339,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 const ax = (renderState.pv2.x * .5 + .5) * r.width, ay = (-renderState.pv2.y * .5 + .5) * r.height;
                 let dx = x - ax, dy = y - ay;
                 const len = Math.hypot(dx, dy);
-                if (len < 1) {
-                    dx = 1;
-                    dy = 0;
-                }
-                else {
-                    dx /= len;
-                    dy /= len;
-                }
+                if (len < 1) { dx = 1; dy = 0; } else { dx /= len; dy /= len; }
                 // Distance along the line direction that moves the label's box fully clear of the line's end point.
                 const gap = 8, t = Math.min(Math.abs(dx) > .001 ? (ew / 2 + gap) / Math.abs(dx) : Infinity, Math.abs(dy) > .001 ? (eh / 2 + gap) / Math.abs(dy) : Infinity), bx = x + dx * t, by = y + dy * t, ox = ax - dx * t, oy = ay - dy * t, fits = (cx, c) => cx - ew / 2 >= leftLimit && cx + ew / 2 <= rightLimit;
-                if (fits(bx)) {
-                    x = bx;
-                    y = by;
-                }
-                else if (fits(ox)) {
-                    x = ox;
-                    y = oy;
-                }
+                if (fits(bx)) { x = bx; y = by; }
+                else if (fits(ox)) { x = ox; y = oy; }
                 else if (l.el.classList.contains('reach-dimension')) { x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, bx)); y = by - eh / 2; } // stays readable on a phone
-                else {
-                    // Keep the guide, but never clamp an out-of-frame label over the wardrobe.
-                    l.el.style.display = 'none';
-                    return;
-                }
+                else { l.el.style.display = 'none'; return; }
                 l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
                 return;
             }

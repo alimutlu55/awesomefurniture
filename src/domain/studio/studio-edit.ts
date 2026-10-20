@@ -7,6 +7,7 @@ import { STUDIO_DEFAULTS, STUDIO_LIMITS as L, corner, cornerDegree, nextId, wall
 import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } from './studio';
 import { openingRange } from './studio-validation';
 import { keepCeilings, splitCeilings } from './studio-ceiling';
+import { isWallUtility, openingLimits } from './wall-utilities';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
   const next: Studio = { ...studio, ...changes, template: 'custom' };
@@ -25,7 +26,7 @@ function keepOpenings(before: Studio, corners: readonly StudioCorner[]): StudioO
     const w = wall(before, o.wall), old = w && wallLine(before, w), now = w && wallLine(after, w);
     if (!old || !now) return o;
     const x = old.a.x + old.ux * o.offset, z = old.a.z + old.uz * o.offset;
-    const range = openingRange(now.length, o.width), along = (x - now.a.x) * now.ux + (z - now.a.z) * now.uz;
+    const range = openingRange(now.length, o.width, openingLimits(o.kind).endMargin), along = (x - now.a.x) * now.ux + (z - now.a.z) * now.uz;
     return { ...o, offset: round(range.max < range.min ? along : Math.min(range.max, Math.max(range.min, along))) };
   });
 }
@@ -167,14 +168,20 @@ export function removeWall(studio: Studio, id: string): Studio | null {
   return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id), ...(ceilings ? { ceilings } : {}) });
 }
 
-/** Adds a door, window or archway to a wall: in the middle if it is free, else in the widest gap.
+/** Adds a door, window, archway or wall utility to a wall: in the middle if it is free, else in the widest gap.
  * Null when the wall has no room for it. */
 export function addOpening(studio: Studio, wallId: string, kind: OpeningKind): Studio | null {
   const w = wall(studio, wallId), line = w && wallLine(studio, w);
   if (!w || !line) return null;
-  const size = STUDIO_DEFAULTS[kind], range = openingRange(line.length, size.width);
-  if (range.max < range.min || size.sill + size.height > w.height - 2) return null;
-  const taken = studio.openings.filter(o => o.wall === wallId).map(o => [o.offset - o.width / 2 - L.openingMargin, o.offset + o.width / 2 + L.openingMargin] as const).sort((p, q) => p[0] - q[0]);
+  const raw = STUDIO_DEFAULTS[kind], lim = openingLimits(kind);
+  const sill = isWallUtility(kind) ? Math.max(0, Math.min(raw.sill, w.height - raw.height - lim.topMargin)) : raw.sill;
+  const size = { width: raw.width, height: raw.height, sill }, range = openingRange(line.length, size.width, lim.endMargin);
+  if (range.max < range.min || size.sill + size.height > w.height - lim.topMargin) return null;
+  const margin = isWallUtility(kind) ? lim.gap : L.openingMargin;
+  const taken = studio.openings
+    .filter(o => o.wall === wallId && (!isWallUtility(kind) && !isWallUtility(o.kind) || Math.min(o.sill + o.height, size.sill + size.height) - Math.max(o.sill, size.sill) > -margin))
+    .map(o => [o.offset - o.width / 2 - margin, o.offset + o.width / 2 + margin] as const)
+    .sort((p, q) => p[0] - q[0]);
   const free = (c: number) => taken.every(([s, e]) => c + size.width / 2 <= s + .01 || c - size.width / 2 >= e - .01);
   const candidates = [line.length / 2, ...taken.flatMap(([s, e]) => [s - size.width / 2, e + size.width / 2])]
     .filter(c => c >= range.min - .01 && c <= range.max + .01 && free(c))
@@ -188,8 +195,20 @@ export function addOpening(studio: Studio, wallId: string, kind: OpeningKind): S
 export function moveOpening(studio: Studio, id: string, offset: number): Studio | null {
   const o = studio.openings.find(x => x.id === id), w = o && wall(studio, o.wall), line = w && wallLine(studio, w);
   if (!o || !line) return null;
-  const range = openingRange(line.length, o.width);
+  const range = openingRange(line.length, o.width, openingLimits(o.kind).endMargin);
   return custom(studio, { openings: studio.openings.map(x => x.id === id ? { ...x, offset: round(Math.min(range.max, Math.max(range.min, offset))) } : x) });
+}
+
+/** Moves an opening or wall utility in 2D on its wall plane (both `offset` along the wall and `sill` above the floor). */
+export function moveOpening2D(studio: Studio, id: string, offset: number, sill?: number): Studio | null {
+  const o = studio.openings.find(x => x.id === id), w = o && wall(studio, o.wall), line = w && wallLine(studio, w);
+  if (!o || !w || !line) return null;
+  const lim = openingLimits(o.kind), range = openingRange(line.length, o.width, lim.endMargin);
+  const nextOffset = round(Math.min(range.max, Math.max(range.min, offset)));
+  const canMoveY = sill !== undefined && (o.kind === 'window' || isWallUtility(o.kind));
+  const maxSill = Math.max(0, w.height - o.height - lim.topMargin);
+  const nextSill = canMoveY ? round(Math.min(maxSill, Math.max(0, sill))) : o.sill;
+  return custom(studio, { openings: studio.openings.map(x => x.id === id ? { ...x, offset: nextOffset, sill: nextSill } : x) });
 }
 
 export function setOpeningSize(studio: Studio, id: string, size: Partial<Pick<StudioOpening, 'width' | 'height' | 'sill'>>): Studio | null {

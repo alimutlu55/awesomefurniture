@@ -1,10 +1,10 @@
 import type { Studio } from '../studio/studio';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { plinthOf } from '../wardrobe/carcass';
-import { type Item, line, mm, note, rect, stops } from './drawing';
+import { type Item, line, mm, rect, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { pieceFront, pieceHeights } from './piece-front';
-import { openingNote } from './opening-notes';
+import { elevationOpeningItems } from './opening-notes';
 
 /** How far the floor line runs past the wall's ends. Millimetres. */
 const FLOOR_RUN = 300;
@@ -28,8 +28,7 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   out.push(line({ x: -FLOOR_RUN, y: 0 }, { x: mm(length) + FLOOR_RUN, y: 0 }, 'cut'));
   for (const o of g.openings) {
     const a = x(o.offset - o.width / 2), b = x(o.offset + o.width / 2);
-    out.push(rect(mm(a), mm(o.sill), mm(b), mm(o.sill + o.height), 'outline', o.kind === 'window' ? 'glass' : undefined));
-    out.push(note({ x: mm((a + b) / 2), y: mm(o.sill + o.height) - 120 }, openingNote(o)));
+    out.push(...elevationOpeningItems(o, a, b));
   }
   /** How far along this wall a footprint reaches, and how close it comes to the wall's face. */
   const reach = (cx: number, cz: number, angle: number, w: number, d: number) => {

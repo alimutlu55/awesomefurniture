@@ -1,7 +1,9 @@
 import { cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCorner, StudioWall } from '../../domain/studio/studio';
+import { isWallUtility } from '../../domain/studio/wall-utilities';
 import { alignTo, type Align } from './align-snap';
 import { measureNumber, unitSuffix } from './editor-format.js';
+import type { RoomMeasure } from './studio-editor.ports';
 
 /** The geometry of dragging a room's corners, walls and openings: where the pointer wants the part to
  * go, the lines it can snap to, and the guides that show why it snapped. Plain data in scene
@@ -135,4 +137,27 @@ export function wardrobeGap(room: Studio, w: StudioWall, standing: readonly { id
 /** `wardrobeGap` for the scene's wardrobes, leaving out those carried with the wall. */
 export function wallGap(room: Studio, w: StudioWall, wardrobes: readonly { id: number; x: number; z: number; angle: number; state: { w: number; d: number } }[], carry: { list: readonly { id: number }[] } | null) {
   return wardrobeGap(room, w, wardrobes.map(c => ({ id: c.id, x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d })), new Set(carry?.list.map(c => c.id) ?? []));
+}
+
+/** Rulers for a selected or dragged opening / wall utility: all four distances to its wall's boundaries
+ * (`left` to left end, `right` to right end, `sill` to floor, `top` to ceiling) plus its own width and height. */
+export function openingMeasures(room: Studio, w: StudioWall, id: string, dragging: boolean): RoomMeasure[] {
+  const o = room.openings.find(x => x.id === id), line = wallLine(room, w), face = wallFace(room, w);
+  if (!o || !line || !face) return [];
+  const f = (v: number) => measureNumber(Math.round(v * 10) / 10) + unitSuffix();
+  const z = w.thickness / 2 + 4, at = (t: number, y: number) => ({ x: line.a.x + line.ux * t + line.nx * z, y, z: line.a.z + line.uz * t + line.nz * z });
+  const l = o.offset - o.width / 2, r = o.offset + o.width / 2, b = o.sill, t = o.sill + o.height;
+  const utility = isWallUtility(o.kind), yh = utility ? b + o.height / 2 : t + 14, yw = t + (utility ? 8 : 14);
+  const edit = (name: string) => dragging ? {} : { edit: name };
+  const horiz: RoomMeasure[] = [
+    { a: at(face.start, yh), b: at(l, yh), text: f(l - face.start), ...edit('left') },
+    { a: at(l, yw), b: at(r, yw), text: f(o.width), ...edit('width') },
+    { a: at(r, yh), b: at(face.end, yh), text: f(face.end - r), ...edit('right') },
+  ].filter(m => Math.hypot(m.b.x - m.a.x, m.b.z - m.a.z) > .5);
+  const vert: RoomMeasure[] = [
+    ...(b > .5 ? [{ a: at(o.offset, 0), b: at(o.offset, b), text: f(b), axis: 'height' as const, ...edit('sill') }] : []),
+    ...(w.height - t > .5 ? [{ a: at(o.offset, t), b: at(o.offset, w.height), text: f(w.height - t), axis: 'height' as const, ...edit('top') }] : []),
+    ...(utility && o.height > .5 ? [{ a: at(r + 6, b), b: at(r + 6, t), text: f(o.height), axis: 'height' as const, ...edit('height') }] : []),
+  ];
+  return [...horiz, ...vert];
 }
