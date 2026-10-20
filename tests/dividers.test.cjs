@@ -119,6 +119,10 @@ test('fittings and dividers standing on a shelf ride with it; a divider reaching
  near(c.S.secs[1][0].y,120.9);
  near(c.S.dividers[1].y0,120.9);near(c.S.dividers[1].y1,TOP);
  near(c.S.dividers[2].y0,0);near(c.S.dividers[2].y1,119.1);
+ assert.equal(run('moveDividerTo(0,80)'),'all','The attached lower divider shortens when the shelf is dragged down');
+ near(c.S.dividers[0].y,80);near(c.S.secs[1][0].y,80.9);
+ near(c.S.dividers[1].y0,80.9);near(c.S.dividers[1].y1,TOP);
+ near(c.S.dividers[2].y0,0);near(c.S.dividers[2].y1,79.1);
 });
 test('a divider made shorter keeps its length when a slope cuts it on the way and comes back',()=>{
  const c=vm.createContext({S:{w:200,h:230,d:60,n:1,wt:[100,100,100,100,100,100],secs:[[],[],[],[],[],[]],sel:0,item:-1,dividers:[],shape:{template:'sloped',top:[{x:0,y:100},{x:200,y:230}]}},G:{},act(fn){fn()},toast(){},deep:true,pillOn:true});
@@ -128,6 +132,31 @@ test('a divider made shorter keeps its length when a slope cuts it on the way an
  run('moveDividerTo(0,150)');near(c.S.dividers[0].y1,120);
  c.S.dividers=[{i:0,orientation:'vertical',x:20,y0:0,y1:run('ceilingIn(0,19.1,20.9)'),area:{x0:0,x1:196.4,y0:0,y1:218.4}}];
  run('moveDividerTo(0,150)');near(c.S.dividers[0].y1,run('ceilingIn(0,149.1,150.9)'));
+});
+test('a shelf moves down with its lower divider but stops exactly above a real fitting',()=>{
+ const {c,run}=fixture([{k:'drawer',h:40,w:20,x:0,y:0}]);
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:0,y1:TOP}},
+  {i:1,orientation:'vertical',x:30,y0:0,y1:99.1,area:{x0:0,x1:BW,y0:0,y1:99.1}}];
+ assert.equal(run('moveDividerTo(0,0)'),'all');
+ near(c.S.dividers[0].y,40.9);near(c.S.dividers[1].y1,40);
+ assert.equal(run('dividerValid(S.dividers[0],0)&&dividerValid(S.dividers[1],1)&&sectionLayoutValid(1)'),true);
+});
+test('live shelf dragging reverses down and up with attached dividers, cancels atomically and commits once',()=>{
+ const {c,run}=fixture();
+ c.S.doors='none';
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:0,y1:TOP}},
+  {i:1,orientation:'vertical',x:30,y0:0,y1:99.1,area:{x0:0,x1:BW,y0:0,y1:99.1}}];
+ Object.assign(c,{camRelease(){},tgt:{y:115},vs:0,vz:1,hist:[],histUI(){},showPop(){},build(){},refreshDividerVisual(){},update(){},
+  sceneSnapshot:()=>JSON.stringify(c.S),restoreScene:s=>{c.S=JSON.parse(s);},frontPoint:e=>e.point,
+  cv:{setPointerCapture(){},hasPointerCapture:()=>false}});
+ c.dividerGesture=null;gestureFixture(c);
+ const before=JSON.stringify(c.S);
+ const begin=()=>run('beginDividerDrag({pointerId:1,clientX:0,clientY:0,point:{x:0,y:100}},0)');
+ const move=y=>run(`moveDividerDrag({pointerId:1,clientX:0,clientY:${100-y},point:{x:0,y:${y}}})`);
+ begin();for(const y of [80,120,70]){move(y);near(c.S.dividers[0].y,y);near(c.S.dividers[1].y1,y-.9);}
+ run('finishDividerDrag(true)');assert.equal(JSON.stringify(c.S),before);assert.equal(c.hist.length,0);
+ begin();move(75);run('finishDividerDrag()');near(c.S.dividers[0].y,75);near(c.S.dividers[1].y1,74.1);
+ assert.equal(c.hist.length,1);assert.equal(c.hist[0],before);
 });
 test('a fitting moved takes along what stands on it: a divider and a fitting placed on its top',()=>{
  const {c,run}=fixture([{k:'drawer',h:40,w:30,x:0,y:0},{k:'shelf',h:20,w:20,x:5,y:40}]);

@@ -48,7 +48,7 @@ export function createAttachmentRules(ctx, deps) {
     }
     /** A board at its new place (`all`: the section as it will be) fitted into the clear run there, keeping
      * its length if it was shorter than the run it stood in (`old`: the section as it was). */
-    function fit(i, d, before, all, old, k) {
+    function fit(i, d, before, all, old, k, followsShelf = false) {
         const self = p => p.k === k;
         if (d.orientation === 'vertical') {
             const was = gap(i, 'y', [before.x - T / 2, before.x + T / 2], before.y0 + .5, old, self);
@@ -62,7 +62,11 @@ export function createAttachmentRules(ctx, deps) {
                 || (before.y1 >= was.hi - .5 && wanted <= was.hi + .5);
             const run = gap(i, 'y', [d.x - T / 2, d.x + T / 2], d.y0 + .5, all, self);
             // A part lower than its top is in the way: it stops there rather than shrinking under it.
-            if (!run || (run.hiPart && run.hi < before.y1 - .01 && run.hi < run.lo + (wanted - before.y0) - .01)) return null;
+            if (!run) return null;
+            // A shelf dragged down deliberately shortens a divider attached to
+            // its underside. That moved attachment is not an intervening obstacle.
+            const attachedTop = followsShelf && Math.abs(run.hi - d.y1) < .01;
+            if (!attachedTop && run.hiPart && run.hi < before.y1 - .01 && run.hi < run.lo + (wanted - before.y0) - .01) return null;
             const length = wanted - before.y0, y1 = filling ? run.hi : Math.min(run.hi, run.lo + length);
             const across = gap(i, 'x', [run.lo, y1], d.x, all, self) ?? { lo: 0, hi: widths()[i] };
             // Filling up to the top, it grows with the wardrobe (clampDivider cuts it to the slope); up to a part, it ends there.
@@ -133,7 +137,9 @@ export function createAttachmentRules(ctx, deps) {
         // Every board that moved fits where it now stands, among everything else as it now is.
         const after = parts(i, secs, dividers);
         for (const k of changed) {
-            const fitted = fit(i, dividers[k], design.dividers[k], after, now, k);
+            const before = design.dividers[k];
+            const followsShelf = d.orientation === 'horizontal' && before.orientation === 'vertical' && near(before.y1, r.y0);
+            const fitted = fit(i, dividers[k], before, after, now, k, followsShelf);
             if (!fitted) return null;
             dividers[k] = fitted;
         }
