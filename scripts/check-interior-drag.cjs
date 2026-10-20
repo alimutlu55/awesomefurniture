@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
+const attached = process.env.INTERIOR_ATTACHED === '1';
 
 (async () => {
  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH });
@@ -13,7 +14,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await page.route(base + '/interior-drag-fixture', route => route.fulfill({ contentType: 'text/html', body:
     '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#editor{margin:0;width:100%;height:100%;overflow:hidden}</style></head><body><div id="editor"></div></body></html>' }));
    await page.goto(base + '/interior-drag-fixture');
-   await page.evaluate(async furniture => {
+   await page.evaluate(async ({ furniture, attached }) => {
     const { mountEditor } = await import('/src/presentation/editor/mount-editor.ts');
     const { createEditorState } = await import('/src/application/projects/editor-state.ts');
     const { createKitchenDesign } = await import('/src/domain/kitchen/kitchen-design.ts');
@@ -28,13 +29,19 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     const rules = createWardrobeGeometry(() => state), sw = rules.widths()[0];
     state.dividers = [{ i: 0, orientation: 'horizontal', x0: 0, x1: sw, y: cabinet ? 32 : 100 },
      { i: 0, orientation: 'vertical', x: sw / 2, y0: cabinet ? 45 : 130, y1: rules.ih(), roofFit: true }];
+    if (attached) {
+     state.secs[0][0].w = sw / 2 - .9;
+     state.dividers[0] = { i: 0, orientation: 'horizontal', x0: 0, x1: sw / 2 - .9, y: rules.ih() * .25 };
+     state.dividers[1].y0 = 0;
+     state.dividers.push({ i: 0, orientation: 'horizontal', x0: sw / 2 + .9, x1: sw, y: rules.ih() * .65 });
+    }
     let editor;
     try { editor = mountEditor({ root: document.querySelector('#editor'), initialScene: {
      wardrobes: [{ id: 1, name: 'Furniture', x: 0, y: 0, z: 0, angle: 0, state }], activeWardrobe: 1, nextWardrobeId: 2,
     } }); } finally { THREE.PerspectiveCamera.prototype.updateProjectionMatrix = original; }
     editor.snapshot();
     window.dragFixture = { editor, camera, THREE, rules: createWardrobeGeometry(() => editor.scene().wardrobes[0].state) };
-   }, furniture);
+   }, { furniture, attached });
    const canvas = page.locator('#editor').locator('canvas'), bar = page.locator('[data-editor-id="toolbar"]');
    const state = () => page.evaluate(() => window.dragFixture.editor.scene().wardrobes[0].state);
    const pose = () => page.evaluate(() => { const c = window.dragFixture.editor.scene().wardrobes[0]; return { x: c.x, y: c.y, z: c.z, angle: c.angle }; });
@@ -60,14 +67,27 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    };
    const tap = async p => { const q = await project(p); if (width <= 900) await page.touchscreen.tap(q.x, q.y); else await page.mouse.click(q.x, q.y); await page.waitForTimeout(100); };
    const cdp = await page.context().newCDPSession(page);
-   const drag = async (p, dx, dy) => {
+   const checkDistances = async () => {
+    const result = await page.evaluate(() => {
+     const { rules } = window.dragFixture, m = rules.dividerMeasurements(1);
+     return ['before', 'after'].map(side => ({ expected: m[side], side }));
+    });
+    for (const { expected, side } of result) {
+     const badge = page.getByRole('slider', { name: side === 'before' ? 'Distance left of divider' : 'Distance right of divider', exact: true });
+     assert.ok(expected > 1, 'a real opening has a positive distance');
+     assert.ok(Math.abs(Number(await badge.getAttribute('aria-valuenow')) - expected) < .001, 'control value follows the moving divider');
+     assert.equal(await badge.textContent(), await badge.getAttribute('aria-valuetext'), 'visible distance matches the control value');
+    }
+   };
+   const drag = async (p, dx, dy, during) => {
     const a = await project(p), b = await project([p[0] + dx, p[1] + dy, p[2]]);
     assert.equal(await page.evaluate(a => document.querySelector('#editor').shadowRoot.elementFromPoint(a.x, a.y)?.tagName, a), 'CANVAS', 'drag starts on the model rather than an overlay control');
     if (width <= 900) {
      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...a, id: 1 }] });
      for (let n = 1; n <= 10; n++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + (b.x - a.x) * n / 10, y: a.y + (b.y - a.y) * n / 10, id: 1 }] });
+     if (during) await during();
      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    } else { await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 10 }); await page.mouse.up(); }
+    } else { await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 10 }); if (during) await during(); await page.mouse.up(); }
     await page.waitForTimeout(100);
    };
    await canvas.waitFor(); await page.waitForTimeout(200);
@@ -81,11 +101,26 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    assert.deepEqual(await pose(), initialPose);
    await tap(await point('board', 1));
    assert.equal((await state()).divider, 1, 'second click selects the vertical divider');
+   await checkDistances();
    const vertical = (await state()).dividers[1].x;
-   await drag(await point('board', 1), 8, 0);
+   await drag(await point('board', 1), 8, 0, checkDistances);
    assert.ok((await state()).dividers[1].x > vertical + 3, 'vertical divider follows a horizontal drag');
    assert.deepEqual(await pose(), initialPose);
    assert.equal(await page.locator('.ground-rotate:visible,.array-grip:visible').count(), 0, 'interior selection has no furniture transform grips');
+   if (attached) {
+    await checkDistances();
+    await page.locator('[data-action="resize"]').click();
+    const left = page.getByRole('slider', { name: 'Distance left of divider', exact: true });
+    const value = Number(await left.getAttribute('aria-valuenow'));
+    await left.focus(); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(100);
+    assert.ok(Math.abs(Number(await left.getAttribute('aria-valuenow')) - (value - 1)) < .001, 'opening remains editable with attached shelves');
+    await checkDistances();
+    await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(100); await checkDistances();
+    await page.screenshot({ path: `/tmp/wardrobe-divider-distances-${width}-${furniture}.png` });
+    assert.deepEqual(errors, []);
+    console.log(`PASS ${width}px ${furniture}: attached shelves and fitting, live distance labels/control values, exact positioning and undo`);
+    await page.evaluate(() => window.dragFixture.editor.dispose()); await page.close(); continue;
+   }
    await tap(await point('board', 0));
    const shelf = (await state()).dividers[0].y;
    await drag(await point('board', 0), 0, furniture === 'cabinet' ? 5 : 12);

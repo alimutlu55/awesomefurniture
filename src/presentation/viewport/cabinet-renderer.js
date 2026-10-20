@@ -284,6 +284,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             q.line.visible = value > .1;
             q.entry.p.copy(a).add(b).multiplyScalar(.5);
             q.entry.el.textContent = measureNumber(value) + unitSuffix();
+            inspector.editableDividerClearance(q.entry.el, index, j === 0 ? 'before' : 'after');
         });
         positionLabels();
         inspector.dividerUI();

@@ -89,6 +89,33 @@ test('invalid and excessive dimension input cannot cross physical boundaries',()
 
 // What moves with a board (wardrobe-rules/attachments.js). Section 1 is 64.27 cm wide and 218.4 cm clear.
 const BW=64.3,TOP=218.4,full=(x)=>({i:1,orientation:'vertical',x,y0:0,y1:TOP,area:{x0:0,x1:BW,y0:0,y1:TOP}});
+test('upright distances measure openings past attached shelves on both sides before and during movement',()=>{
+ const {c,run}=fixture();
+ c.S.dividers=[full(32),{i:1,orientation:'horizontal',x0:0,x1:31.1,y:40},
+  {i:1,orientation:'horizontal',x0:32.9,x1:BW,y:120}];
+ const gaps=(left,right)=>{const m=run('dividerMeasurements(0)');near(m.before,left);near(m.after,right);near(m.low,0);near(m.high,BW)};
+ gaps(31.1,31.4);
+ assert.equal(run('moveDividerTo(0,38)'),'all');gaps(37.1,25.4);
+ // Attachment fitting caches a narrow area on the upright. It must not turn
+ // either opening into a zero distance on subsequent frames or a saved reload.
+ assert.ok(c.S.dividers[0].area.x0>0);assert.ok(c.S.dividers[0].area.x1<BW);
+ run('setDividerClearance(0,"before",30)');near(c.S.dividers[0].x,30.9);gaps(30,32.5);
+ run('setDividerClearance(0,"after",28)');near(c.S.dividers[0].x,35.4);gaps(34.5,28);
+});
+test('upright measurements use the same contact tolerance as attached fittings and shelves',()=>{
+ const {c,run}=fixture([{k:'drawer',h:30,w:31.1,x:0,y:0}]);
+ c.S.dividers=[full(32),{i:1,orientation:'horizontal',x0:33.3,x1:BW,y:120}];
+ let m=run('dividerMeasurements(0)');near(m.before,31.1);near(m.after,31.4);
+ assert.equal(run('moveDividerTo(0,36)'),'all');
+ m=run('dividerMeasurements(0)');near(m.before,35.1);near(m.after,27.4);
+ near(c.S.secs[1][0].w,35.1);near(c.S.dividers[1].x0,36.9);
+});
+test('upright distances still stop at fixed upright neighbours and unattached fittings',()=>{
+ const {c,run}=fixture([{k:'shelf',h:30,w:20,x:0,y:100}]);
+ c.S.dividers=[{...full(35),area:{x0:34.1,x1:35.9,y0:0,y1:TOP}},full(55),
+  {i:1,orientation:'horizontal',x0:35.9,x1:54.1,y:150}];
+ const m=run('dividerMeasurements(0)');near(m.low,20);near(m.high,54.1);near(m.before,14.1);near(m.after,18.2);
+});
 test('a divider fits the height where it stands: standing on a fitting, and down to the floor past it',()=>{
  const {c,run}=fixture([{k:'drawer',h:40,w:30,x:0,y:0}]);
  c.S.dividers=[{i:1,orientation:'vertical',x:15,y0:40,y1:TOP,area:{x0:0,x1:30,y0:40,y1:TOP}}];

@@ -1,4 +1,5 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
+import { uprightContact } from './board-contact.js';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -99,18 +100,17 @@ export function createAttachmentRules(ctx, deps) {
             // Anchored: the other end of a part touches the section side or another upright board.
             const anchoredAt = (x, y0, y1) => near(x, 0) || near(x, widths()[i]) || now.boards.some(b => b.k !== index && b.d.orientation === 'vertical' && (near(b.x0, x) || near(b.x1, x)) && overlaps(b.y0, b.y1, y0, y1));
             for (const b of now.boards) {
-                if (b.d.orientation !== 'horizontal' || !overlaps(b.y0, b.y1, r.y0, r.y1)) continue;
-                const onLeft = near(b.x1, r.x0), onRight = near(b.x0, r.x1);
-                if (!onLeft && !onRight) continue;
+                if (b.d.orientation !== 'horizontal') continue;
+                const contact = uprightContact(b, r), onLeft = contact === 'left';
+                if (!contact) continue;
                 const stretch = onLeft ? anchoredAt(b.x0, b.y0, b.y1) : anchoredAt(b.x1, b.y0, b.y1);
                 const s = dividers[b.k];
                 dividers[b.k] = onLeft ? { ...s, x0: stretch ? s.x0 : s.x0 + dx, x1: s.x1 + dx } : { ...s, x0: s.x0 + dx, x1: stretch ? s.x1 : s.x1 + dx };
                 changed.add(b.k);
             }
             for (const q of now.items) {
-                if (!overlaps(q.y0, q.y1, r.y0, r.y1)) continue;
-                const onLeft = near(q.x1, r.x0), onRight = near(q.x0, r.x1);
-                if (!onLeft && !onRight) continue;
+                const contact = uprightContact(q, r), onLeft = contact === 'left';
+                if (!contact) continue;
                 const it = secs[q.j], stretch = it.w !== undefined && (onLeft ? anchoredAt(q.x0, q.y0, q.y1) : anchoredAt(q.x1, q.y0, q.y1));
                 const w = q.x1 - q.x0 + (stretch ? (onLeft ? dx : -dx) : 0);
                 if (stretch && w < itemMinW(it) - .01) return null;
