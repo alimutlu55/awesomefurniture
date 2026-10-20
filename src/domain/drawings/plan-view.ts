@@ -11,6 +11,7 @@ import { freePosition, pieceSymbols, plan } from './plan-symbols';
 import { pieceOperations } from './plan-operations';
 import { planClearances, roomDoorOperation } from './plan-clearances';
 import type { DrawingOptions } from './view-policy';
+import { appliancePlanNote } from './appliance-setout';
 import { planEndBreak } from './shell-boundaries';
 
 
@@ -123,6 +124,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d / 8;
     out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
     if (p.fixture === 'shelf') out.push(note(plan(p.x + v.x * (p.design.d / 2 + 15), p.z + v.z * (p.design.d / 2 + 15)), pieceName(p)));
+    if (!operations) out.push(...appliancePlanNote(studio, p, pieces));
     if (!upper) out.push(...pieceSymbols(p).filter(i => operations || i.kind !== 'arrow'));
     if (operations) out.push(...pieceOperations(p).flatMap(o => o.items));
     if (p.wall === null) {

@@ -28,7 +28,7 @@ const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W9',
-    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule']);
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'K1 appliance allocations', 'Appliance schedule', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Review issues']);
   assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Furniture schedule'],
     'no room: the piece on its own');
 });
@@ -48,7 +48,7 @@ test('the plan dimensions every piece and gap to the wall ends, the window, the 
   assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
-  assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);
+  assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200', 'K1 Fridge · 600 W × 580 D housing']);
 });
 
 test('the elevation stacks every height from the floor and gives the window its sill and head', () => {
@@ -249,6 +249,7 @@ test('wall utilities (water pipes, electrical sockets, vents, gas, radiators, sw
     'Electrical point 160 × 100, sill 1100',
     'Extractor vent 180 × 180, sill 2150',
     'Window 1000 × 1200, Hp 1000, lintel 2200',
+    'K1 Fridge · 600 W × 580 D housing',
   ]);
   const elevNotes = all(elevation!).filter(i => i.kind === 'note' && !i.small).map(i => i.kind === 'note' && i.lines.join(' '));
   assert.ok(elevNotes.includes('Water pipes 240 × 200, sill 500'));

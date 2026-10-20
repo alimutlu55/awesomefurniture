@@ -9,6 +9,8 @@ import { designChecks } from './checks';
 import { unitDetailViews } from './unit-detail';
 import { cuttingList } from './cutting-list';
 import { hardwareList } from './hardware-list';
+import { applianceDetailSheets } from './appliance-details';
+import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
@@ -44,12 +46,15 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }
   const geometryChecks = designChecks(studio, pieces, letters), clearance = planClearances(studio, pieces, options.clearanceProfile);
-  const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues];
+  const applianceIssues = applianceReview(pieces);
+  const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues, ...applianceIssues];
   const checks = [...new Set([...geometryChecks, ...clearance.checks])], about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
   const purpose = DRAWING_PRESETS.find(p => p.key === preset)!.label;
   const legend = ['Solid: visible furniture · light dashes: overhead · FFL: finished floor = 0',
-    preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile' : 'Opening envelopes: Clearance view · exact construction sizes: Cabinet details'];
+    preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile'
+      : applianceIssues.length ? 'CL = centre line · wall left is its elevation left end · manufacturer cut-outs unconfirmed'
+        : 'Exact construction sizes: individual detail sheets'];
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
     pieces: pieces.filter(p => p.y < 120).map(p => row(p, letters)), checks: preset === 'clearances' ? checks : geometryChecks }];
   if (options.upperPlan !== false && pieces.some(p => p.y >= 120)) sheets.push({ number: 2, title: 'Upper furniture plan', purpose,
@@ -69,6 +74,9 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const p of pieces.filter(q => !q.fixture)) {
     sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), views: unitDetailViews(p), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
+  sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
+  const appliances = applianceSchedule(studio, pieces);
+  if (appliances) sheets.push({ number: sheets.length + 1, title: 'Appliance schedule', views: [], pieces: [], checks: [], table: appliances });
   const details = constructionDetails(pieces);
   details.forEach((views, k) => sheets.push({ number: sheets.length + 1, title: 'Construction details' + (details.length > 1 ? ' ' + (k + 1) + ' of ' + details.length : ''), views, pieces: [], checks: [] }));
   // Schedules: the cutting list and the hardware list, each running on over as many sheets as it needs.
@@ -81,5 +89,5 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   if (issues.length) sheets.push({ number: sheets.length + 1, title: 'Review issues', pieces: [], checks: [], views: [],
     table: { columns: ['Type', 'Elements', 'Finding', 'Rule / reference'], numeric: [], notes: ['Review recommendations separately from confirmed geometry conflicts.'],
       rows: issues.map(i => [i.kind, i.marks.join(', '), i.message, i.rule ?? 'Geometry review']) } });
-  return sheets.map(s => ({ ...s, purpose, issues }));
+  return sheets.map((s, i) => ({ ...s, number: i + 1, purpose, issues }));
 }

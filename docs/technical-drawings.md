@@ -7,7 +7,7 @@ width immediately; one finger scrolls/pans, two fingers pinch to zoom, and Ctrl 
 sheet). There are no view tabs, inspector panels, navigation sidebars or export configuration dialogs.
 
 The set includes the main plan, a separate labelled upper-furniture plan, a dedicated clearance plan,
-elevations, every cabinet detail, construction details and paginated schedules. The main plan keeps
+elevations, every cabinet detail, construction details and paginated schedules. The main plan shows exact module/position dimensions and keeps
 opening envelopes off the room overview; those appear on the clearance sheet. Upper pieces use a
 1200 mm lower-edge visibility threshold, an explicit application view policy.
 
@@ -165,3 +165,29 @@ as a cabinet. The mixed inventory is named **Furniture schedule**, with an **Ite
 upper view is **Upper furniture plan**. Standalone shelves also carry a **Wall shelf** note in plan
 and elevation. They retain their original reference and geometry: one shelf board in the cutting
 list and shelf brackets in the hardware list, without a cabinet carcass or cabinet shop sheet.
+
+
+## Appliance dimensions and setting out
+
+The main exported plan uses installation dimensions automatically; the viewer retains its four
+controls. Each worktop sink/hob has a callout with its reference, name, overall W × D, and two centre-line
+coordinates from the supporting wall's finished left end and face. Wall left follows that wall's
+elevation, so rotated walls retain the same datum. An island uses its worktop run's left/back datum;
+without a matching wall/worktop, scene coordinates and rotation are labelled explicitly.
+
+Each sink/hob also has a larger setting-out sheet: a dimensioned overall footprint and a worktop view
+with centre-line chains, worktop size/thickness, all four overall edge gaps, model height and mounting
+FFL datum. Parent worktops are selected by height and footprint containment, including corner/rotated
+cases. Missing worktop support and overall footprints crossing its edge become review issues.
+
+Fitted ovens, microwaves, fridges, dishwashers and other registered appliance fittings get housing
+callouts and allocation sheets showing the current bay W × H, left position, bottom FFL and clear
+carcass depth. These are designer allocations, not manufacturer body/front or approved niche sizes.
+The Appliance schedule collects all references, current dimensions, placement and installation status.
+It wraps and paginates using the same fixed lettering as the other schedules.
+
+The model currently has no confirmed manufacturer model/template data. Cut-outs, radii, fixings,
+niches, ventilation and service requirements therefore remain explicitly UNCONFIRMED on appliance
+sheets, the schedule, review issues and worktop cutting-list references. No cut-out is inferred from
+an overall sink/hob footprint. Sink `h` describes its modeled selectable height; mounting `y` is the
+worktop datum, not a manufactured bowl-bottom level. Export never changes design geometry.

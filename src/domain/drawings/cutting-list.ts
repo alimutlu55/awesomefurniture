@@ -48,7 +48,7 @@ export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
         && Math.abs((p.x - s.x) * u.x + (p.z - s.z) * u.z) < s.length / 2 && Math.abs((p.x - s.x) * v.x + (p.z - s.z) * v.z) < s.depth / 2;
       const holes = pieces.filter(p => (p.fixture === 'sink' || p.fixture === 'hob') && on(p));
       all.push({ mark: run, part: 'Worktop', qty: 1, length: mm(s.length), width: mm(s.depth), thick: mm(WORKTOP.thickness), material: 'Worktop ' + mm(WORKTOP.thickness),
-        edges: 'L1', note: holes.length ? 'cut-outs for ' + holes.map(h => h.mark).join(', ') : '' });
+        edges: 'L1', note: holes.length ? 'cut-outs for ' + holes.map(h => h.mark).join(', ') + ': UNCONFIRMED - obtain manufacturer templates' : '' });
     } else {
       all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(PLINTH), thick: mm(PLINTH_BOARD), material: 'Plinth ' + mm(PLINTH_BOARD) + ' · ' + fin,
         edges: '—', note: 'set back ' + mm(KITCHEN_PLINTH_SETBACK) + ' from the fronts' });

@@ -48,7 +48,7 @@ test('cabinet marks remain stable after moving, reordering or deleting other cab
   assert.equal(after.get(12), 'K12');
 });
 
-for (const kind of ['l', 'u', 'island', 'rotated', 'shelf']) test('annotation quality: ' + kind + ' room, three purposes and every detail sheet', () => {
+for (const kind of ['l', 'u', 'island', 'rotated', 'shelf', 'appliances']) test('annotation quality: ' + kind + ' room, three purposes and every detail sheet', () => {
   for (const preset of ['layout', 'installation', 'clearances'] as const) {
     const pages = paginateDrawingSheets(technicalDrawings(input(kind), { preset }));
     for (const s of pages.filter(s => s.views.length)) {

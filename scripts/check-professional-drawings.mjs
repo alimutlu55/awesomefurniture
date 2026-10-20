@@ -29,6 +29,18 @@ try {
   for (const title of ['Plan', 'Upper furniture plan', 'Clearances plan', 'Elevation A', 'Furniture schedule', 'Review issues'])
     assert.ok(await dialog.locator('img').evaluateAll((images, title) => images.some(img => img.alt.endsWith(' ' + title)), title), title);
   await page.screenshot({ path: output + '/desktop.png' });
+  if (process.env.DRAWING_FIXTURE === 'appliances') {
+    const plan = decodeURIComponent(await dialog.locator('img[alt="1 Plan"]').getAttribute('src'));
+    assert.match(plan, /K20 Hob · 800 W × 520 D overall/); assert.match(plan, /K19 Sink · 720 W × 500 D overall/);
+    assert.match(plan, /CL 1100 from Wall A left/); assert.match(plan, /CL 290 from Wall A face/);
+    const detail = dialog.locator('img[alt$=" K20 Hob setting out"]'); await detail.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: output + '/desktop-hob-detail.png' });
+    assert.match(decodeURIComponent(await detail.getAttribute('src')), /Overall edge gaps/);
+    const allocation = dialog.locator('img[alt$=" K9 appliance allocations"]'); await allocation.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: output + '/desktop-oven-allocations.png' });
+    assert.ok(await dialog.locator('img[alt$=" Appliance schedule"]').count() > 0);
+    await list.evaluate(el => { el.scrollTop = 0; });
+  }
   if (process.env.DRAWING_FIXTURE === 'shelf') {
     const upper = dialog.locator('img[alt$=" Upper furniture plan"]');
     assert.match(decodeURIComponent(await upper.getAttribute('src')), /Wall shelf/);
