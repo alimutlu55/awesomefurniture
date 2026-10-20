@@ -53,11 +53,8 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
         effects.report('Auto design plans wardrobes. Add drawers, doors and appliances to a cabinet with Add item.');
         return false;
     };
-    const changeSections: typeof layouts.changeSections = delta => {
-        layouts.changeSections(delta);
-        if (!shaped()) return;
-        sizing.fitToShape();
-        effects.changed();
-    };
+    // Section changes validate detached geometry before committing; a shape refit
+    // afterward could compact or remove the very fittings the command preserves.
+    const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
     return { run, ...dividers, ...sizing, ...items, addMod, editItem, ...layouts, applyProposal, autofill, changeSections, ...appearance };
 }

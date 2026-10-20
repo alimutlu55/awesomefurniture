@@ -1,10 +1,11 @@
-import { planSectionChange,redesignSectionChange,sectionChangeKey } from './section-change-plan';
+import { planSectionChange,sectionChangeKey } from './section-change-plan';
 import type { SectionChangePlan } from './section-change-plan';
 import type { PlannerProposal } from '../../domain/planner/wardrobe-planner';
 import { selectStorageLayouts,scoreLayout } from '../../domain/planner/selection-planner';
 import { buildDemand } from '../../domain/planner/selection-config';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'report' | 'checkpoint' | 'closeInspector' | 'changed' | 'requestUndo'>;
@@ -51,10 +52,6 @@ export function createLayoutCommands({ getDesign, effects, rules }: Ports) {
     function prepareSectionChange(delta:number) {
         return planSectionChange(getDesign(),delta,rules.plannerConfig());
     }
-    function redesignSections(plan:SectionChangePlan) {
-        if(plan.sourceKey!==sectionChangeKey(getDesign()))return null;
-        return redesignSectionChange(plan,rules.plannerConfig());
-    }
     function applySectionChange(plan:SectionChangePlan) {
         if(plan.sourceKey!==sectionChangeKey(getDesign())||!plan.proposal){effects.report('Layout changed. Try the section change again.');return false;}
         const checked=planSectionChange(getDesign(),plan.count-getDesign().n,rules.plannerConfig());
@@ -64,20 +61,28 @@ export function createLayoutCommands({ getDesign, effects, rules }: Ports) {
         const width=p.sections.reduce((n,s)=>n+s.width,0)+(p.sections.length+1)*PANEL;
         const valid=scoreLayout(p.sections,rules.plannerConfig(),p.dividers??[]).metrics.valid;
         if(!valid||p.sections.length!==plan.count||Math.abs(width-getDesign().w)>.03)return false;
-        applyProposal(p,plan.selected);
+        const candidate = { ...structuredClone(getDesign()), n: p.sections.length,
+            wt: p.sections.map(s=>s.width).concat(Array(6).fill(100)).slice(0,6),
+            secs: p.sections.map(s=>structuredClone(s.items)).concat([[],[],[],[],[],[]]).slice(0,6),
+            dividers: structuredClone(p.dividers??[]), sel: plan.selected, item: -1, divider: -1, space: null, proposal: null };
+        const geometry = createWardrobeGeometry(()=>candidate);
+        if(!candidate.secs.slice(0,candidate.n).every((_,i)=>geometry.sectionLayoutValid(i)) ||
+            !candidate.dividers.every((d,i)=>geometry.dividerValid(d,i)))return false;
+        effects.checkpoint();
+        Object.assign(getDesign(),candidate);
+        effects.changed();
         return true;
     }
     function changeSections(delta:number) {
         if(delta!==1&&delta!==-1)return;
         if(getDesign().secs.some(items=>items.length)||getDesign().dividers.length){
-            let plan=prepareSectionChange(delta);
+            const plan=prepareSectionChange(delta);
             if(!plan){effects.report('No room for this section count');return;}
-            if(!plan.proposal)plan=redesignSections(plan);
-            if(!plan?.proposal){effects.report('No fitting layout found for this section count');return;}
+            if(!plan.proposal){effects.report('This section change cannot preserve your fittings. Move or resize them first.');return;}
             if(applySectionChange(plan)){
-                const fit=Math.floor((plan.proposal.inventory?.coverage??plan.proposal.metrics.coverage.total??0)*100);
-                effects.report(`${plan.count} sections · ${plan.redesigned?'Redesigned':'Fittings preserved'} · ${fit}% fit`,{label:'Undo',fn:effects.requestUndo});
+                effects.report(`${plan.count} sections · Fittings preserved`,{label:'Undo',fn:effects.requestUndo});
             }
+            else effects.report('This section change cannot preserve your fittings under the wardrobe top. Move or resize them first.');
             return;
         }
         const n=getDesign().n+delta;

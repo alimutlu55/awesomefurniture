@@ -45,6 +45,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     const divWord = i => model.activeCabinet().state.dividers?.[i]?.orientation === 'horizontal' ? 'shelf' : 'divider';
     const bar = (id, p) => $(id).style.width = Math.max(0, Math.min(100, p)) + '%';
     const hidePop = () => {
+        // Closing the phone catalogue enlarges the canvas. Stop its automatic fit
+        // before ResizeObserver can pull the camera away from the newly placed item.
+        const add = $('#pop2');
+        if (dom.width <= 900 && add.classList.contains('show') && !add.dataset.addContext) camera.camRelease();
         (document.querySelectorAll('.pop.show')).forEach(p => { animateMobileSheetClose(p); p.classList.remove('show'); });
         cameraState.vsT = camera.baseShift();
         cameraState.vzT = 1;

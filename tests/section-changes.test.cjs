@@ -16,6 +16,8 @@ test('adding splits the selected designed section immediately and one Undo resto
  commands.changeSections(1);
  assert.equal(state.n,3);assert.equal(history.length,1);assert.equal(getChanges(),1);
  assert.deepEqual(state.secs.flat().map(it=>it.id).sort(),['left','right']);
+ assert.deepEqual(state.profile,before.profile,'Section changes do not engage Auto design or change its preferences');
+ assert.equal(state.proposal,null);
  assert.ok(Math.abs(state.secs[0][0].w-79.1)<.01,'unselected bay keeps its width');
  assert.match(reports.at(-1).message,/Fittings preserved/);assert.equal(reports.at(-1).action.label,'Undo');
  reports.at(-1).action.fn();assert.deepEqual(state,before);
@@ -27,15 +29,13 @@ test('removing merges the selected bay and preserves fitting identities',()=>{
  assert.equal(state.n,1);assert.equal(history.length,1);assert.deepEqual(state.secs[0].map(it=>it.id),['a','b']);
  const g=createWardrobeGeometry(()=>state);assert.ok(scoreLayout(g.currentLayout().sections,g.plannerConfig(),state.dividers).metrics.valid);
 });
-test('a populated wardrobe is replanned to the requested count when preserving would fail',()=>{
+test('a section split that cannot preserve fittings leaves the design and history untouched',()=>{
  const state=createEditorState();state.n=3;state.sel=1;
  state.secs[1]=[{id:'existing',k:'long',purpose:'long',h:175,x:0,y:0,w:(200-7.2)/3}];
- const before=structuredClone(state),{commands,history,reports}=setup(state);
+ const before=structuredClone(state),{commands,history,reports,getChanges}=setup(state);
  commands.changeSections(1);
- assert.equal(state.n,4);assert.equal(history.length,1);assert.match(reports.at(-1).message,/Redesigned/);
- const g=createWardrobeGeometry(()=>state);assert.ok(scoreLayout(g.currentLayout().sections,g.plannerConfig(),state.dividers).metrics.valid);
- assert.deepEqual(state.profile.needs,before.profile.needs);assert.equal(state.profile.reach,before.profile.reach);
- reports.at(-1).action.fn();assert.deepEqual(state,before);
+ assert.deepEqual(state,before);assert.equal(history.length,0);assert.equal(getChanges(),0);
+ assert.match(reports.at(-1).message,/cannot preserve your fittings/);
 });
 test('failed or out-of-range changes leave layout and undo history untouched',()=>{
  const state=createEditorState();state.w=53.6;state.n=1;state.secs[0]=[{k:'long',purpose:'long',h:175}];
@@ -52,4 +52,26 @@ test('section planning never writes live geometry or silently drops custom divid
  const state=createEditorState();state.dividers=[{i:0,orientation:'horizontal',y:80,x0:0,x1:196.4}];
  const before=structuredClone(state),g=createWardrobeGeometry(()=>state);
  const plan=planSectionChange(state,1,g.plannerConfig());assert.ok(plan);assert.equal(plan.proposal,null);assert.deepEqual(state,before);
+ const {commands,history}=setup(state);commands.changeSections(1);
+ assert.deepEqual(state,before);assert.equal(history.length,0);
+});
+test('splitting a section retains manually added item heights, purposes, finishes and vertical positions',()=>{
+ const state=createEditorState();state.w=163.6;state.n=1;
+ state.secs[0]=[{id:'custom-drawer',k:'drawer',purpose:'small',h:24.6,x:0,y:15,w:160,f:'White'},
+  {id:'custom-rail',k:'short',purpose:'short',h:106,x:0,y:60,w:160}];
+ const before=structuredClone(state),{commands,history}=setup(state);commands.changeSections(1);
+ assert.equal(state.n,2);assert.equal(history.length,1);
+ assert.equal(state.secs.flat().length,2);
+ for(const original of before.secs[0]){
+  const current=state.secs.flat().find(it=>it.id===original.id);
+  assert.ok(current);for(const key of ['id','k','purpose','h','y','f'])assert.equal(current[key],original[key],key);
+ }
+ assert.deepEqual(state.profile,before.profile);
+});
+test('a rejected split under a slope never runs a destructive shape refit',()=>{
+ const state=createEditorState();state.n=3;state.sel=1;
+ state.shape={template:'sloped',top:[{x:0,y:100},{x:200,y:230}]};
+ state.secs[1]=[{id:'keep-me',k:'long',purpose:'long',h:175,x:0,y:0,w:(200-7.2)/3}];
+ const before=structuredClone(state),{commands,history,getChanges}=setup(state);commands.changeSections(1);
+ assert.deepEqual(state,before);assert.equal(history.length,0);assert.equal(getChanges(),0);
 });
