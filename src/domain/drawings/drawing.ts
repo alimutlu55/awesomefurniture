@@ -8,7 +8,7 @@ export interface P { readonly x: number; readonly y: number }
 /** The weight of a line, heaviest first: cut through (walls on a plan, the floor on an elevation), seen
  * outlines, thin detail, hidden or overhead (dashed), centre lines (chain), and how a door or flap swings
  * (long dashes: an elevation's triangle pointing at the hinges, a door drawn open on a plan). */
-export type Stroke = 'cut' | 'outline' | 'thin' | 'hidden' | 'centre' | 'swing';
+export type Stroke = 'cut' | 'outline' | 'overhead' | 'thin' | 'hidden' | 'centre' | 'swing';
 
 export interface Line {
   readonly kind: 'line';
@@ -65,8 +65,22 @@ export interface Table {
   readonly numeric: readonly number[];
   readonly notes: readonly string[];
 }
+export interface DrawingIssue {
+  readonly id: string;
+  readonly kind: 'geometry' | 'alignment' | 'walkway' | 'work-aisle' | 'operation' | 'simultaneous' | 'unconfirmed';
+  readonly severity: 'warning' | 'review';
+  readonly message: string;
+  readonly marks: readonly string[];
+  readonly at?: P;
+  readonly measured?: number;
+  readonly required?: number;
+  readonly rule?: string;
+}
 export interface Sheet {
   readonly number: number;
+  readonly issues?: readonly DrawingIssue[];
+  readonly legend?: readonly string[];
+  readonly purpose?: string;
   readonly title: string;
   /** The drawings on it, side by side at one scale. A schedule sheet has none. */
   readonly views: readonly View[];

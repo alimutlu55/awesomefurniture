@@ -1,24 +1,81 @@
-/* Technical drawings: the A3 sheets over the editor, scrolled and zoomed; white paper in either theme. */
-.drawings{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg);color:var(--ink)}
-.drawings[hidden]{display:none}
-.drawings-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
-.drawings-title{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px}
-.drawings-bar h2{margin:0;font-size:16px;font-weight:650;color:var(--ink);white-space:nowrap}
-.drawings-count{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.drawings-tools{display:flex;align-items:center;gap:8px}
-.drawings-count.has-checks{color:var(--bad)}
-.drawings-zoom{display:flex;gap:4px}
-.drawings-zoom button,.drawings-close{width:36px;height:36px;padding:0;font-size:20px;line-height:1;border-radius:10px}
-.drawings-zoom button:disabled{opacity:.4;cursor:default}
-.drawings-pdf{height:36px;border-radius:10px;background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:600;white-space:nowrap}
-.drawings-sheets{flex:1;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain;--sheet-zoom:1}
-.drawings-sheet{margin:0 auto 16px;width:calc(min(100%,1400px) * var(--sheet-zoom));background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18);border-radius:2px}
-.drawings-sheet img{display:block;width:100%;height:auto;aspect-ratio:420/297;-webkit-user-drag:none;user-select:none}
-@media (max-width:600px){
-  /* Phone: title and close on top, zoom and Save as PDF in a row under them. */
-  .drawings-bar{flex-wrap:wrap;row-gap:8px}
-  .drawings-title{flex-direction:column;gap:1px}
-  .drawings-tools{order:3;flex-basis:100%;justify-content:space-between}
-  .drawings-pdf{flex:1;margin-left:4px}
-  .drawings-sheets{padding:10px}
+/* Drawing purposes and single-sheet navigation share the same paper marks as PDF export. */
+.drawings{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);min-width:0}
+.drawings[hidden],.drawings [hidden]{display:none!important}
+.drawings button,.drawings select,.drawings input{font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:var(--panel);min-height:36px}
+.drawings button{padding:6px 10px;cursor:pointer}
+.drawings button:focus-visible,.drawings input:focus-visible,.drawings select:focus-visible{outline:2px solid #326fbd;outline-offset:2px}
+.drawings button:disabled{opacity:.4;cursor:default}
+.drawings-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+.drawings-title{flex:1 1 calc(100% - 52px);min-width:0;display:flex;align-items:baseline;gap:10px}
+.drawings-bar h2{margin:0;font-size:16px;font-weight:650;white-space:nowrap}
+.drawings-count{color:var(--mute);font-size:12px;white-space:nowrap}
+.drawings-close{width:36px;font-size:22px}
+.drawing-presets{display:flex;gap:4px;order:2;flex:1 1 360px}
+.drawing-presets button{flex:1;white-space:nowrap;font-size:13px}
+.drawing-presets [aria-pressed=true]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.drawings-tools{display:flex;align-items:center;gap:5px;order:3;flex-wrap:wrap;font-size:12px}
+.drawings-zoom{display:flex;gap:3px}
+.drawings-zoom button{width:34px;font-size:18px;padding:0}
+.drawings-pdf{background:var(--ink)!important;color:var(--panel)!important;font-weight:600}
+.drawing-rule{padding:7px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.drawing-rule select{margin-left:8px;font-size:12px}
+.drawing-rule>span{color:var(--mute)}
+.drawing-workspace{display:flex;flex:1;min-height:0;min-width:0}
+.drawing-stage{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+.drawing-page-nav{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.drawing-current{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.drawings-sheets{flex:1;min-height:0;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain}
+.drawings-sheet{position:relative;margin:0 auto;background:white;box-shadow:0 2px 14px #0002;flex-shrink:0;line-height:0}
+.drawings-sheet>img{display:block;width:100%;height:100%;overflow:hidden}
+.drawings-sheet>.drawing-hit{position:absolute;min-height:24px;width:24px;height:24px;border:0;border-radius:50%;background:transparent;padding:0;transform:translate(-50%,-50%)}
+.drawings-sheet>.drawing-hit:hover,.drawings-sheet>.drawing-hit.selected{outline:2px solid #326fbd;background:#326fbd22}
+.drawing-label-edit .drawing-hit{cursor:move;touch-action:none;outline:1px dashed #326fbd}
+.drawing-location{position:absolute;width:38px;height:38px;border:3px solid #c53526;border-radius:50%;background:#c5352622;transform:translate(-50%,-50%);pointer-events:none}
+.drawing-index,.drawing-inspector{width:280px;flex-shrink:0;overflow:auto;padding:12px;background:var(--panel);border-right:1px solid var(--line);font-size:13px;line-height:1.45}
+.drawing-inspector{border-right:0;border-left:1px solid var(--line)}
+.drawing-index input{width:100%;padding:7px;margin-bottom:8px}
+.drawing-index-list{display:grid;gap:6px}
+.drawing-index-list button{display:flex;gap:8px;align-items:center;text-align:left}
+.drawing-index-list img{width:72px;aspect-ratio:420/297;border:1px solid var(--line)}
+.drawing-index-list [aria-current=page]{outline:2px solid #326fbd}
+.drawing-inspector h3{margin:5px 0 12px;font-size:16px}
+.drawing-inspector h4{margin:16px 0 6px}
+.drawing-inspector p{line-height:1.5}
+.drawing-inspector>button[aria-label]{float:right}
+.drawing-issue,.drawing-cabinet{display:flex;flex-direction:column;width:100%;text-align:left;gap:5px;margin:6px 0;padding:10px!important;line-height:1.4}
+.drawing-issue small,.drawing-cabinet small{color:var(--mute)}
+.drawing-nudges{display:flex;gap:4px;margin:8px 0}
+.drawing-warning{border-left:3px solid #bf4a27;padding-left:8px}
+.drawing-export{position:absolute;inset:0;z-index:3;display:flex;justify-content:center;align-items:center;padding:16px;background:#0006}
+.drawing-export-card{background:var(--panel);border-radius:12px;padding:20px;max-width:650px;max-height:90%;overflow:auto;line-height:1.5;font-size:13px;box-shadow:0 8px 24px #0003}
+.drawing-export-card h3{margin-top:0}
+.drawing-export-card select{margin-left:8px}
+.drawing-export-image{max-width:420px;margin:10px auto;background:white}
+.drawing-export-image img{display:block;width:100%;height:auto}
+.drawing-status{font-size:12px;line-height:1.4;margin:0;padding:4px 12px;min-height:23px;color:var(--mute)}
+@media(max-width:700px){
+ .drawings-bar{padding:6px 8px;gap:6px}
+ .drawings-title{flex-direction:column;gap:0}
+ .drawing-presets{flex-basis:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .drawing-presets button{padding:4px;white-space:normal;line-height:1.2;font-size:11px}
+ .drawings-tools{flex-basis:100%;justify-content:space-between;gap:4px}
+ .drawings button{min-height:40px}
+ .drawings-tools button{font-size:11px;padding:5px 7px}
+ .drawings-zoom button{width:30px;font-size:18px}
+ .drawing-workspace{flex-direction:column}
+ .drawing-index,.drawing-inspector{width:100%;max-height:34%;border:0;border-bottom:1px solid var(--line);box-sizing:border-box}
+ .drawing-inspector{order:-1;border-top:1px solid var(--line)}
+ .drawing-index-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .drawing-index-list button{font-size:11px;padding:4px}
+ .drawing-index-list img{width:40px}
+ .drawing-page-nav{padding:3px 8px;gap:3px;font-size:11px}
+ .drawing-page-nav button{padding:4px;font-size:11px}
+ .drawing-rule{padding:4px 8px;gap:2px}
+ .drawing-rule>span{display:none}
+ .drawings-sheets{padding:8px}
+ .drawing-export{padding:8px}
+ .drawing-export-card{padding:12px;width:100%}
 }
+
+.drawings-sheet>img{object-fit:fill;-webkit-user-drag:none;user-select:none}
+.drawings .drawing-issue,.drawings .drawing-cabinet{text-align:left;align-items:flex-start}

@@ -41,6 +41,9 @@ export interface StudioOpening {
   readonly height: number;
   /** Height of the opening's bottom above the floor: 0 for doors and archways. */
   readonly sill: number;
+  /** Room side looking at the wall; absent means handing is unconfirmed. */
+  readonly hinge?: 'left' | 'right' | undefined;
+  readonly swing?: 'in' | 'out' | undefined;
 }
 
 /** A point of a ceiling's underside: `y` cm above the floor at `t`, measured along its run. */

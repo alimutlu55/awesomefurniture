@@ -9,6 +9,7 @@ export interface Pt { readonly x: number; readonly y: number }
  * lines chain, swings long dashes, dimension lines 0.13 with 0.35 ticks. Colours as 0–255 grey or RGB. */
 export const PENS = {
   cut: { width: .5, colour: [17, 17, 17] }, outline: { width: .35, colour: [17, 17, 17] }, thin: { width: .18, colour: [51, 51, 51] },
+  overhead: { width: .13, colour: [110, 110, 110], dash: [2, 1.5] },
   hidden: { width: .25, colour: [51, 51, 51], dash: [2, 1] }, centre: { width: .18, colour: [51, 51, 51], dash: [6, 1, 1, 1] },
   swing: { width: .18, colour: [51, 51, 51], dash: [3, 1.5] }, dim: { width: .13, colour: [17, 17, 17] }, tick: { width: .35, colour: [17, 17, 17] },
   frame: { width: .7, colour: [17, 17, 17] }, rule: { width: .18, colour: [17, 17, 17] }, heavy: { width: .35, colour: [17, 17, 17] },

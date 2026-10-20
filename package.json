@@ -16,6 +16,7 @@
     "check": "npm run check:boundaries && npm run check:architecture && npm run typecheck:editor && npm test && npm run build",
     "typecheck:editor": "tsc -p tsconfig.editor.json",
     "review:planner": "node --import tsx scripts/planner-review.mjs",
+    "check:drawings": "node --import tsx scripts/check-professional-drawings.mjs",
     "check:mobile": "node scripts/check-mobile.cjs",
     "check:designs": "node scripts/check-design-workspace.cjs",
     "check:architecture": "node scripts/check-architecture.mjs",

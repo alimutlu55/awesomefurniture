@@ -1,5 +1,5 @@
 import type { PlacedPiece } from './room-pieces';
-import { type Item, mm, stops } from './drawing';
+import { type Item, mm, stops, note } from './drawing';
 import { pieceHeights } from './piece-front';
 import { isKitchen } from '../furniture/furniture';
 import { kitchenUnit, WORKTOP } from '../kitchen/kitchen-units';
@@ -31,7 +31,9 @@ export function elevationDimensions(pieces: readonly PlacedPiece[], worktops: re
   const undersides = stack.filter(p => p.hung).map(p => p.y);
   const units = [0, height, ...stack.flatMap(pieceHeights), ...tops];
   const levels = [0, height, ...plinths, ...tops, ...undersides];
-  return [stops(units.map(mm)), stops(levels.map(mm)), [0, mm(height)]].map((values, row) => ({
+  const out: Item[] = [stops(units.map(mm)), stops(levels.map(mm)), [0, mm(height)]].map((values, row) => ({
     kind: 'dims', origin: { x: 0, y: 0 }, dir: { x: 0, y: 1 }, side: 1, clear: mm(clear), row, stops: values,
   }));
+  if (stack.length) out.push({ ...note({ x: 0, y: mm(height) + 450 }, 'Reference stack: ' + stack.map(p => p.mark).join(' + ') + ' · FFL 0', 'start'), small: true });
+  return out;
 }

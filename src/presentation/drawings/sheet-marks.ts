@@ -1,4 +1,6 @@
 import type { Item, Sheet } from '../../domain/drawings/drawing';
+import { textWidth } from './helvetica-metrics';
+import { annotationLayout, type AnnotationOffsets } from './annotation-layout';
 import { type Box, dimensionMarks } from './dimension-marks';
 import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, layoutSheet } from './sheet-layout';
 import { tableMarks } from './table-marks';
@@ -23,9 +25,9 @@ function item(i: Item, paper: Paper, taken: Box[]): Mark[] {
     case 'line': return [shape(i.points.map(paper), i.stroke as Pen, !!i.closed, i.fill)];
     case 'dims': return dimensionMarks(i, paper, taken);
     case 'tag': {
-      const c = paper(i.at);
-      taken.push({ x0: c.x - 3.6, x1: c.x + 3.6, y0: c.y - 3.6, y1: c.y + 3.6 });
-      return [{ kind: 'circle', c, r: 3.4, pen: 'ring', fill: 'white' }, words(c, i.text, 'tag', 'middle', 0, true)];
+      const c = paper(i.at), radius = Math.max(3.4, textWidth(i.text, 2.9, true) / 2 + .8);
+      taken.push({ x0: c.x - radius, x1: c.x + radius, y0: c.y - radius, y1: c.y + radius });
+      return [{ kind: 'circle', c, r: radius, pen: 'ring', fill: 'white' }, words(c, i.text, 'tag', 'middle', 0, true)];
     }
     case 'arrow': {
       const c = paper(i.at), d = { x: i.dir.x, y: -i.dir.y }, tip = { x: c.x + d.x * ARROW, y: c.y + d.y * ARROW };
@@ -58,33 +60,46 @@ function titleBlock(sheet: Sheet, scale: string, info: SheetSetInfo, strip: numb
     rule(x, top + 11, x + w, top + 11), ...cell(x, top + 11, 'Drawing', sheet.title), ...cell(x + 110, top + 11, 'Sheet', sheet.number + ' of ' + info.total),
     rule(x, top + 22, x + w, top + 22), ...cell(x, top + 22, 'Scale', scale), ...cell(x + 40, top + 22, 'Units', 'millimetres'), ...cell(x + 110, top + 22, 'Date', info.date),
     rule(x + 108, top + 11, x + 108, top + 33), rule(x + 38, top + 22, x + 38, top + 33)];
-  // The list of pieces: two columns across the rest of the strip.
-  const lx = PAPER.left, lw = x - lx, col = lw / 2, rows = Math.ceil(sheet.pieces.length / 2);
-  out.push(box(lx, y, lx + lw, y + strip, 'heavy'),
-    words({ x: lx + 2, y: y + 3.5 }, 'Pieces · width × height × depth · door triangles point to the hinges · verify every dimension on site before making; do not scale from the drawing', 'key'));
-  sheet.checks.forEach((c, k) => out.push(words({ x: lx + 2, y: y + 8.5 + k * LIST_ROW }, 'Check before making: ' + c, 'check')));
-  const first = y + 8.5 + sheet.checks.length * LIST_ROW;
-  sheet.pieces.forEach((p, k) => {
-    const cx = lx + 2 + Math.floor(k / rows) * col, cy = first + (k % rows) * LIST_ROW;
-    out.push(words({ x: cx, y: cy }, p.mark, 'listMark'), words({ x: cx + 7, y: cy }, p.name, 'list'), words({ x: cx + 38, y: cy }, p.size, 'list'), words({ x: cx + 66, y: cy }, p.where, 'list'));
-  });
+  const lx = PAPER.left, lw = x - lx;
+  out.push(box(lx, y, lx + lw, y + strip, 'heavy'), words({ x: lx + 2, y: y + 4 }, 'Dimensions in mm · verify on site · see Cabinet schedule and Review issues', 'key'));
+  const summary = sheet.pieces.map(p => p.mark).join(', ');
+  const lines = summary.match(/.{1,95}(?:, |$)/g) ?? (summary ? [summary] : []);
+  lines.slice(0, 2).forEach((l, i) => out.push(words({ x: lx + 2, y: y + 10 + i * 4 }, l, 'list')));
+  const checks = sheet.checks.slice(0, 2);
+  checks.forEach((c, k) => out.push(words({ x: lx + 2, y: y + 21 + k * LIST_ROW }, c.length > 110 ? c.slice(0, 107) + '...' : c, 'check')));
+  if (sheet.checks.length > 2) out.push(words({ x: lx + 2, y: y + 31 }, (sheet.checks.length - 2) + ' further checks: see Review issues', 'small'));
   return out;
 }
 
 /** One sheet as marks on A3 paper: frame, the title and scale, the views (lines first, then figures and marks, then the
  * notes placed clear of them, each view titled under it), a schedule, the list of pieces and the title block. */
-export function sheetMarks(sheet: Sheet, info: SheetSetInfo): Mark[] {
+export function sheetPresentation(sheet: Sheet, info: SheetSetInfo, offsets: AnnotationOffsets = {}) {
   const { scale, placed } = layoutSheet(sheet), area = drawingArea(sheet), ratio = sheet.table ? '—' : '1:' + scale;
   const out: Mark[] = [box(0, 0, PAPER.w, PAPER.h, 'none', 'white'), box(PAPER.left, PAPER.edge, PAPER.w - PAPER.edge, PAPER.h - PAPER.edge, 'frame'),
     words({ x: area.x, y: PAPER.edge + 8 }, sheet.number + '  ' + sheet.title, 'heading')];
   if (!sheet.table) out.push(words({ x: area.x + 4 + sheet.title.length * 2.6 + 6, y: PAPER.edge + 8 }, ratio, 'scale'));
-  const ORDER = { line: 0, arrow: 1, dims: 2, tag: 3, 'view-mark': 3, note: 4 } as const, taken: Box[] = [];
-  for (const { view, paper } of placed) out.push(...view.items.slice().sort((a, b) => ORDER[a.kind] - ORDER[b.kind]).flatMap(i => item(i, paper, taken)));
+  const taken: Box[] = [], allGeometry: Mark[] = [], groups: { key: string; marks: Mark[]; at: Pt }[] = [];
+  sheet.legend?.slice(0, 2).forEach((l, k) => out.push(words({ x: area.x, y: PAPER.edge + 13 + k * 3.6 }, l, 'small')));
+  for (const { view, paper } of placed) {
+    for (const i of view.items.filter(i => i.kind === 'line' || i.kind === 'arrow')) allGeometry.push(...item(i, paper, []));
+    for (const i of view.items.filter(i => i.kind === 'dims')) allGeometry.push(...item(i, paper, taken));
+    for (const i of view.items.filter(i => i.kind === 'tag' || i.kind === 'view-mark' || i.kind === 'note')) {
+      const key = sheet.title + '/' + view.title + '/' + (i.kind === 'tag' ? 'tag:' + i.text : i.kind === 'view-mark' ? 'view:' + i.text : 'note:' + i.lines.join(' '));
+      groups.push({ key, marks: item(i, paper, []), at: paper(i.at) });
+    }
+  }
+  const dimensionBoxes = taken.map(b => ({ ...b }));
+  out.push(...allGeometry);
+  const annotations = annotationLayout(allGeometry, taken, { x0: area.x, x1: area.x + area.w, y0: area.y, y1: area.y + area.h }, offsets);
+  for (const group of groups.sort((a, b) => Number(b.key.includes('/tag:')) - Number(a.key.includes('/tag:'))))
+    out.push(...annotations.place(group.key, group.marks, group.at));
   if (placed.length > 1) for (const { view, box: b } of placed) out.push(words({ x: (b.x0 + b.x1) / 2, y: b.y1 + 6 }, view.title + '  1:' + scale, 'caption', 'middle'));
   if (sheet.table) out.push(...tableMarks(sheet.table, { x: area.x, y: area.y, w: area.w }));
   out.push(...titleBlock(sheet, ratio, info, area.strip));
-  return out;
+  if (annotations.warnings.length) out.push(words({ x: area.x, y: area.y + area.h - 1 }, 'Annotation review required: ' + annotations.warnings.length + ' · use enlarged detail or adjust labels', 'check'));
+  return { marks: out, anchors: annotations.anchors, warnings: annotations.warnings, geometry: allGeometry, dimensionBoxes };
 }
+export const sheetMarks = (sheet: Sheet, info: SheetSetInfo, offsets: AnnotationOffsets = {}) => sheetPresentation(sheet, info, offsets).marks;
 
 /** One sheet as a self-contained A3 SVG drawn in paper millimetres, to show on screen. */
-export const sheetSvg = (sheet: Sheet, info: SheetSetInfo) => marksToSvg(sheetMarks(sheet, info), { w: PAPER.w, h: PAPER.h }, String(sheet.number), sheet.title);
+export const sheetSvg = (sheet: Sheet, info: SheetSetInfo, offsets: AnnotationOffsets = {}) => marksToSvg(sheetMarks(sheet, info, offsets), { w: PAPER.w, h: PAPER.h }, String(sheet.number), sheet.title);

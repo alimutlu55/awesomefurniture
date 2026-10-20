@@ -24,3 +24,10 @@ Room-door handing is not currently stored: doors use a documented left-hinged in
 The 900 mm aisle threshold is a project review reference. Opening checks compare each moving front
 against static geometry; simultaneous moving-front clashes are not simulated. Without a room, the
 outer elevation total is the piece height. Existing sloped-ceiling elevation limitations are unchanged.
+
+## Superseded viewer evidence
+
+These images record the original Epic 2 implementation. The current purpose-based viewer,
+confirmed door handing, configurable clearance profiles and simultaneous-operation review are
+verified in [professional drawings](../professional-drawings/README.md). The legacy check command
+now runs that suite. The limitations above describe the earlier version only.

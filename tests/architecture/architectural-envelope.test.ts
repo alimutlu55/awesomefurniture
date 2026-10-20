@@ -36,7 +36,7 @@ test('ENV-01: all room elevations have three height tiers and an uninterrupted o
 
 test('ENV-02: room-only drawings retain doors, window Hp/lintel, radiators, wall thickness and every elevation', () => {
   const studio = { ...rectangleStudio(400, 350), openings: [
-    { id: 'door', wall: 'w2', kind: 'door' as const, offset: 180, width: 80, height: 205, sill: 0 },
+    { id: 'door', wall: 'w2', kind: 'door' as const, offset: 180, width: 80, height: 205, sill: 0, hinge: 'left' as const, swing: 'in' as const },
     { id: 'window', wall: 'w3', kind: 'window' as const, offset: 180, width: 100, height: 120, sill: 90 },
     { id: 'rad', wall: 'w4', kind: 'radiator' as const, offset: 100, width: 80, height: 60, sill: 15 },
   ] };
@@ -125,7 +125,7 @@ test('ENV-01: compressed height labels remain separated within and between the t
   const studio = rectangleStudio(400, 300);
   const pieces = [unit(1, 0, 29), { ...unit(2, 80, 29), design: createKitchenDesign('tall', 'fridge') },
     { ...unit(3, 0, 17.5), y: 142, design: createKitchenDesign('upper') }];
-  const sheet = technicalDrawings({ studio, pieces })[1]!, { paper } = layoutSheet(sheet).placed[0]!;
+  const sheet = technicalDrawings({ studio, pieces }).find(s => s.title === 'Elevation A')!, { paper } = layoutSheet(sheet).placed[0]!;
   const figures: { x0: number; x1: number; y0: number; y1: number }[] = [];
   for (const d of vertical(sheet.views[0]!.items)) dimensionMarks(d, paper, figures);
   for (let i = 0; i < figures.length; i++) for (let j = i + 1; j < figures.length; j++) {
@@ -139,7 +139,7 @@ test('room elevation keeps construction details and close but unrelated tops out
   const studio = rectangleStudio(400, 300);
   const pieces = [unit(1, 0, 29), { ...unit(2, -60, 29), design: createKitchenDesign('tall', 'fridge') },
     { ...unit(3, 0, 17.5), y: 142, design: createKitchenDesign('upper') }];
-  const sheets = technicalDrawings({ studio, pieces }), [units, datums, total] = vertical(sheets[1]!.views[0]!.items);
+  const sheets = technicalDrawings({ studio, pieces }), [units, datums, total] = vertical(sheets.find(s => s.title === 'Elevation A')!.views[0]!.items);
   assert.deepEqual(units!.stops, [0, 80, 860, 900, 1420, 2120, 2600]);
   assert.deepEqual(datums!.stops, [0, 80, 900, 1420, 2600]);
   assert.deepEqual(total!.stops, [0, 2600]);
@@ -157,6 +157,6 @@ test('a wide base beneath unequal upper units uses a single vertical slice rathe
   const pieces = [{ ...unit(1, 0, 29), design: { ...createKitchenDesign('base'), w: 120 } },
     { ...unit(2, -30, 17.5), y: 142, design: upper },
     { ...unit(3, 30, 17.5), y: 142, design: { ...upper, h: upper.h + 1 } }];
-  const [units] = vertical(technicalDrawings({ studio, pieces })[1]!.views[0]!.items);
+  const [units] = vertical(technicalDrawings({ studio, pieces }).find(s => s.title === 'Elevation A')!.views[0]!.items);
   assert.ok(!(units!.stops.includes(2120) && units!.stops.includes(2130)), 'no artificial 10 mm segment between separate cabinets');
 });

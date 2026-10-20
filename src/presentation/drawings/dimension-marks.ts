@@ -1,11 +1,12 @@
 import type { Dimensions } from '../../domain/drawings/drawing';
 import { DIM, type Paper, dimOffset, normal } from './sheet-layout';
-import { type Mark, type Pt, shape, words } from './paper-marks';
+import { textWidth } from './helvetica-metrics';
+import { fontOf, type Mark, type Pt, shape, words } from './paper-marks';
 
 /** A box on paper, millimetres. */
 export interface Box { x0: number; x1: number; y0: number; y1: number }
 /** Width of a dimension figure on paper, about. */
-const figureWidth = (text: string) => text.length * DIM.text * .62 + 1;
+const figureWidth = (text: string) => textWidth(text, fontOf('figure').size) + 1.2;
 /** A point `k` up from `c` in the frame of words turned `deg` clockwise. */
 const up = (c: Pt, deg: number, k: number): Pt => { const r = deg * Math.PI / 180; return { x: c.x + Math.sin(r) * k, y: c.y - Math.cos(r) * k }; };
 
@@ -51,11 +52,11 @@ export function dimensionMarks(d: Dimensions, paper: Paper, figures: Box[] = [])
   for (const b of blocks) for (let k = b.first; k <= b.last; k++) centres[k] = (b.sum / b.count + spacing[k]!) * paper.scale;
   for (let k = 0; k < labels.length; k++) {
     const { text, mid: measured, width } = labels[k]!, position = centres[k]!;
-    const c = at(position, off), half = width / 2, baseline = 2.2, mid = up(c, angle, baseline + DIM.text / 2), rad = angle * Math.PI / 180;
+    const c = at(position, off), half = width / 2, baseline = 2.2, mid = up(c, angle, baseline + fontOf('figure').size / 2), rad = angle * Math.PI / 180;
     if (Math.abs(position - measured) / paper.scale > .2) {
       marks.push(shape([at(measured, off), at(position, off + 1.8)], 'dim'));
     }
-    const ex = Math.abs(Math.cos(rad)) * half + Math.abs(Math.sin(rad)) * DIM.text / 2, ey = Math.abs(Math.sin(rad)) * half + Math.abs(Math.cos(rad)) * DIM.text / 2;
+    const ex = Math.abs(Math.cos(rad)) * half + Math.abs(Math.sin(rad)) * fontOf('figure').size / 2, ey = Math.abs(Math.sin(rad)) * half + Math.abs(Math.cos(rad)) * fontOf('figure').size / 2;
     figures.push({ x0: mid.x - ex, x1: mid.x + ex, y0: mid.y - ey, y1: mid.y + ey });
     marks.push(words(up(c, angle, baseline), text, 'figure', 'middle', angle));
   }

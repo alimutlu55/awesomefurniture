@@ -35,8 +35,8 @@ export function wallGeometry(studio: Studio, w: StudioWall) {
   return { wall: w, line, face, openings: studio.openings.filter(o => o.wall === w.id).sort((a, b) => a.offset - b.offset) };
 }
 
-/** Every piece placed and marked. Marks run wall by wall, left to right as you face each wall, then the
- * pieces standing free; each kind of furniture counts on its own (W1, W2… K1, K2…). */
+/** Every piece placed and marked. Marks use persisted cabinet ids (W1, K2…) and remain stable as furniture moves.
+ * The list runs wall by wall, left to right, then pieces standing free. */
 export function placePieces({ studio, pieces }: DrawingInput): PlacedPiece[] {
   const walls = studio?.walls ?? [];
   const placed = pieces.map(p => {
@@ -48,12 +48,7 @@ export function placePieces({ studio, pieces }: DrawingInput): PlacedPiece[] {
   });
   const order = (p: typeof placed[number]) => p.wall === null ? walls.length : walls.findIndex(w => w.id === p.wall);
   placed.sort((a, b) => order(a) - order(b) || a.lo - b.lo || Number(a.hung) - Number(b.hung));
-  const count = new Map<string, number>();
-  return placed.map(p => {
-    const letter = furnitureModule(p.design).mark, n = (count.get(letter) ?? 0) + 1;
-    count.set(letter, n);
-    return { ...p, mark: letter + n };
-  });
+  return placed.map(p => ({ ...p, mark: furnitureModule(p.design).mark + p.id }));
 }
 
 /** A piece's name on a drawing: the kitchen unit it is (Wall cabinet, Sink), or its own name. */

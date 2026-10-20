@@ -1,6 +1,6 @@
 import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
-import { moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
+import { setDoorOperation, moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
 import { isWallUtility, openingLimits } from '../../domain/studio/wall-utilities';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 import { measureNumber, unitSuffix } from './editor-format.js';
@@ -66,13 +66,30 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         ];
     }
 
+    listen(root, 'change', event => {
+        const select = event.target as HTMLSelectElement, key = select.dataset.roomDoor, selection = getSelection();
+        if (!key || selection?.kind !== 'opening') return;
+        const value = select.value;
+        if (key === 'hinge' && (value === '' || value === 'left' || value === 'right'))
+            editStudio(r => setDoorOperation(r, selection.id, { hinge: value || undefined }));
+        if (key === 'swing' && (value === '' || value === 'in' || value === 'out'))
+            editStudio(r => setDoorOperation(r, selection.id, { swing: value || undefined }));
+        refresh(); render();
+    });
     function render() {
         const list = resize?.active() ? fields() : [];
-        const shape = JSON.stringify([getSelection(), list.map(x => x.key)]);
+        const selection = getSelection(), opening = selection?.kind === 'opening' ? getStudio()?.openings.find(o => o.id === selection.id) : undefined;
+        const door = opening?.kind === 'door' ? opening : undefined;
+        const shape = JSON.stringify([getSelection(), list.map(x => x.key), !!door]);
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
             root.innerHTML = list.map(x => sizeControlMarkup({ label: x.label, min: x.min, max: x.max, hint: x.hint, hintKey: x.key,
                 inputAttributes: { 'data-room-field': x.key, 'aria-label': x.label } })).join('');
+            if (door) root.innerHTML += ( '<p>Door handing · viewed from inside the room</p>'
+                + '<label>Hinge side<select data-room-door="hinge" aria-label="Door hinge side"><option value="">Unconfirmed</option>'
+                + '<option value="left">Left</option><option value="right">Right</option></select></label>'
+                + '<label>Opening direction<select data-room-door="swing" aria-label="Door opening direction"><option value="">Unconfirmed</option>'
+                + '<option value="in">Into room</option><option value="out">Out of room</option></select></label>');
             if (resize && list.length) {
                 mountResizeFields({ dom: { document }, lifetime: { listen }, model: resize.model, history: resize.history, commit: resize.commit,
                     fields: list.map(x => ({ input: root.querySelector<HTMLInputElement>('[data-room-field="' + x.key + '"]')!, axis: x.key })),
@@ -86,6 +103,10 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             if (input) { input.min = String(x.min); input.max = String(x.max); if (document.activeElement !== input) input.value = String(round(x.value)); }
             const hint = root.querySelector('[data-room-hint="' + x.key + '"]');
             if (hint) hint.textContent = x.hint ?? '';
+        }
+        if (door) for (const key of ['hinge', 'swing'] as const) {
+            const select = root.querySelector<HTMLSelectElement>('[data-room-door="' + key + '"]');
+            if (select) select.value = door[key] ?? '';
         }
         if (list.length) syncResizeFields(root);
         rendered?.();

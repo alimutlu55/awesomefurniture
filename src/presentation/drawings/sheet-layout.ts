@@ -41,9 +41,9 @@ function reach(item: Item, scale: number): P[] {
 }
 
 /** Where a sheet's drawing goes: the frame less the title strip, whose height grows with the list of pieces. */
-export function drawingArea(sheet: Sheet) {
-  const strip = Math.max(TITLE.h, (Math.ceil(sheet.pieces.length / 2) + sheet.checks.length) * LIST_ROW + 10);
-  return { x: PAPER.left + 6, y: PAPER.edge + 14, w: PAPER.w - PAPER.left - PAPER.edge - 12, h: PAPER.h - 2 * PAPER.edge - strip - 20, strip };
+export function drawingArea(_sheet: Sheet) {
+  const strip = TITLE.h;
+  return { x: PAPER.left + 6, y: PAPER.edge + 23, w: PAPER.w - PAPER.left - PAPER.edge - 12, h: PAPER.h - 2 * PAPER.edge - strip - 29, strip };
 }
 
 /** A view placed on paper: where its drawing's origin lands, and the box it takes with its dimensions. */

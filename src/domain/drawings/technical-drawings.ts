@@ -1,3 +1,5 @@
+import { DRAWING_PRESETS, type DrawingOptions } from './view-policy';
+import { constructionIssues, alignmentIssues } from './drawing-issues';
 import { mm, type PieceRow, type Sheet } from './drawing';
 import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeometry } from './room-pieces';
 import { planClearances } from './plan-clearances';
@@ -24,14 +26,15 @@ function row(p: PlacedPiece, letters: ReadonlyMap<string, string>): PieceRow {
  * marked and dimensioned to the walls, then an elevation of every room wall (A, B, C…, marked
  * on the plan where it is seen from), then a front elevation of each piece standing free. Millimetres throughout.
  */
-export function technicalDrawings(input: DrawingInput): Sheet[] {
+export function technicalDrawings(input: DrawingInput, options: DrawingOptions = {}): Sheet[] {
   const pieces = placePieces(input), studio = input.studio, letters = new Map<string, string>();
   for (const w of studio?.walls ?? []) {
     if (wallGeometry(studio!, w)) {
       letters.set(w.id, String.fromCharCode(65 + letters.size));
     }
   }
-  const plan = planView(studio, pieces);
+  const preset = options.preset ?? 'layout', config = { ...options, preset };
+  const plan = planView(studio, pieces, { ...config, upperPlan: false });
   for (const [id, letter] of letters) {
     const g = wallGeometry(studio!, studio!.walls.find(w => w.id === id)!)!, mine = pieces.filter(p => p.wall === id);
     const lo = mine.length ? Math.min(...mine.map(p => p.lo)) : g.face.start, hi = mine.length ? Math.max(...mine.map(p => p.hi)) : g.face.end;
@@ -40,12 +43,23 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
     const at = { x: g.face.from.x + g.line.ux * t + g.line.nx * out, z: g.face.from.z + g.line.uz * t + g.line.nz * out };
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }
-  const checks = [...designChecks(studio, pieces, letters), ...planClearances(studio, pieces).checks], about = (marks: readonly string[]) =>
+  const geometryChecks = designChecks(studio, pieces, letters), clearance = planClearances(studio, pieces, options.clearanceProfile);
+  const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues];
+  const checks = [...new Set([...geometryChecks, ...clearance.checks])], about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
-  const sheets: Sheet[] = [{ number: 1, title: 'Plan', views: [{ title: 'Plan', items: plan }], pieces: pieces.map(p => row(p, letters)), checks }];
+  const purpose = DRAWING_PRESETS.find(p => p.key === preset)!.label;
+  const legend = ['Solid: visible furniture · light dashes: overhead · FFL: finished floor = 0',
+    preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile' : 'Opening envelopes: Clearance view · exact construction sizes: Cabinet details'];
+  const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
+    pieces: pieces.filter(p => p.y < 120).map(p => row(p, letters)), checks: preset === 'clearances' ? checks : geometryChecks }];
+  if (options.upperPlan !== false && pieces.some(p => p.y >= 120)) sheets.push({ number: 2, title: 'Upper cabinet plan', purpose,
+    legend: ['Upper units only · elevations show exact mounting levels · dimensions in mm'], issues,
+    views: [{ title: 'Upper cabinet plan', items: planView(studio, pieces, { ...config, upperPlan: true }) }],
+    pieces: pieces.filter(p => p.y >= 120).map(p => row(p, letters)), checks: [] });
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
     sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, views: [{ title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces) }],
+      legend: ['Reference height chains are identified on the view · FFL = 0 · each cabinet has an exact detail sheet'], issues, purpose,
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
   for (const p of pieces.filter(q => q.wall === null)) {
@@ -61,5 +75,11 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
   for (const [title, pages] of [['Cutting list', cuttingList(pieces)], ['Hardware list', hardwareList(pieces)]] as const) {
     pages.forEach((table, k) => sheets.push({ number: sheets.length + 1, title: title + (pages.length > 1 ? ' ' + (k + 1) + ' of ' + pages.length : ''), views: [], table, pieces: [], checks: [] }));
   }
-  return sheets;
+  if (pieces.length) sheets.push({ number: sheets.length + 1, title: 'Cabinet schedule', pieces: [], checks: [], views: [],
+    table: { columns: ['Mark', 'Cabinet', 'W × H × D (mm)', 'Location'], rows: pieces.map(p => { const r = row(p, letters); return [r.mark, r.name, r.size, r.where]; }),
+      numeric: [], notes: ['Identifiers remain stable when furniture moves. Heights and undersides are measured from finished floor.'] } });
+  if (issues.length) sheets.push({ number: sheets.length + 1, title: 'Review issues', pieces: [], checks: [], views: [],
+    table: { columns: ['Type', 'Elements', 'Finding', 'Rule / reference'], numeric: [], notes: ['Review recommendations separately from confirmed geometry conflicts.'],
+      rows: issues.map(i => [i.kind, i.marks.join(', '), i.message, i.rule ?? 'Geometry review']) } });
+  return sheets.map(s => ({ ...s, purpose, issues }));
 }

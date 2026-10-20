@@ -1,12 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { technicalDrawings } from '../../src/domain/drawings/technical-drawings';
+import { technicalDrawings as createDrawings } from '../../src/domain/drawings/technical-drawings';
 import type { Dimensions, Item, Sheet } from '../../src/domain/drawings/drawing';
-import type { DrawingPiece } from '../../src/domain/drawings/room-pieces';
+import type { DrawingInput, DrawingPiece } from '../../src/domain/drawings/room-pieces';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { FURNITURE } from '../../src/domain/furniture/furniture';
 import { drawingsPdf } from '../../src/presentation/drawings/drawings-viewer';
+
+const technicalDrawings = (input: DrawingInput, options = {}) => createDrawings(input, { preset: 'installation', upperPlan: false, ...options });
 
 /** Technical drawings: what a carpenter builds and fits from, every figure in whole millimetres. */
 
@@ -18,16 +20,16 @@ const against = (id: number, unit: Parameters<typeof createKitchenDesign>[0], pr
   const design = createKitchenDesign(unit, preset);
   return { id, name: preset, x, y, z: 5 + design.d / 2, angle: 0, design };
 };
-const kitchen = () => [against(1, 'base', 'drawers', 100), against(2, 'upper', 'upper', 100, 142), against(3, 'tall', 'fridge', 30)];
+const kitchen = () => [against(2, 'base', 'drawers', 100), against(3, 'upper', 'upper', 100, 142), against(1, 'tall', 'fridge', 30)];
 /** Everything drawn on a sheet, across its views. */
 const all = (sheet: Sheet) => sheet.views.flatMap(v => v.items);
 const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.kind === 'dims');
 
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
-  assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W1',
-    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W1  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list']);
-  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W1', 'W1  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list'],
+  assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W9',
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Cabinet schedule']);
+  assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Cabinet schedule'],
     'no room: the piece on its own');
 });
 
@@ -36,7 +38,6 @@ test('marks run along the wall, left to right, each kind of furniture counting o
   assert.deepEqual(plan!.pieces.map(p => [p.mark, p.name, p.size, p.where]), [
     ['K1', 'Tall cabinet', '600 × 2150 × 580', 'Wall A'],
     ['K2', 'Base cabinet', '600 × 860 × 580', 'Wall A'],
-    ['K3', 'Wall cabinet', '600 × 700 × 350', 'Wall A, underside 1420'],
   ]);
   assert.equal(new Set(FURNITURE.map(m => m.mark)).size, FURNITURE.length, 'each kind of furniture has its own letter');
 });
@@ -44,7 +45,7 @@ test('marks run along the wall, left to right, each kind of furniture counting o
 test('the plan dimensions every piece and gap to the wall ends, the window, the wall, and the depth', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
   const strings = dims(all(plan!)).map(d => d.stops);
-  assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
+  assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
   assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);
@@ -74,11 +75,11 @@ test('fronts show how they open: door triangles point at the hinges, a fall-down
   const [dish] = swings.filter(([a]) => a![0]! > 650);
   assert.ok(dish![1]![1]! < dish![0]![1]! && dish![1]![1]! < dish![2]![1]!, 'apex at the bottom');
   const names = all(elevation!).filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
-  assert.deepEqual(names.sort(), ['Dishwasher', 'Fridge', 'Fridge']);
+  assert.deepEqual(names.sort(), ['Dishwasher', 'Fridge', 'Fridge', 'Reference stack: K1 · FFL 0']);
 });
 
 test('the plan marks tall units, appliances under the worktop and drawers', () => {
-  const [plan] = technicalDrawings({ studio: room(), pieces: [against(1, 'tall', 'fridge', 30), against(2, 'base', 'dishwasher', 90), against(3, 'base', 'drawers', 150)] });
+  const [plan] = technicalDrawings({ studio: room(), pieces: [against(1, 'tall', 'fridge', 30), against(2, 'base', 'dishwasher', 90), against(3, 'base', 'drawers', 150)] }, { preset: 'clearances' });
   const lines = all(plan!).filter(i => i.kind === 'line');
   const cross = (x0: number, x1: number, stroke: string) => lines.filter(i => i.kind === 'line' && i.stroke === stroke && i.points.length === 2
     && i.points.every(p => p.x >= x0 - 1 && p.x <= x1 + 1) && Math.abs(i.points[0]!.x - i.points[1]!.x) > 100).length;
@@ -180,7 +181,7 @@ test('the hardware list: hinges by door height, runners to the depth, legs, hang
 
 test('corner pull-out component is drawn with high precision across plan, elevation, unit detail, construction details and schedules', () => {
   const cornerPiece = against(1, 'base', 'corner', 100);
-  const sheets = technicalDrawings({ studio: room(), pieces: [cornerPiece] });
+  const sheets = technicalDrawings({ studio: room(), pieces: [cornerPiece] }, { preset: 'clearances' });
   const [plan, elevation, unitSheet, , detail2, cutting, hardware] = sheets;
 
   // 1. Plan view: kidney tray dashed outline, pivot post, front split tick, door swing line, and pull-out arrow on the door half.

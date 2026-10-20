@@ -225,3 +225,9 @@ export function removeOpening(studio: Studio, id: string): Studio | null {
 export function translateStudio(studio: Studio, dx: number, dz: number): Studio {
   return { ...studio, corners: studio.corners.map(c => ({ ...c, x: round(c.x + dx), z: round(c.z + dz) })) };
 }
+
+/** Confirms (or clears) a room door's handing without changing its position or size. */
+export function setDoorOperation(studio: Studio, id: string, change: Pick<StudioOpening, 'hinge' | 'swing'>): Studio | null {
+  if (!studio.openings.some(o => o.id === id && o.kind === 'door')) return null;
+  return custom(studio, { openings: studio.openings.map(o => o.id === id ? { ...o, ...change } : o) });
+}

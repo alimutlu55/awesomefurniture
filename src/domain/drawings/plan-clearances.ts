@@ -2,14 +2,15 @@ import type { Studio } from '../studio/studio';
 import { wallExtent } from '../studio/studio';
 import { wallUtilitySpec } from '../studio/wall-utilities';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
-import { type Item, type P, mm, note } from './drawing';
+import { type DrawingIssue, type Item, type P, mm, note } from './drawing';
 import { local, plan } from './plan-symbols';
 import { pieceOperations, quarterArc, type Operation } from './plan-operations';
+import { clearanceRule, type ClearanceProfile } from './view-policy';
 import { wallGeometry, type PlacedPiece } from './room-pieces';
 
 /** A design-review reference, in mm; this is not a building-code certification. */
 export const AISLE_REFERENCE = 900;
-interface Obstacle { key: string; group: string; points: readonly P[]; owners: readonly number[]; bottom: number; top: number }
+interface Obstacle { key: string; group: string; points: readonly P[]; owners: readonly number[]; bottom: number; top: number; facing?: { x: number; z: number }; circulation?: boolean }
 interface Clearance { piece: PlacedPiece; target: Obstacle; from: P; to: P; distance: number }
 const footprint = (p: Pick<PlacedPiece, 'x' | 'z' | 'angle'>, w: number, d: number) =>
   [local(p, -w / 2, -d / 2), local(p, w / 2, -d / 2), local(p, w / 2, d / 2), local(p, -w / 2, d / 2)];
@@ -22,12 +23,12 @@ const group = (p: PlacedPiece) => {
  * Floor-level doors/archways are gaps. Window walls still obstruct walking underneath their sills. */
 function obstacles(studio: Studio | undefined, pieces: readonly PlacedPiece[]): Obstacle[] {
   const out: Obstacle[] = pieces.filter(p => !p.fixture).map(p => ({ key: 'piece:' + p.id, group: group(p), owners: [p.id],
-    points: footprint(p, p.design.w, p.design.d), bottom: p.y, top: p.y + p.design.h }));
+    points: footprint(p, p.design.w, p.design.d), bottom: p.y, top: p.y + p.design.h, facing: unitAxes(p.angle).v, circulation: p.y < .5 }));
   for (const span of kitchenSpans(pieces.map(p => ({ ...p, state: p.design })))) {
     if (span.kind !== 'worktop') continue;
     const owners = span.units.map(Number), owner = pieces.find(p => p.id === owners[0])!;
     out.push({ key: 'worktop:' + owners.join(','), group: group(owner), owners,
-      points: footprint(span, span.length, span.depth), bottom: span.y, top: span.y + span.height });
+      points: footprint(span, span.length, span.depth), bottom: span.y, top: span.y + span.height, facing: unitAxes(span.angle).v, circulation: true });
   }
   for (const wall of studio?.walls ?? []) {
     const g = wallGeometry(studio!, wall);
@@ -39,13 +40,13 @@ function obstacles(studio: Studio | undefined, pieces: readonly PlacedPiece[]): 
     let start = extent.start;
     for (const [a, b] of [...holes.map(o => [o.offset - o.width / 2, o.offset + o.width / 2]), [extent.end, extent.end]]) {
       const end = Math.min(a!, extent.end);
-      if (end > start) out.push({ key: wall.id, group: wall.id, owners: [], bottom: 0, top: wall.height,
+      if (end > start) out.push({ key: wall.id, group: wall.id, owners: [], bottom: 0, top: wall.height, facing: { x: l.nx, z: l.nz }, circulation: true,
         points: [at(start, -half), at(end, -half), at(end, half), at(start, half)] });
       start = Math.max(start, b!);
     }
     for (const o of g.openings.filter(o => o.kind === 'radiator')) {
       const depth = wallUtilitySpec(o.kind)?.depth ?? 10, a = o.offset - o.width / 2, b = o.offset + o.width / 2;
-      out.push({ key: o.id, group: o.id, owners: [], bottom: o.sill, top: o.sill + o.height,
+      out.push({ key: o.id, group: o.id, owners: [], bottom: o.sill, top: o.sill + o.height, facing: { x: l.nx, z: l.nz }, circulation: true,
         points: [at(a, half), at(b, half), at(b, half + depth), at(a, half + depth)] });
     }
   }
@@ -77,7 +78,8 @@ function clearance(p: PlacedPiece, solids: readonly Obstacle[]): Clearance | und
   const world = (q: P): P => ({ x: origin.x + q.x * u.x + q.y * v.x, y: origin.y - q.x * u.z - q.y * v.z });
   let best: Clearance | undefined;
   for (const target of solids) {
-    if (target.owners.includes(p.id) || target.group === group(p) || target.bottom >= 210) continue;
+    if (target.owners.includes(p.id) || target.group === group(p) || !target.circulation) continue;
+    if (target.facing && target.facing.x * v.x + target.facing.z * v.z > -.5) continue;
     let polygon = target.points.map(project);
     polygon = clip(clip(clip(polygon, q => q.x + half), q => half - q.x), q => q.y);
     if (!polygon.length) continue;
@@ -100,14 +102,18 @@ function intersects(a: readonly P[], b: readonly P[]): boolean {
   return true;
 }
 
-/** Room doors use a left hinge and inward 90° swing until the room model supports handing. */
-export function roomDoorOperation(at: (s: number, t: number) => P, left: number, face: number, width: number, height = 205): Operation {
-  const pivot = at(left, face), arc = quarterArc(at, left, face, width, 1);
+/** Confirmed room-door operation, viewed from inside the room; callers omit unconfirmed doors. */
+export function roomDoorOperation(at: (s: number, t: number) => P, left: number, face: number, width: number, height = 205, hinge: 'left' | 'right' = 'left', swing: 'in' | 'out' = 'in'): Operation {
+  const place = (s: number, t: number) => at(s, swing === 'in' ? t : 2 * face - t);
+  const h = hinge === 'left' ? left : left + width;
+  const pivot = place(h, face), arc = quarterArc(place, h, face, width, hinge === 'left' ? 1 : -1);
   return { points: [pivot, ...arc], bottom: 0, top: height, items: [{ kind: 'line', stroke: 'swing', points: arc },
     { kind: 'line', stroke: 'swing', points: [pivot, arc.at(-1)!] }] };
 }
 
-export function planClearances(studio: Studio | undefined, pieces: readonly PlacedPiece[]): { items: Item[]; checks: string[] } {
+export function planClearances(studio: Studio | undefined, pieces: readonly PlacedPiece[], profile: ClearanceProfile = 'project'): { items: Item[]; checks: string[]; issues: DrawingIssue[] } {
+  const rule = clearanceRule(profile), issues: DrawingIssue[] = [];
+  const operations = new Map(pieces.map(p => [p.id, pieceOperations(p)]));
   const solids = obstacles(studio, pieces), items: Item[] = [], checks: string[] = [], runs = new Map<string, Clearance>();
   for (const p of pieces.filter(p => !p.hung && !p.fixture)) {
     const gap = clearance(p, solids);
@@ -119,16 +125,29 @@ export function planClearances(studio: Studio | undefined, pieces: readonly Plac
     const { from, to, distance, piece } = gap, n = Math.hypot(to.x - from.x, to.y - from.y);
     if (distance > 0) items.push({ kind: 'dims', origin: from, dir: { x: (to.x - from.x) / n, y: (to.y - from.y) / n },
       side: 1, row: 0, clear: 0, stops: [0, distance] });
-    items.push(note({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }, 'Aisle min ' + distance));
-    if (distance < AISLE_REFERENCE) checks.push(piece.mark + ' aisle clearance ' + distance + ' is below the ' + AISLE_REFERENCE + ' review reference');
+    const targetPiece = pieces.find(p => gap.target.owners.includes(p.id));
+    const working = !!targetPiece && piece.design.product === 'kitchen' && targetPiece.design.product === 'kitchen';
+    const required = working ? rule.workAisle : rule.walkway, kind = working ? 'work-aisle' : 'walkway';
+    const at = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+    items.push(note(at, (working ? 'Work aisle ' : 'Walkway ') + distance + ' mm'));
+    if (distance < required) {
+      const message = piece.mark + ' aisle clearance ' + distance + ' is below the ' + required + ' review reference';
+      checks.push(message);
+      issues.push({ id: kind + ':' + piece.id, kind, severity: 'warning', message, at, measured: distance, required,
+        marks: [piece.mark, ...(targetPiece ? [targetPiece.mark] : [])], rule: rule.source });
+    }
   }
   for (const p of pieces) {
     const clashes = new Set<string>();
-    for (const operation of pieceOperations(p)) for (const solid of solids) {
+    for (const operation of operations.get(p.id)!) for (const solid of solids) {
       if (solid.owners.includes(p.id) || solid.bottom >= operation.top || solid.top <= operation.bottom) continue;
       if (intersects(operation.points, solid.points)) clashes.add(solid.owners.length ? pieces.find(q => q.id === solid.owners[0])!.mark : solid.key);
     }
-    for (const target of clashes) checks.push(p.mark + ' opening envelope meets ' + target);
+    for (const target of clashes) {
+      const message = p.mark + ' opening envelope meets ' + target;
+      checks.push(message); issues.push({ id: 'operation:' + p.id + ':' + target, kind: 'operation', severity: 'warning', message,
+        marks: [p.mark, target].filter(m => pieces.some(q => q.mark === m)), at: plan(p.x, p.z), rule: 'Opening envelope against static geometry' });
+    }
   }
   for (const wall of studio?.walls ?? []) {
     const g = wallGeometry(studio!, wall);
@@ -136,14 +155,37 @@ export function planClearances(studio: Studio | undefined, pieces: readonly Plac
     const { line: l } = g;
     const at = (t: number, n: number) => plan(l.a.x + l.ux * t + l.nx * n, l.a.z + l.uz * t + l.nz * n);
     for (const door of g.openings.filter(o => o.kind === 'door')) {
-      const operation = roomDoorOperation(at, door.offset - door.width / 2, wall.thickness / 2, door.width, door.height);
+      if (!door.hinge || !door.swing) {
+        issues.push({ id: 'handing:' + door.id, kind: 'unconfirmed', severity: 'review', marks: [],
+          message: 'Door ' + door.id + ': confirm hinge side and opening direction in the door Size panel',
+          at: at(door.offset, wall.thickness / 2), rule: 'Room door operation is unconfirmed' });
+        continue;
+      }
+      const operation = roomDoorOperation(at, door.offset - door.width / 2, wall.thickness / 2, door.width, door.height, door.hinge, door.swing);
+      for (const piece of pieces) if (operations.get(piece.id)!.some(moving => moving.bottom < door.sill + door.height
+        && moving.top > door.sill && intersects(operation.points, moving.points))) {
+        issues.push({ id: 'simultaneous:' + door.id + ':' + piece.id, kind: 'simultaneous', severity: 'review', marks: [piece.mark],
+          message: 'Door ' + door.id + ' / ' + piece.mark + ': opening envelopes intersect during simultaneous use',
+          at: at(door.offset, wall.thickness / 2), rule: 'Confirmed room-door and cabinet moving-front envelope review' });
+      }
       const clashes = new Set<string>();
       for (const solid of solids) {
         if (solid.top <= door.sill || solid.bottom >= door.sill + door.height) continue;
         if (intersects(operation.points, solid.points)) clashes.add(solid.owners.length ? pieces.find(p => p.id === solid.owners[0])!.mark : solid.key);
       }
-      for (const target of clashes) checks.push('Door ' + door.id + ' opening envelope meets ' + target);
+      for (const target of clashes) {
+        const message = 'Door ' + door.id + ' opening envelope meets ' + target;
+        checks.push(message); issues.push({ id: 'door:' + door.id + ':' + target, kind: 'operation', severity: 'warning', message,
+          marks: pieces.filter(p => p.mark === target).map(p => p.mark), at: at(door.offset, wall.thickness / 2), rule: 'Confirmed door handing' });
+      }
     }
   }
-  return { items, checks };
+  for (let i = 0; i < pieces.length; i++) for (let j = i + 1; j < pieces.length; j++) {
+    const a = pieces[i]!, b = pieces[j]!;
+    if (!operations.get(a.id)!.some(x => operations.get(b.id)!.some(y => x.bottom < y.top && y.bottom < x.top && intersects(x.points, y.points)))) continue;
+    const message = a.mark + ' / ' + b.mark + ': opening envelopes intersect during simultaneous use';
+    issues.push({ id: 'simultaneous:' + a.id + ':' + b.id, kind: 'simultaneous', severity: 'review', message, marks: [a.mark, b.mark],
+      at: plan((a.x + b.x) / 2, (a.z + b.z) / 2), rule: 'Simultaneous moving-front envelope review' });
+  }
+  return { items, checks, issues };
 }

@@ -141,7 +141,8 @@ const studio = z.strictObject({
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
   walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive,
     color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
-  openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative })),
+  openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
+    hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, profile: z.array(z.strictObject({ t: finite, y: positive })) })).optional(),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
