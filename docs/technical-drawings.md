@@ -1,31 +1,21 @@
 # Technical drawings
 
-Menu (⋮) → **Technical drawings** opens one sheet at a time. Choose a purpose:
+Menu (⋮) → **Technical drawings** opens the complete drawing set as a scrolling document.
+The toolbar contains only zoom out, zoom in, **Save as PDF**, and close. Sheets fill the available
+width immediately; one finger scrolls/pans, two fingers pinch to zoom, and Ctrl + wheel zooms on desktop.
+**Save as PDF** downloads the complete vector A3 landscape set directly (or opens the phone share
+sheet). There are no view tabs, inspector panels, navigation sidebars or export configuration dialogs.
 
-- **Layout**: visible furniture and main sizes, with light overhead outlines.
-- **Installation**: exact module positions, services and mounting levels.
-- **Clearances**: walkway/work-aisle dimensions, moving fronts and review findings.
-- **Cabinet details**: individual shop views, construction details and schedules.
+The set includes the main plan, a separate labelled upper-cabinet plan, a dedicated clearance plan,
+elevations, every cabinet detail, construction details and paginated schedules. The main plan keeps
+opening envelopes off the room overview; those appear on the clearance sheet. Upper pieces use a
+1200 mm lower-edge visibility threshold, an explicit application view policy.
 
-Upper cabinets have a separate labelled plan. The floor plan uses a 1200 mm lower-edge visibility
-threshold; this is an explicit application view policy, not a general building cut-plane engine.
-**Sheets** opens searchable thumbnails; **Cabinets** opens a readable inventory. Tap a cabinet mark
-for its size/location and individual drawing. **Fit drawing** fills the viewer with the drawing;
-**Fit page** shows the complete A3 page. Zoom buttons, two-finger pinch and Ctrl + wheel zoom;
-one-finger scrolling pans the page.
-
-**Save as PDF** opens a preview with the selected purpose, profile and page count. Export the current
-set or current sheet. Every page is vector A3 landscape, made from shared paper marks rather than
-screen capture, so viewport cropping and zoom do not affect the output. Schedules wrap at a fixed
-readable type size and paginate instead of shrinking into the footer. Every dimension is in whole mm.
-
-Cabinet marks use the furniture prefix plus its persistent cabinet ID. Moving/deleting another
-cabinet never renumbers them. Labels and notes avoid geometry, dimension figures and each other;
-external labels receive leaders. If an annotation cannot be placed it becomes an explicit drawing
-warning. Select a mark to nudge or drag its position, or reset it. Overrides are stored in this
-browser for the current geometry snapshot and applied to both screen and PDF. Geometry changes get
-a fresh snapshot; overrides are not synced with the project. Private storage failures retain them
-for the current session.
+Cabinet marks use the furniture prefix plus its persistent cabinet ID, so moving/deleting another
+cabinet never renumbers them. Automatic annotation placement avoids geometry, dimension figures and
+other labels; moved labels receive leaders. Unplaceable annotations become drawing warnings.
+Schedules wrap at a fixed readable type size and paginate instead of shrinking into the footer.
+Screen and PDF share paper marks; viewport zoom/scroll cannot crop the exported file.
 
 ## The set
 
@@ -106,9 +96,8 @@ projections count. Floor-level doors and archways remain passable; open room edg
 opposing wall. A zero clearance is labelled and flagged without a zero-length dimension.
 
 Aisles distinguish opposing kitchen work runs from general walkways. Perpendicular corner returns
-and upper cabinets do not become false opposing runs. Select a named planning profile in Clearances:
-NKBA one cook (914 mm walkway / 1067 mm work aisle), NKBA multiple cooks (914 / 1219 mm), or the
-project's 900 mm review reference. These are review recommendations, not code certification. Each
+and upper cabinets do not become false opposing runs. The viewer uses the NKBA one-cook planning reference (914 mm walkway / 1067 mm work aisle).
+The drawing API also supports multiple cooks (914 / 1219 mm) and a 900 mm project reference. These are review recommendations, not code certification. Each
 finding includes the measured width, reference width, category and affected cabinet marks.
 
 Dashed envelopes separately show operating space. Static collisions and simultaneous moving-front
@@ -118,8 +107,7 @@ rather than an invented swing. Set left/right hinge and inward/outward direction
 inside the room; these values persist with the project. Lift-up fronts remain elevation symbols.
 
 Small real gaps and mounting-height differences are retained exactly and reported for review rather
-than rounded away. Elevations name the reference stack and finished-floor datum. The review panel
-highlights the finding's plan location; the complete list is included in the Review issues schedule.
+than rounded away. Elevations name the reference stack and finished-floor datum. The complete findings are included in the Review issues schedule.
 
 ## Professional references and verification
 
@@ -130,9 +118,10 @@ Clearance profiles cite [NKBA planning guidelines 6–7](https://kb.nkba.org/upl
 This is an application drawing policy, not a claim of full ISO conformity or jurisdictional approval.
 
 `npm run check` covers dense L/U/island/rotated rooms, all purpose/detail annotations, stable IDs,
-profile distinctions, exact small gaps, confirmed door serialization, local overrides, and long-table
+profile distinctions, exact small gaps, confirmed door serialization, paper-space overrides, and long-table
 pagination. Run Vite on port 5177, then `npm run check:drawings` for desktop, 375 px and touch-browser
-verification and actual PDF download. Evidence is in `docs/verification/professional-drawings/`.
+verification and direct PDF download. Current viewer evidence is in `docs/verification/simple-drawing-viewer/`;
+`professional-drawings/` records the earlier viewer before simplification.
 
 ## Code
 

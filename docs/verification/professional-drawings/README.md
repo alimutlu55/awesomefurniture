@@ -1,6 +1,10 @@
-# Professional drawing UX verification
+# Professional drawing UX verification (superseded viewer)
 
-Local fixtures only; saved projects are not loaded or changed. Run Vite on port 5177, then
+The controls-heavy viewer shown here was replaced at the user's request. See
+[the restored simple viewer](../simple-drawing-viewer/README.md) for current screenshots and browser checks.
+The current `check:drawings` command verifies that simpler interface. Domain quality checks remain.
+
+Historical verification: local fixtures only; saved projects are not loaded or changed. Run Vite on port 5177, then
 `npm run check:drawings`. The legacy envelope verification command invokes the same suite.
 
 - Desktop: Layout, Installation, Clearances, checks with location highlight, profiles, cabinet tap,
