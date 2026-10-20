@@ -230,7 +230,7 @@
 
  /* Hide internal redundant title inside #pop2 on desktop since header .ph #ptitle is visible */
  #pop2 .add-context-title{display:none!important}
- #pop2[data-add-context]:not([data-add-context="furniture"]) .mobile-add-categories{display:none!important}
+ #pop2[data-add-context]:not([data-add-context="furniture"]):not([data-add-context="wall"]) .mobile-add-categories{display:none!important}
 
  /* Highlight active contextual action on desktop */
  #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
@@ -240,6 +240,7 @@
  #app:has(#pop4.show) #toolbar [data-action="sections"],
  #app.props-open:has(#left[data-context-section="fronts"]) #toolbar [data-action="fronts"],
  #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
+ #app:has(#pop2[data-add-context="wall"].show) #toolbar [data-action="new"],
  #app:has(#pop2.show) #toolbar #walls-btn,
  #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(60,52,42,0.12);
@@ -253,6 +254,7 @@
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  :host([data-theme="dark"]) #app:has(#pop4.show) #toolbar [data-action="sections"],
  :host([data-theme="dark"]) #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
+ :host([data-theme="dark"]) #app:has(#pop2[data-add-context="wall"].show) #toolbar [data-action="new"],
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #walls-btn,
  :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar [data-action="walls"]{
   background:rgba(255,255,255,0.16);

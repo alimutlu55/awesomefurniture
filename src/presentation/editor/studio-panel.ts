@@ -1,5 +1,5 @@
 import { ROOM_PARTS, roomPartArt, studioChoices } from './studio-art';
-import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
+import { isWallUtility, OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import type { OpeningKind } from '../../domain/studio/studio';
 import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import type { CeilingShape } from '../../domain/studio/studio-ceiling';
@@ -30,36 +30,37 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
   const room = () => !!model.scene.studio;
 
   /** Buttons for both layouts: parts first, then rooms. `extra` adds the phone catalogue's attributes. */
-  function buttons(extra: string, art: (c: ReturnType<typeof studioChoices>[number]) => string) {
+  function buttons(extra: (category: string) => string, art: (c: ReturnType<typeof studioChoices>[number]) => string) {
     choices ??= studioChoices('product-art studio-plan-art');
     const current = active();
     const parts = ROOM_PARTS.map(p => {
       const needsRoom = p.kind !== 'wall' && !room();
       const off = needsRoom ? ' no' : '', disabled = needsRoom ? ' aria-disabled="true"' : '', title = esc(needsRoom ? 'Add a room first' : p.description);
-      return `<button type="button" class="room-product${off}" data-add-room="${p.kind}"${disabled}${extra} title="${title}">${roomPartArt(p.kind)}<span>${esc(p.name)}</span></button>`;
+      const cat = isWallUtility(p.kind) ? 'utilities' : p.kind === 'wall' ? 'ceilings' : 'openings';
+      return `<button type="button" class="room-product${off}" data-add-room="${p.kind}"${disabled}${extra(cat)} title="${title}">${roomPartArt(p.kind)}<span>${esc(p.name)}</span></button>`;
     });
     // Ceilings that come down, from their registry: on the selected wall, or the wardrobes' wall.
     const off = room() ? '' : ' no', disabled = room() ? '' : ' aria-disabled="true"';
-    parts.push(...(CEILING_SHAPES as readonly CeilingShape[]).map(c => `<button type="button" class="room-product${off}" data-add-ceiling="${c.id}"${disabled}${extra} title="${esc(room() ? c.description : 'Add a room first')}">`
+    parts.push(...(CEILING_SHAPES as readonly CeilingShape[]).map(c => `<button type="button" class="room-product${off}" data-add-ceiling="${c.id}"${disabled}${extra('ceilings')} title="${esc(room() ? c.description : 'Add a room first')}">`
       + `${ceilingArt(c, 'product-art ceiling-product-art')}<span>${esc(c.name)}</span></button>`));
     // Without a room, "No room" is what you have: it goes last, after the rooms to choose from.
     const rooms = (room() ? choices : [...choices.filter(c => c.id !== 'none'), ...choices.filter(c => c.id === 'none')]).map(c => {
       const on = c.id === current;
       const name = esc(c.id === 'none' ? c.name : c.name + ' room'), title = esc(c.name + ' · ' + c.description);
-      return `<button type="button" class="room-product room-choice${on ? ' on' : ''}" data-studio="${c.id}" aria-pressed="${on}"${extra} title="${title}">${art(c)}<span>${name}</span></button>`;
+      return `<button type="button" class="room-product room-choice${on ? ' on' : ''}" data-studio="${c.id}" aria-pressed="${on}"${extra('room')} title="${title}">${art(c)}<span>${name}</span></button>`;
     });
     // Without a room, a room comes first: doors, windows and archways need one.
     return room() ? parts.join('') + rooms.join('') : rooms.join('') + parts.join('');
   }
 
   function render() {
-    dom.$('#padd-room').innerHTML = buttons('', c => c.art);
+    dom.$('#padd-room').innerHTML = buttons(() => '', c => c.art);
     const chosen = choices!.find(c => c.id === active());
     dom.$('#studio-caption').textContent = active() === 'custom' ? 'Your own room · select a wall to change it'
       : chosen && chosen.id !== 'none' ? chosen.name + ': ' + chosen.description : 'Add a room, or walls one by one, around your wardrobes.';
   }
   /** The phone catalogue's Walls category. */
-  const products = () => buttons(' data-product-category="room" hidden', c => c.art);
+  const products = () => buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art);
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {

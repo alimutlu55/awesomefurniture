@@ -19,10 +19,10 @@ test('every kind of furniture has the same More: duplicate, reset, remove',()=>{
 test('no toolbar offers Move: furniture, an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});
 test('item More exposes its storage purpose; Replace is a tool',()=>assert.deepEqual(itemMoreActions,[['stores','Stores']]));
 const {wallMoreActions,studioMoreActions,fieldActions}=require('../src/domain/wardrobe/contextual-actions.js');
-test('a selected wall offers Size and Split directly, with Door, Window and wall utilities in More',()=>{
- assert.deepEqual(contextualActions('wall').map(([key])=>key),['wall-size','split','wall-paint','more','undo','redo']);
- assert.deepEqual(studioMoreActions.map(([key])=>key),['door','window','archway','water','socket','duct','gas','radiator','switch']);
- assert.deepEqual(wallMoreActions.map(([key])=>key),['door','window','archway','water','socket','duct','gas','radiator','switch','remove']);
+test('a selected wall offers Add, Size, Split, Paint/Finish directly with Remove in More',()=>{
+ assert.deepEqual(contextualActions('wall').map(([key])=>key),['new','wall-size','split','wall-paint','more','undo','redo']);
+ assert.equal(contextualActions('wall')[0][1],'Add');
+ assert.deepEqual(wallMoreActions.map(([key])=>key),['remove']);
  assert.deepEqual(contextualActions('opening').map(([key])=>key),['opening-size','remove','undo','redo']);
  assert.deepEqual(contextualActions('ceiling').map(([key])=>key),['ceiling-size','ceiling-shape','flip','remove','undo','redo']);
  assert.ok(fieldActions.every(key=>['studio','wall','opening','ceiling'].some(s=>contextualActions(s).some(([k])=>k===key))||wallMoreActions.some(([k])=>k===key)));

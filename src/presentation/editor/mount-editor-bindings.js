@@ -306,6 +306,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 room.resizePanel.open(); return;
             }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }
+            if (key === 'new' && selectionState.room?.kind === 'wall') {
+                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'wall') { inspector.hidePop(); return; }
+                shellBindings.openSceneAdd({ dom, inspector, shell }, 'wall'); return;
+            }
             if (selectionState.room) { room.editor.act(key); return; }
             const state = model.activeCabinet().state;
             if (key === 'resize') {

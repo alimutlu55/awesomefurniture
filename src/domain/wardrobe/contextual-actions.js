@@ -22,9 +22,8 @@ const actions = {
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
-    // The room: a selected wall, a door, window or archway on one, or a ceiling that comes down (stairs, a slope, a box).
-    // Size and Split stay directly accessible; adding openings is grouped in More.
-    wall: [['wall-size', 'Size'], ['split', 'Split'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
+    // The room: a selected wall has Add, Size, Split, Paint, More.
+    wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['split', 'Split'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
     ceiling: [['ceiling-size', 'Size'], ['ceiling-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
 };
@@ -33,12 +32,8 @@ export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menu
 /** The More menu of each kind of furniture, by its furniture kind. */
 export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
-export const studioMoreActions = [
-    ['door', 'Door'], ['window', 'Window'], ['archway', 'Archway'],
-    ['water', 'Water pipes'], ['socket', 'Electrical point'], ['duct', 'Extractor vent'],
-    ['gas', 'Gas point'], ['radiator', 'Radiator'], ['switch', 'Light switch'],
-];
-export const wallMoreActions = [...studioMoreActions, ['remove', 'Remove wall']];
+export const studioMoreActions = [];
+export const wallMoreActions = [['remove', 'Remove wall']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = ['ceiling', 'ceiling-shape'];

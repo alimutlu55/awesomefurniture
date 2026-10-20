@@ -145,7 +145,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
             placed: () => { selectionState.viewMode = 'studio'; selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             // A part just added is selected; a ceiling also turns the view to eye level to shape it.
-            added: selection => { inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
+            added: selection => { inspector.hidePop(); inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });
         const framing = createFurnitureFraming({ model, camera });
         // Kitchen cabinets: a new unit is selected and framed with its run, ready for Add item and the pull-out gesture.
         const kitchenPanel = createKitchenPanel({ dom, add: preset => {

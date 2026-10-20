@@ -98,3 +98,13 @@ test('3D studio renderer builds pickable meshes for wall utilities without cutti
     assert.equal(panel.material.opacity, 1);
     renderer.dispose();
 });
+
+test('wall toolbar has Add tool matching furniture and opens visual catalog with utilities, openings and ceilings', () => {
+    const { contextualActions, wallMoreActions } = require('../src/domain/wardrobe/contextual-actions.js');
+    const actions = contextualActions('wall');
+    assert.equal(actions[0][0], 'new');
+    assert.equal(actions[0][1], 'Add');
+    assert.equal(actions[0][2], 'Add to wall');
+    // None of the utilities or openings are in wallMoreActions anymore.
+    assert.deepEqual(wallMoreActions.map(([key]) => key), ['remove']);
+});
