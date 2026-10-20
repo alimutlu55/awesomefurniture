@@ -61,7 +61,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
             categories.querySelectorAll('[data-category]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.getAttribute('data-category') === category)));
             (/** @type {NodeListOf<HTMLButtonElement>} */ (products.querySelectorAll('[data-product-category]'))).forEach(product => {
                 const kind = product.dataset.productCategory;
-                const match = category === 'all' ? SCENE_CATEGORIES.includes(kind)
+                const match = category === 'all' ? !SCENE_CATEGORIES.includes(kind)
                     : category === 'room' ? (kind === 'room' || kind === 'utilities' || kind === 'openings' || kind === 'ceilings')
                     : kind === category;
                 product.hidden = !match;

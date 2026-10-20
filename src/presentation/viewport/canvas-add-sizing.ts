@@ -14,5 +14,5 @@ export function sizeCanvasAdd(label: Label, camera: Camera, view: { width: numbe
     };
     const { left, right, bottom, top } = label.addArea;
     const width = Math.abs(project(right).x - project(left).x), height = Math.abs(project(top).y - project(bottom).y);
-    label.canvasScale = Math.max(0, Math.min(1, width * .55 / Math.max(1, label.el.offsetWidth), height * .25 / Math.max(1, label.el.offsetHeight)));
+    label.canvasScale = Math.max(0, Math.min(1, width * .65 / Math.max(1, label.el.offsetWidth), height * .3 / Math.max(1, label.el.offsetHeight)));
 }

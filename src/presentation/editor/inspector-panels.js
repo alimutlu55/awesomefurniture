@@ -60,6 +60,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         callbacks.hidePop();
         takeMobilePanel(dom, p);
         if (id === '#pop2') {
+            // This catalogue has no expand control: never inherit a collapsed inspector.
+            selectionState.popMin = false;
             // Add item adds to the selected furniture; Walls, Wall items, Wardrobe and Cabinets add to the scene.
             if (mode === 'room' || mode === 'wall' || mode === 'wardrobe' || mode === 'kitchen' || mode === 'furniture') p.dataset.addContext = mode;
             else delete p.dataset.addContext;
@@ -106,7 +108,9 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             return;
         }
         if (to === '#pop2') {
-            callbacks.renderAddChoices();
+            // Returning from item editing must reset the catalogue's scene context and collapsed state too.
+            showPop(null, to);
+            return;
         }
         const o = to === '#pop2' ? '#pop3' : '#pop2', f = $(o), t = $(to);
         t.style.left = f.style.left;
