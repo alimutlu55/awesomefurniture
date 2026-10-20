@@ -1,6 +1,6 @@
 import { mm, type PieceRow, type Sheet } from './drawing';
 import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeometry } from './room-pieces';
-import { isWallUtility } from '../studio/wall-utilities';
+import { planClearances } from './plan-clearances';
 import { planView } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
 import { designChecks } from './checks';
@@ -21,13 +21,13 @@ function row(p: PlacedPiece, letters: ReadonlyMap<string, string>): PieceRow {
 
 /**
  * The technical drawings of a design, for a carpenter to build and fit from: the plan of the room with every piece
- * marked and dimensioned to the walls, then an elevation of each wall that has furniture against it (A, B, C…, marked
+ * marked and dimensioned to the walls, then an elevation of every room wall (A, B, C…, marked
  * on the plan where it is seen from), then a front elevation of each piece standing free. Millimetres throughout.
  */
 export function technicalDrawings(input: DrawingInput): Sheet[] {
   const pieces = placePieces(input), studio = input.studio, letters = new Map<string, string>();
   for (const w of studio?.walls ?? []) {
-    if (pieces.some(p => p.wall === w.id) || studio!.openings.some(o => o.wall === w.id && isWallUtility(o.kind))) {
+    if (wallGeometry(studio!, w)) {
       letters.set(w.id, String.fromCharCode(65 + letters.size));
     }
   }
@@ -40,7 +40,7 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
     const at = { x: g.face.from.x + g.line.ux * t + g.line.nx * out, z: g.face.from.z + g.line.uz * t + g.line.nz * out };
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }
-  const checks = designChecks(studio, pieces, letters), about = (marks: readonly string[]) =>
+  const checks = [...designChecks(studio, pieces, letters), ...planClearances(studio, pieces).checks], about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', views: [{ title: 'Plan', items: plan }], pieces: pieces.map(p => row(p, letters)), checks }];
   for (const [id, letter] of letters) {
@@ -49,7 +49,7 @@ export function technicalDrawings(input: DrawingInput): Sheet[] {
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
   for (const p of pieces.filter(q => q.wall === null)) {
-    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p) }], pieces: [row(p, letters)], checks: about([p.mark]) });
+    sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p, studio) }], pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   // Shop drawings: each cabinet and wardrobe on its own sheet, to make it from.
   for (const p of pieces.filter(q => !q.fixture)) {

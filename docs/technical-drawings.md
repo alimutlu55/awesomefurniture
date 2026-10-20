@@ -9,24 +9,31 @@ zoom or scroll cannot cut or move it (printing a frame was blank or cropped in i
 ## The set
 
 1. **Plan.** Walls cut and hatched at their real thickness, mitred where they meet; windows as three
-   thin lines in their opening, doors and archways as gaps, each with its size (and a window's sill),
+   thin lines in their opening, doors and archways as gaps, each with its size, window sill (`Hp`) and lintel height,
    written along its wall. Every piece's footprint with its mark (K1, W1…); wall-hung pieces dashed
    (above the cut); worktops; sink and hob centre lines. Symbols: a cross over a tall unit, a dashed
    cross over a base unit housing an appliance, an arrow out of a unit with drawers or pull-outs, and the
-   doors of tall units and wardrobes drawn open (long dashes) to show the room they need. Per wall,
+   90° arcs and open leaves for hinged cabinet and wardrobe doors (long dashes), full-extension drawer
+   envelopes, and drop-down appliance door envelopes. Room doors show a left-hinged inward 90° swing;
+   handing is not stored in the room model. Per wall,
    outside it, dimension strings nearest first: floor-standing pieces with the gaps beside them, wall
    units and shelves, openings and sink/hob centre lines, the wall's whole room-face length. The depth of
    each run from its wall. A piece standing free is set out from what is behind it and the nearer thing
    beside it. Elevation pointers (A, B…) show where each wall elevation is seen from.
-2. **One elevation per wall with furniture.** The wall face end to end and floor to its height, its
+2. **One elevation per room wall, including walls without furniture.** The wall face end to end and floor to its height, its
    openings, every piece's front, worktop and plinth, and the end of a run on the next wall that comes into
    the corner (a return, seen from its side). Fronts show how they open: a long-dashed triangle points at
    the hinges (a door at its side, a lift-up flap at its top, an oven or dishwasher door at its bottom);
    drawers and fixed fronts have none; appliances are named. What is behind the fronts is dashed: a
    cupboard's shelves, a wardrobe's fittings, shelves, partitions and rails. Below: pieces and gaps, then
-   the wall. Above: wall units, then openings. Left: the height of everything from the floor; right: each
-   opening's sill and head.
-3. **A front elevation of each piece that stands free** (or of every piece when there is no room).
+   the wall. Above: wall units, then openings. Left, three tiers from inside out: individual unit and
+   zone heights; installation datums (plinth, carcass, worktop, upper unit underside/top, including the
+   backsplash gap); one uninterrupted floor-to-ceiling total. Right: each opening's sill and lintel.
+   Adjoining walls appear as hatched sections at their actual thickness; exposed room ends carry break
+   marks in plan and elevation.
+3. **A front elevation of each piece that stands free** (or of every piece when there is no room). These
+   use the same three height tiers; without a room, the outer total is the piece height, since no ceiling
+   height is known.
 4. **A shop sheet for each cabinet and wardrobe** (not sinks, hobs or wall shelves), its views at one scale:
    *Front* with each front's cut size written on it and strings of where the fronts start and end;
    *Inside* with the fronts taken off: every board's front edge, rails, where the fronts go, the clear
@@ -48,7 +55,8 @@ zoom or scroll cannot cut or move it (printing a frame was blank or cropped in i
 
 Each sheet lists its pieces (mark, name, width × height × depth, wall, height above the floor) and, in red,
 what to check before making: pieces that overlap, a piece in front of a window or door at its height, a
-piece running past the end of its wall or taller than it. Title block: project, drawing, sheet n of N,
+piece running past the end of its wall or taller than it, narrow aisles, and opening envelopes meeting
+furniture, walls or radiators. Title block: project, drawing, sheet n of N,
 scale, units, date. Scales are the standard ones that fit (1:10, 1:20, 1:25, 1:50…). Line weights follow
 ISO 128 (cut 0.5, outlines 0.35, thin 0.18, hidden dashed, centre lines chain, swings long dashes);
 dimension figures sit above their line, read from the bottom or the right (ISO 129). Notes move clear of
@@ -68,6 +76,21 @@ the `front` trait has one; the registry test checks it). Door leaves, the fridge
 spacing are `hingedLeaves`, `fridgeSplit` and `shelfHeights` in `domain/kitchen/kitchen-fronts.ts`, shared
 with the 3D view.
 
+## Aisles and opening envelopes
+
+The plan measures the minimum clear aisle in front of each floor run to another run or wall. It clips
+obstacle footprints across the entire front width, so narrow obstructions and rotated layouts are
+included, and retains the narrowest reading between the same two runs. Worktop overhangs and radiator
+projections count. Floor-level doors and archways remain passable; open room edges have no invented
+opposing wall. A zero clearance is labelled and flagged without a zero-length dimension.
+
+`Aisle min` is the closed-furniture walkway width in millimetres. Clearances below 900 mm are flagged
+as a project review reference, not a building-code certification. Dashed opening envelopes separately
+show required operating space; intersections with static obstacles are flagged. Drawers use the same
+full-extension runner length as the hardware schedule. Appliance drop-down reach is its front height.
+Room door handing defaults to left-hinged/inward and must be checked on site. Simultaneous operation
+of multiple moving fronts is not simulated. Lift-up fronts remain elevation symbols.
+
 ## Code
 
 | Concern | Place |
@@ -75,6 +98,8 @@ with the 3D view.
 | The drawing model (lines, notes, marks, dimension strings), millimetres | `src/domain/drawings/drawing.ts` |
 | Which wall a piece stands against, marks | `src/domain/drawings/room-pieces.ts` (uses `wallAgainst` in `studio/scene-gaps.ts`) |
 | Plan, plan symbols, wall elevation | `plan-view.ts`, `plan-symbols.ts`, `wall-elevation.ts` |
+| Height tiers and shell end/return sections | `elevation-dimensions.ts`, `shell-boundaries.ts` |
+| Opening envelopes, aisle dimensions and operational checks | `plan-operations.ts`, `plan-clearances.ts` |
 | A piece's front, its fronts and what is behind them | `piece-front.ts`, `fronts.ts` |
 | What to check before making | `checks.ts` |
 | Every board of a piece; a piece's shop views | `cabinet-boards.ts`; `unit-detail.ts` |
@@ -94,7 +119,7 @@ gives the letter of its pieces' marks.
 
 ## Not yet
 
-Room door swings (the room does not store which way a door opens), sloped ceilings on elevations,
+Configurable room door handing, sloped ceilings on elevations,
 worktop joints and cut-out sizes, fillers and scribes, drilling plans (hinge cups, shelf pins on the
 32 mm grid), drawer box parts (the runners' maker sizes the box), and material choices beyond the finish
 are not drawn. The cutting list gives finished sizes: edge banding is not deducted. A plain kitchen unit

@@ -1,5 +1,5 @@
 import { PLINTH } from '../wardrobe/catalog.js';
-import { BACK_PANEL } from '../wardrobe/carcass';
+import { drawerExtension } from '../wardrobe/drawer-runners';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit } from '../kitchen/kitchen-units';
@@ -9,8 +9,6 @@ import { piecefronts } from './fronts';
 import { pieceBoards } from './unit-detail';
 import type { PlacedPiece } from './room-pieces';
 
-/** Drawer runner lengths made in steps of 50 mm; a runner is the longest that fits the clear depth. Millimetres. */
-const RUNNERS = [250, 270, 300, 350, 400, 450, 500, 550, 600] as const;
 /** Concealed hinges by a door's height (mm), as hardware makers advise: up to 900 two, to 1600 three, to 2000 four. */
 const hingesFor = (height: number) => height <= 900 ? 2 : height <= 1600 ? 3 : height <= 2000 ? 4 : 5;
 /** A wall shelf's brackets: one at each end, one more every 800 mm. */
@@ -43,8 +41,8 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       add(p, 'Handle', 'to choose', 1);
     }
     // Fittings: what each is built with, sized to its place.
-    const editing = { ...d, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), clear = mm(d.d - BACK_PANEL) - 10;
-    const runner = [...RUNNERS].reverse().find(r => r <= clear) ?? RUNNERS[0];
+    const editing = { ...d, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing);
+    const runner = mm(drawerExtension(d.d));
     geometry.widths().forEach((_, i) => geometry.computeLayout(i).forEach((pos, j) => {
       const it = d.secs[i]![j]!;
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {

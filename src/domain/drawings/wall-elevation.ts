@@ -1,4 +1,6 @@
-import type { Studio } from '../studio/studio';
+import { roomHeight, type Studio } from '../studio/studio';
+import { elevationDimensions } from './elevation-dimensions';
+import { elevationShell } from './shell-boundaries';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { plinthOf } from '../wardrobe/carcass';
 import { type Item, line, mm, rect, stops } from './drawing';
@@ -15,8 +17,7 @@ const RETURN = 5;
  * A wall seen from the room, as a carpenter fits against it: the wall's face from end to end and floor to its
  * height, its openings, and every piece standing against it, with the worktop and plinth of a kitchen run.
  * Along the floor: the floor-standing pieces with the gaps beside them, then the wall's length; above: the wall
- * units and the openings. On the left the height of everything from the floor (plinth, carcass, worktop, the
- * gap to the wall units, their top, the ceiling); on the right each opening's sill and head. Millimetres from
+ * units and the openings. On the left, zone heights, installation datums and the outer floor-to-ceiling total; on the right each opening's sill and head. Millimetres from
  * the wall's left end and the floor.
  */
 export function wallElevation(studio: Studio, wallId: string, pieces: readonly PlacedPiece[]): Item[] {
@@ -24,7 +25,7 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   if (!w || !g) return [];
   const { face, line: l } = g, length = face.length, height = w.height, x = (t: number) => t - face.start;
   const mine = pieces.filter(p => p.wall === wallId), out: Item[] = [];
-  out.push(rect(0, 0, mm(length), mm(height), 'thin'));
+  out.push(...elevationShell(studio, w, length));
   out.push(line({ x: -FLOOR_RUN, y: 0 }, { x: mm(length) + FLOOR_RUN, y: 0 }, 'cut'));
   for (const o of g.openings) {
     const a = x(o.offset - o.width / 2), b = x(o.offset + o.width / 2);
@@ -64,10 +65,12 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   across([], false, below);
   if (hung.length) across(hung.flatMap(p => [x(p.lo), x(p.hi)]), true, above++);
   if (g.openings.length) across(g.openings.flatMap(o => [x(o.offset - o.width / 2), x(o.offset + o.width / 2)]), true, above);
-  const heights = [...mine.flatMap(pieceHeights), ...returns.flatMap(r => pieceHeights(r.p)), ...worktops];
-  out.push({ kind: 'dims', origin: { x: 0, y: 0 }, dir: { x: 0, y: 1 }, side: 1, clear: 0, row: 0, stops: stops([0, mm(height), ...heights.map(mm)]) });
+  const adjacent = studio.walls.filter(q => q.id !== w.id && (q.a === w.a || q.b === w.a));
+  out.push(...elevationDimensions([...mine, ...returns.map(r => r.p)], worktops, roomHeight(studio), Math.max(0, ...adjacent.map(q => q.thickness))));
   if (g.openings.length) {
-    out.push({ kind: 'dims', origin: { x: mm(length), y: 0 }, dir: { x: 0, y: 1 }, side: -1, clear: 0, row: 0,
+    const right = studio.walls.filter(q => q.id !== w.id && (q.a === w.b || q.b === w.b));
+    out.push({ kind: 'dims', origin: { x: mm(length), y: 0 }, dir: { x: 0, y: 1 }, side: -1,
+      clear: mm(Math.max(0, ...right.map(q => q.thickness))), row: 0,
       stops: stops([0, mm(height), ...g.openings.flatMap(o => [mm(o.sill), mm(o.sill + o.height)])]) });
   }
   return out;
@@ -75,10 +78,10 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
 
 /** A piece standing free (or with no room around it) seen from the front: its width along the floor, its heights on
  * the left. Millimetres from its left face and the floor. */
-export function pieceElevation(p: PlacedPiece): Item[] {
+export function pieceElevation(p: PlacedPiece, studio?: Studio): Item[] {
   const out = pieceFront(p, 0);
   out.push(line({ x: -FLOOR_RUN, y: mm(p.y) }, { x: mm(p.design.w) + FLOOR_RUN, y: mm(p.y) }, p.y < .5 ? 'cut' : 'thin'));
   out.push({ kind: 'dims', origin: { x: 0, y: mm(p.y) }, dir: { x: 1, y: 0 }, side: -1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });
-  out.push({ kind: 'dims', origin: { x: 0, y: 0 }, dir: { x: 0, y: 1 }, side: 1, clear: 0, row: 0, stops: stops([0, ...pieceHeights(p).map(mm)]) });
+  out.push(...elevationDimensions([p], [], studio ? roomHeight(studio) : Math.max(p.y + p.design.h, ...pieceHeights(p))));
   return out;
 }

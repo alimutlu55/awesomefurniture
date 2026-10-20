@@ -1,5 +1,5 @@
 import type { Studio } from '../studio/studio';
-import { wallExtent } from '../studio/studio';
+import { cornerDegree, wallExtent } from '../studio/studio';
 import { isWallUtility, wallUtilitySpec } from '../studio/wall-utilities';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP } from '../kitchen/kitchen-units';
@@ -8,6 +8,9 @@ import { type Dimensions, type Item, type Line, type P, line, mm, note, stops } 
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { openingNote } from './opening-notes';
 import { freePosition, pieceSymbols, plan } from './plan-symbols';
+import { pieceOperations } from './plan-operations';
+import { planClearances, roomDoorOperation } from './plan-clearances';
+import { planEndBreak } from './shell-boundaries';
 
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
@@ -38,9 +41,12 @@ function walls(studio: Studio, pieces: readonly PlacedPiece[]): Item[] {
       }
       from = Math.max(from, b);
     }
+    if (cornerDegree(studio, w.a) === 1) out.push(planEndBreak(at, start, half));
+    if (cornerDegree(studio, w.b) === 1) out.push(planEndBreak(at, end, half));
     for (const o of g.openings) {
       const a = o.offset - o.width / 2, b = o.offset + o.width / 2;
       if (o.kind === 'window') for (const s of [-half, 0, half]) out.push(line(at(a, s * .7), at(b, s * .7), 'thin'));
+      else if (o.kind === 'door') out.push(...roomDoorOperation(at, a, half, o.width).items);
       else if (isWallUtility(o.kind)) {
         const depth = wallUtilitySpec(o.kind)?.depth ?? 3;
         out.push({ kind: 'line', stroke: 'thin', closed: true, points: [at(a, half), at(b, half), at(b, half + depth), at(a, half + depth)] });
@@ -110,7 +116,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     // A wall unit's mark sits towards the wall, so it never covers the mark of the unit under it.
     const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d / 8;
     out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
-    out.push(...pieceSymbols(p));
+    out.push(...pieceSymbols(p), ...pieceOperations(p).flatMap(o => o.items));
     if (p.wall === null) {
       out.push(...freePosition(p, pieces, studio));
       const [a, b, , d] = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
@@ -120,5 +126,6 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     }
   }
   if (studio) out.push(...wallDimensions(studio, pieces));
+  out.push(...planClearances(studio, pieces).items);
   return out;
 }

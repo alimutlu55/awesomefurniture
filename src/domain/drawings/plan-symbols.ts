@@ -25,8 +25,7 @@ const kinds = (p: PlacedPiece) => p.design.secs.flat().map(it => it.k);
 /**
  * What a plan says about a piece beyond its outline, as kitchen and joinery plans draw it: a cross over a tall unit (it
  * stands floor to top); a dashed cross over a base unit housing an appliance (a dishwasher, an oven) under the worktop; an
- * arrow out of a unit whose fronts pull out (drawers); and for a tall unit or a wardrobe with doors, each door drawn open
- * (long dashes, at a right angle from its hinge), so the room it needs to open can be seen.
+ * arrow out of a unit whose fronts pull out (drawers). Kinematic envelopes are drawn by plan-operations.
  */
 export function pieceSymbols(p: PlacedPiece): Item[] {
   const out: Item[] = [], w = p.design.w, d = p.design.d, at = (s: number, t: number) => local(p, s, t);
@@ -35,7 +34,7 @@ export function pieceSymbols(p: PlacedPiece): Item[] {
   if (tallUnit(p)) out.push(line(corners[0], corners[2], 'thin'), line(corners[1], corners[3], 'thin'));
   else if (appliance && !p.hung) out.push(line(corners[0], corners[2], 'hidden'), line(corners[1], corners[3], 'hidden'));
   if (!p.hung && kinds(p).some(k => fitting(k)?.opens === 'pull')) out.push({ kind: 'arrow', at: at(0, d / 2), dir: dirOf(at(0, 0), at(0, 1)) });
-  const { fronts, cornerPullouts } = piecefronts(p.design);
+  const { cornerPullouts } = piecefronts(p.design);
   if (!p.hung) {
     for (const c of cornerPullouts) {
       const splitS = (c.doorSide === 'right' ? c.blind.x1 : c.blind.x0) - w / 2, px = c.post.x - w / 2, r = c.post.size / 2;
@@ -47,20 +46,8 @@ export function pieceSymbols(p: PlacedPiece): Item[] {
         line(at(splitS, d / 2 - 6), at(splitS, d / 2), 'thin'),
         { kind: 'line', stroke: 'thin', closed: true, points: [at(px - r, -r), at(px + r, -r), at(px + r, r), at(px - r, r)] },
         { kind: 'line', stroke: 'hidden', closed: true, points: kidney },
-        line(at((c.door.hinge === 'right' ? c.door.x1 : c.door.x0) - w / 2, d / 2),
-          at((c.door.hinge === 'right' ? c.door.x1 : c.door.x0) - w / 2, d / 2 + (c.door.x1 - c.door.x0)), 'swing'),
         { kind: 'arrow', at: at((c.door.x0 + c.door.x1) / 2 - w / 2, d / 2), dir: dirOf(at(0, 0), at(0, 1)) },
       );
-    }
-  }
-  const swinging = tallUnit(p) || (!isKitchen(p.design) && p.design.doors !== 'none');
-  if (swinging) {
-    const seen = new Set<string>();
-    for (const f of fronts) {
-      if (f.opens !== 'side' || seen.has(f.x0 + ':' + f.x1)) continue;
-      seen.add(f.x0 + ':' + f.x1);
-      const hinge = (f.hinge === 'right' ? f.x1 : f.x0) - w / 2;
-      out.push(line(at(hinge, d / 2), at(hinge, d / 2 + (f.x1 - f.x0)), 'swing'));
     }
   }
   return out;

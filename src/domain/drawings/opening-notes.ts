@@ -15,9 +15,10 @@ const KIND: Record<StudioOpening['kind'], string> = {
 };
 
 /** An opening or wall utility as an architect writes it beside the symbol: what it is, width × height, and its
- * height above the floor (`sill`), in millimetres ("Window 2940 × 2350, sill 0", "Water pipes 240 × 200, sill 500"). */
+ * height above the floor (window `Hp`, utility `sill`) and structural lintel height, in millimetres. */
 export const openingNote = (o: StudioOpening) =>
-  KIND[o.kind] + ' ' + mm(o.width) + ' × ' + mm(o.height) + (o.kind === 'window' || isWallUtility(o.kind) ? ', sill ' + mm(o.sill) : '');
+  KIND[o.kind] + ' ' + mm(o.width) + ' × ' + mm(o.height) + (o.kind === 'window' ? ', Hp ' + mm(o.sill) : isWallUtility(o.kind) ? ', sill ' + mm(o.sill) : '')
+  + (!isWallUtility(o.kind) ? ', lintel ' + mm(o.sill + o.height) : '');
 
 /** Draws an opening or wall utility on a wall elevation (`a` to `b` in cm from the wall's left inside end). */
 export function elevationOpeningItems(o: StudioOpening, a: number, b: number): Item[] {

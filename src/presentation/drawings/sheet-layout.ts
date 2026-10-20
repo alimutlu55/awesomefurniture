@@ -31,7 +31,7 @@ function reach(item: Item, scale: number): P[] {
     case 'arrow': { const c = at(item.at); return [c, { x: c.x + item.dir.x * ARROW, y: c.y - item.dir.y * ARROW }]; }
     case 'note': { const c = at(item.at), w = Math.max(...item.lines.map(l => l.length)) * 1.6; return [{ x: c.x - w / 2, y: c.y - 3 }, { x: c.x + w / 2, y: c.y + 3 * item.lines.length }]; }
     case 'dims': {
-      const n = normal(item), off = dimOffset(item, scale) + DIM.text + 1, ends = [item.stops[0]!, item.stops[item.stops.length - 1]!];
+      const n = normal(item), off = dimOffset(item, scale) + DIM.text + 2.5, ends = [item.stops[0]!, item.stops[item.stops.length - 1]!];
       return ends.flatMap(s => {
         const p = at({ x: item.origin.x + item.dir.x * s, y: item.origin.y + item.dir.y * s });
         return [p, { x: p.x + n.x * off, y: p.y - n.y * off }];

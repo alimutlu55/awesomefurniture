@@ -47,17 +47,19 @@ test('the plan dimensions every piece and gap to the wall ends, the window, the 
   assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
-  assert.deepEqual(notes, ['Window 1000 × 1200, sill 1000']);
+  assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);
 });
 
 test('the elevation stacks every height from the floor and gives the window its sill and head', () => {
   const [, elevation] = technicalDrawings({ studio: room(), pieces: kitchen() });
-  const [floor, wall, above, openings, heights, window] = dims(all(elevation!)).map(d => d.stops);
+  const [floor, wall, above, openings, zones, heights, total, window] = dims(all(elevation!)).map(d => d.stops);
   assert.deepEqual(floor, [0, 600, 700, 1300, 3000]);
   assert.deepEqual(wall, [0, 3000]);
   assert.deepEqual(above, [0, 700, 1300, 3000], 'the wall unit');
   assert.deepEqual(openings, [0, 1700, 2700, 3000]);
   assert.deepEqual(heights, [0, 80, 860, 900, 1420, 2120, 2150, 2600], 'plinth, carcass, worktop, wall unit underside and top, tall unit, ceiling');
+  assert.ok(zones!.includes(377) && zones!.includes(656), 'individual drawer zones');
+  assert.deepEqual(total, [0, 2600], 'uninterrupted outer floor-to-ceiling height');
   assert.deepEqual(window, [0, 1000, 2200, 2600]);
 });
 
@@ -184,7 +186,7 @@ test('corner pull-out component is drawn with high precision across plan, elevat
   // 1. Plan view: kidney tray dashed outline, pivot post, front split tick, door swing line, and pull-out arrow on the door half.
   const planItems = all(plan!);
   const planSwings = planItems.filter(i => i.kind === 'line' && i.stroke === 'swing');
-  assert.equal(planSwings.length, 1, 'hinged door leaf drawn open on the plan');
+  assert.equal(planSwings.length, 2, 'hinged door leaf and its 90 degree arc drawn on the plan');
   const planArrows = planItems.filter(i => i.kind === 'arrow');
   assert.equal(planArrows.length, 1, 'pull-out arrow on the door half of the plan');
   assert.ok(planArrows[0]!.kind === 'arrow' && planArrows[0]!.at.x < 1000, 'arrow emerges from the left (door) half by default');
@@ -245,7 +247,7 @@ test('wall utilities (water pipes, electrical sockets, vents, gas, radiators, sw
     'Water pipes 240 × 200, sill 500',
     'Electrical point 160 × 100, sill 1100',
     'Extractor vent 180 × 180, sill 2150',
-    'Window 1000 × 1200, sill 1000',
+    'Window 1000 × 1200, Hp 1000, lintel 2200',
   ]);
   const elevNotes = all(elevation!).filter(i => i.kind === 'note' && !i.small).map(i => i.kind === 'note' && i.lines.join(' '));
   assert.ok(elevNotes.includes('Water pipes 240 × 200, sill 500'));
