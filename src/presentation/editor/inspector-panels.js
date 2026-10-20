@@ -25,7 +25,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
     }
     function layoutPop(p) {
         cameraState.vsT = camera.baseShift();
-        cameraState.vzT = 1;
+        if (p.dataset.contextSection !== 'resize') cameraState.vzT = 1;
     }
     function dockPop(p) {
         p.classList.add("docked");
@@ -85,7 +85,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         else {
             $('#app').classList.remove('adding');
             $('#app').classList.add('inspecting');
-            camera.frameMobileInspector(true);
+            if (mode === 'resize') camera.camRelease();
+            else camera.frameMobileInspector(true);
         }
     }
     function popUI() {

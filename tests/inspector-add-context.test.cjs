@@ -21,12 +21,24 @@ function fixture(width=375) {
  const model = {activeCabinet:()=>({state})};
  const geometry = createWardrobeGeometry(()=>state);
  const renders=[],frames=[],releases=[];
- const panels=createInspectorPanels({dom:{width,$,document:{querySelector:$}},geometry,model,resources:{},cameraState:{},
+ const cameraState={vz:1.4,vzT:1.4};
+ const panels=createInspectorPanels({dom:{width,$,document:{querySelector:$}},geometry,model,resources:{},cameraState,
   camera:{baseShift:()=>0,frameMobileInspector:(...args)=>frames.push(args),camRelease:()=>releases.push(true)},selectionState,
   callbacks:{hidePop:()=>['#pop2','#pop3','#pop4'].forEach(id=>$(id).classList.remove('show')),
    renderAddChoices:()=>{selectionState.addKey=state.sel;renders.push($('#pop2').dataset.addContext);},itemUI(){},dividerUI(){}}});
- return {$,selectionState,renders,panels,frames,releases};
+ return {$,selectionState,renders,panels,frames,releases,cameraState};
 }
+
+for(const width of [375,844,1440])for(const id of ['#pop3','#pop4'])test(`${width}px: opening ${id} Resize preserves zoom and releases automatic framing`,()=>{
+ const f=fixture(width);
+ f.panels.showPop(null,id,'resize');
+ assert.equal(f.$(id).classList.contains('show'),true);
+ assert.equal(f.$(id).dataset.contextSection,'resize');
+ assert.equal(f.frames.length,0);
+ assert.equal(f.releases.length,1,'canvas resizing must not restart the previous camera fit');
+ f.panels.layoutPop(f.$(id));
+ assert.equal(f.cameraState.vzT,1.4,'laying out the Size panel retains the current zoom');
+});
 
 test('opening Add item expands a collapsed inspector and clears furniture catalogue context',()=>{
  const f=fixture();

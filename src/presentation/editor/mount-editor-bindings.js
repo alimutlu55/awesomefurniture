@@ -244,7 +244,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
-        camera.frameMobileInspector(key === 'shape');
+        // Opening Size keeps the user's view and releases any fit that would
+        // otherwise restart when the drawer changes the canvas dimensions.
+        if (key === 'resize') camera.camRelease();
+        else camera.frameMobileInspector(key === 'shape');
     };
     // The shape sheet opens with its panel list and break-point handles.
     const openShape = () => { openControls('shape'); if (!selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); } };

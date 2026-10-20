@@ -27,6 +27,7 @@ interface RoomWiringPorts {
         inspector(): { update(keep?: boolean): void; clearFocus(): void; histUI(): void };
         report(message: string): void;
         camera(): {
+            camRelease(): void;
             frameScene(): void;
             frameBox(bounds: { x: number; z: number; w: number; d: number; h: number }, az: number, el: number, padding: number): void;
             camNow(): { az: number; el: number; dist: number; x: number; y: number; z: number };
@@ -87,7 +88,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     paintPanel = createStudioPaintPanel({ document: dom.document as Document, getStudio: () => model.scene.studio,
         getSelection: editor.selection, editStudio: edit => sceneCommands.editStudio(edit), refresh, listen });
     resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection, paint: paintPanel,
-        prepare: () => dom.$('#px').click(), frame: () => late.camera().frameScene() });
+        prepare: () => { dom.$('#px').click(); late.camera().camRelease(); }, frame: () => late.camera().frameScene() });
 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {

@@ -28,7 +28,6 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
     panel.dataset.roomResize = ''; panel.dataset.contextSection = 'resize'; panel.dataset.sheetPosition = 'compact';
     fields.render();
     panel.scrollTop = 0; app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
-    frame();
   }
   function openPaint() {
     if (selection()?.kind !== 'wall' || !paint) return;

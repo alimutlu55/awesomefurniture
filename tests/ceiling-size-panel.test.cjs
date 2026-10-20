@@ -41,7 +41,8 @@ test('ceiling sizing takes the existing wardrobe panel, reuses its section and r
     panel.open(); panel.open();
     assert.equal(dom.$('#left-body').children.length, 1); assert.equal(dom.$('#left-body').children[0].children[1], fields.root);
     assert.equal(dom.$('#left').dataset.contextSection, 'resize'); assert.equal(dom.$('#left').dataset.roomResize, '');
-    assert.equal(dom.$('#app').classList.contains('props-open'), true); assert.equal(renders, 2); assert.equal(frames, 2);
+    assert.equal(dom.$('#app').classList.contains('props-open'), true); assert.equal(renders, 2);
+    assert.equal(frames, 0, 'opening Size preserves the current camera view');
     selection = null; panel.sync();
     assert.equal(dom.$('#left').dataset.roomResize, undefined); assert.equal(dom.$('#app').classList.contains('props-open'), false);
     selection = { kind: 'ceiling', id: 'k1' }; panel.open(); selection = { kind: 'wall', id: 'w1' }; panel.sync();
