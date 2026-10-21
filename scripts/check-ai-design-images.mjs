@@ -104,7 +104,7 @@ try {
     assert.equal(body.specification.units, 'cm');
     assert.ok(body.specification.technicalDrawings.length > 4);
 
-    // Verify reference captures are high-resolution nonblank images without exposing raw technical clutter in the UI
+    // Verify reference captures are 1K nonblank images without exposing raw technical clutter in the UI
     const stats = await page.evaluate(async refs => {
       return Promise.all(refs.map(async ref => {
         const img = new Image();
@@ -115,7 +115,7 @@ try {
         return { width: img.naturalWidth, height: img.naturalHeight, colors: new Set(context.getImageData(0, 0, 32, 24).data).size };
       }));
     }, body.references);
-    assert.ok(stats.every(image => image.width === 2880 && image.height === 2160 && image.colors > 70), 'high-resolution nonblank images');
+    assert.ok(stats.every(image => image.width === 1024 && image.height === 768 && image.colors > 70), '1K nonblank images');
 
     for (const image of body.references) await writeFile(`${output}/${kind}-${image.view}.jpg`, Buffer.from(image.data, 'base64'));
     await writeFile(`${output}/${kind}-specification.json`, JSON.stringify(body.specification, null, 2));

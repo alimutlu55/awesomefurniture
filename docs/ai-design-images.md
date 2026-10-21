@@ -1,7 +1,7 @@
 # AI design images
 
 The sparkle **AI image** button in the top toolbar captures the whole current design as three
-2880 × 2160 JPEGs at 97% quality (four times the previous pixel count): front, left perspective and right perspective. The captures use the
+1024 × 768 (1K) JPEGs at 97% quality: front, left perspective and right perspective. The captures use the
 existing materials and lighting, close the cabinet doors, include furniture hidden by editor
 selection, and omit selection glows, dimensions and handles. A separate scene and offscreen
 render target keep the editor camera and viewport unchanged.
@@ -28,7 +28,7 @@ Clicking the toolbar **AI image** button opens an Apple-inspired presentation sh
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
 During generation, users enjoy a magical waiting experience with animated aurora lighting, a celestial
 luminous orb, twinkling particles, dynamic photography staging messages, and a glass cancellation control.
-Opening the dialog immediately prepares the three full-resolution reference images and shows them with full-size links. An expandable JSON preview and download show the compact design specification, explicitly marked as not sent to Gemini. Generate reuses the reviewed snapshot; reopening the dialog refreshes it from the current design.
+Opening the dialog immediately prepares the three 1K reference images and shows them with full-size links. An expandable JSON preview and download show the compact design specification, explicitly marked as not sent to Gemini. Generate reuses the reviewed snapshot; reopening the dialog refreshes it from the current design.
 When complete, the generated photograph is revealed with one-tap image saving and the option to generate again.
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.

@@ -20,7 +20,7 @@ function fixture(): DesignImageRequest {
   assert.ok(built.ok);
   const scene = projectToScene(built.project)!;
   return { specification: imageDesignSpecification(scene), references: IMAGE_VIEWS.map(view => ({
-    view, mimeType: 'image/jpeg', data: '/9j/2Q==', width: 2880, height: 2160,
+    view, mimeType: 'image/jpeg', data: '/9j/2Q==', width: 1024, height: 768,
     camera: { position: [0, 180, 600], target: [0, 110, 0], fov: 35 },
   })) };
 }
@@ -115,8 +115,8 @@ test('invalid JSON, empty furniture, repeated views, non-base64 images and overs
   const repeated = fixture(); repeated.references[1]!.view = 'front';
   const empty = fixture(); empty.specification.design.furniture = [];
   const badImage = fixture(); badImage.references[0]!.data = 'https://remote.example/image';
-  const lowResolution = fixture(); lowResolution.references[0]!.width = 1440; lowResolution.references[0]!.height = 1080;
-  for (const body of [repeated, empty, badImage, lowResolution, {}]) {
+  const wrongResolution = fixture(); wrongResolution.references[0]!.width = 1440; wrongResolution.references[0]!.height = 1080;
+  for (const body of [repeated, empty, badImage, wrongResolution, {}]) {
     assert.equal((await handleDesignImage(request(body), environment, fetcher)).status, 400);
   }
   const badJson = new Request('https://design.example/api/design-images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' });
