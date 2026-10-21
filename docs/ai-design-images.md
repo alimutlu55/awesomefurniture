@@ -1,7 +1,7 @@
 # AI design images
 
 The sparkle **AI image** button in the top toolbar captures the whole current design as three
-1440 × 1080 JPEGs: front, left perspective and right perspective. The captures use the
+2880 × 2160 JPEGs at 97% quality (four times the previous pixel count): front, left perspective and right perspective. The captures use the
 existing materials and lighting, close the cabinet doors, include furniture hidden by editor
 selection, and omit selection glows, dimensions and handles. A separate scene and offscreen
 render target keep the editor camera and viewport unchanged.

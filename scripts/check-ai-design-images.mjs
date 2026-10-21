@@ -74,6 +74,8 @@ try {
     assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
+    assert.ok(Buffer.byteLength(JSON.stringify(body)) <= 12 * 1024 * 1024, 'high-quality references fit the API request limit');
+    assert.ok(body.references.every(ref => ref.data.length <= 6 * 1024 * 1024), 'each reference fits the image limit');
     assert.equal(new Set(body.references.map(image => createHash('sha256').update(image.data).digest('hex'))).size, 3, 'distinct reference viewpoints');
     assert.equal(new Set(body.references.map(image => image.camera.position.join(','))).size, 3, 'distinct camera positions');
     assert.equal(body.specification.units, 'cm');
@@ -90,7 +92,7 @@ try {
         return { width: img.naturalWidth, height: img.naturalHeight, colors: new Set(context.getImageData(0, 0, 32, 24).data).size };
       }));
     }, body.references);
-    assert.ok(stats.every(image => image.width === 1440 && image.height === 1080 && image.colors > 70), 'high-resolution nonblank images');
+    assert.ok(stats.every(image => image.width === 2880 && image.height === 2160 && image.colors > 70), 'high-resolution nonblank images');
 
     for (const image of body.references) await writeFile(`${output}/${kind}-${image.view}.jpg`, Buffer.from(image.data, 'base64'));
     await writeFile(`${output}/${kind}-specification.json`, JSON.stringify(body.specification, null, 2));

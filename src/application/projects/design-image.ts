@@ -1,5 +1,10 @@
 import type { ImageDesignSpecification } from './image-design-specification.ts';
 
+// Native offscreen render size: four times the pixels of the original references.
+export const DESIGN_REFERENCE_WIDTH = 2880;
+export const DESIGN_REFERENCE_HEIGHT = 2160;
+export const DESIGN_REFERENCE_JPEG_QUALITY = .97;
+
 export const IMAGE_VIEWS = ['front', 'left', 'right'] as const;
 export interface DesignReferenceImage {
   view: typeof IMAGE_VIEWS[number];

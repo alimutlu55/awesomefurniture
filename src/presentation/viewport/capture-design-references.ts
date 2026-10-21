@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { EditorScene } from '../../application/projects/editor-scene';
-import type { DesignReferenceImage } from '../../application/projects/design-image';
+import { DESIGN_REFERENCE_WIDTH, DESIGN_REFERENCE_HEIGHT, DESIGN_REFERENCE_JPEG_QUALITY, type DesignReferenceImage } from '../../application/projects/design-image';
 import { createStudioRenderer } from './studio-renderer';
 import { DesignImageUserError } from '../ai/design-image-errors';
 
@@ -112,6 +112,7 @@ function planCameraShots(wardrobes: readonly { x: number; z: number; angle?: num
 /** Environment- and furniture-aware reference views, rendered off screen. */
 export function captureDesignReferences(ports: CapturePorts): DesignReferenceImage[] {
   const { renderer, scene, camera, document, bounds, fit, design } = ports;
+  const width = DESIGN_REFERENCE_WIDTH, height = DESIGN_REFERENCE_HEIGHT;
   if (renderer.getContext().isContextLost()) throw new DesignImageUserError('CAPTURE_FAILED');
   const photo = new THREE.Scene();
   photo.environment = scene.environment;
@@ -135,13 +136,17 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
     }
   }
   const studio = createStudioRenderer(photo);
+  // r128 defaults offscreen targets to 16-bit depth. At room-scale distances this
+  // makes nearby backs, walls and shading planes fight, producing diagonal stripes.
+  // A depth/stencil attachment uses 24-bit depth on both render-target paths.
   const target = renderer.capabilities.isWebGL2
-    ? new THREE.WebGLMultisampleRenderTarget(1440, 1080) : new THREE.WebGLRenderTarget(1440, 1080);
+    ? new THREE.WebGLMultisampleRenderTarget(width, height, { stencilBuffer: true })
+    : new THREE.WebGLRenderTarget(width, height, { stencilBuffer: true });
   target.texture.encoding = THREE.sRGBEncoding;
   const previousTarget = renderer.getRenderTarget();
-  const canvas = document.createElement('canvas'); canvas.width = 1440; canvas.height = 1080;
+  const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
   const context = canvas.getContext('2d');
-  const pixels = new Uint8Array(1440 * 1080 * 4);
+  const pixels = new Uint8Array(width * height * 4);
   try {
     if (!context) throw new DesignImageUserError('CAPTURE_FAILED');
     studio.sync(design.studio, design.wardrobes.map(w => ({ x: w.x, z: w.z, angle: w.angle, w: w.state.w, d: w.state.d })));
@@ -164,17 +169,17 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
       renderer.setRenderTarget(target);
       renderer.shadowMap.needsUpdate = true;
       renderer.render(photo, shot);
-      renderer.readRenderTargetPixels(target, 0, 0, 1440, 1080, pixels);
-      const frame = context.createImageData(1440, 1080);
-      for (let y = 0; y < 1080; y++) {
-        frame.data.set(pixels.subarray((1079 - y) * 1440 * 4, (1080 - y) * 1440 * 4), y * 1440 * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+      const frame = context.createImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        frame.data.set(pixels.subarray((height - 1 - y) * width * 4, (height - y) * width * 4), y * width * 4);
       }
       context.putImageData(frame, 0, 0);
       context.globalCompositeOperation = 'destination-over';
-      context.fillStyle = '#e7e1d6'; context.fillRect(0, 0, 1440, 1080);
+      context.fillStyle = '#e7e1d6'; context.fillRect(0, 0, width, height);
       context.globalCompositeOperation = 'source-over';
       return {
-        view, mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', .9).split(',')[1]!, width: 1440, height: 1080,
+        view, mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', DESIGN_REFERENCE_JPEG_QUALITY).split(',')[1]!, width, height,
         camera: { position: shot.position.toArray(), target: shotTarget, fov: shot.fov }
       };
     });

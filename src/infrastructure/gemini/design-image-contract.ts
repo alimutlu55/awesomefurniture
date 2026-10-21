@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IMAGE_VIEWS } from '../../application/projects/design-image.ts';
+import { IMAGE_VIEWS, DESIGN_REFERENCE_WIDTH, DESIGN_REFERENCE_HEIGHT } from '../../application/projects/design-image.ts';
 
 export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
 // A flat character check avoids regular-expression stack overflow on multi-megabyte images.
@@ -19,7 +19,7 @@ export const designImageRequestSchema = z.strictObject({
   specification,
   references: z.array(z.strictObject({
     view: z.enum(IMAGE_VIEWS), mimeType: z.literal('image/jpeg'), data: imageData,
-    width: z.literal(1440), height: z.literal(1080),
+    width: z.literal(DESIGN_REFERENCE_WIDTH), height: z.literal(DESIGN_REFERENCE_HEIGHT),
     camera: z.strictObject({ position: z.array(z.number().finite()).length(3), target: z.array(z.number().finite()).length(3), fov: z.number().positive().max(120) }),
   })).length(3).refine(images => IMAGE_VIEWS.every(view => images.some(image => image.view === view)), 'Three distinct views are required'),
 });
