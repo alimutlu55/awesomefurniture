@@ -10,8 +10,7 @@ The same synchronous snapshot supplies a versioned JSON specification with room 
 openings, ceilings, furniture positions/rotations, dimensions, sections, resolved fitting and
 divider positions, custom roof profiles, door details, finish colors and the full installation
 technical drawing set (including construction, cutting/hardware lists and review issues).
-Design lengths are centimetres; technical drawing lengths are millimetres. Camera metadata
-travels with each reference. No saved project/session identifiers are required.
+Design lengths are centimetres; technical drawing lengths are millimetres. Camera metadata stays within the app’s request and is not forwarded to Gemini. No saved project/session identifiers are required.
 
 `POST /api/design-images` accepts `{ specification, references }` and returns
 `{ model, image: { mimeType, data }, text? }`. The server validates three distinct views, limits the
@@ -19,18 +18,17 @@ request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions RES
 `gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, automatic aspect ratio, and a text-plus-image response (`response_format: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", image_size: "1K" }]`). One photograph is generated
 from all three references. Final model text is shown beneath the photograph when returned; thought steps are excluded. Image-only responses remain usable, while responses without an image still report a generation error.
 
-The model accepts at most 131,072 input tokens, so the server sends Gemini a compact copy of the
-specification (`src/infrastructure/gemini/design-image-model-input.ts`): the `design` section is
-unchanged, technical drawing sheets keep their titles, tables, pieces and checks but drop vector
-`views` (keeping only view titles), and review issues repeated on every sheet are deduplicated into
-one top-level `reviewIssues` list. A compact specification over 200,000 characters is refused with
-413 `TOO_LARGE` before any provider request.
+Gemini receives only the three reference images, plain-language view labels, the system
+instructions and the generation request. Design JSON, technical drawings, and camera metadata
+are never forwarded to Gemini. The app retains its versioned specification for validation,
+preview and download. The compact JSON preview omits drawing vectors and deduplicates review
+issues using `src/application/projects/design-image-model-specification.ts`.
 
 Clicking the toolbar **AI image** button opens an Apple-inspired presentation sheet with design highlights
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
 During generation, users enjoy a magical waiting experience with animated aurora lighting, a celestial
 luminous orb, twinkling particles, dynamic photography staging messages, and a glass cancellation control.
-Opening the dialog immediately prepares the three full-resolution reference images and shows them with full-size links. An expandable JSON preview and download contain the exact compact design specification sent to Gemini. Generate reuses the reviewed snapshot; reopening the dialog refreshes it from the current design.
+Opening the dialog immediately prepares the three full-resolution reference images and shows them with full-size links. An expandable JSON preview and download show the compact design specification, explicitly marked as not sent to Gemini. Generate reuses the reviewed snapshot; reopening the dialog refreshes it from the current design.
 When complete, the generated photograph is revealed with one-tap image saving and the option to generate again.
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
@@ -38,8 +36,7 @@ Generated images are visualizations and may differ from precise construction geo
 The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the
 architectural visualization and bespoke joinery instructions with `STAGING_LEVEL = 2`:
 balanced styling, inclusive architectural camera framing, locked design geometry and
-specified finishes, CAD artifact cleanup, and layered lighting. JSON remains authoritative
-for dimensions and configured ceiling slopes; design text cannot override the instructions.
+specified finishes, CAD artifact cleanup, and layered lighting. The reference images are authoritative for geometry, proportions, finishes and configured ceiling slopes.
 
 While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with

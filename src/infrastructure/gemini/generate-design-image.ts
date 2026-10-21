@@ -1,6 +1,5 @@
 import type { DesignReferenceImage, DesignImageResponse } from '../../application/projects/design-image.ts';
 import { generatedImageData } from './design-image-contract.ts';
-import { modelSpecificationText } from './design-image-model-input.ts';
 import { GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT } from './design-image-prompt.ts';
 import { ImageGenerationError } from './image-generation-error.ts';
 
@@ -45,10 +44,8 @@ async function providerError(response: Response): Promise<{ reason: string | nul
 }
 
 export async function generateDesignImage(
-  input: { specification: unknown; references: DesignReferenceImage[] }, apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
+  input: { references: DesignReferenceImage[] }, apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
 ): Promise<DesignImageResponse> {
-  // Compacted and size-checked before spending a provider request.
-  const specification = modelSpecificationText(input.specification);
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
@@ -57,9 +54,8 @@ export async function generateDesignImage(
       generation_config: { thinking_level: 'high' },
       system_instruction: GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT,
       input: [
-        { type: 'text', text: 'Design specification (JSON):\n' + specification },
         ...input.references.flatMap(image => [
-          { type: 'text', text: `${image.view} view; camera: ${JSON.stringify(image.camera)}` },
+          { type: 'text', text: `${image.view} reference view of the same design.` },
           { type: 'image', mime_type: image.mimeType, data: image.data },
         ]),
         { type: 'text', text: 'Generate the finished professional photograph of this exact design, together with a brief text description of the result.' },

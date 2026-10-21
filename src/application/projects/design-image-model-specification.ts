@@ -4,7 +4,7 @@ type Issue = { kind?: unknown; severity?: unknown; message?: unknown; marks?: un
 const nonEmpty = (value: unknown) => value !== undefined && value !== null && !(Array.isArray(value) && value.length === 0);
 
 /**
- * The model and the browser preview share this compact specification. It keeps what
+ * The browser preview and download use this compact specification; it is not sent to Gemini. It keeps what
  * informs a photograph: drawing vector primitives (`views`) duplicate the design geometry and the
  * references, and every sheet repeats the same review issues, so these are removed/deduplicated.
  */

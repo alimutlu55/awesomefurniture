@@ -1,15 +1,15 @@
 import type { DesignImageRequest } from '../../application/projects/design-image';
 import { modelSpecification } from '../../application/projects/design-image-model-specification';
 
-/** Displays the same captured images and compact specification used by generation. */
+/** Displays the captured model inputs alongside design JSON that is not sent to Gemini. */
 export function createDesignImageReferences(page: Document) {
   const element = page.createElement('section');
   element.className = 'ai-reference-preview'; element.ariaLabel = 'References sent to Gemini'; element.hidden = true;
   element.innerHTML = `<h3>What we’ll send to Gemini</h3>
-    <p>These exact views and this design specification will be used to create your image.</p>
+    <p>These exact views will be sent to Gemini. The design JSON below is for your reference and is not sent to Gemini.</p>
     <div class="ai-reference-grid"></div>
-    <details><summary>View JSON sent to Gemini</summary><pre tabindex="0"></pre></details>
-    <a class="ai-reference-json" download="gemini-design.json">Download JSON</a>`;
+    <details><summary>View design JSON (not sent to Gemini)</summary><pre tabindex="0"></pre></details>
+    <a class="ai-reference-json" download="design.json">Download JSON</a>`;
   const grid = element.querySelector('.ai-reference-grid')!;
   const json = element.querySelector('pre')!;
   const download = element.querySelector<HTMLAnchorElement>('.ai-reference-json')!;
