@@ -62,7 +62,7 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #pop2:not([data-add-context]) :is(.room-add,.shape-add,.kitchen-add){display:none}
 #pop2[data-add-context]>:not(.ph):not(.mobile-add-browser):not(.room-add):not(.shape-add):not(.kitchen-add){display:none}
 #pop2:not([data-add-context="room"]) .room-add,#pop2:not(:is([data-add-context="wardrobe"],[data-add-context="furniture"])) .shape-add,#pop2:not(:is([data-add-context="kitchen"],[data-add-context="furniture"])) .kitchen-add{display:none}
-#pop2[data-add-context] .mobile-add-categories>button:not([data-furniture-tab]),#pop2:not([data-add-context="furniture"]) [data-furniture-tab],#pop2:not([data-add-context]) .add-context-title{display:none}
+#pop2[data-add-context] .mobile-add-categories>button:not([data-furniture-tab]):not([data-wall-tab]),#pop2:not([data-add-context="furniture"]) [data-furniture-tab],#pop2:not([data-add-context]) .add-context-title{display:none}
 .add-context-title{display:flex;align-items:center;height:40px;padding:0 4px;font-size:16px;font-weight:600;color:var(--ink)}
 
 /* Default tools carry their names, like Undo and Redo. */

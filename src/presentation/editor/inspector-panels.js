@@ -95,7 +95,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             return;
         }
         const ws = geometry.widths(), i = model.activeCabinet().state.sel, iw = ws.reduce((a, b) => a + b), w = ws[i], one = model.activeCabinet().state.n < 2;
-        $('#ptitle').textContent = ({ room: 'Walls', wall: 'Add to wall', wardrobe: 'Add a wardrobe', kitchen: 'Add a cabinet', furniture: 'Add furniture' })[p.dataset.addContext] ?? 'Add to this space';
+        $('#ptitle').textContent = ({ room: 'Walls and rooms', wall: 'Add to wall', wardrobe: 'Add a wardrobe', kitchen: 'Add a cabinet', furniture: 'Add furniture' })[p.dataset.addContext] ?? 'Add to this space';
         const space = geometry.sectionSpaceMeasurements(i);
         $('#section-meta').textContent = 'Space · W ' + measureNumber(space.w) + ' × H ' + measureNumber(space.h) + ' × D ' + measureNumber(space.dep) + unitSuffix() + ' free';
         $('#pfree').textContent = measureNumber(geometry.free(i)) + unitSuffix() + ' free';

@@ -1,16 +1,13 @@
 import { ROOM_PARTS, roomPartArt, studioChoices } from './studio-art';
 import { isWallUtility, OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import type { OpeningKind } from '../../domain/studio/studio';
-import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
-import type { CeilingShape } from '../../domain/studio/studio-ceiling';
-import { ceilingArt } from './studio-ceiling-panel';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 interface StudioPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio' | 'addStudioWall' | 'addStudioOpening' | 'addStudioCeiling'>>;
+  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio' | 'addStudioWall' | 'addStudioOpening'>>;
   readonly getSelection: () => RoomSelection;
   readonly callbacks: {
     /** A built-in room was placed (or removed): show it whole. */
@@ -21,35 +18,30 @@ interface StudioPanelPorts {
   };
 }
 
-/** The Walls category of Add item: walls, doors, windows and archways to add to the room, and the
- * built-in rooms (drawn from their own plans), with "No room". On a desktop it is a fold in the Add
- * item panel; on a phone a category of the catalogue. */
+/** Walls and rooms offers a wall and built-in room plans, including "No room".
+ * Openings and utilities belong to the selected wall's Add menu. */
 export function createStudioPanel({ dom, model, sceneCommands, getSelection, callbacks }: StudioPanelPorts) {
   let choices: ReturnType<typeof studioChoices> | null = null;
   const active = () => model.scene.studio?.template ?? 'none';
   const room = () => !!model.scene.studio;
 
   /** Buttons for both layouts: parts first, then rooms. `extra` adds the phone catalogue's attributes. */
-  function buttons(extra: (category: string) => string, art: (c: ReturnType<typeof studioChoices>[number]) => string) {
+  function buttons(extra: (category: string) => string, art: (c: ReturnType<typeof studioChoices>[number]) => string, includeWallItems = false) {
     choices ??= studioChoices('product-art studio-plan-art');
     const current = active();
-    const parts = ROOM_PARTS.map(p => {
+    const parts = ROOM_PARTS.filter(p => includeWallItems || p.kind === 'wall').map(p => {
       const needsRoom = p.kind !== 'wall' && !room();
       const off = needsRoom ? ' no' : '', disabled = needsRoom ? ' aria-disabled="true"' : '', title = esc(needsRoom ? 'Add a room first' : p.description);
-      const cat = isWallUtility(p.kind) ? 'utilities' : p.kind === 'wall' ? 'ceilings' : 'openings';
+      const cat = isWallUtility(p.kind) ? 'utilities' : p.kind === 'wall' ? 'room' : 'openings';
       return `<button type="button" class="room-product${off}" data-add-room="${p.kind}"${disabled}${extra(cat)} title="${title}">${roomPartArt(p.kind)}<span>${esc(p.name)}</span></button>`;
     });
-    // Ceilings that come down, from their registry: on the selected wall, or the wardrobes' wall.
-    const off = room() ? '' : ' no', disabled = room() ? '' : ' aria-disabled="true"';
-    parts.push(...(CEILING_SHAPES as readonly CeilingShape[]).map(c => `<button type="button" class="room-product${off}" data-add-ceiling="${c.id}"${disabled}${extra('ceilings')} title="${esc(room() ? c.description : 'Add a room first')}">`
-      + `${ceilingArt(c, 'product-art ceiling-product-art')}<span>${esc(c.name)}</span></button>`));
     // Without a room, "No room" is what you have: it goes last, after the rooms to choose from.
     const rooms = (room() ? choices : [...choices.filter(c => c.id !== 'none'), ...choices.filter(c => c.id === 'none')]).map(c => {
       const on = c.id === current;
       const name = esc(c.id === 'none' ? c.name : c.name + ' room'), title = esc(c.name + ' · ' + c.description);
       return `<button type="button" class="room-product room-choice${on ? ' on' : ''}" data-studio="${c.id}" aria-pressed="${on}"${extra('room')} title="${title}">${art(c)}<span>${name}</span></button>`;
     });
-    // Without a room, a room comes first: doors, windows and archways need one.
+    // Without a room, show room plans before individual parts.
     return room() ? parts.join('') + rooms.join('') : rooms.join('') + parts.join('');
   }
 
@@ -59,14 +51,14 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
     dom.$('#studio-caption').textContent = active() === 'custom' ? 'Your own room · select a wall to change it'
       : chosen && chosen.id !== 'none' ? chosen.name + ': ' + chosen.description : 'Add a room, or walls one by one, around your wardrobes.';
   }
-  /** The phone catalogue's Walls category. */
-  const products = () => buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art);
+  /** Catalogue products, filtered into room plans or wall attachments by the Add menu. */
+  const products = () => buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art, true);
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {
-      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling]');
+      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room]');
       if (!button) return;
-      const studio = button.dataset.studio, part = button.dataset.addRoom, ceiling = button.dataset.addCeiling;
+      const studio = button.dataset.studio, part = button.dataset.addRoom;
       if (studio) {
         if (studio !== active() && sceneCommands.placeStudio(studio as never)) callbacks.placed();
         else callbacks.refresh();
@@ -74,11 +66,7 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
       }
       const sel = getSelection();
       const wall = sel?.kind === 'wall' ? sel.id : sel?.kind === 'opening' ? model.scene.studio?.openings.find(o => o.id === sel.id)?.wall : undefined;
-      if (ceiling) {
-        const id = room() ? sceneCommands.addStudioCeiling(ceiling, wall) : null;
-        if (id) callbacks.added({ kind: 'ceiling', id });
-        else callbacks.refresh();
-      } else if (part === 'wall') {
+      if (part === 'wall') {
         const id = sceneCommands.addStudioWall(wall);
         if (id) callbacks.added({ kind: 'wall', id });
         else callbacks.refresh();
