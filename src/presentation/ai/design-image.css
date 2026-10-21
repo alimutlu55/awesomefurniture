@@ -72,8 +72,8 @@
 .ai-glass:hover{background:#ffffff29}
 .ai-fineprint{font-size:11px;line-height:1.4;color:#86868b;margin:14px auto 0;max-width:340px}
 .ai-result{padding:20px 20px 24px;text-align:center}
-.ai-result figure{margin:0 0 18px;border-radius:18px;overflow:hidden;background:#e8e5dd;box-shadow:0 16px 40px #0000001f}
-.ai-result img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+.ai-result figure{margin:0 0 18px;border-radius:18px;overflow:hidden;background:#e8e5dd;box-shadow:0 16px 40px #0000001f;display:flex;justify-content:center;align-items:center}
+.ai-result img{display:block;width:100%;height:auto;max-height:68vh;object-fit:contain}
 .ai-result.is-revealing figure{animation:ai-reveal .55s cubic-bezier(.22,1,.36,1)}
 .ai-result-copy{margin-bottom:18px}
 .ai-result-copy h2{font-size:22px;margin-bottom:4px}

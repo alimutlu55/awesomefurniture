@@ -66,7 +66,8 @@ export async function generateDesignImage(
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
       // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
-      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '1K' },
+      // Omit `aspect_ratio` to let Gemini determine the optimal aspect ratio automatically from the composition and reference views.
+      response_format: { type: 'image', mime_type: 'image/jpeg', image_size: '1K' },
     }),
   });
   if (!response.ok) {
