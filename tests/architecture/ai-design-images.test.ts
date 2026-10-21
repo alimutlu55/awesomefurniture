@@ -54,6 +54,8 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
     const body = JSON.parse(String(init?.body));
     assert.equal(body.model, 'gemini-nano-banana-2.1'); assert.equal(body.store, false);
     assert.equal(body.response_format.image_size, '4K');
+    assert.equal(body.response_format.mime_type, 'image/jpeg', 'Interactions ImageResponseFormat only permits JPEG output');
+    assert.equal(body.response_format.delivery, 'inline');
     assert.equal(body.generation_config.thinking_level, 'high');
     assert.deepEqual(JSON.parse(body.input[0].text.split('\n').slice(1).join('\n')), JSON.parse(JSON.stringify(input.specification)));
     assert.equal(body.input.filter((p: { type: string }) => p.type === 'image').length, 3);
@@ -113,13 +115,20 @@ test('large generated PNG payloads validate without regex stack overflow while m
   }
 });
 
-test('provider errors and missing images return safe errors without exposing upstream bodies or keys', async () => {
-  for (const [status, expected] of [[401, 503], [403, 503], [429, 429], [500, 502]] as const) {
+test('provider errors and missing images return safe errors without exposing upstream bodies or keys', async t => {
+  const logs: string[] = [];
+  t.mock.method(console, 'error', (line: string) => { logs.push(line); });
+  for (const [status, expected] of [[400, 502], [401, 503], [403, 503], [404, 502], [429, 429], [500, 502]] as const) {
     const response = await handleDesignImage(request(), environment,
       async () => new Response('sensitive provider body: test-server-secret', { status }));
     assert.equal(response.status, expected);
     const body = await response.json() as { error: { message: string } };
     assert.doesNotMatch(body.error.message, /sensitive|test-server-secret|credentials|billing|quota|configuration/i);
+    const logged = JSON.parse(logs.at(-1)!);
+    assert.equal(logged.providerStatus, status);
+    assert.equal(logged.requestId, response.headers.get('X-Request-ID'));
+    assert.deepEqual(Object.keys(logged).sort(), ['code', 'event', 'model', 'providerStatus', 'requestId']);
+    assert.doesNotMatch(logs.at(-1)!, /sensitive|test-server-secret/);
   }
   const noImage = await handleDesignImage(request(), environment,
     async () => Response.json({ status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'text', text: 'Cannot create' }] }] }));

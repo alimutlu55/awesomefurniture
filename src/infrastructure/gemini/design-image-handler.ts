@@ -1,5 +1,5 @@
 import { MAX_REQUEST_BYTES, parseDesignImageRequest } from './design-image-contract.ts';
-import { generateDesignImage, ImageGenerationError } from './generate-design-image.ts';
+import { generateDesignImage, ImageGenerationError, GEMINI_IMAGE_MODEL } from './generate-design-image.ts';
 
 export interface ImageServiceEnvironment {
   GEMINI_API_KEY?: string | undefined;
@@ -64,7 +64,14 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
       throw error;
     }
   } catch (error) {
-    if (error instanceof ImageGenerationError) return failure(error.status, error.code, error.message);
-    return failure(502, 'GENERATION_FAILED', 'Image generation is temporarily unavailable. Please try again.');
+    const requestId = crypto.randomUUID();
+    // Fixed metadata only: never serialize errors, provider bodies, keys, prompts or design images.
+    console.error(JSON.stringify({ event: 'design_image_failed', requestId, model: GEMINI_IMAGE_MODEL,
+      code: error instanceof ImageGenerationError ? error.code : 'GENERATION_FAILED',
+      providerStatus: error instanceof ImageGenerationError ? error.providerStatus ?? null : null }));
+    const response = error instanceof ImageGenerationError ? failure(error.status, error.code, error.message)
+      : failure(502, 'GENERATION_FAILED', 'Image generation is temporarily unavailable. Please try again.');
+    response.headers.set('X-Request-ID', requestId);
+    return response;
   }
 }

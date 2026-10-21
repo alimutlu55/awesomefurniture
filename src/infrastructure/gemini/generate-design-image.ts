@@ -3,7 +3,7 @@ import { generatedImageData } from './design-image-contract.ts';
 
 export const GEMINI_IMAGE_MODEL = 'gemini-nano-banana-2.1';
 export class ImageGenerationError extends Error {
-  constructor(readonly status: number, readonly code: string, message: string) { super(message); }
+  constructor(readonly status: number, readonly code: string, message: string, readonly providerStatus?: number) { super(message); }
 }
 const instruction = [
   'Create one professional, photorealistic architectural photograph of the supplied furniture design.',
@@ -34,17 +34,20 @@ export async function generateDesignImage(
         ]),
         { type: 'text', text: 'Generate the finished professional photograph of this exact design.' },
       ],
-      response_format: { type: 'image', mime_type: 'image/png', aspect_ratio: '4:3', image_size: '4K' },
+      // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
+      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '4K', delivery: 'inline' },
     }),
   });
   if (!response.ok) {
     // Never return or log the upstream body: it can contain request data or credentials.
     await response.body?.cancel();
-    if (response.status === 429) throw new ImageGenerationError(429, 'PROVIDER_LIMIT', 'Image generation is temporarily unavailable. Please try again later.');
-    if (response.status === 401 || response.status === 403) {
-      throw new ImageGenerationError(503, 'PROVIDER_CONFIGURATION', 'Image generation is temporarily unavailable. Please try again later.');
+    if (response.status === 429) {
+      throw new ImageGenerationError(429, 'PROVIDER_LIMIT', 'Image generation is temporarily unavailable. Please try again later.', response.status);
     }
-    throw new ImageGenerationError(502, 'PROVIDER_ERROR', 'We couldn’t create your image. Please try again.');
+    if (response.status === 401 || response.status === 403) {
+      throw new ImageGenerationError(503, 'PROVIDER_CONFIGURATION', 'Image generation is temporarily unavailable. Please try again later.', response.status);
+    }
+    throw new ImageGenerationError(502, 'PROVIDER_ERROR', 'We couldn’t create your image. Please try again.', response.status);
   }
   const result = await response.json() as { status?: string; steps?: { type: string; content?: { type: string; mime_type?: string; data?: string }[] }[] };
   const image = result.status === 'completed' ? result.steps?.filter(step => step.type === 'model_output')
