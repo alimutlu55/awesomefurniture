@@ -16,6 +16,7 @@ import tactileStylesheet from './tactile-controls.css?raw';
 import measurementStylesheet from '../components/measurement-badge.css?raw';
 import drawingsStylesheet from '../drawings/drawings.css?raw';
 import designImageStylesheet from '../ai/design-image.css?raw';
+import designImageLoadingStylesheet from '../ai/design-image-loading.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
     initialScene?: EditorScene | undefined;
@@ -36,7 +37,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack }: MountEdit
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
-        measurementStylesheet, drawingsStylesheet, designImageStylesheet].join('\n'), controlIds);
+        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

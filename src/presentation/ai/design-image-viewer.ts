@@ -3,6 +3,7 @@ import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import type { DesignImageRequest, GeneratedDesignImage } from '../../application/projects/design-image';
 import { requestDesignImage } from './design-image-client';
 import { designImageErrorMessage } from './design-image-errors';
+import { createDesignImageLoading } from './design-image-loading';
 
 interface Ports {
   dom: ReturnType<typeof createEditorDom>; lifetime: ReturnType<typeof createEditorLifetime>;
@@ -28,6 +29,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     <footer><p>Your design and three views are sent to Google Gemini to create the image.</p>
       <button type="button" class="ai-generate">Generate image</button></footer>`;
   dom.$('#app').append(dialog);
+  const loading = createDesignImageLoading(page, lifetime);
+  dialog.querySelector('.ai-content')!.prepend(loading.element);
   const status = dialog.querySelector<HTMLElement>('.ai-status')!;
   const generate = dialog.querySelector<HTMLButtonElement>('.ai-generate')!;
   const references = dialog.querySelector<HTMLElement>('.ai-references')!;
@@ -38,18 +41,20 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   let imageUrl: string | null = null, disposed = false;
   const downloadUrls = new Set<string>();
   const releaseImage = () => { if (imageUrl) URL.revokeObjectURL(imageUrl); imageUrl = null; };
-  function close() { controller?.abort(); dialog.close(); button.focus(); }
+  function close() { controller?.abort(); loading.stop(); dialog.close(); button.focus(); }
   async function run() {
     if (controller) return;
     const request = new AbortController(); controller = request;
     generate.disabled = true; generate.textContent = 'Generating…';
     status.textContent = 'Preparing three views of your design…'; status.classList.remove('is-error');
-    dialog.setAttribute('aria-busy', 'true');
+    loading.start(); dialog.classList.add('is-generating'); dialog.scrollTop = 0;
+    result.setAttribute('aria-busy', 'true');
     try {
       // Let the progress message paint before synchronous WebGL capture. The snapshot and views are then captured together.
       await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
       if (request.signal.aborted || disposed) return;
       current = capture();
+      loading.prepared(current);
       references.hidden = false; grid.replaceChildren();
       for (const image of current.references) {
         const link = page.createElement('a'), preview = page.createElement('img'), label = page.createElement('span');
@@ -58,7 +63,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
         label.textContent = image.view === 'front' ? 'Front' : image.view === 'left' ? 'Left perspective' : 'Right perspective';
         link.append(preview, label); grid.append(link);
       }
-      status.textContent = 'Creating your professional image with Gemini. This can take a couple of minutes…';
+      status.textContent = 'Creating your image from three design views. This can take a couple of minutes…';
       const output = await requestDesignImage(current, AbortSignal.any([request.signal, AbortSignal.timeout(160_000)]));
       if (disposed || request.signal.aborted) return;
       const bytes = Uint8Array.from(atob(output.image.data), char => char.charCodeAt(0));
@@ -72,9 +77,11 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       status.classList.add('is-error');
     } finally {
       controller = null;
+      loading.stop();
       if (!disposed) {
         if (request.signal.aborted) status.textContent = 'Generation cancelled. You can try again.';
-        generate.disabled = false; generate.textContent = 'Generate again'; dialog.removeAttribute('aria-busy');
+        generate.disabled = false; generate.textContent = 'Generate again';
+        dialog.classList.remove('is-generating'); result.removeAttribute('aria-busy'); dialog.scrollTop = 0;
       }
     }
   }

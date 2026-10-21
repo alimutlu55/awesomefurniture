@@ -22,6 +22,12 @@ download, retry and cancellation. The app keeps these only in the mounted editor
 download them before leaving the design. Generated images are visualizations and may differ
 from precise construction geometry.
 
+While generation runs, an animated sparkle, light trails, and floating cards show the three
+captured views. The two progress labels reflect capture and the pending image request;
+the animation does not estimate a completion percentage. Decorative captions rotate, with
+a longer-wait message after a minute. Reduced-motion preferences disable all loader motion.
+Success, errors, cancellation, and editor disposal stop the animation and its timers.
+
 ## Configure the key
 
 For `npm run dev` and `npm run preview`, set `GEMINI_API_KEY` in the shell environment or
@@ -70,7 +76,8 @@ API references: [Nano Banana 2.1](https://ai.google.dev/gemini-api/docs/models/g
 `npm run check` includes request validation, outbound Gemini contract, safe provider errors,
 rate limits, geometry cleanup, specification fidelity and static-asset routing tests.
 With Vite running on port 5177, run `npm run check:ai-images` for real WebGL captures
-of a shaped wardrobe and an L-shaped kitchen, desktop/mobile layout, download, retry,
-and disposal checks. The script mocks only the generated response and writes review images
+of a shaped wardrobe and an L-shaped kitchen, desktop/mobile loading layouts, reduced motion,
+download, retry, cancellation, and disposal checks. The script holds the mocked response while
+verifying the loading state, then writes review images
 and JSON to `/tmp/wardrobe-ai-verification` (override with `AI_IMAGE_OUTPUT`). It makes no
 paid Gemini calls. A live smoke test requires the configured runtime key.

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
 import { drawingFixture } from './professional-drawing-fixtures.mjs';
 const output = process.env.AI_IMAGE_OUTPUT ?? '/tmp/wardrobe-ai-verification';
+const baseUrl = process.env.AI_IMAGE_BASE_URL ?? 'http://127.0.0.1:5177';
 await mkdir(output, { recursive: true });
 const fixture = '.ai-image-review.html';
 await writeFile(fixture, `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">
@@ -22,19 +23,38 @@ let browser;
 try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
-  const errors = []; page.on('pageerror', error => errors.push(error.message));
-  let calls = 0, body;
+  const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
+  let calls = 0, body, finishGeneration;
   await page.route('**/api/design-images', async route => {
     calls++; body = route.request().postDataJSON();
+    await new Promise(resolve => { finishGeneration = resolve; });
     await route.fulfill({ json: { model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/jpeg', data: body.references[1].data } } });
   });
   for (const kind of ['wardrobe', 'kitchen']) {
-    await page.goto(`http://127.0.0.1:5177/${fixture}${kind === 'kitchen' ? '?kitchen' : ''}`);
+    console.log(`Verifying ${kind}: capture, loading, and download.`);
+    await page.goto(`${baseUrl}/${fixture}${kind === 'kitchen' ? '?kitchen' : ''}`);
     await page.getByRole('button', { name: 'Generate image with AI', exact: true }).waitFor();
     const before = await page.evaluate(() => window.fixtureEditor.snapshot());
+    const requested = page.waitForRequest('**/api/design-images', { timeout: 60_000 });
     await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Generate image with AI', exact: true });
+    await requested;
+    const loading = dialog.locator('.ai-magic.is-rendering');
+    await loading.waitFor();
+    assert.equal(await dialog.getByRole('button', { name: 'Generating…', exact: true }).isDisabled(), true);
+    assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), false);
+    await loading.locator('img').evaluateAll(images => Promise.all(images.map(image => image.decode())));
+    await page.screenshot({ path: `${output}/${kind}-loading-desktop.png` });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'loading fits on mobile');
+    await page.screenshot({ path: `${output}/${kind}-loading-mobile.png` });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    assert.equal(await loading.evaluate(element => element.getAnimations({ subtree: true }).length), 0, 'reduced motion has no animations');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    finishGeneration();
     await dialog.getByRole('link', { name: 'Download image', exact: true }).waitFor({ timeout: 60_000 });
+    assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
     assert.equal(new Set(body.references.map(image => createHash('sha256').update(image.data).digest('hex'))).size, 3, 'distinct reference viewpoints');
@@ -78,7 +98,26 @@ try {
   assert.doesNotMatch(await dialog.innerText(), /GEMINI_API_KEY|not configured|credentials|billing/i, 'internal API messages never reach customers');
   assert.equal(await dialog.getByRole('button', { name: 'Generate again' }).isEnabled(), true);
   assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), true);
+  assert.equal(await dialog.locator('.ai-magic').isVisible(), false, 'loading ends on error');
   await page.screenshot({ path: `${output}/error-mobile.png` });
+  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  // Closing a pending request stops its animation, restores controls, and preserves the last result.
+  await page.unroute('**/api/design-images');
+  let cancelResponse;
+  await page.route('**/api/design-images', async route => {
+    await new Promise(resolve => { cancelResponse = resolve; });
+    await route.fulfill({ status: 503, json: { error: { code: 'PROVIDER_ERROR' } } }).catch(() => {});
+  });
+  await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
+  const cancellationRequest = page.waitForRequest('**/api/design-images', { timeout: 60_000 });
+  await dialog.getByRole('button', { name: 'Generate again' }).click();
+  await cancellationRequest;
+  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  cancelResponse();
+  await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Generate again' }).waitFor();
+  assert.equal(await dialog.locator('.ai-magic').isVisible(), false, 'cancelled animation stays stopped on reopen');
+  assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), true);
   await dialog.getByRole('button', { name: 'Close AI image' }).click();
   await page.evaluate(() => window.fixtureEditor.dispose());
   assert.equal(await page.getByRole('button', { name: 'Generate image with AI', exact: true }).count(), 0);
