@@ -41,9 +41,9 @@
  <button id="launch-wizard" class="tb smart"aria-label="Auto design" data-tip="Auto design"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 17 7M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z"/></svg><span class="tl">Auto design</span></button>
 </div>
 <div id="topright" class="fl">
- <button id="fitchip" class="tb chip" aria-haspopup="dialog" aria-expanded="false" aria-controls="plan-panel" aria-label="Storage and fit details" title="What this wardrobe can store, fit score and specs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4zM3.5 8 12 12m0 0 8.5-4M12 12v8"/></svg><span>Storage</span><span id="fit-warn" class="badge" hidden></span><b id="score" hidden>–</b></button>
- <div id="plan-panel" class="dd r wide" hidden>
-  <div class="dd-title" style="padding-left:0">Storage &amp; fit</div><div class="sub" id="score-sub"></div>
+ <div id="plan-panel" class="dd r wide" role="dialog" aria-label="Storage and fit details" hidden>
+  <div class="storage-panel-header"><div class="dd-title">Storage &amp; fit</div><button type="button" class="storage-panel-close" aria-label="Close storage details">×</button></div>
+  <div class="sub" id="score-sub"></div>
   <h2>Plan</h2><div id="plan-title">Make it yours</div><div class="plan-note" id="plan-summary"></div><div id="plan-capacity"></div><div id="plan-warnings"></div>
   <h2>Specs</h2><div id="specs"></div>
  </div>
@@ -51,6 +51,7 @@
  <button id="menu-btn" class="tb" aria-label="Menu" aria-haspopup="menu" aria-expanded="false" aria-controls="menu" data-tip="Menu"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
  <div id="menu" class="dd l" role="menu" hidden>
   <div class="dd-title">Wardrobe Forge <small>4.16.7</small></div>
+  <button id="fitchip" class="mi" role="menuitem" aria-haspopup="dialog" aria-expanded="false" aria-controls="plan-panel" aria-label="Storage and fit details" title="Storage, fit score and specs"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4zM3.5 8 12 12m0 0 8.5-4M12 12v8"/></svg><span>Storage</span><span id="fit-warn" class="badge" hidden></span><b id="score" hidden>–</b></button>
   <button class="mi" id="share-menu" role="menuitem" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg><span>Share</span></button>
   <button class="mi" id="help-menu" role="menuitem"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01"/></svg><span>Shortcuts and help</span></button>
   <button class="mi" id="reset-scene" role="menuitem"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg><span>Reset</span></button>

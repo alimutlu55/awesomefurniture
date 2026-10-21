@@ -11,6 +11,11 @@
 #topright :is(#fitchip,#menu-btn){min-width:44px;min-height:44px;height:44px;border:0;border-radius:24px;background:transparent;box-shadow:none;color:var(--ink)}
 #topright :is(#fitchip,#menu-btn) .ic{width:22px;height:22px;padding:0;border-radius:0;background:transparent;box-shadow:none}
 #topright .tb:is(#fitchip,#menu-btn)[aria-expanded="true"]{background:rgba(28,25,23,.1)}
+#menu #fitchip{min-height:44px;padding:11px 12px;gap:10px;font-size:13px}
+#menu #fitchip .badge{margin-left:auto}
+.storage-panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.storage-panel-header .dd-title{padding:0}
+.storage-panel-close{min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink);font-size:22px;box-shadow:none}
 .item-resize-handle .ic{position:relative;width:16px;height:16px}
 #section-diagram button{border:0;border-radius:0;padding:0;background:#e6e0d5;cursor:pointer}
 #section-diagram button.on{background:linear-gradient(180deg,#e9dcc3,#ddcdaf);box-shadow:0 1px 4px #6b552b26,inset 0 1px 0 #ffffff80}

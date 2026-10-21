@@ -69,8 +69,10 @@ export function createEditorShell({ dom, shellState, geometry, model, lifetime, 
             if (!pe.hidden) {
                 any = true;
             }
+            const restoreStorageFocus = p === 'plan-panel' && pe.contains(document.activeElement);
             pe.hidden = true;
             document.getElementById(b).setAttribute('aria-expanded', 'false');
+            if (restoreStorageFocus) $('#menu-btn').focus();
         }
         return any;
     }

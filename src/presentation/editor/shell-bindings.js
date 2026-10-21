@@ -70,6 +70,13 @@ export function bindDropdownEscape({ dom, shell, lifetime }) {
 /** @param {import('./shell-bindings.ports').BindPlanPanelPorts} ports */
 export function bindPlanPanel({ dom, shell, lifetime }) {
     const { document } = dom;
+    const close = /** @type {HTMLButtonElement} */ (dom.$('#plan-panel').querySelector('.storage-panel-close'));
+    lifetime.listen(close, 'click', () => dom.$('#fitchip').click());
+    lifetime.listen(dom.$('#fitchip'), 'click', () => {
+        const panel = dom.$('#plan-panel');
+        if (!panel.hidden) close.focus();
+        else dom.$('#menu-btn').focus();
+    });
     lifetime.listen(document.getElementById('plan-panel'), 'click', e => {
         if (e.target.closest(dom.selector('[data-storage]'))) {
             shell.closeDD();

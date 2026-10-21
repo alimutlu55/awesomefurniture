@@ -1,6 +1,6 @@
 # AI design images
 
-The sparkle **AI image** button beside Storage captures the whole current design as three
+The sparkle **AI image** button in the top toolbar captures the whole current design as three
 1440 × 1080 JPEGs: front, left perspective and right perspective. The captures use the
 existing materials and lighting, close the cabinet doors, include furniture hidden by editor
 selection, and omit selection glows, dimensions and handles. A separate scene and offscreen
