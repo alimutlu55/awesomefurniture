@@ -30,7 +30,7 @@ Clicking the toolbar **AI image** button opens an Apple-inspired presentation sh
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
 During generation, users enjoy a magical waiting experience with animated aurora lighting, a celestial
 luminous orb, twinkling particles, dynamic photography staging messages, and a glass cancellation control.
-Technical artifacts like raw reference renders or internal JSON specifications are kept out of customer view.
+Opening the dialog immediately prepares the three full-resolution reference images and shows them with full-size links. An expandable JSON preview and download contain the exact compact design specification sent to Gemini. Generate reuses the reviewed snapshot; reopening the dialog refreshes it from the current design.
 When complete, the generated photograph is revealed with one-tap image saving and the option to generate again.
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
@@ -41,8 +41,7 @@ balanced styling, inclusive architectural camera framing, locked design geometry
 specified finishes, CAD artifact cleanup, and layered lighting. JSON remains authoritative
 for dimensions and configured ceiling slopes; design text cannot override the instructions.
 
-While generation runs, an animated sparkle, light trails, and floating cards show the three
-captured views. The two progress labels reflect capture and the pending image request;
+While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with
 a longer-wait message after a minute. Reduced-motion preferences disable all loader motion.
 Success, errors, cancellation, and editor disposal stop the animation and its timers.

@@ -4,6 +4,7 @@ import type { DesignImageRequest } from '../../application/projects/design-image
 import { requestDesignImage } from './design-image-client';
 import { designImageErrorMessage } from './design-image-errors';
 import { createDesignImageLoading } from './design-image-loading';
+import { createDesignImageReferences } from './design-image-references';
 
 interface Ports {
   dom: ReturnType<typeof createEditorDom>; lifetime: ReturnType<typeof createEditorLifetime>;
@@ -56,6 +57,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     </section>`;
   dom.$('#app').append(dialog);
   const loading = createDesignImageLoading(page, lifetime);
+  const references = createDesignImageReferences(page);
+  dialog.querySelector('.ai-features')!.before(references.element);
   dialog.querySelector('.ai-intro')!.after(loading.element);
   const status = dialog.querySelector<HTMLElement>('.ai-status')!;
   const errorText = dialog.querySelector<HTMLElement>('.ai-error')!;
@@ -65,10 +68,18 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   const download = dialog.querySelector<HTMLAnchorElement>('.ai-download')!;
   const sections: Record<State, HTMLElement> = { intro: dialog.querySelector('.ai-intro')!, generating: loading.element, result };
   let controller: AbortController | null = null, imageUrl: string | null = null, disposed = false;
+  let prepared: DesignImageRequest | null = null, preparation = 0;
+  const again = dialog.querySelector<HTMLButtonElement>('.ai-again')!;
   const releaseImage = () => { if (imageUrl) URL.revokeObjectURL(imageUrl); imageUrl = null; };
   function show(state: State) {
     dialog.dataset.state = state;
     for (const [name, section] of Object.entries(sections)) section.hidden = name !== state;
+    if (state !== 'generating') {
+      const anchor = state === 'intro' ? dialog.querySelector('.ai-features')! : result.querySelector('.ai-actions')!;
+      anchor.before(references.element);
+      sections[state].querySelector('.ai-actions')!.before(errorText);
+    }
+    references.element.hidden = state === 'generating' || !prepared;
     dialog.scrollTop = 0;
   }
   function showError(message: string | null) {
@@ -79,17 +90,37 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     controller?.abort(); controller = null; loading.stop();
     showError(null); show(imageUrl ? 'result' : 'intro');
   }
-  function close() { cancel(); dialog.close(); button.focus(); }
+  function close() {
+    preparation++; prepared = null; references.clear();
+    cancel(); dialog.close(); button.focus();
+  }
+  async function prepare() {
+    const current = ++preparation;
+    prepared = null; references.clear(); generate.disabled = again.disabled = true;
+    status.textContent = 'Preparing reference images and JSON…';
+    // Paint the dialog before capturing the high-resolution views.
+    await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
+    if (disposed || !dialog.open || current !== preparation) return;
+    try {
+      prepared = capture(); references.update(prepared);
+      showError(null); status.textContent = 'Reference images and JSON are ready to review.';
+    } catch (error) {
+      prepared = null;
+      const message = designImageErrorMessage(error); showError(message); status.textContent = message;
+    } finally { generate.disabled = again.disabled = false; }
+  }
   async function run() {
     if (controller) return;
+    if (!prepared) await prepare();
+    if (!prepared || disposed || !dialog.open) return;
+    const input = prepared;
     const request = new AbortController(); controller = request;
     showError(null); status.textContent = 'Creating your image. This usually takes about a minute.';
     loading.start(); show('generating'); loading.cancel.focus();
     try {
-      // Let the animation paint before the synchronous WebGL capture.
+      // Let the waiting state paint before starting the request.
       await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
       if (request.signal.aborted || disposed) return;
-      const input = capture();
       loading.rendering();
       const output = await requestDesignImage(input, AbortSignal.any([request.signal, AbortSignal.timeout(180_000)]));
       if (disposed || request.signal.aborted) return;
@@ -104,7 +135,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       if (disposed || request.signal.aborted) return;
       const message = designImageErrorMessage(error);
       loading.stop(); showError(message); status.textContent = message;
-      generate.textContent = 'Try Again'; show('intro'); generate.focus();
+      generate.textContent = 'Try Again'; show(imageUrl ? 'result' : 'intro'); (imageUrl ? again : generate).focus();
     } finally {
       if (controller === request) controller = null;
     }
@@ -114,6 +145,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     // Opening never starts a paid generation: the customer chooses to generate.
     show(controller ? 'generating' : imageUrl ? 'result' : 'intro');
     dialog.showModal();
+    void prepare();
     (controller ? loading.cancel : imageUrl ? download : generate).focus();
   });
   lifetime.listen(generate, 'click', () => { void run(); });
@@ -124,7 +156,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   lifetime.listen(dialog, 'cancel', (event: Event) => { event.preventDefault(); close(); });
   lifetime.listen(dialog, 'keydown', (event: Event) => { event.stopPropagation(); });
   lifetime.cleanup(() => {
-    disposed = true; controller?.abort(); releaseImage();
+    disposed = true; preparation++; controller?.abort(); releaseImage(); references.clear(); prepared = null;
     dialog.remove(); button.remove();
   });
   return { close };

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
+import { modelSpecification } from '../src/application/projects/design-image-model-specification.ts';
 import { drawingFixture } from './professional-drawing-fixtures.mjs';
 
 const output = process.env.AI_IMAGE_OUTPUT ?? '/tmp/wardrobe-ai-verification';
@@ -49,6 +50,22 @@ try {
     const generateBtn = dialog.getByRole('button', { name: 'Generate Image', exact: true });
     assert.equal(await generateBtn.isVisible(), true, 'presents option to generate image');
 
+    await dialog.locator('.ai-reference-preview:not([hidden])').waitFor({ timeout: 60_000 });
+    assert.equal(calls, kind === 'wardrobe' ? 0 : 1, 'opening prepares references without a provider request');
+    assert.equal(await dialog.locator('.ai-reference-grid img').count(), 3);
+    const reviewedJSON = await dialog.locator('.ai-reference-preview pre').textContent();
+    const reviewedImages = await dialog.locator('.ai-reference-grid img').evaluateAll(async images => Promise.all(images.map(async image => {
+      const bytes = new Uint8Array(await (await fetch(image.src)).arrayBuffer());
+      let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary);
+    })));
+    await dialog.locator('.ai-reference-preview summary').click();
+    await page.screenshot({ path: `${output}/${kind}-references-desktop.png` });
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'reference preview fits on mobile');
+    await page.screenshot({ path: `${output}/${kind}-references-mobile.png` });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+
     const requested = page.waitForRequest('**/api/design-images', { timeout: 60_000 });
     await generateBtn.click();
     await requested;
@@ -74,6 +91,8 @@ try {
     assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
+    assert.deepEqual(body.references.map(ref => ref.data), reviewedImages, 'generation submits the exact images reviewed before clicking Generate');
+    assert.deepEqual(JSON.parse(reviewedJSON), JSON.parse(JSON.stringify(modelSpecification(body.specification))), 'preview matches the Gemini specification');
     assert.ok(Buffer.byteLength(JSON.stringify(body)) <= 12 * 1024 * 1024, 'high-quality references fit the API request limit');
     assert.ok(body.references.every(ref => ref.data.length <= 6 * 1024 * 1024), 'each reference fits the image limit');
     assert.equal(new Set(body.references.map(image => createHash('sha256').update(image.data).digest('hex'))).size, 3, 'distinct reference viewpoints');
@@ -142,6 +161,7 @@ try {
   await cancellationRequest;
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   cancelResponse();
+  await dialog.getByRole('button', { name: 'Close AI image' }).click();
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
   await dialog.getByRole('button', { name: 'Try Again' }).waitFor();
   assert.equal(await dialog.locator('.ai-magic').isVisible(), false, 'cancelled animation stays stopped on reopen');
