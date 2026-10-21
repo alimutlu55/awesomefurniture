@@ -6,7 +6,8 @@ export function createDesignImageReferences(page: Document) {
   const element = page.createElement('section');
   element.className = 'ai-reference-preview'; element.ariaLabel = 'References sent to Gemini'; element.hidden = true;
   element.innerHTML = `<h3>What we’ll send to Gemini</h3>
-    <p>These exact views will be sent to Gemini. The design JSON below is for your reference and is not sent to Gemini.</p>
+    <p>These exact views and a summary of your selected finishes and modules will be sent to Gemini.
+    The full design JSON below is for your reference and is not sent to Gemini.</p>
     <div class="ai-reference-grid"></div>
     <details><summary>View design JSON (not sent to Gemini)</summary><pre tabindex="0"></pre></details>
     <a class="ai-reference-json" download="design.json">Download JSON</a>`;

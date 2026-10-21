@@ -12,6 +12,8 @@ import { photoGeometry } from '../../src/presentation/viewport/capture-design-re
 import worker from '../../src/app/worker';
 import { requestDesignImage } from '../../src/presentation/ai/design-image-client';
 import { designImageErrorMessage, DesignImageUserError } from '../../src/presentation/ai/design-image-errors';
+import { buildSystemInstruction } from '../../src/infrastructure/gemini/design-image-prompt';
+import { serializeConfigurationSummary } from '../../src/application/projects/configuration-summary';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jJxkAAAAASUVORK5CYII=';
 function fixture(): DesignImageRequest {
@@ -45,7 +47,7 @@ test('image specification preserves resolved construction and room geometry with
   assert.equal(spec.finishes.Oak!.color, '#b99a75');
 });
 
-test('server sends only three labeled images and instructions to Nano Banana 2.1 with a server-only header', async () => {
+test('server sends labeled references, active rules and a Tier 1 manifest with a server-only header', async () => {
   let calls = 0;
   const input = fixture();
   const fetcher: typeof fetch = async (url, init) => {
@@ -61,20 +63,30 @@ test('server sends only three labeled images and instructions to Nano Banana 2.1
     assert.equal(aspectWidth / aspectHeight, input.references[0]!.width / input.references[0]!.height, 'Output matches the reference aspect ratio');
     assert.equal(body.generation_config.thinking_level, 'high');
     const labels = body.input.filter((part: { type: string }) => part.type === 'text').slice(0, 3).map((part: { text: string }) => part.text);
-    assert.equal(labels[0], 'Image 1 is the front overview of the same configured design.');
-    assert.equal(labels[1], 'Image 2 is the left three-quarter overview of the same configured design.');
-    assert.equal(labels[2], 'Image 3 is the right three-quarter overview of the same configured design.');
+    assert.match(labels[0], /Image 1 as the strict camera and TIER 1 structural reference/);
+    assert.match(labels[0], /TIER 2 cleanup.*protruding floor-base strips.*truncated walls/);
+    assert.match(labels[1], /Image 2 \(left supporting view\).*SAME design.*do not adopt its camera angle/);
+    assert.match(labels[2], /Image 3 \(right supporting view\).*SAME design.*do not adopt its camera angle/);
     assert.equal(body.input.length, 7);
     assert.doesNotMatch(String(init?.body), /technicalDrawings|schemaVersion|camera:|Design specification/);
     assert.equal(body.input.filter((p: { type: string }) => p.type === 'image').length, 3);
     const prompt = body.system_instruction.replace(/\s+/g, ' ');
-    assert.match(prompt, /^You are an elite Architectural Visualization Engine \(award-winning Corona\/V-Ray/);
-    assert.match(prompt, /28–35mm architectural lens/);
-    assert.match(prompt, /STAGING_LEVEL = 2/);
+    assert.match(prompt, /^You are an elite Editorial Interior Photographer \(Architectural Digest editorial standard/);
+    assert.match(prompt, /Phase One IQ4 medium-format camera with a 28–35mm tilt-shift lens/);
+    assert.match(prompt, /Foreground Atmosphere \(Level 2\)/);
     assert.match(prompt, /TIER 1 — LOCKED/);
-    assert.match(prompt, /Concealed 2700K LED strips/);
-    assert.match(prompt, /Core Directive: Keep the customer's cabinetry, walls and openings exactly as configured/);
-    assert.doesNotMatch(String(init?.body), /strict structural and camera reference|Images 2 and 3 only for supporting details|f\/8/);
+    assert.match(prompt, /customer-specified materials, colors, and finishes explicitly listed in the user prompt/);
+    assert.match(prompt, /TIER 2 — ENHANCE & CLEAN UP/);
+    assert.match(prompt, /natural bounce light/);
+    assert.doesNotMatch(prompt, /Corona|V-Ray|STAGING_LEVEL|kitchen|backsplash|worktop|stone|espresso|counter stools|Level [13]|pendant|boudoir|\brug\b/i);
+    const finalText = body.input.at(-1).text;
+    assert.match(finalText, /Images 2 and 3 only for supporting details/);
+    assert.match(finalText, /TIER 1 Locked Finishes.*Configured Finishes/);
+    assert.match(finalText, /Carcass & fronts: Oak \(#b99a75\)/);
+    assert.match(finalText, /TIER 1 Module Breakdown.*Wing\/Module Breakdown/);
+    assert.match(finalText, /Wing\/module 1.*Bay 1/);
+    assert.match(finalText, /TIER 2 Room Completion/);
+    assert.doesNotMatch(finalText, /Walnut|Graphite|Sage/);
     assert.equal(String(init?.body).includes(environment.GEMINI_API_KEY), false);
     return completed();
   };
@@ -104,6 +116,112 @@ test('shuffled reference views retain numbered camera and detail roles at the pr
     return completed();
   });
   assert.equal(response.status, 200); assert.equal(calls, 1);
+});
+
+test('all render configurations prune inactive category, staging, LED and ceiling branches from the outgoing payload', async () => {
+  for (const category of ['wardrobe', 'kitchen'] as const) for (const stagingLevel of [1, 2, 3] as const) {
+    for (const hasIntegratedLed of [false, true]) for (const hasCeilingBulkhead of [false, true]) {
+      const input = fixture();
+      if (category === 'kitchen') input.specification.design.furniture = input.specification.design.furniture.map(piece => ({ ...piece, product: 'kitchen' }));
+      input.renderConfig = { category, stagingLevel, hasIntegratedLed, hasCeilingBulkhead };
+      let calls = 0;
+      const response = await handleDesignImage(request(input), environment, async (_url, init) => {
+        calls++;
+        const body = JSON.parse(String(init?.body)), prompt = body.system_instruction;
+        assert.equal(prompt, buildSystemInstruction(input.renderConfig!));
+        assert.doesNotMatch(prompt, /Corona|V-Ray|STAGING_LEVEL|pendant|boudoir|counter stools/);
+        for (const level of [1, 2, 3]) assert.equal(prompt.includes(`Level ${level}`), level === stagingLevel);
+        assert.equal(/\brug\b/.test(prompt), stagingLevel === 3);
+        assert.equal(prompt.includes('Concealed 2700K LED strips'), hasIntegratedLed);
+        assert.equal(prompt.includes('natural bounce light'), !hasIntegratedLed);
+        assert.equal(prompt.includes('flush bulkhead/fascia'), hasCeilingBulkhead);
+        assert.equal(prompt.includes('preserving the open top clearance'), !hasCeilingBulkhead);
+        if (category === 'wardrobe') assert.doesNotMatch(prompt, /kitchen|backsplash|worktop|espresso|stone/i);
+        else {
+          assert.match(prompt, /espresso machine.*backsplash.*worktops/);
+          assert.doesNotMatch(prompt, /placeholder garments|tailored garments|knitwear|footwear/);
+        }
+        assert.match(body.input.at(-1).text, /TIER 1 Locked Finishes/);
+        assert.match(body.input.at(-1).text, /TIER 1 Module Breakdown/);
+        return completed();
+      });
+      assert.equal(response.status, 200, JSON.stringify(input.renderConfig));
+      assert.equal(calls, 1);
+    }
+  }
+});
+
+test('category defaults follow furniture, and invalid render options or manifest state never reach the provider', async () => {
+  const kitchen = fixture();
+  kitchen.specification.design.furniture = kitchen.specification.design.furniture.map(piece => ({ ...piece, product: 'kitchen' }));
+  const response = await handleDesignImage(request(kitchen), environment, async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    assert.match(body.system_instruction, /espresso machine/);
+    assert.match(body.system_instruction, /Level 2/);
+    assert.match(body.system_instruction, /natural bounce light/);
+    assert.match(body.system_instruction, /preserving the open top clearance/);
+    return completed();
+  });
+  assert.equal(response.status, 200);
+  let calls = 0;
+  for (const renderConfig of [
+    { category: 'wardrobe', stagingLevel: 0 }, { category: 'wardrobe', stagingLevel: 4 },
+    { category: 'wardrobe', stagingLevel: 2, hasIntegratedLed: 'false' },
+    { category: 'wardrobe', stagingLevel: 2, hasCeilingBulkhead: 1 },
+    { category: 'kitchen', stagingLevel: 2 }, { category: 'bedroom', stagingLevel: 2 },
+  ]) {
+    const invalid = { ...fixture(), renderConfig };
+    assert.equal((await handleDesignImage(request(invalid), environment, async () => { calls++; return completed(); })).status, 400);
+  }
+  for (const replacement of [{ finish: 'invalid' }, { sections: [{}] }, { sections: [{ width: 50, items: null, dividers: [] }] }]) {
+    const invalid = fixture();
+    Object.assign(invalid.specification.design.furniture[0]!, replacement);
+    assert.equal((await handleDesignImage(request(invalid), environment, async () => { calls++; return completed(); })).status, 400);
+  }
+  assert.equal(calls, 0);
+});
+
+test('selected per-wing finishes, overrides, box counts and module geometry survive serialization into the final text block', async () => {
+  const built = buildFromSpec({ specVersion: 1, wardrobes: [
+    { width: 180, height: 220, depth: 60 }, { width: 120, height: 220, depth: 60 },
+  ] }, 'manifest-private-id');
+  assert.ok(built.ok);
+  const scene = projectToScene(built.project)!;
+  const [left, right] = scene.wardrobes;
+  left!.name = 'Left wing'; left!.state.fin = 'Oak'; left!.state.doors = 'hinged';
+  left!.state.n = 1; left!.state.wt = [1];
+  left!.state.secs = [[
+    { k: 'drawer', h: 22, y: 0, x: 0, w: 60, f: 'White' },
+    { k: 'drawer', h: 22, y: 0, x: 60, w: 60 },
+    { k: 'seasonal', h: 40, y: 150, boxes: 2 },
+  ]];
+  left!.state.dividers = [{ i: 0, orientation: 'horizontal', x0: 0, x1: 176.4, y: 149 }];
+  right!.name = 'Right wing'; right!.state.fin = 'Graphite'; right!.state.doors = 'none';
+  right!.angle = 90; right!.state.n = 1; right!.state.wt = [1];
+  right!.state.secs = [[{ k: 'pants', h: 75, y: 0 }, { k: 'short', h: 106, y: 80 }]];
+  const input = { ...fixture(), specification: imageDesignSpecification(scene) };
+  const before = JSON.stringify(input.specification);
+  const summary = serializeConfigurationSummary(input.specification);
+  assert.match(summary, /Wing\/module 1 \(Left wing\): Carcass & fronts: Oak \(#b99a75\)/);
+  assert.match(summary, /Fitting finish overrides: White \(#eeeeea\)/);
+  assert.match(summary, /Wing\/module 2 \(Right wing\): Carcass & fronts: Graphite \(#3a3d42\)/);
+  assert.match(summary, /Upper boxes with 2 storage boxes/);
+  assert.match(summary, /Hanging rail/);
+  assert.match(summary, /Trouser pull-out/);
+  assert.match(summary, /horizontal divider at x=0, y=148\.1/);
+  assert.match(summary, /solid outer doors/);
+  assert.match(summary, /rotation 90°; no outer doors \(open bays\)/);
+  assert.equal((summary.match(/Drawer \[/g) ?? []).length, 2);
+  assert.ok(summary.indexOf('Upper boxes with 2') < summary.indexOf('Drawer ['), 'items read top to bottom');
+  assert.doesNotMatch(summary, /Walnut|Sage|manifest-private-id|editorItem|technicalDrawings/);
+  assert.equal(JSON.stringify(input.specification), before, 'serialization does not mutate the captured configuration');
+  const response = await handleDesignImage(request(input), environment, async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    assert.ok(body.input.at(-1).text.includes(summary));
+    assert.match(body.input.at(-1).text, /TIER 2 Room Completion/);
+    return completed();
+  });
+  assert.equal(response.status, 200);
 });
 
 test('mixed image and text output preserves final text in order and excludes thought steps', async () => {

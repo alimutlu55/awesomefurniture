@@ -24,21 +24,24 @@ divider positions, custom roof profiles, door details, finish colors and the ful
 technical drawing set (including construction, cutting/hardware lists and review issues).
 Design lengths are centimetres; technical drawing lengths are millimetres. Camera metadata stays within the app’s request and is not forwarded to Gemini. No saved project/session identifiers are required.
 
-`POST /api/design-images` accepts `{ specification, references }` and returns
+`POST /api/design-images` accepts `{ specification, references, renderConfig? }` and returns
 `{ model, image: { mimeType, data }, text? }`. The server validates three distinct views, limits the
 request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
 `gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a text-plus-image response (`response_format: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", image_size: "2K", aspect_ratio: "4:3" }]`). The output aspect ratio matches the reference captures to avoid cropping or expanding the room. One 2K photograph is generated
 from all three references. Final model text is shown beneath the photograph when returned; thought steps are excluded. Image-only responses remain usable, while responses without an image still report a generation error.
 
-Gemini receives only the three reference images, numbered plain-language view roles, the system
-instructions and the generation request. Design JSON, technical drawings, and camera metadata
-are never forwarded to Gemini. The app retains its versioned specification for validation,
+Gemini receives the three reference images, numbered plain-language view roles, dynamic system
+instructions and a concise Tier 1 manifest of selected finishes and per-wing modules.
+`serializeConfigurationSummary` extracts only active finishes, fitting overrides, accessories, bays,
+item sizes/positions, divider layouts and selected wall finishes from the validated specification.
+Unselected palette entries, full design JSON, technical drawings, and camera metadata are never forwarded to Gemini. The app retains its versioned specification for validation,
 preview and download. The compact JSON preview omits drawing vectors and deduplicates review
 issues using `src/application/projects/design-image-model-specification.ts`.
 The server always orders the images as front, left and right, even if the request arrives in a
 different order. The three numbered labels identify front, left and right overviews of the same
-design. Gemini analyzes all three and chooses the inclusive architectural composition described
-by the system prompt; the request does not lock the output to Image 1's camera.
+design. Image 1 locks the camera and configured joinery geometry; Images 2 and 3 verify internal
+module divisions and occluded geometry without changing the camera or duplicating furniture.
+Tier 2 explicitly removes floor-base strips and completes cropped walls, ceiling and flooring.
 
 Clicking the toolbar **AI image** button opens an Apple-inspired presentation sheet with design highlights
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
@@ -49,11 +52,16 @@ When complete, the generated photograph is revealed with one-tap image saving an
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
 
-The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the supplied
-Architectural Visualization Engine and Bespoke Joinery Specialist instructions: 28–35 mm camera
-framing, three-tier design fidelity rules, balanced `STAGING_LEVEL = 2`, CAD artifact cleanup,
-ceiling completion and layered lighting. Shadow-free reference captures communicate finishes;
-the generated photograph still receives natural shadows and lighting as requested by that prompt.
+The server calls `buildSystemInstruction(config)` in `src/infrastructure/gemini/design-image-prompt.ts`
+with category, staging level (1, 2 or 3), `hasIntegratedLed` and `hasCeilingBulkhead`. Optional
+`renderConfig` supplies these settings; its category must match the configured furniture. Without
+it, category follows the furniture product (kitchen if any kitchen unit exists, otherwise wardrobe),
+staging defaults to Level 2, and both flags default to false. The current editor uses these defaults;
+it has no staging, LED or bulkhead controls. Only the active category, staging and lighting/ceiling
+rules reach Gemini. Rug styling appears only at Level 3. The photographic anchor is Architectural
+Digest editorial quality with a Phase One IQ4 and 28–35 mm tilt-shift lens. Tier 1 locks the selected
+finishes and joinery; Tier 2 completes the room and removes CAD artifacts. Shadow-free reference
+captures communicate finishes; the photograph receives natural shadows and lighting.
 
 While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with

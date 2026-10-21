@@ -1,6 +1,7 @@
-import { IMAGE_VIEWS, type DesignReferenceImage, type DesignImageResponse } from '../../application/projects/design-image.ts';
+import { IMAGE_VIEWS, type DesignReferenceImage, type DesignImageResponse, type RenderPromptConfig } from '../../application/projects/design-image.ts';
+import { renderCategory, serializeConfigurationSummary, type ConfigurationForImage } from '../../application/projects/configuration-summary.ts';
 import { generatedImageData } from './design-image-contract.ts';
-import { GEMINI_DESIGN_IMAGE_REFERENCE_LABELS, GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT } from './design-image-prompt.ts';
+import { GEMINI_DESIGN_IMAGE_REFERENCE_LABELS, buildSystemInstruction } from './design-image-prompt.ts';
 import { ImageGenerationError } from './image-generation-error.ts';
 
 export { ImageGenerationError };
@@ -44,7 +45,8 @@ async function providerError(response: Response): Promise<{ reason: string | nul
 }
 
 export async function generateDesignImage(
-  input: { references: DesignReferenceImage[] }, apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
+  input: { references: DesignReferenceImage[]; specification: ConfigurationForImage; renderConfig?: RenderPromptConfig | undefined },
+  apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
 ): Promise<DesignImageResponse> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
   const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
@@ -54,14 +56,18 @@ export async function generateDesignImage(
     body: JSON.stringify({
       model: GEMINI_IMAGE_MODEL, store: false,
       generation_config: { thinking_level: 'high' },
-      system_instruction: GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT,
+      system_instruction: buildSystemInstruction(input.renderConfig ?? { category: renderCategory(input.specification), stagingLevel: 2 }),
       input: [
         ...references.flatMap(image => [
           { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
           { type: 'image', mime_type: image.mimeType, data: image.data },
         ]),
-        { type: 'text', text: 'Generate one finished 2K photograph of this exact design using all three reference views and the architectural visualization instructions. '
-          + 'Include a brief text description of the result.' },
+        { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
+          + 'and Images 2 and 3 only for supporting details.\n'
+          + serializeConfigurationSummary(input.specification) + '\n'
+          + '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
+          + 'continuous oak flooring, and soft directional off-camera daylight. '
+          + 'Remove protruding floor-base strips and complete cropped background geometry. Include a brief text description of the result.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
       // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
