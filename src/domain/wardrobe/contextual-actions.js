@@ -14,7 +14,7 @@ const menusOf = module => ({
 const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],
-    studio: [['walls', 'Walls and rooms'], ['ceiling', 'Ceiling']],
+    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
@@ -36,7 +36,7 @@ export const studioMoreActions = [];
 export const wallMoreActions = [['remove', 'Remove wall']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
-export const fieldActions = ['ceiling', 'ceiling-shape'];
+export const fieldActions = [];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */
 export const furnitureContexts = FURNITURE.map(m => m.key);
 export function contextualActions(selection) {

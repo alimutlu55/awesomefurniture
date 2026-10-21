@@ -271,7 +271,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         replacements: () => { const state = model.activeCabinet().state, module = furnitureModule(state);
             return Object.entries(MODS).filter(([key]) => key !== 'void' && module.allows(key, state)).map(([key,value]) => ['t-' + key,value.n]); },
         controls: key => {
-            if (key === 'ceiling' || key === 'ceiling-shape') return [room.ceilingChoices.root];
             const divider = model.activeCabinet().state.divider >= 0;
             if (key === 'stores') {
                 if (divider) return [];
@@ -290,6 +289,12 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 }
                 room.resizePanel.openPaint();
                 leftTitle.textContent = 'Paint & Finish';
+                return;
+            }
+            if (key === 'ceiling' || key === 'ceiling-shape') {
+                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'ceilings') { inspector.hidePop(); return; }
+                shellBindings.openSceneAdd({ dom, inspector, shell }, 'ceilings');
+                camera.frameScene();
                 return;
             }
             if (key === 'walls') {

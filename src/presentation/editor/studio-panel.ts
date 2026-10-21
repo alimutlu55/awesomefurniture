@@ -1,6 +1,8 @@
 import { ROOM_PARTS, roomPartArt, studioChoices } from './studio-art';
 import { isWallUtility, OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import type { OpeningKind } from '../../domain/studio/studio';
+import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
+import { ceilingArt } from './studio-ceiling-panel';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
@@ -12,13 +14,14 @@ interface StudioPanelPorts {
   readonly callbacks: {
     /** A built-in room was placed (or removed): show it whole. */
     placed(): void;
+    chooseCeiling(shape: string): void;
     /** A wall or opening was added: select it for editing. */
     added(selection: RoomSelection): void;
     refresh(): void;
   };
 }
 
-/** Walls and rooms offers a wall and built-in room plans, including "No room".
+/** Walls offers a wall and built-in room plans, including "No room".
  * Openings and utilities belong to the selected wall's Add menu. */
 export function createStudioPanel({ dom, model, sceneCommands, getSelection, callbacks }: StudioPanelPorts) {
   let choices: ReturnType<typeof studioChoices> | null = null;
@@ -51,13 +54,18 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
     dom.$('#studio-caption').textContent = active() === 'custom' ? 'Your own room · select a wall to change it'
       : chosen && chosen.id !== 'none' ? chosen.name + ': ' + chosen.description : 'Add a room, or walls one by one, around your wardrobes.';
   }
-  /** Catalogue products, filtered into room plans or wall attachments by the Add menu. */
-  const products = () => buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art, true);
+  /** The shared catalogue filters walls, wall attachments and ceiling shapes into their own pickers. */
+  const products = () => {
+    return buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art, true)
+      + CEILING_SHAPES.map(c => `<button type="button" class="room-product" data-product-category="ceilings" data-add-ceiling="${c.id}" hidden title="${esc(c.description)}">`
+        + `${ceilingArt(c)}<span>${esc(c.name)}</span></button>`).join('');
+  };
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {
-      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room]');
+      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling]');
       if (!button) return;
+      if (button.dataset.addCeiling) { callbacks.chooseCeiling(button.dataset.addCeiling); return; }
       const studio = button.dataset.studio, part = button.dataset.addRoom;
       if (studio) {
         if (studio !== active() && sceneCommands.placeStudio(studio as never)) callbacks.placed();

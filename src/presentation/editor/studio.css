@@ -16,10 +16,6 @@
 .lbl.room-measure-edit{pointer-events:auto;cursor:text}
 .lbl.room-measure-edit:hover{text-decoration:underline dotted}
 /* The ceiling shapes a wall can take: small side views with their names. */
-.ceiling-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.ceiling-choice{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border:0;border-radius:12px;background:rgba(120,100,70,.07);color:var(--ink);font-size:12px;line-height:1.2;text-align:center;cursor:pointer}
-.ceiling-choice:is(:hover,:focus-visible){background:rgba(120,100,70,.15)}
-.ceiling-art{width:56px;height:40px;color:#6f6250}
 .room-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .room-fields .shape-field{font-size:11px}
 .room-field-hint{font-size:10px;opacity:.55}
@@ -45,11 +41,10 @@
  .lbl.shape-handle.room-handle.split-handle{width:30px;height:30px}
  .lbl.shape-handle.room-pill{padding:6px 9px 6px 6px;font-size:12px}
  .lbl.shape-handle.room-pill small{display:none}
- .ceiling-choice{font-size:13px;padding:10px 6px}
  #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-defaults{display:none}
  #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-actions{display:flex}
 
-/* Walls and rooms in Add item. Room plans are drawn small; they sit in the product art's box. */
+/* Walls in Add item. Room plans are drawn small; they sit in the product art's box. */
 .room-add .shape-caption{margin:8px 0 2px}
 .pop .addgrid .room-product.on{box-shadow:inset 0 0 0 2px var(--ink);background:linear-gradient(140deg,#e5e0d9,#f0ece6);color:var(--ink)}
 .pop .addgrid .room-product.no{opacity:.45}
@@ -97,7 +92,6 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
  #toolbar .tb.smart .tl{display:block;font-size:11px}
 }
 
- .contextual-popover .ceiling-choice{flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:0;padding:10px 6px;font-size:13px;line-height:1.2;text-align:center;background:rgba(120,100,70,.07)}
 
 
 /* The measuring assistant: while something moves or is resized, the gaps that matter are dark tags on

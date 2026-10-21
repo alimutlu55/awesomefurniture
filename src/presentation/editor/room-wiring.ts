@@ -3,7 +3,6 @@ import { wallFace, wallLine } from '../../domain/studio/studio';
 import { openingNoun, type OpeningKind } from '../../domain/studio/wall-utilities';
 import { createStudioEditor } from './studio-editor';
 import { createStudioFields } from './studio-fields';
-import { createCeilingChoices } from './studio-ceiling-panel';
 import { createStudioResizePanel } from './studio-resize-panel';
 import { createStudioPaintPanel } from './studio-paint-panel';
 import type { StudioEditorPorts } from './studio-editor.ports';
@@ -74,10 +73,6 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         input?.focus({ preventScroll: true });
         input?.select();
     }
-    const ceilingChoices = createCeilingChoices({ document: dom.document as Document, listen, choose: key => {
-        dom.$('#toolbar').querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.click();
-        actOnWall(key);
-    } });
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
@@ -148,7 +143,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
 
     return {
-        editor, fields, frameRoom, ceilingChoices, resizePanel, actOnWall, paintPanel,
+        editor, fields, frameRoom, resizePanel, actOnWall, paintPanel,
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
