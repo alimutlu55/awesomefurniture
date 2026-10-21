@@ -2,6 +2,7 @@ import type { createEditorDom } from '../editor/editor-dom';
 import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import type { DesignImageRequest, GeneratedDesignImage } from '../../application/projects/design-image';
 import { requestDesignImage } from './design-image-client';
+import { designImageErrorMessage } from './design-image-errors';
 
 interface Ports {
   dom: ReturnType<typeof createEditorDom>; lifetime: ReturnType<typeof createEditorLifetime>;
@@ -67,7 +68,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       result.hidden = false; status.textContent = 'Your image is ready.';
     } catch (error) {
       if (disposed || request.signal.aborted) return;
-      status.textContent = (error as Error).name === 'TimeoutError' ? 'Image generation took too long. Please try again.' : (error as Error).message;
+      status.textContent = designImageErrorMessage(error);
       status.classList.add('is-error');
     } finally {
       controller = null;

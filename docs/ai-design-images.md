@@ -39,7 +39,10 @@ These commands prompt for the key; do not put it in the command line or wrangler
 Build-time environment variables on Workers Builds do not substitute for runtime secrets.
 For Wrangler local development, copy `.dev.vars.example` to `.dev.vars` and set the value
 there. Both secret files are ignored by git. Use a Gemini project with image-generation
-access and billing enabled. A missing key produces a clear 503 configuration error.
+access and billing enabled. A missing key produces a 503 with the operator code `NOT_CONFIGURED`.
+Customers see only “Image generation is temporarily unavailable. Please try again later.”
+The browser maps known error codes to customer copy and never displays server/provider message text,
+including messages about credentials, billing or configuration. Unexpected browser errors use the same safe fallback.
 
 Cloudflare serves static assets as before and routes `/api/*` to `src/app/worker.ts`.
 The API rejects cross-origin browser requests and uses a Cloudflare rate-limit binding

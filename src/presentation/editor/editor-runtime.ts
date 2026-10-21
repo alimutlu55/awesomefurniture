@@ -23,6 +23,7 @@ import { capturePreview } from '../viewport/capture-preview';
 import { captureDesignReferences } from '../viewport/capture-design-references';
 import { imageDesignSpecification } from '../../application/projects/image-design-specification';
 import { bindDesignImageViewer } from '../ai/design-image-viewer';
+import { DesignImageUserError } from '../ai/design-image-errors';
 import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
 import { createSceneHistory } from '../../application/history/scene-history.js';
@@ -185,7 +186,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
         bindDesignImageViewer({ dom, lifetime, capture: () => {
             const design = structuredClone(model.scene);
-            if (!design.wardrobes.length) throw new Error('Add furniture to your design before generating an image.');
+            if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);
             const references = captureDesignReferences({
                 renderer: resources.R, scene: resources.scene, camera: resources.cam, document: dom.host.ownerDocument,

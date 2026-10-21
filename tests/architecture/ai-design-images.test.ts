@@ -9,6 +9,8 @@ import { handleDesignImage } from '../../src/infrastructure/gemini/design-image-
 import { MAX_REQUEST_BYTES, generatedImageData, imageData } from '../../src/infrastructure/gemini/design-image-contract';
 import { photoGeometry } from '../../src/presentation/viewport/capture-design-references';
 import worker from '../../src/app/worker';
+import { requestDesignImage } from '../../src/presentation/ai/design-image-client';
+import { designImageErrorMessage, DesignImageUserError } from '../../src/presentation/ai/design-image-errors';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jJxkAAAAASUVORK5CYII=';
 function fixture(): DesignImageRequest {
@@ -68,7 +70,9 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
 test('missing credentials, cross-origin calls, unsupported methods and content types fail before Gemini', async () => {
   let calls = 0;
   const fetcher: typeof fetch = async () => { calls++; return completed(); };
-  assert.equal((await handleDesignImage(request(), { ...environment, GEMINI_API_KEY: '' }, fetcher)).status, 503);
+  const missingKey = await handleDesignImage(request(), { ...environment, GEMINI_API_KEY: '' }, fetcher);
+  assert.equal(missingKey.status, 503);
+  assert.deepEqual(await missingKey.json(), { error: { code: 'NOT_CONFIGURED', message: 'Image generation is temporarily unavailable. Please try again later.' } });
   assert.equal((await handleDesignImage(request(undefined, { Origin: 'https://other.example' }), environment, fetcher)).status, 403);
   assert.equal((await handleDesignImage(request(undefined, { 'Content-Type': 'text/plain' }), environment, fetcher)).status, 415);
   const get = await handleDesignImage(new Request('https://design.example/api/design-images'), environment, fetcher);
@@ -113,7 +117,9 @@ test('provider errors and missing images return safe errors without exposing ups
   for (const [status, expected] of [[401, 503], [403, 503], [429, 429], [500, 502]] as const) {
     const response = await handleDesignImage(request(), environment,
       async () => new Response('sensitive provider body: test-server-secret', { status }));
-    assert.equal(response.status, expected); assert.doesNotMatch(await response.text(), /sensitive|test-server-secret/);
+    assert.equal(response.status, expected);
+    const body = await response.json() as { error: { message: string } };
+    assert.doesNotMatch(body.error.message, /sensitive|test-server-secret|credentials|billing|quota|configuration/i);
   }
   const noImage = await handleDesignImage(request(), environment,
     async () => Response.json({ status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'text', text: 'Cannot create' }] }] }));
@@ -124,6 +130,29 @@ test('provider errors and missing images return safe errors without exposing ups
     assert.equal(init?.signal?.aborted, true); throw init!.signal!.reason;
   });
   assert.equal(stopped.status, 499);
+});
+
+test('the browser ignores internal or unknown API messages, including responses from an older deployment', async t => {
+  let code: unknown = 'NOT_CONFIGURED';
+  const message = 'Set GEMINI_API_KEY on the server. Credentials, billing and quota configuration need attention.';
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ error: { code, message } }, { status: 503 }));
+  for (code of ['NOT_CONFIGURED', 'PROVIDER_CONFIGURATION', 'PROVIDER_LIMIT', 'UNKNOWN_INTERNAL_FAILURE', 'constructor', null]) {
+    await assert.rejects(requestDesignImage(fixture(), new AbortController().signal), error => {
+      assert.equal(designImageErrorMessage(error), 'Image generation is temporarily unavailable. Please try again later.');
+      assert.doesNotMatch(designImageErrorMessage(error), /GEMINI_API_KEY|credentials|billing|quota|configuration/i);
+      return true;
+    });
+  }
+});
+
+test('only approved customer errors reach the status message; unexpected exceptions use a safe fallback', () => {
+  for (const error of [new Error('Set GEMINI_API_KEY'), new TypeError('Internal API credentials failed'), 'raw provider error', null]) {
+    assert.equal(designImageErrorMessage(error), 'Image generation is temporarily unavailable. Please try again later.');
+  }
+  assert.equal(designImageErrorMessage(new DesignImageUserError('EMPTY_DESIGN')), 'Add furniture to your design before creating an image.');
+  assert.equal(designImageErrorMessage(new DesignImageUserError('RATE_LIMITED')), 'Please wait a minute before creating another image.');
+  assert.equal(designImageErrorMessage(new DOMException('Internal timeout details', 'TimeoutError')),
+    'Creating your image is taking longer than expected. Please try again.');
 });
 
 test('photo geometry removes editing overlays, restores ghosted materials and closes doors without mutating the live scene', () => {

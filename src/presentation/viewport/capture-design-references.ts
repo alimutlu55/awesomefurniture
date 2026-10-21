@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import { IMAGE_VIEWS, type DesignReferenceImage } from '../../application/projects/design-image';
 import { createStudioRenderer } from './studio-renderer';
+import { DesignImageUserError } from '../ai/design-image-errors';
 
 interface Bounds { x: number; z: number; w: number; d: number; h: number }
 interface CapturePorts {
@@ -37,7 +38,7 @@ export function photoGeometry(source: THREE.Object3D, settling?: ReadonlySet<THR
 /** Three clean 1440 × 1080 views, rendered off screen without changing the editor camera or canvas size. */
 export function captureDesignReferences(ports: CapturePorts): DesignReferenceImage[] {
   const { renderer, scene, camera, document, bounds, fit, design } = ports;
-  if (renderer.getContext().isContextLost()) throw new Error('The 3D view is unavailable. Reload the editor and try again.');
+  if (renderer.getContext().isContextLost()) throw new DesignImageUserError('CAPTURE_FAILED');
   const photo = new THREE.Scene();
   photo.environment = scene.environment;
   const settling = new Set(ports.settling.map(entry => entry.group));
@@ -68,7 +69,7 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
   const context = canvas.getContext('2d');
   const pixels = new Uint8Array(1440 * 1080 * 4);
   try {
-    if (!context) throw new Error('Unable to prepare the reference images.');
+    if (!context) throw new DesignImageUserError('CAPTURE_FAILED');
     studio.sync(design.studio, design.wardrobes.map(w => ({ x: w.x, z: w.z, angle: w.angle, w: w.state.w, d: w.state.d })));
     const facing = (design.wardrobes[0]?.angle ?? 0) * Math.PI / 180;
     return IMAGE_VIEWS.map((view, index) => {

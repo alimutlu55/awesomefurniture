@@ -46,7 +46,7 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
   if (request.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') {
     return failure(415, 'INVALID_CONTENT_TYPE', 'Send the design as JSON.');
   }
-  if (!env.GEMINI_API_KEY?.trim()) return failure(503, 'NOT_CONFIGURED', 'AI image generation is not configured. Set GEMINI_API_KEY on the server.');
+  if (!env.GEMINI_API_KEY?.trim()) return failure(503, 'NOT_CONFIGURED', 'Image generation is temporarily unavailable. Please try again later.');
   try {
     const input = parseDesignImageRequest(await readRequest(request));
     if (!input) return failure(400, 'INVALID_DESIGN', 'A valid design specification and three distinct reference views are required.');

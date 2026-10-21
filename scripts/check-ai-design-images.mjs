@@ -74,7 +74,8 @@ try {
     json: { error: { code: 'NOT_CONFIGURED', message: 'AI image generation is not configured. Set GEMINI_API_KEY on the server.' } } }));
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
   await dialog.getByRole('button', { name: 'Generate again' }).click();
-  await dialog.getByRole('status').filter({ hasText: 'GEMINI_API_KEY' }).waitFor({ timeout: 60_000 });
+  await dialog.getByRole('status').filter({ hasText: 'Image generation is temporarily unavailable. Please try again later.' }).waitFor({ timeout: 60_000 });
+  assert.doesNotMatch(await dialog.innerText(), /GEMINI_API_KEY|not configured|credentials|billing/i, 'internal API messages never reach customers');
   assert.equal(await dialog.getByRole('button', { name: 'Generate again' }).isEnabled(), true);
   assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), true);
   await page.screenshot({ path: `${output}/error-mobile.png` });
