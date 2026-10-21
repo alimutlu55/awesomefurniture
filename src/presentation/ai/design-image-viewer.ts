@@ -58,7 +58,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     </section>`;
   dom.$('#app').append(dialog);
   const loading = createDesignImageLoading(page, lifetime);
-  const references = createDesignImageReferences(page);
+  const debugPreviewEnabled = __LOG_LEVEL__.toLowerCase() === 'debug';
+  const references = createDesignImageReferences(page, debugPreviewEnabled);
   dialog.querySelector('.ai-features')!.before(references.element);
   dialog.querySelector('.ai-intro')!.after(loading.element);
   const status = dialog.querySelector<HTMLElement>('.ai-status')!;
@@ -81,7 +82,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       anchor.before(references.element);
       sections[state].querySelector('.ai-actions')!.before(errorText);
     }
-    references.element.hidden = state === 'generating' || !prepared;
+    references.element.hidden = !debugPreviewEnabled || state === 'generating' || !prepared;
     dialog.scrollTop = 0;
   }
   function showError(message: string | null) {

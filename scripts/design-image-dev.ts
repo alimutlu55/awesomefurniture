@@ -5,7 +5,7 @@ import { handleDesignImage } from '../src/infrastructure/gemini/design-image-han
 
 /** The same handler runs in Vite dev/preview and in the deployed Worker. Only server code reads this key. */
 export function designImageDev(): Plugin {
-  let apiKey: string | undefined;
+  let apiKey: string | undefined, logLevel: string | undefined;
   let windowEnd = 0, count = 0;
   const limiter = { async limit() {
     if (Date.now() > windowEnd) { count = 0; windowEnd = Date.now() + 60_000; }
@@ -24,7 +24,7 @@ export function designImageDev(): Plugin {
       const init: RequestInit & { duplex: 'half' } = { method, headers, signal: controller.signal, duplex: 'half' };
       if (method !== 'GET' && method !== 'HEAD') init.body = Readable.toWeb(req) as ReadableStream<Uint8Array>;
       const request = new Request(`http://${req.headers.host ?? 'localhost'}${req.url}`, init);
-      const result = await handleDesignImage(request, { GEMINI_API_KEY: apiKey, AI_RATE_LIMITER: limiter });
+      const result = await handleDesignImage(request, { GEMINI_API_KEY: apiKey, LOG_LEVEL: logLevel, AI_RATE_LIMITER: limiter });
       res.statusCode = result.status;
       result.headers.forEach((value, key) => res.setHeader(key, value));
       res.end(Buffer.from(await result.arrayBuffer()));
@@ -37,7 +37,10 @@ export function designImageDev(): Plugin {
   }
   return {
     name: 'design-image-api',
-    configResolved(config) { apiKey = process.env.GEMINI_API_KEY || loadEnv(config.mode, config.envDir, 'GEMINI_').GEMINI_API_KEY; },
+    configResolved(config) {
+      apiKey = process.env.GEMINI_API_KEY || loadEnv(config.mode, config.envDir, 'GEMINI_').GEMINI_API_KEY;
+      logLevel = process.env.LOG_LEVEL || loadEnv(config.mode, config.envDir, 'LOG_').LOG_LEVEL;
+    },
     configureServer(server) { server.middlewares.use((req, res, next) => { void middleware(req, res, next); }); },
     configurePreviewServer(server) { server.middlewares.use((req, res, next) => { void middleware(req, res, next); }); },
   };

@@ -70,8 +70,12 @@ Success, errors, cancellation, and editor disposal stop the animation and its ti
 
 ## Configure the key
 
-For `npm run dev` and `npm run preview`, set `GEMINI_API_KEY` in the shell environment or
-in the ignored `.env.local` file, then restart Vite. There is no client-side key setting.
+For `npm run dev` and `npm run preview`, set `GEMINI_API_KEY` and `LOG_LEVEL` in the shell
+environment or ignored `.env.local` file, then restart Vite. `LOG_LEVEL=debug` enables both full
+Gemini request logging and the “What we’ll send to Gemini” review section. Use `info` or unset
+the value to disable both. Vite embeds the level in the frontend bundle at build time, so changing
+it requires restarting the dev server or rebuilding. The level itself is safe to expose in the
+bundle; never put secrets in it. There is no client-side key setting.
 Never use `VITE_GEMINI_API_KEY`: Vite exposes `VITE_` variables to browsers.
 
 For Cloudflare, set the runtime secret separately on production and development:
@@ -83,8 +87,11 @@ npx wrangler secret put GEMINI_API_KEY --env dev
 
 These commands prompt for the key; do not put it in the command line or wrangler.jsonc.
 Build-time environment variables on Workers Builds do not substitute for runtime secrets.
-For Wrangler local development, copy `.dev.vars.example` to `.dev.vars` and set the value
-there. Both secret files are ignored by git. Use a Gemini project with image-generation
+For Wrangler local development, copy `.dev.vars.example` to `.dev.vars` and set `LOG_LEVEL`
+there; also build the frontend with `LOG_LEVEL=debug` to show the review section. In Cloudflare,
+set the build environment and Worker variable `LOG_LEVEL` to `debug` for the environment where
+debugging is needed, then set both back to `info` or remove them to disable debug output. Both
+local variable files are ignored by git. Use a Gemini project with image-generation
 access and billing enabled. A missing key produces a 503 with the operator code `NOT_CONFIGURED`.
 Customers see only “Image generation is temporarily unavailable. Please try again later.”
 The browser maps known error codes to customer copy and never displays server/provider message text,
@@ -101,11 +108,12 @@ have a 150-second upstream timeout and are never automatically retried.
 Errors use `{ error: { code, message } }` with 400 (invalid design/JSON), 403 (origin),
 405 (method), 413 (size), 415 (content type), 429 (limit/quota), 502 (provider/no image),
 503 (configuration), and 504 (timeout). All API responses use `Cache-Control: no-store`.
-Before each provider call, the server logs the complete serialized Gemini request body, including
-system/user prompts, design summary, and base64 reference images, under the
-`gemini_image_request` event. The API key is in a separate header and is not logged. These logs
-contain user design data; restrict log access and retention accordingly. Provider response bodies
-and credentials are never returned to the browser.
+By default, full Gemini request logging is off. Set the server-side `LOG_LEVEL=debug` to log the
+complete serialized request body under the `gemini_image_request` event, including prompts, design
+summary, and base64 reference images. The API key is in a separate header and is not logged. These
+logs contain user design data; restrict log access and retention accordingly. Any other log level,
+including an unset value, disables this payload log. Provider response bodies and credentials are
+never returned to the browser.
 Server failure logs contain only an event name, generated request ID, model, application error code,
 upstream HTTP status, Google's canonical error status (`providerReason`, e.g. `INVALID_ARGUMENT`) and
 Google's error message (`providerMessage`) with key-like and long base64-like runs redacted and capped

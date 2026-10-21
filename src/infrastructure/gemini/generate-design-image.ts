@@ -46,7 +46,7 @@ async function providerError(response: Response): Promise<{ reason: string | nul
 
 export async function generateDesignImage(
   input: { references: DesignReferenceImage[]; specification: ConfigurationForImage; renderConfig?: RenderPromptConfig | undefined },
-  apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
+  apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch, logLevel?: string,
 ): Promise<DesignImageResponse> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
   const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
@@ -75,9 +75,11 @@ export async function generateDesignImage(
     ],
   };
   const serializedRequestBody = JSON.stringify(requestBody);
-  // Deliberately includes full prompts and base64 reference images for operator debugging.
-  // Never include headers here: x-goog-api-key is a secret. Logs may contain user design data.
-  console.info(JSON.stringify({ event: 'gemini_image_request', model: GEMINI_IMAGE_MODEL, body: serializedRequestBody }));
+  if (logLevel?.toLowerCase() === 'debug') {
+    // Deliberately includes full prompts and base64 reference images for operator debugging.
+    // Never include headers here: x-goog-api-key is a secret. Logs may contain user design data.
+    console.debug(JSON.stringify({ event: 'gemini_image_request', model: GEMINI_IMAGE_MODEL, body: serializedRequestBody }));
+  }
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },

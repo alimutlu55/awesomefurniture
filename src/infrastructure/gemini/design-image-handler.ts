@@ -3,6 +3,7 @@ import { generateDesignImage, ImageGenerationError, GEMINI_IMAGE_MODEL } from '.
 
 export interface ImageServiceEnvironment {
   GEMINI_API_KEY?: string | undefined;
+  LOG_LEVEL?: string | undefined;
   AI_RATE_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -57,7 +58,7 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
       return response;
     }
     const timeout = AbortSignal.timeout(150_000), signal = AbortSignal.any([request.signal, timeout]);
-    try { return json(await generateDesignImage(input, env.GEMINI_API_KEY, signal, fetcher)); }
+    try { return json(await generateDesignImage(input, env.GEMINI_API_KEY, signal, fetcher, env.LOG_LEVEL)); }
     catch (error) {
       if (timeout.aborted) return failure(504, 'TIMEOUT', 'Image generation took too long. Please try again.');
       if (request.signal.aborted) return failure(499, 'CANCELLED', 'Image generation was cancelled.');

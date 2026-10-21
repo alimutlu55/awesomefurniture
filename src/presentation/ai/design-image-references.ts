@@ -1,8 +1,8 @@
 import type { DesignImageRequest } from '../../application/projects/design-image';
 import { modelSpecification } from '../../application/projects/design-image-model-specification';
 
-/** Displays the captured model inputs alongside design JSON that is not sent to Gemini. */
-export function createDesignImageReferences(page: Document) {
+/** Displays captured model inputs for debugging; hidden unless the frontend log level is debug. */
+export function createDesignImageReferences(page: Document, enabled: boolean) {
   const element = page.createElement('section');
   element.className = 'ai-reference-preview'; element.ariaLabel = 'References sent to Gemini'; element.hidden = true;
   element.innerHTML = `<h3>What we’ll send to Gemini</h3>
@@ -21,6 +21,7 @@ export function createDesignImageReferences(page: Document) {
   }
   function update(input: DesignImageRequest) {
     clear();
+    if (!enabled) return;
     for (const reference of input.references) {
       const bytes = Uint8Array.from(atob(reference.data), char => char.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes], { type: reference.mimeType })); urls.push(url);
