@@ -14,10 +14,10 @@ Design lengths are centimetres; technical drawing lengths are millimetres. Camer
 travels with each reference. No saved project/session identifiers are required.
 
 `POST /api/design-images` accepts `{ specification, references }` and returns
-`{ model, image: { mimeType, data } }`. The server validates three distinct views, limits the
+`{ model, image: { mimeType, data }, text? }`. The server validates three distinct views, limits the
 request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
-`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, automatic aspect ratio, and a 1K JPEG response. One photograph is generated
-from all three references.
+`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, automatic aspect ratio, and a text-plus-image response (`response_format: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", image_size: "1K" }]`). One photograph is generated
+from all three references. Final model text is shown beneath the photograph when returned; thought steps are excluded. Image-only responses remain usable, while responses without an image still report a generation error.
 
 The model accepts at most 131,072 input tokens, so the server sends Gemini a compact copy of the
 specification (`src/infrastructure/gemini/design-image-model-input.ts`): the `design` section is

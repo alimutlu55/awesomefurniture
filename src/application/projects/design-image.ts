@@ -19,4 +19,4 @@ export interface DesignImageRequest {
   references: DesignReferenceImage[];
 }
 export interface GeneratedDesignImage { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
-export interface DesignImageResponse { model: string; image: GeneratedDesignImage }
+export interface DesignImageResponse { model: string; image: GeneratedDesignImage; text?: string }

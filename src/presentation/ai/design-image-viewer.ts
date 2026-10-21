@@ -49,7 +49,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     <section class="ai-result" hidden>
       <figure><img alt="AI-generated photograph of your design"></figure>
       <div class="ai-result-copy"><h2>Your design, brought to life</h2>
-        <p>AI visualization · Details may vary from your exact design.</p></div>
+        <p>AI visualization · Details may vary from your exact design.</p>
+        <p class="ai-model-text" hidden></p></div>
       <div class="ai-actions ai-actions-row">
         <a class="ai-button ai-primary ai-download" download="design-ai.jpg" aria-label="Download image">Save Image</a>
         <button type="button" class="ai-button ai-secondary ai-again">Try Again</button>
@@ -65,6 +66,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   const generate = dialog.querySelector<HTMLButtonElement>('.ai-generate')!;
   const result = dialog.querySelector<HTMLElement>('.ai-result')!;
   const resultImage = result.querySelector('img')!;
+  const modelText = result.querySelector<HTMLElement>('.ai-model-text')!;
   const download = dialog.querySelector<HTMLAnchorElement>('.ai-download')!;
   const sections: Record<State, HTMLElement> = { intro: dialog.querySelector('.ai-intro')!, generating: loading.element, result };
   let controller: AbortController | null = null, imageUrl: string | null = null, disposed = false;
@@ -127,6 +129,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       const bytes = Uint8Array.from(atob(output.image.data), char => char.charCodeAt(0));
       releaseImage(); imageUrl = URL.createObjectURL(new Blob([bytes], { type: output.image.mimeType }));
       resultImage.src = imageUrl; download.href = imageUrl;
+      modelText.textContent = typeof output.text === 'string' ? output.text : '';
+      modelText.hidden = !modelText.textContent;
       download.download = `design-ai.${output.image.mimeType === 'image/jpeg' ? 'jpg' : output.image.mimeType.split('/')[1]}`;
       result.classList.remove('is-revealing'); void result.offsetWidth; result.classList.add('is-revealing');
       loading.stop(); show('result'); status.textContent = 'Your image is ready.';

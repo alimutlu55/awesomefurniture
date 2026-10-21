@@ -62,12 +62,15 @@ export async function generateDesignImage(
           { type: 'text', text: `${image.view} view; camera: ${JSON.stringify(image.camera)}` },
           { type: 'image', mime_type: image.mimeType, data: image.data },
         ]),
-        { type: 'text', text: 'Generate the finished professional photograph of this exact design.' },
+        { type: 'text', text: 'Generate the finished professional photograph of this exact design, together with a brief text description of the result.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
       // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
       // Omit `aspect_ratio` to let Gemini determine the optimal aspect ratio automatically from the composition and reference views.
-      response_format: { type: 'image', mime_type: 'image/jpeg', image_size: '1K' },
+      response_format: [
+        { type: 'text' },
+        { type: 'image', mime_type: 'image/jpeg', image_size: '1K' },
+      ],
     }),
   });
   if (!response.ok) {
@@ -81,12 +84,17 @@ export async function generateDesignImage(
     }
     throw new ImageGenerationError(502, 'PROVIDER_ERROR', 'We couldn’t create your image. Please try again.', response.status, provider);
   }
-  const result = await response.json() as { status?: string; steps?: { type: string; content?: { type: string; mime_type?: string; data?: string }[] }[] };
-  const image = result.status === 'completed' ? result.steps?.filter(step => step.type === 'model_output')
-    .flatMap(step => step.content ?? []).find(part => part.type === 'image' && part.data) : undefined;
+  const result = await response.json() as {
+    status?: string; steps?: { type: string; content?: { type: string; mime_type?: string; data?: string; text?: string }[] }[];
+  };
+  const parts = result.status === 'completed'
+    ? result.steps?.filter(step => step.type === 'model_output').flatMap(step => step.content ?? []) ?? [] : [];
+  const image = parts.find(part => part.type === 'image' && part.data);
   if (!image || !generatedImageData.safeParse(image.data).success
     || (image.mime_type !== 'image/png' && image.mime_type !== 'image/jpeg' && image.mime_type !== 'image/webp')) {
     throw new ImageGenerationError(502, 'NO_IMAGE', 'We couldn’t create your image. Please try again.');
   }
-  return { model: GEMINI_IMAGE_MODEL, image: { mimeType: image.mime_type, data: image.data! } };
+  const text = parts.filter(part => part.type === 'text' && typeof part.text === 'string')
+    .map(part => part.text!.trim()).filter(Boolean).join('\n\n');
+  return { model: GEMINI_IMAGE_MODEL, image: { mimeType: image.mime_type, data: image.data! }, ...(text ? { text } : {}) };
 }

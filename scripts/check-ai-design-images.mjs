@@ -32,7 +32,7 @@ try {
   await page.route('**/api/design-images', async route => {
     calls++; body = route.request().postDataJSON();
     await new Promise(resolve => { finishGeneration = resolve; });
-    await route.fulfill({ json: { model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/jpeg', data: body.references[1].data } } });
+    await route.fulfill({ json: { model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/jpeg', data: body.references[1].data }, text: 'An oak design with <warm> lighting.' } });
   });
 
   for (const kind of ['wardrobe', 'kitchen']) {
@@ -89,6 +89,9 @@ try {
     finishGeneration();
     await dialog.getByRole('link', { name: 'Download image', exact: true }).waitFor({ timeout: 60_000 });
     assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
+    assert.equal(await dialog.locator('.ai-model-text').textContent(), 'An oak design with <warm> lighting.');
+    assert.equal(await dialog.locator('.ai-model-text').isVisible(), true);
+    assert.equal(await dialog.locator('.ai-model-text warm').count(), 0, 'provider text is rendered as plain text');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
     assert.deepEqual(body.references.map(ref => ref.data), reviewedImages, 'generation submits the exact images reviewed before clicking Generate');

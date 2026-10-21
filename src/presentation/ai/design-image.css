@@ -78,6 +78,7 @@
 .ai-result-copy{margin-bottom:18px}
 .ai-result-copy h2{font-size:22px;margin-bottom:4px}
 .ai-result-copy p{font-size:13px;color:#6e6e73;margin:0}
+.ai-result-copy .ai-model-text{margin-top:12px;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;color:#3c3c43;line-height:1.5}
 @keyframes ai-reveal{from{opacity:0;transform:scale(.97);filter:blur(10px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
 @media(max-width:600px){
   .ai-image-button span{display:none}

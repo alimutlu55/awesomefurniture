@@ -54,10 +54,10 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
     assert.equal(new Headers(init?.headers).get('x-goog-api-key'), environment.GEMINI_API_KEY);
     const body = JSON.parse(String(init?.body));
     assert.equal(body.model, 'gemini-nano-banana-2.1'); assert.equal(body.store, false);
-    assert.equal(body.response_format.image_size, '1K');
-    assert.equal(body.response_format.mime_type, 'image/jpeg', 'Interactions ImageResponseFormat only permits JPEG output');
-    assert.equal('delivery' in body.response_format, false, 'Nano Banana 2.1 rejects an explicit image delivery mode');
-    assert.equal('aspect_ratio' in body.response_format, false, 'Omitting aspect_ratio allows auto aspect ratio determination');
+    assert.deepEqual(body.response_format, [{ type: 'text' }, { type: 'image', mime_type: 'image/jpeg', image_size: '1K' }]);
+    const imageFormat = body.response_format.find((format: { type: string }) => format.type === 'image');
+    assert.equal('delivery' in imageFormat, false, 'Nano Banana 2.1 rejects an explicit image delivery mode');
+    assert.equal('aspect_ratio' in imageFormat, false, 'Omitting aspect_ratio allows auto aspect ratio determination');
     assert.equal(body.generation_config.thinking_level, 'high');
     assert.deepEqual(JSON.parse(body.input[0].text.split('\n').slice(1).join('\n')), JSON.parse(JSON.stringify(modelSpecification(input.specification))));
     assert.equal(body.input.filter((p: { type: string }) => p.type === 'image').length, 3);
@@ -75,6 +75,23 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
   assert.equal(response.status, 200); assert.equal(calls, 1);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   assert.deepEqual(await response.json(), { model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/png', data: png } });
+});
+
+test('mixed image and text output preserves final text in order and excludes thought steps', async () => {
+  const response = await handleDesignImage(request(), environment, async () => Response.json({ status: 'completed', steps: [
+    { type: 'thought', content: [{ type: 'text', text: 'Private reasoning' }] },
+    { type: 'model_output', content: [
+      { type: 'text', text: '  An oak corner wardrobe.  ' },
+      { type: 'image', mime_type: 'image/png', data: png },
+      { type: 'text', text: '' },
+    ] },
+    { type: 'model_output', content: [{ type: 'text', text: 'Warm lighting in the open shelves.' }] },
+  ] }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/png', data: png },
+    text: 'An oak corner wardrobe.\n\nWarm lighting in the open shelves.',
+  });
 });
 
 test('missing credentials, cross-origin calls, unsupported methods and content types fail before Gemini', async () => {
