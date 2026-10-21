@@ -26,7 +26,7 @@ export async function generateDesignImage(
         { type: 'text', text: 'Generate the finished professional photograph of this exact design.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
-      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '4K', delivery: 'inline' },
+      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '1K', delivery: 'inline' },
     }),
   });
   if (!response.ok) {

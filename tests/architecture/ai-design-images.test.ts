@@ -53,7 +53,7 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
     assert.equal(new Headers(init?.headers).get('x-goog-api-key'), environment.GEMINI_API_KEY);
     const body = JSON.parse(String(init?.body));
     assert.equal(body.model, 'gemini-nano-banana-2.1'); assert.equal(body.store, false);
-    assert.equal(body.response_format.image_size, '4K');
+    assert.equal(body.response_format.image_size, '1K');
     assert.equal(body.response_format.mime_type, 'image/jpeg', 'Interactions ImageResponseFormat only permits JPEG output');
     assert.equal(body.response_format.delivery, 'inline');
     assert.equal(body.generation_config.thinking_level, 'high');

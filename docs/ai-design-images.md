@@ -16,7 +16,7 @@ travels with each reference. No saved project/session identifiers are required.
 `POST /api/design-images` accepts `{ specification, references }` and returns
 `{ model, image: { mimeType, data } }`. The server validates three distinct views, limits the
 request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
-`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a 4:3, 4K JPEG response. One photograph is generated
+`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a 4:3, 1K JPEG response. One photograph is generated
 from all three references. The dialog offers image download, the three original JPEGs, JSON
 download, retry and cancellation. The app keeps these only in the mounted editor's memory;
 download them before leaving the design. Generated images are visualizations and may differ

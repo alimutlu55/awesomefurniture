@@ -12,7 +12,7 @@ const captions = [
 export function createDesignImageLoading(page: Document, lifetime: ReturnType<typeof createEditorLifetime>) {
   const element = page.createElement('section');
   element.className = 'ai-magic'; element.hidden = true; element.setAttribute('aria-hidden', 'true');
-  element.innerHTML = `<div class="ai-magic-top"><span>✧ A LITTLE DESIGN MAGIC</span><span class="ai-magic-quality">4K IMAGE</span></div>
+  element.innerHTML = `<div class="ai-magic-top"><span>✧ A LITTLE DESIGN MAGIC</span><span class="ai-magic-quality">1K IMAGE</span></div>
     <div class="ai-magic-art">
       <div class="ai-magic-halo"></div><div class="ai-magic-orbit"></div><div class="ai-magic-orbit ai-magic-orbit-inner"></div>
       <div class="ai-magic-cards">${['left', 'front', 'right'].map(view => `<div class="ai-magic-card" data-view="${view}">

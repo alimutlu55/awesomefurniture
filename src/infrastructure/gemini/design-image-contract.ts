@@ -5,7 +5,7 @@ export const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
 // A flat character check avoids regular-expression stack overflow on multi-megabyte images.
 const base64 = (max: number) => z.string().min(4).max(max).regex(/^[A-Za-z0-9+/]*={0,2}$/).refine(value => value.length % 4 === 0);
 export const imageData = base64(6 * 1024 * 1024);
-// Allow base64 overhead for a detailed 4K PNG, independently of the smaller reference-image limit.
+// Allow generated-image base64 overhead independently of the smaller reference-image limit.
 export const generatedImageData = base64(72 * 1024 * 1024);
 const specification = z.looseObject({
   schemaVersion: z.literal(1), units: z.literal('cm'),
