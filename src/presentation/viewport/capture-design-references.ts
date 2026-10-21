@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { EditorScene } from '../../application/projects/editor-scene';
-import { IMAGE_VIEWS, type DesignReferenceImage } from '../../application/projects/design-image';
+import type { DesignReferenceImage } from '../../application/projects/design-image';
 import { createStudioRenderer } from './studio-renderer';
 import { DesignImageUserError } from '../ai/design-image-errors';
 
@@ -35,7 +35,81 @@ export function photoGeometry(source: THREE.Object3D, settling?: ReadonlySet<THR
   return clone;
 }
 
-/** Three clean 1440 × 1080 views, rendered off screen without changing the editor camera or canvas size. */
+/** Computes camera azimuth, elevation, framing bounds, and target based on furniture layout and orientation. */
+function planCameraShots(wardrobes: readonly { x: number; z: number; angle?: number; state: { w: number; h: number; d: number } }[], bounds: Bounds) {
+  const targetY = Math.min(145, Math.max(110, bounds.h * 0.48));
+  const fallback = [
+    { view: 'front' as const, az: 0, el: 0.12, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+    { view: 'left' as const, az: -0.48, el: 0.22, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+    { view: 'right' as const, az: 0.48, el: 0.22, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+  ];
+  if (!wardrobes.length) return fallback;
+
+  // Group furniture into wings by facing direction (tolerance ~20 degrees = 0.35 rad)
+  const toRad = (deg: number) => ((deg % 360 + 360) % 360) * Math.PI / 180;
+  type Piece = typeof wardrobes[number];
+  interface Wing { meanAngle: number; pieces: Piece[] }
+  const wings: Wing[] = [];
+
+  for (const piece of wardrobes) {
+    const rad = toRad(piece.angle ?? 0);
+    let matched = false;
+    for (const wing of wings) {
+      const diff = Math.atan2(Math.sin(rad - wing.meanAngle), Math.cos(rad - wing.meanAngle));
+      if (Math.abs(diff) < 0.35) {
+        wing.pieces.push(piece);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) wings.push({ meanAngle: rad, pieces: [piece] });
+  }
+
+  // Sort wings by total width/volume so the two most significant runs take priority
+  wings.sort((a, b) => b.pieces.reduce((sum, p) => sum + p.state.w, 0) - a.pieces.reduce((sum, p) => sum + p.state.w, 0));
+
+  if (wings.length >= 2) {
+    // Multi-wing / L-shaped layout:
+    // View 1 (front): diagonal 3/4 hero view bisecting both wings, looking into the corner junction
+    const w1 = wings[0]!, w2 = wings[1]!;
+    const nx = Math.sin(w1.meanAngle) + Math.sin(w2.meanAngle);
+    const nz = Math.cos(w1.meanAngle) + Math.cos(w2.meanAngle);
+    const bisector = Math.atan2(nx, nz);
+
+    // Compute localized bounding box for each wing
+    const wingBounds = (wing: Wing): Bounds => {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, maxH = 0;
+      for (const p of wing.pieces) {
+        const radius = Math.max(p.state.w, p.state.d) * 0.6;
+        minX = Math.min(minX, p.x - radius); maxX = Math.max(maxX, p.x + radius);
+        minZ = Math.min(minZ, p.z - radius); maxZ = Math.max(maxZ, p.z + radius);
+        maxH = Math.max(maxH, p.state.h);
+      }
+      return { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2, w: Math.max(80, maxX - minX), d: Math.max(80, maxZ - minZ), h: maxH };
+    };
+
+    const b1 = wingBounds(w1), b2 = wingBounds(w2);
+    // Subtle bias towards the corner so return wing remains visible in perspective
+    const turn1 = Math.atan2(Math.sin(bisector - w1.meanAngle), Math.cos(bisector - w1.meanAngle)) * 0.35;
+    const turn2 = Math.atan2(Math.sin(bisector - w2.meanAngle), Math.cos(bisector - w2.meanAngle)) * 0.35;
+
+    return [
+      { view: 'front' as const, az: bisector, el: 0.18, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+      { view: 'left' as const, az: w1.meanAngle + turn1, el: 0.14, target: [b1.x, Math.min(145, b1.h * 0.48), b1.z] as [number, number, number], bounds: b1 },
+      { view: 'right' as const, az: w2.meanAngle + turn2, el: 0.14, target: [b2.x, Math.min(145, b2.h * 0.48), b2.z] as [number, number, number], bounds: b2 },
+    ];
+  }
+
+  // Single straight or parallel run:
+  const baseAngle = wings[0]!.meanAngle;
+  return [
+    { view: 'front' as const, az: baseAngle, el: 0.12, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+    { view: 'left' as const, az: baseAngle - 0.48, el: 0.22, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+    { view: 'right' as const, az: baseAngle + 0.48, el: 0.22, target: [bounds.x, targetY, bounds.z] as [number, number, number], bounds },
+  ];
+}
+
+/** Environment- and furniture-aware reference views, rendered off screen. */
 export function captureDesignReferences(ports: CapturePorts): DesignReferenceImage[] {
   const { renderer, scene, camera, document, bounds, fit, design } = ports;
   if (renderer.getContext().isContextLost()) throw new DesignImageUserError('CAPTURE_FAILED');
@@ -71,16 +145,20 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
   try {
     if (!context) throw new DesignImageUserError('CAPTURE_FAILED');
     studio.sync(design.studio, design.wardrobes.map(w => ({ x: w.x, z: w.z, angle: w.angle, w: w.state.w, d: w.state.d })));
-    const facing = (design.wardrobes[0]?.angle ?? 0) * Math.PI / 180;
-    return IMAGE_VIEWS.map((view, index) => {
-      const az = facing + [0, -.58, .58][index]!, el = index === 0 ? .12 : .34;
-      const distance = fit(bounds, az, el, 4 / 3) * 1.1;
+    const shots = planCameraShots(design.wardrobes, bounds);
+    return shots.map(shotPlan => {
+      const { view, az, el, target: shotTarget, bounds: shotBounds } = shotPlan;
+      const distance = fit(shotBounds, az, el, 4 / 3) * 1.1;
       const shot = camera.clone();
       shot.clearViewOffset(); shot.aspect = 4 / 3; shot.zoom = 1;
       shot.near = Math.max(1, Math.min(50, distance * .005));
-      shot.position.set(bounds.x + distance * Math.cos(el) * Math.sin(az),
-        bounds.h / 2 + distance * Math.sin(el), bounds.z + distance * Math.cos(el) * Math.cos(az));
-      shot.lookAt(bounds.x, bounds.h / 2, bounds.z); shot.updateProjectionMatrix(); shot.updateMatrixWorld(true);
+      shot.position.set(
+        shotTarget[0] + distance * Math.cos(el) * Math.sin(az),
+        shotTarget[1] + distance * Math.sin(el),
+        shotTarget[2] + distance * Math.cos(el) * Math.cos(az)
+      );
+      shot.lookAt(shotTarget[0], shotTarget[1], shotTarget[2]);
+      shot.updateProjectionMatrix(); shot.updateMatrixWorld(true);
       studio.frame(shot, 100); // Resolve room cutaways for this camera, with no selection or animation.
       photo.traverse(object => { if (object instanceof THREE.Line) object.visible = false; });
       renderer.setRenderTarget(target);
@@ -95,8 +173,10 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
       context.globalCompositeOperation = 'destination-over';
       context.fillStyle = '#e7e1d6'; context.fillRect(0, 0, 1440, 1080);
       context.globalCompositeOperation = 'source-over';
-      return { view, mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', .9).split(',')[1]!, width: 1440, height: 1080,
-        camera: { position: shot.position.toArray(), target: [bounds.x, bounds.h / 2, bounds.z], fov: shot.fov } };
+      return {
+        view, mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', .9).split(',')[1]!, width: 1440, height: 1080,
+        camera: { position: shot.position.toArray(), target: shotTarget, fov: shot.fov }
+      };
     });
   } finally {
     renderer.setRenderTarget(previousTarget);
