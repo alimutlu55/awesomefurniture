@@ -66,9 +66,13 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
   } catch (error) {
     const requestId = crypto.randomUUID();
     // Fixed metadata only: never serialize errors, provider bodies, keys, prompts or design images.
+    // providerReason/providerMessage are Google's canonical status and a redacted, capped message.
+    const known = error instanceof ImageGenerationError ? error : null;
     console.error(JSON.stringify({ event: 'design_image_failed', requestId, model: GEMINI_IMAGE_MODEL,
-      code: error instanceof ImageGenerationError ? error.code : 'GENERATION_FAILED',
-      providerStatus: error instanceof ImageGenerationError ? error.providerStatus ?? null : null }));
+      code: known ? known.code : 'GENERATION_FAILED',
+      providerStatus: known?.providerStatus ?? null,
+      providerReason: known?.provider?.reason ?? null,
+      providerMessage: known?.provider?.message ?? null }));
     const response = error instanceof ImageGenerationError ? failure(error.status, error.code, error.message)
       : failure(502, 'GENERATION_FAILED', 'Image generation is temporarily unavailable. Please try again.');
     response.headers.set('X-Request-ID', requestId);

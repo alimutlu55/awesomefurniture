@@ -7,6 +7,7 @@ import { imageDesignSpecification } from '../../src/application/projects/image-d
 import { IMAGE_VIEWS, type DesignImageRequest } from '../../src/application/projects/design-image';
 import { handleDesignImage } from '../../src/infrastructure/gemini/design-image-handler';
 import { MAX_REQUEST_BYTES, generatedImageData, imageData } from '../../src/infrastructure/gemini/design-image-contract';
+import { MAX_MODEL_SPECIFICATION_CHARS, modelSpecification } from '../../src/infrastructure/gemini/design-image-model-input';
 import { photoGeometry } from '../../src/presentation/viewport/capture-design-references';
 import worker from '../../src/app/worker';
 import { requestDesignImage } from '../../src/presentation/ai/design-image-client';
@@ -57,7 +58,7 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
     assert.equal(body.response_format.mime_type, 'image/jpeg', 'Interactions ImageResponseFormat only permits JPEG output');
     assert.equal(body.response_format.delivery, 'inline');
     assert.equal(body.generation_config.thinking_level, 'high');
-    assert.deepEqual(JSON.parse(body.input[0].text.split('\n').slice(1).join('\n')), JSON.parse(JSON.stringify(input.specification)));
+    assert.deepEqual(JSON.parse(body.input[0].text.split('\n').slice(1).join('\n')), JSON.parse(JSON.stringify(modelSpecification(input.specification))));
     assert.equal(body.input.filter((p: { type: string }) => p.type === 'image').length, 3);
     assert.match(body.system_instruction, /Do not redesign/);
     assert.match(body.system_instruction, /elite Architectural Visualization Engine/);
@@ -133,7 +134,8 @@ test('provider errors and missing images return safe errors without exposing ups
     const logged = JSON.parse(logs.at(-1)!);
     assert.equal(logged.providerStatus, status);
     assert.equal(logged.requestId, response.headers.get('X-Request-ID'));
-    assert.deepEqual(Object.keys(logged).sort(), ['code', 'event', 'model', 'providerStatus', 'requestId']);
+    assert.deepEqual(Object.keys(logged).sort(), ['code', 'event', 'model', 'providerMessage', 'providerReason', 'providerStatus', 'requestId']);
+    assert.equal(logged.providerReason, null); assert.equal(logged.providerMessage, null);
     assert.doesNotMatch(logs.at(-1)!, /sensitive|test-server-secret/);
   }
   const noImage = await handleDesignImage(request(), environment,
@@ -196,4 +198,45 @@ test('Worker serves existing assets and keeps unknown API routes out of the stat
   assert.equal((await worker.fetch(new Request('https://design.example/api/missing'), env)).status, 404);
   assert.equal((await worker.fetch(new Request('https://design.example/api/design-images'), env)).status, 405);
   assert.equal(assets, 1);
+});
+
+test('Gemini receives a compact specification: drawing vectors removed and repeated review issues deduplicated', () => {
+  const spec = fixture().specification;
+  const issue = { id: 'a', kind: 'alignment', severity: 'review', message: 'K1 / K2: undersides differ by 1 mm', marks: ['K1', 'K2'], at: { x: 1, y: 2 }, rule: 'r' };
+  const sheets = spec.technicalDrawings.map(sheet => ({ ...sheet, issues: [issue, { ...issue, id: 'b', at: { x: 9, y: 9 } }] }));
+  const compact = modelSpecification({ ...spec, technicalDrawings: sheets }) as {
+    design: unknown; technicalDrawings: Record<string, unknown>[]; reviewIssues: unknown[];
+  };
+  assert.deepEqual(compact.design, JSON.parse(JSON.stringify(spec.design)), 'authoritative design geometry is unchanged');
+  assert.equal(compact.technicalDrawings.length, spec.technicalDrawings.length);
+  assert.ok(compact.technicalDrawings.every(sheet => !('views' in sheet) && !('issues' in sheet)));
+  assert.ok(compact.technicalDrawings.some(sheet => sheet.title === 'Cutting list' && sheet.table));
+  assert.deepEqual(compact.reviewIssues, [{ kind: 'alignment', severity: 'review', message: issue.message, marks: ['K1', 'K2'], rule: 'r' }]);
+  assert.ok(JSON.stringify(compact).length < JSON.stringify(spec).length);
+});
+
+test('a specification over the model input budget is refused before Gemini is called', async () => {
+  let calls = 0;
+  const input = fixture();
+  (input.specification as unknown as Record<string, unknown>).notes = 'x'.repeat(MAX_MODEL_SPECIFICATION_CHARS);
+  const response = await handleDesignImage(request(input), environment, async () => { calls++; return completed(); });
+  assert.equal(response.status, 413); assert.equal(calls, 0);
+  assert.equal((await response.json() as { error: { code: string } }).error.code, 'TOO_LARGE');
+});
+
+test('operator logs carry Google\'s error status and a redacted, capped message, never the raw body', async t => {
+  const logs: string[] = [];
+  t.mock.method(console, 'error', (line: string) => { logs.push(line); });
+  const key = 'AIza' + 'S'.repeat(35), image = 'Q'.repeat(500);
+  const response = await handleDesignImage(request(), environment, async () => Response.json({ error: {
+    code: 400, status: 'INVALID_ARGUMENT', message: `The input token count exceeds the maximum. key=${key} data=${image} ${'pad '.repeat(200)}`,
+  } }, { status: 400 }));
+  assert.equal(response.status, 502);
+  const body = await response.json() as { error: { code: string; message: string } };
+  assert.equal(body.error.code, 'PROVIDER_ERROR'); assert.doesNotMatch(body.error.message, /token|INVALID_ARGUMENT/);
+  const logged = JSON.parse(logs.at(-1)!);
+  assert.equal(logged.providerStatus, 400); assert.equal(logged.providerReason, 'INVALID_ARGUMENT');
+  assert.match(logged.providerMessage, /^The input token count exceeds the maximum\./);
+  assert.ok(logged.providerMessage.length <= 300);
+  assert.doesNotMatch(logs.at(-1)!, new RegExp(key + '|' + image));
 });

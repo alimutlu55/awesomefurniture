@@ -17,7 +17,16 @@ travels with each reference. No saved project/session identifiers are required.
 `{ model, image: { mimeType, data } }`. The server validates three distinct views, limits the
 request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
 `gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a 4:3, 1K JPEG response. One photograph is generated
-from all three references. The dialog offers image download, the three original JPEGs, JSON
+from all three references.
+
+The model accepts at most 131,072 input tokens, so the server sends Gemini a compact copy of the
+specification (`src/infrastructure/gemini/design-image-model-input.ts`): the `design` section is
+unchanged, technical drawing sheets keep their titles, tables, pieces and checks but drop vector
+`views` (keeping only view titles), and review issues repeated on every sheet are deduplicated into
+one top-level `reviewIssues` list. A compact specification over 200,000 characters is refused with
+413 `TOO_LARGE` before any provider request. The JSON download keeps the full specification.
+
+The dialog offers image download, the three original JPEGs, JSON
 download, retry and cancellation. The app keeps these only in the mounted editor's memory;
 download them before leaving the design. Generated images are visualizations and may differ
 from precise construction geometry.
@@ -68,8 +77,10 @@ Errors use `{ error: { code, message } }` with 400 (invalid design/JSON), 403 (o
 405 (method), 413 (size), 415 (content type), 429 (limit/quota), 502 (provider/no image),
 503 (configuration), and 504 (timeout). All API responses use `Cache-Control: no-store`.
 Provider response bodies and credentials are never logged or returned to the browser.
-Server failure logs contain only an event name, generated request ID, model, application error code
-and upstream HTTP status; the request ID is also returned in `X-Request-ID` for operator correlation.
+Server failure logs contain only an event name, generated request ID, model, application error code,
+upstream HTTP status, Google's canonical error status (`providerReason`, e.g. `INVALID_ARGUMENT`) and
+Google's error message (`providerMessage`) with key-like and long base64-like runs redacted and capped
+at 300 characters; the request ID is also returned in `X-Request-ID` for operator correlation.
 The Interactions `ImageResponseFormat` supports JPEG output. PNG is accepted for reference inputs,
 but must not be requested as the output MIME type; the viewer downloads the actual returned format.
 

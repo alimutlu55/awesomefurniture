@@ -1,15 +1,52 @@
 import type { DesignReferenceImage, DesignImageResponse } from '../../application/projects/design-image.ts';
 import { generatedImageData } from './design-image-contract.ts';
+import { modelSpecificationText } from './design-image-model-input.ts';
 import { GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT } from './design-image-prompt.ts';
+import { ImageGenerationError } from './image-generation-error.ts';
 
+export { ImageGenerationError };
 export const GEMINI_IMAGE_MODEL = 'gemini-nano-banana-2.1';
-export class ImageGenerationError extends Error {
-  constructor(readonly status: number, readonly code: string, message: string, readonly providerStatus?: number) { super(message); }
+
+const MAX_PROVIDER_ERROR_BYTES = 16 * 1024;
+const MAX_PROVIDER_MESSAGE_CHARS = 300;
+
+/**
+ * Extracts only Google's canonical error status and a redacted, length-capped message from an
+ * upstream failure. The raw body is never returned or logged: it is read up to a fixed size,
+ * parsed as Google's `{ error: { status, message } }` shape and anything else is discarded.
+ */
+async function providerError(response: Response): Promise<{ reason: string | null; message: string | null }> {
+  const none = { reason: null, message: null };
+  const reader = response.body?.getReader();
+  if (!reader) return none;
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (bytes < MAX_PROVIDER_ERROR_BYTES) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      chunks.push(chunk.value); bytes += chunk.value.byteLength;
+    }
+  } catch { return none; } finally { await reader.cancel().catch(() => {}); }
+  try {
+    const body = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
+    const error = (JSON.parse(new TextDecoder().decode(body)) as { error?: { status?: unknown; message?: unknown } })?.error;
+    const reason = typeof error?.status === 'string' && /^[A-Z_]{1,64}$/.test(error.status) ? error.status : null;
+    const message = typeof error?.message === 'string' ? error.message
+      .replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted]')
+      .replace(/[A-Za-z0-9+/=_-]{40,}/g, '[redacted]')
+      .replace(/\s+/g, ' ').trim().slice(0, MAX_PROVIDER_MESSAGE_CHARS) : null;
+    return { reason, message: message || null };
+  } catch { return none; }
 }
 
 export async function generateDesignImage(
   input: { specification: unknown; references: DesignReferenceImage[] }, apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
 ): Promise<DesignImageResponse> {
+  // Compacted and size-checked before spending a provider request.
+  const specification = modelSpecificationText(input.specification);
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
@@ -18,7 +55,7 @@ export async function generateDesignImage(
       generation_config: { thinking_level: 'high' },
       system_instruction: GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT,
       input: [
-        { type: 'text', text: 'Design specification (JSON):\n' + JSON.stringify(input.specification) },
+        { type: 'text', text: 'Design specification (JSON):\n' + specification },
         ...input.references.flatMap(image => [
           { type: 'text', text: `${image.view} view; camera: ${JSON.stringify(image.camera)}` },
           { type: 'image', mime_type: image.mimeType, data: image.data },
@@ -30,15 +67,15 @@ export async function generateDesignImage(
     }),
   });
   if (!response.ok) {
-    // Never return or log the upstream body: it can contain request data or credentials.
-    await response.body?.cancel();
+    // Never return the upstream body; only Google's error status and a redacted message are kept for operator logs.
+    const provider = await providerError(response);
     if (response.status === 429) {
-      throw new ImageGenerationError(429, 'PROVIDER_LIMIT', 'Image generation is temporarily unavailable. Please try again later.', response.status);
+      throw new ImageGenerationError(429, 'PROVIDER_LIMIT', 'Image generation is temporarily unavailable. Please try again later.', response.status, provider);
     }
     if (response.status === 401 || response.status === 403) {
-      throw new ImageGenerationError(503, 'PROVIDER_CONFIGURATION', 'Image generation is temporarily unavailable. Please try again later.', response.status);
+      throw new ImageGenerationError(503, 'PROVIDER_CONFIGURATION', 'Image generation is temporarily unavailable. Please try again later.', response.status, provider);
     }
-    throw new ImageGenerationError(502, 'PROVIDER_ERROR', 'We couldn’t create your image. Please try again.', response.status);
+    throw new ImageGenerationError(502, 'PROVIDER_ERROR', 'We couldn’t create your image. Please try again.', response.status, provider);
   }
   const result = await response.json() as { status?: string; steps?: { type: string; content?: { type: string; mime_type?: string; data?: string }[] }[] };
   const image = result.status === 'completed' ? result.steps?.filter(step => step.type === 'model_output')
