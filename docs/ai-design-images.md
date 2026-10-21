@@ -101,7 +101,11 @@ have a 150-second upstream timeout and are never automatically retried.
 Errors use `{ error: { code, message } }` with 400 (invalid design/JSON), 403 (origin),
 405 (method), 413 (size), 415 (content type), 429 (limit/quota), 502 (provider/no image),
 503 (configuration), and 504 (timeout). All API responses use `Cache-Control: no-store`.
-Provider response bodies and credentials are never logged or returned to the browser.
+Before each provider call, the server logs the complete serialized Gemini request body, including
+system/user prompts, design summary, and base64 reference images, under the
+`gemini_image_request` event. The API key is in a separate header and is not logged. These logs
+contain user design data; restrict log access and retention accordingly. Provider response bodies
+and credentials are never returned to the browser.
 Server failure logs contain only an event name, generated request ID, model, application error code,
 upstream HTTP status, Google's canonical error status (`providerReason`, e.g. `INVALID_ARGUMENT`) and
 Google's error message (`providerMessage`) with key-like and long base64-like runs redacted and capped

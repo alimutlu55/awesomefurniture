@@ -65,8 +65,8 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
     }
   } catch (error) {
     const requestId = crypto.randomUUID();
-    // Fixed metadata only: never serialize errors, provider bodies, keys, prompts or design images.
-    // providerReason/providerMessage are Google's canonical status and a redacted, capped message.
+    // Failure logs never include errors, provider bodies or keys. Request payloads are logged
+    // separately at the provider boundary for debugging; providerReason/providerMessage are redacted and capped.
     const known = error instanceof ImageGenerationError ? error : null;
     console.error(JSON.stringify({ event: 'design_image_failed', requestId, model: GEMINI_IMAGE_MODEL,
       code: known ? known.code : 'GENERATION_FAILED',

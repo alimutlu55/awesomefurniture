@@ -50,33 +50,38 @@ export async function generateDesignImage(
 ): Promise<DesignImageResponse> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
   const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
+  const requestBody = {
+    model: GEMINI_IMAGE_MODEL, store: false,
+    generation_config: { thinking_level: 'high' },
+    system_instruction: buildSystemInstruction(input.renderConfig ?? { category: renderCategory(input.specification), stagingLevel: 2 }),
+    input: [
+      ...references.flatMap(image => [
+        { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
+        { type: 'image', mime_type: image.mimeType, data: image.data },
+      ]),
+      { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
+        + 'and Images 2 and 3 only for supporting details.\n'
+        + serializeConfigurationSummary(input.specification) + '\n'
+        + '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
+        + 'continuous oak flooring, and soft directional off-camera daylight. '
+        + 'Remove protruding floor-base strips and complete cropped background geometry. Include a brief text description of the result.' },
+    ],
+    // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
+    // Do not send `delivery`: Nano Banana 2.1 rejects it and returns inline data by default.
+    // Match the canonical 1024 × 768 reference aspect ratio to prevent reframing at the edges.
+    response_format: [
+      { type: 'text' },
+      { type: 'image', mime_type: 'image/jpeg', image_size: '2K', aspect_ratio: '4:3' },
+    ],
+  };
+  const serializedRequestBody = JSON.stringify(requestBody);
+  // Deliberately includes full prompts and base64 reference images for operator debugging.
+  // Never include headers here: x-goog-api-key is a secret. Logs may contain user design data.
+  console.info(JSON.stringify({ event: 'gemini_image_request', model: GEMINI_IMAGE_MODEL, body: serializedRequestBody }));
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify({
-      model: GEMINI_IMAGE_MODEL, store: false,
-      generation_config: { thinking_level: 'high' },
-      system_instruction: buildSystemInstruction(input.renderConfig ?? { category: renderCategory(input.specification), stagingLevel: 2 }),
-      input: [
-        ...references.flatMap(image => [
-          { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
-          { type: 'image', mime_type: image.mimeType, data: image.data },
-        ]),
-        { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
-          + 'and Images 2 and 3 only for supporting details.\n'
-          + serializeConfigurationSummary(input.specification) + '\n'
-          + '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
-          + 'continuous oak flooring, and soft directional off-camera daylight. '
-          + 'Remove protruding floor-base strips and complete cropped background geometry. Include a brief text description of the result.' },
-      ],
-      // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
-      // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
-      // Match the canonical 1024 × 768 reference aspect ratio to prevent reframing at the edges.
-      response_format: [
-        { type: 'text' },
-        { type: 'image', mime_type: 'image/jpeg', image_size: '2K', aspect_ratio: '4:3' },
-      ],
-    }),
+    body: serializedRequestBody,
   });
   if (!response.ok) {
     // Never return the upstream body; only Google's error status and a redacted message are kept for operator logs.
