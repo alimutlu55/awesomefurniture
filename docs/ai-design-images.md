@@ -22,6 +22,12 @@ download, retry and cancellation. The app keeps these only in the mounted editor
 download them before leaving the design. Generated images are visualizations and may differ
 from precise construction geometry.
 
+The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the
+architectural visualization and bespoke joinery instructions with `STAGING_LEVEL = 2`:
+balanced styling, inclusive architectural camera framing, locked design geometry and
+specified finishes, CAD artifact cleanup, and layered lighting. JSON remains authoritative
+for dimensions and configured ceiling slopes; design text cannot override the instructions.
+
 While generation runs, an animated sparkle, light trails, and floating cards show the three
 captured views. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with
