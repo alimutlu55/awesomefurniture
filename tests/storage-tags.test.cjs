@@ -11,7 +11,7 @@ test('diagnostic tags retain the affected fitting and relevant dimensions', asyn
 
 test('Storage panel replaces proposal prose with fit tags and keeps capacity bars', async () => {
   const { createPlannerPresenter } = await import('../src/presentation/editor/planner-presenter.js');
-  const elements = Object.fromEntries(['empty-scene', 'plan-title', 'plan-summary', 'plan-capacity', 'fit-warn', 'plan-warnings'].map(id => ['#' + id, {}]));
+  const elements = Object.fromEntries(['empty-scene', 'plan-title', 'plan-summary', 'plan-capacity', 'plan-warnings'].map(id => ['#' + id, {}]));
   const state = { n: 2, profile: { engaged: true, needs: { short: 24 }, growth: 15, reach: 185 }, proposal: { title: 'Best match', summary: 'This long explanation should never appear.' } };
   const presenter = createPlannerPresenter({ dom: { $: key => elements[key] }, model: { activeCabinet: () => ({ state }) }, geometry: { stats: () => ({ mods: 3 }) }, plannerState: {} });
   presenter.planUI({ capacities: { short: 16 }, coverage: { short: 16 / 28 }, maxDailyAccess: 180, ergo: .62, seasonal: { fill: true, allocatedBoxes: 1 }, errors: ['Bay 2, item 3: rail exceeds your 185 cm comfortable reach.'], warnings: ['Open folded shelves are 60 cm deep, so the back row is hidden. Drawers or pull-outs are easier to use.'] });

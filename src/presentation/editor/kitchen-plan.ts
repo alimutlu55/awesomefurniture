@@ -21,10 +21,6 @@ export function createKitchenPlan({ $, model }: KitchenPlanPorts) {
       const held = ([['Drawers', s.drawers], ['Cupboards', s.doors], ['Open shelves', s.open], ['Pantry pull-outs', s.tall]] as const).filter(([, n]) => n > 0);
       $('#plan-capacity').innerHTML = (held.length ? rows(held) : '') + rows([['Appliances', s.appliances.join(', ') || 'None yet'], ['Worktop', measureNumber(s.worktop) + unitSuffix()]])
         + tags([s.units.base + ' base · ' + s.units.upper + ' wall · ' + s.units.tall + ' tall']);
-      const warn = $('#fit-warn');
-      warn.hidden = !s.notes.length;
-      warn.textContent = String(s.notes.length);
-      warn.title = s.notes.length + (s.notes.length === 1 ? ' note' : ' notes');
       $('#plan-warnings').innerHTML = s.notes.map(n => tags([n], 'warn')).join('');
       $('#score').textContent = '–';
     },

@@ -204,12 +204,6 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             return '<span' + cls + '>' + esc(PURPOSE[k]) + '</span><b' + cls + '>~' + have + ' / ' + need + '</b><div class="bar"><i style="width:' + Math.min(100, (need ? have / need : 1) * 100) + '%"></i></div>';
         }).join('') + '</div>' + tags(['Fits / Owned']);
         const eng = model.activeCabinet().state.profile.engaged, issues = [...a.errors, ...a.warnings.filter(x => !/^(Occasional storage|Pull-down access)/.test(x) && (eng || !x.startsWith('Seasonal storage:')))];
-        {
-            const nIssues = new Set(issues).size, fw = $('#fit-warn');
-            fw.hidden = !nIssues;
-            fw.textContent = String(nIssues);
-            fw.title = nIssues + (nIssues === 1 ? ' note' : ' notes');
-        }
         $('#plan-warnings').innerHTML = [...new Set(issues)].map(x => tags([issueTags(x).join(' · ')], 'warn')).join('');
     }
     /** A settings change makes the current ideas stale. While the reach slider is being dragged only its

@@ -60,7 +60,6 @@ interface EditorControls {
     "#launch-wizard": HTMLElementTagNameMap["button"];
     "#topright": HTMLElementTagNameMap["div"];
     "#fitchip": HTMLElementTagNameMap["button"];
-    "#fit-warn": HTMLElementTagNameMap["span"];
     "#score": HTMLElementTagNameMap["b"];
     "#plan-panel": HTMLElementTagNameMap["div"];
     "#score-sub": HTMLElementTagNameMap["div"];
