@@ -60,8 +60,8 @@ export async function generateDesignImage(
           { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
           { type: 'image', mime_type: image.mimeType, data: image.data },
         ]),
-        { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact structure and camera framing, '
-          + 'and Images 2 and 3 only for supporting details. Preserve the configured design and finishes. Include a brief text description of the result.' },
+        { type: 'text', text: 'Generate one finished 2K photograph of this exact design using all three reference views and the architectural visualization instructions. '
+          + 'Include a brief text description of the result.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
       // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.

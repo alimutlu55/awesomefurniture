@@ -17,6 +17,8 @@ await writeFile(fixture, `<!doctype html><html><head><meta name="viewport" conte
 import { mountEditor } from '/src/presentation/editor/mount-editor.ts';
 import { buildFromSpec } from '/src/application/spec/build-from-spec.ts';
 import { projectToScene } from '/src/application/projects/editor-mapper.ts';
+import { verifyNeutralReferenceCapture } from '/scripts/verify-neutral-reference-capture.mjs';
+window.referenceColorCheck = await verifyNeutralReferenceCapture();
 const built = buildFromSpec({specVersion:1,room:{width:360,depth:240,height:260},wardrobes:[{against:1,width:180,height:220,depth:60,shape:'sloped',for:{short:12,pants:8,folded:20}}]},'preview');
 const wardrobe = projectToScene(built.project); wardrobe.wardrobes[0].state.open=true;
 const scene = new URLSearchParams(location.search).has('kitchen') ? ${JSON.stringify(drawingFixture('l'))} : wardrobe;
@@ -62,7 +64,7 @@ try {
     })));
     await dialog.locator('.ai-reference-preview summary').click();
     await page.screenshot({ path: `${output}/${kind}-references-desktop.png` });
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 375, height: 844 });
     assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'reference preview fits on mobile');
     await page.screenshot({ path: `${output}/${kind}-references-mobile.png` });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -78,7 +80,7 @@ try {
     assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), false);
     await page.screenshot({ path: `${output}/${kind}-loading-desktop.png` });
 
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 375, height: 844 });
     assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'loading fits on mobile');
     await page.screenshot({ path: `${output}/${kind}-loading-mobile.png` });
 
@@ -101,6 +103,8 @@ try {
     assert.ok(body.references.every(ref => ref.data.length <= 6 * 1024 * 1024), 'each reference fits the image limit');
     assert.equal(new Set(body.references.map(image => createHash('sha256').update(image.data).digest('hex'))).size, 3, 'distinct reference viewpoints');
     assert.equal(new Set(body.references.map(image => image.camera.position.join(','))).size, 3, 'distinct camera positions');
+    assert.ok(body.references.every(image => image.camera.position[1] === 135 && image.camera.target[1] === 135), 'all cameras are level at eye height');
+    assert.equal(await page.evaluate(() => window.referenceColorCheck), true, 'reference colors and renderer state survive capture and failure');
     assert.equal(body.specification.units, 'cm');
     assert.ok(body.specification.technicalDrawings.length > 4);
 
@@ -130,11 +134,11 @@ try {
     assert.equal(await page.evaluate(() => window.fixtureEditor.snapshot()), before, 'capture leaves the design untouched');
   }
 
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 375, height: 844 });
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Generate image with AI', exact: true });
   await page.screenshot({ path: `${output}/mobile.png` });
-  const box = await dialog.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= 390);
+  const box = await dialog.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= 375);
   assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'no horizontal overflow');
   await dialog.getByRole('button', { name: 'Close AI image' }).click();
 

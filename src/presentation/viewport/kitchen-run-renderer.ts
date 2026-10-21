@@ -31,7 +31,16 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   const glass = resources.M('#141619', { metalness: .25, roughness: .1 });
   const ring = resources.M('#5d636a', { metalness: .4, roughness: .5 });
   const plinths = new Map<string, THREE.Material>();
-  const plinthMaterial = (fin: EditorDesign['fin']) => plinths.get(fin) ?? plinths.set(fin, resources.wood(resources.shade(String(FIN[fin][0]), .72))).get(fin)!;
+  const plinthMaterial = (fin: EditorDesign['fin']) => {
+    let material = plinths.get(fin);
+    if (!material) {
+      const color = String(FIN[fin][0]);
+      material = resources.wood(resources.shade(color, .72));
+      material.userData.referenceColor = new THREE.Color(color).convertSRGBToLinear();
+      plinths.set(fin, material);
+    }
+    return material;
+  };
   let key = '';
 
   function clear() {

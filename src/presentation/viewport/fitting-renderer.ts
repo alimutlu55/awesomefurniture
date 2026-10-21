@@ -60,6 +60,7 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             return;
         }
         const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
+        if (fc2) D.userData.referenceColor = new THREE.Color(fc2).convertSRGBToLinear();
         const slab: BoxBuilder = cut ? cut.slab : box, board = fittingDepth(d);
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;

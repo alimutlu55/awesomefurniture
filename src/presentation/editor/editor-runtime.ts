@@ -189,9 +189,9 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);
             const references = captureDesignReferences({
-                renderer: resources.R, scene: resources.scene, camera: resources.cam, document: dom.host.ownerDocument,
+                renderer: resources.R, scene: resources.scene, document: dom.host.ownerDocument,
                 groups: renderState.wardrobeGroups, ground: resources.ground, settling: renderState.settling,
-                bounds: camera.sceneBox(), fit: camera.cameraFitDistance, design,
+                design,
             });
             return { specification, references };
         } });

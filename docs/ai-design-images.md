@@ -2,9 +2,21 @@
 
 The sparkle **AI image** button in the top toolbar captures the whole current design as three
 1024 × 768 (1K) JPEGs at 97% quality: front, left perspective and right perspective. The captures use the
-existing materials and lighting, close the cabinet doors, include furniture hidden by editor
+existing material colors and texture maps with a neutral, unlit capture pass, close the cabinet doors, include furniture hidden by editor
 selection, and omit selection glows, dimensions and handles. A separate scene and offscreen
 render target keep the editor camera and viewport unchanged.
+All three cameras fit the complete visible furniture geometry, including elevated upper units,
+shared worktops and rotated return wings, with an 8% margin at every image edge. A level camera
+at 135 cm and a 45° vertical field of view (approximately a 32 mm architectural lens at 4:3)
+keep verticals parallel. Supporting cameras turn 20° to either side of the overview and retain
+the same whole-design target instead of zooming into individual wings.
+
+Reference captures have no directional lighting, environment reflections, shadow maps, painted
+contact shadows or ambient-occlusion overlays. Unlit materials preserve diffuse textures,
+configured colors, transparency and glass outlines. Editor-only darkening of cabinet backs and
+plinths is removed for the reference pass. Thin geometry contours keep actual panel divisions
+legible where adjoining faces share the same color, without shading the surfaces. Tone mapping is disabled during capture; the editor's
+materials, lighting, shadow settings and exposure are restored before returning to the viewport.
 
 The same synchronous snapshot supplies a versioned JSON specification with room walls,
 openings, ceilings, furniture positions/rotations, dimensions, sections, resolved fitting and
@@ -24,9 +36,9 @@ are never forwarded to Gemini. The app retains its versioned specification for v
 preview and download. The compact JSON preview omits drawing vectors and deduplicates review
 issues using `src/application/projects/design-image-model-specification.ts`.
 The server always orders the images as front, left and right, even if the request arrives in a
-different order. Image 1 (front, or the diagonal hero composition for multi-wing layouts) fixes
-the camera and framing. Images 2 and 3 resolve materials and occluded geometry of the same design;
-they do not supply alternate output cameras or additional furniture.
+different order. The three numbered labels identify front, left and right overviews of the same
+design. Gemini analyzes all three and chooses the inclusive architectural composition described
+by the system prompt; the request does not lock the output to Image 1's camera.
 
 Clicking the toolbar **AI image** button opens an Apple-inspired presentation sheet with design highlights
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
@@ -37,13 +49,11 @@ When complete, the generated photograph is revealed with one-tap image saving an
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
 
-The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` begins with a
-structural and camera preservation constraint, followed by editorial architectural photography
-at f/8, material-specific micro-textures, natural daylight, indirect bounce light and soft contact
-shadows. It avoids render-engine style cues and preserves configured colors, material identities,
-gloss levels and ceiling slopes. `STAGING_LEVEL = 2` permits restrained styling only where it
-leaves joinery and cabinet bases visible. Cleanup removes editor artifacts and completes only
-unfinished render boundaries; it does not invent lighting fixtures, bulkheads or openings.
+The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the supplied
+Architectural Visualization Engine and Bespoke Joinery Specialist instructions: 28–35 mm camera
+framing, three-tier design fidelity rules, balanced `STAGING_LEVEL = 2`, CAD artifact cleanup,
+ceiling completion and layered lighting. Shadow-free reference captures communicate finishes;
+the generated photograph still receives natural shadows and lighting as requested by that prompt.
 
 While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with
