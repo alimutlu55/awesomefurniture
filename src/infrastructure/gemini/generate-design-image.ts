@@ -1,6 +1,6 @@
-import type { DesignReferenceImage, DesignImageResponse } from '../../application/projects/design-image.ts';
+import { IMAGE_VIEWS, type DesignReferenceImage, type DesignImageResponse } from '../../application/projects/design-image.ts';
 import { generatedImageData } from './design-image-contract.ts';
-import { GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT } from './design-image-prompt.ts';
+import { GEMINI_DESIGN_IMAGE_REFERENCE_LABELS, GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT } from './design-image-prompt.ts';
 import { ImageGenerationError } from './image-generation-error.ts';
 
 export { ImageGenerationError };
@@ -46,6 +46,8 @@ async function providerError(response: Response): Promise<{ reason: string | nul
 export async function generateDesignImage(
   input: { references: DesignReferenceImage[] }, apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch,
 ): Promise<DesignImageResponse> {
+  // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
+  const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
@@ -54,18 +56,19 @@ export async function generateDesignImage(
       generation_config: { thinking_level: 'high' },
       system_instruction: GEMINI_DESIGN_IMAGE_SYSTEM_PROMPT,
       input: [
-        ...input.references.flatMap(image => [
-          { type: 'text', text: `${image.view} reference view of the same design.` },
+        ...references.flatMap(image => [
+          { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
           { type: 'image', mime_type: image.mimeType, data: image.data },
         ]),
-        { type: 'text', text: 'Generate the finished professional photograph of this exact design, together with a brief text description of the result.' },
+        { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact structure and camera framing, '
+          + 'and Images 2 and 3 only for supporting details. Preserve the configured design and finishes. Include a brief text description of the result.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
       // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
-      // Omit `aspect_ratio` to let Gemini determine the optimal aspect ratio automatically from the composition and reference views.
+      // Match the canonical 1024 × 768 reference aspect ratio to prevent reframing at the edges.
       response_format: [
         { type: 'text' },
-        { type: 'image', mime_type: 'image/jpeg', image_size: '1K' },
+        { type: 'image', mime_type: 'image/jpeg', image_size: '2K', aspect_ratio: '4:3' },
       ],
     }),
   });

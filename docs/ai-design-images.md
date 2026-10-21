@@ -15,14 +15,18 @@ Design lengths are centimetres; technical drawing lengths are millimetres. Camer
 `POST /api/design-images` accepts `{ specification, references }` and returns
 `{ model, image: { mimeType, data }, text? }`. The server validates three distinct views, limits the
 request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
-`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, automatic aspect ratio, and a text-plus-image response (`response_format: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", image_size: "1K" }]`). One photograph is generated
+`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a text-plus-image response (`response_format: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", image_size: "2K", aspect_ratio: "4:3" }]`). The output aspect ratio matches the reference captures to avoid cropping or expanding the room. One 2K photograph is generated
 from all three references. Final model text is shown beneath the photograph when returned; thought steps are excluded. Image-only responses remain usable, while responses without an image still report a generation error.
 
-Gemini receives only the three reference images, plain-language view labels, the system
+Gemini receives only the three reference images, numbered plain-language view roles, the system
 instructions and the generation request. Design JSON, technical drawings, and camera metadata
 are never forwarded to Gemini. The app retains its versioned specification for validation,
 preview and download. The compact JSON preview omits drawing vectors and deduplicates review
 issues using `src/application/projects/design-image-model-specification.ts`.
+The server always orders the images as front, left and right, even if the request arrives in a
+different order. Image 1 (front, or the diagonal hero composition for multi-wing layouts) fixes
+the camera and framing. Images 2 and 3 resolve materials and occluded geometry of the same design;
+they do not supply alternate output cameras or additional furniture.
 
 Clicking the toolbar **AI image** button opens an Apple-inspired presentation sheet with design highlights
 and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
@@ -33,10 +37,13 @@ When complete, the generated photograph is revealed with one-tap image saving an
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
 
-The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the
-architectural visualization and bespoke joinery instructions with `STAGING_LEVEL = 2`:
-balanced styling, inclusive architectural camera framing, locked design geometry and
-specified finishes, CAD artifact cleanup, and layered lighting. The reference images are authoritative for geometry, proportions, finishes and configured ceiling slopes.
+The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` begins with a
+structural and camera preservation constraint, followed by editorial architectural photography
+at f/8, material-specific micro-textures, natural daylight, indirect bounce light and soft contact
+shadows. It avoids render-engine style cues and preserves configured colors, material identities,
+gloss levels and ceiling slopes. `STAGING_LEVEL = 2` permits restrained styling only where it
+leaves joinery and cabinet bases visible. Cleanup removes editor artifacts and completes only
+unfinished render boundaries; it does not invent lighting fixtures, bulkheads or openings.
 
 While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with
