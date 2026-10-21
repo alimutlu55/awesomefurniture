@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
+import { designImageDev } from './scripts/design-image-dev.ts';
 
 export default defineConfig({
-  plugins: [],
+  plugins: [designImageDev()],
   build: {
     rolldownOptions: {
       input: {

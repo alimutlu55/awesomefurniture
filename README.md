@@ -27,6 +27,14 @@ builds work without environment configuration. To use another Supabase project,
 override both values from `.env.example` together. See [Supabase setup](docs/supabase-setup.md) and
 [the persistence architecture](docs/supabase-architecture.md).
 
+## AI design images
+
+Use the sparkle **AI image** button beside Storage to generate a professional photograph
+with Gemini Nano Banana 2.1 from three captured perspectives and the complete design JSON.
+Set the server-only `GEMINI_API_KEY` environment variable to enable generation.
+See [AI image setup and API](docs/ai-design-images.md) for local and Cloudflare secrets,
+downloadable references, limits and verification.
+
 ## Verify and build
 
 ```sh

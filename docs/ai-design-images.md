@@ -1,0 +1,69 @@
+# AI design images
+
+The sparkle **AI image** button beside Storage captures the whole current design as three
+1440 × 1080 JPEGs: front, left perspective and right perspective. The captures use the
+existing materials and lighting, close the cabinet doors, include furniture hidden by editor
+selection, and omit selection glows, dimensions and handles. A separate scene and offscreen
+render target keep the editor camera and viewport unchanged.
+
+The same synchronous snapshot supplies a versioned JSON specification with room walls,
+openings, ceilings, furniture positions/rotations, dimensions, sections, resolved fitting and
+divider positions, custom roof profiles, door details, finish colors and the full installation
+technical drawing set (including construction, cutting/hardware lists and review issues).
+Design lengths are centimetres; technical drawing lengths are millimetres. Camera metadata
+travels with each reference. No saved project/session identifiers are required.
+
+`POST /api/design-images` accepts `{ specification, references }` and returns
+`{ model, image: { mimeType, data } }`. The server validates three distinct views, limits the
+request to 12 MiB and specification to 2 MiB, and uses Gemini's Interactions REST API with
+`gemini-nano-banana-2.1`, `store: false`, `generation_config.thinking_level: high`, and a 4:3, 4K PNG response. One photograph is generated
+from all three references. The dialog offers image download, the three original JPEGs, JSON
+download, retry and cancellation. The app keeps these only in the mounted editor's memory;
+download them before leaving the design. Generated images are visualizations and may differ
+from precise construction geometry.
+
+## Configure the key
+
+For `npm run dev` and `npm run preview`, set `GEMINI_API_KEY` in the shell environment or
+in the ignored `.env.local` file, then restart Vite. There is no client-side key setting.
+Never use `VITE_GEMINI_API_KEY`: Vite exposes `VITE_` variables to browsers.
+
+For Cloudflare, set the runtime secret separately on production and development:
+
+```sh
+npx wrangler secret put GEMINI_API_KEY
+npx wrangler secret put GEMINI_API_KEY --env dev
+```
+
+These commands prompt for the key; do not put it in the command line or wrangler.jsonc.
+Build-time environment variables on Workers Builds do not substitute for runtime secrets.
+For Wrangler local development, copy `.dev.vars.example` to `.dev.vars` and set the value
+there. Both secret files are ignored by git. Use a Gemini project with image-generation
+access and billing enabled. A missing key produces a clear 503 configuration error.
+
+Cloudflare serves static assets as before and routes `/api/*` to `src/app/worker.ts`.
+The API rejects cross-origin browser requests and uses a Cloudflare rate-limit binding
+allowing three generations per minute per IP/location. Vite uses a shared three-per-minute
+local limit. This public anonymous editor does not authenticate generations; use provider
+quotas/budget controls for an appropriate total spending limit. Cancellation aborts the
+request, but a generation already accepted by Google may still incur charges. Requests
+have a 150-second upstream timeout and are never automatically retried.
+
+Errors use `{ error: { code, message } }` with 400 (invalid design/JSON), 403 (origin),
+405 (method), 413 (size), 415 (content type), 429 (limit/quota), 502 (provider/no image),
+503 (configuration), and 504 (timeout). All API responses use `Cache-Control: no-store`.
+Provider response bodies and credentials are never logged or returned to the browser.
+
+API references: [Nano Banana 2.1](https://ai.google.dev/gemini-api/docs/models/gemini-nano-banana-2.1),
+[image generation](https://ai.google.dev/gemini-api/docs/image-generation), and
+[Interactions API](https://ai.google.dev/api/interactions-api).
+
+## Verification
+
+`npm run check` includes request validation, outbound Gemini contract, safe provider errors,
+rate limits, geometry cleanup, specification fidelity and static-asset routing tests.
+With Vite running on port 5177, run `npm run check:ai-images` for real WebGL captures
+of a shaped wardrobe and an L-shaped kitchen, desktop/mobile layout, download, retry,
+and disposal checks. The script mocks only the generated response and writes review images
+and JSON to `/tmp/wardrobe-ai-verification` (override with `AI_IMAGE_OUTPUT`). It makes no
+paid Gemini calls. A live smoke test requires the configured runtime key.

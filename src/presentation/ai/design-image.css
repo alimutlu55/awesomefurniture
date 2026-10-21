@@ -1,0 +1,16 @@
+.ai-image-button{gap:6px;white-space:nowrap}
+.ai-image-dialog{width:min(920px,calc(100% - 24px));max-height:calc(100% - 32px);padding:0;border:1px solid var(--line);border-radius:20px;background:var(--bg);color:var(--ink);box-shadow:0 24px 100px #0005;overflow:auto}
+.ai-image-dialog::backdrop{background:#17171480;backdrop-filter:blur(5px)}
+.ai-image-dialog header{display:flex;gap:16px;align-items:start;padding:24px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1;background:var(--bg)}
+.ai-image-dialog header>div{flex:1}.ai-image-dialog h2{font-size:22px;margin:0 0 8px;line-height:1.2}
+.ai-image-dialog p{font-size:13px;line-height:1.5;color:var(--mute);margin:0}
+.ai-image-dialog .ai-close{width:36px;height:36px;padding:0;font-size:24px;border-radius:50%;flex-shrink:0}
+.ai-content{padding:24px;display:grid;gap:24px}.ai-status{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.ai-status.is-error{color:var(--bad)}.ai-result img{display:block;width:100%;border-radius:12px}.ai-result p{margin:10px 0}
+.ai-download{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;background:var(--ink);color:var(--bg);text-decoration:none;border-radius:10px;font-size:14px}
+.ai-image-dialog h3{font-size:14px;margin:0 0 12px}.ai-reference-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.ai-reference-grid a{text-decoration:none;color:var(--ink);font-size:12px;min-width:0}.ai-reference-grid img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;margin-bottom:6px}
+.ai-json{margin-top:14px;min-height:40px}.ai-image-dialog footer{display:flex;align-items:center;gap:20px;padding:18px 24px;border-top:1px solid var(--line);background:var(--panel);position:sticky;bottom:0}
+.ai-image-dialog footer p{flex:1}.ai-generate{min-height:44px;white-space:nowrap;background:var(--ink);color:var(--bg);border-radius:10px}
+.ai-generate:disabled{opacity:.6;cursor:wait}.ai-image-dialog [hidden]{display:none!important}
+@media(max-width:600px){.ai-image-button span{display:none}.ai-image-dialog header,.ai-content{padding:18px}.ai-image-dialog h2{font-size:19px}.ai-image-dialog footer{padding:16px;align-items:stretch;flex-direction:column;gap:12px}.ai-reference-grid{gap:8px}}

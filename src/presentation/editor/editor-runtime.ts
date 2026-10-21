@@ -20,6 +20,9 @@ import { applyViewportSession } from '../viewport/project-view';
 import { projectToScene } from '../../application/projects/editor-mapper';
 import { createViewportResources } from '../viewport/viewport-resources.js';
 import { capturePreview } from '../viewport/capture-preview';
+import { captureDesignReferences } from '../viewport/capture-design-references';
+import { imageDesignSpecification } from '../../application/projects/image-design-specification';
+import { bindDesignImageViewer } from '../ai/design-image-viewer';
 import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
 import { createSceneHistory } from '../../application/history/scene-history.js';
@@ -180,6 +183,17 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
         bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
+        bindDesignImageViewer({ dom, lifetime, capture: () => {
+            const design = structuredClone(model.scene);
+            if (!design.wardrobes.length) throw new Error('Add furniture to your design before generating an image.');
+            const specification = imageDesignSpecification(design);
+            const references = captureDesignReferences({
+                renderer: resources.R, scene: resources.scene, camera: resources.cam, document: dom.host.ownerDocument,
+                groups: renderState.wardrobeGroups, ground: resources.ground, settling: renderState.settling,
+                bounds: camera.sceneBox(), fit: camera.cameraFitDistance, design,
+            });
+            return { specification, references };
+        } });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
