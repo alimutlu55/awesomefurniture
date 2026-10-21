@@ -24,12 +24,16 @@ specification (`src/infrastructure/gemini/design-image-model-input.ts`): the `de
 unchanged, technical drawing sheets keep their titles, tables, pieces and checks but drop vector
 `views` (keeping only view titles), and review issues repeated on every sheet are deduplicated into
 one top-level `reviewIssues` list. A compact specification over 200,000 characters is refused with
-413 `TOO_LARGE` before any provider request. The JSON download keeps the full specification.
+413 `TOO_LARGE` before any provider request.
 
-The dialog offers image download, the three original JPEGs, JSON
-download, retry and cancellation. The app keeps these only in the mounted editor's memory;
-download them before leaving the design. Generated images are visualizations and may differ
-from precise construction geometry.
+Clicking the toolbar **AI image** button opens an Apple-inspired presentation sheet with design highlights
+and an explicit "Generate Image" option, rather than immediately initiating a paid generation.
+During generation, users enjoy a magical waiting experience with animated aurora lighting, a celestial
+luminous orb, twinkling particles, dynamic photography staging messages, and a glass cancellation control.
+Technical artifacts like raw reference renders or internal JSON specifications are kept out of customer view.
+When complete, the generated photograph is revealed with one-tap image saving and the option to generate again.
+The app keeps the result only in the mounted editor's memory; download it before leaving the design.
+Generated images are visualizations and may differ from precise construction geometry.
 
 The server system prompt in `src/infrastructure/gemini/design-image-prompt.ts` uses the
 architectural visualization and bespoke joinery instructions with `STAGING_LEVEL = 2`:

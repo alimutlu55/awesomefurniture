@@ -1,6 +1,6 @@
 import type { createEditorDom } from '../editor/editor-dom';
 import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
-import type { DesignImageRequest, GeneratedDesignImage } from '../../application/projects/design-image';
+import type { DesignImageRequest } from '../../application/projects/design-image';
 import { requestDesignImage } from './design-image-client';
 import { designImageErrorMessage } from './design-image-errors';
 import { createDesignImageLoading } from './design-image-loading';
@@ -9,8 +9,19 @@ interface Ports {
   dom: ReturnType<typeof createEditorDom>; lifetime: ReturnType<typeof createEditorLifetime>;
   capture(): DesignImageRequest;
 }
-const dataUrl = (image: GeneratedDesignImage) => `data:${image.mimeType};base64,${image.data}`;
+type State = 'intro' | 'generating' | 'result';
+
 const sparkle = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></svg>';
+const star = '<path d="M32 2C35 23 41 29 62 32C41 35 35 41 32 62C29 41 23 35 2 32C23 29 29 23 32 2Z"/>';
+const icon = (path: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${path}</svg>`;
+const features = [
+  [icon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+    'Natural light', 'Lit and styled like a professional photo shoot.'],
+  [icon('<path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/>'),
+    'True to your design', 'Your layout, sizes and finishes, beautifully rendered.'],
+  [icon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    'Ready in about a minute', 'Keep it, share it, or try another take.'],
+] as const;
 
 export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   const page = dom.host.ownerDocument, button = page.createElement('button');
@@ -18,94 +29,103 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   button.title = 'Generate image with AI'; button.innerHTML = sparkle + '<span>AI image</span>';
   dom.$('#topright').prepend(button);
   const dialog = page.createElement('dialog'); dialog.className = 'ai-image-dialog';
-  dialog.ariaLabel = 'Generate image with AI';
-  dialog.innerHTML = `<header><div><h2>See your design come to life</h2><p>Professional photography, made from your design.</p></div>
-    <button type="button" class="ai-close" aria-label="Close AI image">×</button></header>
-    <div class="ai-content"><p class="ai-status" role="status" aria-live="polite"></p>
-      <div class="ai-result" hidden><img alt="AI-generated professional photograph of your design"><p>AI visualization · Check details against your design.</p>
-      <a class="ai-download" download="design-ai.png">Download image</a></div>
-      <div class="ai-references" hidden><h3>Your design references</h3><div class="ai-reference-grid"></div>
-      <button type="button" class="ai-json">Download design JSON</button></div></div>
-    <footer><p>Your design and three views are sent to Google Gemini to create the image.</p>
-      <button type="button" class="ai-generate">Generate image</button></footer>`;
+  dialog.ariaLabel = 'Generate image with AI'; dialog.dataset.state = 'intro';
+  dialog.innerHTML = `<button type="button" class="ai-close" aria-label="Close AI image">${icon('<path d="M6 6l12 12M18 6 6 18"/>')}</button>
+    <p class="ai-status" role="status" aria-live="polite"></p>
+    <section class="ai-intro">
+      <div class="ai-hero" aria-hidden="true"><div class="ai-hero-glow"></div><div class="ai-hero-icon"><svg viewBox="0 0 64 64">${star}</svg></div></div>
+      <h2>Bring your design to life</h2>
+      <p class="ai-lede">Turn your design into a photorealistic image, as if it were already in your home.</p>
+      <ul class="ai-features">${features.map(([glyph, title, text]) =>
+        `<li><span class="ai-feature-icon">${glyph}</span><div><strong>${title}</strong><span>${text}</span></div></li>`).join('')}</ul>
+      <p class="ai-error" hidden></p>
+      <div class="ai-actions">
+        <button type="button" class="ai-button ai-primary ai-generate">Generate Image</button>
+        <button type="button" class="ai-button ai-plain ai-dismiss">Not Now</button>
+      </div>
+      <p class="ai-fineprint">Created with Google Gemini. AI images are visualizations and may differ from exact details.</p>
+    </section>
+    <section class="ai-result" hidden>
+      <figure><img alt="AI-generated photograph of your design"></figure>
+      <div class="ai-result-copy"><h2>Your design, brought to life</h2>
+        <p>AI visualization · Details may vary from your exact design.</p></div>
+      <div class="ai-actions ai-actions-row">
+        <a class="ai-button ai-primary ai-download" download="design-ai.jpg" aria-label="Download image">Save Image</a>
+        <button type="button" class="ai-button ai-secondary ai-again">Try Again</button>
+      </div>
+    </section>`;
   dom.$('#app').append(dialog);
   const loading = createDesignImageLoading(page, lifetime);
-  dialog.querySelector('.ai-content')!.prepend(loading.element);
+  dialog.querySelector('.ai-intro')!.after(loading.element);
   const status = dialog.querySelector<HTMLElement>('.ai-status')!;
+  const errorText = dialog.querySelector<HTMLElement>('.ai-error')!;
   const generate = dialog.querySelector<HTMLButtonElement>('.ai-generate')!;
-  const references = dialog.querySelector<HTMLElement>('.ai-references')!;
-  const grid = dialog.querySelector<HTMLElement>('.ai-reference-grid')!;
   const result = dialog.querySelector<HTMLElement>('.ai-result')!;
+  const resultImage = result.querySelector('img')!;
   const download = dialog.querySelector<HTMLAnchorElement>('.ai-download')!;
-  let current: DesignImageRequest | null = null, controller: AbortController | null = null;
-  let imageUrl: string | null = null, disposed = false;
-  const downloadUrls = new Set<string>();
+  const sections: Record<State, HTMLElement> = { intro: dialog.querySelector('.ai-intro')!, generating: loading.element, result };
+  let controller: AbortController | null = null, imageUrl: string | null = null, disposed = false;
   const releaseImage = () => { if (imageUrl) URL.revokeObjectURL(imageUrl); imageUrl = null; };
-  function close() { controller?.abort(); loading.stop(); dialog.close(); button.focus(); }
+  function show(state: State) {
+    dialog.dataset.state = state;
+    for (const [name, section] of Object.entries(sections)) section.hidden = name !== state;
+    dialog.scrollTop = 0;
+  }
+  function showError(message: string | null) {
+    errorText.hidden = !message; errorText.textContent = message ?? '';
+  }
+  /** Stops a pending request; a previous image stays available. */
+  function cancel() {
+    controller?.abort(); controller = null; loading.stop();
+    showError(null); show(imageUrl ? 'result' : 'intro');
+  }
+  function close() { cancel(); dialog.close(); button.focus(); }
   async function run() {
     if (controller) return;
     const request = new AbortController(); controller = request;
-    generate.disabled = true; generate.textContent = 'Generating…';
-    status.textContent = 'Preparing three views of your design…'; status.classList.remove('is-error');
-    loading.start(); dialog.classList.add('is-generating'); dialog.scrollTop = 0;
-    result.setAttribute('aria-busy', 'true');
+    showError(null); status.textContent = 'Creating your image. This usually takes about a minute.';
+    loading.start(); show('generating'); loading.cancel.focus();
     try {
-      // Let the progress message paint before synchronous WebGL capture. The snapshot and views are then captured together.
+      // Let the animation paint before the synchronous WebGL capture.
       await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
       if (request.signal.aborted || disposed) return;
-      current = capture();
-      loading.prepared(current);
-      references.hidden = false; grid.replaceChildren();
-      for (const image of current.references) {
-        const link = page.createElement('a'), preview = page.createElement('img'), label = page.createElement('span');
-        link.href = dataUrl(image); link.download = `design-${image.view}.jpg`;
-        preview.src = link.href; preview.alt = `${image.view} reference view`;
-        label.textContent = image.view === 'front' ? 'Front' : image.view === 'left' ? 'Left perspective' : 'Right perspective';
-        link.append(preview, label); grid.append(link);
-      }
-      status.textContent = 'Creating your image from three design views. This can take a couple of minutes…';
-      const output = await requestDesignImage(current, AbortSignal.any([request.signal, AbortSignal.timeout(160_000)]));
+      const input = capture();
+      loading.rendering();
+      const output = await requestDesignImage(input, AbortSignal.any([request.signal, AbortSignal.timeout(180_000)]));
       if (disposed || request.signal.aborted) return;
       const bytes = Uint8Array.from(atob(output.image.data), char => char.charCodeAt(0));
       releaseImage(); imageUrl = URL.createObjectURL(new Blob([bytes], { type: output.image.mimeType }));
-      result.querySelector('img')!.src = imageUrl; download.href = imageUrl;
+      resultImage.src = imageUrl; download.href = imageUrl;
       download.download = `design-ai.${output.image.mimeType === 'image/jpeg' ? 'jpg' : output.image.mimeType.split('/')[1]}`;
-      result.hidden = false; status.textContent = 'Your image is ready.';
+      result.classList.remove('is-revealing'); void result.offsetWidth; result.classList.add('is-revealing');
+      loading.stop(); show('result'); status.textContent = 'Your image is ready.';
+      download.focus();
     } catch (error) {
       if (disposed || request.signal.aborted) return;
-      status.textContent = designImageErrorMessage(error);
-      status.classList.add('is-error');
+      const message = designImageErrorMessage(error);
+      loading.stop(); showError(message); status.textContent = message;
+      generate.textContent = 'Try Again'; show('intro'); generate.focus();
     } finally {
-      controller = null;
-      loading.stop();
-      if (!disposed) {
-        if (request.signal.aborted) status.textContent = 'Generation cancelled. You can try again.';
-        generate.disabled = false; generate.textContent = 'Generate again';
-        dialog.classList.remove('is-generating'); result.removeAttribute('aria-busy'); dialog.scrollTop = 0;
-      }
+      if (controller === request) controller = null;
     }
   }
   lifetime.listen(button, 'click', () => {
     if (dialog.open) return;
+    // Opening never starts a paid generation: the customer chooses to generate.
+    show(controller ? 'generating' : imageUrl ? 'result' : 'intro');
     dialog.showModal();
-    if (!current && !controller) void run();
+    (controller ? loading.cancel : imageUrl ? download : generate).focus();
   });
   lifetime.listen(generate, 'click', () => { void run(); });
+  lifetime.listen(dialog.querySelector('.ai-again')!, 'click', () => { void run(); });
+  lifetime.listen(dialog.querySelector('.ai-dismiss')!, 'click', close);
+  lifetime.listen(loading.cancel, 'click', () => { cancel(); status.textContent = 'Image creation cancelled.'; });
   lifetime.listen(dialog.querySelector('.ai-close')!, 'click', close);
   lifetime.listen(dialog, 'cancel', (event: Event) => { event.preventDefault(); close(); });
   lifetime.listen(dialog, 'keydown', (event: Event) => { event.stopPropagation(); });
-  lifetime.listen(dialog.querySelector('.ai-json')!, 'click', () => {
-    if (!current) return;
-    const json = { ...current.specification, referenceViews: current.references.map(({ data: _data, ...view }) => view) };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' }));
-    downloadUrls.add(url);
-    const link = page.createElement('a'); link.href = url; link.download = 'design-specification.json';
-    dialog.append(link); link.click(); link.remove();
-    lifetime.timeout(() => { URL.revokeObjectURL(url); downloadUrls.delete(url); }, 10_000);
-  });
   lifetime.cleanup(() => {
-    disposed = true; controller?.abort(); releaseImage(); downloadUrls.forEach(url => URL.revokeObjectURL(url));
-    dialog.remove(); button.remove(); current = null;
+    disposed = true; controller?.abort(); releaseImage();
+    dialog.remove(); button.remove();
   });
   return { close };
 }
