@@ -32,8 +32,10 @@ async function providerError(response: Response): Promise<{ reason: string | nul
     const body = new Uint8Array(bytes);
     let offset = 0;
     for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
-    const error = (JSON.parse(new TextDecoder().decode(body)) as { error?: { status?: unknown; message?: unknown } })?.error;
-    const reason = typeof error?.status === 'string' && /^[A-Z_]{1,64}$/.test(error.status) ? error.status : null;
+    const error = (JSON.parse(new TextDecoder().decode(body)) as { error?: { status?: unknown; code?: unknown; message?: unknown } })?.error;
+    // Google APIs use `status` (e.g. INVALID_ARGUMENT); the Interactions API may use a string `code` instead.
+    const rawReason = typeof error?.status === 'string' ? error.status : typeof error?.code === 'string' ? error.code : null;
+    const reason = rawReason && /^[A-Za-z_]{1,64}$/.test(rawReason) ? rawReason : null;
     const message = typeof error?.message === 'string' ? error.message
       .replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted]')
       .replace(/[A-Za-z0-9+/=_-]{40,}/g, '[redacted]')
@@ -63,7 +65,8 @@ export async function generateDesignImage(
         { type: 'text', text: 'Generate the finished professional photograph of this exact design.' },
       ],
       // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
-      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '1K', delivery: 'inline' },
+      // Do not send `delivery`: Nano Banana 2.1 rejects it ("Image delivery mode is not supported.") and returns inline data by default.
+      response_format: { type: 'image', mime_type: 'image/jpeg', aspect_ratio: '4:3', image_size: '1K' },
     }),
   });
   if (!response.ok) {

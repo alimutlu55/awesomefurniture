@@ -83,6 +83,8 @@ Google's error message (`providerMessage`) with key-like and long base64-like ru
 at 300 characters; the request ID is also returned in `X-Request-ID` for operator correlation.
 The Interactions `ImageResponseFormat` supports JPEG output. PNG is accepted for reference inputs,
 but must not be requested as the output MIME type; the viewer downloads the actual returned format.
+Do not set `response_format.delivery`: although listed in the schema, Nano Banana 2.1 rejects it
+with 400 "Image delivery mode is not supported." and returns inline image data by default.
 
 API references: [Nano Banana 2.1](https://ai.google.dev/gemini-api/docs/models/gemini-nano-banana-2.1),
 [image generation](https://ai.google.dev/gemini-api/docs/image-generation), and

@@ -56,7 +56,7 @@ test('server sends the exact design and three labeled images to Nano Banana 2.1 
     assert.equal(body.model, 'gemini-nano-banana-2.1'); assert.equal(body.store, false);
     assert.equal(body.response_format.image_size, '1K');
     assert.equal(body.response_format.mime_type, 'image/jpeg', 'Interactions ImageResponseFormat only permits JPEG output');
-    assert.equal(body.response_format.delivery, 'inline');
+    assert.equal('delivery' in body.response_format, false, 'Nano Banana 2.1 rejects an explicit image delivery mode');
     assert.equal(body.generation_config.thinking_level, 'high');
     assert.deepEqual(JSON.parse(body.input[0].text.split('\n').slice(1).join('\n')), JSON.parse(JSON.stringify(modelSpecification(input.specification))));
     assert.equal(body.input.filter((p: { type: string }) => p.type === 'image').length, 3);
