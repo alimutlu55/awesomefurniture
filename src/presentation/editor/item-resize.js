@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { PANEL, PLINTH, MODS } from '../../domain/wardrobe/catalog.js';
+import { PANEL, MODS } from '../../domain/wardrobe/catalog.js';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'geometry' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'history' | 'shellState' | 'inspector' | 'renderState'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> }} ports */
 export function createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks }) {
     function beginItemEdgeResize(e, edge, handle) {
@@ -17,7 +17,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = cameraState.vs;
         cameraState.vzT = cameraState.vz;
-        interactionState.itemEdgeGesture = { edge, handle, pointer: e.pointerId, lastX: e.clientX, lastY: e.clientY, pressX: e.clientX, pressY: e.clientY, delta: 0, moved: false, g, section: model.activeCabinet().state.sel, index: model.activeCabinet().state.item, wardrobe: model.scene.activeWardrobe, layout: geometry.resizeObstacles(model.activeCabinet().state.sel), original: JSON.parse(JSON.stringify(model.activeCabinet().state.secs[model.activeCabinet().state.sel])), snapshot: model.snapshot(), minW: geometry.itemMinW(it), minH: geometry.effectiveMin(it.k), maxH: Math.min(MODS[it.k].mx, it.h + g.freeTop) };
+        interactionState.itemEdgeGesture = { edge, handle, pointer: e.pointerId, lastX: e.clientX, lastY: e.clientY, pressX: e.clientX, pressY: e.clientY, delta: 0, moved: false, g, section: model.activeCabinet().state.sel, index: model.activeCabinet().state.item, wardrobe: model.scene.activeWardrobe, layout: geometry.resizeObstacles(model.activeCabinet().state.sel), original: JSON.parse(JSON.stringify(model.activeCabinet().state.secs[model.activeCabinet().state.sel])), snapshot: model.snapshot(), minW: geometry.itemMinW(it), minH: geometry.effectiveMin(it.k), maxH: MODS[it.k].mx };
         interactionState.itemEdgeGesture.snap = buildSnapContext(interactionState.itemEdgeGesture);
         interactionState.itemEdgeGesture.guide = null;
         interactionState.itemEdgeGesture.lock = null;
@@ -112,7 +112,6 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             return null;
         }
         const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [], add = (pos, kind, label, src) => cand.push({ pos, kind, label, src });
-        let maxW = Infinity;
         if (top) {
             add(c.top, 'wall', 'Flush with top');
             c.others.forEach(o => {
@@ -133,7 +132,6 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             });
         }
         else {
-            maxW = geometry.itemEdgeSize(g, a.edge, a.edge === 'left' ? -Infinity : Infinity, a.layout, a.index, a.minW, a.minH, a.maxH).w;
             const R = a.edge === 'right';
             add(R ? c.bw : 0, 'wall', 'Flush with side');
             add(R ? c.bw - left : c.bw - right, 'center', 'Centred');
@@ -149,10 +147,15 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
                 }
             });
         }
-        const valid = cand.filter(k => {
-            const v = top ? k.pos - g.y0 : bottom ? g.y1 - k.pos : (a.edge === 'right' ? k.pos - left : right - k.pos);
-            return top || bottom ? (v >= a.minH - 1e-6 && v <= a.maxH + 1e-6) : (v >= Math.min(a.minW, g.w) - 1e-6 && v <= maxW + 1e-6);
-        });
+        // A visual alignment must be reachable by the very same edge solver as a free drag. Otherwise a nearby
+        // edge through a solid can win the snap and make the command reject every move near the boundary.
+        const start = top ? g.y1 : bottom ? g.y0 : a.edge === 'left' ? left : right;
+        const solve = delta => geometry.itemEdgeSize(g, a.edge, delta, a.layout, a.index, a.minW, a.minH, a.maxH);
+        const position = target => top ? g.y0 + target.h : bottom ? geometry.interiorFloor() + target.y
+            : a.edge === 'left' ? target.x : target.x + target.w;
+        // Resolve the interval once per pointer move, rather than rescanning every neighbor for every candidate.
+        const low = position(solve(-Infinity)), high = position(solve(Infinity));
+        const valid = cand.filter(k => k.pos >= low - 1e-6 && k.pos <= high + 1e-6);
         let best = null;
         if (a.lock) {
             best = valid.find(k => k.kind === a.lock.kind && Math.abs(k.pos - a.lock.pos) < 1e-6 && Math.abs(k.pos - raw) <= tol * 1.6) || null;
@@ -176,8 +179,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             return null;
         }
         a.lock = { kind: best.kind, pos: best.pos };
-        const target = top ? { h: best.pos - g.y0 } : bottom ? { h: g.y1 - best.pos, y: best.pos - geometry.interiorFloor() } : (a.edge === 'right' ? { w: best.pos - left, x: left } : { w: right - best.pos, x: best.pos });
-        return { target, guide: { orient: top || bottom ? 'h' : 'v', pos: top || bottom ? best.pos : g.bayL + best.pos, kind: best.kind, label: best.label, src: best.src } };
+        const target = solve(best.pos - start), pos = position(target);
+        return { target, guide: { orient: top || bottom ? 'h' : 'v', pos: top || bottom ? pos : g.bayL + pos, kind: best.kind, label: best.label, src: best.src } };
     }
     function setManualItemSize(edge, value, recordHistory = true) {
         const g = geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item), it = model.activeCabinet().state.secs[model.activeCabinet().state.sel]?.[model.activeCabinet().state.item];
@@ -188,8 +191,10 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (edge === 'right') {
             edge = geometry.widthEdgeFor(g);
         }
-        const before = model.snapshot(), target = geometry.itemEdgeSize(g, edge, edge === 'top' ? value - g.h : edge === 'left' ? g.w - value : value - g.w, geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, geometry.itemMinW(it), geometry.effectiveMin(it.k), Math.min(MODS[it.k].mx, it.h + g.freeTop));
-        if (edge === 'top' ? Math.abs(target.h - g.h) < .001 : Math.abs(target.w - g.w) < .001) {
+        const vertical = edge === 'top' || edge === 'bottom';
+        const delta = edge === 'top' ? value - g.h : edge === 'bottom' ? g.h - value : edge === 'left' ? g.w - value : value - g.w;
+        const before = model.snapshot(), target = geometry.itemEdgeSize(g, edge, delta, geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, geometry.itemMinW(it), geometry.effectiveMin(it.k), MODS[it.k].mx);
+        if (vertical ? Math.abs(target.h - g.h) < .001 : Math.abs(target.w - g.w) < .001) {
             inspector.itemUI();
             return;
         }

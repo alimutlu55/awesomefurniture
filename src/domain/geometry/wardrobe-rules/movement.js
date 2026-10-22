@@ -268,10 +268,16 @@ export function createMovementRules(ctx, deps) {
                 return { ...r, y0: plinth() + T + r.y0, y1: plinth() + T + r.y1 };
             })];
     }
+    /** Resolve a moving edge against its fixed opposite edge. `maxH` is the catalogue limit, never the
+     * clearance above: only the top consumes `freeTop`; the bottom consumes the gap to overlapping supports.
+     * Pointer, keyboard, numeric edits and snap candidates all use this solver. Existing fitted sizes remain
+     * reachable even if outside the current catalogue interval, so merely taking a handle cannot change size. */
     function itemEdgeSize(g, edge, delta, neighbors, index, minW, minH, maxH) {
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), round = v => Math.round(v * 10) / 10;
+        const smallestH = Math.min(minH, g.h);
         if (edge === 'top') {
-            return { h: clamp(round(g.h + delta), Math.min(minH, g.h), maxH) };
+            const cap = Math.max(g.h, Math.min(maxH, g.h + (g.freeTop ?? Infinity)));
+            return { h: clamp(round(g.h + delta), smallestH, cap) };
         }
         if (edge === 'bottom') {
             // The bottom edge moves and the top stays: down to what is under it (a fitting, a board or the base board),
@@ -280,7 +286,7 @@ export function createMovementRules(ctx, deps) {
             neighbors.forEach((q, j) => {
                 if (j !== index && q.y1 <= g.y0 + .01 && q.x0 < g.x1 - g.bayL - .01 && g.x0 - g.bayL < q.x1 - .01) floor = Math.max(floor, q.y1);
             });
-            const bottom = clamp(round(g.y0 + delta), Math.max(floor, g.y1 - maxH), g.y1 - minH);
+            const bottom = clamp(round(g.y0 + delta), Math.max(floor, g.y1 - Math.max(g.h, maxH)), g.y1 - smallestH);
             return { h: g.y1 - bottom, y: bottom - plinth() - T };
         }
         const left = g.x0 - g.bayL, right = g.x1 - g.bayL;

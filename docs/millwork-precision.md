@@ -61,6 +61,27 @@ overlay, with what was fixed and what is left. Branch `feature/millwork-precisio
     each frame's placement became a transition and layout lagged a frame behind.
 17. **Outer vs net (added).** Net figures carry a dashed rule; outer sizes keep solid pills on extension lines.
 
+## Fitting edge resizing
+
+`wardrobe-rules/movement.js:itemEdgeSize` owns the resize constraints. Its height argument is the
+catalogue maximum, not a height already limited by space above the item. The top edge consumes
+`freeTop`. The bottom edge keeps the top fixed and consumes the gap to the nearest horizontally
+overlapping item, divider, or base board; an upper neighbor cannot restrict downward growth.
+Item geometry uses cabinet-local x coordinates, while obstacle x coordinates are relative to the bay,
+so overlap comparisons subtract `bayL`. Vertical obstacle coordinates include the cabinet's interior floor.
+
+Pointer drags, keyboard handles, numeric edits and snapping all resolve through this solver. Snap
+candidates must lie inside the interval it returns, and their targets and guides follow its resolved
+coordinates. This prevents an unreachable alignment through a solid from blocking a valid drag.
+Existing fitted sizes outside the catalogue interval remain reachable without jumping on first contact.
+The application command pins other items during bottom/side resizing and validates the complete
+candidate section before replacing it; one completed gesture creates one undo checkpoint.
+
+Regression coverage: `tests/item-resize.test.cjs` exercises every fitting registry entry and the geometry,
+command and gesture paths. `scripts/check-item-edge-resize.cjs` exercises real touch and mouse handles,
+keyboard input, reversals, cancellation and undo at phone and desktop widths, including an item between
+neighbors, a fitted drawer below its catalogue minimum, a wall unit, and a shelf board under a slope.
+
 ## Focus tiers (as built)
 
 | Focus | Shown |

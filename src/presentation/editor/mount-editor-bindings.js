@@ -156,7 +156,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (!g) {
                 return;
             }
-            const it = model.activeCabinet().state.secs[model.activeCabinet().state.sel][model.activeCabinet().state.item], target = geometry.itemEdgeSize(g, edge, (e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? .5 : 1), geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, geometry.itemMinW(it), geometry.effectiveMin(it.k), Math.min(MODS[it.k].mx, it.h + g.freeTop));
+            const it = model.activeCabinet().state.secs[model.activeCabinet().state.sel][model.activeCabinet().state.item], target = geometry.itemEdgeSize(g, edge, (e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? .5 : 1), geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, geometry.itemMinW(it), geometry.effectiveMin(it.k), MODS[it.k].mx);
             commands.run(() => {
                 if (commands.applyItemEdgeSize({ edge, g, index: model.activeCabinet().state.item, section: model.activeCabinet().state.sel, layout: geometry.resizeObstacles(model.activeCabinet().state.sel), original: model.activeCabinet().state.secs[model.activeCabinet().state.sel] }, target)) {
                     shellState.G.tune = 1;

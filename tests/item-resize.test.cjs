@@ -30,11 +30,121 @@ test('a fitted item below its catalogue minimum can stay at its current height w
  const size=delta=>context.itemEdgeSize(fitted,'top',delta,[],-1,25,15,40).h;
  assert.equal(size(0),12); assert.equal(size(-10),12); assert.equal(size(1.2),13.2);
 });
+
+test('bottom resizing preserves fitted heights below the catalogue minimum and grows continuously',()=>{
+ const fitted={...g,h:10,y1:g.y0+10};
+ const size=delta=>context.itemEdgeSize(fitted,'bottom',delta,[],-1,25,15,30);
+ assert.equal(size(0).h,10);
+ assert.equal(size(10).h,10);
+ assert.equal(size(-1.2).h,11.2);
+});
 function model(secs){
  const c=vm.createContext({S:{w:104,h:120,n:1,wt:[100],secs:[secs]},update(){},hist:[],redoH:[],G:{}});
  designFixture(c);
  return c;
 }
+
+function edgeGestureFixture(items,index=1,design={}){
+ const c=model(items);Object.assign(c.S,{d:60,doors:'none',open:true,sel:0,item:index,dividers:[],profile:{longDrop:160},proposal:null},design);
+ const {createItemResize}=require('../src/presentation/editor/item-resize.js');
+ const history=[],interactionState={},labels={dataset:{}};
+ const handle={classList:{add(){},remove(){}},setPointerCapture(){},hasPointerCapture(){return false}};
+ const api=createItemResize({dom:{$:()=>labels},geometry:c,commands:c,
+  model:{activeCabinet:()=>({state:c.S}),scene:{activeWardrobe:1},snapshot:()=>JSON.stringify(c.S),restore:s=>{c.S=JSON.parse(s)}},
+  picking:{frontPoint:e=>({x:e.clientX/10,y:-e.clientY/10}),screenPoint:p=>({x:p.x*10,y:-p.y*10})},
+  camera:{camRelease(){},moveViewOn(){},moveViewOff(){}},cameraState:{tgt:{y:0}},interactionState,
+  history:{checkpoint:s=>history.push(s)},shellState:{G:{}},inspector:{update(){},histUI(){},itemUI(){}},
+  renderState:{Gr:{localToWorld:p=>p}},callbacks:{cancelMovement(){}}});
+ const begin=(edge='bottom')=>api.beginItemEdgeResize({button:0,pointerId:1,pointerType:'touch',clientX:100,clientY:100,preventDefault(){},stopPropagation(){}},edge,handle);
+ const move=delta=>api.moveItemEdgeResize({pointerId:1,clientX:100,clientY:100-delta*10});
+ return {c,api,begin,move,history,interactionState};
+}
+
+test('bottom drag expands into the gap below an item touching its upper neighbor, then reverses and undoes',()=>{
+ const {c,api,begin,move,history}=edgeGestureFixture([{k:'drawer',h:20,y:0},{k:'sdrawer',h:10,y:25},{k:'oven',h:60,y:35}]);
+ const before=JSON.stringify(c.S),upper=c.itemGeom(0,2),top=c.itemGeom(0,1).y1;
+ assert.equal(c.itemGeom(0,1).freeTop,0);
+ begin(); move(-2);
+ assert.equal(c.S.secs[0][1].h,12);
+ assert.ok(Math.abs(c.itemGeom(0,1).y1-top)<1e-9);
+ move(-100);
+ assert.ok(Math.abs(c.S.secs[0][1].h-15)<1e-9);assert.ok(Math.abs(c.S.secs[0][1].y-20)<1e-9);
+ assert.equal(c.itemGeom(0,2).y0,upper.y0);
+ move(-2);assert.equal(c.S.secs[0][1].h,12);
+ move(0);assert.equal(JSON.stringify(c.S),before,'returning to the start restores stacking intent');
+ move(-3);api.finishItemEdgeResize();assert.equal(history.length,1);
+ c.S=JSON.parse(history[0]);assert.equal(JSON.stringify(c.S),before);
+});
+
+test('bottom snapping cannot jump through a nearby fitting or shelf board',()=>{
+ for(const board of [false,true]){
+  const {c,api,begin,interactionState}=edgeGestureFixture([{k:'drawer',h:20,y:0},{k:'sdrawer',h:10,y:25},{k:'oven',h:60,y:35}],1,
+   board?{dividers:[{i:0,orientation:'horizontal',x0:0,x1:100,y:21.1}]}:{});
+  begin();const a=interactionState.itemEdgeGesture;
+  const floor=board?22:20;
+  // The other item's bottom is within the snap tolerance, but is through the limiting solid.
+  const invalid=c.interiorFloor()+floor-.3;
+  a.snap.others=[{i:1,j:0,div:true,y0:invalid,y1:invalid+.1}];a.delta=invalid-a.g.y0;
+  assert.equal(api.snapItemEdge(a),null,'reject geometrically unreachable snap candidates');
+  a.snap.others=[{i:1,j:0,div:true,y0:c.interiorFloor()+floor,y1:c.interiorFloor()+floor+.1}];
+  a.delta=c.interiorFloor()+floor-a.g.y0;
+  const snap=api.snapItemEdge(a);assert.ok(snap);assert.ok(Math.abs(snap.target.y-floor)<1e-9);
+  api.finishItemEdgeResize();
+ }
+});
+
+test('snaps obey top and side constraints and their guides follow the resolved geometry',()=>{
+ const {api,begin,interactionState,c}=edgeGestureFixture([
+  {k:'drawer',h:10,w:10,x:0,y:25},{k:'sdrawer',h:10,w:30,x:15,y:25},
+  {k:'drawer',h:10,w:10,x:50,y:25},{k:'oven',h:60,w:30,x:15,y:35}]);
+ begin('top');let a=interactionState.itemEdgeGesture;
+ a.snap.others=[{i:0,div:true,y0:a.g.y1+.2,y1:a.g.y1+.3}];a.delta=.2;
+ assert.equal(api.snapItemEdge(a),null,'the catalogue maximum cannot authorize a snap through the upper neighbor');
+ api.finishItemEdgeResize();
+ begin('right');a=interactionState.itemEdgeGesture;
+ a.snap.others=[{i:0,div:true,x0:50.2,x1:50.3}];a.delta=50.2-(a.g.x1-a.g.bayL);
+ assert.equal(api.snapItemEdge(a),null,'side snaps cannot pass through the neighbor');
+ a.snap.others=[{i:0,div:true,x0:49.95,x1:50}];a.delta=49.95-(a.g.x1-a.g.bayL);
+ const snap=api.snapItemEdge(a);assert.ok(snap);
+ assert.ok(Math.abs(snap.guide.pos-(a.g.bayL+snap.target.x+snap.target.w))<1e-9,'guide uses the solver result after millimeter rounding');
+ assert.equal(c.applyItemEdgeSize(a,snap.target),true);
+ api.finishItemEdgeResize();
+});
+
+test('bottom resizing uses the actual base and overlapping supports in every bay, independent of item order',()=>{
+ for(const design of [{},{product:'kitchen',unit:'upper'}])for(const bay of [0,1]){
+  const {c}=edgeGestureFixture([],0,{...design,w:203.6,n:2,wt:[1,1],secs:[[],[]]});
+  c.S.secs[bay]=[{k:'shelf',h:20,y:50,w:40,x:20},{k:'drawer',h:20,y:0,w:30,x:30},{k:'drawer',h:30,y:0,w:20,x:65}];
+  const geom=c.itemGeom(bay,0),obstacles=c.resizeObstacles(bay);
+  const target=c.itemEdgeSize(geom,'bottom',-1000,obstacles,0,25,15,65);
+  assert.ok(Math.abs(target.y-20)<1e-9,'only an overlapping support limits the bottom');
+  assert.ok(Math.abs(target.h-50)<1e-9);
+  const base=c.itemEdgeSize(geom,'bottom',-1000,[obstacles[0]],0,25,15,100);
+  assert.ok(Math.abs(base.y)<1e-9);assert.ok(Math.abs(base.h-70)<1e-9);
+ }
+});
+
+test('top dragging and numeric height edits retain the upper clearance limit',()=>{
+ const {c,api,begin,move}=edgeGestureFixture([{k:'drawer',h:20,y:0},{k:'sdrawer',h:10,y:25},{k:'oven',h:60,y:35}]);
+ begin('top');move(10);api.finishItemEdgeResize();assert.equal(c.S.secs[0][1].h,10);
+ api.setManualItemSize('top',17);assert.equal(c.S.secs[0][1].h,10);
+ api.setManualItemSize('bottom',15);assert.ok(Math.abs(c.S.secs[0][1].h-15)<1e-9);assert.ok(Math.abs(c.S.secs[0][1].y-20)<1e-9);
+});
+
+test('every fitting kind uses downward clearance and its own catalogue cap',()=>{
+ const {FITTINGS}=require('../src/domain/wardrobe/fittings.ts');
+ for(const def of FITTINGS){
+  const {c}=edgeGestureFixture([],1,{h:600,w:200});
+  const h=c.effectiveMin(def.key);
+  c.S.secs=[[{k:'drawer',h:20,y:0},{k:def.key,h,y:25},{k:'shelf',h:20,y:25+h}]];
+  const geom=c.itemGeom(0,1),layout=c.resizeObstacles(0);
+  const target=c.itemEdgeSize(geom,'bottom',-1000,layout,1,c.itemMinW(c.S.secs[0][1]),h,def.max);
+  const growth=Math.max(0,Math.min(5,def.max-h));
+  assert.ok(Math.abs(target.h-h-growth)<1e-9,def.key+': catalogue cap and lower support');
+  assert.ok(Math.abs(target.y+target.h-(25+h))<1e-9,def.key+': fixed top');
+  assert.equal(c.applyItemEdgeSize({edge:'bottom',g:geom,section:0,index:1,original:c.S.secs[0],layout},target),true,def.key+': constrained target is committable');
+ }
+});
 test('width resize retains the opposite edge and all existing vertical positions',()=>{
  const c=model([{k:'drawer',h:22},{k:'shelf',h:30}]);
  vm.runInContext(`const old=computeLayout(0);const g=itemGeom(0,0);applyItemEdgeSize({g,edge:'right',section:0,index:0,original:S.secs[0],layout:old},{w:50,x:0});`,c);
