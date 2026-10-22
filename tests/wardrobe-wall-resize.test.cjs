@@ -262,7 +262,7 @@ test('height slider bounds stay fixed during growth under a slope, then refresh 
     syncCabinetSizeLimits(dom, f.cabinet().state, false);
     assert.equal(range().min, number().min);
     assert.ok(Number(range().min) > 60, 'after release the scale reflects the newly shaped wardrobe');
-    assert.deepEqual([fields['#w'].min, fields['#w'].max, fields['#d'].min, fields['#d'].max, number().max], ['80', '600', '15', '90', '300'], 'wardrobe limits');
+    assert.deepEqual([fields['#w'].min, fields['#w'].max, fields['#d'].min, fields['#d'].max, number().max], ['20', '600', '15', '90', '300'], 'wardrobe limits');
 });
 
 for (const width of [375, 1280]) {

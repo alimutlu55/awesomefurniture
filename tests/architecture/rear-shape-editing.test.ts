@@ -138,7 +138,7 @@ test('corner width changes respect size limits and reject invalid placement atom
   f.inspector.endHandleDrag(true); assert.equal(f.model.snapshot(), before);
   f.inspector.beginHandleDrag(f.e, 1, f.target, 'front');
   f.point(-900, 230); f.inspector.moveHandleDrag(f.e);
-  assert.ok(f.state().w >= 80 && f.state().w <= 80.1);
+  assert.ok(f.state().w >= 20 && f.state().w <= 20.1);
   f.inspector.endHandleDrag();
   assert.deepEqual(shapeProblems(resolveShape(f.state()), f.state().w), []);
 });

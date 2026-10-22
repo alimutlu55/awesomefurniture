@@ -115,7 +115,7 @@ Centimetres, width × height × depth. Kitchen limits are in `kitchen-units.ts` 
 
 | Piece | Width | Height | Depth |
 |---|---|---|---|
-| Wardrobe | 80–600 | 180–300 (down to 60 once short or shaped) | 15–90 |
+| Wardrobe | 20–600 | 180–300 (down to 60 once short or shaped) | 15–90 |
 | Base cabinet | 30–150 | 70–100 | 30–80 |
 | Wall cabinet | 30–150 | 35–130 | 25–70 |
 | Tall cabinet | 30–100 | 150–270 | 30–80 |

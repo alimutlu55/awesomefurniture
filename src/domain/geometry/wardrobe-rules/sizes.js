@@ -1,6 +1,7 @@
 import { WardrobePlanner } from '../../planner/wardrobe-planner.js';
 import { MODS, PANEL as T } from '../../wardrobe/catalog.js';
 import { hasTrait } from '../../wardrobe/fittings';
+import { MIN_WARDROBE_WIDTH } from '../../wardrobe/cabinet-limits';
 /** Fitting size rules: minimum widths and heights, feasibility, new items, bay counts.
  * Part of the wardrobe rules (see ../wardrobe-geometry.js). Centimetres; only the design is read.
  * @param {import('./context.js').GeometryContext} ctx
@@ -26,7 +27,10 @@ export function createSizesRules(ctx, deps) {
     }
     const bayMinW = i => {
         const items = getDesign().secs[i] || [];
-        let full = items.length && items.every(it => hasTrait(it.k, 'filler')) ? 1.4 : 25, L = 0, R = 0;
+        // An empty single wardrobe can narrow to its outer limit. Fittings and
+        // multiple bays keep their existing clearances and partition widths.
+        const empty = getDesign().product !== 'kitchen' && getDesign().n === 1 ? MIN_WARDROBE_WIDTH - 2 * T : 25;
+        let full = items.length ? (items.every(it => hasTrait(it.k, 'filler')) ? 1.4 : 25) : empty, L = 0, R = 0;
         for (const it of items) {
             const mw = itemMinW(it);
             if (it.w && it.ax === 'l') {

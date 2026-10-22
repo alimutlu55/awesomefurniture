@@ -27,7 +27,7 @@ test('a wardrobe added to a narrow prepared studio stays inside its walls and be
   assert.deepEqual(f.history, [before]);
 });
 test('a room too small for a wardrobe refuses creation without changing scene or history', () => {
-  const f = fixture(rectangleStudio(70, 60)), before = f.model.snapshot();
+  const f = fixture(rectangleStudio(19, 19)), before = f.model.snapshot();
   assert.equal(f.commands.addCabinet(), null);
   assert.equal(f.model.snapshot(), before);
   assert.deepEqual(f.history, []);
@@ -52,7 +52,7 @@ test('a view-targeted wall adapts to its width and never falls back to a side wa
   const added = f.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' });
   assert.ok(added); assert.equal(added.angle, 0); assert.ok(added.state.w <= 150);
   assertPhysics(f);
-  const narrow = fixture(rectangleStudio(70, 400)), before = narrow.model.snapshot();
+  const narrow = fixture(rectangleStudio(19, 400)), before = narrow.model.snapshot();
   assert.equal(narrow.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' }), null);
   assert.equal(narrow.model.snapshot(), before); assert.equal(narrow.history.length, 0);
   assert.ok(narrow.commands.addCabinet(), 'a side wall could fit, but must not override the requested wall');
@@ -106,7 +106,7 @@ test('placement preserves access to a doorway in the narrow studio', async () =>
 test('width, depth and height fit a translated, rotated room with thick walls', () => {
   const a = 37 * Math.PI / 180, room = rectangleStudio(147.3, 42, 180, 28);
   const studio = { ...room, corners: room.corners.map(p => ({ ...p, x: 200 + p.x * Math.cos(a) + p.z * Math.sin(a), z: -70 - p.x * Math.sin(a) + p.z * Math.cos(a) })) };
-  const f = fixture(studio), added = f.commands.addCabinet(); assert.ok(added);
+  const f = fixture(studio), added = f.commands.addCabinet(false, undefined, undefined, { placementWall: 'w1' }); assert.ok(added);
   assert.ok(added.state.w <= 147.3); assert.ok(added.state.d <= 42); assert.equal(added.state.h, 180);
   assertPhysics(f);
 });

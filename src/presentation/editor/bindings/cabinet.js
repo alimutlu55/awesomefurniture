@@ -1,4 +1,4 @@
-import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
+import { MIN_CABINET_DEPTH, MIN_WARDROBE_WIDTH } from '../../../domain/wardrobe/cabinet-limits';
 import { bindDecorPicker } from '../decor-picker';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 import { measureNumber, unitSuffix } from '../editor-format.js';
@@ -11,7 +11,9 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
     // Sliders and the canvas labels share one reversible, boundary-clamped resize.
     // The slider's transaction records history, so previews do not checkpoint again.
     const edits = createTactileEdits({ model, checkpoint() {} });
-    /** @type {Array<[string,string,number,number]>} */ const dimensions = [['w', 'Width', 80, 600], ['h', 'Height', 180, 300], ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
+    /** @type {Array<[string,string,number,number]>} */ const dimensions = [
+        ['w', 'Width', MIN_WARDROBE_WIDTH, 600], ['h', 'Height', 180, 300],
+        ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
     dimensions.forEach(([id, t, mi, ma]) => {
         $('#sliders').insertAdjacentHTML('beforeend', sizeControlMarkup({ label: t, min: mi, max: ma, valueLabelId: id + 'v',
             inputAttributes: { id, inputmode: 'decimal', 'aria-label': id === 'y' ? 'Height above the floor' : 'Wardrobe ' + t.toLowerCase() },

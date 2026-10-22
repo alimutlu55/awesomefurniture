@@ -18,6 +18,7 @@ export interface CreationSize { w?: number; h?: number; d?: number; from?: numbe
 export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet, copy: boolean, wall?: string, size: CreationSize = {}): EditorCabinet | null {
   const sizes = furnitureModule(original.state).sizes(original.state);
   const [minW, maxW] = sizes.w, [minD, maxD] = sizes.d;
+  if (!Number.isFinite(original.state.w) || original.state.w < minW || original.state.w > maxW) return null;
   if (!Number.isFinite(original.state.d) || original.state.d < minD || original.state.d > maxD) return null;
   const studio = scene.studio;
   const targetWall = wall ?? size.placementWall;

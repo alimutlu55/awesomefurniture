@@ -22,7 +22,7 @@ test('furniture · every module is listed once and old designs are wardrobes', (
   const old = createEditorState();
   assert.equal(furnitureKind(old), 'wardrobe', 'a design without a product is a wardrobe');
   assert.equal(furnitureModule(old).key, 'wardrobe');
-  assert.deepEqual(furnitureModule(old).sizes(old), { w: [80, 600], h: [180, 300], d: [15, 90] }, 'wardrobe limits');
+  assert.deepEqual(furnitureModule(old).sizes(old), { w: [20, 600], h: [180, 300], d: [15, 90] }, 'wardrobe limits');
   assert.deepEqual([...furnitureModule(old).fittingKinds(old)], [...MENU_KINDS]);
 });
 

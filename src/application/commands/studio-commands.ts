@@ -12,6 +12,7 @@ import type { Pose } from '../../domain/studio/studio-placement';
 import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
+import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
 export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
@@ -207,10 +208,10 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     const standing = others.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
     const at = room && from !== undefined ? flushAgainst(room, wallId, from, { w: width ?? cabinet.state.w, d: cabinet.state.d }) : null;
     const spot = at ? { pose: at, w: width ?? cabinet.state.w, d: cabinet.state.d }
-      : room && from === undefined ? wallSpot(room, wallId, standing, { min: width ?? 80, max: width ?? 400, depth: cabinet.state.d }) : null;
+      : room && from === undefined ? wallSpot(room, wallId, standing, { min: width ?? MIN_WARDROBE_WIDTH, max: width ?? 400, depth: cabinet.state.d }) : null;
     const fits = spot && !collisionWith(room, () => others).cabinetCollides({ ...cabinet, ...spot.pose, state: { ...cabinet.state, w: spot.w, d: spot.d } });
     if (!fits) report(from !== undefined ? 'The wardrobe does not fit there on that wall: it would run into a wall, a door or another wardrobe.'
-      : 'This wall has no free stretch of ' + (width ?? 80) + ' cm for a wardrobe. It went where there is room.');
+      : 'This wall has no free stretch of ' + (width ?? MIN_WARDROBE_WIDTH) + ' cm for a wardrobe. It went where there is room.');
     return fits ? spot : null;
   }
 
