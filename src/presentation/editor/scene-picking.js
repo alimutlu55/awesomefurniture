@@ -1,8 +1,17 @@
 import * as THREE from "three";
 /** @param {import('./scene-picking.ports').CreateScenePickingPorts} ports */
 export function createScenePicking({ dom, interactionState, renderState, resources, model }) {
+    let lastRectTime = 0, cachedRect = null;
+    function getRect() {
+        const now = performance.now();
+        if (!cachedRect || now - lastRectTime > 32) {
+            cachedRect = resources.cv.getBoundingClientRect();
+            lastRectTime = now;
+        }
+        return cachedRect;
+    }
     function frontPoint(e, side = 'front') {
-        const r = resources.cv.getBoundingClientRect();
+        const r = getRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         const depth = (side === 'rear' ? 1 : -1) * model.activeCabinet().state.d / 2;
         const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), depth).applyMatrix4(renderState.Gr.matrixWorld);
@@ -10,7 +19,7 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         return point ? renderState.Gr.worldToLocal(point) : null;
     }
     function cast(e, arr) {
-        const r = resources.cv.getBoundingClientRect();
+        const r = getRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         // A wardrobe hidden because it blocks the view takes no clicks: they reach what is behind it.
         const hits = interactionState.ray.intersectObjects(arr).filter(h => shown(h.object)), first = hits[0];
@@ -32,7 +41,7 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         return h ? h.object.userData.i : -1;
     }
     function groundPoint(e, height = 0) {
-        const r = resources.cv.getBoundingClientRect();
+        const r = getRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         return interactionState.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -height), new THREE.Vector3());
     }
@@ -40,7 +49,7 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
     const onShow = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return o.isMesh && o.material?.visible !== false && !o.userData.floorShadow; };
     /** The wardrobe or cabinet whose boards are under the pointer, its frame (sides, top, plinth) included, or undefined. */
     function pieceAt(e) {
-        const r = resources.cv.getBoundingClientRect();
+        const r = getRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
         let g = interactionState.ray.intersectObjects(renderState.wardrobeGroups, true).find(h => onShow(h.object))?.object;
         while (g && !renderState.wardrobeGroups.includes(g)) g = g.parent;
@@ -57,7 +66,7 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         return hit ? hit.point.clone() : null;
     }
     function screenPoint(p) {
-        const r = resources.cv.getBoundingClientRect(), q = p.clone().project(resources.cam);
+        const r = getRect(), q = p.clone().project(resources.cam);
         return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
     }
     return { frontPoint, cast, hitAt, groundPoint, screenPoint, surfaceAlong, pieceAt };

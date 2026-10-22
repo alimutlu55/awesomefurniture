@@ -3,9 +3,72 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
-/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources' | 'interactionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'label' | 'dimensionStroke' | 'bindRuler'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
+/** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources' | 'interactionState'>
+ *   & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } }
+ *   & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'label' | 'dimensionStroke' | 'bindRuler'> }
+ *   & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createMovementOverlays({ dom, geometry, callbacks, renderState, resources, interactionState, getRenderDesign }) {
     const { $, document } = dom;
+    const boxPool = [];
+    const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vMid = new THREE.Vector3();
+    let unitBoxEdges = null, previewMaterials = null;
+    let clearanceMesh = null, clearancePositions = new Float32Array(256), clearanceAttr = null, clearanceGeo = null;
+
+    function getUnitBoxEdges() {
+        if (!unitBoxEdges) {
+            const box = new THREE.BoxGeometry(1, 1, 1);
+            unitBoxEdges = new THREE.EdgesGeometry(box);
+            box.dispose();
+        }
+        return unitBoxEdges;
+    }
+
+    function getPreviewMaterials() {
+        if (!previewMaterials) {
+            previewMaterials = {
+                green: new THREE.LineBasicMaterial({ color: 0x1f9d6b, transparent: true, opacity: 1, depthTest: false }),
+                blue: new THREE.LineBasicMaterial({ color: 0x2f5bea, transparent: true, opacity: 0.65, depthTest: false }),
+                orange: new THREE.LineBasicMaterial({ color: 0xe5a000, transparent: true, opacity: 0.65, depthTest: false }),
+                red: new THREE.LineBasicMaterial({ color: 0xd6383a, transparent: true, opacity: 1, depthTest: false }),
+                stroke: new THREE.LineBasicMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, transparent: true, opacity: 0.65, depthTest: false, depthWrite: false }),
+            };
+        }
+        return previewMaterials;
+    }
+
+    function ensurePreviewGroup() {
+        if (!renderState.previewGroup) {
+            renderState.previewGroup = new THREE.Group();
+            renderState.previewGroup.visible = false;
+            resources.scene?.add(renderState.previewGroup);
+        }
+        return renderState.previewGroup;
+    }
+
+    function ensureClearanceCapacity(needed) {
+        if (needed > clearancePositions.length) {
+            const next = new Float32Array(Math.max(needed, clearancePositions.length * 2));
+            next.set(clearancePositions);
+            clearancePositions = next;
+            clearanceAttr = new THREE.BufferAttribute(clearancePositions, 3);
+            clearanceAttr.setUsage(THREE.DynamicDrawUsage);
+            clearanceGeo?.setAttribute('position', clearanceAttr);
+        }
+    }
+
+    function ensureClearanceMesh() {
+        if (!clearanceMesh) {
+            clearanceGeo = new THREE.BufferGeometry();
+            clearanceAttr = new THREE.BufferAttribute(clearancePositions, 3);
+            clearanceAttr.setUsage(THREE.DynamicDrawUsage);
+            clearanceGeo.setAttribute('position', clearanceAttr);
+            clearanceMesh = new THREE.LineSegments(clearanceGeo, getPreviewMaterials().stroke);
+            clearanceMesh.renderOrder = 22;
+            ensurePreviewGroup().add(clearanceMesh);
+        }
+        return clearanceMesh;
+    }
+
     function holdOverlay(on) {
         if (on === renderState.overlayHeld) {
             return;
@@ -14,6 +77,7 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         renderState.selMarks.forEach(m => m.visible = !on);
         document.querySelectorAll('#labels .item-dimension:not(.preview),#labels .clearance:not(.preview)').forEach(el => el.classList.toggle('held', on));
     }
+
     function setPreviewLabel(key, pos, text, cls) {
         let r = renderState.prevLab[key];
         if (!r || !renderState.labs.includes(r.entry)) {
@@ -38,6 +102,7 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             r.el.className = cls;
         }
     }
+
     function dropPreviewLabels(keep) {
         for (const k of Object.keys(renderState.prevLab)) {
             if (keep && keep.has(k)) {
@@ -52,17 +117,81 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             delete renderState.prevLab[k];
         }
     }
+
+    function updatePreviewOutlines({ plan, it, to, px, py, ws, xL, xR, yB, yT, offsetX, offsetY, itemWidth }) {
+        if (!resources?.scene) return;
+        const group = ensurePreviewGroup();
+        if (renderState.Gr) {
+            group.position.copy(renderState.Gr.position);
+            group.rotation.copy(renderState.Gr.rotation);
+        }
+        group.visible = true;
+        let boxCount = 0;
+        const placeBox = (cx, cy, cz, w, h, d, matKey) => {
+            let m = boxPool[boxCount];
+            if (!m) {
+                m = new THREE.LineSegments(getUnitBoxEdges(), getPreviewMaterials()[matKey]);
+                m.renderOrder = 20;
+                group.add(m);
+                boxPool.push(m);
+            } else {
+                m.material = getPreviewMaterials()[matKey];
+            }
+            m.position.set(cx, cy, cz);
+            m.scale.set(w, h, d);
+            m.visible = true;
+            boxCount++;
+        };
+        const d = getRenderDesign().d;
+        if (plan.valid) {
+            for (const [iStr, lay] of Object.entries(plan.layouts)) {
+                const i = +iStr, old = geometry.computeLayout(i);
+                const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0);
+                lay.forEach((q, j) => {
+                    const isTarget = i === plan.to && j === plan.index;
+                    const isChanged = !old[j] || Math.abs(old[j].y0 - q.y0) > .01 || Math.abs(old[j].x0 - q.x0) > .01;
+                    if (isTarget) {
+                        placeBox(left + (q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, 0, q.w, q.h || q.y1 - q.y0, d + 1, 'green');
+                    } else if (isChanged) {
+                        placeBox(left + (q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, 0, q.w, q.h || q.y1 - q.y0, d + 1, plan.swap ? 'orange' : 'blue');
+                    }
+                });
+            }
+        } else if (to >= 0) {
+            const hw = itemWidth / 2, hh = it.h / 2;
+            const cl = (v, a, b) => a > b ? (a + b) / 2 : Math.max(a, Math.min(b, v));
+            const posX = cl(px - offsetX, xL + hw, xR - hw);
+            const posY = cl(py - offsetY, yB + hh, yT - hh);
+            placeBox(posX, posY, d + 3, itemWidth, it.h, d, 'red');
+        }
+        for (let k = boxCount; k < boxPool.length; k++) {
+            boxPool[k].visible = false;
+        }
+    }
+
     function drawClearances(plan, it, keep) {
         const ws = geometry.widths(), i = plan.to, q = plan.layouts[i]?.[plan.index];
         if (!q) {
             return;
         }
-        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i], zf = getRenderDesign().d / 2 + 4, f = measureNumber, x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2, bar = (w, h, x, y) => {
+        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i], zf = getRenderDesign().d / 2 + 4, f = measureNumber, x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2;
+        ensureClearanceMesh();
+        let clearancePosCount = 0;
+        const bar = (w, h, x, y) => {
             const horizontal = w > h;
-            callbacks.dimensionStroke([new THREE.Vector3(x - (horizontal ? w / 2 : 0), y - (horizontal ? 0 : h / 2), zf), new THREE.Vector3(x + (horizontal ? w / 2 : 0), y + (horizontal ? 0 : h / 2), zf)], renderState.previewGroup, 22);
+            const xa = x - (horizontal ? w / 2 : 0), xb = x + (horizontal ? w / 2 : 0);
+            const ya = y - (horizontal ? 0 : h / 2), yb = y + (horizontal ? 0 : h / 2);
+            ensureClearanceCapacity(clearancePosCount + 6);
+            clearancePositions[clearancePosCount++] = xa;
+            clearancePositions[clearancePosCount++] = ya;
+            clearancePositions[clearancePosCount++] = zf;
+            clearancePositions[clearancePosCount++] = xb;
+            clearancePositions[clearancePosCount++] = yb;
+            clearancePositions[clearancePosCount++] = zf;
         }, lab = (key, x, y, text, cls = 'lbl dim clearance preview') => {
             keep.add(key);
-            setPreviewLabel(key, new THREE.Vector3(x, y, zf), text, cls);
+            vMid.set(x, y, zf);
+            setPreviewLabel(key, vMid, text, cls);
         }, vert = (key, ya, yb, mid) => {
             if (yb - ya > .1) {
                 bar(.6, yb - ya, mid, (ya + yb) / 2);
@@ -94,38 +223,52 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             side('left', left, x0);
             side('right', x1, left + bw);
         }
+        if (clearanceAttr) {
+            clearanceAttr.needsUpdate = true;
+            clearanceGeo?.setDrawRange(0, clearancePosCount / 3);
+            if (clearanceMesh) clearanceMesh.visible = clearancePosCount > 0;
+        }
         const ruler = (key, a, b, text) => {
             if (a.distanceTo(b) < .05) return;
             keep.add(key);
-            setPreviewLabel(key, a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension preview');
+            vMid.copy(a).add(b).multiplyScalar(.5);
+            setPreviewLabel(key, vMid, text, 'lbl dim space-ruler item-dimension preview');
             callbacks.bindRuler(renderState.prevLab[key].el, a, b, key);
         };
-        ruler('width', new THREE.Vector3(x0, q.y0, zf), new THREE.Vector3(x1, q.y0, zf), 'W ' + f(q.w) + unitSuffix());
-        ruler('height', new THREE.Vector3(x1, q.y0, zf), new THREE.Vector3(x1, q.y1, zf), 'H ' + f(it.h) + unitSuffix());
+        vA.set(x0, q.y0, zf); vB.set(x1, q.y0, zf);
+        ruler('width', vA, vB, 'W ' + f(q.w) + unitSuffix());
+        vA.set(x1, q.y0, zf); vB.set(x1, q.y1, zf);
+        ruler('height', vA, vB, 'H ' + f(it.h) + unitSuffix());
         const fd = fittingDepth(getRenderDesign().d), back = -getRenderDesign().d / 2;
-        ruler('depth', new THREE.Vector3(x0, q.y0, back + fd.z0), new THREE.Vector3(x0, q.y0, back + fd.z1), 'D ' + f(fd.depth) + unitSuffix());
+        vA.set(x0, q.y0, back + fd.z0); vB.set(x0, q.y0, back + fd.z1);
+        ruler('depth', vA, vB, 'D ' + f(fd.depth) + unitSuffix());
     }
+
     function clearPreview(hide = true) {
         if (hide) {
             dropPreviewLabels();
         }
+        for (let i = 0; i < boxPool.length; i++) {
+            boxPool[i].visible = false;
+        }
+        if (clearanceMesh) {
+            clearanceMesh.visible = false;
+            clearanceGeo?.setDrawRange(0, 0);
+        }
         if (renderState.previewGroup) {
-            resources.scene.remove(renderState.previewGroup);
-            renderState.previewGroup.traverse(o => {
-                o.geometry?.dispose();
-                o.material?.dispose();
-            });
-            renderState.previewGroup = null;
+            renderState.previewGroup.visible = false;
         }
         interactionState.previewPlan = null;
         if (hide) {
             $('#move-status').hidden = true;
         }
     }
+
     function clearSettling() {
         renderState.settling.forEach(a => a.group.position.set(0, 0, 0));
         renderState.settling = [];
     }
+
     function drawSnapGuides() {
         let layer = document.getElementById('snap-layer');
         if (!layer) {
@@ -165,5 +308,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         line.style.transform = 'translate(' + A.x + 'px,' + A.y + 'px) rotate(' + ang + 'rad)';
         layer.classList.add('on');
     }
-    return { holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, drawSnapGuides };
+
+    return { holdOverlay, setPreviewLabel, dropPreviewLabels, updatePreviewOutlines, drawClearances, clearPreview, clearSettling, drawSnapGuides };
 }

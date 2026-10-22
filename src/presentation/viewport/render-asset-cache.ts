@@ -46,6 +46,10 @@ export function createRenderAssetCache() {
       materials.delete(key);
     }
   }
+  function retain(usedGeoms?: Set<THREE.BufferGeometry>, usedMats?: Set<THREE.Material>) {
+    if (usedGeoms) for (const [key, value] of geometries) if (usedGeoms.has(value)) usedGeometry.add(key);
+    if (usedMats) for (const [key, value] of materials) if (value.some(m => usedMats.has(m))) usedMaterials.add(key);
+  }
   function dispose() {
     // Detach cached meshes before the viewport's general scene cleanup to avoid double disposal.
     meshes.forEach(mesh => mesh.parent?.remove(mesh));
@@ -53,5 +57,5 @@ export function createRenderAssetCache() {
     endBuild();
   }
 
-  return { geometry, material, meshes, beginBuild, endBuild, dispose, sharedGeometries, sharedMaterials };
+  return { geometry, material, meshes, beginBuild, endBuild, retain, dispose, sharedGeometries, sharedMaterials };
 }

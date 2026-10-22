@@ -31,7 +31,6 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             // item/divider state, shape handles and the old panel leave together.
             emptyTap = null;
             inspector.selectCabinet(frame);
-            inspector.update();
             return;
         }
         if (!h) {
@@ -50,11 +49,12 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (!selectionState.focusOn || u.wardrobe !== model.scene.activeWardrobe) {
             // Where it was tapped is the space the person means, not the section's top: Add item ranks for it.
             const at = h.point ? inWardrobe(h.object, h.point) : null;
-            inspector.selectCabinet(u.wardrobe);
+            inspector.selectCabinet(u.wardrobe, false);
             model.activeCabinet().state.sel = u.i;
             model.activeCabinet().state.space = null;
             if (at) inspector.selectSpaceAt(u.i, at);
             inspector.update();
+            if (dom.width > 900) camera.frameMobileInspector(true);
             return;
         }
         const m = picking.cast(e, renderState.allItemHits);

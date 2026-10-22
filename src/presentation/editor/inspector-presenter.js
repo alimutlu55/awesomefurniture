@@ -54,7 +54,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         cameraState.vsT = camera.baseShift();
         cameraState.vzT = 1;
     };
-    function selectCabinet(id) {
+    function selectCabinet(id, refresh = true) {
         selectionState.shapeEditing = false;
         camera.camRelease();
         if (interactionState.wardrobeGesture) {
@@ -71,8 +71,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         model.activeCabinet().state.space = null;
         selectionState.pillOn = false;
         selectionState.deep = false;
-        update();
-        if (dom.width > 900) camera.frameMobileInspector(true);
+        if (refresh) update();
+        if (refresh && dom.width > 900) camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
         // A new wardrobe stands against the wall in view, in front of the viewer.

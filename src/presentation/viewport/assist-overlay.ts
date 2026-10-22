@@ -28,38 +28,65 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
     ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 5, gapSize: 4, toneMapped: false, depthTest: false, transparent: true })
     : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true });
   const ink = material('#2f2a22'), ok = material('#2f8a57'), tight = material('#c0782b'), level = material('#2f8a57', true);
-  let mine: Lab[] = [];
+  const tagPool: Lab[] = [];
+  let activeTags = 0;
+  const linePool: THREE.LineSegments[] = [];
+  let activeLines = 0;
+  const alignLinePool: THREE.Line[] = [];
+  let activeAlignLines = 0;
 
   function clear() {
-    group.children.forEach(o => (o as THREE.LineSegments).geometry.dispose());
-    group.clear();
-    const set = new Set(mine);
-    mine.forEach(l => l.el.remove());
-    renderState.labs = renderState.labs.filter(l => !set.has(l));
-    mine = [];
+    for (let i = 0; i < tagPool.length; i++) tagPool[i]!.el.style.display = 'none';
+    for (let i = 0; i < linePool.length; i++) linePool[i]!.visible = false;
+    for (let i = 0; i < alignLinePool.length; i++) alignLinePool[i]!.visible = false;
+    activeTags = 0;
+    activeLines = 0;
+    activeAlignLines = 0;
   }
   function tag(p: THREE.Vector3, text: string, tone: string) {
-    const el = document.createElement('div');
-    el.className = 'lbl assist-gap' + (tone ? ' ' + tone : '');
-    el.textContent = text;
-    labels().appendChild(el);
-    const entry = { p, el };
-    renderState.labs.push(entry);
-    mine.push(entry);
+    let entry: Lab;
+    if (activeTags < tagPool.length) {
+      entry = tagPool[activeTags]!;
+      entry.p.copy(p);
+      const cls = 'lbl assist-gap' + (tone ? ' ' + tone : '');
+      if (entry.el.className !== cls) entry.el.className = cls;
+      if (entry.el.textContent !== text) entry.el.textContent = text;
+      entry.el.style.display = 'block';
+    } else {
+      const el = document.createElement('div');
+      el.className = 'lbl assist-gap' + (tone ? ' ' + tone : '');
+      el.textContent = text;
+      labels().appendChild(el);
+      entry = { p: p.clone(), el };
+      renderState.labs.push(entry);
+      tagPool.push(entry);
+    }
+    activeTags++;
   }
   /** A dimension line with short ticks across its ends. */
   function dimension(a: THREE.Vector3, b: THREE.Vector3, m: THREE.Material, angle = 0) {
     const dir = b.clone().sub(a), vertical = Math.abs(dir.y) > Math.hypot(dir.x, dir.z), rad = angle * Math.PI / 180;
     const tick = vertical ? new THREE.Vector3(Math.cos(rad) * 5, 0, -Math.sin(rad) * 5) : new THREE.Vector3(0, 5, 0);
     const pts = [a, b, a.clone().add(tick), a.clone().sub(tick), b.clone().add(tick), b.clone().sub(tick)];
-    const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), m);
-    line.renderOrder = 30;
-    group.add(line);
+    if (activeLines < linePool.length) {
+      const line = linePool[activeLines]!;
+      line.geometry.setFromPoints(pts);
+      line.material = m;
+      line.visible = true;
+    } else {
+      const line = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), m);
+      line.renderOrder = 30;
+      group.add(line);
+      linePool.push(line);
+    }
+    activeLines++;
   }
 
   /** Draws the gaps and alignments given; with nothing, clears. */
   function draw(gaps: readonly Gap[] = [], aligned: readonly Alignment[] = [], angle = 0) {
-    clear();
+    activeTags = 0;
+    activeLines = 0;
+    activeAlignLines = 0;
     const green = new Set(aligned.flatMap(a => a.kind === 'centred' || a.kind === 'flush' ? a.sides ?? [] : []));
     const rad = angle * Math.PI / 180, alongBar = new THREE.Vector3(Math.cos(rad) * 25, 0, -Math.sin(rad) * 25);
     for (const g of gaps) {
@@ -78,15 +105,38 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
     // Fronts in line, tops level: a green dashed line along them, no words.
     for (const a of aligned) {
       if ((a.kind !== 'fronts' && a.kind !== 'tops') || !a.a || !a.b) continue;
-      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.a.x, a.a.y, a.a.z), new THREE.Vector3(a.b.x, a.b.y, a.b.z)]), level);
-      line.computeLineDistances();
-      line.renderOrder = 30;
-      group.add(line);
+      const pts = [new THREE.Vector3(a.a.x, a.a.y, a.a.z), new THREE.Vector3(a.b.x, a.b.y, a.b.z)];
+      if (activeAlignLines < alignLinePool.length) {
+        const line = alignLinePool[activeAlignLines]!;
+        line.geometry.setFromPoints(pts);
+        line.computeLineDistances();
+        line.visible = true;
+      } else {
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), level);
+        line.computeLineDistances();
+        line.renderOrder = 30;
+        group.add(line);
+        alignLinePool.push(line);
+      }
+      activeAlignLines++;
     }
+    for (let i = activeTags; i < tagPool.length; i++) tagPool[i]!.el.style.display = 'none';
+    for (let i = activeLines; i < linePool.length; i++) linePool[i]!.visible = false;
+    for (let i = activeAlignLines; i < alignLinePool.length; i++) alignLinePool[i]!.visible = false;
   }
   return {
     draw, clear,
-    dispose() { clear(); [ink, ok, tight, level].forEach(m => m.dispose()); scene.remove(group); },
+    dispose() {
+      clear();
+      tagPool.forEach(l => l.el.remove());
+      const set = new Set(tagPool);
+      renderState.labs = renderState.labs.filter(l => !set.has(l));
+      tagPool.length = 0;
+      linePool.forEach(l => (l as THREE.LineSegments).geometry.dispose());
+      alignLinePool.forEach(l => (l as THREE.Line).geometry.dispose());
+      [ink, ok, tight, level].forEach(m => m.dispose());
+      scene.remove(group);
+    },
   };
 }
 

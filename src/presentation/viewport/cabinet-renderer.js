@@ -24,6 +24,8 @@ import { createHandbagRenderer } from './handbag-renderer';
 import { createTrouserRenderer } from './trouser-renderer';
 import { createKitchenRunRenderer } from './kitchen-run-renderer';
 import { deconflictLabels } from './label-deconflict';
+import { createCabinetBuildCache, sceneGeometryFingerprint, wardrobeDesignFingerprint, createCvRectCache, createLabelDimMeasurer } from './cabinet-build-cache.js';
+import { createLabelLayout } from './label-layout.js';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -86,7 +88,10 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const { loop } = createFrameRenderer({ dom, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio: sceneFrame, callbacks: { get positionLabels() {
                 return positionLabels;
             } } });
-    const { holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, drawSnapGuides } = createMovementOverlays({ dom, geometry, callbacks: { get label() {
+    const {
+        holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances,
+        updatePreviewOutlines, clearPreview, clearSettling, drawSnapGuides
+    } = createMovementOverlays({ dom, geometry, callbacks: { get label() {
                 return label;
             }, get dimensionStroke() {
                 return dimensionStroke;
@@ -140,6 +145,13 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     const trousers = createTrouserRenderer(resources?.cv?.ownerDocument);
     const { trouserPullOut } = trousers;
     lifetime?.cleanup(() => { clothes.dispose(); bags.dispose(); trousers.dispose(); });
+    const sharedMaterials = () => new Set([resources.HM, ...clothes.sharedMaterials, ...bags.sharedMaterials, ...trousers.sharedMaterials]);
+    const sharedGeometries = () => new Set([...clothes.sharedGeometries, ...bags.sharedGeometries, ...trousers.sharedGeometries]);
+    const buildCache = createCabinetBuildCache({ resources, clothes, bags, trousers });
+    lifetime?.cleanup(() => buildCache.disposeAll(sharedMaterials(), sharedGeometries()));
+    const getCvRect = createCvRectCache(resources?.cv);
+    const labelDim = createLabelDimMeasurer();
+    let lastSceneFingerprint = '', cachedActiveRenderMap = new Map();
     /** Keeps the sun's shadows sharp: its shadow camera covers the room and the wardrobes, no more. */
     function fitLight() {
         const room = model.scene.studio && studioBounds(model.scene.studio), xs = [], zs = [];
@@ -156,93 +168,14 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         if (resources.ground) resources.ground.visible = !room;
         resources.stage?.fit((x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, z1 - z0));
     }
-    function build() {
-        if (!model.scene.wardrobes.length) selectionState.shapeEditing = false;
-        studio?.sync(model.scene.studio, wardrobeFootprints());
-        fitLight();
-        studio?.select(studioEditor?.valid() ?? null);
-        const selected = model.activeCabinet();
-        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle') && !l.el.classList.contains('room-handle'));
-        renderState.dividerVisuals = [];
-        renderState.labs.forEach(l => {
-            // Pooled handles survive rebuilds so an active drag keeps its pointer capture.
-            if (!l.el.classList.contains('shape-handle') && !l.el.classList.contains('array-grip')) {
-                l.el.remove();
-            }
-            l.rulerNode?.remove();
-        });
-        kitchenArray?.beginBuild();
-        renderState.wardrobeGroups.forEach(g => {
-            resources.scene.remove(g);
-            disposeCabinetGroup(g, new Set([resources.HM, ...clothes.sharedMaterials, ...bags.sharedMaterials, ...trousers.sharedMaterials]), new Set([...clothes.sharedGeometries, ...bags.sharedGeometries, ...trousers.sharedGeometries]));
-        });
-        renderState.wardrobeGroups = [];
-        renderState.allHits = [];
-        renderState.allItemHits = [];
-        renderState.garments = [];
-        clothes.beginBuild();
-        bags.beginBuild();
-        trousers.beginBuild();
-        const combinedLabs = [], combinedPivots = [];
-        let activeRender;
-        for (const wardrobe of model.scene.wardrobes) {
-            renderDesign = wardrobe.state;
-            renderState.renderCabinet = wardrobe;
-            renderState.renderActive = wardrobe.id === model.scene.activeWardrobe;
-            buildCabinet();
-            renderState.Gr.position.set(wardrobe.x, wardrobe.y || 0, wardrobe.z);
-            renderState.Gr.rotation.y = wardrobe.angle * Math.PI / 180;
-            renderState.Gr.updateMatrixWorld(true);
-            renderState.wardrobeGroups.push(renderState.Gr); renderState.Gr.userData.wardrobe = wardrobe.id;
-            renderState.hits.forEach(h => h.userData.wardrobe = wardrobe.id);
-            renderState.ihits.forEach(h => h.userData.wardrobe = wardrobe.id);
-            renderState.pivots.forEach(p => p.userData.state = renderDesign);
-            renderState.allHits.push(...renderState.hits);
-            renderState.allItemHits.push(...renderState.ihits);
-            combinedLabs.push(...renderState.labs);
-            combinedPivots.push(...renderState.pivots);
-            if (renderState.renderActive) {
-                activeRender = { Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups };
-            }
-        }
-        clothes.endBuild();
-        bags.endBuild();
-        trousers.endBuild();
-        kitchenRuns?.sync(model.scene.wardrobes);
-        // Every wardrobe removed: an empty stand-in keeps the active-wardrobe handles pointing at nothing.
-        activeRender ??= { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
-        renderDesign = selected.state;
-        ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
-        renderState.labs = combinedLabs;
-        // Prune wardrobe handles only; the studio overlay owns room handles and their active pointer capture.
-        const usedLabels = new Set(combinedLabs.map(l => l.el));
-        previousShapeHandles.forEach(l => { if (!usedLabels.has(l.el)) l.el.remove(); });
-        renderState.pivots = combinedPivots;
-        renderState.renderActive = true;
-        renderState.moveIcons = [];
-        dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
-        if (selectionState.focusOn && model.scene.wardrobes.length) {
-            // Movement, rotation and array grips belong to the furniture layer.
-            if (!selectionState.shapeEditing && !inspector.inside()) {
-                addRotationIndicator();
-                addWardrobeActions();
-                addWardrobeMoveHandles();
-                kitchenArray?.place();
-            }
-        }
-        WardrobePlanner.configure(geometry.plannerConfig());
-        inspector.crumbUI();
-        resources.contact.visible = false;
-        syncWallGhosting();
-        overlay?.draw();
-        if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
-        positionLabels();
-    }
-    const { buildCabinet } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState, geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
-        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4, midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
-        return m.hor ? [[new V(midX, geometry.interiorFloor() + m.low, front), new V(midX, geometry.interiorFloor() + m.y0, front), m.before], [new V(midX, geometry.interiorFloor() + m.y1, front), new V(midX, geometry.interiorFloor() + m.high, front), m.after]] : [[new V(baseX + m.low, midY, front), new V(baseX + m.x0, midY, front), m.before], [new V(baseX + m.x1, midY, front), new V(baseX + m.high, midY, front), m.after]];
+        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4;
+        const midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
+        return m.hor ? [[new V(midX, geometry.interiorFloor() + m.low, front), new V(midX, geometry.interiorFloor() + m.y0, front), m.before],
+            [new V(midX, geometry.interiorFloor() + m.y1, front), new V(midX, geometry.interiorFloor() + m.high, front), m.after]]
+            : [[new V(baseX + m.low, midY, front), new V(baseX + m.x0, midY, front), m.before],
+            [new V(baseX + m.x1, midY, front), new V(baseX + m.high, midY, front), m.after]];
     }
     function clearanceSegments(a, b) {
         const tick = Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? new THREE.Vector3(2, 0, 0) : new THREE.Vector3(0, 2, 0);
@@ -252,32 +185,22 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         return dividerClearancePoints(index, baseX).map(([a, b, value], j) => {
             const line = dimensionStroke(clearanceSegments(a, b));
             line.visible = value > .1;
-            const el = label(a.clone().add(b).multiplyScalar(.5), measureNumber(value) + unitSuffix(), 'lbl dim clearance divider-clearance'), entry = renderState.labs[renderState.labs.length - 1];
+            const el = label(a.clone().add(b).multiplyScalar(.5), measureNumber(value) + unitSuffix(), 'lbl dim clearance divider-clearance');
+            const entry = renderState.labs[renderState.labs.length - 1];
             inspector.editableDividerClearance(el, index, j === 0 ? 'before' : 'after');
             return { line, entry };
         });
     }
     function refreshDividerVisual(index) {
         const d = renderDesign.dividers?.[index], v = renderState.dividerVisuals[index];
-        if (!d || !v) {
-            return;
-        }
-        // Shaped boards and divider-aligned door leaves change geometry as the board moves.
-        if (!v.panel || renderDesign.shape || renderDesign.doors !== 'none') {
-            build();
-            return;
-        }
-        const r = geometry.dividerRect(d), pos = new THREE.Vector3(v.baseX + (r.x0 + r.x1) / 2, geometry.interiorFloor() + (r.y0 + r.y1) / 2, -.5), delta = pos.clone().sub(v.panel.position);
-        v.panel.position.copy(pos);
-        v.hit.position.x = pos.x;
-        v.hit.position.y = pos.y;
-        v.outline.position.add(delta);
+        if (!d || !v) return;
+        if (!v.panel || renderDesign.shape || renderDesign.doors !== 'none') { build(); return; }
+        const r = geometry.dividerRect(d), pos = new THREE.Vector3(v.baseX + (r.x0 + r.x1) / 2, geometry.interiorFloor() + (r.y0 + r.y1) / 2, -.5);
+        const delta = pos.clone().sub(v.panel.position);
+        v.panel.position.copy(pos); v.hit.position.x = pos.x; v.hit.position.y = pos.y; v.outline.position.add(delta);
         for (const entry of [v.sizeEntry, v.depthEntry]) {
             entry.p.add(delta);
-            if (entry.ruler) {
-                entry.ruler.a.add(delta);
-                entry.ruler.b.add(delta);
-            }
+            if (entry.ruler) { entry.ruler.a.add(delta); entry.ruler.b.add(delta); }
         }
         dividerClearancePoints(index, v.baseX).forEach(([a, b, value], j) => {
             const q = v.clearances[j];
@@ -290,96 +213,148 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         positionLabels();
         inspector.dividerUI();
     }
-    function positionLabels() {
-        inspector.updateItemBar();
-        overlay?.orient();
-        const r = resources.cv.getBoundingClientRect();
-        renderState.labs.forEach(l => sizeCanvasAdd(l, resources.cam, r));
-        updateItemResizeHandles();
-        updateMoveIcons();
-        const resizeOccupied = [...document.querySelectorAll('.item-resize-handle:not([hidden])')].map(el => {
-            const b = el.getBoundingClientRect();
-            return { x: b.left - r.left + b.width / 2, y: b.top - r.top + b.height / 2, w: b.width, h: b.height };
+    const { buildCabinet } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState,
+        geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag,
+        trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
+
+    function build() {
+        if (!model.scene.wardrobes.length) selectionState.shapeEditing = false;
+        studio?.sync(model.scene.studio, wardrobeFootprints());
+        fitLight();
+        studio?.select(studioEditor?.valid() ?? null);
+        const selected = model.activeCabinet(), currentFingerprint = sceneGeometryFingerprint(model.scene, selectionState, interactionState), activeId = model.scene.activeWardrobe;
+
+        if (currentFingerprint && currentFingerprint === lastSceneFingerprint && buildCache.get(selected.id)) {
+            for (const wardrobe of model.scene.wardrobes) {
+                const cached = buildCache.get(wardrobe.id);
+                if (cached) {
+                    cached.Gr.position.set(wardrobe.x, wardrobe.y || 0, wardrobe.z);
+                    cached.Gr.rotation.y = wardrobe.angle * Math.PI / 180;
+                    cached.Gr.children.forEach(o => { if (o.userData.floorShadow) o.position.y = .12 - (wardrobe.y || 0); });
+                    cached.Gr.updateMatrixWorld(true);
+                }
+            }
+            renderDesign = selected.state;
+            const activeRender = cachedActiveRenderMap.get(selected.id) || { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
+            ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
+            renderState.labs = renderState.labs.filter(l => {
+                if (l.el.matches('.ground-rotate,.wardrobe-actions')) { l.el.remove(); return false; }
+                return true;
+            });
+            if (selectionState.focusOn && model.scene.wardrobes.length && !selectionState.shapeEditing && !inspector.inside()) {
+                addRotationIndicator(); addWardrobeActions(); addWardrobeMoveHandles(); kitchenArray?.place();
+            }
+            for (const h of renderState.allItemHits) {
+                if (h.userData.o) {
+                    const isel = (h.userData.wardrobe === activeId) && h.userData.i === renderDesign.sel && h.userData.j === renderDesign.item;
+                    h.userData.o.visible = isel; h.userData.s = isel;
+                }
+            }
+            for (let j = 0; j < renderState.outs.length; j++) {
+                renderState.outs[j].visible = j === renderDesign.sel && (!selectionState.focusOn || j !== renderDesign.sel);
+            }
+            if (renderState.dividerVisuals) {
+                for (let j = 0; j < renderState.dividerVisuals.length; j++) {
+                    const v = renderState.dividerVisuals[j];
+                    if (v?.outline) v.outline.visible = (renderDesign.divider === j);
+                    if (v?.clearances) v.clearances.forEach(c => c.line.visible = (renderDesign.divider === j));
+                }
+            }
+            inspector.crumbUI(); syncWallGhosting(); overlay?.draw();
+            if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
+            positionLabels();
+            return;
+        }
+
+        lastSceneFingerprint = currentFingerprint;
+        const previousShapeHandles = renderState.labs.filter(l => l.el.classList.contains('shape-handle') && !l.el.classList.contains('room-handle'));
+        renderState.dividerVisuals = [];
+        renderState.labs.forEach(l => {
+            if (!l.el.classList.contains('shape-handle') && !l.el.classList.contains('array-grip')) l.el.remove();
+            l.rulerNode?.remove();
         });
-        const shapePlaced = [];
-        const leftLimit = 6, rightLimit = r.width - 6, placed = renderState.labs.filter(l => l.el.matches('.wardrobe-actions,.ground-rotate,.wardrobe-name,.lbl.add')).map(l => {
-            const q = l.p.clone();
-            if (l.owner) {
-                l.owner.localToWorld(q);
+        kitchenArray?.beginBuild();
+        buildCache.pruneExcept(model.scene.wardrobes.map(w => w.id), sharedMaterials(), sharedGeometries());
+        renderState.wardrobeGroups = []; renderState.allHits = []; renderState.allItemHits = []; renderState.garments = [];
+        clothes.beginBuild(); bags.beginBuild(); trousers.beginBuild();
+        const combinedLabs = [], combinedPivots = [];
+        let activeRender;
+        cachedActiveRenderMap.clear();
+
+        for (const wardrobe of model.scene.wardrobes) {
+            const wKey = wardrobeDesignFingerprint(wardrobe, model.scene.activeWardrobe, selectionState, interactionState);
+            let cached = buildCache.get(wardrobe.id);
+            if (!cached || cached.key !== wKey) {
+                if (cached) buildCache.disposeWardrobe(wardrobe.id, sharedMaterials(), sharedGeometries());
+                renderDesign = wardrobe.state;
+                renderState.renderCabinet = wardrobe;
+                renderState.renderActive = wardrobe.id === model.scene.activeWardrobe;
+                buildCabinet();
+                cached = { key: wKey, Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits,
+                    itemGroups: renderState.itemGroups, pivots: renderState.pivots, garments: renderState.garments ? [...renderState.garments] : [],
+                    dividerVisuals: renderState.dividerVisuals ? [...renderState.dividerVisuals] : [], labs: [...renderState.labs] };
+                buildCache.set(wardrobe.id, cached);
+            } else {
+                buildCache.retainAssets(wardrobe.id);
+                cached.labs?.forEach(l => {
+                    if (l.el && !l.el.isConnected) $('#labels').appendChild(l.el);
+                });
             }
-            q.project(resources.cam);
-            return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height, w: l.el.offsetWidth * (l.canvasScale ?? 1), h: l.el.offsetHeight * (l.canvasScale ?? 1) };
-        }).concat(resizeOccupied);
-        // Handles place first and stay on their points; other shape text makes room around them.
-        const rank = l => (l.el.classList.contains('shape-handle') ? 2 : 0) + (l.el.classList.contains('reach-dimension') ? 1 : 0);
-        renderState.labs.sort((a, b) => rank(b) - rank(a)).forEach(l => {
-            renderState.pv.copy(l.p);
-            if (l.owner) {
-                l.owner.localToWorld(renderState.pv);
-            }
-            renderState.pv.project(resources.cam);
-            // Labels of a wardrobe hidden because it blocks the view are hidden with it.
-            const visible = renderState.pv.z < 1 && l.owner?.visible !== false && shapeHandleVisible(l.el, l.owner, resources.cam, shapeInspector.drag())
-                && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
-            l.el.style.display = visible ? (l.el.classList.contains('wardrobe-actions') ? 'flex' : 'block') : 'none';
-            if (!visible) {
-                if (l.rulerNode) {
-                    l.rulerNode.style.display = 'none';
-                }
-                return;
-            }
-            let x = (renderState.pv.x * .5 + .5) * r.width, y = (-renderState.pv.y * .5 + .5) * r.height;
-            const ew = l.el.offsetWidth * (l.canvasScale ?? 1), eh = l.el.offsetHeight * (l.canvasScale ?? 1);
-            if (l.reachFrom) {
-                renderState.pv2.copy(l.reachFrom);
-                if (l.owner) {
-                    l.owner.localToWorld(renderState.pv2);
-                }
-                renderState.pv2.project(resources.cam);
-                const ax = (renderState.pv2.x * .5 + .5) * r.width, ay = (-renderState.pv2.y * .5 + .5) * r.height;
-                let dx = x - ax, dy = y - ay;
-                const len = Math.hypot(dx, dy);
-                if (len < 1) { dx = 1; dy = 0; } else { dx /= len; dy /= len; }
-                // Distance along the line direction that moves the label's box fully clear of the line's end point.
-                const gap = 8, t = Math.min(Math.abs(dx) > .001 ? (ew / 2 + gap) / Math.abs(dx) : Infinity, Math.abs(dy) > .001 ? (eh / 2 + gap) / Math.abs(dy) : Infinity), bx = x + dx * t, by = y + dy * t, ox = ax - dx * t, oy = ay - dy * t, fits = (cx, c) => cx - ew / 2 >= leftLimit && cx + ew / 2 <= rightLimit;
-                if (fits(bx)) { x = bx; y = by; }
-                else if (fits(ox)) { x = ox; y = oy; }
-                else if (l.el.classList.contains('reach-dimension')) { x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, bx)); y = by - eh / 2; } // stays readable on a phone
-                else { l.el.style.display = 'none'; return; }
-                l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)`;
-                return;
-            }
-            if (l.ruler) {
-                const q = drawScreenRuler(l, r, ew, eh, { left: leftLimit, right: rightLimit, bottom: r.height - 56 });
-                x = q.x;
-                y = q.y;
-            }
-            else if (l.el.classList.contains('dim') && !l.el.classList.contains('space-ruler') && !l.el.classList.contains('clearance')) {
-                x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, x));
-                const bottom = scrubberBottom(l.el, r, () => $('#toolbar').getBoundingClientRect());
-                y = Math.max(eh / 2 + 6, Math.min(r.height - eh / 2 - bottom, y));
-                for (let n = 0; n < 8 && !l.el.classList.contains('space-ruler') && placed.some(q => Math.abs(x - q.x) < (ew + q.w) / 2 + 4 && Math.abs(y - q.y) < (eh + q.h) / 2 + 3); n++) {
-                    y += eh + 5;
-                }
-                placed.push({ x, y, w: ew, h: eh });
-            }
-            // Shape text (measurements, guides, coordinates) never sits on another label or a handle.
-            if (l.el.classList.contains('shape-handle')) {
-                shapePlaced.push({ x, y, w: ew, h: eh, r: 9 });
-            }
-            else if (['shape-measure', 'shape-guide', 'shape-coord', 'shape-reason'].some(c => l.el.classList.contains(c))) {
-                const clear = (cx, cy) => shapePlaced.every(q => Math.abs(cx - q.x) >= (ew + q.w) / 2 + 3 || Math.abs(cy - q.y) >= (eh + q.h) / 2 + 3);
-                // Stay beside the line: a label only moves one or two steps along its own side of it,
-                // and keeps its place when no free spot is that close.
-                const along = l.ruler?.axis === 'height' ? [ew + 4, 0] : l.ruler ? [0, -(eh + 4)] : [0, -(eh + 4)];
-                const options = [[0, 0], along, [along[0] * 2, along[1] * 2]];
-                const spot = options.map(([dx, dy]) => [x + dx, y + dy]).find(([cx, cy]) => clear(cx, cy) && cx - ew / 2 >= leftLimit && cx + ew / 2 <= rightLimit && cy - eh / 2 >= 6 && cy + eh / 2 <= r.height - 56);
-                if (spot) { x = spot[0]; y = spot[1]; }
-                shapePlaced.push({ x, y, w: ew, h: eh });
-            }
-            l.el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px)` + (l.canvasScale === undefined ? '' : ` scale(${l.canvasScale})`);
-        });
-        deconflictLabels($('#labels'), r);
+
+            cached.Gr.position.set(wardrobe.x, wardrobe.y || 0, wardrobe.z);
+            cached.Gr.rotation.y = wardrobe.angle * Math.PI / 180;
+            cached.Gr.updateMatrixWorld(true);
+            cached.Gr.userData.wardrobe = wardrobe.id;
+            cached.hits.forEach(h => h.userData.wardrobe = wardrobe.id);
+            cached.ihits.forEach(h => h.userData.wardrobe = wardrobe.id);
+            cached.pivots.forEach(p => p.userData.state = wardrobe.state);
+
+            renderState.wardrobeGroups.push(cached.Gr);
+            renderState.allHits.push(...cached.hits);
+            renderState.allItemHits.push(...cached.ihits);
+            if (cached.garments) renderState.garments.push(...cached.garments);
+            combinedLabs.push(...cached.labs);
+            combinedPivots.push(...cached.pivots);
+
+            const renderInfo = { Gr: cached.Gr, hits: cached.hits, outs: cached.outs, ihits: cached.ihits, itemGroups: cached.itemGroups };
+            cachedActiveRenderMap.set(wardrobe.id, renderInfo);
+            if (wardrobe.id === model.scene.activeWardrobe) activeRender = renderInfo;
+        }
+        clothes.endBuild(); bags.endBuild(); trousers.endBuild(); kitchenRuns?.sync(model.scene.wardrobes);
+
+        activeRender ??= { Gr: new THREE.Group(), hits: [], outs: [], ihits: [], itemGroups: [] };
+        renderDesign = selected.state;
+        ({ Gr: renderState.Gr, hits: renderState.hits, outs: renderState.outs, ihits: renderState.ihits, itemGroups: renderState.itemGroups } = activeRender);
+        renderState.labs = combinedLabs;
+
+        const usedLabels = new Set(combinedLabs.map(l => l.el));
+        previousShapeHandles.forEach(l => { if (!usedLabels.has(l.el)) l.el.remove(); });
+        renderState.pivots = combinedPivots;
+        renderState.renderActive = true;
+        renderState.moveIcons = [];
+        dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
+        if (selectionState.focusOn && model.scene.wardrobes.length && !selectionState.shapeEditing && !inspector.inside()) {
+            addRotationIndicator(); addWardrobeActions(); addWardrobeMoveHandles(); kitchenArray?.place();
+        }
+        WardrobePlanner.configure(geometry.plannerConfig());
+        inspector.crumbUI();
+        resources.contact.visible = false;
+        syncWallGhosting();
+        overlay?.draw();
+        if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
+        positionLabels();
     }
-    return { assist, redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment), theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances, refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons, addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles };
+    const positionLabels = createLabelLayout({
+        dom, renderState, resources, shapeInspector, selectionState,
+        drawScreenRuler, overlay, inspector, updateItemResizeHandles,
+        updateMoveIcons, getCvRect, labelDim
+    });
+    return {
+        assist, redrawStudio, studioPickables: () => studio?.pickables() ?? [], wallGuide: segment => studio?.guide(segment),
+        theme, box, prism, flatShape, label, rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke,
+        garment, build, buildCabinet, dividerClearancePoints, clearanceSegments, createDividerClearances,
+        refreshDividerVisual, holdOverlay, setPreviewLabel, dropPreviewLabels, drawClearances, updatePreviewOutlines,
+        clearPreview, clearSettling, positionLabels, loop, addRotationIndicator, updateMoveIcons,
+        addWardrobeMoveHandles, drawSnapGuides, updateItemResizeHandles
+    };
 }

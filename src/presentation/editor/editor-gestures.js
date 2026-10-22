@@ -114,42 +114,12 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             status.innerHTML = message;
         }
         resources.cv.style.cursor = plan.valid ? 'grabbing' : 'not-allowed';
-        renderState.previewGroup = new THREE.Group();
-        renderState.previewGroup.position.copy(renderState.Gr.position);
-        renderState.previewGroup.rotation.copy(renderState.Gr.rotation);
-        resources.scene.add(renderState.previewGroup);
-        const outline = (q, i, color, opacity = 1) => {
-            const left = -model.activeCabinet().state.w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), geo = new THREE.BoxGeometry(q.w, q.h || q.y1 - q.y0, model.activeCabinet().state.d + 1), edges = new THREE.EdgesGeometry(geo);
-            geo.dispose();
-            const o = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthTest: false }));
-            o.position.set(left + (q.x0 + q.x1) / 2, (q.y0 + q.y1) / 2, 0);
-            o.renderOrder = 20;
-            renderState.previewGroup.add(o);
-        };
-        if (plan.valid) {
-            for (const [i, lay] of Object.entries(plan.layouts)) {
-                const old = geometry.computeLayout(+i);
-                lay.forEach((q, j) => {
-                    if (+i === plan.to && j === plan.index) {
-                        outline(q, +i, 0x1f9d6b);
-                    }
-                    else if (!old[j] || Math.abs(old[j].y0 - q.y0) > .01 || Math.abs(old[j].x0 - q.x0) > .01) {
-                        outline(q, +i, plan.swap ? 0xe5a000 : 0x2f5bea, .65);
-                    }
-                });
-            }
-        }
-        else if (to >= 0) {
-            const g = new THREE.BoxGeometry(WardrobePlanner.itemWidth(it, ws[from.i]), it.h, model.activeCabinet().state.d), edges = new THREE.EdgesGeometry(g);
-            g.dispose();
-            const o = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xd6383a, depthTest: false }));
-            {
-                const hw = WardrobePlanner.itemWidth(it, ws[from.i]) / 2, hh = it.h / 2, cl = (v, a, b) => a > b ? (a + b) / 2 : Math.max(a, Math.min(b, v));
-                o.position.set(cl(px - (interactionState.drag?.offsetX || 0), xL + hw, xR - hw), cl(py - (interactionState.drag?.offsetY || 0), yB + hh, yT - hh), model.activeCabinet().state.d + 3);
-            }
-            o.renderOrder = 20;
-            renderState.previewGroup.add(o);
-        }
+        rendering.updatePreviewOutlines({
+            plan, it, to, px, py, ws, xL, xR, yB, yT,
+            offsetX: interactionState.drag?.offsetX || 0,
+            offsetY: interactionState.drag?.offsetY || 0,
+            itemWidth: WardrobePlanner.itemWidth(it, ws[from.i])
+        });
         const keep = new Set();
         if (plan.valid) {
             rendering.drawClearances(plan, it, keep);

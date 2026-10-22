@@ -2,7 +2,7 @@ import { stepGarmentSway } from './garment-renderer';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame' | 'shadowKey'> }} ports */
 export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio, callbacks }) {
     const { $, matchMedia } = dom;
-    let lastShadows;
+    let lastShadows, lastClockSec = -1;
     function loop() {
         lifetime.frame(loop);
         const _n = clock.now(), dt = Math.min(.05, (_n - (renderState.lastFrameTime ?? _n)) / 1000);
@@ -55,10 +55,12 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
             resources.R.shadowMap.needsUpdate = true;
         }
         resources.R.render(resources.scene, resources.cam);
-        const r = resources.cv.getBoundingClientRect();
         callbacks.positionLabels();
         const s = Math.floor((Date.now() - shellState.t0) / 1000);
-        $('#clock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        if (s !== lastClockSec) {
+            lastClockSec = s;
+            $('#clock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        }
         const zv = Math.round(cameraState.fitDist / cameraState.dist * 100) + '%', ze = $('#zoom-val');
         if (ze.textContent !== zv) {
             ze.textContent = zv;
