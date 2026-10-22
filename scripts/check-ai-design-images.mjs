@@ -96,9 +96,7 @@ try {
     finishGeneration();
     await dialog.getByRole('link', { name: 'Download image', exact: true }).waitFor({ timeout: 60_000 });
     assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
-    assert.equal(await dialog.locator('.ai-model-text').textContent(), 'An oak design with <warm> lighting.');
-    assert.equal(await dialog.locator('.ai-model-text').isVisible(), true);
-    assert.equal(await dialog.locator('.ai-model-text warm').count(), 0, 'provider text is rendered as plain text');
+    assert.equal(await dialog.locator('.ai-model-text').isVisible(), false, 'agent text is ignored and not shown to user');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
     assert.deepEqual((body.decorSwatches ?? []).map(swatch => swatch.data), reviewedImages.slice(3), 'manufacturer swatches match the preview');

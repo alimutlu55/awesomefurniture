@@ -257,8 +257,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       imageUrl = URL.createObjectURL(new Blob([bytes], { type: output.image.mimeType }));
       resultImage.src = imageUrl;
       download.href = imageUrl;
-      modelText.textContent = typeof output.text === 'string' ? output.text : '';
-      modelText.hidden = !modelText.textContent;
+      modelText.textContent = '';
+      modelText.hidden = true;
       const ext = output.image.mimeType === 'image/jpeg' ? 'jpg' : output.image.mimeType.split('/')[1];
       download.download = `design-ai.${ext}`;
       loading.stop();
