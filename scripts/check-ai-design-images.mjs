@@ -182,5 +182,5 @@ try {
   assert.deepEqual(errors, []);
   console.log(`AI image browser verification passed. Captures and screenshots: ${output}`);
 } finally {
-  await browser?.close(); await unlink(fixture);
+  await browser?.close(); await unlink(fixture).catch(() => {});
 }

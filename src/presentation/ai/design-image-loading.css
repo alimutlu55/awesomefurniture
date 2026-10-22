@@ -11,7 +11,9 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  animation: orbit-fade-in .25s ease-out;
 }
+@keyframes orbit-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .light-orbit-screen * { box-sizing: border-box; }
 .light-orbit-backdrop {
   position: absolute;
@@ -77,15 +79,16 @@
   .light-orbit-controls { margin-top:22px; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .light-orbit-spinner, .light-orbit-twinkle { animation:none !important; }
+  .light-orbit-screen, .light-orbit-spinner, .light-orbit-twinkle { animation:none !important; }
   .light-orbit-art, .light-orbit-action { transition:none !important; }
 }
 
-/* Hosting inside the image dialog: the orbit owns the whole screen while generating. */
+/* Hosting inside the image dialog: the orbit owns the whole screen while generating without drawer/slide transitions. */
 .ai-image-dialog[data-state="generating"]{
   position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;border-radius:0;
   background:transparent;box-shadow:none;overflow:hidden;
   backdrop-filter:none;-webkit-backdrop-filter:none;
+  transition:none !important;
 }
 .ai-image-dialog[data-state="generating"]::backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .ai-image-dialog[data-state="generating"] .ai-close{display:none}
