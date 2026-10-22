@@ -1,5 +1,5 @@
 import { interpolateBoundary, lowerBoundary, type BoundaryLocation, type BoundaryPoint, type BoundarySection } from '../geometry/boundary';
-import { interpolateSolid, solidEdges, solidPoint, validSections, type SolidPoint } from '../geometry/solid-boundary';
+import { interpolateSolid, sharedProfile, solidEdges, solidPoint, validSections, type SolidPoint } from '../geometry/solid-boundary';
 import { ceilingFrame } from './studio-ceiling';
 import { ceilingBoundary, splitSurfaceBoundary, wallBoundary, type BoundarySurface } from './studio-boundary';
 import { wallLine, type Studio } from './studio';
@@ -32,7 +32,7 @@ export function splitSolidBoundary(room: Studio, kind: BoundarySurface, id: stri
   const solid = surfaceSolid(room, kind, id);
   if (!solid || !solidPoint(solid.edges, at) || !Number.isFinite(at.fraction) || at.fraction <= 0 || at.fraction >= 1) return null;
   const part = kind === 'wall' ? room.walls.find(w => w.id === id)! : room.ceilings!.find(c => c.id === id)!;
-  if (!at.across && !part.sections && (at.section === undefined || at.section === solid.sections.length - 1)) return splitSurfaceBoundary(room, kind, id, at);
+  if (!at.across && !part.sections) return splitSurfaceBoundary(room, kind, id, at);
   const sections = [...solid.sections];
   if (at.across) {
     const k = at.section ?? 0, a = sections[k], b = sections[k + 1];
@@ -52,7 +52,8 @@ export function moveSolidBoundaryPoint(room: Studio, kind: BoundarySurface, id: 
   if (!solid) return null;
   const at = section ?? solid.sections.length - 1;
   if (!solid.sections[at]?.outline[index]) return null;
-  return replaceSurfaceSections(room, kind, id, solid.sections.map((s, k) => k === at
+  const linked = sharedProfile(solid.sections);
+  return replaceSurfaceSections(room, kind, id, solid.sections.map((s, k) => k === at || linked
     ? { ...s, outline: s.outline.map((p, j) => j === index ? { t: point.t, y: point.y } : p) } : s));
 }
 export function solidLocationPoint(room: Studio, kind: BoundarySurface, id: string, at: BoundaryLocation) {

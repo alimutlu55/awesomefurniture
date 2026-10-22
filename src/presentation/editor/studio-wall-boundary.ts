@@ -67,7 +67,14 @@ export function createWallBoundaryEditing(screen: (p: { x: number; y: number; z:
       if (p && located) out.push({ key: 'wall-split:' + w.id, kind: 'wall-split', id: w.id, index: at.edge, boundary: at,
         ...located, label: 'Add a wall shape point here. Drag around any 3D edge, including inner corners; tap to divide' });
       out.push(...innerSurfaceHandles(room, 'wall', w.id));
-      return out;
+      // The original floor corner moves the wall end and its adjoining walls together. A second
+      // profile/back-face dot here would peel away from it and leave a stationary handle underneath.
+      const floor = wallBoundary(room, { ...w, outline: undefined }).filter(p => p.y === 0);
+      return out.filter(h => {
+        if (h.kind !== 'wall-point') return true;
+        const point = h.section === undefined ? points[h.index!] : sections[h.section]!.outline[h.index!];
+        return !floor.some(p => Math.abs(p.t - point!.t) < 1e-8 && Math.abs(p.y - point!.y) < 1e-8);
+      });
     },
     move(room: Studio, h: RoomHandle, dx: number, dy: number) {
       const w = room.walls.find(w => w.id === h.id);

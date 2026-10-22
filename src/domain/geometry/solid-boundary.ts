@@ -6,6 +6,11 @@ export interface SolidEdge {
   readonly start: string; readonly end: string;
   readonly location: BoundaryLocation;
 }
+/** A plain extrusion has one profile shared by its two end faces. */
+export function sharedProfile(sections: readonly BoundarySection[]): boolean {
+  return sections.length === 2 && sections[0]!.outline.length === sections[1]!.outline.length
+    && sections[0]!.outline.every((p, k) => p.t === sections[1]!.outline[k]!.t && p.y === sections[1]!.outline[k]!.y);
+}
 export function solidEdges(sections: readonly BoundarySection[]): SolidEdge[] {
   const edges: SolidEdge[] = [];
   // Keep the outer profile first, so existing handles retain their identity.

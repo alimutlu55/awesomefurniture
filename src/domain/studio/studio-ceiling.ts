@@ -8,7 +8,7 @@ import { STUDIO_LIMITS as L, nextId, roomHeight, wall, wallFace, wallLine } from
 import type { CeilingPoint, Studio, StudioCeiling, StudioCorner } from './studio';
 import { clipBoundary, lowerBoundary, validBoundary } from '../geometry/boundary';
 import { ceilingBoundary } from './studio-boundary';
-import { sectionTriangles, triangleHeight, validSections } from '../geometry/solid-boundary';
+import { sectionTriangles, sharedProfile, triangleHeight, validSections } from '../geometry/solid-boundary';
 import type { BoundarySection } from '../geometry/boundary';
 
 type P = { x: number; z: number };
@@ -189,7 +189,8 @@ export function moveCeilingPoint(studio: Studio, id: string, index: number, t: n
     if (c.sections) {
       const selected = section ?? c.sections.length - 1;
       if (!c.sections[selected]?.outline[index]) return null;
-      const sections = c.sections.map((s, k) => k === selected ? { ...s, outline: s.outline.map((p, j) => j === index ? { t, y } : p) } : s);
+      const linked = sharedProfile(c.sections);
+      const sections = c.sections.map((s, k) => k === selected || linked ? { ...s, outline: s.outline.map((p, j) => j === index ? { t, y } : p) } : s);
       return validSections(sections) ? withSections(c, sections) : null;
     }
     if (c.outline || index >= c.profile.length) {
