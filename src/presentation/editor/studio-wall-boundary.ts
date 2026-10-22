@@ -60,7 +60,7 @@ export function createWallBoundaryEditing(screen: (p: { x: number; y: number; z:
       const { points, line, world } = geometry(room, w), chosen = cursor.location(w.id);
       const sections = surfaceSolid(room, 'wall', w.id)!.sections;
       const at = chosen && points[chosen.edge] && (chosen.section === undefined || sections[chosen.section]) ? chosen : { edge: 2, fraction: .5 };
-      const out: RoomHandle[] = points.map((p, index) => ({ key: 'wall-point:' + w.id + ':' + index, kind: 'wall-point', id: w.id, index,
+      const out: RoomHandle[] = (w.outline || w.sections ? points : []).map((p, index) => ({ key: 'wall-point:' + w.id + ':' + index, kind: 'wall-point', id: w.id, index,
         ...world(p), label: 'Wall boundary point ' + (index + 1) + '. Drag to reshape the wall', ux: line.ux, uz: line.uz }));
       const p = boundaryPoint(points, at);
       const located = solidLocationPoint(room, 'wall', w.id, at);

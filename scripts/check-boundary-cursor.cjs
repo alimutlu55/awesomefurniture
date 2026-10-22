@@ -17,8 +17,13 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await page.evaluate(async () => {
     const { mountEditor } = await import('/src/presentation/editor/mount-editor.ts');
     const { createStudio } = await import('/src/domain/studio/studio-templates.ts');
-    window.boundaryEditor = mountEditor({ root: document.querySelector('#editor'), initialScene:
+    const url = performance.getEntriesByType('resource').find(e => /\/three\.js\?/.test(e.name)).name;
+    const THREE = await import(url), original = THREE.PerspectiveCamera.prototype.updateProjectionMatrix;
+    THREE.PerspectiveCamera.prototype.updateProjectionMatrix = function () { original.call(this); window.boundaryCamera = this; };
+    try { window.boundaryEditor = mountEditor({ root: document.querySelector('#editor'), initialScene:
      { studio: createStudio('under-stairs'), wardrobes: [], activeWardrobe: 0, nextWardrobeId: 1 } });
+    } finally { THREE.PerspectiveCamera.prototype.updateProjectionMatrix = original; }
+    window.boundaryTHREE = THREE;
    });
    await page.locator('[data-view-mode="studio"]').click();
    await page.waitForTimeout(500);
@@ -54,16 +59,27 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     return kind === 'ceiling' ? scene.studio.ceilings.at(-1) : scene.studio.walls[0];
    }, kind);
    const plus = page.locator(`[data-room-handle="${kind}-split:${part.id}"]`);
-   const prefix = (kind === 'wall' ? 'wall-point:' : 'ceiling:') + part.id;
    const centre = async locator => { const r = await locator.boundingBox(); assert.ok(r); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; };
-   const origin = await centre(plus), outer = await centre(page.locator(`[data-room-handle="${prefix}:0"]`));
-   const inner = await centre(page.locator(`[data-room-handle="${prefix}:section:0:0"]`));
-   const next = await centre(page.locator(`[data-room-handle="${prefix}:section:0:1"]`));
+   assert.equal(await page.locator('.room-handle.point').count(), kind === 'wall' ? 2 : part.profile.length, 'default controls match the original layout');
+   assert.equal(await page.locator('[data-room-handle*="section:"]').count(), 0, 'uncut solids have no back-face handles');
+   // Project the solid itself: the cursor must reach these edges without adding control dots there.
+   const rings = await page.evaluate(async ({ kind, id }) => {
+    const { surfaceSolid } = await import('/src/domain/studio/studio-solid-boundary.ts');
+    const solid = surfaceSolid(window.boundaryEditor.scene().studio, kind, id), camera = window.boundaryCamera;
+    camera.updateMatrixWorld(true);
+    const r = document.querySelector('#editor').shadowRoot.querySelector('canvas').getBoundingClientRect();
+    return solid.sections.map(s => s.outline.map(p => {
+     const world = solid.world({ ...p, u: s.u }), q = new window.boundaryTHREE.Vector3(world.x, world.y, world.z).project(camera);
+     return { x: r.x + (q.x + 1) * r.width / 2, y: r.y + (1 - q.y) * r.height / 2 };
+    }));
+   }, { kind, id: part.id });
+   const origin = await centre(plus), dots = rings.at(-1), outer = dots[0], inner = rings[0][0], next = rings[0][1];
    assert.ok(Math.hypot(inner.x - outer.x, inner.y - outer.y) > .1, 'The return edge has a real depth projection');
    const dimensions = async locator => locator.evaluate(el => { const s = getComputedStyle(el); return [s.width, s.height]; });
    const size = await dimensions(plus); assert.equal(size[0], size[1]);
    if (kind === 'ceiling' && shape !== 'slope') assert.deepEqual(await dimensions(page.locator('.room-grip')), size);
    const snapshot = await page.evaluate(() => window.boundaryEditor.snapshot());
+   await page.screenshot({ path: `/tmp/wardrobe-default-${shape}-${width}.png` });
    await plus.evaluate(el => el.dataset.testCursor = 'captured');
    const cdp = await page.context().newCDPSession(page);
    const start = async () => touch
@@ -82,9 +98,6 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    };
    await start();
    // First follow the existing outer outline to point 0, rather than cutting across the face.
-   const dots = await page.locator('.room-handle.point').evaluateAll((es, prefix) => es.filter(el => {
-    const key = el.dataset.roomHandle; return key?.startsWith(prefix + ':') && !key.includes(':section:');
-   }).map(el => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }), prefix);
    let edge = 0, distance = Infinity;
    dots.forEach((a, k) => {
     const b = dots[(k + 1) % dots.length], ux = b.x - a.x, uy = b.y - a.y;
@@ -103,6 +116,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    for (let k = edge; k >= 0; k--) { await move(from, dots[k]); from = dots[k]; }
    await move(outer, inner);
    if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
+   assert.equal(await page.locator('.room-handle.point').count(), kind === 'wall' ? 2 : part.profile.length, 'moving the plus does not add any black handles');
    assert.equal(await plus.evaluate(el => getComputedStyle(el).zIndex), '5');
    await page.screenshot({ path: `/tmp/wardrobe-inner-corner-${shape}-${width}${process.env.BOUNDARY_ZOOM ? '-zoom' : ''}.png` });
    assert.deepEqual(errors, []);

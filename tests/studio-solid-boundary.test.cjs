@@ -13,10 +13,36 @@ const { createCeilingViews } = require('../src/presentation/viewport/studio-ceil
 const { wallSectionGeometry } = require('../src/presentation/viewport/solid-section-geometry.ts');
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
+const { createWallBoundaryEditing } = require('../src/presentation/editor/studio-wall-boundary.ts');
 const { sceneToProject, projectToScene } = require('../src/application/projects/editor-mapper.ts');
 const { createProject } = require('../src/domain/project/project.ts');
 const { serializeProject, deserializeProject } = require('../src/infrastructure/serialization/project-codec.ts');
 const close = (a, b, message = '') => assert.ok(Math.abs(a - b) < 1e-7, `${message}: ${a} != ${b}`);
+
+test('uncut walls retain their two floor corners without extra boundary or back-face dots', t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 });
+    f.editor.select({ kind: 'wall', id: 'w1' }); f.renderer.redrawStudio();
+    assert.equal(f.editor.handles().filter(h => h.kind === 'corner').length, 2);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'wall-point').length, 0);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'wall-split').length, 1);
+    assert.equal(f.nodes.labels.children.filter(el => el.classList.contains('point')).length, 2);
+    const editing = createWallBoundaryEditing(projection());
+    for (const template of STUDIO_TEMPLATES) {
+        const room = createStudio(template.id);
+        for (const wall of room.walls) assert.deepEqual(editing.handles(room, wall).map(h => h.kind), ['wall-split']);
+    }
+});
+
+for (const shape of CEILING_SHAPES) test(`${shape.name}: default ceiling dots remain on the original profile only`, () => {
+    const room = addCeiling(rectangleStudio(400, 240), 'w1', shape.id), c = room.ceilings[0], frame = ceilingFrame(room, c);
+    const handles = ceilingHandles(room, c), dots = handles.filter(h => h.kind === 'ceiling');
+    assert.equal(dots.length, c.profile.length);
+    assert.ok(handles.every(h => h.section === undefined));
+    for (const [k, h] of dots.entries()) {
+        const p = c.profile[k], at = c.run === 'along' ? frame.at(p.t, c.depth) : frame.at((frame.along.from + frame.along.to) / 2, p.t);
+        close(h.x, at.x); close(h.z, at.z); close(h.y, p.y);
+    }
+});
 
 function projection() {
     const camera = new THREE.PerspectiveCamera(40, 1, 1, 10000);

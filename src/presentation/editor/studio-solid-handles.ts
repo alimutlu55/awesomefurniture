@@ -3,8 +3,10 @@ import { surfaceSolid } from '../../domain/studio/studio-solid-boundary';
 import type { Studio } from '../../domain/studio/studio';
 import type { RoomHandle } from './studio-editor.ports';
 
-/** Inner rims and newly cut depth rings use the same editing controls as the outer rim. */
+/** Explicit 3D cuts expose their editable rings; uncut solids keep their original controls. */
 export function innerSurfaceHandles(room: Studio, kind: BoundarySurface, id: string): RoomHandle[] {
+  const part = kind === 'wall' ? room.walls.find(w => w.id === id) : room.ceilings?.find(c => c.id === id);
+  if (!part?.sections) return [];
   const solid = surfaceSolid(room, kind, id);
   if (!solid) return [];
   return solid.sections.slice(0, -1).flatMap((s, section) => s.outline.map((p, index) => ({

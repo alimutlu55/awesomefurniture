@@ -107,12 +107,15 @@ test('vertical, short and closing ceiling edges accept exact cuts and existing c
     for (const fraction of [0, 1]) assert.equal(splitSurfaceBoundary(room, 'ceiling', room.ceilings[0].id, { edge: 1, fraction }), null);
 });
 
-test('a closing corner can be reshaped with the keyboard before any point is inserted', t => {
+test('closing-corner controls appear only after an explicit cut and remain editable', t => {
     const f = roomRenderFixture(t, { wardrobes: 0 }), c = f.model.scene.studio.ceilings[0];
-    const h = f.editor.handles().find(h => h.kind === 'ceiling' && h.index === c.profile.length);
+    assert.ok(f.editor.handles().every(h => h.kind !== 'ceiling' || h.index < c.profile.length));
+    f.editor.click(f.editor.handles().find(h => h.kind === 'ceiling-split'));
+    const outline = f.model.scene.studio.ceilings[0].outline;
+    const h = f.editor.handles().find(h => h.kind === 'ceiling' && h.index === outline.length - 1);
     assert.ok(h); assert.equal(f.editor.nudge(h, 'ArrowDown', false), true);
     assert.equal(f.model.scene.studio.ceilings[0].outline[h.index].y, h.y - 1);
-    assert.equal(f.checkpoints.length, 1);
+    assert.equal(f.checkpoints.length, 2);
 });
 
 test('undoing a custom outline never strands its cursor on an edge that no longer exists', t => {
