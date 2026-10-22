@@ -105,12 +105,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.stopImmediatePropagation();
     }, true);
 
-    /** Wall selection keeps the current view; ceilings and openings retain their framing. */
+    /** Selecting a wall or ceiling preserves the current camera view. */
     function frameSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
-        if (s.kind === 'wall') { late.camera().camRelease(); return; }
-        if (s.kind === 'ceiling') { late.camera().frameScene(); return; }
+        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().camRelease(); return; }
         // An opening keeps its own wall-facing view for adjusting its position and exact size.
         const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
@@ -166,7 +165,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 selectionState.pendingStudioAction = null;
                 editor.act(action);
             }
-            // Repeated wall taps keep the view; repeated ceiling taps restore its framing.
+            // Repeated surface taps also preserve the current view.
             if (picked && repeat) frameSelection();
             return picked;
         } },
