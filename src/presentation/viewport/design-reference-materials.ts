@@ -36,7 +36,7 @@ export function neutralReferenceMaterials(scene: THREE.Scene) {
       return neutral;
     };
     const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
-    if (object.visible && sourceMaterials.some(material => material.userData.board)) {
+    if (object.visible && (object.userData.studioCeiling || sourceMaterials.some(material => material.userData.board))) {
       // Preserve real panel boundaries when equal-color faces meet: these are thin geometry edges, not shaded surfaces.
       const line = new THREE.LineSegments(new THREE.EdgesGeometry(object.geometry, 35), edgeMaterial);
       line.userData.referenceEdge = true;

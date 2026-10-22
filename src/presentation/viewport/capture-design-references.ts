@@ -73,7 +73,7 @@ export function captureDesignReferences(ports: CapturePorts): DesignReferenceIma
     neutral = neutralReferenceMaterials(photo);
     renderer.shadowMap.enabled = false;
     renderer.toneMapping = THREE.NoToneMapping; renderer.toneMappingExposure = 1;
-    const shots = designReferenceCameras(subject, design.wardrobes);
+    const shots = designReferenceCameras(subject, design.wardrobes, design.studio);
     return shots.map(({ view, camera: shot, target: shotTarget }) => {
       studio.frame(shot, 100); // Resolve room cutaways for this camera, with no selection or animation.
       photo.traverse(object => { if (object instanceof THREE.Line && !object.userData.referenceEdge) object.visible = false; });

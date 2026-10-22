@@ -22,7 +22,11 @@ window.referenceColorCheck = await verifyNeutralReferenceCapture();
 localStorage.setItem('debug', 'true');
 const built = buildFromSpec({specVersion:1,room:{width:360,depth:240,height:260},wardrobes:[{against:1,width:180,height:220,depth:60,shape:'sloped',for:{short:12,pants:8,folded:20}}]},'preview');
 const wardrobe = projectToScene(built.project); wardrobe.wardrobes[0].state.open=true;
-const scene = new URLSearchParams(location.search).has('kitchen') ? ${JSON.stringify(drawingFixture('l'))} : wardrobe;
+const stairs = buildFromSpec({specVersion:1,room:{template:'under-stairs'},wardrobes:[{against:1,fill:true,depth:60}]},'stairs-preview');
+if (!stairs.ok) throw new Error(JSON.stringify(stairs.problems));
+const query = new URLSearchParams(location.search);
+const scene = query.has('kitchen') ? ${JSON.stringify(drawingFixture('l'))} : query.has('under-stairs') ? projectToScene(stairs.project) : wardrobe;
+window.fixtureScene = scene;
 window.fixtureEditor=mountEditor({root:document.querySelector('#fixture'),initialScene:scene});
 </script></body></html>`);
 
@@ -38,9 +42,9 @@ try {
     await route.fulfill({ json: { model: 'gemini-nano-banana-2.1', image: { mimeType: 'image/jpeg', data: body.references[1].data }, text: 'An oak design with <warm> lighting.' } });
   });
 
-  for (const kind of ['wardrobe', 'kitchen']) {
+  for (const [index, kind] of ['wardrobe', 'kitchen', 'under-stairs'].entries()) {
     console.log(`Verifying ${kind}: option dialog, capture, magical waiting, and download.`);
-    await page.goto(`${baseUrl}/${fixture}${kind === 'kitchen' ? '?kitchen' : ''}`);
+    await page.goto(`${baseUrl}/${fixture}?${kind}`);
     await page.getByRole('button', { name: 'Generate image with AI', exact: true }).waitFor();
     const before = await page.evaluate(() => window.fixtureEditor.snapshot());
 
@@ -57,7 +61,7 @@ try {
     assert.equal(await dialog.getByRole('radio', { name: /Concept render/i }).isVisible(), true);
 
     await dialog.locator('.ai-reference-preview:not([hidden])').waitFor({ timeout: 60_000 });
-    assert.equal(calls, kind === 'wardrobe' ? 0 : 1, 'opening prepares references without a provider request');
+    assert.equal(calls, index, 'opening prepares references without a provider request');
     assert.ok(await dialog.locator('.ai-reference-grid img').count() >= 3);
     assert.match(await dialog.locator('.ai-reference-preview summary').textContent(), /not sent to Gemini/);
     const reviewedJSON = await dialog.locator('.ai-reference-preview pre').textContent();
@@ -97,7 +101,7 @@ try {
     await dialog.getByRole('link', { name: 'Download image', exact: true }).waitFor({ timeout: 60_000 });
     assert.equal(await loading.isVisible(), false, 'loading ends when the image arrives');
     assert.equal(await dialog.locator('.ai-model-text').isVisible(), false, 'agent text is ignored and not shown to user');
-    assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
+    assert.equal(calls, index + 1);
     assert.equal(body.references.length, 3);
     assert.deepEqual((body.decorSwatches ?? []).map(swatch => swatch.data), reviewedImages.slice(3), 'manufacturer swatches match the preview');
     assert.deepEqual(body.references.map(ref => ref.data), reviewedImages.slice(0, 3), 'generation submits the exact images reviewed before clicking Generate');
@@ -106,7 +110,29 @@ try {
     assert.ok(body.references.every(ref => ref.data.length <= 6 * 1024 * 1024), 'each reference fits the image limit');
     assert.equal(new Set(body.references.map(image => createHash('sha256').update(image.data).digest('hex'))).size, 3, 'distinct reference viewpoints');
     assert.equal(new Set(body.references.map(image => image.camera.position.join(','))).size, 3, 'distinct camera positions');
-    assert.ok(body.references.every(image => image.camera.position[1] === 135 && image.camera.target[1] === 135), 'all cameras are level at eye height');
+    const expectedHeight = kind === 'under-stairs' ? 85 : 135;
+    assert.ok(body.references.every(image => image.camera.position[1] === expectedHeight && image.camera.target[1] === expectedHeight), 'level cameras adapt to the local ceiling');
+    if (kind === 'under-stairs') {
+      const visibility = await page.evaluate(async references => {
+        const THREE = await import('/node_modules/.vite/deps/three.js');
+        const { createStudioRenderer } = await import('/src/presentation/viewport/studio-renderer.ts');
+        const scene = new THREE.Scene(), studio = createStudioRenderer(scene);
+        try {
+          studio.sync(window.fixtureScene.studio);
+          const ceiling = scene.getObjectByName('studio-ceilings');
+          const solidsVisible = () => ceiling.children.every(group => group.children.find(o => o.userData.studioCeiling)?.visible);
+          const visible = references.map(reference => {
+            const camera = new THREE.PerspectiveCamera(reference.camera.fov, 4 / 3, 1, 50000);
+            camera.position.fromArray(reference.camera.position); camera.lookAt(new THREE.Vector3().fromArray(reference.camera.target));
+            studio.frame(camera, 100); return solidsVisible();
+          });
+          const above = new THREE.PerspectiveCamera(); above.position.set(0, 400, 700); above.lookAt(0, 130, 30);
+          studio.frame(above, 100);
+          return { visible, cutawayFromAbove: !solidsVisible() };
+        } finally { studio.dispose(); }
+      }, body.references);
+      assert.deepEqual(visibility, { visible: [true, true, true], cutawayFromAbove: true }, 'capture retains solid ceilings while editor cutaways still work');
+    }
     assert.equal(await page.evaluate(() => window.referenceColorCheck), true, 'reference colors and renderer state survive capture and failure');
     assert.equal(body.specification.units, 'cm');
     assert.ok(body.specification.technicalDrawings.length > 4);
