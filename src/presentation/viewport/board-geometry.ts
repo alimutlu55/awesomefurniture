@@ -17,7 +17,8 @@ export function boardBox(w: number, h: number, d: number) {
  * that contains it, and each board starts at its own place on the sheet (`seed`, from where it stands), so
  * boards do not repeat one another and keep their figure when the wardrobe is rebuilt.
  * Works for any geometry: each vertex is mapped in the plane its normal faces most. */
-export function boardUVs(geometry: THREE.BufferGeometry, seed: number, direction?: 'vertical' | 'horizontal' | 'none') {
+interface BoardMapping { readonly sizeCm: readonly [number, number]; readonly grainAxis: 'u' | 'v' }
+export function boardUVs(geometry: THREE.BufferGeometry, seed: number, direction?: 'vertical' | 'horizontal' | 'none', mapping?: BoardMapping) {
   geometry.computeBoundingBox();
   const box = geometry.boundingBox!, size = box.getSize(new THREE.Vector3());
   const grain = direction === 'vertical' && size.y > Math.min(size.x, size.z) ? 1 : direction === 'horizontal' ? 0 : size.y > size.x ? 1 : 0;
@@ -25,14 +26,16 @@ export function boardUVs(geometry: THREE.BufferGeometry, seed: number, direction
   const uv = (geometry.attributes.uv as THREE.BufferAttribute | undefined) ?? new THREE.BufferAttribute(new Float32Array(pos.count * 2), 2);
   const du = fraction(seed * 12.9898), dv = fraction(seed * 78.233);
   const p = [0, 0, 0], n = [0, 0, 0];
+  const imageSize = mapping?.sizeCm ?? (direction ? [231.1, 130] : [VENEER_TILE, VENEER_TILE]);
+  const verticalImageGrain = mapping?.grainAxis === 'v';
   for (let i = 0; i < pos.count; i++) {
     p[0] = pos.getX(i); p[1] = pos.getY(i); p[2] = pos.getZ(i);
     n[0] = Math.abs(normal?.getX(i) ?? 0); n[1] = Math.abs(normal?.getY(i) ?? 0); n[2] = Math.abs(normal?.getZ(i) ?? 1);
     const facing = n[0]! >= n[1]! && n[0]! >= n[2]! ? 0 : n[1]! >= n[2]! ? 1 : 2;
     const inFace = [0, 1, 2].filter(a => a !== facing);
     const u = inFace.includes(grain) ? grain : inFace[0]!, v = inFace.find(a => a !== u)!;
-    // Manufacturer full-board scans span 2311×1300mm with the grain along image u.
-    uv.setXY(i, p[u]! / (direction ? 231.1 : VENEER_TILE) + du, p[v]! / (direction ? 130 : VENEER_TILE) + dv);
+    // Egger full-board scans have horizontal grain; the Swiss Krono sample has vertical grain.
+    uv.setXY(i, p[verticalImageGrain ? v : u]! / imageSize[0]! + du, p[verticalImageGrain ? u : v]! / imageSize[1]! + dv);
   }
   uv.needsUpdate = true;
   geometry.setAttribute('uv', uv);

@@ -35,13 +35,25 @@ Different worktop selections split continuous runs. Glass doors retain their sep
 
 ## Appearance and swatches
 
-Hex colors and roughness are visual approximations, not spectrophotometer measurements or measured BRDFs.
-The three Egger woodgrains use their actual 1024×576 manufacturer full-board scans, stored locally under
-`public/textures/decors/`. Their source image URLs are recorded in that directory's README. They span
-approximately 2311×1300mm with grain along the image's horizontal axis. Board UVs rotate the grain up
-uprights/fronts and along horizontal boards. Unicolors have no woodgrain map. Swiss Krono uses its
-color fallback until a verified swatch is added; no generic oak photograph is presented as its exact grain.
-Textures share decoded images, have independent GPU ownership, and retain the fallback on load failure.
+Base colors are sampled from the official manufacturer images stored in `public/textures/decors/`;
+roughness remains an approximation rather than a measured BRDF. The three Egger woodgrains use actual
+1024×576 full-board scans, approximately 2311×1300mm with grain along the image's horizontal axis.
+Swiss Krono D3025 uses its own manufacturer grain image, whose grain axis is vertical. Its 60cm preview
+tile width is an estimate because the source does not state physical repeat dimensions. Board UVs
+account for each image's grain axis, upright panels and horizontal shelves/worktops. Unicolors use
+manufacturer-sampled solid colors and matching thumbnail images. Source URLs are in the asset README.
+Sample boundaries use mirrored wrapping to avoid abrupt cut lines on larger panels. Swiss Krono's
+full-repeat asset server was unavailable during verification; its store sample remains the source.
+
+Catalog boards retain PBR shading and shadows but bypass the room's photographic exposure/filmic tone
+mapping. Diffuse illumination supplies neutral shape shading capped at the source albedo, and specular
+highlights are bounded to prevent matte black becoming grey or woodgrain becoming pale. Room and
+hardware lighting keep their existing photographic rendering. Carcass backs and plinths share the same
+board reflectance; artificial per-part color multipliers have been removed.
+
+The picker uses three compact cards per row. Edge-banding specifications remain in the manufacturing
+schedule and locked prompt, while the cards show only the sample, decor name and manufacturer code.
+Textures share decoded images, have independent GPU ownership, and retain sampled fallbacks on load failure.
 
 The image preparation step attaches available curated swatches after the three geometry references.
 Each is deduplicated by SKU and labeled with its precise cabinet/module and target zones; the final
@@ -66,5 +78,8 @@ PBR colors/roughness, absent handles, the actual outgoing Gemini body/debug log,
 manufacturing codes and worktop thickness. Provider calls are mocked; no paid render is required by tests.
 
 Run `npm run check` for the full automated checks. With Vite running on port 5177, `npm run check:decors`
-also checks the desktop/mobile picker, undo/redo, real WebGL capture and attached swatches in a browser.
+also checks the three-column picker at desktop/375px widths, undo/redo, real WebGL capture and attached swatches.
+`verify-decor-colors.mjs` compares all 13 lit variants with the manufacturer swatches at three exposures,
+requiring at most four sRGB levels of difference per channel on the lit reference face. It also checks
+every fallback against the average source image color. Screenshots and pixel measurements are saved together.
 Use `DECOR_TEST_URL` to select another development server and `DECOR_TEST_OUTPUT` for screenshots.

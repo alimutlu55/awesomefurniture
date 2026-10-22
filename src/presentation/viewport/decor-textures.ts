@@ -15,7 +15,9 @@ export function createDecorTextureLoader(document: Document) {
     }
     const texture = new THREE.Texture();
     texture.encoding = THREE.sRGBEncoding;
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    // Manufacturer sample crops are not seamless tiles. Mirror the boundary so
+    // larger panels retain continuous grain instead of rectangular cut lines.
+    texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
     let disposed = false;
     texture.addEventListener('dispose', () => { disposed = true; });
     void source.then(image => {

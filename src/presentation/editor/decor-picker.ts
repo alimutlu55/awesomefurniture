@@ -27,15 +27,15 @@ export function bindDecorPicker(root: HTMLElement, commands: Commands) {
       for (const sku of options) {
         const button = document.createElement('button');
         button.type = 'button'; button.className = 'decor-option'; button.dataset.decorZone = zone; button.dataset.decorId = sku.id;
-        button.title = `${decorBadge(sku)} · ${sku.edgeBandingSpec} · Grain: ${sku.grainDirection}`;
+        button.title = `${sku.name} · ${decorBadge(sku)}`;
         button.setAttribute('aria-label', `${title}: ${sku.name}, ${button.title}`);
         const swatch = document.createElement('span'); swatch.className = 'decor-swatch';
         swatch.style.backgroundColor = sku.pbr.baseHex;
-        if (sku.pbr.textureUrl) swatch.style.backgroundImage = `url("${sku.pbr.textureUrl}")`;
+        const image = sku.pbr.swatchUrl ?? sku.pbr.textureUrl;
+        if (image) swatch.style.backgroundImage = `url("${image}")`;
         const name = document.createElement('span'); name.textContent = sku.name;
-        const badge = document.createElement('small'); badge.textContent = decorBadge(sku);
-        const edge = document.createElement('small'); edge.textContent = sku.edgeBandingSpec;
-        button.append(swatch, name, badge, edge);
+        const badge = document.createElement('small'); badge.textContent = `${sku.manufacturer} · ${sku.code} ${sku.surfaceStructure}`;
+        button.append(swatch, name, badge);
         button.onclick = () => commands.setDecor(zone, sku.id);
         grid.appendChild(button);
       }

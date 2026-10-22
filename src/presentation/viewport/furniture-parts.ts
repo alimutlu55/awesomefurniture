@@ -59,7 +59,7 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
 export function spanSlab(span: { kind: string; x: number; z: number; y: number; angle: number; length: number; depth: number; height: number }, material: THREE.Material, parent: THREE.Object3D) {
   const board = span.kind === 'plinth', depth = board ? PANEL : span.depth;
   const geometry = material.userData.board
-    ? boardUVs(boardBox(span.length, span.height, depth), 0, 'horizontal') : new THREE.BoxGeometry(span.length, span.height, depth);
+    ? boardUVs(boardBox(span.length, span.height, depth), 0, 'horizontal', material.userData.boardMapping) : new THREE.BoxGeometry(span.length, span.height, depth);
   const m = partMesh(geometry, material, parent, span.x, span.y + span.height / 2, span.z);
   m.rotation.y = span.angle * Math.PI / 180;
   if (board) {

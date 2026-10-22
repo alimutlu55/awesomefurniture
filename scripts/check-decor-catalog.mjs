@@ -12,6 +12,8 @@ await writeFile(fixture, `<!doctype html><html><head><meta name="viewport" conte
 import { mountEditor } from '/src/presentation/editor/mount-editor.ts';
 import { createEditorModel } from '/src/application/projects/editor-model.ts';
 import { rectangleStudio } from '/src/domain/studio/studio-templates.ts';
+import { verifyDecorColors } from '/scripts/verify-decor-colors.mjs';
+window.decorColorCheck = await verifyDecorColors();
 const model = createEditorModel(), state = model.activeCabinet().state;
 state.doors='hinged'; state.secs[0]=[{k:'drawer',h:22},{k:'shelf',h:40}];
 model.scene.studio=rectangleStudio(400,300); model.activeCabinet().z=115;
@@ -29,8 +31,17 @@ try {
   });
   await page.goto(`${base}/${fixture}`);
   await page.waitForFunction(() => window.fixtureEditor);
+  const colorChecks = await page.evaluate(() => window.decorColorCheck);
+  assert.equal(colorChecks.length, 13);
+  await writeFile(`${output}/color-measurements.json`, JSON.stringify(colorChecks, null, 2));
   await page.mouse.click(735, 450);
   await page.locator('[data-action="fronts"]').click();
+  const grid = page.locator('[data-decor-section="carcass"] .decor-grid').first();
+  const firstRow = await grid.locator('button').evaluateAll(buttons => buttons.slice(0, 4).map(b => ({top:b.offsetTop,width:b.offsetWidth})));
+  assert.equal(firstRow[0].top, firstRow[2].top, 'three colors fit in the first row');
+  assert.ok(firstRow[3].top > firstRow[0].top, 'fourth color starts the next row');
+  assert.ok(firstRow[0].width < 100, 'compact cards fit the existing inspector');
+  assert.doesNotMatch(await page.locator('.decor-picker').innerText(), /1mm matching|edge-banding/i);
   const linked = page.locator('[data-decor-link]');
   await linked.uncheck();
   await page.locator('[data-decor-section="fronts"] summary').click();
@@ -43,16 +54,28 @@ try {
   assert.equal(materials.handleFinish, 'handleless_tip_on');
   assert.equal(await cashmere.getAttribute('aria-pressed'), 'true');
   assert.match(await page.locator('[data-decor-summary="fronts"]').textContent(), /Egger · U702 ST9 · 18mm/);
+  await page.locator('[data-decor-section="carcass"] summary').click();
+  const scrollTop = () => page.locator('.decor-picker').evaluate(el => { for (let p = el; p; p = p.parentElement) p.scrollTop = 0; });
+  await scrollTop();
   await page.screenshot({ path: `${output}/two-tone-picker-desktop.png` });
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
   assert.equal((await read()).handleFinish, 'brushed_brass');
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+Shift+z');
   assert.equal((await read()).handleFinish, 'handleless_tip_on');
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 375, height: 844 });
+  await scrollTop();
   await page.screenshot({ path: `${output}/two-tone-picker-mobile.png` });
   assert.ok(await page.locator('.decor-picker').evaluate(el => el.scrollWidth <= el.clientWidth), 'picker fits narrow sheet');
-  await page.keyboard.press('Escape');
   await page.setViewportSize({ width: 1440, height: 1000 });
+  for (const id of ['egger-h1318-st10', 'egger-h3170-st12', 'egger-h3734-st9', 'swiss-krono-d3025-ow', 'egger-u999-pm', 'egger-u638-st9']) {
+    await page.locator(`[data-decor-zone="fronts"][data-decor-id="${id}"]`).click();
+    await page.waitForLoadState('networkidle');
+    assert.equal((await read()).frontDecorId, id);
+    await scrollTop();
+    await page.screenshot({ path: `${output}/${id}-furniture.png` });
+  }
+  await cashmere.click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
   const generate = page.getByRole('button', { name: 'Generate Image', exact: true });
   await generate.click();
@@ -62,7 +85,7 @@ try {
   assert.equal(submitted.decorSwatches.length, 1); assert.equal(submitted.decorSwatches[0].decorId, 'egger-h1318-st10');
   assert.ok(submitted.decorSwatches[0].data.length > 10000);
   assert.deepEqual(errors, []);
-  console.log('Decor picker desktop/mobile, two-tone state, undo/redo, real WebGL capture and manufacturer swatch request passed.');
+  console.log('Three-column picker, desktop/mobile, undo/redo, 13 GPU-verified manufacturer colors, real WebGL capture and swatches passed.');
 } finally {
   await browser?.close();
   await unlink(fixture).catch(() => {});

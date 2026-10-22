@@ -23,6 +23,7 @@ import { technicalDrawings } from '../../src/domain/drawings/technical-drawings'
 import { IMAGE_VIEWS } from '../../src/application/projects/design-image';
 import { paginateDrawingSheets } from '../../src/presentation/drawings/table-marks';
 import { loadDecorSwatches } from '../../src/presentation/ai/decor-swatch-references';
+import { boardUVs } from '../../src/presentation/viewport/board-geometry';
 
 const M = (color: string, options?: THREE.MeshStandardMaterialParameters) =>
   new THREE.MeshStandardMaterial({ color: new THREE.Color(color).convertSRGBToLinear(), ...options });
@@ -159,4 +160,25 @@ test('swatch collection deduplicates selected decors and tolerates missing local
   });
   assert.equal(calls, 1); assert.deepEqual(swatches, [{ decorId: 'egger-h1318-st10', mimeType: 'image/webp', data: 'AQID' }]);
   assert.deepEqual(await loadDecorSwatches(spec, new AbortController().signal, async () => new Response('', { status: 404 })), []);
+});
+
+test('catalog boards retain source tones on every part instead of darkening backs and plinths', () => {
+  const materials = createCabinetMaterials({ M }, createEditorState());
+  assert.deepEqual(materials.back.color.toArray(), materials.panel.color.toArray());
+  assert.deepEqual(materials.plinth.color.toArray(), materials.panel.color.toArray());
+  assert.equal(materials.front.toneMapped, false);
+  materials.owned.forEach(m => m.dispose());
+});
+
+test('upright panels respect the different grain axes of Egger and Swiss Krono source images', () => {
+  for (const id of ['egger-h1318-st10', 'swiss-krono-d3025-ow']) {
+    const sku = getDecor(id), material = createCabinetMaterials({ M }, { fin: 'Oak', materials: { ...defaultMaterials(), carcassDecorId: id } });
+    const geometry = new THREE.PlaneGeometry(60, 120);
+    boardUVs(geometry, 0, 'vertical', material.panel.userData.boardMapping);
+    const uv = geometry.getAttribute('uv');
+    const along = sku.pbr.textureGrainAxis === 'v' ? 'getY' : 'getX', across = along === 'getY' ? 'getX' : 'getY';
+    assert.ok(uv[along](0) > uv[along](2), `${id}: source grain follows the panel height`);
+    assert.equal(uv[across](0), uv[across](2), `${id}: grain does not rotate across the door`);
+    geometry.dispose(); material.owned.forEach(m => m.dispose());
+  }
 });
