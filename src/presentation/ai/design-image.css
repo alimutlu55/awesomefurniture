@@ -105,8 +105,8 @@
 @keyframes ai-dialog-rise { from { opacity:0; transform:translateY(12px) scale(.978) } to { opacity:1; transform:translateY(0) scale(1) } }
 
 @media(max-width: 600px) {
-  .ai-overlay { padding: 14px; align-items: end; }
-  .ai-dialog { border-radius: 25px; padding: 64px 19px 24px; margin: 0 auto; }
+  .ai-overlay { padding: 14px; place-items: center; align-items: center; }
+  .ai-dialog { border-radius: 25px; padding: 64px 19px 24px; margin: 0 auto; max-height: calc(100% - 28px); overflow-y: auto; }
   .ai-close { top: 13px; right: 13px; }
   .ai-header { padding: 0 6px; margin-bottom: 20px; }
   .ai-header h2 { font-size: 29px; }

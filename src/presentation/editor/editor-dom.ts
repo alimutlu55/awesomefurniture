@@ -160,6 +160,15 @@ export function createEditorDom(root: HTMLElement | ShadowRoot) {
                 }
             }
         }
+        for (const element of root.querySelectorAll('[fill*="url("],[stroke*="url("],[filter*="url("],[clip-path*="url("],[mask*="url("]')) {
+            for (const name of ['fill', 'stroke', 'filter', 'clip-path', 'mask']) {
+                const value = element.getAttribute(name);
+                if (value && value.includes('url(#')) {
+                    const scoped = value.replace(/url\(#([^)]+)\)/g, (_match, id) => `url(#${id.startsWith(prefix) ? id : prefix + id})`);
+                    if (scoped !== value) element.setAttribute(name, scoped);
+                }
+            }
+        }
     };
     normalizeIds();
     // Window gestures continue outside the canvas; only the active editor receives them.
