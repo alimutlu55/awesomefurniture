@@ -16,16 +16,16 @@ const art = `<div class="light-orbit-art" aria-hidden="true">
         <svg class="light-orbit-svg" viewBox="0 0 480 440" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="orbitTrailGold" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stop-color="#C3A4FF" stop-opacity="0.03" />
-                <stop offset="0.39" stop-color="#E4D6FF" stop-opacity="0.33" />
-                <stop offset="0.73" stop-color="#FFDEAF" stop-opacity="0.75" />
-                <stop offset="1" stop-color="#FFC987" stop-opacity="0.15" />
+                <stop offset="0" stop-color="#C3A4FF" stop-opacity="0.18" />
+                <stop offset="0.39" stop-color="#E4D6FF" stop-opacity="0.55" />
+                <stop offset="0.73" stop-color="#FFDEAF" stop-opacity="0.95" />
+                <stop offset="1" stop-color="#FFC987" stop-opacity="0.35" />
               </linearGradient>
               <linearGradient id="orbitTrailViolet" x1="0" x2="1" y1="1" y2="0">
-                <stop offset="0" stop-color="#8D71FF" stop-opacity="0.05" />
-                <stop offset="0.29" stop-color="#B58FFF" stop-opacity="0.9" />
-                <stop offset="0.62" stop-color="#E9D8FF" stop-opacity="0.38" />
-                <stop offset="1" stop-color="#EFCAAA" stop-opacity="0.02" />
+                <stop offset="0" stop-color="#8D71FF" stop-opacity="0.22" />
+                <stop offset="0.29" stop-color="#B58FFF" stop-opacity="0.98" />
+                <stop offset="0.62" stop-color="#E9D8FF" stop-opacity="0.6" />
+                <stop offset="1" stop-color="#EFCAAA" stop-opacity="0.2" />
               </linearGradient>
               <linearGradient id="orbitProgressGold" x1="0" x2="1" y1="0" y2="0">
                 <stop stop-color="#C1A3FF" />
@@ -52,16 +52,16 @@ const art = `<div class="light-orbit-art" aria-hidden="true">
                 <feGaussianBlur stdDeviation="5" />
               </filter>
             </defs>
-            <circle cx="240" cy="220" r="189" fill="none" stroke="#EDE4FF" stroke-opacity="0.09" stroke-width="0.8" />
-            <circle cx="240" cy="220" r="145" fill="none" stroke="#DED5FF" stroke-opacity="0.18" stroke-width="0.8" stroke-dasharray="1 6" />
+            <circle cx="240" cy="220" r="189" fill="none" stroke="#EDE4FF" stroke-opacity="0.22" stroke-width="1" />
+            <circle cx="240" cy="220" r="145" fill="none" stroke="#DED5FF" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="1 6" />
             <g class="light-orbit-spinner light-orbit-spinner-progress">
-              <circle cx="240" cy="220" r="145" fill="none" stroke="url(#orbitProgressGold)" stroke-width="2.4" stroke-dasharray="100 811" stroke-linecap="round" transform="rotate(-90 240 220)" />
+              <circle cx="240" cy="220" r="145" fill="none" stroke="url(#orbitProgressGold)" stroke-width="2.6" stroke-dasharray="100 811" stroke-linecap="round" transform="rotate(-90 240 220)" />
               <circle cx="240" cy="75" r="3.6" fill="#FFE4AF" filter="url(#orbitSoftGlow)" />
               <circle cx="240" cy="75" r="2.2" fill="#FFF5DD" />
             </g>
             <g class="light-orbit-spinner light-orbit-spinner-a">
               <g transform="rotate(-17 240 220)">
-                <ellipse cx="240" cy="220" rx="206" ry="83" fill="none" stroke="url(#orbitTrailViolet)" stroke-width="1.25" />
+                <ellipse cx="240" cy="220" rx="206" ry="83" fill="none" stroke="url(#orbitTrailViolet)" stroke-width="1.5" />
                 <circle cx="34" cy="220" r="10" fill="#9E71FF" opacity="0.5" filter="url(#orbitSoftGlow)" />
                 <circle cx="34" cy="220" r="6" fill="#D6AAFF" />
                 <circle cx="34" cy="220" r="2.6" fill="white" opacity="0.86" />
@@ -69,7 +69,7 @@ const art = `<div class="light-orbit-art" aria-hidden="true">
             </g>
             <g class="light-orbit-spinner light-orbit-spinner-b">
               <g transform="rotate(24 240 220)">
-                <ellipse cx="240" cy="220" rx="175" ry="70" fill="none" stroke="url(#orbitTrailGold)" stroke-width="1.15" />
+                <ellipse cx="240" cy="220" rx="175" ry="70" fill="none" stroke="url(#orbitTrailGold)" stroke-width="1.4" />
                 <circle cx="415" cy="220" r="9" fill="#FFE1A7" opacity="0.45" filter="url(#orbitSoftGlow)" />
                 <circle cx="415" cy="220" r="5.2" fill="#FFE1B4" />
               </g>
