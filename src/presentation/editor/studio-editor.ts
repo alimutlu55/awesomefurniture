@@ -11,7 +11,7 @@ import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner,
 import { unitSuffix } from './editor-format.js';
 import { createCeilingSplitCursor } from './studio-ceiling-split';
 import { boundaryPointDrag, isBoundaryPoint, nudgeBoundaryPoint, createWallBoundaryEditing, wallRuler } from './studio-wall-boundary';
-import { splitSurfaceBoundary } from '../../domain/studio/studio-boundary';
+import { splitSolidBoundary } from '../../domain/studio/studio-solid-boundary';
 import type { Carried } from '../../application/commands/studio-commands';
 
 type P = { x: number; z: number };
@@ -103,7 +103,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       // it is along the wall, drawn away from the finger; the depth grip: how far it reaches into the room.
       const c = ceilingOf(studio, s.id), h = drag?.moved ? drag.handle : null;
       if (!c) return [];
-      const list = h?.kind === 'ceiling' ? [heightRuler(studio, c, h.index!), pointRuler(studio, c, h.index!)]
+      const list = h?.kind === 'ceiling' ? [heightRuler(studio, c, h.index!, undefined, h.section), pointRuler(studio, c, h.index!, h.section)]
         : h?.kind === 'depth' ? [depthRuler(studio, c, handles().find(x => x.key === h.key) ?? h)] : h ? [] : restHeights(studio, c);
       return list.filter((m): m is RoomMeasure => !!m);
     }
@@ -320,11 +320,11 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     return true;
   }
   function click(h: RoomHandle) {
-    if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index);
+    if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index + (h.section === undefined ? '' : 's' + h.section));
     else if (h.kind === 'ceiling-split' || h.kind === 'wall-split') {
       if (h.boundary!.fraction <= 0 || h.boundary!.fraction >= 1) return;
       (h.kind === 'ceiling-split' ? splitter : wallSplitter).clear();
-      edit(s => splitSurfaceBoundary(s, h.kind === 'wall-split' ? 'wall' : 'ceiling', h.id, h.boundary!));
+      edit(s => splitSolidBoundary(s, h.kind === 'wall-split' ? 'wall' : 'ceiling', h.id, h.boundary!));
     }
     else if (h.kind === 'extend') {
       const id = sceneCommands.addStudioWall(selectedWall()?.id);

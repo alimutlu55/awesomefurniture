@@ -31,6 +31,7 @@ export interface StudioWall {
   readonly finish?: WallFinish | undefined;
   /** Custom face boundary, in centimetres along the wall and above the floor. */
   readonly outline?: readonly CeilingPoint[] | undefined;
+  readonly sections?: readonly import('../geometry/boundary').BoundarySection[] | undefined;
 }
 
 export interface StudioOpening {
@@ -66,6 +67,7 @@ export interface StudioCeiling {
   readonly profile: readonly CeilingPoint[];
   /** Closed side boundary. The profile remains its lower envelope for fitting wardrobes. */
   readonly outline?: readonly CeilingPoint[] | undefined;
+  readonly sections?: readonly import('../geometry/boundary').BoundarySection[] | undefined;
 }
 
 export interface Studio {
@@ -134,8 +136,9 @@ export function wallBox(studio: Studio, w: StudioWall) {
   const line = wallLine(studio, w);
   if (!line) return null;
   const extent = wallExtent(studio, w, line.length);
-  const start = w.outline ? Math.min(...w.outline.map(p => p.t)) : extent.start, end = w.outline ? Math.max(...w.outline.map(p => p.t)) : extent.end;
-  const base = w.outline ? Math.min(...w.outline.map(p => p.y)) : 0, top = w.outline ? Math.max(...w.outline.map(p => p.y)) : w.height, mid = (start + end) / 2;
+  const outline = w.sections?.flatMap(s => s.outline) ?? w.outline;
+  const start = outline ? Math.min(...outline.map(p => p.t)) : extent.start, end = outline ? Math.max(...outline.map(p => p.t)) : extent.end;
+  const base = outline ? Math.min(...outline.map(p => p.y)) : 0, top = outline ? Math.max(...outline.map(p => p.y)) : w.height, mid = (start + end) / 2;
   return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: base,
     angle: line.angle, length: end - start, thickness: w.thickness, height: top - base };
 }

@@ -1,6 +1,13 @@
 /** Continuous positions on a closed polygon. No grid, corner margins or minimum edge lengths. */
 export interface BoundaryPoint { readonly t: number; readonly y: number }
-export interface BoundaryLocation { readonly edge: number; readonly fraction: number }
+export interface BoundaryLocation {
+  readonly edge: number; readonly fraction: number;
+  /** A ring through the solid's depth; absent selects its outer face. */
+  readonly section?: number;
+  /** An edge joining consecutive rings, rather than an edge within a ring. */
+  readonly across?: boolean;
+}
+export interface BoundarySection { readonly u: number; readonly outline: readonly BoundaryPoint[] }
 const EPS = 1e-9;
 export const interpolateBoundary = (a: BoundaryPoint, b: BoundaryPoint, f: number): BoundaryPoint =>
   ({ t: a.t + (b.t - a.t) * f, y: a.y + (b.y - a.y) * f });

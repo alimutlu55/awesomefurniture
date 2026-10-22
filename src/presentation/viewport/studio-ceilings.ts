@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 import { ceilingBoundary } from '../../domain/studio/studio-boundary';
+import { solidSectionGeometry } from './solid-section-geometry';
 
 interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THREE.LineSegments; outline: THREE.LineSegments | null }
 
@@ -20,6 +21,12 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
   function geometry(studio: Studio, c: StudioCeiling) {
     const w = studio.walls.find(x => x.id === c.wall), line = w && wallLine(studio, w), face = w && wallFace(studio, w);
     if (!w || !line || !face || c.profile.length < 2) return null;
+    if (c.sections) {
+      const g = solidSectionGeometry(c.sections, p => c.run === 'along'
+        ? { x: p.t, y: p.y, z: w.thickness / 2 + c.depth * p.u }
+        : { x: face.start + (face.end - face.start) * p.u, y: p.y, z: w.thickness / 2 + p.t });
+      return { g, line };
+    }
     // The solid's side view: down from the room's ceiling to the underside and back up.
     const shape = new THREE.Shape(), boundary = ceilingBoundary(studio, c), first = boundary[0]!;
     shape.moveTo(first.t, first.y);

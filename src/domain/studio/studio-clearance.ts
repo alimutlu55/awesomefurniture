@@ -5,6 +5,7 @@ import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 import { roomHeight } from './studio';
 import { ceilingFrame } from './studio-ceiling';
 import { topSurface } from '../wardrobe/shape/depth-shape';
+import { sectionTriangles } from '../geometry/solid-boundary';
 
 type Point = { x: number; z: number };
 type Plane = { footprint: Point[]; height: (p: Point) => number };
@@ -46,6 +47,21 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed, toleranc
   for (const ceiling of studio.ceilings ?? []) {
     const frame = ceilingFrame(studio, ceiling);
     if (!frame) continue;
+    if (ceiling.sections) {
+      for (const triangle of sectionTriangles(ceiling.sections)) {
+        const [a, b, d] = triangle.map(p => {
+          const w = ceiling.run === 'along' ? frame.at(p.t, p.u * ceiling.depth) : frame.at(frame.face.start + frame.face.length * p.u, p.t);
+          const dx = w.x - f.x, dz = w.z - f.z;
+          return { x: f.w / 2 + dx * c - dz * s, z: dx * s + dz * c, y: p.y - base };
+        }) as [{ x: number; z: number; y: number }, { x: number; z: number; y: number }, { x: number; z: number; y: number }];
+        const det = (b.x - a.x) * (d.z - a.z) - (d.x - a.x) * (b.z - a.z);
+        if (Math.abs(det) < EPS) continue;
+        const mx = ((b.y - a.y) * (d.z - a.z) - (d.y - a.y) * (b.z - a.z)) / det;
+        const mz = ((b.x - a.x) * (d.y - a.y) - (d.x - a.x) * (b.y - a.y)) / det;
+        planes.push({ footprint: det > 0 ? [a, b, d] : [a, d, b], height: p => a.y + mx * (p.x - a.x) + mz * (p.z - a.z) });
+      }
+      continue;
+    }
     const along = (p: Point) => frame.local(world(p)).s, across = (p: Point) => frame.local(world(p)).d;
     const covered = strip(strip(footprint, along, frame.along.from, frame.along.to), across, frame.across.from, frame.across.to);
     const at = ceiling.run === 'along' ? along : across;

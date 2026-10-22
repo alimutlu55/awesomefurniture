@@ -79,6 +79,7 @@ export function setInsideLength(studio: Studio, id: string, length: number, from
 export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height'>>): Studio | null {
   if (!wall(studio, id)) return null;
   return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size,
+    ...(w.sections && size.height ? { sections: w.sections.map(s => ({ ...s, outline: s.outline.map(p => ({ ...p, y: p.y * size.height! / w.height })) })) } : {}),
     ...(w.outline && size.height ? { outline: w.outline.map(p => ({ ...p, y: p.y * size.height! / w.height })) } : {}) } : w) });
 }
 
@@ -91,8 +92,10 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   if (d < L.minWallLength - .01 || line.length - d < L.minWallLength - .01) return null;
   const mid: StudioCorner = { id: nextId('c', studio.corners), x: round(line.a.x + line.ux * d), z: round(line.a.z + line.uz * d) };
   const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b,
+    ...(w.sections ? { sections: w.sections.map(s => ({ ...s, outline: clipBoundary(s.outline, d, Infinity).map(p => ({ ...p, t: p.t - d })) })) } : {}),
     ...(w.outline ? { outline: clipBoundary(w.outline, d, Infinity).map(p => ({ ...p, t: p.t - d })) } : {}) };
-  const first: StudioWall = { ...w, b: mid.id, ...(w.outline ? { outline: clipBoundary(w.outline, -Infinity, d) } : {}) };
+  const first: StudioWall = { ...w, b: mid.id, ...(w.outline ? { outline: clipBoundary(w.outline, -Infinity, d) } : {}),
+    ...(w.sections ? { sections: w.sections.map(s => ({ ...s, outline: clipBoundary(s.outline, -Infinity, d) })) } : {}) };
   const walls = studio.walls.flatMap(x => x.id === id ? [first, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: round(o.offset - d) });
   return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}) });

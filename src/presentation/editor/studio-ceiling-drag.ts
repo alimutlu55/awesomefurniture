@@ -2,7 +2,9 @@ import { roomHeight } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 import { ceilingFrame, profileAt } from '../../domain/studio/studio-ceiling';
 import { ceilingBoundary } from '../../domain/studio/studio-boundary';
-import { boundaryPoint, type BoundaryLocation } from '../../domain/geometry/boundary';
+import type { BoundaryLocation } from '../../domain/geometry/boundary';
+import { solidLocationPoint, surfaceSolid } from '../../domain/studio/studio-solid-boundary';
+import { innerSurfaceHandles } from './studio-solid-handles';
 import { defaultBoundaryLocation } from './boundary-cursor';
 import { alignTo, type Align } from './align-snap';
 import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
@@ -21,8 +23,8 @@ export function runAxis(fr: Frame, c: StudioCeiling) {
 }
 /** A profile point on the model: on the underside's edge nearest the room, where it is seen from inside. */
 export function pointAt(fr: Frame, c: StudioCeiling, k: number) {
-  const p = c.profile[k]!, mid = (fr.along.from + fr.along.to) / 2;
-  const floor = c.run === 'along' ? fr.at(p.t, c.depth) : fr.at(mid, p.t);
+  const p = c.profile[k]!;
+  const floor = c.run === 'along' ? fr.at(p.t, c.depth) : fr.at(fr.along.to, p.t);
   return { x: floor.x, y: p.y, z: floor.z };
 }
 
@@ -32,9 +34,8 @@ export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number
   const fr = ceilingFrame(room, c);
   if (!fr) return [];
   const points = ceilingBoundary(room, c), axis = runAxis(fr, c);
-  const world = (p: { t: number; y: number }) => ({
-    ...(c.run === 'along' ? fr.at(p.t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, p.t)), y: p.y,
-  });
+  const solid = surfaceSolid(room, 'ceiling', c.id)!;
+  const world = (p: { t: number; y: number }) => solid.world({ ...p, u: 1 });
   const out: RoomHandle[] = points.map((p, k) => ({
     key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling', id: c.id, index: k, ...world(p),
     label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag to reshape the boundary; tap to type its height', ux: axis.x, uz: axis.z,
@@ -49,9 +50,11 @@ export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number
     const edge = c.profile.findIndex((p, k) => k < c.profile.length - 1 && position >= p.t && position <= c.profile[k + 1]!.t);
     if (edge >= 0) at = { edge, fraction: (position - points[edge]!.t) / (points[edge + 1]!.t - points[edge]!.t || 1) };
   }
-  const p = boundaryPoint(points, at);
-  if (p) out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: at.edge, position: p.t, boundary: at,
-    ...world(p), label: 'Add a ceiling shape point here. Drag around the boundary to choose where; tap to divide' });
+  if (at.section !== undefined && !solid.sections[at.section]) at = initial;
+  const p = solidLocationPoint(room, 'ceiling', c.id, at);
+  if (p) out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: at.edge, boundary: at,
+    ...p, label: 'Add a ceiling shape point here. Drag around any 3D edge, including inner corners; tap to divide' });
+  out.push(...innerSurfaceHandles(room, 'ceiling', c.id));
   if (c.run === 'along') {
     // Away from the midpoint's add-point handle.
     let best = 0;
@@ -78,15 +81,16 @@ export function snapPoint(room: Studio, c: StudioCeiling, k: number, raw: { t: n
 
 /** The ruler while a point moves: from the nearer end of the wall (or from the wall, for a sloped roof)
  * to the point, just under the underside. */
-export function pointRuler(room: Studio, c: StudioCeiling, k: number): RoomMeasure | null {
-  const fr = ceilingFrame(room, c), p = (c.outline ?? c.profile)[k];
+export function pointRuler(room: Studio, c: StudioCeiling, k: number, section?: number): RoomMeasure | null {
+  const solid = surfaceSolid(room, 'ceiling', c.id), ring = solid?.sections[section ?? solid.sections.length - 1];
+  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = ring?.u ?? 1;
   if (!fr || !p) return null;
   const y = Math.max(8, p.y - 12);
   if (c.run === 'across') {
-    const s = (fr.along.from + fr.along.to) / 2, a = fr.at(s, 0), b = fr.at(s, p.t);
+    const s = fr.face.start + fr.face.length * u, a = fr.at(s, 0), b = fr.at(s, p.t);
     return p.t > 1 ? { a: { x: a.x, y, z: a.z }, b: { x: b.x, y, z: b.z }, text: f(p.t) } : null;
   }
-  const end = p.t - fr.face.start <= fr.face.end - p.t ? fr.face.start : fr.face.end, a = fr.at(end, c.depth), b = fr.at(p.t, c.depth);
+  const end = p.t - fr.face.start <= fr.face.end - p.t ? fr.face.start : fr.face.end, a = fr.at(end, c.depth * u), b = fr.at(p.t, c.depth * u);
   return Math.abs(p.t - end) > 1 ? { a: { x: a.x, y, z: a.z }, b: { x: b.x, y, z: b.z }, text: f(Math.abs(p.t - end)) } : null;
 }
 /** The ruler while the depth grip moves: from the wall's face into the room. */
@@ -100,11 +104,13 @@ export function depthRuler(room: Studio, c: StudioCeiling, h: RoomHandle): RoomM
 /** A point's height as a dimension line from the floor up to it, beside the ceiling's edge: what a tape reads.
  * Its number sits on the line, below the point, so the finger on the point never covers it. Tap it to type.
  * `at` places it elsewhere along the run (the middle of a level stretch). */
-export function heightRuler(room: Studio, c: StudioCeiling, k: number, at?: number): RoomMeasure | null {
-  const fr = ceilingFrame(room, c), p = (c.outline ?? c.profile)[k];
+export function heightRuler(room: Studio, c: StudioCeiling, k: number, at?: number, section?: number): RoomMeasure | null {
+  const solid = surfaceSolid(room, 'ceiling', c.id), ring = solid?.sections[section ?? solid.sections.length - 1];
+  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = ring?.u ?? 1;
   if (!fr || !p) return null;
-  const t = at ?? p.t, mid = (fr.along.from + fr.along.to) / 2, floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at(mid, t);
-  return { a: { x: floor.x, y: 0, z: floor.z }, b: { x: floor.x, y: p.y, z: floor.z }, text: f(p.y), axis: 'height', edit: 'p' + k };
+  const t = at ?? p.t, along = fr.face.start + fr.face.length * u, floor = c.run === 'along' ? fr.at(t, c.depth * u) : fr.at(along, t);
+  return { a: { x: floor.x, y: 0, z: floor.z }, b: { x: floor.x, y: p.y, z: floor.z }, text: f(p.y), axis: 'height',
+    edit: 'p' + k + (section === undefined ? '' : 's' + section) };
 }
 /** The heights at rest, one per level: a level stretch (a landing, the low end) has one, in its middle. */
 export function restHeights(room: Studio, c: StudioCeiling): RoomMeasure[] {

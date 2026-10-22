@@ -1,28 +1,20 @@
 import type { Studio } from '../../domain/studio/studio';
 import type { RoomHandle } from './studio-editor.ports';
-import { ceilingFrame } from '../../domain/studio/studio-ceiling';
-import { ceilingBoundary } from '../../domain/studio/studio-boundary';
-import { boundaryPoint, type BoundaryLocation, type BoundaryPoint } from '../../domain/geometry/boundary';
-import { createBoundaryCursor, defaultBoundaryLocation } from './boundary-cursor';
+import { surfaceSolid } from '../../domain/studio/studio-solid-boundary';
+import { solidPoint } from '../../domain/geometry/solid-boundary';
+import { createSolidBoundaryCursor } from './solid-boundary-cursor';
 
-/** A movable insertion cursor. Moving it changes neither the ceiling nor undo history. */
+/** The insertion cursor follows all rings and return edges of the actual ceiling solid. */
 export function createCeilingSplitCursor(screen: (p: { x: number; y: number; z: number }) => { x: number; y: number }) {
-  const cursor = createBoundaryCursor(screen);
+  const cursor = createSolidBoundaryCursor(screen);
   type Position = { id: string; t: number } | null;
   let lastPosition: Position = null, beforePosition: Position = null;
-  const location = (id: string) => cursor.location(id);
-  function geometry(room: Studio, h: RoomHandle) {
-    const c = room.ceilings?.find(c => c.id === h.id), fr = c && ceilingFrame(room, c);
-    if (!c || !fr) return null;
-    const points = ceilingBoundary(room, c);
-    const world = (p: BoundaryPoint) => ({ ...(c.run === 'along' ? fr.at(p.t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, p.t)), y: p.y });
-    return { points, world, initial: h.boundary ?? defaultBoundaryLocation(points, c.profile.length - 1) };
-  }
-  function update(room: Studio, h: RoomHandle, change: (g: NonNullable<ReturnType<typeof geometry>>) => void) {
-    const g = geometry(room, h);
-    if (!g) return;
-    change(g);
-    const at = location(h.id), p = at && boundaryPoint(g.points, at);
+  const location = cursor.location;
+  function update(room: Studio, h: RoomHandle, change: (solid: NonNullable<ReturnType<typeof surfaceSolid>>) => void) {
+    const solid = surfaceSolid(room, 'ceiling', h.id);
+    if (!solid) return;
+    change(solid);
+    const at = location(h.id), p = at && solidPoint(solid.edges, at);
     if (p) lastPosition = { id: h.id, t: p.t };
   }
   return {
@@ -30,14 +22,12 @@ export function createCeilingSplitCursor(screen: (p: { x: number; y: number; z: 
     position: (id: string) => lastPosition?.id === id && location(id) ? lastPosition.t : undefined,
     move(room: Studio, h: RoomHandle, dx: number, dy: number) {
       const origin = screen(h);
-      update(room, h, g => cursor.move(h.id, g.points, g.world, { x: origin.x + dx, y: origin.y + dy }, g.initial));
+      update(room, h, g => cursor.move(h.id, g.edges, g.world, { x: origin.x + dx, y: origin.y + dy }, h.boundary));
     },
     nudge(room: Studio, h: RoomHandle, amount: number) {
-      update(room, h, g => cursor.nudge(h.id, g.points, g.initial, amount));
+      update(room, h, g => cursor.nudge(h.id, g.edges, g.world, h.boundary!, amount));
     },
     begin() { cursor.begin(); beforePosition = lastPosition; },
-    cancel() { cursor.cancel(); lastPosition = beforePosition; },
-    clear: cursor.clear,
+    cancel() { cursor.cancel(); lastPosition = beforePosition; }, clear: cursor.clear,
   };
 }
-export type CeilingCursorLocation = BoundaryLocation;

@@ -4,6 +4,7 @@ import { ceilingProblems } from './studio-ceiling';
 import { WALL_FINISHES } from './studio-paint';
 import { isWallUtility, openingLimits, openingNoun, openingsOverlap } from './wall-utilities';
 import { validBoundary } from '../geometry/boundary';
+import { validSections } from '../geometry/solid-boundary';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
@@ -14,6 +15,7 @@ export function studioProblems(studio: Studio): string[] {
     ids.add(item.id);
   }
   for (const w of studio.walls) {
+    if (w.sections && (!validSections(w.sections) || w.sections.some(s => s.outline.some(p => p.y < 0 || p.y > w.height)))) problems.push('Keep every wall corner above the floor, below its height and free of crossings.');
     if (w.outline && (!validBoundary(w.outline) || w.outline.some(p => p.y < 0 || p.y > w.height))) problems.push('Keep the wall boundary above the floor, below its height and free of crossings.');
     if (w.color !== undefined && !/^#[0-9a-f]{6}$/i.test(w.color)) problems.push('Choose a valid wall paint color.');
     if (w.finish !== undefined && !WALL_FINISHES.some(f => f.id === w.finish)) problems.push('Choose a valid wall surface finish.');

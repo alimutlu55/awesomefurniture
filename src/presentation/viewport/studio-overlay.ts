@@ -77,6 +77,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             pool.set(h.key, el);
         }
         el.setAttribute('aria-label', (h.text ? h.text + '. ' : '') + h.label);
+        el.dataset.roomHandle = h.key;
         el.title = h.label;
         // A height pill shows its height: it is the handle and the measurement at once.
         // On a phone the unit is left out, so pills a short way apart do not overlap.

@@ -6,6 +6,7 @@ import { createCeilingViews } from './studio-ceilings';
 import { WALL_FINISHES, wallAppearance } from '../../domain/studio/studio-paint';
 import { isWallUtility, wallUtilitySpec } from '../../domain/studio/wall-utilities';
 import { addWallUtilityView } from './wall-utility-views';
+import { wallSectionGeometry } from './solid-section-geometry';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
@@ -145,8 +146,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.add(body);
     body.add(details);
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
-    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings, w.outline), { depth: w.thickness, bevelEnabled: false });
-    geometry.translate(0, 0, -w.thickness / 2);
+    const geometry = w.sections ? wallSectionGeometry(w, openings)
+      : new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings, w.outline), { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, paintMaterial(w));
     solid.userData.studioWall = w.id;
     // Walls take the sun's shadows and cast them: light falls through a window onto the floor.
@@ -250,7 +251,9 @@ export function createStudioRenderer(scene: THREE.Scene) {
     } else {
       const { start, end } = wallExtent(room, w, line.length);
       const shape = faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id), w.outline);
-      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(shape, { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
+      const solid = w.sections ? wallSectionGeometry(w, room.openings.filter(o => o.wall === w.id))
+        : new THREE.ExtrudeGeometry(shape, { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2);
+      geometry = new THREE.EdgesGeometry(solid, 20); solid.dispose();
     }
     selected = new THREE.LineSegments(geometry, lineMaterial);
     selected.renderOrder = 12;

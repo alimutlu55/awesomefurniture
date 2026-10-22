@@ -8,7 +8,7 @@
 .lbl.shape-handle.room-handle.point:hover{background:transparent;transform:none}
 .lbl.shape-handle.room-grip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .lbl.shape-handle.room-handle{--room-handle-size:24px}
-.lbl.shape-handle.room-handle.split-handle{width:var(--room-handle-size);height:var(--room-handle-size);font-size:15px}
+.lbl.shape-handle.room-handle.split-handle{width:var(--room-handle-size);height:var(--room-handle-size);font-size:15px;z-index:5}
 /* A ceiling's height pill: the shape editor's pill, with a finger-sized hit area. */
 .lbl.shape-handle.room-pill{position:absolute}
 .lbl.shape-handle.room-pill small{font-size:inherit}

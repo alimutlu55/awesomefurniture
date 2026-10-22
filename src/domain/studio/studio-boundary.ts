@@ -23,7 +23,8 @@ export function stretchWallBoundaries(room: Studio, corners: readonly StudioCorn
     const old = wallLine(room, w), nextRoom = { ...room, corners }, next = wallLine(nextRoom, w);
     if (!old || !next) return w;
     const from = wallExtent(room, w, old.length), to = wallExtent(nextRoom, w, next.length), span = from.end - from.start;
-    return { ...w, outline: w.outline.map(p => ({ ...p, t: to.start + (p.t - from.start) * (to.end - to.start) / span })) };
+    const map = (p: CeilingPoint) => ({ ...p, t: to.start + (p.t - from.start) * (to.end - to.start) / span });
+    return { ...w, outline: w.outline.map(map), ...(w.sections ? { sections: w.sections.map(s => ({ ...s, outline: s.outline.map(map) })) } : {}) };
   });
 }
 export function surfaceBoundary(room: Studio, kind: BoundarySurface, id: string) {

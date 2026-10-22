@@ -13,6 +13,7 @@ export interface RoomHandle {
     readonly index?: number; readonly text?: string;
     readonly position?: number;
     readonly boundary?: import('../../domain/geometry/boundary').BoundaryLocation;
+    readonly section?: number;
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
 }
