@@ -39,7 +39,7 @@ for (const shape of CEILING_SHAPES) {
         test(`${pointerType}: ${shape.name} gets a new movable bend, retains capture and reshapes wardrobes`, async t => {
             const f = fixture(t, shape, width), before = f.model.snapshot(), c = f.model.scene.studio.ceilings[0];
             const k = f.editor.handles().find(h => h.kind === 'ceiling-split').index;
-            const added = { t: Math.round((c.profile[k].t + c.profile[k + 1].t) * 5) / 10, y: Math.round((c.profile[k].y + c.profile[k + 1].y) * 5) / 10 };
+            const added = { t: (c.profile[k].t + c.profile[k + 1].t) / 2, y: (c.profile[k].y + c.profile[k + 1].y) / 2 };
             const plus = pluses(f)[0]; assert.ok(plus);
             plus.onpointerdown(f.event(pointerType)); plus.onpointerup();
             assert.equal(f.checkpoints.length, 1); assert.deepEqual(f.model.scene.studio.ceilings[0].profile[k + 1], added);
@@ -170,7 +170,7 @@ test('canceling a movable plus restores its position, and keyboard movement has 
     const h = f.editor.handles().find(h => h.kind === 'ceiling-split');
     f.editor.nudge(h, 'ArrowRight', true);
     const positioned = f.editor.handles().find(h => h.kind === 'ceiling-split');
-    assert.equal(positioned.position, h.position + 10);
+    assert.ok(Math.abs(Math.hypot(positioned.x - h.x, positioned.y - h.y, positioned.z - h.z) - 10) < 1e-8);
     const plus = pluses(f)[0]; plus.onpointerdown(f.event('touch')); plus.onpointermove(f.event('touch', 15, 30));
     plus.onpointercancel();
     assert.equal(f.editor.handles().find(h => h.kind === 'ceiling-split').position, positioned.position);

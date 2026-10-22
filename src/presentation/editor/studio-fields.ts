@@ -3,6 +3,7 @@ import type { Studio } from '../../domain/studio/studio';
 import { setDoorOperation, moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
 import { isWallUtility, openingLimits } from '../../domain/studio/wall-utilities';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { ceilingBoundary } from '../../domain/studio/studio-boundary';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { mountResizeFields, syncResizeFields } from './resize-fields.js';
@@ -38,7 +39,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
             const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + unitSuffix() + ' ' + (c.run === 'along' ? 'along' : 'out');
             return [
-                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
+                ...ceilingBoundary(studio, c).map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
             ];
         }
@@ -119,7 +120,10 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const write = preview && resize ? resize.preview : editStudio;
         if (s.kind === 'ceiling') {
             if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
-            else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });
+            else write(r => {
+                const k = Number(key.slice(1)), c = r.ceilings?.find(x => x.id === s.id), p = c && ceilingBoundary(r, c)[k];
+                return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null;
+            });
         } else if (s.kind === 'wall') {
             if (key === 'length') write(r => setInsideLength(r, s.id, value));
             else write(r => setWallSize(r, s.id, { [key]: value }));

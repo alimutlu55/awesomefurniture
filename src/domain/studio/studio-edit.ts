@@ -8,8 +8,11 @@ import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } fro
 import { openingRange } from './studio-validation';
 import { keepCeilings, splitCeilings } from './studio-ceiling';
 import { isWallUtility, openingLimits } from './wall-utilities';
+import { stretchWallBoundaries } from './studio-boundary';
+import { clipBoundary } from '../geometry/boundary';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
+  if (changes.corners && !changes.walls && studio.walls.some(w => w.outline)) changes = { ...changes, walls: stretchWallBoundaries(studio, changes.corners) };
   const next: Studio = { ...studio, ...changes, template: 'custom' };
   // Ceilings stay where they are in the room when corners move; a room without any keeps no list.
   if (changes.corners && !('ceilings' in changes) && studio.ceilings) return { ...next, ceilings: keepCeilings(studio, changes.corners) };
@@ -75,7 +78,8 @@ export function setInsideLength(studio: Studio, id: string, length: number, from
 
 export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height'>>): Studio | null {
   if (!wall(studio, id)) return null;
-  return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size } : w) });
+  return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size,
+    ...(w.outline && size.height ? { outline: w.outline.map(p => ({ ...p, y: p.y * size.height! / w.height })) } : {}) } : w) });
 }
 
 /** Splits a wall in two at a point along it (`at` from corner a; the middle by default), so either
@@ -86,8 +90,10 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const d = at ?? line.length / 2;
   if (d < L.minWallLength - .01 || line.length - d < L.minWallLength - .01) return null;
   const mid: StudioCorner = { id: nextId('c', studio.corners), x: round(line.a.x + line.ux * d), z: round(line.a.z + line.uz * d) };
-  const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b };
-  const walls = studio.walls.flatMap(x => x.id === id ? [{ ...x, b: mid.id }, second] : [x]);
+  const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b,
+    ...(w.outline ? { outline: clipBoundary(w.outline, d, Infinity).map(p => ({ ...p, t: p.t - d })) } : {}) };
+  const first: StudioWall = { ...w, b: mid.id, ...(w.outline ? { outline: clipBoundary(w.outline, -Infinity, d) } : {}) };
+  const walls = studio.walls.flatMap(x => x.id === id ? [first, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: round(o.offset - d) });
   return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}) });
 }

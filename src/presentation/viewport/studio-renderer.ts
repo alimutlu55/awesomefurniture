@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
-import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
+import type { CeilingPoint, Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
 import { createCeilingViews } from './studio-ceilings';
 import { WALL_FINISHES, wallAppearance } from '../../domain/studio/studio-paint';
@@ -145,7 +145,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.add(body);
     body.add(details);
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
-    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
+    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings, w.outline), { depth: w.thickness, bevelEnabled: false });
     geometry.translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, paintMaterial(w));
     solid.userData.studioWall = w.id;
@@ -167,15 +167,17 @@ export function createStudioRenderer(scene: THREE.Scene) {
     };
     // Skirting on the room side, interrupted by doors and archways. It stays on a lowered wall.
     const floorCuts = openings.filter(o => !isWallUtility(o.kind) && o.sill < 1);
-    for (const [s, e] of gaps(start, end, floorCuts)) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
+    for (const [s, e] of w.outline ? [] : gaps(start, end, floorCuts)) if (e - s > 1) box(e - s, SKIRTING.height, SKIRTING.depth, (s + e) / 2, SKIRTING.height / 2, face + SKIRTING.depth / 2, material(LOOK.skirting), group);
     // Contact shading: on the floor along the wall's foot, up the foot of the wall, and into joined corners.
     const inside = wallFace(studio, w), fs = inside?.start ?? start, fe = inside?.end ?? end, z = face + .25;
+    if (!w.outline) {
     group.add(shadeQuad([fs, .2, face], [fe, .2, face], [fe, .2, face + 30], [fs, .2, face + 30]));
     body.add(shadeQuad([fs, 0, z], [fe, 0, z], [fe, 28, z], [fs, 28, z]));
     // Where the wall meets the ceiling: a faint shade, seen only while the wall stands.
     details.add(shadeQuad([fs, w.height, z], [fe, w.height, z], [fe, w.height - 22, z], [fs, w.height - 22, z]));
     if (cornerDegree(studio, w.a) > 1) body.add(shadeQuad([fs, 0, z], [fs, w.height, z], [fs + 28, w.height, z], [fs + 28, 0, z]));
     if (cornerDegree(studio, w.b) > 1) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
+    }
     const frameM = material(LOOK.frame);
     for (const o of openings) {
       if (isWallUtility(o.kind)) {
@@ -247,7 +249,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       geometry = new THREE.BufferGeometry().setFromPoints([[l, b, r, b], [r, b, r, t], [r, t, l, t], [l, t, l, b]].flatMap(([x0, y0, x1, y1]) => [new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z)]));
     } else {
       const { start, end } = wallExtent(room, w, line.length);
-      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id)), { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
+      const shape = faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id), w.outline);
+      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(shape, { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
     }
     selected = new THREE.LineSegments(geometry, lineMaterial);
     selected.renderOrder = 12;
@@ -324,16 +327,22 @@ export function createStudioRenderer(scene: THREE.Scene) {
 
 /** A wall's face outline from `start` to `end` along it, `height` tall: doors and archways are notches
  * from the floor, windows are holes. */
-function faceOutline(start: number, end: number, height: number, openings: readonly StudioOpening[]) {
+function faceOutline(start: number, end: number, height: number, openings: readonly StudioOpening[], outline?: readonly CeilingPoint[]) {
   const holes = openings.filter(o => !isWallUtility(o.kind));
   const shape = new THREE.Shape();
+  if (outline) {
+    shape.moveTo(outline[0]!.t, outline[0]!.y);
+    for (const p of outline.slice(1)) shape.lineTo(p.t, p.y);
+    shape.closePath();
+  } else {
   shape.moveTo(start, 0);
   for (const o of [...holes].filter(o => o.sill < 1).sort((p, q) => p.offset - q.offset)) {
     const l = o.offset - o.width / 2, r = o.offset + o.width / 2, top = Math.min(height - 1, o.height);
     shape.lineTo(l, 0); shape.lineTo(l, top); shape.lineTo(r, top); shape.lineTo(r, 0);
   }
   shape.lineTo(end, 0); shape.lineTo(end, height); shape.lineTo(start, height); shape.lineTo(start, 0);
-  for (const o of holes.filter(o => o.sill >= 1)) {
+  }
+  for (const o of holes.filter(o => outline || o.sill >= 1)) {
     const hole = new THREE.Path(), l = o.offset - o.width / 2, r = o.offset + o.width / 2;
     hole.moveTo(l, o.sill); hole.lineTo(l, o.sill + o.height); hole.lineTo(r, o.sill + o.height); hole.lineTo(r, o.sill); hole.lineTo(l, o.sill);
     shape.holes.push(hole);

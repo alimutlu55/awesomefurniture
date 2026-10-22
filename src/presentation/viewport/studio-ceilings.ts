@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
+import { ceilingBoundary } from '../../domain/studio/studio-boundary';
 
 interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THREE.LineSegments; outline: THREE.LineSegments | null }
 
@@ -20,11 +21,10 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     const w = studio.walls.find(x => x.id === c.wall), line = w && wallLine(studio, w), face = w && wallFace(studio, w);
     if (!w || !line || !face || c.profile.length < 2) return null;
     // The solid's side view: down from the room's ceiling to the underside and back up.
-    const shape = new THREE.Shape(), first = c.profile[0]!, last = c.profile.at(-1)!;
-    shape.moveTo(first.t, top);
-    for (const p of c.profile) shape.lineTo(p.t, Math.min(top, p.y));
-    shape.lineTo(last.t, top);
-    shape.lineTo(first.t, top);
+    const shape = new THREE.Shape(), boundary = ceilingBoundary(studio, c), first = boundary[0]!;
+    shape.moveTo(first.t, first.y);
+    for (const p of boundary.slice(1)) shape.lineTo(p.t, p.y);
+    shape.closePath();
     let g: THREE.BufferGeometry;
     if (c.run === 'along') {
       g = new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
