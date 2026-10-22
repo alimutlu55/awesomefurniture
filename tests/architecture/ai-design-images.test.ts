@@ -417,3 +417,35 @@ test('operator logs carry Google\'s error status and a redacted, capped message,
   assert.ok(logged.providerMessage.length <= 300);
   assert.doesNotMatch(logs.at(-1)!, new RegExp(key + '|' + image));
 });
+
+test('debugging mode mocks Gemini call and returns mock response (defaults to 10s delay)', async () => {
+  const input = fixture();
+  let calls = 0;
+  const fetcher: typeof fetch = async () => { calls++; return completed(); };
+  const start = Date.now();
+  const response = await handleDesignImage(
+    request(input, { 'X-Debug-Mode': 'true' }),
+    { ...environment, GEMINI_API_KEY: '', AI_MOCK_DELAY_MS: 100 },
+    fetcher,
+  );
+  const elapsed = Date.now() - start;
+  assert.equal(response.status, 200);
+  assert.equal(calls, 0, 'Gemini provider fetcher is not called in debug mode');
+  assert.ok(elapsed >= 90 && elapsed <= 1000, `Expected ~100ms delay in test, elapsed: ${elapsed}ms`);
+  const result = await response.json();
+  assert.equal(result.model, 'gemini-nano-banana-2.1');
+  assert.equal(result.image.data, input.references[0]!.data);
+  assert.match(result.text, /Debug Mock/);
+});
+
+test('debugging mode mock respects request cancellation during the wait', async () => {
+  const input = fixture();
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 50);
+  const cancelled = new Request(request(input, { 'X-Debug-Mode': 'true' }), { signal: controller.signal });
+  const response = await handleDesignImage(
+    cancelled,
+    { ...environment, GEMINI_API_KEY: '', AI_MOCK_DELAY_MS: 10000 },
+  );
+  assert.equal(response.status, 499);
+});

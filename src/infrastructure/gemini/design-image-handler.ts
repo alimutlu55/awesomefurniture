@@ -4,6 +4,7 @@ import { generateDesignImage, ImageGenerationError, GEMINI_IMAGE_MODEL } from '.
 export interface ImageServiceEnvironment {
   GEMINI_API_KEY?: string | undefined;
   LOG_LEVEL?: string | undefined;
+  AI_MOCK_DELAY_MS?: string | number | undefined;
   AI_RATE_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -47,7 +48,11 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
   if (request.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') {
     return failure(415, 'INVALID_CONTENT_TYPE', 'Send the design as JSON.');
   }
-  if (!env.GEMINI_API_KEY?.trim()) return failure(503, 'NOT_CONFIGURED', 'Image generation is temporarily unavailable. Please try again later.');
+  const isDebug = env.LOG_LEVEL?.toLowerCase() === 'debug'
+    || new URL(request.url).searchParams.has('debug')
+    || request.headers.get('x-debug-mode') === 'true';
+
+  if (!isDebug && !env.GEMINI_API_KEY?.trim()) return failure(503, 'NOT_CONFIGURED', 'Image generation is temporarily unavailable. Please try again later.');
   try {
     const input = parseDesignImageRequest(await readRequest(request));
     if (!input) return failure(400, 'INVALID_DESIGN', 'A valid design specification and three distinct reference views are required.');
@@ -58,8 +63,26 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
       return response;
     }
     const timeout = AbortSignal.timeout(150_000), signal = AbortSignal.any([request.signal, timeout]);
-    try { return json(await generateDesignImage(input, env.GEMINI_API_KEY, signal, fetcher, env.LOG_LEVEL)); }
-    catch (error) {
+    try {
+      if (isDebug) {
+        if (signal.aborted) throw new DOMException('The operation was aborted', 'AbortError');
+        const delay = typeof env.AI_MOCK_DELAY_MS !== 'undefined' ? Number(env.AI_MOCK_DELAY_MS) : 10_000;
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, delay);
+          signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+            reject(new DOMException('The operation was aborted', 'AbortError'));
+          }, { once: true });
+        });
+        const ref = input.references.find(r => r.view === 'front') ?? input.references[0]!;
+        return json({
+          model: GEMINI_IMAGE_MODEL,
+          image: { mimeType: ref.mimeType, data: ref.data },
+          text: 'Photorealistic visualization of configured board decors in natural daylight (Debug Mock).',
+        });
+      }
+      return json(await generateDesignImage(input, env.GEMINI_API_KEY!, signal, fetcher, env.LOG_LEVEL));
+    } catch (error) {
       if (timeout.aborted) return failure(504, 'TIMEOUT', 'Image generation took too long. Please try again.');
       if (request.signal.aborted) return failure(499, 'CANCELLED', 'Image generation was cancelled.');
       throw error;

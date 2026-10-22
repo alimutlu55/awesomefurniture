@@ -1,7 +1,7 @@
 import type { createEditorDom } from '../editor/editor-dom';
 import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import type { DesignImageRequest } from '../../application/projects/design-image';
-import { requestDesignImage } from './design-image-client';
+import { requestDesignImage, isDebugMode } from './design-image-client';
 import { designImageErrorMessage } from './design-image-errors';
 import { createDesignImageLoading } from './design-image-loading';
 import { createDesignImageReferences } from './design-image-references';
@@ -59,7 +59,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     </section>`;
   dom.$('#app').append(dialog);
   const loading = createDesignImageLoading(page, lifetime);
-  const debugPreviewEnabled = __LOG_LEVEL__.toLowerCase() === 'debug';
+  const debugPreviewEnabled = isDebugMode();
   const references = createDesignImageReferences(page, debugPreviewEnabled);
   dialog.querySelector('.ai-features')!.before(references.element);
   dialog.querySelector('.ai-intro')!.after(loading.element);
