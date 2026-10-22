@@ -1,14 +1,19 @@
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import { furnitureModule, type FurnitureModule } from '../../domain/furniture/furniture';
 import type { FurnitureDesign } from '../../domain/furniture/furniture-module';
+import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { currentLengthUnit } from '../editor/length-unit-state';
+import { toCm } from '../../domain/geometry/length-units';
 import { decorateMeasurementBadge } from '../components/measurement-badge';
 /** Cabinet metadata adapts its rulers to the shared measurement control, within the limits of the furniture it
  * measures (a wall cabinet's width is not a wardrobe's). Without a design: a wardrobe's. */
-export function decorateDimensionScrubber(el: HTMLElement, design?: FurnitureDesign) {
+export function decorateDimensionScrubber(el: HTMLElement, design?: FurnitureDesign & { d: number }) {
     if (!el.classList.contains('dimension-scrubber')) return;
     const key = ['w', 'd', 'h', 'h-left', 'h-right'].find(k => el.classList.contains('scrub-' + k));
     if (!key) return;
-    const value = Number(el.textContent?.match(/[\d.]+/)?.[0] ?? 0), height = key.startsWith('h');
+    const height = key.startsWith('h'), top = design && height ? resolveShape(design).top : null;
+    const value = design ? key === 'h-left' ? top![0]!.y : key === 'h-right' ? top![top!.length - 1]!.y
+        : design[key as 'w' | 'h' | 'd'] : toCm(Number(el.textContent?.match(/[\d.]+/)?.[0] ?? 0), currentLengthUnit());
     const module: FurnitureModule | null = design ? furnitureModule(design) : null, sizes = design && module ? module.sizes(design) : null;
     const noun = module ? module.noun.charAt(0).toUpperCase() + module.noun.slice(1) : 'Wardrobe';
     const [min, max] = sizes ? sizes[height ? 'h' : key as 'w' | 'd'] : key === 'w' ? [80, 400] : key === 'd' ? [MIN_CABINET_DEPTH, 80] : [40, 280];

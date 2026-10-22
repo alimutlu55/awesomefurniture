@@ -4,7 +4,8 @@ import { measureAround } from '../../application/commands/align-commands';
 import type { EditorCabinet, EditorScene } from '../../application/projects/editor-scene';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 
-type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D };
+type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; visible?: boolean;
+  ruler?: { a: THREE.Vector3; b: THREE.Vector3; axis: string }; rulerNode?: SVGSVGElement };
 interface AssistOverlayPorts {
   readonly document: { createElement: Document['createElement'] };
   readonly labels: () => HTMLElement;
@@ -27,7 +28,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   const material = (hex: string, dashed = false) => dashed
     ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 5, gapSize: 4, toneMapped: false, depthTest: false, transparent: true })
     : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true });
-  const ink = material('#2f2a22'), ok = material('#2f8a57'), tight = material('#c0782b'), level = material('#2f8a57', true);
+  const ok = material('#2f8a57'), level = material('#2f8a57', true);
   const tagPool: Lab[] = [];
   let activeTags = 0;
   const linePool: THREE.LineSegments[] = [];
@@ -36,14 +37,15 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   let activeAlignLines = 0;
 
   function clear() {
-    for (let i = 0; i < tagPool.length; i++) tagPool[i]!.el.style.display = 'none';
+    for (const entry of tagPool) { entry.visible = false; entry.el.style.display = 'none'; }
     for (let i = 0; i < linePool.length; i++) linePool[i]!.visible = false;
     for (let i = 0; i < alignLinePool.length; i++) alignLinePool[i]!.visible = false;
     activeTags = 0;
     activeLines = 0;
     activeAlignLines = 0;
   }
-  function tag(p: THREE.Vector3, text: string, tone: string) {
+  function tag(a: THREE.Vector3, b: THREE.Vector3, text: string, tone: string) {
+    const p = a.clone().add(b).multiplyScalar(.5);
     let entry: Lab;
     if (activeTags < tagPool.length) {
       entry = tagPool[activeTags]!;
@@ -61,6 +63,10 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
       renderState.labs.push(entry);
       tagPool.push(entry);
     }
+    entry.ruler = { a, b, axis: Math.abs(b.y - a.y) > Math.hypot(b.x - a.x, b.z - a.z) ? 'height' : 'width' };
+    entry.visible = true;
+    if (!renderState.labs.includes(entry)) renderState.labs.push(entry);
+    if (!entry.el.isConnected) labels().appendChild(entry.el);
     activeTags++;
   }
   /** A dimension line with short ticks across its ends. */
@@ -98,9 +104,8 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
         else if (g.side === 'top' || g.side === 'bottom') dimension(a.clone().add(alongBar), a.clone().sub(alongBar), ok, angle);
         continue;
       }
-      dimension(a, b, good ? ok : short ? tight : ink, angle);
-      // Near the wardrobe being changed, so a long gap's tag stays in view: half way, or 25 cm out at most.
-      if (!good) tag(a.clone().add(b.clone().sub(a).setLength(Math.min(g.distance / 2, 25))), measureNumber(g.distance) + unitSuffix(), short ? 'tight' : '');
+      if (good) dimension(a, b, ok, angle);
+      else tag(a, b, measureNumber(g.distance) + unitSuffix(), short ? 'tight' : '');
     }
     // Fronts in line, tops level: a green dashed line along them, no words.
     for (const a of aligned) {
@@ -120,7 +125,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
       }
       activeAlignLines++;
     }
-    for (let i = activeTags; i < tagPool.length; i++) tagPool[i]!.el.style.display = 'none';
+    for (let i = activeTags; i < tagPool.length; i++) { tagPool[i]!.visible = false; tagPool[i]!.el.style.display = 'none'; }
     for (let i = activeLines; i < linePool.length; i++) linePool[i]!.visible = false;
     for (let i = activeAlignLines; i < alignLinePool.length; i++) alignLinePool[i]!.visible = false;
   }
@@ -128,13 +133,13 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
     draw, clear,
     dispose() {
       clear();
-      tagPool.forEach(l => l.el.remove());
+      tagPool.forEach(l => { l.el.remove(); l.rulerNode?.remove(); });
       const set = new Set(tagPool);
       renderState.labs = renderState.labs.filter(l => !set.has(l));
       tagPool.length = 0;
       linePool.forEach(l => (l as THREE.LineSegments).geometry.dispose());
       alignLinePool.forEach(l => (l as THREE.Line).geometry.dispose());
-      [ink, ok, tight, level].forEach(m => m.dispose());
+      [ok, level].forEach(m => m.dispose());
       scene.remove(group);
     },
   };

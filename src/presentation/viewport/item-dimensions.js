@@ -40,7 +40,7 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
             return;
         }
         renderState.selMarks = [];
-        const zf = d / 2 + 4, Pt = (x, y, z = zf) => new V(-w / 2 + x, y, z), mid = (g.x0 + g.x1) / 2;
+        const zf = g.z1 - d / 2, Pt = (x, y, z = zf) => new V(-w / 2 + x, y, z), mid = (g.x0 + g.x1) / 2;
         const gesture = interactionState.itemEdgeGesture, edge = gesture?.moved && gesture.section === i && gesture.index === j ? gesture.edge : null;
         // Individual size rulers use the same fine lines as selected free spaces; the size being dragged is a dark tag.
         const ruler = (a, b, text, axis, dragged) => {
@@ -49,14 +49,14 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
             const el = label(a.clone().add(b).multiplyScalar(.5), text, 'lbl dim space-ruler item-dimension item-' + axis + (dragged ? ' assist-size' : ''));
             if (!edge) sceneMeasurementBadge(el, { kind: 'item-size', section: i, index: j, axis: axis === 'width' ? 'w' : axis === 'height' ? 'h' : 'd' },
                 'Item ' + axis, axis === 'width' ? g.w : axis === 'height' ? g.h : g.dep, axis === 'height' ? 'vertical' : 'horizontal', axis === 'depth' ? fittingDepth(MIN_CABINET_DEPTH).depth : 0, axis === 'depth' ? 78 : 2000);
-            bindRuler(el, a, b, axis);
+            bindRuler(el, a, b, axis === 'width' ? 'under' : axis);
         };
         const vertical = edge === 'top' || edge === 'bottom';
         if (!edge || !vertical) ruler(Pt(g.x0, g.y0), Pt(g.x1, g.y0), 'W ' + f(g.w) + unitSuffix(), 'width', !!edge);
         if (!edge || vertical) ruler(Pt(g.x1, g.y0), Pt(g.x1, g.y1), 'H ' + f(g.h) + unitSuffix(), 'height', !!edge);
         if (!edge) ruler(Pt(g.x0, g.y0, g.z0 - d / 2), Pt(g.x0, g.y0, g.z1 - d / 2), 'D ' + f(g.dep) + unitSuffix(), 'depth', false);
         // Selected item and clearances use the same fine strokes as the wardrobe rulers.
-        const fz = d / 2 + .6, A = Pt(g.x0, g.y0, fz), B = Pt(g.x1, g.y0, fz), C = Pt(g.x1, g.y1, fz), D = Pt(g.x0, g.y1, fz);
+        const fz = zf, A = Pt(g.x0, g.y0, fz), B = Pt(g.x1, g.y0, fz), C = Pt(g.x1, g.y1, fz), D = Pt(g.x0, g.y1, fz);
         renderState.selMarks.push(dimensionStroke([A, B, B, C, C, D, D, A], renderState.Gr, 14));
         /** A green bar along an edge: it touches what is there. */
         const touching = (a, b) => {
@@ -67,12 +67,13 @@ export function createItemDimensions({ geometry, renderState, interactionState, 
         };
         const gap = (a, b, value, cls) => {
             const tick = Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? new V(2, 0, 0) : new V(0, 2, 0);
-            if (value > .1) renderState.selMarks.push(dimensionStroke([a, b, a.clone().sub(tick), a.clone().add(tick), b.clone().sub(tick), b.clone().add(tick)]));
-            else if (cls.includes('assist')) {
+            if (value <= .1 && cls.includes('assist')) {
                 touching(a.clone().sub(tick.clone().multiplyScalar(4)), a.clone().add(tick.clone().multiplyScalar(4)));
                 return null;
             }
-            return label(value > .1 ? a.clone().add(b).multiplyScalar(.5) : a, value > .1 ? f(value) + unitSuffix() : '0' + unitSuffix(), cls);
+            const el = label(a.clone().add(b).multiplyScalar(.5), f(value) + unitSuffix(), cls);
+            bindRuler(el, a, b, Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? 'height-left' : 'width');
+            return el;
         };
         if (edge === 'left' || edge === 'right') {
             const s = sideGaps(i, j, g), y = (g.y0 + g.y1) / 2;

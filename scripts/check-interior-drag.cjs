@@ -95,7 +95,8 @@ const attached = process.env.INTERIOR_ATTACHED === '1';
    assert.match(await bar.getAttribute('data-context'), /wardrobe|kitchen/);
    assert.equal(await page.locator('[data-editor-id="crumb"]').textContent(), 'Furniture', 'first click selects furniture without an interior selection');
    const initialPose = await pose();
-   await drag(await framePoint(), 8, 0);
+   // Cross the touch tap tolerance in screen pixels even when the scene is framed far away.
+   await drag(await framePoint(), 20, 0);
    assert.notDeepEqual(await pose(), initialPose, 'the furniture layer can move furniture');
    await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(100);
    assert.deepEqual(await pose(), initialPose);

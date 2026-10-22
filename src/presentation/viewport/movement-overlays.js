@@ -12,7 +12,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
     const boxPool = [];
     const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vMid = new THREE.Vector3();
     let unitBoxEdges = null, previewMaterials = null;
-    let clearanceMesh = null, clearancePositions = new Float32Array(256), clearanceAttr = null, clearanceGeo = null;
 
     function getUnitBoxEdges() {
         if (!unitBoxEdges) {
@@ -30,7 +29,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
                 blue: new THREE.LineBasicMaterial({ color: 0x2f5bea, transparent: true, opacity: 0.65, depthTest: false }),
                 orange: new THREE.LineBasicMaterial({ color: 0xe5a000, transparent: true, opacity: 0.65, depthTest: false }),
                 red: new THREE.LineBasicMaterial({ color: 0xd6383a, transparent: true, opacity: 1, depthTest: false }),
-                stroke: new THREE.LineBasicMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, transparent: true, opacity: 0.65, depthTest: false, depthWrite: false }),
             };
         }
         return previewMaterials;
@@ -43,30 +41,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             resources.scene?.add(renderState.previewGroup);
         }
         return renderState.previewGroup;
-    }
-
-    function ensureClearanceCapacity(needed) {
-        if (needed > clearancePositions.length) {
-            const next = new Float32Array(Math.max(needed, clearancePositions.length * 2));
-            next.set(clearancePositions);
-            clearancePositions = next;
-            clearanceAttr = new THREE.BufferAttribute(clearancePositions, 3);
-            clearanceAttr.setUsage(THREE.DynamicDrawUsage);
-            clearanceGeo?.setAttribute('position', clearanceAttr);
-        }
-    }
-
-    function ensureClearanceMesh() {
-        if (!clearanceMesh) {
-            clearanceGeo = new THREE.BufferGeometry();
-            clearanceAttr = new THREE.BufferAttribute(clearancePositions, 3);
-            clearanceAttr.setUsage(THREE.DynamicDrawUsage);
-            clearanceGeo.setAttribute('position', clearanceAttr);
-            clearanceMesh = new THREE.LineSegments(clearanceGeo, getPreviewMaterials().stroke);
-            clearanceMesh.renderOrder = 22;
-            ensurePreviewGroup().add(clearanceMesh);
-        }
-        return clearanceMesh;
     }
 
     function holdOverlay(on) {
@@ -174,43 +148,33 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         if (!q) {
             return;
         }
-        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i], zf = getRenderDesign().d / 2 + 4, f = measureNumber, x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2;
-        ensureClearanceMesh();
-        let clearancePosCount = 0;
-        const bar = (w, h, x, y) => {
-            const horizontal = w > h;
-            const xa = x - (horizontal ? w / 2 : 0), xb = x + (horizontal ? w / 2 : 0);
-            const ya = y - (horizontal ? 0 : h / 2), yb = y + (horizontal ? 0 : h / 2);
-            ensureClearanceCapacity(clearancePosCount + 6);
-            clearancePositions[clearancePosCount++] = xa;
-            clearancePositions[clearancePosCount++] = ya;
-            clearancePositions[clearancePosCount++] = zf;
-            clearancePositions[clearancePosCount++] = xb;
-            clearancePositions[clearancePosCount++] = yb;
-            clearancePositions[clearancePosCount++] = zf;
-        }, lab = (key, x, y, text, cls = 'lbl dim clearance preview') => {
+        const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i];
+        const zf = fittingDepth(getRenderDesign().d).z1 - getRenderDesign().d / 2, f = measureNumber;
+        const x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2;
+        const lab = (key, x, y, text, cls = 'lbl dim clearance preview') => {
             keep.add(key);
             vMid.set(x, y, zf);
             setPreviewLabel(key, vMid, text, cls);
+            return renderState.prevLab[key];
+        }, gap = (key, a, b, cls, axis) => {
+            const r = lab(key, (a.x + b.x) / 2, (a.y + b.y) / 2, f(a.distanceTo(b)) + unitSuffix(), cls);
+            if (r) callbacks.bindRuler(r.el, a, b, axis);
+        }, zero = (key, x, y, cls) => {
+            const r = lab(key, x, y, '0' + unitSuffix(), cls);
+            if (r) { delete r.entry.ruler; r.entry.rulerNode?.remove(); }
         }, vert = (key, ya, yb, mid) => {
             if (yb - ya > .1) {
-                bar(.6, yb - ya, mid, (ya + yb) / 2);
-                bar(5, .6, mid, ya);
-                bar(5, .6, mid, yb);
-                lab(key, mid, (ya + yb) / 2, f(yb - ya) + unitSuffix(), 'lbl dim clearance net preview');
+                gap(key, new THREE.Vector3(mid, ya, zf), new THREE.Vector3(mid, yb, zf), 'lbl dim clearance net preview', 'height-left');
             }
             else {
-                lab(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), '0' + unitSuffix(), 'lbl dim clearance net preview');
+                zero(key, mid, ya + (ya >= getRenderDesign().h / 2 ? 6 : -6), 'lbl dim clearance net preview');
             }
         }, side = (key, xa, xb) => {
             if (xb - xa > .1) {
-                bar(xb - xa, .6, (xa + xb) / 2, midY);
-                bar(.6, 5, xa, midY);
-                bar(.6, 5, xb, midY);
-                lab(key, (xa + xb) / 2, midY, f(xb - xa) + unitSuffix());
+                gap(key, new THREE.Vector3(xa, midY, zf), new THREE.Vector3(xb, midY, zf), 'lbl dim clearance preview', 'width');
             }
             else {
-                lab(key, key === 'left' ? xa - 6 : xb + 6, midY, '0' + unitSuffix());
+                zero(key, key === 'left' ? xa - 6 : xb + 6, midY, 'lbl dim clearance preview');
             }
         };
         // Net gaps where the fitting would land: to the fitting, board or top really above it and to what it would
@@ -222,11 +186,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         if (bw - q.w > .1) {
             side('left', left, x0);
             side('right', x1, left + bw);
-        }
-        if (clearanceAttr) {
-            clearanceAttr.needsUpdate = true;
-            clearanceGeo?.setDrawRange(0, clearancePosCount / 3);
-            if (clearanceMesh) clearanceMesh.visible = clearancePosCount > 0;
         }
         const ruler = (key, a, b, text) => {
             if (a.distanceTo(b) < .05) return;
@@ -250,10 +209,6 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         }
         for (let i = 0; i < boxPool.length; i++) {
             boxPool[i].visible = false;
-        }
-        if (clearanceMesh) {
-            clearanceMesh.visible = false;
-            clearanceGeo?.setDrawRange(0, 0);
         }
         if (renderState.previewGroup) {
             renderState.previewGroup.visible = false;

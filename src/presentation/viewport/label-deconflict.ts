@@ -14,7 +14,7 @@ const GAP = 3;
 interface Box { left: number; top: number; right: number; bottom: number }
 const hits = (a: Box, b: Box) => a.left < b.right + GAP && b.left < a.right + GAP && a.top < b.bottom + GAP && b.top < a.bottom + GAP;
 const shifted = (b: Box, dx: number, dy: number): Box => ({ left: b.left + dx, right: b.right + dx, top: b.top + dy, bottom: b.bottom + dy });
-const shown = (el: HTMLElement) => el.style.display !== 'none' && !el.hidden && el.offsetParent !== null;
+const shown = (el: HTMLElement) => el.style.display !== 'none' && !el.hidden && !el.classList?.contains('held') && el.offsetParent !== null;
 /** Where this frame placed an element, from the transform it was just given (`translate(-50%,-50%) translate(x,y)`),
  * not from layout: under reduced motion every change is a very short transition, so layout still reports the
  * previous frame. Falls back to layout for anything placed another way. */
@@ -26,7 +26,8 @@ function placed(el: HTMLElement, bounds: DOMRect): Box {
 }
 
 /** @param labels The `#labels` layer. @param bounds The canvas's client rectangle. */
-export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
+export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): Map<HTMLElement, { x: number; y: number }> {
+  const shifts = new Map<HTMLElement, { x: number; y: number }>();
   const movable: HTMLElement[] = [];
   const seen = new Set<HTMLElement>();
   for (const selector of MOVABLE) {
@@ -36,7 +37,7 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
       if (shown(el) && !el.classList.contains('hover-dim')) movable.push(el);
     }
   }
-  if (!movable.length) return;
+  if (!movable.length) return shifts;
   // Item handles live beside the labels layer, so look through the whole editor scope.
   const scope = labels.getRootNode() as Document | ShadowRoot;
   const taken: Box[] = [...scope.querySelectorAll<HTMLElement>(FIXED)].filter(shown).map(el => placed(el, bounds));
@@ -56,6 +57,8 @@ export function deconflictLabels(labels: HTMLElement, bounds: DOMRect): void {
     if (!free && !el.hasAttribute('data-measurement-badge')) { el.style.display = 'none'; continue; }
     const spot = free ?? [0, 0];
     if (spot[0] || spot[1]) el.style.transform += ` translate(${spot[0]}px,${spot[1]}px)`;
+    shifts.set(el, { x: spot[0]!, y: spot[1]! });
     taken.push(shifted(box, spot[0]!, spot[1]!));
   }
+  return shifts;
 }

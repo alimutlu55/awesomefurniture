@@ -50,7 +50,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
             const near = renderState.Gr.localToWorld(new THREE.Vector3(0, 100, d / 2 + 3)), far = renderState.Gr.localToWorld(new THREE.Vector3(10, 100, d / 2 + 3));
             const A = picking.screenPoint(near), B = picking.screenPoint(far);
             shapeInspector.setScale(Math.hypot(B.x - A.x, B.y - A.y) / 10);
-            const w = getRenderDesign().w, h = getRenderDesign().h, z = (shapeInspector.profileSide() === 'rear' ? -1 : 1) * (d / 2 + 4);
+            const w = getRenderDesign().w, h = getRenderDesign().h, z = (shapeInspector.profileSide() === 'rear' ? -1 : 1) * (d / 2);
             const pv = shapeInspector.pivot();
             if (pv) {
                 label(new THREE.Vector3(pv.x, pv.y, z), '', 'lbl pivot-dot');
@@ -117,7 +117,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         const owned = [], focused = renderState.renderActive && selectionState.focusOn;
         const own = isKitchen(getRenderDesign()) && kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' ? createCabinetMaterials(resources, getRenderDesign()) : null;
         if (own) owned.push(...own.owned);
-        const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), stroke: dimensionStroke } : null;
+        const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), bindRuler } : null;
         if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, panel: own?.panel, M: resources.M, owned, hits: renderState.hits, measure })) {
             renderState.Gr.userData.ownedMaterials = owned;
             renderState.Gr.updateMatrixWorld(true);
@@ -138,15 +138,9 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         renderCabinetFrame(getRenderDesign(), box, prism, materials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? PLINTH : 0, plinth: false, base: plinthOf(getRenderDesign()) } : {});
         /** Section-local outline of a span under the top, in cabinet-centred coordinates. */
         const sectionOutline = (i, sx, x0, x1, y0 = 0) => [{ x: sx + x0, y: iy + y0 }, { x: sx + x1, y: iy + y0 }, ...geometry.ceilingOutline(i, x0, x1).reverse().map(p => ({ x: sx + p.x, y: iy + p.y }))];
-        const lp = [], spaceRulerPoints = [], dimLine = (a, b, txt, cls = 'lbl dim', points = lp) => {
-            points.push(a, b);
-            const vertical = Math.abs(a.y - b.y) > Math.abs(a.x - b.x), tick = new V(vertical ? 2 : 0, vertical ? 0 : 2, 0);
-            for (const p of [a, b]) {
-                points.push(p.clone().sub(tick), p.clone().add(tick));
-            }
-            if (txt) {
-                label(a.clone().add(b).multiplyScalar(.5), txt, cls);
-            }
+        const dimLine = (a, b, txt, cls = 'lbl dim', axis = 'width') => {
+            const el = label(a.clone().add(b).multiplyScalar(.5), txt, cls);
+            bindRuler(el, a, b, axis);
         };
         const { mod } = createFittingRenderer({ resources, mp, md: materials.drawer, mf, ma, door: materials.door, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
@@ -257,7 +251,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 renderState.Gr.add(hit);
                 renderState.ihits.push(hit);
                 if (renderState.renderActive && selectionState.focusOn && getRenderDesign().divider === j) {
-                    const front = d / 2 + 4, a = new V(x + vr.x0, iy + vr.y0, front), b = new V(x + vr.x1, iy + vr.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
+                    const front = fd.z1 - d / 2, a = new V(x + vr.x0, iy + vr.y0, front), b = new V(x + vr.x1, iy + vr.y1, front), outline = dimensionStroke([a, new V(b.x, a.y, front), new V(b.x, a.y, front), b, b, new V(a.x, b.y, front), new V(a.x, b.y, front), a]);
                     const hor = q.orientation === 'horizontal', ra = hor ? new V(x + vr.x0, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y0, front), rb = hor ? new V(x + vr.x1, iy + vr.y0, front) : new V(x + vr.x1, iy + vr.y1, front);
                     const el = label(ra.clone().add(rb).multiplyScalar(.5), (hor ? 'W ' : 'H ') + measureNumber(hor ? vr.x1 - vr.x0 : vr.y1 - vr.y0) + unitSuffix(), 'lbl dim space-ruler item-dimension');
                     sceneMeasurementBadge(el, { kind: 'board-size', index: j, axis: hor ? 'w' : 'h' }, hor ? 'Shelf width' : 'Divider height',
@@ -276,11 +270,11 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
             else if (chosenSpace) {
                 // Net clear opening of the selected space. Under a slope the height runs from lowest to tallest, and its
                 // ruler stands where the space is tallest so it never pokes through the top.
-                const space = chosenSpace, sx = x + space.x0, ex = x + space.x1, zf = d / 2 + 3, cls = 'lbl dim space-ruler net';
-                const tall = space.sloped ? geometry.spaceTallest(i, space) : { x: space.x1 - 4, h: space.h }, hx = x + tall.x, f = measureNumber;
-                dimLine(new V(sx, space.y0 + 3, zf), new V(ex, space.y0 + 3, zf), 'W ' + f(space.w) + unitSuffix(), cls, spaceRulerPoints);
-                dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + unitSuffix(), cls, spaceRulerPoints);
-                dimLine(new V(sx + 5, space.y0 + 5, fd.z0 - d / 2), new V(sx + 5, space.y0 + 5, fd.z1 - d / 2), 'D ' + f(space.dep) + unitSuffix(), cls, spaceRulerPoints);
+                const space = chosenSpace, sx = x + space.x0, ex = x + space.x1, zf = d / 2, cls = 'lbl dim space-ruler net';
+                const tall = space.sloped ? geometry.spaceTallest(i, space) : { x: space.x1, h: space.h }, hx = x + tall.x, f = measureNumber;
+                dimLine(new V(sx, space.y0, zf), new V(ex, space.y0, zf), 'W ' + f(space.w) + unitSuffix(), cls, 'width');
+                dimLine(new V(hx, space.y0, zf), new V(hx, space.y0 + tall.h, zf), 'H ' + (space.sloped ? f(space.hMin) + '–' : '') + f(tall.h) + unitSuffix(), cls, 'height');
+                dimLine(new V(sx, space.y0, fd.z0 - d / 2), new V(sx, space.y0, fd.z1 - d / 2), 'D ' + f(space.dep) + unitSuffix(), cls, 'depth');
             }
             else if (!sel && getRenderDesign().item < 0) {
                 ho.userData.label = label(new V(cx, iy + H + PANEL + 8, d / 2), 'W ' + measureNumber(sw) + unitSuffix(), 'lbl dim hover-dim net');
@@ -347,15 +341,15 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
             }
         });
         if (renderState.renderActive && ((selectionState.showDimensions && selectionState.focusOn && getRenderDesign().item < 0 && (!inspector.inside() || noFreeSpace)) || selectionState.editingSize)) {
-            dimLine(new V(-w / 2, -4, d / 2 + 8), new V(w / 2, -4, d / 2 + 8), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w');
+            dimLine(new V(-w / 2, 0, d / 2), new V(w / 2, 0, d / 2), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w', 'under');
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
-            dimLine(new V(-w / 2 - 9, 0, d / 2 + 2), new V(-w / 2 - 9, left, d / 2 + 2), 'H ' + f(left) + unitSuffix(),
-                'lbl dim dimension-scrubber ' + (Math.abs(right - left) > .05 ? 'scrub-h-left' : 'scrub-h'));
+            dimLine(new V(-w / 2, 0, d / 2), new V(-w / 2, left, d / 2), 'H ' + f(left) + unitSuffix(),
+                'lbl dim dimension-scrubber ' + (Math.abs(right - left) > .05 ? 'scrub-h-left' : 'scrub-h'), 'height-left');
             if (Math.abs(right - left) > .05) {
-                dimLine(new V(w / 2 + 9, 0, d / 2 + 2), new V(w / 2 + 9, right, d / 2 + 2), 'H ' + f(right) + unitSuffix(), 'lbl dim dimension-scrubber scrub-h-right');
+                dimLine(new V(w / 2, 0, d / 2), new V(w / 2, right, d / 2), 'H ' + f(right) + unitSuffix(), 'lbl dim dimension-scrubber scrub-h-right', 'height');
             }
             // The wardrobe depth remains available on the model alongside width and height.
-            dimLine(new V(w / 2 + 9, 0, -d / 2), new V(w / 2 + 9, 0, d / 2), 'D ' + measureNumber(d) + unitSuffix(), 'lbl dim dimension-scrubber scrub-d');
+            dimLine(new V(w / 2, 0, -d / 2), new V(w / 2, 0, d / 2), 'D ' + measureNumber(d) + unitSuffix(), 'lbl dim dimension-scrubber scrub-d', 'depth');
         }
         // The project's max reach, where it matters: on the selected piece when it rises to that height (a wall unit's floor
         // may be above it; a base unit never reaches it).
@@ -368,12 +362,6 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
             const reachLabel = label(new V(w / 2 + 5, ry, d / 2 + 5), 'Max reach ' + measureNumber(reach) + unitSuffix(), 'lbl dim reach-dimension');
             sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Max reach height', reach, 'vertical', 100, 250);
             renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, ry, d / 2 + 5);
-        }
-        const lg = new THREE.BufferGeometry().setFromPoints(lp), ls = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: new THREE.Color('#8d7d65').convertSRGBToLinear(), toneMapped: false, transparent: true, opacity: .65, depthTest: false }));
-        ls.renderOrder = 10;
-        renderState.Gr.add(ls);
-        if (spaceRulerPoints.length) {
-            dimensionStroke(spaceRulerPoints, renderState.Gr, 11);
         }
         renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, materials.door, mh);
         placeShapeHandles();

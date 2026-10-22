@@ -16,6 +16,7 @@ import { createFrameRenderer } from './frame-renderer.js';
 import { createMovementOverlays } from './movement-overlays.js';
 import { createDimensionRenderer } from './dimension-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
+import { fittingDepth } from '../../domain/wardrobe/carcass';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
@@ -98,7 +99,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }, get bindRuler() {
                 return bindRuler;
             } }, renderState, resources, interactionState, getRenderDesign: () => renderDesign });
-    const { rulerScreenPlacement, bindRuler, drawScreenRuler, dimensionStroke, label } = createDimensionRenderer({ dom, renderState, resources });
+    const { rulerScreenPlacement, bindRuler, drawScreenRuler, finishScreenRuler, dimensionStroke, label } = createDimensionRenderer({ dom, renderState, resources });
     function theme() {
         const c = getComputedStyle(document.documentElement);
         resources.R.setClearColor(c.getPropertyValue('--scene').trim(), 0);
@@ -170,7 +171,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
-        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = renderDesign.d / 2 + 4;
+        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = fittingDepth(renderDesign.d).z1 - renderDesign.d / 2;
         const midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
         return m.hor ? [[new V(midX, geometry.interiorFloor() + m.low, front), new V(midX, geometry.interiorFloor() + m.y0, front), m.before],
             [new V(midX, geometry.interiorFloor() + m.y1, front), new V(midX, geometry.interiorFloor() + m.high, front), m.after]]
@@ -183,12 +184,12 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     function createDividerClearances(index, baseX) {
         return dividerClearancePoints(index, baseX).map(([a, b, value], j) => {
-            const line = dimensionStroke(clearanceSegments(a, b));
-            line.visible = value > .1;
             const el = label(a.clone().add(b).multiplyScalar(.5), measureNumber(value) + unitSuffix(), 'lbl dim clearance divider-clearance');
             const entry = renderState.labs[renderState.labs.length - 1];
+            bindRuler(el, a, b, Math.abs(b.y - a.y) > Math.abs(b.x - a.x) ? 'height-left' : 'width');
+            entry.visible = value > .1;
             inspector.editableDividerClearance(el, index, j === 0 ? 'before' : 'after');
-            return { line, entry };
+            return { entry };
         });
     }
     function refreshDividerVisual(index) {
@@ -204,8 +205,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         }
         dividerClearancePoints(index, v.baseX).forEach(([a, b, value], j) => {
             const q = v.clearances[j];
-            q.line.geometry.setFromPoints(clearanceSegments(a, b));
-            q.line.visible = value > .1;
+            q.entry.ruler.a.copy(a); q.entry.ruler.b.copy(b);
+            q.entry.visible = value > .1;
             q.entry.p.copy(a).add(b).multiplyScalar(.5);
             q.entry.el.textContent = measureNumber(value) + unitSuffix();
             inspector.editableDividerClearance(q.entry.el, index, j === 0 ? 'before' : 'after');
@@ -257,7 +258,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                 for (let j = 0; j < renderState.dividerVisuals.length; j++) {
                     const v = renderState.dividerVisuals[j];
                     if (v?.outline) v.outline.visible = (renderDesign.divider === j);
-                    if (v?.clearances) v.clearances.forEach(c => c.line.visible = (renderDesign.divider === j));
+                    if (v?.clearances) v.clearances.forEach(c => c.entry.visible = renderDesign.divider === j && c.entry.ruler.a.distanceTo(c.entry.ruler.b) > .1);
                 }
             }
             inspector.crumbUI(); syncWallGhosting(); overlay?.draw();
@@ -346,7 +347,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     const positionLabels = createLabelLayout({
         dom, renderState, resources, shapeInspector, selectionState,
-        drawScreenRuler, overlay, inspector, updateItemResizeHandles,
+        drawScreenRuler, finishScreenRuler, overlay, inspector, updateItemResizeHandles,
         updateMoveIcons, getCvRect, labelDim
     });
     return {

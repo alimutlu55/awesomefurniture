@@ -15,7 +15,8 @@ interface Ports {
   owned: THREE.Material[];
   hits: THREE.Object3D[];
   /** Measurement label and fine stroke helpers of the cabinet renderer; null when nothing is focused. */
-  measure: { format(cm: number): string; label(p: THREE.Vector3, text: string, cls: string): unknown; stroke(points: THREE.Vector3[], parent: THREE.Object3D, order: number): unknown } | null;
+  measure: { format(cm: number): string; label(p: THREE.Vector3, text: string, cls: string): HTMLElement;
+    bindRuler(el: HTMLElement, a: THREE.Vector3, b: THREE.Vector3, axis: string): void } | null;
 }
 
 /** A sink or hob that stands on its own on a worktop, or a shelf on the wall (a `fixture` unit): drawn as the fitting alone, as wide and deep as the
@@ -43,11 +44,14 @@ export function drawKitchenFixture({ group, design, hitMaterial, panel, M, owned
   group.add(hit);
   hits.push(hit);
   if (measure) {
-    const front = d / 2 + 4, side = w / 2 + 6, V = THREE.Vector3;
-    const lines = [new V(-w / 2, 0, front), new V(w / 2, 0, front), new V(side, 0, -d / 2), new V(side, 0, d / 2)];
-    measure.stroke(lines, group, 11);
-    measure.label(new V(0, 0, front), 'W ' + measure.format(w), 'lbl dim dimension-scrubber scrub-w');
-    measure.label(new V(side, 0, 0), 'D ' + measure.format(d), 'lbl dim dimension-scrubber scrub-d');
+    const V = THREE.Vector3;
+    const ruler = (a: THREE.Vector3, b: THREE.Vector3, axis: string, key: string, size: number) => {
+      const el = measure.label(a.clone().add(b).multiplyScalar(.5), key.toUpperCase() + ' ' + measure.format(size),
+        'lbl dim dimension-scrubber scrub-' + key);
+      measure.bindRuler(el, a, b, axis);
+    };
+    ruler(new V(-w / 2, 0, d / 2), new V(w / 2, 0, d / 2), 'under', 'w', w);
+    ruler(new V(w / 2, 0, -d / 2), new V(w / 2, 0, d / 2), 'depth', 'd', d);
   }
   return true;
 }

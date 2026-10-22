@@ -5,15 +5,18 @@ import { deconflictLabels } from './label-deconflict';
 
 export function createLabelLayout({
     dom, renderState, resources, shapeInspector, selectionState,
-    drawScreenRuler, overlay, inspector, updateItemResizeHandles,
+    drawScreenRuler, finishScreenRuler, overlay, inspector, updateItemResizeHandles,
     updateMoveIcons, getCvRect, labelDim
 }) {
     const { $, document } = dom;
 
     return function positionLabels() {
+        resources.cam.updateMatrixWorld(true);
         inspector.updateItemBar();
         overlay?.orient();
         const r = getCvRect();
+        const owners = new Set(renderState.labs.map(l => l.owner).filter(Boolean));
+        owners.forEach(owner => owner.updateWorldMatrix(true, false));
         renderState.labs.forEach(l => sizeCanvasAdd(l, resources.cam, r));
         updateItemResizeHandles();
         updateMoveIcons();
@@ -40,10 +43,10 @@ export function createLabelLayout({
             renderState.pv.copy(l.p);
             if (l.owner) l.owner.localToWorld(renderState.pv);
             renderState.pv.project(resources.cam);
-            const visible = renderState.pv.z < 1 && l.owner?.visible !== false && shapeHandleVisible(l.el, l.owner, resources.cam, shapeInspector.drag())
+            const visible = l.visible !== false && renderState.pv.z >= -1 && renderState.pv.z <= 1 && l.owner?.visible !== false && shapeHandleVisible(l.el, l.owner, resources.cam, shapeInspector.drag())
                 && (!l.el.classList.contains('hover-dim') || l.el.dataset.active === 'true');
             const nextD = visible ? (l.el.classList.contains('wardrobe-actions') ? 'flex' : 'block') : 'none';
-            if (l._disp !== nextD) { l._disp = nextD; l.el.style.display = nextD; }
+            if (l.el.style.display !== nextD) l.el.style.display = nextD;
             if (!visible) {
                 if (l.rulerNode) l.rulerNode.style.display = 'none';
                 return;
@@ -65,11 +68,15 @@ export function createLabelLayout({
                 else if (l.el.classList.contains('reach-dimension')) { x = Math.max(leftLimit + ew / 2, Math.min(rightLimit - ew / 2, bx)); y = by - eh / 2; }
                 else { l.el.style.display = 'none'; return; }
                 const nextTf = `translate(-50%,-50%) translate(${x}px,${y}px)`;
-                if (l._tf !== nextTf) { l._tf = nextTf; l.el.style.transform = nextTf; }
+                if (l.el.style.transform !== nextTf) l.el.style.transform = nextTf;
                 return;
             }
             if (l.ruler) {
-                const q = drawScreenRuler(l, r, ew, eh, { left: leftLimit, right: rightLimit, bottom: r.height - 56 });
+                const q = drawScreenRuler(l, r, ew, eh, { left: leftLimit, right: rightLimit, bottom: r.height - scrubberBottom(l.el, r, getToolbarRect) });
+                if (!q.visible) {
+                    l.el.style.display = 'none';
+                    return;
+                }
                 x = q.x;
                 y = q.y;
             } else if (l.el.classList.contains('dim') && !l.el.classList.contains('space-ruler') && !l.el.classList.contains('clearance')) {
@@ -91,9 +98,13 @@ export function createLabelLayout({
                 if (spot) { x = spot[0]; y = spot[1]; }
                 shapePlaced.push({ x, y, w: ew, h: eh });
             }
+            if (l.rulerLayout) { l.rulerLayout.x = x; l.rulerLayout.y = y; }
             const nextTf = `translate(-50%,-50%) translate(${x}px,${y}px)` + (l.canvasScale === undefined ? '' : ` scale(${l.canvasScale})`);
-            if (l._tf !== nextTf) { l._tf = nextTf; l.el.style.transform = nextTf; }
+            if (l.el.style.transform !== nextTf) l.el.style.transform = nextTf;
         });
-        deconflictLabels($('#labels'), r);
+        const shifts = deconflictLabels($('#labels'), r);
+        renderState.labs.forEach(l => {
+            if (l.ruler) finishScreenRuler(l, shifts?.get(l.el));
+        });
     };
 }

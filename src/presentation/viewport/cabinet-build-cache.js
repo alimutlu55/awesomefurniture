@@ -44,30 +44,16 @@ export function wardrobeDesignFingerprint(w, activeId, selectionState, interacti
 }
 
 export function createCvRectCache(cv) {
-    let lastRect = null, lastTime = 0;
     return function getCvRect() {
-        if (!cv || !cv.getBoundingClientRect) {
-            return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
-        }
-        const now = performance.now();
-        if (!lastRect || now - lastTime > 32) {
-            lastRect = cv.getBoundingClientRect();
-            lastTime = now;
-        }
-        return lastRect;
+        return cv?.getBoundingClientRect?.() ?? { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
     };
 }
 
 export function createLabelDimMeasurer() {
     return function labelDim(l) {
         const scale = l.canvasScale ?? 1;
-        if (l._w === undefined || l._txt !== l.el.textContent || l._sc !== scale) {
-            l._w = (l.el.offsetWidth || 30) * scale;
-            l._h = (l.el.offsetHeight || 18) * scale;
-            l._txt = l.el.textContent;
-            l._sc = scale;
-        }
-        return { w: l._w, h: l._h };
+        // CSS can change with viewport, focus and inline editing without changing the text.
+        return { w: (l.el.offsetWidth || 30) * scale, h: (l.el.offsetHeight || 18) * scale };
     };
 }
 
