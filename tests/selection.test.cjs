@@ -129,3 +129,32 @@ test('a second touch starts pinch before testing selected cabinet or divider geo
 test('empty bay follows the same first-click wardrobe and second-click section hierarchy',()=>{
  const {context:c,run}=fixture();c.itemHit=null;run('pick({})');assert.equal(c.deep,false);run('pick({})');assert.equal(c.deep,true);assert.equal(c.S.item,-1);assert.equal(c.pillOn,true);
 });
+
+test('a fitting behind the front of an empty opening cannot steal its selection',()=>{
+ const {context:c,run}=fixture(); c.focusOn=true;
+ c.hit.distance=100; c.itemHit.distance=130;
+ run('pick({})'); assert.equal(c.S.item,-1); assert.equal(c.deep,true); assert.equal(c.pillOn,true);
+ c.itemHit.distance=100;
+ run('pick({})'); assert.equal(c.S.item,0,'a fitting at the opening still selects normally');
+});
+
+test('a fitting in another bay cannot override the empty bay under the pointer',()=>{
+ const {context:c,run,hit}=fixture(); c.focusOn=true; c.itemHit=hit(1,1,0);
+ run('pick({})'); assert.equal(c.S.sel,0); assert.equal(c.S.item,-1); assert.equal(c.pillOn,true);
+});
+
+test('pressing an empty opening never arms a drag of its selected fitting farther behind it',()=>{
+ const {context:c}=fixture(); c.focusOn=true; c.deep=true; c.S.item=0; c.S.divider=-1;
+ c.hit.distance=100; c.itemHit.distance=130;
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
+ assert.equal(c.drag,null); assert.equal(c.wardrobeDrag,false);
+});
+
+test('a recessed physical roof divider remains selectable and draggable',()=>{
+ const {context:c,run}=fixture(); c.focusOn=true; c.deep=true; c.S.divider=0;
+ c.hit.distance=100; c.itemHit.distance=105; c.itemHit.object.userData.divider=0;
+ run('pick({})'); assert.equal(c.S.divider,0);
+ let grabbed=false; c.beginDividerDrag=()=>{grabbed=true};
+ c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
+ assert.equal(grabbed,true);
+});

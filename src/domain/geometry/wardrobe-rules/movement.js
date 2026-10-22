@@ -271,7 +271,7 @@ export function createMovementRules(ctx, deps) {
     function itemEdgeSize(g, edge, delta, neighbors, index, minW, minH, maxH) {
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), round = v => Math.round(v * 10) / 10;
         if (edge === 'top') {
-            return { h: clamp(round(g.h + delta), minH, maxH) };
+            return { h: clamp(round(g.h + delta), Math.min(minH, g.h), maxH) };
         }
         if (edge === 'bottom') {
             // The bottom edge moves and the top stays: down to what is under it (a fitting, a board or the base board),

@@ -5,7 +5,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
 (async () => {
  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH });
  try {
-  for (const width of [375, 844, 1440]) {
+  for (const width of [375, 844, 1440].filter(w => !process.env.CANVAS_WIDTH || w === Number(process.env.CANVAS_WIDTH))) {
    const page = await browser.newPage({ viewport: { width, height: 812 }, hasTouch: true, isMobile: width <= 900, reducedMotion: 'reduce' });
    page.setDefaultTimeout(10000);
    const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -36,6 +36,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const toolbar = page.locator('[data-editor-id="toolbar"]');
    const context = () => toolbar.getAttribute('data-context');
    const state = () => page.evaluate(() => window.canvasFixture.editor.scene().wardrobes[0].state);
+   const cdp = await page.context().newCDPSession(page);
    const project = point => page.evaluate(point => {
     const { camera, THREE } = window.canvasFixture;
     const canvas = document.querySelector('#editor').shadowRoot.querySelector('canvas'), r = canvas.getBoundingClientRect();
@@ -66,7 +67,36 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await tapWorld([49.1, 170, 30]);
    assert.equal(await context(), 'wardrobe'); assert.equal((await state()).item, -1);
 
-   const cdp = await page.context().newCDPSession(page);
+   // The two openings share a section index. Its render cache must also track
+   // the selected space, so the Add control and glow move on every tap.
+   const addY = () => page.locator('.lbl.add:visible').evaluate(el => el.getBoundingClientRect().y);
+   if (width <= 900) {
+    const at = await project([20, 155, 30]);
+    const before = await page.evaluate(() => { const c = window.canvasFixture.editor.scene().wardrobes[0]; return { x: c.x, z: c.z }; });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...at, id: 1 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: at.x + 6, y: at.y + 2, id: 1 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(100);
+    assert.deepEqual(await page.evaluate(() => { const c = window.canvasFixture.editor.scene().wardrobes[0]; return { x: c.x, z: c.z }; }), before,
+     'a small finger movement chooses the space without moving the wardrobe');
+   } else await tapWorld([20, 155, 30]);
+   const upper = (await state()).space, upperY = await addY();
+   await tapWorld([20, 70, 30]);
+   assert.equal((await state()).item, -1, 'the lower opening is empty');
+   assert.equal((await state()).divider, -1, 'the lower opening is off the board');
+   const lower = (await state()).space, lowerY = await addY();
+   assert.ok(lower.y < upper.y - 30, 'the second empty space owns selection immediately');
+   assert.ok(lowerY > upperY + 10, 'Add follows the second space without a background tap');
+   await tapWorld([20, 155, 30]);
+   assert.ok((await state()).space.y > lower.y + 30, 'switching back works too');
+
+   if (width <= 900) {
+    const empty = await background();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...empty, id: 1 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: empty.x + 6, y: empty.y + 2, id: 1 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert.equal(await context(), 'none', 'natural finger movement still clears selection');
+   }
    for (const releaseFirst of [1, 2]) {
     await chooseDivider();
     const before = await state(), board = await project([0, 109.8, 30]), empty = await background();
@@ -95,7 +125,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    assert.equal(await context(), 'none');
    assert.deepEqual((await state()).dividers, beforeLoss.dividers);
    assert.deepEqual(errors, []);
-   console.log(`PASS ${width}px: frame releases item/divider; both multi-touch release orders and lost capture leave background selection working`);
+   console.log(`PASS ${width}px: empty-space switching, touch tap tolerance, frame selection, pinch release orders and lost capture`);
    await page.evaluate(() => window.canvasFixture.editor.dispose());
    await page.close();
   }

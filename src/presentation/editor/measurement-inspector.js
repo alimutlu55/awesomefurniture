@@ -34,7 +34,7 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
             const vertical = d.orientation !== 'horizontal', heightRow = $('#divider-height-row');
             heightRow.hidden = !vertical;
             heightRow.style.display = vertical ? '' : 'none';
-            if (vertical) /** @type {HTMLInputElement} */ ($('#dheight')).value = measureNumber(d.y1 - d.y0);
+            if (vertical) /** @type {HTMLInputElement} */ ($('#dheight')).value = String(d.y1 - d.y0);
             const w = callbacks.divWord(model.activeCabinet().state.divider);
             $('#divider-title').textContent = panel.dataset.contextSection === 'resize' ? 'Size' : capWord(w);
             $('#divider-remove').title = 'Remove this ' + w;
@@ -55,9 +55,9 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
                     const input = $('#dgap' + k);
                     $('#dgap' + k + '-l').textContent = names[k];
                     input.setAttribute('aria-label', names[k]);
-                    ( /** @type {HTMLInputElement} */(input)).max = f(m.before + m.after);
+                    ( /** @type {HTMLInputElement} */(input)).max = String(m.before + m.after);
                     if (document.activeElement !== input) {
-                        ( /** @type {HTMLInputElement} */(input)).value = f(k ? m.after : m.before);
+                        ( /** @type {HTMLInputElement} */(input)).value = String(k ? m.after : m.before);
                     }
                 });
                 const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + unitSuffix()], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + unitSuffix()], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + unitSuffix()], ['Y · bottom → top from floor', f(geometry.interiorFloor() + m.y0) + ' → ' + f(geometry.interiorFloor() + m.y1) + unitSuffix()], ['Z · back → front', f(fittingDepth(model.activeCabinet().state.d).z0) + ' → ' + f(fittingDepth(model.activeCabinet().state.d).z1) + unitSuffix()]];

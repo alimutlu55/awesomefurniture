@@ -241,7 +241,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         $('#left').scrollTop = 0;
         // Opening Size keeps the user's view and releases any fit that would
         // otherwise restart when the drawer changes the canvas dimensions.
-        if (key === 'resize') camera.camRelease();
+        if (key === 'resize') { camera.camRelease(); inspector.update(true); }
         else camera.frameMobileInspector(key === 'shape');
     };
     // The shape sheet opens with its panel list and break-point handles.

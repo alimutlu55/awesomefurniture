@@ -89,7 +89,7 @@ const assert=require('node:assert/strict');
    // Leave focused editing before opening another global surface.
    await page.keyboard.press('Escape');await page.waitForTimeout(350);
    for (const id of ['view-modes','topright']) assert.equal(await el(id).isVisible(),true,'Closing restores '+id);
-   await el('fitchip').click();
+   await el('menu-btn').click(); await el('fitchip').click();
    assert.equal(await el('left').isVisible(),false,'Storage opens after properties close');
    assert.equal(await el('plan-panel').isVisible(),true);
    assert.equal(await toolbar.isVisible(),false);

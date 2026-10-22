@@ -1,15 +1,18 @@
 import * as THREE from "three";
+/** An oblique ray may enter an empty opening before reaching an invisible
+ * fitting volume. Such a volume cannot own selection or arm an item drag. */
+export function fittingAtOpening(opening, fitting) {
+    return !!opening && !!fitting && fitting.object.userData.wardrobe === opening.object.userData.wardrobe
+        && fitting.object.userData.i === opening.object.userData.i
+        // Roof-fitted boards use their physical, recessed mesh rather than a
+        // front-plane volume. Their visible surface remains directly pickable.
+        && (fitting.object.userData.divider !== undefined || !(fitting.distance > opening.distance + .1));
+}
 /** @param {import('./scene-picking.ports').CreateScenePickingPorts} ports */
 export function createScenePicking({ dom, interactionState, renderState, resources, model }) {
-    let lastRectTime = 0, cachedRect = null;
-    function getRect() {
-        const now = performance.now();
-        if (!cachedRect || now - lastRectTime > 32) {
-            cachedRect = resources.cv.getBoundingClientRect();
-            lastRectTime = now;
-        }
-        return cachedRect;
-    }
+    // Sheets and the software keyboard can change the canvas between events.
+    // Picking must use its current bounds, including within the same frame.
+    const getRect = () => resources.cv.getBoundingClientRect();
     function frontPoint(e, side = 'front') {
         const r = getRect();
         interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
@@ -46,7 +49,10 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         return interactionState.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -height), new THREE.Vector3());
     }
     /** Whether a mesh is drawn: it and everything it hangs from are visible, and it is not a shadow. */
-    const onShow = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return o.isMesh && o.material?.visible !== false && !o.userData.floorShadow; };
+    const onShow = o => {
+        for (let q = o; q; q = q.parent) if (!q.visible) return false;
+        return o.isMesh && o.material?.visible !== false && o.material?.opacity !== 0 && !o.userData.floorShadow;
+    };
     /** The wardrobe or cabinet whose boards are under the pointer, its frame (sides, top, plinth) included, or undefined. */
     function pieceAt(e) {
         const r = getRect();

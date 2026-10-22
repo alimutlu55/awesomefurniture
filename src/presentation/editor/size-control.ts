@@ -1,5 +1,14 @@
 import { esc } from './editor-format.js';
 
+const sliding = new WeakSet<HTMLInputElement>();
+/** Keep the track stable for the entire gesture; its value always reflects the applied geometry. */
+export function syncSizeRange(range: HTMLInputElement, min: string, max: string, value: string, disabled = false) {
+  if (!sliding.has(range)) { range.min = min; range.max = max; }
+  range.step = '0.1';
+  range.value = value;
+  range.disabled = disabled || Number(range.max) <= Number(range.min);
+}
+
 /** The app's numeric value and slider row. Domain-specific limits are supplied by the caller. */
 export function sizeControlMarkup({ label, min, max, hint, hintKey, valueLabelId, inputAttributes = {}, rangeAttributes = {} }: {
   label: string; min: number; max: number; hint?: string | undefined; hintKey?: string; valueLabelId?: string;
@@ -21,18 +30,31 @@ export function bindSizeSlider({ range, lifetime, model, history, preview, refre
   preview(value: number): void; refresh(): void; commit?(): void; started?(): void; finished?(): void;
 }) {
   let before: string | null = null;
+  const start = () => {
+    if (before !== null) return;
+    before = model.snapshot(); sliding.add(range); started();
+  };
   const finish = (cancel = false) => {
     if (before === null) return;
     const original = before; before = null;
     if (cancel) model.restore(original); else commit();
-    finished();
+    sliding.delete(range); finished();
     if (!cancel && model.snapshot() !== original) history.checkpoint(original);
     refresh();
   };
-  lifetime.listen(range, 'input', () => { if (before === null) { before = model.snapshot(); started(); } preview(range.valueAsNumber); refresh(); });
+  lifetime.listen(range, 'pointerdown', start);
+  lifetime.listen(range, 'input', () => {
+    start();
+    const value = range.valueAsNumber;
+    // Every preview uses the same anchors and fittings. Changing direction or
+    // returning to the start must not accumulate fitting or position changes.
+    model.restore(before!); preview(value); refresh();
+  });
   lifetime.listen(range, 'change', () => finish());
+  lifetime.listen(range, 'pointerup', () => finish());
   lifetime.listen(range, 'blur', () => finish());
   lifetime.listen(range, 'pointercancel', () => finish(true));
+  lifetime.listen(range, 'lostpointercapture', () => finish(true));
 }
 
 /** Numeric entry commits on change; Enter leaves the input and runs the same commit path. */

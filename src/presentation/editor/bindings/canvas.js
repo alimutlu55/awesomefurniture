@@ -1,6 +1,8 @@
 /** Pointer and wheel gestures on the 3D canvas: select, orbit, drag, rotate, zoom.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 import { cancelCanvasSession, releaseCanvasPointer } from './canvas-pointer-lifecycle.js';
+import { fittingAtOpening } from '../scene-picking.js';
+import { pointerTapSlop } from '../interaction-state.js';
 export { bindCanvasPointercancel, bindCanvasLostpointercapture, bindCanvasGestureBlur } from './canvas-pointer-lifecycle.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** @param {import('./canvas.ports').ObserveViewportSizePorts} ports */
@@ -60,12 +62,13 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
         if (room?.grab(e, picking.cast(e, renderState.allHits))) return;
         // Two selection layers: only the furniture layer may move the whole
         // piece. Inside it, only the chosen fitting or board is draggable.
-        const chosen = selectionState.focusOn, state = model.activeCabinet().state;
-        const part = chosen && !selectionState.shapeEditing ? picking.cast(e, renderState.ihits)?.object ?? null : null, u = part?.userData;
+        const chosen = selectionState.focusOn, state = model.activeCabinet().state, opening = picking.cast(e, renderState.allHits);
+        const fitting = chosen && !selectionState.shapeEditing ? picking.cast(e, renderState.ihits) : null;
+        const part = fittingAtOpening(opening, fitting) ? fitting.object : null, u = part?.userData;
         const onPart = !!part && u.wardrobe === model.scene.activeWardrobe
             && (u.divider !== undefined ? state.divider === u.divider : state.divider < 0 && state.sel === u.i && state.item === u.j);
         // The piece moves once the pointer moves, so a tap on it still chooses what is under it. Its frame counts as the piece.
-        const pieceUnder = () => picking.cast(e, renderState.allHits)?.object.userData.wardrobe ?? picking.pieceAt(e);
+        const pieceUnder = () => opening?.object.userData.wardrobe ?? picking.pieceAt(e);
         const body = !onPart && !selectionState.shapeEditing ? pieceUnder() : undefined;
         const doorsShut = model.activeCabinet().state.doors !== 'none' && !model.activeCabinet().state.open;
         if (onPart && part.userData.divider !== undefined && !doorsShut) {
@@ -158,12 +161,12 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
             else if (interactionState.moveMode) {
                 interactions.previewAt(e);
             }
-            else if (interactionState.moved >= 5 && e.shiftKey) {
+            else if (interactionState.moved >= pointerTapSlop(e) && e.shiftKey) {
                 // Shift-drag on empty space pans, for trackpads without a right button.
                 camera.panBy(e.clientX - o.clientX, e.clientY - o.clientY);
                 inspector.hidePop();
             }
-            else if (interactionState.moved >= 5) {
+            else if (interactionState.moved >= pointerTapSlop(e)) {
                 // A finger turns the view around what is in the middle of it, keeping to its direction (touch-camera.ts).
                 if (e.pointerType === 'touch') touch.turn(e.clientX - o.clientX, e.clientY - o.clientY);
                 else {
@@ -236,7 +239,7 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
                 shell.toast(plan?.reason || 'Move cancelled.');
             }
         }
-        else if (interactionState.moved < 5 && interactionState.ptrs.size === 0) {
+        else if (interactionState.moved < pointerTapSlop(e) && interactionState.ptrs.size === 0) {
             interactionState.drag = null;
             if (interactionState.moveMode) {
                 interactions.previewAt(e);

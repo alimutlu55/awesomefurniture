@@ -7,12 +7,14 @@ const { createSceneHistory } = require('../src/application/history/scene-history
 const { createCabinetGeometry } = require('../src/domain/geometry/cabinet-geometry.js');
 const { rectangleStudio } = require('../src/domain/studio/studio-templates.ts');
 const { studioObstacles } = require('../src/domain/studio/studio-obstacles.ts');
-const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
+const { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } = require('../src/domain/studio/studio-clearance.ts');
 const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
 const { resizeHeightMinimum } = require('../src/domain/wardrobe/cabinet-size-limits.ts');
 const { bindCabinetDimensions } = require('../src/presentation/editor/bindings/cabinet.js');
 const { syncCabinetSizeLimits } = require('../src/presentation/editor/resize-fields.js');
 const { createTactileEdits } = require('../src/application/commands/tactile-edits.ts');
+const { createCabinetSizeRange } = require('../src/application/commands/cabinet-size-range.ts');
+const { createKitchenDesign, KITCHEN_PRESETS } = require('../src/domain/kitchen/kitchen-design.ts');
 
 function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true, roomWidth = 400, roomDepth = 300 } = {}) {
     const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -35,6 +37,47 @@ function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, ro
     return { model, history, commands, messages, cabinet, collision, local, fits };
 }
 const close = (a, b, text) => assert.ok(Math.abs(a - b) < 1e-6, `${text}: ${a} vs ${b}`);
+
+for (const angle of [0, 17, 90, 180]) test(`Size drawer ranges agree with exact room boundaries at ${angle} degrees`, () => {
+    const f = fixture({ angle, roomWidth: 218.2, roomDepth: 60.8 }), before = f.model.snapshot();
+    const range = createCabinetSizeRange(() => f.model.scene), limits = range();
+    assert.equal(f.model.snapshot(), before, 'querying limits cannot change the live scene');
+    assert.equal(f.history.undoCount, 0);
+    assert.equal(limits.w[1], 218.2); assert.equal(limits.d[1], 60.8); assert.equal(limits.h[1], 300);
+    assert.equal(range(), limits, 'unchanged constraints reuse the query result');
+    f.model.activeCabinet().state.space = { i: 0, x: 20, y: 40 };
+    assert.equal(range(), limits, 'selection does not invalidate geometric limits');
+    f.model.scene.studio.walls.forEach(w => w.height = 240.6);
+    close(range().h[1], 240.6 + CEILING_CLEARANCE_TOLERANCE, 'room edits invalidate the limits using the shared ceiling tolerance');
+});
+
+test('Size drawer height limits include a neighboring upper cabinet and a sloped rear ceiling', () => {
+    const f = fixture();
+    f.model.scene.wardrobes.push({ id: 2, name: 'Upper', x: 0, y: 230.8, z: 30, angle: 0, state: { ...createEditorState(), h: 60 } });
+    assert.equal(createCabinetSizeRange(() => f.model.scene)().h[1], 230.8);
+    f.model.scene.wardrobes.pop();
+    f.model.scene.studio.ceilings = [{ id: 'k1', wall: 'w1', run: 'across', depth: 160,
+        profile: [{ t: 0, y: 100 }, { t: 160, y: 260 }] }];
+    f.commands.followCeilings();
+    const before = f.model.snapshot(), limits = createCabinetSizeRange(() => f.model.scene)();
+    assert.equal(f.model.snapshot(), before);
+    assert.ok(limits.h[1] < 200 && limits.h[1] >= f.cabinet().state.h);
+    assert.equal(f.commands.setCabinetSize('h', limits.h[1], false), true); f.fits();
+    f.model.restore(before);
+    assert.equal(f.commands.setCabinetSize('h', limits.h[1] + .1, false), false);
+});
+
+for (const preset of KITCHEN_PRESETS) test(`${preset.key}: ranges use the furniture rules and stop between neighboring units`, () => {
+    const f = fixture({ room: false });
+    f.cabinet().state = createKitchenDesign(preset.unit, preset.key);
+    const initial = f.cabinet().state.w;
+    f.model.scene.wardrobes.push(...[-1, 1].map((side, i) => ({ id: i + 2, name: 'Neighbor', x: side * (initial / 2 + 50.4), y: 0,
+        z: 30, angle: 0, state: { ...createEditorState(), w: 100 } })));
+    const before = f.model.snapshot(), limits = createCabinetSizeRange(() => f.model.scene)();
+    close(limits.w[1], initial + .8, 'the range consumes both gaps exactly');
+    assert.equal(f.model.snapshot(), before);
+    assert.equal(f.commands.setCabinetSize('w', limits.w[1], false), true); f.fits();
+});
 
 for (const angle of [0, 17, 90, 180, 270]) for (const x of [-2.19, 1.37]) {
     test(`a 2152 mm wardrobe fills the remaining 48 mm between walls from offset ${x} at ${angle} degrees`, () => {

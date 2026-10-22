@@ -7,7 +7,7 @@ import { viewedPlacement } from './viewed-placement';
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
-import { syncResizeFields, syncCabinetSizeLimits } from './resize-fields.js';
+import { syncResizeFields, createCabinetSizeSync } from './resize-fields.js';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createMeasurementInspector } from './measurement-inspector.js';
 import { createItemActions } from './item-actions.js';
@@ -21,6 +21,7 @@ import { shapeTemplates, templateArt } from './shape-art';
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields }) {
     const { $, document } = dom;
+    const syncCabinetSize = createCabinetSizeSync(dom, model);
     const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() + (kitchenPanel?.products() ?? '') });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
@@ -152,7 +153,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         const fill = /** @type {HTMLButtonElement} */ ($('#fill-gap')), room = sceneCommands.fillableSpace();
         fill.hidden = room < .05;
         if (!fill.hidden) fill.textContent = 'Fill the ' + measureNumber(room) + unitSuffix() + ' gap beside it';
-        syncCabinetSizeLimits(dom, model.activeCabinet().state, selectionState.editingSize);
+        syncCabinetSize(model.activeCabinet().state, selectionState.editingSize);
         for (const panel of [shapeInspector, studioPanel, kitchenPanel, roomFields]) panel?.render();
         sectionsUI();
         syncDecorPicker($('#fins'), model.activeCabinet().state);
@@ -378,13 +379,13 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         $('#ititle').textContent = p.dataset.contextSection === 'resize' ? 'Size' : itemName(it);
         $('#ipurpose').innerHTML = compatiblePurposes(it.k).map(value => '<option value="' + value + '">' + PURPOSE[value] + '</option>').join('');
         $('#ipurpose').value = it.purpose || m.purpose;
-        $('#ih').value = measureNumber(it.h);
-        $('#ih').min = geometry.effectiveMin(it.k);
-        $('#ih').max = measureNumber(mx);
+        $('#ih').value = String(it.h);
+        $('#ih').min = String(Math.min(it.h, geometry.effectiveMin(it.k)));
+        $('#ih').max = String(mx);
         {
             const g = geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item), f1 = v => String(Math.round(v * 10) / 10), mnw = geometry.itemMinW(it), full = g.w >= g.bw - .05, maxWidth = geometry.itemEdgeSize(g, geometry.widthEdgeFor(g), geometry.widthEdgeFor(g) === 'left' ? -Infinity : Infinity, geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, mnw, geometry.effectiveMin(it.k), mx).w;
             $('#iw').value = f1(g.w);
-            $('#iw').min = mnw;
+            $('#iw').min = String(Math.min(mnw, g.w));
             $('#iw').max = f1(maxWidth);
             ( /** @type {HTMLInputElement} */(p.querySelector('[data-iwfull]'))).disabled = full || geometry.sectionDividers(model.activeCabinet().state.sel).some(d => {
                 const r = geometry.dividerRect(d);

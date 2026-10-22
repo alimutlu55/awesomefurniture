@@ -1,3 +1,4 @@
+import { fittingAtOpening } from './scene-picking.js';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'picking' | 'renderState' | 'inspector' | 'selectionState' | 'model' | 'resources' | 'camera' | 'room'>} ports */
 export function createSceneSelection({ dom, picking, renderState, inspector, selectionState, model, resources, camera, room }) {
     /** The wall or opening under the pointer, when no wardrobe is in front of it. */
@@ -58,7 +59,7 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             return;
         }
         const m = picking.cast(e, renderState.allItemHits);
-        if (m && m.object.userData.wardrobe === model.scene.activeWardrobe) {
+        if (fittingAtOpening(h, m) && m.object.userData.wardrobe === model.scene.activeWardrobe) {
             // A selection replaces the open editing surface instead of leaving stale content.
             const app = dom.$('#app');
             const replacePanel = app.matches('.props-open,.inspecting,.auto-design-open') || !!app.querySelector('.mobile-bottom-sheet.show,.dd:not([hidden])');
@@ -90,7 +91,8 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         model.activeCabinet().state.divider = -1;
         model.activeCabinet().state.space = null;
         if (h.point) {
-            inspector.selectSpaceAt(u.i, renderState.Gr.worldToLocal(h.point.clone()));
+            const at = inWardrobe(h.object, h.point);
+            if (at) inspector.selectSpaceAt(u.i, at);
         }
         selectionState.deep = true;
         selectionState.pillOn = true;

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
+import { pointerTapSlop } from './interaction-state.js';
 /** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
  * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
 const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
@@ -103,7 +104,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         if (inspector.inside()) { finishWardrobeDrag(true); return; }
         const dx = e.clientX - g.x, dy = e.clientY - g.y;
-        if (!g.moved && Math.hypot(dx, dy) < 5) {
+        if (!g.moved && Math.hypot(dx, dy) < pointerTapSlop(e)) {
             return;
         }
         if (!g.moved) {

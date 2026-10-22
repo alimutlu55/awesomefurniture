@@ -24,6 +24,12 @@ test('resize clamps to module minimum and height clearance',()=>{
  assert.equal(resize('top',-1000).h,15);
  assert.equal(resize('top',2.3).h,32.3);
 });
+
+test('a fitted item below its catalogue minimum can stay at its current height without jumping',()=>{
+ const fitted={...g,h:12,y1:g.y0+12};
+ const size=delta=>context.itemEdgeSize(fitted,'top',delta,[],-1,25,15,40).h;
+ assert.equal(size(0),12); assert.equal(size(-10),12); assert.equal(size(1.2),13.2);
+});
 function model(secs){
  const c=vm.createContext({S:{w:104,h:120,n:1,wt:[100],secs:[secs]},update(){},hist:[],redoH:[],G:{}});
  designFixture(c);

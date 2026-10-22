@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+/** A resting finger shifts farther than a mouse click. Selection and furniture
+ * movement must agree on when that press becomes a drag. */
+export const pointerTapSlop = e => e.pointerType === 'touch' ? 10 : 5;
 export function createInteractionState() {
     return {
         rotationGesture: null,

@@ -45,6 +45,7 @@ function fixture(width = 375) {
     const reset = () => { Object.assign(state(), { item: -1, divider: -1, space: null }); selectionState.deep = selectionState.pillOn = false; panel = null; };
     const inspector = { inside: () => selectionState.deep || state().item >= 0 || state().divider >= 0, update() {}, histUI() {}, movementUI() {}, reopenItemPanel() {},
         hidePop: () => { panel = null; }, showPop: (_e, id) => { panel = id; },
+        selectSpaceAt: (i, p) => { state().space = { i, x: p.x, y: p.y }; },
         selectCabinet: () => { reset(); selectionState.focusOn = true; }, clearFocus: () => { reset(); selectionState.focusOn = false; } };
     const rendering = { holdOverlay() {}, clearPreview() {}, wallGuide() {}, assist() {}, build() {}, refreshDividerVisual() {} };
     const geometry = createWardrobeGeometry(state), checkpoints = [];
@@ -64,7 +65,7 @@ function fixture(width = 375) {
         for (const id of [...lost]) { lost.delete(id); for (const fn of handlers.get('canvas:lostpointercapture') ?? []) fn({ pointerId: id }); }
     };
     const tap = (id, zone = 'background', type = 'touch') => { const e = event(id, zone, type); emit('pointerdown', e); emit('pointerup', e); };
-    return { state, model, fitting, selectionState, interactionState, interactions, cv, emit, event, tap, captures, checkpoints, get panel() { return panel; } };
+    return { state, model, fitting, picking, selectionState, interactionState, interactions, cv, emit, event, tap, captures, checkpoints, get panel() { return panel; } };
 }
 
 for (const width of [375, 1280]) for (const selected of ['item', 'divider']) {
@@ -76,6 +77,32 @@ for (const width of [375, 1280]) for (const selected of ['item', 'divider']) {
         assert.equal(f.selectionState.deep, false); assert.equal(f.selectionState.focusOn, true); assert.equal(f.panel, null);
     });
 }
+
+for (const zone of ['background', 'bay']) test(`a finger tap with natural movement still ${zone === 'background' ? 'clears selection' : 'selects the empty bay'}`, () => {
+    const f = fixture(), e = f.event(1, zone);
+    f.emit('pointerdown', e);
+    f.emit('pointermove', { ...e, clientX: e.clientX + 6, clientY: e.clientY + 2 });
+    f.emit('pointerup', { ...e, clientX: e.clientX + 6, clientY: e.clientY + 2 });
+    assert.equal(f.selectionState.focusOn, zone !== 'background');
+    assert.equal(f.state().divider, -1);
+    assert.equal(f.state().item, -1);
+    assert.equal(f.panel, null);
+});
+
+test('a small finger movement on a whole selected wardrobe selects its space without moving furniture', () => {
+    const f = fixture(), e = f.event(1, 'bay');
+    const cast = f.picking.cast;
+    f.picking.cast = (event, hits) => { const hit = cast(event, hits); return hit && { ...hit, point: new THREE.Vector3(0, 140, 30) }; };
+    Object.assign(f.selectionState, { deep: false }); f.state().divider = -1;
+    const pose = { x: f.model.activeCabinet().x, z: f.model.activeCabinet().z };
+    f.emit('pointerdown', e); assert.ok(f.interactionState.wardrobeGesture);
+    const release = { ...e, clientX: e.clientX + 6, clientY: e.clientY + 2 };
+    f.emit('pointermove', release); f.emit('pointerup', release);
+    assert.equal(f.selectionState.deep, true);
+    assert.equal(f.interactionState.wardrobeGesture, null);
+    assert.equal(f.model.activeCabinet().x, pose.x); assert.equal(f.model.activeCabinet().z, pose.z);
+    assert.equal(f.checkpoints.length, 0);
+});
 
 for (const order of [[1, 2], [2, 1]]) test(`a second finger on a selected divider yields to pinch and drains pointers in order ${order}`, () => {
     const f = fixture(), before = f.state().dividers.map(d => ({ ...d }));
