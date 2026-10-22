@@ -1,11 +1,11 @@
-import { decorBadge, decorCatalog, getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
-import { resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES } from '../../domain/materials/configured-materials';
+import { decorBadge, getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
+import { materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES } from '../../domain/materials/configured-materials';
+import { designerPalettes } from '../../domain/materials/designer-palettes';
+import { appendDecorBrowser } from './decor-browser';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { createDesignCommands } from '../../application/commands/design-commands';
 
-type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setAccessoryFinish'>;
-const groups = [{ category: 'woodgrain', label: 'Woodgrains · Oak & Walnut' },
-  { category: 'unicolor', label: 'Unicolor Mattes' }, { category: 'stone_textile', label: 'Stone & Textile' }];
+type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setAccessoryFinish' | 'applyDesignerPalette'>;
 const finishLabels: Record<string, string> = { matte_black: 'Matte black', brushed_brass: 'Brushed brass',
   anodized_champagne: 'Anodized champagne', handleless_tip_on: 'Handleless · push-to-open', brushed_steel: 'Brushed steel' };
 
@@ -13,34 +13,19 @@ export function bindDecorPicker(root: HTMLElement, commands: Commands) {
   const document = root.ownerDocument;
   root.classList.add('decor-picker');
   root.innerHTML = '<label class="decor-link"><input type="checkbox" data-decor-link> Match fronts to carcass</label>';
-  for (const [zone, title] of [['carcass', 'Carcass'], ['fronts', 'Fronts'], ['worktop', 'Worktop']] as const) {
+  const palettes = document.createElement('div'); palettes.className = 'decor-palettes';
+  palettes.setAttribute('role', 'group'); palettes.setAttribute('aria-label', 'Designer palettes');
+  for (const palette of designerPalettes) {
+    const button = document.createElement('button'); button.type = 'button'; button.dataset.designerPalette = palette.id;
+    button.textContent = palette.name; button.onclick = () => commands.applyDesignerPalette(palette.id); palettes.appendChild(button);
+  }
+  root.prepend(palettes);
+  for (const [zone, title] of [['carcass', 'Inside / Carcass'], ['fronts', 'Exterior Fronts'], ['drawers', 'Drawer interiors'],
+    ['backing', 'Back panels'], ['worktop', 'Worktop'], ['backsplash', 'Backsplash']] as const) {
     const section = document.createElement('details');
-    section.dataset.decorSection = zone;
-    section.open = zone === 'carcass';
+    section.dataset.decorSection = zone; section.open = zone === 'carcass';
     section.innerHTML = `<summary>${title}<small data-decor-summary="${zone}"></small></summary>`;
-    for (const group of groups) {
-      const options = decorCatalog.filter(sku => sku.category === group.category && sku.allowedZones.includes(zone));
-      if (!options.length) continue;
-      const heading = document.createElement('p');
-      heading.className = 'decor-group-label'; heading.textContent = group.label; section.appendChild(heading);
-      const grid = document.createElement('div'); grid.className = 'decor-grid';
-      for (const sku of options) {
-        const button = document.createElement('button');
-        button.type = 'button'; button.className = 'decor-option'; button.dataset.decorZone = zone; button.dataset.decorId = sku.id;
-        button.title = `${sku.name} · ${decorBadge(sku)}`;
-        button.setAttribute('aria-label', `${title}: ${sku.name}, ${button.title}`);
-        const swatch = document.createElement('span'); swatch.className = 'decor-swatch';
-        swatch.style.backgroundColor = sku.pbr.baseHex;
-        const image = sku.pbr.swatchUrl ?? sku.pbr.textureUrl;
-        if (image) swatch.style.backgroundImage = `url("${image}")`;
-        const name = document.createElement('span'); name.textContent = sku.name;
-        const badge = document.createElement('small'); badge.textContent = `${sku.manufacturer} · ${sku.code} ${sku.surfaceStructure}`;
-        button.append(swatch, name, badge);
-        button.onclick = () => commands.setDecor(zone, sku.id);
-        grid.appendChild(button);
-      }
-      section.appendChild(grid);
-    }
+    appendDecorBrowser(section, zone, title, commands.setDecor);
     root.appendChild(section);
   }
   const linked = root.querySelector<HTMLInputElement>('[data-decor-link]')!;
@@ -57,16 +42,19 @@ export function bindDecorPicker(root: HTMLElement, commands: Commands) {
 
 export function syncDecorPicker(root: HTMLElement, design: EditorDesign) {
   const materials = resolveMaterials(design);
-  const ids: Record<Exclude<TargetZone, 'backing'>, string | undefined> = {
-    carcass: materials.carcassDecorId, fronts: materials.frontDecorId, worktop: materials.worktopDecorId,
-  };
+  const ids = Object.fromEntries(Object.entries(materialZoneFields).map(([zone, field]) => [zone, materials[field]])) as Record<TargetZone, string | undefined>;
+  for (const section of root.querySelectorAll<HTMLElement>('[data-decor-section]')) {
+    const zone = section.dataset.decorSection as TargetZone;
+    section.dataset.selectedDecor = ids[zone] ?? '';
+    section.hidden = (zone === 'worktop' || zone === 'backsplash') && design.product !== 'kitchen';
+  }
   for (const button of root.querySelectorAll<HTMLButtonElement>('[data-decor-id]')) {
     const selected = ids[button.dataset.decorZone as keyof typeof ids] === button.dataset.decorId;
     button.classList.toggle('on', selected); button.setAttribute('aria-pressed', String(selected));
   }
   for (const summary of root.querySelectorAll<HTMLElement>('[data-decor-summary]')) {
     const id = ids[summary.dataset.decorSummary as keyof typeof ids];
-    summary.textContent = id ? decorBadge(getDecor(id)) : 'Select a board SKU';
+    summary.textContent = id ? decorBadge(getDecor(id)) : 'Match carcass';
   }
   const linked = root.querySelector<HTMLInputElement>('[data-decor-link]');
   if (linked) linked.checked = materials.linkedDecors ?? false;
@@ -74,6 +62,4 @@ export function syncDecorPicker(root: HTMLElement, design: EditorDesign) {
   const accessory = root.querySelector<HTMLSelectElement>('[data-material-finish="accessory"]');
   if (handle) handle.value = materials.handleFinish;
   if (accessory) accessory.value = materials.internalAccessoryFinish;
-  const worktop = root.querySelector<HTMLElement>('[data-decor-section="worktop"]');
-  if (worktop) worktop.hidden = design.product !== 'kitchen';
 }

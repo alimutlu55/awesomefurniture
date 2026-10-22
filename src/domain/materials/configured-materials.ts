@@ -10,8 +10,18 @@ export interface ConfiguredMaterialsState {
   handleFinish: HandleFinish;
   internalAccessoryFinish: AccessoryFinish;
   worktopDecorId?: string | undefined;
+  backingDecorId?: string | undefined;
+  drawerDecorId?: string | undefined;
+  backsplashDecorId?: string | undefined;
+  frontProfile?: 'slab' | 'micro_shaker' | undefined;
+  integratedLed?: boolean | undefined;
   linkedDecors?: boolean | undefined;
 }
+
+export const materialZoneFields = {
+  carcass: 'carcassDecorId', fronts: 'frontDecorId', worktop: 'worktopDecorId', backing: 'backingDecorId',
+  drawers: 'drawerDecorId', backsplash: 'backsplashDecorId',
+} as const;
 
 const legacyDecors = { Oak: 'egger-h1318-st10', White: 'egger-w1100-st9', Walnut: 'egger-h3734-st9',
   Graphite: 'egger-u963-st9', Sage: 'egger-u638-st9' } as const;

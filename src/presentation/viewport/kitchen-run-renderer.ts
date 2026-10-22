@@ -34,8 +34,9 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   const glass = resources.M('#141619', { metalness: .25, roughness: .1 });
   const ring = resources.M('#5d636a', { metalness: .4, roughness: .5 });
   const plinths = new Map<string, THREE.Material>();
-  const boardMaterial = (state: Unit['state'], worktop = false) => {
-    const materials = resolveMaterials(state), id = worktop ? materials.worktopDecorId : materials.carcassDecorId;
+  const boardMaterial = (state: Unit['state'], kind: 'worktop' | 'plinth' | 'backsplash') => {
+    const materials = resolveMaterials(state), id = kind === 'worktop' ? materials.worktopDecorId
+      : kind === 'backsplash' ? materials.backsplashDecorId : materials.carcassDecorId;
     if (!id) return stone;
     let material = plinths.get(id);
     if (!material) { material = createDecorMaterial(resources, getDecor(id)); plinths.set(id, material); }
@@ -57,7 +58,7 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     const spans = kitchenSpans(units);
     for (const span of spans) {
       const first = units.find(u => u.id === span.units[0]);
-      spanSlab(span, first ? boardMaterial(first.state, span.kind === 'worktop') : stone, group);
+      spanSlab(span, first ? boardMaterial(first.state, span.kind) : stone, group);
     }
     // What sits in the worktop stands on top of it, over its own section.
     for (const unit of units) {

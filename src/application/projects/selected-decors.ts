@@ -7,7 +7,8 @@ export function selectedDecors(specification: ConfigurationForImage) {
   specification.design.furniture.forEach((piece, i) => {
     const materials = resolveMaterials(piece);
     for (const [zone, id] of [['carcass, open shelves and exposed sides', materials.carcassDecorId],
-      ['doors and drawer fronts', materials.frontDecorId], ['worktop', materials.worktopDecorId]] as const) {
+      ['exterior door panels', materials.frontDecorId], ['worktop', materials.worktopDecorId], ['backsplash', materials.backsplashDecorId],
+      ['drawer interiors and drawer boxes', materials.drawerDecorId], ['back panels', materials.backingDecorId]] as const) {
       if (!id) continue;
       let entry = selected.get(id);
       if (!entry) { entry = { sku: getDecor(id), zones: [] }; selected.set(id, entry); }

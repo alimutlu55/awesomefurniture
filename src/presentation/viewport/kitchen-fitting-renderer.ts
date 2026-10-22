@@ -8,6 +8,7 @@ import type { BoxBuilder } from './frame-geometry';
 
 /** What a kitchen front is drawn with. Fronts use the unit's finish; appliances their own metal and glass. */
 export interface KitchenFrontMaterials {
+  door?: THREE.Material; drawer?: THREE.Material;
   front: THREE.Material;
   inside: THREE.Material;
   hardware?: THREE.Material;
@@ -30,7 +31,8 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
   const face = d / 2 + PANEL / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
-  const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness });
+  const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside,
+    door: materials.door ?? materials.front, drawer: materials.drawer ?? materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness });
 
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */

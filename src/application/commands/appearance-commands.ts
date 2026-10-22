@@ -1,5 +1,6 @@
-import { assertDecorZone, defaultMaterials, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
-import type { TargetZone } from '../../domain/materials/decor-catalog';
+import { assertDecorZone, defaultMaterials, materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
+import { getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
+import { designerPalettes } from '../../domain/materials/designer-palettes';
 import type { EditorState } from '../projects/editor-scene';
 import type { EditorProfile } from '../../domain/wardrobe/editor-design';
 type Ports = {
@@ -33,13 +34,30 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
     }
     function setDecor(zone: TargetZone, id: string) {
         assertDecorZone(id, zone);
-        if (zone === 'backing' || (zone === 'worktop' && getDesign().product !== 'kitchen')) return false;
+        if ((zone === 'worktop' || zone === 'backsplash') && getDesign().product !== 'kitchen') return false;
         run(() => {
             const materials = { ...resolveMaterials(getDesign()) };
-            if (zone === 'worktop') materials.worktopDecorId = id;
-            else if (materials.linkedDecors) materials.carcassDecorId = materials.frontDecorId = id;
-            else materials[zone === 'carcass' ? 'carcassDecorId' : 'frontDecorId'] = id;
+            const linked = (zone === 'carcass' || zone === 'fronts') && materials.linkedDecors;
+            const compatible = getDecor(id).allowedZones.includes('carcass') && getDecor(id).allowedZones.includes('fronts');
+            if (linked && compatible) materials.carcassDecorId = materials.frontDecorId = id;
+            else { materials[materialZoneFields[zone]] = id; if (linked) materials.linkedDecors = false; }
+            if (zone === 'fronts') {
+                const glass = getDecor(id).category === 'glass_mirror';
+                if (glass || getDesign().doors !== 'none') getDesign().doors = glass ? 'glass' : 'hinged';
+                if (glass) materials.frontProfile = 'slab';
+            }
             getDesign().materials = materials;
+        });
+        return true;
+    }
+    function applyDesignerPalette(id: string) {
+        const palette = designerPalettes.find(p => p.id === id);
+        if (!palette) return false;
+        run(() => {
+            const design = getDesign();
+            design.materials = { ...palette.materials, ...(design.product === 'kitchen' ? palette.kitchen : {}) };
+            if (design.product !== 'kitchen') design.doors = getDecor(design.materials.frontDecorId).category === 'glass_mirror' ? 'glass' : 'hinged';
+            design.open = false;
         });
         return true;
     }
@@ -80,5 +98,5 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         getDesign().reachLine = enabled;
         effects.changed(true);
     }
-    return { setDecor, setLinkedDecors, setHandleFinish, setAccessoryFinish, setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
+    return { setDecor, setLinkedDecors, applyDesignerPalette, setHandleFinish, setAccessoryFinish, setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
 }

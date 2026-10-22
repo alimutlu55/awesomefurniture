@@ -11,6 +11,7 @@ export function neutralReferenceMaterials(scene: THREE.Scene) {
   const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: .18, toneMapped: false, depthWrite: false });
   scene.environment = null;
   scene.traverse(object => {
+    if (object.userData.planarMirror) { object.visible = false; return; }
     if (object instanceof THREE.Light || object instanceof THREE.Line || object instanceof THREE.Sprite || object.userData.referenceShadow) {
       object.visible = false;
     }

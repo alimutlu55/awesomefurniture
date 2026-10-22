@@ -40,11 +40,11 @@ const fixture = () => {
 test('catalog contains verified distinct brands/structures with explicit stock and PBR values', () => {
   assert.ok(decorCatalog.length >= 10);
   assert.equal(new Set(decorCatalog.map(s => s.id)).size, decorCatalog.length);
-  assert.deepEqual(new Set(decorCatalog.map(s => s.manufacturer)), new Set(['Egger', 'Kronospan', 'Swiss Krono']));
+  assert.deepEqual(new Set(decorCatalog.map(s => s.manufacturer)), new Set(['Egger', 'Kronospan', 'Swiss Krono', 'Fenix', 'Cleaf', 'Pfleiderer', 'ALPI', 'AGC Glass']));
   for (const sku of decorCatalog) {
     assert.match(sku.pbr.baseHex, /^#[a-f0-9]{6}$/i);
     assert.ok(sku.pbr.roughness >= 0 && sku.pbr.roughness <= 1);
-    assert.equal(sku.pbr.metalness, 0);
+    assert.ok(sku.pbr.metalness >= 0 && sku.pbr.metalness <= 1);
     assert.ok(sku.allowedZones.length && sku.edgeBandingSpec && sku.sourceUrl);
   }
   assert.doesNotMatch(getDecor('egger-u702-st9').aiPromptDescriptor, /anti-fingerprint|PerfectSense/);
@@ -181,4 +181,21 @@ test('upright panels respect the different grain axes of Egger and Swiss Krono s
     assert.equal(uv[across](0), uv[across](2), `${id}: grain does not rotate across the door`);
     geometry.dispose(); material.owned.forEach(m => m.dispose());
   }
+});
+
+test('material library: 8 families, code search, zone priorities, palettes and surface rules', async () => {
+  const { browseMaterials } = await import('../../src/domain/materials/material-browser');
+  const { designerPalettes } = await import('../../src/domain/materials/designer-palettes');
+  const { materialSurfaceRule } = await import('../../src/application/projects/material-surface-rules');
+  assert.equal(new Set(decorCatalog.map(s => s.category)).size, 8);
+  assert.ok(decorCatalog.length >= 52);
+  assert.ok(browseMaterials('fronts', 'U702').some(s => s.code === 'U702'));
+  assert.ok(browseMaterials('fronts', 'H1180').some(s => s.code === 'H1180'));
+  assert.ok(browseMaterials('fronts', 'fenix').every(s => s.manufacturer === 'Fenix'));
+  assert.match(browseMaterials('carcass')[0]!.code, /F416|F433/);
+  assert.equal(designerPalettes.length, 6);
+  for (const p of designerPalettes) for (const id of [p.materials.carcassDecorId, p.materials.frontDecorId]) assert.ok(getDecor(id), id);
+  assert.match(materialSurfaceRule(getDecor('egger-f416-st10'), 'Interior'), /woven linen cross-hatch/);
+  assert.match(materialSurfaceRule(getDecor('fenix-0750-ntm'), 'Fronts'), /nanotech super-matte/);
+  assert.match(materialSurfaceRule(getDecor('egger-h1180-st37'), 'Panels'), /synchronized-pore/);
 });

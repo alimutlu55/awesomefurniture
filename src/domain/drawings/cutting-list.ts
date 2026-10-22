@@ -18,10 +18,12 @@ interface Row { mark: string; part: string; qty: number; length: number; width: 
 
 /** What a board is cut from, with its finish where it shows ("Board 18 · White", "Back panel 6"). */
 function material(b: Pick<Board, 'stock' | 'cut' | 'decorId'>, design: EditorDesign) {
-  if (b.stock === 'door' && design.doors === 'glass') return 'Glass ' + mm(b.cut.thickness);
-  if (b.stock === 'back') return 'Back panel ' + mm(b.cut.thickness);
   const selected = resolveMaterials(design);
-  const id = b.decorId ?? (b.stock === 'door' || b.stock === 'front' ? selected.frontDecorId : selected.carcassDecorId);
+  const fronts = getDecor(selected.frontDecorId);
+  if (b.stock === 'door' && design.doors === 'glass' && fronts.category !== 'glass_mirror') return 'Glass ' + mm(b.cut.thickness);
+  if (b.stock === 'back' && !selected.backingDecorId) return 'Back panel ' + mm(b.cut.thickness);
+  const id = b.decorId ?? (b.stock === 'back' ? selected.backingDecorId! : b.stock === 'door' ? selected.frontDecorId
+    : b.stock === 'front' && fronts.category !== 'glass_mirror' ? selected.frontDecorId : selected.carcassDecorId);
   return STOCK[b.stock] + ' ' + mm(b.cut.thickness) + ' · ' + decorCode(getDecor(id));
 }
 
@@ -56,6 +58,9 @@ export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
       const holes = pieces.filter(p => (p.fixture === 'sink' || p.fixture === 'hob') && on(p));
       all.push({ mark: run, part: 'Worktop', qty: 1, length: mm(s.length), width: mm(s.depth), thick: mm(s.height), material: materials.worktopDecorId ? decorCode(getDecor(materials.worktopDecorId)) : 'Worktop ' + mm(s.height),
         edges: 'L1', note: holes.length ? 'cut-outs for ' + holes.map(h => h.mark).join(', ') + ': UNCONFIRMED - obtain manufacturer templates' : '' });
+    } else if (s.kind === 'backsplash') {
+      all.push({ mark: run, part: 'Backsplash', qty: 1, length: mm(s.length), width: mm(s.height), thick: mm(s.depth),
+        material: decorCode(getDecor(materials.backsplashDecorId!)), edges: 'L2 W2', note: '600mm high; sealed edges and worktop joint' });
     } else {
       all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(PLINTH), thick: mm(design.materials ? 1.8 : PLINTH_BOARD), material: 'Plinth ' + mm(design.materials ? 1.8 : PLINTH_BOARD) + ' · ' + fin,
         edges: '—', note: 'set back ' + mm(KITCHEN_PLINTH_SETBACK) + ' from the fronts' });

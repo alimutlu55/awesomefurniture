@@ -1,4 +1,5 @@
 import { resolveMaterials } from '../materials/configured-materials';
+import { getDecor } from '../materials/decor-catalog';
 import { PLINTH } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
@@ -37,7 +38,11 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null;
     for (const f of piecefronts(d).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
-      if (f.opens === 'side' && !f.label) add(p, 'Concealed hinge, 110°', '35 mm cup', hingesFor(mm(f.y1 - f.y0)));
+      if (f.opens === 'side' && !f.label) {
+        const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror';
+        add(p, glass ? 'Glass/mirror door hinge' : 'Concealed hinge, 110°',
+          glass ? 'compatible with frame/carrier; no cup drilling in glass' : '35 mm cup', hingesFor(mm(f.y1 - f.y0)));
+      }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
       const hardware = resolveMaterials(d).handleFinish;
       if (hardware === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);

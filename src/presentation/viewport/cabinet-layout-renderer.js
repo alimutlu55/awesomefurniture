@@ -1,3 +1,4 @@
+import { addCabinetLighting } from './cabinet-accents';
 import { roofDividerMesh } from './roof-divider-mesh';
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import * as THREE from "three";
@@ -129,6 +130,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         renderState.Gr.add(shadow);
         const { w, h, d, n } = getRenderDesign(), fd = fittingDepth(d), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         const mf = materials.front, ma = materials.accessory;
+        addCabinetLighting(getRenderDesign(), renderState.Gr);
         renderState.Gr.userData.ownedMaterials = materials.owned;
         // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
         const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
@@ -146,7 +148,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod } = createFittingRenderer({ resources, mp, md, mf, ma, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
+        const { mod } = createFittingRenderer({ resources, mp, md: materials.drawer, mf, ma, door: materials.door, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
         let x = -w / 2 + PANEL, noFreeSpace = false;
         ws.forEach((sw, i) => {
@@ -373,7 +375,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         if (spaceRulerPoints.length) {
             dimensionStroke(spaceRulerPoints, renderState.Gr, 11);
         }
-        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, mf, mh);
+        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, materials.door, mh);
         placeShapeHandles();
         renderState.Gr.updateMatrixWorld(true);
     }

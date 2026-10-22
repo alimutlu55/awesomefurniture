@@ -8,7 +8,7 @@ import { ceilingMin, ceilingPieces, resolveShape } from './shape/wardrobe-shape'
 export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
 
 export const doorThickness = (design: Pick<EditorDesign, 'materials' | 'doors'>) =>
-  design.materials && design.doors !== 'glass' ? getDecor(design.materials.frontDecorId).thicknessMm / 10 : DOOR.thickness;
+  design.materials && (design.doors !== 'glass' || getDecor(design.materials.frontDecorId).category === 'glass_mirror') ? getDecor(design.materials.frontDecorId).thicknessMm / 10 : DOOR.thickness;
 
 /** Front coordinates, measured from the left outer face and the floor.
  * An infinite cap means the leaf follows the outer roof profile. */

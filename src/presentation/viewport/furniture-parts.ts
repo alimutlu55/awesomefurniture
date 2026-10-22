@@ -4,6 +4,7 @@ import { barPull } from './hardware';
 import { hingedLeaves, shelfHeights } from '../../domain/kitchen/kitchen-fronts';
 import type { BoxBuilder } from './frame-geometry';
 import { boardBox, boardUVs } from './board-geometry';
+import { decorateFront } from './front-surface';
 
 /**
  * Parts any furniture is assembled from: front panels, hinged doors, drawer boxes, shelves inside a cupboard,
@@ -22,9 +23,10 @@ export function partMesh(geometry: THREE.BufferGeometry, material: THREE.Materia
 }
 
 /** Overlay fronts on a carcass whose front face is at `face`: panels, hinged doors, drawer boxes, shelves, pulls. */
-export function createFrontParts({ box, group, face, depth, front, inside, metal, handleless = false, shelfThickness = 1.6 }: {
+export function createFrontParts({ box, group, face, depth, front, inside, metal, door = front, drawer = inside, handleless = false, shelfThickness = 1.6 }: {
   handleless?: boolean; shelfThickness?: number;
   box: BoxBuilder; group: THREE.Object3D; face: number; depth: number; front: THREE.Material; inside: THREE.Material; metal: THREE.Material;
+  door?: THREE.Material; drawer?: THREE.Material;
 }) {
   const gap = handleless ? .2 : .3;
   /** A bar pull standing off the front, across (drawers, flaps) or upright (doors). */
@@ -35,13 +37,18 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
     group.add(bar);
   };
   /** One front panel from y0 to y1 across x0..x1, a hairline gap all round. */
-  const panel = (x0: number, x1: number, y0: number, y1: number, material = front) =>
-    box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), PANEL, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
+  const panel = (x0: number, x1: number, y0: number, y1: number, material = front) => {
+    const thickness = material.userData.panelThickness ?? PANEL;
+    const mesh = box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), thickness, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
+    decorateFront([{ x: x0 + gap / 2, y: y0 + gap / 2 }, { x: x1 - gap / 2, y: y0 + gap / 2 },
+      { x: x1 - gap / 2, y: y1 - gap / 2 }, { x: x0 + gap / 2, y: y1 - gap / 2 }], thickness, face, material, group);
+    return mesh;
+  };
   /** Hinged leaves across a span: one up to 62 cm, two above it, each with an upright pull by its free edge. */
   const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean, hinge: 'left' | 'right' = 'left', explicit = false) => {
     const py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
     for (const leaf of hingedLeaves(x0, x1, hinge, explicit)) {
-      panel(leaf.x0, leaf.x1, y0, y1);
+      panel(leaf.x0, leaf.x1, y0, y1, door);
       pull(Math.min(18, (y1 - y0) * .5), leaf.hinge === 'left' ? leaf.x1 - 4 : leaf.x0 + 4, py, true);
     }
   };
@@ -50,7 +57,7 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
     for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, shelfThickness, depth - 6, (x0 + x1) / 2, y, -1, inside);
   };
   /** The box of a drawer behind its front. */
-  const drawerBox = (cx: number, y: number, w: number, h: number) => box(Math.max(4, w - 4), Math.max(4, h - 4), depth - 6, cx, y + h / 2, -1, inside);
+  const drawerBox = (cx: number, y: number, w: number, h: number) => box(Math.max(4, w - 4), Math.max(4, h - 4), depth - 6, cx, y + h / 2, -1, drawer);
   return { panel, doors, shelves, drawerBox, pull };
 }
 

@@ -12,7 +12,7 @@ readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor
 
 export interface BindFinishSwatchesPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setAccessoryFinish'>>;
+readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setAccessoryFinish' | 'applyDesignerPalette'>>;
 }
 
 export interface BindDoorChoicePorts {
