@@ -30,7 +30,7 @@ export const KITCHEN_PRESETS = [
   { key: 'corner', unit: 'base', name: 'Corner pull-out', parts: [['corner', 1]], size: { w: 100 } },
   { key: 'tall', unit: 'tall', name: 'Tall cabinet', parts: [] },
   { key: 'cargo-tall', unit: 'tall', name: 'Tall cargo', parts: [['cargo', 160], ['cupboard', 43.4]], size: { w: 40 } },
-  { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 178], ['cupboard', 25.4]] },
+  { key: 'fridge', unit: 'tall', name: 'Fridge housing', parts: [['fridge', 1]] },
   { key: 'fridge-tall', unit: 'tall', name: 'Tall fridge-freezer', parts: [['fridge', 1]], size: { h: 190 } },
   { key: 'oven-tower', unit: 'tall', name: 'Oven tower', parts: [['pan', 28], ['cupboard', 52.4], ['oven', 60], ['microwave', 38], ['cupboard', 25]] },
   { key: 'larder', unit: 'tall', name: 'Pantry', parts: [['pantry', 160], ['cupboard', 43.4]] },

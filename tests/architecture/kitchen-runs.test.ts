@@ -119,7 +119,7 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   const units = [unit(1, 'base', 0, 0, 0, 60, 'sink'), unit(2, 'base', 60, 0, 0, 60, 'drawers'), unit(3, 'tall', 120, 0, 0, 60, 'fridge'), unit(4, 'upper', 0, -11.5, 0, 60, 'upper'), unit(9, 'base', 0, 400)];
   const s = kitchenStorage(units, units[1]!);
   assert.equal(s.drawers, 3);
-  assert.equal(s.doors, 1, 'the fridge housing cupboard; the sink and fridge fronts are appliances');
+  assert.equal(s.doors, 0, 'fridge housing is continuous fridge, no separate cupboard door; the sink and fridge fronts are appliances');
   assert.deepEqual(s.appliances, ['Sink and tap', 'Integrated fridge']);
   assert.equal(s.worktop, 120, 'the worktop stops at the tall unit');
   assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1, 'sink-top': 0, 'hob-top': 0, shelf: 0 }, 'a unit on another wall is another kitchen');

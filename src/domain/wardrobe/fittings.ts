@@ -172,7 +172,7 @@ export const FITTINGS = [
   { key: 'oven', name: 'Built-in oven', code: 'E', height: 60, min: 56, max: 62, minWidth: 55, minDepth: 55, price: 320, purpose: 'appliance',
     purposes: ['appliance'], menu: { order: 18, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Oven' },
     icon: 'M4 4h16v16H4zM4 8h16M7 12h10v5H7z', opens: 'down', ownFront: true, traits: ['front', 'appliance'], kitchen: { units: ['base', 'tall'], score: 35, why: 'Oven at a comfortable height' } },
-  { key: 'fridge', name: 'Integrated fridge', code: 'G', height: 178, min: 60, max: 200, minWidth: 55, minDepth: 55, price: 450, purpose: 'food',
+  { key: 'fridge', name: 'Integrated fridge', code: 'G', height: 178, min: 60, max: 220, minWidth: 55, minDepth: 55, price: 450, purpose: 'food',
     purposes: ['food'], menu: { order: 19, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Fridge' },
     icon: 'M6 3h12v18H6zM6 10h12M9 6v2M9 13v3', opens: 'side', traits: ['front', 'sideHandle', 'appliance'], kitchen: { units: ['tall', 'base'], score: 40, why: 'Fridge behind a matching door' } },
   { key: 'microwave', name: 'Built-in microwave', code: 'W', height: 38, min: 29, max: 46, minWidth: 45, minDepth: 30, price: 240, purpose: 'appliance',

@@ -67,9 +67,9 @@ test('the elevation stacks every height from the floor and gives the window its 
 test('fronts show how they open: door triangles point at the hinges, a fall-down door at its bottom', () => {
   const [, elevation] = technicalDrawings({ studio: room(), pieces: [against(1, 'base', 'dishwasher', 100), against(2, 'tall', 'fridge', 30)] });
   const swings = all(elevation!).filter(i => i.kind === 'line' && i.stroke === 'swing').map(i => i.kind === 'line' ? i.points.map(p => [p.x, p.y]) : []);
-  // The fridge housing (0–600): a cupboard over the fridge door over the freezer door, each hinged on the left.
+  // The fridge housing (0–600): fridge door over the freezer door, each hinged on the left.
   const tall = swings.filter(([a]) => a![0]! < 650);
-  assert.equal(tall.length, 3, 'cupboard, fridge and freezer');
+  assert.equal(tall.length, 2, 'fridge and freezer');
   for (const [a, apex, b] of tall) assert.ok(apex![0]! < a![0]! && apex![0]! < b![0]!, 'apex at the hinges on the left: ' + JSON.stringify([a, apex, b]));
   // The dishwasher (700–1300) falls down: its apex is at the bottom.
   const [dish] = swings.filter(([a]) => a![0]! > 650);
@@ -175,7 +175,7 @@ test('the hardware list: hinges by door height, runners to the depth, legs, hang
   assert.deepEqual(find('Drawer runners, full extension, pair'), ['Drawer runners, full extension, pair', '550 mm', '3', 'K2'], 'three drawers, 550 runners in a 580 deep unit');
   assert.deepEqual(find('Adjustable leg')?.slice(2), ['12', 'K1, K2, K4'], 'four under each floor unit');
   assert.deepEqual(find('Cabinet hanger, adjustable')?.slice(2), ['1', 'K3']);
-  assert.deepEqual(find('Concealed hinge, 110°')?.slice(2), ['2', 'K1'], 'the tall unit\'s cupboard door over its fridge');
+  assert.deepEqual(find('Appliance door fixing kit')?.slice(2), ['2', 'K1'], 'the tall unit\'s fridge and freezer doors');
   assert.deepEqual(find('Wall fixing bracket')?.slice(2), ['2', 'K1'], 'the tall unit is fixed to the wall');
 });
 
