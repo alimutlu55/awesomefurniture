@@ -155,14 +155,30 @@ for (const width of [375, 1280]) {
         assert.equal(f.cameraState.tgt.z, 80); assert.equal(f.cameraState.tgt.y, 130);
     });
 
-    for (const wall of ['w1', 'w2', 'w3', 'w4']) test(`${width}px: selecting ${wall} keeps the studio in view instead of facing the wardrobe back`, t => {
-        const f = fixture(t, width); f.wall(wall); f.cameraState.dist = 180; f.cameraState.el = .02;
+    for (const wall of ['w1', 'w2', 'w3', 'w4']) test(`${width}px: selecting and retapping ${wall} preserves the current zoom, angle and target`, t => {
+        const f = fixture(t, width), snapshot = f.model.snapshot();
+        f.wall(wall); f.cameraState.dist = 180; f.cameraState.el = .02; f.cameraState.az = 1.3; f.cameraState.tgt.set(70, 80, 20);
+        const pose = f.camera.camNow();
         f.tap(); assert.deepEqual(f.selectionState.room, { kind: 'wall', id: wall });
-        assert.equal(f.frames, 1); assert.equal(f.cameraState.camGoal.az, .32); assert.equal(f.cameraState.camGoal.el, .5);
-        f.camera.cameraTick(2000, 1 / 60);
-        const fitted = f.camera.camNow();
-        f.camera.camRelease(); f.cameraState.dist = 180; f.cameraState.az = 2;
-        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), fitted);
+        assert.equal(f.frames, 0); assert.equal(f.cameraState.camGoal, null);
+        f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), pose);
+        f.cameraState.dist = 125; f.cameraState.az = 2; f.cameraState.el = .8; f.cameraState.tgt.set(-80, 110, 65);
+        const zoomed = f.camera.camNow();
+        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), zoomed);
+        const nextWall = wall === 'w1' ? 'w2' : 'w1';
+        f.wall(nextWall); f.tap(); f.camera.cameraTick(2000, 1 / 60);
+        assert.deepEqual(f.selectionState.room, { kind: 'wall', id: nextWall }); samePose(f.camera.camNow(), zoomed);
+        assert.equal(f.frames, 0); assert.equal(f.model.snapshot(), snapshot);
+    });
+
+    test(`${width}px: selecting a wall stops a pending camera flight at the current pose`, t => {
+        const f = fixture(t, width); f.wall();
+        f.cameraState.dist = 180; f.cameraState.el = .2; f.cameraState.tgt.set(30, 100, 20);
+        f.camera.frameScene(); assert.ok(f.cameraState.camGoal);
+        const pose = f.camera.camNow();
+        f.tap(); assert.equal(f.cameraState.camGoal, null);
+        f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), pose);
+        assert.equal(f.frames, 1, 'selection did not start another overview');
     });
 
     test(`${width}px: dragging a wall keeps the camera steady while carrying its wardrobes`, t => {
@@ -171,8 +187,8 @@ for (const width of [375, 1280]) {
         assert.equal(f.wiring.surface.grab(f.event(), undefined), true);
         f.wiring.surface.move(f.event(undefined, 8, 6));
         assert.equal(f.model.activeCabinet().z, before + 20);
-        assert.equal(f.frames, 1); samePose(f.camera.camNow(), pose);
-        f.wiring.surface.end(); assert.equal(f.frames, 1); samePose(f.camera.camNow(), pose);
+        assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
+        f.wiring.surface.end(); assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
     });
 
     test(`${width}px: framing includes tall wardrobes and other wardrobes outside the selected wall`, t => {
@@ -198,7 +214,8 @@ test('a ceiling on the side wall retains a view of the wardrobe front and the wh
     assert.equal(f.cameraState.camGoal.az, .32); assert.equal(f.cameraState.camGoal.el, .5);
 });
 
-test('a rotated wardrobe still faces the camera when a different wall is selected', t => {
-    const f = fixture(t, 375); f.model.activeCabinet().angle = 90; f.wall('w1'); f.tap();
-    assert.equal(f.cameraState.camGoal.az, Math.PI / 2 + .32); assert.equal(f.cameraState.camGoal.el, .5);
+test('wall selection preserves the camera pose even when the active wardrobe is rotated', t => {
+    const f = fixture(t, 375); f.model.activeCabinet().angle = 90; f.wall('w1');
+    const pose = f.camera.camNow(); f.tap();
+    assert.equal(f.cameraState.camGoal, null); samePose(f.camera.camNow(), pose);
 });
