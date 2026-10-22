@@ -1,3 +1,5 @@
+import { worktopThickness } from '../materials/configured-materials';
+import { doorThickness } from '../wardrobe/door-layout';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
 import { BACK_PANEL, FITTING_SETBACK, PARTITION_SETBACK } from '../wardrobe/carcass';
 import { DOOR } from '../wardrobe/door-layout';
@@ -25,20 +27,20 @@ function frontsAtJoint(): Item[] {
 
 /** D2, a section at the foot of a kitchen floor unit: the base board on the sides above the plinth, the front over it,
  * and the plinth board set back on its legs. Depth runs left to right to the front. */
-function plinthAndBase(): Item[] {
-  const front = 0, base = h(PLINTH), plinth = front - h(KITCHEN_PLINTH_SETBACK), from = -140;
+function plinthAndBase(thickness = 1.6): Item[] {
+  const front = 0, base = h(PLINTH), plinth = front - h(KITCHEN_PLINTH_SETBACK), from = -140, pt = h(thickness);
   return [line({ x: from - 20, y: 0 }, { x: front + 60, y: 0 }, 'cut'),
     cut(from, base, front - h(PARTITION_SETBACK), base + T), rect(from, 0, front, base + 120, 'thin'),
-    cut(front, base + GAP / 2, front + T, base + 120), cut(plinth - 16, 0, plinth, base), line({ x: plinth - 60, y: 0 }, { x: plinth - 60, y: base }, 'thin'),
+    cut(front, base + GAP / 2, front + T, base + 120), cut(plinth - pt, 0, plinth, base), line({ x: plinth - 60, y: 0 }, { x: plinth - 60, y: base }, 'thin'),
     // The plinth's setback from the carcass front below; the base board's own small setback above it.
-    dims(plinth - 16, 0, 'across', [plinth, front, front + T], -1), dims(front - h(PARTITION_SETBACK), base + T, 'across', [front - h(PARTITION_SETBACK), front], 1),
+    dims(plinth - pt, 0, 'across', [plinth, front, front + T], -1), dims(front - h(PARTITION_SETBACK), base + T, 'across', [front - h(PARTITION_SETBACK), front], 1),
     dims(from, 0, 'up', [0, base, base + T], 1),
     note({ x: plinth - 60, y: base / 2 }, 'Leg', 'end')];
 }
 
 /** D3, a section at the top front of a kitchen base unit: the worktop on the top board, overhanging the front. */
-function worktopEdge(): Item[] {
-  const front = 0, top = 0, from = -120, wt = h(WORKTOP.thickness), over = h(WORKTOP.overhang);
+function worktopEdge(thickness: number = WORKTOP.thickness): Item[] {
+  const front = 0, top = 0, from = -120, wt = h(thickness), over = h(WORKTOP.overhang);
   return [cut(from, top - T, front, top), cut(from, top, front + over, top + wt), rect(from, top - 120, front, top, 'thin'),
     cut(front, top - 120, front + T, top - GAP / 2),
     dims(front, top + wt, 'across', [front, front + T, front + over], 1), dims(from, top - T, 'up', [top - T, top, top + wt], 1)];
@@ -46,8 +48,8 @@ function worktopEdge(): Item[] {
 
 /** D4, a section through a wardrobe's front: a shelf stopping short of the carcass front, the partition a little less,
  * the door standing just in front of the carcass. */
-function shelfAndDoor(): Item[] {
-  const front = 0, y = 0, from = -120, door = h(DOOR.standoff - DOOR.thickness / 2), dt = h(DOOR.thickness);
+function shelfAndDoor(thickness: number = DOOR.thickness): Item[] {
+  const front = 0, y = 0, from = -120, door = h(DOOR.standoff - thickness / 2), dt = h(thickness);
   return [rect(from, y - 120, front, y + 120, 'thin'), cut(from, y - T / 2, front - h(FITTING_SETBACK), y + T / 2),
     line({ x: front - h(PARTITION_SETBACK), y: y - 120 }, { x: front - h(PARTITION_SETBACK), y: y + 120 }, 'hidden'),
     cut(front + door, y - 120, front + door + dt, y + 120),
@@ -90,11 +92,16 @@ export function constructionDetails(pieces: readonly PlacedPiece[]): View[][] {
   const corner = cabinets.some(p => p.design.secs.flat().some(it => it.k === 'corner'));
   // At most three to a sheet, so each is drawn at 1:2.
   const sheets: View[][] = [];
-  if (kitchen) sheets.push([{ title: 'D1 Fronts at a joint', items: frontsAtJoint() }, { title: 'D2 Plinth and base', items: plinthAndBase() }, { title: 'D3 Worktop edge', items: worktopEdge() }]);
+  if (kitchen) sheets.push([{ title: 'D1 Fronts at a joint', items: frontsAtJoint() },
+    ...Array.from(new Set(cabinets.filter(p => isKitchen(p.design)).map(p => p.design.materials ? 1.8 : 1.6)))
+      .map(thickness => ({ title: 'D2 Plinth and base · ' + h(thickness) + 'mm', items: plinthAndBase(thickness) })),
+    ...Array.from(new Set(cabinets.filter(p => isKitchen(p.design)).map(p => worktopThickness(p.design))))
+      .map(thickness => ({ title: 'D3 Worktop edge · ' + h(thickness) + 'mm', items: worktopEdge(thickness) }))]);
   const cabinet: View[] = [];
-  if (wardrobe) cabinet.push({ title: 'D4 Shelf and door', items: shelfAndDoor() });
+  if (wardrobe) for (const thickness of new Set(cabinets.filter(p => !isKitchen(p.design)).map(p => doorThickness(p.design))))
+    cabinet.push({ title: 'D4 Shelf and door · ' + h(thickness) + 'mm', items: shelfAndDoor(thickness) });
   if (cabinets.length) cabinet.push({ title: 'D5 Back panel', items: backPanel() });
   if (corner) cabinet.push({ title: 'D6 Blind corner and pull-out', items: blindCornerPullout() });
   if (cabinet.length) sheets.push(cabinet);
-  return sheets;
+  return sheets.flatMap(views => Array.from({ length: Math.ceil(views.length / 3) }, (_, i) => views.slice(i * 3, i * 3 + 3)));
 }

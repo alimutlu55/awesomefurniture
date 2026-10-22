@@ -24,6 +24,8 @@ export interface DesignImageRequest {
   specification: ImageDesignSpecification;
   references: DesignReferenceImage[];
   renderConfig?: RenderPromptConfig;
+  decorSwatches?: DecorSwatchReference[];
 }
+export interface DecorSwatchReference { decorId: string; mimeType: 'image/webp' | 'image/jpeg' | 'image/png'; data: string }
 export interface GeneratedDesignImage { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
 export interface DesignImageResponse { model: string; image: GeneratedDesignImage; text?: string }

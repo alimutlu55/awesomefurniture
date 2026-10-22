@@ -63,6 +63,8 @@ export interface WardrobePreferences {
 }
 
 export interface Wardrobe {
+  /** Real board selections; absent only in legacy designs. */
+  materials?: import('../materials/configured-materials').ConfiguredMaterialsState | undefined;
   readonly editorLayout?: EditorLayout | undefined;
   readonly id: string;
   readonly name: string;

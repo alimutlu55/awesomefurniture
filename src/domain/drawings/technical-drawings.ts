@@ -12,6 +12,7 @@ import { hardwareList } from './hardware-list';
 import { applianceDetailSheets } from './appliance-details';
 import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
+import { materialSchedule } from './material-schedule';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -86,6 +87,8 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   if (pieces.length) sheets.push({ number: sheets.length + 1, title: 'Furniture schedule', pieces: [], checks: [], views: [],
     table: { columns: ['Mark', 'Item', 'W × H × D (mm)', 'Location'], rows: pieces.map(p => { const r = row(p, letters); return [r.mark, r.name, r.size, r.where]; }),
       numeric: [], notes: ['K = kitchen item (cabinet, shelf, sink or hob); W = wardrobe. Identifiers remain stable when furniture moves. Heights and undersides are measured from finished floor.'] } });
+  materialSchedule(pieces).forEach((table, i, pages) => sheets.push({ number: sheets.length + 1,
+    title: 'Material & Hardware Schedule' + (pages.length > 1 ? ' ' + (i + 1) : ''), views: [], table, pieces: [], checks: [] }));
   if (issues.length) sheets.push({ number: sheets.length + 1, title: 'Review issues', pieces: [], checks: [], views: [],
     table: { columns: ['Type', 'Elements', 'Finding', 'Rule / reference'], numeric: [], notes: ['Review recommendations separately from confirmed geometry conflicts.'],
       rows: issues.map(i => [i.kind, i.marks.join(', '), i.message, i.rule ?? 'Geometry review']) } });

@@ -1,6 +1,9 @@
+import { decorCode, getDecor } from '../materials/decor-catalog';
+import { resolveMaterials } from '../materials/configured-materials';
+import type { EditorDesign } from '../wardrobe/editor-design';
 import { PLINTH } from '../wardrobe/catalog.js';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
-import { KITCHEN_PLINTH_SETBACK, WORKTOP } from '../kitchen/kitchen-units';
+import { KITCHEN_PLINTH_SETBACK } from '../kitchen/kitchen-units';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
 import type { Board, BoardStock } from './cabinet-boards';
 import { pieceBoards } from './unit-detail';
@@ -14,9 +17,12 @@ const STOCK: Record<BoardStock, string> = { carcass: 'Board', shelf: 'Board', ba
 interface Row { mark: string; part: string; qty: number; length: number; width: number; thick: number; material: string; edges: string; note: string }
 
 /** What a board is cut from, with its finish where it shows ("Board 18 · White", "Back panel 6"). */
-function material(b: Pick<Board, 'stock' | 'cut'>, fin: string, glass: boolean) {
-  if (b.stock === 'door' && glass) return 'Glass ' + mm(b.cut.thickness);
-  return STOCK[b.stock] + ' ' + mm(b.cut.thickness) + (b.stock === 'back' ? '' : ' · ' + fin);
+function material(b: Pick<Board, 'stock' | 'cut' | 'decorId'>, design: EditorDesign) {
+  if (b.stock === 'door' && design.doors === 'glass') return 'Glass ' + mm(b.cut.thickness);
+  if (b.stock === 'back') return 'Back panel ' + mm(b.cut.thickness);
+  const selected = resolveMaterials(design);
+  const id = b.decorId ?? (b.stock === 'door' || b.stock === 'front' ? selected.frontDecorId : selected.carcassDecorId);
+  return STOCK[b.stock] + ' ' + mm(b.cut.thickness) + ' · ' + decorCode(getDecor(id));
 }
 
 /** A piece's boards as rows, identical boards counted together. */
@@ -24,7 +30,7 @@ function rows(p: PlacedPiece): Row[] {
   const out: Row[] = [];
   for (const b of pieceBoards(p)) {
     const row = { mark: p.mark, part: b.name, qty: 1, length: mm(b.cut.length), width: mm(b.cut.width), thick: mm(b.cut.thickness),
-      material: material(b, p.design.fin, p.design.doors === 'glass'), edges: b.edges, note: b.note ?? '' };
+      material: material(b, p.design), edges: b.edges, note: b.note ?? '' };
     const same = out.find(r => r.part === row.part && r.length === row.length && r.width === row.width && r.thick === row.thick && r.material === row.material && r.edges === row.edges && r.note === row.note);
     if (same) same.qty++; else out.push(row);
   }
@@ -41,16 +47,17 @@ export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {
     const marks = s.units.map(id => markOf.get(id as number)!).filter(Boolean), run = marks.length > 1 ? marks[0] + '–' + marks[marks.length - 1] : marks[0] ?? '';
-    const fin = pieces.find(p => p.id === s.units[0])?.design.fin ?? '';
+    const design = pieces.find(p => p.id === s.units[0])!.design, materials = resolveMaterials(design);
+    const fin = decorCode(getDecor(materials.carcassDecorId));
     if (s.kind === 'worktop') {
       // Sinks and hobs standing on this worktop: on its top, within its length and depth.
       const { u, v } = unitAxes(s.angle), on = (p: PlacedPiece) => Math.abs(p.y - (s.y + s.height)) < 1
         && Math.abs((p.x - s.x) * u.x + (p.z - s.z) * u.z) < s.length / 2 && Math.abs((p.x - s.x) * v.x + (p.z - s.z) * v.z) < s.depth / 2;
       const holes = pieces.filter(p => (p.fixture === 'sink' || p.fixture === 'hob') && on(p));
-      all.push({ mark: run, part: 'Worktop', qty: 1, length: mm(s.length), width: mm(s.depth), thick: mm(WORKTOP.thickness), material: 'Worktop ' + mm(WORKTOP.thickness),
+      all.push({ mark: run, part: 'Worktop', qty: 1, length: mm(s.length), width: mm(s.depth), thick: mm(s.height), material: materials.worktopDecorId ? decorCode(getDecor(materials.worktopDecorId)) : 'Worktop ' + mm(s.height),
         edges: 'L1', note: holes.length ? 'cut-outs for ' + holes.map(h => h.mark).join(', ') + ': UNCONFIRMED - obtain manufacturer templates' : '' });
     } else {
-      all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(PLINTH), thick: mm(PLINTH_BOARD), material: 'Plinth ' + mm(PLINTH_BOARD) + ' · ' + fin,
+      all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(PLINTH), thick: mm(design.materials ? 1.8 : PLINTH_BOARD), material: 'Plinth ' + mm(design.materials ? 1.8 : PLINTH_BOARD) + ' · ' + fin,
         edges: '—', note: 'set back ' + mm(KITCHEN_PLINTH_SETBACK) + ' from the fronts' });
     }
   }

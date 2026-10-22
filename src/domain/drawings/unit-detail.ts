@@ -1,3 +1,4 @@
+import { worktopThickness } from '../materials/configured-materials';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
 import { BACK_PANEL, fittingDepth, plinthOf } from '../wardrobe/carcass';
 import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
@@ -128,8 +129,8 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
   const trayDepths = sectionCorners.flatMap(c => [c.trays[0]!.base.z0, c.trays[0]!.base.z1]);
   const depths = [0, BACK_PANEL, ...(kitchen ? trayDepths : [fittingDepth(d.d).z1]), d.d, front], heights = [0, plinthOf(d), plinthOf(d) + PANEL, top - PANEL, top];
   if (unit?.worktop) {
-    out.push(rect(0, mm(d.h), mm(d.d + WORKTOP.overhang), mm(d.h + WORKTOP.thickness), 'cut', 'hatch'));
-    depths.push(d.d + WORKTOP.overhang); heights.push(d.h + WORKTOP.thickness);
+    out.push(rect(0, mm(d.h), mm(d.d + WORKTOP.overhang), mm(d.h + worktopThickness(d)), 'cut', 'hatch'));
+    depths.push(d.d + WORKTOP.overhang); heights.push(d.h + worktopThickness(d));
   }
   if (unit?.plinth) {
     const z = d.d - KITCHEN_PLINTH_SETBACK;

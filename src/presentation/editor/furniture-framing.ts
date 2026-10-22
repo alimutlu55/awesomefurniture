@@ -1,7 +1,7 @@
+import { worktopThickness } from '../../domain/materials/configured-materials';
 import { FRAME_MIN } from '../viewport/framed-extent';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenAlong, unitAxes } from '../../domain/kitchen/kitchen-runs';
-import { WORKTOP } from '../../domain/kitchen/kitchen-units';
 
 interface FurnitureFramingPorts {
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'activeCabinet'>;
@@ -23,7 +23,7 @@ export function createFurnitureFraming({ model, camera }: FurnitureFramingPorts)
           xs.push(c.x + u.x * a * c.state.w / 2 + v.x * b * c.state.d / 2);
           zs.push(c.z + u.z * a * c.state.w / 2 + v.z * b * c.state.d / 2);
         }
-        h = Math.max(h, (c.y || 0) + c.state.h + WORKTOP.thickness);
+        h = Math.max(h, (c.y || 0) + c.state.h + worktopThickness(c.state));
       }
       const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
       // At least the smallest view of any furniture, so one cabinet is seen in the room rather than filling the screen.

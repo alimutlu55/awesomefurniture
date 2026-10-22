@@ -1,4 +1,5 @@
-import { IMAGE_VIEWS, type DesignReferenceImage, type DesignImageResponse, type RenderPromptConfig } from '../../application/projects/design-image.ts';
+import { IMAGE_VIEWS, type DecorSwatchReference, type DesignReferenceImage, type DesignImageResponse, type RenderPromptConfig } from '../../application/projects/design-image.ts';
+import { decorSwatchInputs } from './decor-swatch-inputs';
 import { renderCategory, serializeConfigurationSummary, type ConfigurationForImage } from '../../application/projects/configuration-summary.ts';
 import { generatedImageData } from './design-image-contract.ts';
 import { GEMINI_DESIGN_IMAGE_REFERENCE_LABELS, buildSystemInstruction } from './design-image-prompt.ts';
@@ -45,7 +46,7 @@ async function providerError(response: Response): Promise<{ reason: string | nul
 }
 
 export async function generateDesignImage(
-  input: { references: DesignReferenceImage[]; specification: ConfigurationForImage; renderConfig?: RenderPromptConfig | undefined },
+  input: { references: DesignReferenceImage[]; specification: ConfigurationForImage; renderConfig?: RenderPromptConfig | undefined; decorSwatches?: DecorSwatchReference[] | undefined },
   apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch, logLevel?: string,
 ): Promise<DesignImageResponse> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
@@ -59,12 +60,14 @@ export async function generateDesignImage(
         { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
         { type: 'image', mime_type: image.mimeType, data: image.data },
       ]),
+      ...decorSwatchInputs(input.specification, input.decorSwatches),
       { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
         + 'and Images 2 and 3 only for supporting details.\n'
         + serializeConfigurationSummary(input.specification) + '\n'
         + '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
         + 'continuous oak flooring, and soft directional off-camera daylight. '
-        + 'Remove protruding floor-base strips and complete cropped background geometry. Include a brief text description of the result.' },
+        + 'Remove protruding floor-base strips and complete cropped background geometry. '
+        + 'Include a brief text description of the result mentioning the applied manufacturer board SKUs and surface structures.' },
     ],
     // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
     // Do not send `delivery`: Nano Banana 2.1 rejects it and returns inline data by default.

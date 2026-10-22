@@ -10,6 +10,7 @@ import type { BoxBuilder } from './frame-geometry';
 export interface KitchenFrontMaterials {
   front: THREE.Material;
   inside: THREE.Material;
+  hardware?: THREE.Material;
   M: (color: string, options?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
 }
 
@@ -19,7 +20,8 @@ export interface KitchenFrontMaterials {
  * as overlay fronts do. Cabinet-centred x, floor-relative y, centimetres. What sits in the worktop (sink,
  * hob) is drawn with the worktop (kitchen-run-renderer.ts).
  */
-export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials }: {
+export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6 }: {
+  handleless?: boolean; shelfThickness?: number;
   box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; doorHang?: 'left' | 'right' | undefined; materials: KitchenFrontMaterials;
 }) {
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
@@ -28,7 +30,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
   const face = d / 2 + PANEL / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
-  const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: steel });
+  const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness });
 
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */

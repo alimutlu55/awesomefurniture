@@ -1,5 +1,5 @@
 import { MIN_CABINET_DEPTH } from '../../../domain/wardrobe/cabinet-limits';
-import { FIN } from '../../../domain/wardrobe/catalog.js';
+import { bindDecorPicker } from '../decor-picker';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 import { measureNumber, unitSuffix } from '../editor-format.js';
 import { createTactileEdits } from '../../../application/commands/tactile-edits';
@@ -46,16 +46,7 @@ export function bindCabinetDimensions({ dom, rendering, inspector, selectionStat
 }
 /** @param {import('./cabinet.ports').BindFinishSwatchesPorts} ports */
 export function bindFinishSwatches({ dom, commands }) {
-    const { $, document } = dom;
-    Object.entries(FIN).forEach(([n, [c]]) => {
-        const b = document.createElement('button');
-        b.className = 'sw';
-        b.dataset.f = n;
-        b.title = n;
-        b.style.background = String(c);
-        b.onclick = () => commands.setFinish(/** @type {import('../../../domain/wardrobe/editor-design').EditorDesign['fin']} */ (n));
-        $('#fins').appendChild(b);
-    });
+    bindDecorPicker(dom.$('#fins'), commands);
 }
 /** @param {import('./cabinet.ports').BindDoorChoicePorts} ports */
 export function bindDoorChoice({ dom, commands }) {

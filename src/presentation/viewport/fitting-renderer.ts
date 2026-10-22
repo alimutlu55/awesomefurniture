@@ -1,9 +1,12 @@
+import { defaultMaterials, resolveMaterials } from '../../domain/materials/configured-materials';
+import { getDecor } from '../../domain/materials/decor-catalog';
+import { createDecorMaterial } from './cabinet-materials';
 import { packStorageBoxes,storageBoxSize } from '../../domain/planner/storage-boxes';
 import { shelfPossession, unitsOnShelf } from '../../domain/wardrobe/possessions';
 import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
-import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
+import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
@@ -22,6 +25,8 @@ interface FittingRendererPorts {
     resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'fabric'>>;
     mp: THREE.Material;
     md: THREE.Material;
+    mf?: THREE.Material;
+    ma?: THREE.Material;
     mh: THREE.Material;
     h: number;
     d: number;
@@ -42,14 +47,14 @@ export interface FittingCut {
     /** Lowest clear height over an x span. */
     clearAt(x0: number, x1: number): number;
 }
-export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group, getRenderDesign, garment, handbag, trouserPullOut }: FittingRendererPorts) {
+export function createFittingRenderer({ resources, mp, md, mf = mp, h, box, d, mh, ma = mh, group, getRenderDesign, garment, handbag, trouserPullOut }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
     const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
     // Kitchen cabinets draw their own fronts (drawers, doors, appliances).
     const design = getRenderDesign(), kitchen = isKitchen(design)
-        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, materials: { front: mp, inside: md, M: resources.M } }) : null;
+        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, materials: { front: mf, inside: mp, hardware: mh, M: resources.M }, handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6 }) : null;
     if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
@@ -59,8 +64,9 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             kitchen.kitchenFitting(it, cx, y, sw, { bottom: interiorFloorOf(getRenderDesign()), top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
             return;
         }
-        const k = it.k, hh = it.h, fc2 = it.f ? FIN[it.f][0] : null, P = fc2 ? resources.wood(fc2) : mp, D = fc2 ? resources.wood(resources.shade(fc2, .92)) : md;
-        if (fc2) D.userData.referenceColor = new THREE.Color(fc2).convertSRGBToLinear();
+        const k = it.k, hh = it.h, override = it.f ? getDecor(defaultMaterials(it.f).carcassDecorId) : null;
+        const P = override ? createDecorMaterial(resources, override) : mp, D = override ? createDecorMaterial(resources, override) : md;
+        if (override) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(P, D);
         const slab: BoxBuilder = cut ? cut.slab : box, board = fittingDepth(d);
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;
@@ -77,11 +83,13 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {
             // An angled front over a rectangular drawer box that runs on standard slides.
-            slab(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, P);
+            slab(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, override ? P : mf);
             box(Math.max(4, coreW - 3), Math.max(4, coreH - 6), d - 8, coreX, y + coreH / 2 - 1, -2, D);
-            const pull = barPull(Math.min(16, Math.max(6, coreW * .4)), mh);
-            pull.position.set(coreX, y + Math.min(coreH, hh) / 2, d / 2 - 1.2 + PANEL / 2);
-            group.add(pull);
+            if (resolveMaterials(design).handleFinish !== 'handleless_tip_on') {
+                const pull = barPull(Math.min(16, Math.max(6, coreW * .4)), mh);
+                pull.position.set(coreX, y + Math.min(coreH, hh) / 2, d / 2 - 1.2 + PANEL / 2);
+                group.add(pull);
+            }
         }
         else if (['shelf', 'folded', 'seasonal', 'shoe', 'basket'].includes(k)) {
             if (k === 'shoe') {
@@ -151,19 +159,19 @@ export function createFittingRenderer({ resources, mp, md, h, box, d, mh, group,
             const count = Math.max(1, WardrobePlanner.geo.pantsCount(coreW));
             if (trouserPullOut) {
                 const drop = Math.max(5, Math.min(60, coreH - riseAt() - 12));
-                trouserPullOut(group, coreX, y + coreH - 7, 0, coreW, Math.min(d - 10, 44), drop, count);
+                trouserPullOut(group, coreX, y + coreH - 7, 0, coreW, Math.min(d - 10, 44), drop, count, resolveMaterials(design).internalAccessoryFinish);
             } else {
-                box(Math.max(4, coreW - 5), 1.5, d - 8, coreX, y + coreH - 7, -1, mh);
+                box(Math.max(4, coreW - 5), 1.5, d - 8, coreX, y + coreH - 7, -1, ma);
                 for (let j = 0; j < count; j++) {
                     const px = coreX - (count - 1) * 3 + j * 6;
-                    box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, mh);
+                    box(1, 1, Math.min(d - 10, 40), px, y + coreH - 9, 0, ma);
                     box(2, Math.min(coreH - 14, 60), Math.min(d - 15, 28), px, y + (coreH - 14) / 2 + 2, 0, cloth(GARMENT_COLOURS[j % GARMENT_COLOURS.length]!));
                 }
             }
         }
         else {
             // Rails hang only across the part of the fitting where garments clear the top.
-            const ry = y + coreH - RAIL_DROP, front = !!it.front, len = front ? d - 8 : Math.max(4, coreW - 3), r = new THREE.Mesh(new THREE.CylinderGeometry(RAIL_RADIUS, RAIL_RADIUS, len, 12), mh);
+            const ry = y + coreH - RAIL_DROP, front = !!it.front, len = front ? d - 8 : Math.max(4, coreW - 3), r = new THREE.Mesh(new THREE.CylinderGeometry(RAIL_RADIUS, RAIL_RADIUS, len, 12), ma);
             r.rotation[front ? 'x' : 'z'] = Math.PI / 2;
             r.position.set(coreX, ry, 0);
             r.castShadow = true;

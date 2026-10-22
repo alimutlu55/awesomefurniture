@@ -55,12 +55,14 @@ export function buildTrouserGeometry(width: number, drop: number) {
 /** A sliding metal rack with individually draped trousers. All dimensions are centimetres. */
 export function createTrouserRenderer(document?: Document) {
   const cache = createRenderAssetCache();
-  function trouserPullOut(parent: THREE.Group, cx: number, top: number, z: number, width: number, depth: number, drop: number, count: number) {
+  function trouserPullOut(parent: THREE.Group, cx: number, top: number, z: number, width: number, depth: number, drop: number, count: number,
+    finish: import('../../domain/materials/configured-materials').AccessoryFinish = 'brushed_steel') {
     const rack = new THREE.Group();
     rack.name = 'trouser-pull-out';
     rack.position.set(cx, top, z);
-    const [steel, dark] = cache.material('rack', () => [
-      new THREE.MeshStandardMaterial({ color: new THREE.Color('#b4b8bd').convertSRGBToLinear(), roughness: .4, metalness: .6 }),
+    const color = { brushed_steel: '#b4b8bd', matte_black: '#242426', anodized_champagne: '#c2b69c' }[finish];
+    const [steel, dark] = cache.material('rack:' + finish, () => [
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(color).convertSRGBToLinear(), roughness: .4, metalness: .6 }),
       new THREE.MeshStandardMaterial({ color: new THREE.Color('#403b36').convertSRGBToLinear(), roughness: .75 }),
     ]);
     const cube = cache.geometry('rack-box', () => new THREE.BoxGeometry(1, 1, 1));

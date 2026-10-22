@@ -1,5 +1,6 @@
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
+import { materialsSchema } from './materials-schema';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
 import { POSSESSIONS } from '../../domain/wardrobe/possessions';
@@ -80,6 +81,7 @@ const wardrobe = z.strictObject({
   position: z.strictObject({ x: finite, y: nonnegative, z: finite }),
   rotation: finite,
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
+  materials: materialsSchema.optional(),
   doors: z.enum(['none', 'solid', 'glass']),
   sections: z.array(section),
   shape: shape.optional(),
@@ -100,6 +102,7 @@ const wardrobe = z.strictObject({
   const fail = (message: string) => context.addIssue({code:'custom', message});
   const close = (a: number, b: number) => Math.abs(a-b)<.001;
   if ((cabinet.product === 'kitchen') !== (cabinet.unit !== undefined)) fail('A kitchen cabinet names its unit, and only a kitchen cabinet has one.');
+  if (cabinet.materials?.worktopDecorId && cabinet.product !== 'kitchen') fail('Only kitchen furniture has a worktop decor.');
   if (cabinet.editorLayout) {
     const n=cabinet.sections.length, weights=cabinet.editorLayout.weights;
     if(n<1 || n>6) fail('An editor wardrobe must have between one and six sections.');

@@ -5,6 +5,7 @@ import { oakMaps } from './wood-textures';
 import { fabricTexture } from './fabric';
 import { DRAPE } from './garment-types';
 import { createStageFloor } from './stage-floor';
+import { createDecorTextureLoader } from './decor-textures';
 /** Three.js owns its renderer, lights, materials and reusable textures here. */
 export function createViewportResources(cv) {
     const R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
@@ -53,6 +54,7 @@ export function createViewportResources(cv) {
     const HM = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
     // Photographed oak veneer, one set of maps shared by every board of every wardrobe in this editor.
     const veneer = oakMaps(cv.ownerDocument, 'veneer', Math.min(8, R.capabilities.getMaxAnisotropy()));
+    const decorTexture = createDecorTextureLoader(cv.ownerDocument);
     const M = (c, o) => {
         const m = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .82 }, o));
         m.color.convertSRGBToLinear();
@@ -79,5 +81,5 @@ export function createViewportResources(cv) {
         R.dispose();
         R.forceContextLoss();
     }
-    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
+    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, decorTexture, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
 }

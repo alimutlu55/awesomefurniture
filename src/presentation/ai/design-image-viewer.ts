@@ -5,6 +5,7 @@ import { requestDesignImage } from './design-image-client';
 import { designImageErrorMessage } from './design-image-errors';
 import { createDesignImageLoading } from './design-image-loading';
 import { createDesignImageReferences } from './design-image-references';
+import { loadDecorSwatches } from './decor-swatch-references';
 
 interface Ports {
   dom: ReturnType<typeof createEditorDom>; lifetime: ReturnType<typeof createEditorLifetime>;
@@ -105,7 +106,10 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
     if (disposed || !dialog.open || current !== preparation) return;
     try {
-      prepared = capture(); references.update(prepared);
+      const captured = capture();
+      const swatches = await loadDecorSwatches(captured.specification, AbortSignal.timeout(5000));
+      if (current !== preparation || disposed || !dialog.open) return;
+      prepared = { ...captured, ...(swatches.length ? { decorSwatches: swatches } : {}) }; references.update(prepared);
       showError(null); status.textContent = 'Reference images and JSON are ready to review.';
     } catch (error) {
       prepared = null;

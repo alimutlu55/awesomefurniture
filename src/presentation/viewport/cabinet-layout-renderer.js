@@ -114,7 +114,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         resources.scene.add(renderState.Gr);
         // A sink or hob placed on its own is just the fixture: no carcass, sections or shadow.
         const owned = [], focused = renderState.renderActive && selectionState.focusOn;
-        const own = isKitchen(getRenderDesign()) && kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' ? createCabinetMaterials(resources, getRenderDesign().fin) : null;
+        const own = isKitchen(getRenderDesign()) && kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' ? createCabinetMaterials(resources, getRenderDesign()) : null;
         if (own) owned.push(...own.owned);
         const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), stroke: dimensionStroke } : null;
         if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, panel: own?.panel, M: resources.M, owned, hits: renderState.hits, measure })) {
@@ -127,7 +127,8 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);
         shadow.userData.floorShadow = true;
         renderState.Gr.add(shadow);
-        const { w, h, d, n } = getRenderDesign(), fd = fittingDepth(d), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign().fin), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
+        const { w, h, d, n } = getRenderDesign(), fd = fittingDepth(d), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
+        const mf = materials.front, ma = materials.accessory;
         renderState.Gr.userData.ownedMaterials = materials.owned;
         // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
         const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
@@ -145,7 +146,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
                 label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             }
         };
-        const { mod } = createFittingRenderer({ resources, mp, md, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
+        const { mod } = createFittingRenderer({ resources, mp, md, mf, ma, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
         let x = -w / 2 + PANEL, noFreeSpace = false;
         ws.forEach((sw, i) => {
@@ -372,7 +373,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         if (spaceRulerPoints.length) {
             dimensionStroke(spaceRulerPoints, renderState.Gr, 11);
         }
-        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, mp, mh);
+        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, mf, mh);
         placeShapeHandles();
         renderState.Gr.updateMatrixWorld(true);
     }

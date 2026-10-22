@@ -17,10 +17,10 @@ export function boardBox(w: number, h: number, d: number) {
  * that contains it, and each board starts at its own place on the sheet (`seed`, from where it stands), so
  * boards do not repeat one another and keep their figure when the wardrobe is rebuilt.
  * Works for any geometry: each vertex is mapped in the plane its normal faces most. */
-export function boardUVs(geometry: THREE.BufferGeometry, seed: number) {
+export function boardUVs(geometry: THREE.BufferGeometry, seed: number, direction?: 'vertical' | 'horizontal' | 'none') {
   geometry.computeBoundingBox();
   const box = geometry.boundingBox!, size = box.getSize(new THREE.Vector3());
-  const grain = size.y > size.x ? 1 : 0;
+  const grain = direction === 'vertical' && size.y > Math.min(size.x, size.z) ? 1 : direction === 'horizontal' ? 0 : size.y > size.x ? 1 : 0;
   const pos = geometry.attributes.position as THREE.BufferAttribute, normal = geometry.attributes.normal as THREE.BufferAttribute | undefined;
   const uv = (geometry.attributes.uv as THREE.BufferAttribute | undefined) ?? new THREE.BufferAttribute(new Float32Array(pos.count * 2), 2);
   const du = fraction(seed * 12.9898), dv = fraction(seed * 78.233);
@@ -31,7 +31,8 @@ export function boardUVs(geometry: THREE.BufferGeometry, seed: number) {
     const facing = n[0]! >= n[1]! && n[0]! >= n[2]! ? 0 : n[1]! >= n[2]! ? 1 : 2;
     const inFace = [0, 1, 2].filter(a => a !== facing);
     const u = inFace.includes(grain) ? grain : inFace[0]!, v = inFace.find(a => a !== u)!;
-    uv.setXY(i, p[u]! / VENEER_TILE + du, p[v]! / VENEER_TILE + dv);
+    // Manufacturer full-board scans span 2311×1300mm with the grain along image u.
+    uv.setXY(i, p[u]! / (direction ? 231.1 : VENEER_TILE) + du, p[v]! / (direction ? 130 : VENEER_TILE) + dv);
   }
   uv.needsUpdate = true;
   geometry.setAttribute('uv', uv);

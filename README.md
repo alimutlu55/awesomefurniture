@@ -31,6 +31,8 @@ override both values from `.env.example` together. See [Supabase setup](docs/sup
 
 Use the sparkle **AI image** button beside Storage to generate a professional photograph
 with Gemini Nano Banana 2.1 from three captured perspectives and a summary of selected finishes and modules.
+The [board decor catalog](docs/decor-catalog.md) connects manufacturer SKUs, independent carcass/front selections,
+PBR materials, optional manufacturer swatches, locked AI instructions, and the manufacturing schedule.
 Set the server-only `GEMINI_API_KEY` environment variable to enable generation.
 See [AI image setup and API](docs/ai-design-images.md) for local and Cloudflare secrets,
 downloadable references, limits and verification.

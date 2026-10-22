@@ -4,12 +4,15 @@ import { hob, sinkWithTap, spanSlab } from './furniture-parts';
 import { WORKTOP, kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { hasTrait } from '../../domain/wardrobe/fittings';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
-import { FIN, PANEL } from '../../domain/wardrobe/catalog.js';
+import { getDecor } from '../../domain/materials/decor-catalog';
+import { resolveMaterials, worktopThickness } from '../../domain/materials/configured-materials';
+import { createDecorMaterial } from './cabinet-materials';
+import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 
-type Unit = UnitPose & { readonly state: UnitPose['state'] & Pick<EditorDesign, 'n' | 'wt' | 'fin'> & { readonly secs: readonly (readonly EditorItem[])[] } };
+type Unit = UnitPose & { readonly state: UnitPose['state'] & Pick<EditorDesign, 'n' | 'wt' | 'fin' | 'materials'> & { readonly secs: readonly (readonly EditorItem[])[] } };
 interface RunResources {
   M: (color: string, options?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
   wood: (color: string) => THREE.Material;
@@ -31,14 +34,11 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   const glass = resources.M('#141619', { metalness: .25, roughness: .1 });
   const ring = resources.M('#5d636a', { metalness: .4, roughness: .5 });
   const plinths = new Map<string, THREE.Material>();
-  const plinthMaterial = (fin: EditorDesign['fin']) => {
-    let material = plinths.get(fin);
-    if (!material) {
-      const color = String(FIN[fin][0]);
-      material = resources.wood(resources.shade(color, .72));
-      material.userData.referenceColor = new THREE.Color(color).convertSRGBToLinear();
-      plinths.set(fin, material);
-    }
+  const boardMaterial = (state: Unit['state'], worktop = false) => {
+    const materials = resolveMaterials(state), id = worktop ? materials.worktopDecorId : materials.carcassDecorId;
+    if (!id) return stone;
+    let material = plinths.get(id);
+    if (!material) { material = createDecorMaterial(resources, getDecor(id)); plinths.set(id, material); }
     return material;
   };
   let key = '';
@@ -57,12 +57,12 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     const spans = kitchenSpans(units);
     for (const span of spans) {
       const first = units.find(u => u.id === span.units[0]);
-      spanSlab(span, span.kind === 'worktop' ? stone : plinthMaterial(first?.state.fin ?? 'Oak'), group);
+      spanSlab(span, first ? boardMaterial(first.state, span.kind === 'worktop') : stone, group);
     }
     // What sits in the worktop stands on top of it, over its own section.
     for (const unit of units) {
       if (!kitchenUnit(unit.state.unit).worktop || !spans.some(s => s.kind === 'worktop' && s.units.includes(unit.id))) continue;
-      const frame = new THREE.Group(), top = unit.state.h + WORKTOP.thickness, centres = sectionCentres(unit.state);
+      const frame = new THREE.Group(), top = unit.state.h + worktopThickness(unit.state), centres = sectionCentres(unit.state);
       frame.position.set(unit.x, unit.y || 0, unit.z);
       frame.rotation.y = unit.angle * Math.PI / 180;
       unit.state.secs.slice(0, unit.state.n).forEach((items, i) => {
@@ -84,7 +84,7 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     let next = '';
     for (const u of units) {
       const pose = [u.x, u.y || 0, u.z, u.angle].map(v => v.toFixed(2)), size = [u.state.w, u.state.h, u.state.d, u.state.n, u.state.wt.join(':')];
-      next += [u.id, ...pose, ...size, u.state.fin, u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
+      next += [u.id, ...pose, ...size, u.state.fin, JSON.stringify(u.state.materials), u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
     }
     if (next === key) return;
     key = next;

@@ -32,6 +32,8 @@ export interface EditorLayout {
   proposal: { title: string; summary: string } | null;
 }
 export interface EditorDesign {
+  /** Real board selections; absent only in legacy designs. */
+  materials?: import('../materials/configured-materials').ConfiguredMaterialsState | undefined;
   w: number; h: number; d: number; n: number; wt: number[];
   secs: EditorItem[][]; dividers: EditorDivider[];
   fin: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage'; doors: 'none' | 'hinged' | 'glass';

@@ -14,6 +14,7 @@ import { requestDesignImage } from '../../src/presentation/ai/design-image-clien
 import { designImageErrorMessage, DesignImageUserError } from '../../src/presentation/ai/design-image-errors';
 import { buildSystemInstruction } from '../../src/infrastructure/gemini/design-image-prompt';
 import { serializeConfigurationSummary } from '../../src/application/projects/configuration-summary';
+import { defaultMaterials } from '../../src/domain/materials/configured-materials';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jJxkAAAAASUVORK5CYII=';
 function fixture(): DesignImageRequest {
@@ -82,7 +83,7 @@ test('server sends labeled references, active rules and a Tier 1 manifest with a
     const finalText = body.input.at(-1).text;
     assert.match(finalText, /Images 2 and 3 only for supporting details/);
     assert.match(finalText, /TIER 1 Locked Finishes.*Configured Finishes/);
-    assert.match(finalText, /Carcass & fronts: Oak \(#b99a75\)/);
+    assert.match(finalText, /Carcass & Exterior Fronts \(Unified Decor\): Egger H1318 ST10/);
     assert.match(finalText, /TIER 1 Module Breakdown.*Wing\/Module Breakdown/);
     assert.match(finalText, /Wing\/module 1.*Bay 1/);
     assert.match(finalText, /TIER 2 Room Completion/);
@@ -197,14 +198,15 @@ test('selected per-wing finishes, overrides, box counts and module geometry surv
   ]];
   left!.state.dividers = [{ i: 0, orientation: 'horizontal', x0: 0, x1: 176.4, y: 149 }];
   right!.name = 'Right wing'; right!.state.fin = 'Graphite'; right!.state.doors = 'none';
+  right!.state.materials = defaultMaterials('Graphite');
   right!.angle = 90; right!.state.n = 1; right!.state.wt = [1];
   right!.state.secs = [[{ k: 'pants', h: 75, y: 0 }, { k: 'short', h: 106, y: 80 }]];
   const input = { ...fixture(), specification: imageDesignSpecification(scene) };
   const before = JSON.stringify(input.specification);
   const summary = serializeConfigurationSummary(input.specification);
-  assert.match(summary, /Wing\/module 1 \(Left wing\): Carcass & fronts: Oak \(#b99a75\)/);
-  assert.match(summary, /Fitting finish overrides: White \(#eeeeea\)/);
-  assert.match(summary, /Wing\/module 2 \(Right wing\): Carcass & fronts: Graphite \(#3a3d42\)/);
+  assert.match(summary, /Carcass & Exterior Fronts \(Unified Decor\): Egger H1318 ST10[\s\S]*Configured Module Layout: Wing\/module 1 \(Left wing\)/);
+  assert.match(summary, /Fitting finish overrides: Egger W1100 ST9/);
+  assert.match(summary, /Carcass & Exterior Fronts \(Unified Decor\): Egger U963 ST9[\s\S]*Configured Module Layout: Wing\/module 2 \(Right wing\)/);
   assert.match(summary, /Upper boxes with 2 storage boxes/);
   assert.match(summary, /Hanging rail/);
   assert.match(summary, /Trouser pull-out/);

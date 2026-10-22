@@ -3,6 +3,7 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { barPull } from './hardware';
 import { hingedLeaves, shelfHeights } from '../../domain/kitchen/kitchen-fronts';
 import type { BoxBuilder } from './frame-geometry';
+import { boardBox, boardUVs } from './board-geometry';
 
 /**
  * Parts any furniture is assembled from: front panels, hinged doors, drawer boxes, shelves inside a cupboard,
@@ -21,12 +22,14 @@ export function partMesh(geometry: THREE.BufferGeometry, material: THREE.Materia
 }
 
 /** Overlay fronts on a carcass whose front face is at `face`: panels, hinged doors, drawer boxes, shelves, pulls. */
-export function createFrontParts({ box, group, face, depth, front, inside, metal }: {
+export function createFrontParts({ box, group, face, depth, front, inside, metal, handleless = false, shelfThickness = 1.6 }: {
+  handleless?: boolean; shelfThickness?: number;
   box: BoxBuilder; group: THREE.Object3D; face: number; depth: number; front: THREE.Material; inside: THREE.Material; metal: THREE.Material;
 }) {
-  const gap = .3;
+  const gap = handleless ? .2 : .3;
   /** A bar pull standing off the front, across (drawers, flaps) or upright (doors). */
   const pull = (length: number, x: number, y: number, vertical = false) => {
+    if (handleless) return;
     const bar = barPull(length, metal, vertical);
     bar.position.set(x, y, face + PANEL / 2);
     group.add(bar);
@@ -44,7 +47,7 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   };
   /** Adjustable shelves inside a cupboard, about one every 34 cm. */
   const shelves = (x0: number, x1: number, y0: number, y1: number) => {
-    for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, 1.6, depth - 6, (x0 + x1) / 2, y, -1, inside);
+    for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, shelfThickness, depth - 6, (x0 + x1) / 2, y, -1, inside);
   };
   /** The box of a drawer behind its front. */
   const drawerBox = (cx: number, y: number, w: number, h: number) => box(Math.max(4, w - 4), Math.max(4, h - 4), depth - 6, cx, y + h / 2, -1, inside);
@@ -54,7 +57,10 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
 /** A slab along a run: `length` along its direction, `depth` from its footprint's back. A plinth is a board set
  * back under the fronts, so it stands at the front of its footprint. */
 export function spanSlab(span: { kind: string; x: number; z: number; y: number; angle: number; length: number; depth: number; height: number }, material: THREE.Material, parent: THREE.Object3D) {
-  const board = span.kind === 'plinth', m = partMesh(new THREE.BoxGeometry(span.length, span.height, board ? PANEL : span.depth), material, parent, span.x, span.y + span.height / 2, span.z);
+  const board = span.kind === 'plinth', depth = board ? PANEL : span.depth;
+  const geometry = material.userData.board
+    ? boardUVs(boardBox(span.length, span.height, depth), 0, 'horizontal') : new THREE.BoxGeometry(span.length, span.height, depth);
+  const m = partMesh(geometry, material, parent, span.x, span.y + span.height / 2, span.z);
   m.rotation.y = span.angle * Math.PI / 180;
   if (board) {
     const a = span.angle * Math.PI / 180, shift = span.depth / 2 - PANEL / 2;

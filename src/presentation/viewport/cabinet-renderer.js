@@ -100,7 +100,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     function box(w, h, d, x, y, z, m, g) {
         // Wood boards: eased edges and veneer at true scale, grain along the board.
-        const board = m?.userData?.board, geo = board ? boardUVs(boardBox(w, h, d), boardSeed(x, y, z)) : new THREE.BoxGeometry(w, h, d);
+        const board = m?.userData?.board, geo = board ? boardUVs(boardBox(w, h, d), boardSeed(x, y, z), m.userData.grainDirection) : new THREE.BoxGeometry(w, h, d);
         const o = new THREE.Mesh(geo, m);
         o.position.set(x, y, z);
         o.castShadow = o.receiveShadow = true;
@@ -111,7 +111,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
      * panel like a box face so wood grain keeps its scale. */
     function prism(points, depth, z, m, g, back) {
         const geo = loftGeometry(points, depth, z, back);
-        if (m?.userData?.board) boardUVs(geo, boardSeed(points[0].x, points[0].y, z));
+        if (m?.userData?.board) boardUVs(geo, boardSeed(points[0].x, points[0].y, z), m.userData.grainDirection);
         else planarUVs(geo);
         const o = new THREE.Mesh(geo, m);
         o.castShadow = o.receiveShadow = true;

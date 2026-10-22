@@ -1,8 +1,9 @@
+import { defaultMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
 import { BACK_PANEL, fittingDepth, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, outerPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
-import { DOOR } from '../wardrobe/door-layout';
+import { DOOR, doorThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { fittingPanels } from '../geometry/shared-board-spans';
@@ -25,6 +26,7 @@ const KITCHEN_SHELF = { thickness: 1.6, back: 2, front: 4, side: .5 } as const;
  */
 export interface Board {
   readonly name: string;
+  readonly decorId?: string | undefined;
   readonly stock: BoardStock;
   readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly z0: number; readonly z1: number;
   readonly outline?: readonly P[] | undefined;
@@ -61,6 +63,7 @@ function upright(name: string, stock: BoardStock, design: EditorDesign, x0: numb
  * belong to the run, not to a unit.
  */
 export function cabinetBoards(design: EditorDesign): Board[] {
+  const shelfThickness = design.materials ? PANEL : KITCHEN_SHELF.thickness;
   const { w, d } = design, kitchen = isKitchen(design), lift = plinthOf(design), out: Board[] = [];
   const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? PLINTH : 0) : 0, part = partitionDepth(d), fit = fittingDepth(d);
   for (const b of shapeBoards(resolveShape(design))) {
@@ -90,8 +93,8 @@ export function cabinetBoards(design: EditorDesign): Board[] {
       lay.forEach((pos, j) => {
         const it = items[j]!;
         if (!hasTrait(it.k, 'appliance') && fitting(it.k)?.opens === 'side' && it.k !== 'corner') for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) {
-          out.push(board('Shelf', 'shelf', { x0: bayL + pos.off + KITCHEN_SHELF.side, x1: bayL + pos.off + pos.w - KITCHEN_SHELF.side, y0: y - KITCHEN_SHELF.thickness / 2,
-            y1: y + KITCHEN_SHELF.thickness / 2, z0: KITCHEN_SHELF.back, z1: d - KITCHEN_SHELF.front }, 'L1', 'x', { note: 'adjustable' }));
+          out.push(board('Shelf', 'shelf', { x0: bayL + pos.off + KITCHEN_SHELF.side, x1: bayL + pos.off + pos.w - KITCHEN_SHELF.side, y0: y - shelfThickness / 2,
+            y1: y + shelfThickness / 2, z0: KITCHEN_SHELF.back, z1: d - KITCHEN_SHELF.front }, 'L1', 'x', { note: 'adjustable' }));
         }
       });
     } else {
@@ -101,7 +104,9 @@ export function cabinetBoards(design: EditorDesign): Board[] {
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: fit.z0, z1: fit.z1 }, 'L1', 'x'));
         const it = items[j]!, pos = lay[j]!;
         if (fitting(it.k)?.innerFront) {
-          out.push(board('Drawer front', 'carcass', { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: pos.y0, y1: pos.y0 + it.h - 1, z0: d - 1.2 - PANEL / 2, z1: d - 1.2 + PANEL / 2 }, 'L2 W2', 'x'));
+          const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: pos.y0, y1: pos.y0 + it.h - 1,
+            z0: d - 1.2 - PANEL / 2, z1: d - 1.2 + PANEL / 2 };
+          out.push(board('Drawer front', 'front', extent, 'L2 W2', 'y', it.f ? { decorId: defaultMaterials(it.f).frontDecorId } : {}));
         }
       });
       for (const q of geometry.sectionDividers(i)) {
@@ -121,7 +126,7 @@ export function cabinetBoards(design: EditorDesign): Board[] {
     // A door leaf stops DOOR.topGap under the outer top (door-renderer.ts); under a slope it is cut to it.
     const top = outerPolyline(resolveShape(design), f.x0, f.x1).map(p => Math.min(p.y - DOOR.topGap, f.y1)), z = d + DOOR.standoff;
     const sloped = Math.max(...top) - Math.min(...top) > .05;
-    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top), z0: z - DOOR.thickness / 2, z1: z + DOOR.thickness / 2 }, 'L2 W2', 'y',
+    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top), z0: z - doorThickness(design) / 2, z1: z + doorThickness(design) / 2 }, 'L2 W2', 'y',
       sloped ? { note: 'top cut to the slope, see Front' } : {}));
   }
   return out;

@@ -1,4 +1,5 @@
 import type { ProjectDocument } from '../../domain/project/project';
+import { getDecor } from '../../domain/materials/decor-catalog';
 
 const finishes = { Oak: '#c5a477', White: '#ece9e1', Walnut: '#76553b', Graphite: '#555a59', Sage: '#9ba58c' };
 /** A document-derived elevation is available even before this browser has a 3D capture. */
@@ -15,7 +16,8 @@ export function designPreview(document: ProjectDocument): string {
     const top = wardrobe.shape?.top ?? [{ x: 0, y: height }, { x: width, y: height }];
     const points = [{ x: 0, y: 0 }, ...top, { x: width, y: 0 }];
     const path = points.map(p => `${left + p.x * scale},${162 - p.y * scale}`).join(' ');
-    pieces.push(`<polygon points="${path}" fill="${finishes[wardrobe.finish]}" stroke="#8d765a" stroke-width="2"/>`);
+    const color = wardrobe.materials ? getDecor(wardrobe.doors === 'none' ? wardrobe.materials.carcassDecorId : wardrobe.materials.frontDecorId).pbr.baseHex : finishes[wardrobe.finish];
+    pieces.push(`<polygon points="${path}" fill="${color}" stroke="#8d765a" stroke-width="2"/>`);
     if (wardrobe.doors === 'none') {
       let sectionLeft = left + 2;
       for (const section of wardrobe.sections) {

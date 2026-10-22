@@ -5,6 +5,7 @@ import type { EditorScene } from '../../application/projects/editor-scene';
 import rawMarkup from './editor.html?raw';
 import { withPossessionFields } from './possession-fields';
 import stylesheet from './editor.css?raw';
+import decorStylesheet from './decor-picker.css?raw';
 import mobileStylesheet from './mobile.css?raw';
 import mobileSheetStylesheet from './mobile-sheet.css?raw';
 import shapeStylesheet from './shape.css?raw';
@@ -37,7 +38,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack }: MountEdit
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
-        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet].join('\n'), controlIds);
+        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet, decorStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

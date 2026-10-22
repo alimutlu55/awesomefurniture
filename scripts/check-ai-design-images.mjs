@@ -54,7 +54,7 @@ try {
 
     await dialog.locator('.ai-reference-preview:not([hidden])').waitFor({ timeout: 60_000 });
     assert.equal(calls, kind === 'wardrobe' ? 0 : 1, 'opening prepares references without a provider request');
-    assert.equal(await dialog.locator('.ai-reference-grid img').count(), 3);
+    assert.ok(await dialog.locator('.ai-reference-grid img').count() >= 3);
     assert.match(await dialog.locator('.ai-reference-preview summary').textContent(), /not sent to Gemini/);
     const reviewedJSON = await dialog.locator('.ai-reference-preview pre').textContent();
     const reviewedImages = await dialog.locator('.ai-reference-grid img').evaluateAll(async images => Promise.all(images.map(async image => {
@@ -97,7 +97,8 @@ try {
     assert.equal(await dialog.locator('.ai-model-text warm').count(), 0, 'provider text is rendered as plain text');
     assert.equal(calls, kind === 'wardrobe' ? 1 : 2);
     assert.equal(body.references.length, 3);
-    assert.deepEqual(body.references.map(ref => ref.data), reviewedImages, 'generation submits the exact images reviewed before clicking Generate');
+    assert.deepEqual((body.decorSwatches ?? []).map(swatch => swatch.data), reviewedImages.slice(3), 'manufacturer swatches match the preview');
+    assert.deepEqual(body.references.map(ref => ref.data), reviewedImages.slice(0, 3), 'generation submits the exact images reviewed before clicking Generate');
     assert.deepEqual(JSON.parse(reviewedJSON), JSON.parse(JSON.stringify(modelSpecification(body.specification))), 'preview matches the design snapshot retained by the app');
     assert.ok(Buffer.byteLength(JSON.stringify(body)) <= 12 * 1024 * 1024, 'high-quality references fit the API request limit');
     assert.ok(body.references.every(ref => ref.data.length <= 6 * 1024 * 1024), 'each reference fits the image limit');

@@ -1,6 +1,7 @@
 import type { EditorDesign, EditorItem } from '../wardrobe/editor-design';
 import type { ItemKind } from '../wardrobe/wardrobe';
 import { createInitialDesign } from '../wardrobe/default-design';
+import { defaultMaterials } from '../materials/configured-materials';
 import { fitting, hasTrait } from '../wardrobe/fittings';
 import { PANEL } from '../wardrobe/catalog.js';
 import { plinthOf } from '../wardrobe/carcass';
@@ -72,7 +73,7 @@ export function createKitchenDesign(unitKey: KitchenUnitKey, presetKey?: string)
   const secs: EditorItem[][] = [[], [], [], [], [], []];
   const own = preset && preset.unit === unitKey ? preset : undefined, size = presetSize(own), h = size.h ?? unit.h;
   secs[0] = shareHeight(own ? own.parts : unit.storage, kitchenInside(h, unitKey));
-  return { ...design, w: size.w ?? unit.w, h, d: unit.d, n: 1, secs, fin: 'White', doors: 'none', product: 'kitchen', unit: unitKey };
+  return { ...design, w: size.w ?? unit.w, h, d: unit.d, n: 1, secs, fin: 'White', materials: defaultMaterials('White'), doors: 'none', product: 'kitchen', unit: unitKey };
 }
 
 /**

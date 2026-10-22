@@ -1,3 +1,4 @@
+import { worktopThickness, type ConfiguredMaterialsState } from '../materials/configured-materials';
 import { kitchenUnit, WORKTOP, KITCHEN_PLINTH_SETBACK } from './kitchen-units';
 import type { KitchenUnitKey } from './kitchen-units';
 import { PLINTH } from '../wardrobe/catalog.js';
@@ -13,7 +14,7 @@ export interface UnitPose {
   readonly y?: number | undefined;
   readonly z: number;
   readonly angle: number;
-  readonly state: { readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
+  readonly state: { readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
 }
 export interface Pose { x: number; y: number; z: number; angle: number }
 /** A slab along a run: `length` along the units' width, `depth` from `back` towards the front. */
@@ -77,12 +78,12 @@ export function kitchenSpans(units: readonly UnitPose[]): KitchenSpan[] {
   const spans: KitchenSpan[] = [];
   const top = (c: UnitPose) => (c.y || 0) + c.state.h;
   const worktop = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).worktop && onFloor(c));
-  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5)) {
+  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5 && a.state.materials?.worktopDecorId === b.state.materials?.worktopDecorId)) {
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
-    spans.push(span('worktop', run, top(run[0]!), WORKTOP.thickness, back, Math.max(...run.map(c => backLine(c, angle) - back + c.state.d)) + WORKTOP.overhang));
+    spans.push(span('worktop', run, top(run[0]!), worktopThickness(run[0]!.state), back, Math.max(...run.map(c => backLine(c, angle) - back + c.state.d)) + WORKTOP.overhang));
   }
   const floor = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).plinth && onFloor(c));
-  for (const run of kitchenRuns(floor)) {
+  for (const run of kitchenRuns(floor, (a, b) => a.state.materials?.carcassDecorId === b.state.materials?.carcassDecorId)) {
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
     spans.push(span('plinth', run, 0, PLINTH, back, Math.min(...run.map(c => backLine(c, angle) - back + c.state.d)) - KITCHEN_PLINTH_SETBACK));
   }

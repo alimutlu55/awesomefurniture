@@ -1,12 +1,13 @@
 import type { DesignImageRequest } from '../../application/projects/design-image';
 import { modelSpecification } from '../../application/projects/design-image-model-specification';
+import { decorCode, getDecor } from '../../domain/materials/decor-catalog';
 
 /** Displays captured model inputs for debugging; hidden unless the frontend log level is debug. */
 export function createDesignImageReferences(page: Document, enabled: boolean) {
   const element = page.createElement('section');
   element.className = 'ai-reference-preview'; element.ariaLabel = 'References sent to Gemini'; element.hidden = true;
   element.innerHTML = `<h3>What we’ll send to Gemini</h3>
-    <p>These exact views and a summary of your selected finishes and modules will be sent to Gemini.
+    <p>These exact views, available manufacturer swatches, and your selected board SKUs and modules will be sent to Gemini.
     The full design JSON below is for your reference and is not sent to Gemini.</p>
     <div class="ai-reference-grid"></div>
     <details><summary>View design JSON (not sent to Gemini)</summary><pre tabindex="0"></pre></details>
@@ -22,7 +23,8 @@ export function createDesignImageReferences(page: Document, enabled: boolean) {
   function update(input: DesignImageRequest) {
     clear();
     if (!enabled) return;
-    for (const reference of input.references) {
+    const swatches = (input.decorSwatches ?? []).map(swatch => ({ ...swatch, view: decorCode(getDecor(swatch.decorId)) + ' swatch', width: 1024, height: 576 }));
+    for (const reference of [...input.references, ...swatches]) {
       const bytes = Uint8Array.from(atob(reference.data), char => char.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes], { type: reference.mimeType })); urls.push(url);
       const figure = page.createElement('figure'), link = page.createElement('a'), image = page.createElement('img');

@@ -1,3 +1,4 @@
+import { resolveMaterials } from '../materials/configured-materials';
 import { PLINTH } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
@@ -38,13 +39,20 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
       if (f.opens === 'side' && !f.label) add(p, 'Concealed hinge, 110°', '35 mm cup', hingesFor(mm(f.y1 - f.y0)));
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
-      add(p, 'Handle', 'to choose', 1);
+      const hardware = resolveMaterials(d).handleFinish;
+      if (hardware === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
+      else add(p, 'Handle', hardware.replaceAll('_', ' '), 1);
     }
     // Fittings: what each is built with, sized to its place.
     const editing = { ...d, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing);
     const runner = mm(drawerExtension(d.d));
     geometry.widths().forEach((_, i) => geometry.computeLayout(i).forEach((pos, j) => {
       const it = d.secs[i]![j]!;
+      if (!kitchen && fitting(it.k)?.innerFront) {
+        const finish = resolveMaterials(d).handleFinish;
+        if (finish === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
+        else add(p, 'Handle', finish.replaceAll('_', ' '), 1);
+      }
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {
         if (h === 'runners') add(p, 'Drawer runners, full extension, pair', runner + ' mm', 1);
         else if (h === 'rail') { add(p, 'Hanging rail, oval', mm(pos.w) - 4 + ' mm long', 1); add(p, 'Rail end support', 'oval rail', 2); }

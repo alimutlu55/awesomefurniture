@@ -19,7 +19,7 @@ export function roofDividerMesh(design: EditorDesign, x0: number, x1: number, ba
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.computeVertexNormals(); boardUVs(geometry, boardSeed(x0, base, 0));
+  geometry.computeVertexNormals(); boardUVs(geometry, boardSeed(x0, base, 0), material.userData.grainDirection);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = mesh.receiveShadow = true;
   return mesh;

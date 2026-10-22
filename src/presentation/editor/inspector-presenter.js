@@ -1,3 +1,4 @@
+import { syncDecorPicker } from './decor-picker';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { itemHingeSide } from '../../domain/kitchen/kitchen-fronts';
@@ -154,10 +155,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         syncCabinetSizeLimits(dom, model.activeCabinet().state, selectionState.editingSize);
         for (const panel of [shapeInspector, studioPanel, kitchenPanel, roomFields]) panel?.render();
         sectionsUI();
-        $('#fins').querySelectorAll('button').forEach(b => {
-            b.classList.toggle('on', b.dataset.f === model.activeCabinet().state.fin);
-            b.setAttribute('aria-pressed', String(b.dataset.f === model.activeCabinet().state.fin));
-        });
+        syncDecorPicker($('#fins'), model.activeCabinet().state);
         /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-d]')).forEach(b => {
             b.classList.toggle('on', b.dataset.d === model.activeCabinet().state.doors);
             b.setAttribute('aria-pressed', String(b.dataset.d === model.activeCabinet().state.doors));

@@ -1,3 +1,5 @@
+import { assertDecorZone, defaultMaterials, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
+import type { TargetZone } from '../../domain/materials/decor-catalog';
 import type { EditorState } from '../projects/editor-scene';
 import type { EditorProfile } from '../../domain/wardrobe/editor-design';
 type Ports = {
@@ -27,7 +29,34 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         effects.changed();
     }
     function setFinish(finish: EditorState['fin']) {
-        run(() => getDesign().fin = finish);
+        run(() => { getDesign().fin = finish; getDesign().materials = defaultMaterials(finish); });
+    }
+    function setDecor(zone: TargetZone, id: string) {
+        assertDecorZone(id, zone);
+        if (zone === 'backing' || (zone === 'worktop' && getDesign().product !== 'kitchen')) return false;
+        run(() => {
+            const materials = { ...resolveMaterials(getDesign()) };
+            if (zone === 'worktop') materials.worktopDecorId = id;
+            else if (materials.linkedDecors) materials.carcassDecorId = materials.frontDecorId = id;
+            else materials[zone === 'carcass' ? 'carcassDecorId' : 'frontDecorId'] = id;
+            getDesign().materials = materials;
+        });
+        return true;
+    }
+    function setLinkedDecors(linked: boolean) {
+        run(() => {
+            const materials = { ...resolveMaterials(getDesign()), linkedDecors: linked };
+            if (linked) materials.frontDecorId = materials.carcassDecorId;
+            getDesign().materials = materials;
+        });
+    }
+    function setHandleFinish(finish: HandleFinish) {
+        if (!HANDLE_FINISHES.includes(finish)) return;
+        run(() => { getDesign().materials = { ...resolveMaterials(getDesign()), handleFinish: finish }; });
+    }
+    function setAccessoryFinish(finish: AccessoryFinish) {
+        if (!ACCESSORY_FINISHES.includes(finish)) return;
+        run(() => { getDesign().materials = { ...resolveMaterials(getDesign()), internalAccessoryFinish: finish }; });
     }
     function setDoors(doors: EditorState['doors']) {
         run(() => {
@@ -51,5 +80,5 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         getDesign().reachLine = enabled;
         effects.changed(true);
     }
-    return { setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
+    return { setDecor, setLinkedDecors, setHandleFinish, setAccessoryFinish, setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
 }

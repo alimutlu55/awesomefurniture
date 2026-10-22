@@ -5,6 +5,7 @@ import type { StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { defaultNeeds } from '../../domain/wardrobe/possessions';
 import { singleWallStudio } from '../../domain/studio/studio-edit';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { resolveMaterials } from '../../domain/materials/configured-materials';
 import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 
 /** A fitting saved without a purpose takes its kind's starting purpose from the fittings registry. */
@@ -21,6 +22,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    id:prefix,name:cabinet.name,dimensions:{width:s.w,height:s.h,depth:s.d},
    position:{x:cabinet.x,y:cabinet.y||0,z:cabinet.z},rotation:cabinet.angle,finish:s.fin,
    doors:s.doors==='hinged'?'solid' as const:s.doors,
+   ...(s.materials?{materials:structuredClone(s.materials)}:{}),
    preferences:{...preferences,budget:900},
    ...(s.shape?{shape:structuredClone(s.shape)}:{}),
    ...(s.product?{product:s.product}:{}),...(s.unit?{unit:s.unit}:{}),
@@ -64,6 +66,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    w:w.dimensions.width,h:w.dimensions.height,d:w.dimensions.depth,n:w.sections.length,
    wt:layout?structuredClone(layout.weights):w.sections.map(s=>s.width).concat(Array(6).fill(100)).slice(0,6),
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
+   ...(w.materials?{materials:structuredClone(resolveMaterials(w))}:{}),
    // Projects saved before a possession existed get its default count.
    profile:{...profile,needs:{...defaultNeeds(),...profile.needs},...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
    proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),...(layout?.doorHang===undefined?{}:{doorHang:layout.doorHang}),

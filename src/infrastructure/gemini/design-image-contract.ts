@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { materialsSchema } from '../serialization/materials-schema';
+import { selectedDecors } from '../../application/projects/selected-decors';
 import { IMAGE_VIEWS, DESIGN_REFERENCE_WIDTH, DESIGN_REFERENCE_HEIGHT } from '../../application/projects/design-image.ts';
 import { renderCategory } from '../../application/projects/configuration-summary.ts';
 import { FITTINGS } from '../../domain/wardrobe/fittings.ts';
@@ -19,6 +21,7 @@ const specification = z.looseObject({
   schemaVersion: z.literal(1), units: z.literal('cm'),
   design: z.looseObject({ furniture: z.array(z.looseObject({
     name: z.string().max(200), product: z.literal('kitchen').optional(), finish, doors: z.enum(['none', 'solid', 'glass']),
+    materials: materialsSchema.optional(),
     dimensions, position: z.object({ x: coordinate, y: coordinate, z: coordinate }), rotation: coordinate,
     sections: z.array(z.looseObject({
       width: z.number().positive(),
@@ -46,7 +49,14 @@ export const designImageRequestSchema = z.strictObject({
     width: z.literal(DESIGN_REFERENCE_WIDTH), height: z.literal(DESIGN_REFERENCE_HEIGHT),
     camera: z.strictObject({ position: z.array(z.number().finite()).length(3), target: z.array(z.number().finite()).length(3), fov: z.number().positive().max(120) }),
   })).length(3).refine(images => IMAGE_VIEWS.every(view => images.some(image => image.view === view)), 'Three distinct views are required'),
-}).refine(input => !input.renderConfig || input.renderConfig.category === renderCategory(input.specification), 'Render category must match the configured furniture');
+  decorSwatches: z.array(z.strictObject({ decorId: z.string().max(100), mimeType: z.enum(['image/webp', 'image/jpeg', 'image/png']),
+    data: base64(1400000) })).max(8).optional(),
+}).refine(input => !input.renderConfig || input.renderConfig.category === renderCategory(input.specification), 'Render category must match the configured furniture')
+  .refine(input => {
+    const selected = new Set(selectedDecors(input.specification).filter(({ sku }) => sku.pbr.textureUrl).map(({ sku }) => sku.id));
+    const ids = input.decorSwatches?.map(swatch => swatch.decorId) ?? [];
+    return new Set(ids).size === ids.length && ids.every(id => selected.has(id));
+  }, 'Swatches must reference distinct selected catalog decors with verified textures');
 export function parseDesignImageRequest(value: unknown) {
   const parsed = designImageRequestSchema.safeParse(value);
   return parsed.success ? parsed.data : null;

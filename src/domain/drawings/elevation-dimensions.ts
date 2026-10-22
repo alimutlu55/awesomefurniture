@@ -1,8 +1,9 @@
+import { worktopThickness } from '../materials/configured-materials';
 import type { PlacedPiece } from './room-pieces';
 import { type Item, mm, stops, note } from './drawing';
 import { pieceHeights } from './piece-front';
 import { isKitchen } from '../furniture/furniture';
-import { kitchenUnit, WORKTOP } from '../kitchen/kitchen-units';
+import { kitchenUnit } from '../kitchen/kitchen-units';
 import { plinthOf } from '../wardrobe/carcass';
 
 /** One real vertical stack, rather than a union of unrelated cabinet tops and internal board faces.
@@ -25,7 +26,7 @@ export function elevationDimensions(pieces: readonly PlacedPiece[], worktops: re
   const stack = referenceStack(pieces), floor = stack.filter(p => !p.hung);
   const tops = floor.flatMap(p => {
     const top = Math.max(...pieceHeights(p));
-    return worktops.filter(y => Math.abs(y - top - WORKTOP.thickness) < .05);
+    return worktops.filter(y => Math.abs(y - top - worktopThickness(p.design)) < .05);
   });
   const plinths = floor.flatMap(p => plinthOf(p.design) > 0 ? [p.y + plinthOf(p.design)] : []);
   const undersides = stack.filter(p => p.hung).map(p => p.y);

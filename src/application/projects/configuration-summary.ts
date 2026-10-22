@@ -1,7 +1,10 @@
-import { FIN } from '../../domain/wardrobe/catalog.js';
+import { decorCode, getDecor } from '../../domain/materials/decor-catalog';
+import { defaultMaterials } from '../../domain/materials/configured-materials';
 import { fitting, type FittingKind } from '../../domain/wardrobe/fittings';
 import type { Wardrobe } from '../../domain/wardrobe/wardrobe';
 import type { RenderPromptConfig } from './design-image';
+import type { ConfiguredMaterialsState } from '../../domain/materials/configured-materials';
+import { serializeConfiguredDecorManifest } from './decor-prompt-manifest';
 
 type Finish = Wardrobe['finish'];
 export interface ConfigurationForImage {
@@ -10,6 +13,7 @@ export interface ConfigurationForImage {
       name: string;
       product?: 'kitchen' | undefined;
       finish: Finish;
+      materials?: ConfiguredMaterialsState | undefined;
       doors: Wardrobe['doors'];
       dimensions: Wardrobe['dimensions'];
       position: Wardrobe['position'];
@@ -33,7 +37,10 @@ export function renderCategory(specification: ConfigurationForImage): RenderProm
 }
 
 const cm = (n: number) => Math.round(n * 10) / 10;
-const finishDescription = (finish: Finish) => `${finish} (${FIN[finish][0]})`;
+const finishDescription = (finish: Finish) => {
+  const sku = getDecor(defaultMaterials(finish).carcassDecorId);
+  return `${decorCode(sku)} (${sku.name}, Grain: ${sku.grainDirection}; ${sku.aiPromptDescriptor})`;
+};
 const label = (text: string) => text.replace(/\s+/g, ' ').trim();
 const fittingName = (kind: FittingKind) => {
   const definition = fitting(kind)!;
@@ -49,7 +56,7 @@ export function serializeConfigurationSummary(specification: ConfigurationForIma
     const overrides = new Set(piece.sections.flatMap(section => section.items.flatMap(item => item.editorItem?.f ? [item.editorItem.f] : [])));
     const accessories = new Set(piece.sections.flatMap(section => section.items
       .filter(item => item.kind !== 'void').map(item => fittingName(item.kind))));
-    finishes.push(`${wing}: Carcass & fronts: ${finishDescription(piece.finish)}; `
+    finishes.push(serializeConfiguredDecorManifest(piece, wing) + '\n'
       + `Fitting finish overrides: ${[...overrides].map(finishDescription).join(', ') || 'none'}; `
       + `Internal accessories: ${[...accessories].join(', ') || 'none'}.`);
     const bays = piece.sections.map((section, bay) => {
@@ -75,7 +82,6 @@ export function serializeConfigurationSummary(specification: ConfigurationForIma
   return [
     '- TIER 1 Locked Finishes — Configured Finishes (Tier 1):',
     ...finishes.map(text => `  - ${text}`),
-    '  - Handles & internal hardware: preserve reference appearance, positions and orientation; no independent finish selected.',
     ...(walls.length ? [`  - Selected wall finishes: ${walls.join('; ')}.`] : []),
     '- TIER 1 Module Breakdown — Wing/Module Breakdown (Tier 1):',
     ...modules.map(text => `  - ${text}`),
