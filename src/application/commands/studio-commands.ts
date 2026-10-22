@@ -5,6 +5,7 @@ import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { studioProblems } from '../../domain/studio/studio-validation';
+import { sameStudioStructure } from '../../domain/studio/studio-paint';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { flushAgainst, placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
 import type { Pose } from '../../domain/studio/studio-placement';
@@ -108,7 +109,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     if (!scene.studio) return false;
     const next = edit(scene.studio);
     if (!next) return false;
-    const problem = studioProblem(next);
+    const problem = sameStudioStructure(scene.studio, next) ? studioProblems(next)[0] : studioProblem(next);
     if (problem) { if (!quiet) report(problem); return false; }
     if (JSON.stringify(next) === JSON.stringify(scene.studio)) return false;
     if (recordHistory) checkpoint();

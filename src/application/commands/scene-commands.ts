@@ -14,6 +14,7 @@ import { applyMaxReach } from '../../domain/wardrobe/max-reach';
 import { createKitchenCommands } from './kitchen-commands';
 import { sectionsUnder } from '../../domain/studio/studio-fit';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
+import { sameStudioStructure } from '../../domain/studio/studio-paint';
 import { pushOutOfWalls } from '../../domain/studio/studio-placement';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
@@ -103,8 +104,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return ok;
         },
         editStudio(edit: Parameters<typeof studio.editStudio>[0], recordHistory = true, quiet = false) {
+            const before = getScene().studio;
             const ok = studio.editStudio(edit, recordHistory, quiet);
-            if (ok) ceilings.followAll(recordHistory);
+            if (ok && !sameStudioStructure(before, getScene().studio)) ceilings.followAll(recordHistory);
             return ok;
         },
         addStudioCeiling(shape: string, wall?: string) {

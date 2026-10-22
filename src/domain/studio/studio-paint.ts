@@ -15,6 +15,13 @@ export const wallAppearance = (wall?: Pick<StudioWall, 'color' | 'finish'>) => (
     color: wall?.color?.toLowerCase() ?? WALL_PAINTS[0].color, finish: wall?.finish ?? 'matte' as WallFinish,
 });
 
+/** Appearance edits cannot introduce collisions or require furniture to follow a new ceiling. */
+export function sameStudioStructure(before: Studio | undefined, after: Studio | undefined): boolean {
+    const structure = (room: Studio | undefined) => room && ({ ...room,
+        walls: room.walls.map(({ color: _color, finish: _finish, ...wall }) => wall) });
+    return JSON.stringify(structure(before)) === JSON.stringify(structure(after));
+}
+
 /** Paint changes never change room geometry. One scope can cover the selected wall or every wall. */
 export function paintWalls(studio: Studio, id: string, paint: { color?: string; finish?: WallFinish }, all = false): Studio | null {
     if (!studio.walls.some(w => w.id === id)) return null;

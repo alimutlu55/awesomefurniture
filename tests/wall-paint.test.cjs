@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 const THREE = require('three');
 const { createStudio } = require('../src/domain/studio/studio-templates.ts');
 const { paintWalls, wallAppearance } = require('../src/domain/studio/studio-paint.ts');
-const { splitWall } = require('../src/domain/studio/studio-edit.ts');
+const { splitWall, moveWall } = require('../src/domain/studio/studio-edit.ts');
+const { createCabinetGeometry } = require('../src/domain/geometry/cabinet-geometry.js');
+const { studioObstacles } = require('../src/domain/studio/studio-obstacles.ts');
 const { createEditorModel } = require('../src/application/projects/editor-model.ts');
 const { createSceneHistory } = require('../src/application/history/scene-history.ts');
 const { createSceneCommands } = require('../src/application/commands/scene-commands.ts');
@@ -58,6 +60,42 @@ test('painting supports Undo/Redo without changing wardrobe dimensions or conten
     assert.equal(history.undoCount, 1);
     history.undo(); assert.equal(model.snapshot(), before);
     history.redo(); assert.ok(model.scene.studio.walls.every(w => w.color === '#9da995'));
+});
+
+for (const all of [false, true]) test(`paint and sheen work behind overlapping furniture (${all ? 'all walls' : 'selected wall'})`, () => {
+    const model = createEditorModel(); model.scene.studio = createStudio('bedroom');
+    const collision = createCabinetGeometry(() => [], () => studioObstacles(model.scene.studio));
+    assert.equal(collision.cabinetCollides(model.activeCabinet()), true, 'reproduce an existing wall overlap');
+    const before = model.snapshot(), wardrobe = JSON.stringify(model.activeCabinet()), messages = [];
+    const history = createSceneHistory(model.snapshot, model.restore);
+    const commands = createSceneCommands(() => model.scene, { checkpoint: () => history.checkpoint(), report: m => messages.push(m) });
+    assert.equal(commands.editStudio(room => paintWalls(room, 'w1', { color: '#637380' }, all)), true);
+    assert.equal(commands.editStudio(room => paintWalls(room, 'w1', { finish: 'satin' }, all)), true);
+    const painted = model.scene.studio.walls.filter(w => w.color === '#637380' && w.finish === 'satin');
+    assert.equal(painted.length, all ? model.scene.studio.walls.length : 1);
+    assert.equal(JSON.stringify(model.activeCabinet()), wardrobe);
+    assert.deepEqual(messages, []);
+    assert.equal(history.undoCount, 2);
+    history.undo(); assert.equal(wallAppearance(model.scene.studio.walls[0]).finish, 'matte');
+    history.undo(); assert.equal(model.snapshot(), before);
+    history.redo(); history.redo(); assert.equal(wallAppearance(model.scene.studio.walls[0]).finish, 'satin');
+    assert.equal(commands.editStudio(room => paintWalls(room, 'w1', { finish: 'satin' }, all)), false);
+    assert.equal(history.undoCount, 2, 'unchanged paint adds no history');
+    const snapshot = model.snapshot();
+    assert.equal(commands.editStudio(room => paintWalls(moveWall(room, 'w1', 40), 'w1', { color: '#c7aaa0' }, all)), false);
+    assert.match(messages.at(-1), /wardrobe is in the way/, 'paint cannot bypass collision checks on a wall move');
+    assert.equal(model.snapshot(), snapshot);
+    assert.equal(commands.editStudio(room => ({ ...room, walls: room.walls.map(w => ({ ...w, color: 'bad' })) })), false);
+    assert.match(messages.at(-1), /valid wall paint/);
+    assert.equal(history.undoCount, 2);
+});
+
+test('painting under a ceiling never refits furniture or changes its contents', () => {
+    const model = createEditorModel(); model.scene.studio = createStudio('under-stairs'); model.activeCabinet().z = 36;
+    const before = JSON.stringify(model.activeCabinet());
+    const commands = createSceneCommands(() => model.scene);
+    assert.equal(commands.editStudio(room => paintWalls(room, 'w1', { color: '#637380' })), true);
+    assert.equal(JSON.stringify(model.activeCabinet()), before);
 });
 
 test('the renderer applies per-wall color and sheen, including ceilings attached to that wall', t => {
