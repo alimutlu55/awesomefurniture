@@ -19,6 +19,7 @@ import { buildFromSpec } from '/src/application/spec/build-from-spec.ts';
 import { projectToScene } from '/src/application/projects/editor-mapper.ts';
 import { verifyNeutralReferenceCapture } from '/scripts/verify-neutral-reference-capture.mjs';
 window.referenceColorCheck = await verifyNeutralReferenceCapture();
+localStorage.setItem('debug', 'true');
 const built = buildFromSpec({specVersion:1,room:{width:360,depth:240,height:260},wardrobes:[{against:1,width:180,height:220,depth:60,shape:'sloped',for:{short:12,pants:8,folded:20}}]},'preview');
 const wardrobe = projectToScene(built.project); wardrobe.wardrobes[0].state.open=true;
 const scene = new URLSearchParams(location.search).has('kitchen') ? ${JSON.stringify(drawingFixture('l'))} : wardrobe;
@@ -45,12 +46,15 @@ try {
 
     // Clicking the toolbar AI button opens the dialog with options instead of generating immediately
     await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Generate image with AI', exact: true });
+    const dialog = page.getByRole('dialog', { name: /Generate image/i });
     await dialog.waitFor();
 
-    // Verify option to generate image with Apple-style component
-    const generateBtn = dialog.getByRole('button', { name: 'Generate Image', exact: true });
+    // Verify option to generate image with style selection
+    const generateBtn = dialog.getByRole('button', { name: /Generate image/i });
     assert.equal(await generateBtn.isVisible(), true, 'presents option to generate image');
+    assert.equal(await dialog.getByRole('radio', { name: /Realistic photo/i }).isVisible(), true);
+    assert.equal(await dialog.getByRole('radio', { name: /Studio look/i }).isVisible(), true);
+    assert.equal(await dialog.getByRole('radio', { name: /Concept render/i }).isVisible(), true);
 
     await dialog.locator('.ai-reference-preview:not([hidden])').waitFor({ timeout: 60_000 });
     assert.equal(calls, kind === 'wardrobe' ? 0 : 1, 'opening prepares references without a provider request');
@@ -137,11 +141,11 @@ try {
 
   await page.setViewportSize({ width: 375, height: 844 });
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Generate image with AI', exact: true });
+  const dialog = page.getByRole('dialog', { name: /Generate image/i });
   await page.screenshot({ path: `${output}/mobile.png` });
   const box = await dialog.boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= 375);
   assert.ok(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth), 'no horizontal overflow');
-  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  await dialog.getByRole('button', { name: /Close/i }).click();
 
   // Failure is visible and retryable; the previous result stays downloadable.
   await page.unroute('**/api/design-images');
@@ -155,7 +159,7 @@ try {
   assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), true);
   assert.equal(await dialog.locator('.ai-magic').isVisible(), false, 'loading ends on error');
   await page.screenshot({ path: `${output}/error-mobile.png` });
-  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  await dialog.getByRole('button', { name: /Close/i }).click();
 
   // Closing a pending request stops its animation, restores controls, and preserves the last result.
   await page.unroute('**/api/design-images');
@@ -170,12 +174,12 @@ try {
   await cancellationRequest;
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   cancelResponse();
-  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  await dialog.getByRole('button', { name: /Close/i }).click();
   await page.getByRole('button', { name: 'Generate image with AI', exact: true }).click();
   await dialog.getByRole('button', { name: 'Try Again' }).waitFor();
   assert.equal(await dialog.locator('.ai-magic').isVisible(), false, 'cancelled animation stays stopped on reopen');
   assert.equal(await dialog.getByRole('link', { name: 'Download image', exact: true }).isVisible(), true);
-  await dialog.getByRole('button', { name: 'Close AI image' }).click();
+  await dialog.getByRole('button', { name: /Close/i }).click();
 
   await page.evaluate(() => window.fixtureEditor.dispose());
   assert.equal(await page.getByRole('button', { name: 'Generate image with AI', exact: true }).count(), 0);

@@ -11,9 +11,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  animation: orbit-fade-in .25s ease-out;
 }
-@keyframes orbit-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .light-orbit-screen * { box-sizing: border-box; }
 .light-orbit-backdrop {
   position: absolute;
@@ -83,7 +81,15 @@
   .light-orbit-art, .light-orbit-action { transition:none !important; }
 }
 
-/* Hosting inside the image dialog: the orbit owns the whole screen while generating without drawer/slide transitions. */
+/* Interactive demo actions from light-orbit-react/src/demo.css */
+.demo-preview-actions {position:fixed;z-index:1001;top:18px;right:21px;display:flex;gap:9px;align-items:center;font:12px -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:rgba(255,255,255,.55)}
+.demo-preview-actions span {font-size:10px;letter-spacing:.17em;margin-right:5px}
+.demo-preview-actions button {color:#fffafc;border:1px solid rgba(255,255,255,.17);background:rgba(21,20,35,.28);padding:10px 13px;border-radius:999px;cursor:pointer;backdrop-filter:blur(12px);font:inherit}
+.demo-preview-actions button:hover {background:rgba(255,255,255,.16)}
+.demo-preview-actions button:focus-visible {outline:2px solid #fff;outline-offset:3px}
+@media(max-width:620px){.demo-preview-actions{left:12px;right:12px;top:auto;bottom:13px;justify-content:center}.demo-preview-actions span{display:none}}
+
+/* Hosting inside the image dialog: the orbit owns the whole screen while generating. */
 .ai-image-dialog[data-state="generating"]{
   position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;border-radius:0;
   background:transparent;box-shadow:none;overflow:hidden;
@@ -92,6 +98,3 @@
 }
 .ai-image-dialog[data-state="generating"]::backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .ai-image-dialog[data-state="generating"] .ai-close{display:none}
-/* Keep the Light Orbit button exactly as designed against editor-wide button styles. */
-.light-orbit-screen .light-orbit-action{color:#fff9ff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.19);min-height:42px}
-.light-orbit-screen .light-orbit-action:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.34)}

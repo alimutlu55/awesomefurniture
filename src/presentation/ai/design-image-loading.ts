@@ -1,6 +1,15 @@
 import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
 
-// Light Orbit loader: borderless full-screen orbit animation with pointer parallax.
+export type OrbitPhase = 'generating' | 'cancelled' | 'complete';
+
+export const DEMO_STATUSES = [
+  'Understanding your design…',
+  'Balancing natural light…',
+  'Refining materials and textures…',
+  'Bringing your space to life…',
+] as const;
+
+// Exact SVG art from light-orbit-react/src/LightOrbitLoader.tsx
 const art = `<div class="light-orbit-art" aria-hidden="true">
         <div class="light-orbit-ambient light-orbit-ambient-one"></div>
         <div class="light-orbit-ambient light-orbit-ambient-two"></div>
@@ -84,78 +93,193 @@ const art = `<div class="light-orbit-art" aria-hidden="true">
             </g>
           </svg>
       </div>`;
-const preparing = 'Getting your design ready…';
-const captions = [
-  'Setting the scene…',
-  'Composing the perfect shot…',
-  'Balancing natural light…',
-  'Refining materials and textures…',
-  'Adding the finishing touches…',
-];
+
+export interface DesignImageLoadingOptions {
+  isDebug?: boolean;
+  onCancel?: () => void;
+  onRestart?: () => void;
+}
 
 /**
- * Decorative waiting experience. It never shows technical inputs (reference views, JSON):
- * the viewer owns the accessible status, the request and cancellation.
+ * Exact implementation of light-orbit-react's LightOrbitLoader component:
+ * full-screen borderless loader with animated orbit paths, pointer parallax,
+ * rotating statuses (3.6s), phase support ('generating' | 'cancelled' | 'complete'),
+ * and interactive demo controls in debug mode.
  */
-export function createDesignImageLoading(page: Document, lifetime: ReturnType<typeof createEditorLifetime>) {
+export function createDesignImageLoading(
+  page: Document,
+  lifetime: ReturnType<typeof createEditorLifetime>,
+  options: DesignImageLoadingOptions = {},
+) {
   const element = page.createElement('div');
-  element.className = 'light-orbit-screen ai-magic'; element.hidden = true; element.dataset.phase = 'generating';
+  element.className = 'light-orbit-screen ai-magic';
+  element.hidden = true;
+  element.dataset.phase = 'generating';
+  element.setAttribute('role', 'dialog');
+  element.setAttribute('aria-modal', 'true');
+  element.setAttribute('aria-label', 'Image creation');
+
   element.innerHTML = `<div class="light-orbit-backdrop" aria-hidden="true"></div>
     <section class="light-orbit-content">
       ${art}
-      <div class="light-orbit-copy">
+      <div class="light-orbit-copy" aria-live="polite" aria-atomic="true">
         <h1 class="light-orbit-heading">Creating your image</h1>
-        <p class="light-orbit-status ai-magic-caption" aria-hidden="true">${preparing}</p>
+        <p class="light-orbit-status ai-magic-caption">Balancing natural light…</p>
         <p class="light-orbit-caption ai-magic-wait">Usually about a minute.</p>
       </div>
-      <div class="light-orbit-controls"><button type="button" class="light-orbit-action ai-cancel">Cancel</button></div>
-    </section>`;
-  const caption = element.querySelector<HTMLElement>('.ai-magic-caption')!;
-  const wait = element.querySelector<HTMLElement>('.ai-magic-wait')!;
-  const cancel = element.querySelector<HTMLButtonElement>('.ai-cancel')!;
-  let timer: ReturnType<typeof lifetime.timeout> | undefined;
-  let longWaitTimer: ReturnType<typeof lifetime.timeout> | undefined;
+      <div class="light-orbit-controls">
+        <button type="button" class="light-orbit-action ai-cancel">Cancel</button>
+      </div>
+    </section>
+    <div class="demo-preview-actions" aria-label="Preview controls"${options.isDebug ? '' : ' hidden'}>
+      <span>INTERACTIVE DEMO</span>
+      <button type="button" class="demo-replay">↻ &nbsp;Replay</button>
+      <button type="button" class="demo-preview-complete">Preview completion ↗</button>
+    </div>`;
+
+  const heading = element.querySelector<HTMLElement>('.light-orbit-heading')!;
+  const statusEl = element.querySelector<HTMLElement>('.light-orbit-status')!;
+  const captionEl = element.querySelector<HTMLElement>('.light-orbit-caption')!;
+  const actionBtn = element.querySelector<HTMLButtonElement>('.light-orbit-action')!;
+  const cancel = actionBtn; // alias for existing callers/tests
+
+  let currentPhase: OrbitPhase = 'generating';
+  let statusIndex = 1; // starts at 1 ("Balancing natural light…") exactly as in light-orbit-react App.tsx
+  let statusTimer: ReturnType<typeof lifetime.timeout> | undefined;
   let parallax: (() => void) | undefined;
-  function show(text: string) { caption.textContent = text; }
+
+  function setPhase(phase: OrbitPhase) {
+    currentPhase = phase;
+    element.dataset.phase = phase;
+
+    if (phase === 'generating') {
+      heading.textContent = 'Creating your image';
+      statusEl.textContent = DEMO_STATUSES[statusIndex] ?? 'Balancing natural light…';
+      captionEl.textContent = 'Usually about a minute.';
+      captionEl.hidden = false;
+      actionBtn.textContent = 'Cancel';
+      actionBtn.disabled = false;
+      trackPointer();
+      startStatusCycle();
+    } else if (phase === 'cancelled') {
+      stopStatusCycle();
+      heading.textContent = 'Creation paused';
+      statusEl.textContent = 'Your design is exactly as you left it.';
+      captionEl.hidden = true;
+      actionBtn.textContent = 'Try again';
+      actionBtn.disabled = false;
+      parallax?.();
+      parallax = undefined;
+    } else if (phase === 'complete') {
+      stopStatusCycle();
+      heading.textContent = 'Your image is ready';
+      statusEl.textContent = 'A new perspective on your space.';
+      captionEl.hidden = true;
+      actionBtn.textContent = 'Create another';
+      actionBtn.disabled = false;
+      parallax?.();
+      parallax = undefined;
+    }
+  }
+
+  function stopStatusCycle() {
+    if (statusTimer !== undefined) {
+      lifetime.cancelTimeout(statusTimer);
+      statusTimer = undefined;
+    }
+  }
+
+  function startStatusCycle() {
+    stopStatusCycle();
+    const tick = () => {
+      if (currentPhase !== 'generating') return;
+      statusIndex = (statusIndex + 1) % DEMO_STATUSES.length;
+      statusEl.textContent = DEMO_STATUSES[statusIndex]!;
+      statusTimer = lifetime.timeout(tick, 3600); // 3.6s exact match to light-orbit-react
+    };
+    statusTimer = lifetime.timeout(tick, 3600);
+  }
+
   function trackPointer() {
+    parallax?.();
     const win = page.defaultView;
     if (!win || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const move = (event: PointerEvent) => {
-      element.style.setProperty('--orbit-parallax-x', `${((event.clientX / win.innerWidth - .5) * 2 * 9).toFixed(2)}px`);
-      element.style.setProperty('--orbit-parallax-y', `${((event.clientY / win.innerHeight - .5) * 2 * 7).toFixed(2)}px`);
+    const onPointerMove = (event: PointerEvent) => {
+      const x = (event.clientX / win.innerWidth - 0.5) * 2;
+      const y = (event.clientY / win.innerHeight - 0.5) * 2;
+      element.style.setProperty('--orbit-parallax-x', `${(x * 9).toFixed(2)}px`);
+      element.style.setProperty('--orbit-parallax-y', `${(y * 7).toFixed(2)}px`);
     };
     const reset = () => {
-      element.style.setProperty('--orbit-parallax-x', '0px'); element.style.setProperty('--orbit-parallax-y', '0px');
+      element.style.setProperty('--orbit-parallax-x', '0px');
+      element.style.setProperty('--orbit-parallax-y', '0px');
     };
-    win.addEventListener('pointermove', move, { passive: true });
+    win.addEventListener('pointermove', onPointerMove, { passive: true });
     win.addEventListener('pointerleave', reset);
-    parallax = () => { win.removeEventListener('pointermove', move); win.removeEventListener('pointerleave', reset); reset(); };
+    parallax = () => {
+      win.removeEventListener('pointermove', onPointerMove);
+      win.removeEventListener('pointerleave', reset);
+      reset();
+    };
   }
-  function stop() {
-    if (timer !== undefined) lifetime.cancelTimeout(timer);
-    if (longWaitTimer !== undefined) lifetime.cancelTimeout(longWaitTimer);
-    timer = undefined; longWaitTimer = undefined; element.hidden = true;
-    parallax?.(); parallax = undefined;
-    element.classList.remove('is-rendering');
-  }
+
   function start() {
-    stop(); element.hidden = false; show(preparing);
-    wait.textContent = 'Usually about a minute.'; trackPointer();
+    stop();
+    statusIndex = 1;
+    element.hidden = false;
+    setPhase('generating');
   }
-  /** Called once the design has been captured and the request is in flight. */
+
   function rendering() {
     element.classList.add('is-rendering');
-    let index = 0;
-    show(captions[index]!);
-    const rotate = () => {
-      index = (index + 1) % captions.length; show(captions[index]!);
-      timer = lifetime.timeout(rotate, 5_000);
-    };
-    timer = lifetime.timeout(rotate, 5_000);
-    longWaitTimer = lifetime.timeout(() => {
-      wait.textContent = 'Almost there. Beautiful images can take a little longer.';
-    }, 60_000);
+    if (currentPhase === 'generating') {
+      startStatusCycle();
+    }
   }
+
+  function stop() {
+    stopStatusCycle();
+    parallax?.();
+    parallax = undefined;
+    element.hidden = true;
+    element.classList.remove('is-rendering');
+  }
+
+  // Action button clicks: Cancel during generating, Restart/Try Again otherwise
+  lifetime.listen(actionBtn, 'click', () => {
+    if (currentPhase === 'generating') {
+      options.onCancel?.();
+    } else {
+      options.onRestart?.();
+    }
+  });
+
+  // Demo controls
+  const replayBtn = element.querySelector<HTMLButtonElement>('.demo-replay');
+  const completeBtn = element.querySelector<HTMLButtonElement>('.demo-preview-complete');
+  if (replayBtn) {
+    lifetime.listen(replayBtn, 'click', () => {
+      statusIndex = 0;
+      setPhase('generating');
+      options.onRestart?.();
+    });
+  }
+  if (completeBtn) {
+    lifetime.listen(completeBtn, 'click', () => {
+      setPhase('complete');
+    });
+  }
+
   lifetime.cleanup(stop);
-  return { element, cancel, start, rendering, stop };
+
+  return {
+    element,
+    cancel,
+    start,
+    rendering,
+    stop,
+    setPhase,
+    setStatus: (text: string) => { statusEl.textContent = text; },
+    getPhase: () => currentPhase,
+  };
 }
