@@ -1,7 +1,6 @@
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import { materialsSchema } from './materials-schema';
-import { profileSolidSchema } from './profile-solid-schema';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
 import { POSSESSIONS } from '../../domain/wardrobe/possessions';
@@ -144,21 +143,16 @@ const studio = z.strictObject({
   template: z.enum([...STUDIO_TEMPLATES.map(t => t.id), 'custom'] as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StudioTemplateId]: K }>,
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
   walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive,
-    shape: profileSolidSchema.optional(),
     color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
-  ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive,
-    profile: z.array(z.strictObject({ t: finite, y: positive })), shape: profileSolidSchema.optional() })).optional(),
+  ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, profile: z.array(z.strictObject({ t: finite, y: positive })) })).optional(),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });
 const projectSchema = z.strictObject({
-  schemaVersion: z.union([z.literal(1), z.literal(2)]), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe),
-  studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
+  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
 }).superRefine((project, context) => {
-  if (project.schemaVersion === 1 && [...project.studio?.walls ?? [], ...project.studio?.ceilings ?? []].some(p => p.shape))
-    context.addIssue({ code: 'custom', message: 'Boundary divisions require project schema version 2.' });
   const ids = new Set<string>([project.id]);
   const cabinetIds = new Set<number>();
   const check = (entity: { id: string }) => {
@@ -185,7 +179,7 @@ const storedSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 
-/** Version 1 documents remain unchanged. Version 2 adds explicit boundary divisions.
+/** Add explicit sequential migrations here when schemaVersion 2 is introduced.
  * Unknown versions are rejected, never silently reset or written over.
  * This validates persisted shape; geometry rules belong in the domain layer.
  */

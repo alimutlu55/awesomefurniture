@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { profileSolidGeometry } from './profile-solid-geometry';
 import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
@@ -146,8 +145,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.add(body);
     body.add(details);
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
-    const geometry = w.shape ? profileSolidGeometry(w.shape, w.thickness)
-      : new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
+    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
     geometry.translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, paintMaterial(w));
     solid.userData.studioWall = w.id;
@@ -249,10 +247,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
       geometry = new THREE.BufferGeometry().setFromPoints([[l, b, r, b], [r, b, r, t], [r, t, l, t], [l, t, l, b]].flatMap(([x0, y0, x1, y1]) => [new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z)]));
     } else {
       const { start, end } = wallExtent(room, w, line.length);
-      const solid = w.shape ? profileSolidGeometry(w.shape, w.thickness)
-        : new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id)), { depth: w.thickness, bevelEnabled: false });
-      geometry = new THREE.EdgesGeometry(solid.translate(0, 0, -w.thickness / 2), 20);
-      solid.dispose();
+      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id)), { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
     }
     selected = new THREE.LineSegments(geometry, lineMaterial);
     selected.renderOrder = 12;

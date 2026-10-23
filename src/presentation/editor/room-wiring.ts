@@ -83,7 +83,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     paintPanel = createStudioPaintPanel({ document: dom.document as Document, getStudio: () => model.scene.studio,
         getSelection: editor.selection, editStudio: edit => sceneCommands.editStudio(edit), refresh, listen });
     resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection, paint: paintPanel,
-        prepare: () => { dom.$('#px').click(); late.camera().camRelease(); }, frame: () => late.camera().camRelease() });
+        prepare: () => { dom.$('#px').click(); late.camera().camRelease(); }, frame: () => late.camera().frameScene() });
 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {
@@ -110,7 +110,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     function frameSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
-        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().camRelease(); return; }
+        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().frameScene(); return; }
         // An opening keeps its own wall-facing view for adjusting its position and exact size.
         const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
@@ -139,7 +139,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (editor.selection()) { editor.act(key); return; }
         selectionState.pendingStudioAction = key;
         late.report('Select a wall for the ' + label + '.');
-        late.camera().camRelease();
+        late.camera().frameScene();
     }
 
     return {

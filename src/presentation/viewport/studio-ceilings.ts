@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
-import { profileSolidGeometry } from './profile-solid-geometry';
 
 interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THREE.LineSegments; outline: THREE.LineSegments | null }
 
@@ -28,11 +27,10 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     shape.lineTo(first.t, top);
     let g: THREE.BufferGeometry;
     if (c.run === 'along') {
-      g = (c.shape ? profileSolidGeometry(c.shape, c.depth) : new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false })).translate(0, 0, w.thickness / 2);
+      g = new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
     } else {
       // Drawn across the room, then turned so it runs along the wall's whole inside face.
-      g = (c.shape ? profileSolidGeometry(c.shape, face.length) : new THREE.ExtrudeGeometry(shape, { depth: face.length, bevelEnabled: false }))
-        .rotateY(-Math.PI / 2).translate(face.end, 0, w.thickness / 2);
+      g = new THREE.ExtrudeGeometry(shape, { depth: face.end - face.start, bevelEnabled: false }).rotateY(-Math.PI / 2).translate(face.end, 0, w.thickness / 2);
     }
     return { g, line };
   }

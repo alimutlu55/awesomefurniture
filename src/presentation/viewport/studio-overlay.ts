@@ -44,18 +44,18 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            const split = h.kind === 'extend' || h.kind === 'ceiling-split' || h.kind === 'wall-split';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' || h.kind === 'shape-point' ? 'point' : split ? 'split-handle' : 'room-grip');
+            const split = h.kind === 'extend' || h.kind === 'ceiling-split';
+            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' ? 'point' : split ? 'split-handle' : 'room-grip');
             if (split) el.textContent = '+';
             else if (h.kind === 'depth') el.innerHTML = ARROWS;
-            else if (h.kind !== 'corner' && h.kind !== 'ceiling' && h.kind !== 'shape-point') el.innerHTML = SLIDE;
+            else if (h.kind !== 'corner' && h.kind !== 'ceiling') el.innerHTML = SLIDE;
             const button = el;
             el.onpointerdown = e => {
                 let target = button, h = current.get(button);
                 const own = button.getBoundingClientRect();
                 let distance = Math.hypot(e.clientX - own.left - own.width / 2, e.clientY - own.top - own.height / 2);
-                if (h && ['ceiling', 'depth', 'ceiling-split', 'shape-point', 'wall-split'].includes(h.kind)) for (const [dot, point] of current) {
-                    if (!['ceiling', 'depth', 'ceiling-split', 'shape-point', 'wall-split'].includes(point.kind)) continue;
+                if (h && ['ceiling', 'depth', 'ceiling-split'].includes(h.kind)) for (const [dot, point] of current) {
+                    if (!['ceiling', 'depth', 'ceiling-split'].includes(point.kind)) continue;
                     const r = dot.getBoundingClientRect(), d = Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2);
                     if (d <= 32 && d < distance) { target = dot; h = point; distance = d; }
                 }

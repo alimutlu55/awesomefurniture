@@ -28,13 +28,6 @@ The database validates its envelope and enforces a 2 MiB limit. Application code
 validate the detailed design before loading and saving. Render resources, camera,
 selection and other transient editor state are not stored.
 
-Version 1 documents continue to load unchanged. Boundary divisions are stored as version 2:
-walls and ceilings may have an optional `shape` containing matching contours along the solid
-and explicit editing controls. The scene mapper promotes a design to version 2 when such a
-division is added, and uses version 1 again when none remain. The codec validates both versions;
-version 1 rejects version 2 geometry rather than silently discarding it. Original ceiling profiles
-remain present for existing height fields. The retired `outline`/`sections` format is not restored.
-
 ## Ownership and sharing
 
 New sessions are private. RLS authorizes writes using `auth.uid() = owner_id` for

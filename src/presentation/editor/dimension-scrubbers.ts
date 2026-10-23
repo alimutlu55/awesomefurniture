@@ -36,7 +36,7 @@ export function bindDimensionScrubbers({ dom, model, lifetime, inspector, select
             if (!el.dataset.sceneMeasurement) return null;
             const ref = JSON.parse(decodeURIComponent(el.dataset.sceneMeasurement)) as SceneMeasurement;
             if (scene.read(ref) === null) return null;
-            return { id, selector, orientation, min, max, entry: true, scrub: ref.kind !== 'studio', read: () => scene.read(ref) ?? 0,
+            return { id, selector, orientation, min, max, entry: true, read: () => scene.read(ref) ?? 0,
                 begin: () => scene.begin(ref), preview: delta => scene.preview(delta), finish: cancel => scene.finish(cancel), refresh };
         },
     });

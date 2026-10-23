@@ -8,8 +8,6 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import { mountResizeFields, syncResizeFields } from './resize-fields.js';
 import type { StudioEditorPorts } from './studio-editor.ports';
 import { sizeControlMarkup, bindSizeNumber } from './size-control';
-import { moveStudioControl, studioSolid } from '../../domain/studio/studio-solid';
-import { controlPoint } from '../../domain/geometry/profile-solid';
 
 interface StudioFieldsPorts {
     readonly document: { createElement: Document['createElement']; activeElement?: Element | null };
@@ -34,17 +32,13 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
     function fields(): Field[] {
         const studio = getStudio(), s = getSelection();
         if (!studio || !s) return [];
-        const solid = s.kind === 'opening' ? null : studioSolid(studio, { kind: s.kind, id: s.id });
-        const controls: Field[] = solid && (solid.ceiling ?? solid.wall).shape ? solid.shape.controls.map((c, i) => ({
-            key: 'control:' + c.id, label: 'Height ' + (i + 1), value: controlPoint(solid.shape, c).y, min: solid.ceiling ? L.minCeilingHeight : 0, max: solid.top,
-        })) : [];
         if (s.kind === 'ceiling') {
             const c = studio.ceilings?.find(x => x.id === s.id), fr = c && ceilingFrame(studio, c);
             if (!c || !fr) return [];
             // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
             const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + unitSuffix() + ' ' + (c.run === 'along' ? 'along' : 'out');
             return [
-                ...(c.shape ? controls : c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) }))),
+                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
             ];
         }
@@ -55,7 +49,6 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
                 { key: 'length', label: 'Length', value: face.length, min: L.minWallLength, max: L.maxWallLength, hint: 'Inside the room' },
                 { key: 'height', label: 'Height', value: w.height, min: L.minHeight, max: L.maxHeight },
                 { key: 'thickness', label: 'Thickness', value: w.thickness, min: L.minThickness, max: L.maxThickness },
-                ...controls,
             ];
         }
         const o = studio.openings.find(x => x.id === s.id), w = o && studio.walls.find(x => x.id === o.wall), face = w && wallFace(studio, w);
@@ -124,14 +117,6 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
-        if (key.startsWith('control:') && s.kind !== 'opening') {
-            write(room => {
-                const selection = { kind: s.kind as 'wall' | 'ceiling', id: s.id }, solid = studioSolid(room, selection)!;
-                const p = controlPoint(solid.shape, solid.shape.controls.find(c => c.id === key.slice(8))!);
-                return moveStudioControl(room, selection, key.slice(8), p.t, value);
-            });
-            if (!preview) { refresh(); render(); } return;
-        }
         if (s.kind === 'ceiling') {
             if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
             else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });

@@ -37,7 +37,7 @@
 
 
  .room-fields .shape-input input{font-size:16px}
- .lbl.shape-handle.room-grip{width:30px;height:30px;min-width:0;min-height:0}
+ .lbl.shape-handle.room-grip{width:32px;height:32px}
  .lbl.shape-handle.room-handle.split-handle{width:30px;height:30px}
  .lbl.shape-handle.room-pill{padding:6px 9px 6px 6px;font-size:12px}
  .lbl.shape-handle.room-pill small{display:none}

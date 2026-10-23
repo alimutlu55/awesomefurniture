@@ -5,7 +5,6 @@ import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 import { roomHeight } from './studio';
 import { ceilingFrame } from './studio-ceiling';
 import { topSurface } from '../wardrobe/shape/depth-shape';
-import { solidSideTriangles } from '../geometry/solid-surfaces';
 
 type Point = { x: number; z: number };
 type Plane = { footprint: Point[]; height: (p: Point) => number };
@@ -50,23 +49,6 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed, toleranc
     const along = (p: Point) => frame.local(world(p)).s, across = (p: Point) => frame.local(world(p)).d;
     const covered = strip(strip(footprint, along, frame.along.from, frame.along.to), across, frame.across.from, frame.across.to);
     const at = ceiling.run === 'along' ? along : across;
-    if (ceiling.shape) {
-      // A division through the depth is still edited in one plane; clearance follows the real surface.
-      for (const triangle of solidSideTriangles(ceiling.shape)) {
-        const local = triangle.map(p => {
-          const point = ceiling.run === 'along' ? frame.at(p.t, p.u * ceiling.depth) : frame.at(frame.face.end - p.u * frame.face.length, p.t);
-          const dx = point.x - f.x, dz = point.z - f.z;
-          return { x: dx * c - dz * s + f.w / 2, z: dx * s + dz * c, y: p.y - base };
-        });
-        const [a, b, q] = local as [typeof local[number], typeof local[number], typeof local[number]];
-        const det = (b.x - a.x) * (q.z - a.z) - (q.x - a.x) * (b.z - a.z);
-        if (Math.abs(det) < EPS) continue;
-        const mx = ((b.y - a.y) * (q.z - a.z) - (q.y - a.y) * (b.z - a.z)) / det;
-        const mz = ((b.x - a.x) * (q.y - a.y) - (q.x - a.x) * (b.y - a.y)) / det;
-        planes.push({ footprint: det > 0 ? local : [a, q, b], height: p => a.y + mx * (p.x - a.x) + mz * (p.z - a.z) });
-      }
-      continue;
-    }
     for (let i = 1; i < ceiling.profile.length; i++) {
       const a = ceiling.profile[i - 1]!, b = ceiling.profile[i]!;
       if (b.t - a.t <= EPS) continue;

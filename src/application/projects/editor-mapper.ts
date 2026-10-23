@@ -13,8 +13,7 @@ const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
 
 export function sceneToProject(project: ProjectDocument, scene: EditorScene): ProjectDocument {
  const {studio: _previousStudio,maxReach: _previousReach,...base}=project;
- const schemaVersion = [...scene.studio?.walls ?? [], ...scene.studio?.ceilings ?? []].some(p => p.shape) ? 2 : 1;
- return {...base, schemaVersion, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), ...(scene.maxReach===undefined?{}:{maxReach:scene.maxReach}), wardrobes: scene.wardrobes.map(cabinet=>{
+ return {...base, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), ...(scene.maxReach===undefined?{}:{maxReach:scene.maxReach}), wardrobes: scene.wardrobes.map(cabinet=>{
   const s=cabinet.state, weights=s.wt.slice(0,s.n), total=weights.reduce((a,b)=>a+b,0);
   const widths=weights.map(w=>(s.w-(s.n+1)*PANEL)*w/total);
   const prefix=`${project.id}/cabinet/${cabinet.id}`;

@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bindMeasurementBadges, decorateMeasurementBadge } from '../../src/presentation/components/measurement-badge';
 
-function fixture(initial = 100, scrub = true) {
+function fixture() {
     const listeners = new Map<object, Map<string, (e: Event) => void>>(), cleanups: (() => void)[] = [], frames: (() => void)[] = [];
     const attrs = new Map<string, string>(), classes = new Set<string>();
-    let input: any, capture = false, value = initial, origin = initial, commits = 0, ticks = 0, springs = 0, focused = 0, refreshes = 0;
+    let input: any, capture = false, value = 100, origin = 100, commits = 0, ticks = 0, springs = 0, focused = 0, refreshes = 0;
     const el: any = { dataset: {}, classList: { add: (s: string) => classes.add(s), remove: (s: string) => classes.delete(s), toggle: (s: string, on: boolean) => on ? classes.add(s) : classes.delete(s) },
         setAttribute: (k: string, v: string) => attrs.set(k, v), getAttribute: (k: string) => attrs.get(k), removeAttribute: (k: string) => attrs.delete(k),
         closest: () => el, matches: () => false, focus: () => focused++, replaceChildren: (child: any) => { input = child; },
@@ -18,7 +18,7 @@ function fixture(initial = 100, scrub = true) {
         lifetime: { listen(target, name, fn) { if (!listeners.has(target)) listeners.set(target, new Map()); listeners.get(target)!.set(name, fn); },
             frame(fn) { frames.push(fn); }, cleanup(fn) { cleanups.push(fn); } },
         feedback: { begin() {}, tick() { ticks++; }, settle() { springs++; } },
-        resolve: () => ({ id: 'test', selector: '[data-measurement-badge]', orientation: 'horizontal', min: 50, max: 150, entry: true, scrub,
+        resolve: () => ({ id: 'test', selector: '[data-measurement-badge]', orientation: 'horizontal', min: 50, max: 150, entry: true,
             read: () => value, begin: () => { origin = value; }, preview: delta => value = Math.min(150, Math.max(50, origin + delta)),
             finish: cancel => { if (cancel) value = origin; else if (value !== origin) { commits++; return true; } return false; },
             refresh: () => { refreshes++; el.textContent = String(value); } }),
@@ -37,19 +37,6 @@ test('the reusable badge decorates semantics and coalesces pointer updates into 
     f.fire(f.layer, 'pointerup'); assert.equal(f.state().commits, 1); assert.equal(f.state().springs, 1);
     f.fire(f.layer, 'click'); assert.equal(f.input(), undefined, 'a completed drag never opens the keyboard');
     assert.equal(f.classes.has('is-scrubbing'), false);
-});
-test('tapping a fractional wall reading and leaving its rounded entry unchanged never resizes it', () => {
-    const value = 100.047263, f = fixture(value, false);
-    f.fire(f.layer, 'pointerdown'); f.fire(f.layer, 'pointermove', { clientX: 8 }); f.flush();
-    assert.equal(f.state().value, value); f.fire(f.layer, 'pointerup'); f.fire(f.layer, 'click');
-    f.input().onblur();
-    assert.equal(f.state().value, value); assert.equal(f.state().commits, 0); assert.equal(f.state().ticks, 0);
-});
-test('swiping a Studio reading neither resizes its geometry nor opens number entry', () => {
-    const f = fixture(100, false);
-    f.fire(f.layer, 'pointerdown'); f.fire(f.layer, 'pointermove', { clientX: 40 }); f.flush();
-    f.fire(f.layer, 'pointerup'); f.fire(f.layer, 'click');
-    assert.equal(f.input(), undefined); assert.equal(f.state().value, 100); assert.equal(f.state().commits, 0);
 });
 test('pointer cancellation, a second contact, blur and disposal restore previews without history', () => {
     for (const reason of ['pointercancel', 'second', 'blur', 'dispose', 'escape']) {

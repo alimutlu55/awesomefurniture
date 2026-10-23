@@ -101,7 +101,7 @@ test('IndexedDB: separate connections enforce atomic revision checks', async () 
 test('document codec round-trips data and rejects future versions and runtime fields', () => {
   const project = createProject('one', 'Bedroom');
   assert.deepEqual(deserializeProject(serializeProject(project)), project);
-  assert.throws(() => parseProject({ ...project, schemaVersion: 3 }));
+  assert.throws(() => parseProject({ ...project, schemaVersion: 2 }));
   assert.throws(() => parseProject({ ...project, selection: { itemId: 'transient' } }));
   assert.throws(() => deserializeProject('{invalid'));
 });
