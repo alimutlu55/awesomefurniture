@@ -47,6 +47,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         callbacks: {
             // Selecting a room part leaves the wardrobe that was selected.
             selectionChanged: () => {
+                late.camera().camRelease();
                 if (selectionState.viewMode) selectionState.viewMode = 'studio';
                 if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true);
                 fields?.render();
@@ -105,12 +106,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.stopImmediatePropagation();
     }, true);
 
-    /** Room editing keeps the whole studio visible from the wardrobe's front, slightly above the floor.
-     * Looking straight at a selected wall can put the wardrobe's back in front of every room control. */
+    /** Wall and ceiling selection preserves the view. Openings may need a wall-facing view for editing. */
     function frameSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
-        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().frameScene(); return; }
+        if (s.kind === 'wall' || s.kind === 'ceiling') return;
         // An opening keeps its own wall-facing view for adjusting its position and exact size.
         const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
@@ -158,16 +158,13 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         },
         /** For picking: the room's walls and openings, and what a hit selects. */
         room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => {
-            const selected = editor.selection(), data = hit?.object.userData;
-            const repeat = selected?.kind === 'ceiling' ? data?.studioCeiling === selected.id : selected?.kind === 'wall' && data?.studioWall === selected.id;
             const picked = editor.pick(hit);
+            if (picked && editor.selection()?.kind !== 'opening') late.camera().camRelease();
             if (picked && editor.selection()?.kind === 'wall' && selectionState.pendingStudioAction) {
                 const action = selectionState.pendingStudioAction;
                 selectionState.pendingStudioAction = null;
                 editor.act(action);
             }
-            // A tap after orbiting or zooming restores context; dragging leaves the camera stationary.
-            if (picked && repeat) frameSelection();
             return picked;
         } },
     };

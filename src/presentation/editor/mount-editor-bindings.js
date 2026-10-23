@@ -30,8 +30,7 @@ import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
     const { $, document } = dom;
     bindTactileCanvas({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState,
-        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room,
-        openSize: () => resize.open() });
+        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray });
     bindSceneReset({ dom, selectionState, interactionState, plannerState, shellState, inspector,
         interactions, planner, shell, camera, sceneCommands, lifetime });
     mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),

@@ -21,7 +21,7 @@ export function decorateDimensionScrubber(el: HTMLElement, design?: FurnitureDes
     decorateMeasurementBadge(el, { id: key, value, orientation: height ? 'vertical' : 'horizontal',
         label: key === 'w' ? noun + ' width' : key === 'd' ? noun + ' depth'
             : key === 'h-left' ? noun + ' left height' : key === 'h-right' ? noun + ' right height' : noun + ' height',
-        min: height && !sizes ? 40 : min, max });
+        min: height && !sizes ? 40 : min, max, readOnly: true });
 }
 
 /** Interactive pills must remain above the toolbar even after zooming. */

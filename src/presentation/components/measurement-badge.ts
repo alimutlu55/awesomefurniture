@@ -15,15 +15,17 @@ interface Lifetime {
 }
 interface Feedback { begin(value: number): void; tick(value: number): void; settle(el: HTMLElement | null): void }
 export function decorateMeasurementBadge(el: HTMLElement, options: {
-    id: string; label: string; value: number; orientation: 'horizontal' | 'vertical'; min?: number; max?: number;
+    id: string; label: string; value: number; orientation: 'horizontal' | 'vertical'; min?: number; max?: number; readOnly?: boolean;
 }) {
-    el.classList.add('measurement-badge'); el.dataset.measurementBadge = options.id; el.tabIndex = 0;
-    el.setAttribute('role', 'slider'); el.setAttribute('aria-label', options.label);
+    el.classList.add('measurement-badge'); el.dataset.measurementBadge = options.id; el.tabIndex = options.readOnly ? -1 : 0;
+    el.dataset.measurementReadonly = String(!!options.readOnly);
+    el.setAttribute('role', options.readOnly ? 'meter' : 'slider'); el.setAttribute('aria-label', options.label);
     el.setAttribute('aria-valuenow', String(options.value)); el.setAttribute('aria-valuetext', lengthText(options.value) + unitSuffix());
     el.setAttribute('aria-orientation', options.orientation);
     if (options.min !== undefined) el.setAttribute('aria-valuemin', String(options.min));
     if (options.max !== undefined) el.setAttribute('aria-valuemax', String(options.max));
-    el.title = (options.orientation === 'vertical' ? 'Drag up/down' : 'Drag left/right') + '; tap to type; use arrow keys for precise changes';
+    el.title = options.readOnly ? options.label + ': ' + lengthText(options.value) + unitSuffix()
+        : (options.orientation === 'vertical' ? 'Drag up/down' : 'Drag left/right') + '; tap to type; use arrow keys for precise changes';
 }
 export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime, resolve, feedback,
     active = () => {}, busy = () => false }: {
@@ -99,7 +101,7 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
     }
     lifetime.listen(layer, 'pointerdown', raw => {
         const e = raw as PointerEvent, el = (e.target as HTMLElement).closest<HTMLElement>('[data-measurement-badge]');
-        if (!el || (e.target as HTMLElement).matches('input') || e.button !== 0 || drag || entry || busy()) return;
+        if (!el || el.dataset.measurementReadonly === 'true' || (e.target as HTMLElement).matches('input') || e.button !== 0 || drag || entry || busy()) return;
         const b = resolve(el); if (!b) return;
         pendingEntry = null;
         // touch-action/user-select already prevent canvas panning and selection.
@@ -141,7 +143,7 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
     }, true);
     lifetime.listen(layer, 'keydown', raw => {
         const e = raw as KeyboardEvent, el = e.target as HTMLElement;
-        if (el.matches('input') || drag || entry || busy()) return;
+        if (el.dataset.measurementReadonly === 'true' || el.matches('input') || drag || entry || busy()) return;
         const b = resolve(el); if (!b) return;
         if ((e.key === 'Enter' || e.key === ' ') && b.entry) { e.preventDefault(); e.stopImmediatePropagation(); typeValue(b); return; }
         if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;

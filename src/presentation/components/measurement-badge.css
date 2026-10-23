@@ -6,3 +6,5 @@
 .measurement-badge[data-measurement-badge].is-editing{cursor:text}
 .measurement-badge[data-measurement-badge].is-editing::after{display:none}
 .measurement-badge[data-measurement-badge] input{width:7ch;min-width:45px;padding:0;border:0;background:transparent;color:inherit;font:inherit;font-size:16px;text-align:center;user-select:text;touch-action:auto}
+.measurement-badge[data-measurement-badge][data-measurement-readonly="true"]{pointer-events:none;touch-action:auto;cursor:default;user-select:none;-webkit-user-select:none}
+.measurement-badge[data-measurement-badge][data-measurement-readonly="true"]::after{display:none}

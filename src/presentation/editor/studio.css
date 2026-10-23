@@ -12,9 +12,6 @@
 .lbl.shape-handle.room-pill{position:absolute}
 .lbl.shape-handle.room-pill small{font-size:inherit}
 .lbl.shape-handle.room-pill::after{content:"";position:absolute;inset:-8px -4px}
-/* A length on the model that can be tapped and typed. */
-.lbl.room-measure-edit{pointer-events:auto;cursor:text}
-.lbl.room-measure-edit:hover{text-decoration:underline dotted}
 /* The ceiling shapes a wall can take: small side views with their names. */
 .room-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .room-fields .shape-field{font-size:11px}

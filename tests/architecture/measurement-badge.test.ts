@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bindMeasurementBadges, decorateMeasurementBadge } from '../../src/presentation/components/measurement-badge';
 
-function fixture() {
+function fixture(readOnly = false) {
     const listeners = new Map<object, Map<string, (e: Event) => void>>(), cleanups: (() => void)[] = [], frames: (() => void)[] = [];
     const attrs = new Map<string, string>(), classes = new Set<string>();
     let input: any, capture = false, value = 100, origin = 100, commits = 0, ticks = 0, springs = 0, focused = 0, refreshes = 0;
@@ -13,7 +13,7 @@ function fixture() {
     const layer: any = { querySelector: () => el, setPointerCapture: () => { capture = true; },
         hasPointerCapture: () => capture, releasePointerCapture: () => { capture = false; } };
     const boundary = {} as HTMLElement, windowEvents = {} as EventTarget;
-    decorateMeasurementBadge(el, { id: 'test', label: 'Example width', value, orientation: 'horizontal', min: 50, max: 150 });
+    decorateMeasurementBadge(el, { id: 'test', label: 'Example width', value, orientation: 'horizontal', min: 50, max: 150, readOnly });
     bindMeasurementBadges({ layer, boundary, windowEvents,
         lifetime: { listen(target, name, fn) { if (!listeners.has(target)) listeners.set(target, new Map()); listeners.get(target)!.set(name, fn); },
             frame(fn) { frames.push(fn); }, cleanup(fn) { cleanups.push(fn); } },
@@ -37,6 +37,16 @@ test('the reusable badge decorates semantics and coalesces pointer updates into 
     f.fire(f.layer, 'pointerup'); assert.equal(f.state().commits, 1); assert.equal(f.state().springs, 1);
     f.fire(f.layer, 'click'); assert.equal(f.input(), undefined, 'a completed drag never opens the keyboard');
     assert.equal(f.classes.has('is-scrubbing'), false);
+});
+test('read-only measurements reject typing, dragging and keyboard changes', () => {
+    const f = fixture(true);
+    assert.equal(f.attrs.get('role'), 'meter'); assert.equal(f.el.tabIndex, -1);
+    assert.equal(f.attrs.get('aria-valuenow'), '100');
+    assert.doesNotMatch(f.el.title, /drag|tap|type|arrow/i);
+    f.fire(f.layer, 'pointerdown'); f.fire(f.layer, 'pointermove', { clientX: 40 }); f.flush();
+    f.fire(f.layer, 'pointerup'); f.fire(f.layer, 'click');
+    for (const key of ['Enter', ' ', 'ArrowUp', 'ArrowRight', 'Home', 'End']) f.fire(f.layer, 'keydown', { key });
+    assert.equal(f.input(), undefined); assert.equal(f.state().value, 100); assert.equal(f.state().commits, 0);
 });
 test('pointer cancellation, a second contact, blur and disposal restore previews without history', () => {
     for (const reason of ['pointercancel', 'second', 'blur', 'dispose', 'escape']) {

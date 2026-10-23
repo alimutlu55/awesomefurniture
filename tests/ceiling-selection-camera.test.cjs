@@ -115,27 +115,25 @@ for (const width of [375, 1280]) {
         });
     }
     for (const shape of ['landing', 'stairs', 'slope', 'box']) {
-        test(`${width}px: tapping a ${shape} ceiling frames the entire studio from the wardrobe front`, t => {
+        test(`${width}px: tapping a ${shape} ceiling preserves the camera`, t => {
             const f = fixture(t, width, shape), snapshot = f.model.snapshot();
             f.cameraState.dist = 180; f.cameraState.el = .02; f.cameraState.tgt.set(0, 90, 20);
-            f.tap();
+            const pose = f.camera.camNow(); f.tap();
             assert.deepEqual(f.selectionState.room, { kind: 'ceiling', id: 'k1' }); assert.equal(f.selectionState.focusOn, false);
-            assert.equal(f.frames, 1, 'ceiling selection always establishes framing, including from below');
-            assert.ok(f.cameraState.camGoal.dist > 240, 'backs away enough to expose the whole profile and depth grip');
-            assert.equal(f.cameraState.camGoal.az, .32); assert.equal(f.cameraState.camGoal.el, .5);
+            assert.equal(f.frames, 0); assert.equal(f.cameraState.camGoal, null);
             f.camera.cameraTick(2000, 1 / 60);
-            assert.equal(f.cameraState.tgt.y, 130); assert.equal(f.cameraState.tgt.z, 80, 'targets the studio, not the ceiling footprint');
+            samePose(f.camera.camNow(), pose);
             assert.equal(f.model.snapshot(), snapshot, 'selection does not change the design');
         });
     }
 
-    test(`${width}px: tapping the same ceiling after orbit/zoom restores framing; repeated taps do not accumulate zoom`, t => {
+    test(`${width}px: repeated ceiling taps preserve manual orbit and zoom`, t => {
         const f = fixture(t, width); f.tap(); f.camera.cameraTick(2000, 1 / 60);
-        const fitted = f.camera.camNow();
         f.camera.camRelease(); f.cameraState.az = 2; f.cameraState.dist = 180; f.cameraState.tgt.set(100, 80, 20);
-        f.tap(); assert.equal(f.frames, 2); f.camera.cameraTick(2000, 1 / 60);
-        samePose(f.camera.camNow(), fitted);
-        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), fitted);
+        const pose = f.camera.camNow();
+        f.tap(); assert.equal(f.frames, 0); f.camera.cameraTick(2000, 1 / 60);
+        samePose(f.camera.camNow(), pose);
+        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), pose);
     });
 
     test(`${width}px: ceiling dragging reshapes the wardrobe without triggering camera reframing`, t => {
@@ -144,25 +142,27 @@ for (const width of [375, 1280]) {
         f.wiring.editor.begin(f.event(), f.wiring.editor.handles()[1], f.cv);
         for (const y of [20, 40, 60]) f.wiring.editor.move(f.event(undefined, 0, y));
         assert.notDeepEqual(f.model.activeCabinet().state.shape, shape);
-        assert.equal(f.frames, 1); assert.deepEqual(f.camera.camNow(), pose); f.wiring.editor.end();
-        assert.equal(f.frames, 1); assert.deepEqual(f.camera.camNow(), pose);
+        assert.equal(f.frames, 0); assert.deepEqual(f.camera.camNow(), pose); f.wiring.editor.end();
+        assert.equal(f.frames, 0); assert.deepEqual(f.camera.camNow(), pose);
     });
 
-    test(`${width}px: empty-space tap after ceiling editing still frames the entire studio`, t => {
+    test(`${width}px: empty-space taps retain their existing camera behavior`, t => {
         const f = fixture(t, width); f.tap(); f.camera.cameraTick(2000, 1 / 60);
-        f.background(); f.tap(); f.camera.cameraTick(2000, 1 / 60);
-        assert.equal(f.selectionState.room, null); assert.equal(f.cameraState.el, .5);
-        assert.equal(f.cameraState.tgt.z, 80); assert.equal(f.cameraState.tgt.y, 130);
+        const pose = f.camera.camNow(); f.background(); f.tap(); f.camera.cameraTick(2000, 1 / 60);
+        assert.equal(f.selectionState.room, null);
+        if (width === 375) { assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose); }
+        else { assert.equal(f.frames, 1); assert.equal(f.cameraState.tgt.z, 80); assert.equal(f.cameraState.tgt.y, 130); }
     });
 
-    for (const wall of ['w1', 'w2', 'w3', 'w4']) test(`${width}px: selecting ${wall} keeps the studio in view instead of facing the wardrobe back`, t => {
+    for (const wall of ['w1', 'w2', 'w3', 'w4']) test(`${width}px: selecting ${wall} preserves the camera on first and repeated taps`, t => {
         const f = fixture(t, width); f.wall(wall); f.cameraState.dist = 180; f.cameraState.el = .02;
-        f.tap(); assert.deepEqual(f.selectionState.room, { kind: 'wall', id: wall });
-        assert.equal(f.frames, 1); assert.equal(f.cameraState.camGoal.az, .32); assert.equal(f.cameraState.camGoal.el, .5);
+        const pose = f.camera.camNow(); f.tap(); assert.deepEqual(f.selectionState.room, { kind: 'wall', id: wall });
+        assert.equal(f.frames, 0); assert.equal(f.cameraState.camGoal, null);
         f.camera.cameraTick(2000, 1 / 60);
-        const fitted = f.camera.camNow();
+        samePose(f.camera.camNow(), pose);
         f.camera.camRelease(); f.cameraState.dist = 180; f.cameraState.az = 2;
-        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), fitted);
+        const moved = f.camera.camNow();
+        f.tap(); f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), moved);
     });
 
     test(`${width}px: dragging a wall keeps the camera steady while carrying its wardrobes`, t => {
@@ -171,15 +171,15 @@ for (const width of [375, 1280]) {
         assert.equal(f.wiring.surface.grab(f.event(), undefined), true);
         f.wiring.surface.move(f.event(undefined, 8, 6));
         assert.equal(f.model.activeCabinet().z, before + 20);
-        assert.equal(f.frames, 1); samePose(f.camera.camNow(), pose);
-        f.wiring.surface.end(); assert.equal(f.frames, 1); samePose(f.camera.camNow(), pose);
+        assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
+        f.wiring.surface.end(); assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
     });
 
     test(`${width}px: framing includes tall wardrobes and other wardrobes outside the selected wall`, t => {
         const f = fixture(t, width), scene = f.model.scene;
         scene.wardrobes.push({ id: 2, name: 'Second', x: 450, y: 0, z: 250, angle: 0,
             state: { ...createEditorState(), w: 100, h: 280 } });
-        f.tap(); const goal = f.cameraState.camGoal;
+        f.camera.frameScene(); const goal = f.cameraState.camGoal;
         assert.equal(goal.y, 140, 'the top of the tall wardrobe is included');
         assert.equal(goal.x, 144); assert.equal(goal.z, 134);
         const camera = new THREE.PerspectiveCamera(35, width / 812, 1, 15000), area = f.camera.availableRoom();
@@ -193,12 +193,17 @@ for (const width of [375, 1280]) {
     });
 }
 
-test('a ceiling on the side wall retains a view of the wardrobe front and the whole studio', t => {
-    const f = fixture(t, 375, 'slope', 'w2'); f.tap();
-    assert.equal(f.cameraState.camGoal.az, .32); assert.equal(f.cameraState.camGoal.el, .5);
+test('a ceiling on the side wall preserves the current camera', t => {
+    const f = fixture(t, 375, 'slope', 'w2'), pose = f.camera.camNow(); f.tap();
+    assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
 });
 
-test('a rotated wardrobe still faces the camera when a different wall is selected', t => {
-    const f = fixture(t, 375); f.model.activeCabinet().angle = 90; f.wall('w1'); f.tap();
-    assert.equal(f.cameraState.camGoal.az, Math.PI / 2 + .32); assert.equal(f.cameraState.camGoal.el, .5);
+test('wall and ceiling selection cancel pending camera flights before panels resize', t => {
+    for (const wall of [false, true]) {
+        const f = fixture(t, 375); f.model.activeCabinet().angle = 90;
+        f.camera.frameScene(); const pose = f.camera.camNow();
+        if (wall) f.wall('w1'); f.tap();
+        assert.equal(f.cameraState.camGoal, null);
+        f.camera.cameraTick(2000, 1 / 60); samePose(f.camera.camNow(), pose);
+    }
 });
