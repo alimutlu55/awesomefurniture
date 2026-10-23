@@ -7,12 +7,20 @@ const object = (value: unknown): value is Record<string, unknown> =>
 
 /** The reverted 3D editor saved ceiling fields the original editor cannot read. */
 function withoutRetiredCeilings(document: unknown): unknown {
-  if (!object(document) || document.schemaVersion !== 1 || !object(document.studio)) return document;
+  if (!object(document) || (document.schemaVersion !== 1 && document.schemaVersion !== 2) || !object(document.studio)) return document;
   const ceilings = document.studio.ceilings;
   if (!Array.isArray(ceilings)) return document;
+  const shaped = ceilings.some(ceiling => object(ceiling) && 'shape' in ceiling);
+  // Version 2 belonged to the reverted ceiling-shape editor. Only recover that
+  // known format; the normal parser still rejects unrelated future documents.
+  if (document.schemaVersion === 2 && !shaped) return document;
   const retired = (ceiling: unknown) => object(ceiling) && ('outline' in ceiling || 'sections' in ceiling);
-  if (!ceilings.some(retired)) return document;
-  return { ...document, studio: { ...document.studio, ceilings: ceilings.filter(ceiling => !retired(ceiling)) } };
+  if (!shaped && !ceilings.some(retired)) return document;
+  return { ...document, schemaVersion: 1, studio: { ...document.studio, ceilings: ceilings.filter(ceiling => !retired(ceiling)).map(ceiling => {
+    if (!object(ceiling) || !('shape' in ceiling)) return ceiling;
+    const { shape: _retiredShape, ...supported } = ceiling;
+    return supported;
+  }) } };
 }
 
 /** Scoped to the identity. Drafts survive navigation, failures and cloud conflicts. */
@@ -31,7 +39,8 @@ export function createBrowserDrafts(storage: Storage, scope: string) {
     const document = parseProject(recovered);
     if (recovered !== value.document) {
       // Preserve the complete original before replacing only the incompatible draft.
-      const backup = `wardrobe:recovery:${scope}:${document.id}:before-ceiling-rollback`;
+      const suffix = object(value.document) && value.document.schemaVersion === 2 ? 'before-ceiling-shape-rollback' : 'before-ceiling-rollback';
+      const backup = `wardrobe:recovery:${scope}:${document.id}:${suffix}`;
       if (storage.getItem(backup) === null) storage.setItem(backup, raw);
       storage.setItem(key, JSON.stringify({ ...value, document }));
     }

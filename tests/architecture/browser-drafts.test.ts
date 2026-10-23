@@ -106,3 +106,20 @@ test('ceiling recovery retains the original if storing its backup fails', () => 
   assert.throws(() => createBrowserDrafts(disk, 'owner').read('kitchen'), /Quota/);
   assert.equal(disk.getItem(key), raw);
 });
+
+test('version 2 ceiling-shape drafts reopen from browser storage after the database is repaired', () => {
+  const disk = storage();
+  const studio = addCeiling(rectangleStudio(400, 400), 'w1', 'box')!;
+  const document = { ...createProject('recovered', 'Recovered design'), studio };
+  const incompatible = { ...document, schemaVersion: 2, studio: { ...studio,
+    ceilings: studio.ceilings!.map(ceiling => ({ ...ceiling, shape: { rings: [], loops: [], controls: [] } })),
+  } };
+  const raw = JSON.stringify({ document: incompatible, expectedRevision: 306 });
+  const key = 'wardrobe:draft:owner:recovered';
+  disk.setItem(key, raw); disk.setItem('wardrobe:active:owner', 'recovered');
+  const drafts = createBrowserDrafts(disk, 'owner');
+  assert.deepEqual(drafts.read(), { document, expectedRevision: 306 });
+  assert.deepEqual(drafts.read('recovered'), { document, expectedRevision: 306 });
+  assert.equal(disk.getItem('wardrobe:recovery:owner:recovered:before-ceiling-shape-rollback'), raw);
+  assert.deepEqual(JSON.parse(disk.getItem(key)!).document, document);
+});
