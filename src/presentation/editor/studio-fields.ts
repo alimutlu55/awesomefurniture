@@ -2,6 +2,7 @@ import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain
 import type { Studio } from '../../domain/studio/studio';
 import { setDoorOperation, moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
 import { isWallUtility, openingLimits } from '../../domain/studio/wall-utilities';
+import { edgeHeight, outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -38,7 +39,8 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
             const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + unitSuffix() + ' ' + (c.run === 'along' ? 'along' : 'out');
             return [
-                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: p.y, min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
+                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: Math.min(roomHeight(studio), edgeHeight(c, p.y)), min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
+                { key: 'outer', label: 'Outer edge height', value: outerEdgeHeight(c), min: L.minCeilingHeight, max: roomHeight(studio), hint: 'Wall edge stays fixed' },
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
             ];
         }
@@ -118,8 +120,9 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
         if (s.kind === 'ceiling') {
-            if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
-            else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value) : null; });
+            if (key === 'outer') write(r => setOuterEdgeHeight(r, s.id, value));
+            else if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
+            else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value - (r.ceilings?.find(c => c.id === s.id)?.edgeRise ?? 0)) : null; });
         } else if (s.kind === 'wall') {
             if (key === 'length') write(r => setInsideLength(r, s.id, value));
             else write(r => setWallSize(r, s.id, { [key]: value }));

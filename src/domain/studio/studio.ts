@@ -62,6 +62,8 @@ export interface StudioCeiling {
   readonly run: 'along' | 'across';
   readonly depth: number;
   readonly profile: readonly CeilingPoint[];
+  /** Height change at the room-facing edge; the wall profile remains fixed. Along-wall ceilings only. */
+  readonly edgeRise?: number | undefined;
 }
 
 export interface Studio {

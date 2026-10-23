@@ -3,8 +3,9 @@ import { createSceneCommands } from './scene-commands';
 import { createDesignCommands } from './design-commands';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
 import { depthForFitting } from '../../domain/wardrobe/carcass';
-import { wallFace } from '../../domain/studio/studio';
+import { roomHeight, wallFace } from '../../domain/studio/studio';
 import { setInsideLength, setWallSize, setOpeningSize, moveOpening, moveOpening2D } from '../../domain/studio/studio-edit';
+import { edgeHeight, outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 
 export type SceneMeasurement =
@@ -31,7 +32,11 @@ export function createSceneMeasurements(scene: () => EditorScene) {
             }
             if (ref.selection === 'ceiling') {
                 const ceiling = room.ceilings?.find(c => c.id === ref.id);
-                return !ceiling ? null : ref.field === 'depth' ? ceiling.depth : ceiling.profile[Number(ref.field.slice(1))]?.y ?? null;
+                if (!ceiling) return null;
+                if (ref.field === 'outer') return outerEdgeHeight(ceiling);
+                if (ref.field === 'depth') return ceiling.depth;
+                const point = ceiling.profile[Number(ref.field.slice(1))];
+                return point ? Math.min(roomHeight(room), edgeHeight(ceiling, point.y)) : null;
             }
             const opening = room.openings.find(o => o.id === ref.id), wall = opening && room.walls.find(w => w.id === opening.wall);
             const face = wall && wallFace(room, wall);
@@ -59,9 +64,10 @@ export function createSceneMeasurements(scene: () => EditorScene) {
             if (ref.selection === 'wall') return ref.field === 'length' ? setInsideLength(room, ref.id, value)
                 : setWallSize(room, ref.id, { [ref.field]: value });
             if (ref.selection === 'ceiling') {
+                if (ref.field === 'outer') return setOuterEdgeHeight(room, ref.id, value);
                 if (ref.field === 'depth') return setCeilingDepth(room, ref.id, value);
                 const k = Number(ref.field.slice(1)), point = room.ceilings?.find(c => c.id === ref.id)?.profile[k];
-                return point ? moveCeilingPoint(room, ref.id, k, point.t, value) : null;
+                return point ? moveCeilingPoint(room, ref.id, k, point.t, value - (room.ceilings?.find(c => c.id === ref.id)?.edgeRise ?? 0)) : null;
             }
             const o = room.openings.find(o => o.id === ref.id)!, wall = room.walls.find(w => w.id === o.wall)!;
             if (!o || !wall) return null;

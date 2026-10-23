@@ -4,6 +4,7 @@
  * wardrobe's top: a profile of heights, with slopes between points and vertical steps where two points
  * share a position. Plain data and pure functions, in scene centimetres.
  */
+import { outerEdgeHeight } from './ceiling-edge';
 import { STUDIO_LIMITS as L, nextId, roomHeight, wall, wallFace, wallLine } from './studio';
 import type { CeilingPoint, Studio, StudioCeiling, StudioCorner } from './studio';
 
@@ -27,7 +28,7 @@ export function ceilingFrame(studio: Studio, c: StudioCeiling) {
     const x = p.x - line.a.x, z = p.z - line.a.z;
     return { s: x * line.ux + z * line.uz, d: x * line.nx + z * line.nz - off };
   };
-  return { wall: w, line, face, off, along, across, at, local };
+  return { studio, wall: w, line, face, off, along, across, at, local };
 }
 
 /** The underside's height at `t` along its run, or null outside it. At a step, the lower side. */
@@ -51,7 +52,7 @@ export function ceilingAt(studio: Studio, p: P): number {
     const { s, d } = f.local(p);
     if (s < f.along.from - EPS || s > f.along.to + EPS || d < f.across.from - EPS || d > f.across.to + EPS) continue;
     const y = profileAt(c.profile, c.run === 'along' ? s : d);
-    if (y !== null) h = Math.min(h, y);
+    if (y !== null) h = Math.min(h, y + (c.run === 'along' ? (c.edgeRise ?? 0) * d / c.depth : 0));
   }
   return h;
 }
@@ -133,6 +134,9 @@ export function ceilingProblems(studio: Studio, c: StudioCeiling): string[] {
   if (!f) return ['A ceiling is on a wall that no longer exists.'];
   const ps = c.profile, top = roomHeight(studio);
   if (!Number.isFinite(c.depth) || ps.some(p => !Number.isFinite(p.t) || !Number.isFinite(p.y))) return ['Enter a finite ceiling dimension.'];
+  if (c.edgeRise !== undefined && (!Number.isFinite(c.edgeRise) || c.run !== 'along')) out.push('Choose a valid outer edge lift.');
+  if (ps.some(p => p.y + Math.min(0, c.edgeRise ?? 0) < L.minCeilingHeight - EPS)) out.push('Keep the outer edge at least 40 cm above the floor.');
+  if (c.edgeRise && outerEdgeHeight(c) > top + EPS) out.push('The outer edge has reached the room ceiling.');
   if (ps.length < 2) out.push('A ceiling needs at least two points.');
   for (let k = 0; k < ps.length - 1; k++) {
     if (ps[k + 1]!.t < ps[k]!.t - 1e-8) out.push('Ceiling points must run in order. Move the point back.');

@@ -35,9 +35,9 @@ export function referenceRoomFeatures(studio: Studio | undefined, subject: reado
       const crossSpan = ceiling.run === 'along' ? across : along;
       for (const cross of [crossSpan.from, crossSpan.to]) {
         const floor = ceiling.run === 'along' ? frame.at(p.t, cross) : frame.at(cross, p.t);
-        points.push(new THREE.Vector3(floor.x, Math.min(top, p.y), floor.z), new THREE.Vector3(floor.x, top, floor.z));
+        points.push(new THREE.Vector3(floor.x, Math.min(top, p.y + (ceiling.run === 'along' ? (ceiling.edgeRise ?? 0) * cross / ceiling.depth : 0)), floor.z), new THREE.Vector3(floor.x, top, floor.z));
       }
-      eyeHeight = Math.min(eyeHeight, p.y - HEADROOM);
+      eyeHeight = Math.min(eyeHeight, p.y + Math.min(0, ceiling.edgeRise ?? 0) - HEADROOM);
     }
     const { line, wall } = frame;
     features.push({ points, normal: new THREE.Vector3(line.nx, 0, line.nz),

@@ -54,7 +54,8 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed, toleranc
       if (b.t - a.t <= EPS) continue;
       const patch = strip(covered, at, a.t, b.t);
       if (!hasArea(patch)) continue;
-      planes.push({ footprint: patch, height: p => a.y + (b.y - a.y) * (at(p) - a.t) / (b.t - a.t) - base });
+      planes.push({ footprint: patch, height: p => a.y + (b.y - a.y) * (at(p) - a.t) / (b.t - a.t)
+        + (ceiling.run === 'along' ? (ceiling.edgeRise ?? 0) * across(p) / ceiling.depth : 0) - base });
     }
   }
   return shape => {

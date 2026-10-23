@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { tiltedCeilingGeometry } from './tilted-ceiling-geometry';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 
@@ -27,7 +28,8 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     shape.lineTo(first.t, top);
     let g: THREE.BufferGeometry;
     if (c.run === 'along') {
-      g = new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
+      g = c.edgeRise ? tiltedCeilingGeometry(c, top).translate(0, 0, w.thickness / 2)
+        : new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
     } else {
       // Drawn across the room, then turned so it runs along the wall's whole inside face.
       g = new THREE.ExtrudeGeometry(shape, { depth: face.end - face.start, bevelEnabled: false }).rotateY(-Math.PI / 2).translate(face.end, 0, w.thickness / 2);
