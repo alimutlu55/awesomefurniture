@@ -20,7 +20,7 @@ export function ceilingFrame(studio: Studio, c: StudioCeiling) {
   const first = c.profile[0], last = c.profile.at(-1);
   if (!w || !line || !face || !first || !last) return null;
   const off = w.thickness / 2;
-  const ts = c.shape?.rings.flatMap(r => r.points.map(p => p.t + (p.s ?? 0)));
+  const ts = c.shape?.rings.flatMap(r => r.points.map(p => p.t));
   const span = { from: ts ? Math.min(...ts) : first.t, to: ts ? Math.max(...ts) : last.t };
   const along = c.run === 'along' ? span : { from: face.start, to: face.end };
   const across = c.run === 'along' ? { from: 0, to: c.depth } : span;
@@ -177,8 +177,7 @@ export function moveCeilingPoint(studio: Studio, id: string, index: number, t: n
       const shape = moveSolidControl(c.shape, 'p' + index, t, y);
       if (!shape) return null;
       return { ...c, shape, profile: c.profile.map((p, k) => {
-        const control = shape.controls.find(h => h.id === 'p' + k), at = control ? controlPoint(shape, control) : p;
-        return { t: at.t, y: at.y };
+        const control = shape.controls.find(h => h.id === 'p' + k); return control ? controlPoint(shape, control) : p;
       }) };
     }
     const prev = c.profile[index - 1], next = c.profile[index + 1];
@@ -197,8 +196,7 @@ export function liftCeiling(studio: Studio, id: string, by: number): Studio | nu
     const shape = c.shape && mapSolid(c.shape, (p, i) => Math.abs(p.y - top) < 1e-7 && !underside.has(i) ? p : { ...p, y: p.y + by });
     const profile = c.profile.map((p, k) => {
       const control = shape?.controls.find(h => h.id === 'p' + k);
-      const at = shape && control ? controlPoint(shape, control) : { ...p, y: p.y + by };
-      return { t: at.t, y: at.y };
+      return shape && control ? controlPoint(shape, control) : { ...p, y: p.y + by };
     });
     return { ...c, profile, ...(shape ? { shape } : {}) };
   });

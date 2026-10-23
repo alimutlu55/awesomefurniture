@@ -16,7 +16,6 @@ export interface RoomHandle {
     readonly control?: string;
     readonly boundary?: import('../../domain/geometry/profile-solid').SolidLocation;
     readonly boundaryMoved?: boolean;
-    readonly plane?: 'horizontal';
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
 }

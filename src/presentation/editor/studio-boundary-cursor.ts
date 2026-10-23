@@ -5,9 +5,9 @@ import { controlPoint, locationPoint, ringAt } from '../../domain/geometry/profi
 import type { Studio } from '../../domain/studio/studio';
 import type { RoomHandle } from './studio-editor.ports';
 import { splitCeilingPanel } from '../../domain/studio/studio-ceiling';
-import { divideStudioBoundary, moveStudioControl, moveStudioHorizontal } from '../../domain/studio/studio-solid';
+import { divideStudioBoundary, moveStudioControl } from '../../domain/studio/studio-solid';
 import { ceilingHandles } from './studio-ceiling-drag';
-import type { RoomMeasure, StudioEditorPorts } from './studio-editor.ports';
+import type { RoomMeasure } from './studio-editor.ports';
 import { measureNumber, unitSuffix } from './editor-format.js';
 
 const distance = (a: WorldPoint, b: WorldPoint) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -133,7 +133,6 @@ export function studioSolidHandles(room: Studio, selection: SolidSelection): Roo
   return model.shape.controls.map((control, k) => ({
     key: 'shape-point:' + selection.kind + ':' + selection.id + ':' + control.id,
     kind: 'shape-point', id: selection.id, solidKind: selection.kind, control: control.id,
-    plane: control.plane, nx: model.crossAxis.x, nz: model.crossAxis.z,
     ...model.at(controlPoint(model.shape, control), control.u), ux: model.axis.x, uz: model.axis.z,
     label: 'Point ' + (k + 1) + ', drag to move the adjoining parts independently',
   }));
@@ -154,17 +153,8 @@ export function boundaryControlMotion(original: Studio, last: Studio, h: RoomHan
   const selection = selectionOf(h), source = studioSolid(original, selection)!, current = studioSolid(last, selection)!;
   const p = controlPoint(source.shape, source.shape.controls.find(c => c.id === h.control)!);
   const now = controlPoint(current.shape, current.shape.controls.find(c => c.id === h.control)!);
-  if (h.plane === 'horizontal') return (fraction: number) => moveStudioHorizontal(original, selection, h.control!,
-    (now.s ?? 0) + (step((p.s ?? 0) + delta.s) - (now.s ?? 0)) * fraction,
-    (now.d ?? 0) + (step((p.d ?? 0) * source.depth + delta.y) / source.depth - (now.d ?? 0)) * fraction);
   return (fraction: number) => moveStudioControl(original, selection, h.control!,
     now.t + (step(p.t + delta.s) - now.t) * fraction, now.y + (step(p.y + delta.y) - now.y) * fraction);
-}
-
-export function horizontalPointerDelta(picking: StudioEditorPorts['picking'], h: RoomHandle, start: { x: number; y: number }, event: PointerEvent) {
-  const a = picking.groundPoint({ clientX: start.x, clientY: start.y } as PointerEvent, h.y), b = picking.groundPoint(event, h.y);
-  if (!a || !b) return { s: 0, y: 0 };
-  return { s: (b.x - a.x) * h.ux! + (b.z - a.z) * h.uz!, y: (b.x - a.x) * h.nx! + (b.z - a.z) * h.nz! };
 }
 
 export function boundaryMeasures(room: Studio, selection: SolidSelection, active?: string): RoomMeasure[] {

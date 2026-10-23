@@ -1,14 +1,11 @@
-import { solidSideTriangles, surfacePoint } from './solid-surfaces';
+import { solidSideTriangles } from './solid-surfaces';
 
 /** A solid made from matching planar contours along its extrusion. Controls are explicit:
  * adding topology never creates extra visible handles. A control edits the whole (t,y)
  * profile across the extrusion; u only anchors its visible handle in 3D. */
-export interface SolidPoint { readonly t: number; readonly y: number; readonly s?: number; readonly d?: number }
+export interface SolidPoint { readonly t: number; readonly y: number }
 export interface SolidRing { readonly u: number; readonly points: readonly SolidPoint[] }
-export interface SolidControl {
-  readonly id: string; readonly point: number; readonly u: number; readonly scope: 'profile' | 'section';
-  readonly plane?: 'horizontal'; readonly peers?: readonly number[];
-}
+export interface SolidControl { readonly id: string; readonly point: number; readonly u: number; readonly scope: 'profile' | 'section' }
 export interface ProfileSolid {
   readonly loops: readonly (readonly number[])[];
   readonly rings: readonly SolidRing[];
@@ -16,11 +13,7 @@ export interface ProfileSolid {
 }
 export interface SolidLocation { readonly loop: number; readonly edge: number; readonly u: number; readonly fraction: number; readonly through?: boolean }
 export const SOLID_EPS = 1e-7;
-export const mixPoint = (a: SolidPoint, b: SolidPoint, f: number): SolidPoint => ({
-  t: a.t + (b.t - a.t) * f, y: a.y + (b.y - a.y) * f,
-  ...(a.s !== undefined || b.s !== undefined ? { s: (a.s ?? 0) + ((b.s ?? 0) - (a.s ?? 0)) * f } : {}),
-  ...(a.d !== undefined || b.d !== undefined ? { d: (a.d ?? 0) + ((b.d ?? 0) - (a.d ?? 0)) * f } : {}),
-});
+export const mixPoint = (a: SolidPoint, b: SolidPoint, f: number): SolidPoint => ({ t: a.t + (b.t - a.t) * f, y: a.y + (b.y - a.y) * f });
 export const distance2 = (a: SolidPoint, b: SolidPoint) => Math.hypot(a.t - b.t, a.y - b.y);
 
 export function ringAt(shape: ProfileSolid, u: number): readonly SolidPoint[] {
@@ -66,14 +59,14 @@ export function moveSolidControl(shape: ProfileSolid, id: string, t: number, y: 
   // Legacy section controls remain readable, but always reshape both faces together.
   // Absolute coordinates also realign a corner previously pulled out of its profile.
   const next = { ...shape, rings: shape.rings.map(r => ({
-    ...r, points: r.points.map((p, k) => k === control.point ? { ...p, t, y } : p),
+    ...r, points: r.points.map((p, k) => k === control.point ? { t, y } : p),
   })) };
   if (shape.loops.some(loop => shape.rings.some((ring, r) => loopArea(loop.map(i => ring.points[i]!))
     * loopArea(loop.map(i => next.rings[r]!.points[i]!)) <= SOLID_EPS))) return null;
   return next;
 }
 export function mapSolid(shape: ProfileSolid, transform: (p: SolidPoint, index: number) => SolidPoint): ProfileSolid {
-  return { ...shape, rings: shape.rings.map(r => ({ ...r, points: r.points.map((p, i) => ({ ...p, ...transform(p, i) })) })) };
+  return { ...shape, rings: shape.rings.map(r => ({ ...r, points: r.points.map(transform) })) };
 }
 
 const cross = (a: SolidPoint, b: SolidPoint, c: SolidPoint) => (b.t - a.t) * (c.y - a.y) - (b.y - a.y) * (c.t - a.t);
@@ -97,16 +90,12 @@ export function solidProblems(shape: ProfileSolid, limits: { minT: number; maxT:
   const indices = shape.loops.flat();
   if (indices.length !== count || new Set(indices).size !== count || shape.loops.some(l => l.length < 3)
     || indices.some(i => !Number.isInteger(i) || i < 0 || i >= count)) return ['A shape boundary has an invalid point.'];
-  for (const [k, r] of shape.rings.entries()) for (const [i, logical] of r.points.entries()) {
-    const p = surfacePoint(logical, r.u), previous = k > 0 ? shape.rings[k - 1]! : null;
-    if (!Number.isFinite(p.u) || p.u < -SOLID_EPS || p.u > 1 + SOLID_EPS
-      || previous && p.u - surfacePoint(previous.points[i]!, previous.u).u < SOLID_EPS) return ['Horizontal shape edges cannot cross.'];
+  for (const r of shape.rings) for (const p of r.points) {
     if (!Number.isFinite(p.t) || !Number.isFinite(p.y) || p.t < limits.minT - SOLID_EPS || p.t > limits.maxT + SOLID_EPS
       || p.y < limits.minY - SOLID_EPS || p.y > limits.maxY + SOLID_EPS) return ['Keep the shape within its wall and the room height.'];
   }
   const samples = [...shape.rings.map(r => r.points), ...shape.rings.slice(1).map((r, i) => ringAt(shape, (r.u + shape.rings[i]!.u) / 2))];
-  for (const logical of samples) {
-    const points = logical.map(p => surfacePoint(p, 0));
+  for (const points of samples) {
     const loops = shape.loops.map(l => l.map(i => points[i]!));
     const contours: SolidPoint[][] = [];
     for (const raw of loops) {
@@ -142,9 +131,7 @@ export function solidProblems(shape: ProfileSolid, limits: { minT: number; maxT:
   }
   if (new Set(shape.controls.map(c => c.id)).size !== shape.controls.length || shape.controls.some(c =>
     !Number.isInteger(c.point) || c.point < 0 || c.point >= count || !Number.isFinite(c.u) || c.u < 0 || c.u > 1
-    || (c.scope === 'section' || c.plane === 'horizontal') && !shape.rings.some(r => Math.abs(r.u - c.u) < SOLID_EPS)
-    || c.plane === 'horizontal' && (!c.peers || c.peers.length < 2 || !c.peers.includes(c.point)
-      || c.peers.some(i => !Number.isInteger(i) || i < 0 || i >= count)))) return ['A shape control has no matching point.'];
+    || c.scope === 'section' && !shape.rings.some(r => Math.abs(r.u - c.u) < SOLID_EPS))) return ['A shape control has no matching point.'];
   return [];
 }
 
