@@ -1,8 +1,7 @@
 import { solidSideTriangles } from './solid-surfaces';
 
 /** A solid made from matching planar contours along its extrusion. Controls are explicit:
- * adding topology never creates extra visible handles. A control edits the whole (t,y)
- * profile across the extrusion; u only anchors its visible handle in 3D. */
+ * adding topology never creates extra visible handles. A control edits (t,y); its u stays fixed. */
 export interface SolidPoint { readonly t: number; readonly y: number }
 export interface SolidRing { readonly u: number; readonly points: readonly SolidPoint[] }
 export interface SolidControl { readonly id: string; readonly point: number; readonly u: number; readonly scope: 'profile' | 'section' }
@@ -38,29 +37,34 @@ export function divideSolid(shape: ProfileSolid, at: SolidLocation): ProfileSoli
     || at.u < 0 || at.u > 1 || at.fraction < 0 || at.fraction > 1) return null;
   let rings = shape.rings.map(r => ({ u: r.u, points: [...r.points] })), loops = shape.loops.map(l => [...l]);
   let point = a;
-  if (at.fraction > SOLID_EPS && at.fraction < 1 - SOLID_EPS && !at.through) {
+  if (at.through && at.u > SOLID_EPS && at.u < 1 - SOLID_EPS) {
+    if (!rings.some(r => Math.abs(r.u - at.u) < SOLID_EPS)) {
+      rings.push({ u: at.u, points: [...ringAt(shape, at.u)] }); rings.sort((a, b) => a.u - b.u);
+    }
+  } else if (at.fraction > SOLID_EPS && at.fraction < 1 - SOLID_EPS && !at.through) {
     point = rings[0]!.points.length;
     rings = rings.map(r => ({ ...r, points: [...r.points, mixPoint(r.points[a]!, r.points[b]!, at.fraction)] }));
     loops[at.loop]!.splice(at.edge + 1, 0, point);
   } else if (!at.through && at.fraction >= 1 - SOLID_EPS) point = b;
+  const scope = at.through && at.u > SOLID_EPS && at.u < 1 - SOLID_EPS ? 'section' : 'profile';
   const targetPoint = ringAt({ ...shape, rings, loops }, at.u)[point]!;
-  const existing = shape.controls.find(c => c.point === point || distance2(controlPoint(shape, c), targetPoint) < SOLID_EPS);
+  const existing = shape.controls.find(c => (c.point === point || distance2(controlPoint(shape, c), targetPoint) < SOLID_EPS)
+    && (scope === 'profile' && c.scope === 'profile' || Math.abs(c.u - at.u) < SOLID_EPS));
   if (existing) {
     // Reuse the same logical corner, including at the rear. Never leave a second dot behind.
-    return { ...shape, rings, loops, controls: shape.controls.map(c => c === existing ? { ...c, u: at.u, scope: 'profile' } : c) };
+    return { ...shape, rings, loops, controls: shape.controls.map(c => c === existing ? { ...c, u: at.u } : c) };
   }
   const id = 'cut' + (1 + Math.max(0, ...shape.controls.map(c => Number(c.id.replace(/^cut/, '')) || 0)));
-  return { loops, rings, controls: [...shape.controls, { id, point, u: at.u, scope: 'profile' }] };
+  return { loops, rings, controls: [...shape.controls, { id, point, u: at.u, scope }] };
 }
 
 export function moveSolidControl(shape: ProfileSolid, id: string, t: number, y: number): ProfileSolid | null {
   const control = shape.controls.find(c => c.id === id);
   if (!control || !Number.isFinite(t) || !Number.isFinite(y)) return null;
-  // Legacy section controls remain readable, but always reshape both faces together.
-  // Absolute coordinates also realign a corner previously pulled out of its profile.
-  const next = { ...shape, rings: shape.rings.map(r => ({
-    ...r, points: r.points.map((p, k) => k === control.point ? { t, y } : p),
-  })) };
+  const before = controlPoint(shape, control), dt = t - before.t, dy = y - before.y;
+  const next = { ...shape, rings: shape.rings.map(r => control.scope === 'section' && Math.abs(r.u - control.u) > SOLID_EPS ? r : {
+    ...r, points: r.points.map((p, k) => k === control.point ? { t: p.t + dt, y: p.y + dy } : p),
+  }) };
   if (shape.loops.some(loop => shape.rings.some((ring, r) => loopArea(loop.map(i => ring.points[i]!))
     * loopArea(loop.map(i => next.rings[r]!.points[i]!)) <= SOLID_EPS))) return null;
   return next;

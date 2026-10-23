@@ -14,7 +14,6 @@ const {profileSolidGeometry}=require('../src/presentation/viewport/profile-solid
 const {moveCeilingPoint,liftCeiling}=require('../src/domain/studio/studio-ceiling.ts');
 const {solidHeightAt}=require('../src/domain/geometry/profile-solid.ts');
 const THREE=require('three');
-const {moveSolidControl}=require('../src/domain/geometry/profile-solid.ts');
 const screen=p=>({x:p.x+p.z*.4,y:-p.y+p.z*.3});
 const mix=(a,b,f)=>({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -26,13 +25,8 @@ for(const shape of CEILING_SHAPES) test(`${shape.name}: every boundary edge supp
   const at=edge.location.through?{...edge.location,u:edge.location.u+(edge.location.fraction-edge.location.u)*fraction,fraction:0}:{...edge.location,fraction};
   const divided=divideStudioBoundary(room,selection,at),model=studioSolid(divided,selection);
   assert.deepEqual(studioSolidProblems(divided,selection),[],edge.key);
-  const target=locationPoint(original.shape,at),existing=at.through&&original.shape.controls.find(c=>{
-   const p=controlPoint(original.shape,c);return Math.hypot(p.t-target.t,p.y-target.y)<1e-7;
-  });
-  assert.equal(model.shape.controls.length,original.shape.controls.length+(existing?0:1),edge.key);
-  const control=existing?model.shape.controls.find(c=>c.id===existing.id):model.shape.controls.at(-1),point=controlPoint(model.shape,control);
-  assert.equal(control.scope,'profile','depth only positions the handle; editing affects the entire profile');
-  assert.equal(model.shape.rings.length,original.shape.rings.length,'depth placement never adds an independently movable slice');
+  assert.equal(model.shape.controls.length,original.shape.controls.length+1,edge.key);
+  const control=model.shape.controls.at(-1),point=controlPoint(model.shape,control);
   assert.ok(distance(model.at(point,control.u),mix(edge.a,edge.b,fraction))<1e-7,edge.key);
   const geometry=profileSolidGeometry(model.shape,100);assert.ok(geometry.attributes.position.count>0);geometry.dispose();
   // At least one small move in the existing edit plane must reshape this part independently.
@@ -45,9 +39,8 @@ for(const shape of CEILING_SHAPES) test(`${shape.name}: every boundary edge supp
   const changed=studioSolid(moved,selection),after=controlPoint(changed.shape,control);
   assert.notDeepEqual(after,point);
   assert.equal(changed.shape.controls.length,model.shape.controls.length,'moving never creates another dot');
-  assert.equal(changed.shape.controls.find(c=>c.id===control.id).u,control.u,'ordinary point editing stays in its 2D plane');
-  for(const ring of changed.shape.rings) assert.deepEqual(ring.points[control.point],after,'front, rear and intermediate edges must move together');
-  for(const prior of original.shape.controls.filter(c=>c.point!==control.point)) assert.deepEqual(controlPoint(changed.shape,prior),controlPoint(original.shape,prior),'neighboring profile points stay put');
+  assert.equal(changed.shape.controls.at(-1).u,control.u,'ordinary point editing stays in its 2D plane');
+  for(const prior of original.shape.controls) assert.deepEqual(controlPoint(changed.shape,prior),controlPoint(original.shape,prior),'other controls stay put');
   const document=sceneToProject(createProject('division','Division'),{studio:moved,wardrobes:[],activeWardrobe:0,nextWardrobeId:1});
   assert.equal(document.schemaVersion,2);assert.deepEqual(projectToScene(deserializeProject(serializeProject(document))).studio,moved);
   assert.throws(()=>parseProject({...document,schemaVersion:1}),/version 2/);
@@ -130,12 +123,11 @@ test('existing slope endpoints retain their original reshaping and fixed roof af
  assert.ok(studioSolid(lifted,selection).shape.rings[0].points.some(p=>p.y===260),'the original roof remains attached');
 });
 
-test('a depth-edge handle moves both ceiling faces together and physical heights match the mesh',()=>{
+test('physical ceiling heights agree with the actual triangulated mesh after an independent depth-section edit',()=>{
  let room=addCeiling(rectangleStudio(400,300),'w1','landing');const selection={kind:'ceiling',id:'k1'};
  room=divideStudioBoundary(room,selection,{loop:0,edge:1,u:.37,fraction:0,through:true});
- let solid=studioSolid(room,selection),control=solid.shape.controls.find(c=>Math.abs(c.u-.37)<1e-8),p=controlPoint(solid.shape,control);
+ let solid=studioSolid(room,selection),control=solid.shape.controls.at(-1),p=controlPoint(solid.shape,control);
  room=moveStudioControl(room,selection,control.id,p.t+8,p.y-12);solid=studioSolid(room,selection);
- for(const ring of solid.shape.rings) assert.deepEqual(ring.points[control.point],{t:p.t+8,y:p.y-12});
  const geometry=profileSolidGeometry(solid.shape,100),mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
  mesh.updateMatrixWorld();
  for(const u of [.05,.2,.36,.5,.8,.98])for(let t=solid.minT+1;t<solid.maxT;t+=7){
@@ -144,18 +136,4 @@ test('a depth-edge handle moves both ceiling faces together and physical heights
   if(hit)assert.ok(Math.abs(hit.point.y-height)<.001);else assert.equal(height,null);
  }
  geometry.dispose();mesh.material.dispose();
-});
-
-for(const kind of ['wall','ceiling']) test(`${kind}: saved section controls move corresponding edges together and repair the selected twisted corner`,()=>{
- const room=addCeiling(rectangleStudio(400,300),'w1','landing'),selection={kind,id:kind==='ceiling'?'k1':'w1'};
- const base=studioSolid(room,selection).shape,point=kind==='ceiling'?1:2;
- const warped={...base,rings:[base.rings[0],{u:.37,points:base.rings[0].points.map((p,i)=>i===point?{t:p.t-3,y:p.y-5}:p)},base.rings.at(-1)],
-  controls:[...base.controls,{id:'legacy-section',point,u:.37,scope:'section'}]};
- const before=JSON.stringify(warped),target={t:warped.rings[0].points[point].t-7,y:warped.rings[0].points[point].y-9};
- const moved=moveSolidControl(warped,'legacy-section',target.t,target.y);assert.ok(moved);
- for(const [i,ring] of moved.rings.entries()){
-  assert.deepEqual(ring.points[point],target,'both faces and every intermediate slice follow the same point');
-  ring.points.forEach((p,k)=>{if(k!==point)assert.deepEqual(p,warped.rings[i].points[k],'other profile corners stay put');});
- }
- assert.equal(moved.controls.length,warped.controls.length);assert.equal(JSON.stringify(warped),before);
 });
