@@ -14,6 +14,7 @@
  */
 import type { StudioTemplateId } from './studio-templates';
 import type { OpeningKind } from './wall-utilities';
+import type { ProfileSolid } from '../geometry/profile-solid';
 export type { OpeningKind, WallUtilityKind, StructuralOpeningKind } from './wall-utilities';
 
 export interface StudioCorner { readonly id: string; readonly x: number; readonly z: number }
@@ -29,6 +30,8 @@ export interface StudioWall {
   /** Optional for compatibility with rooms saved before wall paint controls. */
   readonly color?: string | undefined;
   readonly finish?: WallFinish | undefined;
+  /** Present only after a boundary point has been added on the solid. */
+  readonly shape?: ProfileSolid | undefined;
 }
 
 export interface StudioOpening {
@@ -62,6 +65,7 @@ export interface StudioCeiling {
   readonly run: 'along' | 'across';
   readonly depth: number;
   readonly profile: readonly CeilingPoint[];
+  readonly shape?: ProfileSolid | undefined;
 }
 
 export interface Studio {

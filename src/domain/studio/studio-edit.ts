@@ -8,9 +8,10 @@ import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } fro
 import { openingRange } from './studio-validation';
 import { keepCeilings, splitCeilings } from './studio-ceiling';
 import { isWallUtility, openingLimits } from './wall-utilities';
+import { resizeStudioSolids } from './studio-solid-resize';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
-  const next: Studio = { ...studio, ...changes, template: 'custom' };
+  const next = resizeStudioSolids(studio, { ...studio, ...changes, template: 'custom' });
   // Ceilings stay where they are in the room when corners move; a room without any keeps no list.
   if (changes.corners && !('ceilings' in changes) && studio.ceilings) return { ...next, ceilings: keepCeilings(studio, changes.corners) };
   return next;

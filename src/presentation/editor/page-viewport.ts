@@ -8,15 +8,19 @@ export function bindPageViewport(root: HTMLElement, view: Window): () => void {
     let availableHeight = visual?.height ?? view.innerHeight;
     let availableWidth = visual?.width ?? view.innerWidth;
     const resize = () => {
+        const focused = root.shadowRoot?.activeElement;
+        let studioDimension = focused?.getAttribute?.('data-room-field') != null;
+        const encoded = focused?.closest?.('[data-scene-measurement]')?.getAttribute?.('data-scene-measurement');
+        if (encoded) try { studioDimension ||= JSON.parse(decodeURIComponent(encoded)).kind === 'studio'; } catch { /* Not a dimension reference. */ }
         // Do not counteract intentional page magnification or its panning.
         if (visual && Math.abs(visual.scale - 1) < .01) {
-            root.style.height = `${visual.height}px`;
+            // Keep the same projection and touch positions while a room dimension opens the keyboard.
+            root.style.height = `${studioDimension ? availableHeight : visual.height}px`;
             root.style.width = `${visual.width}px`;
             root.style.transform = `translate(${visual.offsetLeft}px, ${visual.offsetTop}px)`;
         } else {
             root.style.transform = '';
         }
-        const focused = root.shadowRoot?.activeElement;
         const editing = !!focused?.matches('input[type="number"],input[type="text"],input:not([type]),textarea,[contenteditable="true"]');
         if (visual && Math.abs(visual.scale - 1) < .01) {
             if (Math.abs(visual.width - availableWidth) > 50) {

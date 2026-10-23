@@ -1,6 +1,7 @@
 import { STUDIO_LIMITS as L, corner, wallLine } from './studio';
 import type { Studio, StudioOpening, StudioWall } from './studio';
 import { ceilingProblems } from './studio-ceiling';
+import { studioSolidProblems } from './studio-solid';
 import { WALL_FINISHES } from './studio-paint';
 import { isWallUtility, openingLimits, openingNoun, openingsOverlap } from './wall-utilities';
 
@@ -13,6 +14,7 @@ export function studioProblems(studio: Studio): string[] {
     ids.add(item.id);
   }
   for (const w of studio.walls) {
+    if (w.shape) problems.push(...studioSolidProblems(studio, { kind: 'wall', id: w.id }));
     if (w.color !== undefined && !/^#[0-9a-f]{6}$/i.test(w.color)) problems.push('Choose a valid wall paint color.');
     if (w.finish !== undefined && !WALL_FINISHES.some(f => f.id === w.finish)) problems.push('Choose a valid wall surface finish.');
     const line = wallLine(studio, w);

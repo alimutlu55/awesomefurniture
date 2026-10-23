@@ -6,6 +6,8 @@
  */
 import { STUDIO_LIMITS as L, nextId, roomHeight, wall, wallFace, wallLine } from './studio';
 import type { CeilingPoint, Studio, StudioCeiling, StudioCorner } from './studio';
+import { controlPoint, mapSolid, moveSolidControl, solidHeightAt } from '../geometry/profile-solid';
+import { studioSolidProblems } from './studio-solid';
 
 type P = { x: number; z: number };
 const round = (n: number) => Math.round(n * 10) / 10;
@@ -18,8 +20,10 @@ export function ceilingFrame(studio: Studio, c: StudioCeiling) {
   const first = c.profile[0], last = c.profile.at(-1);
   if (!w || !line || !face || !first || !last) return null;
   const off = w.thickness / 2;
-  const along = c.run === 'along' ? { from: first.t, to: last.t } : { from: face.start, to: face.end };
-  const across = c.run === 'along' ? { from: 0, to: c.depth } : { from: first.t, to: last.t };
+  const ts = c.shape?.rings.flatMap(r => r.points.map(p => p.t));
+  const span = { from: ts ? Math.min(...ts) : first.t, to: ts ? Math.max(...ts) : last.t };
+  const along = c.run === 'along' ? span : { from: face.start, to: face.end };
+  const across = c.run === 'along' ? { from: 0, to: c.depth } : span;
   /** The floor point at (s, d). */
   const at = (s: number, d: number): P => ({ x: line.a.x + line.ux * s + line.nx * (off + d), z: line.a.z + line.uz * s + line.nz * (off + d) });
   /** A floor point in (s, d). */
@@ -50,7 +54,8 @@ export function ceilingAt(studio: Studio, p: P): number {
     if (!f) continue;
     const { s, d } = f.local(p);
     if (s < f.along.from - EPS || s > f.along.to + EPS || d < f.across.from - EPS || d > f.across.to + EPS) continue;
-    const y = profileAt(c.profile, c.run === 'along' ? s : d);
+    const y = c.shape ? solidHeightAt(c.shape, c.run === 'along' ? s : d,
+      c.run === 'along' ? d / c.depth : (f.face.end - s) / f.face.length) : profileAt(c.profile, c.run === 'along' ? s : d);
     if (y !== null) h = Math.min(h, y);
   }
   return h;
@@ -129,6 +134,7 @@ export type CeilingShapeId = typeof CEILING_SHAPES[number]['id'];
 
 /** Why a ceiling cannot be built, worded as what to do. Empty when it is fine. */
 export function ceilingProblems(studio: Studio, c: StudioCeiling): string[] {
+  if (c.shape) return studioSolidProblems(studio, { kind: 'ceiling', id: c.id });
   const f = ceilingFrame(studio, c), out: string[] = [];
   if (!f) return ['A ceiling is on a wall that no longer exists.'];
   const ps = c.profile, top = roomHeight(studio);
@@ -167,6 +173,13 @@ export function addCeiling(studio: Studio, wallId: string, shapeId: string): Stu
 /** Moves one point of a ceiling's profile, kept between its neighbours (meeting one makes a step). */
 export function moveCeilingPoint(studio: Studio, id: string, index: number, t: number, y: number): Studio | null {
   return swap(studio, id, c => {
+    if (c.shape) {
+      const shape = moveSolidControl(c.shape, 'p' + index, t, y);
+      if (!shape) return null;
+      return { ...c, shape, profile: c.profile.map((p, k) => {
+        const control = shape.controls.find(h => h.id === 'p' + k); return control ? controlPoint(shape, control) : p;
+      }) };
+    }
     const prev = c.profile[index - 1], next = c.profile[index + 1];
     if (!c.profile[index]) return null;
     const at = round(Math.min(next?.t ?? Infinity, Math.max(prev?.t ?? -Infinity, t)));
@@ -175,14 +188,28 @@ export function moveCeilingPoint(studio: Studio, id: string, index: number, t: n
   });
 }
 
+/** Surface dragging retains the original behavior: lift the underside, keeping its top at the room ceiling. */
+export function liftCeiling(studio: Studio, id: string, by: number): Studio | null {
+  const top = roomHeight(studio);
+  return swap(studio, id, c => {
+    const underside = new Set(c.shape?.controls.filter(h => /^p\d+$/.test(h.id)).map(h => h.point));
+    const shape = c.shape && mapSolid(c.shape, (p, i) => Math.abs(p.y - top) < 1e-7 && !underside.has(i) ? p : { ...p, y: p.y + by });
+    const profile = c.profile.map((p, k) => {
+      const control = shape?.controls.find(h => h.id === 'p' + k);
+      return shape && control ? controlPoint(shape, control) : { ...p, y: p.y + by };
+    });
+    return { ...c, profile, ...(shape ? { shape } : {}) };
+  });
+}
+
 /** Adds a bend at the chosen position (the midpoint by default), preserving the current underside. */
-export function splitCeilingPanel(studio: Studio, id: string, index: number, position?: number): Studio | null {
+export function splitCeilingPanel(studio: Studio, id: string, index: number, position?: number, precise = false): Studio | null {
   return swap(studio, id, c => {
     const a = c.profile[index], b = c.profile[index + 1];
     if (!a || !b || b.t - a.t < 10) return null;
-    const t = round(position ?? (a.t + b.t) / 2);
+    const raw = position ?? (a.t + b.t) / 2, t = precise ? raw : round(raw);
     if (!Number.isFinite(t) || t < a.t + 5 || t > b.t - 5) return null;
-    const point = { t, y: round(a.y + (b.y - a.y) * (t - a.t) / (b.t - a.t)) };
+    const y = a.y + (b.y - a.y) * (t - a.t) / (b.t - a.t), point = { t, y: precise ? y : round(y) };
     return { ...c, profile: [...c.profile.slice(0, index + 1), point, ...c.profile.slice(index + 1)] };
   });
 }
@@ -193,7 +220,8 @@ export function setCeilingDepth(studio: Studio, id: string, depth: number): Stud
     if (c.run === 'along') return { ...c, depth: round(depth) };
     const from = c.profile[0]!.t, span = c.profile.at(-1)!.t - from;
     if (span < 1e-6) return null;
-    return { ...c, depth: round(depth), profile: c.profile.map(p => ({ ...p, t: round(from + (p.t - from) * (depth - from) / span) })) };
+    const scale = (p: CeilingPoint) => ({ ...p, t: round(from + (p.t - from) * (depth - from) / span) });
+    return { ...c, depth: round(depth), profile: c.profile.map(scale), ...(c.shape ? { shape: mapSolid(c.shape, scale) } : {}) };
   });
 }
 
@@ -202,7 +230,8 @@ export function flipCeiling(studio: Studio, id: string): Studio | null {
   return swap(studio, id, c => {
     if (c.run !== 'along') return null;
     const sum = c.profile[0]!.t + c.profile.at(-1)!.t;
-    return { ...c, profile: [...c.profile].reverse().map(p => ({ ...p, t: round(sum - p.t) })) };
+    const flipped = (p: CeilingPoint) => ({ ...p, t: round(sum - p.t) });
+    return { ...c, profile: [...c.profile].reverse().map(flipped), ...(c.shape ? { shape: mapSolid(c.shape, flipped) } : {}) };
   });
 }
 
@@ -219,11 +248,12 @@ export function keepCeilings(before: Studio, corners: readonly StudioCorner[]): 
   return before.ceilings.map(c => {
     const w = wall(before, c.wall), old = w && wallLine(before, w), now = w && wallLine(after, w), face = w && wallFace(after, w);
     if (c.run !== 'along' || !old || !now || !face) return c;
-    const placed = c.profile.map(p => {
+    const place = (p: CeilingPoint) => {
       const x = old.a.x + old.ux * p.t, z = old.a.z + old.uz * p.t;
       return { ...p, t: round(Math.min(face.end, Math.max(face.start, (x - now.a.x) * now.ux + (z - now.a.z) * now.uz))) };
-    });
-    return { ...c, profile: tidy(placed) };
+    };
+    const placed = c.profile.map(place);
+    return { ...c, profile: c.shape ? placed : tidy(placed), ...(c.shape ? { shape: mapSolid(c.shape, place) } : {}) };
   });
 }
 /** Drops the middle of three points that share a position: what is left is one step. */

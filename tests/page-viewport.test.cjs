@@ -48,3 +48,15 @@ test('a focused size field scrolls inside its inspector, and disposal removes vi
  visual.height=844;visual.dispatchEvent(new Event('resize'));visual.dispatchEvent(new Event('scroll'));
  assert.equal(root.style.height,'400px');
 });
+test('wall and ceiling dimension entry retains the original viewport scale while the keyboard opens',()=>{
+ for(const selection of ['wall','ceiling']){
+  const {root,visual,dispose}=fixture();
+  const badge={getAttribute:()=>encodeURIComponent(JSON.stringify({kind:'studio',selection,id:'part',field:'height'}))};
+  root.shadowRoot.activeElement={matches:()=>true,getAttribute:()=>null,
+   closest:selector=>selector==='[data-scene-measurement]'?badge:null};
+  Object.assign(visual,{height:400,offsetTop:100});visual.dispatchEvent(new Event('resize'));
+  assert.equal(root.style.height,'844px');assert.equal(root.style.width,'390px');assert.equal(root.keyboard,true);
+  root.shadowRoot.activeElement=null;Object.assign(visual,{height:844,offsetTop:0});root.dispatchEvent(new Event('focusout'));
+  assert.equal(root.style.height,'844px');assert.equal(root.keyboard,false);dispose();
+ }
+});

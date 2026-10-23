@@ -65,9 +65,9 @@ const armSize=async page=>{const b=await page.locator('.scrub-w:visible').boundi
   await wall.waitFor();await page.waitForTimeout(400);const length=Number(await wall.getAttribute('aria-valuenow'));
   await exact(wall,length+10);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+10);
   await keyboard(wall,'ArrowLeft');assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+9);
-  await drag(wall,40);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+23);
+  await drag(wall,40);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+9,'Studio readings require intentional exact entry');
+  await exact(wall,length+23);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+23);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+9);
-  await drag(wall,40,0,true);assert.equal(Number(await wall.getAttribute('aria-valuenow')),length+9);
   await page.screenshot({path:'/tmp/wardrobe-shared-studio-'+width+'.png'});
   assert.deepEqual(errors,[]);console.log(`PASS ${width}px: shared cabinet, item, clearance and Studio badges; drag, keyboard, exact entry, cancel and undo`);
   await page.close();

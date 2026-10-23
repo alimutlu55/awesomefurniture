@@ -7,7 +7,7 @@ const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
 const { ceilingHandles, pointAt } = require('../src/presentation/editor/studio-ceiling-drag.ts');
 const { ceilingFrame } = require('../src/domain/studio/studio-ceiling.ts');
-const { createCeilingSplitCursor } = require('../src/presentation/editor/studio-ceiling-split.ts');
+const { createStudioBoundaryCursor } = require('../src/presentation/editor/studio-boundary-cursor.ts');
 
 const pluses = f => f.nodes.labels.children.filter(el => el.getAttribute('aria-label')?.startsWith('Add a ceiling shape point here'));
 function fixture(t, shape, width) {
@@ -180,11 +180,11 @@ test('canceling a movable plus restores its position, and keyboard movement has 
 test('a sloped ceiling cursor follows the chosen physical position in perspective', () => {
     const room = addCeiling(rectangleStudio(400, 200), 'w1', 'slope'), c = room.ceilings[0];
     const screen = p => ({ x: p.x * 600 / (p.z + 500), y: -p.y * 600 / (p.z + 500) });
-    const cursor = createCeilingSplitCursor(screen), h = ceilingHandles(room, c).find(h => h.kind === 'ceiling-split');
+    const cursor = createStudioBoundaryCursor(screen), h = ceilingHandles(room, c).find(h => h.kind === 'ceiling-split');
     const a = pointAt(ceilingFrame(room, c), c, 0), b = pointAt(ceilingFrame(room, c), c, 1);
     const target = screen({ x: a.x + (b.x - a.x) * .25, y: a.y + (b.y - a.y) * .25, z: a.z + (b.z - a.z) * .25 });
     cursor.begin(); cursor.move(room, h, target.x - screen(h).x, target.y - screen(h).y);
-    assert.ok(Math.abs(cursor.position(c.id) - c.profile[1].t * .25) < .11);
+    assert.ok(Math.abs(cursor.handle(room, { kind: 'ceiling', id: c.id }, h).position - c.profile[1].t * .25) < .11);
     assert.equal(splitCeilingPanel(room, c.id, 0, -1), null);
     assert.equal(splitCeilingPanel(room, c.id, 0, NaN), null);
 });

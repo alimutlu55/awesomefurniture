@@ -6,6 +6,8 @@ import { depthForFitting } from '../../domain/wardrobe/carcass';
 import { wallFace } from '../../domain/studio/studio';
 import { setInsideLength, setWallSize, setOpeningSize, moveOpening, moveOpening2D } from '../../domain/studio/studio-edit';
 import { moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { moveStudioControl, studioSolid } from '../../domain/studio/studio-solid';
+import { controlPoint } from '../../domain/geometry/profile-solid';
 
 export type SceneMeasurement =
     | { kind: 'reach' }
@@ -24,6 +26,10 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         if (ref.kind === 'studio') {
             const room = scene().studio;
             if (!room) return null;
+            if (ref.field.startsWith('control:') && ref.selection !== 'opening') {
+                const solid = studioSolid(room, { kind: ref.selection, id: ref.id }), control = solid?.shape.controls.find(c => c.id === ref.field.slice(8));
+                return solid && control ? controlPoint(solid.shape, control).y : null;
+            }
             if (ref.selection === 'wall') {
                 const wall = room.walls.find(w => w.id === ref.id);
                 return !wall ? null : ref.field === 'length' ? wallFace(room, wall)?.length ?? null
@@ -56,6 +62,11 @@ export function createSceneMeasurements(scene: () => EditorScene) {
     function apply(ref: SceneMeasurement, value: number): boolean {
         if (!Number.isFinite(value) || value < 0 || read(ref) === null) return false;
         if (ref.kind === 'studio') return commands.editStudio(room => {
+            if (ref.field.startsWith('control:') && ref.selection !== 'opening') {
+                const selection = { kind: ref.selection, id: ref.id }, solid = studioSolid(room, selection)!;
+                const point = controlPoint(solid.shape, solid.shape.controls.find(c => c.id === ref.field.slice(8))!);
+                return moveStudioControl(room, selection, ref.field.slice(8), point.t, value);
+            }
             if (ref.selection === 'wall') return ref.field === 'length' ? setInsideLength(room, ref.id, value)
                 : setWallSize(room, ref.id, { [ref.field]: value });
             if (ref.selection === 'ceiling') {

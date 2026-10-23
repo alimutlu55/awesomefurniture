@@ -4,7 +4,7 @@ import { fromCm, toCm, lengthUnit } from '../../domain/geometry/length-units';
  * this component owns pointer capture, keyboard access and exact number entry. */
 export interface MeasurementBadgeBinding {
     id: string; selector: string; orientation: 'horizontal' | 'vertical';
-    min?: number; max?: number; entry?: boolean;
+    min?: number; max?: number; entry?: boolean; scrub?: boolean;
     read(): number; begin(): void; preview(delta: number): number | null;
     finish(cancel: boolean): boolean; refresh(): void;
 }
@@ -69,7 +69,9 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
         const finish = (cancel = false) => {
             if (done) return; done = true; entry = null;
             const value = toCm(input.valueAsNumber, unit);
-            if (!cancel && Number.isFinite(value)) { const actual = b.preview(value - initial); if (actual !== null) feedback.tick(actual); }
+            if (!cancel && Number.isFinite(value) && input.value !== shown(initial)) {
+                const actual = b.preview(value - initial); if (actual !== null) feedback.tick(actual);
+            }
             const changed = b.finish(cancel || !Number.isFinite(value)); active(null);
             el.classList.remove('is-editing');
             const next = refresh(b, true); if (changed) feedback.settle(next);
@@ -111,6 +113,10 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
     lifetime.listen(layer, 'pointermove', raw => {
         const e = raw as PointerEvent; if (!drag || drag.pointer !== e.pointerId) return;
         e.preventDefault(); e.stopImmediatePropagation();
+        if (drag.binding.scrub === false) {
+            if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 12) drag.moved = true;
+            return;
+        }
         const pixels = drag.binding.orientation === 'vertical' ? drag.y - e.clientY : e.clientX - drag.x;
         if (!drag.moved && Math.abs(pixels) < 5) return;
         drag.moved = true; drag.delta = Math.round(pixels * (e.shiftKey ? .1 : .35));
