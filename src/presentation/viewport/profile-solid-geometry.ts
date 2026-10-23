@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { loopArea, type ProfileSolid } from '../../domain/geometry/profile-solid';
-import { solidSideTriangles } from '../../domain/geometry/solid-surfaces';
+import { solidSideTriangles, surfacePoint } from '../../domain/geometry/solid-surfaces';
 
 /** Caps use polygon triangulation, so reentrant corners remain holes rather than a convex hull. */
 export function profileSolidGeometry(shape: ProfileSolid, depth: number): THREE.BufferGeometry {
@@ -18,7 +18,7 @@ export function profileSolidGeometry(shape: ProfileSolid, depth: number): THREE.
     const indices = shape.loops.flat(), vectors = loops.map(loop => loop.map(p => new THREE.Vector2(p.t, p.y)));
     const triangles = THREE.ShapeUtils.triangulateShape(vectors[0]!, vectors.slice(1));
     for (const face of triangles) {
-      const points = face.map(i => ({ ...ring.points[indices[i]!]!, u: ring.u }));
+      const points = face.map(i => surfacePoint(ring.points[indices[i]!]!, ring.u));
       const a = points[0]!, b = points[1]!, c = points[2]!;
       const positive = (b.t - a.t) * (c.y - a.y) - (b.y - a.y) * (c.t - a.t) > 0;
       if (positive === (ring.u === 1)) add(a, b, c); else add(a, c, b);

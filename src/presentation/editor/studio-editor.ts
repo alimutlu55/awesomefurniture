@@ -9,7 +9,7 @@ import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor
 import { alignTo, type Align } from './align-snap';
 import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
-import { activateBoundary, boundaryControlMotion, boundaryHandles, boundaryMeasures, createStudioBoundaryCursor, isBoundaryCursor } from './studio-boundary-cursor';
+import { activateBoundary, boundaryControlMotion, boundaryHandles, boundaryMeasures, createStudioBoundaryCursor, horizontalPointerDelta, isBoundaryCursor } from './studio-boundary-cursor';
 import type { Carried } from '../../application/commands/studio-commands';
 
 type P = { x: number; z: number };
@@ -243,7 +243,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       g.guides = lock ? centreGuide(g.original, w) : [];
       want = t => moveOpening2D(g.original, h.id, cur.offset + (target - cur.offset) * t, cur.sill + (rawSill - cur.sill) * t);
     } else if (h.kind === 'shape-point') {
-      want = boundaryControlMotion(g.original, g.last, h, inPlane(e, h, h.ux!, h.uz!), step);
+      const delta = h.plane === 'horizontal' ? horizontalPointerDelta(picking, h, g.client, e) : inPlane(e, h, h.ux!, h.uz!);
+      want = boundaryControlMotion(g.original, g.last, h, delta, step);
     } else if (h.kind === 'ceiling') {
       const c = ceilingOf(g.original, h.id)!, fr = ceilingFrame(g.original, c)!, axis = runAxis(fr, c), d = inPlane(e, h, axis.x, axis.z), p = c.profile[h.index!]!;
       const snapped = g.free ? { at: { t: p.t + d.s, y: p.y + d.y }, locks: { t: null, y: null } } : snapPoint(g.original, c, h.index!, { t: step(p.t + d.s), y: step(p.y + d.y) }, g.pin, tolerance());

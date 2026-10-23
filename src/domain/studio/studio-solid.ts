@@ -3,6 +3,8 @@ import type { Studio } from './studio';
 import { isWallUtility } from './wall-utilities';
 import { controlPoint, divideSolid, locationPoint, moveSolidControl, ringAt, solidProblems, SOLID_EPS } from '../geometry/profile-solid';
 import type { ProfileSolid, SolidLocation, SolidPoint } from '../geometry/profile-solid';
+import { divideHorizontalSolid, moveHorizontalSolid } from '../geometry/horizontal-solid';
+import { surfacePoint } from '../geometry/solid-surfaces';
 
 export type SolidSelection = { kind: 'wall' | 'ceiling'; id: string };
 export type WorldPoint = { x: number; y: number; z: number };
@@ -18,6 +20,7 @@ export function studioSolid(studio: Studio, selection: SolidSelection) {
   const across = ceiling?.run === 'across', top = ceiling ? roomHeight(studio) : wall.height;
   const extent = wallExtent(studio, wall, line.length), baselineU = across ? .5 : 1;
   const at = (p: SolidPoint, u: number): WorldPoint => {
+    const physical = surfacePoint(p, u); p = physical; u = physical.u;
     const s = across ? face.end - u * face.length : p.t;
     const d = ceiling ? wall.thickness / 2 + (across ? p.t : u * ceiling.depth) : (u - .5) * wall.thickness;
     return { x: line.a.x + line.ux * s + line.nx * d, y: p.y, z: line.a.z + line.uz * s + line.nz * d };
@@ -56,8 +59,10 @@ export function studioSolid(studio: Studio, selection: SolidSelection) {
     controls: profileIndices.map((point, i) => ({ id: 'p' + i, point, u: baselineU, scope: 'profile' })),
   };
   const axis = across ? { x: line.nx, z: line.nz } : { x: line.ux, z: line.uz };
-  const bounds = shape.rings.flatMap(r => r.points.map(p => p.t));
-  return { shape, at, axis, baselineU, ceiling, wall, line, face, extent, top,
+  const depth = ceiling ? across ? face.length : ceiling.depth : wall.thickness;
+  const crossAxis = across ? { x: -line.ux, z: -line.uz } : { x: line.nx, z: line.nz };
+  const bounds = shape.rings.flatMap(r => r.points.map(p => p.t + (p.s ?? 0)));
+  return { shape, at, axis, crossAxis, depth, baselineU, ceiling, wall, line, face, extent, top,
     minT: Math.min(...bounds), maxT: Math.max(...bounds) };
 }
 
@@ -95,17 +100,23 @@ function store(studio: Studio, selection: SolidSelection, shape: ProfileSolid): 
     if (c.id !== selection.id) return c;
     // Original height fields continue to address the same original controls.
     const profile = c.profile.map((p, k) => {
-      const control = shape.controls.find(h => h.id === 'p' + k); return control ? controlPoint(shape, control) : p;
+      const control = shape.controls.find(h => h.id === 'p' + k), at = control ? controlPoint(shape, control) : p;
+      return { t: at.t, y: at.y };
     });
     return { ...c, shape, profile, ...(c.run === 'across' ? { depth: Math.max(...shape.rings.flatMap(r => r.points.map(p => p.t))) } : {}) };
   }) };
 }
 export function divideStudioBoundary(studio: Studio, selection: SolidSelection, location: SolidLocation): Studio | null {
-  const model = studioSolid(studio, selection), shape = model && divideSolid(model.shape, location);
+  const model = studioSolid(studio, selection), shape = model && (location.through
+    ? divideHorizontalSolid(model.shape, location) : divideSolid(model.shape, location));
   return shape ? store(studio, selection, shape) : null;
 }
 export function moveStudioControl(studio: Studio, selection: SolidSelection, id: string, t: number, y: number): Studio | null {
   const model = studioSolid(studio, selection), shape = model && moveSolidControl(model.shape, id, t, y);
+  return shape ? store(studio, selection, shape) : null;
+}
+export function moveStudioHorizontal(studio: Studio, selection: SolidSelection, id: string, s: number, d: number): Studio | null {
+  const model = studioSolid(studio, selection), shape = model && moveHorizontalSolid(model.shape, id, s, d);
   return shape ? store(studio, selection, shape) : null;
 }
 export function studioSolidProblems(studio: Studio, selection: SolidSelection): string[] {
