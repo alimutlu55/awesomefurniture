@@ -102,17 +102,19 @@ test('vertical, short and closing ceiling edges accept exact cuts and existing c
     for (const edge of [1, 2, points.length - 1]) {
         const at = { edge, fraction: .123456789 }, expected = boundaryPoint(points, at);
         const next = splitSurfaceBoundary(room, 'ceiling', room.ceilings[0].id, at);
-        assert.deepEqual(next.ceilings[0].outline[edge + 1], expected); assert.deepEqual(studioProblems(next), []);
+        assert.deepEqual(next.ceilings[0].outline[edge + 1], { ...expected, control: 1 }); assert.deepEqual(studioProblems(next), []);
     }
     for (const fraction of [0, 1]) assert.equal(splitSurfaceBoundary(room, 'ceiling', room.ceilings[0].id, { edge: 1, fraction }), null);
 });
 
-test('closing-corner controls appear only after an explicit cut and remain editable', t => {
+test('a closing edge cut exposes only its inserted point, not the other closing corners', t => {
     const f = roomRenderFixture(t, { wardrobes: 0 }), c = f.model.scene.studio.ceilings[0];
     assert.ok(f.editor.handles().every(h => h.kind !== 'ceiling' || h.index < c.profile.length));
-    f.editor.click(f.editor.handles().find(h => h.kind === 'ceiling-split'));
+    const split = f.editor.handles().find(h => h.kind === 'ceiling-split');
+    f.editor.click({ ...split, boundary: { edge: c.profile.length, fraction: .5 } });
     const outline = f.model.scene.studio.ceilings[0].outline;
-    const h = f.editor.handles().find(h => h.kind === 'ceiling' && h.index === outline.length - 1);
+    const h = f.editor.handles().find(h => h.kind === 'ceiling' && h.index === c.profile.length + 1);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'ceiling').length, c.profile.length + 1);
     assert.ok(h); assert.equal(f.editor.nudge(h, 'ArrowDown', false), true);
     assert.equal(f.model.scene.studio.ceilings[0].outline[h.index].y, h.y - 1);
     assert.equal(f.checkpoints.length, 2);

@@ -139,18 +139,19 @@ const wardrobe = z.strictObject({
 });
 // A saved room must be buildable by the same rules the editor uses.
 const openingKind = z.enum(OPENING_KINDS as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in typeof OPENING_KINDS[number]]: K }>;
-const boundarySections = z.array(z.strictObject({ u: finite.min(0).max(1), outline: z.array(z.strictObject({ t: finite, y: nonnegative })).min(3) })).min(2).optional();
+const boundaryPointSchema = z.strictObject({ t: finite, y: nonnegative, control: z.union([z.literal(-1), finite.min(0).max(1)]).optional() });
+const boundarySections = z.array(z.strictObject({ u: finite.min(0).max(1), outline: z.array(boundaryPointSchema).min(3) })).min(2).optional();
 const studio = z.strictObject({
   template: z.enum([...STUDIO_TEMPLATES.map(t => t.id), 'custom'] as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StudioTemplateId]: K }>,
   corners: z.array(z.strictObject({ id, x: finite, z: finite })),
   walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive,
-    outline: z.array(z.strictObject({ t: finite, y: nonnegative })).min(3).optional(),
+    outline: z.array(boundaryPointSchema).min(3).optional(),
     sections: boundarySections,
     color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive,
-    profile: z.array(z.strictObject({ t: finite, y: positive })), outline: z.array(z.strictObject({ t: finite, y: positive })).min(3).optional(), sections: boundarySections })).optional(),
+    profile: z.array(z.strictObject({ t: finite, y: positive })), outline: z.array(boundaryPointSchema).min(3).optional(), sections: boundarySections })).optional(),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });

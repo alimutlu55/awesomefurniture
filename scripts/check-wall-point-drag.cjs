@@ -5,7 +5,9 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
 (async () => {
  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH });
  try {
-  for (const width of [375, 1440]) for (const cut of ['profile', 'inner', 'saved', 'depth']) {
+  const widths = process.env.POINT_WIDTH ? [Number(process.env.POINT_WIDTH)] : [375, 1440];
+  const cuts = process.env.POINT_CUT ? [process.env.POINT_CUT] : ['profile', 'inner', 'saved', 'depth'];
+  for (const width of widths) for (const cut of cuts) {
    const touch = width === 375;
    const page = await browser.newPage({ viewport: { width, height: 900 }, hasTouch: touch, isMobile: touch, reducedMotion: 'reduce' });
    const errors = []; page.on('pageerror', e => errors.push(e.message));

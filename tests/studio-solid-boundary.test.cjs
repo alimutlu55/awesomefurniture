@@ -14,11 +14,38 @@ const { createCeilingViews } = require('../src/presentation/viewport/studio-ceil
 const { wallSectionGeometry } = require('../src/presentation/viewport/solid-section-geometry.ts');
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
+const { moveSurfaceBoundaryPoint } = require('../src/domain/studio/studio-boundary.ts');
 const { createWallBoundaryEditing } = require('../src/presentation/editor/studio-wall-boundary.ts');
 const { sceneToProject, projectToScene } = require('../src/application/projects/editor-mapper.ts');
 const { createProject } = require('../src/domain/project/project.ts');
 const { serializeProject, deserializeProject } = require('../src/infrastructure/serialization/project-codec.ts');
 const close = (a, b, message = '') => assert.ok(Math.abs(a - b) < 1e-7, `${message}: ${a} != ${b}`);
+
+for (const kind of ['wall', 'ceiling']) for (const cut of ['outer', 'inner']) test(`${kind} ${cut}: one cut adds exactly one control at the chosen 3D point and moves no others`, t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }), id = kind === 'wall' ? 'w1' : 'k1';
+    f.editor.select({ kind, id }); f.renderer.build();
+    const pointKind = kind === 'wall' ? ['corner', 'wall-point'] : ['ceiling'];
+    const controls = () => f.editor.handles().filter(h => pointKind.includes(h.kind));
+    const locations = () => controls().map(h => [h.x, h.y, h.z]);
+    const before = locations();
+    for (let step = 0; step < 3; step++) {
+        const at = { edge: 0, section: cut === 'outer' ? surfaceSolid(f.model.scene.studio, kind, id).sections.length - 1 : 0,
+            fraction: .37123456789, ...(cut === 'depth' ? { across: true } : {}) };
+        const solid = surfaceSolid(f.model.scene.studio, kind, id), expected = solid.world(solidPoint(solid.edges, at));
+        const previous = locations(), snapshot = f.model.snapshot();
+        const plus = f.editor.handles().find(h => h.kind === kind + '-split');
+        f.editor.click({ ...plus, boundary: at });
+        const current = locations();
+        assert.equal(current.length, previous.length + 1);
+        for (const p of previous) assert.ok(current.some(q => p.every((v, i) => Math.abs(v - q[i]) < 1e-7)), 'no control moves or appears at another corner');
+        assert.ok(current.some(p => Math.hypot(p[0] - expected.x, p[1] - expected.y, p[2] - expected.z) < 1e-7));
+        const persisted = projectToScene(deserializeProject(serializeProject(sceneToProject(createProject('one', 'One'), f.model.scene))));
+        assert.deepEqual(persisted.studio, f.model.scene.studio);
+        assert.ok(f.history.undo()); assert.equal(f.model.snapshot(), snapshot);
+        assert.ok(f.history.redo()); f.renderer.build(); assert.deepEqual(locations(), current);
+    }
+    assert.equal(controls().length, before.length + 3);
+});
 
 test('uncut walls retain their two floor corners without extra boundary or back-face dots', t => {
     const f = roomRenderFixture(t, { wardrobes: 0 });
@@ -99,7 +126,7 @@ for (const kind of ['wall', 'ceiling']) test(`${kind}: previously saved matching
     f.model.scene.studio = replaceSurfaceSections(f.model.scene.studio, kind, id, original.sections);
     f.editor.select({ kind, id }); f.renderer.build();
     const controls = f.editor.handles(), h = controls.find(h => h.kind === (kind === 'wall' ? 'wall-point' : 'ceiling') && h.index === 2);
-    assert.ok(controls.every(h => h.section === undefined));
+    assert.equal(new Set(controls.map(h => h.key)).size, controls.length);
     const node = f.nodes.labels.children.find(el => el.dataset.roomHandle === h.key);
     node.onpointerdown(f.event('touch'));
     node.onpointermove(f.event('touch', 0, 20)); node.onpointerup();
@@ -107,6 +134,23 @@ for (const kind of ['wall', 'ceiling']) test(`${kind}: previously saved matching
     const solid = surfaceSolid(f.model.scene.studio, kind, id);
     assert.deepEqual(solid.sections[0].outline, solid.sections[1].outline);
     assert.notDeepEqual(solid.sections[0].outline, original.sections[0].outline);
+});
+
+for (const kind of ['wall', 'ceiling']) test(`${kind}: black-dot edits remain in 2D even with depth slices saved by an older version`, t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }), id = kind === 'wall' ? 'w1' : 'k1';
+    const original = surfaceSolid(f.model.scene.studio, kind, id);
+    const middle = { u: .37, outline: original.sections[0].outline.map((p, index) => index === 2 ? { ...p, y: p.y - 5 } : p) };
+    f.model.scene.studio = replaceSurfaceSections(f.model.scene.studio, kind, id, [original.sections[0], middle, original.sections[1]]);
+    f.editor.select({ kind, id }); f.renderer.build();
+    const before = surfaceSolid(f.model.scene.studio, kind, id).sections;
+    const controls = f.editor.handles(), h = controls.find(h => h.kind === (kind === 'wall' ? 'wall-point' : 'ceiling') && h.index === 2);
+    assert.equal(controls.filter(p => p.kind === h.kind && p.index === h.index).length, 1);
+    const node = f.nodes.labels.children.find(el => el.dataset.roomHandle === h.key);
+    node.onpointerdown(f.event('touch')); node.onpointermove(f.event('touch', 0, 15)); node.onpointerup();
+    const after = surfaceSolid(f.model.scene.studio, kind, id).sections;
+    assert.equal(f.editor.handles().length, controls.length);
+    assert.deepEqual(after.map(s => s.u), before.map(s => s.u), 'no travel into another depth plane');
+    for (let k = 0; k < after.length; k++) close(after[k].outline[2].y - before[k].outline[2].y, -15);
 });
 
 function projection() {
@@ -180,42 +224,48 @@ test('the ceiling cursor reaches the wall-side inner corner rather than remainin
     assert.ok(Math.hypot(located.x - h.x, located.z - h.z) > 10, 'the cursor really moved through depth');
 });
 
-for (const kind of ['wall', 'ceiling']) test(`${kind}: a depth-edge cut persists at its exact 3D location and the new point reshapes that depth ring`, t => {
+for (const kind of ['wall', 'ceiling']) test(`${kind}: a depth-edge location exposes one 2D corner without creating depth slices`, t => {
     const f = roomRenderFixture(t, { wardrobes: 0 }), id = kind === 'wall' ? 'w1' : 'k1';
-    const at = { section: 0, edge: 1, across: true, fraction: .37123456789 };
-    const original = surfaceSolid(f.model.scene.studio, kind, id), expected = solidPoint(original.edges, at);
-    let room = splitSolidBoundary(f.model.scene.studio, kind, id, at);
-    assert.ok(room); const solid = surfaceSolid(room, kind, id);
-    const added = solid.sections[1]; close(added.u, at.fraction);
-    const p = { ...added.outline[at.edge], u: added.u };
-    for (const axis of ['x', 'y', 'z']) close(solid.world(p)[axis], original.world(expected)[axis]);
-    room = moveSolidBoundaryPoint(room, kind, id, 1, at.edge, { ...p, y: p.y + (kind === 'wall' ? 15 : -15) });
-    assert.ok(room); assert.deepEqual(studioProblems(room), []);
+    f.editor.select({ kind, id }); f.renderer.build();
+    const before = f.editor.handles().filter(h => ['corner', 'wall-point', 'ceiling'].includes(h.kind));
+    const edge = kind === 'wall' ? 2 : f.model.scene.studio.ceilings[0].profile.length;
+    const at = { section: 0, edge, across: true, fraction: .37123456789 };
+    const original = surfaceSolid(f.model.scene.studio, kind, id), expected = original.world(solidPoint(original.edges, at));
+    const plus = f.editor.handles().find(h => h.kind === kind + '-split');
+    f.editor.click({ ...plus, boundary: at });
+    let room = f.model.scene.studio;
     const part = kind === 'wall' ? room.walls[0] : room.ceilings[0];
-    assert.equal(part.sections[0].outline[at.edge].y, original.sections[0].outline[at.edge].y);
-    assert.equal(part.sections[2].outline[at.edge].y, original.sections[1].outline[at.edge].y);
+    assert.equal(part.sections, undefined);
+    const handles = f.editor.handles().filter(h => ['corner', 'wall-point', 'ceiling'].includes(h.kind));
+    assert.equal(handles.length, before.length + 1);
+    const h = handles.find(h => h.kind === (kind === 'wall' ? 'wall-point' : 'ceiling') && h.index === edge);
+    for (const axis of ['x', 'y', 'z']) close(h[axis], expected[axis]);
+    assert.equal(splitSolidBoundary(room, kind, id, at), null, 'the same 2D corner cannot be duplicated at another depth');
+    room = moveSurfaceBoundaryPoint(room, kind, id, edge, { t: part.outline[edge].t, y: part.outline[edge].y - 15 });
+    assert.ok(room); assert.deepEqual(studioProblems(room), []);
+    const solid = surfaceSolid(room, kind, id);
+    assert.equal(solid.sections.length, 2); assert.deepEqual(solid.sections[0].outline, solid.sections[1].outline);
     f.model.scene.studio = room;
     const next = projectToScene(deserializeProject(serializeProject(sceneToProject(createProject('solid', 'Solid'), f.model.scene))));
     assert.deepEqual(next.studio, room);
 });
 
-test('reshaping a depth cut changes the actual ceiling mesh and its physical clearance at the same 3D point', () => {
+test('a 2D ceiling bend changes the mesh and physical clearance uniformly across its depth', () => {
     let room = addCeiling(rectangleStudio(400, 240), 'w1', 'box');
-    room = splitSolidBoundary(room, 'ceiling', room.ceilings[0].id, { edge: 0, section: 0, across: true, fraction: .4 });
-    const c = room.ceilings[0], p = c.sections[1].outline[0];
-    room = moveSolidBoundaryPoint(room, 'ceiling', c.id, 1, 0, { ...p, y: p.y - 30 });
+    room = splitSolidBoundary(room, 'ceiling', room.ceilings[0].id, { edge: 0, section: 0, fraction: .5 });
+    const c = room.ceilings[0], p = c.outline[1];
+    room = moveSurfaceBoundaryPoint(room, 'ceiling', c.id, 1, { ...p, y: p.y - 30 });
     const scene = new THREE.Scene(), material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }), line = new THREE.LineBasicMaterial();
     const view = createCeilingViews(scene, material, line); view.sync(room); scene.updateMatrixWorld(true);
     const meshes = []; scene.traverse(o => { if (o.userData.studioCeiling === c.id) meshes.push(o); });
     const fr = ceilingFrame(room, room.ceilings[0]);
-    const floor = fr.at(p.t + 10, c.depth * .4), top = { template: 'custom', top: [{ x: 0, y: 210 }, { x: 10, y: 210 }] };
-    assert.equal(ceilingClearance(room, { x: floor.x, z: floor.z, angle: 0, w: 10, d: 4 })(top), true, 'the lowered depth cut blocks the wardrobe');
-    const front = fr.at(p.t + 10, c.depth * .98);
-    assert.equal(ceilingClearance(room, { x: front.x, z: front.z, angle: 0, w: 10, d: 1 })(top), false, 'the unchanged outer rim still has clearance');
-    for (const u of [.15, .4, .7]) for (const t of [p.t + .1, p.t + 20]) {
-        const floor = fr.at(t, c.depth * u), hits = new THREE.Raycaster(new THREE.Vector3(floor.x, 1, floor.z), new THREE.Vector3(0, 1, 0)).intersectObjects(meshes);
+    for (const u of [.15, .4, .7, .98]) {
+        const floor = fr.at(p.t + 10, c.depth * u), top = { template: 'custom', top: [{ x: 0, y: 210 }, { x: 10, y: 210 }] };
+        assert.equal(ceilingClearance(room, { x: floor.x, z: floor.z, angle: 0, w: 10, d: 1 })(top), true);
+        const hits = new THREE.Raycaster(new THREE.Vector3(floor.x, 1, floor.z), new THREE.Vector3(0, 1, 0)).intersectObjects(meshes);
         assert.ok(hits.length); close(hits[0].point.y, ceilingAt(room, floor));
     }
+    assert.equal(room.ceilings[0].sections, undefined);
     view.dispose(); material.dispose(); line.dispose();
 });
 
@@ -231,18 +281,18 @@ test('doors and windows stay open through a wall with independent 3D corners', (
     geometry.dispose(); material.dispose();
 });
 
-test('a cut on a return edge produces a draggable depth point with capture, cancellation and one-step undo', t => {
+test('a return-edge control reshapes only the 2D profile with capture, cancellation and one-step undo', t => {
     const f = roomRenderFixture(t, { wardrobes: 0 }), before = f.model.snapshot();
     const h = f.editor.handles().find(h => h.kind === 'ceiling-split');
-    f.editor.click({ ...h, boundary: { section: 0, edge: 0, across: true, fraction: .37 } });
+    f.editor.click({ ...h, boundary: { section: 0, edge: 4, across: true, fraction: .37 } });
     const split = f.model.snapshot(), part = f.model.scene.studio.ceilings[0];
-    assert.equal(part.sections.length, 3); assert.equal(f.checkpoints.length, 1);
-    const node = f.nodes.labels.children.find(el => el.dataset.roomHandle === 'ceiling:k1:section:1:0');
-    assert.ok(node); const y = part.sections[1].outline[0].y;
+    assert.equal(part.sections, undefined); assert.equal(f.checkpoints.length, 1);
+    const node = f.nodes.labels.children.find(el => el.dataset.roomHandle === 'ceiling:k1:4');
+    assert.ok(node); const y = part.outline[4].y;
     node.onpointerdown(f.event('touch'));
     for (const dy of [10, 20, 30]) {
         node.onpointermove(f.event('touch', 0, dy));
-        assert.ok(node.hasPointerCapture(1)); assert.equal(f.model.scene.studio.ceilings[0].sections[1].outline[0].y, y - dy);
+        assert.ok(node.hasPointerCapture(1)); assert.equal(f.model.scene.studio.ceilings[0].outline[4].y, y - dy);
     }
     node.onpointercancel(); assert.equal(f.model.snapshot(), split); assert.equal(f.checkpoints.length, 1);
     node.onpointerdown(f.event('touch')); node.onpointermove(f.event('touch', 0, 20)); node.onpointerup();

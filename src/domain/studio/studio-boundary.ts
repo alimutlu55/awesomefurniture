@@ -17,6 +17,14 @@ export function ceilingBoundary(room: Studio, ceiling: StudioCeiling): readonly 
   return points;
 }
 export type BoundarySurface = 'wall' | 'ceiling';
+/** Only profile points are controls; closing a solid must not invent editable corner dots. */
+export function controlledBoundary(room: Studio, kind: BoundarySurface, id: string): readonly CeilingPoint[] {
+  const part = kind === 'wall' ? room.walls.find(w => w.id === id) : room.ceilings?.find(c => c.id === id);
+  const points = surfaceBoundary(room, kind, id);
+  if (!part || part.outline) return points;
+  const count = kind === 'wall' ? 0 : room.ceilings!.find(c => c.id === id)!.profile.length;
+  return points.map((p, k) => k < count ? p : { ...p, control: -1 });
+}
 export function stretchWallBoundaries(room: Studio, corners: readonly StudioCorner[]) {
   return room.walls.map(w => {
     if (!w.outline) return w;
@@ -41,12 +49,12 @@ function replace(room: Studio, kind: BoundarySurface, id: string, outline: reado
 }
 /** Inserting at an existing corner is a no-op; nearby points keep their full precision. */
 export function splitSurfaceBoundary(room: Studio, kind: BoundarySurface, id: string, at: BoundaryLocation): Studio | null {
-  const points = surfaceBoundary(room, kind, id), p = boundaryPoint(points, at);
+  const points = controlledBoundary(room, kind, id), p = boundaryPoint(points, at);
   if (!p || !Number.isFinite(at.fraction) || at.fraction <= 0 || at.fraction >= 1) return null;
-  return replace(room, kind, id, [...points.slice(0, at.edge + 1), p, ...points.slice(at.edge + 1)]);
+  return replace(room, kind, id, [...points.slice(0, at.edge + 1), { ...p, control: at.section === 0 ? 0 : 1 }, ...points.slice(at.edge + 1)]);
 }
 export function moveSurfaceBoundaryPoint(room: Studio, kind: BoundarySurface, id: string, index: number, point: CeilingPoint): Studio | null {
   const points = surfaceBoundary(room, kind, id);
   if (!points[index]) return null;
-  return replace(room, kind, id, points.map((p, k) => k === index ? point : p));
+  return replace(room, kind, id, points.map((p, k) => k === index ? { ...p, ...point } : p));
 }

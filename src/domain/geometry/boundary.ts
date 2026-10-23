@@ -1,5 +1,9 @@
 /** Continuous positions on a closed polygon. No grid, corner margins or minimum edge lengths. */
-export interface BoundaryPoint { readonly t: number; readonly y: number }
+export interface BoundaryPoint {
+  readonly t: number; readonly y: number;
+  /** Explicit editing control at this normalized depth; -1 is a construction vertex without a handle. */
+  readonly control?: number | undefined;
+}
 export interface BoundaryLocation {
   readonly edge: number; readonly fraction: number;
   /** A ring through the solid's depth; absent selects its outer face. */

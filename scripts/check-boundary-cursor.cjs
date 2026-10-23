@@ -118,6 +118,22 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
    assert.equal(await page.locator('.room-handle.point').count(), kind === 'wall' ? 2 : part.profile.length, 'moving the plus does not add any black handles');
    assert.equal(await plus.evaluate(el => getComputedStyle(el).zIndex), '5');
+   if (process.env.BOUNDARY_CUT) {
+    const existing = await page.locator('.room-handle.point').evaluateAll(es => es.map(el => {
+     const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }));
+    const chosen = { x: inner.x + (next.x - inner.x) * .37, y: inner.y + (next.y - inner.y) * .37 };
+    await start(); await move(inner, chosen);
+    if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
+    // Keyboard activation invokes the same insertion without a touch area overlapping the new point.
+    await plus.dispatchEvent('click', { detail: 0 }); await page.waitForTimeout(100);
+    const actual = await page.locator('.room-handle.point').evaluateAll(es => es.map(el => {
+     const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }));
+    assert.equal(actual.length, existing.length + 1, 'one requested cut adds exactly one black handle');
+    for (const p of existing) assert.ok(actual.some(q => Math.hypot(p.x - q.x, p.y - q.y) < .25), 'all original corner controls stay where they were');
+    assert.ok(actual.some(p => Math.hypot(p.x - chosen.x, p.y - chosen.y) < .25), 'the one new point is at the chosen inner-rim location');
+   }
    await page.screenshot({ path: `/tmp/wardrobe-inner-corner-${shape}-${width}${process.env.BOUNDARY_ZOOM ? '-zoom' : ''}.png` });
    assert.deepEqual(errors, []);
    console.log(`PASS ${width}px ${shape}: ${touch ? 'touch' : 'mouse'} turns through depth onto the wall-side inner corner and rim; cancellation restores the cursor; handle size ${size.join(' × ')}`);

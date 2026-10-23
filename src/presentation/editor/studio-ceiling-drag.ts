@@ -4,7 +4,7 @@ import { ceilingFrame, profileAt } from '../../domain/studio/studio-ceiling';
 import { ceilingBoundary } from '../../domain/studio/studio-boundary';
 import type { BoundaryLocation } from '../../domain/geometry/boundary';
 import { solidLocationPoint, surfaceSolid } from '../../domain/studio/studio-solid-boundary';
-import { innerSurfaceHandles } from './studio-solid-handles';
+import { surfaceProfileHandles } from './studio-solid-handles';
 import { defaultBoundaryLocation } from './boundary-cursor';
 import { alignTo, type Align } from './align-snap';
 import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
@@ -35,11 +35,10 @@ export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number
   if (!fr) return [];
   const points = ceilingBoundary(room, c), axis = runAxis(fr, c);
   const solid = surfaceSolid(room, 'ceiling', c.id)!;
-  const world = (p: { t: number; y: number }) => solid.world({ ...p, u: 1 });
   const custom = !!(c.outline || c.sections);
-  const out: RoomHandle[] = (custom ? points : c.profile).map((p, k) => ({
-    key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling', id: c.id, index: k, ...(custom ? world(p) : pointAt(fr, c, k)),
-    label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag to reshape the boundary; tap to type its height', ux: axis.x, uz: axis.z,
+  const out: RoomHandle[] = custom ? surfaceProfileHandles(room, 'ceiling', c.id) : c.profile.map((p, k) => ({
+    key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling', id: c.id, index: k, ...pointAt(fr, c, k),
+    label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag to reshape the profile', ux: axis.x, uz: axis.z,
   }));
   const underside = points.flatMap((a, edge) => {
     const b = points[(edge + 1) % points.length]!, height = profileAt(c.profile, (a.t + b.t) / 2);
@@ -55,7 +54,6 @@ export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number
   const p = solidLocationPoint(room, 'ceiling', c.id, at);
   if (p) out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: at.edge, boundary: at,
     ...p, label: 'Add a ceiling shape point here. Drag around any 3D edge, including inner corners; tap to divide' });
-  out.push(...innerSurfaceHandles(room, 'ceiling', c.id));
   if (c.run === 'along') {
     // Away from the midpoint's add-point handle.
     let best = 0;
@@ -84,7 +82,7 @@ export function snapPoint(room: Studio, c: StudioCeiling, k: number, raw: { t: n
  * to the point, just under the underside. */
 export function pointRuler(room: Studio, c: StudioCeiling, k: number, section?: number): RoomMeasure | null {
   const solid = surfaceSolid(room, 'ceiling', c.id), ring = solid?.sections[section ?? solid.sections.length - 1];
-  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = !c.outline && !c.sections && c.run === 'across' ? .5 : ring?.u ?? 1;
+  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = section !== undefined ? ring?.u ?? 1 : p?.control ?? (c.run === 'along' ? 1 : .5);
   if (!fr || !p) return null;
   const y = Math.max(8, p.y - 12);
   if (c.run === 'across') {
@@ -107,7 +105,7 @@ export function depthRuler(room: Studio, c: StudioCeiling, h: RoomHandle): RoomM
  * `at` places it elsewhere along the run (the middle of a level stretch). */
 export function heightRuler(room: Studio, c: StudioCeiling, k: number, at?: number, section?: number): RoomMeasure | null {
   const solid = surfaceSolid(room, 'ceiling', c.id), ring = solid?.sections[section ?? solid.sections.length - 1];
-  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = !c.outline && !c.sections && c.run === 'across' ? .5 : ring?.u ?? 1;
+  const fr = ceilingFrame(room, c), p = ring?.outline[k], u = section !== undefined ? ring?.u ?? 1 : p?.control ?? (c.run === 'along' ? 1 : .5);
   if (!fr || !p) return null;
   const t = at ?? p.t, along = fr.face.start + fr.face.length * u, floor = c.run === 'along' ? fr.at(t, c.depth * u) : fr.at(along, t);
   return { a: { x: floor.x, y: 0, z: floor.z }, b: { x: floor.x, y: p.y, z: floor.z }, text: f(p.y), axis: 'height',
@@ -118,8 +116,9 @@ export function restHeights(room: Studio, c: StudioCeiling): RoomMeasure[] {
   const out: (RoomMeasure | null)[] = [];
   const profile = c.outline ?? c.profile;
   for (let k = 0; k < profile.length;) {
+    if (profile[k]!.control === -1) { k++; continue; }
     let e = k;
-    while (e + 1 < profile.length && Math.abs(profile[e + 1]!.y - profile[k]!.y) < .05 && profile[e + 1]!.t > profile[e]!.t) e++;
+    while (e + 1 < profile.length && profile[e + 1]!.control !== -1 && Math.abs(profile[e + 1]!.y - profile[k]!.y) < .05 && profile[e + 1]!.t > profile[e]!.t) e++;
     out.push(heightRuler(room, c, k, (profile[k]!.t + profile[e]!.t) / 2));
     k = e + 1;
   }

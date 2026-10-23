@@ -50,7 +50,7 @@ export interface StudioOpening {
 }
 
 /** A point of a ceiling's underside: `y` cm above the floor at `t`, measured along its run. */
-export interface CeilingPoint { readonly t: number; readonly y: number }
+export interface CeilingPoint { readonly t: number; readonly y: number; readonly control?: number | undefined }
 
 /** A part of the ceiling that comes down into the room, along a wall: the underside of a staircase, a
  * landing, a sloped roof, a beam or a boxing. Its underside follows `profile`, like a wardrobe's top:

@@ -5,7 +5,7 @@ import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { moveSolidBoundaryPoint, solidLocationPoint, surfaceSolid } from '../../domain/studio/studio-solid-boundary';
 import { createSolidBoundaryCursor } from './solid-boundary-cursor';
-import { innerSurfaceHandles } from './studio-solid-handles';
+import { surfaceProfileHandles } from './studio-solid-handles';
 
 export function isBoundaryPoint(room: Studio, h: RoomHandle): boolean {
   const ceiling = h.kind === 'ceiling' ? room.ceilings?.find(c => c.id === h.id) : null;
@@ -49,31 +49,27 @@ export function createWallBoundaryEditing(screen: (p: { x: number; y: number; z:
   const cursor = createSolidBoundaryCursor(screen);
   function geometry(room: Studio, w: StudioWall) {
     const line = wallLine(room, w)!;
-    const world = (p: { t: number; y: number }) => ({ x: line.a.x + line.ux * p.t + line.nx * w.thickness / 2,
-      z: line.a.z + line.uz * p.t + line.nz * w.thickness / 2, y: p.y });
-    return { points: wallBoundary(room, w), line, world };
+    return { points: wallBoundary(room, w), line };
   }
   return {
     begin: cursor.begin, cancel: cursor.cancel,
     clear: cursor.clear,
     handles(room: Studio, w: StudioWall): RoomHandle[] {
-      const { points, line, world } = geometry(room, w), chosen = cursor.location(w.id);
+      const { points } = geometry(room, w), chosen = cursor.location(w.id);
       const sections = surfaceSolid(room, 'wall', w.id)!.sections;
       const at = chosen && points[chosen.edge] && (chosen.section === undefined || sections[chosen.section]) ? chosen : { edge: 2, fraction: .5 };
-      const out: RoomHandle[] = (w.outline || w.sections ? points : []).map((p, index) => ({ key: 'wall-point:' + w.id + ':' + index, kind: 'wall-point', id: w.id, index,
-        ...world(p), label: 'Wall boundary point ' + (index + 1) + '. Drag to reshape the wall', ux: line.ux, uz: line.uz }));
+      const out = surfaceProfileHandles(room, 'wall', w.id);
       const p = boundaryPoint(points, at);
       const located = solidLocationPoint(room, 'wall', w.id, at);
       if (p && located) out.push({ key: 'wall-split:' + w.id, kind: 'wall-split', id: w.id, index: at.edge, boundary: at,
         ...located, label: 'Add a wall shape point here. Drag around any 3D edge, including inner corners; tap to divide' });
-      out.push(...innerSurfaceHandles(room, 'wall', w.id));
       // The original floor corner moves the wall end and its adjoining walls together. A second
       // profile/back-face dot here would peel away from it and leave a stationary handle underneath.
       const floor = wallBoundary(room, { ...w, outline: undefined }).filter(p => p.y === 0);
       return out.filter(h => {
         if (h.kind !== 'wall-point') return true;
         const point = h.section === undefined ? points[h.index!] : sections[h.section]!.outline[h.index!];
-        return !floor.some(p => Math.abs(p.t - point!.t) < 1e-8 && Math.abs(p.y - point!.y) < 1e-8);
+        return point?.control !== undefined && point.control >= 0 || !floor.some(p => Math.abs(p.t - point!.t) < 1e-8 && Math.abs(p.y - point!.y) < 1e-8);
       });
     },
     move(room: Studio, h: RoomHandle, dx: number, dy: number) {
