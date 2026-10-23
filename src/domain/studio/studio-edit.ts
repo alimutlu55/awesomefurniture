@@ -44,7 +44,16 @@ export function moveWall(studio: Studio, id: string, distance: number): Studio |
   const w = wall(studio, id), line = w && wallLine(studio, w);
   if (!w || !line) return null;
   let corners = studio.corners;
-  for (const c of [line.a, line.b]) corners = moved(corners, c.id, c.x + line.nx * distance, c.z + line.nz * distance);
+  for (const c of [line.a, line.b]) {
+    const joined = studio.walls.filter(other => other.id !== id && (other.a === c.id || other.b === c.id));
+    const neighbour = joined.length === 1 ? wallLine(studio, joined[0]!) : null;
+    const dot = neighbour ? neighbour.ux * line.nx + neighbour.uz * line.nz : 0;
+    // Intersect the shifted wall with the neighbour's existing line: pushing a face
+    // shortens or extends the adjacent wall without changing its direction.
+    if (neighbour && Math.abs(dot) > 1e-4) {
+      corners = moved(corners, c.id, c.x + neighbour.ux * distance / dot, c.z + neighbour.uz * distance / dot);
+    } else corners = moved(corners, c.id, c.x + line.nx * distance, c.z + line.nz * distance);
+  }
   return custom(studio, { corners, openings: keepOpenings(studio, corners) });
 }
 
@@ -84,11 +93,11 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const w = wall(studio, id), line = w && wallLine(studio, w);
   if (!w || !line) return null;
   const d = at ?? line.length / 2;
-  if (d < L.minWallLength - .01 || line.length - d < L.minWallLength - .01) return null;
-  const mid: StudioCorner = { id: nextId('c', studio.corners), x: round(line.a.x + line.ux * d), z: round(line.a.z + line.uz * d) };
+  if (!Number.isFinite(d) || d < L.minWallLength - .01 || line.length - d < L.minWallLength - .01) return null;
+  const mid: StudioCorner = { id: nextId('c', studio.corners), x: line.a.x + line.ux * d, z: line.a.z + line.uz * d };
   const second: StudioWall = { ...w, id: nextId('w', studio.walls), a: mid.id, b: w.b };
   const walls = studio.walls.flatMap(x => x.id === id ? [{ ...x, b: mid.id }, second] : [x]);
-  const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: round(o.offset - d) });
+  const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: o.offset - d });
   return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}) });
 }
 

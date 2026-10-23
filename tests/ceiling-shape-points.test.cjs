@@ -39,7 +39,7 @@ for (const shape of CEILING_SHAPES) {
         test(`${pointerType}: ${shape.name} gets a new movable bend, retains capture and reshapes wardrobes`, async t => {
             const f = fixture(t, shape, width), before = f.model.snapshot(), c = f.model.scene.studio.ceilings[0];
             const k = f.editor.handles().find(h => h.kind === 'ceiling-split').index;
-            const added = { t: Math.round((c.profile[k].t + c.profile[k + 1].t) * 5) / 10, y: Math.round((c.profile[k].y + c.profile[k + 1].y) * 5) / 10 };
+            const added = { t: (c.profile[k].t + c.profile[k + 1].t) / 2, y: (c.profile[k].y + c.profile[k + 1].y) / 2 };
             const plus = pluses(f)[0]; assert.ok(plus);
             plus.onpointerdown(f.event(pointerType)); plus.onpointerup();
             assert.equal(f.checkpoints.length, 1); assert.deepEqual(f.model.scene.studio.ceilings[0].profile[k + 1], added);
@@ -62,13 +62,16 @@ for (const shape of CEILING_SHAPES) {
     }
 }
 
-test('steps and panels shorter than 10 cm have no split handle or insertable point', t => {
+test('vertical steps and short panels can both be divided without changing the surface', t => {
     const f = roomRenderFixture(t);
     f.model.scene.studio.ceilings[0].profile = [{ t: 6, y: 205 }, { t: 6, y: 100 }, { t: 14, y: 100 }, { t: 406, y: 100 }];
     f.commands.followCeilings(); f.renderer.build();
     assert.equal(pluses(f).length, 1);
-    assert.equal(splitCeilingPanel(f.model.scene.studio, 'k1', 0), null);
-    assert.equal(splitCeilingPanel(f.model.scene.studio, 'k1', 1), null);
+    for (const k of [0, 1]) {
+        const divided = splitCeilingPanel(f.model.scene.studio, 'k1', k);
+        assert.equal(divided.ceilings[0].profile.length, 5);
+        assert.deepEqual(ceilingProblems(divided, divided.ceilings[0]), []);
+    }
     assert.equal(splitCeilingPanel(f.model.scene.studio, 'k1', 99), null);
 });
 
@@ -89,7 +92,7 @@ for (const shape of CEILING_SHAPES) test(`${shape.name}: one plus handle stays a
         const c = room.ceilings[0], handles = ceilingHandles(room, c).filter(h => h.kind === 'ceiling-split');
         assert.equal(handles.length, 1);
         const largest = c.profile.slice(0, -1).map((p, k) => ({ k, span: c.profile[k + 1].t - p.t }))
-            .filter(p => p.span >= 10).sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 1).map(p => p.k).sort((a, b) => a - b);
+            .sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 1).map(p => p.k).sort((a, b) => a - b);
         assert.deepEqual(handles.map(h => h.index), largest);
         for (const h of handles) {
             const a = pointAt(ceilingFrame(room, c), c, h.index), b = pointAt(ceilingFrame(room, c), c, h.index + 1);
@@ -170,7 +173,7 @@ test('canceling a movable plus restores its position, and keyboard movement has 
     const h = f.editor.handles().find(h => h.kind === 'ceiling-split');
     f.editor.nudge(h, 'ArrowRight', true);
     const positioned = f.editor.handles().find(h => h.kind === 'ceiling-split');
-    assert.equal(positioned.position, h.position + 10);
+    assert.ok(Math.abs(Math.hypot(positioned.position - h.position, positioned.y - h.y) - 10) < 1e-8);
     const plus = pluses(f)[0]; plus.onpointerdown(f.event('touch')); plus.onpointermove(f.event('touch', 15, 30));
     plus.onpointercancel();
     assert.equal(f.editor.handles().find(h => h.kind === 'ceiling-split').position, positioned.position);
@@ -188,3 +191,29 @@ test('a sloped ceiling cursor follows the chosen physical position in perspectiv
     assert.equal(splitCeilingPanel(room, c.id, 0, -1), null);
     assert.equal(splitCeilingPanel(room, c.id, 0, NaN), null);
 });
+
+for (const [width, pointerType] of [[1280, 'mouse'], [375, 'touch']]) {
+    test(`${pointerType}: wall insertion cursor previews without history, cancels, and commits one reversible split`, t => {
+        const f = roomRenderFixture(t, { width, wardrobes: 0 });
+        f.editor.select({ kind: 'wall', id: 'w1' }); f.renderer.build();
+        const before = f.model.snapshot();
+        const button = () => f.nodes.labels.children.find(el => el.getAttribute('aria-label')?.startsWith('Add a wall corner here'));
+        const start = f.editor.handles().find(h => h.kind === 'wall-split');
+        const plus = button(); plus.onpointerdown(f.event(pointerType)); plus.onpointermove(f.event(pointerType, 23.4567, 0));
+        assert.equal(plus.hasPointerCapture(1), true);
+        assert.equal(f.model.snapshot(), before); assert.equal(f.checkpoints.length, 0);
+        plus.onpointercancel();
+        assert.equal(f.editor.handles().find(h => h.kind === 'wall-split').position, start.position);
+        button().onpointerdown(f.event(pointerType)); button().onpointermove(f.event(pointerType, 23.4567, 0)); button().onpointerup();
+        const chosen = f.editor.handles().find(h => h.kind === 'wall-split');
+        assert.ok(Math.abs(chosen.position - start.position - 23.4567) < 1e-6);
+        assert.equal(f.checkpoints.length, 0);
+        button().onclick({ detail: 0 });
+        assert.equal(f.model.scene.studio.walls.length, 5);
+        assert.equal(f.model.scene.studio.ceilings.length, 2);
+        assert.equal(f.checkpoints.length, 1);
+        const after = f.model.snapshot();
+        assert.equal(f.history.undo(), true); assert.equal(f.model.snapshot(), before);
+        assert.equal(f.history.redo(), true); assert.equal(f.model.snapshot(), after);
+    });
+}

@@ -44,7 +44,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            const split = h.kind === 'extend' || h.kind === 'ceiling-split';
+            const split = h.kind === 'extend' || h.kind === 'ceiling-split' || h.kind === 'wall-split';
             el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' ? 'point' : split ? 'split-handle' : 'room-grip');
             if (split) el.textContent = '+';
             else if (h.kind === 'depth') el.innerHTML = ARROWS;

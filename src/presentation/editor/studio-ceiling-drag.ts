@@ -25,23 +25,27 @@ export function pointAt(fr: Frame, c: StudioCeiling, k: number) {
 
 /** A dot on every point of the selected ceiling, and a grip on its edge to set how far it reaches into the
  * room (a ceiling along a wall; a sloped roof reaches to its last point). */
-export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number): RoomHandle[] {
+export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number | { index: number; fraction: number }): RoomHandle[] {
   const fr = ceilingFrame(room, c);
   if (!fr) return [];
   // A dot a finger can cover: the height it sets is drawn beside it as a dimension line, not on the dot.
   const axis = runAxis(fr, c), out: RoomHandle[] = c.profile.map((p, k) => ({
     key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling' as const, id: c.id, index: k, ...pointAt(fr, c, k),
-    label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag up or down, or along to move it; tap to type its height', ux: axis.x, uz: axis.z,
+    label: 'Point ' + (k + 1) + ', ' + f(p.y) + ' high. Drag to reshape; Shift-drag angles a step corner. Tap to type its height', ux: axis.x, uz: axis.z,
   }));
-  const panels = c.profile.slice(0, -1).map((p, k) => ({ p, k, span: c.profile[k + 1]!.t - p.t }))
-    .filter(p => p.span >= 10).sort((a, b) => position === undefined ? b.span - a.span || a.k - b.k
-      : Math.abs(position - Math.max(a.p.t + 5, Math.min(a.p.t + a.span - 5, position))) - Math.abs(position - Math.max(b.p.t + 5, Math.min(b.p.t + b.span - 5, position))) || a.k - b.k).slice(0, 1);
-  panels.forEach(({ p, k }) => {
-    const next = c.profile[k + 1]!;
-    const t = Math.max(p.t + 5, Math.min(next.t - 5, position ?? (p.t + next.t) / 2)), floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
-    out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: k, position: t,
-      ...floor, y: p.y + (next.y - p.y) * (t - p.t) / (next.t - p.t), label: 'Add a ceiling shape point here. Drag along the edge to choose where; tap to divide' });
-  });
+  const edges = c.profile.slice(0, -1).map((p, k) => ({ p, k, span: c.profile[k + 1]!.t - p.t }));
+  const chosen = typeof position === 'object' ? edges.find(e => e.k === position.index)
+    : edges.sort((a, b) => position === undefined ? b.span - a.span || a.k - b.k
+      : Math.abs(position - Math.max(a.p.t, Math.min(a.p.t + a.span, position)))
+        - Math.abs(position - Math.max(b.p.t, Math.min(b.p.t + b.span, position))) || a.k - b.k)[0];
+  if (chosen) {
+    const { p, k, span } = chosen, next = c.profile[k + 1]!;
+    const fraction = typeof position === 'object' ? position.fraction : position === undefined || span === 0 ? .5 : (position - p.t) / span;
+    const u = Math.max(0, Math.min(1, fraction)), a = pointAt(fr, c, k), b = pointAt(fr, c, k + 1);
+    out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: k, position: p.t + span * u, fraction: u,
+      x: a.x + (b.x - a.x) * u, y: p.y + (next.y - p.y) * u, z: a.z + (b.z - a.z) * u,
+      label: 'Add a ceiling shape point here. Drag along the edge to choose where; tap to divide. Arrow keys move along the boundary' });
+  }
   if (c.run === 'along') {
     // Away from the midpoint's add-point handle.
     let best = 0;
