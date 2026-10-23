@@ -70,8 +70,6 @@ for(const width of [375,1280]) test(`${width}px: moving the plus to a vertical i
  const placed=f.editor.handles().find(h=>h.kind==='ceiling-split');
  assert.ok(distance(placed,mix(edge.a,edge.b,.42381))<1e-6);assert.equal(f.model.snapshot(),original);assert.equal(f.checkpoints.length,0);
  f.editor.click(placed);
- const reset=f.editor.handles().find(h=>h.kind==='ceiling-split');
- assert.ok(reset.y<260,'after dividing, the cursor retains its original underside default');
  let dot=f.editor.handles().find(h=>h.kind==='shape-point'&&h.control.startsWith('cut'));
  assert.ok(distance(dot,placed)<1e-6,'the point appears where the plus was placed');
  f.editor.begin(f.event(),dot,f.nodes.c);f.editor.move(f.event('touch',-20,0));f.editor.end();

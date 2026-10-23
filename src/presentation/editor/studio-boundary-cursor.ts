@@ -46,21 +46,7 @@ export function createStudioBoundaryCursor(screen: (p: WorldPoint) => { x: numbe
       if (k >= loop.length) at = null;
     }
     if (!at) {
-      let edges = studioBoundaryEdges(room, selection).filter(e => !e.location.through && e.location.u === model.baselineU);
-      const ceiling = model.ceiling;
-      if (ceiling) {
-        // Returning the cursor after a cut keeps its original preference for the underside.
-        // Roof and extrusion edges remain reachable by dragging; they do not become new defaults.
-        const loop = model.shape.loops[0]!, first = model.shape.controls.find(c => c.id === 'p0');
-        const last = model.shape.controls.find(c => c.id === 'p' + (ceiling.profile.length - 1));
-        const lower = new Set<number>();
-        let i = first ? loop.indexOf(first.point) : -1;
-        for (let n = 0; i >= 0 && n < loop.length && loop[i] !== last?.point; n++, i = (i + 1) % loop.length) lower.add(i);
-        const underside = edges.filter(e => e.location.loop === 0 && lower.has(e.location.edge));
-        const original = underside.filter(e => Math.abs(locationPoint(model.shape, { ...e.location, fraction: 1 }).t
-          - locationPoint(model.shape, e.location).t) >= 10);
-        if (original.length || underside.length) edges = original.length ? original : underside;
-      }
+      const edges = studioBoundaryEdges(room, selection).filter(e => !e.location.through && e.location.u === model.baselineU);
       const edge = edges.sort((a, b) => selection.kind === 'wall' ? (b.a.y + b.b.y) - (a.a.y + a.b.y) || distance(b.a, b.b) - distance(a.a, a.b)
         : distance(b.a, b.b) - distance(a.a, a.b))[0];
       if (!edge) return null;
