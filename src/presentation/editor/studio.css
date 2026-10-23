@@ -32,8 +32,6 @@
 .wall-paint-scope input{width:18px;height:18px;accent-color:var(--ink)}
 @media (max-width:900px){
  #toolbar .tb[data-action="wall-paint"] span{white-space:normal;font-size:10px;line-height:11px}
- /* Dimension labels overlay the room on phones. Let swipes pass through to the view. */
- #labels .room-label{pointer-events:none!important;user-select:none;-webkit-user-select:none}
 }
 
 
