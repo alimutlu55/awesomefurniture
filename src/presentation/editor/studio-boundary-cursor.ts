@@ -133,7 +133,7 @@ export function studioSolidHandles(room: Studio, selection: SolidSelection): Roo
   return model.shape.controls.map((control, k) => ({
     key: 'shape-point:' + selection.kind + ':' + selection.id + ':' + control.id,
     kind: 'shape-point', id: selection.id, solidKind: selection.kind, control: control.id,
-    plane: control.plane, nx: model.crossAxis.x, nz: model.crossAxis.z,
+    ...(control.plane ? { plane: control.plane } : {}), nx: model.crossAxis.x, nz: model.crossAxis.z,
     ...model.at(controlPoint(model.shape, control), control.u), ux: model.axis.x, uz: model.axis.z,
     label: 'Point ' + (k + 1) + ', drag to move the adjoining parts independently',
   }));
