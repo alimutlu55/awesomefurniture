@@ -5,12 +5,10 @@ const { rectangleStudio } = require('../src/domain/studio/studio-templates.ts');
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
-const { ceilingHandles } = require('../src/presentation/editor/studio-ceiling-drag.ts');
-const { surfaceSolid } = require('../src/domain/studio/studio-solid-boundary.ts');
+const { ceilingHandles, pointAt } = require('../src/presentation/editor/studio-ceiling-drag.ts');
+const { ceilingFrame } = require('../src/domain/studio/studio-ceiling.ts');
 const { createCeilingSplitCursor } = require('../src/presentation/editor/studio-ceiling-split.ts');
 
-// The movable plus follows the 3D rim; the original profile controls retain their positions.
-const rimPoint = (room, c, k) => surfaceSolid(room, 'ceiling', c.id).world({ ...c.profile[k], u: 1 });
 const pluses = f => f.nodes.labels.children.filter(el => el.getAttribute('aria-label')?.startsWith('Add a ceiling shape point here'));
 function fixture(t, shape, width) {
     const f = roomRenderFixture(t, { width });
@@ -41,7 +39,7 @@ for (const shape of CEILING_SHAPES) {
         test(`${pointerType}: ${shape.name} gets a new movable bend, retains capture and reshapes wardrobes`, async t => {
             const f = fixture(t, shape, width), before = f.model.snapshot(), c = f.model.scene.studio.ceilings[0];
             const k = f.editor.handles().find(h => h.kind === 'ceiling-split').index;
-            const added = { t: (c.profile[k].t + c.profile[k + 1].t) / 2, y: (c.profile[k].y + c.profile[k + 1].y) / 2 };
+            const added = { t: Math.round((c.profile[k].t + c.profile[k + 1].t) * 5) / 10, y: Math.round((c.profile[k].y + c.profile[k + 1].y) * 5) / 10 };
             const plus = pluses(f)[0]; assert.ok(plus);
             plus.onpointerdown(f.event(pointerType)); plus.onpointerup();
             assert.equal(f.checkpoints.length, 1); assert.deepEqual(f.model.scene.studio.ceilings[0].profile[k + 1], added);
@@ -94,7 +92,7 @@ for (const shape of CEILING_SHAPES) test(`${shape.name}: one plus handle stays a
             .filter(p => p.span >= 10).sort((a, b) => b.span - a.span || a.k - b.k).slice(0, 1).map(p => p.k).sort((a, b) => a - b);
         assert.deepEqual(handles.map(h => h.index), largest);
         for (const h of handles) {
-            const a = rimPoint(room, c, h.index), b = rimPoint(room, c, h.index + 1);
+            const a = pointAt(ceilingFrame(room, c), c, h.index), b = pointAt(ceilingFrame(room, c), c, h.index + 1);
             for (const axis of ['x', 'y', 'z']) assert.ok(Math.abs(h[axis] - (a[axis] + b[axis]) / 2) < 1e-8);
         }
         room = splitCeilingPanel(room, c.id, handles[0].index);
@@ -138,7 +136,6 @@ test('a plus touch area cannot cover a dot, and tapping the actual plus centre s
     assert.equal(middle.hasPointerCapture(1), true);
     middle.onpointermove(f.event('touch', 198, 375)); middle.onpointerup();
     assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, original - 20);
-    f.editor.nudge(f.editor.handles().find(h => h.kind === 'ceiling-split'), 'ArrowRight', true);
     const currentPlus = pluses(f)[0];
     currentPlus.getBoundingClientRect = () => ({ left: 175, top: 330, width: 30, height: 30 });
     currentPlus.onpointerdown(f.event('touch', 190, 345)); currentPlus.onpointerup();
@@ -149,7 +146,7 @@ for (const [width, pointerType] of [[1280, 'mouse'], [375, 'touch']]) for (const
     test(`${pointerType}: the single ${shape.name} plus moves across panels without editing, then divides at its chosen position`, t => {
         const f = fixture(t, shape, width), before = f.model.snapshot(), c = f.model.scene.studio.ceilings[0];
         const original = f.editor.handles().find(h => h.kind === 'ceiling-split'), plus = pluses(f)[0];
-        const k = 0, a = rimPoint(f.model.scene.studio, c, k), b = rimPoint(f.model.scene.studio, c, k + 1);
+        const k = 0, a = pointAt(ceilingFrame(f.model.scene.studio, c), c, k), b = pointAt(ceilingFrame(f.model.scene.studio, c), c, k + 1);
         const target = { x: a.x + (b.x - a.x) * .3, y: a.y + (b.y - a.y) * .3, z: a.z + (b.z - a.z) * .3 };
         const screen = p => ({ x: p.x + p.z * .4, y: -p.y + p.z * .3 });
         const start = screen(original), end = screen(target);
@@ -173,7 +170,7 @@ test('canceling a movable plus restores its position, and keyboard movement has 
     const h = f.editor.handles().find(h => h.kind === 'ceiling-split');
     f.editor.nudge(h, 'ArrowRight', true);
     const positioned = f.editor.handles().find(h => h.kind === 'ceiling-split');
-    assert.ok(Math.abs(Math.hypot(positioned.x - h.x, positioned.y - h.y, positioned.z - h.z) - 10) < 1e-8);
+    assert.equal(positioned.position, h.position + 10);
     const plus = pluses(f)[0]; plus.onpointerdown(f.event('touch')); plus.onpointermove(f.event('touch', 15, 30));
     plus.onpointercancel();
     assert.equal(f.editor.handles().find(h => h.kind === 'ceiling-split').position, positioned.position);
@@ -184,7 +181,7 @@ test('a sloped ceiling cursor follows the chosen physical position in perspectiv
     const room = addCeiling(rectangleStudio(400, 200), 'w1', 'slope'), c = room.ceilings[0];
     const screen = p => ({ x: p.x * 600 / (p.z + 500), y: -p.y * 600 / (p.z + 500) });
     const cursor = createCeilingSplitCursor(screen), h = ceilingHandles(room, c).find(h => h.kind === 'ceiling-split');
-    const a = rimPoint(room, c, 0), b = rimPoint(room, c, 1);
+    const a = pointAt(ceilingFrame(room, c), c, 0), b = pointAt(ceilingFrame(room, c), c, 1);
     const target = screen({ x: a.x + (b.x - a.x) * .25, y: a.y + (b.y - a.y) * .25, z: a.z + (b.z - a.z) * .25 });
     cursor.begin(); cursor.move(room, h, target.x - screen(h).x, target.y - screen(h).y);
     assert.ok(Math.abs(cursor.position(c.id) - c.profile[1].t * .25) < .11);

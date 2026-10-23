@@ -6,10 +6,6 @@
  */
 import { STUDIO_LIMITS as L, nextId, roomHeight, wall, wallFace, wallLine } from './studio';
 import type { CeilingPoint, Studio, StudioCeiling, StudioCorner } from './studio';
-import { clipBoundary, lowerBoundary, validBoundary } from '../geometry/boundary';
-import { ceilingBoundary } from './studio-boundary';
-import { sectionTriangles, triangleHeight, validSections } from '../geometry/solid-boundary';
-import type { BoundarySection } from '../geometry/boundary';
 
 type P = { x: number; z: number };
 const round = (n: number) => Math.round(n * 10) / 10;
@@ -22,9 +18,8 @@ export function ceilingFrame(studio: Studio, c: StudioCeiling) {
   const first = c.profile[0], last = c.profile.at(-1);
   if (!w || !line || !face || !first || !last) return null;
   const off = w.thickness / 2;
-  const ts = c.sections?.flatMap(s => s.outline.map(p => p.t)), from = ts ? Math.min(...ts) : first.t, to = ts ? Math.max(...ts) : last.t;
-  const along = c.run === 'along' ? { from, to } : { from: face.start, to: face.end };
-  const across = c.run === 'along' ? { from: 0, to: c.depth } : { from, to };
+  const along = c.run === 'along' ? { from: first.t, to: last.t } : { from: face.start, to: face.end };
+  const across = c.run === 'along' ? { from: 0, to: c.depth } : { from: first.t, to: last.t };
   /** The floor point at (s, d). */
   const at = (s: number, d: number): P => ({ x: line.a.x + line.ux * s + line.nx * (off + d), z: line.a.z + line.uz * s + line.nz * (off + d) });
   /** A floor point in (s, d). */
@@ -55,14 +50,6 @@ export function ceilingAt(studio: Studio, p: P): number {
     if (!f) continue;
     const { s, d } = f.local(p);
     if (s < f.along.from - EPS || s > f.along.to + EPS || d < f.across.from - EPS || d > f.across.to + EPS) continue;
-    if (c.sections) {
-      const t = c.run === 'along' ? s : d, u = c.run === 'along' ? d / c.depth : (s - f.face.start) / (f.face.end - f.face.start);
-      for (const triangle of sectionTriangles(c.sections)) {
-        const height = triangleHeight(triangle, t, u);
-        if (height !== null) h = Math.min(h, height);
-      }
-      continue;
-    }
     const y = profileAt(c.profile, c.run === 'along' ? s : d);
     if (y !== null) h = Math.min(h, y);
   }
@@ -145,12 +132,10 @@ export function ceilingProblems(studio: Studio, c: StudioCeiling): string[] {
   const f = ceilingFrame(studio, c), out: string[] = [];
   if (!f) return ['A ceiling is on a wall that no longer exists.'];
   const ps = c.profile, top = roomHeight(studio);
-  if (c.sections && (!validSections(c.sections) || c.sections.some(s => s.outline.some(p => p.y < L.minCeilingHeight || p.y > top)))) out.push('Keep every ceiling corner inside the room height and free of crossings.');
-  if (c.outline && (!validBoundary(c.outline) || c.outline.some(p => p.y < L.minCeilingHeight || p.y > top))) out.push('Keep the ceiling boundary inside the room height and free of crossings.');
   if (ps.length < 2) out.push('A ceiling needs at least two points.');
   for (let k = 0; k < ps.length - 1; k++) {
     if (ps[k + 1]!.t < ps[k]!.t - EPS) out.push('Ceiling points must run in order. Move the point back.');
-    if (!c.outline && k < ps.length - 2 && ps[k + 2]!.t - ps[k]!.t < EPS) out.push('Two steps cannot share a position. Move a point along.');
+    if (k < ps.length - 2 && ps[k + 2]!.t - ps[k]!.t < EPS) out.push('Two steps cannot share a position. Move a point along.');
   }
   if (ps.length >= 2 && ps.at(-1)!.t - ps[0]!.t < 5 - EPS) out.push('A ceiling must be at least 5 cm long.');
   if (ps.some(p => p.y < L.minCeilingHeight - EPS)) out.push(`Keep the ceiling at least ${L.minCeilingHeight} cm above the floor.`);
@@ -164,10 +149,6 @@ export function ceilingProblems(studio: Studio, c: StudioCeiling): string[] {
 
 // Edits: each returns the edited studio, or null when it does not apply. The caller validates.
 const custom = (studio: Studio, ceilings: readonly StudioCeiling[]): Studio => ({ ...studio, ceilings, template: 'custom' });
-function withSections(c: StudioCeiling, sections: readonly BoundarySection[]): StudioCeiling {
-  const outline = sections.at(-1)!.outline, profile = lowerBoundary(outline);
-  return { ...c, sections, outline, profile, depth: c.run === 'across' ? Math.max(...sections.flatMap(s => s.outline.map(p => p.t))) : c.depth };
-}
 const swap = (studio: Studio, id: string, change: (c: StudioCeiling) => StudioCeiling | null) => {
   const c = studio.ceilings?.find(x => x.id === id), next = c && change(c);
   return next ? custom(studio, studio.ceilings!.map(x => x.id === id ? next : x)) : null;
@@ -184,43 +165,13 @@ export function addCeiling(studio: Studio, wallId: string, shapeId: string): Stu
 }
 
 /** Moves one point of a ceiling's profile, kept between its neighbours (meeting one makes a step). */
-export function moveCeilingPoint(studio: Studio, id: string, index: number, t: number, y: number, section?: number): Studio | null {
+export function moveCeilingPoint(studio: Studio, id: string, index: number, t: number, y: number): Studio | null {
   return swap(studio, id, c => {
-    if (c.sections) {
-      const selected = section ?? c.sections.length - 1;
-      if (!c.sections[selected]?.outline[index]) return null;
-      const from = c.sections[selected]!.outline[index]!;
-      const sections = c.sections.map(s => ({ ...s,
-        outline: s.outline.map((p, j) => j === index ? { ...p, t: p.t + t - from.t, y: p.y + y - from.y } : p) }));
-      return validSections(sections) ? withSections(c, sections) : null;
-    }
-    if (c.outline || index >= c.profile.length) {
-      const points = ceilingBoundary(studio, c);
-      if (!points[index]) return null;
-      const outline = points.map((p, k) => k === index ? { ...p, t, y } : p);
-      if (!validBoundary(outline)) return null;
-      return { ...c, outline, profile: lowerBoundary(outline) };
-    }
     const prev = c.profile[index - 1], next = c.profile[index + 1];
     if (!c.profile[index]) return null;
     const at = round(Math.min(next?.t ?? Infinity, Math.max(prev?.t ?? -Infinity, t)));
     const profile = c.profile.map((p, k) => k === index ? { t: at, y: round(y) } : p);
     return { ...c, profile, depth: c.run === 'across' ? profile.at(-1)!.t : c.depth };
-  });
-}
-
-/** Lift the underside while keeping its attachment to the room's ceiling. */
-export function liftCeiling(studio: Studio, id: string, by: number): Studio | null {
-  return swap(studio, id, c => {
-    if (c.sections) {
-      const top = roomHeight(studio);
-      const sections = c.sections.map(s => ({ ...s, outline: s.outline.map(p => ({ ...p, y: Math.abs(p.y - top) < 1e-9 ? top : p.y + by })) }));
-      return validSections(sections) ? withSections(c, sections) : null;
-    }
-    if (!c.outline) return { ...c, profile: c.profile.map(p => ({ ...p, y: p.y + by })) };
-    const top = roomHeight(studio), outline = c.outline.map(p => ({ ...p, y: Math.abs(p.y - top) < 1e-9 ? top : p.y + by }));
-    if (!validBoundary(outline)) return null;
-    return { ...c, outline, profile: lowerBoundary(outline) };
   });
 }
 
@@ -242,11 +193,6 @@ export function setCeilingDepth(studio: Studio, id: string, depth: number): Stud
     if (c.run === 'along') return { ...c, depth: round(depth) };
     const from = c.profile[0]!.t, span = c.profile.at(-1)!.t - from;
     if (span < 1e-6) return null;
-    if (c.sections) return withSections(c, c.sections.map(s => ({ ...s, outline: s.outline.map(p => ({ ...p, t: from + (p.t - from) * (depth - from) / span })) })));
-    if (c.outline) {
-      const outline = c.outline.map(p => ({ ...p, t: from + (p.t - from) * (depth - from) / span }));
-      return { ...c, depth, outline, profile: lowerBoundary(outline) };
-    }
     return { ...c, depth: round(depth), profile: c.profile.map(p => ({ ...p, t: round(from + (p.t - from) * (depth - from) / span) })) };
   });
 }
@@ -256,11 +202,6 @@ export function flipCeiling(studio: Studio, id: string): Studio | null {
   return swap(studio, id, c => {
     if (c.run !== 'along') return null;
     const sum = c.profile[0]!.t + c.profile.at(-1)!.t;
-    if (c.sections) return withSections(c, c.sections.map(s => ({ ...s, outline: [...s.outline].reverse().map(p => ({ ...p, t: sum - p.t })) })));
-    if (c.outline) {
-      const outline = [...c.outline].reverse().map(p => ({ ...p, t: sum - p.t }));
-      return { ...c, outline, profile: lowerBoundary(outline) };
-    }
     return { ...c, profile: [...c.profile].reverse().map(p => ({ ...p, t: round(sum - p.t) })) };
   });
 }
@@ -278,17 +219,6 @@ export function keepCeilings(before: Studio, corners: readonly StudioCorner[]): 
   return before.ceilings.map(c => {
     const w = wall(before, c.wall), old = w && wallLine(before, w), now = w && wallLine(after, w), face = w && wallFace(after, w);
     if (c.run !== 'along' || !old || !now || !face) return c;
-    if (c.sections) return withSections(c, c.sections.map(s => ({ ...s, outline: s.outline.map(p => {
-      const x = old.a.x + old.ux * p.t, z = old.a.z + old.uz * p.t;
-      return { ...p, t: Math.min(face.end, Math.max(face.start, (x - now.a.x) * now.ux + (z - now.a.z) * now.uz)) };
-    }) })));
-    if (c.outline) {
-      const outline = c.outline.map(p => {
-        const x = old.a.x + old.ux * p.t, z = old.a.z + old.uz * p.t;
-        return { ...p, t: Math.min(face.end, Math.max(face.start, (x - now.a.x) * now.ux + (z - now.a.z) * now.uz)) };
-      });
-      return { ...c, outline, profile: lowerBoundary(outline) };
-    }
     const placed = c.profile.map(p => {
       const x = old.a.x + old.ux * p.t, z = old.a.z + old.uz * p.t;
       return { ...p, t: round(Math.min(face.end, Math.max(face.start, (x - now.a.x) * now.ux + (z - now.a.z) * now.uz))) };
@@ -304,12 +234,6 @@ export function splitCeilings(studio: Studio, wallId: string, second: string, d:
   return studio.ceilings?.map(c => {
     if (c.wall !== wallId || c.run !== 'along') return c;
     const mid = (c.profile[0]!.t + c.profile.at(-1)!.t) / 2;
-    if (c.sections) return withSections({ ...c, wall: mid < d ? wallId : second }, c.sections.map(s => ({ ...s,
-      outline: mid < d ? clipBoundary(s.outline, -Infinity, d) : clipBoundary(s.outline, d, Infinity).map(p => ({ ...p, t: p.t - d })) })));
-    if (c.outline) {
-      const outline = mid < d ? clipBoundary(c.outline, -Infinity, d) : clipBoundary(c.outline, d, Infinity).map(p => ({ ...p, t: p.t - d }));
-      return { ...c, wall: mid < d ? wallId : second, outline, profile: lowerBoundary(outline) };
-    }
     return mid < d ? { ...c, profile: tidy(c.profile.map(p => ({ ...p, t: Math.min(p.t, d) }))) } : { ...c, wall: second, profile: tidy(c.profile.map(p => ({ ...p, t: round(Math.max(0, p.t - d)) }))) };
   });
 }

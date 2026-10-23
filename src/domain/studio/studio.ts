@@ -29,9 +29,6 @@ export interface StudioWall {
   /** Optional for compatibility with rooms saved before wall paint controls. */
   readonly color?: string | undefined;
   readonly finish?: WallFinish | undefined;
-  /** Custom face boundary, in centimetres along the wall and above the floor. */
-  readonly outline?: readonly CeilingPoint[] | undefined;
-  readonly sections?: readonly import('../geometry/boundary').BoundarySection[] | undefined;
 }
 
 export interface StudioOpening {
@@ -50,7 +47,7 @@ export interface StudioOpening {
 }
 
 /** A point of a ceiling's underside: `y` cm above the floor at `t`, measured along its run. */
-export interface CeilingPoint { readonly t: number; readonly y: number; readonly control?: number | undefined }
+export interface CeilingPoint { readonly t: number; readonly y: number }
 
 /** A part of the ceiling that comes down into the room, along a wall: the underside of a staircase, a
  * landing, a sloped roof, a beam or a boxing. Its underside follows `profile`, like a wardrobe's top:
@@ -65,9 +62,6 @@ export interface StudioCeiling {
   readonly run: 'along' | 'across';
   readonly depth: number;
   readonly profile: readonly CeilingPoint[];
-  /** Closed side boundary. The profile remains its lower envelope for fitting wardrobes. */
-  readonly outline?: readonly CeilingPoint[] | undefined;
-  readonly sections?: readonly import('../geometry/boundary').BoundarySection[] | undefined;
 }
 
 export interface Studio {
@@ -135,12 +129,8 @@ export function wallExtent(studio: Studio, w: StudioWall, length: number) {
 export function wallBox(studio: Studio, w: StudioWall) {
   const line = wallLine(studio, w);
   if (!line) return null;
-  const extent = wallExtent(studio, w, line.length);
-  const outline = w.sections?.flatMap(s => s.outline) ?? w.outline;
-  const start = outline ? Math.min(...outline.map(p => p.t)) : extent.start, end = outline ? Math.max(...outline.map(p => p.t)) : extent.end;
-  const base = outline ? Math.min(...outline.map(p => p.y)) : 0, top = outline ? Math.max(...outline.map(p => p.y)) : w.height, mid = (start + end) / 2;
-  return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: base,
-    angle: line.angle, length: end - start, thickness: w.thickness, height: top - base };
+  const { start, end } = wallExtent(studio, w, line.length), mid = (start + end) / 2;
+  return { id: 'wall:' + w.id, x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid, y: 0, angle: line.angle, length: end - start, thickness: w.thickness, height: w.height };
 }
 
 /** The wall's room-side face on the floor: the length a tape measure reads inside the room. It runs from

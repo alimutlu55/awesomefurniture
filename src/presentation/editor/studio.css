@@ -1,14 +1,13 @@
 /* The room: wall and opening grips on the model, and their Size fields. Handles reuse the shape editor's
    and stay above every label, so a ruler never hides one. */
 .lbl.shape-handle.room-handle{z-index:4}
-.lbl.shape-handle.room-grip{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:var(--room-handle-size);height:var(--room-handle-size);min-width:0;min-height:0;padding:0;margin:0;border-radius:50%;background:var(--ink);color:var(--panel);border:2px solid var(--panel);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.lbl.shape-handle.room-grip{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;margin:0;border-radius:50%;background:var(--ink);color:var(--panel);border:2px solid var(--panel);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .lbl.shape-handle.room-grip::before{content:none}
 .lbl.shape-handle.room-grip::after{content:"";position:absolute;inset:-10px;border-radius:50%}
 .lbl.shape-handle.room-grip:hover{background:#4a4236;border-color:var(--panel);transform:none}
 .lbl.shape-handle.room-handle.point:hover{background:transparent;transform:none}
 .lbl.shape-handle.room-grip svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.lbl.shape-handle.room-handle{--room-handle-size:24px}
-.lbl.shape-handle.room-handle.split-handle{width:var(--room-handle-size);height:var(--room-handle-size);font-size:15px;z-index:5}
+.lbl.shape-handle.room-handle.split-handle{width:24px;height:24px;font-size:15px}
 /* A ceiling's height pill: the shape editor's pill, with a finger-sized hit area. */
 .lbl.shape-handle.room-pill{position:absolute}
 .lbl.shape-handle.room-pill small{font-size:inherit}
@@ -38,7 +37,8 @@
 
 
  .room-fields .shape-input input{font-size:16px}
- .lbl.shape-handle.room-handle{--room-handle-size:30px}
+ .lbl.shape-handle.room-grip{width:32px;height:32px}
+ .lbl.shape-handle.room-handle.split-handle{width:30px;height:30px}
  .lbl.shape-handle.room-pill{padding:6px 9px 6px 6px;font-size:12px}
  .lbl.shape-handle.room-pill small{display:none}
  #toolbar:is([data-context="wall"],[data-context="opening"],[data-context="ceiling"]) .contextual-defaults{display:none}

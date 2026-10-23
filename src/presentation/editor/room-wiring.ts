@@ -105,11 +105,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         k.stopImmediatePropagation();
     }, true);
 
-    /** Selecting a wall or ceiling preserves the current camera view. */
+    /** Room editing keeps the whole studio visible from the wardrobe's front, slightly above the floor.
+     * Looking straight at a selected wall can put the wardrobe's back in front of every room control. */
     function frameSelection() {
         const room = model.scene.studio, s = editor.selection();
         if (!room || !s) return;
-        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().camRelease(); return; }
+        if (s.kind === 'wall' || s.kind === 'ceiling') { late.camera().frameScene(); return; }
         // An opening keeps its own wall-facing view for adjusting its position and exact size.
         const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
@@ -165,7 +166,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 selectionState.pendingStudioAction = null;
                 editor.act(action);
             }
-            // Repeated surface taps also preserve the current view.
+            // A tap after orbiting or zooming restores context; dragging leaves the camera stationary.
             if (picked && repeat) frameSelection();
             return picked;
         } },
