@@ -57,7 +57,7 @@ const shots=process.env.STUDIO_SHOTS||'/tmp/studio-edge-division';
   const tap=async locator=>phone?locator.tap():locator.click();
   const plus=()=>page.locator('.room-handle.split-handle').filter({hasText:'+'}).last();
   mkdirSync(shots,{recursive:true});
-  for(const [kind,edgeName] of [['ceiling','inner'],['ceiling','rear'],['ceiling','depth'],['wall','side']]){
+  for(const [kind,edgeName] of [['ceiling','inner'],['ceiling','rear'],['ceiling','depth'],['wall','side'],['wall','depth']]){
    await setup(kind);
    const initial=await snapshot(),view=await pose(),count=kind==='ceiling'?4:2;
    assert.equal(await page.locator('.room-handle.point').count(),count,'original default dot count');
@@ -69,7 +69,7 @@ const shots=process.env.STUDIO_SHOTS||'/tmp/studio-edge-division';
     const {studioBoundaryEdges}=await import('/src/domain/studio/studio-solid.ts');
     const h=window.__studioTest,selection={kind,id:kind==='ceiling'?'k1':'w1'};
     const edges=studioBoundaryEdges(h.model.scene.studio,selection);
-    const found=edges.find(e=>edgeName==='depth'?e.location.through&&e.location.edge===1:
+    const found=edges.find(e=>edgeName==='depth'?e.location.through&&e.location.edge===(kind==='ceiling'?1:2):
      !e.location.through&&e.location.u===(edgeName==='rear'?0:1)&&Math.abs(e.a.x-e.b.x)<1e-6&&e.a.y!==e.b.y
       &&(kind==='wall'||e.location.edge===1));
     if(!found)throw new Error('Test vertical edge missing');
@@ -82,8 +82,9 @@ const shots=process.env.STUDIO_SHOTS||'/tmp/studio-edge-division';
    assert.ok(Math.hypot(placed.x-edge.x,placed.y-edge.y,placed.z-edge.z)<.01,
     kind+' '+edgeName+': cursor reaches the actual edge '+JSON.stringify({placed,edge}));
    await tap(plus());await page.waitForTimeout(150);
-   assert.equal(await page.locator('.room-handle.point').count(),count+1,'one requested division creates one dot');
-   const added=await page.evaluate(()=>window.__studioTest.room.editor.handles().find(h=>h.control?.startsWith('cut')));
+   const expectedCount=count+(kind==='ceiling'&&edgeName==='depth'?0:1);
+   assert.equal(await page.locator('.room-handle.point').count(),expectedCount,'reuse an existing profile corner or add just one requested point');
+   const added=await page.evaluate(p=>window.__studioTest.room.editor.handles().find(h=>h.control&&Math.hypot(h.x-p.x,h.y-p.y,h.z-p.z)<.01),edge);
    assert.ok(Math.hypot(added.x-edge.x,added.y-edge.y,added.z-edge.z)<.01,'activation stays at the chosen edge');
    const dot=page.getByRole('button',{name:added.label,exact:true});
    const shift=kind==='wall'?-20:20;
@@ -91,7 +92,14 @@ const shots=process.env.STUDIO_SHOTS||'/tmp/studio-edge-division';
    await move(from,target);
    const after=await page.evaluate(key=>window.__studioTest.room.editor.handles().find(h=>h.key===key),added.key);
    assert.ok(Math.hypot(after.x-added.x,after.y-added.y,after.z-added.z)>1,kind+': the actual point moves');
-   assert.equal(await page.locator('.room-handle.point').count(),count+1,'no old copy or opposite-corner handle is added');
+   assert.equal(await page.locator('.room-handle.point').count(),expectedCount,'no old copy or opposite-corner handle is added');
+   const profiles=await page.evaluate(({kind,id})=>{
+    const studio=window.__studioTest.model.scene.studio;
+    const shape=(kind==='ceiling'?studio.ceilings[0]:studio.walls[0]).shape;
+    return {point:shape.controls.find(c=>c.id===id).point,rings:shape.rings};
+   },{kind,id:added.control});
+   for(const ring of profiles.rings) assert.deepEqual(ring.points[profiles.point],profiles.rings[0].points[profiles.point],
+    kind+' '+edgeName+': corresponding edges move together across the entire thickness');
    assert.deepEqual(await pose(),view,'editing never moves the camera');
    assert.equal(await page.evaluate(()=>window.__studioTest.history.undoCount),2);
    await page.screenshot({path:shots+'/'+kind+'-'+edgeName+'-'+width+'.png'});
@@ -110,7 +118,7 @@ const shots=process.env.STUDIO_SHOTS||'/tmp/studio-edge-division';
   const p=await center(badge);await move(p,{x:p.x+8,y:p.y+2});
   assert.equal(await snapshot(),initial,'dimension jitter does not resize the ceiling');await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(()=>window.__studioTest.history.undoCount),0);
-  assert.deepEqual(errors,[]);console.log('PASS '+width+'px: inner-edge insertion, planar point movement, one dot, stable camera, stable dimension taps and equal handle dimensions');
+  assert.deepEqual(errors,[]);console.log('PASS '+width+'px: inner/rear/depth insertion, coupled front and rear edges, no duplicate dots, stable camera, stable dimension taps and equal handle dimensions');
   await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
