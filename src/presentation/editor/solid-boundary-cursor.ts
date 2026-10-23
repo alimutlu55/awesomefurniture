@@ -56,6 +56,7 @@ export function createSolidBoundaryCursor(screen: (p: Point) => Screen) {
   let cursor: Cursor = null, before: Cursor = null;
   return {
     location: (owner: string) => cursor?.owner === owner ? cursor.at : undefined,
+    place(owner: string, at: BoundaryLocation) { cursor = { owner, at: { ...at } }; },
     begin() { before = cursor && { owner: cursor.owner, at: { ...cursor.at } }; },
     cancel() { cursor = before; }, clear() { cursor = null; },
     move(owner: string, edges: readonly SolidEdge[], world: (p: SolidPoint) => Point, target: Screen, previous?: BoundaryLocation) {

@@ -21,6 +21,71 @@ const { createProject } = require('../src/domain/project/project.ts');
 const { serializeProject, deserializeProject } = require('../src/infrastructure/serialization/project-codec.ts');
 const close = (a, b, message = '') => assert.ok(Math.abs(a - b) < 1e-7, `${message}: ${a} != ${b}`);
 
+test('corner taps tolerate browser-coordinate roundoff without inserting microscopic segments', t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }); f.editor.select({ kind: 'wall', id: 'w1' });
+    const original = surfaceSolid(f.model.scene.studio, 'wall', 'w1'), count = original.sections[0].outline.length;
+    const at = { edge: 0, section: 0, fraction: 5e-10 }, target = original.world(solidPoint(original.edges, at));
+    const plus = f.editor.handles().find(h => h.kind === 'wall-split');
+    f.editor.click({ ...plus, ...target, boundary: at });
+    assert.equal(f.model.scene.studio.walls[0].outline.length, count);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'corner').length, 2);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'wall-point').length, 0);
+});
+
+test('the closing inner edge reuses its corner despite layout rounding on a short segment', t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }), solid = surfaceSolid(f.model.scene.studio, 'ceiling', 'k1');
+    const count = solid.sections[0].outline.length;
+    const at = { edge: count - 1, section: 0, fraction: 1 - 1.25e-7 };
+    const target = solid.world(solidPoint(solid.edges, at)), plus = f.editor.handles().find(h => h.kind === 'ceiling-split');
+    f.editor.click({ ...plus, ...target, boundary: at });
+    const c = f.model.scene.studio.ceilings[0];
+    assert.equal(c.outline.length, count);
+    assert.equal(c.outline[0].control, 0);
+    assert.equal(f.editor.handles().filter(h => h.kind === 'ceiling').length, 4);
+});
+
+test('genuine fractional insertions on tiny edges retain their full precision', t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }); f.editor.select({ kind: 'wall', id: 'w1' });
+    f.model.scene.studio.walls[0] = { ...f.model.scene.studio.walls[0], outline: [
+        { t: 0, y: 0 }, { t: .0001, y: 0 }, { t: 400, y: 0 }, { t: 400, y: 260 }, { t: 0, y: 260 },
+    ] };
+    const at = { edge: 0, section: 0, fraction: .123456789 }, solid = surfaceSolid(f.model.scene.studio, 'wall', 'w1');
+    const target = solid.world(solidPoint(solid.edges, at)), plus = f.editor.handles().find(h => h.kind === 'wall-split');
+    f.editor.click({ ...plus, ...target, boundary: at });
+    assert.equal(f.model.scene.studio.walls[0].outline.length, 6);
+    close(f.model.scene.studio.walls[0].outline[1].t, .0001 * at.fraction);
+});
+
+for (const shape of ['wall', ...CEILING_SHAPES.map(s => s.id)]) test(`${shape}: activating every inner rim, corner and depth edge keeps the plus where it was placed`, t => {
+    const f = roomRenderFixture(t, { wardrobes: 0 }), kind = shape === 'wall' ? 'wall' : 'ceiling';
+    if (kind === 'ceiling') f.model.scene.studio = addCeiling(f.model.scene.studio, 'w1', shape);
+    const id = kind === 'wall' ? 'w1' : f.model.scene.studio.ceilings[0].id;
+    f.editor.select({ kind, id });
+    const saved = f.model.snapshot(), original = surfaceSolid(f.model.scene.studio, kind, id);
+    for (const edge of original.edges) for (const fraction of [0, .37123456789, 1]) {
+        f.model.restore(saved); f.renderer.build();
+        const solid = surfaceSolid(f.model.scene.studio, kind, id), at = { ...edge.location, fraction };
+        const target = solid.world(solidPoint(solid.edges, at));
+        const plus = f.editor.handles().find(h => h.kind === kind + '-split');
+        const before = f.editor.handles().filter(h => ['corner', 'wall-point', 'ceiling'].includes(h.kind));
+        f.editor.click({ ...plus, ...target, boundary: at });
+        const current = f.editor.handles().find(h => h.kind === kind + '-split');
+        for (const axis of ['x', 'y', 'z']) close(current[axis], target[axis], `${edge.start} ${edge.end}: ${axis}`);
+        const controls = f.editor.handles().filter(h => ['corner', 'wall-point', 'ceiling'].includes(h.kind));
+        assert.ok(controls.length >= before.length && controls.length <= before.length + 1);
+        assert.equal(new Set(controls.map(h => h.key)).size, controls.length);
+        assert.ok(controls.some(h => Math.hypot(h.x - target.x, h.y - target.y, h.z - target.z) < 1e-7), 'a single usable 2D control reaches the chosen inner location');
+        const snapshot = f.model.snapshot(), checkpoints = f.checkpoints.length;
+        f.editor.click(current);
+        assert.equal(f.model.snapshot(), snapshot, 'tapping the same point cannot duplicate it');
+        assert.equal(f.checkpoints.length, checkpoints);
+        const repeated = f.editor.handles().find(h => h.kind === kind + '-split');
+        for (const axis of ['x', 'y', 'z']) close(repeated[axis], target[axis]);
+        const part = kind === 'wall' ? f.model.scene.studio.walls[0] : f.model.scene.studio.ceilings[0];
+        assert.equal(part.sections, undefined, 'activation never creates depth slices');
+    }
+});
+
 for (const kind of ['wall', 'ceiling']) for (const cut of ['outer', 'inner']) test(`${kind} ${cut}: one cut adds exactly one control at the chosen 3D point and moves no others`, t => {
     const f = roomRenderFixture(t, { wardrobes: 0 }), id = kind === 'wall' ? 'w1' : 'k1';
     f.editor.select({ kind, id }); f.renderer.build();

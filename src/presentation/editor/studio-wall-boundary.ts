@@ -1,6 +1,6 @@
-import { boundaryPoint } from '../../domain/geometry/boundary';
+import { boundaryPoint, type BoundaryLocation } from '../../domain/geometry/boundary';
 import { ceilingBoundary, moveSurfaceBoundaryPoint, wallBoundary } from '../../domain/studio/studio-boundary';
-import { wallFace, wallLine, type Studio, type StudioWall } from '../../domain/studio/studio';
+import { wallFace, wallLine, type Studio, type StudioWall, type StudioCorner } from '../../domain/studio/studio';
 import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { moveSolidBoundaryPoint, solidLocationPoint, surfaceSolid } from '../../domain/studio/studio-solid-boundary';
@@ -54,6 +54,14 @@ export function createWallBoundaryEditing(screen: (p: { x: number; y: number; z:
   return {
     begin: cursor.begin, cancel: cursor.cancel,
     clear: cursor.clear,
+    place(_room: Studio, h: RoomHandle, at: BoundaryLocation) { cursor.place(h.id, at); },
+    corner(room: Studio, w: StudioWall, c: StudioCorner): RoomHandle {
+      const base = wallBoundary(room, { ...w, outline: undefined })[c.id === w.a ? 0 : 1]!;
+      const point = wallBoundary(room, w).find(p => p.y === 0 && Math.abs(p.t - base.t) < 1e-8 && (p.control ?? -1) >= 0);
+      const at = point ? surfaceSolid(room, 'wall', w.id)!.world({ ...point, u: point.control! }) : c;
+      return { key: 'corner:' + c.id, kind: 'corner', id: c.id, x: at.x, y: 0, z: at.z,
+        label: 'Corner. Drag to move it; the walls that meet there follow' };
+    },
     handles(room: Studio, w: StudioWall): RoomHandle[] {
       const { points } = geometry(room, w), chosen = cursor.location(w.id);
       const sections = surfaceSolid(room, 'wall', w.id)!.sections;
@@ -69,7 +77,7 @@ export function createWallBoundaryEditing(screen: (p: { x: number; y: number; z:
       return out.filter(h => {
         if (h.kind !== 'wall-point') return true;
         const point = h.section === undefined ? points[h.index!] : sections[h.section]!.outline[h.index!];
-        return point?.control !== undefined && point.control >= 0 || !floor.some(p => Math.abs(p.t - point!.t) < 1e-8 && Math.abs(p.y - point!.y) < 1e-8);
+        return !floor.some(p => Math.abs(p.t - point!.t) < 1e-8 && Math.abs(p.y - point!.y) < 1e-8);
       });
     },
     move(room: Studio, h: RoomHandle, dx: number, dy: number) {

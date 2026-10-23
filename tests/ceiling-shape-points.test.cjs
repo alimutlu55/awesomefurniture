@@ -138,6 +138,7 @@ test('a plus touch area cannot cover a dot, and tapping the actual plus centre s
     assert.equal(middle.hasPointerCapture(1), true);
     middle.onpointermove(f.event('touch', 198, 375)); middle.onpointerup();
     assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, original - 20);
+    f.editor.nudge(f.editor.handles().find(h => h.kind === 'ceiling-split'), 'ArrowRight', true);
     const currentPlus = pluses(f)[0];
     currentPlus.getBoundingClientRect = () => ({ left: 175, top: 330, width: 30, height: 30 });
     currentPlus.onpointerdown(f.event('touch', 190, 345)); currentPlus.onpointerup();

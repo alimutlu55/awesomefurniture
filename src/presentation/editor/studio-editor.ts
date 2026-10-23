@@ -11,7 +11,7 @@ import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner,
 import { unitSuffix } from './editor-format.js';
 import { createCeilingSplitCursor } from './studio-ceiling-split';
 import { boundaryPointDrag, isBoundaryPoint, nudgeBoundaryPoint, createWallBoundaryEditing, wallRuler } from './studio-wall-boundary';
-import { splitSolidBoundary } from '../../domain/studio/studio-solid-boundary';
+import { insertProfilePoint } from './studio-split-action';
 import type { Carried } from '../../application/commands/studio-commands';
 
 type P = { x: number; z: number };
@@ -73,7 +73,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     if (!studio || !s || !w || !line) return [];
     const out: RoomHandle[] = [];
     if (s.kind === 'wall') {
-      for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
+      for (const c of [line.a, line.b]) out.push(wallSplitter.corner(studio, w, c));
       for (const c of [line.a, line.b]) {
         if (cornerDegree(studio, c.id) !== 1) continue;
         const sign = c.id === w.b ? 1 : -1;
@@ -322,9 +322,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   function click(h: RoomHandle) {
     if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index + (h.section === undefined ? '' : 's' + h.section));
     else if (h.kind === 'ceiling-split' || h.kind === 'wall-split') {
-      if (h.boundary!.fraction <= 0 || h.boundary!.fraction >= 1) return;
-      (h.kind === 'ceiling-split' ? splitter : wallSplitter).clear();
-      edit(s => splitSolidBoundary(s, h.kind === 'wall-split' ? 'wall' : 'ceiling', h.id, h.boundary!));
+      insertProfilePoint({ handle: h, room, edit, cursor: h.kind === 'ceiling-split' ? splitter : wallSplitter,
+        redraw: callbacks.redraw, screenPoint: picking.screenPoint });
     }
     else if (h.kind === 'extend') {
       const id = sceneCommands.addStudioWall(selectedWall()?.id);

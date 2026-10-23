@@ -119,20 +119,50 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    assert.equal(await page.locator('.room-handle.point').count(), kind === 'wall' ? 2 : part.profile.length, 'moving the plus does not add any black handles');
    assert.equal(await plus.evaluate(el => getComputedStyle(el).zIndex), '5');
    if (process.env.BOUNDARY_CUT) {
+    const activate = async () => {
+     const at = await centre(plus);
+     if (touch) await page.touchscreen.tap(at.x, at.y); else await page.mouse.click(at.x, at.y);
+     await page.waitForTimeout(100);
+    };
     const existing = await page.locator('.room-handle.point').evaluateAll(es => es.map(el => {
      const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
     }));
     const chosen = { x: inner.x + (next.x - inner.x) * .37, y: inner.y + (next.y - inner.y) * .37 };
     await start(); await move(inner, chosen);
     if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
-    // Keyboard activation invokes the same insertion without a touch area overlapping the new point.
-    await plus.dispatchEvent('click', { detail: 0 }); await page.waitForTimeout(100);
+    await activate();
     const actual = await page.locator('.room-handle.point').evaluateAll(es => es.map(el => {
      const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
     }));
     assert.equal(actual.length, existing.length + 1, 'one requested cut adds exactly one black handle');
     for (const p of existing) assert.ok(actual.some(q => Math.hypot(p.x - q.x, p.y - q.y) < .25), 'all original corner controls stay where they were');
     assert.ok(actual.some(p => Math.hypot(p.x - chosen.x, p.y - chosen.y) < .25), 'the one new point is at the chosen inner-rim location');
+    assert.ok(Math.hypot((await centre(plus)).x - chosen.x, (await centre(plus)).y - chosen.y) < .25, 'activating an inner edge must not reset the plus');
+    await activate();
+    assert.equal(await page.locator('.room-handle.point').count(), actual.length, 'repeated activation cannot duplicate the point');
+    assert.ok(Math.hypot((await centre(plus)).x - chosen.x, (await centre(plus)).y - chosen.y) < .25, 'an existing point must not send the plus back');
+    // Reproduce the rejected inner/depth corner action, not just cursor travel.
+    const controlledKey = kind === 'wall' ? 'corner:' + part.a : 'ceiling:' + part.id + ':0';
+    const others = await page.locator('.room-handle.point').evaluateAll((es, key) => es.filter(el => el.dataset.roomHandle !== key).map(el => {
+     const r = el.getBoundingClientRect(); return { key: el.dataset.roomHandle, x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }), controlledKey);
+    const depth = { x: inner.x + (outer.x - inner.x) * .37, y: inner.y + (outer.y - inner.y) * .37 };
+    for (const target of [depth, inner]) {
+     await start(); const current = await centre(plus); await move(current, inner); await move(inner, target);
+     if (touch) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); else await page.mouse.up();
+     await activate();
+     const cursor = await centre(plus), point = await centre(page.locator(`[data-room-handle="${controlledKey}"]`));
+     assert.ok(Math.hypot(cursor.x - target.x, cursor.y - target.y) < .25, 'the plus stays at the tapped inner corner');
+     if (Math.hypot(point.x - target.x, point.y - target.y) >= .25) {
+      await page.screenshot({ path: `/tmp/inner-action-failed-${shape}-${width}.png` });
+     }
+     assert.ok(Math.hypot(point.x - target.x, point.y - target.y) < .25, 'that corner has one working 2D control');
+     assert.equal(await page.locator('.room-handle.point').count(), actual.length);
+     for (const other of others) {
+      const now = await centre(page.locator(`[data-room-handle="${other.key}"]`));
+      assert.ok(Math.hypot(now.x - other.x, now.y - other.y) < .25, 'unrelated corners do not move');
+     }
+    }
    }
    await page.screenshot({ path: `/tmp/wardrobe-inner-corner-${shape}-${width}${process.env.BOUNDARY_ZOOM ? '-zoom' : ''}.png` });
    assert.deepEqual(errors, []);

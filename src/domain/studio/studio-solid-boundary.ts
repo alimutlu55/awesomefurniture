@@ -30,25 +30,24 @@ export function replaceSurfaceSections(room: Studio, kind: BoundarySurface, id: 
 }
 export function splitSolidBoundary(room: Studio, kind: BoundarySurface, id: string, at: BoundaryLocation): Studio | null {
   const solid = surfaceSolid(room, kind, id);
-  if (!solid || !solidPoint(solid.edges, at) || !Number.isFinite(at.fraction) || at.fraction <= 0 || at.fraction >= 1) return null;
+  const located = solid && solidPoint(solid.edges, at);
+  if (!solid || !located || !Number.isFinite(at.fraction) || at.fraction < 0 || at.fraction > 1) return null;
   const part = kind === 'wall' ? room.walls.find(w => w.id === id)! : room.ceilings!.find(c => c.id === id)!;
-  if (!at.across && !part.sections) return splitSurfaceBoundary(room, kind, id, at);
+  const corner = at.across || at.fraction === 0 || at.fraction === 1;
+  if (!corner && !part.sections) return splitSurfaceBoundary(room, kind, id, at);
   const sections = part.sections ? [...solid.sections] : solid.sections.map(s => ({ ...s, outline: controlledBoundary(room, kind, id) }));
-  if (at.across) {
-    const k = at.section ?? 0, a = sections[k], b = sections[k + 1];
-    if (!a || !b) return null;
-    const u = a.u + (b.u - a.u) * at.fraction;
-    // A depth edge reaches an existing 2D profile corner. Expose that corner once;
-    // never generate another depth ring or a second copy of an existing control.
-    if (sections.some(s => s.outline[at.edge]!.control !== -1)) return null;
-    const p = sections.at(-1)!.outline[at.edge]!;
-    if (kind === 'wall' && p.y === 0) return null;
-    const outline = sections.at(-1)!.outline.map((p, index) => index === at.edge ? { ...p, control: u } : p);
+  if (corner) {
+    const index = (at.edge + (!at.across && at.fraction === 1 ? 1 : 0)) % sections[0]!.outline.length;
+    const u = located.u, point = sections.at(-1)!.outline[index]!;
+    const ordinary = kind === 'ceiling' && room.ceilings!.find(c => c.id === id)!.run === 'across' ? .5 : 1;
+    if (point.control === u || point.control === undefined && u === ordinary) return null;
+    // Reuse this one logical corner at the chosen location. No new profile vertex or depth ring.
+    const outline = sections.at(-1)!.outline.map((p, k) => k === index ? { ...p, control: u } : p);
     if (!part.sections) return kind === 'wall'
       ? { ...room, template: 'custom', walls: room.walls.map(w => w.id === id ? { ...w, outline } : w) }
       : { ...room, template: 'custom', ceilings: room.ceilings?.map(c => c.id === id ? { ...c, outline, profile: lowerBoundary(outline) } : c) };
     return replaceSurfaceSections(room, kind, id, sections.map(s => ({ ...s,
-      outline: s.outline.map((p, index) => index === at.edge ? { ...p, control: u } : p) })));
+      outline: s.outline.map((p, k) => k === index ? { ...p, control: u } : p) })));
   } else {
     for (let k = 0; k < sections.length; k++) {
       const s = sections[k]!, a = s.outline[at.edge]!, b = s.outline[(at.edge + 1) % s.outline.length]!;

@@ -1,4 +1,5 @@
 import type { Studio } from '../../domain/studio/studio';
+import type { BoundaryLocation } from '../../domain/geometry/boundary';
 import type { RoomHandle } from './studio-editor.ports';
 import { surfaceSolid } from '../../domain/studio/studio-solid-boundary';
 import { solidPoint } from '../../domain/geometry/solid-boundary';
@@ -19,6 +20,7 @@ export function createCeilingSplitCursor(screen: (p: { x: number; y: number; z: 
   }
   return {
     location,
+    place(room: Studio, h: RoomHandle, at: BoundaryLocation) { update(room, h, () => cursor.place(h.id, at)); },
     position: (id: string) => lastPosition?.id === id && location(id) ? lastPosition.t : undefined,
     move(room: Studio, h: RoomHandle, dx: number, dy: number) {
       const origin = screen(h);
