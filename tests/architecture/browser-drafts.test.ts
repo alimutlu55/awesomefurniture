@@ -5,6 +5,8 @@ import { createProject } from '../../src/domain/project/project';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { sceneToProject } from '../../src/application/projects/editor-mapper';
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
+import { addCeiling } from '../../src/domain/studio/studio-ceiling';
+import { parseProject } from '../../src/infrastructure/serialization/project-codec';
 
 function storage(): Storage {
   const data = new Map<string, string>();
@@ -49,4 +51,58 @@ test('saving a scene after removing its room does not resurrect the previous roo
   const previous = { ...createProject('session', 'Room removal'), studio: rectangleStudio(400, 400) };
   const document = sceneToProject(previous, scene);
   assert.equal(document.studio, undefined); assert.ok(document.wardrobes.length);
+});
+
+function rolledBackDraft() {
+  const room = addCeiling(rectangleStudio(400, 400), 'w1', 'box')!;
+  const ceiling = room.ceilings![0]!;
+  const outline = [{ t: 100, y: 200 }, { t: 200, y: 200 }, { t: 200, y: 260 }];
+  const document = { ...createProject('kitchen', 'Kitchen'), studio: {
+    ...room, ceilings: [
+      { ...ceiling, id: 'retired-1', outline, sections: [{ u: 0, outline }, { u: 1, outline }] },
+      { ...ceiling, id: 'retired-2', outline },
+      ceiling,
+    ],
+  } };
+  return { document, expectedRevision: 362, savedAt: '2026-10-23T09:00:00.000Z' };
+}
+
+for (const entry of ['active', 'requested', 'library'] as const) {
+  test(`${entry}: rolled-back ceiling drafts reopen without changing the rest of the design`, () => {
+    const disk = storage(), value = rolledBackDraft(), raw = JSON.stringify(value);
+    const key = 'wardrobe:draft:owner:kitchen';
+    disk.setItem(key, raw); disk.setItem('wardrobe:active:owner', 'kitchen');
+    assert.throws(() => parseProject(value.document), /Unrecognized keys/);
+    const drafts = createBrowserDrafts(disk, 'owner');
+    if (entry === 'library') assert.equal(drafts.list()[0]?.name, 'Kitchen');
+    const recovered = entry === 'active' ? drafts.read() : drafts.read('kitchen');
+    const document = { ...value.document, studio: { ...value.document.studio, ceilings: [value.document.studio.ceilings[2]] } };
+    assert.deepEqual(recovered, { document, expectedRevision: 362 });
+    assert.deepEqual(JSON.parse(disk.getItem(key)!), { ...value, document });
+    const backup = 'wardrobe:recovery:owner:kitchen:before-ceiling-rollback';
+    assert.equal(disk.getItem(backup), raw);
+    assert.equal(drafts.list().length, 1, 'the backup never appears as another design');
+    assert.deepEqual(createBrowserDrafts(disk, 'owner').read(), recovered);
+    assert.equal(disk.getItem(backup), raw, 'reopening keeps the original backup');
+    assert.equal(createBrowserDrafts(disk, 'other').read('kitchen'), null);
+  });
+}
+
+test('ceiling recovery never hides other invalid fields or rewrites future formats', () => {
+  for (const change of [{ schemaVersion: 99 }, { selection: {} }, { name: '' }]) {
+    const disk = storage(), value = rolledBackDraft();
+    const raw = JSON.stringify({ ...value, document: { ...value.document, ...change } });
+    const key = 'wardrobe:draft:owner:kitchen'; disk.setItem(key, raw);
+    const drafts = createBrowserDrafts(disk, 'owner');
+    assert.throws(() => drafts.read('kitchen')); assert.deepEqual(drafts.list(), []);
+    assert.equal(disk.getItem(key), raw); assert.equal(disk.length, 1);
+  }
+});
+
+test('ceiling recovery retains the original if storing its backup fails', () => {
+  const disk = storage(), raw = JSON.stringify(rolledBackDraft());
+  const key = 'wardrobe:draft:owner:kitchen'; disk.setItem(key, raw);
+  disk.setItem = () => { throw new Error('Quota exceeded'); };
+  assert.throws(() => createBrowserDrafts(disk, 'owner').read('kitchen'), /Quota/);
+  assert.equal(disk.getItem(key), raw);
 });
