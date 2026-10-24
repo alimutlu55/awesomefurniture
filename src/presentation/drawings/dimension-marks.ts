@@ -33,9 +33,10 @@ export function dimensionMarks(d: Dimensions, paper: Paper, figures: Box[] = [])
   if (angle > 89.99) angle -= 180; else if (angle < -90.01) angle += 180;
   // Pool adjacent labels until their centres are far enough apart along the measured line.
   // This keeps short zone dimensions legible inside their own tier instead of spilling into the next row.
-  const labels = d.stops.slice(1).map((s1, k) => {
+  const quiet = new Set(d.quiet ?? []);
+  const labels = d.stops.slice(1).flatMap((s1, k) => {
     const s0 = d.stops[k]!, text = String(Math.round((s1 - s0) * 10) / 10);
-    return { text, mid: (s0 + s1) / 2, width: figureWidth(text) };
+    return quiet.has(k) ? [] : [{ text, mid: (s0 + s1) / 2, width: figureWidth(text), s0, s1, first: k === 0, last: k === d.stops.length - 2 }];
   });
   const spacing = labels.map(() => 0);
   labels.forEach((l, k) => { if (k) spacing[k] = spacing[k - 1]! + (labels[k - 1]!.width + l.width) / 2 + .6; });
@@ -50,6 +51,13 @@ export function dimensionMarks(d: Dimensions, paper: Paper, figures: Box[] = [])
   });
   const centres = labels.map(() => 0);
   for (const b of blocks) for (let k = b.first; k <= b.last; k++) centres[k] = (b.sum / b.count + spacing[k]!) * paper.scale;
+  // A figure that does not fit between its extension lines at either end of the string stands outside them (ISO 129-1),
+  // in line with the string, so it never sits on a tick.
+  labels.forEach((l, k) => {
+    if (Math.abs(l.s1 - l.s0) / paper.scale >= l.width + 1) return;
+    if (l.first) centres[k] = l.s0 - (l.width / 2 + 1.6) * paper.scale;
+    else if (l.last) centres[k] = l.s1 + (l.width / 2 + 1.6) * paper.scale;
+  });
   for (let k = 0; k < labels.length; k++) {
     const { text, mid: measured, width } = labels[k]!, position = centres[k]!;
     const c = at(position, off), half = width / 2, baseline = 2.2, mid = up(c, angle, baseline + fontOf('figure').size / 2), rad = angle * Math.PI / 180;

@@ -12,10 +12,51 @@ import { pieceFront } from './piece-front';
 import type { PlacedPiece } from './room-pieces';
 
 const at = (x: number, y: number): P => ({ x: mm(x), y: mm(y) });
-const vertical = (x: number, values: readonly number[], side: 1 | -1, row = 0): Item =>
-  ({ kind: 'dims', origin: at(x, 0), dir: { x: 0, y: 1 }, side, clear: 0, row, stops: stops(values.map(mm)) });
-const across = (y: number, values: readonly number[], side: 1 | -1, row = 0): Item =>
-  ({ kind: 'dims', origin: at(0, y), dir: { x: 1, y: 0 }, side, clear: 0, row, stops: stops(values.map(mm)) });
+const vertical = (x: number, values: readonly number[], side: 1 | -1, row = 0, quiet?: readonly number[]): Item =>
+  ({ kind: 'dims', origin: at(x, 0), dir: { x: 0, y: 1 }, side, clear: 0, row, stops: stops(values.map(mm)), ...(quiet ? { quiet } : {}) });
+const across = (y: number, values: readonly number[], side: 1 | -1, row = 0, quiet?: readonly number[]): Item =>
+  ({ kind: 'dims', origin: at(0, y), dir: { x: 1, y: 0 }, side, clear: 0, row, stops: stops(values.map(mm)), ...(quiet ? { quiet } : {}) });
+
+/** A gap between two fronts up to this wide is a joint: stated once in the legend, not dimensioned (millimetres). */
+const JOINT = 12;
+
+/** One string through the ends of `spans` (centimetres): only the spans carry a figure; what lies between them (joints,
+ * board thicknesses) keeps its ticks but is silent, so no figure is written into a space too small for it. */
+function chain(draw: (values: readonly number[], quiet: readonly number[]) => Item, spans: readonly (readonly [number, number])[]): Item[] {
+  const real = spans.filter(([a, b]) => mm(b) > mm(a));
+  if (!real.length) return [];
+  const ends = stops(real.flatMap(([a, b]) => [mm(a), mm(b)])), measured = new Set(real.map(([a, b]) => mm(a) + ':' + mm(b)));
+  const quiet = ends.slice(1).flatMap((e, k) => measured.has(ends[k]! + ':' + e) ? [] : [k]);
+  return [draw(ends.map(v => v / 10), quiet)];
+}
+
+/** Where the fronts are, as one string: each front's own size, and the distance to the edge before, after and between
+ * them where it is more than a joint. Returns the spans (centimetres) and the joints it left out (millimetres). */
+function frontSpans(ranges: readonly (readonly [number, number])[], lo: number, hi: number) {
+  const sorted = [...new Map(ranges.map(r => [mm(r[0]) + ':' + mm(r[1]), r] as const)).values()].sort((a, b) => a[0] - b[0]);
+  const spans: [number, number][] = [], joints: number[] = [];
+  let at = lo;
+  for (const [a, b] of sorted) {
+    const gap = mm(a) - mm(at);
+    if (gap > 0 && (at === lo || gap > JOINT)) spans.push([at, a]); else if (gap > 0) joints.push(gap);
+    spans.push([a, b]); at = Math.max(at, b);
+  }
+  if (mm(hi) - mm(at) > 0) spans.push([at, hi]);
+  return { spans, joints };
+}
+
+/** The clear spaces between boards (centimetres): from `lo` up to `hi`, minus every board's thickness. */
+function clearSpaces(boards: readonly (readonly [number, number])[], lo: number, hi: number): [number, number][] {
+  const spans: [number, number][] = [];
+  let at = lo;
+  for (const [a, b] of [...boards].sort((p, q) => p[0] - q[0])) {
+    if (a >= hi - .001) break;
+    if (mm(a) - mm(at) > 0) spans.push([at, a]);
+    at = Math.max(at, b);
+  }
+  if (mm(hi) - mm(at) > 0) spans.push([at, hi]);
+  return spans;
+}
 
 /** The boards of a piece, as cut: a cabinet's carcass, shelves and fronts; a wall shelf's one board; nothing for a sink
  * or hob (they are bought). Centimetres, from the piece's left face, bottom and back. */
@@ -44,7 +85,8 @@ function frontView(p: PlacedPiece, boards: readonly Board[]): Item[] {
   for (const b of fronts) out.push({ ...note(at((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2 - 4), mm(b.x1 - b.x0) + ' × ' + mm(b.y1 - b.y0)), small: true });
   const top = Math.max(...resolveShape(p.design).top.map(q => q.y));
   if (fronts.length) {
-    out.push(across(0, [0, p.design.w, ...fronts.flatMap(b => [b.x0, b.x1])], -1, 0), vertical(0, [0, top, ...fronts.flatMap(b => [b.y0, b.y1])], 1, 0));
+    const across_ = frontSpans(fronts.map(b => [b.x0, b.x1] as const), 0, p.design.w), up = frontSpans(fronts.map(b => [b.y0, b.y1] as const), 0, top);
+    out.push(...chain((v, q) => across(0, v, -1, 0, q), across_.spans), ...chain((v, q) => vertical(0, v, 1, 0, q), up.spans));
   }
   out.push(across(0, [0, p.design.w], -1, fronts.length ? 1 : 0), vertical(0, [0, top], 1, fronts.length ? 1 : 0));
   return out;
@@ -76,22 +118,23 @@ function insideView(p: PlacedPiece, boards: readonly Board[]): Item[] {
   }
   if (isKitchen(d)) for (const f of fronts) out.push(rect(mm(f.x0), mm(f.y0), mm(f.x1), mm(f.y1), 'hidden'), { ...note(at((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2), f.name.replace(/ (door|front)$/, '')), small: true });
   const geometry = createWardrobeGeometry(() => ({ ...d, sel: 0, item: -1, divider: -1, space: null })), widths = geometry.widths(), lift = plinthOf(d), iy = lift + PANEL;
-  const edges = [0, PANEL];
+  const clearWidths: Item[] = [];
   let bayL = PANEL;
   widths.forEach((sw, i) => {
     const bayCorners = cornerPullouts.filter(c => c.bayIndex === i);
-    for (const c of bayCorners) edges.push(c.trays[0]!.base.x0, c.post.x, c.trays[0]!.base.x1);
-    edges.push(bayL + sw, bayL + sw + PANEL);
-    // Up each section: the boards or corner pull-out trays in it, from the base board to the underside of the top.
+    // Across each section: its clear width between the boards, split where a corner pull-out's parts stand.
+    const cornerEdges = bayCorners.flatMap(c => [c.trays[0]!.base.x0, c.post.x, c.trays[0]!.base.x1]);
+    clearWidths.push(across(0, [bayL, ...cornerEdges, bayL + sw], -1, 0));
+    // Up each section: the clear heights between the boards or corner pull-out trays in it, from the base board to the top.
     const inBay = carcass.filter(b => b.x0 >= bayL - .01 && b.x1 <= bayL + sw + .01 && b.y0 > iy - .01 && b.name !== 'Side');
-    const trayStops = bayCorners.flatMap(c => c.trays.map(t => t.y));
-    if (inBay.length || trayStops.length) {
-      out.push(vertical(bayL, [iy, iy + geometry.ceilingTop(i, 0, sw), ...inBay.flatMap(b => [b.y0, b.y1]), ...trayStops], -1));
+    const trays = bayCorners.flatMap(c => c.trays.map(t => [t.base.y0, t.base.y1] as const));
+    if (inBay.length || trays.length) {
+      out.push(...chain((v, q) => vertical(bayL, v, -1, 0, q), clearSpaces([...inBay.map(b => [b.y0, b.y1] as const), ...trays], iy, iy + geometry.ceilingTop(i, 0, sw))));
     }
     bayL += sw + PANEL;
   });
   const top = Math.max(...resolveShape(d).top.map(q => q.y)), cut = PANEL + widths[0]! / 2;
-  out.push(across(0, edges, -1, 0), across(0, [0, d.w], -1, 1), vertical(0, [0, lift, iy, top - PANEL, top], 1, 0));
+  out.push(...clearWidths, across(0, [0, d.w], -1, 1), ...chain((v, q) => vertical(0, v, 1, 0, q), [[0, lift], [iy, top - PANEL]]), vertical(0, [0, top], 1, 1));
   out.push(line(at(cut, -8), at(cut, top + 8), 'centre'), { kind: 'view-mark', at: at(cut, top + 14), dir: { x: 1, y: 0 }, text: 'A' });
   return out;
 }
@@ -127,10 +170,10 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
   const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null, front = Math.max(d.d, ...cutThrough.map(b => b.z1));
   // Depth: the back board, where shelves or swing-out trays sit, the carcass front, the fronts' face.
   const trayDepths = sectionCorners.flatMap(c => [c.trays[0]!.base.z0, c.trays[0]!.base.z1]);
-  const depths = [0, BACK_PANEL, ...(kitchen ? trayDepths : [fittingDepth(d.d).z1]), d.d, front], heights = [0, plinthOf(d), plinthOf(d) + PANEL, top - PANEL, top];
+  const depths = [0, BACK_PANEL, ...(kitchen ? trayDepths : [fittingDepth(d.d).z1]), d.d, front];
   if (unit?.worktop) {
     out.push(rect(0, mm(d.h), mm(d.d + WORKTOP.overhang), mm(d.h + worktopThickness(d)), 'cut', 'hatch'));
-    depths.push(d.d + WORKTOP.overhang); heights.push(d.h + worktopThickness(d));
+    depths.push(d.d + WORKTOP.overhang);
   }
   if (unit?.plinth) {
     const z = d.d - KITCHEN_PLINTH_SETBACK;
@@ -138,10 +181,31 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
     depths.push(z);
   }
   // Heights: the carcass build-up and the top of each shelf or swing-out tray cut through, set out from the floor.
-  const shelves = cutThrough.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => heightsAt(b, cx)[1]).filter(y => y > plinthOf(d) + PANEL + .5 && y < top - PANEL - .5);
-  const trayHeights = sectionCorners.flatMap(c => c.trays.map(t => t.y));
-  out.push(across(0, depths, -1, 0), across(0, [0, front], -1, 1), vertical(0, [...heights, ...shelves, ...trayHeights], 1, 0));
+  const lift = plinthOf(d), shelves = cutThrough.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => heightsAt(b, cx)).filter(([lo, hi]) => lo > lift + PANEL - .05 && hi < top - PANEL + .05);
+  const trays = sectionCorners.flatMap(c => c.trays.map(t => [t.base.y0, t.base.y1] as const));
+  const highest = unit?.worktop ? d.h + worktopThickness(d) : top;
+  out.push(across(0, depths, -1, 0), across(0, [0, front], -1, 1),
+    ...chain((v, q) => vertical(0, v, 1, 0, q), [[0, lift], ...clearSpaces([...shelves, ...trays], lift + PANEL, top - PANEL), ...(unit?.worktop ? [[d.h, highest] as const] : [])]),
+    vertical(0, [0, highest], 1, 1));
   return out;
+}
+
+/** What the figures on a shop sheet mean, written once on the sheet (ISO 129-1: say what a number measures and do not
+ * repeat a size that is the same everywhere). Board thicknesses and the joints between fronts are not strings of their own. */
+export function unitDetailLegend(p: PlacedPiece): string[] {
+  const boards = pieceBoards(p), d = p.design, top = Math.max(...resolveShape(d).top.map(q => q.y));
+  const thick = [...new Set(boards.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => mm(b.cut.thickness)))].sort((a, b) => b - a);
+  const fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
+  const joints = fronts.length ? [...new Set([...frontSpans(fronts.map(b => [b.x0, b.x1] as const), 0, d.w).joints, ...frontSpans(fronts.map(b => [b.y0, b.y1] as const), 0, top).joints])].sort((a, b) => a - b) : [];
+  const back = mm(BACK_PANEL), shelf = mm(fittingDepth(d.d).z1 - BACK_PANEL), setback = mm(d.d - fittingDepth(d.d).z1);
+  const stated = 'All dimensions in mm · boards ' + (thick.join(' / ') || '—') + ' mm thick, not repeated in the strings';
+  const joined = joints.length ? ' · joints between fronts ' + joints.join(' / ') + ' mm, not dimensioned' : '';
+  const depth = isKitchen(d) ? 'back board, shelf depth, carcass depth, then front, worktop and plinth setbacks' : back + ' back board + ' + shelf + ' shelf depth + ' + setback + ' shelf setback';
+  return [
+    stated + joined + ' · clear = between board faces',
+    'Front: sizes of each front, from the floor up and across · Inside: clear width of each section (below), clear height between boards (in the section), overall at the outer string'
+      + ' · Section A–A: clear heights as Inside; depth, back to front: ' + depth,
+  ];
 }
 
 /** A piece's detail views for making it: Front, Inside and Section A–A, at one scale. */

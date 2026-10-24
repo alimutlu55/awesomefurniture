@@ -6,7 +6,7 @@ import { planClearances } from './plan-clearances';
 import { planView } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
 import { designChecks } from './checks';
-import { unitDetailViews } from './unit-detail';
+import { unitDetailLegend, unitDetailViews } from './unit-detail';
 import { cuttingList } from './cutting-list';
 import { hardwareList } from './hardware-list';
 import { applianceDetailSheets } from './appliance-details';
@@ -73,7 +73,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   }
   // Shop drawings: each cabinet and wardrobe on its own sheet, to make it from.
   for (const p of pieces.filter(q => !q.fixture)) {
-    sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), views: unitDetailViews(p), pieces: [row(p, letters)], checks: about([p.mark]) });
+    sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), legend: unitDetailLegend(p), views: unitDetailViews(p), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
   const appliances = applianceSchedule(studio, pieces);

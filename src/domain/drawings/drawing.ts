@@ -47,6 +47,9 @@ export interface Dimensions {
   readonly side: 1 | -1;
   readonly clear: number;
   readonly row: number;
+  /** Segments (stop k to stop k+1) that keep their ticks but carry no figure: a board's thickness or a joint, stated once
+   * in the sheet's legend instead of crowding the string. */
+  readonly quiet?: readonly number[];
 }
 /** Where an elevation is seen from, marked on the plan: a pointer at `at` looking along `dir`, with the
  * elevation's letter. */

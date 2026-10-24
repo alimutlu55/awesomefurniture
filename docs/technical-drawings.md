@@ -64,6 +64,15 @@ Screen and PDF share paper marks; viewport zoom/scroll cannot crop the exported 
    shelf supports, handles, legs under kitchen floor units, hangers for wall units, anti-tip brackets for
    tall pieces.
 
+**Dimensioning on shop sheets (ISO 129-1 practice).** A string measures what the maker sets out, never every board:
+*Front* gives each front's size and its distance from the edges, *Inside* the clear width of each section and the clear height
+between boards, *Section A–A* the same clear heights (so the two views always agree) and the depth build-up back to front, and
+each view an overall size on its outermost string. Board thicknesses and the joints between fronts are not strings of their own:
+they are silent segments (`quiet` in `Dimensions`, ticks kept, no figure) and are stated once in the sheet's legend
+(`unitDetailLegend`), together with what each string means. A figure too short for its segment at either end of a string stands
+outside the extension line, in line with the string, instead of on a tick. Figures are 3.5 mm (cap height at least 2.5 mm, ISO 3098).
+`scripts/render-unit-sheet.mjs <out.png> [wardrobe|two-section|kitchen]` renders a shop sheet for review.
+
 Separate cabinet and review schedules list sizes, mounting heights and findings. The title strip
 summarizes the marks and directs readers to those schedules. Review findings cover: pieces that overlap, a piece in front of a window or door at its height, a
 piece running past the end of its wall or taller than it, narrow aisles, and opening envelopes meeting

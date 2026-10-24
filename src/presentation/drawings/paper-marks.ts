@@ -25,7 +25,7 @@ export const HATCH = { gap: 1.4, width: .13, colour: [51, 51, 51] } as const;
 
 /** Lettering: size is the font size (em) in paper millimetres; Helvetica, regular or bold. */
 export const FONTS = {
-  figure: { size: 3.2 }, note: { size: 3 }, small: { size: 2.4, colour: [68, 68, 68] }, check: { size: 2.9, bold: true, colour: [179, 38, 30] },
+  figure: { size: 3.5 }, note: { size: 3 }, small: { size: 2.4, colour: [68, 68, 68] }, check: { size: 2.9, bold: true, colour: [179, 38, 30] },
   tag: { size: 2.9, bold: true }, mark: { size: 3.4, bold: true }, key: { size: 2.2, colour: [85, 85, 85] }, value: { size: 3.4 },
   project: { size: 5, bold: true }, heading: { size: 4.2, bold: true }, scale: { size: 3.2 }, list: { size: 2.7 }, listMark: { size: 2.7, bold: true },
   caption: { size: 3.6, bold: true }, head: { size: 3, bold: true }, cell: { size: 3 },
