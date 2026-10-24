@@ -43,14 +43,24 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         }
         return Math.min(1, frac) * r.width / 2;
     }
+    /** Where the desktop panel ends, from the view's left edge: it floats over the canvas. 340 when it cannot be measured. */
+    function panelRight() {
+        try {
+            const panel = $('#left')?.getBoundingClientRect?.(), view = $('#view').getBoundingClientRect();
+            const right = panel && panel.width > 0 ? panel.right - (view.left ?? 0) : NaN;
+            return $('#app').classList.contains('props-open') && Number.isFinite(right) ? Math.max(0, right) : 340;
+        } catch { return 340; }
+    }
+    /** Clear of the panel by this much, so a handle on the model's edge (shape corners, about 26 px) is never under it. */
+    const PANEL_GAP = 36;
     // Desktop inspector gently offsets the camera so the model is centered in the remaining view.
     function baseShift(g) {
         if (cameraState.initialCameraFraming || dom.width <= 900) return 0;
         const hasLeft = $('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show');
         if (!hasLeft) return 0;
-        const left = 340, fallback = left / 2;
+        const left = panelRight(), fallback = left / 2;
         try {
-            const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = 24, lo = left + gap - (W / 2 - half), hi = W - gap - (W / 2 + half);
+            const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = PANEL_GAP, lo = left + gap - (W / 2 - half), hi = W - gap - (W / 2 + half);
             if (!Number.isFinite(half) || half <= 0) return fallback;
             if (lo > hi) return (lo + hi) / 2;
             return Math.max(lo, Math.min(hi, fallback));
@@ -74,7 +84,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function availableRoom() {
         const r = $('#view').getBoundingClientRect(), desktop = dom.width > 900;
         const hasLeft = desktop && ($('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show'));
-        return { w: Math.max(160, r.width - (hasLeft ? 360 : 28)), h: Math.max(140, r.height - (desktop ? 140 : 115)) };
+        return { w: Math.max(160, r.width - (hasLeft ? panelRight() + 2 * PANEL_GAP : 28)), h: Math.max(140, r.height - (desktop ? 140 : 115)) };
     }
     /** @param {import('./camera-types').CameraPose} from
      * @param {import('./camera-types').CameraPose} to
@@ -197,6 +207,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     function frameMobileInspector(selected = false, resizing = false) {
         cameraState.camHome = cameraState.camRestore = null;
+        // An editing panel frames the model beside it: the opening view is over.
+        cameraState.initialCameraFraming = false;
         cameraState.vsT = dom.width > 900 ? baseShift() : 0;
         cameraState.vzT = 1;
         const goal = camFront();
