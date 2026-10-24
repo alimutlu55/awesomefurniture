@@ -72,7 +72,7 @@ for (const entry of ['active', 'requested', 'library'] as const) {
     const disk = storage(), value = rolledBackDraft(), raw = JSON.stringify(value);
     const key = 'wardrobe:draft:owner:kitchen';
     disk.setItem(key, raw); disk.setItem('wardrobe:active:owner', 'kitchen');
-    assert.throws(() => parseProject(value.document), /Unrecognized keys/);
+    assert.throws(() => parseProject(value.document), /Unrecognized key/);
     const drafts = createBrowserDrafts(disk, 'owner');
     if (entry === 'library') assert.equal(drafts.list()[0]?.name, 'Kitchen');
     const recovered = entry === 'active' ? drafts.read() : drafts.read('kitchen');
@@ -87,6 +87,17 @@ for (const entry of ['active', 'requested', 'library'] as const) {
     assert.equal(createBrowserDrafts(disk, 'other').read('kitchen'), null);
   });
 }
+
+test('a draft with shaped ceilings (outlines) reopens with every shape kept', () => {
+  const room = addCeiling(addCeiling(rectangleStudio(400, 400), 'w1', 'pillar')!, 'w2', 'stepped')!;
+  const document = { ...createProject('shaped', 'Shaped'), studio: room };
+  const disk = storage(), key = 'wardrobe:draft:owner:shaped';
+  disk.setItem(key, JSON.stringify({ document, expectedRevision: 3 }));
+  const read = createBrowserDrafts(disk, 'owner').read('shaped')!;
+  assert.equal(read.document.studio?.ceilings?.length, 2);
+  assert.ok(read.document.studio?.ceilings?.every(c => c.outline));
+  assert.equal(disk.getItem('wardrobe:recovery:owner:shaped:before-ceiling-rollback'), null, 'nothing to recover');
+});
 
 test('ceiling recovery never hides other invalid fields or rewrites future formats', () => {
   for (const change of [{ schemaVersion: 99 }, { selection: {} }, { name: '' }]) {

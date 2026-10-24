@@ -35,8 +35,13 @@ export function createBrowserDrafts(storage: Storage, scope: string) {
     const value = JSON.parse(raw) as { document: unknown; expectedRevision: unknown; savedAt?: string };
     const revision = value.expectedRevision;
     if (revision !== null && (!Number.isInteger(revision) || Number(revision) < 1)) throw new Error('Invalid recovery revision.');
-    const recovered = withoutRetiredCeilings(value.document);
-    const document = parseProject(recovered);
+    // Shaped ceilings now save an outline too: recover only drafts that do not read as they are.
+    let recovered = value.document, document: ReturnType<typeof parseProject>;
+    try { document = parseProject(recovered); } catch (error) {
+      recovered = withoutRetiredCeilings(value.document);
+      if (recovered === value.document) throw error;
+      document = parseProject(recovered);
+    }
     if (recovered !== value.document) {
       // Preserve the complete original before replacing only the incompatible draft.
       const suffix = object(value.document) && value.document.schemaVersion === 2 ? 'before-ceiling-shape-rollback' : 'before-ceiling-rollback';
