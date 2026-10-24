@@ -36,7 +36,7 @@ The older Studio handoff is useful background but has stale behavior description
 
 ### Studio navigation
 
-Keep the current Studio/Furniture switch. Studio's unselected toolbar becomes **Walls · Shapes · Fixtures**, followed by its existing history controls. Fixtures opens the shared catalog UI, with these groups as the library grows:
+Keep the current Studio/Furniture switch. Studio's unselected toolbar becomes **Walls · Ceiling · Fixtures**, followed by its existing history controls. The latest develop branch renamed Shapes to Ceiling; Fixtures keeps that name. Fixtures opens the shared catalog UI, with these groups as the library grows:
 
 | Catalog group | Contents |
 | --- | --- |
