@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 const {deflateRawSync}=require('node:zlib');
 const {chromium}=require('playwright');
+const {selectFurniture}=require('./lib/select-furniture.cjs');
 const {createEditorState}=require('../src/application/projects/editor-state.ts');
 const {createDesignCommands}=require('../src/application/commands/design-commands.ts');
 const {sceneToProject}=require('../src/application/projects/editor-mapper.ts');
@@ -17,10 +18,12 @@ const {serializeProject}=require('../src/infrastructure/serialization/project-co
   const packed=deflateRawSync(serializeProject(project)).toString('base64url');
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#design='+packed);
   const el=id=>page.locator(`[data-editor-id="${id}"]`),bar=el('toolbar'),add=()=>page.locator('.lbl.add:visible');
-  await page.locator('.scrub-h:visible').waitFor();await page.waitForTimeout(450);
-  const v=await el('view').boundingBox(),h=await page.locator('.scrub-h:visible').boundingBox();
-  await page.mouse.click(v.x+v.width*.7,h.y+h.height/2);await page.waitForTimeout(400);
+  // A design opens with nothing chosen: a tap on the wardrobe chooses it.
+  await page.waitForTimeout(450);await selectFurniture(page);const v=await el('view').boundingBox();
   assert.equal(await bar.getAttribute('data-context'),'wardrobe');await add().waitFor();
+  // On a large desktop window the compartments stay wider than the pill even fully zoomed out (the pill then keeps
+  // its size, as it should); a smaller desktop window shows the scaling with the mouse wheel.
+  if(width>900){await page.setViewportSize({width:760,height:520});await page.waitForTimeout(500);}
   const before=await add().boundingBox();
   await page.mouse.move(v.x+20,v.y+v.height*.3);
   if(width===375){
@@ -32,12 +35,14 @@ const {serializeProject}=require('../src/infrastructure/serialization/project-co
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx-half,y:cy,id:1},{x:cx+half,y:cy,id:2}]});await page.waitForTimeout(50);
    }
    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  }else for(let n=0;n<5;n++){await page.mouse.wheel(0,240);await page.waitForTimeout(150);}
+  }else for(let n=0;n<14&&(await add().boundingBox()).width>=before.width*.8;n++){await page.mouse.wheel(0,240);await page.waitForTimeout(150);}
   await page.waitForTimeout(500);const after=await add().boundingBox();
   assert.ok(after.width<before.width*.8,'Zooming out shrinks the whole pill: '+JSON.stringify({width,before,after}));
   assert.ok(after.height<before.height*.8);assert.ok(after.width>0);
   await page.screenshot({path:`/tmp/wardrobe-canvas-add-zoom-${width}.png`});
-  for(let n=0;n<5;n++){await page.mouse.wheel(0,-240);await page.waitForTimeout(150);}await page.waitForTimeout(450);
+  if(width>900){await page.setViewportSize({width,height:812});await page.waitForTimeout(500);}
+  // Back in until the pill is full size again (a desktop view frames the wardrobe larger, so it took more steps out).
+  for(let n=0;n<14&&(await add().boundingBox()).width<before.width-.5;n++){await page.mouse.wheel(0,-240);await page.waitForTimeout(150);}await page.waitForTimeout(450);
   if(width===375)await add().tap();else await add().click();
   await el('pop2').waitFor({state:'visible'});await el('px').click();await page.waitForTimeout(300);await add().waitFor();
   await bar.locator('[data-action="resize"]').click();await page.waitForTimeout(300);

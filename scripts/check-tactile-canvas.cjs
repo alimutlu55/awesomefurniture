@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
+const {selectFurniture}=require('./lib/select-furniture.cjs');
 const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
@@ -10,34 +11,25 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   const spec={specVersion:1,wardrobes:[{width:200,height:230,depth:60}]};
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
   const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
-  await page.locator('.scrub-w:visible').waitFor();await page.waitForTimeout(500);
+  // A design opens with nothing chosen: a tap on the wardrobe chooses it and its measurements show.
+  await page.waitForTimeout(500);await selectFurniture(page,{touch:pointer==='touch'});await page.locator('.scrub-w:visible').waitFor();
   const before=await report();
-  const drag=async(key,dx,dy=0,cancel=false)=>{
-   const target=page.locator(`[data-scrub-dimension="${key}"]:visible`),box=await target.boundingBox();
-   const x=box.x+box.width/2,y=box.y+box.height/2;
+  // Measurements on the model are read-only: dragging one never resizes (sizes are changed in Size).
+  {
+   const b=await page.locator('[data-scrub-dimension="w"]:visible').boundingBox(),x=b.x+b.width/2,y=b.y+b.height/2;
    if(pointer==='touch'){
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
-    for(let n=1;n<=10;n++){
-     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*n/10,y:y+dy*n/10,id:1}]});await page.waitForTimeout(20);
-    }
-    assert.ok(await el('app').getAttribute('data-scrubbing'));assert.equal(await el('toolbar').isVisible(),false);
-    await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
+    for(let n=1;n<=10;n++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+4*n,y,id:1}]});await page.waitForTimeout(20);}
+    assert.equal(await el('app').getAttribute('data-scrubbing'),null,'No measurement scrub starts');
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
    }else{
-    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+dx,y+dy,{steps:10});await page.waitForTimeout(150);
-    assert.ok(await el('app').getAttribute('data-scrubbing'));
-    if(cancel){await el('labels').dispatchEvent('pointercancel',{pointerId:1});await page.mouse.move(x,y);}
-    await page.mouse.up();
+    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+40,y,{steps:10});
+    assert.equal(await el('app').getAttribute('data-scrubbing'),null,'No measurement scrub starts');await page.mouse.up();
    }
-   await page.waitForTimeout(350);assert.equal(await el('app').getAttribute('data-scrubbing'),null);
-  };
-  await drag('w',40);const grown=await report();assert.equal(grown.wardrobes[0].width,214);
-  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(300);assert.deepEqual(await report(),before,'One undo restores the whole scrub');
-  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(300);assert.deepEqual(await report(),grown);
-  await drag('w',-25,0,true);assert.deepEqual(await report(),grown,'Cancellation restores width and contents');
-  await drag('d',25);assert.equal((await report()).wardrobes[0].depth,69);
-  await drag('h',0,-20);assert.equal((await report()).wardrobes[0].height,237);
-  const wLabel=page.locator('.scrub-w:visible');await wLabel.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(250);
-  assert.equal((await report()).wardrobes[0].width,215,'Keyboard accesses the same dimension');await wLabel.blur();
+   await page.waitForTimeout(350);
+   assert.deepEqual((await report()).wardrobes.map(w=>[w.width,w.height,w.depth]),before.wardrobes.map(w=>[w.width,w.height,w.depth]),'Dragging a measurement does not resize');
+   if(!/wardrobe/.test(await el('toolbar').getAttribute('data-context')||''))await selectFurniture(page,{touch:pointer==='touch'});
+  }
   // Both touches start in the same bay, away from the dimension labels.
   const box=await el('view').boundingBox(),hBadge=await page.locator('.scrub-h:visible').boundingBox();
   const x=box.x+box.width*.5,y=hBadge.y+hBadge.height/2;
@@ -75,8 +67,9 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await accordion(80);const addedShelves=await waitShelves(2);assert.notDeepEqual(addedShelves,initialShelves,'Spreading adds shelves');
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(300);assert.deepEqual(await waitShelves(0),initialShelves,'One undo removes all new shelves');
   await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(300);assert.deepEqual(await waitShelves(2),addedShelves);
-  await accordion(80,true);assert.deepEqual(await shelves(),addedShelves,'Cancelled spread keeps the committed shelves');
-  await accordion(80,'third');assert.deepEqual(await shelves(),addedShelves,'A third finger cancels the preview without editing');
+  // Drafts save asynchronously: wait for the saved design to settle before reading it.
+  await accordion(80,true);await page.waitForTimeout(600);assert.deepEqual(await waitShelves(2),addedShelves,'Cancelled spread keeps the committed shelves');
+  await accordion(80,'third');await page.waitForTimeout(600);assert.deepEqual(await waitShelves(2),addedShelves,'A third finger cancels the preview without editing');
   // A pinch removes one board; its initial separation leaves room to pinch.
   await accordion(-40);assert.notDeepEqual(await waitShelves(1),addedShelves,'Pinching removes a shelf board');
   // A pinch that starts moving at once in one bay zooms: it never edits shelves.
@@ -84,14 +77,22 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    const before=await report();
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-30,id:1}]});
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y-30,id:1},{x,y:y+30,id:2}]});
+   // It moves at once: the first step is already past the 8 px a resting finger may drift.
    for(let n=1;n<=8;n++){
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-30-5*n,id:1},{x,y:y+30+5*n,id:2}]});await page.waitForTimeout(20);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-30-5-5*n,id:1},{x,y:y+30+5+5*n,id:2}]});await page.waitForTimeout(20);
    }
    assert.equal(await el('app').getAttribute('data-accordion'),null,'A moving pinch in one bay stays with the camera');
    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(400);
    assert.deepEqual(await report(),before,'A zoom inside a bay does not edit shelves');
   }
-  const designBeforeZoom=await report(),labelBeforeZoom=await page.locator('.scrub-w:visible').boundingBox();
+  // The shelf gestures leave a bay chosen: back to the whole wardrobe, whose width label shows where the camera is.
+  if(!await page.locator('.scrub-w:visible').count()){
+   for(let n=0;n<3;n++){await el('c').focus();await page.keyboard.press('Escape');await page.waitForTimeout(200);}
+   await selectFurniture(page,{touch:pointer==='touch'});await page.locator('.scrub-w:visible').waitFor();await page.waitForTimeout(400);
+  }
+  // Where the measurements are on screen: the camera moved if they did.
+  const labelsAt=()=>page.locator('.lbl.dim').evaluateAll(es=>es.filter(e=>e.offsetParent).map(e=>{const r=e.getBoundingClientRect();return {t:e.textContent,x:r.x,y:r.y};}));
+  const designBeforeZoom=await report(),labelsBeforeZoom=await labelsAt();
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:30,y:100,id:1},{x:90,y:100,id:2}]});
   assert.equal(await el('app').getAttribute('data-accordion'),null,'Outside-bay pinches stay with the camera');
   for(let n=1;n<=8;n++){
@@ -99,12 +100,12 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   }
   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(350);
   assert.deepEqual(await report(),designBeforeZoom,'Camera zoom cannot edit the design');
-  const labelAfterZoom=await page.locator('.scrub-w:visible').boundingBox();
-  assert.ok(Math.abs(labelAfterZoom.y-labelBeforeZoom.y)>2,'The outside-bay pinch zoomed the camera');
-  const toolbarBox=await el('toolbar').boundingBox();
-  assert.ok(labelAfterZoom.y+labelAfterZoom.height<=toolbarBox.y-7,'Dimension pills stay hittable above the toolbar after zoom');
+  // The camera zooms toward the fingers, so a measurement moves on screen or out of the view.
+  const labelsAfterZoom=await labelsAt();
+  assert.ok(labelsBeforeZoom.some(a=>{const b=labelsAfterZoom.find(l=>l.t===a.t);return !b||Math.hypot(b.x-a.x,b.y-a.y)>2;}),'The outside-bay pinch zoomed the camera');
+  assert.equal(await el('toolbar').getAttribute('data-context'),'wardrobe','A camera pinch keeps the wardrobe chosen');
   await page.screenshot({path:'/tmp/wardrobe-tactile-'+width+'.png'});
-  assert.deepEqual(errors,[]);console.log(`PASS ${width}x${height} ${pointer}: dimension scrubs, keyboard, cancellation, shelf spread/pinch and single-step undo/redo`);
+  assert.deepEqual(errors,[]);console.log(`PASS ${width}x${height} ${pointer}: read-only measurements, shelf spread/pinch, cancellation, camera pinch and single-step undo/redo`);
   await page.close();
  }
   const page=await browser.newPage({viewport:{width:375,height:812},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
@@ -114,24 +115,13 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    ceilings:[{wall:1,shape:'landing',depth:115,points:[[0,205],[80,205],[140,141],[220,141]]}],
    wardrobes:[{against:1,width:216,from:2,depth:60}]};
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(studio)));
-  await page.locator('.scrub-w:visible').waitFor();await page.waitForTimeout(500);
-  const report=()=>page.evaluate(()=>window.wardrobeForge.describe());
-  const scrub=async(key,dx,dy)=>{
-   const b=await page.locator(`[data-scrub-dimension="${key}"]:visible`).boundingBox(),x=b.x+b.width/2,y=b.y+b.height/2;
-   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
-   for(let n=1;n<=10;n++){
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*n/10,y:y+dy*n/10,id:1}]});await page.waitForTimeout(20);
-   }
-   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(300);
-  };
-  await scrub('w',80,0);const fitted=await report();
-  assert.ok(fitted.wardrobes[0].width>216 && fitted.wardrobes[0].width<=220,'Width scrub stops inside the prepared studio');
-  const left=fitted.wardrobes[0].top[0][1],right=fitted.wardrobes[0].top.at(-1)[1];
-  await scrub('h-left',0,20);let changed=await report();
-  assert.equal(changed.wardrobes[0].top[0][1],left-7);assert.equal(changed.wardrobes[0].top.at(-1)[1],right);
-  await scrub('h-right',0,20);changed=await report();
-  assert.equal(changed.wardrobes[0].top.at(-1)[1],right-7,'Right height scrubs independently');
+  const report=()=>page.evaluate(()=>window.wardrobeForge.describe()),el=id=>page.locator(`[data-editor-id="${id}"]`);
+  await page.waitForTimeout(500);await selectFurniture(page,{touch:true});
+  // Widening it past the walls in Size stops inside the studio.
+  await el('toolbar').locator('[data-action="resize"]:visible').click();await el('w').waitFor({state:'visible'});
+  await el('w').fill('240');await el('w').press('Tab');await page.waitForTimeout(300);const fitted=await report();
+  assert.ok(fitted.wardrobes[0].width>=216 && fitted.wardrobes[0].width<=220,'Width stops inside the prepared studio: '+fitted.wardrobes[0].width);
   await page.screenshot({path:'/tmp/wardrobe-tactile-studio.png'});
-  console.log('PASS studio: width respects walls, two height pills edit their own edges under the stepped ceiling');await page.close();
+  console.log('PASS studio: a width typed past the walls stops inside the studio');await page.close();
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

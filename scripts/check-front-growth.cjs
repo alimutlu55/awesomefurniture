@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
+const {selectFurniture,openShape}=require('./lib/select-furniture.cjs');
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
  for(const width of [375,1440]){
   const page=await browser.newPage({viewport:{width,height:812},hasTouch:true,isMobile:width===375,reducedMotion:'reduce'}),errors=[];
@@ -9,13 +10,12 @@ const {chromium}=require('playwright');
    wardrobes:[{against:1,from:120,width:160,depth:60}]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
   const el=id=>page.locator(`[data-editor-id="${id}"]`),bar=el('toolbar');
-  await page.locator('.scrub-h:visible').waitFor();await page.waitForTimeout(450);
-  const v=await el('view').boundingBox(),h=await page.locator('.scrub-h:visible').boundingBox();
-  await page.mouse.click(v.x+v.width/2,h.y+h.height/2);await page.waitForTimeout(250);
-  if(await el('pop2').isVisible()){await el('px').click();await page.waitForTimeout(250);}
+  // A design opens with nothing chosen: a tap on the wardrobe chooses it.
+  await page.waitForTimeout(450);await selectFurniture(page);
+  const v=await el('view').boundingBox();
   await bar.locator('[data-action="resize"]').click();await page.waitForTimeout(350);
   await el('h').fill('100');await el('h').press('Tab');await page.waitForTimeout(200);
-  await page.keyboard.press('Escape');await page.waitForTimeout(250);await bar.locator('[data-action="shape"]').click();await page.waitForTimeout(400);
+  await openShape(page);
   if(width===1440){await page.locator('.shape-handle.split-handle:visible').click();await page.waitForTimeout(350);}
   const index=width===375?0:1;
   const front=()=>page.locator(`.shape-row[data-point="${index}"] input[data-k="y"]:not([data-side="rear"])`);

@@ -19,7 +19,9 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
    const context=await browser.newContext({viewport:{width,height},isMobile:width<=900,hasTouch:width<=900,reducedMotion:'reduce'});
    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{"message":"Offline regression"}'}));
-   const spec=tiny?{specVersion:1,room:{width:70,depth:60},wardrobes:[]}:withDoor?roomSpec:{...roomSpec,room:{...roomSpec.room,openings:[]}};
+   // The smallest, lowest room: a new wardrobe takes the ceiling's shape (down to 40 cm) and widths go down to 20 cm,
+   // so it is built to fit, inside the walls and under the ceiling, rather than refused.
+   const spec=tiny?{specVersion:1,room:{width:70,depth:60,height:150},wardrobes:[]}:withDoor?roomSpec:{...roomSpec,room:{...roomSpec.room,openings:[]}};
    const built=buildFromSpec(spec,'studio-regression');assert.ok(built.ok);
    const studio=projectToScene(built.project).studio;
    await page.goto(baseURL+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
@@ -29,10 +31,7 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
    if(scenario==='sloped' && width===375) await page.screenshot({path:'/tmp/wardrobe-studio-ui-before.png'});
    await page.locator('[data-editor-id="add-furniture-btn"]').click();
    await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
-   if(tiny) {
-    assert.equal((await report()).wardrobes.length,0,'No invalid wardrobe is added');
-    assert.equal(await page.getByRole('button',{name:'Regular',exact:true}).isVisible(),true,'Failed creation keeps the picker available');
-   } else {
+   {
     const check=async()=>{
      const result=await report();assert.equal(result.wardrobes.length,1);const w=result.wardrobes[0];
      assert.ok(w.width<=(withDoor?100:150),'Wardrobe fits the narrow room and keeps access to its door');
@@ -45,6 +44,7 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
      return w;
     };
     const added=await check();
+    if(tiny) assert.ok(added.width<=70 && added.depth<=60 && Math.max(...added.top.map(([,y])=>y))<=150,'It fits the smallest, lowest room: '+JSON.stringify(added));
     await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);
     assert.equal((await report()).wardrobes.length,0,'One Undo removes the complete addition');
     await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(500);
@@ -58,7 +58,7 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
     await page.screenshot({path:'/tmp/wardrobe-studio-ui-'+suffix+'.png'});
    }
    assert.deepEqual(errors,[]);
-   console.log(`PASS ${width}x${height}: ${scenario}: ${tiny?'unbuildable room rejected without creating a wardrobe':'narrow studio, doorway access, full-depth ceiling fit, undo/redo and orbit'}`);
+   console.log(`PASS ${width}x${height}: ${scenario}: ${tiny?'smallest, lowest room gets a wardrobe built to fit it, undo/redo':'narrow studio, doorway access, full-depth ceiling fit, undo/redo and orbit'}`);
    await context.close();
   }
  } finally {await browser.close();}

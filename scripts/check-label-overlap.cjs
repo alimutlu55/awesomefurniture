@@ -21,7 +21,7 @@ const audit=()=>{const h=[...document.querySelectorAll('*')].find(x=>x.shadowRoo
   await page.goto(base+'/');
   const el=id=>page.locator(`[data-editor-id="${id}"]`);await el('view').waitFor();await page.waitForTimeout(1200);
   const problems=[];
-  for(const kind of ['base','upper','oven-tower','sink','upper']){
+  for(const kind of ['base','upper','oven-tower','sink-top','upper']){
    await page.locator('[data-editor-id="add-furniture-btn"]:visible, [data-editor-id="toolbar"] [data-action="new"]:visible').first().click();await page.waitForTimeout(400);
    await page.getByRole('button',{name:/Cabinets/}).first().click().catch(()=>{});await page.waitForTimeout(250);
    await page.locator(`[data-add-kitchen="${kind}"]:visible`).first().click();await page.waitForTimeout(900);

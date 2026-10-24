@@ -20,7 +20,8 @@ const {chromium}=require('playwright');
   }
   const before=await report();await el('toolbar').locator('[data-action="walls"]:visible,[data-editor-id="walls-btn"]:visible').first().click();await page.waitForTimeout(300);
   await el('pop2').locator('[data-add-room="wall"]:visible').first().click();await page.waitForTimeout(350);
-  const after=await report();assert.equal(after.room.walls.length,1);assert.equal(after.wardrobes.length,before.wardrobes.length);
+  // Studio may open with a starting wall: adding one adds exactly one more.
+  const after=await report();assert.equal(after.room.walls.length,(before.room?.walls.length??0)+1);assert.equal(after.wardrobes.length,before.wardrobes.length);
   assert.doesNotMatch((await page.locator('.mobile-feedback').allTextContents()).join(' '),/no free space for another wall/i);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.deepEqual(await report(),before,'One undo restores the empty scene');
   await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(250);assert.deepEqual(await report(),after);

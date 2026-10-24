@@ -2,6 +2,7 @@
 // Start the production preview; optionally set MOBILE_TEST_URL and CHROME_PATH.
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { selectFurniture, openShape } = require('./lib/select-furniture.cjs');
 const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
 (async () => {
  const browser = await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
@@ -17,9 +18,9 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const el=id=>page.locator(`[data-editor-id="${id}"]`);
    await el('add-furniture-btn').waitFor();
    await page.waitForTimeout(450);
-   // A press on a fitting chooses that fitting; Wardrobe chooses the wardrobe itself.
-   if(pointer==='touch')await el('wardrobe-btn').tap();else await el('wardrobe-btn').click();await page.waitForTimeout(450);
-   await page.getByRole('button',{name:'Resize',exact:true}).click();
+   // A design opens with nothing chosen: a tap on the wardrobe chooses it (its fittings come after, in a second layer).
+   await selectFurniture(page,{touch:pointer==='touch'});await page.waitForTimeout(450);
+   await el('toolbar').locator('[data-action="resize"]:visible').click();
    await page.waitForTimeout(350);
    if(width<=900) {
     assert.ok(Math.abs((await el('left').boundingBox()).height-height*.5)<1,'Resize drawer gets 50%');
@@ -27,8 +28,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    }
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-sizing-mobile.png'});
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
-   await page.getByRole('button',{name:'Shape',exact:true}).click();
-   await page.waitForTimeout(350);
+   if(!/wardrobe/.test(await el('toolbar').getAttribute('data-context')||''))await selectFurniture(page,{touch:pointer==='touch'});
+   await openShape(page);
    const handle=()=>page.locator('.shape-handle.point[data-side="front"][data-index="0"]');
    const pointField=()=>page.locator('.shape-row[data-point="0"] input[data-k="y"]:not([data-side="rear"])');
    const label=()=>handle().getAttribute('aria-label');
@@ -107,9 +108,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await page.waitForTimeout(250);await focused();
     assert.equal(Number(await pointField().inputValue()),value);
    }
-   const orbit=async()=>{
+   // Turns the view until `side`'s edge is the one in view: how far a drag turns depends on its timing.
+   const orbit=async side=>{
     const box=await el('view').boundingBox(),x=box.x+box.width/2,y=box.y+box.height-18;
-    for(let n=0;n<4;n++){
+    for(let n=0;n<8;n++){
+     if(n>=4&&await page.locator(`.shape-handle.point[data-side="${side}"]:visible`).count())break;
      if(pointer==='touch'){
       await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
       for(let k=1;k<=8;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+112*k/8,y,id:1}]});
@@ -119,9 +122,11 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await page.waitForTimeout(350);await focused();
    };
    assert.equal(await page.locator('.shape-handle.point[data-side="rear"]:visible').count(),0,'Rear controls do not crowd the front');
-   await orbit();
+   await orbit('rear');
    assert.equal(await page.locator('.shape-handle.point[data-side="front"]:visible').count(),0,'Orbit swaps to a single rear edge');
-   const rear=page.locator('.shape-handle.point[data-side="rear"][data-index="0"]');
+   // How far an orbit turns depends on the gesture's timing: use a rear point that is in view.
+   const rearIndex=await page.locator('.shape-handle.point[data-side="rear"]:visible').first().getAttribute('data-index');
+   const rear=page.locator(`.shape-handle.point[data-side="rear"][data-index="${rearIndex}"]`);
    const frontBeforeRear=await label(),rearBefore=await rear.getAttribute('aria-label');
    await drag(18,false,rear);await focused();
    assert.notEqual(await rear.getAttribute('aria-label'),rearBefore,'Rear handle changes its own profile');
@@ -138,26 +143,33 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     const text=await page.locator('.shape-handle.point[data-side="front"]').last().getAttribute('aria-label');
     return Number(text.match(/x ([\d.]+)/)[1]);
    };
-   await orbit();
+   await orbit('front');
+   // An outer corner in view after the orbit: the left one grows the width leftwards, the right one rightwards.
+   const fronts=await page.locator('.shape-handle.point[data-side="front"]').evaluateAll(es=>es.map(e=>({i:Number(e.dataset.index),seen:!!e.offsetParent})));
+   const leftSeen=fronts.some(f=>f.i===0&&f.seen),outerIndex=leftSeen?0:Math.max(...fronts.map(f=>f.i)),out=leftSeen?-1:1;
+   const outer=()=>page.locator(`.shape-handle.point[data-side="front"][data-index="${outerIndex}"]`);
    const oldWidth=await widthRead();
-   await drag(0,false,handle(),-22);await focused();
+   await drag(0,false,outer(),22*out);await focused();
    assert.ok(await widthRead()>oldWidth+2,'Outer corner drags horizontally to grow width');
    const grownWidth=await widthRead();
-   await drag(0,true,handle(),-15);await focused();
+   await drag(0,true,outer(),15*out);await focused();
    assert.equal(await widthRead(),grownWidth,'Cancelled horizontal drag restores width');
    await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(300);await focused();
    assert.equal(await widthRead(),oldWidth,'Width and pose undo together');
    await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(300);await focused();
    assert.equal(await widthRead(),grownWidth);
-   await orbit();
-   const join=page.locator('.shape-handle.point[data-side="rear"][data-index="1"]');
+   await orbit('rear');
+   // An interior break point in view (not an end of the edge).
+   const rears=await page.locator('.shape-handle.point[data-side="rear"]').evaluateAll(es=>es.map(e=>({i:Number(e.dataset.index),seen:!!e.offsetParent})));
+   const lastRear=Math.max(...rears.map(r=>r.i)),joinIndex=(rears.find(r=>r.seen&&r.i>0&&r.i<lastRear)??{i:1}).i;
+   const join=page.locator(`.shape-handle.point[data-side="rear"][data-index="${joinIndex}"]`);
    const joinBefore=await join.getAttribute('aria-label');
    await drag(0,false,join,16);await focused();
    assert.notEqual(await join.getAttribute('aria-label'),joinBefore,'Rear interior break point slides horizontally');
    assert.equal(await widthRead(),grownWidth,'Moving an interior join keeps the width');
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-rear-shaping-mobile.png'});
    if(width===1440) await page.screenshot({path:'/tmp/wardrobe-rear-shaping-desktop.png'});
-   await orbit();
+   await orbit('front');
    for(const template of ['Sloped','Regular','Custom']) {
     const chip=page.getByRole('button',{name:template,exact:true});
     if(pointer==='touch') await chip.tap();else await chip.click();
@@ -167,7 +179,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    // Orbit in the Shape session to reach the back edge. Model-body movement
    // and canvas release must not move the wardrobe or dismiss its drawer.
    const surface=await el('view').boundingBox(),ox=surface.x+surface.width/2,oy=surface.y+surface.height-18;
-   await orbit();
+   await orbit('rear');
    assert.equal(await rear.isVisible(),true,'Rear edge is reachable by orbiting');
    if(pointer==='touch') {
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:ox,y:oy,id:1}]});
@@ -181,9 +193,14 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    }
    await page.waitForTimeout(350);await focused();
    assert.equal(await rear.isVisible(),true,'Rear controls stay available at an angle');
-   const angleRearBefore=await rear.getAttribute('aria-label');
-   await drag(14,false,rear);await focused();
-   assert.notEqual(await rear.getAttribute('aria-label'),angleRearBefore,'Rear handles work from an angled view');
+   // From an angle, a rear point whose middle is over the model (not under the sheet).
+   const view=await el('view').boundingBox(),angled=await page.locator('.shape-handle.point[data-side="rear"]:visible').evaluateAll((es,v)=>es.filter(e=>{
+    const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return x>v.x&&x<v.x+v.width&&y>v.y&&y<v.y+v.height;}).map(e=>e.dataset.index),view);
+   assert.ok(angled.length,'A rear point is reachable on the model from the angled view');
+   const angledRear=page.locator(`.shape-handle.point[data-side="rear"][data-index="${angled[0]}"]`);
+   const angleRearBefore=await angledRear.getAttribute('aria-label');
+   await drag(14,false,angledRear);await focused();
+   assert.notEqual(await angledRear.getAttribute('aria-label'),angleRearBefore,'Rear handles work from an angled view');
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-rear-shaping-mobile.png'});
    if(width===1440) await page.screenshot({path:'/tmp/wardrobe-rear-shaping-desktop.png'});
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-shape-editing-mobile.png'});

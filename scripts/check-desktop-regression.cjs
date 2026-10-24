@@ -1,7 +1,8 @@
 // Desktop uses the same contextual controls and sheets as mobile. Start Vite separately.
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
+const { selectFurniture, openShape } = require('./lib/select-furniture.cjs');
+const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
 (async () => {
  const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME_PATH});
  try {
@@ -11,7 +12,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   const el=id=>page.locator(`[data-editor-id="${id}"]`);
   const toolbar=el('toolbar');
   const action=key=>toolbar.locator(`.contextual-actions [data-action="${key}"]`);
-  const menuItem=label=>page.locator('.contextual-popover [role="menuitem"]').filter({hasText:new RegExp(`^${label}$`)});
+  const menuItem=label=>page.locator('.contextual-popover:visible [role="menuitem"], .contextual-control-popover:not([hidden]) button').filter({hasText:new RegExp(`^${label}$`)}).first();
   const waitLayout=()=>page.waitForTimeout(450);
   const inBounds=async locator=>{
    const box=await locator.boundingBox(),size=page.viewportSize();
@@ -22,13 +23,15 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
    await waitLayout();
    assert.equal(await el('left').isVisible(),false);
   };
-  await page.goto(baseURL);await el('add-furniture-btn').waitFor();
+  await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
+  await page.goto(baseURL+'/editor.html#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60}]})));
+  await el('view').waitFor();await waitLayout();
   assert.equal(await el('props-btn').isVisible(),false);
   assert.equal(await el('left').isVisible(),false);
-  const view=await el('view').boundingBox();
-  await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);await waitLayout();
+  // A design opens with nothing chosen; a tap on the wardrobe chooses it.
+  await selectFurniture(page);await waitLayout();
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['resize','shape','more']);
+  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['new','interior','resize','fronts','more']);
   await action('resize').click();await waitLayout();
   assert.equal(await toolbar.isVisible(),false,'Focused sizing hides the desktop toolbar');
   assert.equal(await el('view-modes').isVisible(),false);
@@ -64,22 +67,22 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   assert.equal(await el('topright').isVisible(),true);
   await page.keyboard.press('ControlOrMeta+z');await waitLayout();
   await action('resize').click();await waitLayout();assert.equal(await el('w').inputValue(),original);await closeSettings();
-  // Sections is in a wardrobe's More menu.
-  await action('more').click();await menuItem('Sections').click();await waitLayout();
+  // Sections is in a wardrobe's Interior menu.
+  await action('interior').click();await menuItem('Sections').click();await waitLayout();
   await el('sec-plus').click();assert.equal((await el('section-count').textContent()).trim(),'2');await closeSettings();
-  await action('shape').click();await waitLayout();
+  await openShape(page);await waitLayout();
   assert.equal(await el('topright').isVisible(),false);
   await page.screenshot({path:'/tmp/focused-shape-desktop.png'});
   assert.equal(await page.locator('[data-wardrobe-controls="shape"]').isVisible(),true);await closeSettings();
-  await action('more').click();await menuItem('Material').click();await waitLayout();assert.equal(await el('fins').isVisible(),true);await closeSettings();
-  await action('more').click();await menuItem('Doors').click();await waitLayout();assert.equal(await page.locator('[data-wardrobe-controls="doors"]').isVisible(),true);await closeSettings();
+  // Material and doors are the wardrobe's Fronts.
+  await action('fronts').click();await waitLayout();assert.equal(await el('fins').isVisible(),true);
+  assert.equal(await page.locator('[data-wardrobe-controls="doors"]').isVisible(),true);await closeSettings();
   await action('more').click();await menuItem('Duplicate').click();await waitLayout();assert.equal(await el('wardrobe-select').locator('option').count(),2);
   await action('more').click();await menuItem('Remove').click();await waitLayout();assert.equal(await el('wardrobe-select').locator('option').count(),1);
   await el('undo2').click();assert.equal(await el('wardrobe-select').locator('option').count(),2);
   await el('redo2').click();assert.equal(await el('wardrobe-select').locator('option').count(),1);
-  // Add item is on the model: select the wardrobe (Wardrobe in the bar when nothing is selected), then its space's Add item.
-  if(await el('wardrobe-btn').isVisible())await el('wardrobe-btn').click();
-  await waitLayout();await page.locator('.lbl.add:visible').first().click();await waitLayout();
+  // Add item is on the model: choose the wardrobe with a tap, then its space's Add item.
+  await selectFurniture(page);await waitLayout();await page.locator('.lbl.add:visible').first().click();await waitLayout();
   assert.equal(await page.locator('.mobile-add-browser').isVisible(),true);
   await page.locator('.mobile-add-categories [data-category="hanging"]').click();
   assert.equal(await page.locator('.mobile-add-products [data-m="short"]').isVisible(),true);
@@ -96,9 +99,9 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
   assert.equal(await el('pop2').isVisible(),false);
   assert.equal(await toolbar.isVisible(),true);
   await page.locator('[data-view-mode="furniture"]').click();await waitLayout();
-  // Auto design leads the tools of a selected wardrobe.
-  await el('wardrobe-btn').click();await waitLayout();
-  await el('launch-wizard').click();
+  // Auto design leads a selected wardrobe's Interior menu.
+  await selectFurniture(page);await waitLayout();
+  await action('interior').click();await menuItem('Auto design').click();
   const apply=page.locator('.idea button.apply').first();await apply.waitFor({timeout:30000});
   await apply.click();await waitLayout();assert.equal(await el('wizard').isVisible(),false);
   assert.equal(await el('undo2').isEnabled(),true);await el('undo2').click();await el('redo2').click();

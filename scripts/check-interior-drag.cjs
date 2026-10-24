@@ -73,7 +73,8 @@ const attached = process.env.INTERIOR_ATTACHED === '1';
      return ['before', 'after'].map(side => ({ expected: m[side], side }));
     });
     for (const { expected, side } of result) {
-     const badge = page.getByRole('slider', { name: side === 'before' ? 'Distance left of divider' : 'Distance right of divider', exact: true });
+     // Canvas measurements read the gaps (read-only meters); exact gaps are typed in the divider's Size panel.
+     const badge = page.getByRole('meter', { name: side === 'before' ? 'Distance left of divider' : 'Distance right of divider', exact: true });
      assert.ok(expected > 1, 'a real opening has a positive distance');
      assert.ok(Math.abs(Number(await badge.getAttribute('aria-valuenow')) - expected) < .001, 'control value follows the moving divider');
      assert.equal(await badge.textContent(), await badge.getAttribute('aria-valuetext'), 'visible distance matches the control value');
@@ -110,11 +111,11 @@ const attached = process.env.INTERIOR_ATTACHED === '1';
    assert.equal(await page.locator('.ground-rotate:visible,.array-grip:visible').count(), 0, 'interior selection has no furniture transform grips');
    if (attached) {
     await checkDistances();
-    await page.locator('[data-action="resize"]').click();
-    const left = page.getByRole('slider', { name: 'Distance left of divider', exact: true });
+    await page.locator('[data-action="resize"]:visible').click();
+    const left = page.getByRole('meter', { name: 'Distance left of divider', exact: true }), gap = page.locator('[data-editor-id="dgap0"]');
     const value = Number(await left.getAttribute('aria-valuenow'));
-    await left.focus(); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(100);
-    assert.ok(Math.abs(Number(await left.getAttribute('aria-valuenow')) - (value - 1)) < .001, 'opening remains editable with attached shelves');
+    await gap.fill(String(Math.round((value - 1) * 10) / 10)); await gap.press('Tab'); await page.waitForTimeout(150);
+    assert.ok(Math.abs(Number(await left.getAttribute('aria-valuenow')) - (value - 1)) < .051, 'opening remains editable with attached shelves');
     await checkDistances();
     await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(100); await checkDistances();
     await page.screenshot({ path: `/tmp/wardrobe-divider-distances-${width}-${furniture}.png` });
