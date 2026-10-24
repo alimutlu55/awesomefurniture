@@ -278,17 +278,21 @@ export function removeCeiling(studio: Studio, id: string): Studio | null {
 export function keepCeilings(before: Studio, corners: readonly StudioCorner[]): StudioCeiling[] | undefined {
   if (!before.ceilings) return undefined;
   const after = { ...before, corners };
-  return before.ceilings.map(c => {
+  // A shape that the wall's new length leaves with nothing over its face is dropped, not kept empty.
+  return before.ceilings.flatMap(c => {
     const w = wall(before, c.wall), old = w && wallLine(before, w), now = w && wallLine(after, w), face = w && wallFace(after, w);
     if (c.run !== 'along' || !old || !now || !face) return c;
     const project = (p: CeilingPoint) => {
       const x = old.a.x + old.ux * p.t, z = old.a.z + old.uz * p.t;
       return { ...p, t: (x - now.a.x) * now.ux + (z - now.a.z) * now.uz };
     };
-    if (c.outline) return trimBoundary(mapBoundary(c, project, roomHeight(after)), face.start, face.end, 0, roomHeight(after));
+    if (c.outline) {
+      const kept = trimBoundary(mapBoundary(c, project, roomHeight(after)), face.start, face.end, 0, roomHeight(after));
+      return kept.profile.length >= 2 ? [kept] : [];
+    }
     const placed = c.profile.map(project);
     const clipped = clipProfile(placed, face.start, face.end);
-    return { ...c, profile: clipped.length >= 2 ? clipped : placed };
+    return [{ ...c, profile: clipped.length >= 2 ? clipped : placed }];
   });
 }
 /** Trim the surface at a wall boundary, interpolating slopes rather than crushing corners into spikes. */
@@ -314,6 +318,8 @@ export function splitCeilings(studio: Studio, wallId: string, second: string, d:
   const used = [...studio.ceilings];
   return studio.ceilings.flatMap(c => {
     if (c.wall !== wallId) return [c];
+    // A shape with nothing left over its wall has no part to keep.
+    if (!c.profile.length) return [];
     if (c.run === 'along' && c.outline) {
       const parts: StudioCeiling[] = [];
       if (c.profile[0]!.t < d) parts.push(trimBoundary(c, -Infinity, d, 0, roomHeight(studio)));

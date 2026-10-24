@@ -6,6 +6,8 @@ export interface BoundaryPoint {
   readonly pinned?: boolean | undefined;
 }
 const EPS = 1e-9;
+/** Two points this close are one point: the same limit the studio validator refuses ("these points meet"). */
+export const COINCIDENT = 1e-6;
 export const interpolateBoundary = (a: BoundaryPoint, b: BoundaryPoint, f: number): BoundaryPoint =>
   ({ t: a.t + (b.t - a.t) * f, y: a.y + (b.y - a.y) * f });
 /** Reject a collapsed or self-intersecting polygon while allowing arbitrarily short, collinear edges. */
@@ -35,7 +37,7 @@ export function validBoundary(points: readonly BoundaryPoint[]): boolean {
 /** Lowest polygon edge at each run coordinate, including both sides of vertical steps. */
 export function lowerBoundary(points: readonly BoundaryPoint[]): BoundaryPoint[] {
   const ts = [...new Set(points.map(p => p.t))].sort((a, b) => a - b), out: BoundaryPoint[] = [];
-  const add = (p: BoundaryPoint) => { const last = out.at(-1); if (!last || Math.hypot(last.t - p.t, last.y - p.y) > EPS) out.push(p); };
+  const add = (p: BoundaryPoint) => { const last = out.at(-1); if (!last || Math.hypot(last.t - p.t, last.y - p.y) > COINCIDENT) out.push(p); };
   for (let k = 0; k < ts.length - 1; k++) {
     const left = ts[k]!, right = ts[k + 1]!, mid = (left + right) / 2;
     let best: { a: BoundaryPoint; b: BoundaryPoint; y: number } | undefined;
@@ -68,6 +70,6 @@ export function clipBoundary(points: readonly BoundaryPoint[], min: number, max:
   }
   return result.filter((p, k) => {
     const prev = result[(k + result.length - 1) % result.length]!;
-    return Math.hypot(prev.t - p.t, prev.y - p.y) > EPS;
+    return Math.hypot(prev.t - p.t, prev.y - p.y) > COINCIDENT;
   });
 }

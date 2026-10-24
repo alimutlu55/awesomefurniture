@@ -11,6 +11,7 @@ import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
 import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { studioProblems } from '../../domain/studio/studio-validation';
+import { cleanStudio } from '../../domain/studio/studio-clean';
 import type { Studio } from '../../domain/studio/studio';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import { KITCHEN_UNIT_KEYS } from '../../domain/kitchen/kitchen-units';
@@ -153,8 +154,9 @@ const studio = z.strictObject({
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, ...boundary, edgeRise: finite.optional(), profile: z.array(z.strictObject({ t: finite, y: nonnegative })) })).optional(),
-}).superRefine((room, context) => {
-  for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
+}).transform(room => cleanStudio(room as Studio)).superRefine((room, context) => {
+  // Saved rooms may hold points that meet (from rounding in an earlier edit): they are cleaned above, then checked.
+  for (const message of studioProblems(room)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });
 const projectSchema = z.strictObject({
   schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
