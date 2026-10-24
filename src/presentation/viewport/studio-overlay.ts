@@ -114,10 +114,11 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             if (g.info !== undefined) track(label(b.clone().add(new THREE.Vector3(0, 18, 0)), g.label, g.info ? 'lbl room-angle room-label' : 'lbl shape-guide room-label'), b.clone().add(new THREE.Vector3(0, 18, 0)));
         }
         for (const m of editor.measures()) {
-            const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label');
+            const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.tone ? ' room-warn' : ''));
             const selected = editor.selection();
             if (m.edit && selected) sceneMeasurementBadge(el, { kind: 'studio', selection: selected.kind, id: selected.id, field: m.edit },
-                selected.kind === 'ceiling' ? 'Ceiling height' : selected.kind === 'opening' ? 'Opening ' + m.edit : 'Wall length',
+                selected.kind === 'ceiling' ? 'Ceiling height' : selected.kind === 'opening' ? 'Opening ' + m.edit
+                    : selected.kind === 'fixture' ? (m.edit === 'left' ? 'From left end' : m.edit === 'right' ? 'From right end' : 'Size') : 'Wall length',
                 Math.hypot(m.b.x - m.a.x, m.b.y - m.a.y, m.b.z - m.a.z), m.axis === 'height' ? 'vertical' : 'horizontal');
             track(el, a.clone().add(b).multiplyScalar(.5));
             bindRuler(el, a, b, m.axis ?? 'width');

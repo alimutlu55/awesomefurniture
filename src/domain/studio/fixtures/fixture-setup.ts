@@ -10,7 +10,7 @@ import { ceilingAt, ceilingFrame } from '../studio-ceiling';
 import { BOXING, fixtureKind } from './fixture-kinds';
 import type { Boxing, FixtureSetup } from './fixture-kinds';
 import { boxingBehind } from './fixture-place';
-import { setFixtureType } from './fixture-edit';
+import { moveFixture, setFixtureType } from './fixture-edit';
 
 const round = (n: number) => Math.round(n * 10) / 10;
 type Part = Pick<StudioCeiling, 'outline' | 'profile'>;
@@ -99,4 +99,22 @@ export function applySetup(studio: Studio, id: string, setupId: string): { studi
   const f = studio.fixtures?.find(x => x.id === id), setup = f && fixtureKind(f.kind)?.setups?.find(s => s.id === setupId);
   const typed = setup && setFixtureType(studio, id, setup.type);
   return typed && setup ? withBoxing(typed, id, setup.boxing) : null;
+}
+
+/** Slides a fixture along its wall, its middle to `offset`. A boxing that only it stands against goes with it, as the
+ * frame inside it would; a boxing shared with another fixture stays, and the fixture slides along its face. */
+export function slideFixture(studio: Studio, id: string, offset: number): Studio | null {
+  const f = studio.fixtures?.find(x => x.id === id), moved = moveFixture(studio, id, offset);
+  if (!f || !moved) return moved;
+  const host = boxingBehind(studio, f), by = moved.fixtures!.find(x => x.id === id)!.offset - f.offset;
+  if (!host || !standsOnFloor(host) || !by || standingAgainst(studio, host.id).some(x => x.id !== id)) return moved;
+  const shift = <T extends { t: number }>(p: T): T => ({ ...p, t: round(p.t + by) });
+  return { ...moved, template: 'custom', ceilings: moved.ceilings!.map(c => c.id === host.id ? { ...c, outline: c.outline!.map(shift), profile: c.profile.map(shift) } : c) };
+}
+
+/** Slides it so its side is `value` from that end of its wall, as a tape reads it (its own boxing going with it). */
+export function placeFromEnd(studio: Studio, id: string, side: 'left' | 'right', value: number): Studio | null {
+  const f = studio.fixtures?.find(x => x.id === id), w = f && wall(studio, f.wall), face = w && wallFace(studio, w);
+  if (!f || !face) return null;
+  return slideFixture(studio, id, side === 'left' ? face.start + value + f.width / 2 : face.end - value - f.width / 2);
 }

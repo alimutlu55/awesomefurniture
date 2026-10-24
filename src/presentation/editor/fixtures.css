@@ -1,0 +1,31 @@
+/* Fixtures (toilets, basins): their Type and Finish in the room panel, beside the room on a desktop and a sheet on a
+   phone, as a wall's Paint / Finish is. Choices are pictures with a name and one line; the chosen one is ringed. */
+#left[data-room-resize][data-context-section="fixture"] [data-studio-resize][data-wardrobe-controls="fixture"]{display:block!important}
+.fixture-panel{display:block}
+.fixture-lead{margin:0 0 10px;color:var(--mute);font-size:12px}
+.fixture-label{display:block;margin:16px 0 8px;font-size:12px}
+.fixture-note{margin:12px 0 0;color:var(--mute);font-size:11px;line-height:1.4}
+.fixture-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.fixture-choices.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.fixture-panel .fixture-choice{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:2px;min-width:0;min-height:44px;padding:6px 6px 8px;
+  border:0;border-radius:14px;background:#fffa;box-shadow:inset 0 0 0 1px #0000000f;color:var(--ink);text-align:center;font:inherit;cursor:pointer}
+.fixture-panel .fixture-choice:hover{background:#fff}
+.fixture-panel .fixture-choice[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--ink);background:linear-gradient(140deg,#e5e0d9,#f0ece6)}
+.fixture-panel .fixture-choice:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.fixture-choice svg.fixture-art{display:block;width:100%;height:auto;aspect-ratio:120/86;border-radius:9px;background:#f4f0ea}
+.fixture-choice b{margin-top:4px;font-size:12px;font-weight:600;line-height:15px}
+.fixture-choice small{color:var(--mute);font-size:11px;line-height:14px}
+.fixture-panel .wall-paint-swatches button{display:flex;flex-direction:column;justify-content:flex-start;align-items:center;gap:8px;min-width:0;min-height:64px;padding:4px 0;
+  border:0;background:transparent;font-size:10px;line-height:12px;text-align:center;color:var(--ink)}
+.fixture-panel .wall-paint-swatches i.finish-ceramic{background-image:radial-gradient(circle at 32% 28%,#fff9 0 18%,#fff0 46%)}
+.fixture-panel .wall-paint-swatches i.finish-metal{background-image:linear-gradient(135deg,#fff8 0,#fff0 38%,#0002 62%,#fff4 100%)}
+/* The free floor in front of a fixture, amber when a person has less than they need to use it. */
+#labels .lbl.room-label.room-warn{background:#b7791f;color:#fff;border-color:#b7791f}
+@media (max-width:900px){
+ #toolbar[data-context="room-fixture"] .contextual-defaults{display:none}
+ #toolbar[data-context="room-fixture"] .contextual-actions{display:flex}
+ .fixture-choices{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:330px){
+ .fixture-choices{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

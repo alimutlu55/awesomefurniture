@@ -6,7 +6,7 @@ import { studioProblems } from '../../domain/studio/studio-validation';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { fixtureKind } from '../../domain/studio/fixtures/fixture-kinds';
 import { addFixture, duplicateFixture, removeFixture } from '../../domain/studio/fixtures/fixture-edit';
-import { applySetup } from '../../domain/studio/fixtures/fixture-setup';
+import { applySetup, standsOnFloor } from '../../domain/studio/fixtures/fixture-setup';
 import { fixtureProblems } from '../../domain/studio/fixtures/fixture-validation';
 
 interface FixtureCommandOptions {
@@ -18,6 +18,16 @@ const asResult = (out: Studio | Result | null): Result | null => !out ? null : '
 
 const name = (kind: string) => fixtureKind(kind)?.name.toLowerCase() ?? 'fixture';
 /** Places to try along a wall, nearest `from` first, every 5 cm either way. */
+/** Whether a fixture would stand half in front of a boxing and half against the bare wall: buildable, but nobody plans
+ * a basin that way, so a new one goes there only when nowhere else fits. */
+function straddles(room: Studio, f: StudioFixture) {
+  const l = f.offset - f.width / 2, r = f.offset + f.width / 2;
+  return (room.ceilings ?? []).some(c => {
+    if (c.wall !== f.wall || !standsOnFloor(c)) return false;
+    const ts = c.outline!.map(p => p.t), from = Math.min(...ts), to = Math.max(...ts);
+    return (from > l + .5 && from < r - .5) || (to > l + .5 && to < r - .5);
+  });
+}
 function spots(from: number, start: number, end: number) {
   const out: number[] = [];
   for (let d = 0; d <= end - start; d += 5) for (const s of d ? [from - d, from + d] : [from]) if (s >= start && s <= end) out.push(s);
@@ -50,7 +60,7 @@ export function createFixtureCommands(getScene: () => EditorScene, { checkpoint,
     const walls = wallId ? room.walls.filter(w => w.id === wallId)
       : room.walls.slice().sort((p, q) => (wallLine(room, q)?.length ?? 0) - (wallLine(room, p)?.length ?? 0));
     let reason: string | null = null;
-    for (const w of walls) {
+    for (const strict of [true, false]) for (const w of walls) {
       const face = wallFace(room, w);
       if (!face) continue;
       const preferred = near ?? (face.start + face.end) / 2;
@@ -59,7 +69,7 @@ export function createFixtureCommands(getScene: () => EditorScene, { checkpoint,
         if (!placed) continue;
         const f = placed.fixtures!.at(-1)!;
         // Cheap first: the fixture alone on its wall, then the whole room with its boxing.
-        if (fixtureProblems(placed, f).length) continue;
+        if (fixtureProblems(placed, f).length || (strict && straddles(placed, f))) continue;
         const fitted: Result | null = k.setups && k.start ? applySetup(placed, f.id, k.start) : { studio: placed };
         if (!fitted) continue;
         const why = problem(fitted.studio, f);
@@ -114,5 +124,8 @@ export function createFixtureCommands(getScene: () => EditorScene, { checkpoint,
     return editFixture(id, room => removeFixture(room, id));
   }
 
-  return { addStudioFixture, editFixture, setFixtureSetup, duplicateStudioFixture, removeStudioFixture };
+  /** Why a room with fixture `id` as it is in `next` could not be built, or null. Changes nothing: drags use it to go as far as the room allows. */
+  const fixtureProblem = (next: Studio, id: string) => problem(next, fixtureOf(next, id));
+
+  return { addStudioFixture, editFixture, fixtureProblem, setFixtureSetup, duplicateStudioFixture, removeStudioFixture };
 }

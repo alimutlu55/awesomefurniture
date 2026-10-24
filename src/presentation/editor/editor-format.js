@@ -1,5 +1,6 @@
 import { SHELF_POSSESSIONS } from '../../domain/wardrobe/possessions';
 import { FITTINGS, fitting } from '../../domain/wardrobe/fittings';
+import { FIXTURES } from '../../domain/studio/fixtures/fixture-kinds';
 import { purposeDef } from '../../domain/wardrobe/purposes';
 import { resolveZone } from '../../domain/wardrobe/zone-style';
 import { lengthText } from './length-unit-state';
@@ -51,8 +52,11 @@ ICONP["room-stairs"] = "M3 4h18M3 20h18M7 4l12 12v4";
 ICONP["flip"] = "M12 3v18M8 7 4 12l4 5M16 7l4 5-4 5";
 ICONP["shape-edit"] = "M5 19V10l7-6 7 6v9zM5 10h.01M12 4h.01M19 10h.01M5 19h.01M19 19h.01";
 ICONP.split = "M3 12h7M14 12h7M12 5v14M8 9l-3 3 3 3M16 9l3 3-3 3";
-// Fitting and possession icons come from their registries.
+// A fixture is set up as a section through it: the wall, a boxing, and the bowl in front of it.
+ICONP["fixture-type"] = "M4 3v18M4 21h17M4 9h4v12M8 13h8a3 3 0 0 1-3 3h-5";
+// Fitting, possession and fixture icons come from their registries.
 for (const f of FITTINGS) ICONP[f.key] = f.icon;
+for (const f of FIXTURES) ICONP[f.key] = f.icon;
 for (const p of SHELF_POSSESSIONS) ICONP[p.key] = p.look.icon;
 ICONP.wardrobe = "M5 20V9l7-5 7 5v11zM12 6.5V20M10 12v2M14 12v2";
 ICONP.material = "M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7 9h.01M10 6h.01M15 7h.01M6 13h.01";

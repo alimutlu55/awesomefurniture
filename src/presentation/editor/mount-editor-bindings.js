@@ -262,7 +262,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
-            if (selectionState.viewMode === 'studio') return selectionState.room?.kind ?? 'studio';
+            // A selected toilet or basin has its own tools ('fixture' is a kitchen sink or hob's).
+            if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'room-fixture' : selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
             return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : isFixture(state) ? 'fixture' : furnitureKind(state);
@@ -296,6 +297,11 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 camera.frameScene();
                 return;
             }
+            if (key === 'fixtures') {
+                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'fixtures') { inspector.hidePop(); return; }
+                shellBindings.openSceneAdd({ dom, inspector, shell }, 'fixtures'); return;
+            }
+            if (key === 'fixture-type' || key === 'fixture-finish') { leftTitle.textContent = key === 'fixture-type' ? 'Type' : 'Finish'; room.resizePanel.openFixture(key); return; }
             if (key === 'walls') {
                 if ($('#pop2').classList.contains('show')) { inspector.hidePop(); return; }
                 $('#walls-btn').click(); return;
@@ -308,8 +314,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 leftTitle.textContent = 'Shape';
                 room.openShape(); return;
             }
-            if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) {
-                leftTitle.textContent = 'Wall Size';
+            if (['wall-size', 'opening-size', 'ceiling-size', 'fixture-size'].includes(key)) {
+                leftTitle.textContent = key === 'fixture-size' ? 'Size' : 'Wall Size';
                 room.resizePanel.open(); return;
             }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }

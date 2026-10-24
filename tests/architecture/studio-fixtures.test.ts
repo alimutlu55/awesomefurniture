@@ -13,7 +13,7 @@ import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometr
 import { BOXING, FINISHES, FIXTURES, TAPS } from '../../src/domain/studio/fixtures/fixture-kinds';
 import type { FixtureKind } from '../../src/domain/studio/fixtures/fixture-kinds';
 import { addFixture, moveFixture, setFixtureLook, setFixtureSize } from '../../src/domain/studio/fixtures/fixture-edit';
-import { applySetup, currentSetup } from '../../src/domain/studio/fixtures/fixture-setup';
+import { applySetup, currentSetup, placeFromEnd, slideFixture } from '../../src/domain/studio/fixtures/fixture-setup';
 import { boxingBehind, fixturePlace } from '../../src/domain/studio/fixtures/fixture-place';
 import { createProject } from '../../src/domain/project/project';
 import { deserializeProject, serializeProject } from '../../src/infrastructure/serialization/project-codec';
@@ -204,4 +204,32 @@ test('every fixture kind, type, setup, finish and tap is buildable in an ordinar
       assert.equal(currentSetup(studio, studio.fixtures![0]!)!.id, s.id);
     }
   }
+});
+
+test('sliding a toilet takes its own boxing with it, but slides along a boxing it shares', () => {
+  let { studio, id } = toiletOn(room(), MID);
+  studio = applySetup(studio, id, 'wall-hung')!.studio;
+  const span = (r: Studio) => r.ceilings![0]!.outline!.map(p => p.t);
+  const moved = slideFixture(studio, id, MID + 40)!;
+  assert.deepEqual(span(moved), span(studio).map(t => t + 40), 'its boxing went with it');
+  assert.equal(currentSetup(moved, moved.fixtures![0]!)!.id, 'wall-hung', 'still in its boxing');
+  assert.deepEqual(studioProblems(moved), []);
+  const typed = placeFromEnd(studio, id, 'left', 100)!;
+  assert.equal(Math.min(...span(typed)) + (MID - Math.min(...span(studio))) - 18, 6 + 100, 'typing a gap slides it the same way');
+  // Shared with a basin: the boxing stays and the toilet slides along its face.
+  const box = studio.ceilings![0]!, wide = { ...box, outline: [{ t: 6, y: 0 }, { t: 280, y: 0 }, { t: 280, y: 120 }, { t: 6, y: 120 }], profile: [{ t: 6, y: 0 }, { t: 280, y: 0 }] };
+  const shared = addFixture({ ...studio, ceilings: [wide] }, 'w1', 'basin', 240)!;
+  const slid = slideFixture(shared, id, 100)!;
+  assert.deepEqual(span(slid), span(shared));
+  assert.equal(fixturePlace(slid, slid.fixtures![0]!)!.back, BOXING.depth);
+});
+
+test('a new basin goes fully in front of a boxing or clear of it, never half on it', () => {
+  const e = editor();
+  e.commands.addStudioFixture('toilet', 'w1');
+  const box = e.studio().ceilings![0]!.outline!.map(p => p.t), from = Math.min(...box), to = Math.max(...box);
+  // Asked for right at the boxing's edge, it moves to where it is clear of the edge.
+  const id = e.commands.addStudioFixture('basin', 'w1', to)!, f = e.fixture(id), l = f.offset - f.width / 2, r = f.offset + f.width / 2;
+  assert.ok(!(l < from && from < r) && !(l < to && to < r), `basin ${l}–${r}, boxing ${from}–${to}`);
+  assert.deepEqual(studioProblems(e.studio()), []);
 });

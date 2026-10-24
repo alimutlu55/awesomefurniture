@@ -14,8 +14,9 @@ const menusOf = module => ({
 const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],
-    // Nothing selected in Studio: walls and rooms, or a shape (stairs, a slope, a pillar) on the wall in view.
-    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling', 'Add a ceiling shape: stairs, a slope, a beam or a pillar']],
+    // Nothing selected in Studio: walls and rooms, a shape (stairs, a slope, a pillar) or a fixture (a toilet, a basin) on the wall in view.
+    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling', 'Add a ceiling shape: stairs, a slope, a beam or a pillar'],
+        ['fixtures', 'Fixtures', 'Add a toilet, a basin or another bathroom fixture']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
@@ -28,6 +29,8 @@ const actions = {
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
     // A ceiling shape is drawn and sized in one place, its Shape editor.
     ceiling: [['surface-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
+    // A toilet or basin: how it is fitted (with its boxing), its size, its finishes; More copies or removes it.
+    'room-fixture': [['fixture-type', 'Type', 'How it is fitted'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
 };
 /** The menus of each kind of furniture's tools (Interior, More), by its furniture kind. */
 export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m)]));
@@ -36,6 +39,7 @@ export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
+export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = [];

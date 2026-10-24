@@ -149,6 +149,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             viewed: () => viewedPlacement(model.scene.studio, resources.cam) } });
         const studioPanel = createStudioPanel({ dom, model, sceneCommands, getSelection: room.editor.selection, callbacks: {
             chooseCeiling: shape => { inspector.hidePop(); room.actOnWall('ceiling:' + shape); },
+            chooseFixture: kind => { inspector.hidePop(); room.addFixture(kind); },
             placed: () => { selectionState.viewMode = 'studio'; selectionState.room = null; inspector.clearFocus(); room.frameRoom(); },
             // A part just added is selected; a ceiling also turns the view to eye level to shape it.
             added: selection => { inspector.hidePop(); inspector.clearFocus(); room.editor.select(selection); }, refresh: () => inspector.update(true) } });

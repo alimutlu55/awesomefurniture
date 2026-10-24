@@ -3,6 +3,8 @@ import { isWallUtility, OPENING_KINDS } from '../../domain/studio/wall-utilities
 import type { OpeningKind } from '../../domain/studio/studio';
 import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import { ceilingArt } from './studio-ceiling-panel';
+import { FIXTURES } from '../../domain/studio/fixtures/fixture-kinds';
+import { fixtureCardArt } from './fixture-art';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
@@ -15,6 +17,8 @@ interface StudioPanelPorts {
     /** A built-in room was placed (or removed): show it whole. */
     placed(): void;
     chooseCeiling(shape: string): void;
+    /** A toilet, a basin or another fixture was chosen: add it to the wall in view (or the selected one). */
+    chooseFixture(kind: string): void;
     /** A wall or opening was added: select it for editing. */
     added(selection: RoomSelection): void;
     refresh(): void;
@@ -58,14 +62,17 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
   const products = () => {
     return buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art, true)
       + CEILING_SHAPES.map(c => `<button type="button" class="room-product" data-product-category="ceilings" data-add-ceiling="${c.id}" hidden title="${esc(c.description)}">`
-        + `${ceilingArt(c)}<span>${esc(c.name)}</span></button>`).join('');
+        + `${ceilingArt(c)}<span>${esc(c.name)}</span></button>`).join('')
+      + FIXTURES.map(k => `<button type="button" class="room-product" data-product-category="fixtures" data-add-fixture="${k.key}" hidden title="${esc(k.description)}">`
+        + `${fixtureCardArt(k.key)}<span>${esc(k.name)}</span></button>`).join('');
   };
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {
-      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling]');
+      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling],[data-add-fixture]');
       if (!button) return;
       if (button.dataset.addCeiling) { callbacks.chooseCeiling(button.dataset.addCeiling); return; }
+      if (button.dataset.addFixture) { callbacks.chooseFixture(button.dataset.addFixture); return; }
       const studio = button.dataset.studio, part = button.dataset.addRoom;
       if (studio) {
         if (studio !== active() && sceneCommands.placeStudio(studio as never)) callbacks.placed();

@@ -3,6 +3,8 @@ import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import * as THREE from "three";
 import { PANEL, itemName } from '../../domain/wardrobe/catalog.js';
 import { measureNumber, esc, unitSuffix } from './editor-format.js';
+/** Add sheets that add to the scene (the room's parts, fixtures, new furniture) rather than into the selected space. */
+const SCENE_ADD = ['ceilings', 'fixtures', 'room', 'wall', 'wardrobe', 'kitchen', 'furniture'];
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'model' | 'resources' | 'cameraState' | 'camera' | 'selectionState'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'hidePop' | 'renderAddChoices' | 'itemUI' | 'dividerUI'> }} ports */
 export function createInspectorPanels({ dom, geometry, model, resources, cameraState, camera, selectionState, callbacks }) {
     const { $ } = dom;
@@ -64,7 +66,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             // This catalogue has no expand control: never inherit a collapsed inspector.
             selectionState.popMin = false;
             // Add item adds to the selected furniture; Walls, Wall items, Wardrobe and Cabinets add to the scene.
-            if (mode === 'ceilings' || mode === 'room' || mode === 'wall' || mode === 'wardrobe' || mode === 'kitchen' || mode === 'furniture') p.dataset.addContext = mode;
+            if (SCENE_ADD.includes(mode)) p.dataset.addContext = mode;
             else delete p.dataset.addContext;
             callbacks.renderAddChoices();
         }
@@ -95,7 +97,8 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
             return;
         }
         const ws = geometry.widths(), i = model.activeCabinet().state.sel, iw = ws.reduce((a, b) => a + b), w = ws[i], one = model.activeCabinet().state.n < 2;
-        $('#ptitle').textContent = ({ ceilings: 'Ceiling', room: 'Walls', wall: 'Add to wall', wardrobe: 'Add a wardrobe', kitchen: 'Add a cabinet', furniture: 'Add furniture' })[p.dataset.addContext] ?? 'Add to this space';
+        const titles = { ceilings: 'Ceiling', fixtures: 'Fixtures', room: 'Walls', wall: 'Add to wall', wardrobe: 'Add a wardrobe', kitchen: 'Add a cabinet', furniture: 'Add furniture' };
+        $('#ptitle').textContent = titles[p.dataset.addContext] ?? 'Add to this space';
         const space = geometry.sectionSpaceMeasurements(i);
         $('#section-meta').textContent = 'Space · W ' + measureNumber(space.w) + ' × H ' + measureNumber(space.h) + ' × D ' + measureNumber(space.dep) + unitSuffix() + ' free';
         $('#pfree').textContent = measureNumber(geometry.free(i)) + unitSuffix() + ' free';

@@ -91,3 +91,10 @@ export function splitFixtures(studio: Studio, wallId: string, second: string, d:
 
 /** Fixtures left once walls are gone: those on a removed wall go with it. */
 export const fixturesOnWalls = (studio: Studio, walls: ReadonlySet<string>) => studio.fixtures?.filter(f => walls.has(f.wall));
+
+/** How far its side is from the inside end of its wall on the `left` (corner a) or `right`, as a tape reads it. */
+export function fixtureFromEnd(studio: Studio, f: StudioFixture, side: 'left' | 'right'): number | null {
+  const w = wall(studio, f.wall), face = w && wallFace(studio, w);
+  if (!face) return null;
+  return side === 'left' ? f.offset - f.width / 2 - face.start : face.end - f.offset - f.width / 2;
+}

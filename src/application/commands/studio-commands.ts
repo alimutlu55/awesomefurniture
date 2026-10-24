@@ -213,7 +213,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     const spot = at ? { pose: at, w: width ?? cabinet.state.w, d: cabinet.state.d }
       : room && from === undefined ? wallSpot(room, wallId, standing, { min: width ?? MIN_WARDROBE_WIDTH, max: width ?? 400, depth: cabinet.state.d }) : null;
     const fits = spot && !collisionWith(room, () => others).cabinetCollides({ ...cabinet, ...spot.pose, state: { ...cabinet.state, w: spot.w, d: spot.d } });
-    if (!fits) report(from !== undefined ? 'The wardrobe does not fit there on that wall: it would run into a wall, a door or another wardrobe.'
+    if (!fits) report(from !== undefined ? 'The wardrobe does not fit there on that wall: it would run into a wall, a door, a fixture or another wardrobe.'
       : 'This wall has no free stretch of ' + (width ?? MIN_WARDROBE_WIDTH) + ' cm for a wardrobe. It went where there is room.');
     return fits ? spot : null;
   }

@@ -4,17 +4,20 @@ import type { createStudioFields } from './studio-fields';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 /** All room sizes use the wardrobe's existing panel and shared sizing controls. */
-export function createStudioResizePanel({ dom, fields, selection, prepare, frame, paint, shape }: {
+export function createStudioResizePanel({ dom, fields, selection, prepare, frame, paint, shape, fixture }: {
   dom: ReturnType<typeof createEditorDom>; fields: ReturnType<typeof createStudioFields>;
   selection(): RoomSelection; prepare(): void; frame(): void;
   paint?: { root: HTMLElement; render(): void };
   /** The Shape editor of a wall or ceiling shape. */
   shape?: { root: HTMLElement; render(): void };
+  /** A fixture's Type and Finish choices. */
+  fixture?: { root: HTMLElement; show(view: 'fixture-type' | 'fixture-finish'): void };
 }) {
   const panel = dom.$('#left'), app = dom.$('#app');
   let section: HTMLElement | null = null;
   let paintSection: HTMLElement | null = null;
   let shapeSection: HTMLElement | null = null;
+  let fixtureSection: HTMLElement | null = null;
   function sync() {
     if (selection() || panel.dataset.roomResize === undefined) return;
     delete panel.dataset.roomResize; delete panel.dataset.contextSection;
@@ -62,6 +65,26 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
     if (fresh) panel.scrollTop = 0;
     shape.render();
   }
+  /** A fixture's Type or Finish, in the same panel as its Size: beside the room on a desktop, a sheet on a phone. */
+  function openFixture(view: 'fixture-type' | 'fixture-finish') {
+    if (selection()?.kind !== 'fixture' || !fixture) return;
+    if (!fixtureSection) {
+      fixtureSection = dom.document.createElement('section');
+      fixtureSection.dataset.wardrobeControls = 'fixture'; fixtureSection.dataset.studioResize = '';
+      fixtureSection.append(dom.document.createElement('h2'), fixture.root); dom.$('#left-body').append(fixtureSection);
+    }
+    fixtureSection.querySelector('h2')!.textContent = view === 'fixture-type' ? 'Type' : 'Finish';
+    if (showing('fixture') && fixtureSection.dataset.view === view) { close(); return; }
+    fixtureSection.dataset.view = view;
+    if (panel.dataset.contextSection !== 'fixture') { prepare(); takeMobilePanel(dom, panel); }
+    panel.dataset.roomResize = ''; panel.dataset.contextSection = 'fixture'; panel.dataset.sheetPosition = 'compact';
+    fixture.show(view); panel.scrollTop = 0;
+    app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
+  }
+  function close() {
+    delete panel.dataset.roomResize; delete panel.dataset.contextSection;
+    app.classList.remove('props-open'); app.classList.add('props-hidden');
+  }
   const showing = (section: string) => panel.dataset.roomResize !== undefined && panel.dataset.contextSection === section && app.classList.contains('props-open');
-  return { open, openPaint, openShape, showing, sync };
+  return { open, openPaint, openShape, openFixture, showing, sync, close };
 }

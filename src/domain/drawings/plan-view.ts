@@ -13,6 +13,7 @@ import { planClearances, roomDoorOperation } from './plan-clearances';
 import type { DrawingOptions } from './view-policy';
 import { appliancePlanNote } from './appliance-setout';
 import { planEndBreak } from './shell-boundaries';
+import { fixtureCentres, fixturePlan } from './fixture-plan';
 
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
@@ -79,7 +80,7 @@ function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[], overview
     const g = wallGeometry(studio, w);
     if (!g) continue;
     const mine = pieces.filter(p => p.wall === w.id), floor = mine.filter(p => !p.hung && !p.fixture);
-    const centres = mine.filter(p => p.fixture === 'sink' || p.fixture === 'hob').map(p => (p.lo + p.hi) / 2);
+    const centres = [...mine.filter(p => p.fixture === 'sink' || p.fixture === 'hob').map(p => (p.lo + p.hi) / 2), ...fixtureCentres(studio, w.id)];
     // Wall units and shelves get their own row: they are set out on the wall, not on the floor.
     const units = overview && floor.length ? [Math.min(...floor.map(p => p.lo)), Math.max(...floor.map(p => p.hi))] : floor.flatMap(p => [p.lo, p.hi]), hung = mine.filter(p => p.hung).flatMap(p => [p.lo, p.hi]);
     const openings = [...g.openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), ...centres];
@@ -104,7 +105,7 @@ function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[], overview
 export function planView(studio: Studio | undefined, pieces: readonly PlacedPiece[], options: DrawingOptions = {}): Item[] {
   const preset = options.preset ?? 'installation', upper = options.upperPlan ?? false, operations = preset === 'clearances';
   const visible = pieces.filter(p => upper ? p.y >= 120 : p.y < 120);
-  const out: Item[] = studio ? walls(studio, visible, operations) : [];
+  const out: Item[] = studio ? [...walls(studio, visible, operations), ...(upper ? [] : fixturePlan(studio))] : [];
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {
     if (!upper && s.kind === 'worktop') out.push({ kind: 'line', stroke: 'outline', closed: true, points: footprint(s.x, s.z, s.angle, s.length, s.depth) });

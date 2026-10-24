@@ -8,6 +8,8 @@ import { roomHeight, wallFace } from '../../domain/studio/studio';
 import { setInsideLength, setWallSize, setOpeningSize, moveOpening, moveOpening2D } from '../../domain/studio/studio-edit';
 import { edgeHeight, outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
+import { fixtureFromEnd, setFixtureSize } from '../../domain/studio/fixtures/fixture-edit';
+import { placeFromEnd } from '../../domain/studio/fixtures/fixture-setup';
 
 export type SceneMeasurement =
     | { kind: 'reach' }
@@ -15,7 +17,7 @@ export type SceneMeasurement =
     | { kind: 'item-gap'; section: number; index: number; side: 'top' | 'bottom' }
     | { kind: 'board-size'; index: number; axis: 'w' | 'h' | 'd' }
     | { kind: 'board-gap'; index: number; side: 'before' | 'after' }
-    | { kind: 'studio'; selection: 'wall' | 'opening' | 'ceiling'; id: string; field: string };
+    | { kind: 'studio'; selection: 'wall' | 'opening' | 'ceiling' | 'fixture'; id: string; field: string };
 
 /** Domain-specific adapters for the reusable badge. Every mutation is silent;
  * its caller owns preview rollback and the single gesture checkpoint. */
@@ -32,6 +34,11 @@ export function createSceneMeasurements(scene: () => EditorScene) {
                 const wall = room.walls.find(w => w.id === ref.id);
                 return !wall ? null : ref.field === 'length' ? wallFace(room, wall)?.length ?? null
                     : ref.field === 'height' ? wall.height : ref.field === 'thickness' ? wall.thickness : null;
+            }
+            if (ref.selection === 'fixture') {
+                const f = room.fixtures?.find(x => x.id === ref.id);
+                return !f ? null : ref.field === 'left' || ref.field === 'right' ? fixtureFromEnd(room, f, ref.field)
+                    : ref.field === 'width' || ref.field === 'depth' || ref.field === 'height' ? f[ref.field] : null;
             }
             if (ref.selection === 'ceiling') {
                 const ceiling = room.ceilings?.find(c => c.id === ref.id);
@@ -68,6 +75,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
                 return setBoundaryControlHeight(room, ref.selection, ref.id, Number(ref.field.slice(1)), value);
             if (ref.selection === 'wall') return ref.field === 'length' ? setInsideLength(room, ref.id, value)
                 : setWallSize(room, ref.id, { [ref.field]: value });
+            if (ref.selection === 'fixture') return ref.field === 'left' || ref.field === 'right' ? placeFromEnd(room, ref.id, ref.field, value)
+                : setFixtureSize(room, ref.id, { [ref.field]: value });
             if (ref.selection === 'ceiling') {
                 if (ref.field === 'outer') return setOuterEdgeHeight(room, ref.id, value);
                 if (ref.field === 'depth') return setCeilingDepth(room, ref.id, value);

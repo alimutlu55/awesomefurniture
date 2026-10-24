@@ -10,6 +10,10 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import { mountResizeFields, syncResizeFields } from './resize-fields.js';
 import type { StudioEditorPorts } from './studio-editor.ports';
 import { sizeControlMarkup, bindSizeNumber } from './size-control';
+import { fixtureKind, fixtureType } from '../../domain/studio/fixtures/fixture-kinds';
+import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
+import { fixtureFromEnd, setFixtureSize } from '../../domain/studio/fixtures/fixture-edit';
+import { placeFromEnd } from '../../domain/studio/fixtures/fixture-setup';
 
 interface StudioFieldsPorts {
     readonly document: { createElement: Document['createElement']; activeElement?: Element | null };
@@ -51,6 +55,18 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
                     hint: where(p.t) }))),
                 { key: 'outer', label: 'Outer edge height', value: outerEdgeHeight(c), min: L.minCeilingHeight, max: roomHeight(studio), hint: 'Wall edge stays fixed' },
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
+            ];
+        }
+        if (s.kind === 'fixture') {
+            const f = studio.fixtures?.find(x => x.id === s.id), k = f && fixtureKind(f.kind), t = f && fixtureType(f.kind, f.type), place = f && fixturePlace(studio, f);
+            if (!f || !k || !t || !place) return [];
+            const face = place.face;
+            return [
+                { key: 'width', label: 'Width', value: f.width, min: t.limits.width[0], max: t.limits.width[1] },
+                { key: 'depth', label: 'Depth', value: f.depth, min: t.limits.depth[0], max: t.limits.depth[1], hint: place.back > 0 ? 'From the boxing' : 'From the wall' },
+                { key: 'height', label: k.height.label, value: f.height, min: t.limits.height[0], max: t.limits.height[1], hint: k.height.hint },
+                { key: 'left', label: 'From left end', value: fixtureFromEnd(studio, f, 'left') ?? 0, min: 0, max: face.length },
+                { key: 'right', label: 'From right end', value: fixtureFromEnd(studio, f, 'right') ?? 0, min: 0, max: face.length },
             ];
         }
         if (s.kind === 'wall') {
@@ -129,7 +145,8 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
-        if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) write(r => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), value));
+        if (s.kind === 'fixture') write(r => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, value) : setFixtureSize(r, s.id, { [key]: value }));
+        else if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) write(r => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), value));
         else if (s.kind === 'ceiling') {
             if (key === 'outer') write(r => setOuterEdgeHeight(r, s.id, value));
             else if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));

@@ -4,7 +4,7 @@ import { twoViewGeometry } from './two-view-geometry';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 
-interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THREE.LineSegments; outline: THREE.LineSegments | null }
+interface CeilingView { id: string; wall: string; solid: THREE.Mesh; edges: THREE.LineSegments; outline: THREE.LineSegments | null; low: boolean }
 
 /** Draws the ceilings that come down into the room (stairs, landings, sloped roofs, boxes) as plastered
  * solids from the room's ceiling down to their underside. Like the ceiling, they show solid when the camera
@@ -65,7 +65,9 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(built.g, 20), lines);
       holder.add(solid, edges);
       group.add(holder);
-      views.push({ id: c.id, wall: c.wall, solid, edges, outline: null });
+      // A boxing on the floor, below the ceiling, is furniture-height: it stays solid from above, as the toilet in front of it does.
+      const low = !!c.outline && Math.min(...c.outline.map(p => p.y)) < 1 && Math.max(...c.outline.map(p => p.y)) < top - 1;
+      views.push({ id: c.id, wall: c.wall, solid, edges, outline: null, low });
     }
     outline();
   }
@@ -80,7 +82,7 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     const below = camera.position.y < top - 5;
     let key = '';
     for (const v of views) {
-      const solid = below && standing(v.wall);
+      const solid = (below || v.low) && standing(v.wall);
       v.solid.visible = solid;
       v.edges.visible = !solid;
       key += solid ? '1' : '0';

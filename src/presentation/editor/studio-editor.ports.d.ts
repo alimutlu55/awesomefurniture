@@ -20,6 +20,8 @@ export interface RoomMeasure {
     readonly edit?: string;
     /** A vertical measurement (a height); lengths on the floor by default. */
     readonly axis?: 'height';
+    /** Amber: less than a person needs there (the free floor in front of a toilet). */
+    readonly tone?: 'warn';
 }
 
 /** Explicit dependencies of the room editor. */

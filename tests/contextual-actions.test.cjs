@@ -4,7 +4,7 @@ const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreAction
 // Furniture: nothing selected offers Add (a tab per kind); every piece of furniture has the same tools in the same order,
 // the steps furniture planners use (add another, interior, size, fronts), so learning one teaches the other.
 const FURNITURE_TOOLS=['new','interior','resize','fronts','more'];
-for(const [selection,expected] of [['none',['add','more']],['studio',['walls','ceiling']],['wardrobe',FURNITURE_TOOLS],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
+for(const [selection,expected] of [['none',['add','more']],['studio',['walls','ceiling','fixtures']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',FURNITURE_TOOLS],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
  test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
 }
 test('Add is named for what it adds',()=>{assert.equal(contextualActions('wardrobe')[0][2],'New wardrobe');assert.equal(contextualActions('kitchen')[0][2],'Add cabinet');});
