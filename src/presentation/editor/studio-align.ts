@@ -135,3 +135,20 @@ export function neighbourPoints(room: Studio, s: SurfaceProfile, standing: reado
   }
   return out.map(p => ({ x: round(p.x), y: round(p.y) }));
 }
+
+/** Shifts along its wall that put a ceiling shape's left or right side on a line: the wall's ends, and the
+ * sides of the other shapes, doors, windows and wardrobes on it. `src` is the position of that line. */
+export function sideTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[]): AlignTarget<number>[] {
+  const s = surfaceProfile(room, { kind: 'ceiling', id: c.id }, 'front');
+  if (!s) return [];
+  const xs = s.points.map(p => p.x), lo = Math.min(...xs), hi = Math.max(...xs);
+  const lines = [s.context.from, s.context.to, ...neighbourPoints(room, s, standing).map(p => p.x)];
+  return lines.flatMap(x => [{ v: round(x - lo), label: 'Aligned', src: x }, { v: round(x - hi), label: 'Aligned', src: x }]).filter(t => Math.abs(t.v) > .05);
+}
+/** A line up the wall's face at `x` along it. */
+export function sideGuide(room: Studio, c: StudioCeiling, x: number): Guide[] {
+  const fr = ceilingFrame(room, c);
+  if (!fr) return [];
+  const a = fr.at(x, 0);
+  return [{ a: { ...a, y: 0 }, b: { ...a, y: roomHeight(room) }, label: 'Aligned' }];
+}
