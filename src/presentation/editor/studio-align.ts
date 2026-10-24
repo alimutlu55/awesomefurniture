@@ -5,6 +5,8 @@ import { ceilingFrame } from '../../domain/studio/studio-ceiling';
 import { wallLine } from '../../domain/studio/studio';
 import type { Align, AlignTarget } from '../../domain/geometry/alignment';
 import type { Guide } from './studio-drag';
+import { surfaceProfile, type SurfaceProfile } from '../../domain/studio/surface-profile';
+import type { Vec } from '../../domain/geometry/profile-polygon';
 
 /** What an opening or a ceiling shape lines up with while it is dragged: the other openings on its wall, the
  * other shapes in the room. Plain lists of candidates for `resolveAlignment` (`alignTo`) and the guide each
@@ -103,4 +105,33 @@ export function heightGuide(room: Studio, c: StudioCeiling, at: { x: number; z: 
 export function liftTargets(c: StudioCeiling, heights: readonly Align[]): AlignTarget<number>[] {
   const ys = c.profile.map(p => p.y), pts = [Math.min(...ys), Math.max(...ys)];
   return heights.flatMap(h => pts.map(y => ({ v: round(h.v - y), label: h.label, src: h.v })));
+}
+
+/** What a wall's or ceiling shape's outline can line up with in the Shape editor, as points in the same
+ * drawing: the corners of the other shapes on the wall, the doors and windows, and the wardrobes standing
+ * against it (their width and height from the front; their depth and height from the side). */
+export function neighbourPoints(room: Studio, s: SurfaceProfile, standing: readonly Standing[]): Vec[] {
+  const out: Vec[] = [], line = wallLine(room, s.wall);
+  for (const o of room.ceilings ?? []) {
+    if (o.wall !== s.wall.id || (s.ref.kind === 'ceiling' && o.id === s.ref.id)) continue;
+    const p = surfaceProfile(room, { kind: 'ceiling', id: o.id }, s.view);
+    if (p?.primary && !(s.ref.kind === 'wall' && s.view === 'side')) out.push(...p.points.map(v => ({ x: v.x, y: v.y })));
+  }
+  for (const o of s.openings) out.push({ x: o.x0, y: o.y0 }, { x: o.x1, y: o.y0 }, { x: o.x0, y: o.y1 }, { x: o.x1, y: o.y1 });
+  if (!line || (s.ref.kind === 'wall' && s.view === 'side')) return out;
+  const own = s.ref.kind === 'ceiling' ? room.ceilings?.find(c => c.id === s.ref.id) : undefined, fr = own && ceilingFrame(room, own);
+  for (const f of standing) {
+    const a = f.angle * Math.PI / 180, ux = Math.cos(a), uz = -Math.sin(a), vx = Math.sin(a), vz = Math.cos(a);
+    const pts = ([[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).map(([i, j]) => {
+      const x = f.x + i * f.w / 2 * ux + j * f.d / 2 * vx - line.a.x, z = f.z + i * f.w / 2 * uz + j * f.d / 2 * vz - line.a.z;
+      return { s: x * line.ux + z * line.uz, d: x * line.nx + z * line.nz - s.wall.thickness / 2 };
+    });
+    const near = Math.min(...pts.map(p => p.d)), far = Math.max(...pts.map(p => p.d)), from = Math.min(...pts.map(p => p.s)), to = Math.max(...pts.map(p => p.s));
+    if (far < -.5 || near > 400) continue;
+    // One standing where the shape comes down follows it, so it is never what the shape lines up with.
+    if (own && fr && to > fr.along.from + .5 && from < fr.along.to - .5 && near < own.depth - .5) continue;
+    if (s.view === 'front') out.push({ x: from, y: f.h }, { x: to, y: f.h });
+    else out.push({ x: Math.max(0, near), y: f.h }, { x: far, y: f.h });
+  }
+  return out.map(p => ({ x: round(p.x), y: round(p.y) }));
 }

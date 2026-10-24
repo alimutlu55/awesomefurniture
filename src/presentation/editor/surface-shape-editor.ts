@@ -8,6 +8,7 @@ import { drawingBox, drawingMarkup, type ShapeGuide, type ShapePick } from './su
 import { hitShape, snapCorner, snapMove, snapSlide, SHAPE_PX } from './surface-shape-snap';
 import { applyShapeField, shapeFields } from './surface-shape-fields';
 import { ceilingArt } from './studio-ceiling-panel';
+import { neighbourPoints } from './studio-align';
 import { createShapeSession } from './surface-shape-session';
 import { createDrawingZoom } from './surface-shape-zoom';
 import { esc, measureNumber, unitSuffix } from './editor-format.js';
@@ -52,6 +53,10 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   let tools = false;
 
   const room = () => model.scene.studio;
+  const neighbours = (s: SurfaceProfile) => {
+    const studio = room();
+    return studio ? neighbourPoints(studio, s, model.scene.wardrobes.map(f => ({ x: f.x, z: f.z, angle: f.angle, w: f.state.w, d: f.state.d, h: f.state.h }))) : [];
+  };
   /** The view on show: the one chosen, else the part's main one. */
   const current = (): SurfaceView | undefined => view ?? undefined;
   const profile = () => { const r = room(); return r && ref ? surfaceProfile(r, ref, current()) : null; };
@@ -248,7 +253,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     if (!g || e.pointerId !== g.pointer || !ref) return;
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < SHAPE_PX.tap) return;
     g.moved = true;
-    const s = g.profile, px = scale(), at = toCm(e), grid = e.shiftKey ? PROFILE.typedGrid : PROFILE.dragGrid, roomLevels = { ...s.context };
+    const s = g.profile, px = scale(), at = toCm(e), grid = e.shiftKey ? PROFILE.typedGrid : PROFILE.dragGrid, roomLevels = { ...s.context, points: neighbours(s) };
     let next: ProfileVertex[] | null = null, raw: ProfileVertex[] = g.last;
     g.merge = undefined;
     if (g.hit.kind === 'vertex') {

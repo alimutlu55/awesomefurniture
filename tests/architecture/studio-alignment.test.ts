@@ -47,3 +47,16 @@ test('a wall moved lines its faces up with the faces of the other parallel walls
   }
   assert.ok(checked > 0, 'the bedroom has parallel walls');
 });
+
+test('a shape drawn on a wall offers the corners of the other shapes on that wall, and not its own', async () => {
+  const { neighbourPoints } = await import('../../src/presentation/editor/studio-align');
+  const { surfaceProfile } = await import('../../src/domain/studio/surface-profile');
+  let room = createStudio('bedroom');
+  const wall = room.walls[0]!.id;
+  room = addCeiling(room, wall, 'box')!;
+  const first = room.ceilings!.at(-1)!;
+  assert.equal(neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: first.id })!, []).length, room.openings.filter(o => o.wall === wall).length * 4, 'alone: only the wall\'s openings');
+  room = addCeiling(room, wall, 'box')!;
+  const second = room.ceilings!.at(-1)!, points = neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: second.id })!, []);
+  for (const v of surfaceProfile(room, { kind: 'ceiling', id: first.id })!.points) assert.ok(points.some(p => Math.abs(p.x - v.x) < .1 && Math.abs(p.y - v.y) < .1), 'the other shape\'s corner');
+});

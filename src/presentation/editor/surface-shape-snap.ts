@@ -27,31 +27,35 @@ export function hitShape(points: readonly Vec[], at: Vec, px: number): ShapePick
 }
 
 /** Heights and positions a shape lines up with: the room's floor and ceiling, the wall's ends and the bounds. */
-const levels = (bounds: ProfileBounds, top: number, from: number, to: number) => ({ xs: [bounds.minX, bounds.maxX, from, to], ys: [bounds.minY, top] });
+const levels = (bounds: ProfileBounds, top: number, from: number, to: number, points: readonly Vec[] = []) =>
+  ({ xs: [bounds.minX, bounds.maxX, from, to, ...points.map(p => p.x)], ys: [bounds.minY, top, ...points.map(p => p.y)] });
+/** What a shape is drawn against: the room's levels, and corners of the other parts on the same view (other
+ * shapes, doors and windows, wardrobes) that a corner or edge can line up with. */
+export interface RoomLevels { top: number; from: number; to: number; points?: readonly Vec[] }
 const round = (v: number, grid: number) => Math.round(v / grid) * grid;
 
 /** A corner dragged to `target`: on the grid, square with its neighbours, on the room's levels, or onto a
  * neighbour (which merges the two when the drag ends). */
-export function snapCorner(points: readonly ProfileVertex[], index: number, target: Vec, bounds: ProfileBounds, room: { top: number; from: number; to: number }, px: number, grid: number) {
+export function snapCorner(points: readonly ProfileVertex[], index: number, target: Vec, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
   const n = points.length, prev = points[(index - 1 + n) % n]!, next = points[(index + 1) % n]!, tolerance = SHAPE_PX.snap * px;
   const clamp = { x: Math.max(bounds.minX, Math.min(bounds.maxX, target.x)), y: Math.max(bounds.minY, Math.min(bounds.maxY, target.y)) };
   for (const [k, q] of [[index - 1, prev], [index + 1, next]] as const)
     if (Math.hypot(q.x - clamp.x, q.y - clamp.y) <= tolerance) return { at: { x: q.x, y: q.y }, guides: [] as ShapeGuide[], merge: (k + n) % n };
-  const { xs, ys } = levels(bounds, room.top, room.from, room.to), guides: ShapeGuide[] = [];
+  const { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), guides: ShapeGuide[] = [];
   const x = nearestValue(clamp.x, [prev.x, next.x, ...xs], tolerance), y = nearestValue(clamp.y, [prev.y, next.y, ...ys], tolerance);
   const at = { x: x ?? round(clamp.x, grid), y: y ?? round(clamp.y, grid) };
-  for (const q of [prev, next]) {
-    if (x !== null && Math.abs(q.x - at.x) < 1e-6) guides.push({ a: q, b: at });
-    if (y !== null && Math.abs(q.y - at.y) < 1e-6) guides.push({ a: q, b: at });
+  for (const q of [prev, next, ...room.points ?? []]) {
+    if (x !== null && Math.abs(q.x - at.x) < 1e-6 && Math.hypot(q.x - at.x, q.y - at.y) > 1e-6) guides.push({ a: q, b: at });
+    if (y !== null && Math.abs(q.y - at.y) < 1e-6 && Math.hypot(q.x - at.x, q.y - at.y) > 1e-6) guides.push({ a: q, b: at });
   }
   return { at, guides, merge: undefined };
 }
 
 /** An edge slid by `d` along its outward normal: on the grid, or level with another corner or a room level. */
-export function snapSlide(points: readonly ProfileVertex[], edge: number, d: number, bounds: ProfileBounds, room: { top: number; from: number; to: number }, px: number, grid: number) {
+export function snapSlide(points: readonly ProfileVertex[], edge: number, d: number, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
   const n = points.length, a = points[edge]!, b = points[(edge + 1) % n]!, l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   const normal = { x: (b.y - a.y) / l, y: -(b.x - a.x) / l }, offset = (p: Vec) => (p.x - a.x) * normal.x + (p.y - a.y) * normal.y;
-  const { xs, ys } = levels(bounds, room.top, room.from, room.to), targets: { v: number; label: string; src?: Vec }[] = [];
+  const { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), targets: { v: number; label: string; src?: Vec }[] = [];
   points.forEach((p, k) => { if (k !== edge && k !== (edge + 1) % n) targets.push({ v: offset(p), label: 'corner', src: p }); });
   if (Math.abs(normal.y) > .999) ys.forEach(y => targets.push({ v: (y - a.y) / normal.y, label: 'level' }));
   if (Math.abs(normal.x) > .999) xs.forEach(x => targets.push({ v: (x - a.x) / normal.x, label: 'level' }));
@@ -64,8 +68,8 @@ export function snapSlide(points: readonly ProfileVertex[], edge: number, d: num
 }
 
 /** The whole shape moved by (dx, dy): on the grid, or with a side on a room level. */
-export function snapMove(points: readonly ProfileVertex[], dx: number, dy: number, bounds: ProfileBounds, room: { top: number; from: number; to: number }, px: number, grid: number) {
-  const box = profileExtent(points), { xs, ys } = levels(bounds, room.top, room.from, room.to), tolerance = SHAPE_PX.snap * px;
+export function snapMove(points: readonly ProfileVertex[], dx: number, dy: number, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
+  const box = profileExtent(points), { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), tolerance = SHAPE_PX.snap * px;
   const along = (values: readonly number[], lo: number, hi: number, delta: number) =>
     nearestValue(delta, values.flatMap(v => [v - lo, v - hi]), tolerance) ?? round(delta, grid);
   return { dx: along(xs, box.minX, box.maxX, dx), dy: along(ys, box.minY, box.maxY, dy) };
