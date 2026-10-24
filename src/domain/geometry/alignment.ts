@@ -40,7 +40,8 @@ export interface AlignOptions {
 const sameLine = (a: AlignTarget, b: AlignTarget) => Math.abs(a.v - b.v) < SAME && (a.kind ?? a.label) === (b.kind ?? b.label);
 
 /** The candidate `raw` aligns with, or null. Deterministic: the held line while it is near enough, else the
- * nearest within `tolerance` (distance plus its penalty); on a tie, the one listed first. */
+ * nearest within `tolerance` (distance plus its penalty); on a tie, the one listed first. Scores closer than
+ * SAME are a tie, so floating-point noise never decides between two lines the same distance away. */
 export function resolveAlignment<T extends AlignTarget>(raw: number, targets: readonly T[], { tolerance, lock = null, within }: AlignOptions): T | null {
     const reachable = within ? targets.filter(t => t.v >= within[0] - SAME && t.v <= within[1] + SAME) : targets;
     if (lock) {
@@ -50,9 +51,9 @@ export function resolveAlignment<T extends AlignTarget>(raw: number, targets: re
     let best: T | null = null, score = Infinity;
     for (const t of reachable) {
         const d = Math.abs(t.v - raw);
-        if (d > tolerance) continue;
+        if (d > tolerance + SAME) continue;
         const s = d + (t.penalty ?? 0);
-        if (s < score) { best = t; score = s; }
+        if (s < score - SAME) { best = t; score = s; }
     }
     return best;
 }

@@ -2,6 +2,7 @@ import { packStorageBoxes, storageBoxSize } from './storage-boxes';
 import { SHELF_POSSESSIONS, unitsOnShelf } from '../wardrobe/possessions';
 import { plannerLimits, hasTrait } from '../wardrobe/fittings';
 import { PANEL as CATALOG_PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { nearestValue } from '../geometry/alignment';
 
 /* WardrobePlanner: cm, bottom-to-top stacks. Empty space is intentional and
  * never counted as seasonal storage. Every candidate is measured the same way and must clear the same quality floor.
@@ -68,7 +69,7 @@ export const WardrobePlanner = (() => {
     const free = (x, y) => !others.some(o => x < o.x1 - .01 && o.x0 < x + w - .01 && y < o.y1 - .01 && o.y0 < y + h - .01);
     const xl = [0, mx, mx / 2], yl = [0, my]; for (const o of others) { xl.push(o.x1, o.x0 - w, o.x0, o.x1 - w); yl.push(o.y1, o.y0 - h, o.y0, o.y1 - h) }
     const lines = (a, max) => [...new Set(a.map(v => r2(clamp(v, 0, max))))], X = lines(xl, mx), Y = lines(yl, my);
-    const magnet = (v, L) => { let b = v, d = tol + 1e-9; for (const l of L) { const e = Math.abs(l - v); if (e < d - 1e-9) { d = e; b = l } } return b };
+    const magnet = (v, L) => nearestValue(v, L, tol) ?? v; // the shared alignment rule (geometry/alignment.ts)
     let dx = clamp(qg(num(want && want.x, 0)), 0, mx), dy = clamp(qg(num(want && want.y, 0)), 0, my); if (snap) { dx = magnet(dx, X); dy = magnet(dy, Y) }
     let best = null;
     for (const x of [dx, ...X]) for (const y of [dy, ...Y]) {
