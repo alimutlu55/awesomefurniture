@@ -214,7 +214,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         positionLabels();
         inspector.dividerUI();
     }
-    const { buildCabinet } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState,
+    const { buildCabinet, moveSplitHandles } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState,
         geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag,
         trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
 
@@ -263,6 +263,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             }
             inspector.crumbUI(); syncWallGhosting(); overlay?.draw();
             if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
+            moveSplitHandles();
             positionLabels();
             return;
         }

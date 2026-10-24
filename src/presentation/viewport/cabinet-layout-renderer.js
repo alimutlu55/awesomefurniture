@@ -367,5 +367,15 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         placeShapeHandles();
         renderState.Gr.updateMatrixWorld(true);
     }
-    return { buildCabinet };
+    /** The insertion cursors are editor state, not the design: when only they moved, the build is skipped, so
+     * their markers are moved here to where the shape inspector now puts them. */
+    function moveSplitHandles() {
+        if (!renderState.renderActive || getRenderDesign().item >= 0 || getRenderDesign().divider >= 0 || !shapeSheetOpen()) return;
+        const d = getRenderDesign().d;
+        shapeInspector.splitMarkers().forEach((q, n) => {
+            const entry = splitPool[n] && renderState.labs.find(l => l.el === splitPool[n]);
+            if (entry) entry.p.set(q.x, q.y, q.z ?? d / 2 + 2);
+        });
+    }
+    return { buildCabinet, moveSplitHandles };
 }
