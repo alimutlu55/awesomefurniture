@@ -46,8 +46,8 @@
 @media (max-width:900px){
  .surface-shape-hint{display:none}
  .surface-shape-starts{margin-bottom:8px}
- .surface-shape-starts button{width:56px;padding:4px 2px 5px}
- .surface-shape-start-art{width:36px;height:24px}
+ .surface-shape .surface-shape-starts button{width:58px;min-height:0;padding:4px 2px 5px;font-size:10px;line-height:12px}
+ .surface-shape .surface-shape-start-art{width:36px;height:24px}
  .surface-shape-svg{max-height:30vh}
  .surface-shape .surface-shape-field input{font-size:16px}
  .surface-shape-actions{margin-top:10px}
