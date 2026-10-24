@@ -83,3 +83,17 @@ test('overflowing compact content scrolls on the first upward swipe instead of e
   assert.equal(f.panel.dataset.sheetPosition,'compact');assert.equal(f.values.size,0);
  }finally{global.getComputedStyle=original;}
 });
+
+test('drawing and scroll-only content keep their gestures instead of dragging the sheet',()=>{
+ for(const selector of ['[role="application"]','[data-sheet-scroll]']){
+  const f=fixture();
+  const target={closest:query=>query.includes(selector)?{}:null};
+  f.listeners.touchstart({target,touches:[{identifier:2,clientX:100,clientY:200}]});
+  f.listeners.touchmove({touches:[{identifier:2,clientX:100,clientY:300}],preventDefault(){assert.fail('Content gesture intercepted')}});
+  f.listeners.touchend();
+  assert.equal(f.closed(),0);assert.equal(f.panel.dataset.sheetPosition,'compact');
+  f.listeners.pointerdown({target,pointerId:1,isPrimary:true,button:0,clientX:100,clientY:200});
+  f.emit('pointermove',300);f.emit('pointerup',300);
+  assert.equal(f.closed(),0);assert.equal(f.values.size,0);
+ }
+});

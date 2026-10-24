@@ -33,7 +33,8 @@ export function mountMobileSheet({ document, lifetime, panel, name, close, botto
             scene.style.removeProperty('--mobile-sheet-drag-inset');
         }
     };
-    const usableSurface = target => !target || handle.contains(target) || !target.closest('button,input,select,textarea,a,[contenteditable="true"],[role="slider"]');
+    // Drawing gestures and marked content belong to their controls or native scrolling.
+    const usableSurface = target => !target || handle.contains(target) || !target.closest('button,input,select,textarea,a,[contenteditable="true"],[role="slider"],[role="application"],[data-sheet-scroll]');
     const scrollArea = target => {
         for (let el = target; el && panel.contains(el); el = el.parentElement) {
             if (el.scrollHeight > el.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(el).overflowY)) return el;
