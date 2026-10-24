@@ -12,6 +12,7 @@
  * Ceilings that come down into the room (under a staircase, a landing, a sloped roof, a beam or boxing)
  * run along a wall too: see studio-ceiling.ts.
  */
+import type { BoundaryPoint } from '../geometry/boundary';
 import type { StudioTemplateId } from './studio-templates';
 import type { OpeningKind } from './wall-utilities';
 export type { OpeningKind, WallUtilityKind, StructuralOpeningKind } from './wall-utilities';
@@ -19,7 +20,14 @@ export type { OpeningKind, WallUtilityKind, StructuralOpeningKind } from './wall
 export interface StudioCorner { readonly id: string; readonly x: number; readonly z: number }
 export type WallFinish = 'matte' | 'eggshell' | 'satin';
 
-export interface StudioWall {
+export interface BoundaryControl { readonly index: number; readonly u: number }
+export interface SurfaceBoundary {
+  readonly outline?: readonly BoundaryPoint[] | undefined;
+  /** Only user-created points become controls; construction corners stay quiet. */
+  readonly boundaryControls?: readonly BoundaryControl[] | undefined;
+}
+
+export interface StudioWall extends SurfaceBoundary {
   readonly id: string;
   readonly a: string;
   readonly b: string;
@@ -56,7 +64,7 @@ export interface CeilingPoint { readonly t: number; readonly y: number }
  * - `run: 'across'`: the height changes with the distance from the wall's face (`t` from 0) and stays
  *   level along the whole wall, as under a roof sloping down to the wall. It reaches its last point.
  * Two points at one `t` are a vertical step. Where several cover a spot, the lowest counts. */
-export interface StudioCeiling {
+export interface StudioCeiling extends SurfaceBoundary {
   readonly id: string;
   readonly wall: string;
   readonly run: 'along' | 'across';

@@ -145,7 +145,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     group.add(body);
     body.add(details);
     const { start, end } = wallExtent(studio, w, line.length), openings = studio.openings.filter(o => o.wall === w.id);
-    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings), { depth: w.thickness, bevelEnabled: false });
+    const geometry = new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, openings, w.outline), { depth: w.thickness, bevelEnabled: false });
     geometry.translate(0, 0, -w.thickness / 2);
     const solid = new THREE.Mesh(geometry, paintMaterial(w));
     solid.userData.studioWall = w.id;
@@ -247,7 +247,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
       geometry = new THREE.BufferGeometry().setFromPoints([[l, b, r, b], [r, b, r, t], [r, t, l, t], [l, t, l, b]].flatMap(([x0, y0, x1, y1]) => [new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z)]));
     } else {
       const { start, end } = wallExtent(room, w, line.length);
-      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id)), { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
+      geometry = new THREE.EdgesGeometry(new THREE.ExtrudeGeometry(faceOutline(start, end, w.height, room.openings.filter(x => x.wall === w.id), w.outline),
+        { depth: w.thickness, bevelEnabled: false }).translate(0, 0, -w.thickness / 2), 20);
     }
     selected = new THREE.LineSegments(geometry, lineMaterial);
     selected.renderOrder = 12;
@@ -324,16 +325,21 @@ export function createStudioRenderer(scene: THREE.Scene) {
 
 /** A wall's face outline from `start` to `end` along it, `height` tall: doors and archways are notches
  * from the floor, windows are holes. */
-function faceOutline(start: number, end: number, height: number, openings: readonly StudioOpening[]) {
+function faceOutline(start: number, end: number, height: number, openings: readonly StudioOpening[], outline?: readonly { t: number; y: number }[]) {
   const holes = openings.filter(o => !isWallUtility(o.kind));
   const shape = new THREE.Shape();
+  if (outline) {
+    shape.moveTo(outline[0]!.t, outline[0]!.y);
+    outline.slice(1).forEach(p => shape.lineTo(p.t, p.y)); shape.closePath();
+  } else {
   shape.moveTo(start, 0);
   for (const o of [...holes].filter(o => o.sill < 1).sort((p, q) => p.offset - q.offset)) {
     const l = o.offset - o.width / 2, r = o.offset + o.width / 2, top = Math.min(height - 1, o.height);
     shape.lineTo(l, 0); shape.lineTo(l, top); shape.lineTo(r, top); shape.lineTo(r, 0);
   }
   shape.lineTo(end, 0); shape.lineTo(end, height); shape.lineTo(start, height); shape.lineTo(start, 0);
-  for (const o of holes.filter(o => o.sill >= 1)) {
+  }
+  for (const o of holes.filter(o => outline || o.sill >= 1)) {
     const hole = new THREE.Path(), l = o.offset - o.width / 2, r = o.offset + o.width / 2;
     hole.moveTo(l, o.sill); hole.lineTo(l, o.sill + o.height); hole.lineTo(r, o.sill + o.height); hole.lineTo(r, o.sill); hole.lineTo(l, o.sill);
     shape.holes.push(hole);

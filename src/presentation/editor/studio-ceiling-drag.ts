@@ -1,3 +1,5 @@
+import { surfaceSplitHandle } from './surface-boundary-cursor';
+import type { SurfaceLocation } from '../../domain/studio/surface-boundary';
 import { roomHeight } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 import { outerEdgePoint, outerEdgeHeight, visibleEdgeHeight } from '../../domain/studio/ceiling-edge';
@@ -20,14 +22,14 @@ export function runAxis(fr: Frame, c: StudioCeiling) {
 /** A profile point on the model: on the underside's edge nearest the room, where it is seen from inside. */
 export function pointOnEdge(fr: Frame, c: StudioCeiling, k: number, fraction = 0) {
   const a = c.profile[k]!, b = c.profile[k + 1] ?? a, t = a.t + (b.t - a.t) * fraction;
-  const floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at((fr.along.from + fr.along.to) / 2, t);
+  const floor = c.run === 'along' ? fr.at(t, c.depth) : fr.at(fr.along.to, t);
   return { x: floor.x, y: visibleEdgeHeight(fr.studio, c, a.y + (b.y - a.y) * fraction), z: floor.z };
 }
 export const pointAt = (fr: Frame, c: StudioCeiling, k: number) => pointOnEdge(fr, c, k);
 
 /** A dot on every point of the selected ceiling, and a grip on its edge to set how far it reaches into the
  * room (a ceiling along a wall; a sloped roof reaches to its last point). */
-export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number | { index: number; fraction: number }): RoomHandle[] {
+export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number | { index: number; fraction: number } | SurfaceLocation): RoomHandle[] {
   const fr = ceilingFrame(room, c);
   if (!fr) return [];
   // A dot a finger can cover: the height it sets is drawn beside it as a dimension line, not on the dot.
@@ -35,19 +37,14 @@ export function ceilingHandles(room: Studio, c: StudioCeiling, position?: number
     key: 'ceiling:' + c.id + ':' + k, kind: 'ceiling' as const, id: c.id, index: k, ...pointAt(fr, c, k),
     label: 'Point ' + (k + 1) + ', ' + f(visibleEdgeHeight(room, c, p.y)) + ' high. Drag to reshape; Shift-drag angles a step corner. Tap to type its height', ux: axis.x, uz: axis.z,
   }));
-  const edges = c.profile.slice(0, -1).map((p, k) => ({ p, k, span: c.profile[k + 1]!.t - p.t }));
-  const chosen = typeof position === 'object' ? edges.find(e => e.k === position.index)
-    : edges.sort((a, b) => position === undefined ? b.span - a.span || a.k - b.k
-      : Math.abs(position - Math.max(a.p.t, Math.min(a.p.t + a.span, position)))
-        - Math.abs(position - Math.max(b.p.t, Math.min(b.p.t + b.span, position))) || a.k - b.k)[0];
-  if (chosen) {
-    const { p, k, span } = chosen;
-    const fraction = typeof position === 'object' ? position.fraction : position === undefined || span === 0 ? .5 : (position - p.t) / span;
-    const u = Math.max(0, Math.min(1, fraction)), at = pointOnEdge(fr, c, k, u);
-    out.push({ key: 'ceiling-split:' + c.id, kind: 'ceiling-split', id: c.id, index: k, position: p.t + span * u, fraction: u,
-      ...at,
-      label: 'Add a ceiling shape point here. Drag along the edge to choose where; tap to divide. Arrow keys move along the boundary' });
+  let chosen: SurfaceLocation | undefined;
+  if (typeof position === 'object') chosen = 'edge' in position ? position : { edge: 'rim:1:' + position.index, fraction: position.fraction };
+  else if (typeof position === 'number') {
+    const index = c.profile.findIndex((p, k) => c.profile[k + 1] && position >= p.t && position <= c.profile[k + 1]!.t);
+    if (index >= 0) { const a = c.profile[index]!, b = c.profile[index + 1]!; chosen = { edge: 'rim:1:' + index, fraction: b.t > a.t ? (position - a.t) / (b.t - a.t) : .5 }; }
   }
+  const split = surfaceSplitHandle(room, 'ceiling', c.id, chosen);
+  if (split) out.push(split);
   if (c.run === 'along') {
     // Away from the midpoint's add-point handle.
     let best = 0;

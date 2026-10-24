@@ -1,3 +1,4 @@
+import { mapBoundary } from './surface-outline';
 import { roomHeight, type Studio, type StudioCeiling } from './studio';
 
 /** The low quarter of a panel keeps the lift grip clear of corner dots, the + and depth grip. */
@@ -17,11 +18,12 @@ export function liftCeilingOuterEdge(studio: Studio, id: string, amount: number)
   const c = studio.ceilings?.find(c => c.id === id);
   if (!c || !Number.isFinite(amount)) return null;
   let next: StudioCeiling;
-  if (c.run === 'along') next = { ...c, edgeRise: (c.edgeRise ?? 0) + amount };
+  if (c.run === 'along') next = { ...c, edgeRise: (c.edgeRise ?? 0) + amount, ...(c.outline ? { outline: c.outline.map(p => p.roof
+    ? { ...p, y: roomHeight(studio) + Math.abs((c.edgeRise ?? 0) + amount) + 1 } : p) } : {}) };
   else {
     const first = c.profile[0]!, span = c.profile.at(-1)!.t - first.t;
     if (span <= 1e-8) return null;
-    next = { ...c, profile: c.profile.map(p => ({ ...p, y: p.y + amount * (p.t - first.t) / span })) };
+    next = mapBoundary(c, p => p.roof ? p : ({ ...p, y: p.y + amount * (p.t - first.t) / span }), roomHeight(studio));
   }
   return { ...studio, template: 'custom', ceilings: studio.ceilings!.map(item => item.id === id ? next : item) };
 }
@@ -31,7 +33,7 @@ export function liftWholeCeiling(studio: Studio, id: string, amount: number): St
   const c = studio.ceilings?.find(c => c.id === id);
   if (!c || !Number.isFinite(amount)) return null;
   return { ...studio, template: 'custom', ceilings: studio.ceilings!.map(item => item.id === id
-    ? { ...item, profile: item.profile.map(p => ({ ...p, y: p.y + amount })) } : item) };
+    ? mapBoundary(item, p => p.roof ? p : ({ ...p, y: p.y + amount }), roomHeight(studio)) : item) };
 }
 export function setOuterEdgeHeight(studio: Studio, id: string, height: number) {
   const c = studio.ceilings?.find(c => c.id === id);

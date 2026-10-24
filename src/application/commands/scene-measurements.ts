@@ -3,6 +3,7 @@ import { createSceneCommands } from './scene-commands';
 import { createDesignCommands } from './design-commands';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
 import { depthForFitting } from '../../domain/wardrobe/carcass';
+import { boundaryControlHeight, setBoundaryControlHeight } from '../../domain/studio/surface-boundary';
 import { roomHeight, wallFace } from '../../domain/studio/studio';
 import { setInsideLength, setWallSize, setOpeningSize, moveOpening, moveOpening2D } from '../../domain/studio/studio-edit';
 import { edgeHeight, outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
@@ -25,6 +26,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         if (ref.kind === 'studio') {
             const room = scene().studio;
             if (!room) return null;
+            if (ref.field.startsWith('b') && (ref.selection === 'wall' || ref.selection === 'ceiling'))
+                return boundaryControlHeight(room, ref.selection, ref.id, Number(ref.field.slice(1)));
             if (ref.selection === 'wall') {
                 const wall = room.walls.find(w => w.id === ref.id);
                 return !wall ? null : ref.field === 'length' ? wallFace(room, wall)?.length ?? null
@@ -61,6 +64,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
     function apply(ref: SceneMeasurement, value: number): boolean {
         if (!Number.isFinite(value) || value < 0 || read(ref) === null) return false;
         if (ref.kind === 'studio') return commands.editStudio(room => {
+            if (ref.field.startsWith('b') && (ref.selection === 'wall' || ref.selection === 'ceiling'))
+                return setBoundaryControlHeight(room, ref.selection, ref.id, Number(ref.field.slice(1)), value);
             if (ref.selection === 'wall') return ref.field === 'length' ? setInsideLength(room, ref.id, value)
                 : setWallSize(room, ref.id, { [ref.field]: value });
             if (ref.selection === 'ceiling') {

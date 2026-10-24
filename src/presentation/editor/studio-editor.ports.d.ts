@@ -5,12 +5,14 @@ type Point = { x: number; y: number; z: number };
  * an opening or a ceiling dragged by its own surface gets a handle where it was grabbed, never drawn. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'ceiling' | 'ceiling-split' | 'wall-split' | 'depth' | 'tilt' | 'lift';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'ceiling' | 'ceiling-split' | 'wall-split' | 'depth' | 'tilt' | 'lift' | 'boundary-point';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
     /** A ceiling pill: which point of the profile, and the height it shows. */
     readonly index?: number; readonly text?: string;
+    readonly boundary?: import('../../domain/studio/surface-boundary').SurfaceLocation;
+    readonly surface?: 'wall' | 'ceiling';
     readonly position?: number; readonly fraction?: number;
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;

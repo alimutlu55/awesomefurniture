@@ -22,13 +22,18 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     if (!w || !line || !face || c.profile.length < 2) return null;
     // The solid's side view: down from the room's ceiling to the underside and back up.
     const shape = new THREE.Shape(), first = c.profile[0]!, last = c.profile.at(-1)!;
+    if (c.outline) {
+      shape.moveTo(c.outline[0]!.t, c.outline[0]!.y);
+      c.outline.slice(1).forEach(p => shape.lineTo(p.t, p.y)); shape.closePath();
+    } else {
     shape.moveTo(first.t, top);
     for (const p of c.profile) shape.lineTo(p.t, Math.min(top, p.y));
     shape.lineTo(last.t, top);
     shape.lineTo(first.t, top);
+    }
     let g: THREE.BufferGeometry;
     if (c.run === 'along') {
-      g = c.edgeRise ? tiltedCeilingGeometry(c, top).translate(0, 0, w.thickness / 2)
+      g = c.edgeRise || c.outline ? tiltedCeilingGeometry(c, top).translate(0, 0, w.thickness / 2)
         : new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
     } else {
       // Drawn across the room, then turned so it runs along the wall's whole inside face.

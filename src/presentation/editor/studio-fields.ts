@@ -1,3 +1,4 @@
+import { surfaceBoundary, boundaryControlHeight, setBoundaryControlHeight } from '../../domain/studio/surface-boundary';
 import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
 import { setDoorOperation, moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
@@ -30,6 +31,12 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
     const root = document.createElement('div');
     root.className = 'room-fields';
 
+    function boundaryFields(studio: Studio, kind: 'wall' | 'ceiling', id: string): Field[] {
+        const s = surfaceBoundary(studio, kind, id);
+        return s?.part.outline ? s.controls.map((_, k) => ({ key: 'b' + k, label: 'Point ' + (k + 1) + ' height',
+            value: boundaryControlHeight(studio, kind, id, k)!, min: kind === 'wall' ? 0 : L.minCeilingHeight,
+            max: kind === 'wall' ? s.wall.height : roomHeight(studio) })) : [];
+    }
     function fields(): Field[] {
         const studio = getStudio(), s = getSelection();
         if (!studio || !s) return [];
@@ -39,7 +46,9 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             // Each point's height, named by where it is: from the wall's start, or from the wall for a sloped roof.
             const where = (t: number) => measureNumber(Math.round(c.run === 'along' ? t - fr.face.start : t)) + unitSuffix() + ' ' + (c.run === 'along' ? 'along' : 'out');
             return [
-                ...c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1), value: Math.min(roomHeight(studio), edgeHeight(c, p.y)), min: L.minCeilingHeight, max: roomHeight(studio), hint: where(p.t) })),
+                ...(c.outline ? boundaryFields(studio, 'ceiling', c.id) : c.profile.map((p, k) => ({ key: 'p' + k, label: 'Height ' + (k + 1),
+                    value: Math.min(roomHeight(studio), edgeHeight(c, p.y)), min: L.minCeilingHeight, max: roomHeight(studio),
+                    hint: where(p.t) }))),
                 { key: 'outer', label: 'Outer edge height', value: outerEdgeHeight(c), min: L.minCeilingHeight, max: roomHeight(studio), hint: 'Wall edge stays fixed' },
                 { key: 'depth', label: 'Into the room', value: c.depth, min: L.minCeilingDepth, max: L.maxWallLength },
             ];
@@ -51,6 +60,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
                 { key: 'length', label: 'Length', value: face.length, min: L.minWallLength, max: L.maxWallLength, hint: 'Inside the room' },
                 { key: 'height', label: 'Height', value: w.height, min: L.minHeight, max: L.maxHeight },
                 { key: 'thickness', label: 'Thickness', value: w.thickness, min: L.minThickness, max: L.maxThickness },
+                ...boundaryFields(studio, 'wall', w.id),
             ];
         }
         const o = studio.openings.find(x => x.id === s.id), w = o && studio.walls.find(x => x.id === o.wall), face = w && wallFace(studio, w);
@@ -119,7 +129,8 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
-        if (s.kind === 'ceiling') {
+        if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) write(r => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), value));
+        else if (s.kind === 'ceiling') {
             if (key === 'outer') write(r => setOuterEdgeHeight(r, s.id, value));
             else if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
             else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value - (r.ceilings?.find(c => c.id === s.id)?.edgeRise ?? 0)) : null; });

@@ -2,7 +2,7 @@ import { STUDIO_LIMITS, cornerDegree, roomHeight, wallFace, wallLine } from '../
 import type { OpeningKind, Studio, StudioWall } from '../../domain/studio/studio';
 import { extendFromCorner, mergeCorners, moveCorner, moveOpening2D, moveWall, removeOpening, removeWall, splitWall } from '../../domain/studio/studio-edit';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
-import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reshapeCeilingPoint, reachAt, removeCeiling, setCeilingDepth, splitCeilingPanel } from '../../domain/studio/studio-ceiling';
+import { addCeiling, ceilingFrame, flipCeiling, moveCeilingPoint, reshapeCeilingPoint, reachAt, removeCeiling, setCeilingDepth } from '../../domain/studio/studio-ceiling';
 import { ceilingHandles, depthRuler, heightRuler, pointRuler, outerEdgeMeasures, restHeights, runAxis, snapPoint } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
@@ -10,6 +10,7 @@ import { alignTo, type Align } from './align-snap';
 import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { createCeilingSplitCursor } from './studio-ceiling-split';
+import { boundaryHandles, boundaryDrag, nudgeBoundary, insertBoundaryPoint } from './surface-boundary-controls';
 import { createWallSplitCursor } from './studio-wall-split';
 import { outerEdgeHeight, liftWholeCeiling, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import type { Carried } from '../../application/commands/studio-commands';
@@ -57,7 +58,6 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     callbacks.selectionChanged();
   }
   function valid() {
-    // A wardrobe in focus takes the selection over from the room.
     if (selectionState.focusOn) selectionState.room = null;
     const s = selection(), studio = room();
     if (s && (!studio || !exists(studio, s))) selectionState.room = null;
@@ -79,6 +79,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const out: RoomHandle[] = [];
     if (s.kind === 'wall') {
       for (const c of [line.a, line.b]) out.push({ key: 'corner:' + c.id, kind: 'corner', id: c.id, x: c.x, y: 0, z: c.z, label: 'Corner. Drag to move it; the walls that meet there follow' });
+      out.push(...boundaryHandles(studio, 'wall', w.id));
       const split = wallSplitter.handle(studio, w.id);
       if (split) out.push(split);
       for (const c of [line.a, line.b]) {
@@ -88,7 +89,10 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       }
     } else if (s.kind === 'ceiling') {
       const c = ceilingOf(studio, s.id);
-      if (c) out.push(...ceilingHandles(studio, c, splitter.location(c.id)));
+      if (c) {
+        out.push(...ceilingHandles(studio, c, splitter.location(c.id)).filter(h => !c.outline || h.kind !== 'ceiling'));
+        out.push(...boundaryHandles(studio, 'ceiling', c.id));
+      }
     }
     const kept = drag?.moved && drag.at && ['corner', 'extend'].includes(drag.handle.kind);
     if (kept && !out.some(x => x.key === drag!.handle.key)) out.push({ ...drag!.handle, x: drag!.at!.x, y: 0, z: drag!.at!.z });
@@ -124,9 +128,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const corners = moving.handle.kind === 'wall' ? [w.a, w.b] : [moving.created ?? moving.handle.id];
       for (const x of studio.walls) if (corners.includes(x.a) || corners.includes(x.b)) ids.add(x.id);
     }
-    // Pushed or pulled, the gap to the nearest wardrobe in front of it (not one going with it).
     const gap = moving?.handle.kind === 'wall' ? wallGap(studio, w, model.scene.wardrobes, moving.carry) : null;
-    // At rest, the selected wall's length can be tapped and typed.
     const ruler = (x: StudioWall) => { const m = wallRuler(studio, x); return m && x.id === w.id && !moving && s.kind === 'wall' ? { ...m, edit: 'length' } : m; };
     return [...studio.walls.filter(x => ids.has(x.id)).map(ruler), gap].filter((m): m is RoomMeasure => !!m);
   }
@@ -233,6 +235,8 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const target = lock ? lock.v : raw, cur = g.last.openings.find(x => x.id === h.id)!;
       g.guides = lock ? centreGuide(g.original, w) : [];
       want = t => moveOpening2D(g.original, h.id, cur.offset + (target - cur.offset) * t, cur.sill + (rawSill - cur.sill) * t);
+    } else if (h.kind === 'boundary-point') {
+      want = boundaryDrag(g.original, g.last, h, inPlane(e, h, h.ux!, h.uz!));
     } else if (h.kind === 'ceiling') {
       const c = ceilingOf(g.original, h.id)!, fr = ceilingFrame(g.original, c)!, axis = runAxis(fr, c), d = inPlane(e, h, axis.x, axis.z), p = c.profile[h.index!]!;
       const snapped = g.free ? { at: { t: p.t + d.s, y: p.y + d.y }, locks: { t: null, y: null } } : snapPoint(g.original, c, h.index!, { t: step(p.t + d.s), y: step(p.y + d.y) }, g.pin, tolerance());
@@ -308,20 +312,20 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       sceneCommands.followCeilings(true);
       callbacks.histUI();
     }
-    // A wall drawn from "+" is selected: it is still there after its end joined another.
     if (g.created) selectionState.room = { kind: 'wall', id: g.original.walls.at(-1)!.id };
     if (g.locks.join) callbacks.report('Walls joined.');
     callbacks.refresh();
     return true;
   }
   function click(h: RoomHandle) {
-    if (h.kind === 'tilt') callbacks.openFields('ceiling-size', 'outer');
+    if (h.kind === 'boundary-point') callbacks.openFields(h.surface === 'wall' ? 'wall-size' : 'ceiling-size', 'b' + h.index);
+    else if (h.kind === 'tilt') callbacks.openFields('ceiling-size', 'outer');
     else if (h.kind === 'ceiling') callbacks.openFields('ceiling-size', 'p' + h.index);
     else if (h.kind === 'ceiling-split') {
-      if (edit(s => splitCeilingPanel(s, h.id, h.index!, h.position, h.fraction))) splitter.clear();
+      if (edit(s => insertBoundaryPoint(s, h))) splitter.clear();
       else callbacks.report('Choose a point between two existing ceiling corners.');
     } else if (h.kind === 'wall-split') {
-      if (edit(s => splitWall(s, h.id, h.position))) wallSplitter.clear();
+      if (edit(s => insertBoundaryPoint(s, h))) wallSplitter.clear();
       else callbacks.report('Keep each wall section at least ' + STUDIO_LIMITS.minWallLength + unitSuffix() + ' long and clear of openings.');
     }
     else if (h.kind === 'extend') {
@@ -330,13 +334,13 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       callbacks.refresh();
     } else if (h.kind === 'corner' || h.kind === 'depth') callbacks.redraw();
   }
-  /** Arrow keys on a focused handle: 1 cm, Shift 10 cm. */
   function nudge(h: RoomHandle, key: string, shift: boolean) {
     const n = shift ? 10 : 1, dir = key === 'ArrowRight' || key === 'ArrowUp' ? 1 : -1;
     const cursor = cursorFor(h);
     if (cursor) { const studio = room(); if (studio) cursor.nudge(studio, h, dir * n); callbacks.redraw(); return !!studio; }
     const across = key.endsWith('Left') || key.endsWith('Right') ? dir * n : 0, deep = key.endsWith('Up') || key.endsWith('Down') ? dir * n : 0;
-    const ok = h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
+    const ok = h.kind === 'boundary-point' ? edit(s => nudgeBoundary(s, h, across, deep))
+      : h.kind === 'corner' ? edit(s => { const c = s.corners.find(x => x.id === h.id)!; return moveCorner(s, h.id, c.x + across, c.z - deep); })
       : h.kind === 'wall' ? edit(s => moveWall(s, h.id, dir * n))
         : h.kind === 'opening' ? edit(s => { const o = s.openings.find(x => x.id === h.id)!; return moveOpening2D(s, h.id, o.offset + across, o.sill + deep); })
           : h.kind === 'ceiling' ? edit(s => { const p = ceilingOf(s, h.id)!.profile[h.index!]!; return (shift ? moveCeilingPoint : reshapeCeilingPoint)(s, h.id, h.index!, p.t + across, p.y + deep); })
@@ -365,7 +369,6 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       if (!sceneCommands.editStudio(r => splitWall(r, w.id)) ) callbacks.report('This wall is too short to split. Each part needs ' + STUDIO_LIMITS.minWallLength + unitSuffix() + '.');
       callbacks.refresh();
     } else if (key.startsWith('ceiling:') && w) {
-      // A ceiling shape on this wall (replacing the one it had), selected to shape it on the model.
       if (sceneCommands.editStudio(r => addCeiling(r, w.id, key.slice(8)))) select({ kind: 'ceiling', id: room()!.ceilings!.at(-1)!.id });
       callbacks.refresh();
     } else if (key === 'flip' && s?.kind === 'ceiling') {

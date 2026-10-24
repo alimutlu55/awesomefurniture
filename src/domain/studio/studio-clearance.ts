@@ -3,6 +3,7 @@ import type { Placed } from './studio-fit';
 import type { Studio } from './studio';
 import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 import { roomHeight } from './studio';
+import { ceilingLowerProfile } from './surface-boundary';
 import { ceilingFrame } from './studio-ceiling';
 import { topSurface } from '../wardrobe/shape/depth-shape';
 
@@ -49,8 +50,9 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed, toleranc
     const along = (p: Point) => frame.local(world(p)).s, across = (p: Point) => frame.local(world(p)).d;
     const covered = strip(strip(footprint, along, frame.along.from, frame.along.to), across, frame.across.from, frame.across.to);
     const at = ceiling.run === 'along' ? along : across;
-    for (let i = 1; i < ceiling.profile.length; i++) {
-      const a = ceiling.profile[i - 1]!, b = ceiling.profile[i]!;
+    const profile = ceilingLowerProfile(ceiling);
+    for (let i = 1; i < profile.length; i++) {
+      const a = profile[i - 1]!, b = profile[i]!;
       if (b.t - a.t <= EPS) continue;
       const patch = strip(covered, at, a.t, b.t);
       if (!hasArea(patch)) continue;
