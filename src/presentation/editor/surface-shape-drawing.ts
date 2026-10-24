@@ -35,7 +35,7 @@ export function drawingMarkup({ profile, points, pick, guides, px, problem, box 
   out.push(`<path class="shape-floor" d="M${n(left - 4 * px * 8)} 0H${n(c.to + 4 * px * 8)}"/>`);
   out.push(`<path class="shape-ceiling" d="M${n(left)} ${n(-c.top)}H${n(c.to)}"/>`);
   // Seen from the side, the room is to the right of the wall's face.
-  if (profile.view === 'side') out.push(`<text class="shape-room" x="${n(box.x + box.w - 8 * px)}" y="${n(box.y + 16 * px)}" font-size="${n(11 * px)}" text-anchor="end">Room →</text>`);
+  if (profile.view === 'side') out.push(`<text class="shape-room" x="${n(box.x + box.w - 8 * px)}" y="${n(box.y + box.h - 8 * px)}" font-size="${n(11 * px)}" text-anchor="end">Room →</text>`);
   // The shape: filled, its outline, and the picked edge above it.
   out.push(`<path class="shape-solid${problem ? ' problem' : ''}" d="M${points.map(P).join('L')}Z"/>`);
   for (const g of guides) out.push(`<path class="shape-guide" d="M${P(g.a)}L${P(g.b)}"/>`);

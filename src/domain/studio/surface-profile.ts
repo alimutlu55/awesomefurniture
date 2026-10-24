@@ -56,6 +56,12 @@ function ceilingPoints(c: StudioCeiling, top: number): ProfileVertex[] {
   return list;
 }
 
+/** A shape whose outer edge is lifted (or lowered), seen from the side: its underside slopes from the wall out. */
+function liftedSide(depth: number, low: number, rise: number, top: number): ProfileVertex[] {
+  const outer = Math.max(0, Math.min(top, low + rise));
+  return top - outer < 5 ? [{ x: 0, y: low }, { x: depth, y: top }, { x: 0, y: top }] : [{ x: 0, y: low }, { x: depth, y: outer }, { x: depth, y: top }, { x: 0, y: top }];
+}
+
 /** The view a part opens in: a roof sloping down to its wall from the side, anything else face on. */
 export function primaryView(room: Studio, ref: SurfaceRef): SurfaceView {
   return ref.kind === 'ceiling' && room.ceilings?.find(c => c.id === ref.id)?.run === 'across' ? 'side' : 'front';
@@ -108,7 +114,7 @@ export function surfaceProfile(room: Studio, ref: SurfaceRef, view: SurfaceView 
     return { ref, points, bounds: { minX: face.start, maxX: face.end, minY: 0, maxY: top }, view, primary, wall: w, ...front, depth: ceiling.depth };
   }
   // A roof sloping to its wall, or the side of a shape along a wall: plain, it reaches straight out to its depth.
-  const points = primary ? main : ensureCounterClockwise(section ?? rect(0, ceiling.depth, low, top));
+  const points = primary ? main : ensureCounterClockwise(section ?? (ceiling.edgeRise ? liftedSide(ceiling.depth, low, ceiling.edgeRise, top) : rect(0, ceiling.depth, low, top)));
   return { ref, points, view, primary, wall: w, ...side, depth: ceiling.run === 'across' ? face.length : ceiling.depth };
 }
 
@@ -181,7 +187,7 @@ function withSection(room: Studio, s: SurfaceProfile, points: readonly ProfileVe
   }
   return { ...room, template: 'custom', ceilings: room.ceilings!.map(c => {
     if (c.id !== s.ref.id) return c;
-    const { section: _s, ...rest } = c, low = Math.min(...ceilingPoints(c, s.context.top).map(p => p.y));
+    const { section: _s, ...rest } = c.edgeRise ? withoutLift(c, s.context.top) : c, low = Math.min(...ceilingPoints(c, s.context.top).map(p => p.y));
     const across = c.run === 'along';
     // Plain when it covers the whole front (or reaches straight out from the wall) and the part's full height.
     const full = across ? Math.abs(box.x0) < 1e-6 : Math.abs(box.x0 - s.bounds.minX) < 1e-6 && Math.abs(box.x1 - s.bounds.maxX) < 1e-6;
@@ -189,6 +195,14 @@ function withSection(room: Studio, s: SurfaceProfile, points: readonly ProfileVe
     const depth = across ? tidy(box.x1) : c.depth;
     return plain ? { ...rest, depth } : { ...rest, depth, section };
   }) };
+}
+
+/** A lifted shape drawn from the side takes its lift into its side outline: the lift goes, and a lowered outer edge
+ * lowers its front outline, which is the shape's outline seen from the front. */
+function withoutLift(c: StudioCeiling, top: number): StudioCeiling {
+  const { edgeRise: rise = 0, ...rest } = c, drop = Math.min(0, rise);
+  const outline = ceilingPoints(c, top).map(p => p.y >= top - 1e-6 ? { t: p.x, y: top, roof: true as const } : { t: p.x, y: tidy(Math.max(0, p.y + drop)) });
+  return { ...rest, outline, profile: lowerBoundary(outline).map(p => ({ t: p.t, y: Math.min(top, p.y) })) };
 }
 
 /** How far a ceiling shape reaches into the room: its side outline, if it has one, stretches to it. */

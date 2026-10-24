@@ -43,6 +43,16 @@ test('a beam chamfered from the side: the solid is what both sides allow', () =>
   assert.equal(at(50, 228), false); assert.equal(at(20, 228), true);
 });
 
+for (const rise of [20, -20]) test(`a beam with its outer edge ${rise > 0 ? 'lifted' : 'lowered'} is drawn sloped from the side, and shaping it there keeps the same solid`, () => {
+  const lifted = liftCeilingOuterEdge(beam(), 'k1', rise), side = surfaceProfile(lifted, ref, 'side');
+  assert.deepEqual(side.points.map(p => [p.x, p.y]), [[0, 220], [60, 220 + rise], [60, 260], [0, 260]]);
+  const next = withSurfaceProfile(lifted, ref, side.points, 'side'), c = next.ceilings[0], fr = ceilingFrame(next, c);
+  assert.equal(c.edgeRise, undefined, 'the lift is now its side outline'); assert.ok(c.section);
+  assert.deepEqual(studioProblems(next), []);
+  for (const t of [fr.along.from + 1, (fr.along.from + fr.along.to) / 2]) for (const d of [1, 20, 45, 59])
+    close(ceilingAt(next, fr.at(t, d)), ceilingAt(lifted, fr.at(t, d)), 1e-6);
+});
+
 test('deeper or shallower, a side outline stretches; a side outline means no edge lift', () => {
   const chamfered = withSurfaceProfile(beam(), ref, [{ x: 0, y: 220 }, { x: 30, y: 220 }, { x: 60, y: 250 }, { x: 60, y: 260 }, { x: 0, y: 260 }], 'side');
   const deeper = setCeilingDepth(chamfered, 'k1', 120), side = deeper.ceilings[0].section;

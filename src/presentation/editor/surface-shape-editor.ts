@@ -29,9 +29,10 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   const root = document.createElement('div');
   root.className = 'surface-shape';
   root.innerHTML = `<p class="surface-shape-hint">${HINT}</p><div class="surface-shape-starts" role="group" aria-label="Start from"></div>`
-    + `<div class="surface-shape-views" role="group" aria-label="Seen from"><button type="button" data-shape-view="front" aria-pressed="true">Front</button>`
+    // Front, Side and Fit sit on the drawing itself, so they take no room from the panel.
+    + `<div class="surface-shape-stage"><div class="surface-shape-views" role="group" aria-label="Seen from"><button type="button" data-shape-view="front" aria-pressed="true">Front</button>`
     + `<button type="button" data-shape-view="side" aria-pressed="false">Side</button><button type="button" data-shape-act="fit" class="surface-shape-fit">Fit</button></div>`
-    + `<div class="surface-shape-stage"><svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
+    + `<svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
     + `<div class="surface-shape-fields"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
@@ -64,7 +65,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     root.hidden = !s;
     // Drawn once it is in the panel: until then it has no size to draw at.
     if (!s || !root.isConnected) return;
-    const points = drag?.last ?? s.points, box = drag?.box ?? zoom.view(drawingBox(s, points));
+    const points = drag?.last ?? s.points, box = drag?.box ?? clearTop(zoom.view(drawingBox(s, points)));
     svg.setAttribute('viewBox', `${box.x} ${box.y} ${box.w} ${box.h}`);
     svg.style.aspectRatio = `${box.w} / ${box.h}`;
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
@@ -88,14 +89,21 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     zoom.frame({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: -Math.max(...ys) + shown * .35 }, factor);
     render();
   }
-  /** Front and Side: a ceiling shape whose outer edge is lifted is shaped from the front only (the lift is its side). */
+  /** The drawing's frame with its top strip kept clear for the Front | Side switch over it: the frame grows upward
+   * (and as much sideways) so the drawing keeps its size on screen and nothing in it sits under the switch. */
+  function clearTop(box: ReturnType<typeof drawingBox>) {
+    const W = svg.clientWidth || stage.clientWidth, cap = parseFloat(getComputedStyle(svg).maxHeight);
+    if (!(W > 0)) return box;
+    const H = Math.min(W * box.h / box.w, Number.isFinite(cap) ? cap : Infinity), clear = 46;
+    if (!(H > clear * 2)) return box;
+    const h = box.h / (1 - clear / H), w = box.w * h / box.h;
+    return { x: box.x - (w - box.w) / 2, y: box.y - (h - box.h), w, h };
+  }
+  /** Front and Side, both always open: a lifted outer edge shows from the side as the slope of its underside. */
   function renderViews(s: SurfaceProfile) {
-    const c = s.ref.kind === 'ceiling' ? room()?.ceilings?.find(x => x.id === s.ref.id) : undefined, lifted = !!c?.edgeRise;
     root.querySelectorAll<HTMLButtonElement>('[data-shape-view]').forEach(b => {
-      const on = b.dataset.shapeView === s.view, blocked = lifted && b.dataset.shapeView !== s.view;
-      b.setAttribute('aria-pressed', String(on));
-      b.disabled = blocked;
-      b.title = blocked ? 'Its outer edge is lifted. Set Outer edge height back to its wall edge to shape it from here.' : b.dataset.shapeView === 'side' ? 'Seen from the side' : 'Seen face on from the room';
+      b.setAttribute('aria-pressed', String(b.dataset.shapeView === s.view));
+      b.title = b.dataset.shapeView === 'side' ? 'Seen from the side' : 'Seen face on from the room';
     });
     root.querySelector<HTMLElement>('[data-shape-act="fit"]')!.hidden = !zoom.zoomed();
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = s.primary ? 'Full wall' : 'Plain side';
@@ -121,7 +129,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     const beyond = (q: { x: number; y: number }) => q.x < -half / 2 || q.x > w + half / 2 || q.y < 0 || q.y > h;
     const place = beyond(outside) ? { x: at.x - normal.x * gap, y: at.y - normal.y * gap } : outside;
     pill.style.left = Math.max(half + 4, Math.min(w - half - 4, place.x)) + 'px';
-    pill.style.top = Math.max(18, Math.min(h - 18, place.y)) + 'px';
+    // Below the Front | Side switch at the drawing's top.
+    pill.style.top = Math.max(60, Math.min(h - 18, place.y)) + 'px';
   }
   function renderBadge() {
     badge.hidden = !drag?.moved;
@@ -218,7 +227,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     svg.focus({ preventScroll: true });
     const h: Hit = hit === 'body' ? { kind: 'body' } : hit;
     if (!ref || !session.begin(ref, s.view)) return;
-    drag = { pointer: e.pointerId, hit: h, start: at, client: { x: e.clientX, y: e.clientY }, profile: s, box: zoom.view(drawingBox(s, s.points)),
+    drag = { pointer: e.pointerId, hit: h, start: at, client: { x: e.clientX, y: e.clientY }, profile: s, box: clearTop(zoom.view(drawingBox(s, s.points))),
       last: s.points, moved: false, merge: undefined, edge: h.kind === 'edge' ? h.index : -1, badge: '', problem: null };
     try { svg.setPointerCapture(e.pointerId); } catch { /* the drag still follows the stage's events */ }
   }

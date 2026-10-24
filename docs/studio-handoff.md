@@ -185,8 +185,10 @@ the side, in section).
   own cross-section within its thickness). The clear height over a spot is the higher of the two undersides
   (`ceilingAt`, `ceilingClearance`); a floor-standing part is an obstacle where both sides reach the floor.
   Rendered by `viewport/two-view-geometry.ts` (bands between corner heights, caps only where the solid starts or
-  stops). A side outline replaces the edge lift: a lifted shape is shaped from the front only. The drawing zooms
-  (wheel, pinch, pan when zoomed, Fit); a part narrower than a fingertip opens zoomed on its top.
+  stops). A lifted outer edge shows from the side as its sloped underside; shaping the side takes the lift over
+  (`withoutLift`: a lowered edge lowers the front outline, so the solid is unchanged). Front | Side and Fit sit on
+  the drawing, which keeps its top 46 px clear for them (`clearTop`). The drawing zooms (wheel, pinch, pan when
+  zoomed, Fit); a part narrower than a fingertip opens zoomed on its top.
 
 ## Walls are solid
 

@@ -6,9 +6,9 @@
 .surface-shape-starts button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:62px;padding:6px 4px 7px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-size:10px;line-height:12px;text-align:center;white-space:normal}
 .surface-shape-starts button:hover{border-color:var(--ink)}
 .surface-shape-start-art{width:42px;height:30px;color:var(--ink)}
-/* Front and Side: which way the part is seen. Fit shows the whole drawing again after zooming in. */
-.surface-shape-views{display:flex;align-items:center;gap:4px;margin:0 0 8px}
-.surface-shape .surface-shape-views button{min-height:34px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12px;font-weight:600}
+/* Front and Side, on the drawing's top: which way the part is seen. Fit shows the whole drawing after zooming in. */
+.surface-shape-views{position:absolute;z-index:2;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:4px;pointer-events:none}
+.surface-shape .surface-shape-views button{pointer-events:auto;min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .surface-shape .surface-shape-views button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--panel)}
 .surface-shape .surface-shape-views button:disabled{opacity:.45;cursor:default}
 .surface-shape .surface-shape-views .surface-shape-fit{margin-left:auto}
