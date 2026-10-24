@@ -1,6 +1,6 @@
 // The Shape editor in the real editor, desktop with a mouse and a phone with touch: add a shape with nothing
 // selected (it goes on the wall in view), drag a corner (one undo step), pick an edge and add a step, type a size,
-// cancel a drag, undo, and give a wall a sloped top then make it a full wall again. Needs the dev server at
+// cancel a drag, undo, shape it from the side, and give a wall a sloped top then make it a full wall again. Needs the dev server at
 // 127.0.0.1:5173 (or MOBILE_TEST_URL). Screenshots go to docs/verification/ (or SHAPE_SHOTS).
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
@@ -83,6 +83,19 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   while(await undos()>u0) await tap(undo);
   assert.equal(JSON.stringify((await report()).ceilings),before,'undo restores the shape as added');
 
+  // From the side: the shape's other side, shaped by dragging a corner; one undo step, and back to the front.
+  await tap(page.locator('[data-shape-view="side"]'));
+  await page.waitForTimeout(600);
+  assert.equal(await page.locator('[data-shape-view="side"]').getAttribute('aria-pressed'),'true','seen from the side');
+  const sidePoints=[]; for(let i=0;i<await corners.count();i++){ const c=await corners.nth(i).boundingBox(); if(c) sidePoints.push({x:c.x+c.width/2,y:c.y+c.height/2}); }
+  const outer=sidePoints.reduce((a,q)=>q.x+q.y>a.x+a.y?q:a,sidePoints[0]), sideBefore=await page.locator('.surface-shape-svg path.shape-solid').getAttribute('d'), u1=await undos();
+  await drag(outer,{x:outer.x-25,y:outer.y-30});
+  assert.notEqual(await page.locator('.surface-shape-svg path.shape-solid').getAttribute('d'),sideBefore,'the side changed');
+  assert.equal(await undos(),u1+1,'one undo step for the side');
+  await shot('side');
+  await tap(page.locator('[data-shape-view="front"]'));
+  await page.waitForTimeout(400);
+
   // A wall: + Point on its top edge, the corner pulled down for a sloped top, then Full wall.
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   const b=await el('view').boundingBox();
@@ -102,7 +115,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   assert.equal((await page.locator('.surface-shape-svg path.shape-solid').getAttribute('d')).split('L').length,4,'Full wall makes it plain again');
 
   assert.deepEqual(errors,[]);
-  console.log(`PASS ${view.name}: add on the wall in view, corner drag, cancel, + Step, typed size, undo, wall sloped top`);
+  console.log(`PASS ${view.name}: add on the wall in view, corner drag, cancel, + Step, typed size, undo, side view, wall sloped top`);
   await page.close();
  } } finally { await browser.close(); }
 })().catch(e=>{ console.error(e); process.exitCode=1; });

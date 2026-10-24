@@ -4,7 +4,7 @@
  * wardrobe's top: a profile of heights, with slopes between points and vertical steps where two points
  * share a position. Plain data and pure functions, in scene centimetres.
  */
-import { ceilingLowerProfile, withCeilingProfile } from './surface-boundary';
+import { ceilingLowerProfile, sectionExtent, sectionLowerProfile, withCeilingProfile, withDepth } from './surface-boundary';
 import { surfaceProblems } from './surface-profile';
 import { mapBoundary, trimBoundary } from './surface-outline';
 import { outerEdgeHeight } from './ceiling-edge';
@@ -21,9 +21,10 @@ export function ceilingFrame(studio: Studio, c: StudioCeiling) {
   const w = wall(studio, c.wall), line = w && wallLine(studio, w), face = w && wallFace(studio, w);
   const first = c.profile[0], last = c.profile.at(-1);
   if (!w || !line || !face || !first || !last) return null;
-  const off = w.thickness / 2;
-  const along = c.run === 'along' ? { from: first.t, to: last.t } : { from: face.start, to: face.end };
-  const across = c.run === 'along' ? { from: 0, to: c.depth } : { from: first.t, to: last.t };
+  const off = w.thickness / 2, side = sectionExtent(c);
+  // Where the other side's outline is narrower, the shape stops there too.
+  const along = c.run === 'along' ? { from: first.t, to: last.t } : side ? { from: Math.max(face.start, side.from), to: Math.min(face.end, side.to) } : { from: face.start, to: face.end };
+  const across = c.run === 'along' ? (side ? { from: Math.max(0, side.from), to: side.to } : { from: 0, to: c.depth }) : { from: first.t, to: last.t };
   /** The floor point at (s, d). */
   const at = (s: number, d: number): P => ({ x: line.a.x + line.ux * s + line.nx * (off + d), z: line.a.z + line.uz * s + line.nz * (off + d) });
   /** A floor point in (s, d). */
@@ -54,8 +55,10 @@ export function ceilingAt(studio: Studio, p: P): number {
     if (!f) continue;
     const { s, d } = f.local(p);
     if (s < f.along.from - EPS || s > f.along.to + EPS || d < f.across.from - EPS || d > f.across.to + EPS) continue;
-    const y = profileAt(ceilingLowerProfile(c), c.run === 'along' ? s : d);
-    if (y !== null) h = Math.min(h, y + (c.run === 'along' ? (c.edgeRise ?? 0) * d / c.depth : 0));
+    const y = profileAt(ceilingLowerProfile(c), c.run === 'along' ? s : d), section = sectionLowerProfile(c);
+    // Seen from both sides, the solid is what both outlines allow: its underside is the higher of the two.
+    const other = section ? profileAt(section, c.run === 'along' ? d : s) : null;
+    if (y !== null && (!section || other !== null)) h = Math.min(h, Math.max(y, other ?? -Infinity) + (c.run === 'along' ? (c.edgeRise ?? 0) * d / c.depth : 0));
   }
   return h;
 }
@@ -199,7 +202,7 @@ export function addCeiling(studio: Studio, wallId: string, shapeId: string, cent
 /** Starts a ceiling over from another shape, on the same wall and where it was. */
 export function replaceCeiling(studio: Studio, id: string, shapeId: string): Studio | null {
   const c = studio.ceilings?.find(x => x.id === id), built = c && buildShape(studio, c.wall, shapeId, c.run === 'along' ? (c.profile[0]!.t + c.profile.at(-1)!.t) / 2 : undefined);
-  return built ? swap(studio, id, old => { const { outline: _o, boundaryControls: _b, edgeRise: _e, ...rest } = old; return { ...rest, ...built }; }) : null;
+  return built ? swap(studio, id, old => { const { outline: _o, section: _s, boundaryControls: _b, edgeRise: _e, ...rest } = old; return { ...rest, ...built }; }) : null;
 }
 function buildShape(studio: Studio, wallId: string, shapeId: string, centre?: number) {
   const shape = (CEILING_SHAPES as readonly CeilingShape[]).find(s => s.id === shapeId), w = wall(studio, wallId), face = w && wallFace(studio, w);
@@ -249,7 +252,7 @@ export function splitCeilingPanel(studio: Studio, id: string, index: number, pos
 /** How far it reaches into the room. A sloped roof keeps its heights and stretches to the new depth. */
 export function setCeilingDepth(studio: Studio, id: string, depth: number): Studio | null {
   return swap(studio, id, c => {
-    if (c.run === 'along') return { ...c, depth: round(depth) };
+    if (c.run === 'along') return withDepth(c, depth);
     const from = c.profile[0]!.t, span = c.profile.at(-1)!.t - from;
     if (span < 1e-6) return null;
     return { ...mapBoundary(c, p => ({ ...p, t: round(from + (p.t - from) * (depth - from) / span) }), roomHeight(studio)), depth: round(depth) };

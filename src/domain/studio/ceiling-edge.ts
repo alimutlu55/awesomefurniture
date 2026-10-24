@@ -16,7 +16,8 @@ export const edgeHeight = (c: StudioCeiling, y: number) => y + (c.run === 'along
 /** Lift the free boundary while the supporting wall edge stays at its existing height. */
 export function liftCeilingOuterEdge(studio: Studio, id: string, amount: number): Studio | null {
   const c = studio.ceilings?.find(c => c.id === id);
-  if (!c || !Number.isFinite(amount)) return null;
+  // A shape drawn from the side sets its own outer edge there.
+  if (!c || !Number.isFinite(amount) || c.section) return null;
   let next: StudioCeiling;
   if (c.run === 'along') next = { ...c, edgeRise: (c.edgeRise ?? 0) + amount, ...(c.outline ? { outline: c.outline.map(p => p.roof
     ? { ...p, y: roomHeight(studio) + Math.abs((c.edgeRise ?? 0) + amount) + 1 } : p) } : {}) };
@@ -31,7 +32,8 @@ export function liftCeilingOuterEdge(studio: Studio, id: string, amount: number)
 /** All points translate together when the surface is grabbed; an existing tilt stays intact. */
 export function liftWholeCeiling(studio: Studio, id: string, amount: number): Studio | null {
   const c = studio.ceilings?.find(c => c.id === id);
-  if (!c || !Number.isFinite(amount)) return null;
+  // A shape drawn from the side sets its own outer edge there.
+  if (!c || !Number.isFinite(amount) || c.section) return null;
   return { ...studio, template: 'custom', ceilings: studio.ceilings!.map(item => item.id === id
     ? mapBoundary(item, p => p.roof ? p : ({ ...p, y: p.y + amount }), roomHeight(studio)) : item) };
 }

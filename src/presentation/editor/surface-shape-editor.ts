@@ -1,6 +1,6 @@
 import { addPoint, findPoint, flipProfile, healProfile, movePoint, profileProblem, removePoint, slideEdge, stepEdge, translateProfile, PROFILE,
   type ProfileVertex, type Vec } from '../../domain/geometry/profile-polygon';
-import { profileMessage, setSurfaceDepth, surfaceProfile, withSurfaceProfile, type SurfaceProfile, type SurfaceRef } from '../../domain/studio/surface-profile';
+import { primaryView, profileMessage, setSurfaceDepth, surfaceProfile, withSurfaceProfile, type SurfaceProfile, type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
 import { CEILING_SHAPES, replaceCeiling } from '../../domain/studio/studio-ceiling';
 import { outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { STUDIO_LIMITS } from '../../domain/studio/studio';
@@ -9,6 +9,7 @@ import { hitShape, snapCorner, snapMove, snapSlide, SHAPE_PX } from './surface-s
 import { applyShapeField, shapeFields } from './surface-shape-fields';
 import { ceilingArt } from './studio-ceiling-panel';
 import { createShapeSession } from './surface-shape-session';
+import { createDrawingZoom } from './surface-shape-zoom';
 import { esc, measureNumber, unitSuffix } from './editor-format.js';
 import type { SurfaceShapeEditorPorts } from './surface-shape-editor.ports';
 
@@ -18,15 +19,18 @@ interface Drag {
   last: ProfileVertex[]; moved: boolean; merge: number | undefined; edge: number; badge: string; problem: string | null;
 }
 const len = (v: number) => measureNumber(Math.round(v * 10) / 10) + unitSuffix();
-const HINT = 'Drag a corner or an edge. Tap an edge for a step or a new corner.';
+const HINT = 'Drag a corner or an edge. Tap an edge for a step or a new corner. Pinch or scroll to zoom.';
 
-/** The Shape editor: a wall or a ceiling shape drawn face on, edited by its corners and edges. A drag previews
- * live in the room and takes one undo step when it ends; a second finger, Escape or a cancelled pointer puts
- * it back. Exact sizes are typed below the drawing. */
+/** The Shape editor: a wall or a ceiling shape drawn from the front or from the side, edited by its corners and
+ * edges; the solid is what both sides allow. A drag previews live in the room and takes one undo step when it ends;
+ * a second finger, Escape or a cancelled pointer puts it back (two fingers then pinch the drawing). Exact sizes are
+ * typed below the drawing. */
 export function createSurfaceShapeEditor({ document, model, sceneCommands, history, listen, callbacks }: SurfaceShapeEditorPorts) {
   const root = document.createElement('div');
   root.className = 'surface-shape';
   root.innerHTML = `<p class="surface-shape-hint">${HINT}</p><div class="surface-shape-starts" role="group" aria-label="Start from"></div>`
+    + `<div class="surface-shape-views" role="group" aria-label="Seen from"><button type="button" data-shape-view="front" aria-pressed="true">Front</button>`
+    + `<button type="button" data-shape-view="side" aria-pressed="false">Side</button><button type="button" data-shape-act="fit" class="surface-shape-fit">Fit</button></div>`
     + `<div class="surface-shape-stage"><svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
@@ -36,11 +40,17 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   const $ = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
   const svg = $<SVGSVGElement>('svg'), stage = $<HTMLElement>('.surface-shape-stage'), pill = $<HTMLElement>('.surface-shape-pill');
   const badge = $<HTMLElement>('.surface-shape-badge'), fieldsRoot = $<HTMLElement>('.surface-shape-fields'), starts = $<HTMLElement>('.surface-shape-starts');
-  let ref: SurfaceRef | null = null, pick: ShapePick = null, drag: Drag | null = null, guides: ShapeGuide[] = [];
-  const session = createShapeSession({ model, sceneCommands, history, callbacks });
+  let ref: SurfaceRef | null = null, view: SurfaceView | null = null, pick: ShapePick = null, drag: Drag | null = null, guides: ShapeGuide[] = [];
+  const session = createShapeSession({ model, sceneCommands, history, callbacks }), zoom = createDrawingZoom();
+  /** Pointers down on the drawing, for a pinch. */
+  const pointers = new Map<number, Vec>();
+  /** Set when a part or a side opens: its first drawing checks whether it needs zooming in. */
+  let fitNext = false;
 
   const room = () => model.scene.studio;
-  const profile = () => { const r = room(); return r && ref ? surfaceProfile(r, ref) : null; };
+  /** The view on show: the one chosen, else the part's main one. */
+  const current = (): SurfaceView | undefined => view ?? undefined;
+  const profile = () => { const r = room(); return r && ref ? surfaceProfile(r, ref, current()) : null; };
   /** Centimetres per CSS pixel of the drawing, and a pointer's place in centimetres (y up). */
   const scale = () => { const m = svg.getScreenCTM(); return m && m.a > 0 ? 1 / m.a : 1; };
   const toCm = (e: { clientX: number; clientY: number }): Vec => {
@@ -54,18 +64,41 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     root.hidden = !s;
     // Drawn once it is in the panel: until then it has no size to draw at.
     if (!s || !root.isConnected) return;
-    const points = drag?.last ?? s.points, box = drag?.box ?? drawingBox(s, points);
+    const points = drag?.last ?? s.points, box = drag?.box ?? zoom.view(drawingBox(s, points));
     svg.setAttribute('viewBox', `${box.x} ${box.y} ${box.w} ${box.h}`);
     svg.style.aspectRatio = `${box.w} / ${box.h}`;
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
       guides, px: scale(), problem: !!drag?.problem, box });
     starts.hidden = s.ref.kind !== 'ceiling';
+    renderViews(s);
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.hidden = s.ref.kind !== 'wall';
     if (!starts.childElementCount && s.ref.kind === 'ceiling') starts.innerHTML = CEILING_SHAPES.map(c => `<button type="button" data-shape-start="${c.id}" title="${esc(c.description)}">`
       + `${ceilingArt(c, 'surface-shape-start-art')}<span>${esc(c.name)}</span></button>`).join('');
     renderPill(points);
     renderBadge();
     renderFields(s, points);
+    if (fitNext && !drag) { fitNext = false; focusNarrow(s); }
+  }
+  /** A part narrower on screen than a fingertip's reach (a wall's 12 cm cross-section) opens zoomed on its top,
+   * where it is usually shaped; Fit shows it whole. */
+  function focusNarrow(s: SurfaceProfile) {
+    const px = scale(), xs = s.points.map(p => p.x), ys = s.points.map(p => p.y), wide = (Math.max(...xs) - Math.min(...xs)) / px;
+    if (!(wide > 0) || wide >= 72) return;
+    const factor = 72 / wide, box = drawingBox(s, s.points), shown = box.h / factor;
+    zoom.frame({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: -Math.max(...ys) + shown * .35 }, factor);
+    render();
+  }
+  /** Front and Side: a ceiling shape whose outer edge is lifted is shaped from the front only (the lift is its side). */
+  function renderViews(s: SurfaceProfile) {
+    const c = s.ref.kind === 'ceiling' ? room()?.ceilings?.find(x => x.id === s.ref.id) : undefined, lifted = !!c?.edgeRise;
+    root.querySelectorAll<HTMLButtonElement>('[data-shape-view]').forEach(b => {
+      const on = b.dataset.shapeView === s.view, blocked = lifted && b.dataset.shapeView !== s.view;
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = blocked;
+      b.title = blocked ? 'Its outer edge is lifted. Set Outer edge height back to its wall edge to shape it from here.' : b.dataset.shapeView === 'side' ? 'Seen from the side' : 'Seen face on from the room';
+    });
+    root.querySelector<HTMLElement>('[data-shape-act="fit"]')!.hidden = !zoom.zoomed();
+    root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = s.primary ? 'Full wall' : 'Plain side';
   }
   function renderPill(points: readonly ProfileVertex[]) {
     const p = !drag && pick && points[pick.index] ? pick : null;
@@ -105,11 +138,13 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   function renderFields(s: SurfaceProfile, points: readonly ProfileVertex[]) {
     // A ceiling hung along its wall can lift its outer edge; one standing on the floor cannot.
     const c = s.ref.kind === 'ceiling' ? room()?.ceilings?.find(x => x.id === s.ref.id) : undefined;
-    const outer = c && c.run === 'along' && Math.min(...points.map(p => p.y)) >= STUDIO_LIMITS.minCeilingHeight ? outerEdgeHeight(c) : undefined;
+    const outer = c && c.run === 'along' && s.primary && !c.section && Math.min(...points.map(p => p.y)) >= STUDIO_LIMITS.minCeilingHeight ? outerEdgeHeight(c) : undefined;
     const list = shapeFields(s, points, pick, outer), active = document.activeElement ?? root.ownerDocument.activeElement;
     const markup = list.map(f => `<label class="surface-shape-field"><span>${esc(f.label)}</span><span class="size-field">`
       + `<input type="number" inputmode="decimal" step="0.1" data-shape-field="${f.key}"><small>${f.unit ?? 'cm'}</small></span></label>`).join('');
-    if (fieldsRoot.dataset.keys !== list.map(f => f.key).join()) { fieldsRoot.innerHTML = markup; fieldsRoot.dataset.keys = list.map(f => f.key).join(); }
+    // Rebuilt when the fields change, or only their names (another side of the same part).
+    const signature = list.map(f => f.key + ':' + f.label).join();
+    if (fieldsRoot.dataset.keys !== signature) { fieldsRoot.innerHTML = markup; fieldsRoot.dataset.keys = signature; }
     for (const f of list) {
       const input = fieldsRoot.querySelector<HTMLInputElement>(`[data-shape-field="${f.key}"]`);
       if (input && input !== active && input !== (root.getRootNode() as Document | ShadowRoot).activeElement) input.value = String(Math.round(f.value * 10) / 10);
@@ -120,8 +155,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   function commit(points: readonly ProfileVertex[], next: ShapePick = pick) {
     const s = profile();
     if (!s || !ref) return false;
-    const healed = healProfile(points), at = next && points[next.index], target = ref;
-    if (!sceneCommands.editStudio(r => withSurfaceProfile(r, target, healed))) return false;
+    const healed = healProfile(points), at = next && points[next.index], target = ref, side = s.view;
+    if (!sceneCommands.editStudio(r => withSurfaceProfile(r, target, healed, side))) return false;
     pick = next && at ? (() => { const index = findPoint(healed, at); return index >= 0 ? { kind: next.kind, index } : null; })() : null;
     sceneCommands.followCeilings(true);
     callbacks.refresh();
@@ -143,6 +178,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       const r = removePoint(points, pick.index, s.bounds);
       if (!r) callbacks.report('Removing this corner would break the shape. Move it first.');
       else commit(r, null);
+    } else if (key === 'fit') {
+      zoom.reset(); render();
     } else if (key === 'undo' || key === 'redo') {
       pick = null;
       callbacks.history(key);
@@ -156,21 +193,43 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   }
 
   // Dragging.
+  const spread = () => { const [a, b] = [...pointers.values()]; return a && b ? { mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, distance: Math.hypot(b.x - a.x, b.y - a.y) } : null; };
   function down(e: PointerEvent) {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const two = pointers.size === 2 ? spread() : null;
+    if (two) {
+      // A second finger: put a drag back as it was, and pinch the drawing instead.
+      if (drag) cancel();
+      zoom.begin('pinch', two.mid, two.distance, scale());
+      try { svg.setPointerCapture(e.pointerId); } catch { /* the pinch follows the drawing's events */ }
+      e.preventDefault();
+      return;
+    }
     if (drag) { if (e.pointerId !== drag.pointer) cancel(); return; }
     const s = profile();
     if (!s || e.button > 0) return;
     const at = toCm(e), hit = hitShape(s.points, at, scale());
-    if (!hit) { pick = null; render(); return; }
+    if (!hit) {
+      // Zoomed in, the empty drawing pans; otherwise a tap there lets go of what was picked.
+      if (zoom.zoomed()) { zoom.begin('pan', { x: e.clientX, y: e.clientY }, 0, scale()); try { svg.setPointerCapture(e.pointerId); } catch { /* as above */ } e.preventDefault(); return; }
+      pick = null; render(); return;
+    }
     e.preventDefault();
     svg.focus({ preventScroll: true });
     const h: Hit = hit === 'body' ? { kind: 'body' } : hit;
-    if (!ref || !session.begin(ref)) return;
-    drag = { pointer: e.pointerId, hit: h, start: at, client: { x: e.clientX, y: e.clientY }, profile: s, box: drawingBox(s, s.points),
+    if (!ref || !session.begin(ref, s.view)) return;
+    drag = { pointer: e.pointerId, hit: h, start: at, client: { x: e.clientX, y: e.clientY }, profile: s, box: zoom.view(drawingBox(s, s.points)),
       last: s.points, moved: false, merge: undefined, edge: h.kind === 'edge' ? h.index : -1, badge: '', problem: null };
     try { svg.setPointerCapture(e.pointerId); } catch { /* the drag still follows the stage's events */ }
   }
   function move(e: PointerEvent) {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (zoom.active()) {
+      const two = spread();
+      if (two) zoom.follow(two.mid, two.distance); else zoom.follow({ x: e.clientX, y: e.clientY }, 0);
+      render();
+      return;
+    }
     const g = drag;
     if (!g || e.pointerId !== g.pointer || !ref) return;
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < SHAPE_PX.tap) return;
@@ -210,6 +269,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     placeBadge(e);
   }
   function up(e: PointerEvent) {
+    pointers.delete(e.pointerId);
+    if (zoom.active()) { if (pointers.size === 0) zoom.end(); render(); return; }
     const g = drag;
     if (!g || e.pointerId !== g.pointer) return;
     drag = null; guides = [];
@@ -221,6 +282,16 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     const index = at ? findPoint(healProfile(g.last), at) : -1;
     pick = keep && index >= 0 ? { kind: keep.kind, index } : null;
     session.end();
+  }
+  /** Shows the other side: what was picked and the zoom start afresh; the room turns to face it. */
+  function turn(next: SurfaceView) {
+    const r = room();
+    if (!r || !ref || profile()?.view === next) return;
+    cancel();
+    view = next === primaryView(r, ref) ? null : next;
+    pick = null; zoom.reset(); fitNext = true;
+    render();
+    callbacks.viewChanged();
   }
   function cancel() {
     const g = drag;
@@ -249,12 +320,20 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   listen(svg, 'pointerdown', e => down(e as PointerEvent));
   listen(svg, 'pointermove', e => move(e as PointerEvent));
   listen(svg, 'pointerup', e => up(e as PointerEvent));
-  listen(svg, 'pointercancel', () => cancel());
+  listen(svg, 'pointercancel', e => { pointers.delete((e as PointerEvent).pointerId); zoom.end(); cancel(); });
+  listen(svg, 'wheel', e => {
+    const w = e as WheelEvent, m = svg.getScreenCTM();
+    if (!m || !profile()) return;
+    w.preventDefault();
+    zoom.wheel(new DOMPoint(w.clientX, w.clientY).matrixTransform(m.inverse()), w.deltaY);
+    render();
+  }, { passive: false });
   listen(svg, 'lostpointercapture', e => { if (drag && (e as PointerEvent).pointerId === drag.pointer) cancel(); });
   listen(svg, 'keydown', e => key(e as KeyboardEvent));
   listen(root, 'click', e => {
-    const button = (e.target as Element).closest<HTMLButtonElement>('[data-shape-act],[data-shape-start]');
+    const button = (e.target as Element).closest<HTMLButtonElement>('[data-shape-act],[data-shape-start],[data-shape-view]');
     if (!button || button.disabled) return;
+    if (button.dataset.shapeView) { turn(button.dataset.shapeView as SurfaceView); return; }
     if (button.dataset.shapeStart && ref?.kind === 'ceiling') {
       const id = ref.id, shape = button.dataset.shapeStart;
       if (sceneCommands.editStudio(r => replaceCeiling(r, id, shape))) { pick = null; sceneCommands.followCeilings(true); callbacks.refresh(); }
@@ -278,8 +357,10 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   return {
     root,
     /** Shows a wall or a ceiling shape; the same one keeps what was picked. */
-    open(next: SurfaceRef) { if (!ref || ref.kind !== next.kind || ref.id !== next.id) pick = null; ref = next; render(); },
-    close() { cancel(); ref = null; pick = null; },
+    open(next: SurfaceRef) { if (!ref || ref.kind !== next.kind || ref.id !== next.id) { pick = null; view = null; zoom.reset(); fitNext = true; } ref = next; render(); },
+    close() { cancel(); ref = null; pick = null; view = null; zoom.reset(); },
+    /** Which side is on show. */
+    view: (): SurfaceView | null => profile()?.view ?? null,
     render,
     active: () => ref,
     dragging: () => drag !== null,

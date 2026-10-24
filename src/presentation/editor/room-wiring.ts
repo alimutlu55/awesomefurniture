@@ -53,6 +53,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         refresh: () => { refresh(); late.inspector().histUI(); },
         report: m => late.report(m),
         history: step => dom.$(step === 'undo' ? '#undo2' : '#redo2').click(),
+        viewChanged: () => frameShape(),
     } });
     const editor = createStudioEditor({
         model, sceneCommands, history, selectionState,
@@ -158,8 +159,14 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (!target || !room) return;
         shape.open(target);
         resizePanel!.openShape(target.kind === 'wall' ? 'Wall shape' : 'Shape', turn);
-        const s = surfaceProfile(room, target), line = s && wallLine(room, s.wall), face = s && wallFace(room, s.wall);
-        if (!turn || !s || !line || !face) return;
+        if (turn) frameShape();
+    }
+    /** Turns the view to face the shape from the side the editor shows: the wall face on, or along the wall. */
+    function frameShape() {
+        const target = shapeTarget(), room = model.scene.studio;
+        if (!target || !room) return;
+        const s = surfaceProfile(room, target, shape.view() ?? undefined), line = s && wallLine(room, s.wall), face = s && wallFace(room, s.wall);
+        if (!s || !line || !face) return;
         const mid = (face.start + face.end) / 2, reach = s.view === 'side' ? s.context.to : Math.max(60, s.depth), off = s.wall.thickness / 2 + reach / 2;
         const at = { x: line.a.x + line.ux * mid + line.nx * off, z: line.a.z + line.uz * mid + line.nz * off };
         if (s.view === 'front') late.camera().frameBox({ ...at, w: Math.max(150, face.length), d: reach, h: s.context.top }, Math.atan2(line.nx, line.nz), .16, 1.12);

@@ -139,8 +139,10 @@ const wardrobe = z.strictObject({
 });
 // A saved room must be buildable by the same rules the editor uses.
 const openingKind = z.enum(OPENING_KINDS as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in typeof OPENING_KINDS[number]]: K }>;
+const outlinePoints = z.array(z.strictObject({ t: finite, y: finite, roof: z.boolean().optional(), pinned: z.boolean().optional() })).min(3);
 const boundary = {
-  outline: z.array(z.strictObject({ t: finite, y: finite, roof: z.boolean().optional(), pinned: z.boolean().optional() })).min(3).optional(),
+  outline: outlinePoints.optional(),
+  section: outlinePoints.optional(),
   boundaryControls: z.array(z.strictObject({ index: z.number().int().nonnegative(), u: finite.min(0).max(1) })).optional(),
 };
 const studio = z.strictObject({

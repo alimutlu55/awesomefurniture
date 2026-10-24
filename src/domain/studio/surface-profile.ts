@@ -1,27 +1,35 @@
 /**
- * A wall or a ceiling shape seen face on, as one editable profile (profile-polygon.ts). x runs along the wall
- * from its corner a (the room seen from inside: left to right), or, for a roof sloping down to the wall, out from
- * the wall's face. y is the height above the floor. The editor changes only the profile; this module reads it
- * from the room and writes it back, so every edit goes through the same rules.
+ * A wall or a ceiling shape seen from the front or from the side, as one editable profile (profile-polygon.ts).
+ * Front: x runs along the wall from its corner a (the room seen from inside: left to right). Side: x runs out from
+ * the wall's face (into the room; for a wall's own cross-section, into the wall is negative). y is the height
+ * above the floor. A part has a main outline and may have its other side (`section`); the solid is what both
+ * allow. The editor changes only profiles; this module reads them from the room and writes them back, so every
+ * edit goes through the same rules.
  */
 import { lowerBoundary, type BoundaryPoint } from '../geometry/boundary';
 import { ensureCounterClockwise, profileProblem, type ProfileBounds, type ProfileProblem, type ProfileVertex } from '../geometry/profile-polygon';
 import { STUDIO_LIMITS as L, roomHeight, wallExtent, wallFace, wallLine, type Studio, type StudioCeiling, type StudioWall } from './studio';
 import { isWallUtility } from './wall-utilities';
+import { withDepth } from './surface-boundary';
 
 export type SurfaceKind = 'wall' | 'ceiling';
 export interface SurfaceRef { readonly kind: SurfaceKind; readonly id: string }
+/** Which way a part is seen: face on from the room (`front`, x along the wall), or from the side (`side`, x out
+ * from the wall's face: into the room for a shape, negative into the wall for the wall's own cross-section). */
+export type SurfaceView = 'front' | 'side';
 export interface SurfaceProfile {
   readonly ref: SurfaceRef;
   readonly points: ProfileVertex[];
   readonly bounds: ProfileBounds;
-  /** Face on along the wall, or the room in section for a roof sloping down to the wall. */
-  readonly view: 'front' | 'side';
+  readonly view: SurfaceView;
+  /** Whether this view is the part's main outline, or the other side of it (its `section`). */
+  readonly primary: boolean;
   readonly wall: StudioWall;
   /** What is drawn around it: the wall's face (or the room's depth) and the room's ceiling. */
   readonly context: { readonly from: number; readonly to: number; readonly top: number };
-  /** Where positions are measured from: the wall's inside end at its corner a, or the wall's face. */
+  /** Where positions are measured from, and what that is called. */
   readonly origin: number;
+  readonly fromLabel: string;
   /** Doors and windows on the wall, as rectangles in the same coordinates. */
   readonly openings: readonly { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly kind: string }[];
   /** How far the shape reaches into the room (a ceiling), or the wall's thickness. */
@@ -31,6 +39,7 @@ export interface SurfaceProfile {
 const tidy = (v: number) => Math.round(v * 1e4) / 1e4;
 const toVertex = (p: BoundaryPoint & { pinned?: boolean | undefined }): ProfileVertex => p.pinned ? { x: p.t, y: p.y, pinned: true } : { x: p.t, y: p.y };
 const toBoundary = (p: ProfileVertex): BoundaryPoint & { pinned?: true } => p.pinned ? { t: tidy(p.x), y: tidy(p.y), pinned: true } : { t: tidy(p.x), y: tidy(p.y) };
+const rect = (x0: number, x1: number, y0: number, y1: number): ProfileVertex[] => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
 
 /** Where a ceiling's top corners sit: at the room's ceiling, or above it on a ceiling whose outer edge is
  * lifted or lowered, so the tilted solid still meets the ceiling everywhere (see ceiling-edge.ts). */
@@ -45,6 +54,11 @@ function ceilingPoints(c: StudioCeiling, top: number): ProfileVertex[] {
   if (Math.abs(last.y - top) > 1e-6) list.push({ x: last.t, y: top });
   if (Math.abs(first.y - top) > 1e-6) list.push({ x: first.t, y: top });
   return list;
+}
+
+/** The view a part opens in: a roof sloping down to its wall from the side, anything else face on. */
+export function primaryView(room: Studio, ref: SurfaceRef): SurfaceView {
+  return ref.kind === 'ceiling' && room.ceilings?.find(c => c.id === ref.id)?.run === 'across' ? 'side' : 'front';
 }
 
 function reachOf(room: Studio, w: StudioWall): number {
@@ -64,26 +78,38 @@ function reachOf(room: Studio, w: StudioWall): number {
   return best;
 }
 
-export function surfaceProfile(room: Studio, ref: SurfaceRef): SurfaceProfile | null {
+export function surfaceProfile(room: Studio, ref: SurfaceRef, view: SurfaceView = primaryView(room, ref)): SurfaceProfile | null {
   const ceiling = ref.kind === 'ceiling' ? room.ceilings?.find(c => c.id === ref.id) : undefined;
   const w = room.walls.find(x => x.id === (ceiling ? ceiling.wall : ref.id)), line = w && wallLine(room, w), face = w && wallFace(room, w);
   if (!w || !line || !face || (ref.kind === 'ceiling' && !ceiling)) return null;
   const top = roomHeight(room), openings = room.openings.filter(o => o.wall === w.id && !isWallUtility(o.kind))
     .map(o => ({ x0: o.offset - o.width / 2, x1: o.offset + o.width / 2, y0: o.sill, y1: o.sill + o.height, kind: o.kind }));
+  const primary = view === primaryView(room, ref), section = (ceiling ?? w).section?.map(toVertex);
+  const front = { context: { from: face.start, to: face.end, top }, origin: face.start, fromLabel: 'From the left', openings };
   if (!ceiling) {
+    if (!primary) {
+      // The wall's cross-section, its room face at 0 and its back at minus its thickness.
+      const points = section ?? rect(-w.thickness, 0, 0, w.height);
+      return { ref, points: ensureCounterClockwise(points), bounds: { minX: -w.thickness, maxX: 0, minY: 0, maxY: L.maxHeight }, view, primary, wall: w,
+        context: { from: -w.thickness, to: 0, top }, origin: -w.thickness, fromLabel: 'From the back', openings: [], depth: w.thickness };
+    }
     // Drawn as seen from the room: its inside face, as a tape reads it. The solid's ends run on into the corners.
     const inside = (x: number) => Math.max(face.start, Math.min(face.end, x));
-    const points = w.outline ? w.outline.map(p => ({ ...toVertex(p), x: inside(p.t) }))
-      : [{ x: face.start, y: 0 }, { x: face.end, y: 0 }, { x: face.end, y: w.height }, { x: face.start, y: w.height }];
-    return { ref, points: ensureCounterClockwise(points), bounds: { minX: face.start, maxX: face.end, minY: 0, maxY: L.maxHeight }, view: 'front', wall: w,
-      context: { from: face.start, to: face.end, top }, origin: face.start, openings, depth: w.thickness };
+    const points = w.outline ? w.outline.map(p => ({ ...toVertex(p), x: inside(p.t) })) : rect(face.start, face.end, 0, w.height);
+    return { ref, points: ensureCounterClockwise(points), bounds: { minX: face.start, maxX: face.end, minY: 0, maxY: L.maxHeight }, view, primary, wall: w,
+      ...front, depth: w.thickness };
   }
-  const points = ensureCounterClockwise(ceilingPoints(ceiling, top));
-  if (ceiling.run === 'along') return { ref, points, bounds: { minX: face.start, maxX: face.end, minY: 0, maxY: top }, view: 'front', wall: w,
-    context: { from: face.start, to: face.end, top }, origin: face.start, openings, depth: ceiling.depth };
-  const reach = Math.max(L.minCeilingDepth, reachOf(room, w), ...points.map(p => p.x));
-  return { ref, points, bounds: { minX: 0, maxX: reach, minY: 0, maxY: top }, view: 'side', wall: w,
-    context: { from: 0, to: reach, top }, origin: 0, openings: [], depth: face.length };
+  const main = ensureCounterClockwise(ceilingPoints(ceiling, top)), low = Math.min(...main.map(p => p.y));
+  const reach = Math.max(L.minCeilingDepth, reachOf(room, w), ...(ceiling.run === 'across' ? main : section ?? []).map(p => p.x));
+  const side = { bounds: { minX: 0, maxX: reach, minY: 0, maxY: top }, context: { from: 0, to: reach, top }, origin: 0, fromLabel: 'From the wall', openings: [] };
+  if (view === 'front') {
+    // A shape along its wall, or the front of a roof: plain, it covers the whole wall's face.
+    const points = primary ? main : ensureCounterClockwise(section ?? rect(face.start, face.end, low, top));
+    return { ref, points, bounds: { minX: face.start, maxX: face.end, minY: 0, maxY: top }, view, primary, wall: w, ...front, depth: ceiling.depth };
+  }
+  // A roof sloping to its wall, or the side of a shape along a wall: plain, it reaches straight out to its depth.
+  const points = primary ? main : ensureCounterClockwise(section ?? rect(0, ceiling.depth, low, top));
+  return { ref, points, view, primary, wall: w, ...side, depth: ceiling.run === 'across' ? face.length : ceiling.depth };
 }
 
 const PROBLEMS: Record<ProfileProblem, string> = {
@@ -99,18 +125,20 @@ export const profileMessage = (problem: ProfileProblem) => PROBLEMS[problem];
 /** Why a shaped wall or ceiling cannot be built, worded as what to do. Empty when it is fine or unshaped. */
 export function surfaceProblems(room: Studio, ref: SurfaceRef): string[] {
   const part = ref.kind === 'wall' ? room.walls.find(w => w.id === ref.id) : room.ceilings?.find(c => c.id === ref.id);
-  if (!part?.outline) return [];
-  const s = surfaceProfile(room, ref);
-  if (!s) return [];
-  const problem = profileProblem(s.points, s.bounds);
-  return problem ? [profileMessage(problem)] : [];
+  if (!part) return [];
+  const main = primaryView(room, ref), other: SurfaceView = main === 'front' ? 'side' : 'front';
+  return ([[main, part.outline], [other, part.section]] as const).flatMap(([view, outline]) => {
+    const s = outline && surfaceProfile(room, ref, view), problem = s && profileProblem(s.points, s.bounds);
+    return problem ? [profileMessage(problem)] : [];
+  });
 }
 
 /** Writes a profile back. A wall keeps its height at its highest point; a ceiling's underside, which wardrobes
  * fit under, is the profile's lowest edge. Null when the profile breaks a rule. */
-export function withSurfaceProfile(room: Studio, ref: SurfaceRef, points: readonly ProfileVertex[]): Studio | null {
-  const s = surfaceProfile(room, ref);
+export function withSurfaceProfile(room: Studio, ref: SurfaceRef, points: readonly ProfileVertex[], view: SurfaceView = primaryView(room, ref)): Studio | null {
+  const s = surfaceProfile(room, ref, view);
   if (!s || profileProblem(points, s.bounds)) return null;
+  if (!s.primary) return withSection(room, s, points);
   const outline = points.map(toBoundary);
   if (ref.kind === 'wall') {
     const height = tidy(Math.max(...points.map(p => p.y))), line = wallLine(room, s.wall)!, ext = wallExtent(room, s.wall, line.length);
@@ -137,10 +165,36 @@ export function withSurfaceProfile(room: Studio, ref: SurfaceRef, points: readon
   }) };
 }
 
-/** How far a ceiling shape reaches into the room. */
+/** The other side of a part. Plain (the rectangle it opens as), it is not kept; a shape along a wall reaches as
+ * far into the room as its side outline does. */
+function withSection(room: Studio, s: SurfaceProfile, points: readonly ProfileVertex[]): Studio {
+  const box = { x0: Math.min(...points.map(p => p.x)), x1: Math.max(...points.map(p => p.x)), y0: Math.min(...points.map(p => p.y)), y1: Math.max(...points.map(p => p.y)) };
+  const isRect = points.length === 4 && points.every(p => !p.pinned && (Math.abs(p.x - box.x0) < 1e-6 || Math.abs(p.x - box.x1) < 1e-6) && (Math.abs(p.y - box.y0) < 1e-6 || Math.abs(p.y - box.y1) < 1e-6));
+  const section = points.map(toBoundary);
+  if (s.ref.kind === 'wall') {
+    const w = s.wall, plain = isRect && Math.abs(box.x0 + w.thickness) < 1e-6 && Math.abs(box.x1) < 1e-6 && box.y0 < 1e-6 && box.y1 >= w.height - 1e-6;
+    return { ...room, template: 'custom', walls: room.walls.map(x => {
+      if (x.id !== w.id) return x;
+      const { section: _s, ...rest } = x;
+      return plain ? rest : { ...rest, section };
+    }) };
+  }
+  return { ...room, template: 'custom', ceilings: room.ceilings!.map(c => {
+    if (c.id !== s.ref.id) return c;
+    const { section: _s, ...rest } = c, low = Math.min(...ceilingPoints(c, s.context.top).map(p => p.y));
+    const across = c.run === 'along';
+    // Plain when it covers the whole front (or reaches straight out from the wall) and the part's full height.
+    const full = across ? Math.abs(box.x0) < 1e-6 : Math.abs(box.x0 - s.bounds.minX) < 1e-6 && Math.abs(box.x1 - s.bounds.maxX) < 1e-6;
+    const plain = isRect && full && box.y0 <= low + 1e-6 && box.y1 >= s.context.top - 1e-6;
+    const depth = across ? tidy(box.x1) : c.depth;
+    return plain ? { ...rest, depth } : { ...rest, depth, section };
+  }) };
+}
+
+/** How far a ceiling shape reaches into the room: its side outline, if it has one, stretches to it. */
 export function setSurfaceDepth(room: Studio, ref: SurfaceRef, depth: number): Studio | null {
   if (ref.kind !== 'ceiling' || !Number.isFinite(depth) || depth < L.minCeilingDepth || depth > L.maxWallLength) return null;
   const c = room.ceilings?.find(x => x.id === ref.id);
-  if (!c || c.run !== 'along') return null;
-  return { ...room, template: 'custom', ceilings: room.ceilings!.map(x => x === c ? { ...c, depth: tidy(depth) } : x) };
+  const next = c && c.run === 'along' ? withDepth(c, depth) : null;
+  return next && { ...room, template: 'custom', ceilings: room.ceilings!.map(x => x === c ? next : x) };
 }

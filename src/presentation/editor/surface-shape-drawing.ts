@@ -11,7 +11,9 @@ export function drawingBox(profile: SurfaceProfile, points: readonly Vec[]) {
   const xs = [profile.context.from, profile.context.to, ...points.map(p => p.x)], ys = [0, profile.context.top, ...points.map(p => p.y)];
   // More room above the ceiling, where most shapes hang and their edge tools go.
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = Math.max(...ys), pad = Math.max(x1 - x0, y1) * .07 + 6, above = pad * 2.4;
-  return { x: x0 - pad, y: -(y1 + above), w: x1 - x0 + 2 * pad, h: y1 + pad + above };
+  // A narrow part (a wall's cross-section) gets room either side, so the drawing fills the panel's width.
+  const h = y1 + pad + above, w = Math.max(x1 - x0 + 2 * pad, h * .75), cx = (x0 + x1) / 2;
+  return { x: cx - w / 2, y: -(y1 + above), w, h };
 }
 
 const n = (v: number) => (Math.round(v * 100) / 100).toString();
@@ -32,6 +34,8 @@ export function drawingMarkup({ profile, points, pick, guides, px, problem, box 
   const left = profile.view === 'front' ? c.from : -profile.wall.thickness;
   out.push(`<path class="shape-floor" d="M${n(left - 4 * px * 8)} 0H${n(c.to + 4 * px * 8)}"/>`);
   out.push(`<path class="shape-ceiling" d="M${n(left)} ${n(-c.top)}H${n(c.to)}"/>`);
+  // Seen from the side, the room is to the right of the wall's face.
+  if (profile.view === 'side') out.push(`<text class="shape-room" x="${n(box.x + box.w - 8 * px)}" y="${n(box.y + 16 * px)}" font-size="${n(11 * px)}" text-anchor="end">Room →</text>`);
   // The shape: filled, its outline, and the picked edge above it.
   out.push(`<path class="shape-solid${problem ? ' problem' : ''}" d="M${points.map(P).join('L')}Z"/>`);
   for (const g of guides) out.push(`<path class="shape-guide" d="M${P(g.a)}L${P(g.b)}"/>`);
@@ -46,7 +50,10 @@ export function drawingMarkup({ profile, points, pick, guides, px, problem, box 
     const o = outward(a, b), text = len(length), half = text.length * 3.2 * px;
     // Outside the edge, kept inside the drawing so a label at its side is never cut off.
     const away = 7 * px + Math.abs(o.x) * half + Math.abs(o.y) * 7 * px, mid = { x: (a.x + b.x) / 2 + o.x * away, y: (a.y + b.y) / 2 + o.y * away };
-    const at = { x: Math.max(box.x + half, Math.min(box.x + box.w - half, mid.x)), y: Math.max(-box.y - box.h + 8 * px, Math.min(-box.y - 8 * px, mid.y)) };
+    // Kept inside the drawing near its sides; an edge zoomed out of view has no label.
+    const lo = { x: box.x + half, y: -box.y - box.h + 8 * px }, hi = { x: box.x + box.w - half, y: -box.y - 8 * px };
+    if (mid.x < lo.x - 40 * px || mid.x > hi.x + 40 * px || mid.y < lo.y - 20 * px || mid.y > hi.y + 20 * px) return;
+    const at = { x: Math.max(lo.x, Math.min(hi.x, mid.x)), y: Math.max(lo.y, Math.min(hi.y, mid.y)) };
     out.push(`<text class="shape-length${picked ? ' picked' : ''}" x="${n(at.x)}" y="${n(-at.y)}" font-size="${n(11 * px)}" dominant-baseline="middle" text-anchor="middle">${text}</text>`);
   });
   points.forEach((p, i) => {

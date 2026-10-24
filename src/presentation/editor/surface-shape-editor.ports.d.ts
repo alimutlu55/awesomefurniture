@@ -20,5 +20,7 @@ export interface SurfaceShapeEditorPorts {
         report(message: string): void;
         /** Undo or redo, for phones, where the sheet stands in for the toolbar. */
         history(step: 'undo' | 'redo'): void;
+        /** The drawing turned to the front or the side: turn the room's view with it. */
+        viewChanged(): void;
     };
 }

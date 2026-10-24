@@ -7,7 +7,7 @@ import type { ShapePick } from './surface-shape-drawing';
 export interface ShapeField { readonly key: string; readonly label: string; readonly value: number; readonly hint?: string; readonly unit?: string }
 
 const level = (a: ProfileVertex, b: ProfileVertex) => Math.abs(a.y - b.y) < 1e-6 ? 'level' : Math.abs(a.x - b.x) < 1e-6 ? 'upright' : null;
-const fromLabel = (s: SurfaceProfile) => s.view === 'side' ? 'From the wall' : 'From the left';
+const fromLabel = (s: SurfaceProfile) => s.fromLabel;
 
 /** `outer` is a ceiling's outer edge height, when it has one to lift (the side away from the wall). */
 export function shapeFields(s: SurfaceProfile, points: readonly ProfileVertex[], pick: ShapePick, outer?: number): ShapeField[] {
@@ -24,12 +24,12 @@ export function shapeFields(s: SurfaceProfile, points: readonly ProfileVertex[],
     return list;
   }
   const box = profileExtent(points), list: ShapeField[] = [
-    { key: 'width', label: s.view === 'side' ? 'Into the room' : 'Width', value: box.maxX - box.minX },
+    { key: 'width', label: s.ref.kind === 'wall' && s.view === 'side' ? 'Thickness' : s.view === 'side' ? 'Into the room' : 'Width', value: box.maxX - box.minX },
     { key: 'height', label: 'Height', value: box.maxY - box.minY },
     { key: 'left', label: fromLabel(s), value: box.minX - s.origin },
     { key: 'floor', label: 'From the floor', value: box.minY },
   ];
-  if (s.ref.kind === 'ceiling' && s.view === 'front') list.push({ key: 'depth', label: 'Into the room', value: s.depth, hint: 'From the wall' });
+  if (s.ref.kind === 'ceiling' && s.view === 'front' && s.primary) list.push({ key: 'depth', label: 'Into the room', value: s.depth, hint: 'From the wall' });
   if (outer !== undefined) list.push({ key: 'outer', label: 'Outer edge height', value: outer, hint: 'The edge at the wall stays' });
   return list;
 }

@@ -148,11 +148,21 @@ export function withCeilingProfile(c: StudioCeiling, profile: StudioCeiling['pro
   return { ...c, outline, profile: lowerBoundary(outline) };
 }
 const lowerCache = new WeakMap<readonly BoundaryPoint[], readonly BoundaryPoint[]>();
-export function ceilingLowerProfile(c: StudioCeiling) {
-  if (!c.outline) return c.profile;
-  let profile = lowerCache.get(c.outline);
-  if (!profile) { profile = lowerBoundary(c.outline); lowerCache.set(c.outline, profile); }
+const lowerOf = (outline: readonly BoundaryPoint[]) => {
+  let profile = lowerCache.get(outline);
+  if (!profile) { profile = lowerBoundary(outline); lowerCache.set(outline, profile); }
   return profile;
+};
+export function ceilingLowerProfile(c: StudioCeiling) {
+  return c.outline ? lowerOf(c.outline) : c.profile;
+}
+/** The underside seen from the other side (see `section`), or null when that side is plain. */
+export const sectionLowerProfile = (c: StudioCeiling) => c.section ? lowerOf(c.section) : null;
+/** How far the other side's outline reaches across, or null when it is plain. */
+export function sectionExtent(c: { readonly section?: readonly BoundaryPoint[] | undefined }) {
+  if (!c.section?.length) return null;
+  const ts = c.section.map(p => p.t);
+  return { from: Math.min(...ts), to: Math.max(...ts) };
 }
 
 export function boundaryControlHeight(room: Studio, kind: SurfaceKind, id: string, index: number): number | null {
@@ -163,4 +173,13 @@ export function setBoundaryControlHeight(room: Studio, kind: SurfaceKind, id: st
   const s = surfaceBoundary(room, kind, id), control = s?.controls[index], p = control && s!.points[control.index];
   const current = boundaryControlHeight(room, kind, id, index);
   return p && current !== null ? moveSurfaceControl(room, kind, id, index, { ...p, y: p.y + height - s!.world({ ...p, u: control!.u }).y }) : null;
+}
+
+/** A shape along a wall made `depth` deep: its side outline, if it has one, stretches to it from where it starts.
+ * Null when the side outline starts beyond that depth. */
+export function withDepth(c: StudioCeiling, depth: number): StudioCeiling | null {
+  const round = (v: number) => Math.round(v * 10) / 10, side = sectionExtent(c);
+  if (!side || side.to - side.from < 1e-6) return { ...c, depth: round(depth) };
+  if (depth <= side.from) return null;
+  return { ...c, depth: round(depth), section: c.section!.map(p => ({ ...p, t: round(side.from + (p.t - side.from) * (depth - side.from) / (side.to - side.from)) })) };
 }

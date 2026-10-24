@@ -1,7 +1,7 @@
 import { wallBox, wallLine } from './studio';
 import type { Studio } from './studio';
 import { ceilingFrame } from './studio-ceiling';
-import { ceilingLowerProfile } from './surface-boundary';
+import { ceilingLowerProfile, sectionLowerProfile } from './surface-boundary';
 
 /** A solid the collision rules keep wardrobes out of, in the same box form as a wardrobe:
  * centre x/z, floor height y, angle in degrees, and width (along), depth (across), height. */
@@ -25,17 +25,22 @@ export function studioObstacles(studio: Studio | undefined): Obstacle[] {
 /** A shape's underside that touches the floor, as boxes: along its wall and as deep as the shape reaches. */
 function groundedShapes(studio: Studio): Obstacle[] {
   return (studio.ceilings ?? []).flatMap(c => {
-    const frame = ceilingFrame(studio, c), profile = ceilingLowerProfile(c);
+    const frame = ceilingFrame(studio, c), profile = ceilingLowerProfile(c), section = sectionLowerProfile(c);
     if (!frame) return [];
     const top = Math.max(...profile.map(p => p.y), ...(c.outline ?? []).map(p => p.y));
-    return profile.slice(0, -1).flatMap((a, k) => {
-      const b = profile[k + 1]!;
-      if (b.t - a.t < 1e-6 || Math.max(a.y, b.y) > GROUNDED) return [];
-      const span = c.run === 'along' ? { s0: a.t, s1: b.t, d0: 0, d1: c.depth } : { s0: frame.along.from, s1: frame.along.to, d0: a.t, d1: b.t };
-      const centre = frame.at((span.s0 + span.s1) / 2, (span.d0 + span.d1) / 2);
-      return [{ id: `shape:${c.id}:${k}`, x: centre.x, y: 0, z: centre.z, angle: frame.line.angle,
-        state: { w: span.s1 - span.s0, d: span.d1 - span.d0, h: top } }];
+    /** Stretches of an underside that stand on the floor. */
+    const grounded = (list: readonly { t: number; y: number }[]) => list.slice(0, -1).flatMap((a, k) => {
+      const b = list[k + 1]!;
+      return b.t - a.t < 1e-6 || Math.max(a.y, b.y) > GROUNDED ? [] : [{ from: a.t, to: b.t, k }];
     });
+    const run = grounded(profile), cross = section ? grounded(section) : [{ ...(c.run === 'along' ? frame.across : frame.along), k: 0 }];
+    // On the floor where both sides are: a box for each pair of stretches.
+    return run.flatMap(r => cross.map(x => {
+      const span = c.run === 'along' ? { s0: r.from, s1: r.to, d0: x.from, d1: x.to } : { s0: x.from, s1: x.to, d0: r.from, d1: r.to };
+      const centre = frame.at((span.s0 + span.s1) / 2, (span.d0 + span.d1) / 2);
+      return { id: `shape:${c.id}:${r.k}:${x.k}`, x: centre.x, y: 0, z: centre.z, angle: frame.line.angle,
+        state: { w: span.s1 - span.s0, d: span.d1 - span.d0, h: top } };
+    }));
   });
 }
 /** An underside this low stands on the floor. */

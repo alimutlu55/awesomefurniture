@@ -180,8 +180,23 @@ the side, in section).
   derived (the underside wardrobes fit under). A part standing on the floor (a pillar) is a collision obstacle.
   Browser-draft recovery strips outlines only from drafts that do not read as they are (an older retired format).
 - Units: the spec this follows was in millimetres; the code is in centimetres like the rest of the domain.
+- **Front | Side.** Every part can be shaped from both sides, as in a two-view drawing: the solid is what both
+  outlines allow (`section` on a wall or shape: the side of a shape along a wall, the front of a roof, or a wall's
+  own cross-section within its thickness). The clear height over a spot is the higher of the two undersides
+  (`ceilingAt`, `ceilingClearance`); a floor-standing part is an obstacle where both sides reach the floor.
+  Rendered by `viewport/two-view-geometry.ts` (bands between corner heights, caps only where the solid starts or
+  stops). A side outline replaces the edge lift: a lifted shape is shaped from the front only. The drawing zooms
+  (wheel, pinch, pan when zoomed, Fit); a part narrower than a fingertip opens zoomed on its top.
 
-Not done yet: the depth grip is the only way to change how far a shape reaches on the model; a shape cannot be
+## Walls are solid
+
+Walls may share floor only where they meet at a corner (`domain/studio/wall-solids.ts`): their footprints (the
+rectangle each stands on) are compared, and walls joined at a corner need at least 20° between them. Checked in
+`studioProblem` for every edit, so adding, drawing and dragging walls all stop at another wall's face. A room saved
+with walls that already run into each other can still be edited, just not made worse. Suggested free-standing walls
+stay inside a closed room.
+
+Not done yet: a shape cannot be
 dragged from one wall to another; doors and windows are drawn in a wall's Shape editor but a sloped top can cut
 through them without a warning.
 

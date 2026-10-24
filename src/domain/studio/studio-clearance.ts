@@ -3,7 +3,7 @@ import type { Placed } from './studio-fit';
 import type { Studio } from './studio';
 import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 import { roomHeight } from './studio';
-import { ceilingLowerProfile } from './surface-boundary';
+import { ceilingLowerProfile, sectionLowerProfile } from './surface-boundary';
 import { ceilingFrame } from './studio-ceiling';
 import { topSurface } from '../wardrobe/shape/depth-shape';
 
@@ -49,15 +49,24 @@ export function ceilingClearance(studio: Studio | undefined, f: Placed, toleranc
     if (!frame) continue;
     const along = (p: Point) => frame.local(world(p)).s, across = (p: Point) => frame.local(world(p)).d;
     const covered = strip(strip(footprint, along, frame.along.from, frame.along.to), across, frame.across.from, frame.across.to);
-    const at = ceiling.run === 'along' ? along : across;
-    const profile = ceilingLowerProfile(ceiling);
-    for (let i = 1; i < profile.length; i++) {
-      const a = profile[i - 1]!, b = profile[i]!;
-      if (b.t - a.t <= EPS) continue;
-      const patch = strip(covered, at, a.t, b.t);
+    const at = ceiling.run === 'along' ? along : across, other = ceiling.run === 'along' ? across : along;
+    const profile = ceilingLowerProfile(ceiling), section = sectionLowerProfile(ceiling);
+    /** Each stretch of an underside, as a plane over its strip of the floor. */
+    const pieces = (list: readonly { t: number; y: number }[], coord: (p: Point) => number) => list.slice(1).flatMap((b, i) => {
+      const a = list[i]!;
+      return b.t - a.t <= EPS ? [] : [{ from: a.t, to: b.t, coord, y: (p: Point) => a.y + (b.y - a.y) * (coord(p) - a.t) / (b.t - a.t) }];
+    });
+    const sides = section ? pieces(section, other) : [null];
+    for (const front of pieces(profile, at)) for (const side of sides) {
+      const patch = side ? strip(strip(covered, at, front.from, front.to), other, side.from, side.to) : strip(covered, at, front.from, front.to);
       if (!hasArea(patch)) continue;
-      planes.push({ footprint: patch, height: p => a.y + (b.y - a.y) * (at(p) - a.t) / (b.t - a.t)
-        + (ceiling.run === 'along' ? (ceiling.edgeRise ?? 0) * across(p) / ceiling.depth : 0) - base });
+      const lift = (p: Point) => (ceiling.run === 'along' ? (ceiling.edgeRise ?? 0) * across(p) / ceiling.depth : 0) - base;
+      if (!side) { planes.push({ footprint: patch, height: p => front.y(p) + lift(p) }); continue; }
+      // Seen from both sides, the underside is the higher of the two: split where they cross so each part is a plane.
+      for (const [high, low] of [[front, side], [side, front]] as const) {
+        const part = clip(patch, p => high.y(p) - low.y(p));
+        if (hasArea(part)) planes.push({ footprint: part, height: p => high.y(p) + lift(p) });
+      }
     }
   }
   return shape => {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { tiltedCeilingGeometry } from './tilted-ceiling-geometry';
+import { twoViewGeometry } from './two-view-geometry';
 import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCeiling } from '../../domain/studio/studio';
 
@@ -32,7 +33,13 @@ export function createCeilingViews(root: THREE.Object3D, plaster: THREE.Material
     shape.lineTo(first.t, top);
     }
     let g: THREE.BufferGeometry;
-    if (c.run === 'along') {
+    if (c.section) {
+      // Shaped from both sides: along the wall from the front, out from its face from the side, whichever is the main view.
+      const ring = (list: readonly { t: number; y: number }[]) => list.map(p => ({ x: p.t, y: Math.min(top, p.y) }));
+      const outline = c.outline ?? [...c.profile, { t: last.t, y: top }, { t: first.t, y: top }];
+      const [front, side] = c.run === 'along' ? [outline, c.section] : [c.section, outline];
+      g = twoViewGeometry([ring(front)], ring(side)).translate(0, 0, w.thickness / 2);
+    } else if (c.run === 'along') {
       g = c.edgeRise || c.outline ? tiltedCeilingGeometry(c, top).translate(0, 0, w.thickness / 2)
         : new THREE.ExtrudeGeometry(shape, { depth: c.depth, bevelEnabled: false }).translate(0, 0, w.thickness / 2);
     } else {

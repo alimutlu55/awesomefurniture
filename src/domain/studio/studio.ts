@@ -23,6 +23,11 @@ export type WallFinish = 'matte' | 'eggshell' | 'satin';
 export interface BoundaryControl { readonly index: number; readonly u: number }
 export interface SurfaceBoundary {
   readonly outline?: readonly BoundaryPoint[] | undefined;
+  /** The same part seen from the other side, as a closed outline (`t` across, `y` up): a wall's cross-section
+   * (`t` from its room face, negative into the wall), the side of a shape along a wall (`t` out from the wall's
+   * face), or the front of a roof sloping to its wall (`t` along the wall, as an opening's offset). The solid is
+   * what both outlines allow. Absent: the other side is plain. */
+  readonly section?: readonly BoundaryPoint[] | undefined;
   /** Only user-created points become controls; construction corners stay quiet. */
   readonly boundaryControls?: readonly BoundaryControl[] | undefined;
 }

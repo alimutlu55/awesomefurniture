@@ -86,7 +86,11 @@ export function setInsideLength(studio: Studio, id: string, length: number, from
 
 export function setWallSize(studio: Studio, id: string, size: Partial<Pick<StudioWall, 'thickness' | 'height'>>): Studio | null {
   if (!wall(studio, id)) return null;
-  return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size, ...(w.outline && size.height ? { outline: w.outline.map(p => ({ ...p, y: p.y * size.height! / w.height })) } : {}) } : w) });
+  // A shaped wall keeps its shape in proportion: its outline to the new height, its cross-section to both.
+  const sy = (w: StudioWall) => size.height ? size.height / w.height : 1, sx = (w: StudioWall) => size.thickness ? size.thickness / w.thickness : 1;
+  return custom(studio, { walls: studio.walls.map(w => w.id === id ? { ...w, ...size,
+    ...(w.outline && size.height ? { outline: w.outline.map(p => ({ ...p, y: p.y * sy(w) })) } : {}),
+    ...(w.section ? { section: w.section.map(p => ({ ...p, t: p.t * sx(w), y: p.y * sy(w) })) } : {}) } : w) });
 }
 
 /** Splits a wall in two at a point along it (`at` from corner a; the middle by default), so either
