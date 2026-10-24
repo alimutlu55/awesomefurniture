@@ -169,6 +169,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     const body = $('#left-body');
     let group;
     for (const child of [...body.children]) {
+        if (child.hasAttribute('data-studio-resize')) { group = null; continue; }
         if (child.tagName === 'H2' || !group || child.classList.contains('reset-row')) {
             group = document.createElement('section');
             const label = child.textContent.trim();
@@ -262,7 +263,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
-            if (selectionState.viewMode === 'studio') return selectionState.room?.kind ?? 'studio';
+            if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'studio-fixture' : selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
             return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : isFixture(state) ? 'fixture' : furnitureKind(state);
@@ -279,6 +280,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return [];
         },
         execute: key => {
+            if (key === 'fixtures') { shellBindings.openSceneAdd({ dom, inspector, shell }, 'fixtures'); return; }
+            if (room.fixtures.selected()) { room.fixtures.act(key); return; }
             if (key === 'wall-paint') {
                 if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'material') {
                     animateMobileSheetClose($('#left'));

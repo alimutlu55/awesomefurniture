@@ -18,6 +18,7 @@ export interface WallUtilitySpec {
   readonly sill: number;
   /** How far the fixture stands proud of the wall's room face, in centimetres. */
   readonly depth: number;
+  readonly obstacle?: boolean;
 }
 
 export const WALL_UTILITIES: readonly WallUtilitySpec[] = [
@@ -25,7 +26,7 @@ export const WALL_UTILITIES: readonly WallUtilitySpec[] = [
   { kind: 'socket', name: 'Electrical point', description: 'Power socket outlet on a wall', width: 16, height: 10, sill: 110, depth: 2 },
   { kind: 'duct', name: 'Extractor vent', description: 'Air duct outlet for an extractor hood or fan', width: 18, height: 18, sill: 215, depth: 3 },
   { kind: 'gas', name: 'Gas point', description: 'Gas shut-off valve and connection point', width: 12, height: 16, sill: 65, depth: 4 },
-  { kind: 'radiator', name: 'Radiator', description: 'Wall-mounted heating radiator panel', width: 80, height: 60, sill: 15, depth: 10 },
+  { kind: 'radiator', name: 'Radiator', description: 'Wall-mounted heating radiator panel', width: 80, height: 60, sill: 15, depth: 10, obstacle: true },
   { kind: 'switch', name: 'Light switch', description: 'Wall switch plate', width: 10, height: 10, sill: 105, depth: 2 },
 ];
 

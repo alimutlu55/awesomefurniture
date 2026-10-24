@@ -2,6 +2,8 @@ import { wallBox, wallLine } from './studio';
 import type { Studio } from './studio';
 import { ceilingFrame } from './studio-ceiling';
 import { ceilingLowerProfile, sectionLowerProfile } from './surface-boundary';
+import { fixtureSolids } from './fixtures/fixture-geometry';
+import { wallUtilitySpec } from './wall-utilities';
 
 /** A solid the collision rules keep wardrobes out of, in the same box form as a wardrobe:
  * centre x/z, floor height y, angle in degrees, and width (along), depth (across), height. */
@@ -19,7 +21,14 @@ export function studioObstacles(studio: Studio | undefined): Obstacle[] {
     const box = wallBox(studio, w);
     return box ? [{ id: box.id, x: box.x, y: 0, z: box.z, angle: box.angle, state: { w: box.length, d: box.thickness, h: box.height } }] : [];
   });
-  return [...walls, ...groundedShapes(studio)];
+  const utilities = studio.openings.flatMap(o => {
+    const spec = wallUtilitySpec(o.kind), w = studio.walls.find(w => w.id === o.wall), line = w && wallLine(studio, w);
+    if (!spec?.obstacle || !w || !line) return [];
+    const out = w.thickness / 2 + spec.depth / 2;
+    return [{ id: 'utility:' + o.id, x: line.a.x + line.ux * o.offset + line.nx * out, y: o.sill,
+      z: line.a.z + line.uz * o.offset + line.nz * out, angle: line.angle, state: { w: o.width, h: o.height, d: spec.depth } }];
+  });
+  return [...walls, ...groundedShapes(studio), ...fixtureSolids(studio), ...utilities];
 }
 
 /** A shape's underside that touches the floor, as boxes: along its wall and as deep as the shape reaches. */

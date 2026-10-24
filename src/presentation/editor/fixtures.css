@@ -1,0 +1,50 @@
+/* Fixtures reuse the room panel and the shared scene catalog on desktop and touch. */
+#left[data-room-resize][data-context-section="fixture"] [data-wardrobe-controls="fixture"]{display:block!important}
+#app[data-no-wardrobe][data-view-mode="studio"].props-open #left[data-fixture-panel]{display:block!important}
+.fixture-editor{padding:2px 0 18px;color:var(--ink)}
+.fixture-panel-heading{display:none}
+.fixture-panel-tabs{display:flex;gap:3px;margin-bottom:18px;padding:3px;border-radius:12px;background:#82796512}
+.fixture-panel-tabs button{flex:1;min-width:0;min-height:40px;padding:5px;border:0;border-radius:10px;background:none;color:var(--ink);font-size:11px}
+.fixture-panel-tabs button[aria-selected="true"]{background:var(--panel);box-shadow:0 1px 4px #82796520}
+.fixture-panel-actions{display:flex;gap:8px;margin-top:18px}
+.fixture-panel-actions button{flex:1;min-height:44px;border:1px solid #82796535;border-radius:10px;background:transparent;color:var(--ink);font-size:12px}
+.fixture-editor p{font-size:12px;line-height:1.55;color:var(--mute);margin:8px 0 16px}
+.fixture-editor .fixture-summary{font-size:13px;color:var(--ink);margin:0 0 20px}
+.fixture-field{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;border-bottom:1px solid #82796520;font-size:12px}
+.fixture-field>span:first-child{flex:1;line-height:1.4}
+.fixture-field>span:last-child{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.fixture-field input{width:78px;min-height:40px;padding:6px 8px;border:1px solid #82796530;border-radius:10px;background:var(--panel);color:var(--ink);font-size:16px;text-align:right}
+.fixture-field small{width:20px;color:var(--mute);font-size:11px}
+.fixture-choice{display:flex;flex-direction:column;gap:8px;margin:0 0 18px;font-size:12px;line-height:1.4}
+.fixture-choice select{width:100%;max-width:100%;min-height:44px;border:1px solid #82796535;border-radius:10px;padding:9px;color:var(--ink);background:var(--panel);font-size:13px}
+.fixture-enclosure{min-width:0;margin:24px 0 16px;padding:14px 12px;border:1px solid #82796535;border-radius:14px}
+.fixture-enclosure legend{padding:0 6px;font-size:13px;font-weight:600}
+.fixture-enclosure .fixture-choice{margin:16px 0 0}
+.fixture-editor .fixture-total{color:var(--ink);padding:12px;border-radius:10px;background:#82796512}
+.fixture-findings{padding:14px 14px 14px 28px;margin:20px 0 0;border-radius:12px;background:#b6975212;font-size:11px;line-height:1.55;color:var(--mute)}
+.fixture-findings li+li{margin-top:6px}
+.fixture-finish{margin:0 0 24px;font-size:12px}
+.fixture-swatches{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.fixture-swatches button{width:34px;height:34px;min-height:34px;padding:0;border-radius:50%;border:1px solid #82796535;background:var(--swatch)}
+.fixture-swatches button[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:3px}
+.fixture-custom-color{display:flex;align-items:center;justify-content:space-between;min-height:48px;margin-top:12px}
+.fixture-custom-color input{width:48px;height:36px;border:0;background:none}
+.fixture-add-accessory{width:100%;min-height:44px;border-radius:10px;border:1px solid #82796535;background:#82796512;color:var(--ink);font-size:13px;padding:10px}
+#pop2[data-fixture-catalog] .mobile-add-products{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;align-content:start}
+#pop2[data-fixture-catalog] .mobile-add-products>button{width:100%;min-width:0;min-height:116px;padding:8px 2px;border-radius:12px;font-size:12px}
+#pop2[data-fixture-catalog] .mobile-add-products>button small{font-size:10px;color:var(--mute);line-height:1.3}
+#pop2[data-fixture-catalog] .mobile-add-products>[hidden]{display:none!important}
+#pop2[data-fixture-catalog] .mobile-add-products .product-art{width:100%;max-width:110px;height:76px;padding:3px;box-sizing:border-box}
+.fixture-catalog-tools{grid-column:1/-1;display:grid;grid-template-columns:1.4fr 1fr;gap:8px;padding:0 0 6px}
+.fixture-catalog-tools label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--mute);min-width:0}
+.fixture-catalog-tools input,.fixture-catalog-tools select{width:100%;min-width:0;box-sizing:border-box;min-height:40px;padding:8px;border:1px solid #82796530;border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px}
+@media(max-width:900px){
+ .fixture-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:13px}
+ .fixture-panel-heading>div{display:flex;gap:3px}
+ .fixture-panel-heading button{min-height:40px;min-width:40px;padding:5px;border:0;background:transparent;color:var(--ink);font-size:12px}
+ #app.adding:has(#pop2[data-add-context="fixtures"]){--catalog-height:min(440px,58vh)}
+ #app.adding #pop2[data-add-context="fixtures"] .mobile-add-browser{height:100%;min-height:0;padding-top:18px;box-sizing:border-box}
+ #pop2[data-add-context="fixtures"] .mobile-add-products{padding-bottom:20px}
+ #toolbar[data-context="studio-fixture"] .tb span{font-size:10px}
+ #left[data-fixture-panel] .fixture-editor{padding:4px 4px 24px}
+}

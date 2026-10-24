@@ -15,6 +15,7 @@
 import type { BoundaryPoint } from '../geometry/boundary';
 import type { StudioTemplateId } from './studio-templates';
 import type { OpeningKind } from './wall-utilities';
+import type { StudioFixture, FixtureEnclosure } from './fixtures/fixture';
 export type { OpeningKind, WallUtilityKind, StructuralOpeningKind } from './wall-utilities';
 
 export interface StudioCorner { readonly id: string; readonly x: number; readonly z: number }
@@ -86,6 +87,8 @@ export interface Studio {
   readonly openings: readonly StudioOpening[];
   /** Absent in rooms with a flat ceiling, so older projects stay as they were saved. */
   readonly ceilings?: readonly StudioCeiling[] | undefined;
+  readonly fixtures?: readonly StudioFixture[] | undefined;
+  readonly enclosures?: readonly FixtureEnclosure[] | undefined;
 }
 
 /** Limits a person can build within. Centimetres. */

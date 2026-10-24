@@ -13,6 +13,7 @@ import { applianceDetailSheets } from './appliance-details';
 import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
 import { materialSchedule } from './material-schedule';
+import { studioFixtureIssues, studioFixtureSchedule } from './studio-fixtures';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -48,7 +49,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   }
   const geometryChecks = designChecks(studio, pieces, letters), clearance = planClearances(studio, pieces, options.clearanceProfile);
   const applianceIssues = applianceReview(pieces);
-  const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues, ...applianceIssues];
+  const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues, ...applianceIssues, ...studioFixtureIssues(studio)];
   const checks = [...new Set([...geometryChecks, ...clearance.checks])], about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
   const purpose = DRAWING_PRESETS.find(p => p.key === preset)!.label;
@@ -78,6 +79,8 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
   const appliances = applianceSchedule(studio, pieces);
   if (appliances) sheets.push({ number: sheets.length + 1, title: 'Appliance schedule', views: [], pieces: [], checks: [], table: appliances });
+  const fixtures = studioFixtureSchedule(studio);
+  if (fixtures) sheets.push({ number: sheets.length + 1, title: 'Fixture & installation schedule', views: [], pieces: [], checks: [], table: fixtures });
   const details = constructionDetails(pieces);
   details.forEach((views, k) => sheets.push({ number: sheets.length + 1, title: 'Construction details' + (details.length > 1 ? ' ' + (k + 1) + ' of ' + details.length : ''), views, pieces: [], checks: [] }));
   // Schedules: the cutting list and the hardware list, each running on over as many sheets as it needs.

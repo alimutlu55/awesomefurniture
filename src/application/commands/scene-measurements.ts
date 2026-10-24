@@ -15,7 +15,7 @@ export type SceneMeasurement =
     | { kind: 'item-gap'; section: number; index: number; side: 'top' | 'bottom' }
     | { kind: 'board-size'; index: number; axis: 'w' | 'h' | 'd' }
     | { kind: 'board-gap'; index: number; side: 'before' | 'after' }
-    | { kind: 'studio'; selection: 'wall' | 'opening' | 'ceiling'; id: string; field: string };
+    | { kind: 'studio'; selection: 'wall' | 'opening' | 'ceiling' | 'fixture' | 'enclosure'; id: string; field: string };
 
 /** Domain-specific adapters for the reusable badge. Every mutation is silent;
  * its caller owns preview rollback and the single gesture checkpoint. */
@@ -26,6 +26,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
         if (ref.kind === 'studio') {
             const room = scene().studio;
             if (!room) return null;
+            if (ref.selection === 'fixture') return room.fixtures?.find(f => f.id === ref.id)?.w ?? null;
+            if (ref.selection === 'enclosure') return room.enclosures?.find(f => f.id === ref.id)?.w ?? null;
             if (ref.field.startsWith('b') && (ref.selection === 'wall' || ref.selection === 'ceiling'))
                 return boundaryControlHeight(room, ref.selection, ref.id, Number(ref.field.slice(1)));
             if (ref.selection === 'wall') {
@@ -64,6 +66,8 @@ export function createSceneMeasurements(scene: () => EditorScene) {
     function apply(ref: SceneMeasurement, value: number): boolean {
         if (!Number.isFinite(value) || value < 0 || read(ref) === null) return false;
         if (ref.kind === 'studio') return commands.editStudio(room => {
+            if (ref.selection === 'fixture') return { ...room, fixtures: room.fixtures?.map(f => f.id === ref.id ? { ...f, w: value } : f) };
+            if (ref.selection === 'enclosure') return { ...room, enclosures: room.enclosures?.map(f => f.id === ref.id ? { ...f, w: value } : f) };
             if (ref.field.startsWith('b') && (ref.selection === 'wall' || ref.selection === 'ceiling'))
                 return setBoundaryControlHeight(room, ref.selection, ref.id, Number(ref.field.slice(1)), value);
             if (ref.selection === 'wall') return ref.field === 'length' ? setInsideLength(room, ref.id, value)

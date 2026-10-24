@@ -3,7 +3,7 @@ import type { Studio } from '../studio/studio';
 
 /** Serializable design only. Editor state and render resources live elsewhere. */
 export interface ProjectDocument {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 1 | 3;
   readonly id: string;
   readonly name: string;
   readonly units: 'cm';

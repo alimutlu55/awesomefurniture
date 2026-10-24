@@ -9,6 +9,7 @@ import { createSurfaceShapeEditor } from './surface-shape-editor';
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { surfaceProfile } from '../../domain/studio/surface-profile';
 import type { StudioEditorPorts } from './studio-editor.ports';
+import { createFixtureWiring } from './fixture-wiring';
 
 type Listenable = { addEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void };
 interface RoomWiringPorts {
@@ -45,7 +46,8 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     let fields: ReturnType<typeof createStudioFields> | null = null;
     let resizePanel: ReturnType<typeof createStudioResizePanel> | null = null;
     let paintPanel: ReturnType<typeof createStudioPaintPanel> | null = null;
-    const refresh = () => { late.inspector().update(true); fields?.render(); paintPanel?.render(); shape.render(); };
+    let fixtures: ReturnType<typeof createFixtureWiring> | null = null;
+    const refresh = () => { late.inspector().update(true); fields?.render(); paintPanel?.render(); shape.render(); fixtures?.render(); };
     /** The Shape editor: the selected wall or ceiling shape face on, in the room panel. */
     const shape = createSurfaceShapeEditor({ document: dom.document as Document, model, sceneCommands, history, listen, callbacks: {
         redraw: () => late.rendering().redrawStudio(),
@@ -66,6 +68,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 if (selectionState.focusOn) late.inspector().clearFocus(); else late.inspector().update(true);
                 fields?.render();
                 paintPanel?.render();
+                fixtures?.render();
                 // The Shape editor stays open from one wall or shape to the next, and closes with anything else.
                 if (resizePanel?.showing('surface-shape')) { if (shapeTarget()) openShape(false); else shape.close(); }
                 frameSelection();
@@ -101,6 +104,10 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         getSelection: editor.selection, editStudio: edit => sceneCommands.editStudio(edit), refresh, listen });
     resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection, paint: paintPanel, shape,
         prepare: () => { dom.$('#px').click(); late.camera().camRelease(); }, frame: () => late.camera().frameScene() });
+    fixtures = createFixtureWiring({ dom, model, history, selection: editor.selection, select: editor.select, picking, listen,
+        refresh, redraw: () => late.rendering().redrawStudio(), report: m => late.report(m), hideCatalog: () => dom.$('#px').click(), viewed: late.viewed,
+        focus: (bounds, az) => late.camera().frameBox(bounds, az, .4, 1.12) });
+    const act = (key: string) => fixtures!.selected() ? fixtures!.act(key) : editor.act(key);
 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
     listen(dom.window, 'keydown', e => {
@@ -108,6 +115,9 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         const root = dom.$('#app').getRootNode() as Document | ShadowRoot, k = e as KeyboardEvent;
         const target = (root.activeElement ?? k.target) as HTMLElement | null;
         if (dom.$('#app').dataset.scrubbing !== undefined || target?.closest?.('[data-measurement-badge]')) return;
+        if (k.key === 'Escape' && fixtures?.drag.dragging()) {
+            fixtures.drag.end(true); k.preventDefault(); k.stopImmediatePropagation(); return;
+        }
         if (k.key === 'Escape' && selectionState.pendingStudioAction && !target?.closest?.('.contextual-popover')) {
             selectionState.pendingStudioAction = null;
             k.preventDefault();
@@ -118,7 +128,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         // Typing, and keys inside the toolbar's popover (Escape closes it first), are not for the room.
         if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest?.('.contextual-popover,.surface-shape'))) return;
         if (k.key === 'Escape') editor.select(null);
-        else if (k.key === 'Delete' || k.key === 'Backspace') editor.act('remove');
+        else if (k.key === 'Delete' || k.key === 'Backspace') act('remove');
         else if (!k.key.startsWith('Arrow')) return;
         k.preventDefault();
         k.stopImmediatePropagation();
@@ -202,7 +212,9 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
 
     return {
-        editor, fields, frameRoom, resizePanel, actOnWall, paintPanel, shape, openShape,
+        editor: { ...editor, act, measures: () => [...editor.measures(), ...fixtures!.measures()],
+            editMeasure: (m: Parameters<typeof editor.editMeasure>[0]) => m.edit === 'fixture-size' ? fixtures!.open('size') : editor.editMeasure(m) },
+        fields: { ...fields, render: () => { fields!.render(); fixtures!.render(); } }, frameRoom, resizePanel, actOnWall, paintPanel, shape, openShape, fixtures,
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
@@ -211,9 +223,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 const hit = picking.cast(e, late.rendering().studioPickables());
                 const ghosted = sel.kind === 'wall' || sel.kind === 'opening';
                 if (!hit || (!ghosted && wardrobe && wardrobe.distance < hit.distance)) return false;
+                if (fixtures!.selected()) return fixtures!.drag.begin(e, hit as never, e.target as HTMLElement);
                 return editor.grab(e, hit as never, e.target as HTMLElement);
             },
-            move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),
+            move: (e: PointerEvent) => fixtures!.drag.dragging() ? fixtures!.drag.move(e) : editor.move(e),
+            end: (cancel?: boolean) => fixtures!.drag.dragging() ? fixtures!.drag.end(cancel) : editor.end(cancel),
+            dragging: () => editor.dragging() || fixtures!.drag.dragging(),
         },
         /** For picking: the room's walls and openings, and what a hit selects. */
         room: { pickables: () => late.rendering().studioPickables(), pick: (hit: THREE.Intersection | undefined) => {
