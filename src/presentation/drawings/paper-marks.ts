@@ -14,6 +14,8 @@ export const PENS = {
   swing: { width: .18, colour: [51, 51, 51], dash: [3, 1.5] }, dim: { width: .13, colour: [17, 17, 17] }, tick: { width: .35, colour: [17, 17, 17] },
   frame: { width: .7, colour: [17, 17, 17] }, rule: { width: .18, colour: [17, 17, 17] }, heavy: { width: .35, colour: [17, 17, 17] },
   ring: { width: .25, colour: [17, 17, 17] }, none: { width: 0, colour: [0, 0, 0] },
+  /** The release stamp of a set that must not be used for manufacture. */
+  stamp: { width: .7, colour: [179, 38, 30] },
 } as const satisfies Record<string, { width: number; colour: readonly number[]; dash?: readonly number[] }>;
 export type Pen = keyof typeof PENS;
 export const FILLS = { white: [255, 255, 255], black: [17, 17, 17], glass: [228, 236, 242] } as const;
@@ -27,6 +29,7 @@ export const FONTS = {
   tag: { size: 2.9, bold: true }, mark: { size: 3.4, bold: true }, key: { size: 2.2, colour: [85, 85, 85] }, value: { size: 3.4 },
   project: { size: 5, bold: true }, heading: { size: 4.2, bold: true }, scale: { size: 3.2 }, list: { size: 2.7 }, listMark: { size: 2.7, bold: true },
   caption: { size: 3.6, bold: true }, head: { size: 3, bold: true }, cell: { size: 3 },
+  stamp: { size: 4.6, bold: true, colour: [179, 38, 30] },
 } as const satisfies Record<string, { size: number; bold?: boolean; colour?: readonly number[] }>;
 export type Font = keyof typeof FONTS;
 export const fontOf = (f: Font) => FONTS[f] as { size: number; bold?: boolean; colour?: readonly number[] };

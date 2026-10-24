@@ -1,8 +1,9 @@
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { Sheet } from '../../domain/drawings/drawing';
-import { technicalDrawings } from '../../domain/drawings/technical-drawings';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { type SheetSetInfo, sheetMarks, sheetSvg } from './sheet-marks';
+import { type SheetSetInfo, sheetMarks } from './sheet-marks';
+import { marksToSvg } from './paper-marks';
+import { type DrawingRelease, releaseCurrent, releaseDrawings } from './drawing-release';
 import { marksToPdf } from './pdf-writer';
 import { PAPER } from './sheet-layout';
 import { paginateDrawingSheets } from './table-marks';
@@ -51,10 +52,12 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     + '<div class="drawings-tools"><div class="drawings-zoom" role="group" aria-label="Zoom"><button type="button" data-zoom="-1" aria-label="Zoom out">−</button>'
     + '<button type="button" data-zoom="1" aria-label="Zoom in">+</button></div><button type="button" class="drawings-pdf">Save as PDF</button></div>'
     + '<button type="button" class="drawings-close" aria-label="Close technical drawings">×</button></header>'
+    + '<p class="drawings-release" role="status" hidden></p>'
     + '<div class="drawings-sheets" tabindex="0" aria-label="Sheets"></div>';
   dom.$('#app').append(panel);
   const list = panel.querySelector<HTMLElement>('.drawings-sheets')!, count = panel.querySelector<HTMLElement>('.drawings-count')!;
-  let scale = 1, current: { sheets: Sheet[]; info: SheetSetInfo } | null = null;
+  const release = panel.querySelector<HTMLElement>('.drawings-release')!, save = panel.querySelector<HTMLButtonElement>('.drawings-pdf')!;
+  let scale = 1, current: DrawingRelease | null = null;
 
   /** Zooms to `level` (1: a sheet as wide as the view), keeping the point at `focus` (in the list's box) where it is. */
   const zoomTo = (level: number, focus = { x: list.clientWidth / 2, y: list.clientHeight / 2 }) => {
@@ -67,22 +70,27 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     panel.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = next >= MAX_ZOOM - .001;
   };
   const step = (dir: number) => zoomTo(dir > 0 ? ZOOMS.find(z => z > scale + .01) ?? MAX_ZOOM : [...ZOOMS].reverse().find(z => z < scale - .01) ?? MIN_ZOOM);
-  function open() {
-    closeMenu();
-    const s = scene(), input = { studio: s.studio, pieces: s.wardrobes.map(c => ({ id: c.id, name: c.name,
-      x: c.x, y: c.y || 0, z: c.z, angle: c.angle, design: c.state })) };
-    const sheets = technicalDrawings(input, { preset: 'installation', clearanceProfile: 'nkba-single' });
-    const clearance = technicalDrawings(input, { preset: 'clearances', clearanceProfile: 'nkba-single' })[0];
-    if (clearance) sheets.splice(sheets[1]?.title === 'Upper furniture plan' ? 2 : 1, 0, { ...clearance, title: 'Clearances plan' });
-    const pages = paginateDrawingSheets(sheets);
-    const info = { project: project(s), date: new Date().toLocaleDateString(), total: pages.length };
-    current = { sheets: pages, info };
+  /** Makes the set from the scene as it is now, checked for manufacture (drawing-release.ts). */
+  function build() {
+    const s = scene();
+    current = releaseDrawings(s, project(s), new Date().toLocaleDateString());
+    const { pages, marks, validation } = current, blocking = validation.findings.filter(f => f.severity === 'critical');
     // Each sheet is its own SVG document, as it prints: its hatching and styles resolve inside it, not in the editor.
-    list.innerHTML = pages.map(sheet => '<figure class="drawings-sheet"><img alt="' + (sheet.number + ' ' + sheet.title).replace(/"/g, '') + '" src="data:image/svg+xml;charset=utf-8,'
-      + encodeURIComponent(sheetSvg(sheet, info)) + '"></figure>').join('');
-    const checks = sheets[0]?.issues?.length ?? 0;
+    list.innerHTML = pages.map((sheet, i) => '<figure class="drawings-sheet"><img alt="' + (sheet.number + ' ' + sheet.title).replace(/"/g, '') + '" src="data:image/svg+xml;charset=utf-8,'
+      + encodeURIComponent(marksToSvg(marks[i]!, { w: PAPER.w, h: PAPER.h }, String(sheet.number), sheet.title)) + '"></figure>').join('');
+    const checks = pages[0]?.issues?.length ?? 0;
     count.textContent = pages.length + (pages.length === 1 ? ' sheet' : ' sheets') + ' · A3 · mm' + (checks ? ' · ' + checks + (checks === 1 ? ' thing' : ' things') + ' to check' : '');
     count.classList.toggle('has-checks', checks > 0);
+    // Fail closed: a set with blocking findings says so above the sheets, on every sheet and on the button.
+    release.hidden = validation.ready;
+    release.textContent = validation.ready ? '' : 'Not for manufacture: ' + blocking.length + (blocking.length === 1 ? ' blocking finding' : ' blocking findings') + '. '
+      + blocking.slice(0, 3).map(f => f.message).join('; ') + (blocking.length > 3 ? '; see the Manufacturing check sheet' : '') + '.';
+    save.textContent = validation.ready ? 'Save as PDF' : 'Save review PDF';
+    save.title = validation.ready ? 'Save the drawings, checked for manufacture' : 'Save the drawings marked NOT FOR MANUFACTURE';
+  }
+  function open() {
+    closeMenu();
+    build();
     panel.hidden = false;
     scale = 1;
     zoomTo(1);
@@ -91,10 +99,12 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
   }
   const close = () => { panel.hidden = true; list.innerHTML = ''; current = null; item.focus(); };
   /** Writes the PDF and hands it over: through the share sheet on a phone (Save to Files, Mail), downloaded elsewhere.
-   * The file is made from the sheets, not from the screen, so the zoom or scroll of the viewer never changes it. */
+   * The file is made from the sheets, not from the screen, so the zoom or scroll of the viewer never changes it; a set
+   * made from an older model revision is made again first, so a file never shows stale geometry. */
   async function savePdf() {
     if (!current) return;
-    const name = fileName(current.info.project), bytes = drawingsPdf(current.sheets, current.info);
+    if (!releaseCurrent(current, scene())) build();
+    const name = fileName(current.info.project), bytes = marksToPdf(current.marks, { w: PAPER.w, h: PAPER.h }, current.info.project + ' - technical drawings');
     const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }), win = page.defaultView;
     const file = typeof File === 'function' ? new File([blob], name, { type: 'application/pdf' }) : null, nav = win?.navigator;
     if (file && nav?.canShare?.({ files: [file] }) && win?.matchMedia('(pointer: coarse)').matches) {

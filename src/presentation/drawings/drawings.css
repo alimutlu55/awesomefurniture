@@ -7,6 +7,9 @@
 .drawings-count{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .drawings-tools{display:flex;align-items:center;gap:8px}
 .drawings-count.has-checks{color:var(--bad)}
+/* A set with blocking findings says so above the sheets (it is also stamped on every sheet). */
+.drawings-release{margin:0;padding:8px 14px;font-size:13px;line-height:1.4;font-weight:600;color:var(--bad);background:var(--panel);border-bottom:1px solid var(--line)}
+.drawings-release[hidden]{display:none}
 .drawings-zoom{display:flex;gap:4px}
 .drawings-zoom button,.drawings-close{width:36px;height:36px;padding:0;font-size:20px;line-height:1;border-radius:10px}
 .drawings-zoom button:disabled{opacity:.4;cursor:default}

@@ -6,8 +6,8 @@ import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, layoutSheet } f
 import { tableMarks } from './table-marks';
 import { type Mark, type Pen, type Pt, box, marksToSvg, shape, words } from './paper-marks';
 
-/** What the title block says about the whole set. */
-export interface SheetSetInfo { readonly project: string; readonly date: string; readonly total: number }
+/** What the title block says about the whole set; `revision` is the model revision the set was made from. */
+export interface SheetSetInfo { readonly project: string; readonly date: string; readonly total: number; readonly revision?: string }
 
 /** A note's box on paper with its text moved `shift` along its own up direction. */
 function noteBox(text: readonly string[], small: boolean, c: Pt, angle: number, shift: number): Box {
@@ -58,7 +58,8 @@ function titleBlock(sheet: Sheet, scale: string, info: SheetSetInfo, strip: numb
   const cell = (cx: number, cy: number, key: string, value: string) => [words({ x: cx + 1.5, y: cy + 3 }, key, 'key'), words({ x: cx + 1.5, y: cy + 8 }, value, 'value')];
   const out: Mark[] = [box(x, y, x + w, y + strip, 'heavy'), words({ x: x + 1.5, y: top + 3 }, 'Project', 'key'), words({ x: x + 1.5, y: top + 9 }, info.project, 'project'),
     rule(x, top + 11, x + w, top + 11), ...cell(x, top + 11, 'Drawing', sheet.title), ...cell(x + 110, top + 11, 'Sheet', sheet.number + ' of ' + info.total),
-    rule(x, top + 22, x + w, top + 22), ...cell(x, top + 22, 'Scale', scale), ...cell(x + 40, top + 22, 'Units', 'millimetres'), ...cell(x + 110, top + 22, 'Date', info.date),
+    rule(x, top + 22, x + w, top + 22), ...cell(x, top + 22, 'Scale', scale), ...cell(x + 40, top + 22, 'Units', 'millimetres'),
+    ...cell(x + 110, top + 22, info.revision ? 'Date · revision' : 'Date', info.date + (info.revision ? ' · ' + info.revision : '')),
     rule(x + 108, top + 11, x + 108, top + 33), rule(x + 38, top + 22, x + 38, top + 33)];
   const lx = PAPER.left, lw = x - lx;
   out.push(box(lx, y, lx + lw, y + strip, 'heavy'), words({ x: lx + 2, y: y + 4 }, 'Dimensions in mm · verify on site · see Furniture schedule and Review issues', 'key'));
@@ -100,6 +101,15 @@ export function sheetPresentation(sheet: Sheet, info: SheetSetInfo, offsets: Ann
   return { marks: out, anchors: annotations.anchors, warnings: annotations.warnings, geometry: allGeometry, dimensionBoxes };
 }
 export const sheetMarks = (sheet: Sheet, info: SheetSetInfo, offsets: AnnotationOffsets = {}) => sheetPresentation(sheet, info, offsets).marks;
+
+/** The release stamp at the top right of a sheet: a quiet line when the set may be used for manufacture, a red
+ * NOT FOR MANUFACTURE box with the number of blocking findings when it may not. */
+export function releaseStamp(release: { readonly ready: boolean; readonly revision: string; readonly blocking: number }): Mark[] {
+  const x1 = PAPER.w - PAPER.edge - 3, y0 = PAPER.edge + 3;
+  if (release.ready) return [words({ x: x1, y: y0 + 4 }, 'For manufacture · revision ' + release.revision, 'key', 'end')];
+  return [box(x1 - 104, y0, x1, y0 + 15, 'stamp', 'white'), words({ x: x1 - 52, y: y0 + 6.5 }, 'NOT FOR MANUFACTURE', 'stamp', 'middle'),
+    words({ x: x1 - 52, y: y0 + 12 }, release.blocking + (release.blocking === 1 ? ' blocking finding' : ' blocking findings') + ' · see Manufacturing check', 'check', 'middle')];
+}
 
 /** One sheet as a self-contained A3 SVG drawn in paper millimetres, to show on screen. */
 export const sheetSvg = (sheet: Sheet, info: SheetSetInfo, offsets: AnnotationOffsets = {}) => marksToSvg(sheetMarks(sheet, info, offsets), { w: PAPER.w, h: PAPER.h }, String(sheet.number), sheet.title);

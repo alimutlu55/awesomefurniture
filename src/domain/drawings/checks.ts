@@ -9,7 +9,9 @@ import { type PlacedPiece, wallGeometry } from './room-pieces';
 /** Less than this is a touch, not a clash. Centimetres. */
 const TOUCH = .5;
 
-const top = (p: PlacedPiece) => p.y + (p.fixture ? p.design.h : Math.max(...resolveShape(p.design).top.map(q => q.y)));
+/** The highest point of a piece above the floor: its top, or the highest point of a shaped top. Centimetres. */
+export const pieceTop = (p: PlacedPiece) => p.y + (p.fixture ? p.design.h : Math.max(...resolveShape(p.design).top.map(q => q.y)));
+const top = pieceTop;
 const heights = (a: PlacedPiece, b: PlacedPiece) => Math.min(top(a), top(b)) - Math.max(a.y, b.y) > TOUCH;
 
 /** Whether two footprints overlap by more than a touch (separating axes of two turned rectangles). */
@@ -30,6 +32,9 @@ function overlap(a: PlacedPiece, b: PlacedPiece) {
   return true;
 }
 
+/** Whether two pieces occupy the same space: footprints and heights both overlapping by more than a touch. */
+export const piecesOverlap = (a: PlacedPiece, b: PlacedPiece) => overlap(a, b) && heights(a, b);
+
 /**
  * What to check before making, in the words a carpenter would use: two pieces in the same place, a piece in front of a
  * window or door at its height, a piece running past the end of its wall, a piece taller than its wall. Marks and wall
@@ -38,7 +43,7 @@ function overlap(a: PlacedPiece, b: PlacedPiece) {
 export function designChecks(studio: Studio | undefined, pieces: readonly PlacedPiece[], letters: ReadonlyMap<string, string>): string[] {
   const out: string[] = [];
   pieces.forEach((a, k) => pieces.slice(k + 1).forEach(b => {
-    if (overlap(a, b) && heights(a, b)) out.push(a.mark + ' and ' + b.mark + ' overlap');
+    if (piecesOverlap(a, b)) out.push(a.mark + ' and ' + b.mark + ' overlap');
   }));
   for (const p of pieces) {
     const w = p.wall && studio?.walls.find(x => x.id === p.wall), g = w && wallGeometry(studio!, w);
