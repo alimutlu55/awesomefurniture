@@ -67,16 +67,35 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   await tapAt({x:longest.b.x+longest.b.width/2,y:longest.b.y+longest.b.height/2});
   assert.deepEqual(await page.locator('.surface-shape-pill button:visible').allTextContents(),['+ Step','+ Point']);
   await shot('edge-picked');
-  const n=await corners.count();
+  const n=await corners.count(), pill=page.locator('.surface-shape-pill');
   await tap(page.locator('.surface-shape-pill button',{hasText:'+ Step'}));
   assert.ok(await corners.count()>n,'the step adds corners');
   assert.equal(await undos(),u0+2);
+  assert.equal(await pill.isVisible(),false,'the pill goes once + Step is used');
 
-  // Typing an exact size.
+  // Typing an exact size: the moved part is still picked, so its length is there to type.
   const field=page.locator('.surface-shape-fields input').first();
   await field.fill('60'); await field.press('Enter'); await page.waitForTimeout(400);
   assert.equal(Math.round(Number(await field.inputValue())),60,'the typed size holds');
   await shot('typed');
+
+  // What stays picked keeps its sizes below; tapping an edge again brings the tools back, and + Point uses them up again.
+  const longestEdge=await page.locator('.surface-shape-svg path.shape-edge').evaluateAll(es=>{ const best=es.reduce((a,e)=>e.getTotalLength()>a.getTotalLength()?e:a), m=best.getScreenCTM(), p=best.getPointAtLength(best.getTotalLength()/2), q=new DOMPoint(p.x,p.y).matrixTransform(m); return {x:q.x,y:q.y}; });
+  await tapAt(longestEdge);
+  assert.equal(await pill.isVisible(),true,'a tap on an edge shows its tools');
+  const m=await corners.count();
+  await tap(page.locator('.surface-shape-pill button',{hasText:'+ Point'}));
+  assert.equal(await corners.count(),m+1,'+ Point adds a corner');
+  assert.equal(await pill.isVisible(),false,'the pill goes once + Point is used');
+  // Dragging the picked corner shows no pill, nor after it ends.
+  const dot=await centre(page.locator('.surface-shape-svg circle.picked'));
+  await drag(dot,{x:dot.x,y:dot.y+12},{between:async()=>assert.equal(await pill.isVisible(),false,'no pill while dragging')});
+  assert.equal(await pill.isVisible(),false,'none after a drag');
+  await tapAt(await centre(page.locator('.surface-shape-svg circle.picked')));
+  assert.equal(await pill.isVisible(),true,'a tap on a corner shows Remove corner');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  assert.equal(await pill.isVisible(),false,'Escape lets go');
+
 
   // Undo goes back step by step (from the sheet on a phone, where it stands in for the toolbar).
   const undo=phone?page.locator('[data-shape-act="undo"]'):el('undo2');

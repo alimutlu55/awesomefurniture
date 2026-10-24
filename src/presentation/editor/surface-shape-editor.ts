@@ -47,6 +47,9 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   const pointers = new Map<number, Vec>();
   /** Set when a part or a side opens: its first drawing checks whether it needs zooming in. */
   let fitNext = false;
+  /** The + Step | + Point pill (or Remove corner) shows right after a tap picks something, and goes once it is used
+   * or the next drag starts. What stays picked keeps its sizes in the fields below. */
+  let tools = false;
 
   const room = () => model.scene.studio;
   /** The view on show: the one chosen, else the part's main one. */
@@ -109,7 +112,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = s.primary ? 'Full wall' : 'Plain side';
   }
   function renderPill(points: readonly ProfileVertex[]) {
-    const p = !drag && pick && points[pick.index] ? pick : null;
+    const p = !drag && tools && pick && points[pick.index] ? pick : null;
     pill.hidden = !p;
     if (!p) return;
     const a = points[p.index]!, b = p.kind === 'edge' ? points[(p.index + 1) % points.length]! : a;
@@ -174,6 +177,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   function act(key: string) {
     const s = profile();
     if (!s || !ref) return;
+    tools = false;
     const points = s.points, edge = pick?.kind === 'edge' ? pick.index : -1;
     if (key === 'step' && edge >= 0) {
       const r = stepEdge(points, edge, s.bounds);
@@ -217,6 +221,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     if (drag) { if (e.pointerId !== drag.pointer) cancel(); return; }
     const s = profile();
     if (!s || e.button > 0) return;
+    tools = false;
     const at = toCm(e), hit = hitShape(s.points, at, scale());
     if (!hit) {
       // Zoomed in, the empty drawing pans; otherwise a tap there lets go of what was picked.
@@ -286,7 +291,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     try { if (svg.hasPointerCapture(g.pointer)) svg.releasePointerCapture(g.pointer); } catch { /* released already */ }
     const keep: ShapePick = g.hit.kind === 'vertex' ? (g.merge !== undefined ? null : g.hit) : g.hit.kind === 'edge' ? { kind: 'edge', index: g.edge } : null;
     const at = keep && g.last[keep.index];
-    if (!g.moved) { session.drop(); pick = g.hit.kind === 'body' ? null : g.hit; render(); return; }
+    if (!g.moved) { session.drop(); pick = g.hit.kind === 'body' ? null : g.hit; tools = !!pick; render(); return; }
     // Picked first: ending the drag redraws the panel with what stays picked.
     const index = at ? findPoint(healProfile(g.last), at) : -1;
     pick = keep && index >= 0 ? { kind: keep.kind, index } : null;
@@ -298,7 +303,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     if (!r || !ref || profile()?.view === next) return;
     cancel();
     view = next === primaryView(r, ref) ? null : next;
-    pick = null; zoom.reset(); fitNext = true;
+    pick = null; tools = false; zoom.reset(); fitNext = true;
     render();
     callbacks.viewChanged();
   }
@@ -366,8 +371,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   return {
     root,
     /** Shows a wall or a ceiling shape; the same one keeps what was picked. */
-    open(next: SurfaceRef) { if (!ref || ref.kind !== next.kind || ref.id !== next.id) { pick = null; view = null; zoom.reset(); fitNext = true; } ref = next; render(); },
-    close() { cancel(); ref = null; pick = null; view = null; zoom.reset(); },
+    open(next: SurfaceRef) { if (!ref || ref.kind !== next.kind || ref.id !== next.id) { pick = null; tools = false; view = null; zoom.reset(); fitNext = true; } ref = next; render(); },
+    close() { cancel(); ref = null; pick = null; tools = false; view = null; zoom.reset(); },
     /** Which side is on show. */
     view: (): SurfaceView | null => profile()?.view ?? null,
     render,
