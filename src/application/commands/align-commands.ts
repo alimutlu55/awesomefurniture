@@ -21,19 +21,19 @@ export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides:
 export const SIZE_SNAP = .5;
 const turned = (a: EditorCabinet, b: EditorCabinet) => Math.abs(((a.angle - b.angle) % 360 + 540) % 360 - 180) > .5;
 /** The sizes `key` of a wardrobe can be dragged to that line it up with what is around it, as the measuring assistant
- * shows them: its top up to the ceiling or the unit above, or level with a neighbour's; its side touching the nearer
- * neighbour or wall, or filling the gap; its front in line with a neighbour against the same wall. Centimetres. */
+ * shows them: its top level with a neighbour's; its side touching the nearer neighbour or wall, or filling the gap; its
+ * front in line with a neighbour against the same wall. Centimetres. */
 export function sizeTargets(scene: EditorScene, cabinet: EditorCabinet, key: 'w' | 'h' | 'd'): AlignTarget[] {
   const s = cabinet.state, y0 = cabinet.y || 0, out: AlignTarget[] = [], a = cabinet.angle * Math.PI / 180;
   const u = { x: Math.cos(a), z: -Math.sin(a) }, f = { x: Math.sin(a), z: Math.cos(a) };
-  const { gaps } = measureAround(scene, cabinet, key === 'w' ? ['left', 'right'] : key === 'h' ? ['top'] : ['back']);
+  const { gaps } = measureAround(scene, cabinet, key === 'w' ? ['left', 'right'] : []);
   const gap = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
   // Neighbours turned the same way and standing beside it (less than 30 cm between their sides).
   const beside = scene.wardrobes.filter(o => o.id !== cabinet.id && !turned(o, cabinet)
     && Math.abs((o.x - cabinet.x) * u.x + (o.z - cabinet.z) * u.z) - (o.state.w + s.w) / 2 < 30);
   if (key === 'h') {
-    const top = gaps.find(g => g.side === 'top');
-    if (top && top.distance > .05) out.push({ v: s.h + top.distance, label: top.target === 'ceiling' ? 'Up to the ceiling' : 'Up to the unit above', kind: 'touch' });
+    // Not "up to the ceiling": the editor lets a top come CEILING_CLEARANCE_TOLERANCE above it, so the slider's own end
+    // is the ceiling as the editor sees it, and a snap a few millimetres short of it would fight the slider.
     for (const o of beside) if (Math.abs((o.y || 0) - y0) < .5) out.push({ v: o.state.h, label: 'Level with ' + o.name, kind: 'level' });
   }
   if (key === 'w') {

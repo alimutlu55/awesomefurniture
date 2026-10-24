@@ -20,10 +20,10 @@ function fixture() {
   return { model, edits: createTactileEdits({ model, checkpoint() {} }) };
 }
 
-test('the sizes that line a wardrobe up: up to the ceiling, level with its neighbour, touching, filling the gap', () => {
+test('the sizes that line a wardrobe up: level with its neighbour, touching, filling the gap', () => {
   const { model } = fixture(), w1 = model.scene.wardrobes[0]!;
   const h = sizeTargets(model.scene, w1, 'h').map(t => t.label + '@' + t.v).sort();
-  assert.deepEqual(h, ['Level with W2@230', 'Up to the ceiling@260'].sort());
+  assert.deepEqual(h, ['Level with W2@230'], 'not up to the ceiling: the slider\'s own end is the ceiling as the editor sees it');
   // 20 cm to the side wall on the left, 10 cm to W2 on the right.
   const w = sizeTargets(model.scene, w1, 'w').map(t => t.label + '@' + t.v).sort();
   assert.deepEqual(w, ['Filling the gap@230', 'Touching@220'].sort());
