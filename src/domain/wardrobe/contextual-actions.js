@@ -15,7 +15,7 @@ const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],
     // Nothing selected in Studio: walls and rooms, or a shape (stairs, a slope, a pillar) on the wall in view.
-    studio: [['walls', 'Walls'], ['ceiling', 'Shapes', 'Add a shape: stairs, a slope, a beam or a pillar']],
+    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling', 'Add a ceiling shape: stairs, a slope, a beam or a pillar']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
