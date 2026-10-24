@@ -121,3 +121,31 @@ test('a wall pushed towards a wardrobe shows the gap to it', () => {
   assert.equal(wardrobeGap(room, w, [{ id: 1, x: -80, z: 0, angle: 0, w: 200, d: 60 }], new Set()), null, 'touching: nothing to read');
   assert.equal(wardrobeGap(room, w, [{ id: 1, x: -80, z: 0, angle: 0, w: 200, d: 60 }], new Set([1])), null, 'one going with the wall is left out');
 });
+
+test('a quarter turn from its neighbour (an L-shaped run), a piece lines its side up with the front, and says so', async () => {
+  const { cornerMoves } = await import('../../src/domain/studio/scene-gaps');
+  // A along the back wall facing +z, its front at z = 30; B a quarter turn, its side 3 cm short of A's front plane.
+  const a = box({ id: 1, x: 0, z: 0, w: 200, d: 60 }), b = box({ id: 2, x: -150, z: 33 + 30, angle: 90, w: 60, d: 60 });
+  const moves = cornerMoves(b, a).across.map(m => Math.round(m.move * 10) / 10);
+  assert.ok(moves.includes(-3) || moves.includes(3), 'a move of 3 cm puts a side in A\'s front plane: ' + moves);
+  const lined = box({ ...b, z: 30 + 30 });
+  assert.ok(alignments(lined, [], [a, lined]).some(x => x.kind === 'fronts' && x.other === 1), 'in line: the fronts guide shows');
+  assert.deepEqual(cornerMoves(box({ id: 3, x: 0, z: 0 }), a).across, [], 'not a quarter turn: nothing');
+  const { scene, commands } = makeScene();
+  // W1's front is at z = d / 2; the turned W2 (120 wide along z) is 2 cm short of putting its side there.
+  const front = scene.wardrobes[0]!.state.d / 2;
+  scene.wardrobes[1]!.angle = 90; Object.assign(scene.wardrobes[1]!, { x: 60, z: front + 60 + 2, state: { ...scene.wardrobes[1]!.state, w: 120, d: 60 } });
+  assert.deepEqual(commands.alignSnap(scene.wardrobes[1]!, 6), { x: 60, z: front + 60 }, 'the turned piece is pulled into line');
+});
+
+test('gaps in a large scene: pieces beyond reach are culled without changing a reading, and it stays fast', () => {
+  const room = bedroom(), a = box();
+  const near = [a, box({ id: 2, x: 130, w: 120 })];
+  const crowd = [...near, ...Array.from({ length: 400 }, (_, i) => box({ id: 10 + i, x: 2000 + (i % 20) * 250, z: 2000 + Math.floor(i / 20) * 250 }))];
+  const sides = ['left', 'right', 'back', 'front', 'top'] as const;
+  assert.deepEqual(gapsAround(a, crowd, room, sides), gapsAround(a, near, room, sides), 'far pieces never change a gap');
+  const t0 = performance.now();
+  for (let n = 0; n < 200; n++) gapsAround(a, crowd, room, sides);
+  const each = (performance.now() - t0) / 200;
+  assert.ok(each < 4, 'one pointer move with 400 pieces in the scene takes ' + each.toFixed(2) + ' ms');
+});

@@ -3,6 +3,8 @@ import { createSceneCommands } from './scene-commands';
 import { changeAccordionShelf } from './accordion-shelves';
 import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { editProfilePoint } from '../../domain/wardrobe/shape/shape-handle-edit';
+import { resolveAlignment, type AlignTarget } from '../../domain/geometry/alignment';
+import { SIZE_SNAP, sizeTargets } from './align-commands';
 
 export type ScrubDimension = 'w' | 'd' | 'h' | 'h-left' | 'h-right';
 interface Ports {
@@ -13,7 +15,7 @@ interface Ports {
  * so returning a finger to its origin also restores any fitted contents. */
 export function createTactileEdits({ model, checkpoint }: Ports) {
     const commands = createSceneCommands(() => model.scene);
-    type Gesture = { before: string; id: number; dimension: ScrubDimension; start: number }
+    type Gesture = { before: string; id: number; dimension: ScrubDimension; start: number; targets: AlignTarget[]; lock: AlignTarget | null }
         | { before: string; id: number; section: number; x: number; y: number; applied: number };
     let gesture: Gesture | null = null;
     const value = (key: ScrubDimension) => {
@@ -44,6 +46,11 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
             }
             return commands.setCabinetSize(g.dimension, g.start + amount, false);
         };
+        // A size within SIZE_SNAP of one that lines it up (its top level with a neighbour's, its side touching) is
+        // caught there, when the resize can take it exactly; otherwise it follows the pointer as before.
+        const line = resolveAlignment(g.start + delta, g.targets, { tolerance: SIZE_SNAP, lock: g.lock });
+        if (line && apply(line.v - g.start) && Math.abs(value(g.dimension) - line.v) < .01) { g.lock = line; return value(g.dimension); }
+        g.lock = null;
         if (!apply(delta)) {
             // Search whole millimetres, so a large pointer jump cannot leave a
             // visible remainder at a wall after a fixed number of iterations.
@@ -61,7 +68,9 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
         value, finish, previewDimension, active: () => gesture !== null,
         beginDimension(dimension: ScrubDimension) {
             finish(true);
-            gesture = { before: model.snapshot(), id: model.activeCabinet().id, dimension, start: value(dimension) };
+            const cabinet = model.activeCabinet(), plain = dimension === 'w' || dimension === 'h' || dimension === 'd';
+            gesture = { before: model.snapshot(), id: cabinet.id, dimension, start: value(dimension),
+                targets: plain ? sizeTargets(model.scene, cabinet, dimension) : [], lock: null };
         },
         beginShelves(section: number, x: number, y: number, cabinetId = model.activeCabinet().id) {
             finish(true);

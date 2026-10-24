@@ -71,9 +71,11 @@ function verticalAnchor(box: PlacedBox, other: PlacedBox | undefined): number {
 /** The gaps around wardrobe `box` on the requested sides, to the room's walls and the other wardrobes. */
 export function gapsAround(box: PlacedBox, others: readonly PlacedBox[], studio: Studio | undefined, sides: readonly GapSide[]): Gap[] {
   const { u, f } = axes(box.angle), y0 = box.y ?? 0, y1 = y0 + box.h, rects: Rect[] = [];
+  // Broad phase: a piece farther than REACH beyond both footprints can never be hit within REACH, so it is not tested.
+  const radius = (b: PlacedBox) => Math.hypot(b.w, b.d) / 2, far = (o: PlacedBox) => Math.hypot(o.x - box.x, o.z - box.z) > REACH + radius(box) + radius(o);
   for (const o of others) {
     const oy0 = o.y ?? 0, oy1 = oy0 + o.h;
-    if (o.id !== box.id && oy0 < y1 - SAME && oy1 > y0 + SAME) {
+    if (o.id !== box.id && oy0 < y1 - SAME && oy1 > y0 + SAME && !far(o)) {
       const a = axes(o.angle);
       rects.push({ cx: o.x, cz: o.z, hu: o.w / 2, hf: o.d / 2, u: a.u, f: a.f, target: 'wardrobe', other: o.id });
     }
@@ -182,6 +184,33 @@ export function nearerWallEnds(gaps: readonly Gap[], ends: readonly Gap[]): Gap[
   return [...gaps.filter(g => !ends.some(e => e.side === g.side && first(e))), ...ends.filter(first)];
 }
 
+/** Turned a quarter turn from each other (an L-shaped run): the moves of `box` that put one of its sides in the plane of
+ * `o`'s front (along its width, `across`), or its front in the plane of one of `o`'s sides (along its depth, `along`),
+ * each with the two face centres that then lie in one plane, for the guide. Only for pieces near each other and at
+ * heights that meet. Centimetres; empty when they are not a quarter turn apart. */
+export function cornerMoves(box: PlacedBox, o: PlacedBox) {
+  const out = { across: [] as { move: number; a: P3; b: P3 }[], along: [] as { move: number; a: P3; b: P3 }[] };
+  const turn = Math.abs(((o.angle - box.angle) % 180 + 180) % 180 - 90);
+  const y0 = box.y ?? 0, oy0 = o.y ?? 0;
+  if (o.id === box.id || turn > .5 || oy0 >= y0 + box.h - SAME || oy0 + o.h <= y0 + SAME) return out;
+  if (Math.hypot(o.x - box.x, o.z - box.z) > (box.w + box.d + o.w + o.d) / 2 + 60) return out;
+  const { u, f } = axes(box.angle), oa = axes(o.angle), dot = (p: { x: number; z: number }, q: { x: number; z: number }) => p.x * q.x + p.z * q.z;
+  const y = y0 + 1, at = (x: number, z: number) => ({ x, y, z });
+  // Its sides into the plane of o's front.
+  const front = { x: o.x + oa.f.x * o.d / 2, z: o.z + oa.f.z * o.d / 2 }, un = dot(u, oa.f);
+  for (const k of [-1, 1]) {
+    const side = { x: box.x + u.x * k * box.w / 2, z: box.z + u.z * k * box.w / 2 };
+    out.across.push({ move: -dot({ x: side.x - front.x, z: side.z - front.z }, oa.f) / un, a: at(side.x, side.z), b: at(front.x, front.z) });
+  }
+  // Its front into the plane of one of o's sides.
+  const mine = { x: box.x + f.x * box.d / 2, z: box.z + f.z * box.d / 2 }, fn = dot(f, oa.u);
+  for (const k of [-1, 1]) {
+    const side = { x: o.x + oa.u.x * k * o.w / 2, z: o.z + oa.u.z * k * o.w / 2 };
+    out.along.push({ move: -dot({ x: mine.x - side.x, z: mine.z - side.z }, oa.u) / fn, a: at(mine.x, mine.z), b: at(side.x, side.z) });
+  }
+  return out;
+}
+
 /** What the wardrobe lines up with: centred between the surfaces on its sides, flush against something,
  * its front in line with another wardrobe's, its top level with a neighbour's. */
 export function alignments(box: PlacedBox, gaps: readonly Gap[], others: readonly PlacedBox[]): Alignment[] {
@@ -210,6 +239,11 @@ export function alignments(box: PlacedBox, gaps: readonly Gap[], others: readonl
       const s0 = Math.min(-box.w / 2, along - o.w / 2), s1 = Math.max(box.w / 2, along + o.w / 2);
       out.push({ kind: 'tops', other: o.id, a: { x: mine.x + u.x * s0, y: y0, z: mine.z + u.z * s0 }, b: { x: mine.x + u.x * s1, y: y0, z: mine.z + u.z * s1 } });
     }
+  }
+  // A quarter turn apart: a side in line with the other's front, or its front in line with the other's side.
+  for (const o of others) {
+    const c = cornerMoves(box, o);
+    for (const m of [...c.across, ...c.along]) if (Math.abs(m.move) < SAME) out.push({ kind: 'fronts', other: o.id, a: m.a, b: m.b });
   }
   return out;
 }
