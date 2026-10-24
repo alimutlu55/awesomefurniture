@@ -15,6 +15,7 @@ import { studioProblems } from '../../domain/studio/studio-validation';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
+import { newWallClash } from '../../domain/studio/wall-solids';
 import { generateDesignedLayouts } from '../../domain/planner/wardrobe-composer';
 import { POSSESSION_KEYS } from '../../domain/wardrobe/possessions';
 import type { ShapeTemplateId } from '../../domain/wardrobe/shape/wardrobe-shape';
@@ -114,7 +115,7 @@ function buildRoom(spec: DesignSpec, problems: SpecProblem[]): Studio | null {
   }
   const size: Partial<Pick<StudioWall, 'height' | 'thickness'>> = { ...(r.height !== undefined ? { height: r.height } : {}), ...(r.thickness !== undefined ? { thickness: r.thickness } : {}) };
   if (Object.keys(size).length) for (const w of room.walls) room = setWallSize(room, w.id, size) ?? room;
-  const wrong = studioProblems(room);
+  const clash = newWallClash(undefined, room), wrong = [...studioProblems(room), ...(clash ? [clash] : [])];
   if (wrong.length) { problems.push({ path: 'room', message: wrong[0]! }); return null; }
   r.openings?.forEach((o, k) => {
     const path = `room.openings[${k}]`, wall = room.walls.find(w => w.id === 'w' + o.wall);

@@ -5,6 +5,7 @@ import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { studioProblems } from '../../domain/studio/studio-validation';
+import { newWallClash } from '../../domain/studio/wall-solids';
 import { sameStudioStructure } from '../../domain/studio/studio-paint';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { flushAgainst, placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
@@ -70,7 +71,8 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   /** Why a room could not be built as it is, or null. Changes nothing: drags use it to go as far as
    * the room allows. Wardrobes `carried` with a moving wall are checked where they would stand. */
   function studioProblem(next: Studio, carried?: Carried): string | null {
-    const first = studioProblems(next)[0];
+    // Walls are solid: none may run into another (compared with the room as it is, so an old room stays editable).
+    const first = studioProblems(next)[0] ?? newWallClash(getScene().studio, next);
     if (first) return first;
     if (!carried?.list.length) return blockedBy(next).length ? 'A wardrobe is in the way. Move it before moving this wall.' : null;
     const poses = carriedPoses(carried, next), moved = (c: EditorCabinet) => ({ ...c, ...poses.get(c.id) });

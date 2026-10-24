@@ -7,7 +7,7 @@ import { STUDIO_DEFAULTS, STUDIO_LIMITS as L, corner, cornerDegree, nextId, wall
 import type { OpeningKind, Studio, StudioCorner, StudioOpening, StudioWall } from './studio';
 import { openingRange } from './studio-validation';
 import { keepWallBoundaries, trimWallBoundary } from './surface-outline';
-import { keepCeilings, splitCeilings } from './studio-ceiling';
+import { keepCeilings, reachAt, splitCeilings } from './studio-ceiling';
 import { isWallUtility, openingLimits } from './wall-utilities';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
@@ -156,12 +156,15 @@ export function suggestWall(studio: Studio, fits: (next: Studio) => boolean, pre
       if (next && fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
     }
   }
-  // A closed room: free-standing, parallel to a wall (longest first), a little way into the room.
-  const lines = studio.walls.map(w => wallLine(studio, w)).filter(x => x !== null).sort((p, q) => q.length - p.length);
-  for (const line of lines) {
-    const half = Math.min(length, line.length - 2 * L.minWallLength) / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+  // A closed room: free-standing, parallel to a wall (longest first), a little way into the room, never beyond its far side.
+  const lines = studio.walls.map(w => ({ w, line: wallLine(studio, w) })).filter(x => x.line !== null).sort((p, q) => q.line!.length - p.line!.length);
+  for (const { w, line: l } of lines) {
+    const line = l!, half = Math.min(length, line.length - 2 * L.minWallLength) / 2, mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
     if (half * 2 < L.minWallLength) continue;
+    const reach = reachAt(studio, w.id, line.length / 2);
     for (const depth of [120, 90, 160, 60, 200]) {
+      // `depth` is from the wall's centre line, `reach` from its face to the far wall's face.
+      if (reach !== null && depth + STUDIO_DEFAULTS.thickness / 2 > reach + w.thickness / 2) continue;
       const cx = mid.x + line.nx * depth, cz = mid.z + line.nz * depth;
       const next = addWall(studio, cx - line.ux * half, cz - line.uz * half, cx + line.ux * half, cz + line.uz * half);
       if (fits(next)) return { studio: next, wall: next.walls.at(-1)!.id };
