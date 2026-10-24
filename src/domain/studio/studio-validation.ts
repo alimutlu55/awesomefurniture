@@ -4,7 +4,6 @@ import { surfaceProblems } from './surface-profile';
 import { ceilingProblems } from './studio-ceiling';
 import { WALL_FINISHES } from './studio-paint';
 import { isWallUtility, openingLimits, openingNoun, openingsOverlap } from './wall-utilities';
-import { fixtureDataProblems } from './fixtures/fixture-validation';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
@@ -29,7 +28,7 @@ export function studioProblems(studio: Studio): string[] {
   problems.push(...crossingProblems(studio));
   for (const o of studio.openings) problems.push(...openingProblems(studio, o));
   for (const c of studio.ceilings ?? []) problems.push(...ceilingProblems(studio, c));
-  return [...new Set([...problems, ...fixtureDataProblems(studio)])];
+  return [...new Set(problems)];
 }
 
 /** Two walls may only touch at a shared corner. */

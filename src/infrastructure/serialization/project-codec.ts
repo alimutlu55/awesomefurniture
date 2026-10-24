@@ -1,7 +1,6 @@
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import { materialsSchema } from './materials-schema';
-import { fixtureSchema, enclosureSchema } from './fixture-schema';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
 import { POSSESSIONS } from '../../domain/wardrobe/possessions';
@@ -155,17 +154,13 @@ const studio = z.strictObject({
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, ...boundary, edgeRise: finite.optional(), profile: z.array(z.strictObject({ t: finite, y: nonnegative })) })).optional(),
-  fixtures: z.array(fixtureSchema).optional(), enclosures: z.array(enclosureSchema).optional(),
 }).transform(room => cleanStudio(room as Studio)).superRefine((room, context) => {
   // Saved rooms may hold points that meet (from rounding in an earlier edit): they are cleaned above, then checked.
   for (const message of studioProblems(room)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });
 const projectSchema = z.strictObject({
-  schemaVersion: z.union([z.literal(1), z.literal(3)]), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
+  schemaVersion: z.literal(1), id, name, units: z.literal('cm'), wardrobes: z.array(wardrobe), studio: studio.optional(), maxReach: z.number().min(100).max(250).optional(),
 }).superRefine((project, context) => {
-  if (project.schemaVersion === 1 && (project.studio?.fixtures !== undefined || project.studio?.enclosures !== undefined)) {
-    context.addIssue({ code: 'custom', message: 'Studio fixtures require project schema version 3.' });
-  }
   const ids = new Set<string>([project.id]);
   const cabinetIds = new Set<number>();
   const check = (entity: { id: string }) => {
@@ -192,7 +187,7 @@ const storedSchema = z.strictObject({
   updatedAt: z.iso.datetime(),
 });
 
-/** V1 documents retain their shape. Fixture documents use v3; v2 is reserved for the retired ceiling editor.
+/** Add explicit sequential migrations here when schemaVersion 2 is introduced.
  * Unknown versions are rejected, never silently reset or written over.
  * This validates persisted shape; geometry rules belong in the domain layer.
  */

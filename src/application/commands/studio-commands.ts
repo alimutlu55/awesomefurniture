@@ -14,7 +14,6 @@ import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
-import { fixturePhysicalProblem, reconcileFixtureHosts } from '../../domain/studio/fixtures/fixture-validation';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
 export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
@@ -41,23 +40,16 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
    * Wardrobes caught in a wall move out to the room side. Refused if they cannot all fit. */
   function placeStudio(id: StudioTemplateId | 'none') {
     const scene = getScene();
-    const contents = scene.studio;
-    if (contents && [...contents.fixtures ?? [], ...contents.enclosures ?? []].some(f => f.anchor.kind === 'wall')) {
-      report('Reattach or remove wall-mounted fixtures and enclosures before replacing their room.');
-      return false;
-    }
     if (id === 'none') {
       if (!scene.studio) return false;
       checkpoint();
-      if (contents?.fixtures?.length || contents?.enclosures?.length) scene.studio = { ...contents, template: 'custom', corners: [], walls: [], openings: [], ceilings: [] };
-      else delete scene.studio;
+      delete scene.studio;
       report('Room removed. Wardrobes stand on an open floor.');
       return true;
     }
     if (id === 'custom' || !studioTemplate(id)) return false;
     const bounds = createCabinetGeometry(() => scene.wardrobes).sceneBounds();
-    const room = { ...translateStudio(createStudio(id), Math.round(bounds.x * 10) / 10, Math.round((bounds.z - bounds.d / 2) * 10) / 10),
-      ...(contents?.fixtures ? { fixtures: contents.fixtures } : {}), ...(contents?.enclosures ? { enclosures: contents.enclosures } : {}) };
+    const room = translateStudio(createStudio(id), Math.round(bounds.x * 10) / 10, Math.round((bounds.z - bounds.d / 2) * 10) / 10);
     const poses = new Map<number, Pose>();
     for (const cabinet of scene.wardrobes) {
       const others = () => scene.wardrobes.filter(o => o.id !== cabinet.id).map(o => ({ ...o, ...poses.get(o.id) }));
@@ -69,8 +61,6 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
       }
       if (freed.x !== cabinet.x || freed.z !== cabinet.z) poses.set(cabinet.id, freed);
     }
-    const fixtureIssue = fixturePhysicalProblem(room, studioObstacles({ ...room, fixtures: [], enclosures: [] }));
-    if (fixtureIssue) { report(fixtureIssue); return false; }
     checkpoint();
     scene.studio = room;
     for (const cabinet of scene.wardrobes) Object.assign(cabinet, poses.get(cabinet.id) ?? {});
@@ -84,10 +74,6 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     // Walls are solid: none may run into another (compared with the room as it is, so an old room stays editable).
     const first = studioProblems(next)[0] ?? newWallClash(getScene().studio, next);
     if (first) return first;
-    const positions = carried ? carriedPoses(carried, next) : new Map<number, Pose>();
-    const issue = fixturePhysicalProblem(next, [...studioObstacles({ ...next, fixtures: [], enclosures: [] }),
-      ...getScene().wardrobes.map(c => ({ id: 'cabinet:' + c.id, x: c.x, y: c.y, z: c.z, angle: c.angle, state: c.state, ...positions.get(c.id) }))]);
-    if (issue) return issue;
     if (!carried?.list.length) return blockedBy(next).length ? 'A wardrobe is in the way. Move it before moving this wall.' : null;
     const poses = carriedPoses(carried, next), moved = (c: EditorCabinet) => ({ ...c, ...poses.get(c.id) });
     const all = createCabinetGeometry(() => getScene().wardrobes.map(moved), () => studioObstacles(next));
@@ -124,9 +110,8 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   function editStudio(edit: (room: Studio) => Studio | null, recordHistory = true, quiet = false) {
     const scene = getScene();
     if (!scene.studio) return false;
-    const changed = edit(scene.studio);
-    if (!changed) return false;
-    const next = reconcileFixtureHosts(scene.studio, changed);
+    const next = edit(scene.studio);
+    if (!next) return false;
     const problem = sameStudioStructure(scene.studio, next) ? studioProblems(next)[0] : studioProblem(next);
     if (problem) { if (!quiet) report(problem); return false; }
     if (JSON.stringify(next) === JSON.stringify(scene.studio)) return false;

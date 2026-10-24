@@ -5,7 +5,6 @@ import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import { ceilingArt } from './studio-ceiling-panel';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
-import { fixtureProducts } from './fixture-art';
 
 interface StudioPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
@@ -58,7 +57,7 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
   /** The shared catalogue filters walls, wall attachments and ceiling shapes into their own pickers. */
   const products = () => {
     return buttons(cat => ` data-product-category="${cat}" hidden`, c => c.art, true)
-      + fixtureProducts() + CEILING_SHAPES.map(c => `<button type="button" class="room-product" data-product-category="ceilings" data-add-ceiling="${c.id}" hidden title="${esc(c.description)}">`
+      + CEILING_SHAPES.map(c => `<button type="button" class="room-product" data-product-category="ceilings" data-add-ceiling="${c.id}" hidden title="${esc(c.description)}">`
         + `${ceilingArt(c)}<span>${esc(c.name)}</span></button>`).join('');
   };
 

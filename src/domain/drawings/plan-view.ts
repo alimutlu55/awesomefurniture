@@ -13,7 +13,6 @@ import { planClearances, roomDoorOperation } from './plan-clearances';
 import type { DrawingOptions } from './view-policy';
 import { appliancePlanNote } from './appliance-setout';
 import { planEndBreak } from './shell-boundaries';
-import { studioFixturePlan } from './studio-fixtures';
 
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
@@ -106,7 +105,6 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
   const preset = options.preset ?? 'installation', upper = options.upperPlan ?? false, operations = preset === 'clearances';
   const visible = pieces.filter(p => upper ? p.y >= 120 : p.y < 120);
   const out: Item[] = studio ? walls(studio, visible, operations) : [];
-  if (!upper) out.push(...studioFixturePlan(studio));
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {
     if (!upper && s.kind === 'worktop') out.push({ kind: 'line', stroke: 'outline', closed: true, points: footprint(s.x, s.z, s.angle, s.length, s.depth) });

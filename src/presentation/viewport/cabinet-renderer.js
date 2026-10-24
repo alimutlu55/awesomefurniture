@@ -4,7 +4,6 @@ import { scrubberBottom } from './dimension-scrubber-label';
 import { shapeHandleVisible } from './shape-handle-visibility';
 import { createStudioRenderer } from './studio-renderer';
 import { studioBounds } from '../../domain/studio/studio';
-import { fixtureBounds } from '../../domain/studio/fixtures/fixture-geometry';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion, syncFurnitureTransparency } from './wardrobe-occlusion';
 import { createWardrobeAssist, SIZE_SIDES } from './assist-overlay';
@@ -163,8 +162,6 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
             xs.push(w.x - r, w.x + r); zs.push(w.z - r, w.z + r); h = Math.max(h, w.state.h + (w.y || 0));
         }
         if (room) { xs.push(room.x0, room.x1); zs.push(room.z0, room.z1); h = Math.max(h, room.height); }
-        const fixtures = fixtureBounds(model.scene.studio);
-        if (fixtures) { xs.push(fixtures.x0, fixtures.x1); zs.push(fixtures.z0, fixtures.z1); h = Math.max(h, fixtures.height); }
         if (!xs.length) xs.push(-100, 100), zs.push(-100, 100);
         const x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
         resources.lighting?.fit({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h });

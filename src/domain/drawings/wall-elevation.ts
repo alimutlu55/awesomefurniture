@@ -7,7 +7,6 @@ import { type Item, line, mm, rect, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { pieceFront, pieceHeights } from './piece-front';
 import { elevationOpeningItems } from './opening-notes';
-import { studioFixtureElevation } from './studio-fixtures';
 
 /** How far the floor line runs past the wall's ends. Millimetres. */
 const FLOOR_RUN = 300;
@@ -27,7 +26,6 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   const { face, line: l } = g, length = face.length, height = w.height, x = (t: number) => t - face.start;
   const mine = pieces.filter(p => p.wall === wallId), out: Item[] = [];
   out.push(...elevationShell(studio, w, length));
-  out.push(...studioFixtureElevation(studio, wallId));
   out.push(line({ x: -FLOOR_RUN, y: 0 }, { x: mm(length) + FLOOR_RUN, y: 0 }, 'cut'));
   for (const o of g.openings) {
     const a = x(o.offset - o.width / 2), b = x(o.offset + o.width / 2);

@@ -2,7 +2,6 @@ import { framedExtent } from './framed-extent';
 import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
-import { fixtureBounds } from '../../domain/studio/fixtures/fixture-geometry';
 import { zoomOutTarget } from './zoom-out';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
@@ -246,10 +245,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     /** The whole scene: the room and the wardrobes in it, or without a room the wardrobes with floor around them. */
     function sceneBox() {
         const w = cabinetGeometry.sceneBounds(), room = model.scene.studio && studioBounds(model.scene.studio), m = room ? 0 : 80;
-        const f = fixtureBounds(model.scene.studio);
-        const x0 = Math.min(w.x - w.w / 2 - m, room ? room.x0 : Infinity, f?.x0 ?? Infinity), x1 = Math.max(w.x + w.w / 2 + m, room ? room.x1 : -Infinity, f?.x1 ?? -Infinity);
-        const z0 = Math.min(w.z - w.d / 2 - m, room ? room.z0 : Infinity, f?.z0 ?? Infinity), z1 = Math.max(w.z + w.d / 2 + m, room ? room.z1 : -Infinity, f?.z1 ?? -Infinity);
-        return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: Math.max(room?.height ?? 0, w.h, f?.height ?? 0) };
+        const x0 = Math.min(w.x - w.w / 2 - m, room ? room.x0 : Infinity), x1 = Math.max(w.x + w.w / 2 + m, room ? room.x1 : -Infinity);
+        const z0 = Math.min(w.z - w.d / 2 - m, room ? room.z0 : Infinity), z1 = Math.max(w.z + w.d / 2 + m, room ? room.z1 : -Infinity);
+        return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: room ? Math.max(room.height, w.h) : w.h };
     }
     /** Moving a wardrobe from the toolbar: fly to a view of the whole room (or the wardrobes with floor around them)
      * from a little above. The target is absolute, so tapping Move again does not zoom out further. */

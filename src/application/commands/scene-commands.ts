@@ -52,7 +52,6 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const kitchen = createKitchenCommands(getScene, { checkpoint, report, placeAlone });
     /** Why a change is refused: it would run into a wall of the room, or into another piece of furniture (named by its kind). */
     const blockedMessage = (change: string, candidate: EditorCabinet) => {
-        if (collision.cabinetObstruction(candidate) === 'fixture') return change + ' would overlap a Studio fixture or enclosure. Move it first.';
         if (collision.cabinetObstruction(candidate) === 'wall') return change + ' would go through a wall of the room.';
         const other = getScene().wardrobes.find(c => c.id !== candidate.id && collision.cabinetOverlaps(candidate, c));
         return change + ' would overlap another ' + (other ? furnitureModule(other.state).noun : 'wardrobe') + '. Move it first.';

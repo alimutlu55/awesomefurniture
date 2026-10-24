@@ -1,4 +1,4 @@
-import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fixtureMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
+import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fieldActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
@@ -35,14 +35,13 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     };
     const icons = {new:icon('plus'),interior:icon('divider'),fronts:icon('doors'),resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
-        ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),walls:icon('room-wall'),
-        fixtures:icon('room-water'),'fixture-type':icon('room-water'),'fixture-size':icon('sliders'),'fixture-installation':icon('room-wall'),'fixture-finish':icon('material')};
+        ceiling:icon('room-stairs'),'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),walls:icon('room-wall')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
         water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
-    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'studio-fixture':fixtureMoreActions};
+    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
         : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : undefined;

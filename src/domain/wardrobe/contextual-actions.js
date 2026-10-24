@@ -15,9 +15,7 @@ const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],
     // Nothing selected in Studio: walls and rooms, or a shape (stairs, a slope, a pillar) on the wall in view.
-    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling', 'Add a ceiling shape: stairs, a slope, a beam or a pillar'], ['fixtures', 'Fixtures']],
-    'studio-fixture': [['fixture-type', 'Type'], ['fixture-size', 'Size'], ['fixture-installation', 'Installation'], ['fixture-finish', 'Finish'], ['more', 'More']],
-    enclosure: [['fixture-size', 'Size'], ['fixture-installation', 'Installation'], ['fixture-finish', 'Finish'], ['remove', 'Remove']],
+    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling', 'Add a ceiling shape: stairs, a slope, a beam or a pillar']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
@@ -37,8 +35,6 @@ export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menu
 export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [];
-export const fixtureMoreActions = [['select-assembly', 'Select assembly'], ['duplicate', 'Duplicate item'], ['duplicate-assembly', 'Duplicate assembly'],
-    ['remove', 'Remove item'], ['remove-assembly', 'Remove assembly']];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
