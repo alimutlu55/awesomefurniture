@@ -1,4 +1,5 @@
 import { pointToSegment, profileExtent, type ProfileBounds, type ProfileVertex, type Vec } from '../../domain/geometry/profile-polygon';
+import { nearestValue, resolveAlignment } from '../../domain/geometry/alignment';
 import type { ShapeGuide, ShapePick } from './surface-shape-drawing';
 
 /** Screen distances of the shape editor, in CSS pixels: what a finger or a pointer catches, and how close
@@ -28,11 +29,6 @@ export function hitShape(points: readonly Vec[], at: Vec, px: number): ShapePick
 /** Heights and positions a shape lines up with: the room's floor and ceiling, the wall's ends and the bounds. */
 const levels = (bounds: ProfileBounds, top: number, from: number, to: number) => ({ xs: [bounds.minX, bounds.maxX, from, to], ys: [bounds.minY, top] });
 const round = (v: number, grid: number) => Math.round(v / grid) * grid;
-const nearest = (v: number, targets: readonly number[], tolerance: number) => {
-  let best: number | null = null;
-  for (const t of targets) if (Math.abs(t - v) <= tolerance && (best === null || Math.abs(t - v) < Math.abs(best - v))) best = t;
-  return best;
-};
 
 /** A corner dragged to `target`: on the grid, square with its neighbours, on the room's levels, or onto a
  * neighbour (which merges the two when the drag ends). */
@@ -42,7 +38,7 @@ export function snapCorner(points: readonly ProfileVertex[], index: number, targ
   for (const [k, q] of [[index - 1, prev], [index + 1, next]] as const)
     if (Math.hypot(q.x - clamp.x, q.y - clamp.y) <= tolerance) return { at: { x: q.x, y: q.y }, guides: [] as ShapeGuide[], merge: (k + n) % n };
   const { xs, ys } = levels(bounds, room.top, room.from, room.to), guides: ShapeGuide[] = [];
-  const x = nearest(clamp.x, [prev.x, next.x, ...xs], tolerance), y = nearest(clamp.y, [prev.y, next.y, ...ys], tolerance);
+  const x = nearestValue(clamp.x, [prev.x, next.x, ...xs], tolerance), y = nearestValue(clamp.y, [prev.y, next.y, ...ys], tolerance);
   const at = { x: x ?? round(clamp.x, grid), y: y ?? round(clamp.y, grid) };
   for (const q of [prev, next]) {
     if (x !== null && Math.abs(q.x - at.x) < 1e-6) guides.push({ a: q, b: at });
@@ -55,28 +51,22 @@ export function snapCorner(points: readonly ProfileVertex[], index: number, targ
 export function snapSlide(points: readonly ProfileVertex[], edge: number, d: number, bounds: ProfileBounds, room: { top: number; from: number; to: number }, px: number, grid: number) {
   const n = points.length, a = points[edge]!, b = points[(edge + 1) % n]!, l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   const normal = { x: (b.y - a.y) / l, y: -(b.x - a.x) / l }, offset = (p: Vec) => (p.x - a.x) * normal.x + (p.y - a.y) * normal.y;
-  const { xs, ys } = levels(bounds, room.top, room.from, room.to), targets: { d: number; at?: Vec }[] = [];
-  points.forEach((p, k) => { if (k !== edge && k !== (edge + 1) % n) targets.push({ d: offset(p), at: p }); });
-  if (Math.abs(normal.y) > .999) ys.forEach(y => targets.push({ d: (y - a.y) / normal.y }));
-  if (Math.abs(normal.x) > .999) xs.forEach(x => targets.push({ d: (x - a.x) / normal.x }));
-  const hit = targets.filter(t => Math.abs(t.d - d) <= SHAPE_PX.snap * px).sort((p, q) => Math.abs(p.d - d) - Math.abs(q.d - d))[0];
+  const { xs, ys } = levels(bounds, room.top, room.from, room.to), targets: { v: number; label: string; src?: Vec }[] = [];
+  points.forEach((p, k) => { if (k !== edge && k !== (edge + 1) % n) targets.push({ v: offset(p), label: 'corner', src: p }); });
+  if (Math.abs(normal.y) > .999) ys.forEach(y => targets.push({ v: (y - a.y) / normal.y, label: 'level' }));
+  if (Math.abs(normal.x) > .999) xs.forEach(x => targets.push({ v: (x - a.x) / normal.x, label: 'level' }));
+  const hit = resolveAlignment(d, targets, { tolerance: SHAPE_PX.snap * px });
   // A level or upright edge lands on the grid; a sloped one moves by whole steps.
   const onGrid = Math.abs(normal.y) > .999 ? (round(a.y + d * normal.y, grid) - a.y) / normal.y : Math.abs(normal.x) > .999 ? (round(a.x + d * normal.x, grid) - a.x) / normal.x : round(d, grid);
   if (!hit) return { d: onGrid, guides: [] as ShapeGuide[] };
-  const moved = { x: (a.x + b.x) / 2 + normal.x * hit.d, y: (a.y + b.y) / 2 + normal.y * hit.d };
-  return { d: hit.d, guides: hit.at ? [{ a: hit.at, b: moved }] : [] };
+  const moved = { x: (a.x + b.x) / 2 + normal.x * hit.v, y: (a.y + b.y) / 2 + normal.y * hit.v };
+  return { d: hit.v, guides: hit.src ? [{ a: hit.src, b: moved }] : [] };
 }
 
 /** The whole shape moved by (dx, dy): on the grid, or with a side on a room level. */
 export function snapMove(points: readonly ProfileVertex[], dx: number, dy: number, bounds: ProfileBounds, room: { top: number; from: number; to: number }, px: number, grid: number) {
   const box = profileExtent(points), { xs, ys } = levels(bounds, room.top, room.from, room.to), tolerance = SHAPE_PX.snap * px;
-  const along = (values: readonly number[], lo: number, hi: number, delta: number) => {
-    let best: number | null = null;
-    for (const v of values) for (const side of [lo, hi]) {
-      const want = v - side;
-      if (Math.abs(want - delta) <= tolerance && (best === null || Math.abs(want - delta) < Math.abs(best - delta))) best = want;
-    }
-    return best ?? round(delta, grid);
-  };
+  const along = (values: readonly number[], lo: number, hi: number, delta: number) =>
+    nearestValue(delta, values.flatMap(v => [v - lo, v - hi]), tolerance) ?? round(delta, grid);
   return { dx: along(xs, box.minX, box.maxX, dx), dy: along(ys, box.minY, box.maxY, dy) };
 }

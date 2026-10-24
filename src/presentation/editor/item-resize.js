@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { PANEL, MODS } from '../../domain/wardrobe/catalog.js';
+import { resolveAlignment } from '../../domain/geometry/alignment';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'geometry' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'history' | 'shellState' | 'inspector' | 'renderState'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> }} ports */
 export function createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks }) {
     function beginItemEdgeResize(e, edge, handle) {
@@ -111,7 +112,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!c) {
             return null;
         }
-        const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [], add = (pos, kind, label, src) => cand.push({ pos, kind, label, src });
+        const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
+            add = (v, kind, label, src) => cand.push({ v, kind, label, src, penalty: kind === 'size' ? tol * .35 : 0 });
         if (top) {
             add(c.top, 'wall', 'Flush with top');
             c.others.forEach(o => {
@@ -155,31 +157,14 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             : a.edge === 'left' ? target.x : target.x + target.w;
         // Resolve the interval once per pointer move, rather than rescanning every neighbor for every candidate.
         const low = position(solve(-Infinity)), high = position(solve(Infinity));
-        const valid = cand.filter(k => k.pos >= low - 1e-6 && k.pos <= high + 1e-6);
-        let best = null;
-        if (a.lock) {
-            best = valid.find(k => k.kind === a.lock.kind && Math.abs(k.pos - a.lock.pos) < 1e-6 && Math.abs(k.pos - raw) <= tol * 1.6) || null;
-        }
-        if (!best) {
-            let bs = Infinity;
-            valid.forEach(k => {
-                const d = Math.abs(k.pos - raw);
-                if (d > tol) {
-                    return;
-                }
-                const sc = d + (k.kind === 'size' ? tol * .35 : 0);
-                if (sc < bs) {
-                    bs = sc;
-                    best = k;
-                }
-            });
-        }
+        // The shared alignment rule: a held line first, else the nearest, a matching size losing to an edge at nearly the same distance.
+        const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, within: [low, high] });
         if (!best) {
             a.lock = null;
             return null;
         }
-        a.lock = { kind: best.kind, pos: best.pos };
-        const target = solve(best.pos - start), pos = position(target);
+        a.lock = best;
+        const target = solve(best.v - start), pos = position(target);
         return { target, guide: { orient: top || bottom ? 'h' : 'v', pos: top || bottom ? pos : g.bayL + pos, kind: best.kind, label: best.label, src: best.src } };
     }
     function setManualItemSize(edge, value, recordHistory = true) {

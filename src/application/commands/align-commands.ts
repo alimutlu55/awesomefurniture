@@ -1,4 +1,5 @@
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
+import { smallestMove } from '../../domain/geometry/alignment';
 import { alignments, gapsAround, nearerWallEnds, wallEndsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
 
 type Collision = { cabinetCollides(cabinet: EditorCabinet): boolean };
@@ -42,8 +43,7 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
       along.push((o.x - cabinet.x) * f.x + (o.z - cabinet.z) * f.z + (o.state.d - cabinet.state.d) / 2);
     }
     // The two are separate choices: a front that is nearly in line must not stop it closing a gap beside a neighbour.
-    const nearest = (moves: number[]) => moves.filter(m => Math.abs(m) > .05 && Math.abs(m) <= tolerance).sort((p, q) => Math.abs(p) - Math.abs(q))[0] ?? 0;
-    const s = nearest(across), t = nearest(along), dy = y0 > .5 ? nearest(vertical) : 0;
+    const s = smallestMove(across, tolerance), t = smallestMove(along, tolerance), dy = y0 > .5 ? smallestMove(vertical, tolerance) : 0;
     if (!s && !t && !dy) return { x: cabinet.x, z: cabinet.z };
     const round = (v: number) => Math.round(v * 10) / 10;
     let out: Pick<EditorCabinet, 'x' | 'z'> & { y?: number } = { x: cabinet.x, z: cabinet.z };

@@ -6,7 +6,7 @@ import { addCeiling, ceilingFrame, flipCeiling, reachAt, removeCeiling, setCeili
 import { ceilingHandles, depthRuler, outerEdgeMeasures, restHeights, runAxis } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
-import { alignTo, type Align } from './align-snap';
+import { alignTo, type Align } from '../../domain/geometry/alignment';
 import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { outerEdgeHeight, liftWholeCeiling, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';

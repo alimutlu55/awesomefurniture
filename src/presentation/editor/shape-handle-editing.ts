@@ -3,7 +3,7 @@ import type { createSceneCommands, ShapeFrame } from '../../application/commands
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { friendlyProblem, partitionPositions, resolveShape, shapeProblems, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { moveShapeHandle, profileAt, type ShapeSide } from '../../domain/wardrobe/shape/shape-handle-edit';
-import { alignTo, type Align } from './align-snap';
+import { alignTo, type Align } from '../../domain/geometry/alignment';
 import { lengthText, unitSuffix } from './length-unit-state';
 
 export interface ShapeHandlePorts {

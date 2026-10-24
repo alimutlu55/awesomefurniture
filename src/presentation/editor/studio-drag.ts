@@ -1,7 +1,7 @@
 import { cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCorner, StudioWall } from '../../domain/studio/studio';
 import { isWallUtility } from '../../domain/studio/wall-utilities';
-import { alignTo, type Align } from './align-snap';
+import { alignTo, type Align } from '../../domain/geometry/alignment';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomMeasure } from './studio-editor.ports';
 
