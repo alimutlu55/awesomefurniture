@@ -2,6 +2,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import { materialsSchema } from './materials-schema';
 import { fixtureSchema } from './fixture-schema';
+import { withoutRetiredFixtures } from './retired-fixtures';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
 import { POSSESSIONS } from '../../domain/wardrobe/possessions';
@@ -194,11 +195,13 @@ const storedSchema = z.strictObject({
  * This validates persisted shape; geometry rules belong in the domain layer.
  */
 export function parseProject(value: unknown): ProjectDocument {
-  return projectSchema.parse(value);
+  // Designs saved by the reverted fixtures build (version 3) open with what this editor can build of them.
+  return projectSchema.parse(withoutRetiredFixtures(value));
 }
 
 export function parseStoredProject(value: unknown): StoredProject {
-  return storedSchema.parse(value);
+  const stored = value !== null && typeof value === 'object' && 'document' in value ? { ...value, document: withoutRetiredFixtures(value.document) } : value;
+  return storedSchema.parse(stored);
 }
 
 export function serializeProject(project: ProjectDocument): string {

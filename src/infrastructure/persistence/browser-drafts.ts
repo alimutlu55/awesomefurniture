@@ -1,6 +1,7 @@
 import type { SessionDraft } from '../../application/projects/session-autosave';
 import type { ProjectSummary } from '../../application/ports/project-repository';
 import { parseProject } from '../serialization/project-codec';
+import { isRetiredFixtureDocument } from '../serialization/retired-fixtures';
 
 const object = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -42,9 +43,11 @@ export function createBrowserDrafts(storage: Storage, scope: string) {
       if (recovered === value.document) throw error;
       document = parseProject(recovered);
     }
-    if (recovered !== value.document) {
+    // The reverted fixtures build's drafts are read as version 1 by the codec; keep their original too.
+    const retiredFixtures = isRetiredFixtureDocument(value.document);
+    if (recovered !== value.document || retiredFixtures) {
       // Preserve the complete original before replacing only the incompatible draft.
-      const suffix = object(value.document) && value.document.schemaVersion === 2 ? 'before-ceiling-shape-rollback' : 'before-ceiling-rollback';
+      const suffix = retiredFixtures ? 'before-fixture-rollback' : object(value.document) && value.document.schemaVersion === 2 ? 'before-ceiling-shape-rollback' : 'before-ceiling-rollback';
       const backup = `wardrobe:recovery:${scope}:${document.id}:${suffix}`;
       if (storage.getItem(backup) === null) storage.setItem(backup, raw);
       storage.setItem(key, JSON.stringify({ ...value, document }));
