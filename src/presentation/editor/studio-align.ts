@@ -58,15 +58,25 @@ function beside(room: Studio, c: StudioCeiling, standing: readonly Standing[]) {
  * wardrobe in front of it. */
 export function depthTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[] = []): Align[] {
   const out: Align[] = (room.ceilings ?? []).filter(o => o.id !== c.id && o.wall === c.wall && o.run === 'along').map(o => ({ v: round(o.depth), label: 'Aligned with shape' }));
+  const fr = ceilingFrame(room, c);
+  // The face of another wall that runs the same way: the shape reaches exactly to it.
+  for (const o of room.walls) {
+    const ol = o.id === c.wall || !fr ? null : wallLine(room, o);
+    if (!ol || !fr || Math.abs(ol.ux * fr.line.uz - ol.uz * fr.line.ux) > 1e-3) continue;
+    const centre = (ol.a.x - fr.line.a.x) * fr.line.nx + (ol.a.z - fr.line.a.z) * fr.line.nz - fr.off;
+    for (const v of [centre - o.thickness / 2, centre + o.thickness / 2]) if (v > 1) out.push({ v: round(v), label: 'Aligned with wall' });
+  }
   for (const f of beside(room, c, standing)) for (const v of [f.near, f.far]) if (v > 1) out.push({ v: round(v), label: 'Aligned with wardrobe' });
   return out;
 }
-/** A line on the floor at `depth` from the wall, across the ceiling's reach. */
-export function depthGuide(room: Studio, c: StudioCeiling, depth: number): Guide[] {
+/** A line at `depth` from the wall across the ceiling's reach, on the floor and level with the grip (`y`), where
+ * the eye is. */
+export function depthGuide(room: Studio, c: StudioCeiling, depth: number, y: number): Guide[] {
   const fr = ceilingFrame(room, c);
   if (!fr) return [];
-  const a = fr.at(fr.along.from, depth), b = fr.at(fr.along.to, depth);
-  return [{ a, b, label: 'Aligned with shape' }];
+  // Reaching past the shape on both sides, so it runs on to the wall it lines up with.
+  const a = fr.at(fr.along.from - 150, depth), b = fr.at(fr.along.to + 150, depth);
+  return [{ a, b, label: 'Aligned' }, { a: { ...a, y }, b: { ...b, y }, label: 'Aligned' }];
 }
 
 /** Heights on the model a ceiling edge can match: the other shapes' edges and low points, the top of

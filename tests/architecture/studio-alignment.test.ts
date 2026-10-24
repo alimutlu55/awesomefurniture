@@ -28,3 +28,22 @@ test('a ceiling shape offers the depths and heights of the other shapes in the r
   assert.ok(heightTargets(room, second!).length > 0);
   assert.ok(liftTargets(second!, heightTargets(room, second!)).length > 0);
 });
+
+test('a wall moved lines its faces up with the faces of the other parallel walls', async () => {
+  const { wallTargets } = await import('../../src/presentation/editor/studio-drag');
+  const { wallLine } = await import('../../src/domain/studio/studio');
+  const room = createStudio('bedroom');
+  let checked = 0;
+  for (const w of room.walls) {
+    const line = wallLine(room, w)!, targets = wallTargets(room, w);
+    for (const o of room.walls) {
+      const ol = wallLine(room, o)!;
+      if (o.id === w.id || Math.abs(ol.ux * line.uz - ol.uz * line.ux) > 1e-3) continue;
+      const p = (ol.a.x - line.a.x) * line.nx + (ol.a.z - line.a.z) * line.nz;
+      if (Math.abs(p) < .05) continue;
+      assert.ok(targets.some(t => t.label === 'Flush with wall' && Math.abs(t.v - (p + (o.thickness - w.thickness) / 2)) < 1e-6 || Math.abs(t.v - (p - (o.thickness - w.thickness) / 2)) < 1e-6), `${w.id} lines up with ${o.id}`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 0, 'the bedroom has parallel walls');
+});

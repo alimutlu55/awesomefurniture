@@ -1,7 +1,8 @@
 import { cornerDegree, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioCorner, StudioWall } from '../../domain/studio/studio';
+import { ceilingFrame } from '../../domain/studio/studio-ceiling';
 import { isWallUtility } from '../../domain/studio/wall-utilities';
-import { alignTo, type Align } from '../../domain/geometry/alignment';
+import { alignTo, type Align, type AlignTarget } from '../../domain/geometry/alignment';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomMeasure } from './studio-editor.ports';
 
@@ -75,12 +76,42 @@ export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks,
   return { at, locks: { x, z, ray, join: null }, guides };
 }
 
-/** Distances a wall can move to so its line passes through another corner (lining it up with a wall
- * elsewhere in the room), measured along its room side from where it is now. */
-export function wallTargets(room: Studio, w: StudioWall): Align[] {
+/** A distance a wall can move to, and what it lines up with: the point on the other part where the guide
+ * starts, on the plane the two share (`plane`, measured along this wall's room side from where it is now). */
+export interface WallTarget extends AlignTarget<P> { readonly plane: number }
+
+/** Distances a wall can move to so that it lines up with the room: its face flush with the face of a parallel
+ * wall (inside with inside, outside with outside, or the one's face in line with the other's back), or its
+ * line passing through another corner. Measured along its room side from where it is now. */
+export function wallTargets(room: Studio, w: StudioWall): WallTarget[] {
   const line = wallLine(room, w);
   if (!line) return [];
-  return room.corners.filter(c => c.id !== w.a && c.id !== w.b).map(c => ({ v: (c.x - line.a.x) * line.nx + (c.z - line.a.z) * line.nz, label: 'Aligned with corner' }));
+  const out: WallTarget[] = [], at = (q: P) => (q.x - line.a.x) * line.nx + (q.z - line.a.z) * line.nz;
+  for (const o of room.walls) {
+    const ol = o.id === w.id ? null : wallLine(room, o);
+    if (!ol || Math.abs(ol.ux * line.uz - ol.uz * line.ux) > 1e-3) continue;
+    const p = at(ol.a);
+    // Faces of the other wall (sa) against faces of this one (sb); same sides first: flush.
+    for (const [sa, sb, label] of [[1, 1, 'Flush with wall'], [-1, -1, 'Flush with wall'], [1, -1, 'In line with wall'], [-1, 1, 'In line with wall']] as const) {
+      const plane = p + sa * o.thickness / 2, v = plane - sb * w.thickness / 2;
+      if (Math.abs(v) < .05) continue;
+      const side = { x: ol.a.x + ol.nx * sa * o.thickness / 2, z: ol.a.z + ol.nz * sa * o.thickness / 2 };
+      out.push({ v, plane, label, kind: 'wall', src: side });
+    }
+  }
+  // A ceiling shape's front and its two ends are lines on the floor too: a wall can stand flush with them.
+  for (const c of room.ceilings ?? []) {
+    const fr = ceilingFrame(room, c);
+    if (!fr || c.run !== 'along' || c.wall === w.id) continue;
+    const lines: { dir: P; p: P }[] = [{ dir: { x: fr.line.ux, z: fr.line.uz }, p: fr.at(fr.along.from, c.depth) }, ...[fr.along.from, fr.along.to].map(t => ({ dir: { x: fr.line.nx, z: fr.line.nz }, p: fr.at(t, c.depth) }))];
+    for (const { dir, p } of lines) {
+      if (Math.abs(dir.x * line.uz - dir.z * line.ux) > 1e-3) continue;
+      const plane = at(p);
+      for (const sb of [0, 1, -1]) { const v = plane - sb * w.thickness / 2; if (Math.abs(v) >= .05) out.push({ v, plane, label: 'Aligned with shape', kind: 'shape', penalty: .5, src: p }); }
+    }
+  }
+  for (const c of room.corners) if (c.id !== w.a && c.id !== w.b) out.push({ v: at(c), plane: at(c), label: 'Aligned with corner', kind: 'corner', penalty: .5, src: c });
+  return out;
 }
 
 /** The opening's centre along its wall when it is centred on the wall's inside face. */

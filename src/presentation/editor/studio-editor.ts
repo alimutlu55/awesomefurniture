@@ -8,7 +8,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, resolveAlignment, type Align, type AlignTarget } from '../../domain/geometry/alignment';
 import { depthGuide, depthTargets, heightGuide, heightTargets, liftTargets, openingGuide, openingTargets } from './studio-align';
-import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
+import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide, type WallTarget } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { outerEdgeHeight, liftWholeCeiling, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import type { Carried } from '../../application/commands/studio-commands';
@@ -209,10 +209,10 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       };
     } else if (h.kind === 'wall') {
       const w = wallOf(g.original, h.id)!, raw = step(along(e, h, h.nx!, h.nz!));
-      const lock = g.free ? null : alignTo(raw, wallTargets(g.original, w), g.lock, tolerance());
-      g.lock = lock;
-      const d = lock ? lock.v : raw, before = lastDistance(g, w);
-      g.guides = lock ? alignedGuide(g.original, w, d) : [];
+      const targets = wallTargets(g.original, w), hit = g.free ? null : resolveAlignment(raw, targets, { tolerance: tolerance(), lock: g.lock });
+      g.lock = hit && { v: hit.v, label: hit.label, kind: hit.kind ?? hit.label };
+      const d = hit ? hit.v : raw, before = lastDistance(g, w);
+      g.guides = hit ? alignedGuide(g.original, w, d, hit) : [];
       want = t => moveWall(g.original, h.id, before + (d - before) * t);
     } else if (h.kind === 'opening') {
       const o = g.original.openings.find(x => x.id === h.id)!, w = wallOf(g.original, o.wall)!, centre = centredOffset(g.original, w);
@@ -230,7 +230,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const opposite = reachAt(g.original, c.wall, (fr.along.from + fr.along.to) / 2);
       const lock = g.free ? null : alignTo(raw, [...opposite === null ? [] : [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], ...depthTargets(g.original, c, standing())], g.lock, tolerance());
       g.lock = lock;
-      g.guides = lock && lock.label !== 'Wall' ? depthGuide(g.original, c, lock.v) : [];
+      g.guides = lock && lock.label !== 'Wall' ? depthGuide(g.original, c, lock.v, h.y) : [];
       const target = lock ? lock.v : raw, from = ceilingOf(g.last, h.id)?.depth ?? c.depth;
       want = t => setCeilingDepth(g.original, h.id, from + (target - from) * t);
     } else if (h.kind === 'tilt') {
@@ -270,12 +270,14 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const a0 = wallLine(g.original, w)!, now = wallOf(g.last, w.id), a1 = now && wallLine(g.last, now);
     return a1 ? (a1.a.x - a0.a.x) * a0.nx + (a1.a.z - a0.a.z) * a0.nz : 0;
   }
-  function alignedGuide(studio: Studio, w: StudioWall, d: number): Guide[] {
-    const line = wallLine(studio, w)!, c = studio.corners.find(x => x.id !== w.a && x.id !== w.b && Math.abs((x.x - line.a.x) * line.nx + (x.z - line.a.z) * line.nz - d) < 1e-6);
-    if (!c) return [];
+  /** A line on the plane the moved wall shares with the part it lines up with, from that part to the wall. */
+  function alignedGuide(studio: Studio, w: StudioWall, d: number, hit: WallTarget): Guide[] {
+    const line = wallLine(studio, w)!, src = hit.src;
+    if (!src) return [];
     const ends = [line.a, line.b].map(p => ({ x: p.x + line.nx * d, z: p.z + line.nz * d }));
-    const nearest = ends.sort((p, q) => Math.hypot(p.x - c.x, p.z - c.z) - Math.hypot(q.x - c.x, q.z - c.z))[0]!;
-    return [{ a: c, b: nearest, label: 'Aligned with corner' }];
+    const shift = hit.plane - d, face = ends.map(p => ({ x: p.x + line.nx * shift, z: p.z + line.nz * shift }));
+    const nearest = face.sort((p, q) => Math.hypot(p.x - src.x, p.z - src.z) - Math.hypot(q.x - src.x, q.z - src.z))[0]!;
+    return [{ a: { ...src, y: 2 }, b: { ...nearest, y: 2 }, label: hit.label }];
   }
   function centreGuide(studio: Studio, w: StudioWall): Guide[] {
     const line = wallLine(studio, w)!, mid = centredOffset(studio, w)!, at = { x: line.a.x + line.ux * mid, z: line.a.z + line.uz * mid };
