@@ -35,8 +35,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     + `<svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
-    + `<button type="button" class="surface-shape-adjustments" data-shape-act="adjustments">Manual adjustments <span aria-hidden="true">↓</span></button>`
-    + `<div class="surface-shape-fields" role="group" aria-label="Manual adjustments"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
+    + `<div class="surface-shape-fields"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
     + `<button type="button" data-shape-act="redo" aria-label="Redo">Redo</button><button type="button" data-shape-act="flip">Flip</button>`
     + `<button type="button" data-shape-act="reset">Full wall</button></div>`;
   const $ = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
@@ -350,7 +349,6 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     const button = (e.target as Element).closest<HTMLButtonElement>('[data-shape-act],[data-shape-view]');
     if (!button || button.disabled) return;
     if (button.dataset.shapeView) { turn(button.dataset.shapeView as SurfaceView); return; }
-    if (button.dataset.shapeAct === 'adjustments') { fieldsRoot.scrollIntoView({ block: 'start', behavior: 'instant' }); return; }
     if (button.dataset.shapeAct) act(button.dataset.shapeAct);
   });
   listen(fieldsRoot, 'change', e => {
