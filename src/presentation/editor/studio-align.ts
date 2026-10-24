@@ -56,11 +56,25 @@ function beside(room: Studio, c: StudioCeiling, standing: readonly Standing[]) {
   });
 }
 
+/** The corners of another shape's footprint on the floor, in `c`'s own frame: how far along its wall (`s`) and
+ * how far out from its face (`d`). A shape on another wall counts too: its edge is a line across this one. */
+function footprints(room: Studio, c: StudioCeiling) {
+  const fr = ceilingFrame(room, c);
+  if (!fr) return [];
+  return (room.ceilings ?? []).filter(o => o.id !== c.id).flatMap(o => {
+    const of = ceilingFrame(room, o);
+    if (!of) return [];
+    return ([[of.along.from, of.across.from], [of.along.to, of.across.from], [of.along.to, of.across.to], [of.along.from, of.across.to]] as const)
+      .map(([a, b]) => ({ ...fr.local(of.at(a, b)), same: o.wall === c.wall }));
+  });
+}
+
 /** Depths a ceiling shape on a wall can reach to match another shape on the same wall, or the face of a
  * wardrobe in front of it. */
 export function depthTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[] = []): Align[] {
   const out: Align[] = (room.ceilings ?? []).filter(o => o.id !== c.id && o.wall === c.wall && o.run === 'along').map(o => ({ v: round(o.depth), label: 'Aligned with shape' }));
   const fr = ceilingFrame(room, c);
+  for (const p of footprints(room, c)) if (!p.same && p.d > 1) out.push({ v: round(p.d), label: 'Aligned with shape' });
   // The face of another wall that runs the same way: the shape reaches exactly to it.
   for (const o of room.walls) {
     const ol = o.id === c.wall || !fr ? null : wallLine(room, o);
@@ -134,4 +148,21 @@ export function neighbourPoints(room: Studio, s: SurfaceProfile, standing: reado
     else out.push({ x: Math.max(0, near), y: f.h }, { x: far, y: f.h });
   }
   return out.map(p => ({ x: round(p.x), y: round(p.y) }));
+}
+
+/** Shifts along its wall that put a ceiling shape's left or right side on a line: the wall's ends, and the
+ * sides of the other shapes, doors, windows and wardrobes on it. `src` is the position of that line. */
+export function sideTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[]): AlignTarget<number>[] {
+  const s = surfaceProfile(room, { kind: 'ceiling', id: c.id }, 'front');
+  if (!s) return [];
+  const xs = s.points.map(p => p.x), lo = Math.min(...xs), hi = Math.max(...xs);
+  const lines = [s.context.from, s.context.to, ...neighbourPoints(room, s, standing).map(p => p.x), ...footprints(room, c).filter(p => !p.same).map(p => p.s)];
+  return lines.flatMap(x => [{ v: round(x - lo), label: 'Aligned', src: x }, { v: round(x - hi), label: 'Aligned', src: x }]).filter(t => Math.abs(t.v) > .05);
+}
+/** A line up the wall's face at `x` along it. */
+export function sideGuide(room: Studio, c: StudioCeiling, x: number): Guide[] {
+  const fr = ceilingFrame(room, c);
+  if (!fr) return [];
+  const a = fr.at(x, 0);
+  return [{ a: { ...a, y: 0 }, b: { ...a, y: roomHeight(room) }, label: 'Aligned' }];
 }

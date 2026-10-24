@@ -7,9 +7,11 @@ import { ceilingHandles, depthRuler, outerEdgeMeasures, restHeights, runAxis } f
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { alignTo, resolveAlignment, type Align, type AlignTarget } from '../../domain/geometry/alignment';
-import { depthGuide, depthTargets, heightGuide, heightTargets, liftTargets, openingGuide, openingTargets } from './studio-align';
+import { sideGuide, sideTargets, depthGuide, depthTargets, heightGuide, heightTargets, liftTargets, openingGuide, openingTargets } from './studio-align';
 import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide, type WallTarget } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
+import { surfaceProfile, withSurfaceProfile } from '../../domain/studio/surface-profile';
+import { translateProfile } from '../../domain/geometry/profile-polygon';
 import { outerEdgeHeight, liftWholeCeiling, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import type { Carried } from '../../application/commands/studio-commands';
 
@@ -245,14 +247,22 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const from = outerEdgeHeight(ceilingOf(g.last, h.id)!);
       want = t => setOuterEdgeHeight(g.original, h.id, from + (height - from) * t);
     } else if (h.kind === 'lift') {
-      // The whole ceiling up or down, as one: a box lowered, a staircase raised.
-      const c = ceilingOf(g.original, h.id)!, top = roomHeight(g.original), dy = step(inPlane(e, h, 1, 0).y);
-      const cap = top - Math.max(...c.profile.map(p => p.y));
-      const hit: AlignTarget<number> | null = g.free ? null : resolveAlignment(dy, liftTargets(c, heightTargets(g.original, c, standing())), { tolerance: tolerance(), lock: g.lock, within: [-1e6, cap] });
+      // The whole ceiling, as one: up or down (a box lowered, a staircase raised), and along its wall.
+      const c = ceilingOf(g.original, h.id)!, top = roomHeight(g.original), fr = ceilingFrame(g.original, c)!, ref = { kind: 'ceiling' as const, id: h.id };
+      const dy = step(inPlane(e, h, 1, 0).y), dx = c.run === 'along' ? step(inPlane(e, h, fr.line.ux, fr.line.uz).s) : 0;
+      const cap = top - Math.max(...c.profile.map(p => p.y)), tol = { tolerance: tolerance(), within: [-1e6, cap] as const };
+      const hit: AlignTarget<number> | null = g.free ? null : resolveAlignment(dy, liftTargets(c, heightTargets(g.original, c, standing())), { ...tol, lock: g.lock });
+      const side: AlignTarget<number> | null = g.free || !dx ? null : resolveAlignment(dx, sideTargets(g.original, c, standing()), { tolerance: tolerance(), lock: g.lockUp });
       g.lock = hit && { v: hit.v, label: hit.label };
-      g.guides = hit ? heightGuide(g.original, c, h, hit.src!) : [];
-      const lift = Math.min(cap, hit ? hit.v : dy), before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;
-      want = t => liftWholeCeiling(g.original, h.id, before + (lift - before) * t);
+      g.lockUp = side && { v: side.v, label: side.label };
+      g.guides = [...hit ? heightGuide(g.original, c, h, hit.src!) : [], ...side ? sideGuide(g.original, c, side.src!) : []];
+      const lift = Math.min(cap, hit ? hit.v : dy), shift = side ? side.v : dx, before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;
+      const sideBefore = c.run === 'along' ? (ceilingOf(g.last, h.id)?.profile[0]!.t ?? c.profile[0]!.t) - c.profile[0]!.t : 0;
+      want = t => {
+        const lifted = liftWholeCeiling(g.original, h.id, before + (lift - before) * t), sp = lifted && surfaceProfile(lifted, ref, 'front');
+        if (!lifted || !sp || !shift && !sideBefore) return lifted;
+        return withSurfaceProfile(lifted, ref, translateProfile(sp.points, sideBefore + (shift - sideBefore) * t, 0, sp.bounds), 'front');
+      };
     }
     if (!want) return;
     const whole = want(1), wanted = whole && problem(whole);

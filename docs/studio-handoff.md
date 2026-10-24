@@ -70,7 +70,7 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
 | Presentation | `viewport/studio-renderer.ts`, `studio-surfaces.ts` | Walls, openings, floor, ceiling; cutaway (walls lower to a cut stub); selection outline; wardrobe snap strip |
 | Presentation | `viewport/studio-overlay.ts` | Room handles, live rulers (tap a length to type it), guides, refusal reasons |
 | Presentation | `viewport/studio-ceilings.ts` | Ceilings: solid from inside the room below the ceiling, thin lines from above |
-| Presentation | `editor/studio-ceiling-drag.ts`, `studio-ceiling-panel.ts` | Depth and lift grip geometry, resting heights; the Shapes choices drawn from the registry |
+| Presentation | `editor/studio-ceiling-drag.ts`, `studio-ceiling-panel.ts` | Depth and lift grip geometry, resting heights; the Ceiling choices drawn from the registry |
 | Domain | `src/domain/geometry/profile-polygon.ts` | The Shape editor's geometry: validate, slide an edge (angles kept), step, add or remove a corner, heal, sizes |
 | Domain | `src/domain/studio/surface-profile.ts` | A wall or ceiling shape as one editable profile, written back through the room's rules |
 | Presentation | `editor/surface-shape-*.ts`, `surface-shape.css` | The Shape editor: drawing, hit testing and snapping, fields, one drag session (preview, one undo step, cancel) |
@@ -143,8 +143,8 @@ Rendering only: nothing here changes the model, the planner or the golden tests.
 
 How to build the user's under-stairs space:
 
-1. Walls › **Under stairs** (built in, from the photos), or **Shapes** (bottom bar, or a selected wall's Add ›
-   Shapes) › Stairs / Stairs with landing / Sloped ceiling / Box or beam / Pillar / Stepped boxing. With nothing
+1. Walls › **Under stairs** (built in, from the photos), or **Ceiling** (bottom bar, or a selected wall's Add ›
+   Ceiling) › Stairs / Stairs with landing / Sloped ceiling / Box or beam / Pillar / Stepped boxing. With nothing
    selected it goes on the wall in view, where the view looks.
 2. The view turns to face it and the Shape editor opens: shape it there (see below). The grip on the model sets
    how far it reaches into the room (snaps to the opposite wall). Flip and Remove are in the toolbar.

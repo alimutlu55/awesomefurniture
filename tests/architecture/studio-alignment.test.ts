@@ -60,3 +60,14 @@ test('a shape drawn on a wall offers the corners of the other shapes on that wal
   const second = room.ceilings!.at(-1)!, points = neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: second.id })!, []);
   for (const v of surfaceProfile(room, { kind: 'ceiling', id: first.id })!.points) assert.ok(points.some(p => Math.abs(p.x - v.x) < .1 && Math.abs(p.y - v.y) < .1), 'the other shape\'s corner');
 });
+
+test('a shape reaches to the edge of a shape on a perpendicular wall, and slides to line up with it', async () => {
+  const { wallLine } = await import('../../src/domain/studio/studio');
+  const alone = addCeiling(createStudio('bedroom'), createStudio('bedroom').walls[0]!.id, 'box')!;
+  const first = alone.walls[0]!, line = wallLine(alone, first)!;
+  const other = alone.walls.find(w => { const l = wallLine(alone, w)!; return Math.abs(l.ux * line.uz - l.uz * line.ux) > .99; })!;
+  const both = addCeiling(alone, other.id, 'box')!, a = alone.ceilings![0]!;
+  assert.ok(depthTargets(both, a).length > depthTargets(alone, a).length, 'the other wall\'s shape adds depths to reach');
+  const { sideTargets } = await import('../../src/presentation/editor/studio-align');
+  assert.ok(sideTargets(both, a, []).length > sideTargets(alone, a, []).length, 'and lines to slide to');
+});
