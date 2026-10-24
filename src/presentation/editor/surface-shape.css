@@ -1,11 +1,6 @@
 /* The Shape editor: a wall or ceiling shape face on, in the room panel (a sheet on phones). Strokes keep their
    screen width whatever the drawing's scale; dots and text are sized by the editor in the same way. */
 .surface-shape-hint{margin:-2px 0 10px;color:var(--mute);font-size:12px;line-height:16px}
-.surface-shape-starts{display:flex;gap:6px;overflow-x:auto;margin:0 -2px 10px;padding:2px;scrollbar-width:none}
-.surface-shape-starts::-webkit-scrollbar{display:none}
-.surface-shape-starts button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:62px;padding:6px 4px 7px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-size:10px;line-height:12px;text-align:center;white-space:normal}
-.surface-shape-starts button:hover{border-color:var(--ink)}
-.surface-shape-start-art{width:42px;height:30px;color:var(--ink)}
 /* Front and Side, on the drawing's top: which way the part is seen. Fit shows the whole drawing after zooming in. */
 .surface-shape-views{position:absolute;z-index:2;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:4px;pointer-events:none}
 .surface-shape .surface-shape-views button{pointer-events:auto;min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -39,7 +34,8 @@
 .surface-shape-badge{position:absolute;z-index:3;transform:translate(-50%,-50%);padding:5px 10px;border-radius:999px;background:var(--ink);color:var(--panel);font-size:12px;font-weight:600;white-space:nowrap;pointer-events:none}
 .surface-shape-badge[hidden]{display:none}
 .surface-shape-badge.problem{background:var(--bad);color:#fff;white-space:normal;width:max-content;max-width:220px;text-align:center;border-radius:12px}
-.surface-shape-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:12px}
+.surface-shape .surface-shape-adjustments{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;margin-top:4px;padding:8px 2px;border:0;background:transparent;font-size:13px;font-weight:600;touch-action:pan-y}
+.surface-shape-fields{scroll-margin-top:48px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;margin-top:12px}
 .surface-shape-field{display:flex;flex-direction:column;align-items:stretch;gap:4px;min-width:0;margin:0;color:var(--mute);font-size:11px}
 .surface-shape .surface-shape-field .size-field{display:flex;align-items:center;align-self:stretch;flex:none;gap:4px;box-sizing:border-box;width:100%!important;max-width:none;height:40px;padding:0 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .surface-shape-field .size-field:focus-within{border-color:var(--ink)}
@@ -53,10 +49,11 @@
 @media (min-width:901px){.surface-shape-actions :is([data-shape-act="undo"],[data-shape-act="redo"]){display:none}}
 @media (max-width:900px){
  .surface-shape-hint{display:none}
- .surface-shape-starts{margin-bottom:8px}
- .surface-shape .surface-shape-starts button{width:58px;min-height:0;padding:4px 2px 5px;font-size:10px;line-height:12px}
- .surface-shape .surface-shape-start-art{width:36px;height:24px}
- .surface-shape-svg{max-height:30vh}
+ /* Keep the full drawing and the adjustments shortcut visible in the initial sheet. */
+ #app.props-open:has(#left[data-context-section="surface-shape"]){--mobile-settings-sheet-height:50vh}
+ #left[data-context-section="surface-shape"]{touch-action:pan-y;scroll-padding-bottom:16px}
+ .surface-shape-stage{margin-inline:12px}
+ .surface-shape-svg{max-height:min(30vh,calc(50vh - 96px))}
  .surface-shape .surface-shape-field input{font-size:16px}
  .surface-shape-actions{margin-top:10px}
 }

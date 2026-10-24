@@ -1,13 +1,11 @@
 import { addPoint, findPoint, flipProfile, healProfile, movePoint, profileProblem, removePoint, slideEdge, stepEdge, translateProfile, PROFILE,
   type ProfileVertex, type Vec } from '../../domain/geometry/profile-polygon';
 import { primaryView, profileMessage, setSurfaceDepth, surfaceProfile, withSurfaceProfile, type SurfaceProfile, type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
-import { CEILING_SHAPES, replaceCeiling } from '../../domain/studio/studio-ceiling';
 import { outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { STUDIO_LIMITS } from '../../domain/studio/studio';
 import { drawingBox, drawingMarkup, type ShapeGuide, type ShapePick } from './surface-shape-drawing';
 import { hitShape, snapCorner, snapMove, snapSlide, SHAPE_PX } from './surface-shape-snap';
 import { applyShapeField, shapeFields } from './surface-shape-fields';
-import { ceilingArt } from './studio-ceiling-panel';
 import { neighbourPoints } from './studio-align';
 import { createShapeSession } from './surface-shape-session';
 import { createDrawingZoom } from './surface-shape-zoom';
@@ -29,19 +27,21 @@ const HINT = 'Drag a corner or an edge. Tap an edge for a step or a new corner. 
 export function createSurfaceShapeEditor({ document, model, sceneCommands, history, listen, callbacks }: SurfaceShapeEditorPorts) {
   const root = document.createElement('div');
   root.className = 'surface-shape';
-  root.innerHTML = `<p class="surface-shape-hint">${HINT}</p><div class="surface-shape-starts" role="group" aria-label="Start from"></div>`
+  root.setAttribute('data-sheet-scroll', '');
+  root.innerHTML = `<p class="surface-shape-hint">${HINT}</p>`
     // Front, Side and Fit sit on the drawing itself, so they take no room from the panel.
     + `<div class="surface-shape-stage"><div class="surface-shape-views" role="group" aria-label="Seen from"><button type="button" data-shape-view="front" aria-pressed="true">Front</button>`
     + `<button type="button" data-shape-view="side" aria-pressed="false">Side</button><button type="button" data-shape-act="fit" class="surface-shape-fit">Fit</button></div>`
     + `<svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
-    + `<div class="surface-shape-fields"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
+    + `<button type="button" class="surface-shape-adjustments" data-shape-act="adjustments">Manual adjustments <span aria-hidden="true">↓</span></button>`
+    + `<div class="surface-shape-fields" role="group" aria-label="Manual adjustments"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
     + `<button type="button" data-shape-act="redo" aria-label="Redo">Redo</button><button type="button" data-shape-act="flip">Flip</button>`
     + `<button type="button" data-shape-act="reset">Full wall</button></div>`;
   const $ = <T extends Element>(selector: string) => root.querySelector<T>(selector)!;
   const svg = $<SVGSVGElement>('svg'), stage = $<HTMLElement>('.surface-shape-stage'), pill = $<HTMLElement>('.surface-shape-pill');
-  const badge = $<HTMLElement>('.surface-shape-badge'), fieldsRoot = $<HTMLElement>('.surface-shape-fields'), starts = $<HTMLElement>('.surface-shape-starts');
+  const badge = $<HTMLElement>('.surface-shape-badge'), fieldsRoot = $<HTMLElement>('.surface-shape-fields');
   let ref: SurfaceRef | null = null, view: SurfaceView | null = null, pick: ShapePick = null, drag: Drag | null = null, guides: ShapeGuide[] = [];
   const session = createShapeSession({ model, sceneCommands, history, callbacks }), zoom = createDrawingZoom();
   /** Pointers down on the drawing, for a pinch. */
@@ -78,11 +78,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     svg.style.aspectRatio = `${box.w} / ${box.h}`;
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
       guides, px: scale(), problem: !!drag?.problem, box });
-    starts.hidden = s.ref.kind !== 'ceiling';
     renderViews(s);
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.hidden = s.ref.kind !== 'wall';
-    if (!starts.childElementCount && s.ref.kind === 'ceiling') starts.innerHTML = CEILING_SHAPES.map(c => `<button type="button" data-shape-start="${c.id}" title="${esc(c.description)}">`
-      + `${ceilingArt(c, 'surface-shape-start-art')}<span>${esc(c.name)}</span></button>`).join('');
     renderPill(points);
     renderBadge();
     renderFields(s, points);
@@ -350,13 +347,11 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   listen(svg, 'lostpointercapture', e => { if (drag && (e as PointerEvent).pointerId === drag.pointer) cancel(); });
   listen(svg, 'keydown', e => key(e as KeyboardEvent));
   listen(root, 'click', e => {
-    const button = (e.target as Element).closest<HTMLButtonElement>('[data-shape-act],[data-shape-start],[data-shape-view]');
+    const button = (e.target as Element).closest<HTMLButtonElement>('[data-shape-act],[data-shape-view]');
     if (!button || button.disabled) return;
     if (button.dataset.shapeView) { turn(button.dataset.shapeView as SurfaceView); return; }
-    if (button.dataset.shapeStart && ref?.kind === 'ceiling') {
-      const id = ref.id, shape = button.dataset.shapeStart;
-      if (sceneCommands.editStudio(r => replaceCeiling(r, id, shape))) { pick = null; sceneCommands.followCeilings(true); callbacks.refresh(); }
-    } else if (button.dataset.shapeAct) act(button.dataset.shapeAct);
+    if (button.dataset.shapeAct === 'adjustments') { fieldsRoot.scrollIntoView({ block: 'start', behavior: 'instant' }); return; }
+    if (button.dataset.shapeAct) act(button.dataset.shapeAct);
   });
   listen(fieldsRoot, 'change', e => {
     const input = e.target as HTMLInputElement, keyName = input.dataset.shapeField, s = profile();
