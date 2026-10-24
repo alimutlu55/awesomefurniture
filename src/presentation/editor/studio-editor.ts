@@ -6,7 +6,8 @@ import { addCeiling, ceilingFrame, flipCeiling, reachAt, removeCeiling, setCeili
 import { ceilingHandles, depthRuler, outerEdgeMeasures, restHeights, runAxis } from './studio-ceiling-drag';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { StudioEditorPorts, RoomHandle, RoomMeasure } from './studio-editor.ports';
-import { alignTo, type Align } from '../../domain/geometry/alignment';
+import { alignTo, resolveAlignment, type Align, type AlignTarget } from '../../domain/geometry/alignment';
+import { depthGuide, depthTargets, heightGuide, heightTargets, liftTargets, openingGuide, openingTargets } from './studio-align';
 import { centredOffset, cornerAngle, furthestValid, openingMeasures, snapCorner, wallGap, wallTargets, type CornerLocks, type Guide } from './studio-drag';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import { outerEdgeHeight, liftWholeCeiling, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
@@ -16,7 +17,7 @@ type P = { x: number; z: number };
 interface Drag {
   handle: RoomHandle; pointer: number; target: HTMLElement; snapshot: string; original: Studio; last: Studio;
   client: { x: number; y: number }; ground: P | null; moved: boolean; created: string | null;
-  locks: CornerLocks; lock: Align | null; guides: Guide[]; reason: string | null; free: boolean;
+  locks: CornerLocks; lock: Align | null; lockUp: Align | null; guides: Guide[]; reason: string | null; free: boolean;
   /** Wardrobes standing against a dragged wall: they go with it. */
   carry: Carried | null;
   /** Where the dragged corner is meant to be (snapped), for its handle. */
@@ -138,7 +139,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     e.stopPropagation();
     const ground = picking.groundPoint(e);
     drag = { handle, pointer: e.pointerId, target, snapshot: model.snapshot(), original: studio, last: studio, client: { x: e.clientX, y: e.clientY }, ground: ground && { x: ground.x, z: ground.z },
-      moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, guides: [], reason: null, free: false, at: null,
+      moved: false, created: null, locks: { x: null, z: null, ray: null, join: null }, lock: null, lockUp: null, guides: [], reason: null, free: false, at: null,
       carry: handle.kind === 'wall' ? sceneCommands.standingAgainst(handle.id) : null };
     try { target.setPointerCapture(e.pointerId); } catch { /* the drag still works from the handle's own events */ }
   }
@@ -215,27 +216,38 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     } else if (h.kind === 'opening') {
       const o = g.original.openings.find(x => x.id === h.id)!, w = wallOf(g.original, o.wall)!, centre = centredOffset(g.original, w);
       const d = inPlane(e, h, h.ux!, h.uz!), raw = step(o.offset + d.s), rawSill = step(o.sill + d.y);
-      const lock = g.free || centre === null ? null : alignTo(raw, [{ v: centre, label: 'Centred on the wall' }], g.lock, tolerance());
-      g.lock = lock;
-      const target = lock ? lock.v : raw, cur = g.last.openings.find(x => x.id === h.id)!;
-      g.guides = lock ? centreGuide(g.original, w) : [];
-      want = t => moveOpening2D(g.original, h.id, cur.offset + (target - cur.offset) * t, cur.sill + (rawSill - cur.sill) * t);
+      const near = openingTargets(g.original, o);
+      const lock = g.free ? null : alignTo(raw, [...(centre === null ? [] : [{ v: centre, label: 'Centred on the wall' }]), ...near.along], g.lock, tolerance());
+      const lockUp = g.free ? null : alignTo(rawSill, near.up, g.lockUp, tolerance());
+      g.lock = lock; g.lockUp = lockUp;
+      const target = lock ? lock.v : raw, sill = lockUp ? lockUp.v : rawSill, cur = g.last.openings.find(x => x.id === h.id)!;
+      g.guides = [...lock ? (lock.label === 'Centred on the wall' ? centreGuide(g.original, w) : openingGuide(g.original, w, lock.v, null)) : [], ...lockUp ? openingGuide(g.original, w, null, lockUp.v) : []];
+      want = t => moveOpening2D(g.original, h.id, cur.offset + (target - cur.offset) * t, cur.sill + (sill - cur.sill) * t);
     } else if (h.kind === 'depth') {
       const c = ceilingOf(g.original, h.id)!, raw = step(c.depth + along(e, h, h.nx!, h.nz!)), fr = ceilingFrame(g.original, c)!;
       // Snaps to the wall opposite, so a staircase can span the whole room.
       const opposite = reachAt(g.original, c.wall, (fr.along.from + fr.along.to) / 2);
-      const lock = g.free || opposite === null ? null : alignTo(raw, [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], g.lock, tolerance());
+      const lock = g.free ? null : alignTo(raw, [...opposite === null ? [] : [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], ...depthTargets(g.original, c)], g.lock, tolerance());
       g.lock = lock;
+      g.guides = lock && lock.label !== 'Wall' ? depthGuide(g.original, c, lock.v) : [];
       const target = lock ? lock.v : raw, from = ceilingOf(g.last, h.id)?.depth ?? c.depth;
       want = t => setCeilingDepth(g.original, h.id, from + (target - from) * t);
     } else if (h.kind === 'tilt') {
       const c = ceilingOf(g.original, h.id)!, axis = runAxis(ceilingFrame(g.original, c)!, c);
-      const height = outerEdgeHeight(c) + inPlane(e, h, axis.x, axis.z).y, from = outerEdgeHeight(ceilingOf(g.last, h.id)!);
+      const rawHeight = outerEdgeHeight(c) + inPlane(e, h, axis.x, axis.z).y, lock = g.free ? null : alignTo(rawHeight, heightTargets(g.original, c), g.lock, tolerance());
+      g.lock = lock;
+      const height = lock ? lock.v : rawHeight;
+      g.guides = lock ? heightGuide(g.original, c, h, lock.v) : [];
+      const from = outerEdgeHeight(ceilingOf(g.last, h.id)!);
       want = t => setOuterEdgeHeight(g.original, h.id, from + (height - from) * t);
     } else if (h.kind === 'lift') {
       // The whole ceiling up or down, as one: a box lowered, a staircase raised.
       const c = ceilingOf(g.original, h.id)!, top = roomHeight(g.original), dy = step(inPlane(e, h, 1, 0).y);
-      const lift = Math.min(top - Math.max(...c.profile.map(p => p.y)), dy), before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;
+      const cap = top - Math.max(...c.profile.map(p => p.y));
+      const hit: AlignTarget<number> | null = g.free ? null : resolveAlignment(dy, liftTargets(c, heightTargets(g.original, c)), { tolerance: tolerance(), lock: g.lock, within: [-1e6, cap] });
+      g.lock = hit && { v: hit.v, label: hit.label };
+      g.guides = hit ? heightGuide(g.original, c, h, hit.src!) : [];
+      const lift = Math.min(cap, hit ? hit.v : dy), before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;
       want = t => liftWholeCeiling(g.original, h.id, before + (lift - before) * t);
     }
     if (!want) return;

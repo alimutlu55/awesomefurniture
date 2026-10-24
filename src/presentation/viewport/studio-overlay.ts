@@ -103,7 +103,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         const handles = editor.handles(), used = new Set<string>();
         current.clear();
         for (const g of editor.guides()) {
-            const a = new THREE.Vector3(g.a.x, .6, g.a.z), b = new THREE.Vector3(g.b.x, .6, g.b.z);
+            const a = new THREE.Vector3(g.a.x, g.a.y ?? .6, g.a.z), b = new THREE.Vector3(g.b.x, g.b.y ?? .6, g.b.z);
             if (a.distanceTo(b) > 1) {
                 const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), guideMaterial);
                 line.computeLineDistances();

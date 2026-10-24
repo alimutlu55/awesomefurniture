@@ -9,7 +9,7 @@ import type { RoomMeasure } from './studio-editor.ports';
  * go, the lines it can snap to, and the guides that show why it snapped. Plain data in scene
  * centimetres; the room editor turns it into edits. */
 
-type P = { x: number; z: number };
+type P = { x: number; z: number; y?: number };
 /** A guide line on the floor and why it shows. `info` is a reading (an angle), not a snap. */
 export interface Guide { readonly a: P; readonly b: P; readonly label: string; readonly info?: boolean }
 export interface CornerLocks { x: Align | null; z: Align | null; ray: Align | null; join: string | null }
