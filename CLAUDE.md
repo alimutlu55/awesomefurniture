@@ -41,11 +41,12 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Geometry or feasibility rule | The module that owns the concern in `src/domain/geometry/wardrobe-rules/`. `wardrobe-geometry.js` only composes them. |
 | Board thickness, setback, back board, rail drop, interior floor | `src/domain/wardrobe/carcass.ts`. Never write `d - 2` or `± .5` again. See [docs/millwork-precision.md](docs/millwork-precision.md) |
 | Sharing a length into parts (bays, boards) | `shareMillimetres` in `src/domain/geometry/millimetres.ts`: whole millimetres that add back up exactly |
-| Alignment and snapping while something is dragged or resized | One rule for all: `resolveAlignment` in `src/domain/geometry/alignment.ts`. The owning module lists the candidates (`scene-gaps.ts` / `align-commands.ts` for wardrobes, `board-alignment.ts` for boards, `studio-drag.ts` for rooms, `surface-shape-snap.ts` for shapes, `item-resize.js` for fitting edges); guides are drawn by the existing overlays (`assist-overlay.ts`, the `#snap-layer` line in `movement-overlays.js`, the room and shape editors' guides). Offer only candidates the edit can reach, and never add a second guide UI |
+| Alignment and snapping while something is dragged or resized | One rule for all: `resolveAlignment` in `src/domain/geometry/alignment.ts`. The owning module lists the candidates (`scene-gaps.ts` / `align-commands.ts` for wardrobe moves, quarter-turn runs and slider sizes (`sizeTargets`), `board-alignment.ts` for boards, `studio-drag.ts` for rooms, `surface-shape-snap.ts` for shapes, `item-resize.js` for fitting edges); guides are drawn by the existing overlays (`assist-overlay.ts`, the `#snap-layer` line in `movement-overlays.js`, the room and shape editors' guides). Offer only candidates the edit can reach, and never add a second guide UI |
 | Clearances a fitting shows (gaps, rail drop, drawer stack, clear opening) | `src/domain/geometry/wardrobe-rules/clearances.js`; drawn by `viewport/item-dimensions.js` and `component-dimensions.js` |
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
 | Technical drawings (plan, elevations, shop sheets, cutting and hardware lists, PDF) | `src/domain/drawings/` (data, mm) and `src/presentation/drawings/` (paper marks written as SVG and as the PDF file, viewer). See [docs/technical-drawings.md](docs/technical-drawings.md) |
+| What blocks issuing drawings for manufacture | `src/domain/drawings/manufacturing-validation.ts` (independent of the drawing code; a critical finding fails the export closed); the set, revision and stamp in `presentation/drawings/drawing-release.ts` |
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
@@ -92,8 +93,13 @@ units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`,
   (under-stairs default: 0 of 24 shirts).
 - Technical drawings: no drilling plans or drawer box parts yet; the cutting list gives finished
   sizes without deducting edge banding (docs/technical-drawings.md).
-- Alignment: a wardrobe's size sliders show the measuring assistant but do not snap; the planner's free item
-  move (`placeItem` in the hash-locked `wardrobe-planner.js`) still has its own magnet snap, not `resolveAlignment`.
+- Alignment covers rooms, shapes, wardrobes and kitchen units (moving, quarter-turn runs, slider sizes), fittings and
+  boards inside a wardrobe. It does not line up parts across levels (a fitting with a wardrobe elsewhere in the room),
+  units at angles other than equal or a quarter turn, or room parts with furniture; a wardrobe is resized from its
+  middle, so "filling the gap" is only reached when it can slide (kitchen units).
+- Manufacturing check: no material or edge-banding completeness checks, and door swing clearances stay review
+  findings on the drawings, not blocking ones.
+- `npm run check:mobile` is not part of `npm run check`; run it (Vite on port 4173) before a push that changes the editor.
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,

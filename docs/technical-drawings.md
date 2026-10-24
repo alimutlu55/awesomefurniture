@@ -87,6 +87,23 @@ the `front` trait has one; the registry test checks it). Door leaves, the fridge
 spacing are `hingedLeaves`, `fridgeSplit` and `shelfHeights` in `domain/kitchen/kitchen-fronts.ts`, shared
 with the 3D view.
 
+## Manufacturing check (fail-closed export)
+
+Before the set is shown or saved, `validateForManufacture` (`domain/drawings/manufacturing-validation.ts`) checks the
+model independently of the drawing code. Blocking (critical) findings:
+
+- two pieces in the same place (touching is allowed), a piece taller than its room, a size that is not a real length;
+- a board with no real cutting size or reaching outside its piece; bays and boards not adding up exactly to the outer
+  width; fittings that intersect or reach above their section's top;
+- the cutting list disagreeing with the model, part by part, or two pieces sharing a mark;
+- annotations the sheet layout could not place clear of the drawing.
+
+A piece running past the end of its wall is a review finding. The set is made against one model revision (a
+fingerprint of the model, printed in every title block); saving a set made from an older revision makes it again.
+Every set ends with a **Manufacturing check** sheet. With any blocking finding, every sheet and the PDF are stamped
+NOT FOR MANUFACTURE, the viewer says why above the sheets and the button reads **Save review PDF**; otherwise each
+sheet says "For manufacture · revision …". `scripts/check-drawing-release.cjs` verifies this in the browser.
+
 ## Aisles and opening envelopes
 
 The plan measures the minimum clear aisle in front of each floor run to another run or wall. It clips
