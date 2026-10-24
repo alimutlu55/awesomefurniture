@@ -232,17 +232,23 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             layer.innerHTML = '<i class="snap-line"></i>';
             $('#item-resize-handles').appendChild(layer);
         }
-        const a = interactionState.itemEdgeGesture, gd = a?.guide;
+        // A fitting's edge or a board being dragged: one guide line, the same for both.
+        const a = interactionState.itemEdgeGesture, gd = a?.guide ?? interactionState.dividerGesture?.guide;
         if (!gd || !renderState.Gr) {
             layer.classList.remove('on');
             return;
         }
-        const g = a.g, z = getRenderDesign().d / 2 + 1, r = resources.cv.getBoundingClientRect(), toS = (x, y) => {
+        const g = a?.g, z = getRenderDesign().d / 2 + 1, r = resources.cv.getBoundingClientRect(), toS = (x, y) => {
             const q = renderState.Gr.localToWorld(new THREE.Vector3(x - getRenderDesign().w / 2, y, z)).project(resources.cam);
             return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
         }, ext = gd.src && gd.kind !== 'size' ? gd.src : null;
         let A, B;
-        if (gd.orient === 'v') {
+        if (gd.span) {
+            // A board's guide carries the stretch it runs across: the board and what it lines up with.
+            A = gd.orient === 'v' ? toS(gd.pos, gd.span[1] + 3) : toS(gd.span[0] - 3, gd.pos);
+            B = gd.orient === 'v' ? toS(gd.pos, gd.span[0] - 3) : toS(gd.span[1] + 3, gd.pos);
+        }
+        else if (gd.orient === 'v') {
             const ys = [g.y0, g.y1];
             if (ext) {
                 ys.push(ext.y0, ext.y1);

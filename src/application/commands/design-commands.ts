@@ -1,4 +1,5 @@
 import { createDividerCommands } from './divider-commands';
+import { createDividerAlign } from './divider-align';
 import { createSizingCommands } from './sizing-commands';
 import { createItemCommands } from './item-commands';
 import { createLayoutCommands } from './layout-commands';
@@ -17,6 +18,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const { effects, run } = createCommandWorkflow(getDesign, supplied);
     const rules = createWardrobeGeometry(getDesign, effects.getBudget);
     const dividers = createDividerCommands({ getDesign, effects, rules, run });
+    const dividerAlign = createDividerAlign({ getDesign, rules, moveDividerTo: dividers.moveDividerTo });
     const sizing = createSizingCommands({ getDesign, effects, rules });
     const items = createItemCommands({ getDesign, effects, rules, run, callbacks: { addShelfBoard: dividers.addShelfBoard } });
     const layouts = createLayoutCommands({ getDesign, effects, rules });
@@ -56,5 +58,5 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     // Section changes validate detached geometry before committing; a shape refit
     // afterward could compact or remove the very fittings the command preserves.
     const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
-    return { run, ...dividers, ...sizing, ...items, addMod, editItem, ...layouts, applyProposal, autofill, changeSections, ...appearance };
+    return { run, ...dividers, ...dividerAlign, ...sizing, ...items, addMod, editItem, ...layouts, applyProposal, autofill, changeSections, ...appearance };
 }

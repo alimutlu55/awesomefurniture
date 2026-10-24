@@ -13,7 +13,11 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = cameraState.vs;
         cameraState.vzT = cameraState.vz;
-        interactionState.dividerGesture = { index, point, original: { ...d }, snapshot: model.snapshot(), pointer: e.pointerId, target, pressX: e.clientX, pressY: e.clientY, moved: false };
+        // About 8 screen pixels in centimetres on the board's plane: how close it must come to line up.
+        const aside = picking.frontPoint({ clientX: e.clientX + 8, clientY: e.clientY });
+        const tolerance = Math.max(.4, Math.min(4, aside ? Math.hypot(aside.x - point.x, aside.y - point.y) : 1));
+        interactionState.dividerGesture = { index, point, original: { ...d }, snapshot: model.snapshot(), pointer: e.pointerId, target, pressX: e.clientX, pressY: e.clientY, moved: false,
+            tolerance, lock: null, guide: null };
         target.setPointerCapture(e.pointerId);
     }
     function moveDividerDrag(e) {
@@ -33,7 +37,11 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
             return;
         }
         const hor = g.original.orientation === 'horizontal';
-        const moved = commands.moveDividerTo(g.index, (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x));
+        const raw = (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x);
+        // Lines up with the shelves, fittings and middle of its space through the shared alignment rule (Shift: free).
+        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: g.tolerance, lock: g.lock, free: e.shiftKey });
+        g.lock = line;
+        g.guide = guide;
         // Shelves and fittings attached to it moved too: the wardrobe is redrawn, else just the board.
         if (moved === 'all') rendering.build();
         else if (moved) rendering.refreshDividerVisual(g.index);

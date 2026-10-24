@@ -7,7 +7,7 @@ readonly inspector: Readonly<Pick<ReturnType<typeof import('../editor/inspector-
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor/editor-shell.js').createEditorShell>, 'toast'>>;
 readonly picking: Readonly<Pick<ReturnType<typeof import('../editor/scene-picking.js').createScenePicking>, 'frontPoint' | 'screenPoint'>>;
 readonly cameraState: Pick<ReturnType<typeof import('./camera-state.js').createCameraState>, 'az' | 'camGoal' | 'dist' | 'el' | 'fitDist' | 'tgt' | 'vs' | 'vsT' | 'vz' | 'vzT'>;
-readonly interactionState: Pick<ReturnType<typeof import('../editor/interaction-state.js').createInteractionState>, 'drag' | 'itemEdgeGesture' | 'lastMoveEvent' | 'moveMode' | 'previewPlan' | 'rotationGesture' | 'wardrobeGesture'>;
+readonly interactionState: Pick<ReturnType<typeof import('../editor/interaction-state.js').createInteractionState>, 'dividerGesture' | 'drag' | 'itemEdgeGesture' | 'lastMoveEvent' | 'moveMode' | 'previewPlan' | 'rotationGesture' | 'wardrobeGesture'>;
 readonly renderState: Pick<ReturnType<typeof import('./render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'buildStamp' | 'dividerVisuals' | 'hits' | 'ihits' | 'itemEdgeHandles' | 'itemGroups' | 'labs' | 'lastFrameTime' | 'moveIcons' | 'outs' | 'overlayHeld' | 'pivots' | 'prevLab' | 'previewGroup' | 'pv' | 'pv2' | 'renderActive' | 'renderCabinet' | 'selMarks' | 'settling' | 'wardrobeGroups' | 'garments'>;
 readonly selectionState: Pick<ReturnType<typeof import('../editor/selection-state.js').createSelectionState>, 'editingSize' | 'focusOn' | 'pillOn' | 'room' | 'showDimensions' | 'shapeEditing'>;
 readonly shellState: Pick<ReturnType<typeof import('../editor/shell-state.js').createShellState>, 't0'>;

@@ -41,6 +41,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Geometry or feasibility rule | The module that owns the concern in `src/domain/geometry/wardrobe-rules/`. `wardrobe-geometry.js` only composes them. |
 | Board thickness, setback, back board, rail drop, interior floor | `src/domain/wardrobe/carcass.ts`. Never write `d - 2` or `± .5` again. See [docs/millwork-precision.md](docs/millwork-precision.md) |
 | Sharing a length into parts (bays, boards) | `shareMillimetres` in `src/domain/geometry/millimetres.ts`: whole millimetres that add back up exactly |
+| Alignment and snapping while something is dragged or resized | One rule for all: `resolveAlignment` in `src/domain/geometry/alignment.ts`. The owning module lists the candidates (`scene-gaps.ts` / `align-commands.ts` for wardrobes, `board-alignment.ts` for boards, `studio-drag.ts` for rooms, `surface-shape-snap.ts` for shapes, `item-resize.js` for fitting edges); guides are drawn by the existing overlays (`assist-overlay.ts`, the `#snap-layer` line in `movement-overlays.js`, the room and shape editors' guides). Offer only candidates the edit can reach, and never add a second guide UI |
 | Clearances a fitting shows (gaps, rail drop, drawer stack, clear opening) | `src/domain/geometry/wardrobe-rules/clearances.js`; drawn by `viewport/item-dimensions.js` and `component-dimensions.js` |
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
@@ -91,6 +92,8 @@ units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`,
   (under-stairs default: 0 of 24 shirts).
 - Technical drawings: no drilling plans or drawer box parts yet; the cutting list gives finished
   sizes without deducting edge banding (docs/technical-drawings.md).
+- Alignment: a wardrobe's size sliders show the measuring assistant but do not snap; the planner's free item
+  move (`placeItem` in the hash-locked `wardrobe-planner.js`) still has its own magnet snap, not `resolveAlignment`.
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,
