@@ -14,7 +14,8 @@ const menusOf = module => ({
 const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],
-    studio: [['walls', 'Walls'], ['ceiling', 'Ceiling']],
+    // Nothing selected in Studio: walls and rooms, or a shape (stairs, a slope, a pillar) on the wall in view.
+    studio: [['walls', 'Walls'], ['ceiling', 'Shapes', 'Add a shape: stairs, a slope, a beam or a pillar']],
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
@@ -22,10 +23,11 @@ const actions = {
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
-    // The room: a selected wall has Add, Size, Split, Paint, More.
-    wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['split', 'Split'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
+    // The room: a selected wall has Add, Size, Shape (its outline face on), Paint, More (Split, Remove).
+    wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['surface-shape', 'Shape'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
-    ceiling: [['ceiling-size', 'Size'], ['ceiling-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
+    // A ceiling shape is drawn and sized in one place, its Shape editor.
+    ceiling: [['surface-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
 };
 /** The menus of each kind of furniture's tools (Interior, More), by its furniture kind. */
 export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m)]));
@@ -33,7 +35,7 @@ export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menu
 export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf(m).more]));
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [];
-export const wallMoreActions = [['remove', 'Remove wall']];
+export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = [];

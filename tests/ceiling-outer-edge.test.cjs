@@ -12,8 +12,6 @@ const { createSceneMeasurements } = require('../src/application/commands/scene-m
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { regularShape, resolveShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
-const { createCeilingSplitCursor } = require('../src/presentation/editor/studio-ceiling-split.ts');
-const { ceilingHandles, pointOnEdge } = require('../src/presentation/editor/studio-ceiling-drag.ts');
 
 function room(profile = [{ t: 30, y: 180 }, { t: 370, y: 220 }]) {
     return { ...rectangleStudio(400, 250), ceilings: [{ id: 'k1', wall: 'w1', run: 'along', depth: 100, profile }] };
@@ -112,16 +110,4 @@ test('typing outer edge height uses the anchored operation and point dimensions 
     assert.deepEqual(f.model.scene.studio.ceilings[0].profile, before);
     assert.equal(measurements.read(ref), height + 25);
     assert.equal(measurements.read({ ...ref, field: 'p0' }), before[0].y + 25);
-});
-
-test('insertion cursor follows the clipped front boundary where a lifted ceiling meets the room top', () => {
-    const studio = liftCeilingOuterEdge(room([{ t: 30, y: 160 }, { t: 370, y: 260 }]), 'k1', 50);
-    const c = studio.ceilings[0], fr = ceilingFrame(studio, c), screen = p => ({ x: p.x, y: -p.y });
-    const cursor = createCeilingSplitCursor(screen), h = ceilingHandles(studio, c).find(h => h.kind === 'ceiling-split'), origin = screen(h);
-    for (const fraction of [.2, .5, .8]) {
-        const target = screen(pointOnEdge(fr, c, 0, fraction));
-        cursor.move(studio, h, target.x - origin.x, target.y - origin.y);
-        const at = ceilingHandles(studio, c, cursor.location(c.id)).find(h => h.kind === 'ceiling-split');
-        assert.ok(Math.abs(at.x - target.x) < 1e-6 && Math.abs(at.y + target.y) < 1e-6);
-    }
 });

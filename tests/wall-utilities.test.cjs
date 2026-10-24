@@ -110,6 +110,6 @@ test('wall toolbar has Add tool matching furniture and opens visual catalog with
     assert.equal(actions[0][0], 'new');
     assert.equal(actions[0][1], 'Add');
     assert.equal(actions[0][2], 'Add to wall');
-    // None of the utilities or openings are in wallMoreActions anymore.
-    assert.deepEqual(wallMoreActions.map(([key]) => key), ['remove']);
+    // None of the utilities or openings are in wallMoreActions anymore: only Split and Remove.
+    assert.deepEqual(wallMoreActions.map(([key]) => key), ['split', 'remove']);
 });

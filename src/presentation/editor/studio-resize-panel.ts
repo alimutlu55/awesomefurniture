@@ -4,14 +4,17 @@ import type { createStudioFields } from './studio-fields';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 /** All room sizes use the wardrobe's existing panel and shared sizing controls. */
-export function createStudioResizePanel({ dom, fields, selection, prepare, frame, paint }: {
+export function createStudioResizePanel({ dom, fields, selection, prepare, frame, paint, shape }: {
   dom: ReturnType<typeof createEditorDom>; fields: ReturnType<typeof createStudioFields>;
   selection(): RoomSelection; prepare(): void; frame(): void;
   paint?: { root: HTMLElement; render(): void };
+  /** The Shape editor of a wall or ceiling shape. */
+  shape?: { root: HTMLElement; render(): void };
 }) {
   const panel = dom.$('#left'), app = dom.$('#app');
   let section: HTMLElement | null = null;
   let paintSection: HTMLElement | null = null;
+  let shapeSection: HTMLElement | null = null;
   function sync() {
     if (selection() || panel.dataset.roomResize === undefined) return;
     delete panel.dataset.roomResize; delete panel.dataset.contextSection;
@@ -43,5 +46,22 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
     app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
     frame();
   }
-  return { open, openPaint, sync };
+  /** Opens the Shape editor in the same panel: beside the room on a desktop, a sheet on a phone. */
+  /** `fresh` starts the panel at its top; moving from one shape to the next keeps where it was scrolled. */
+  function openShape(title: string, fresh = true) {
+    if (!selection() || !shape) return;
+    if (!shapeSection) {
+      shapeSection = dom.document.createElement('section');
+      shapeSection.dataset.wardrobeControls = 'surface-shape'; shapeSection.dataset.studioResize = '';
+      shapeSection.append(dom.document.createElement('h2'), shape.root); dom.$('#left-body').append(shapeSection);
+    }
+    for (const heading of [shapeSection.querySelector('h2'), panel.querySelector('#left-title, [data-editor-id="left-title"]')]) if (heading) heading.textContent = title;
+    if (panel.dataset.contextSection !== 'surface-shape') { prepare(); takeMobilePanel(dom, panel); }
+    panel.dataset.roomResize = ''; panel.dataset.contextSection = 'surface-shape'; panel.dataset.sheetPosition = 'compact';
+    app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
+    if (fresh) panel.scrollTop = 0;
+    shape.render();
+  }
+  const showing = (section: string) => panel.dataset.roomResize !== undefined && panel.dataset.contextSection === section && app.classList.contains('props-open');
+  return { open, openPaint, openShape, showing, sync };
 }

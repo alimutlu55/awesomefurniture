@@ -4,7 +4,8 @@
  * wardrobe's top: a profile of heights, with slopes between points and vertical steps where two points
  * share a position. Plain data and pure functions, in scene centimetres.
  */
-import { boundaryProblems, ceilingLowerProfile, withCeilingProfile } from './surface-boundary';
+import { ceilingLowerProfile, withCeilingProfile } from './surface-boundary';
+import { surfaceProblems } from './surface-profile';
 import { mapBoundary, trimBoundary } from './surface-outline';
 import { outerEdgeHeight } from './ceiling-edge';
 import { STUDIO_LIMITS as L, nextId, roomHeight, wall, wallFace, wallLine } from './studio';
@@ -89,11 +90,14 @@ export interface CeilingShape {
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  readonly build: (span: { start: number; end: number; height: number; reach: number }) => Pick<StudioCeiling, 'run' | 'depth' | 'profile'>;
+  /** `centre` is where along the wall the person is looking, for shapes narrower than the wall. A shape that is
+   * not hung from the ceiling (a pillar) gives its whole `outline`; the profile is then its underside. */
+  readonly build: (span: { start: number; end: number; height: number; reach: number; centre?: number | undefined }) => Pick<StudioCeiling, 'run' | 'depth' | 'profile' | 'outline'>;
 }
 /** A staircase's pitch: the angle its underside rises at. */
 const PITCH = Math.tan(37 * Math.PI / 180);
 const pts = (list: readonly (readonly [number, number])[]) => list.map(([t, y]) => ({ t: round(t), y: round(y) }));
+const within = (low: number, high: number, v: number) => Math.max(low, Math.min(high, v));
 
 export const CEILING_SHAPES = [
   {
@@ -122,9 +126,25 @@ export const CEILING_SHAPES = [
   },
   {
     id: 'box', name: 'Box or beam', description: 'A boxing or a beam lower than the ceiling',
-    build: ({ start, end, height, reach }) => {
-      const width = Math.min(90, (end - start) / 2), mid = (start + end) / 2;
+    build: ({ start, end, height, reach, centre }) => {
+      const width = Math.min(90, (end - start) / 2), mid = within(start + width / 2, end - width / 2, centre ?? (start + end) / 2);
       return { run: 'along', depth: Math.min(reach, 60), profile: pts([[mid - width / 2, height - 40], [mid + width / 2, height - 40]]) };
+    },
+  },
+  {
+    id: 'pillar', name: 'Pillar', description: 'A column or chimney breast standing against this wall, floor to ceiling',
+    build: ({ start, end, height, reach, centre }) => {
+      const width = Math.min(40, (end - start) / 2), mid = within(start + width / 2, end - width / 2, centre ?? (start + end) / 2);
+      const outline = pts([[mid - width / 2, 0], [mid + width / 2, 0], [mid + width / 2, height], [mid - width / 2, height]]);
+      return { run: 'along', depth: Math.max(L.minCeilingDepth, Math.min(reach - 20, 40)), outline, profile: pts([[mid - width / 2, 0], [mid + width / 2, 0]]) };
+    },
+  },
+  {
+    id: 'stepped', name: 'Stepped boxing', description: 'A soffit that steps down, as over pipes or a cistern',
+    build: ({ start, end, height, reach, centre }) => {
+      const width = Math.min(160, end - start), a = within(start, end - width, (centre ?? (start + end) / 2) - width / 2), b = a + width / 2, c = a + width;
+      const outline = pts([[a, height - 50], [b, height - 50], [b, height - 25], [c, height - 25], [c, height], [a, height]]);
+      return { run: 'along', depth: Math.min(reach, 45), outline, profile: pts([[a, height - 50], [b, height - 50], [b, height - 25], [c, height - 25]]) };
     },
   },
 ] as const satisfies readonly CeilingShape[];
@@ -132,10 +152,16 @@ export type CeilingShapeId = typeof CEILING_SHAPES[number]['id'];
 
 /** Why a ceiling cannot be built, worded as what to do. Empty when it is fine. */
 export function ceilingProblems(studio: Studio, c: StudioCeiling): string[] {
-  const f = ceilingFrame(studio, c), out = boundaryProblems(studio, 'ceiling', c.id);
+  const f = ceilingFrame(studio, c), out = surfaceProblems(studio, { kind: 'ceiling', id: c.id });
   if (!f) return ['A ceiling is on a wall that no longer exists.'];
   const ps = c.profile, top = roomHeight(studio);
   if (!Number.isFinite(c.depth) || ps.some(p => !Number.isFinite(p.t) || !Number.isFinite(p.y))) return ['Enter a finite ceiling dimension.'];
+  // A drawn shape (a pillar, a stepped boxing) may stand on the floor; its outline has its own rules.
+  if (c.outline) {
+    if (c.edgeRise !== undefined && (!Number.isFinite(c.edgeRise) || c.run !== 'along')) out.push('Choose a valid outer edge lift.');
+    if (c.run === 'along' && (c.depth < L.minCeilingDepth - EPS || c.depth > L.maxWallLength)) out.push(`A shape must reach at least ${L.minCeilingDepth} cm into the room.`);
+    return out;
+  }
   if (c.edgeRise !== undefined && (!Number.isFinite(c.edgeRise) || c.run !== 'along')) out.push('Choose a valid outer edge lift.');
   if (ps.some(p => p.y + Math.min(0, c.edgeRise ?? 0) < L.minCeilingHeight - EPS)) out.push('Keep the outer edge at least 40 cm above the floor.');
   if (c.edgeRise && outerEdgeHeight(c) > top + EPS) out.push('The outer edge has reached the room ceiling.');
@@ -164,14 +190,22 @@ const swap = (studio: Studio, id: string, change: (c: StudioCeiling) => StudioCe
   return next ? custom(studio, studio.ceilings!.map(x => x.id === id ? next : x)) : null;
 };
 
-/** Puts a ceiling shape on a wall, replacing the one it had. Its id is the last ceiling's. */
-export function addCeiling(studio: Studio, wallId: string, shapeId: string): Studio | null {
+/** Puts a shape on a wall, beside any it has already, centred where the person looks (`centre` along the wall)
+ * when it is narrower than the wall. Its id is the last ceiling's. */
+export function addCeiling(studio: Studio, wallId: string, shapeId: string, centre?: number): Studio | null {
+  const built = buildShape(studio, wallId, shapeId, centre);
+  return built && custom(studio, [...studio.ceilings ?? [], { id: nextId('k', studio.ceilings ?? []), wall: wallId, ...built }]);
+}
+/** Starts a ceiling over from another shape, on the same wall and where it was. */
+export function replaceCeiling(studio: Studio, id: string, shapeId: string): Studio | null {
+  const c = studio.ceilings?.find(x => x.id === id), built = c && buildShape(studio, c.wall, shapeId, c.run === 'along' ? (c.profile[0]!.t + c.profile.at(-1)!.t) / 2 : undefined);
+  return built ? swap(studio, id, old => { const { outline: _o, boundaryControls: _b, edgeRise: _e, ...rest } = old; return { ...rest, ...built }; }) : null;
+}
+function buildShape(studio: Studio, wallId: string, shapeId: string, centre?: number) {
   const shape = (CEILING_SHAPES as readonly CeilingShape[]).find(s => s.id === shapeId), w = wall(studio, wallId), face = w && wallFace(studio, w);
   if (!shape || !face || face.length < 10) return null;
   const reach = reachAt(studio, wallId, (face.start + face.end) / 2) ?? 200;
-  const built = shape.build({ start: face.start, end: face.end, height: roomHeight(studio), reach });
-  const kept = (studio.ceilings ?? []).filter(c => c.wall !== wallId);
-  return custom(studio, [...kept, { id: nextId('k', studio.ceilings ?? []), wall: wallId, ...built }]);
+  return shape.build({ start: face.start, end: face.end, height: roomHeight(studio), reach, centre });
 }
 
 /** Moves one point of a ceiling's profile, kept between its neighbours (meeting one makes a step). */

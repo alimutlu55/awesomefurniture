@@ -50,8 +50,8 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
   under the ceiling is kept; one that would rise into it is refused with the reason.
 - **As few handles as possible.** A selected wall shows its two corner dots and "+" on free ends, nothing
   else: the wall, a door or a window is dragged by its own surface (`surface.grab` in `room-wiring.ts`,
-  routed from `bindings/canvas.js`). A ceiling shows one height pill per point (handle and measurement in
-  one; tap to type) and one depth grip. Lengths are typed by tapping them on the model.
+  routed from `bindings/canvas.js`). A ceiling shape shows only its depth grip and edge lift on the model; its
+  outline is shaped face on in the **Shape editor** (see below). Lengths are typed by tapping them on the model.
 
 ## Files
 
@@ -68,14 +68,17 @@ phone), no noisy UI (no label backgrounds, no overlapping text), never claim don
 | Application | `src/application/commands/ceiling-commands.ts` | Wardrobes follow the ceiling: `follow`, `followAll`, `shapeBlocked` |
 | Application | `src/application/commands/studio-commands.ts` | `placeStudio`, `editStudio`, `studioProblem`, `addStudioWall`, `addStudioOpening`, `placeNewCabinet`, `wallSnap` |
 | Presentation | `viewport/studio-renderer.ts`, `studio-surfaces.ts` | Walls, openings, floor, ceiling; cutaway (walls lower to a cut stub); selection outline; wardrobe snap strip |
-| Presentation | `viewport/studio-overlay.ts` | Room handles and height pills, live rulers (tap a length to type it), guides, refusal reasons |
+| Presentation | `viewport/studio-overlay.ts` | Room handles, live rulers (tap a length to type it), guides, refusal reasons |
 | Presentation | `viewport/studio-ceilings.ts` | Ceilings: solid from inside the room below the ceiling, thin lines from above |
-| Presentation | `editor/studio-ceiling-drag.ts`, `studio-ceiling-panel.ts` | Pill and depth-grip geometry and snapping; the Ceiling choices drawn from the registry |
+| Presentation | `editor/studio-ceiling-drag.ts`, `studio-ceiling-panel.ts` | Depth and lift grip geometry, resting heights; the Shapes choices drawn from the registry |
+| Domain | `src/domain/geometry/profile-polygon.ts` | The Shape editor's geometry: validate, slide an edge (angles kept), step, add or remove a corner, heal, sizes |
+| Domain | `src/domain/studio/surface-profile.ts` | A wall or ceiling shape as one editable profile, written back through the room's rules |
+| Presentation | `editor/surface-shape-*.ts`, `surface-shape.css` | The Shape editor: drawing, hit testing and snapping, fields, one drag session (preview, one undo step, cancel) |
 | Presentation | `editor/studio-editor.ts`, `studio-drag.ts` | Room selection, drags (corner, wall, opening, "+"), snapping, measures, toolbar commands |
 | Presentation | `editor/studio-fields.ts` | Size popover fields (wall: length inside, height, thickness; opening: width, height, sill, from left end) |
 | Presentation | `editor/studio-panel.ts`, `studio-art.ts` | Walls category of Add item (desktop fold `#padd-room`, phone category `room`) |
 | Presentation | `editor/room-wiring.ts`, `studio.css` | Wiring, keys (Esc, Delete), room framing; styles |
-| Tests | `tests/architecture/studio*.test.ts`, `scripts/check-studio.cjs` | Model, physics, editing; real UI flows on desktop and phone |
+| Tests | `tests/architecture/studio*.test.ts`, `tests/profile-polygon.test.cjs`, `tests/surface-profile.test.cjs`, `scripts/check-studio.cjs`, `scripts/check-shape-editor.cjs` | Model, physics, editing; real UI flows on desktop and phone |
 
 ## Status
 
@@ -140,11 +143,11 @@ Rendering only: nothing here changes the model, the planner or the golden tests.
 
 How to build the user's under-stairs space:
 
-1. Walls › **Under stairs** (built in, from the photos), or any room then select a wall › **Ceiling** ›
-   Stairs / Stairs with landing / Sloped ceiling / Box or beam (also in the Walls sheet).
-2. The view turns to eye level; drag a height pill up, down or along (snaps level, to steps and the wall's
-   ends), or tap it and type. The grip sets how far it reaches into the room (snaps to the opposite wall).
-   Drag the ceiling itself to raise or lower it. Flip, Size and Remove are in the toolbar.
+1. Walls › **Under stairs** (built in, from the photos), or **Shapes** (bottom bar, or a selected wall's Add ›
+   Shapes) › Stairs / Stairs with landing / Sloped ceiling / Box or beam / Pillar / Stepped boxing. With nothing
+   selected it goes on the wall in view, where the view looks.
+2. The view turns to face it and the Shape editor opens: shape it there (see below). The grip on the model sets
+   how far it reaches into the room (snaps to the opposite wall). Flip and Remove are in the toolbar.
 3. Select the wall › **Wardrobe**: a wardrobe fills its free stretch, flush, fitted under the stairs and
    divided where they step and bend. Wardrobes standing against a wall go with it when it is pushed or pulled.
 
@@ -153,6 +156,34 @@ Verified on desktop (1440 × 900) and phone (375 × 812, real touch events): `no
 
 Limits: a wardrobe's top can slope side to side, not front to back, so under a roof sloping down to its own
 wall it is flat at the lowest point. Ceiling solids hide while the camera is above the room's ceiling.
+
+## Shape editor (walls and ceiling shapes)
+
+Users found building walls and ceilings in 3D too hard (pills and a "+" walking round every edge of the solid).
+Every shape is now edited in one place, face on: select a wall or a shape › **Shape** (desktop side panel, phone
+sheet). The room updates live behind it; the view turns to face the wall (a roof sloping to its wall is shown from
+the side, in section).
+
+- **Drag a corner** (snaps square with its neighbours, to the floor, ceiling and wall ends; onto a neighbour it merges).
+- **Drag an edge**: it slides along its normal and its neighbours keep their angles; a neighbour nearly in line
+  (under 10°) gets a riser instead, which is how a step is pulled out of a straight edge.
+- **Drag the shape** to move it whole.
+- **Tap an edge** for **+ Step** (an upright or level riser, 15 cm by default) or **+ Point** (a pinned corner
+  that survives healing until moved); **tap a corner** for **Remove corner**.
+- **Type** a corner's place, an edge's length, height or angle, or the shape's width, height, place, depth and
+  outer edge. Lengths are inside lengths, as elsewhere.
+- Rules (`profile-polygon.ts`, `PROFILE`): edges at least 5 cm, no part thinner than 5 cm, no crossing edges, inside
+  the wall and between floor and ceiling. A drag stops at the last valid shape and says why in its badge. When it
+  ends the outline is healed (in-line and merged corners go) and it is one undo step; a second finger, Escape or a
+  cancelled pointer puts it back. On phones the sheet has its own Undo and Redo (the sheet hides the toolbar).
+- Data: an edited shape saves its `outline` (closed polygon, `pinned` and `roof` marks kept); its `profile` is
+  derived (the underside wardrobes fit under). A part standing on the floor (a pillar) is a collision obstacle.
+  Browser-draft recovery strips outlines only from drafts that do not read as they are (an older retired format).
+- Units: the spec this follows was in millimetres; the code is in centimetres like the rest of the domain.
+
+Not done yet: the depth grip is the only way to change how far a shape reaches on the model; a shape cannot be
+dragged from one wall to another; doors and windows are drawn in a wall's Shape editor but a sloped top can cut
+through them without a warning.
 
 ## Measuring assistant (resizing and moving)
 

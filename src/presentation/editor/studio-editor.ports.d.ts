@@ -1,19 +1,15 @@
 import type { RoomSelection } from '../viewport/studio-renderer';
 type Point = { x: number; y: number; z: number };
 
-/** A handle on the room: a corner, "+" on a free wall end, a ceiling's height pill or depth grip. A wall,
- * an opening or a ceiling dragged by its own surface gets a handle where it was grabbed, never drawn. */
+/** A handle on the room: a corner, "+" on a free wall end, a ceiling shape's depth or lift grip. A wall, an
+ * opening or a ceiling dragged by its own surface gets a handle where it was grabbed, never drawn. Outlines are
+ * shaped in the Shape editor, not on the model. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'ceiling' | 'ceiling-split' | 'wall-split' | 'depth' | 'tilt' | 'lift' | 'boundary-point';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'depth' | 'tilt' | 'lift';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
-    /** A ceiling pill: which point of the profile, and the height it shows. */
-    readonly index?: number; readonly text?: string;
-    readonly boundary?: import('../../domain/studio/surface-boundary').SurfaceLocation;
-    readonly surface?: 'wall' | 'ceiling';
-    readonly position?: number; readonly fraction?: number;
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
 }

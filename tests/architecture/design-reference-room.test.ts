@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { CEILING_SHAPES, addCeiling } from '../../src/domain/studio/studio-ceiling';
-import type { Studio } from '../../src/domain/studio/studio';
+import { STUDIO_LIMITS, type Studio } from '../../src/domain/studio/studio';
 import { designReferenceCameras, referenceSubjectCorners } from '../../src/presentation/viewport/design-reference-camera';
 import { referenceRoomFeatures } from '../../src/presentation/viewport/design-reference-room';
 import { neutralReferenceMaterials } from '../../src/presentation/viewport/design-reference-materials';
@@ -44,7 +44,15 @@ test('under-stairs references lower the lens below the 105 cm soffit and include
 });
 
 for (const shape of CEILING_SHAPES) test(`reference framing understands ${shape.name}, including its local underside`, () => {
-  verify(addCeiling(createStudio('bedroom'), 'w1', shape.id)!);
+  const studio = addCeiling(createStudio('bedroom'), 'w1', shape.id)!, lowest = Math.min(...studio.ceilings![0]!.profile.map(p => p.y));
+  // A shape standing on the floor (a pillar) is furniture-like context, not a ceiling to frame under.
+  if (lowest < STUDIO_LIMITS.minCeilingHeight) {
+    const { subject, dispose } = furniture();
+    try { const room = referenceRoomFeatures(studio, referenceSubjectCorners(subject)); assert.deepEqual(room.features, []); assert.ok(room.eyeHeight > 100); }
+    finally { dispose(); }
+    return;
+  }
+  verify(studio);
 });
 
 test('side views turn together to avoid lowering a ceiling wall at the corner', () => {

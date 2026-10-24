@@ -54,7 +54,9 @@ export function buildFromSpec(spec: DesignSpec, id: string): SpecBuild {
     if (c.points) {
       const start = added.run === 'along' ? face.start : 0;
       const profile = c.points.map(([t, y]) => ({ t: Math.round((start + t) * 10) / 10, y }));
-      next = { ...next, ceilings: next.ceilings!.map(x => x === added ? { ...x, profile, depth: x.run === 'across' ? profile.at(-1)!.t : x.depth } : x) };
+      // Points describe the underside; a drawn outline (a pillar's) gives way to them.
+      const { outline: _outline, boundaryControls: _controls, ...plain } = added;
+      next = { ...next, ceilings: next.ceilings!.map(x => x === added ? { ...plain, profile, depth: x.run === 'across' ? profile.at(-1)!.t : x.depth } : x) };
     }
     if (c.depth !== undefined) next = setCeilingDepth(next, added.id, c.depth) ?? next;
     const wrong = studioProblems(next);

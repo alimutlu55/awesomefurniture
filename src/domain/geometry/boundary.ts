@@ -2,7 +2,8 @@
 export interface BoundaryPoint {
   readonly t: number; readonly y: number;
   readonly roof?: boolean | undefined;
-
+  /** Added by + Point and still on its edge: kept until it is moved off it. */
+  readonly pinned?: boolean | undefined;
 }
 const EPS = 1e-9;
 export const interpolateBoundary = (a: BoundaryPoint, b: BoundaryPoint, f: number): BoundaryPoint =>

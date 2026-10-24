@@ -140,7 +140,7 @@ const wardrobe = z.strictObject({
 // A saved room must be buildable by the same rules the editor uses.
 const openingKind = z.enum(OPENING_KINDS as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in typeof OPENING_KINDS[number]]: K }>;
 const boundary = {
-  outline: z.array(z.strictObject({ t: finite, y: finite, roof: z.boolean().optional() })).min(3).optional(),
+  outline: z.array(z.strictObject({ t: finite, y: finite, roof: z.boolean().optional(), pinned: z.boolean().optional() })).min(3).optional(),
   boundaryControls: z.array(z.strictObject({ index: z.number().int().nonnegative(), u: finite.min(0).max(1) })).optional(),
 };
 const studio = z.strictObject({
@@ -150,7 +150,7 @@ const studio = z.strictObject({
     color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
-  ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, ...boundary, edgeRise: finite.optional(), profile: z.array(z.strictObject({ t: finite, y: positive })) })).optional(),
+  ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, ...boundary, edgeRise: finite.optional(), profile: z.array(z.strictObject({ t: finite, y: nonnegative })) })).optional(),
 }).superRefine((room, context) => {
   for (const message of studioProblems(room as Studio)) context.addIssue({ code: 'custom', message: `Studio: ${message}` });
 });

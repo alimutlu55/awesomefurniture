@@ -11,6 +11,8 @@ const { createInteractionState } = require('../../src/presentation/editor/intera
 const { createCameraState } = require('../../src/presentation/viewport/camera-state.ts');
 const { rectangleStudio } = require('../../src/domain/studio/studio-templates.ts');
 const { createSceneHistory } = require('../../src/application/history/scene-history.ts');
+const { createShapeSession } = require('../../src/presentation/editor/surface-shape-session.ts');
+const { surfaceProfile } = require('../../src/domain/studio/surface-profile.ts');
 
 /** Minimal DOM for production renderer tests. Removing a captured node loses its pointer,
  * as in the browser; drawing meshes uses real Three.js geometry without a WebGL context. */
@@ -95,9 +97,16 @@ exports.roomRenderFixture = function (t, { run = 'along', width = 1280, wardrobe
         inspector, shapeInspector, picking, studioEditor: editor, settings: { budget: 900 }, lifetime, shellState: {}, commands: {} });
     renderer.build();
     t.after(() => { disposers.forEach(fn => fn()); });
-    const handle = index => nodes.labels.children.find(el => el.getAttribute('aria-label')?.startsWith('Point ' + (index + 1) + ','));
+    /** The Shape editor's drag of one corner of the ceiling's outline: `move(index, to)` previews it, `end` commits. */
+    const shaping = (ref = { kind: 'ceiling', id: 'k1' }) => {
+        const session = createShapeSession({ model, sceneCommands: commands, history: { checkpoint },
+            callbacks: { redraw: () => renderer.redrawStudio(), rebuild: () => renderer.build(), refresh: () => renderer.build(), report: m => messages.push(m), history() {} } });
+        session.begin(ref);
+        const start = surfaceProfile(model.scene.studio, ref).points;
+        return { session, start, move: (index, to) => session.preview(start.map((p, k) => k === index ? { ...p, ...to } : p)), end: () => session.end(), cancel: () => session.cancel() };
+    };
     const event = (pointerType = 'mouse', x = 0, y = 0) => ({ pointerId: 1, pointerType, button: 0, clientX: x, clientY: y,
         shiftKey: true, preventDefault() {}, stopPropagation() {} });
-    return { model, commands, editor, renderer, shapeInspector, inspector, interactionState, selectionState, renderState, nodes, checkpoints, history, messages, handle, event,
+    return { model, commands, editor, renderer, shapeInspector, inspector, interactionState, selectionState, renderState, nodes, checkpoints, history, messages, shaping, event,
         point: p => { frontPoint = p; } };
 };

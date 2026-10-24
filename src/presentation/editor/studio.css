@@ -44,7 +44,7 @@
 .room-add .shape-caption{margin:8px 0 2px}
 .pop .addgrid .room-product.on{box-shadow:inset 0 0 0 2px var(--ink);background:linear-gradient(140deg,#e5e0d9,#f0ece6);color:var(--ink)}
 .pop .addgrid .room-product.no{opacity:.45}
-svg.ceiling-product-art{color:#8a7a62;padding:16px 26px;box-sizing:border-box;filter:none}
+svg.ceiling-product-art{color:#8a7a62;padding:8px 14px;box-sizing:border-box;filter:none}
 svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter:none}
 .mobile-add-products .room-product.on .product-art{box-shadow:inset 0 0 0 2px var(--ink)}
 
@@ -117,7 +117,8 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 #left[data-room-resize] :is(.wardrobe-header,[data-wardrobe-controls]:not([data-studio-resize])){display:none!important}
 #left[data-room-resize] [data-studio-resize]{display:none!important}
 #left[data-room-resize][data-context-section="resize"] [data-studio-resize][data-wardrobe-controls="resize"],
-#left[data-room-resize][data-context-section="wall-paint"] [data-studio-resize][data-wardrobe-controls="wall-paint"]{display:block!important}
+#left[data-room-resize][data-context-section="wall-paint"] [data-studio-resize][data-wardrobe-controls="wall-paint"],
+#left[data-room-resize][data-context-section="surface-shape"] [data-studio-resize][data-wardrobe-controls="surface-shape"]{display:block!important}
 #app[data-view-mode="studio"].props-open #left[data-room-resize]{display:block!important;pointer-events:auto;visibility:visible}
 #left[data-room-resize] .room-fields{display:block}
 #left[data-room-resize] .room-field-hint{display:block;font-size:11px;font-weight:400;margin-top:3px}

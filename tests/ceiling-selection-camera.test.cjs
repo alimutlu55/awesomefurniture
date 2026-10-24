@@ -30,7 +30,7 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const commands = createSceneCommands(() => model.scene); commands.followCeilings();
     const selectionState = { focusOn: true, deep: false, pillOn: false, room: null };
     const interactionState = createInteractionState(), cameraState = createCameraState();
-    const element = () => ({ dataset: {}, classList: { contains: () => true }, querySelector: () => null,
+    const element = () => ({ dataset: {}, classList: { contains: () => true, add() {}, remove() {} }, append() {}, click() {}, setAttribute() {}, getRootNode: () => ({ querySelectorAll: () => [] }), querySelector: () => null,
         querySelectorAll: () => [], matches: () => false, getBoundingClientRect: () => ({ width, height: 812 }) });
     const nodes = {}, document = { createElement: element, documentElement: { hasAttribute: () => false }, querySelector: () => null };
     const dom = { width, document, window: {}, $: id => nodes[id] ??= element() };
@@ -51,7 +51,7 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const wiring = createRoomWiring({ dom, model, sceneCommands: commands, history: { checkpoint() {} }, picking, selectionState,
         listen: (_target, event, handler) => { if (event === 'keydown') roomKeys.push(handler); },
         late: { rendering: () => ({ studioPickables: () => roomObjects, redrawStudio() {}, build() {} }), inspector: () => inspector,
-            report() {}, camera: () => camera } });
+            report() {}, camera: () => camera, viewed: () => ({ placementWall: 'w3', placementAlong: 100 }) } });
     const interactions = { ...createSceneSelection({ dom, inspector, picking, camera, selectionState, renderState, model, resources, room: wiring.room }),
         cancelMovement() {} };
     const handlers = {}, ports = { dom, inspector, picking, camera, selectionState, renderState, model, resources, interactions, interactionState, touch: { pinch() {}, release() {}, followEdge() {}, stopFollowing() {} },
@@ -94,7 +94,21 @@ for (const width of [375, 1280]) {
         assert.equal(f.selectionState.room.kind, 'wall');
         assert.equal(f.model.snapshot(), snapshot);
     });
-    for (const action of ['door', 'window', 'archway', 'ceiling:slope']) {
+    test(`${width}px: a room-level shape goes straight onto the wall in view, where the view looks`, t => {
+        const f = fixture(t, width);
+        f.selectionState.viewMode = 'studio';
+        f.selectionState.focusOn = false;
+        const before = f.model.scene.studio.ceilings.length;
+        f.wiring.actOnWall('ceiling:pillar');
+        assert.equal(f.selectionState.pendingStudioAction ?? null, null, 'nothing waits for a wall');
+        assert.equal(f.model.scene.studio.ceilings.length, before + 1, 'added beside the shape already there');
+        const added = f.model.scene.studio.ceilings.at(-1);
+        assert.equal(added.wall, 'w3');
+        assert.deepEqual(f.selectionState.room, { kind: 'ceiling', id: added.id });
+        const xs = added.outline.map(p => p.t);
+        assert.ok(Math.abs((Math.min(...xs) + Math.max(...xs)) / 2 - 100) < 1e-6, 'centred where the view looks');
+    });
+    for (const action of ['door', 'window', 'archway']) {
         test(`${width}px: room-level ${action} waits for a chosen wall before changing the design`, t => {
             const f = fixture(t, width);
             f.selectionState.viewMode = 'studio';

@@ -49,6 +49,7 @@ ICONP["room-radiator"] = "M3 6h18v12H3zM7 6v12M11 6v12M15 6v12M19 9h2";
 ICONP["room-switch"] = "M5 5h14v14H5zM9 9h6v6H9zM12 9v6";
 ICONP["room-stairs"] = "M3 4h18M3 20h18M7 4l12 12v4";
 ICONP["flip"] = "M12 3v18M8 7 4 12l4 5M16 7l4 5-4 5";
+ICONP["shape-edit"] = "M5 19V10l7-6 7 6v9zM5 10h.01M12 4h.01M19 10h.01M5 19h.01M19 19h.01";
 ICONP.split = "M3 12h7M14 12h7M12 5v14M8 9l-3 3 3 3M16 9l3 3-3 3";
 // Fitting and possession icons come from their registries.
 for (const f of FITTINGS) ICONP[f.key] = f.icon;

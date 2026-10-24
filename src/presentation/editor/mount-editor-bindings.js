@@ -303,6 +303,11 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.viewMode === 'studio' && OPENING_KINDS.includes(key)) {
                 room.actOnWall(key); return;
             }
+            if (key === 'surface-shape' || (key === 'ceiling-size' && selectionState.room?.kind === 'ceiling')) {
+                if (room.resizePanel.showing('surface-shape')) { animateMobileSheetClose($('#left')); elements.app.classList.add('props-hidden'); elements.app.classList.remove('props-open'); return; }
+                leftTitle.textContent = 'Shape';
+                room.openShape(); return;
+            }
             if (['wall-size', 'opening-size', 'ceiling-size'].includes(key)) {
                 leftTitle.textContent = 'Wall Size';
                 room.resizePanel.open(); return;

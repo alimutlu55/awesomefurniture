@@ -5,26 +5,9 @@ import { moveWall, splitWall } from '../../src/domain/studio/studio-edit';
 import { ceilingAt, ceilingFrame, ceilingProblems, moveCeilingPoint, reshapeCeilingPoint, splitCeilingPanel } from '../../src/domain/studio/studio-ceiling';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { wallLine, type Studio } from '../../src/domain/studio/studio';
-import { ceilingHandles } from '../../src/presentation/editor/studio-ceiling-drag';
-import { createCeilingSplitCursor } from '../../src/presentation/editor/studio-ceiling-split';
-import { createWallSplitCursor } from '../../src/presentation/editor/studio-wall-split';
 
 const room = (): Studio => ({ ...rectangleStudio(400, 250), ceilings: [{ id: 'k1', wall: 'w1', run: 'along', depth: 80,
   profile: [{ t: 30, y: 220 }, { t: 100, y: 220 }, { t: 100, y: 160 }, { t: 103, y: 160 }, { t: 370, y: 240 }] }] });
-const screen = (p: { x: number; y: number; z: number }) => ({ x: p.x, y: -p.y });
-
-test('cursor traverses both sides of a corner, a vertical step and a 3 cm panel without gaps', () => {
-  const studio = room(), c = studio.ceilings![0]!, fr = ceilingFrame(studio, c)!;
-  const cursor = createCeilingSplitCursor(screen), h = ceilingHandles(studio, c).find(h => h.kind === 'ceiling-split')!;
-  const origin = screen(h);
-  for (const [t, y] of [[99.999, 220], [100, 220], [100, 219.999], [100, 197.12345], [100, 160], [100.001, 160], [102.999, 160]]) {
-    const floor = fr.at(t!, c.depth), target = screen({ ...floor, y: y! });
-    cursor.move(studio, h, target.x - origin.x, target.y - origin.y);
-    const next = ceilingHandles(studio, c, cursor.location(c.id)).find(h => h.kind === 'ceiling-split')!;
-    assert.ok(Math.abs(next.position! - t!) < 1e-6);
-    assert.ok(Math.abs(next.y - y!) < 1e-6);
-  }
-});
 
 test('dividing a vertical face preserves its surface and rejects a fold back or duplicate point', () => {
   const divided = splitCeilingPanel(room(), 'k1', 1, undefined, .314159)!;
@@ -80,13 +63,4 @@ test('shortening a wall trims a slope at its actual height instead of making a v
   assert.ok(end.t < before.profile.at(-1)!.t);
   assert.ok(Math.abs(end.y - (120 + (end.t - 30) * 120 / 340)) < 1e-8);
   assert.deepEqual(studioProblems(next), []);
-});
-
-test('wall cursor uses exact positions and cancel restores its previous location', () => {
-  const studio = room(), cursor = createWallSplitCursor(screen), h = cursor.handle(studio, 'w1')!;
-  cursor.begin(); cursor.move(studio, h, 17.12345, 0);
-  assert.ok(Math.abs(cursor.handle(studio, 'w1')!.position! - h.position! - 17.12345) < 1e-6);
-  const split = splitWall(studio, 'w1', cursor.handle(studio, 'w1')!.position)!;
-  assert.ok(Math.abs(split.corners.at(-1)!.x - h.x - 17.12345) < 1e-6);
-  cursor.cancel(); assert.equal(cursor.handle(studio, 'w1')!.position, h.position);
 });

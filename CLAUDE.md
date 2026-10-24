@@ -45,6 +45,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
 | Technical drawings (plan, elevations, shop sheets, cutting and hardware lists, PDF) | `src/domain/drawings/` (data, mm) and `src/presentation/drawings/` (paper marks written as SVG and as the PDF file, viewer). See [docs/technical-drawings.md](docs/technical-drawings.md) |
+| Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 

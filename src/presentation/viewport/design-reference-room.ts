@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { cornerDegree, roomHeight } from '../../domain/studio/studio';
+import { STUDIO_LIMITS, cornerDegree, roomHeight } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
 import { ceilingFrame, profileAt } from '../../domain/studio/studio-ceiling';
 
@@ -12,7 +12,8 @@ export function referenceRoomFeatures(studio: Studio | undefined, subject: reado
   let eyeHeight = Math.min(135, top - HEADROOM);
   for (const ceiling of studio?.ceilings ?? []) {
     const frame = ceilingFrame(studio!, ceiling);
-    if (!frame || !subject.length) continue;
+    // A shape standing on the floor (a pillar) is not a ceiling the lens must stay under.
+    if (!frame || !subject.length || Math.min(...ceiling.profile.map(p => p.y)) < STUDIO_LIMITS.minCeilingHeight) continue;
     const local = subject.map(point => frame.local(point));
     const along = {
       from: Math.max(frame.along.from, Math.min(...local.map(p => p.s)) - CONTEXT),

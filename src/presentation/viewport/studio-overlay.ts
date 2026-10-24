@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
-import { unitSuffix } from '../editor/length-unit-state';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; rulerNode?: Element; ruler?: unknown };
 interface StudioOverlayPorts {
@@ -44,18 +43,18 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         if (!el) {
             el = document.createElement('button');
             el.type = 'button';
-            const split = h.kind === 'extend' || h.kind === 'ceiling-split' || h.kind === 'wall-split';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' || h.kind === 'ceiling' || h.kind === 'boundary-point' ? 'point' : split ? 'split-handle' : 'room-grip');
+            const split = h.kind === 'extend';
+            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : split ? 'split-handle' : 'room-grip');
             if (split) el.textContent = '+';
             else if (h.kind === 'depth' || h.kind === 'tilt') el.innerHTML = ARROWS;
-            else if (h.kind !== 'corner' && h.kind !== 'ceiling' && h.kind !== 'boundary-point') el.innerHTML = SLIDE;
+            else if (h.kind !== 'corner') el.innerHTML = SLIDE;
             const button = el;
             el.onpointerdown = e => {
                 let target = button, h = current.get(button);
                 const own = button.getBoundingClientRect();
                 let distance = Math.hypot(e.clientX - own.left - own.width / 2, e.clientY - own.top - own.height / 2);
-                if (h && ['ceiling', 'boundary-point', 'depth', 'tilt', 'ceiling-split', 'wall-split'].includes(h.kind)) for (const [dot, point] of current) {
-                    if (!['ceiling', 'boundary-point', 'depth', 'tilt', 'ceiling-split', 'wall-split'].includes(point.kind)) continue;
+                if (h && ['depth', 'tilt'].includes(h.kind)) for (const [dot, point] of current) {
+                    if (!['depth', 'tilt'].includes(point.kind)) continue;
                     const r = dot.getBoundingClientRect(), d = Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2);
                     if (d <= 32 && d < distance) { target = dot; h = point; distance = d; }
                 }
@@ -75,12 +74,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             };
             pool.set(h.key, el);
         }
-        el.setAttribute('aria-label', (h.text ? h.text + '. ' : '') + h.label);
+        el.setAttribute('aria-label', h.label);
         el.title = h.label;
-        // A height pill shows its height: it is the handle and the measurement at once.
-        // On a phone the unit is left out, so pills a short way apart do not overlap.
-        const pill = h.text === undefined ? '' : h.text.replace(/ (cm|mm|in)$/, '') + '<small>' + unitSuffix() + '</small>';
-        if (h.text !== undefined && el.innerHTML !== pill) el.innerHTML = pill;
         return el;
     }
 

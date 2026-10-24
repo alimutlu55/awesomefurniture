@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
 const { ceilingClearance } = require('../src/domain/studio/studio-clearance.ts');
 const { resolveShape, regularShape } = require('../src/domain/wardrobe/shape/wardrobe-shape.ts');
-const { moveCeilingPoint } = require('../src/domain/studio/studio-ceiling.ts');
+const { surfaceProfile, withSurfaceProfile } = require('../src/domain/studio/surface-profile.ts');
 const { wallLine } = require('../src/domain/studio/studio.ts');
 const { createCabinetGeometry } = require('../src/domain/geometry/cabinet-geometry.js');
 const { studioObstacles } = require('../src/domain/studio/studio-obstacles.ts');
@@ -21,37 +21,30 @@ const roomHandles = f => f.nodes.labels.children.filter(el => el.classList.conta
 const wardrobeHandles = f => f.nodes.labels.children.filter(el => el.classList.contains('shape-handle') && !el.classList.contains('room-handle'));
 
 for (const [width, pointerType] of [[1280, 'mouse'], [375, 'touch']]) {
-    test(`${pointerType}: ceiling handle keeps capture across wardrobe rebuilds and follows the entire drag`, async t => {
-        const f = roomRenderFixture(t, { width }), button = f.handle(1);
-        button.onpointerdown(f.event(pointerType));
-        button.onpointermove(f.event(pointerType, 0, 20));
-        assert.equal(button.hasPointerCapture(1), true, 'rebuilding the wardrobe must not detach the captured room handle');
-        await Promise.resolve();
-        assert.equal(f.editor.dragging(), true);
+    test(`${pointerType}: shaping a ceiling corner reshapes the wardrobe live and commits once`, t => {
+        const f = roomRenderFixture(t, { width }), drag = f.shaping();
+        assert.equal(drag.move(1, { y: 185 }), true);
         assert.equal(f.checkpoints.length, 0, 'a held gesture is still a preview');
-        button.onpointermove(f.event(pointerType, 25, 60));
+        assert.equal(drag.move(1, { x: 201, y: 145 }), true);
         const point = f.model.scene.studio.ceilings[0].profile[1];
-        assert.equal(point.t, 201); assert.equal(point.y, 145, 'second movement reaches the requested ceiling height');
+        assert.equal(point.t, 201); assert.equal(point.y, 145, 'the second movement reaches the requested ceiling height');
         assert.equal(f.model.activeCabinet().state.shape.template, 'room');
-        assert.equal(f.handle(1), button, 'the same DOM handle survives every rebuild');
-        button.onpointerup();
-        assert.equal(f.editor.dragging(), false); assert.equal(f.checkpoints.length, 1);
+        drag.end();
+        assert.equal(f.checkpoints.length, 1);
         fits(f);
     });
 
     test(`${pointerType}: a ceiling can lower into the old wardrobe height, reverse, and undo/redo both together`, t => {
-        const f = roomRenderFixture(t, { width }), before = f.model.snapshot(), button = f.handle(1);
+        const f = roomRenderFixture(t, { width }), before = f.model.snapshot(), drag = f.shaping();
         const original = structuredClone(state(f).shape);
-        button.onpointerdown(f.event(pointerType));
         for (const y of [20, 40, 70]) {
-            button.onpointermove(f.event(pointerType, 0, y));
-            assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 205 - y);
-            assert.equal(button.hasPointerCapture(1), true); fits(f);
+            assert.equal(drag.move(1, { y: 205 - y }), true);
+            assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 205 - y); fits(f);
         }
         assert.notDeepEqual(state(f).shape, original, 'ceiling reshapes the wardrobe rather than being blocked by its old shape');
-        button.onpointermove(f.event(pointerType, 0, -30));
+        assert.equal(drag.move(1, { y: 235 }), true);
         assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 235); fits(f);
-        button.onpointerup();
+        drag.end();
         const after = f.model.snapshot();
         assert.deepEqual(f.checkpoints, [before]);
         assert.equal(f.history.undo(), true); f.renderer.build(); assert.equal(f.model.snapshot(), before);
@@ -61,13 +54,13 @@ for (const [width, pointerType] of [[1280, 'mouse'], [375, 'touch']]) {
     test(`${pointerType}: cancellation restores room, wardrobes and fittings without a history entry`, t => {
         const f = roomRenderFixture(t, { width, wardrobes: 2 });
         state(f).secs[0] = [{ k: 'drawer', h: 22 }, { k: 'folded', h: 28 }, { k: 'short', h: 106 }];
-        const before = f.model.snapshot(), items = structuredClone(state(f).secs), button = f.handle(1);
-        button.onpointerdown(f.event(pointerType)); button.onpointermove(f.event(pointerType, 0, 90));
+        const before = f.model.snapshot(), items = structuredClone(state(f).secs), drag = f.shaping();
+        assert.equal(drag.move(1, { y: 115 }), true);
         assert.notEqual(f.model.snapshot(), before);
         assert.deepEqual(state(f).secs, items, 'live previews never destroy fittings');
-        button.onpointercancel();
+        drag.cancel();
         assert.equal(f.model.snapshot(), before); assert.equal(f.history.undoCount, 0);
-        assert.equal(f.editor.dragging(), false); assert.equal(button.hasPointerCapture(1), false); fits(f);
+        assert.equal(drag.session.active(), false); fits(f);
     });
 
     test(`${pointerType}: lifting the ceiling surface reshapes multiple wardrobes throughout the gesture`, t => {
@@ -133,51 +126,53 @@ for (const [width, pointerType] of [[1280, 'mouse'], [375, 'touch']]) {
     });
 }
 
-test('sloped roof endpoints stay captured through automatic wardrobe rebuilds', t => {
-    const f = roomRenderFixture(t, { run: 'across' }), button = f.handle(0);
-    button.onpointerdown(f.event('touch'));
+test('a sloped roof refits the wardrobe at every step of a drag', t => {
+    const f = roomRenderFixture(t, { run: 'across' }), drag = f.shaping();
     for (const y of [10, 20, 30]) {
-        button.onpointermove(f.event('touch', 0, y));
+        assert.equal(drag.move(0, { y: 100 - y }), true);
         assert.equal(f.model.scene.studio.ceilings[0].profile[0].y, 100 - y);
         assert.ok(Math.abs(state(f).h - (100 - y)) <= .11, 'auto fitting rounds to a tenth of a centimetre');
-        assert.equal(button.hasPointerCapture(1), true); fits(f);
+        fits(f);
     }
-    button.onpointerup(); assert.equal(f.history.undoCount, 1);
+    drag.end(); assert.equal(f.history.undoCount, 1);
 });
 
-test('keyboard and numeric ceiling edits reshape wardrobes and keep the selected handle', t => {
-    const f = roomRenderFixture(t), button = f.handle(1);
-    button.onkeydown({ key: 'ArrowDown', shiftKey: true, preventDefault() {}, stopPropagation() {} });
-    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 195); assert.equal(f.handle(1), button);
-    assert.equal(f.commands.editStudio(r => moveCeilingPoint(r, 'k1', 1, 200, 165)), true); f.renderer.build();
-    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 165); assert.equal(f.handle(1), button);
+test('typed shape sizes reshape wardrobes, one undo step each', t => {
+    const f = roomRenderFixture(t), ref = { kind: 'ceiling', id: 'k1' };
+    const at = (y, x) => r => { const p = surfaceProfile(r, ref); return withSurfaceProfile(r, ref, p.points.map((q, k) => k === 1 ? { x: x ?? q.x, y } : q)); };
+    assert.equal(f.commands.editStudio(at(195)), true); f.commands.followCeilings(true); f.renderer.build();
+    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 195);
+    assert.equal(f.commands.editStudio(at(165, 200)), true); f.commands.followCeilings(true); f.renderer.build();
+    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 165);
     assert.equal(f.history.undoCount, 2); fits(f);
 });
 
 test('room handle ownership preserves last-wardrobe cleanup and works in an empty room', t => {
     const f = roomRenderFixture(t); f.selectionState.shapeEditing = true; f.renderer.build();
-    const old = wardrobeHandles(f), ceilingButton = f.handle(1);
+    const depth = () => roomHandles(f).find(el => el.getAttribute('aria-label').startsWith('How far'));
+    const old = wardrobeHandles(f), ceilingButton = depth();
     assert.ok(old.length > 0);
     f.commands.removeCabinet(); f.renderer.build();
     assert.equal(f.selectionState.shapeEditing, false);
     assert.ok(old.every(el => !el.isConnected), 'orphaned wardrobe points and split markers disappear');
-    assert.equal(f.handle(1), ceilingButton); assert.ok(ceilingButton.isConnected);
-    ceilingButton.onpointerdown(f.event()); ceilingButton.onpointermove(f.event('mouse', 0, 50)); ceilingButton.onpointerup();
-    assert.equal(f.model.scene.studio.ceilings[0].profile[1].y, 155);
+    assert.equal(depth(), ceilingButton); assert.ok(ceilingButton.isConnected);
+    ceilingButton.onpointerdown(f.event()); ceilingButton.onpointermove(f.event('mouse', 0, -50)); ceilingButton.onpointerup();
+    assert.equal(f.model.scene.studio.ceilings[0].depth, 100);
     f.editor.act('remove'); assert.equal(roomHandles(f).length, 0, 'removing the ceiling prunes its own handles');
 });
 
 test('leaving wardrobe shape mode removes only its handles; deselecting the room removes room handles', t => {
     const f = roomRenderFixture(t); f.selectionState.shapeEditing = true; f.renderer.build();
-    const old = wardrobeHandles(f), ceilingButton = f.handle(1);
+    const depth = () => roomHandles(f).find(el => el.getAttribute('aria-label').startsWith('How far'));
+    const old = wardrobeHandles(f), ceilingButton = depth();
     f.selectionState.shapeEditing = false; f.renderer.build();
-    assert.ok(old.length > 0 && old.every(el => !el.isConnected)); assert.equal(f.handle(1), ceilingButton);
+    assert.ok(old.length > 0 && old.every(el => !el.isConnected)); assert.equal(depth(), ceilingButton);
     f.editor.select(null); f.renderer.build(); assert.equal(roomHandles(f).length, 0);
 });
 
 test('free front reshaping still works after roof editing while rear contact and collision limits remain enforced', t => {
-    const f = roomRenderFixture(t, { run: 'across' }), roofButton = f.handle(0);
-    roofButton.onpointerdown(f.event()); roofButton.onpointermove(f.event('mouse', 0, 10)); roofButton.onpointerup();
+    const f = roomRenderFixture(t, { run: 'across' }), roof = f.shaping();
+    roof.move(0, { y: 90 }); roof.end();
     f.editor.select(null); f.selectionState.shapeEditing = true; f.renderer.build();
     const button = wardrobeHandles(f).find(el => el.getAttribute('aria-label').startsWith('Break point 1,'));
     const rear = state(f).shape.top.map(p => p.y), start = rear[0];
@@ -190,9 +185,9 @@ test('free front reshaping still works after roof editing while rear contact and
     f.point({ x: -80, y: 125 }); button.onpointermove(f.event()); button.onpointerup(); fits(f);
     const edited = structuredClone(state(f).shape);
     f.editor.select({ kind: 'ceiling', id: 'k1' }); f.selectionState.shapeEditing = false; f.renderer.build();
-    const button2 = f.handle(0); button2.onpointerdown(f.event()); button2.onpointermove(f.event('mouse', 0, -10)); button2.onpointerup();
+    const raise = f.shaping(); raise.move(0, { y: 100 }); raise.end();
     assert.deepEqual(state(f).shape, edited, 'a valid manual front shape survives raising the roof');
-    button2.onpointerdown(f.event()); button2.onpointermove(f.event('mouse', 0, 40)); button2.onpointerup();
+    const lower = f.shaping(); lower.move(0, { y: 60 }); lower.end();
     assert.equal(state(f).shape.template, 'room', 'lowering into the manual shape refits it'); fits(f);
     const snapshot = f.model.snapshot();
     assert.equal(f.commands.setShape(regularShape(160, 240)), false); assert.equal(f.model.snapshot(), snapshot);

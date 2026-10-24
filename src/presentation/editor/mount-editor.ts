@@ -10,6 +10,7 @@ import mobileStylesheet from './mobile.css?raw';
 import mobileSheetStylesheet from './mobile-sheet.css?raw';
 import shapeStylesheet from './shape.css?raw';
 import studioStylesheet from './studio.css?raw';
+import surfaceShapeStylesheet from './surface-shape.css?raw';
 import toolbarLayoutStylesheet from './toolbar-layout.css?raw';
 import furnitureStylesheet from './furniture.css?raw';
 import focusedEditingStylesheet from './focused-editing.css?raw';
@@ -37,7 +38,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack }: MountEdit
     const style = root.ownerDocument.createElement('style');
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
-        shapeStylesheet, studioStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
+        shapeStylesheet, studioStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet, decorStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
