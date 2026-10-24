@@ -79,6 +79,27 @@ export interface StudioCeiling extends SurfaceBoundary {
   readonly edgeRise?: number | undefined;
 }
 
+/** A toilet, a basin or another fixture (fixtures/fixture-kinds.ts) against a wall: `offset` from the wall's corner `a`
+ * to its middle, as an opening's. Its back stands against the wall, or against a boxing in front of the wall there
+ * (derived, never stored), so making the boxing deeper brings it forward. `width` runs along the wall, `depth` out
+ * from what is behind it, and `height` is what its kind names (a toilet's seat, a basin's rim). */
+export interface StudioFixture {
+  readonly id: string;
+  readonly wall: string;
+  readonly kind: string;
+  readonly type: string;
+  readonly offset: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  /** Finishes by group (fixture-kinds.ts FINISHES); absent means the first of each. */
+  readonly ceramic?: string | undefined;
+  readonly metal?: string | undefined;
+  readonly front?: string | undefined;
+  /** A basin's tap: on the basin (absent) or on the wall. */
+  readonly tap?: 'deck' | 'wall' | undefined;
+}
+
 export interface Studio {
   readonly template: StudioTemplateId;
   readonly corners: readonly StudioCorner[];
@@ -86,6 +107,8 @@ export interface Studio {
   readonly openings: readonly StudioOpening[];
   /** Absent in rooms with a flat ceiling, so older projects stay as they were saved. */
   readonly ceilings?: readonly StudioCeiling[] | undefined;
+  /** Absent in rooms without fixtures, so older projects stay as they were saved. */
+  readonly fixtures?: readonly StudioFixture[] | undefined;
 }
 
 /** Limits a person can build within. Centimetres. */

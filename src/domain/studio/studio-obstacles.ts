@@ -2,6 +2,7 @@ import { wallBox, wallLine } from './studio';
 import type { Studio } from './studio';
 import { ceilingFrame } from './studio-ceiling';
 import { ceilingLowerProfile, sectionLowerProfile } from './surface-boundary';
+import { fixtureObstacles } from './fixtures/fixture-place';
 
 /** A solid the collision rules keep wardrobes out of, in the same box form as a wardrobe:
  * centre x/z, floor height y, angle in degrees, and width (along), depth (across), height. */
@@ -11,19 +12,23 @@ export interface Obstacle {
   readonly state: { readonly w: number; readonly d: number; readonly h: number };
 }
 
-/** Every wall of the room as an obstacle, and every part of a shape that stands on the floor (a pillar, a stair
- * reaching down to it). Doors and windows do not let a wardrobe through. */
+/** Every wall of the room as an obstacle, every part of a shape that stands on the floor (a pillar, a boxing, a stair
+ * reaching down to it), and every fixture (a toilet, a basin). Doors and windows do not let a wardrobe through. */
 export function studioObstacles(studio: Studio | undefined): Obstacle[] {
   if (!studio) return [];
-  const walls = studio.walls.flatMap(w => {
+  return [...wallObstacles(studio), ...groundedShapes(studio), ...fixtureObstacles(studio)];
+}
+
+/** Every wall as a solid box. */
+export function wallObstacles(studio: Studio): Obstacle[] {
+  return studio.walls.flatMap(w => {
     const box = wallBox(studio, w);
     return box ? [{ id: box.id, x: box.x, y: 0, z: box.z, angle: box.angle, state: { w: box.length, d: box.thickness, h: box.height } }] : [];
   });
-  return [...walls, ...groundedShapes(studio)];
 }
 
 /** A shape's underside that touches the floor, as boxes: along its wall and as deep as the shape reaches. */
-function groundedShapes(studio: Studio): Obstacle[] {
+export function groundedShapes(studio: Studio): Obstacle[] {
   return (studio.ceilings ?? []).flatMap(c => {
     const frame = ceilingFrame(studio, c), profile = ceilingLowerProfile(c), section = sectionLowerProfile(c);
     if (!frame) return [];

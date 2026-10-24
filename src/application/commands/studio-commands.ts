@@ -14,6 +14,7 @@ import { wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
+import { createFixtureCommands } from './fixture-commands';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
 export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
@@ -227,5 +228,6 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap };
+  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
+    ...createFixtureCommands(getScene, { checkpoint, report }) };
 }

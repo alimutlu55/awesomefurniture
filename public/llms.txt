@@ -52,6 +52,7 @@ Ceiling shapes (`ceilings[].shape`):
 - `slope`: A roof sloping down to this wall
 - `box`: A boxing or a beam lower than the ceiling
 - `pillar`: A column or chimney breast standing against this wall, floor to ceiling
+- `boxing`: A boxed-in wall on the floor, as over a toilet frame or pipes, with a shelf on top
 - `stepped`: A soffit that steps down, as over pipes or a cistern
 
 Wardrobe tops (`wardrobes[].shape`):

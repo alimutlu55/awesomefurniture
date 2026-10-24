@@ -9,10 +9,13 @@ import { openingRange } from './studio-validation';
 import { keepWallBoundaries, trimWallBoundary } from './surface-outline';
 import { keepCeilings, reachAt, splitCeilings } from './studio-ceiling';
 import { isWallUtility, openingLimits } from './wall-utilities';
+import { fixturesOnWalls, keepFixtures, splitFixtures } from './fixtures/fixture-edit';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
   let next: Studio = { ...studio, ...changes, template: 'custom' };
   if (changes.corners && !changes.walls) next = { ...next, walls: keepWallBoundaries(studio, next) };
+  // Fixtures stay where they are in the room when corners move, as doors do.
+  if (changes.corners && !('fixtures' in changes) && studio.fixtures) next = { ...next, fixtures: keepFixtures(studio, changes.corners) };
   // Ceilings stay where they are in the room when corners move; a room without any keeps no list.
   if (changes.corners && !('ceilings' in changes) && studio.ceilings) return { ...next, ceilings: keepCeilings(studio, changes.corners) };
   return next;
@@ -104,7 +107,8 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const second: StudioWall = { ...trimWallBoundary(w, d, Infinity, d), id: nextId('w', studio.walls), a: mid.id, b: w.b };
   const walls = studio.walls.flatMap(x => x.id === id ? [{ ...trimWallBoundary(x, -Infinity, d, 0), b: mid.id }, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: o.offset - d });
-  return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}) });
+  return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}),
+    ...(studio.fixtures ? { fixtures: splitFixtures(studio, id, second.id, d) } : {}) });
 }
 
 /** Adds a wall from a corner to a new point, continuing the chain the corner belongs to so the room
@@ -138,8 +142,9 @@ export function mergeCorners(studio: Studio, from: string, into: string): Studio
   if (from === into || !corner(studio, from) || !corner(studio, into)) return null;
   const walls = studio.walls.map(w => ({ ...w, a: w.a === from ? into : w.a, b: w.b === from ? into : w.b })).filter(w => w.a !== w.b);
   const kept = new Set(walls.map(w => w.id));
-  const ceilings = studio.ceilings?.filter(c => kept.has(c.wall));
-  return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)), ...(ceilings ? { ceilings } : {}) });
+  const ceilings = studio.ceilings?.filter(c => kept.has(c.wall)), fixtures = fixturesOnWalls(studio, kept);
+  return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)),
+    ...(ceilings ? { ceilings } : {}), ...(fixtures ? { fixtures } : {}) });
 }
 
 /** Rooms people add walls to: where one more wall goes. From a free wall end it turns a right angle
@@ -182,8 +187,9 @@ export function removeWall(studio: Studio, id: string): Studio | null {
   if (!wall(studio, id)) return null;
   const walls = studio.walls.filter(w => w.id !== id);
   const next = { ...studio, walls };
-  const ceilings = studio.ceilings?.filter(c => c.wall !== id);
-  return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id), ...(ceilings ? { ceilings } : {}) });
+  const ceilings = studio.ceilings?.filter(c => c.wall !== id), fixtures = fixturesOnWalls(studio, new Set(walls.map(w => w.id)));
+  return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id),
+    ...(ceilings ? { ceilings } : {}), ...(fixtures ? { fixtures } : {}) });
 }
 
 /** Adds a door, window, archway or wall utility to a wall: in the middle if it is free, else in the widest gap.

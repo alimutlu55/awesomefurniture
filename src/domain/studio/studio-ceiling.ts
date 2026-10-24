@@ -143,6 +143,14 @@ export const CEILING_SHAPES = [
     },
   },
   {
+    id: 'boxing', name: 'Boxing', description: 'A boxed-in wall on the floor, as over a toilet frame or pipes, with a shelf on top',
+    build: ({ start, end, reach, centre }) => {
+      const width = Math.min(90, end - start), mid = within(start + width / 2, end - width / 2, centre ?? (start + end) / 2);
+      const outline = pts([[mid - width / 2, 0], [mid + width / 2, 0], [mid + width / 2, 120], [mid - width / 2, 120]]);
+      return { run: 'along', depth: Math.max(L.minCeilingDepth, Math.min(reach - 20, 20)), outline, profile: pts([[mid - width / 2, 0], [mid + width / 2, 0]]) };
+    },
+  },
+  {
     id: 'stepped', name: 'Stepped boxing', description: 'A soffit that steps down, as over pipes or a cistern',
     build: ({ start, end, height, reach, centre }) => {
       const width = Math.min(160, end - start), a = within(start, end - width, (centre ?? (start + end) / 2) - width / 2), b = a + width / 2, c = a + width;
