@@ -202,6 +202,13 @@ Not done yet: a shape cannot be
 dragged from one wall to another; doors and windows are drawn in a wall's Shape editor but a sloped top can cut
 through them without a warning.
 
+## Fixtures (toilets, basins)
+
+Studio › **Fixtures**, or a wall's **Add › Fixtures**. A fixture stands against its wall or the boxing in front of it; the
+boxing is a floor-standing shape (Ceiling › **Boxing**), built, raised, lowered or removed by the toilet's **Type**
+(five setups, from a visible cistern to a frame in the wall). Fixtures are furniture obstacles, keep their place through
+wall edits, show on the plan drawing, and save as `studio.fixtures`. See [studio-fixtures.md](studio-fixtures.md).
+
 ## Measuring assistant (resizing and moving)
 
 What a carpenter reads while something moves or is resized, and nothing else on the model:

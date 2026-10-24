@@ -47,13 +47,14 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
 | Technical drawings (plan, elevations, shop sheets, cutting and hardware lists, PDF) | `src/domain/drawings/` (data, mm) and `src/presentation/drawings/` (paper marks written as SVG and as the PDF file, viewer). See [docs/technical-drawings.md](docs/technical-drawings.md) |
 | What blocks issuing drawings for manufacture | `src/domain/drawings/manufacturing-validation.ts` (independent of the drawing code; a critical finding fails the export closed); the set, revision and stamp in `presentation/drawings/drawing-release.ts` |
+| Toilets, basins and other fixtures (kinds, setups with their boxing, finishes) | One entry in `src/domain/studio/fixtures/fixture-kinds.ts`, its model in `fixture-views.ts` and card in `fixture-art.ts`. See [docs/studio-fixtures.md](docs/studio-fixtures.md) |
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
 Never copy registry contents (kind names, possession keys, purpose labels, furniture kinds, kitchen
-units) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
-`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`.
+units, fixture kinds) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
+`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`.
 
 ## Guards that must stay green
 
