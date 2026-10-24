@@ -34,6 +34,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   let drag: Drag | null = null, pxPerCm = 2;
   const room = () => model.scene.studio;
   const selection = (): RoomSelection => selectionState.room ?? null;
+  const standing = () => model.scene.wardrobes.map(f => ({ x: f.x, z: f.z, angle: f.angle, w: f.state.w, d: f.state.d, h: f.state.h }));
   const tolerance = () => Math.max(.5, Math.min(25, 8 / pxPerCm));
   const wallOf = (studio: Studio, id: string) => studio.walls.find(w => w.id === id);
   const selectedWall = (studio = room()) => {
@@ -227,14 +228,14 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const c = ceilingOf(g.original, h.id)!, raw = step(c.depth + along(e, h, h.nx!, h.nz!)), fr = ceilingFrame(g.original, c)!;
       // Snaps to the wall opposite, so a staircase can span the whole room.
       const opposite = reachAt(g.original, c.wall, (fr.along.from + fr.along.to) / 2);
-      const lock = g.free ? null : alignTo(raw, [...opposite === null ? [] : [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], ...depthTargets(g.original, c)], g.lock, tolerance());
+      const lock = g.free ? null : alignTo(raw, [...opposite === null ? [] : [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], ...depthTargets(g.original, c, standing())], g.lock, tolerance());
       g.lock = lock;
       g.guides = lock && lock.label !== 'Wall' ? depthGuide(g.original, c, lock.v) : [];
       const target = lock ? lock.v : raw, from = ceilingOf(g.last, h.id)?.depth ?? c.depth;
       want = t => setCeilingDepth(g.original, h.id, from + (target - from) * t);
     } else if (h.kind === 'tilt') {
       const c = ceilingOf(g.original, h.id)!, axis = runAxis(ceilingFrame(g.original, c)!, c);
-      const rawHeight = outerEdgeHeight(c) + inPlane(e, h, axis.x, axis.z).y, lock = g.free ? null : alignTo(rawHeight, heightTargets(g.original, c), g.lock, tolerance());
+      const rawHeight = outerEdgeHeight(c) + inPlane(e, h, axis.x, axis.z).y, lock = g.free ? null : alignTo(rawHeight, heightTargets(g.original, c, standing()), g.lock, tolerance());
       g.lock = lock;
       const height = lock ? lock.v : rawHeight;
       g.guides = lock ? heightGuide(g.original, c, h, lock.v) : [];
@@ -244,7 +245,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       // The whole ceiling up or down, as one: a box lowered, a staircase raised.
       const c = ceilingOf(g.original, h.id)!, top = roomHeight(g.original), dy = step(inPlane(e, h, 1, 0).y);
       const cap = top - Math.max(...c.profile.map(p => p.y));
-      const hit: AlignTarget<number> | null = g.free ? null : resolveAlignment(dy, liftTargets(c, heightTargets(g.original, c)), { tolerance: tolerance(), lock: g.lock, within: [-1e6, cap] });
+      const hit: AlignTarget<number> | null = g.free ? null : resolveAlignment(dy, liftTargets(c, heightTargets(g.original, c, standing())), { tolerance: tolerance(), lock: g.lock, within: [-1e6, cap] });
       g.lock = hit && { v: hit.v, label: hit.label };
       g.guides = hit ? heightGuide(g.original, c, h, hit.src!) : [];
       const lift = Math.min(cap, hit ? hit.v : dy), before = (ceilingOf(g.last, h.id)?.profile[0]!.y ?? c.profile[0]!.y) - c.profile[0]!.y;

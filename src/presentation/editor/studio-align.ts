@@ -35,9 +35,31 @@ export function openingGuide(room: Studio, w: StudioWall, offset: number | null,
   return y === null ? [] : [{ a: at(0, y), b: at(length, y), label: 'Aligned with opening' }];
 }
 
-/** Depths a ceiling shape on a wall can reach to match another shape on the same wall. */
-export function depthTargets(room: Studio, c: StudioCeiling): Align[] {
-  return (room.ceilings ?? []).filter(o => o.id !== c.id && o.wall === c.wall && o.run === 'along').map(o => ({ v: round(o.depth), label: 'Aligned with shape' }));
+export interface Standing { readonly x: number; readonly z: number; readonly angle: number; readonly w: number; readonly d: number; readonly h: number }
+
+/** Each wardrobe beside a ceiling shape, as the distance into the room of its nearest and furthest face from
+ * the wall, and its height. `under` marks one standing where the shape comes down: its top follows the shape,
+ * so it is never something the shape lines up with. */
+function beside(room: Studio, c: StudioCeiling, standing: readonly Standing[]) {
+  const fr = ceilingFrame(room, c);
+  if (!fr) return [];
+  return standing.flatMap(f => {
+    const a = f.angle * Math.PI / 180, ux = Math.cos(a), uz = -Math.sin(a), vx = Math.sin(a), vz = Math.cos(a);
+    const pts = ([[-1, -1], [1, -1], [1, 1], [-1, 1]] as const).map(([i, j]) => fr.local({ x: f.x + i * f.w / 2 * ux + j * f.d / 2 * vx, z: f.z + i * f.w / 2 * uz + j * f.d / 2 * vz }));
+    const near = Math.min(...pts.map(p => p.d)), far = Math.max(...pts.map(p => p.d)), from = Math.min(...pts.map(p => p.s)), to = Math.max(...pts.map(p => p.s));
+    // Anything standing against this wall, level with the shape or beside it along the wall.
+    if (far < -.5 || near > 400 || from > fr.face.end + 5 || to < fr.face.start - 5) return [];
+    const overlaps = to > fr.along.from + .5 && from < fr.along.to - .5;
+    return [{ near, far, h: f.h, under: overlaps && near < c.depth - .5 }];
+  });
+}
+
+/** Depths a ceiling shape on a wall can reach to match another shape on the same wall, or the face of a
+ * wardrobe in front of it. */
+export function depthTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[] = []): Align[] {
+  const out: Align[] = (room.ceilings ?? []).filter(o => o.id !== c.id && o.wall === c.wall && o.run === 'along').map(o => ({ v: round(o.depth), label: 'Aligned with shape' }));
+  for (const f of beside(room, c, standing)) for (const v of [f.near, f.far]) if (v > 1) out.push({ v: round(v), label: 'Aligned with wardrobe' });
+  return out;
 }
 /** A line on the floor at `depth` from the wall, across the ceiling's reach. */
 export function depthGuide(room: Studio, c: StudioCeiling, depth: number): Guide[] {
@@ -47,15 +69,16 @@ export function depthGuide(room: Studio, c: StudioCeiling, depth: number): Guide
   return [{ a, b, label: 'Aligned with shape' }];
 }
 
-/** Heights on the model a ceiling edge can match: the other shapes' edges and low points, and the top of
- * every door or window on its wall. */
-export function heightTargets(room: Studio, c: StudioCeiling): Align[] {
+/** Heights on the model a ceiling edge can match: the other shapes' edges and low points, the top of
+ * wardrobes beside it, and the top of every door or window on its wall. */
+export function heightTargets(room: Studio, c: StudioCeiling, standing: readonly Standing[] = []): Align[] {
   const out: Align[] = [], top = roomHeight(room);
   for (const o of room.ceilings ?? []) {
     if (o.id === c.id) continue;
     const ys = new Set([outerEdgeHeight(o), ...o.profile.map(p => p.y)]);
     for (const y of ys) if (y > 1 && y < top - .5) out.push({ v: round(y), label: 'Aligned with shape' });
   }
+  for (const f of beside(room, c, standing)) if (!f.under && f.h > 1 && f.h < top - .5) out.push({ v: round(f.h), label: 'Aligned with wardrobe' });
   for (const o of heads(room, c.wall)) if (o.sill + o.height < top - .5) out.push({ v: round(o.sill + o.height), label: 'Aligned with opening' });
   return out;
 }
