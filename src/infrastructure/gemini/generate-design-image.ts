@@ -45,10 +45,20 @@ async function providerError(response: Response): Promise<{ reason: string | nul
   } catch { return none; }
 }
 
+/** The token counts Google reports, kept with the credit spend so the real cost per image can be checked against
+ * the price (docs/credits.md). Only whole numbers are kept; the field names are Google's. */
+function tokenUsage(usage: Record<string, unknown> | undefined): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const [name, value] of Object.entries(usage ?? {}).slice(0, 16)) {
+    if (/^[a-z_]{1,48}$/.test(name) && Number.isInteger(value) && (value as number) >= 0) counts[name] = value as number;
+  }
+  return counts;
+}
+
 export async function generateDesignImage(
   input: { references: DesignReferenceImage[]; specification: ConfigurationForImage; renderConfig?: RenderPromptConfig | undefined; decorSwatches?: DecorSwatchReference[] | undefined },
   apiKey: string, signal: AbortSignal, fetcher: typeof fetch = fetch, logLevel?: string,
-): Promise<DesignImageResponse> {
+): Promise<DesignImageResponse & { usage: Record<string, number> }> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
   const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
   const requestBody = {
@@ -101,6 +111,7 @@ export async function generateDesignImage(
   }
   const result = await response.json() as {
     status?: string; steps?: { type: string; content?: { type: string; mime_type?: string; data?: string; text?: string }[] }[];
+    usage?: Record<string, unknown>;
   };
   const parts = result.status === 'completed'
     ? result.steps?.filter(step => step.type === 'model_output').flatMap(step => step.content ?? []) ?? [] : [];
@@ -111,5 +122,5 @@ export async function generateDesignImage(
   }
   const text = parts.filter(part => part.type === 'text' && typeof part.text === 'string')
     .map(part => part.text!.trim()).filter(Boolean).join('\n\n');
-  return { model: GEMINI_IMAGE_MODEL, image: { mimeType: image.mime_type, data: image.data! }, ...(text ? { text } : {}) };
+  return { model: GEMINI_IMAGE_MODEL, image: { mimeType: image.mime_type, data: image.data! }, ...(text ? { text } : {}), usage: tokenUsage(result.usage) };
 }

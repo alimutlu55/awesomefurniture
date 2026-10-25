@@ -1,3 +1,7 @@
 # Wrangler local development only. Copy to .dev.vars (ignored by git).
 GEMINI_API_KEY=
 LOG_LEVEL=info
+# Credits (docs/credits.md). Use the development Supabase project and Stripe test-mode keys here.
+SUPABASE_SECRET_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=

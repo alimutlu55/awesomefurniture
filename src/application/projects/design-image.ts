@@ -28,4 +28,5 @@ export interface DesignImageRequest {
 }
 export interface DecorSwatchReference { decorId: string; mimeType: 'image/webp' | 'image/jpeg' | 'image/png'; data: string }
 export interface GeneratedDesignImage { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; data: string }
-export interface DesignImageResponse { model: string; image: GeneratedDesignImage; text?: string }
+/** `credits`: the balance after this image was paid for, and what it cost (docs/credits.md). */
+export interface DesignImageResponse { model: string; image: GeneratedDesignImage; text?: string; credits?: { balance: number; cost: number } }
