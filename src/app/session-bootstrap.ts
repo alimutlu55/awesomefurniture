@@ -44,6 +44,31 @@ export async function prepareSession(url: URL) {
   const requestedId = hasInline ? null : url.searchParams.get('session') ?? url.searchParams.get('project');
   let draft: SessionDraft | null = null;
   let saved = false;
+  /** The design that was open last, if it still exists; otherwise the account's newest design; otherwise nothing. */
+  async function restore() {
+    try { draft = drafts.read(); } catch {
+      warning = 'The previous browser draft could not be read. It is still stored.';
+    }
+    if (draft && repository) {
+      try {
+        const stored = await repository.load(draft.document.id);
+        // Saved before, and no longer in the cloud: it was removed (here or on another device).
+        if (!stored && draft.expectedRevision !== null) draft = null;
+        else saved = !!stored && draft.expectedRevision === stored.revision && JSON.stringify(draft.document) === JSON.stringify(stored.document);
+      } catch { warning = 'Cloud saving is unavailable. Your browser draft has been restored.'; }
+    }
+    if (!draft && repository) {
+      try {
+        const newest = (await repository.list())[0];
+        const stored = newest ? await repository.load(newest.id) : null;
+        if (stored) { draft = { document: stored.document, expectedRevision: stored.revision }; saved = true; }
+      } catch { /* a new design opens instead */ }
+    }
+    if (!draft && user) {
+      const guest = createBrowserDrafts(localStorage, 'guest').read();
+      if (guest) draft = { document: { ...guest.document, id: crypto.randomUUID() }, expectedRevision: null };
+    }
+  }
   if (requestedId && repository && client) {
     let owned;
     try { owned = await repository.load(requestedId); }
@@ -59,29 +84,23 @@ export async function prepareSession(url: URL) {
       // The design is still the guest's until the move finishes: open the account's own work meanwhile.
       draft = drafts.read();
     } else if (!draft) {
-      const shared = await loadPublicSession(client, requestedId);
-      // The recipient sees the shared design but edits an independently owned session.
-      draft = { document: {
-        ...shared.document, id: crypto.randomUUID(), name: shared.document.name.slice(0, 113) + ' · Copy',
-      }, expectedRevision: null };
+      try {
+        const shared = await loadPublicSession(client, requestedId);
+        // The recipient sees the shared design but edits an independently owned session.
+        draft = { document: {
+          ...shared.document, id: crypto.randomUUID(), name: shared.document.name.slice(0, 113) + ' · Copy',
+        }, expectedRevision: null };
+      } catch {
+        // Removed, private or never shared (an old address, or one from before signing in): open the person's own work.
+        await restore();
+        warning = 'That design was removed or is not available. Here is your latest design instead.';
+      }
     }
   } else if (requestedId) {
     draft = drafts.read(requestedId);
     if (!draft) throw new Error('This design is not available in this browser while cloud saving is unavailable.');
   } else if (!hasInline) {
-    try { draft = drafts.read(); } catch {
-      warning = 'The previous browser draft could not be read. It is still stored.';
-    }
-    if (draft && repository) {
-      try {
-        const stored = await repository.load(draft.document.id);
-        saved = !!stored && draft.expectedRevision === stored.revision && JSON.stringify(draft.document) === JSON.stringify(stored.document);
-      } catch { warning = 'Cloud saving is unavailable. Your browser draft has been restored.'; }
-    }
-    if (!draft && user) {
-      const guest = createBrowserDrafts(localStorage, 'guest').read();
-      if (guest) draft = { document: { ...guest.document, id: crypto.randomUUID() }, expectedRevision: null };
-    }
+    await restore();
   }
   draft ??= { document: createProject(crypto.randomUUID(), 'Untitled design'), expectedRevision: null };
   return { client, user, repository, drafts, draft, saved, warning, handover, switched: () => switched };

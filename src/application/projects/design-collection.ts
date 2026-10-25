@@ -43,6 +43,9 @@ export function createDesignCollection(repository: ProjectRepository | null, dra
     const merged = new Map(cloud.filter(row => !drafts.deleted(row.id)).map(row => [row.id, row]));
     for (const local of drafts.list()) {
       const remote = merged.get(local.id);
+      // A draft that was saved before (it has a revision) but is not in the cloud list was deleted elsewhere: it cannot
+      // be opened, so it is not listed (the draft itself stays in this browser).
+      if (!remote && local.revision > 0 && repository && !warning) continue;
       if (!remote || local.revision >= remote.revision) merged.set(local.id, local);
     }
     return { items: [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)), warning };

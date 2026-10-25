@@ -3,7 +3,7 @@ import { bindPageViewport } from '../presentation/editor/page-viewport';
 import { mountDesignLibrary } from '../presentation/designs/design-library';
 import { designPreview } from '../presentation/designs/design-preview';
 import { createDesignCollection } from '../application/projects/design-collection';
-import type { OpenDesign } from '../application/projects/design-collection';
+import { DesignUnavailableError, type OpenDesign } from '../application/projects/design-collection';
 import { projectToScene } from '../application/projects/editor-mapper';
 import { connectSessions } from './session-platform';
 import type { SessionPlatform } from './session-bootstrap';
@@ -78,8 +78,14 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     root.inert = true;
     try {
       if (!deleted) {
-        current = await sessions.close(); currentId = current.draft.document.id;
-        savePreview(currentId);
+        try {
+          current = await sessions.close(); currentId = current.draft.document.id;
+          savePreview(currentId);
+        } catch (error) {
+          // The design was removed elsewhere: it cannot be saved, but the person must still be able to leave it.
+          if (!(error instanceof DesignUnavailableError)) throw error;
+          await sessions.dispose(); currentId = null;
+        }
       } else await sessions.dispose();
       mounted.dispose(); unbindViewport();
       mounted = null; sessions = null; changed(null); root.hidden = true;
