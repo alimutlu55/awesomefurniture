@@ -15,8 +15,8 @@ export function accountSheet() {
   return '<div class="cr-sheet ac-sheet" role="dialog" aria-modal="true" aria-labelledby="ac-title" tabindex="-1">'
     + `<button type="button" class="cr-close" aria-label="Close">${CLOSE}</button>`
     + `<header class="ac-head"><span class="ac-avatar">${PERSON}</span><div><h2 id="ac-title"></h2><p class="ac-lead"></p></div></header>`
-    + '<div class="cr-tabs ac-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" data-tab="sign-up">Sign up</button>'
-    + '<button type="button" role="tab" data-tab="sign-in">Sign in</button></div>'
+    + '<div class="cr-tabs ac-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" data-tab="sign-in">Sign in</button>'
+    + '<button type="button" role="tab" data-tab="sign-up">Sign up</button></div>'
     + `<section class="ac-start"><button type="button" class="ac-google" hidden>${GOOGLE}<span>Continue with Google</span></button>`
     + '<p class="ac-or" hidden><span>or with your email</span></p>'
     + '<form class="ac-form ac-credentials" novalidate>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')

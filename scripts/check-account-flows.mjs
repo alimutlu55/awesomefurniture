@@ -55,6 +55,9 @@ try {
       await page.locator('.ac-menu').click();
       await sheet.waitFor();
       await page.locator('.ac-google').waitFor();
+      assert.equal(await page.locator('.ac-tabs [role="tab"]').first().innerText(), 'Sign in', 'Sign in is the first tab');
+      assert.equal(await page.locator('.ac-tabs [aria-selected="true"]').innerText(), 'Sign in', 'and the one that opens');
+      await page.locator('.ac-tabs [data-tab="sign-up"]').click();
       await shot('create-account');
       await fill('.ac-credentials', { email: 'Person@Example.test', password: 'short' });
       await submit('.ac-credentials');

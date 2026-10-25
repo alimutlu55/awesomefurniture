@@ -63,7 +63,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
   const account = $('.ac-account'), welcome = $('.ac-welcome'), google = $<HTMLButtonElement>('.ac-google');
   const loading = new Map<HTMLElement, ReturnType<typeof createLoadingState>>([credentials, confirm, forgot, reset, account]
     .map(section => [section, createLoadingState(section)]));
-  let view: AccountView = 'sign-up', entry: AccountView = 'sign-up', address = '', reason: 'credits' | null = null;
+  let view: AccountView = 'sign-in', entry: AccountView = 'sign-in', address = '', reason: 'credits' | null = null;
   let busy = false, previousFocus: HTMLElement | null = null;
 
   const input = (form: HTMLFormElement, name: string) => form.elements.namedItem(name) as HTMLInputElement;
@@ -113,7 +113,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
     if (overlay.hidden) previousFocus = page.activeElement as HTMLElement | null;
     overlay.hidden = false;
     const email = platform.email();
-    show(options.view ?? (email ? 'account' : 'sign-up'),
+    show(options.view ?? (email ? 'account' : 'sign-in'),
       email && (options.view ?? 'account') === 'account' ? `Signed in as ${email}. Your designs and credits are saved to this account.` : '');
   }
   function close() {
