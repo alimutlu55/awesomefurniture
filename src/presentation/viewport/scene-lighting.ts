@@ -4,6 +4,20 @@ import * as THREE from 'three';
 /** A box of the scene to light: centre and size on the floor, height. Centimetres. */
 export interface LitBounds { readonly x: number; readonly z: number; readonly w: number; readonly d: number; readonly h: number }
 
+/** The light of one time of day: where the sun comes from, and each light's sRGB colour and strength. */
+export interface LightSetting {
+  readonly direction: readonly [number, number, number];
+  readonly sun: readonly [colour: number, intensity: number];
+  readonly sky: readonly [sky: number, ground: number, intensity: number];
+  readonly fill: readonly [colour: number, intensity: number];
+  readonly ambient: readonly [colour: number, intensity: number];
+}
+
+/** The editor's own light, a photographed interior at midday. */
+export const MIDDAY_LIGHT: LightSetting = {
+  direction: [-1.4, 2.1, 2.6], sun: [0xfff3e4, 1.1], sky: [0xfff1de, 0x6b5a46, .2], fill: [0xdfe8ff, .25], ambient: [0xffffff, .06],
+};
+
 /** Drape Lab room illumination, with shadow bounds fitted to the editor's centimetre scene. */
 export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
   const room = new THREE.Scene();
@@ -51,9 +65,11 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -.0006;
   sun.shadow.normalBias = .6;
-  const direction = new THREE.Vector3(-1.4, 2.1, 2.6).normalize();
+  const direction = new THREE.Vector3(...MIDDAY_LIGHT.direction).normalize();
+  let lit: LitBounds = { x: 0, z: 0, w: 300, d: 300, h: 250 };
 
   function fit(bounds: LitBounds) {
+    lit = bounds;
     const reach = Math.max(bounds.w, bounds.d, bounds.h, 200) * .75 + 40;
     // Centred on the scene's middle height, not the floor: centred on the floor, the shadow camera's reach left the
     // top of a tall wardrobe outside it, unshadowed (a lit stripe under the top).
@@ -66,10 +82,22 @@ export function createSceneLighting(renderer: THREE.WebGLRenderer, scene: THREE.
     c.far = reach * 5;
     c.updateProjectionMatrix();
   }
-  fit({ x: 0, z: 0, w: 300, d: 300, h: 250 });
+  fit(lit);
+
+  /** Changes the time of day: the sun's direction and every light's colour and strength. */
+  function set(setting: LightSetting) {
+    direction.set(...setting.direction).normalize();
+    sun.color.copy(linear(setting.sun[0])); sun.intensity = setting.sun[1];
+    sky.color.copy(linear(setting.sky[0])); sky.groundColor.copy(linear(setting.sky[1])); sky.intensity = setting.sky[2];
+    fill.color.copy(linear(setting.fill[0])); fill.intensity = setting.fill[1];
+    ambient.color.copy(linear(setting.ambient[0])); ambient.intensity = setting.ambient[1];
+    sun.castShadow = setting.sun[1] > .05;
+    fit(lit);
+    renderer.shadowMap.needsUpdate = true;
+  }
 
   return {
-    sun, fit,
+    sun, fit, set,
     dispose() { scene.remove(ambient, sky, fill, sun, sun.target); environmentTarget.dispose(); scene.environment = null; },
   };
 }

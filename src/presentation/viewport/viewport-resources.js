@@ -73,7 +73,11 @@ export function createViewportResources(cv) {
     const fabric = c => M(c, { map: cloth, roughness: .95, envMapIntensity: .25 });
     const softArea = (w, h, d, opacity) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity, depthWrite: false }));
     const shade = (c, f) => '#' + new THREE.Color(c).multiplyScalar(f).getHexString();
+    /** Per-frame work of the scene's moods (light, looks, assembly): run after the camera moves, before the frame is drawn.
+     * @type {Set<(camera: THREE.PerspectiveCamera, dt: number) => void>} */
+    const frameHooks = new Set();
     function dispose() {
+        frameHooks.clear();
         lighting.dispose();
         stage.dispose();
         disposeSceneAssets(scene, [veneer.map, veneer.roughnessMap, veneer.normalMap, cloth, aoTexture], [HM]);
@@ -81,5 +85,5 @@ export function createViewportResources(cv) {
         R.dispose();
         R.forceContextLoss();
     }
-    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, decorTexture, fabric, softArea, shade, lighting, ground: stage.mesh, stage, dispose };
+    return { cv, R, scene, cam, contact, aoTexture, HM, M, wood, decorTexture, fabric, softArea, shade, lighting, ground: stage.mesh, stage, frameHooks, dispose };
 }
