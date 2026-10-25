@@ -5,6 +5,7 @@ import { resolveMaterials, type LegacyFinish } from '../../domain/materials/conf
 import type { createViewportResources } from './viewport-resources.js';
 import { applyBoardColorRendering } from './board-color-rendering';
 import { applyMaterialRelief } from './material-relief';
+import { startLoadingShimmer } from './loading-shimmer';
 
 type Resources = Pick<ReturnType<typeof createViewportResources>, 'M'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'decorTexture'>>;
 /** Plain finishes never borrow generic oak grain. A verified albedo uses white tint. */
@@ -27,11 +28,14 @@ export function createDecorMaterial(resources: Resources, sku: BoardDecorSKU) {
   applyMaterialRelief(material, sku);
   if (sku.pbr.textureUrl && resources.decorTexture) {
     let disposed = false;
+    // Until its scan arrives the surface shows the app's loading state, on this surface only.
+    const loading = startLoadingShimmer(material);
     const texture = resources.decorTexture(sku.pbr.textureUrl, loaded => {
+      loading.done();
       if (disposed) return;
       material.map = loaded;
       material.color.set('#ffffff'); material.userData.referenceColor = new THREE.Color('#ffffff'); material.needsUpdate = true;
-    });
+    }, () => loading.done());
     material.addEventListener('dispose', () => { disposed = true; texture.dispose(); });
   }
   return material;

@@ -1,4 +1,5 @@
 import { stepGarmentSway } from './garment-renderer';
+import { tickLoadingShimmer } from './loading-shimmer';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'lifetime' | 'renderState' | 'camera' | 'resources' | 'cameraState' | 'interactionState' | 'picking' | 'interactions' | 'shellState'> & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'positionLabels'> } & { clock?: Pick<Performance, 'now'>; studio?: Pick<ReturnType<typeof import('./studio-renderer').createStudioRenderer>, 'frame' | 'shadowKey'> }} ports */
 export function createFrameRenderer({ dom, clock = performance, lifetime, renderState, camera, resources, cameraState, interactionState, picking, interactions, shellState, studio, callbacks }) {
     const { $, matchMedia } = dom;
@@ -49,6 +50,8 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
         }
         renderState.pivots.forEach(p => p.rotation.y += ((p.userData.state.open ? p.userData.t : 0) - p.rotation.y) * kk(8));
         stepGarmentSway(renderState.garments, dt, _n / 1000, matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
+        // Surfaces still loading sweep their light; with reduced motion it stands still.
+        if (!matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) tickLoadingShimmer(_n);
         // Shadows depend on the scene, not the camera: redraw them only when something moved.
         const shadows = studio?.shadowKey?.();
         if (shadows !== lastShadows) {

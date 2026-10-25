@@ -25,6 +25,17 @@ interface Original {
   /** A surface's own shader changes (catalogue boards keep their swatch tone): set aside while a look draws it. */
   shader: THREE.Material['onBeforeCompile']; cacheKey: THREE.Material['customProgramCacheKey'];
 }
+/** What this director last wrote to a surface; anything else found there later was changed by its owner. */
+interface Written {
+  color: number; emissive: number; roughness: number; metalness: number; toneMapped: boolean;
+  map: THREE.Texture | null; normalMap: THREE.Texture | null; roughnessMap: THREE.Texture | null; bumpMap: THREE.Texture | null;
+  shader: THREE.Material['onBeforeCompile']; cacheKey: THREE.Material['customProgramCacheKey'];
+}
+const MAPS = ['map', 'normalMap', 'roughnessMap', 'bumpMap'] as const;
+const written = (m: THREE.MeshStandardMaterial): Written => ({
+  color: m.color.getHex(), emissive: m.emissive.getHex(), roughness: m.roughness, metalness: m.metalness, toneMapped: m.toneMapped,
+  map: m.map, normalMap: m.normalMap, roughnessMap: m.roughnessMap, bumpMap: m.bumpMap, shader: m.onBeforeCompile, cacheKey: m.customProgramCacheKey,
+});
 const PLAIN_SHADER: THREE.Material['onBeforeCompile'] = () => {};
 const plainKey = () => 'scene-look-plain';
 type Standard = THREE.MeshStandardMaterial;
@@ -58,18 +69,39 @@ export function createSceneLooks({ scene, skip = () => false, shading = () => fa
     }
     return o;
   }
+  /** A surface's owner changed it since this director last wrote it (a decor scan arrived and became its map):
+   * that is now the surface's own value, kept when the surface is put back. Without this, a texture that loads
+   * after a surface was first directed would be taken off it again at the next change of look or light. */
+  function adopt(m: Standard, o: Original) {
+    const w = m.userData.lookWritten as Written | undefined;
+    if (!w) return false;
+    let changed = false;
+    if (m.color.getHex() !== w.color) { o.color.copy(m.color); changed = true; }
+    if (m.emissive.getHex() !== w.emissive) { o.emissive.copy(m.emissive); changed = true; }
+    for (const key of MAPS) if (m[key] !== w[key]) { o[key] = m[key]; changed = true; }
+    if (m.roughness !== w.roughness) { o.roughness = m.roughness; changed = true; }
+    if (m.metalness !== w.metalness) { o.metalness = m.metalness; changed = true; }
+    if (m.toneMapped !== w.toneMapped) { o.toneMapped = m.toneMapped; changed = true; }
+    if (m.onBeforeCompile !== w.shader) { o.shader = m.onBeforeCompile; changed = true; }
+    if (m.customProgramCacheKey !== w.cacheKey) { o.cacheKey = m.customProgramCacheKey; changed = true; }
+    return changed;
+  }
   function restore(m: Standard, o: Original) {
+    adopt(m, o);
     const changedMaps = m.map !== o.map || m.normalMap !== o.normalMap || m.roughnessMap !== o.roughnessMap || m.bumpMap !== o.bumpMap
       || m.toneMapped !== o.toneMapped || m.onBeforeCompile !== o.shader;
     m.color.copy(o.color); m.emissive.copy(o.emissive); m.emissiveIntensity = o.emissiveIntensity * light.emissive; m.envMapIntensity = o.envMapIntensity * light.env;
     m.roughness = o.roughness; m.metalness = o.metalness; m.map = o.map; m.normalMap = o.normalMap; m.roughnessMap = o.roughnessMap; m.bumpMap = o.bumpMap; m.toneMapped = o.toneMapped;
     m.onBeforeCompile = o.shader; m.customProgramCacheKey = o.cacheKey;
     if (changedMaps) m.needsUpdate = true;
+    m.userData.lookWritten = written(m);
   }
   function direct(m: Standard) {
-    if (m.userData.lookStamp === stamp) return;
+    const known = originals.get(m);
+    if (m.userData.lookStamp === stamp && (!known || !adopt(m, known))) return;
     m.userData.lookStamp = stamp;
     const o = remember(m);
+    adopt(m, o);
     const surface = surfaceLook(look, { tone: (o.color.r + o.color.g + o.color.b) / 3, board: !!m.userData.board });
     if (!surface) { restore(m, o); return; }
     const linear = (hex: number) => new THREE.Color(hex).convertSRGBToLinear();
@@ -83,6 +115,7 @@ export function createSceneLooks({ scene, skip = () => false, shading = () => fa
       m.onBeforeCompile = PLAIN_SHADER; m.customProgramCacheKey = plainKey;
       m.needsUpdate = true;
     }
+    m.userData.lookWritten = written(m);
   }
   function outline(mesh: THREE.Mesh) {
     if (edges.has(mesh)) { edges.get(mesh)!.material = look === 'workshop' ? lines.workshop : lines.maquette; return; }
