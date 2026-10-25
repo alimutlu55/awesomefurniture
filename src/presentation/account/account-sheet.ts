@@ -50,8 +50,8 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
   item.type = 'button'; item.className = 'mi ac-menu'; item.setAttribute('role', 'menuitem');
   item.innerHTML = accountMenuItem(platform.email());
   const group = dom.$('#menu').querySelector('[data-menu-group="account"]') ?? dom.$('#menu');
-  const groupTitle = group.querySelector('.menu-group-title');
-  if (groupTitle) groupTitle.after(item); else group.prepend(item);
+  // Last in the group: Credits (the wallet) sits above it, right after the group's title.
+  group.append(item);
 
   const overlay = page.createElement('div');
   overlay.className = 'cr-overlay ac-overlay'; overlay.hidden = true; overlay.innerHTML = accountSheet();

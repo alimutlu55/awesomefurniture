@@ -41,8 +41,9 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   chip.innerHTML = coin() + '<span>Credits</span><b class="cr-chip-value">0</b><small class="cr-chip-buy">Get credits</small>'
     + '<i class="cr-chip-gain" aria-hidden="true"></i>';
   // Keep the balance in Account; the group stays hidden until credits are available.
-  const menu = dom.$('#menu');
-  (menu.querySelector('[data-menu-group="account"]') ?? menu).append(chip);
+  const menu = dom.$('#menu'), group = menu.querySelector('[data-menu-group="account"]') ?? menu;
+  const groupTitle = group.querySelector('.menu-group-title');
+  if (groupTitle) groupTitle.after(chip); else group.prepend(chip);
 
   const overlay = page.createElement('div');
   overlay.className = 'cr-overlay'; overlay.hidden = true; overlay.innerHTML = walletShell();
