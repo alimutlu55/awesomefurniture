@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { CreditError } from '../../application/credits/credit-service';
 import type { CreditStore, PaymentOrder } from '../../application/credits/credit-ports';
 
 const spendRow = z.object({
@@ -32,6 +33,7 @@ const toOrder = (row: unknown): PaymentOrder => {
 export function createSupabaseCreditStore(client: SupabaseClient): CreditStore {
   async function call(fn: string, args: Record<string, unknown>): Promise<unknown> {
     const { data, error } = await client.rpc(fn, args);
+    if (error?.hint === 'RATE_LIMITED') throw new CreditError('RATE_LIMITED', 'Too many checkouts started.');
     if (error) throw new Error(`Credit store ${fn} failed: ${error.code ?? ''} ${error.message}`);
     return data;
   }

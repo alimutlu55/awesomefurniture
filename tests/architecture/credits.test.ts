@@ -197,3 +197,13 @@ test('a refused Stripe request becomes a clear 502 with a secret-free reference,
   assert.ok(!JSON.stringify(body).includes('sk_test'), 'the provider message and key never reach the browser');
   assert.ok(response.headers.get('x-request-id'));
 });
+
+test('a checkout that fails at the provider is closed, so failures never use up the hourly allowance', async () => {
+  const store = createMemoryCreditStore(), expired: string[] = [];
+  const failing: PaymentProvider = { id: 'fake', async checkout() { throw new PaymentProviderError('invalid_request_error:http_400'); },
+    async lookup() { return null; }, async webhook() { throw new PaymentSignatureError(); } };
+  const service = createCreditService({ store: { ...store, expireOrder: async id => { expired.push(id); await store.expireOrder(id); } }, providers: [failing], requireAccount: false });
+  await assert.rejects(service.checkout(buyer, { pack: 'starter', provider: 'fake', links }), PaymentProviderError);
+  assert.equal(expired.length, 1);
+  assert.equal((await store.order(expired[0]!))!.status, 'expired');
+});

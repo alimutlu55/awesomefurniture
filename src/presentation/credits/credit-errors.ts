@@ -6,7 +6,7 @@ function customerMessage(code: unknown): string {
     case 'INSUFFICIENT_CREDITS': return 'You need a few more credits for this.';
     case 'ACCOUNT_REQUIRED': return 'Add your email first, so your credits are safe on every device.';
     case 'SIGN_IN_REQUIRED': return 'Your session has ended. Reload the page and try again.';
-    case 'RATE_LIMITED': return 'Too many checkouts were started. Please wait a little and try again.';
+    case 'RATE_LIMITED': return 'You started many checkouts in the last hour. Please wait a little and try again.';
     case 'ORDER_NOT_FOUND': return 'We could not find this purchase. If you were charged, your credits will arrive shortly.';
     case 'CHECKOUT_FAILED': return 'We could not open the payment page. Please try again in a moment.';
     case 'UNKNOWN_PACK':

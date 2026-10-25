@@ -3,7 +3,7 @@ import type { CheckoutLinks, CreditStore, CreditUser, PaymentProvider, PaymentUp
 import type { CreditWallet, OrderConfirmation } from './credit-wallet';
 
 export type CreditErrorCode = 'UNKNOWN_PACK' | 'UNKNOWN_PROVIDER' | 'UNKNOWN_FEATURE' | 'ACCOUNT_REQUIRED' | 'INSUFFICIENT_CREDITS'
-  | 'ORDER_NOT_FOUND' | 'INVALID_REQUEST' | 'SIGN_IN_REQUIRED' | 'CREDITS_UNAVAILABLE';
+  | 'ORDER_NOT_FOUND' | 'INVALID_REQUEST' | 'SIGN_IN_REQUIRED' | 'CREDITS_UNAVAILABLE' | 'RATE_LIMITED';
 
 /** A request the credit service refuses; the code is what the browser maps to its own copy. */
 export class CreditError extends Error {
@@ -60,7 +60,9 @@ export function createCreditService({ store, providers, requireAccount }: Depend
     if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', 'Add your email before buying credits.');
     const order = await store.createOrder({ userId: user.id, packId: pack.id, credits: packCredits(pack), amount: pack.price,
       currency: pack.currency, provider: via.id, email: user.email });
-    const session = await via.checkout(order, input.links, user.email, `${pack.label} pack · ${packCredits(pack)} credits`);
+    // A checkout that never reached the payment page is closed at once, so it does not count towards the hourly limit.
+    const session = await via.checkout(order, input.links, user.email, `${pack.label} pack · ${packCredits(pack)} credits`)
+      .catch(async (error: unknown) => { await store.expireOrder(order.id).catch(() => undefined); throw error; });
     await store.attachOrder(order.id, session.providerRef);
     return { orderId: order.id, url: session.url };
   }

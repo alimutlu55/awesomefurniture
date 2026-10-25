@@ -102,6 +102,23 @@ begin
   end if;
 end $$;
 
+-- The hourly checkout limit counts started checkouts only: failed ones are closed and do not count.
+do $$
+declare ord public.payment_orders;
+begin
+  while (select count(*) from public.payment_orders where user_id = '33333333-3333-4333-8333-333333333333' and status <> 'expired') < 20 loop
+    ord := public.credits_create_order('33333333-3333-4333-8333-333333333333', 'starter', 50, 499, 'usd', 'stripe');
+  end loop;
+  begin
+    perform public.credits_create_order('33333333-3333-4333-8333-333333333333', 'starter', 50, 499, 'usd', 'stripe');
+    raise exception 'The 21st checkout in an hour was allowed';
+  exception when others then
+    if sqlerrm <> 'Too many checkouts started' then raise; end if;
+  end;
+  update public.payment_orders set status = 'expired' where user_id = '33333333-3333-4333-8333-333333333333' and status = 'pending';
+  perform public.credits_create_order('33333333-3333-4333-8333-333333333333', 'starter', 50, 499, 'usd', 'stripe');
+end $$;
+
 -- People read only their own credits and can call none of the functions.
 select set_config('request.jwt.claim.sub', '44444444-4444-4444-8444-444444444444', true);
 set local role authenticated;
