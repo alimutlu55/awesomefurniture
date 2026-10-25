@@ -37,6 +37,11 @@ export function createSupabaseCreditStore(client: SupabaseClient): CreditStore {
     if (error) throw new Error(`Credit store ${fn} failed: ${error.code ?? ''} ${error.message}`);
     return data;
   }
+  async function many(query: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>) {
+    const { data, error } = await query;
+    if (error) throw new Error('Credit store read failed: ' + error.message);
+    return (data ?? []).map(toOrder);
+  }
   async function one(query: PromiseLike<{ data: unknown; error: { message: string } | null }>) {
     const { data, error } = await query;
     if (error) throw new Error('Credit store read failed: ' + error.message);
@@ -64,6 +69,11 @@ export function createSupabaseCreditStore(client: SupabaseClient): CreditStore {
     },
     async attachOrder(orderId, providerRef) { await call('credits_attach_order', { p_order: orderId, p_provider_ref: providerRef }); },
     order: orderId => one(client.from('payment_orders').select(ORDER_FIELDS).eq('id', orderId).maybeSingle()),
+    pendingOrders(olderThanMinutes, limit) {
+      const now = Date.now(), minutes = (n: number) => new Date(now - n * 60_000).toISOString();
+      return many(client.from('payment_orders').select(ORDER_FIELDS).eq('status', 'pending').not('provider_ref', 'is', null)
+        .lt('created_at', minutes(olderThanMinutes)).gt('created_at', minutes(48 * 60)).order('created_at', { ascending: false }).limit(limit));
+    },
     orderByPayment: (provider, paymentRef) => one(client.from('payment_orders').select(ORDER_FIELDS)
       .eq('provider', provider).eq('provider_payment_ref', paymentRef).maybeSingle()),
     async completeOrder(c) {

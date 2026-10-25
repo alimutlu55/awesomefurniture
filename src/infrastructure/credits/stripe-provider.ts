@@ -43,14 +43,17 @@ export function createStripeProvider(secretKey: string, webhookSecret: string, c
         return orderId ? { kind: 'expired', eventId: event.id, orderId } : { kind: 'ignored', eventId: event.id, type: event.type };
       }
       case 'charge.refunded': {
-        const paymentRef = ref(event.data.object.payment_intent);
-        return paymentRef ? { kind: 'refunded', eventId: event.id, paymentRef, refundedAmount: event.data.object.amount_refunded }
+        // Both amounts are the charge's own (tax included, in the currency the customer paid), so their ratio is the share refunded.
+        const charge = event.data.object, paymentRef = ref(charge.payment_intent);
+        return paymentRef ? { kind: 'refunded', eventId: event.id, paymentRef, refundedAmount: charge.amount_refunded, chargedAmount: charge.amount }
           : { kind: 'ignored', eventId: event.id, type: event.type };
       }
       case 'charge.dispute.created':
       case 'charge.dispute.closed': {
+        // An inquiry (`warning_*`) also opens as a dispute; closed as `warning_closed` it never became a chargeback, so the credits return.
         const dispute = event.data.object, paymentRef = ref(dispute.payment_intent);
-        if (!paymentRef || (event.type === 'charge.dispute.closed' && dispute.status !== 'won')) return { kind: 'ignored', eventId: event.id, type: event.type };
+        const stands = dispute.status === 'won' || dispute.status === 'warning_closed';
+        if (!paymentRef || (event.type === 'charge.dispute.closed' && !stands)) return { kind: 'ignored', eventId: event.id, type: event.type };
         return { kind: event.type === 'charge.dispute.created' ? 'disputed' : 'dispute_won', eventId: event.id, paymentRef };
       }
       default:

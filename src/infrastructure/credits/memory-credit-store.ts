@@ -86,6 +86,11 @@ export function createMemoryCreditStore(now: () => number = Date.now): CreditSto
       orders.set(orderId, { ...order, providerRef });
     },
     async order(orderId) { const o = orders.get(orderId); return o ? { ...o } : null; },
+    async pendingOrders(olderThanMinutes, limit) {
+      const after = now() - 48 * 3_600_000, before = now() - olderThanMinutes * 60_000;
+      return [...orders.values()].filter(o => o.status === 'pending' && o.providerRef && Date.parse(o.createdAt) < before && Date.parse(o.createdAt) > after)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit).map(o => ({ ...o }));
+    },
     async orderByPayment(provider, paymentRef) {
       const o = [...orders.values()].find(x => x.provider === provider && x.paymentRef === paymentRef);
       return o ? { ...o } : null;

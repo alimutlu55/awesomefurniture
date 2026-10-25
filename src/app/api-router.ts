@@ -16,8 +16,21 @@ export async function handleApi(request: Request, env: ApiEnvironment, { allowTe
     ?? Response.json({ error: { code: 'NOT_FOUND', message: 'Unknown API endpoint.' } }, { status: 404 });
 }
 
-/** The schedule: gives back credits held by image requests that never finished (a crashed or timed-out Worker). */
+/**
+ * The schedule: gives back credits held by image requests that never finished (a crashed or timed-out Worker), and asks
+ * the payment provider about checkouts whose webhook has not arrived. Each runs on its own, so one failing never stops the other.
+ */
 export async function sweepCredits(env: ApiEnvironment) {
-  const released = await createCreditRuntime(env, 'https://localhost')?.service.releaseStale() ?? 0;
-  if (released) console.info(JSON.stringify({ event: 'credits_released_stale', released }));
+  const service = createCreditRuntime(env, 'https://localhost')?.service;
+  if (!service) return;
+  const run = async (event: string, work: () => Promise<number>) => {
+    try {
+      const count = await work();
+      if (count) console.info(JSON.stringify({ event, count }));
+    } catch (error) {
+      console.error(JSON.stringify({ event: event + '_failed', error: error instanceof Error ? error.message.slice(0, 300) : 'unknown' }));
+    }
+  };
+  await run('credits_released_stale', service.releaseStale);
+  await run('credits_reconciled', service.reconcile);
 }

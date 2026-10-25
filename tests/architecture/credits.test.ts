@@ -90,7 +90,7 @@ test('refunds and chargebacks take credits back; a won dispute gives them back',
   fake.push(paid(orderId, 'evt_paid'));
   await service.receive('fake', 'signed', headers);
   await service.spend(buyer, { feature: 'technical-drawings', key: 'open-0000001', scope: 'design-1' });
-  fake.push({ kind: 'refunded', eventId: 'evt_refund', paymentRef: 'pi_' + orderId, refundedAmount: 999 });
+  fake.push({ kind: 'refunded', eventId: 'evt_refund', paymentRef: 'pi_' + orderId, refundedAmount: 999, chargedAmount: 999 });
   await service.receive('fake', 'signed', headers);
   assert.equal((await service.wallet(buyer)).balance, 0, 'the free drawings cost nothing; the refund takes all 120');
   fake.push({ kind: 'disputed', eventId: 'evt_dispute', paymentRef: 'pi_' + orderId });
@@ -144,10 +144,12 @@ test('Stripe webhooks are verified, and checkout, refund and dispute events beco
   assert.deepEqual(await send('checkout.session.completed', session), { kind: 'paid', eventId: 'evt_checkout.session.completed',
     capture: { orderId: 'order-1', provider: 'stripe', providerRef: 'cs_1', paymentRef: 'pi_1', amount: 999, currency: 'usd', email: 'buyer@example.test' } });
   assert.equal((await send('checkout.session.completed', { ...session, payment_status: 'unpaid' })).kind, 'pending', 'a bank transfer still on its way');
-  assert.deepEqual(await send('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount_refunded: 500 }),
-    { kind: 'refunded', eventId: 'evt_charge.refunded', paymentRef: 'pi_1', refundedAmount: 500 });
+  assert.deepEqual(await send('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', amount: 1189, amount_refunded: 500 }),
+    { kind: 'refunded', eventId: 'evt_charge.refunded', paymentRef: 'pi_1', refundedAmount: 500, chargedAmount: 1189 });
   assert.equal((await send('charge.dispute.closed', { id: 'dp_1', payment_intent: 'pi_1', status: 'won' })).kind, 'dispute_won');
   assert.equal((await send('charge.dispute.closed', { id: 'dp_1', payment_intent: 'pi_1', status: 'lost' })).kind, 'ignored');
+  assert.equal((await send('charge.dispute.closed', { id: 'dp_2', payment_intent: 'pi_1', status: 'warning_closed' })).kind, 'dispute_won',
+    'an inquiry that closes without a chargeback gives the credits back');
   await assert.rejects(send('checkout.session.completed', session, 'whsec_forged'), PaymentSignatureError);
   await assert.rejects(provider.webhook('{}', new Headers()), PaymentSignatureError);
 });
@@ -206,4 +208,58 @@ test('a checkout that fails at the provider is closed, so failures never use up 
   await assert.rejects(service.checkout(buyer, { pack: 'starter', provider: 'fake', links }), PaymentProviderError);
   assert.equal(expired.length, 1);
   assert.equal((await store.order(expired[0]!))!.status, 'expired');
+});
+
+test('a refund takes back the share of what was charged, so tax added at checkout does not take extra credits', async () => {
+  const { service, fake, paid, headers } = setup();
+  const { orderId } = await service.checkout(buyer, { pack: 'popular', provider: 'fake', links });
+  fake.push(paid(orderId, 'evt_paid'));
+  await service.receive('fake', 'signed', headers);
+  // $9.99 plus $2.00 tax was charged; half of the $11.99 comes back: half the credits go, not 60% of them.
+  fake.push({ kind: 'refunded', eventId: 'evt_half', paymentRef: 'pi_' + orderId, refundedAmount: 600, chargedAmount: 1199 });
+  await service.receive('fake', 'signed', headers);
+  assert.equal((await service.wallet(buyer)).balance, 59);
+  fake.push({ kind: 'refunded', eventId: 'evt_rest', paymentRef: 'pi_' + orderId, refundedAmount: 1199, chargedAmount: 1199 });
+  await service.receive('fake', 'signed', headers);
+  assert.equal((await service.wallet(buyer)).balance, 0);
+});
+
+test('provider events that are not ours are skipped, and money taken without credits is reported', async () => {
+  const store = createMemoryCreditStore(), fake = fakeProvider(), reports: string[] = [];
+  // Postgres refuses a uuid query for a reference that is not one; the provider would then retry the event for days.
+  const strict = { ...store, order: async (id: string) => { if (!/^[0-9a-f-]{36}$/.test(id)) throw new Error('invalid input syntax for type uuid'); return store.order(id); } };
+  const service = createCreditService({ store: strict, providers: [fake.provider], requireAccount: true, report: event => reports.push(event) });
+  fake.push({ kind: 'paid', eventId: 'evt_other_app', capture: { orderId: 'invoice-77', provider: 'fake', providerRef: 'cs_x', paymentRef: 'pi_x',
+    amount: 500, currency: 'usd', email: null } });
+  assert.equal(await service.receive('fake', 'signed', new Headers()), 'applied');
+  assert.deepEqual(reports, []);
+  const { orderId } = await service.checkout(buyer, { pack: 'starter', provider: 'fake', links });
+  fake.push({ kind: 'paid', eventId: 'evt_short', capture: { orderId, provider: 'fake', providerRef: 'cs_' + orderId, paymentRef: 'pi_' + orderId,
+    amount: 1, currency: 'usd', email: null } });
+  await service.receive('fake', 'signed', new Headers());
+  assert.deepEqual(reports, ['credits_paid_not_credited'], 'a paid order that was rejected is not silent');
+});
+
+test('confirming a purchase while the provider is down says it is still pending instead of failing', async () => {
+  const store = createMemoryCreditStore(), reports: string[] = [];
+  const down: PaymentProvider = { id: 'fake', async checkout(order) { return { url: 'https://pay.test/' + order.id, providerRef: 'cs_' + order.id }; },
+    async lookup() { throw new PaymentProviderError('api_connection_error:unknown'); }, async webhook() { throw new PaymentSignatureError(); } };
+  const service = createCreditService({ store, providers: [down], requireAccount: true, report: event => reports.push(event) });
+  const { orderId } = await service.checkout(buyer, { pack: 'starter', provider: 'fake', links });
+  assert.equal((await service.confirm(buyer, orderId)).status, 'pending');
+  assert.deepEqual(reports, ['credits_lookup_failed']);
+});
+
+test('the schedule credits a paid checkout whose webhook never came, even if the person never returns', async () => {
+  let clock = Date.parse('2026-10-25T10:00:00Z');
+  const store = createMemoryCreditStore(() => clock), fake = fakeProvider();
+  const service = createCreditService({ store, providers: [fake.provider], requireAccount: true });
+  const { orderId } = await service.checkout(buyer, { pack: 'starter', provider: 'fake', links });
+  fake.setLookup({ kind: 'paid', eventId: 'lookup_late', capture: { orderId, provider: 'fake', providerRef: 'cs_' + orderId, paymentRef: 'pi_' + orderId,
+    amount: 499, currency: 'usd', email: null } });
+  assert.equal(await service.reconcile(), 0, 'a checkout younger than ten minutes may still be on its payment page');
+  clock += 11 * 60_000;
+  assert.equal(await service.reconcile(), 1);
+  assert.equal((await service.wallet(buyer)).balance, 50);
+  assert.equal(await service.reconcile(), 0, 'a credited order is not looked up again');
 });

@@ -18,11 +18,11 @@ export function creditFailure(error: CreditError) {
   return failure(STATUS[error.code], error.code, error.message, error.detail);
 }
 
-/** Unexpected failures are logged with a request id and never show their message. */
+/** Unexpected failures are logged with a request id and never show their message; the id is the person's support reference. */
 function unexpected(event: string, error: unknown) {
   const requestId = crypto.randomUUID();
   console.error(JSON.stringify({ event, requestId, error: error instanceof Error ? error.message.slice(0, 300) : 'unknown' }));
-  const response = failure(500, 'CREDITS_FAILED', 'Credits are temporarily unavailable. Please try again.');
+  const response = failure(500, 'CREDITS_FAILED', 'Credits are temporarily unavailable. Please try again.', { reason: requestId });
   response.headers.set('X-Request-ID', requestId);
   return response;
 }

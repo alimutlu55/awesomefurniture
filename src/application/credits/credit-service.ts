@@ -1,5 +1,6 @@
 import { CREDIT_FEATURES, CREDIT_PACKS, creditFeature, creditPack, packCredits, packSaving, type CreditFeature } from '../../domain/credits/credit-catalog';
-import type { CheckoutLinks, CreditStore, CreditUser, PaymentProvider, PaymentUpdate, SpendResult } from './credit-ports';
+import { PaymentProviderError, type CheckoutLinks, type CreditStore, type CreditUser, type PaymentOrder, type PaymentProvider, type PaymentUpdate,
+  type SpendResult } from './credit-ports';
 import type { CreditWallet, OrderConfirmation } from './credit-wallet';
 
 export type CreditErrorCode = 'UNKNOWN_PACK' | 'UNKNOWN_PROVIDER' | 'UNKNOWN_FEATURE' | 'ACCOUNT_REQUIRED' | 'INSUFFICIENT_CREDITS'
@@ -12,6 +13,12 @@ export class CreditError extends Error {
 
 const KEY = /^[A-Za-z0-9:_-]{8,200}$/;
 const SCOPE = /^[A-Za-z0-9:_.-]{1,200}$/;
+const ORDER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** A refund in what the order is worth: the share refunded of what was charged, so tax and the customer's currency do not skew it. */
+const refundedShare = (order: PaymentOrder, refunded: number, charged: number) =>
+  Math.min(order.amount, charged > 0 ? Math.round(order.amount * refunded / charged) : refunded);
+const reasonOf = (error: unknown) => error instanceof PaymentProviderError ? error.reason : error instanceof Error ? error.message.slice(0, 200) : 'unknown';
 
 interface Dependencies {
   store: CreditStore;
@@ -19,10 +26,13 @@ interface Dependencies {
   providers: readonly PaymentProvider[];
   /** Buying needs an email-verified account, so paid credits survive a cleared browser and reach every device. */
   requireAccount: boolean;
+  /** Something an operator must look at (money taken without credits, a provider that does not answer). Default: a JSON log line. */
+  report?: (event: string, detail: Readonly<Record<string, string | number | null>>) => void;
 }
 
 /** Buying, spending and reading credits. Prices come only from the catalog; the store keeps every change. */
-export function createCreditService({ store, providers, requireAccount }: Dependencies) {
+export function createCreditService({ store, providers, requireAccount,
+  report = (event, detail) => console.error(JSON.stringify({ event, ...detail })) }: Dependencies) {
   const provider = (id: string) => providers.find(p => p.id === id);
   const feature = (key: string, settlement: CreditFeature['settlement']) => {
     const found = creditFeature(key);
@@ -67,15 +77,32 @@ export function createCreditService({ store, providers, requireAccount }: Depend
     return { orderId: order.id, url: session.url };
   }
 
+  /** The order an update is about, or null when it is not one of ours (another integration on the same provider account). */
+  async function orderOf(via: PaymentProvider, update: PaymentUpdate) {
+    if (update.kind === 'ignored') return null;
+    if (update.kind === 'paid' || update.kind === 'expired' || update.kind === 'pending') {
+      const id = update.kind === 'paid' ? update.capture.orderId : update.orderId;
+      // A reference that is not an order id would fail the database query and make the provider retry it for days.
+      return ORDER_ID.test(id) ? store.order(id) : null;
+    }
+    return store.orderByPayment(via.id, update.paymentRef);
+  }
+
   /** Applies one verified provider update, once: a replayed event is skipped. */
   async function apply(via: PaymentProvider, update: PaymentUpdate) {
-    const order = update.kind === 'paid' ? await store.order(update.capture.orderId)
-      : update.kind === 'expired' || update.kind === 'pending' ? await store.order(update.orderId)
-        : update.kind === 'ignored' ? null : await store.orderByPayment(via.id, update.paymentRef);
+    const order = await orderOf(via, update);
     if (!await store.recordEvent(via.id, update.eventId, update.kind, order?.id ?? null)) return 'replay' as const;
-    if (update.kind === 'paid') await store.completeOrder(update.capture);
-    else if (update.kind === 'expired' && order) await store.expireOrder(order.id);
-    else if (update.kind === 'refunded' && order) await store.adjustOrder(order.id, update.eventId, 'refunded', update.refundedAmount);
+    if (update.kind === 'paid' && order) {
+      const result = await store.completeOrder(update.capture);
+      // Money was taken and no credits were added: refund it, or credit it by hand (credits_grant). docs/credits.md
+      if (result === 'mismatch' || result === 'unknown') {
+        report('credits_paid_not_credited', { orderId: order.id, provider: via.id, eventId: update.eventId, result,
+          amount: update.capture.amount, currency: update.capture.currency });
+      }
+    } else if (update.kind === 'expired' && order) await store.expireOrder(order.id);
+    else if (update.kind === 'refunded' && order) {
+      await store.adjustOrder(order.id, update.eventId, 'refunded', refundedShare(order, update.refundedAmount, update.chargedAmount));
+    }
     else if ((update.kind === 'disputed' || update.kind === 'dispute_won') && order) await store.adjustOrder(order.id, update.eventId, update.kind, null);
     await store.eventProcessed(via.id, update.eventId);
     return 'applied' as const;
@@ -94,7 +121,11 @@ export function createCreditService({ store, providers, requireAccount }: Depend
     if (!order || order.userId !== user.id) throw new CreditError('ORDER_NOT_FOUND', 'This purchase was not found.');
     const via = provider(order.provider);
     if (order.status === 'pending' && via) {
-      const update = await via.lookup(order);
+      // A provider that cannot answer now is asked again on the next poll, and its webhook may arrive meanwhile.
+      const update = await via.lookup(order).catch((error: unknown) => {
+        report('credits_lookup_failed', { orderId: order!.id, provider: via.id, reason: reasonOf(error) });
+        return null;
+      });
       if (update) { await apply(via, update); order = await store.order(order.id) ?? order; }
     }
     const { balance } = await store.summary(user.id, 0);
@@ -119,8 +150,27 @@ export function createCreditService({ store, providers, requireAccount }: Depend
       passHours: f.passHours, scope: null, capture: false, metadata }));
   }
 
+  /**
+   * The schedule's backstop for a webhook that never arrives (an outage, a wrong signing secret): asks the provider about
+   * checkouts still pending after ten minutes, so a payment is credited even when the person never comes back.
+   */
+  async function reconcile() {
+    let settled = 0;
+    for (const order of await store.pendingOrders(10, 50)) {
+      const via = provider(order.provider);
+      if (!via) continue;
+      try {
+        const update = await via.lookup(order);
+        if (update && update.kind !== 'pending' && await apply(via, update) === 'applied') settled++;
+      } catch (error) {
+        report('credits_reconcile_failed', { orderId: order.id, provider: via.id, reason: reasonOf(error) });
+      }
+    }
+    return settled;
+  }
+
   return {
-    wallet, checkout, receive, confirm, spend, reserve,
+    wallet, checkout, receive, confirm, spend, reserve, reconcile,
     settle: (spendId: string, outcome: 'captured' | 'released', metadata?: Readonly<Record<string, string | number | boolean | null>>) =>
       store.settle(spendId, outcome, metadata),
     releaseStale: () => store.releaseStale(15),

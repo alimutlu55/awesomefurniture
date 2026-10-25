@@ -88,6 +88,8 @@ export interface CreditStore {
   createOrder(input: { userId: string; packId: string; credits: number; amount: number; currency: string; provider: string; email: string | null }): Promise<PaymentOrder>;
   attachOrder(orderId: string, providerRef: string): Promise<void>;
   order(orderId: string): Promise<PaymentOrder | null>;
+  /** Checkouts still pending after `olderThanMinutes` (and less than two days old) that reached a payment page, newest first. */
+  pendingOrders(olderThanMinutes: number, limit: number): Promise<PaymentOrder[]>;
   orderByPayment(provider: string, paymentRef: string): Promise<PaymentOrder | null>;
   completeOrder(capture: PaymentCapture): Promise<'credited' | 'already' | 'mismatch' | 'unknown'>;
   adjustOrder(orderId: string, eventId: string, status: 'refunded' | 'disputed' | 'dispute_won', refundedAmount: number | null): Promise<void>;
@@ -102,7 +104,9 @@ export type PaymentUpdate =
   | { readonly kind: 'paid'; readonly eventId: string; readonly capture: PaymentCapture }
   | { readonly kind: 'pending'; readonly eventId: string; readonly orderId: string }
   | { readonly kind: 'expired'; readonly eventId: string; readonly orderId: string }
-  | { readonly kind: 'refunded'; readonly eventId: string; readonly paymentRef: string; readonly refundedAmount: number }
+  /** `refundedAmount` of `chargedAmount` so far, both in what the payment was charged in (tax and the customer's currency included). */
+  | { readonly kind: 'refunded'; readonly eventId: string; readonly paymentRef: string; readonly refundedAmount: number; readonly chargedAmount: number }
+  /** `dispute_won`: the dispute or inquiry closed in our favour, so the payment stands again. */
   | { readonly kind: 'disputed' | 'dispute_won'; readonly eventId: string; readonly paymentRef: string }
   | { readonly kind: 'ignored'; readonly eventId: string; readonly type: string };
 
