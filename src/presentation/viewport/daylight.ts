@@ -43,7 +43,8 @@ export function lampSpots(cabinet: Pick<EditorCabinet, 'state'>): { x: number; y
   }).filter(s => Number.isFinite(s.y) && s.y > 20);
 }
 
-const MAX_LAMPS = 6;
+/** Lights cost every lit pixel on a phone: the whole scene shares two, the strips glow in every section. */
+const MAX_LAMPS = 2;
 /** The wardrobes' own lights at night: a glowing strip in each section and a warm light falling from it. */
 export function createWardrobeLamps(scene: THREE.Scene) {
   const group = new THREE.Group(), strip = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffe2b0), toneMapped: false });

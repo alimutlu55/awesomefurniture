@@ -6,19 +6,20 @@ saved projects and the planner are untouched.
 
 ## What a person sees
 
-1. **Welcome.** A new, empty design opens on a sheet over the live room: *Tell us what you own. We'll build
-   the wardrobe around it.* Pick a space (bedroom wall, alcove, walk-in, attic eaves, under the stairs, just
-   the wardrobe), and the room appears in 3D beside the sheet (desktop) or above it (phone). Then count
-   belongings (the room sways gently behind the sheet while it is open), starting from a way of living (Travel light, Everyday, Clothes lover, Two of us), and **Build my
-   wardrobe**. *Start empty* goes back to the design as it was. The menu's **Plan from what I own** opens it
-   again on any design (Undo takes the result back).
+1. **Welcome.** A new, empty design opens one of the editor's own panels, *Where will it live?*: docked beside
+   the view on desktop, the shared bottom sheet on phones (handle, compact and expanded heights, scrolling,
+   pull down or × or Escape to close, which puts the design back as it was). Pick a space (bedroom wall,
+   alcove, walk-in, attic eaves, under the stairs, just the wardrobe) and the room appears in 3D beside or above
+   the panel. Then *What goes inside?*: count belongings, starting from a way of living (Travel light, Everyday,
+   Clothes lover, Two of us), and **Build**. The menu's **Plan from what I own** opens it again on any design
+   (Undo takes the result back). Another panel opening closes it, as panels replace one another.
 2. **Assembly.** The built design goes together in front of them, in a cabinetmaker's order: base, sides,
    back, top, then shelves, rails and drawers slid in from the front, doors last. Each part lands with a soft
-   wooden knock (sounds are made as they play, no recordings). The camera sweeps round to the design meanwhile.
+   wooden knock (sounds are made as they play, no recordings). The camera frames the design as for any design.
    Whenever Auto design applies a layout to a wardrobe, its fittings fly into the carcass the same way.
-3. **Reveal.** *Everything fits.* (or *Almost everything fits.* with what is still to place), possession by
+3. **Reveal**, in the same kind of panel: *Everything fits.* (or *Almost everything fits.* with what is still to place), possession by
    possession, with *See it at night*, *Workshop* and, when something is short, *More layouts*.
-4. **Moods** (the button left of AI image): **Living** (as it will look at home), **Maquette** (a white card
+4. **Moods** (the button left of AI image, a dropdown like the menu): **Living** (as it will look at home), **Maquette** (a white card
    architect's model), **Workshop** (a blueprint of lines); and the light of **Midday**, **Morning**, **Sunset**
    or **Night**, when the wardrobes' own LED strips light them from inside. Workshop adds **Take apart** (an
    exploded view), **Flat front elevation** (a dolly zoom into an elevation, square to the wardrobe) and
@@ -57,7 +58,13 @@ saved projects and the planner are untouched.
 - **Automated browsers start without the welcome** (`navigator.webdriver`), so scripted checks and assistants drive the
   editor directly. `?welcome=1` shows it anyway; `?welcome=0` never does. A design link (`#design=`, `#spec=`) opens
   the design instead.
-- **Reduced motion:** no assembly, no camera sweep, instant lens; the CSS animations stop.
+- **Panels are the editor's panels.** The welcome and the reveal are `.pop.editor-panel`: the shared rules in
+  `mobile-sheet.css` place and style them, and `mountMobileSheet` gives them the handle and gestures. The mood
+  panel is a `.dd` dropdown mounted like the menu. None of them blurs the 3D view behind it.
+- **Phones first.** Nothing moves the camera on its own (no sways or sweeps: the person's gestures are never
+  fought). Night lights the whole scene with at most two lights (the strips glow in every section); the looks
+  walk the scene only after a rebuild; shadows are redrawn when parts have landed, not while they fly.
+- **Reduced motion:** no assembly, instant lens; the CSS animations stop.
 - Listeners, timers, frames and observers go through the editor `lifetime` (`experience/lifetime.ports.d.ts`).
 
 ## Adding to it

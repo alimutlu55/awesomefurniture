@@ -201,7 +201,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         }) });
         // The welcome, the wardrobe assembling itself, and the moods of the scene: drawn over the editor.
         const experience = mountExperience({ dom, lifetime, resources, renderState, cameraState, camera, scene: () => model.scene,
-            design: { preview: project => showDesign(project, false), replace: replaceDesign, snapshot: model.snapshot, restore: snapshot => showScene(snapshot) },
+            design: { preview: project => showDesign(project, false), replace: replaceDesign, snapshot: model.snapshot, restore: snapshot => showScene(snapshot, true) },
             drawings: () => drawings.open(), autoDesign: () => planner.openWizard(), closeMenu: () => shell.closeDD() });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
@@ -221,18 +221,18 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         function replaceDesign(project: ProjectDocument) {
             showDesign(project, true);
         }
-        /** Shows a design, framed whole: as one undo step, or as a preview that leaves the history alone. */
+        /** Shows a design, framed whole: as one undo step, or as a preview that leaves the history and the open
+         * panel (the welcome showing it) alone. */
         function showDesign(project: ProjectDocument, record: boolean) {
             const next = projectToScene(project) ?? createEditorModel().scene;
             if (record) history.checkpoint(model.snapshot());
-            showScene(JSON.stringify(next));
+            showScene(JSON.stringify(next), !record);
         }
-        function showScene(snapshot: string) {
+        function showScene(snapshot: string, keepPanel = false) {
             model.restore(snapshot);
             selectionState.room = null;
             selectionState.pendingStudioAction = null;
-            inspector.hidePop();
-            inspector.clearFocus();
+            if (!keepPanel) { inspector.hidePop(); inspector.clearFocus(); }
             inspector.update(true);
             inspector.histUI();
             camera.frameScene();

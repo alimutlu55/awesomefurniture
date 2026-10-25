@@ -21,7 +21,10 @@ import { createStageFraming } from './stage-framing';
 import type { ExperienceDocument, ExperienceLifetime } from './lifetime.ports';
 
 export interface ExperiencePorts {
-  readonly dom: { $(selector: string): HTMLElement; readonly document: ExperienceDocument; readonly host: HTMLElement };
+  readonly dom: {
+    $(selector: string): HTMLElement; readonly document: ExperienceDocument; readonly host: HTMLElement;
+    matchMedia(query: string): { readonly matches: boolean };
+  };
   readonly lifetime: ExperienceLifetime;
   readonly resources: {
     readonly scene: THREE.Scene; readonly cam: THREE.PerspectiveCamera; readonly R: THREE.WebGLRenderer; readonly cv: HTMLCanvasElement;
@@ -58,12 +61,15 @@ export function mountExperience(ports: ExperiencePorts) {
   const mood: Mood = { look: (['living', 'maquette', 'workshop'].includes(saved.look) ? saved.look : 'living') as SceneLook, time: timeOfDay(saved.time).id, sounds: saved.sounds, apart: 0, flat: false };
   const reduced = () => !!view?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const looks = createSceneLooks({ scene: resources.scene, skip: o => o === resources.ground,
-    shading: m => !!resources.aoTexture && (m as THREE.MeshBasicMaterial).map === resources.aoTexture });
+    shading: m => !!resources.aoTexture && (m as THREE.MeshBasicMaterial).map === resources.aoTexture,
+    version: () => renderState.buildStamp * 1e6 + resources.R.info.memory.geometries });
   const lamps = createWardrobeLamps(resources.scene);
   const lens = createWorkshopLens(resources.scene);
   const sounds = createWoodSounds(view as unknown as { AudioContext?: typeof AudioContext });
   const isDoor = (o: THREE.Object3D) => renderState.pivots.includes(o);
   const assembly = createAssemblyMotion({ isDoor });
+  // Panels are docked beside the view from this width, as every editor panel is.
+  const docked = dom.matchMedia('(min-width:901px)');
   const framing = createStageFraming({ resources, cameraState, applyView: () => ports.camera.applyView() });
   lifetime.cleanup(() => { looks.dispose(); lamps.dispose(); lens.dispose(); sounds.dispose(); });
   sounds.setEnabled(mood.sounds);
@@ -83,14 +89,14 @@ export function mountExperience(ports: ExperiencePorts) {
   function change(next: Partial<Mood>) {
     Object.assign(mood, next);
     if (next.sounds !== undefined) sounds.setEnabled(next.sounds);
-    if (next.apart !== undefined) assembly.explode(renderState.wardrobeGroups, next.apart);
+    if (next.apart !== undefined) { assembly.explode(renderState.wardrobeGroups, next.apart); resources.R.shadowMap.needsUpdate = true; }
     if (next.flat !== undefined || (next.look !== undefined && next.look !== 'workshop' && mood.flat)) elevation(mood.look === 'workshop' && mood.flat);
     if (next.look !== undefined || next.time !== undefined || next.flat !== undefined) applyMood();
     else if (next.sounds !== undefined) writePreferences(storage, { ...readPreferences(storage), sounds: mood.sounds });
   }
-  const control = createMoodControl({ bar: dom.$('#topright'), document: doc, lifetime, mood: () => mood, change, drawings: () => ports.drawings() });
+  const control = createMoodControl({ bar: dom.$('#topright'), container: dom.$('#app'), document: doc, lifetime, docked, mood: () => mood, change, drawings: () => ports.drawings() });
   lifetime.cleanup(() => control.dispose());
-  const reveal = createReveal({ container: dom.$('#app'), document: doc, lifetime,
+  const reveal = createReveal({ container: dom.$('#app'), document: doc, lifetime, docked,
     night: () => change({ time: 'night', look: mood.look === 'workshop' ? 'living' : mood.look }), workshop: () => change({ look: 'workshop' }), autoDesign: () => ports.autoDesign() });
   lifetime.cleanup(() => reveal.dispose());
 
@@ -98,7 +104,7 @@ export function mountExperience(ports: ExperiencePorts) {
   let before: string | null = null, shown: EditorScene | null = null, building = false;
   const projectOf = (spec: ReturnType<typeof spaceSpec>) => { const built = buildFromSpec(spec, 'preview'); return built.ok ? built.project : null; };
   const welcome = createWelcome({
-    container: dom.$('#app'), document: doc, lifetime, view: view as (Window & typeof globalThis) | null,
+    container: dom.$('#app'), document: doc, lifetime, view: view as (Window & typeof globalThis) | null, docked,
     preview(space: Space) {
       before ??= ports.design.snapshot();
       const project = projectOf(spaceSpec(space));
@@ -116,7 +122,6 @@ export function mountExperience(ports: ExperiencePorts) {
         if (before !== null) ports.design.restore(before);
         before = shown = null;
         ports.design.replace(built.project);
-        cinematicFrame();
         void play().then(() => {
           const focused = doc.activeElement as HTMLElement | null, report = describeScene(ports.scene());
           reveal.show(report);
@@ -153,15 +158,6 @@ export function mountExperience(ports: ExperiencePorts) {
     return assembly.play(renderState.wardrobeGroups, { onLand: phase => sounds.knock(KNOCKS[phase]) })
       .finally(() => dom.host.classList.remove('xp-assembling'));
   }
-  /** Sweeps the camera round to the design from low and close, while it assembles. */
-  function cinematicFrame() {
-    const goal = cameraState.camGoal ? { ...cameraState.camGoal } : null;
-    if (!goal || reduced()) return;
-    const { from: _from, start: _start, duration: _duration, ...pose } = goal;
-    ports.camera.cameraTransition({ ...pose, az: pose.az - .7, el: .06, dist: pose.dist * .78 }, 0);
-    ports.camera.cameraTransition({ ...pose, arc: .05 }, 3200);
-  }
-
   /** Auto design applied to a wardrobe (a new layout, not an undo or another design): its fittings fly in, once
    * the wardrobe has been rebuilt with them. */
   const layouts = new Map<number, unknown>();
@@ -186,17 +182,6 @@ export function mountExperience(ports: ExperiencePorts) {
     }
   }
 
-  /** While the welcome is open the room sways gently from side to side, so the stage feels alive. A person
-   * turning the view takes over: the sway carries on from wherever they leave it. */
-  const sway = { base: NaN, time: 0, last: NaN };
-  function swayStage(dt: number) {
-    if (!welcome.isOpen() || building || cameraState.camGoal || reduced()) { sway.base = NaN; return; }
-    if (Number.isNaN(sway.base) || Math.abs(cameraState.az - sway.last) > 1e-6) { sway.base = cameraState.az; sway.time = 0; }
-    sway.time += dt;
-    cameraState.az = sway.base + .26 * Math.sin(sway.time * .32);
-    sway.last = cameraState.az;
-  }
-
   let stamp = -1, previous = ports.scene();
   noticeLayouts(previous, true);
   resources.frameHooks.add((camera, dt) => {
@@ -209,14 +194,14 @@ export function mountExperience(ports: ExperiencePorts) {
       stamp = renderState.buildStamp;
       const box = ports.camera.sceneBox();
       lens.fit(box.x, box.z, Math.max(box.w, box.d));
-      if (mood.apart) assembly.explode(renderState.wardrobeGroups, mood.apart);
+      if (mood.apart) { assembly.explode(renderState.wardrobeGroups, mood.apart); resources.R.shadowMap.needsUpdate = true; }
     }
-    swayStage(dt);
     lamps.sync(now.wardrobes, timeOfDay(mood.time).lamps && mood.look !== 'workshop');
     looks.frame();
     lens.frame(camera, cameraState.tgt, dt, reduced());
     framing.frame(camera, dt);
-    if (moved || mood.apart) resources.R.shadowMap.needsUpdate = true;
+    // Shadows are redrawn once the parts have landed, not while they fly: a shadow map is costly on phones.
+    if (moved && !assembly.busy()) resources.R.shadowMap.needsUpdate = true;
   });
   applyMood(false);
 

@@ -1,14 +1,19 @@
 import type { SceneLook } from '../viewport/scene-looks';
 import { TIMES_OF_DAY } from '../viewport/daylight';
 import type { ExperienceDocument, ExperienceLifetime } from './lifetime.ports';
+import { mountMobileSheet } from '../editor/mobile-sheet.js';
 
 export interface Mood { look: SceneLook; time: string; sounds: boolean; apart: number; flat: boolean }
 
 export interface MoodControlPorts {
-  /** Where the button goes (the top bar's right group) and where the panel opens. */
+  /** Where the button goes (the top bar's right group). */
   readonly bar: HTMLElement;
+  /** The editor's own element: the panel belongs to it, as the menu does, whatever the screen width. */
+  readonly container: HTMLElement;
   readonly document: ExperienceDocument;
   readonly lifetime: ExperienceLifetime;
+  /** Matches while panels are docked beside the view (desktop). */
+  readonly docked: { readonly matches: boolean };
   mood(): Mood;
   change(next: Partial<Mood>): void;
   drawings(): void;
@@ -42,7 +47,7 @@ export function createMoodControl(ports: MoodControlPorts) {
   button.setAttribute('aria-expanded', 'false');
   ports.bar.prepend(button);
   const panel = doc.createElement('div');
-  panel.className = 'xp-mood';
+  panel.className = 'dd r xp-mood';
   panel.hidden = true;
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', 'Look and light');
@@ -58,7 +63,9 @@ export function createMoodControl(ports: MoodControlPorts) {
       <label class="xp-switch"><input type="checkbox" class="xp-flat"><span>Flat front elevation</span></label>
       <button type="button" class="xp-drawings">${svg(BLUEPRINT)}Open shop drawings</button></section>
     <footer><label class="xp-switch"><input type="checkbox" class="xp-sounds"><span>Sounds</span></label></footer>`;
-  ports.bar.append(panel);
+  ports.container.append(panel);
+  // The same dropdown as the menu: on phones it closes with its handle, a pull down or a tap.
+  mountMobileSheet({ document: doc, lifetime, panel, name: 'Look and light', close: () => toggle(false), docked: ports.docked });
   const $ = <T extends Element = HTMLElement>(s: string) => panel.querySelector(s) as T;
 
   function render() {

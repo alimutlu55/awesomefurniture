@@ -1,4 +1,5 @@
-/* Shared editor sheet tokens and frame. Content defines its own height. */
+/* Shared editor sheet tokens and frame. Content defines its own height. A panel added outside the markup
+   (the welcome, the plan reveal) joins every panel rule with the class .editor-panel. */
 :root{
  --mobile-sheet-radius:18px;
  --mobile-sheet-duration:280ms;
@@ -30,8 +31,8 @@
  #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + 76px + var(--safe-bottom))}
  #app:has(.mobile-bottom-sheet.show),#app.props-open:not(.inspecting),#app.auto-design-open{background:var(--mobile-scene-background)}
  #app:has(.mobile-bottom-sheet.show) #view,#app.props-open:not(.inspecting) #view,#app.auto-design-open #view{background:transparent}
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#wizard .mobile-bottom-sheet{left:0;right:0;width:auto;padding:var(--mobile-sheet-padding);border:0;box-shadow:none;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;background:var(--panel);scrollbar-gutter:auto}
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{max-height:var(--mobile-sheet-max-height)}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet,#wizard .mobile-bottom-sheet{left:0;right:0;width:auto;padding:var(--mobile-sheet-padding);border:0;box-shadow:none;border-radius:var(--mobile-sheet-radius) var(--mobile-sheet-radius) 0 0;background:var(--panel);scrollbar-gutter:auto}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet{max-height:var(--mobile-sheet-max-height)}
  .mobile-sheet .mobile-sheet-handle{-webkit-tap-highlight-color:transparent}
  .mobile-sheet .mobile-sheet-handle:hover:not(:disabled):not(.on),.mobile-sheet .mobile-sheet-handle:active:not(:disabled){background:var(--panel);box-shadow:none;transform:none}
  .mobile-sheet .mobile-sheet-handle:focus-visible{outline:none}
@@ -71,22 +72,22 @@
 }
 
 @media (max-width:900px){
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:var(--mobile-sheet-max-height)}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet[data-sheet-position="expanded"]{height:var(--mobile-expanded-sheet-height);max-height:var(--mobile-expanded-sheet-height)}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet[data-sheet-dragging]{height:var(--mobile-sheet-drag-height);max-height:var(--mobile-sheet-max-height)}
 }
 
 @keyframes mobile-sheet-enter{from{opacity:0;transform:translateY(calc(100% + 80px))}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion:reduce){.mobile-sheet.mobile-bottom-sheet,#wizard:not([hidden]) .mobile-bottom-sheet{transition:none;animation:none}}
 
 @media (max-width:900px){
- :host([data-keyboard-open]) #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet{
+ :host([data-keyboard-open]) #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet{
   top:auto;bottom:0;height:auto!important;max-height:var(--mobile-sheet-max-height)!important;animation:none;transition:none;
  }
 
  /* Panels replace the action bar instead of stacking above another surface on mobile. */
  #app.props-open #toolbar,#app:has(.mobile-bottom-sheet.show) #toolbar,#app.auto-design-open #toolbar,#app:has(.dd:not([hidden])) #toolbar,#app:has(.mobile-sheet-exit) #toolbar{display:none!important}
  #app.props-open .contextual-popover,#app:has(.mobile-bottom-sheet.show) .contextual-popover{display:none!important}
- #app :is(#left,#pop2,#pop3,#pop4).mobile-bottom-sheet,#app .dd.mobile-sheet,#app.adding #pop2.mobile-bottom-sheet{bottom:0}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel).mobile-bottom-sheet,#app .dd.mobile-sheet,#app.adding #pop2.mobile-bottom-sheet{bottom:0}
  #app :is(#left,#pop3,#pop4).mobile-bottom-sheet{padding-bottom:max(var(--mobile-sheet-padding),var(--safe-bottom))}
  #app.props-open:not(.inspecting),#app.inspecting:not(.adding){--sheet:calc(var(--panel-height) + var(--safe-bottom))}
  #app.adding{--sheet:min(var(--mobile-sheet-max-height),calc(var(--catalog-height) + var(--safe-bottom)))}
@@ -100,7 +101,7 @@
  /* Desktop Left Contextual Panel - Apple-like floating frosted-glass inspector */
  .mobile-sheet-handle{display:none!important}
 
- #app :is(#left,#pop2,#pop3,#pop4){
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel){
   position:absolute;
   left:24px;
   top:76px;
@@ -127,19 +128,19 @@
   scrollbar-color:rgba(0,0,0,0.18) transparent;
  }
 
- :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4),
- :root[data-theme="dark"] #app :is(#left,#pop2,#pop3,#pop4){
+ :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4,.editor-panel),
+ :root[data-theme="dark"] #app :is(#left,#pop2,#pop3,#pop4,.editor-panel){
   background:rgba(24,28,36,0.88);
   border-color:rgba(255,255,255,0.12);
   box-shadow:0 20px 50px rgba(0,0,0,0.45),0 2px 8px rgba(0,0,0,0.2);
   scrollbar-color:rgba(255,255,255,0.18) transparent;
  }
 
- #app :is(#left,#pop2,#pop3,#pop4)::-webkit-scrollbar{width:5px}
- #app :is(#left,#pop2,#pop3,#pop4)::-webkit-scrollbar-track{background:transparent}
- #app :is(#left,#pop2,#pop3,#pop4)::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.18);border-radius:999px}
- #app :is(#left,#pop2,#pop3,#pop4)::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.32)}
- :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4)::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18)}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel)::-webkit-scrollbar{width:5px}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel)::-webkit-scrollbar-track{background:transparent}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel)::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.18);border-radius:999px}
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel)::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,0.32)}
+ :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4,.editor-panel)::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18)}
 
  #app.props-open #left{display:block!important;visibility:visible!important;opacity:1;pointer-events:auto;animation:desktop-panel-enter 260ms cubic-bezier(.16,1,.3,1) forwards}
  #app:not(.props-open) #left{display:none!important}
@@ -270,7 +271,7 @@
  #app{--sheet:0px!important}
 
  /* Desktop panel headers & close button */
- #app :is(#left,#pop2,#pop3,#pop4) .ph{
+ #app :is(#left,#pop2,#pop3,#pop4,.editor-panel) .ph{
   position:sticky!important;
   top:0!important;
   left:0!important;
@@ -288,8 +289,8 @@
   border-top-left-radius:20px!important;
   border-top-right-radius:20px!important;
  }
- :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4) .ph,
- :root[data-theme="dark"] #app :is(#left,#pop2,#pop3,#pop4) .ph{
+ :host([data-theme="dark"]) #app :is(#left,#pop2,#pop3,#pop4,.editor-panel) .ph,
+ :root[data-theme="dark"] #app :is(#left,#pop2,#pop3,#pop4,.editor-panel) .ph{
   background:rgba(24,28,36,0.96)!important;
   border-bottom-color:rgba(255,255,255,0.08)!important;
  }

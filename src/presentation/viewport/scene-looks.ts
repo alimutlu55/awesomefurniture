@@ -36,15 +36,17 @@ const isStandard = (m: unknown): m is Standard => !!(m as Standard)?.isMeshStand
  * each back exactly as it was. New surfaces (a rebuilt wardrobe) are picked up as they appear. Board and box
  * edges are drawn as lines in the maquette and the blueprint. Materials are shared, so this never clones one.
  */
-export function createSceneLooks({ scene, skip = () => false, shading = () => false }: {
+export function createSceneLooks({ scene, skip = () => false, shading = () => false, version = () => NaN }: {
   scene: THREE.Scene; skip?: (o: THREE.Object3D) => boolean;
+  /** Changes whenever surfaces may have been added (a rebuild): the scene is walked only then. */
+  version?: () => number;
   /** Painted shading (contact shadows in corners): photographic, so it steps aside in the drawn looks. */
   shading?: (m: THREE.Material) => boolean;
 }) {
   const originals = new Map<Standard, Original>(), edges = new Map<THREE.Mesh, THREE.LineSegments>(), shaded = new Set<THREE.Material>();
   const lines = { maquette: new THREE.LineBasicMaterial({ color: 0x4f4a41, transparent: true, opacity: .42 }),
     workshop: new THREE.LineBasicMaterial({ color: 0xd9ecff, transparent: true, opacity: .92, toneMapped: false }) };
-  let look: SceneLook = 'living', light = { env: 1, emissive: 1 }, stamp = 1, frames = 0;
+  let look: SceneLook = 'living', light = { env: 1, emissive: 1 }, stamp = 1, frames = 0, seenVersion = NaN, idle = 0;
 
   function remember(m: Standard): Original {
     let o = originals.get(m);
@@ -105,7 +107,11 @@ export function createSceneLooks({ scene, skip = () => false, shading = () => fa
   function frame(force = false) {
     const plain = look === 'living' && light.env === 1 && light.emissive === 1;
     if (plain && !force) return;
-    const prune = !(++frames % 120), seen = prune ? new Set<Standard>() : null;
+    // Nothing rebuilt since the last walk: the surfaces are directed already (a slow check runs regardless).
+    const now = version();
+    if (!force && now === seenVersion && ++idle % 30) return;
+    seenVersion = now;
+    const prune = !(++frames % 8), seen = prune ? new Set<Standard>() : null;
     scene.traverse(o => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh || o.userData.lookEdge || skip(o)) return;

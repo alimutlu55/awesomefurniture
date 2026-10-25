@@ -3,12 +3,12 @@ import type * as THREE from 'three';
 interface Shift { x: number; y: number; zoom: number }
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** How to shift and zoom the view so a design shows whole beside a sheet that covers part of it: a tall sheet
+/** How to shift and zoom the view so a design shows whole beside a sheet that covers part of it: a panel docked
  * on the left (desktop) moves the design right; a sheet along the bottom (phone) lifts it above. Pixels. Pure. */
 export function stageShift(view: { width: number; height: number }, sheet: { left: number; right: number; top: number; height: number } | null): Shift {
   if (!sheet || view.width <= 0 || view.height <= 0) return { x: 0, y: 0, zoom: 1 };
   const across = sheet.right - sheet.left > view.width * .75;
-  if (!across && sheet.height > view.height * .55 && sheet.left < view.width * .3) {
+  if (!across && sheet.left < view.width * .3 && sheet.right < view.width * .6) {
     const free = view.width - sheet.right;
     return { x: sheet.right / 2, y: 0, zoom: clamp(free / view.width * 1.08, .5, 1) };
   }
