@@ -1,4 +1,3 @@
-const escape = (value: string) => value.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 const CLOSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18"/></svg>';
 export const PERSON = '<svg class="ac-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20a7.5 7.5 0 0 1 15 0"/></svg>';
 // Google's sign-in mark, as its brand guidelines ask for on a "Continue with Google" button.
@@ -7,7 +6,7 @@ const GOOGLE = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335"
   + '<path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.2Z"/>'
   + '<path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.9 6.2C6.6 42.6 14.6 48 24 48Z"/></svg>';
 
-/** The sheet: the sign-in and create-account form, the code steps, the account and the question about earlier work. */
+/** The sheet: the sign-in and create-account form, the code steps and the question about earlier work. */
 export function accountSheet() {
   const field = (name: string, label: string, attributes: string) =>
     `<label class="cr-field"><span>${label}</span><input name="${name}" ${attributes} required></label>`;
@@ -28,8 +27,6 @@ export function accountSheet() {
     + '<button type="submit" class="cr-primary">Email me a code</button><button type="button" class="cr-quiet ac-to-start">Back to sign in</button></form>'
     + `<form class="ac-form ac-reset" novalidate hidden>${code}` + field('password', 'New password', 'type="password" autocomplete="new-password" minlength="8"')
     + '<button type="submit" class="cr-primary">Save and sign in</button><button type="button" class="cr-quiet ac-to-forgot">Send a new code</button></form>'
-    + '<section class="ac-account" hidden><button type="button" class="cr-primary ac-done">Continue designing</button>'
-    + '<button type="button" class="cr-quiet ac-sign-out">Sign out</button></section>'
     + '<section class="ac-adopt" hidden><ul class="ac-adopt-list"></ul>'
     + '<button type="button" class="cr-primary ac-adopt-yes">Add to my account</button>'
     + '<button type="button" class="cr-quiet ac-adopt-no">Do not add</button></section>'
@@ -37,7 +34,9 @@ export function accountSheet() {
     + '<p class="ac-privacy">We keep only your email. Designs you made in this browser come with you.</p></div>';
 }
 
-/** The ⋮ menu's first item: who is signed in, or the way to sign in. */
+const SIGN_OUT = '<svg class="ac-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></svg>';
+
+/** The ⋮ menu's last item: the way to sign in, or, signed in, just Sign out (no account page in between). */
 export function accountMenuItem(email: string | null) {
-  return email ? `${PERSON}<span>Account</span><small class="ac-menu-email">${escape(email)}</small>` : `${PERSON}<span>Sign in / Sign up</span>`;
+  return email ? `${SIGN_OUT}<span>Sign out</span>` : `${PERSON}<span>Sign in / Sign up</span>`;
 }

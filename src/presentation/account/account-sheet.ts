@@ -3,7 +3,7 @@ import { accountErrorMessage, needsConfirmation } from './account-errors';
 import { accountMenuItem, accountSheet } from './account-markup';
 import { createLoadingState } from '../components/loading-state';
 
-export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'account' | 'adopt';
+export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'adopt';
 export interface AccountOpenOptions {
   /** Why the sheet opened: buying or using credits needs an account. */
   readonly reason?: 'credits';
@@ -16,6 +16,8 @@ interface Ports {
   platform: AccountPlatform;
   /** Closes the editor menu the account item sits in. */
   closeMenu(): void;
+  /** The editor's short notice: used only when signing out is refused. */
+  toast(message: string): void;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -26,7 +28,6 @@ const COPY: Record<AccountView, readonly [string, string]> = {
   confirm: ['Check your email', ''],
   forgot: ['Reset your password', 'We will email you a code to choose a new password.'],
   reset: ['Choose a new password', ''],
-  account: ['Your account', ''],
   adopt: ['Add your earlier work?', ''],
 };
 
@@ -41,7 +42,7 @@ export function offerCopy(offer: GuestOffer, email: string) {
  * "Sign in / Sign up" last in the ⋮ menu, and the sheet it opens: Google, or an email and a password with a
  * code to confirm the email. Designing never needs an account; credits do (the wallet opens this sheet).
  */
-export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
+export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports) {
   const page = dom.$('#app').ownerDocument;
   const item = page.createElement('button');
   item.type = 'button'; item.className = 'mi ac-menu'; item.setAttribute('role', 'menuitem');
@@ -57,8 +58,8 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
   const sheet = $('.cr-sheet'), heading = $('.ac-head h2'), lead = $('.ac-lead'), error = $('.cr-error'), tabs = $('.ac-tabs'), start = $('.ac-start');
   const credentials = $<HTMLFormElement>('.ac-credentials'), confirm = $<HTMLFormElement>('.ac-confirm');
   const forgot = $<HTMLFormElement>('.ac-forgot'), reset = $<HTMLFormElement>('.ac-reset');
-  const account = $('.ac-account'), adopt = $('.ac-adopt'), google = $<HTMLButtonElement>('.ac-google');
-  const loading = new Map<HTMLElement, ReturnType<typeof createLoadingState>>([credentials, confirm, forgot, reset, account, adopt]
+  const adopt = $('.ac-adopt'), google = $<HTMLButtonElement>('.ac-google');
+  const loading = new Map<HTMLElement, ReturnType<typeof createLoadingState>>([credentials, confirm, forgot, reset, adopt]
     .map(section => [section, createLoadingState(section)]));
   let view: AccountView = 'sign-in', entry: AccountView = 'sign-in', address = '', reason: 'credits' | null = null;
   let busy = false, previousFocus: HTMLElement | null = null;
@@ -66,7 +67,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
   const input = (form: HTMLFormElement, name: string) => form.elements.namedItem(name) as HTMLInputElement;
   const say = (message: string | null) => { error.hidden = !message; error.textContent = message ?? ''; };
   const focusFirst = () => {
-    const section = [start, confirm, forgot, reset, account, adopt].find(s => !s.hidden);
+    const section = [start, confirm, forgot, reset, adopt].find(s => !s.hidden);
     section?.querySelector<HTMLElement>('input:not([value]), input, .cr-primary')?.focus();
   };
 
@@ -78,7 +79,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
     lead.textContent = message || (reason && starting ? CREDITS_LEAD : COPY[next][1]);
     tabs.hidden = !starting; start.hidden = !starting;
     confirm.hidden = next !== 'confirm'; forgot.hidden = next !== 'forgot'; reset.hidden = next !== 'reset';
-    account.hidden = next !== 'account'; adopt.hidden = next !== 'adopt';
+    adopt.hidden = next !== 'adopt';
     tabs.querySelectorAll<HTMLElement>('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === next)));
     if (starting) {
       input(credentials, 'password').autocomplete = next === 'sign-up' ? 'new-password' : 'current-password';
@@ -91,7 +92,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
   function setBusy(section: HTMLElement | null, on: boolean) {
     busy = on;
     if (section) { if (on) loading.get(section)?.start(); else loading.get(section)?.stop(); }
-    overlay.querySelectorAll<HTMLButtonElement | HTMLInputElement>('form button, form input, .ac-google, .ac-account button')
+    overlay.querySelectorAll<HTMLButtonElement | HTMLInputElement>('form button, form input, .ac-google')
       .forEach(control => { control.disabled = on; });
   }
   /** One request at a time. A request that signs in reloads the page, so the sheet stays busy until then. */
@@ -109,9 +110,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
     reason = options.reason ?? null;
     if (overlay.hidden) previousFocus = page.activeElement as HTMLElement | null;
     overlay.hidden = false;
-    const email = platform.email();
-    show(options.view ?? (email ? 'account' : 'sign-in'),
-      email && (options.view ?? 'account') === 'account' ? `Signed in as ${email}. Your designs and credits are saved to this account. Signing out removes them from this device.` : '');
+    show(options.view ?? 'sign-in');
   }
   function close() {
     if (overlay.hidden || busy) return;
@@ -119,7 +118,16 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
     previousFocus?.focus();
   }
 
-  lifetime.listen(item, 'click', () => { closeMenu(); open(); });
+  let leaving = false;
+  lifetime.listen(item, 'click', () => {
+    closeMenu();
+    if (platform.email() === null) { open(); return; }
+    // Signed in, the item is Sign out: it saves the open design, erases this browser's copy and starts again as a guest.
+    // The only thing said is a refusal (the design could not be saved yet).
+    if (leaving) return;
+    leaving = true; item.disabled = true;
+    void platform.signOut().catch(e => { toast(accountErrorMessage(e)); leaving = false; item.disabled = false; });
+  });
   lifetime.listen(tabs, 'click', e => {
     const tab = (e.target as HTMLElement).closest<HTMLElement>('[role="tab"]')?.dataset.tab;
     if ((tab === 'sign-up' || tab === 'sign-in') && !busy) show(tab);
@@ -182,8 +190,6 @@ export function bindAccount({ dom, lifetime, platform, closeMenu }: Ports) {
   lifetime.listen($('.ac-adopt-no'), 'click', () => {
     platform.decline(); close();
   });
-  lifetime.listen($('.ac-sign-out'), 'click', () => { void run(account, () => platform.signOut()); });
-  overlay.querySelectorAll('.ac-done').forEach(button => lifetime.listen(button, 'click', close));
   lifetime.listen($('.cr-close'), 'click', close);
   lifetime.listen(overlay, 'mousedown', e => { if (e.target === overlay) close(); });
   lifetime.listen(page, 'keydown', event => {

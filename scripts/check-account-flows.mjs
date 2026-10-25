@@ -29,7 +29,7 @@ const harness = (email) => `<body style="margin:0;min-height:100vh;background:#e
   resetPassword:(e,c)=>{calls.push(['resetPassword',e,c]);return never();},
   signOut:()=>{calls.push(['signOut']);return window.unsaved?fail('unsaved_changes'):never();}};
  window.toasts=[];
- window.account=bindAccount({dom:{$:s=>shadow.querySelector(s)},lifetime:createEditorLifetime(),platform,closeMenu:()=>{}});
+ window.account=bindAccount({dom:{$:s=>shadow.querySelector(s)},lifetime:createEditorLifetime(),platform,toast:m=>toasts.push(m),closeMenu:()=>{}});
  </script></body>`;
 
 const browser = await chromium.launch({ headless: true });
@@ -125,20 +125,22 @@ try {
       assert.equal(await page.locator('.ac-or').isHidden(), true);
     }, { google: false });
 
-    await run('signed in: the menu shows the email, the sheet signs out', 'person@example.test', null, async ({ page, sheet, calls, shot }) => {
-      assert.match(await page.locator('.ac-menu').innerText(), /person@example\.test/);
+    await run('signed in: the menu item is just Sign out, and it signs out without an account page', 'person@example.test', null, async ({ page, calls }) => {
+      assert.equal((await page.locator('.ac-menu').innerText()).trim(), 'Sign out');
       await page.locator('.ac-menu').click();
-      await sheet.waitFor();
-      assert.match(await page.locator('.ac-lead').innerText(), /Signed in as person@example\.test/);
-      await shot('account');
-      assert.match(await page.locator('.ac-lead').innerText(), /Signing out removes them from this device/);
+      assert.equal(await page.locator('.ac-overlay').isHidden(), true, 'no sheet opens');
+      assert.deepEqual(await calls(), [['signOut']]);
+      assert.deepEqual(await page.evaluate(() => window.toasts), [], 'nothing is announced');
+    });
+    await run('signed in: a refused sign-out says why, and can be tried again', 'person@example.test', null, async ({ page, calls }) => {
       await page.evaluate(() => { window.unsaved = true; });
-      await page.locator('.ac-sign-out').click();
-      assert.match(await page.locator('.ac-sheet .cr-error').innerText(), /could not be saved to your account yet, so you were not signed out/);
-      assert.equal(await page.locator('.ac-sign-out').isDisabled(), false, 'the person can try again');
+      await page.locator('.ac-menu').click();
+      await page.waitForFunction(() => window.toasts.length === 1);
+      assert.match(await page.evaluate(() => window.toasts[0]), /could not be saved to your account yet, so you were not signed out/);
+      assert.equal(await page.locator('.ac-menu').isDisabled(), false, 'the person can try again');
       await page.evaluate(() => { window.unsaved = false; });
-      await page.locator('.ac-sign-out').click();
-      assert.deepEqual((await calls()).at(-1), ['signOut']);
+      await page.locator('.ac-menu').click();
+      assert.deepEqual((await calls()).map(c => c[0]), ['signOut', 'signOut']);
     });
 
     const offer = { designs: [{ id: 'a', name: 'Bedroom wardrobe' }, { id: 'b', name: 'Attic eaves' }], credits: 12 };

@@ -193,7 +193,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
         // Signing in, first in the menu; the coin balance and wallet, whose credits need an account.
-        const account = accountPlatform ? bindAccount({ dom, lifetime, platform: accountPlatform, closeMenu: () => shell.closeDD() }) : null;
+        const account = accountPlatform ? bindAccount({ dom, lifetime, platform: accountPlatform, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message) }) : null;
         const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform,
             toast: message => shell.toast(message), closeMenu: () => shell.closeDD(),
             signIn: () => account?.open({ reason: 'credits' }) }) : null;

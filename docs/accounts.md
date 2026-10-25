@@ -3,7 +3,7 @@
 Nobody needs an account to design. Every visitor starts as a guest (an anonymous Supabase identity) whose designs
 are saved automatically. An account is needed for credits, and to see the same designs on another device or after
 clearing the browser. The ⋮ menu always offers it: **Sign in / Sign up**, in the Account group at the end of the menu;
-signed in, the same item shows the email and opens the account (sign out).
+signed in, the same item is just **Sign out** (no account page in between).
 
 ## What a person sees
 
@@ -18,7 +18,7 @@ signed in, the same item shows the email and opens the account (sign out).
   else) is not asked about and is forgotten. Closing the sheet with ✕ asks again next time. Either answer is quiet: the page
   simply shows the result (the added designs in the library; nothing if declined). Nothing else about signing in is announced:
   no "signed in" message and no welcome card; only problems (a failed move, a refused sign-out) are said.
-- **Sign out**: designs belong to the account, so nothing of them stays in this browser. The open design is saved to
+- **Sign out** (the menu item when signed in, which signs out directly): designs belong to the account, so nothing of them stays in this browser. The open design is saved to
   the account first; if that fails (offline) the person stays signed in and is told why. Then the account's drafts,
   previews and recovery copies are erased from the browser and the page starts again as a new guest.
 
