@@ -5,8 +5,12 @@ import { PaymentProviderError, PaymentSignatureError, type PaymentProvider, type
  * Stripe Checkout: Stripe hosts the payment page (cards, Apple Pay, Google Pay, Link and the local methods turned on
  * in the Stripe dashboard), so card data never reaches this app. Credits follow only from a signed webhook or a
  * direct lookup, never from the browser returning to the success page.
+ *
+ * Stripe turns Managed Payments on by default for new accounts (Stripe becomes the seller and needs a product tax code
+ * on every line, or it refuses the session). The packs are priced for a direct sale, so this app turns it off for its
+ * sessions unless `managedPayments` is set (`STRIPE_MANAGED_PAYMENTS=true`: then add a tax code and recheck the margins).
  */
-export function createStripeProvider(secretKey: string, webhookSecret: string, client?: Stripe): PaymentProvider {
+export function createStripeProvider(secretKey: string, webhookSecret: string, client?: Stripe, options: { managedPayments?: boolean } = {}): PaymentProvider {
   const stripe = client ?? new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient(), maxNetworkRetries: 2, timeout: 20_000 });
   const crypto = Stripe.createSubtleCryptoProvider();
   const ref = (value: string | { id: string } | null | undefined) => typeof value === 'string' ? value : value?.id ?? null;
@@ -59,6 +63,7 @@ export function createStripeProvider(secretKey: string, webhookSecret: string, c
     async checkout(order, links, email, label) {
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
+        managed_payments: { enabled: options.managedPayments === true },
         client_reference_id: order.id,
         ...(email ? { customer_email: email } : {}),
         line_items: [{ quantity: 1, price_data: { currency: order.currency, unit_amount: order.amount,

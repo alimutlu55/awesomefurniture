@@ -156,7 +156,11 @@ more `PaymentProvider`.
 4. Supabase Auth: set up custom SMTP (the built-in sender allows only a few emails an hour). Put
    `{{ .Token }}` in the *Change email address* and *Magic link* templates so the email carries the
    code the wallet asks for.
-5. Optional: Stripe Tax, and Stripe Radar rules against card testing.
+5. Stripe turns **Managed Payments** (Stripe as the seller, which needs a tax code on each product) on by default
+   for new accounts. This app turns it off for its checkouts, which is how the prices were worked out: you are
+   the seller. To use it instead, set `STRIPE_MANAGED_PAYMENTS=true`, add a `tax_code` to the product in
+   `stripe-provider.ts` and recheck `docs/credits.md` pricing (its fees differ).
+6. Optional: Stripe Tax, and Stripe Radar rules against card testing.
 
 Support grants or corrections: `select credits_grant('<user id>', 20, 'ticket-123', 'Support: failed image');`
 (once per key; negative to take credits). A refund made in the Stripe dashboard reaches the ledger by

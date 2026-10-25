@@ -179,11 +179,13 @@ test('the API in test mode: wallet, a pretend checkout through the signed webhoo
 
 test('a refused Stripe request becomes a clear 502 with a secret-free reference, not a silent failure', async () => {
   const rejected = new Stripe.errors.StripeAuthenticationError({ type: 'authentication_error', code: 'api_key_invalid', message: 'Invalid API Key provided: sk_test_***secret' });
-  const stripe = { checkout: { sessions: { create: async () => { throw rejected; } } } } as unknown as Stripe;
+  const sent: Record<string, unknown>[] = [];
+  const stripe = { checkout: { sessions: { create: async (params: Record<string, unknown>) => { sent.push(params); throw rejected; } } } } as unknown as Stripe;
   const provider = createStripeProvider('sk_test_unused', 'whsec_unused', stripe);
   const order = { id: 'o1', userId: buyer.id, packId: 'starter', credits: 50, amount: 499, currency: 'usd', provider: 'stripe', providerRef: null, status: 'pending' as const, createdAt: '' };
   await assert.rejects(provider.checkout(order, links, null, 'Starter'), (e: PaymentProviderError) => e instanceof PaymentProviderError && e.reason === 'authentication_error:api_key_invalid');
 
+  assert.deepEqual(sent[0]!.managed_payments, { enabled: false }, 'Managed Payments needs a tax code on every product, so it stays off unless asked for');
   const store = createMemoryCreditStore();
   const service = createCreditService({ store, providers: [{ ...provider, id: 'stripe' }], requireAccount: false });
   const runtime: CreditRuntime = { mode: 'live', service, authenticate: async () => buyer, test: null };

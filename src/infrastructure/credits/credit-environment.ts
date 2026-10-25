@@ -16,6 +16,8 @@ export interface CreditEnvironment {
   SUPABASE_SECRET_KEY?: string | undefined;
   STRIPE_SECRET_KEY?: string | undefined;
   STRIPE_WEBHOOK_SECRET?: string | undefined;
+  /** `true` leaves Stripe's Managed Payments on (Stripe as the seller); the packs are priced for it off. */
+  STRIPE_MANAGED_PAYMENTS?: string | undefined;
   /** `false` lets guests buy without adding an email first. Default: an email is required. */
   CREDITS_REQUIRE_ACCOUNT?: string | undefined;
 }
@@ -76,7 +78,7 @@ export function createCreditRuntime(env: CreditEnvironment, origin: string, { al
   const client = createClient(env.SUPABASE_URL?.trim() || PUBLIC_SUPABASE_PROJECT.url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
   const providers: PaymentProvider[] = [];
   if (env.STRIPE_SECRET_KEY?.trim() && env.STRIPE_WEBHOOK_SECRET?.trim()) {
-    providers.push(createStripeProvider(env.STRIPE_SECRET_KEY.trim(), env.STRIPE_WEBHOOK_SECRET.trim()));
+    providers.push(createStripeProvider(env.STRIPE_SECRET_KEY.trim(), env.STRIPE_WEBHOOK_SECRET.trim(), undefined, { managedPayments: env.STRIPE_MANAGED_PAYMENTS === 'true' }));
   }
   const runtime: CreditRuntime = {
     mode: 'live',
