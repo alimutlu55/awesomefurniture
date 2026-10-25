@@ -48,8 +48,8 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
   const { document } = dom, page = dom.host.ownerDocument, menu = dom.$('#menu'), item = document.createElement('button');
   item.className = 'mi'; item.type = 'button'; item.setAttribute('role', 'menuitem');
   item.innerHTML = ICON + '<span>Technical drawings</span>';
-  const help = menu.querySelector('[data-editor-id="help-menu"]');
-  if (help) menu.insertBefore(item, help); else menu.append(item);
+  const group = menu.querySelector('[data-menu-group="design"]') ?? menu;
+  group.insertBefore(item, group.querySelector('[data-editor-id="share-menu"]'));
   credits?.badge(item, FEATURE);
 
   const panel = document.createElement('div');

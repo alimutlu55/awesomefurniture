@@ -16,9 +16,7 @@ export function bindLengthUnits({ dom, lifetime, redraw }: Ports) {
   row.className = 'mi unit-row'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Measurement units');
   row.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18v-5h-2.5v2.5H16V12h-2.5v2.5H11V12H8.5v2.5H6V12H3z"/></svg><span>Units</span>'
     + '<span class="unit-seg">' + LENGTH_UNITS.map(u => `<button type="button" data-unit="${u.key}" title="${u.name}" aria-label="${u.name}">${u.short}</button>`).join('') + '</span>';
-  // Share, Units, Shortcuts and help, then Reset last: the destructive item stays at the bottom.
-  const help = menu.querySelector('[data-editor-id="help-menu"]');
-  if (help) menu.insertBefore(row, help); else menu.append(row);
+  (menu.querySelector('[data-menu-group="preferences"]') ?? menu).append(row);
   const show = (unit: LengthUnit) => row.querySelectorAll<HTMLButtonElement>('[data-unit]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.unit === unit)));
   show(currentLengthUnit());
   // Choosing a unit keeps the menu open: people try each and look at the model.

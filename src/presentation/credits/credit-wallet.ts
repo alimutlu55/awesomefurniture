@@ -25,9 +25,9 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   chip.type = 'button'; chip.className = 'mi cr-chip'; chip.hidden = true; chip.setAttribute('role', 'menuitem');
   chip.innerHTML = coin() + '<span>Credits</span><b class="cr-chip-value">0</b><small class="cr-chip-buy">Get credits</small>'
     + '<i class="cr-chip-gain" aria-hidden="true"></i>';
-  // The toolbar has no room on phones: the balance is the menu's first item.
-  const menu = dom.$('#menu'), title = menu.querySelector('.dd-title');
-  if (title) title.after(chip); else menu.prepend(chip);
+  // Keep the balance in Account; the group stays hidden until credits are available.
+  const menu = dom.$('#menu');
+  (menu.querySelector('[data-menu-group="account"]') ?? menu).append(chip);
 
   const overlay = page.createElement('div');
   overlay.className = 'cr-overlay'; overlay.hidden = true; overlay.innerHTML = walletShell();

@@ -17,8 +17,7 @@ export function bindMaxReachMenu({ dom, lifetime, current, set }: Ports) {
   row.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V4M8 8l4-4 4 4M6 21h12"/></svg><span>Max reach</span>'
     + '<label class="reach-field"><input type="number" min="' + MIN_REACH + '" max="' + MAX_REACH + '" step="1" aria-label="Max reach height"><small>cm</small></label>'
     + '<button type="button" class="reach-switch" role="switch" aria-label="Use a max reach for this project"><i></i></button>';
-  const help = menu.querySelector('[data-editor-id="help-menu"]');
-  if (help) menu.insertBefore(row, help); else menu.append(row);
+  (menu.querySelector('[data-menu-group="preferences"]') ?? menu).append(row);
   const input = row.querySelector('input')!, toggle = row.querySelector<HTMLButtonElement>('.reach-switch')!;
   const sync = () => {
     const value = current();

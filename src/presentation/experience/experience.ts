@@ -209,7 +209,7 @@ export function mountExperience(ports: ExperiencePorts) {
   const item = doc.createElement('button');
   item.type = 'button'; item.className = 'mi'; item.setAttribute('role', 'menuitem');
   item.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l6-5 6 5v11M10 20v-6h4v6"/></svg><span>Plan from what I own</span>';
-  dom.$('#menu').insertBefore(item, dom.$('#fitchip'));
+  dom.$('#fitchip').before(item);
   lifetime.listen(item, 'click', () => { ports.closeMenu(); reveal.hide(); welcome.open(); });
   lifetime.cleanup(() => item.remove());
 
