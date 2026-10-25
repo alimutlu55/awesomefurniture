@@ -19,11 +19,3 @@
  }
  #toolbar #undo2{border-left:1px solid var(--line);border-radius:0}
 }
-/* Reserve room for the wallet's loading state without covering design navigation on a small phone. */
-@container (max-width:440px) {
- #topright{display:grid;grid-template-columns:44px 44px;gap:2px;border-radius:26px}
- #topright>.tb{width:44px;min-width:44px;padding-inline:0;justify-content:center}
- #topright>#topleft{grid-column:2}
- #app :is(#menu,#plan-panel,#help-panel){top:calc(114px + var(--safe-top))}
- #toast{top:calc(118px + var(--safe-top))}
-}
