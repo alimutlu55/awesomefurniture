@@ -20,6 +20,18 @@ export interface AccountPlatform {
   signOut(): Promise<void>;
   /** Read once at start: who just signed in and what came along from this browser. */
   welcome(): AccountWelcome | null;
+  /** What this browser's guest session left that is worth asking about, until the person decides. Null: nothing to ask. */
+  offer(): GuestOffer | null;
+  /** The person agreed: moves the guest's designs and credits into the account, then reloads. Throws when it could not. */
+  adopt(): Promise<void>;
+  /** The person chose not to: the guest's work stays out of the account and out of this browser. */
+  decline(): void;
+}
+
+/** What a guest left behind: designs someone worked on, and credits. */
+export interface GuestOffer {
+  readonly designs: readonly { readonly id: string; readonly name: string }[];
+  readonly credits: number;
 }
 
 export interface AccountWelcome {

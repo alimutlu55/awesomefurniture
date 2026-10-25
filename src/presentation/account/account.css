@@ -20,7 +20,12 @@
 .ac-form .cr-primary { margin-top: 4px; }
 .ac-form .cr-quiet { margin-top: 0; }
 .ac-hint { margin: -6px 0 0; font-size: 12.5px; color: var(--cr-mute); }
-.ac-account, .ac-welcome { display: grid; gap: 4px; margin-top: 18px; }
+.ac-account, .ac-welcome, .ac-adopt { display: grid; gap: 4px; margin-top: 18px; }
+.ac-adopt-list { margin: 0 0 12px; padding: 12px 14px; list-style: none; border-radius: 14px; font-size: 14px; line-height: 1.5;
+  background: color-mix(in srgb, var(--cr-ink) 5%, transparent); }
+.ac-adopt-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-adopt-list li + li { margin-top: 2px; }
+.ac-sheet[data-view="adopt"] .ac-privacy { display: none; }
 .ac-privacy { margin: 14px 0 0; font-size: 12.5px; line-height: 1.4; text-align: center; color: var(--cr-mute); }
 .ac-sheet[data-view="account"] .ac-privacy, .ac-sheet[data-view="welcome"] .ac-privacy { display: none; }
 #menu .ac-menu-email { margin-left: auto; min-width: 0; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

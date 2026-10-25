@@ -14,6 +14,7 @@ export function accountErrorMessage(error: unknown): string {
     case 'validation_failed': return 'Enter a valid email address.';
     case 'over_email_send_rate_limit': return 'Too many emails were sent just now. Wait a minute and try again.';
     case 'over_request_rate_limit': return 'Too many attempts. Wait a minute and try again.';
+    case 'adopt_failed': return 'We could not add your earlier work just now. Nothing was moved. Try again in a moment.';
     case 'unsaved_changes': return 'Your latest changes could not be saved to your account yet, so you were not signed out. Check your connection and try again.';
     case 'provider_disabled': return 'Google sign-in is not available yet. Use your email instead.';
     case 'signup_disabled': return 'New accounts cannot be created right now. Please try again later.';

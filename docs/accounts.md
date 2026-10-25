@@ -12,8 +12,12 @@ signed in, the same item shows the email and opens the account (sign out).
   failing. **Forgot your password?** emails a code; the code and a new password sign the person in.
 - **Credits**: buying, an AI image or technical drawings as a guest opens the sheet with why ("Credits belong to
   your account…"). After signing in, the wallet reopens on the pack that was chosen.
-- **Welcome**: after signing in, if the guest had designs or credits, a card says how many came along ("3 designs
-  from this browser are now in your account, with 12 credits"). Otherwise a short notice says who is signed in.
+- **Earlier work**: signing in never moves anything by itself. If this browser's guest session has real work in it (a
+  wardrobe, a room or walls added or changed, a reach, or credits), a sheet asks "Add your earlier work?", naming the
+  designs, with **Add to my account** and **Do not add**. A guest that only opened the editor (the starting wall, nothing
+  else) is not asked about and is forgotten. Closing the sheet with ✕ asks again next time. After adding, a card says how
+  many designs and credits came along; if the person declines, the guest's work stays out of the account and out of this
+  browser. Signing in without any earlier work shows a short "Signed in as …" notice.
 - **Sign out**: designs belong to the account, so nothing of them stays in this browser. The open design is saved to
   the account first; if that fails (offline) the person stays signed in and is told why. Then the account's drafts,
   previews and recovery copies are erased from the browser and the page starts again as a new guest.
@@ -26,14 +30,18 @@ We store only the email (and Supabase's password hash). Google sign-in adds what
 1. Right before any sign-in, the browser remembers the guest's session (`wardrobe:account:guest`,
    `src/infrastructure/account/guest-handover.ts`).
 2. Signing in replaces the session and the page reloads (Google comes back through a redirect).
-3. On start, before any design opens, `handOver` sends both tokens to `POST /api/account/merge`. The server checks
-   both (the guest must be a guest, the account a permanent account) and calls `account_merge`
-   (`supabase/migrations/20261025200000_account_merge.sql`): designs, credit balance (two `transfer` ledger
-   rows), passes and free uses, open orders and follows move in one transaction. The browser drafts move too, so the
-   design that was open opens again with its unsaved changes.
-4. Merging is idempotent: a second tab, a retry or a replay moves nothing more. If the server cannot be reached the
-   guest stays remembered and the next start tries again (the person sees "still being moved"). If the guest's
-   session was revoked meanwhile, its designs stay with it and the person is told.
+3. On start, `handOver` only looks: it reads what the guest owns, as the guest, and keeps the designs that have work
+   (`hasDesignWork`, `src/application/account/guest-work.ts`: the editor's own rule for a fresh design, no wardrobe and
+   the single starting wall) plus any credits. Nothing has moved. The editor opens the account's own designs meanwhile.
+4. If something is worth asking about, the sheet asks. **Add**: `adoptGuest` sends both tokens to
+   `POST /api/account/merge`; the server checks both (the guest must be a guest, the account a permanent account) and calls
+   `account_merge` (`supabase/migrations/20261025200000_account_merge.sql`): designs, credit balance (two `transfer`
+   ledger rows), passes and free uses, open orders and follows move in one transaction, and the browser drafts move
+   too. The page reloads, the design that was open opens, and a card says what came along. **Do not add**:
+   `declineGuest` forgets the guest and the designs this browser kept for it.
+5. Merging is idempotent: a second tab or a retry moves nothing more. If the guest cannot be checked (offline), it stays
+   remembered and the person is told it will be asked about next time. If the server cannot move it, nothing changes
+   and the question stays. If the guest's session was revoked meanwhile, its designs stay with it and the person is told.
 
 A design's owner still never changes from a browser: the ownership trigger allows it only under a flag set inside
 `account_merge`, never as `anon` or `authenticated`. A transfer keeps the design's revision and dates, so an editor
@@ -49,7 +57,7 @@ sign-out erased it).
 | --- | --- |
 | Sheet, menu item, welcome; customer copy | `src/presentation/account/` (`account-sheet.ts`, `account-markup.ts`, `account-errors.ts`, `account.css`) |
 | Supabase Auth calls, other-tab reloads | `src/app/account-platform.ts` (port: `account.ports.d.ts`) |
-| Remember the guest, hand it over at start | `src/infrastructure/account/guest-handover.ts`, called by `src/app/session-bootstrap.ts` |
+| Remember the guest, look at it, move or drop it | `src/infrastructure/account/guest-handover.ts`, called by `src/app/session-bootstrap.ts` |
 | Merge rules and endpoint | `src/application/account/account-merge.ts`, `src/infrastructure/account/account-http.ts` |
 | Database | `account_merge` in the migration above; `supabase/tests/account_merge.sql` |
 | Checks | `tests/architecture/accounts.test.ts`; `npm run check:accounts` (the sheet's flows in a browser) |

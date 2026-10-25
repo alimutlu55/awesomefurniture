@@ -1,9 +1,9 @@
-import type { AccountPlatform, AccountWelcome } from './account.ports';
+import type { AccountPlatform, AccountWelcome, GuestOffer } from './account.ports';
 import { accountErrorMessage, needsConfirmation } from './account-errors';
 import { accountMenuItem, accountSheet } from './account-markup';
 import { createLoadingState } from '../components/loading-state';
 
-export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'account' | 'welcome';
+export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'account' | 'welcome' | 'adopt';
 export interface AccountOpenOptions {
   /** Why the sheet opened: buying or using credits needs an account. */
   readonly reason?: 'credits';
@@ -30,7 +30,15 @@ const COPY: Record<AccountView, readonly [string, string]> = {
   reset: ['Choose a new password', ''],
   account: ['Your account', ''],
   welcome: ['You are signed in', ''],
+  adopt: ['Add your earlier work?', ''],
 };
+
+/** What was found from before signing in, and the question: nothing moves until the person says yes. */
+export function offerCopy(offer: GuestOffer, email: string) {
+  const n = offer.designs.length;
+  const found = [n ? `${n} ${n === 1 ? 'design' : 'designs'}` : '', offer.credits ? `${offer.credits} credits` : ''].filter(Boolean).join(' and ');
+  return `This browser has ${found} from before you signed in. Add ${n === 1 && !offer.credits ? 'it' : 'them'} to ${email}? If you do not, they stay out of your account.`;
+}
 
 /** What came along from this browser when the person signed in. */
 export function welcomeCopy(w: AccountWelcome) {
@@ -60,8 +68,8 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
   const sheet = $('.cr-sheet'), heading = $('.ac-head h2'), lead = $('.ac-lead'), error = $('.cr-error'), tabs = $('.ac-tabs'), start = $('.ac-start');
   const credentials = $<HTMLFormElement>('.ac-credentials'), confirm = $<HTMLFormElement>('.ac-confirm');
   const forgot = $<HTMLFormElement>('.ac-forgot'), reset = $<HTMLFormElement>('.ac-reset');
-  const account = $('.ac-account'), welcome = $('.ac-welcome'), google = $<HTMLButtonElement>('.ac-google');
-  const loading = new Map<HTMLElement, ReturnType<typeof createLoadingState>>([credentials, confirm, forgot, reset, account]
+  const account = $('.ac-account'), welcome = $('.ac-welcome'), adopt = $('.ac-adopt'), google = $<HTMLButtonElement>('.ac-google');
+  const loading = new Map<HTMLElement, ReturnType<typeof createLoadingState>>([credentials, confirm, forgot, reset, account, adopt]
     .map(section => [section, createLoadingState(section)]));
   let view: AccountView = 'sign-in', entry: AccountView = 'sign-in', address = '', reason: 'credits' | null = null;
   let busy = false, previousFocus: HTMLElement | null = null;
@@ -69,7 +77,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
   const input = (form: HTMLFormElement, name: string) => form.elements.namedItem(name) as HTMLInputElement;
   const say = (message: string | null) => { error.hidden = !message; error.textContent = message ?? ''; };
   const focusFirst = () => {
-    const section = [start, confirm, forgot, reset, account, welcome].find(s => !s.hidden);
+    const section = [start, confirm, forgot, reset, account, welcome, adopt].find(s => !s.hidden);
     section?.querySelector<HTMLElement>('input:not([value]), input, .cr-primary')?.focus();
   };
 
@@ -81,7 +89,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
     lead.textContent = message || (reason && starting ? CREDITS_LEAD : COPY[next][1]);
     tabs.hidden = !starting; start.hidden = !starting;
     confirm.hidden = next !== 'confirm'; forgot.hidden = next !== 'forgot'; reset.hidden = next !== 'reset';
-    account.hidden = next !== 'account'; welcome.hidden = next !== 'welcome';
+    account.hidden = next !== 'account'; welcome.hidden = next !== 'welcome'; adopt.hidden = next !== 'adopt';
     tabs.querySelectorAll<HTMLElement>('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === next)));
     if (starting) {
       input(credentials, 'password').autocomplete = next === 'sign-up' ? 'new-password' : 'current-password';
@@ -178,6 +186,13 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
     if (password.length < 8) return refuse(reset, 'password', 'Choose a password of at least 8 characters.');
     void run(reset, () => platform.resetPassword(address, code, password));
   });
+  lifetime.listen($('.ac-adopt-yes'), 'click', () => {
+    // A failed move changes nothing and the question stays: the person can try again.
+    void run(adopt, () => platform.adopt().catch(() => { throw Object.assign(new Error('Not added.'), { code: 'adopt_failed' }); }));
+  });
+  lifetime.listen($('.ac-adopt-no'), 'click', () => {
+    platform.decline(); close(); toast('Your earlier work was not added to your account.');
+  });
   lifetime.listen($('.ac-sign-out'), 'click', () => { void run(account, () => platform.signOut()); });
   overlay.querySelectorAll('.ac-done').forEach(button => lifetime.listen(button, 'click', close));
   lifetime.listen($('.cr-close'), 'click', close);
@@ -198,8 +213,14 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
   void platform.providers().then(list => { const on = list.includes('google'); google.hidden = !on; $('.ac-or').hidden = !on; });
 
   // Just signed in: say what came along from this browser, or simply who is signed in.
-  const greeting = platform.welcome();
-  if (greeting && (greeting.designs > 0 || greeting.credits > 0)) {
+  const greeting = platform.welcome(), offer = platform.offer();
+  if (offer) {
+    // Signed in with work from this browser as a guest: ask before anything moves.
+    const names = offer.designs.slice(0, 3).map(design => design.name).concat(offer.designs.length > 3 ? [`and ${offer.designs.length - 3} more`] : []);
+    $('.ac-adopt-list').replaceChildren(...names.map(name => { const li = page.createElement('li'); li.textContent = name; return li; }));
+    overlay.hidden = false; previousFocus = page.activeElement as HTMLElement | null;
+    show('adopt', offerCopy(offer, platform.email() ?? 'your account'));
+  } else if (greeting && (greeting.designs > 0 || greeting.credits > 0)) {
     overlay.hidden = false; previousFocus = page.activeElement as HTMLElement | null; show('welcome', welcomeCopy(greeting));
   } else if (greeting) toast(`Signed in as ${greeting.email}.`);
 

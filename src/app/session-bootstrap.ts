@@ -8,7 +8,8 @@ import type { SessionDraft } from '../application/projects/session-autosave';
 
 /**
  * A persistent anonymous identity owns the design until the person signs in; no account is required to design. After
- * signing in, the guest's designs and credits are moved into the account before any design is loaded.
+ * signing in, a guest that has real work is offered to the person (nothing moves unless they agree), and the editor
+ * opens the account's own designs meanwhile.
  */
 export async function prepareSession(url: URL) {
   const project = resolveSupabaseProject(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
@@ -30,8 +31,8 @@ export async function prepareSession(url: URL) {
       ? await navigator.locks.request('wardrobe-identity', identity) : await identity();
   } catch { warning = 'Cloud saving is unavailable. Your design can still be edited in this browser.'; }
   const handover: Handover = client && user ? await handOver(client, { url: project.url, key: project.publishableKey }, localStorage) : { status: 'none' };
-  if (handover.status === 'pending') warning = 'Your designs from before you signed in are still being moved to your account. They will appear the next time you open the editor.';
-  if (handover.status === 'lost') warning = 'This browser\'s earlier guest session had ended, so its designs could not be moved to your account.';
+  if (handover.status === 'pending') warning = 'We could not check the designs you made before signing in yet. We will ask you about them the next time you open the editor.';
+  if (handover.status === 'lost') warning = 'This browser\'s earlier guest session had ended, so its designs cannot be added to your account.';
   // Another tab signed in or out: this one stops saving as the old identity and reloads (src/app/account-platform.ts).
   let switched = false;
   client?.auth.onAuthStateChange((event, session) => {
@@ -80,9 +81,9 @@ export async function prepareSession(url: URL) {
     if (owned) {
       draft = drafts.read(requestedId) ?? { document: owned.document, expectedRevision: owned.revision };
       saved = draft.expectedRevision === owned.revision && JSON.stringify(draft.document) === JSON.stringify(owned.document);
-    } else if (!draft && handover.status === 'pending') {
-      // The design is still the guest's until the move finishes: open the account's own work meanwhile.
-      draft = drafts.read();
+    } else if (!draft && (handover.status === 'pending' || handover.status === 'offer')) {
+      // The design is still the guest's until the person decides: open the account's own work meanwhile.
+      await restore();
     } else if (!draft) {
       try {
         const shared = await loadPublicSession(client, requestedId);

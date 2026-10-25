@@ -23,8 +23,8 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
 Credits belong to an account: buying them and using them (the free first drawing set too) needs one
 (`CREDITS_REQUIRE_ACCOUNT`, on by default; the server refuses with `ACCOUNT_REQUIRED`). A guest still sees the
 balance, the packs and the prices; the sign-in sheet opens when they would buy or use credits, and the wallet
-reopens on the chosen pack afterwards. Designing never needs an account. Signing in moves the guest's designs
-and credits into the account, so paid credits survive a cleared browser and reach every device: see
+reopens on the chosen pack afterwards. Designing never needs an account. Signing in offers to add the guest's work
+and credits to the account (the person decides), so paid credits survive a cleared browser and reach every device: see
 [accounts.md](accounts.md).
 
 ## Pricing

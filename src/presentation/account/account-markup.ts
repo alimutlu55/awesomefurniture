@@ -30,6 +30,9 @@ export function accountSheet() {
     + '<button type="submit" class="cr-primary">Save and sign in</button><button type="button" class="cr-quiet ac-to-forgot">Send a new code</button></form>'
     + '<section class="ac-account" hidden><button type="button" class="cr-primary ac-done">Continue designing</button>'
     + '<button type="button" class="cr-quiet ac-sign-out">Sign out</button></section>'
+    + '<section class="ac-adopt" hidden><ul class="ac-adopt-list"></ul>'
+    + '<button type="button" class="cr-primary ac-adopt-yes">Add to my account</button>'
+    + '<button type="button" class="cr-quiet ac-adopt-no">Do not add</button></section>'
     + '<section class="ac-welcome" hidden><button type="button" class="cr-primary ac-done">Continue designing</button></section>'
     + '<p class="cr-error" role="alert" hidden></p>'
     + '<p class="ac-privacy">We keep only your email. Designs you made in this browser come with you.</p></div>';

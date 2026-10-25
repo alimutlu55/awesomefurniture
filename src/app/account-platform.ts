@@ -1,10 +1,22 @@
 import type { AccountPlatform, AccountWelcome } from '../presentation/account/account.ports';
-import { rememberGuest } from '../infrastructure/account/guest-handover';
+import { adoptGuest, declineGuest, rememberGuest } from '../infrastructure/account/guest-handover';
 import { forgetDrafts } from '../infrastructure/persistence/browser-drafts';
 import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
 import type { SessionPlatform } from './session-bootstrap';
 
 const SIGNED_IN = 'wardrobe:account:signed-in';
+const MOVED = 'wardrobe:account:moved';
+/** What was added to the account, kept across the reload that follows so the next page can say so once. */
+const moved = {
+  set(value: { designs: number; credits: number }) { try { sessionStorage.setItem(MOVED, JSON.stringify(value)); } catch { /* private mode: no message */ } },
+  take(): { designs: number; credits: number } | null {
+    try {
+      const raw = sessionStorage.getItem(MOVED); sessionStorage.removeItem(MOVED);
+      const value = JSON.parse(raw ?? 'null') as { designs?: unknown; credits?: unknown } | null;
+      return value && typeof value.designs === 'number' && typeof value.credits === 'number' ? { designs: value.designs, credits: value.credits } : null;
+    } catch { return null; }
+  },
+};
 const marker = {
   set() { try { sessionStorage.setItem(SIGNED_IN, '1'); } catch { /* private mode: no welcome, nothing else lost */ } },
   take() { try { const value = sessionStorage.getItem(SIGNED_IN); sessionStorage.removeItem(SIGNED_IN); return value === '1'; } catch { return false; } },
@@ -20,9 +32,10 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
   if (!client) return undefined;
   const auth = client.auth;
   const email = user && !user.is_anonymous ? user.email ?? null : null;
-  const merged = platform.handover.status === 'merged' ? platform.handover : null;
-  let welcome: AccountWelcome | null = email && (marker.take() || merged)
-    ? { email, designs: merged?.designs ?? 0, credits: merged?.credits ?? 0 } : null;
+  const added = moved.take();
+  let welcome: AccountWelcome | null = email && (marker.take() || added)
+    ? { email, designs: added?.designs ?? 0, credits: added?.credits ?? 0 } : null;
+  let offer = platform.handover.status === 'offer' ? platform.handover : null;
   // Set while this tab changes who is signed in: it reloads itself once done. Any other change (another tab signed
   // in or out) reloads this one, so it never keeps saving as someone it no longer is.
   let changing = false;
@@ -56,6 +69,15 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
       return providers;
     },
     welcome() { const value = welcome; welcome = null; return value; },
+    offer: () => offer,
+    async adopt() {
+      const project = resolveSupabaseProject(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      moved.set(await adoptGuest(client, { url: project.url, key: project.publishableKey }, localStorage));
+      // The page starts again: the added designs are in the library and the design that was open opens.
+      changing = true; location.reload();
+      return new Promise<never>(() => { /* the page is reloading */ });
+    },
+    decline() { declineGuest(localStorage); offer = null; },
     signIn: (address, password) => signInWith(() => auth.signInWithPassword({ email: address, password })),
     async signUp(address, password) {
       // Remembered first: a project that confirms new accounts at once signs in within signUp itself.

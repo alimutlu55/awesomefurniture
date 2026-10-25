@@ -16,6 +16,9 @@ const harness = (email, welcome) => `<body style="margin:0;min-height:100vh;back
  const calls=window.calls=[], never=()=>new Promise(()=>{});
  const fail=code=>Promise.reject(Object.assign(new Error(code),{code}));
  const platform={email:()=>(${JSON.stringify(email)}),welcome:()=>(${JSON.stringify(welcome)}),
+  offer:()=>(window.offerData??null),declined:0,
+  adopt:()=>{calls.push(['adopt']);return window.adoptFails?Promise.reject(new Error('503')):never();},
+  decline:()=>{calls.push(['decline']);},
   providers:()=>Promise.resolve(window.noGoogle?[]:['google']),
   signIn:(e,p)=>{calls.push(['signIn',e]);return e==='wrong@example.test'?fail('invalid_credentials'):e==='unconfirmed@example.test'?fail('email_not_confirmed'):never();},
   signUp:(e)=>{calls.push(['signUp',e]);return e==='taken@example.test'?fail('user_already_exists'):Promise.resolve('confirm');},
@@ -33,9 +36,10 @@ const browser = await chromium.launch({ headless: true });
 const passed = [];
 try {
   for (const width of [375, 1280]) {
-    const run = async (name, email, welcome, steps, { google = true } = {}) => {
+    const run = async (name, email, welcome, steps, { google = true, offer = null } = {}) => {
       const page = await browser.newPage({ viewport: { width, height: width < 600 ? 812 : 800 }, reducedMotion: 'reduce' });
       if (!google) await page.addInitScript(() => { window.noGoogle = true; });
+      if (offer) await page.addInitScript(value => { window.offerData = value; }, offer);
       const errors = []; page.on('pageerror', e => errors.push(e.message));
       await page.route('**/account-flows', r => r.fulfill({ contentType: 'text/html', body: harness(email, welcome) }));
       await page.goto(base + '/account-flows');
@@ -145,6 +149,33 @@ try {
         await page.locator('.ac-welcome .ac-done').click();
         assert.equal(await page.locator('.ac-overlay').isHidden(), true);
       });
+    const offer = { designs: [{ id: 'a', name: 'Bedroom wardrobe' }, { id: 'b', name: 'Attic eaves' }], credits: 12 };
+    await run('signed in with work from before: the person is asked, and a failed move can be retried', 'person@example.test', null, async ({ page, sheet, error, calls, shot }) => {
+      await sheet.waitFor();
+      assert.equal(await page.locator('.ac-head h2').innerText(), 'Add your earlier work?');
+      assert.match(await page.locator('.ac-lead').innerText(), /2 designs and 12 credits from before you signed in\. Add them to person@example\.test\? If you do not, they stay out of your account\./);
+      assert.deepEqual(await page.locator('.ac-adopt-list li').allInnerTexts(), ['Bedroom wardrobe', 'Attic eaves']);
+      assert.deepEqual(await calls(), [], 'asking moves nothing');
+      await shot('adopt-offer');
+      await page.evaluate(() => { window.adoptFails = true; });
+      await page.locator('.ac-adopt-yes').click();
+      assert.match(await error.innerText(), /Nothing was moved\. Try again/);
+      assert.equal(await page.locator('.ac-adopt-yes').isDisabled(), false, 'the question stays');
+      await page.evaluate(() => { window.adoptFails = false; });
+      await page.locator('.ac-adopt-yes').click();
+      assert.deepEqual((await calls()).map(c => c[0]), ['adopt', 'adopt']);
+    }, { offer });
+    await run('signed in with work from before: "Do not add" leaves it out and says so', 'person@example.test', null, async ({ page, sheet, calls }) => {
+      await sheet.waitFor();
+      await page.locator('.ac-adopt-no').click();
+      assert.deepEqual(await calls(), [['decline']]);
+      assert.equal(await page.locator('.ac-overlay').isHidden(), true);
+      assert.deepEqual(await page.evaluate(() => window.toasts), ['Your earlier work was not added to your account.']);
+    }, { offer: { designs: [{ id: 'a', name: 'Bedroom wardrobe' }], credits: 0 } });
+    await run('no work from before: nothing is asked', 'person@example.test', null, async ({ page }) => {
+      await page.waitForTimeout(300);
+      assert.equal(await page.locator('.ac-overlay').isHidden(), true);
+    });
     await run('just signed in with nothing to bring: a short notice', 'person@example.test', { email: 'person@example.test', designs: 0, credits: 0 },
       async ({ page }) => {
         assert.equal(await page.locator('.ac-overlay').isHidden(), true);
