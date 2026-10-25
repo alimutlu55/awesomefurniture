@@ -2,13 +2,15 @@ import { handleDesignImage, type ImageServiceEnvironment } from '../infrastructu
 import { createCreditRuntime, type CreditEnvironment } from '../infrastructure/credits/credit-environment';
 import { handleCredits } from '../infrastructure/credits/credit-http';
 import { featureCharge } from '../infrastructure/credits/image-charge';
+import { createAccountRuntime, handleAccount, type AccountEnvironment } from '../infrastructure/account/account-http';
 
-export interface ApiEnvironment extends ImageServiceEnvironment, CreditEnvironment {}
+export interface ApiEnvironment extends ImageServiceEnvironment, CreditEnvironment, AccountEnvironment {}
 
 /** Every `/api/*` request, in the Worker and in the Vite dev server alike. Null for any other path. */
 export async function handleApi(request: Request, env: ApiEnvironment, { allowTest = false } = {}): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/')) return null;
+  if (url.pathname.startsWith('/api/account/')) return handleAccount(request, createAccountRuntime(env));
   const credits = createCreditRuntime(env, url.origin, { allowTest });
   // An image is always paid for: without a credit runtime the charge refuses before Gemini is called.
   if (url.pathname === '/api/design-images') return handleDesignImage(request, env, fetch, featureCharge(credits, 'ai-image'));

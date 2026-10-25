@@ -1,0 +1,64 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { AccountError, mergeGuest, type AccountStore, type Identity } from '../../src/application/account/account-merge';
+import { handleAccount, type AccountRuntime } from '../../src/infrastructure/account/account-http';
+import { handleApi } from '../../src/app/api-router';
+
+const guest: Identity = { id: 'a0000000-0000-4000-8000-000000000001', anonymous: true, email: null };
+const account: Identity = { id: 'a0000000-0000-4000-8000-000000000002', anonymous: false, email: 'person@example.test' };
+
+function recordingStore() {
+  const merges: [string, string][] = [];
+  const store: AccountStore = { async merge(from, to) { merges.push([from, to]); return { designs: 3, credits: 12 }; } };
+  return { store, merges };
+}
+
+test('a guest merges only into a permanent account, proven by both tokens', async () => {
+  const { store, merges } = recordingStore();
+  assert.deepEqual(await mergeGuest(store, account, guest), { designs: 3, credits: 12 });
+  assert.deepEqual(merges, [[guest.id, account.id]]);
+  await assert.rejects(mergeGuest(store, guest, guest), (e: AccountError) => e.code === 'SIGN_IN_REQUIRED', 'a guest is not an account');
+  await assert.rejects(mergeGuest(store, null, guest), (e: AccountError) => e.code === 'SIGN_IN_REQUIRED');
+  await assert.rejects(mergeGuest(store, account, account), (e: AccountError) => e.code === 'GUEST_REQUIRED', 'an account is never merged away');
+  await assert.rejects(mergeGuest(store, account, null), (e: AccountError) => e.code === 'GUEST_REQUIRED');
+  assert.equal(merges.length, 1);
+});
+
+test('the merge endpoint checks origin, both tokens and the request, and never shows internal errors', async () => {
+  const { store, merges } = recordingStore();
+  const tokens: Record<string, Identity> = { 'account-token': account, 'guest-token': guest };
+  const runtime: AccountRuntime = { store, verify: async token => tokens[token] ?? null };
+  const merge = (init: { token?: string; body?: unknown; origin?: string; type?: string; method?: string } = {}) =>
+    handleAccount(new Request('https://app.test/api/account/merge', {
+      method: init.method ?? 'POST',
+      headers: { 'content-type': init.type ?? 'application/json', ...(init.token ? { authorization: 'Bearer ' + init.token } : {}),
+        ...(init.origin ? { origin: init.origin } : {}) },
+      ...(init.method === 'GET' ? {} : { body: JSON.stringify(init.body ?? { guest: 'guest-token' }) }),
+    }), runtime);
+
+  const ok = await merge({ token: 'account-token' });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(await ok.json(), { designs: 3, credits: 12 });
+  assert.equal((await merge({ token: 'guest-token' })).status, 401, 'a guest cannot take another guest');
+  assert.equal((await merge({ token: 'account-token', body: { guest: 'forged' } })).status, 401);
+  assert.equal((await merge({ token: 'account-token', origin: 'https://evil.example' })).status, 403);
+  assert.equal((await merge({ token: 'account-token', type: 'text/plain' })).status, 400);
+  assert.equal((await merge({ token: 'account-token', method: 'GET' })).status, 405);
+  assert.equal(merges.length, 1);
+
+  const broken = await handleAccount(new Request('https://app.test/api/account/merge', { method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer account-token' }, body: JSON.stringify({ guest: 'guest-token' }) }),
+  { ...runtime, store: { async merge() { throw new Error('connection refused to db.internal:5432'); } } });
+  const body = await broken.json() as { error: { code: string; message: string; reason: string } };
+  assert.equal(broken.status, 500);
+  assert.equal(body.error.code, 'ACCOUNT_MERGE_FAILED');
+  assert.ok(!JSON.stringify(body).includes('db.internal'), 'the database error never reaches the browser');
+  assert.equal(body.error.reason, broken.headers.get('x-request-id'));
+});
+
+test('without the server secret, merging answers 503 so the browser keeps the guest and tries again', async () => {
+  const response = (await handleApi(new Request('https://app.test/api/account/merge', { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: '{}' }), { AI_RATE_LIMITER: { async limit() { return { success: true }; } } }))!;
+  assert.equal(response.status, 503);
+  assert.equal((await response.json() as { error: { code: string } }).error.code, 'ACCOUNTS_UNAVAILABLE');
+});
