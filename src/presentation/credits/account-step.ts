@@ -55,6 +55,12 @@ export function bindAccountStep({ section, account, lifetime, verified, back }: 
       codeInput.select();
     }).finally(() => busy(codeForm, false));
   });
+  // The email's link confirmed the address without a code: read the account again and carry on.
+  lifetime.listen(section.querySelector('.cr-confirmed')!, 'click', () => {
+    say(null); busy(emailForm, true);
+    account.refresh().then(verified, () => say('We could not confirm it yet. Open the link in the email, then try again.'))
+      .finally(() => busy(emailForm, false));
+  });
   lifetime.listen(section.querySelector('.cr-other-email')!, 'click', () => {
     codeForm.hidden = true; emailForm.hidden = false; say(null); emailInput.select();
   });

@@ -14,6 +14,8 @@ export interface CreditsPlatform {
 export interface CreditAccount {
   /** The email of a verified account, or null for a guest. */
   email(): string | null;
+  /** Reads the account again from the server: an email confirmed from the link in the email counts at once. */
+  refresh(): Promise<void>;
   /** Emails a code. `link` keeps this guest's designs and credits under the email; `sign-in` opens an existing account. */
   sendCode(email: string): Promise<'link' | 'sign-in'>;
   /** Checks the code. After `sign-in` the page reloads into that account, with this design copied into it. */

@@ -140,8 +140,14 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   }
 
   async function startCheckout() {
-    const wallet = client.wallet;
+    let wallet = client.wallet;
     if (!wallet || !selected || buying) return;
+    if (wallet.account.required && wallet.account.anonymous) {
+      // The email may have been confirmed from its link since this page loaded: read the account again first.
+      buying = true; syncBuy();
+      try { await platform.account.refresh(); wallet = await client.refresh() ?? wallet; } catch { /* still a guest */ }
+      buying = false; syncBuy();
+    }
     if (wallet.account.required && wallet.account.anonymous) {
       show('account');
       bindAccountStep({ section: views.account, account: platform.account, lifetime,

@@ -93,7 +93,8 @@ export function accountStep(email: string | null) {
     + '<p>Credits belong to your account. Add your email once: they stay yours if this browser is cleared, and you can use them on your phone and computer.</p></div></div>'
     + '<form class="cr-email-form" novalidate><label class="cr-field"><span>Email</span>'
     + `<input type="email" name="email" autocomplete="email" inputmode="email" required value="${escape(email ?? '')}" placeholder="you@example.com"></label>`
-    + '<button type="submit" class="cr-primary">Email me a code</button></form>'
+    + '<button type="submit" class="cr-primary">Email me a code</button>'
+    + '<button type="button" class="cr-quiet cr-confirmed">I already confirmed my email</button></form>'
     + '<form class="cr-code-form" novalidate hidden><p class="cr-code-note"></p><label class="cr-field"><span>Code</span>'
     + '<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" required placeholder="12345678"></label>'
     + '<button type="submit" class="cr-primary">Verify and continue</button><button type="button" class="cr-quiet cr-other-email">Use another email</button></form>'

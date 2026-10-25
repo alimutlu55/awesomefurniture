@@ -13,7 +13,7 @@ try {
  import {CREDIT_PACKS,CREDIT_FEATURES,packCredits,packSaving} from '/src/domain/credits/credit-catalog.ts';
  import css from '/src/presentation/credits/credits.css?raw';import loadingCss from '/src/presentation/components/loading-state.css?raw';
  const host=document.querySelector('#host'),shadow=host.attachShadow({mode:'open'});shadow.innerHTML='<style>:host{font:14px system-ui;--panel:#faf8f3;--ink:#302d26;--line:#dfd9ce}'+css+loadingCss+'</style><div id="app"><div id="menu"><div class="dd-title">Menu</div></div></div>';
- const lifetime=createEditorLifetime(), account={email:()=>null,sendCode:()=>new Promise(resolve=>window.review.resolveCode=resolve),verify:()=>new Promise((_,reject)=>window.review.rejectVerify=reject)};
+ const lifetime=createEditorLifetime(), account={email:()=>null,refresh:async()=>{},sendCode:()=>new Promise(resolve=>window.review.resolveCode=resolve),verify:()=>new Promise((_,reject)=>window.review.rejectVerify=reject)};
  window.review={payload:{balance:50,account:{anonymous:false,email:'test@example.com',required:false},features:CREDIT_FEATURES.map(f=>({...f,freeLeft:1})),packs:CREDIT_PACKS.map(p=>({...p,total:packCredits(p),saving:packSaving(p)})),history:[],passes:[],providers:[]}};
  review.wallet=bindCreditWallet({dom:{host,$:s=>shadow.querySelector(s)},lifetime,platform:{accessToken:async()=>null,designId:()=>null,returned:()=>null,redirect:()=>{},account},toast:()=>{}});
  review.account=()=>{const section=shadow.querySelector('.cr-account');bindAccountStep({section,account,lifetime,verified:()=>{},back:()=>{}});review.wallet.open({view:'account'});};

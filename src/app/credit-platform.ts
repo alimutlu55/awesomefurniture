@@ -44,6 +44,10 @@ export function createCreditPlatform(platform: SessionPlatform, workspace: Works
     returned() { const value = returned; returned = null; return value; },
     account: {
       email: () => email,
+      async refresh() {
+        const { error } = await client.auth.refreshSession();
+        if (error) throw error;
+      },
       async sendCode(address) {
         const linked = await client.auth.updateUser({ email: address });
         if (!linked.error) return 'link';
