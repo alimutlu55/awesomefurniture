@@ -1,12 +1,13 @@
 # Credits
 
 People buy credits (in-app coins) in packs and spend them on paid features: AI images and technical
-drawings today, anything else later. The balance sits in the toolbar as a coin; clicking it opens the
-wallet with the packs, what credits buy, and the activity list.
+drawings today, anything else later. The balance is the first item of the editor menu (⋮), with a coin;
+clicking it opens the wallet with the packs, what credits buy, and the activity list.
 
 ## What a person sees
 
-- **Toolbar chip**: the coin and the balance. It counts up when credits arrive and says "Get credits" at zero.
+- **Menu item**: *Credits* with the coin and the balance, first in the ⋮ menu (the toolbar has no room on
+  phones). The balance counts up when credits arrive; at zero it says "Get credits".
 - **Wallet**: the balance and what it buys ("≈ 30 AI images or 12 drawing sets"), four packs (Popular is
   preselected and marked), what each feature costs, and the Activity tab (every purchase, spend and refund).
 - **AI image**: the price sits on Generate image and Try again (4 ◉). With too few credits the wallet opens

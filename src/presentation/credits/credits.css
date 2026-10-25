@@ -16,13 +16,16 @@
 .cr-coin--xl { --cr-size: 58px; }
 .cr-coin--hero { --cr-size: 88px; }
 
-.cr-chip { gap: 6px; padding: 0 10px 0 7px; font-variant-numeric: tabular-nums; font-weight: 650; }
+/* "Credits" in the editor menu: the balance on the right, like the other menu values. */
+.cr-chip { position: relative; align-items: center; }
 .cr-chip[hidden] { display: none !important; }
-.cr-chip-value { min-width: 1.2em; text-align: left; }
-.cr-chip--empty .cr-chip-value::after { content: " · Get credits"; font-weight: 500; color: var(--mute); }
+.cr-chip-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.cr-chip-buy { display: none; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #6b4600; background: rgba(248, 216, 112, .45); }
+.cr-chip--empty .cr-chip-value { display: none; }
+.cr-chip--empty .cr-chip-buy { display: inline-block; }
 .cr-chip-gain {
-  position: absolute; left: 50%; top: -4px; transform: translate(-50%, 0); opacity: 0; pointer-events: none;
-  font-size: 12px; font-weight: 700; color: #a86c00; white-space: nowrap;
+  position: absolute; right: 10px; top: 0; opacity: 0; pointer-events: none;
+  font-size: 12px; font-style: normal; font-weight: 700; color: #a86c00; white-space: nowrap;
 }
 .cr-chip--gain .cr-coin { animation: cr-coin-hop 700ms cubic-bezier(.2, .9, .3, 1.4); }
 .cr-chip--gain .cr-chip-gain { animation: cr-float 1500ms ease-out forwards; }
@@ -156,7 +159,7 @@
 @keyframes cr-fade { from { opacity: 0; } }
 @keyframes cr-rise { from { opacity: 0; transform: translateY(18px) scale(.98); } }
 @keyframes cr-coin-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-6px) rotate(-12deg); } 100% { transform: none; } }
-@keyframes cr-float { 0% { opacity: 0; transform: translate(-50%, 4px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -22px); } }
+@keyframes cr-float { 0% { opacity: 0; transform: translateY(4px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-16px); } }
 @keyframes cr-spin-in { 0% { opacity: 0; transform: scale(.4) rotateY(-260deg); } 70% { opacity: 1; transform: scale(1.06) rotateY(12deg); } 100% { transform: none; } }
 @keyframes cr-glow { 50% { opacity: .55; transform: scale(.92); } }
 @keyframes cr-burst {
@@ -178,9 +181,6 @@
   .cr-pack { padding: 14px 11px 11px; }
   .cr-shop .cr-buy { position: sticky; bottom: 0; }
 }
-@container (max-width: 420px) {
-  .cr-chip--empty .cr-chip-value::after { content: ""; }
-}
 
 .cr-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mute); }
 .cr-badge .cr-coin { --cr-size: 13px; }
@@ -198,9 +198,3 @@
 .ai-cost[hidden] { display: none; }
 
 .cr-wait > .ui-placeholder{width:100%;max-width:340px}.cr-packs > .ui-placeholder{grid-column:1/-1;width:100%}
-@container (max-width:620px) {
-  .cr-chip{min-width:36px!important;padding:0 5px;gap:3px}
-  .cr-chip .cr-coin{--cr-size:14px}
-  .cr-chip-value{min-width:1ch;font-size:11px}
-  .cr-chip--empty .cr-chip-value::after{display:none}
-}

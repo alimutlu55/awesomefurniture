@@ -12,4 +12,6 @@ export interface CreditWalletPorts {
   platform: CreditsPlatform;
   /** The editor's short notice at the bottom of the screen. */
   toast(message: string): void;
+  /** Closes the editor menu the Credits item sits in. */
+  closeMenu?(): void;
 }

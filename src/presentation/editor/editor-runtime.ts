@@ -191,7 +191,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
         // The coin balance and wallet; paid features ask it before they run.
-        const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform, toast: message => shell.toast(message) }) : null;
+        const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform,
+            toast: message => shell.toast(message), closeMenu: () => shell.closeDD() }) : null;
         const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
         bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
