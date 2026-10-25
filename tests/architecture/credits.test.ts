@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
-import { CREDIT_FEATURES, CREDIT_PACKS, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
-import { featureMargins, MINIMUM_WORST_CASE_MARGIN } from '../../src/domain/credits/unit-economics';
+import { CREDIT_FEATURES, CREDIT_PACKS, creditPack, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
+import { featureMargins, MINIMUM_MARGIN, packRevenue } from '../../src/domain/credits/unit-economics';
+import { IMAGE_REQUEST_TOKENS, imageGenerationCost } from '../../src/domain/credits/image-generation-cost';
 import { createCreditService, CreditError } from '../../src/application/credits/credit-service';
 import { PaymentProviderError, PaymentSignatureError, type CreditUser, type PaymentProvider, type PaymentUpdate } from '../../src/application/credits/credit-ports';
 import { createMemoryCreditStore } from '../../src/infrastructure/credits/memory-credit-store';
@@ -15,6 +16,7 @@ import { handleCredits } from '../../src/infrastructure/credits/credit-http';
 const buyer: CreditUser = { id: 'b0000000-0000-4000-8000-000000000001', anonymous: false, email: 'buyer@example.test' };
 const guest: CreditUser = { id: 'b0000000-0000-4000-8000-000000000002', anonymous: true, email: null };
 const links = { success: 'https://app.test/editor.html?checkout=success&order={ORDER}', cancel: 'https://app.test/editor.html?checkout=cancel&order={ORDER}' };
+const POPULAR = packCredits(creditPack('popular')!), STARTER = packCredits(creditPack('starter')!);
 
 /** A provider whose webhooks are whatever the test says, as if Stripe had signed them. */
 function fakeProvider() {
@@ -39,13 +41,15 @@ function setup(requireAccount = true) {
 test('every paid feature keeps its margin at the cheapest credit when the provider costs the most', () => {
   for (const feature of CREDIT_FEATURES) {
     for (const m of featureMargins(feature)) {
-      assert.ok(m.worst >= MINIMUM_WORST_CASE_MARGIN, `${feature.key} on the ${m.pack} pack keeps ${(m.worst * 100).toFixed(0)}%`);
+      assert.ok(m.typical >= MINIMUM_MARGIN.typical, `${feature.key} on the ${m.pack} pack usually keeps ${(m.typical * 100).toFixed(0)}%`);
+      assert.ok(m.worst >= MINIMUM_MARGIN.worst, `${feature.key} on the ${m.pack} pack keeps ${(m.worst * 100).toFixed(0)}% at worst`);
     }
   }
   assert.equal(new Set(CREDIT_FEATURES.map(f => f.key)).size, CREDIT_FEATURES.length);
   const perCredit = CREDIT_PACKS.map(p => p.price / packCredits(p));
   assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), 'a bigger pack is always cheaper per credit');
-  assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 17, 28, 37]);
+  assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 9, 17, 20]);
+  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 4 === 0), 'every pack buys whole AI images');
   assert.equal(CREDIT_PACKS.filter(p => 'featured' in p && p.featured).length, 1);
 });
 
@@ -57,13 +61,13 @@ test('a paid order is credited once, however often the provider repeats it, and 
   assert.equal(await service.receive('fake', 'signed', headers), 'applied');
   assert.equal(await service.receive('fake', 'signed', headers), 'replay');
   await service.receive('fake', 'signed', headers);
-  assert.equal((await service.wallet(buyer)).balance, 120);
+  assert.equal((await service.wallet(buyer)).balance, POPULAR);
   await assert.rejects(service.receive('fake', 'forged', headers), PaymentSignatureError);
 
   const short = await service.checkout(buyer, { pack: 'starter', provider: 'fake', links });
   fake.push(paid(short.orderId, 'evt_3', 1));
   await service.receive('fake', 'signed', headers);
-  assert.equal((await service.wallet(buyer)).balance, 120, 'a payment of the wrong amount credits nothing');
+  assert.equal((await service.wallet(buyer)).balance, POPULAR, 'a payment of the wrong amount credits nothing');
   assert.equal((await service.confirm(buyer, short.orderId)).status, 'rejected');
 });
 
@@ -72,7 +76,7 @@ test('returning from checkout before the webhook asks the provider, and nobody e
   const { orderId } = await service.checkout(buyer, { pack: 'starter', provider: 'fake', links });
   assert.equal((await service.confirm(buyer, orderId)).status, 'pending');
   fake.setLookup(paid(orderId, 'lookup_1', 499));
-  assert.deepEqual(await service.confirm(buyer, orderId), { orderId, status: 'paid', credits: 50, balance: 50 });
+  assert.deepEqual(await service.confirm(buyer, orderId), { orderId, status: 'paid', credits: STARTER, balance: STARTER });
   await assert.rejects(service.confirm({ ...buyer, id: 'b0000000-0000-4000-8000-000000000009' }, orderId), /not found/);
 });
 
@@ -92,7 +96,7 @@ test('refunds and chargebacks take credits back; a won dispute gives them back',
   await service.spend(buyer, { feature: 'technical-drawings', key: 'open-0000001', scope: 'design-1' });
   fake.push({ kind: 'refunded', eventId: 'evt_refund', paymentRef: 'pi_' + orderId, refundedAmount: 999, chargedAmount: 999 });
   await service.receive('fake', 'signed', headers);
-  assert.equal((await service.wallet(buyer)).balance, 0, 'the free drawings cost nothing; the refund takes all 120');
+  assert.equal((await service.wallet(buyer)).balance, 0, 'the free drawings cost nothing; the refund takes the whole pack');
   fake.push({ kind: 'disputed', eventId: 'evt_dispute', paymentRef: 'pi_' + orderId });
   await service.receive('fake', 'signed', headers);
   assert.equal((await store.order(orderId))!.status, 'disputed');
@@ -169,7 +173,7 @@ test('the API in test mode: wallet, a pretend checkout through the signed webhoo
   assert.equal(paid.status, 303);
   assert.equal(paid.headers.get('location'), `http://localhost:5173/editor.html?checkout=success&order=${started.orderId}`);
   const confirmed = await (await api('/api/credits/orders/' + started.orderId)).json() as { status: string; balance: number };
-  assert.deepEqual([confirmed.status, confirmed.balance - before.balance], ['paid', 50]);
+  assert.deepEqual([confirmed.status, confirmed.balance - before.balance], ['paid', STARTER]);
   assert.equal((await post('/api/payments/test/webhook', { id: 'evt_forged' })).status, 400, 'an unsigned notification credits nothing');
   assert.equal((await post('/api/credits/checkout', { pack: 'starter', returnTo: '//evil.example/' })).status, 200, 'the return path falls back to the editor');
   assert.equal((await api('/api/credits', { headers: { origin: 'https://evil.example' } })).status, 403);
@@ -218,7 +222,7 @@ test('a refund takes back the share of what was charged, so tax added at checkou
   // $9.99 plus $2.00 tax was charged; half of the $11.99 comes back: half the credits go, not 60% of them.
   fake.push({ kind: 'refunded', eventId: 'evt_half', paymentRef: 'pi_' + orderId, refundedAmount: 600, chargedAmount: 1199 });
   await service.receive('fake', 'signed', headers);
-  assert.equal((await service.wallet(buyer)).balance, 59);
+  assert.equal((await service.wallet(buyer)).balance, Math.floor(POPULAR * (1199 - 600) / 1199));
   fake.push({ kind: 'refunded', eventId: 'evt_rest', paymentRef: 'pi_' + orderId, refundedAmount: 1199, chargedAmount: 1199 });
   await service.receive('fake', 'signed', headers);
   assert.equal((await service.wallet(buyer)).balance, 0);
@@ -260,7 +264,7 @@ test('the schedule credits a paid checkout whose webhook never came, even if the
   assert.equal(await service.reconcile(), 0, 'a checkout younger than ten minutes may still be on its payment page');
   clock += 11 * 60_000;
   assert.equal(await service.reconcile(), 1);
-  assert.equal((await service.wallet(buyer)).balance, 50);
+  assert.equal((await service.wallet(buyer)).balance, STARTER);
   assert.equal(await service.reconcile(), 0, 'a credited order is not looked up again');
 });
 
@@ -275,4 +279,12 @@ test('a guest designs freely, but buying and using credits (a free drawing set t
   const open = setup(false);
   assert.equal((await open.service.spend(guest, { feature: 'technical-drawings', key: 'drawings-guest-2', scope: 'design-1' })).charge, 'free',
     'CREDITS_REQUIRE_ACCOUNT=false lets guests use credits, as before');
+});
+
+test('the image cost comes from Google token prices: input, thinking and answer text, the 2K image and failed attempts', () => {
+  // Typical: (4 × 1,120 + 1,700) input × $1.50, (3,000 + 200) text × $7.50, 1,680 image × $30, per million, plus 10%.
+  assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.typical) * 10000), 920);
+  assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.worst) * 10000), 1862);
+  // $9.99 with 23% VAT inside and Stripe's 3% + $0.30: $7.52 is left.
+  assert.equal(packRevenue(creditPack('popular')!).toFixed(2), '7.52');
 });

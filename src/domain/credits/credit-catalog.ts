@@ -8,6 +8,8 @@
  * history. See docs/credits.md for the pricing calculation.
  */
 
+import { IMAGE_REQUEST_TOKENS, imageGenerationCost } from './image-generation-cost';
+
 /** How a use is settled: `result` features reserve credits and keep them only when the result arrives
  * (an AI image: a failed generation gives them back); `immediate` features are final when used. */
 export type CreditSettlement = 'result' | 'immediate';
@@ -38,8 +40,8 @@ export const CREDIT_FEATURES = [
     key: 'ai-image', label: 'AI image', description: 'A photorealistic 2K image of your design in a finished room.',
     unit: { one: 'AI image', many: 'AI images' }, icon: 'sparkle',
     cost: 4, freeUses: 0, passHours: 0, settlement: 'result',
-    // Nano Banana 2.1 at 2K with high thinking: typical $0.087, worst $0.139, plus 10% for failed attempts we refund.
-    providerCost: { typical: 0.096, worst: 0.153 },
+    // Nano Banana 2.1 at 2K with high thinking, failed attempts included: about $0.092 usually, $0.186 at worst.
+    providerCost: { typical: imageGenerationCost(IMAGE_REQUEST_TOKENS.typical), worst: imageGenerationCost(IMAGE_REQUEST_TOKENS.worst) },
   },
   {
     key: 'technical-drawings', label: 'Technical drawings',
@@ -65,11 +67,13 @@ export interface CreditPack {
   readonly featured?: boolean;
 }
 
+/** Prices include 23% VAT. Credits are sized so every pack keeps MINIMUM_MARGIN after VAT, Stripe and Gemini
+ * (unit-economics.ts): 10, 22, 60 and 125 AI images, about $0.50 down to $0.40 an image. */
 export const CREDIT_PACKS = [
-  { id: 'starter', label: 'Starter', credits: 50, bonus: 0, price: 499, currency: 'usd' },
-  { id: 'popular', label: 'Popular', credits: 100, bonus: 20, price: 999, currency: 'usd', featured: true },
-  { id: 'pro', label: 'Pro', credits: 250, bonus: 100, price: 2499, currency: 'usd' },
-  { id: 'studio', label: 'Studio', credits: 500, bonus: 300, price: 4999, currency: 'usd' },
+  { id: 'starter', label: 'Starter', credits: 40, bonus: 0, price: 499, currency: 'usd' },
+  { id: 'popular', label: 'Popular', credits: 80, bonus: 8, price: 999, currency: 'usd', featured: true },
+  { id: 'pro', label: 'Pro', credits: 200, bonus: 40, price: 2499, currency: 'usd' },
+  { id: 'studio', label: 'Studio', credits: 400, bonus: 100, price: 4999, currency: 'usd' },
 ] as const satisfies readonly CreditPack[];
 
 export type CreditPackId = (typeof CREDIT_PACKS)[number]['id'];

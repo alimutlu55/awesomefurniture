@@ -29,59 +29,67 @@ and credits to the account (the person decides), so paid credits survive a clear
 
 ## Pricing
 
-Prices live in one place, `src/domain/credits/credit-catalog.ts`. The database stores what each use cost,
-so a price change never rewrites history.
+Prices live in one place, `src/domain/credits/credit-catalog.ts`; the image cost is worked out from Google's token
+prices in `image-generation-cost.ts`, and VAT and Stripe's fee are in `unit-economics.ts`. The database stores what
+each use cost, so a price change never rewrites history.
 
-| Pack | Price | Credits | Per credit | AI images | Drawing sets |
-| --- | --- | --- | --- | --- | --- |
-| Starter | $4.99 | 50 | $0.100 | 12 | 5 |
-| Popular | $9.99 | 100 + 20 bonus | $0.083 (−17%) | 30 | 12 |
-| Pro | $24.99 | 250 + 100 bonus | $0.071 (−28%) | 87 | 35 |
-| Studio | $49.99 | 500 + 300 bonus | $0.063 (−37%) | 200 | 80 |
+Pack prices **include 23% VAT** (the seller is a Polish business). Of every payment, `price / 1.23` is ours;
+Stripe then takes **3% of the amount charged plus $0.30**.
 
-**AI image: 4 credits** ($0.25 to $0.40 to the person, depending on the pack).
+| Pack | Price (VAT incl.) | VAT 23% | Stripe | Left for us | Credits | AI images | Drawing sets | Per image |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Starter | $4.99 | $0.93 | $0.45 | $3.61 | 40 | 10 | 4 | $0.50 |
+| Popular | $9.99 | $1.87 | $0.60 | $7.52 | 80 + 8 bonus | 22 | 8 | $0.45 (−9%) |
+| Pro | $24.99 | $4.67 | $1.05 | $19.27 | 200 + 40 bonus | 60 | 24 | $0.42 (−17%) |
+| Studio | $49.99 | $9.35 | $1.80 | $38.84 | 400 + 100 bonus | 125 | 50 | $0.40 (−20%) |
 
-What one image costs us with Nano Banana 2.1 (`gemini-nano-banana-2.1`, standard paid tier, October 2026:
-input $1.50 per million tokens, text and thinking output $7.50, image output $30.00):
+**AI image: 4 credits.** What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier,
+October 2026): input $1.50, text and thinking output $7.50, image output $30.00 per million tokens. The token
+counts were measured on the current prompts: an ordinary wardrobe sends 3 views and 1 swatch (1,120 tokens each)
+and about 1,700 tokens of instructions and design summary.
 
 | Part | Typical | Worst |
 | --- | --- | --- |
-| Input: 3 reference views × 1,120 tokens, decor swatches (2 typical, 8 at most) × 1,120, ~3,000 to 5,000 text | 8,600 tokens = $0.013 | 17,300 tokens = $0.026 |
-| Thinking at `thinking_level: high` (not published; measure it, see below) | 3,000 tokens = $0.023 | 8,000 tokens = $0.060 |
-| Text answer | 200 tokens = $0.002 | 400 tokens = $0.003 |
-| The 2K image: 1,680 tokens | $0.050 | $0.050 |
-| **One image** | **$0.087** | **$0.139** |
-| Plus 10% for failed attempts Google bills but we refund | **$0.096** | **$0.153** |
+| Input images: 3 views + swatches (1 typical, 8 at most) × 1,120 | 4,480 tokens | 12,320 tokens |
+| Input text: instructions, view labels, design summary | 1,700 tokens | 5,000 tokens |
+| Input cost (× $1.50 / M) | $0.0093 | $0.0260 |
+| Thinking at `thinking_level: high` (unpublished; estimate) | 3,000 tokens | 10,000 tokens |
+| Answer text | 200 tokens | 500 tokens |
+| Text output cost (× $7.50 / M) | $0.0240 | $0.0788 |
+| The 2K image: 1,680 tokens (× $30 / M) | $0.0504 | $0.0504 |
+| One image | $0.0837 | $0.1551 |
+| Failed attempts Google bills but we refund | +10% | +20% |
+| **Cost per delivered image** | **$0.092** | **$0.186** |
 
-Card fees in the worst common case (an international card on Stripe): 2.9% + 1.5% + $0.30 per payment
-(`PAYMENT_FEE` in `unit-economics.ts`). What an image earns after fees and Gemini:
+What each image earns, after VAT, Stripe and Gemini:
 
-| Pack | Person pays | We keep after fees | Margin (typical) | Margin (worst) |
-| --- | --- | --- | --- | --- |
-| Starter | $0.40 | $0.358 | 73% | 57% |
-| Popular | $0.33 | $0.308 | 69% | 50% |
-| Pro | $0.29 | $0.270 | 64% | 43% |
-| Studio | $0.25 | $0.237 | 60% | 36% |
+| Pack | Person pays | Left after VAT and Stripe | Profit (typical) | Profit (worst) | Margin typical / worst |
+| --- | --- | --- | --- | --- | --- |
+| Starter | $0.50 | $0.361 | $0.27 | $0.18 | 74% / 48% |
+| Popular | $0.45 | $0.342 | $0.25 | $0.16 | 73% / 46% |
+| Pro | $0.42 | $0.321 | $0.23 | $0.14 | 71% / 42% |
+| Studio | $0.40 | $0.311 | $0.22 | $0.13 | 70% / 40% |
 
-`tests/architecture/credits.test.ts` fails if any feature drops below 35% at the cheapest credit with the
-worst provider cost (`MINIMUM_WORST_CASE_MARGIN`). So a price cut, a bigger bonus or a dearer model shows up
-in CI. Credits that are bought and never used add to the margin; nothing above counts on them.
+`tests/architecture/credits.test.ts` fails if any pack keeps less than 65% usually or 40% at worst
+(`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer model shows up in CI. Credits bought and never
+used add to the margin; nothing above counts on them.
 
-**Technical drawings: 10 credits**, with the first set free. The drawings are made in the browser and cost
-us nothing per use, so this is a value price: $0.63 to $1.00 for a full A3 set with cutting and hardware
-lists, against tens of dollars for drafting by hand. A use opens a 24-hour pass for that design, so fixing
-something and opening the drawings again is never charged twice.
+**Technical drawings: 10 credits**, with the first set free: $1.00 to $1.25 to the person, $0.78 to $0.90 left
+after VAT and Stripe. The drawings are made in the browser and cost nothing per use. A use opens a 24-hour pass
+for that design, so fixing something and opening the drawings again is never charged twice.
 
-**Measure the real cost.** Each captured image keeps Google's token counts in `credit_spends.metadata`.
-Check the thinking estimate against them after launch:
+**Measure the real cost.** Each captured image keeps Google's token counts in `credit_spends.metadata`. The
+thinking figure is the least certain one; compare it with real usage after launch and update
+`IMAGE_REQUEST_TOKENS` if it differs:
 
 ```sql
 select count(*), avg((metadata->>'total_tokens')::int) from credit_spends
 where feature = 'ai-image' and status = 'captured' and created_at > now() - interval '7 days';
 ```
 
-Prices are in US dollars, without tax. With Stripe Tax on, tax is added at checkout and the amount check
-compares the pre-tax subtotal.
+Prices are in US dollars with VAT included. If Stripe Tax is turned on later, set the prices' tax behaviour to
+*inclusive*; otherwise Stripe adds VAT on top and the person pays 23% more than the pack shows. Not VAT-registered
+(Polish small-business exemption)? Then the VAT column is extra margin; ask the accountant first.
 
 ## How it stays correct
 
