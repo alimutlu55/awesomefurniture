@@ -37,7 +37,8 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   }
 
   // A shape with nothing selected goes on the wall in view and opens in the Shape editor.
-  await tap(toolbar.locator('[data-action="ceiling"]:visible'));
+  await tap(toolbar.locator('[data-action="new"]:visible'));
+  await tap(page.locator('.mobile-add-categories [data-category="ceilings"]:visible'));
   await tap(page.locator('[data-add-ceiling="landing"]:visible'));
   await page.waitForTimeout(900);
   assert.equal(await toolbar.getAttribute('data-context'),'ceiling','the new shape is selected');

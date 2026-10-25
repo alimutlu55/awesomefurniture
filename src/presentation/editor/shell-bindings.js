@@ -4,14 +4,14 @@ import { mountMobileSheet } from './mobile-sheet.js';
 import { dropdowns } from './editor-dom.js';
 /** DOM event bindings call application commands through the mounted view ports. */
 /** What each add context of the Add sheet opens on. 'furniture' is every kind of furniture, one tab each. */
-const ADD_FOLDS = { room: ['.room-add'], wall: ['.room-add'], wardrobe: ['.shape-add'], kitchen: ['.kitchen-add'], furniture: ['.shape-add', '.kitchen-add'] };
+const ADD_FOLDS = { room: ['.room-add'], studio: ['.room-add'], wall: ['.room-add'], wardrobe: ['.shape-add'], kitchen: ['.kitchen-add'], furniture: ['.shape-add', '.kitchen-add'] };
 /** Opens the Add sheet on what can be added to the scene: the room's parts, a new wardrobe or kitchen cabinets, or
  * any furniture.
  * @param {Pick<import('./shell-bindings.ports').BindFurnitureButtonsPorts, 'dom' | 'inspector' | 'shell'>} ports
- * @param {'room' | 'wall' | 'ceilings' | 'fixtures' | 'wardrobe' | 'kitchen' | 'furniture'} context */
+ * @param {'room' | 'studio' | 'wall' | 'ceilings' | 'fixtures' | 'wardrobe' | 'kitchen' | 'furniture'} context */
 export function openSceneAdd({ dom, inspector, shell }, context) {
     shell.closeDD();
-    if (context !== 'wall' && context !== 'ceilings' && context !== 'fixtures') inspector.clearFocus();
+    if (context !== 'studio' && context !== 'wall' && context !== 'ceilings' && context !== 'fixtures') inspector.clearFocus();
     inspector.showPop(null, '#pop2', context);
     for (const fold of ADD_FOLDS[context] ?? []) /** @type {HTMLDetailsElement} */ (dom.$('#pop2').querySelector(fold)).open = true;
 }

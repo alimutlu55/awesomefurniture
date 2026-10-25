@@ -307,13 +307,15 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         else if (resizing) cameraTransition(goal, 240);
         else cameraFlyTo(goal);
     }
-    function camRelease() {
+    /** Lets go of any framing and keeps the view as it is. `clearOfPanel` slides the model once beside an open desktop
+     * panel (Size): later size changes do not move the camera, so the sliders stay steady. */
+    function camRelease(clearOfPanel = false) {
         mobileInspectorFraming = false;
         wardrobeFraming = false;
         boxFraming = null;
         cameraState.camGoal = cameraState.camHome = cameraState.camRestore = cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         cameraState.tgtY = cameraState.tgt.y;
-        cameraState.vsT = cameraState.vs;
+        cameraState.vsT = clearOfPanel && dom.width > 900 ? baseShift() : cameraState.vs;
         cameraState.vzT = cameraState.vz;
     }
     function cameraAnchoredTarget(target, anchor, ratio) {

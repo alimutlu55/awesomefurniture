@@ -103,13 +103,14 @@
 
  #app :is(#left,#pop2,#pop3,#pop4,.editor-panel){
   position:absolute;
-  left:24px;
+  /* Edges follow the pills around it: the mode switcher's 8px left, the toolbar's 24px bottom. */
+  left:8px;
   top:76px;
   right:auto;
   bottom:auto;
   width:336px;
-  max-width:calc(100% - 48px);
-  max-height:calc(100% - 156px);
+  max-width:calc(100% - 16px);
+  max-height:calc(100% - 100px);
   height:auto;
   border-radius:20px;
   background:rgba(253,251,248,0.85);
@@ -235,7 +236,7 @@
 
  /* Hide internal redundant title inside #pop2 on desktop since header .ph #ptitle is visible */
  #pop2 .add-context-title{display:none!important}
- #pop2[data-add-context]:not([data-add-context="furniture"]):not([data-add-context="wall"]) .mobile-add-categories{display:none!important}
+ #pop2[data-add-context]:not([data-add-context="furniture"]):not([data-add-context="wall"]):not([data-add-context="studio"]) .mobile-add-categories{display:none!important}
 
  /* Highlight active contextual action on desktop */
  #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
@@ -245,9 +246,8 @@
  #app:has(#pop4.show) #toolbar [data-action="sections"],
  #app.props-open:has(#left[data-context-section="fronts"]) #toolbar [data-action="fronts"],
  #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
- #app:has(#pop2[data-add-context="wall"].show) #toolbar [data-action="new"],
- #app:has(#pop2.show) #toolbar #walls-btn,
- #app:has(#pop2.show) #toolbar [data-action="walls"]{
+ #app:has(#pop2:is([data-add-context="wall"],[data-add-context="studio"]).show) #toolbar [data-action="new"],
+ #app:has(#pop2.show) #toolbar #walls-btn{
   background:rgba(60,52,42,0.12);
   color:var(--ink);
   font-weight:600;
@@ -259,9 +259,8 @@
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  :host([data-theme="dark"]) #app:has(#pop4.show) #toolbar [data-action="sections"],
  :host([data-theme="dark"]) #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,
- :host([data-theme="dark"]) #app:has(#pop2[data-add-context="wall"].show) #toolbar [data-action="new"],
- :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #walls-btn,
- :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar [data-action="walls"]{
+ :host([data-theme="dark"]) #app:has(#pop2:is([data-add-context="wall"],[data-add-context="studio"]).show) #toolbar [data-action="new"],
+ :host([data-theme="dark"]) #app:has(#pop2.show) #toolbar #walls-btn{
   background:rgba(255,255,255,0.16);
   color:#fff;
  }
@@ -308,7 +307,7 @@
  #pop2 .mobile-add-categories button[data-auto-design]{
   display:none!important;
  }
- #pop2:not([data-add-context="furniture"]) .mobile-add-categories button[data-category="all"]{
+ #pop2:not(:is([data-add-context="furniture"],[data-add-context="studio"])) .mobile-add-categories button[data-category="all"]{
   display:flex!important;
  }
  .ph b{

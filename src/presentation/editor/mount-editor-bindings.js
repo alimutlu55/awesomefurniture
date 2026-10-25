@@ -240,7 +240,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         $('#left').scrollTop = 0;
         // Opening Size keeps the user's view and releases any fit that would
         // otherwise restart when the drawer changes the canvas dimensions.
-        if (key === 'resize') { camera.camRelease(); inspector.update(true); }
+        if (key === 'resize') { camera.camRelease(true); inspector.update(true); }
         else camera.frameMobileInspector(key === 'shape');
     };
     // The shape sheet opens with its panel list and break-point handles.
@@ -291,20 +291,13 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 leftTitle.textContent = 'Paint & Finish';
                 return;
             }
-            if (key === 'ceiling' || key === 'ceiling-shape') {
-                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'ceilings') { inspector.hidePop(); return; }
-                shellBindings.openSceneAdd({ dom, inspector, shell }, 'ceilings');
+            if (key === 'fixture-type' || key === 'fixture-finish') { leftTitle.textContent = key === 'fixture-type' ? 'Type' : 'Finish'; room.resizePanel.openFixture(key); return; }
+            // Nothing selected in Studio: Add opens the room's parts, a tab each (walls, ceiling, fixtures).
+            if (key === 'new' && selectionState.viewMode === 'studio' && !selectionState.room) {
+                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'studio') { inspector.hidePop(); return; }
+                shellBindings.openSceneAdd({ dom, inspector, shell }, 'studio');
                 camera.frameScene();
                 return;
-            }
-            if (key === 'fixtures') {
-                if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'fixtures') { inspector.hidePop(); return; }
-                shellBindings.openSceneAdd({ dom, inspector, shell }, 'fixtures'); return;
-            }
-            if (key === 'fixture-type' || key === 'fixture-finish') { leftTitle.textContent = key === 'fixture-type' ? 'Type' : 'Finish'; room.resizePanel.openFixture(key); return; }
-            if (key === 'walls') {
-                if ($('#pop2').classList.contains('show')) { inspector.hidePop(); return; }
-                $('#walls-btn').click(); return;
             }
             if (selectionState.viewMode === 'studio' && OPENING_KINDS.includes(key)) {
                 room.actOnWall(key); return;

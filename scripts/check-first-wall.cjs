@@ -18,7 +18,7 @@ const {chromium}=require('playwright');
    assert.equal(await el('toolbar').getAttribute('data-context'),'wall');
    await page.keyboard.press('Delete');await page.waitForTimeout(250);assert.equal((await report()).room.walls.length,0);
   }
-  const before=await report();await el('toolbar').locator('[data-action="walls"]:visible,[data-editor-id="walls-btn"]:visible').first().click();await page.waitForTimeout(300);
+  const before=await report();await el('toolbar').locator('[data-action="new"]:visible,[data-editor-id="walls-btn"]:visible').first().click();await page.waitForTimeout(300);
   await el('pop2').locator('[data-add-room="wall"]:visible').first().click();await page.waitForTimeout(350);
   // Studio may open with a starting wall: adding one adds exactly one more.
   const after=await report();assert.equal(after.room.walls.length,(before.room?.walls.length??0)+1);assert.equal(after.wardrobes.length,before.wardrobes.length);

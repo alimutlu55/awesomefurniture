@@ -41,7 +41,7 @@ fs.mkdirSync(shots,{recursive:true});
 
   // A room, then its back wall: Add › Fixtures › Toilet puts a toilet on that wall.
   await tap(page.getByRole('button',{name:'Studio'}).first());
-  await tap(toolbar.locator('[data-action="walls"]:visible').first());
+  await tap(toolbar.locator('[data-action="new"]:visible').first());
   await tap(page.locator('[data-studio="bedroom"]:visible').first());
   await page.waitForTimeout(1200);
   const box=await el('view').boundingBox(), at={x:box.x+box.width*view.wall[0],y:box.y+box.height*view.wall[1]};
@@ -103,7 +103,8 @@ fs.mkdirSync(shots,{recursive:true});
 
   // Studio › Fixtures › Basin: on the wall in view, selected, beside the toilet.
   await page.keyboard.press('Escape');await page.waitForTimeout(200);
-  await tap(toolbar.locator('[data-action="fixtures"]:visible').first());
+  await tap(toolbar.locator('[data-action="new"]:visible').first());
+  await tap(page.locator('.mobile-add-categories [data-category="fixtures"]:visible'));
   await tap(page.locator('[data-add-fixture="basin"]:visible'));
   await page.waitForTimeout(900);
   assert.equal(await context(),'room-fixture','the basin is selected');

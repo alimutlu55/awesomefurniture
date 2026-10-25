@@ -93,7 +93,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
   // Studio keeps the same named tools and catalogue on a desktop.
   await page.locator('[data-view-mode="studio"]').click();await waitLayout();
   assert.equal(await toolbar.getAttribute('data-context'),'studio');
-  await action('walls').click();await waitLayout();
+  await action("new").click();await waitLayout();
   assert.equal(await page.locator('.mobile-add-products [data-studio="bedroom"]').isVisible(),true);
   await page.locator('.mobile-add-products [data-studio="bedroom"]').click();await waitLayout();
   assert.equal(await el('pop2').isVisible(),false);

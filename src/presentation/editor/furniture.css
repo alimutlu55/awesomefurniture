@@ -53,12 +53,12 @@ svg.kitchen-art{filter:none}
 :host([data-theme="dark"]) #pop2 .mobile-add-categories button[aria-pressed="true"]:hover{background:#fff;color:#181c24}
 /* Add furniture on a phone: the title shares its row with the close button, the kind tabs sit on a row of their own. */
 @media (max-width:900px){
- #app.adding:has(#pop2:is([data-add-context="furniture"],[data-add-context="wall"])){--catalog-height:min(272px,50vh)}
- #pop2:is([data-add-context="furniture"],[data-add-context="wall"]) .mobile-add-browser{padding-top:14px}
- #app.adding #pop2:is([data-add-context="furniture"],[data-add-context="wall"]) .ph{top:14px;right:12px}
- #pop2:is([data-add-context="furniture"],[data-add-context="wall"]) .mobile-add-categories{flex-wrap:wrap;overflow:visible;row-gap:10px}
- #pop2:is([data-add-context="furniture"],[data-add-context="wall"]) .add-context-title{flex:1 0 100%;height:32px;padding:0 40px 0 4px}
- #pop2:is([data-add-context="furniture"],[data-add-context="wall"]) .mobile-add-categories :is([data-furniture-tab],[data-wall-tab]){height:36px;min-height:36px;padding:0 14px}
+ #app.adding:has(#pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"])){--catalog-height:min(272px,50vh)}
+ #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .mobile-add-browser{padding-top:14px}
+ #app.adding #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .ph{top:14px;right:12px}
+ #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .mobile-add-categories{flex-wrap:wrap;overflow:visible;row-gap:10px}
+ #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .add-context-title{flex:1 0 100%;height:32px;padding:0 40px 0 4px}
+ #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .mobile-add-categories :is([data-furniture-tab],[data-wall-tab],[data-studio-tab]){height:36px;min-height:36px;padding:0 14px}
  /* Every card in a row has the same art box, so their names line up; a shape drawing keeps its smaller size inside it. */
  #pop2 .mobile-add-products .shape-product .product-art{height:80px;padding:9px 2px 6px;box-sizing:border-box}
 }
