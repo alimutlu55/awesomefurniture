@@ -25,7 +25,7 @@ export const TIMES_OF_DAY = [
   },
   {
     id: 'night', name: 'Night', hint: 'Lights on inside the wardrobe', env: .1, emissive: .06, lamps: true,
-    light: { direction: [1.2, 2.4, 1.4], sun: [0x9fb6ff, .14], sky: [0x334674, 0x0f0c0a, .16], fill: [0x51618f, .05], ambient: [0x1c2442, .05] },
+    light: { direction: [1.2, 2.4, 1.4], sun: [0x9fb6ff, .14], sky: [0x334674, 0x0f0c0a, .2], fill: [0x6a78a8, .1], ambient: [0x1c2442, .08] },
   },
 ] as const satisfies readonly TimeOfDay[];
 export type TimeOfDayId = typeof TIMES_OF_DAY[number]['id'];

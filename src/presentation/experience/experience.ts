@@ -11,7 +11,7 @@ import { createWardrobeLamps, timeOfDay } from '../viewport/daylight';
 import { createAssemblyMotion, type AssemblyPhase } from '../viewport/assembly-motion';
 import { createWorkshopLens } from '../viewport/workshop-lens';
 import { createWelcome } from './welcome';
-import { createReveal } from './reveal';
+import { createReveal, fitSummary } from './reveal';
 import { createMoodControl, type Mood } from './mood-control';
 import { createWoodSounds } from './wood-sounds';
 import { readPreferences, writePreferences } from './preferences';
@@ -118,11 +118,11 @@ export function mountExperience(ports: ExperiencePorts) {
         ports.design.replace(built.project);
         cinematicFrame();
         void play().then(() => {
-          const focused = doc.activeElement as HTMLElement | null;
-          reveal.show(describeScene(ports.scene()));
+          const focused = doc.activeElement as HTMLElement | null, report = describeScene(ports.scene());
+          reveal.show(report);
           // The welcome closed under the keyboard focus: it moves to the reveal.
           if (!focused || focused.closest('.xp-welcome') || focused === dom.host) reveal.focus();
-          if (summaryFits()) sounds.fits();
+          if (fitSummary(report).all) sounds.fits();
         });
         return { ok: true as const };
       } finally { building = false; }
@@ -134,7 +134,6 @@ export function mountExperience(ports: ExperiencePorts) {
     layout: rect => framing.around(rect),
   });
   lifetime.cleanup(() => welcome.dispose());
-  const summaryFits = () => describeScene(ports.scene()).wardrobes.every(w => w.warnings.every(x => !/^Room for/.test(x)));
   const friendly = (messages: string[]) => messages.some(m => /no layout|ask for less/i.test(m))
     ? 'That is more than this space can hold. Count a little less, or choose a bigger space.'
     : messages[0] ?? 'The design could not be built.';
@@ -187,6 +186,17 @@ export function mountExperience(ports: ExperiencePorts) {
     }
   }
 
+  /** While the welcome is open the room sways gently from side to side, so the stage feels alive. A person
+   * turning the view takes over: the sway carries on from wherever they leave it. */
+  const sway = { base: NaN, time: 0, last: NaN };
+  function swayStage(dt: number) {
+    if (!welcome.isOpen() || building || cameraState.camGoal || reduced()) { sway.base = NaN; return; }
+    if (Number.isNaN(sway.base) || Math.abs(cameraState.az - sway.last) > 1e-6) { sway.base = cameraState.az; sway.time = 0; }
+    sway.time += dt;
+    cameraState.az = sway.base + .26 * Math.sin(sway.time * .32);
+    sway.last = cameraState.az;
+  }
+
   let stamp = -1, previous = ports.scene();
   noticeLayouts(previous, true);
   resources.frameHooks.add((camera, dt) => {
@@ -201,6 +211,7 @@ export function mountExperience(ports: ExperiencePorts) {
       lens.fit(box.x, box.z, Math.max(box.w, box.d));
       if (mood.apart) assembly.explode(renderState.wardrobeGroups, mood.apart);
     }
+    swayStage(dt);
     lamps.sync(now.wardrobes, timeOfDay(mood.time).lamps && mood.look !== 'workshop');
     looks.frame();
     lens.frame(camera, cameraState.tgt, dt, reduced());

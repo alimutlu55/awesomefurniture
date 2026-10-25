@@ -9,7 +9,7 @@ saved projects and the planner are untouched.
 1. **Welcome.** A new, empty design opens on a sheet over the live room: *Tell us what you own. We'll build
    the wardrobe around it.* Pick a space (bedroom wall, alcove, walk-in, attic eaves, under the stairs, just
    the wardrobe), and the room appears in 3D beside the sheet (desktop) or above it (phone). Then count
-   belongings, starting from a way of living (Travel light, Everyday, Clothes lover, Two of us), and **Build my
+   belongings (the room sways gently behind the sheet while it is open), starting from a way of living (Travel light, Everyday, Clothes lover, Two of us), and **Build my
    wardrobe**. *Start empty* goes back to the design as it was. The menu's **Plan from what I own** opens it
    again on any design (Undo takes the result back).
 2. **Assembly.** The built design goes together in front of them, in a cabinetmaker's order: base, sides,
