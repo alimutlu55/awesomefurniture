@@ -93,6 +93,8 @@ try {
     await page.screenshot({ path: `${output}/${kind}-loading-mobile.png` });
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    // Read computed style to flush the media change before enumerating active pseudo-element animations.
+    assert.equal(await loading.locator('.ui-loading-surface').evaluate(el => getComputedStyle(el, '::after').animationName), 'none');
     assert.equal(await loading.evaluate(element => element.getAnimations({ subtree: true }).length), 0, 'reduced motion has no animations');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1440, height: 1000 });

@@ -22,11 +22,13 @@ export function createCreditsClient(platform: CreditsPlatform) {
   }
 
   function refresh(): Promise<CreditWallet | null> {
-    loading ??= call<CreditWallet>('/api/credits').then(next => { wallet = next; available = true; return next; }, error => {
+    if (loading) return loading;
+    loading = call<CreditWallet>('/api/credits').then(next => { wallet = next; available = true; return next; }, error => {
       // Credits not set up on this server: the editor shows no wallet rather than a broken one.
       if (error instanceof CreditUserError && error.code === 'CREDITS_UNAVAILABLE') { available = false; wallet = null; return null; }
       throw error;
     }).finally(() => { loading = null; notify(); });
+    notify();
     return loading;
   }
   /** A paid response reported the new balance: show it without another request. */
@@ -39,6 +41,7 @@ export function createCreditsClient(platform: CreditsPlatform) {
   return {
     get wallet() { return wallet; },
     get available() { return available; },
+    get loading() { return loading !== null; },
     platform,
     refresh, balance, headers,
     subscribe(listener: Listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },

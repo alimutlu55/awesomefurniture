@@ -4,6 +4,7 @@ import { spaceArt } from './space-art';
 import { mountMobileSheet } from '../editor/mobile-sheet.js';
 import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import type { ExperienceDocument, ExperienceLifetime } from './lifetime.ports';
+import { createLoadingPlaceholder, paintLoading } from '../components/loading-state';
 
 export interface WelcomePorts {
   /** The editor's own element: the welcome is one of its panels. */
@@ -66,6 +67,7 @@ export function createWelcome(ports: WelcomePorts) {
   ports.container.append(root);
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as T;
   const $$ = <T extends Element = HTMLElement>(s: string) => [...root.querySelectorAll(s)] as T[];
+  $('.xp-loom').replaceWith(createLoadingPlaceholder(doc, 'Planning your wardrobe…', 'canvas'));
   // The editor's own sheet: a handle to drag it up or down (down closes it), the same heights as every panel.
   mountMobileSheet({ document: doc, lifetime, panel: root, name: 'New design', close: () => { close(); ports.skip(); }, bottom: true, scene: ports.container, docked: ports.docked });
 
@@ -108,15 +110,20 @@ export function createWelcome(ports: WelcomePorts) {
     warm();
   }
   async function build() {
+    if (step === 'building') return;
     if (!countBelongings(belongings)) { problem('Count at least one thing to plan for.'); return; }
     go('building');
     let k = 0;
     const busy = $('.xp-busy'), tick = () => { if (step === 'building') { busy.textContent = BUSY[k++ % BUSY.length]!; lifetime.timeout(tick, 1100); } };
     tick();
-    const result = await ports.build(chosen, belongings);
-    if (result.ok) { close(); return; }
-    go('things');
-    problem(result.message);
+    try {
+      await paintLoading(root);
+      const result = await ports.build(chosen, belongings);
+      if (result.ok) { close(); return; }
+      go('things'); problem(result.message);
+    } catch {
+      go('things'); problem('Your wardrobe could not be built. Please try again.');
+    }
   }
   function problem(message: string) {
     const p = $('.xp-problem');

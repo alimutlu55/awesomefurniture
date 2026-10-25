@@ -28,3 +28,9 @@ header{display:flex;align-items:center;gap:12px;margin-bottom:12px}h1{font-weigh
 @media(max-width:350px){.content{padding-inline:16px}.preview{width:72px;height:74px}h1{font-size:25px}.design{gap:10px}.selecting .preview{width:54px;height:62px}.copy strong{font-size:14px}}
 .message:empty,.status:empty{display:none}
 h1:focus{outline:none}
+.preview-frame{position:relative;display:grid;place-items:center;width:88px;height:82px;flex:none;border-radius:11px;background:var(--soft);overflow:hidden}
+.preview-frame .preview{width:100%;height:100%;position:absolute;inset:0}
+.preview-frame:not(:has(img[src])):not(.ui-loading-surface)::before{content:"";width:30px;height:36px;border:1px solid var(--mute);border-radius:3px;opacity:.3}
+.design:disabled{opacity:1;cursor:wait}.design:disabled .copy{opacity:.7}
+@media(max-width:700px){.preview-frame{width:86px;height:82px}.selecting .preview-frame{width:67px;height:70px}}
+@media(max-width:350px){.preview-frame{width:72px;height:74px}.selecting .preview-frame{width:54px;height:62px}}

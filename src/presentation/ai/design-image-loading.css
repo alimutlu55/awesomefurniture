@@ -1,100 +1,19 @@
-.light-orbit-screen {
-  --orbit-parallax-x: 0px;
-  --orbit-parallax-y: 0px;
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  isolation: isolate;
-  color: #fff8fc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
-.light-orbit-screen * { box-sizing: border-box; }
-.light-orbit-backdrop {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(20,17,29,.45), rgba(13,12,22,.37) 50%, rgba(20,17,29,.44)),
-    radial-gradient(ellipse 45% 52% at 49% 40%, rgba(15,12,30,.24), transparent 78%);
-  backdrop-filter: blur(11px) saturate(.74);
-  -webkit-backdrop-filter: blur(11px) saturate(.74);
-}
-.light-orbit-content {
-  width: min(100%, 630px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 24px 30px;
-  margin-top: -2vh;
-  text-align: center;
-}
-.light-orbit-art {
-  width: min(480px, 90vw, 55vh);
-  height: auto;
-  aspect-ratio: 480 / 440;
-  position: relative;
-  isolation: isolate;
-  transform: translate3d(var(--orbit-parallax-x), var(--orbit-parallax-y), 0);
-  transition: transform .45s cubic-bezier(.22,.61,.36,1);
-  flex-shrink: 0;
-}
-.light-orbit-ambient { pointer-events: none; position: absolute; border-radius: 50%; filter: blur(42px); z-index:-1; }
-.light-orbit-ambient-one { width: 54%; height: 48%; top: 27%; left: 18%; background: rgba(118,70,208,.22); }
-.light-orbit-ambient-two { width: 36%; height: 35%; top: 43%; right: 17%; background: rgba(230,157,96,.15); }
-.light-orbit-svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 12px 36px rgba(80, 50, 116, .2)); }
-.light-orbit-spinner { transform-origin: 240px 220px; }
-.light-orbit-spinner-a { animation: orbit-spin 29s linear infinite; }
-.light-orbit-spinner-b { animation: orbit-spin-reverse 23s linear infinite; }
-.light-orbit-spinner-progress { animation: orbit-spin 7.5s linear infinite; }
-.light-orbit-twinkle { animation: orbit-twinkle 3.3s ease-in-out infinite alternate; }
-.light-orbit-twinkle-2 { animation-delay: 1.1s; }
-.light-orbit-twinkle-3 { animation-delay: 1.8s; }
-.light-orbit-twinkle-4 { animation-delay: 2.5s; }
-.light-orbit-copy { margin-top: -8px; position:relative; z-index:2; }
-.light-orbit-heading { margin: 0; color: #fff7f6; font-family: Iowan Old Style, 'Baskerville', 'Palatino Linotype', Georgia, serif; font-size: clamp(30px, 3vw, 42px); line-height:1.17; letter-spacing:-1.6px; font-weight: 500; text-wrap: balance; text-shadow: 0 2px 25px rgba(0,0,0,.3); }
-.light-orbit-status { min-height: 22px; margin: 12px 0 0; font-size: clamp(14px,1.5vw,17px); color:rgba(255,247,255,.78); font-weight:350; letter-spacing:.01em; }
-.light-orbit-caption { margin: 13px 0 0; color: rgba(255,246,253,.48); font-size:13px; letter-spacing:.005em; }
-.light-orbit-controls { min-height: 48px; margin-top: 25px; }
-.light-orbit-action { color: #fff9ff; cursor:pointer; min-width:116px; min-height:42px; padding:10px 24px; border:1px solid rgba(255,255,255,.19); background:rgba(255,255,255,.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 8px 30px rgba(0,0,0,.1); border-radius:999px; font-size:14px; font-weight:500; font-family:inherit; transition: background .18s ease, border-color .18s ease, transform .18s ease; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
-.light-orbit-action:hover { background:rgba(255,255,255,.15); border-color:rgba(255,255,255,.34); transform:translateY(-1px); }
-.light-orbit-action:active { transform:translateY(1px); }
-.light-orbit-action:focus-visible { outline:2px solid #ecd4ff; outline-offset:5px; }
-.light-orbit-action:disabled { opacity:.4; cursor:default; }
-.light-orbit-screen:not([data-phase="generating"]) .light-orbit-spinner { animation-play-state: paused; }
-.light-orbit-screen[data-phase="complete"] .light-orbit-ambient-one { background:rgba(175,139,225,.31); }
-.light-orbit-screen[data-phase="cancelled"] .light-orbit-svg { opacity:.54; filter:grayscale(.4); }
-@keyframes orbit-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-@keyframes orbit-spin-reverse { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
-@keyframes orbit-twinkle { from{opacity:.22;transform:scale(.7)} to{opacity:1;transform:scale(1.22)} }
-@media (max-width:600px) {
-  .light-orbit-content { padding: 18px 16px 26px; margin-top:-4vh; }
-  .light-orbit-art { width:min(370px,94vw,54vh); }
-  .light-orbit-copy { margin-top:0; }
-  .light-orbit-heading { font-size:clamp(29px, 7.5vw, 37px); }
-  .light-orbit-controls { margin-top:22px; }
-}
-@media (prefers-reduced-motion:reduce) {
-  .light-orbit-screen, .light-orbit-spinner, .light-orbit-twinkle { animation:none !important; }
-  .light-orbit-art, .light-orbit-action { transition:none !important; }
-}
-
-/* Interactive demo actions from light-orbit-react/src/demo.css */
-.demo-preview-actions {position:fixed;z-index:1001;top:18px;right:21px;display:flex;gap:9px;align-items:center;font:12px -apple-system,BlinkMacSystemFont,Arial,sans-serif;color:rgba(255,255,255,.55)}
-.demo-preview-actions span {font-size:10px;letter-spacing:.17em;margin-right:5px}
-.demo-preview-actions button {color:#fffafc;border:1px solid rgba(255,255,255,.17);background:rgba(21,20,35,.28);padding:10px 13px;border-radius:999px;cursor:pointer;backdrop-filter:blur(12px);font:inherit}
-.demo-preview-actions button:hover {background:rgba(255,255,255,.16)}
-.demo-preview-actions button:focus-visible {outline:2px solid #fff;outline-offset:3px}
-@media(max-width:620px){.demo-preview-actions{left:12px;right:12px;top:auto;bottom:13px;justify-content:center}.demo-preview-actions span{display:none}}
-
-/* Hosting inside the image dialog: the orbit owns the whole screen while generating. */
-.ai-image-dialog[data-state="generating"]{
-  position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;border-radius:0;
-  background:transparent;box-shadow:none;overflow:hidden;
-  backdrop-filter:none;-webkit-backdrop-filter:none;
-  transition:none !important;
-}
-.ai-image-dialog[data-state="generating"]::backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-.ai-image-dialog[data-state="generating"] .ai-close{display:none}
+.ai-image-wait { position: absolute; inset: 0; display: grid; place-items: center; padding: 28px 20px; overflow: auto;
+  background: var(--panel, #faf8f3); color: var(--ink, #302d26); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.ai-image-wait[hidden]{display:none!important}
+.ai-image-wait-content { width: min(100%, 520px); text-align: center; }
+.ai-image-wait-preview { width: 100%; --soft: color-mix(in srgb, var(--ink, #302d26) 8%, var(--panel, #faf8f3)); }
+.ai-image-wait-preview .ui-placeholder { border: 1px solid var(--line, #dfd9ce); border-radius: 20px; }
+.ai-image-wait-preview .ui-placeholder-image { aspect-ratio: 16 / 10; border-radius: 0; }
+.ai-image-wait-preview .ui-placeholder-copy { display: none; }
+.ai-image-wait-copy h2 { margin: 28px 0 10px; font-size: clamp(24px, 4vw, 32px); font-weight: 550; letter-spacing: -.8px; }
+.ai-magic-caption { margin: 0; font-size: 15px; color: var(--mute, #777268); }
+.ai-magic-wait { margin: 10px 0 24px; font-size: 13px; color: var(--mute, #777268); }
+.ai-image-wait-cancel { min-width: 100px; min-height: 44px; border: 1px solid var(--line, #dfd9ce); border-radius: 12px;
+  background: transparent; color: inherit; font: inherit; padding: 10px 20px; cursor: pointer; }
+.ai-image-wait-cancel:hover { background: var(--soft, #ece8df); }
+.ai-image-wait-cancel:focus-visible { outline: 2px solid var(--acc, #52684b); outline-offset: 4px; }
+.demo-preview-actions { position: absolute; bottom: 14px; right: 18px; display: flex; gap: 8px; }
+.demo-preview-actions[hidden]{display:none!important}
+.demo-preview-actions button { font: inherit; font-size: 11px; padding: 8px; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 8px; }
+@media(max-width:600px) { .ai-image-wait { padding: 24px; } .ai-image-wait-copy h2 { margin-top: 24px; } }

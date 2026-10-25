@@ -5,6 +5,7 @@ import { creditErrorMessage } from './credit-errors';
 import { bindAccountStep } from './account-step';
 import { bindCreditGate } from './credit-gate';
 import { activityList, coin, featureList, money, packCards, walletShell, worth } from './wallet-markup';
+import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
 
 type View = 'shop' | 'account' | 'activity' | 'wait' | 'done';
 export interface WalletNeed { readonly feature: string; readonly cost: number; readonly balance: number }
@@ -35,6 +36,11 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
     shop: $('.cr-shop'), account: $('.cr-account'), activity: $('.cr-activity'), wait: $('.cr-wait'), done: $('.cr-done'),
   };
   const resumers = new Map<string, { label: string; run: () => void }>();
+  const chipLoading = createLoadingState(chip), packsLoading = createLoadingState(packs), checkoutLoading = createLoadingState(buy);
+  const waitLoading = createLoadingState(views.wait);
+  const initialPacks = createLoadingPlaceholder(page, 'Loading credit packs…', 'cards');
+  const payment = createLoadingPlaceholder(page, 'Confirming your payment…');
+  views.wait.prepend(payment);
   let selected = '', shown = 0, chipShown = 0, previousFocus: HTMLElement | null = null, overflow = '', disposed = false, buying = false;
 
   /** Counts a number up or down to its new value, the way coins land. */
@@ -51,8 +57,15 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
   }
 
   function render(wallet: CreditWallet | null) {
-    chip.hidden = !wallet;
-    if (!wallet) return;
+    chip.hidden = !wallet && !client.loading;
+    chip.disabled = !wallet;
+    if (client.loading) { chipLoading.start(); packsLoading.start(); } else { chipLoading.stop(); packsLoading.stop(); }
+    if (!wallet) {
+      chip.setAttribute('aria-label', 'Loading your credits…'); chip.querySelector('.cr-chip-value')!.textContent = '—';
+      balanceEl.textContent = '—'; buy.disabled = true;
+      packs.replaceChildren(...(client.loading ? [initialPacks] : []));
+      return;
+    }
     const label = `Credits: ${wallet.balance}. Open your wallet`;
     chip.ariaLabel = label; chip.title = label;
     chip.classList.toggle('cr-chip--empty', wallet.balance <= 0);
@@ -76,6 +89,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
     chip.classList.remove('cr-chip--gain'); void chip.offsetWidth; chip.classList.add('cr-chip--gain');
   }
   function syncBuy(wallet = client.wallet) {
+    if (buying) checkoutLoading.start(); else checkoutLoading.stop();
     const pack = wallet?.packs.find(p => p.id === selected);
     buy.disabled = !pack || buying;
     buy.querySelector('span')!.textContent = buying ? 'Opening secure checkout…' : pack ? `Continue · ${money(pack.price, pack.currency)}` : 'Continue';
@@ -90,6 +104,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
     syncBuy();
   }
   function show(view: View) {
+    if (view === 'wait') waitLoading.start(); else waitLoading.stop();
     sheet.dataset.view = view;
     (Object.keys(views) as View[]).forEach(key => { views[key].hidden = key !== view; });
     overlay.querySelectorAll<HTMLElement>('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === view)));
@@ -113,7 +128,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
     render(client.wallet);
     show(options.view ?? 'shop');
     sheet.focus();
-    if (!options.view || options.view === 'shop') void client.refresh().catch(() => undefined);
+    if (!options.view || options.view === 'shop') void client.refresh().catch(e => say(creditErrorMessage(e)));
   }
   function close() {
     if (overlay.hidden) return;
@@ -203,6 +218,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast }: CreditWalle
   else if (back?.outcome === 'cancel') { session.set(null); toast('Checkout cancelled. You were not charged.'); }
 
   lifetime.cleanup(() => {
+    chipLoading.stop(); packsLoading.stop(); checkoutLoading.stop(); waitLoading.stop();
     disposed = true; unsubscribe();
     if (!overlay.hidden) page.body.style.overflow = overflow;
     overlay.remove(); chip.remove();

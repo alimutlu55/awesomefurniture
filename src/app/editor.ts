@@ -5,9 +5,16 @@ import { designFromLink, hasDesign } from './design-link';
 import { prepareSession } from './session-bootstrap';
 import { createDesignWorkspace } from './design-workspace';
 import { takeCheckoutReturn } from './credit-platform';
+import { createLoadingPlaceholder } from '../presentation/components/loading-state';
+import '../presentation/components/loading-state.css';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
 if(!root) throw new Error('Editor mount point is missing.');
+const startup = document.querySelector<HTMLElement>('#workspace-loading') ?? document.createElement('div');
+startup.className = 'ui-loading-startup';
+startup.replaceChildren(createLoadingPlaceholder(document, 'Opening your workspace…', 'canvas'));
+const startupCopy = document.createElement('p'); startupCopy.textContent = 'Opening your workspace…'; startup.append(startupCopy);
+document.body.append(startup);
 // AI agents are welcome: a guide and functions on window.wardrobeForge (WebMCP tools where offered). They are
 // ready before the editor and stay when it cannot start (agents' browsers often have no WebGL).
 let editor:ReturnType<typeof mountEditor>|null=null;
@@ -35,13 +42,14 @@ async function main(): Promise<void> {
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
  const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;},initialLink:openLink,checkout});
+ startup.remove();
  await workspace.start();
  window.addEventListener('hashchange',openLink);
  const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();};
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});
  import.meta.hot?.dispose(dispose);
 }
-void main().catch(error=>{
+void main().finally(() => startup.remove()).catch(error=>{
  editor=null;
  const errorRoot=root.shadowRoot??root;
  errorRoot.replaceChildren();

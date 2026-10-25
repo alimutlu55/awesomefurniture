@@ -146,7 +146,6 @@
 .cr-wait { display: grid; justify-items: center; text-align: center; padding: 34px 10px 18px; }
 .cr-wait h3, .cr-done h3 { margin: 18px 0 6px; font-size: 22px; }
 .cr-wait p, .cr-done p { margin: 0; color: var(--cr-mute); font-size: 15px; }
-.cr-spinner { width: 46px; height: 46px; border-radius: 50%; border: 4px solid rgba(226, 169, 44, .25); border-top-color: #e2a92c; animation: cr-turn 900ms linear infinite; }
 .cr-done { display: grid; justify-items: center; text-align: center; padding: 26px 6px 4px; }
 .cr-done h3 { font-size: 34px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .cr-burst { position: relative; display: grid; place-items: center; width: 200px; height: 140px; }
@@ -160,14 +159,13 @@
 @keyframes cr-float { 0% { opacity: 0; transform: translate(-50%, 4px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -22px); } }
 @keyframes cr-spin-in { 0% { opacity: 0; transform: scale(.4) rotateY(-260deg); } 70% { opacity: 1; transform: scale(1.06) rotateY(12deg); } 100% { transform: none; } }
 @keyframes cr-glow { 50% { opacity: .55; transform: scale(.92); } }
-@keyframes cr-turn { to { transform: rotate(360deg); } }
 @keyframes cr-burst {
   0% { opacity: 0; transform: rotate(var(--a)) translateX(0) scale(.4); }
   15% { opacity: 1; }
   100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) translateY(26px) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cr-overlay, .cr-sheet, .cr-coin, .cr-hero-glow, .cr-spark, .cr-chip-gain, .cr-spinner { animation: none !important; }
+  .cr-overlay, .cr-sheet, .cr-coin, .cr-hero-glow, .cr-spark, .cr-chip-gain { animation: none !important; }
   .cr-pack { transition: none; }
 }
 @container (max-width: 620px) {
@@ -198,3 +196,11 @@
   background: rgba(255, 255, 255, .18); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ai-cost .cr-coin { --cr-size: 14px; }
 .ai-cost[hidden] { display: none; }
+
+.cr-wait > .ui-placeholder{width:100%;max-width:340px}.cr-packs > .ui-placeholder{grid-column:1/-1;width:100%}
+@container (max-width:620px) {
+  .cr-chip{min-width:36px!important;padding:0 5px;gap:3px}
+  .cr-chip .cr-coin{--cr-size:14px}
+  .cr-chip-value{min-width:1ch;font-size:11px}
+  .cr-chip--empty .cr-chip-value::after{display:none}
+}

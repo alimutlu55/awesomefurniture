@@ -9,6 +9,7 @@ import { connectSessions } from './session-platform';
 import type { SessionPlatform } from './session-bootstrap';
 import { sceneToProject } from '../application/projects/editor-mapper';
 import { createCreditPlatform, type CheckoutReturn } from './credit-platform';
+import { createLoadingState, paintLoading } from '../presentation/components/loading-state';
 
 interface WorkspaceOptions {
   root: HTMLElement;
@@ -34,6 +35,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     designId: () => currentId,
     document: () => mounted ? sceneToProject(current.draft.document, mounted.scene()) : null,
   }, checkout);
+  const transition = createLoadingState(root);
   function ordered<T>(work: () => Promise<T>): Promise<T> {
     const operation = pending.catch(() => undefined).then(async () => {
       if (disposed) throw new Error('The workspace has closed.');
@@ -49,8 +51,13 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     if (url.href !== location.href) history[replace ? 'replaceState' : 'pushState'](null, '', url);
   }
   async function refresh() {
-    const result = await collection.list();
-    library.update({ ...result, currentId, localOnly: !platform.repository });
+    library.loading(true);
+    try {
+      const result = await collection.list();
+      library.update({ ...result, currentId, localOnly: !platform.repository });
+    } catch (error) {
+      library.error(error instanceof Error ? error.message : 'Your designs could not be loaded. Try again.');
+    } finally { library.loading(false); }
   }
   async function preview(id: string): Promise<string | null> {
     const cached = previewCache.get(id) ?? platform.drafts.preview(id);
@@ -84,9 +91,13 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     const editor = mountEditor({
       root, initialScene:projectToScene(design.draft.document), credits,
       onBack: () => {
+        if (transition.active) return;
+        transition.start();
         void ordered(async () => {
+          await paintLoading(root);
           try { await showDesigns(); }
           catch (error) { mounted?.notify(error instanceof Error ? error.message : 'Your design could not be saved. Try again.'); }
+          finally { transition.stop(); }
         });
       },
       shareLink: async () => {
@@ -183,7 +194,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   }
   const popstate = () => {
     const token = ++navigation, url = new URL(location.href);
-    void ordered(() => followLocation(token, url));
+    transition.start(); library.loading(true);
+    void ordered(() => followLocation(token, url)).finally(() => { transition.stop(); library.loading(false); });
   };
   const storage = () => {
     if (disposed) return;

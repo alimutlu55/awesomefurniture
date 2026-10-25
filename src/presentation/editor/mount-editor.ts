@@ -24,6 +24,7 @@ import creditsStylesheet from '../credits/credits.css?raw';
 import type { CreditsPlatform } from '../credits/credits.ports';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
+import loadingStylesheet from '../components/loading-state.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
     initialScene?: EditorScene | undefined;
@@ -46,7 +47,8 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits }: 
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
-        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet, creditsStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet].join('\n'), controlIds);
+        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
+        creditsStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

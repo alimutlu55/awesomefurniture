@@ -10,6 +10,8 @@ import { loadDecorSwatches } from './decor-swatch-references';
 import { IMAGE_STYLES, SPARKLE_ICON, ARROW_ICON, CLOSE_ICON, type ImageStyle } from './generate-image-dialog';
 import type { CreditWalletApi } from '../credits/credit-wallet';
 import { bindImageCredits } from './design-image-credits';
+import { createLoadingState } from '../components/loading-state';
+import { bindLoadingImage } from '../components/loading-image';
 
 export { IMAGE_STYLES, type ImageStyle } from './generate-image-dialog';
 
@@ -84,6 +86,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   const selectView = dialog.querySelector<HTMLElement>('.ai-select-view')!;
   const resultView = dialog.querySelector<HTMLElement>('.ai-result-view')!;
   const generate = selectView.querySelector<HTMLButtonElement>('.ai-generate-button')!;
+  const preparationLoading = createLoadingState(generate);
   const selectError = selectView.querySelector<HTMLElement>('.ai-error')!;
   const resultError = resultView.querySelector<HTMLElement>('.ai-result-error')!;
   const resultImage = resultView.querySelector('img')!;
@@ -92,11 +95,12 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   const again = resultView.querySelector<HTMLButtonElement>('.ai-again')!;
   const radioGroup = selectView.querySelector<HTMLDivElement>('.ai-style-list')!;
   const styleButtons = Array.from(radioGroup.querySelectorAll<HTMLButtonElement>('.ai-style-option'));
+  for (const option of styleButtons) lifetime.cleanup(bindLoadingImage(option.querySelector('img')!, option));
 
   const debugPreviewEnabled = isDebugMode();
   const loading = createDesignImageLoading(page, lifetime, {
     isDebug: debugPreviewEnabled,
-    onCancel: () => { cancel(); },
+    onCancel: () => { cancel(); status.textContent = 'Image creation cancelled.'; },
     onRestart: () => { void run(selectedStyle); },
   });
   dialog.append(loading.element);
@@ -178,6 +182,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   }
 
   function close() {
+    preparationLoading.stop();
     preparation++;
     prepared = null;
     references.clear();
@@ -207,7 +212,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
     prepared = null;
     references.clear();
     generate.disabled = true;
-    status.textContent = 'Preparing reference images and JSON…';
+    preparationLoading.start();
+    status.textContent = 'Preparing your design…';
     await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
     if (disposed || phase === 'closed' || current !== preparation) return;
     try {
@@ -217,13 +223,13 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
       prepared = { ...captured, ...(swatches.length ? { decorSwatches: swatches } : {}) };
       references.update(prepared);
       showError(null);
-      status.textContent = 'Reference images and JSON are ready to review.';
+      status.textContent = 'Your design is ready to generate.';
     } catch (error) {
       prepared = null;
       const message = designImageErrorMessage(error);
       showError(message);
     } finally {
-      generate.disabled = false;
+      if (current === preparation) { generate.disabled = false; preparationLoading.stop(); }
     }
   }
 
@@ -260,9 +266,12 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
       pay.paid(output);
       if (disposed || request.signal.aborted) return;
       const bytes = Uint8Array.from(atob(output.image.data), char => char.charCodeAt(0));
-      releaseImage();
-      imageUrl = URL.createObjectURL(new Blob([bytes], { type: output.image.mimeType }));
-      resultImage.src = imageUrl;
+      const nextUrl = URL.createObjectURL(new Blob([bytes], { type: output.image.mimeType }));
+      try {
+        const image = page.createElement('img'); image.src = nextUrl; await image.decode();
+        if (disposed || request.signal.aborted) { URL.revokeObjectURL(nextUrl); return; }
+      } catch (error) { URL.revokeObjectURL(nextUrl); throw error; }
+      releaseImage(); imageUrl = nextUrl; resultImage.src = imageUrl;
       download.href = imageUrl;
       modelText.textContent = '';
       modelText.hidden = true;
@@ -350,11 +359,6 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
     void run(selectedStyle);
   });
 
-  lifetime.listen(loading.cancel, 'click', () => {
-    cancel();
-    status.textContent = 'Image creation cancelled.';
-  });
-
   const onGlobalKeyDown = (event: globalThis.KeyboardEvent) => {
     if (phase === 'closed') return;
     if (event.key === 'Escape') {
@@ -367,6 +371,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   document.addEventListener('keydown', onGlobalKeyDown);
 
   lifetime.cleanup(() => {
+    preparationLoading.stop();
     disposed = true;
     preparation++;
     controller?.abort();

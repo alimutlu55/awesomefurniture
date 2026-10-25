@@ -1,285 +1,62 @@
 import type { createEditorLifetime } from '../viewport/editor-lifetime.js';
+import { createLoadingPlaceholder, createLoadingState } from '../components/loading-state';
 
 export type OrbitPhase = 'generating' | 'cancelled' | 'complete';
-
-export const DEMO_STATUSES = [
-  'Understanding your design…',
-  'Balancing natural light…',
-  'Refining materials and textures…',
-  'Bringing your space to life…',
-] as const;
-
-// Exact SVG art from light-orbit-react/src/LightOrbitLoader.tsx
-const art = `<div class="light-orbit-art" aria-hidden="true">
-        <div class="light-orbit-ambient light-orbit-ambient-one"></div>
-        <div class="light-orbit-ambient light-orbit-ambient-two"></div>
-        <svg class="light-orbit-svg" viewBox="0 0 480 440" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="orbitTrailGold" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0" stop-color="#C3A4FF" stop-opacity="0.18" />
-                <stop offset="0.39" stop-color="#E4D6FF" stop-opacity="0.55" />
-                <stop offset="0.73" stop-color="#FFDEAF" stop-opacity="0.95" />
-                <stop offset="1" stop-color="#FFC987" stop-opacity="0.35" />
-              </linearGradient>
-              <linearGradient id="orbitTrailViolet" x1="0" x2="1" y1="1" y2="0">
-                <stop offset="0" stop-color="#8D71FF" stop-opacity="0.22" />
-                <stop offset="0.29" stop-color="#B58FFF" stop-opacity="0.98" />
-                <stop offset="0.62" stop-color="#E9D8FF" stop-opacity="0.6" />
-                <stop offset="1" stop-color="#EFCAAA" stop-opacity="0.2" />
-              </linearGradient>
-              <linearGradient id="orbitProgressGold" x1="0" x2="1" y1="0" y2="0">
-                <stop stop-color="#C1A3FF" />
-                <stop offset="0.66" stop-color="#FFF3D3" />
-                <stop offset="1" stop-color="#FFD29B" />
-              </linearGradient>
-              <radialGradient id="orbitPearl" cx="36%" cy="22%" r="87%">
-                <stop offset="0" stop-color="#FFFBFF" />
-                <stop offset="0.21" stop-color="#EAE1FF" />
-                <stop offset="0.51" stop-color="#BDB0DA" />
-                <stop offset="0.78" stop-color="#6C557D" />
-                <stop offset="0.93" stop-color="#E6A98E" />
-                <stop offset="1" stop-color="#FFE5CF" />
-              </radialGradient>
-              <radialGradient id="orbitInnerLight" cx="46%" cy="54%" r="54%">
-                <stop offset="0" stop-color="#FFDFAE" stop-opacity="0.44" />
-                <stop offset="0.6" stop-color="#FFDFAE" stop-opacity="0.03" />
-                <stop offset="1" stop-color="#FFDFAE" stop-opacity="0" />
-              </radialGradient>
-              <filter id="orbitSoftGlow" x="-150%" y="-150%" width="400%" height="400%">
-                <feGaussianBlur stdDeviation="6" />
-              </filter>
-              <filter id="orbitStarGlow" x="-130%" y="-130%" width="360%" height="360%">
-                <feGaussianBlur stdDeviation="5" />
-              </filter>
-            </defs>
-            <circle cx="240" cy="220" r="189" fill="none" stroke="#EDE4FF" stroke-opacity="0.22" stroke-width="1" />
-            <circle cx="240" cy="220" r="145" fill="none" stroke="#DED5FF" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="1 6" />
-            <g class="light-orbit-spinner light-orbit-spinner-progress">
-              <circle cx="240" cy="220" r="145" fill="none" stroke="url(#orbitProgressGold)" stroke-width="2.6" stroke-dasharray="100 811" stroke-linecap="round" transform="rotate(-90 240 220)" />
-              <circle cx="240" cy="75" r="3.6" fill="#FFE4AF" filter="url(#orbitSoftGlow)" />
-              <circle cx="240" cy="75" r="2.2" fill="#FFF5DD" />
-            </g>
-            <g class="light-orbit-spinner light-orbit-spinner-a">
-              <g transform="rotate(-17 240 220)">
-                <ellipse cx="240" cy="220" rx="206" ry="83" fill="none" stroke="url(#orbitTrailViolet)" stroke-width="1.5" />
-                <circle cx="34" cy="220" r="10" fill="#9E71FF" opacity="0.5" filter="url(#orbitSoftGlow)" />
-                <circle cx="34" cy="220" r="6" fill="#D6AAFF" />
-                <circle cx="34" cy="220" r="2.6" fill="white" opacity="0.86" />
-              </g>
-            </g>
-            <g class="light-orbit-spinner light-orbit-spinner-b">
-              <g transform="rotate(24 240 220)">
-                <ellipse cx="240" cy="220" rx="175" ry="70" fill="none" stroke="url(#orbitTrailGold)" stroke-width="1.4" />
-                <circle cx="415" cy="220" r="9" fill="#FFE1A7" opacity="0.45" filter="url(#orbitSoftGlow)" />
-                <circle cx="415" cy="220" r="5.2" fill="#FFE1B4" />
-              </g>
-            </g>
-            <circle cx="240" cy="220" r="108" fill="#AC8DFF" opacity="0.075" filter="url(#orbitSoftGlow)" />
-            <circle cx="240" cy="220" r="80" fill="#EBBDFF" opacity="0.12" filter="url(#orbitSoftGlow)" />
-            <circle cx="240" cy="220" r="75" fill="url(#orbitPearl)" stroke="#F7E9FE" stroke-opacity="0.63" stroke-width="1.35" />
-            <circle cx="240" cy="220" r="73" fill="url(#orbitInnerLight)" />
-            <path d="M184 175 A65 65 0 0 1 267 152" stroke="#FFFFFF" stroke-opacity="0.42" stroke-width="2.5" fill="none" stroke-linecap="round" />
-            <path d="M192 272 A69 69 0 0 0 290 269" stroke="#FFD5B0" stroke-opacity="0.42" stroke-width="1.6" fill="none" stroke-linecap="round" />
-            <path d="M240 188 C246 210 251 214 272 220 C251 226 246 230 240 252 C234 230 229 226 208 220 C229 214 234 210 240 188Z" fill="#FFD3A1" opacity="0.93" filter="url(#orbitStarGlow)" />
-            <path d="M240 188 C246 210 251 214 272 220 C251 226 246 230 240 252 C234 230 229 226 208 220 C229 214 234 210 240 188Z" fill="#FFF9E9" />
-            <g fill="#FFF5E6">
-              <circle class="light-orbit-twinkle light-orbit-twinkle-1" cx="243" cy="23" r="2.4" />
-              <circle class="light-orbit-twinkle light-orbit-twinkle-2" cx="395" cy="130" r="1.9" />
-              <circle class="light-orbit-twinkle light-orbit-twinkle-3" cx="97" cy="98" r="1.7" />
-              <circle class="light-orbit-twinkle light-orbit-twinkle-4" cx="412" cy="333" r="1.4" />
-              <circle class="light-orbit-twinkle light-orbit-twinkle-2" cx="71" cy="298" r="1.4" />
-              <circle cx="246" cy="412" r="0.95" opacity="0.5" />
-              <circle cx="135" cy="358" r="0.95" opacity="0.5" />
-            </g>
-          </svg>
-      </div>`;
-
 export interface DesignImageLoadingOptions {
   isDebug?: boolean;
   onCancel?: () => void;
   onRestart?: () => void;
 }
 
-/**
- * Exact implementation of light-orbit-react's LightOrbitLoader component:
- * full-screen borderless loader with animated orbit paths, pointer parallax,
- * rotating statuses (3.6s), phase support ('generating' | 'cancelled' | 'complete'),
- * and interactive demo controls in debug mode.
- */
+/** The pending image keeps the shape of the result, with the shared component-wide gleam. */
 export function createDesignImageLoading(
   page: Document,
   lifetime: ReturnType<typeof createEditorLifetime>,
   options: DesignImageLoadingOptions = {},
 ) {
   const element = page.createElement('div');
-  element.className = 'light-orbit-screen ai-magic';
-  element.hidden = true;
-  element.dataset.phase = 'generating';
-  element.setAttribute('role', 'dialog');
-  element.setAttribute('aria-modal', 'true');
-  element.setAttribute('aria-label', 'Image creation');
-
-  element.innerHTML = `<div class="light-orbit-backdrop" aria-hidden="true"></div>
-    <section class="light-orbit-content">
-      ${art}
-      <div class="light-orbit-copy" aria-live="polite" aria-atomic="true">
-        <h1 class="light-orbit-heading">Creating your image</h1>
-        <p class="light-orbit-status ai-magic-caption">Balancing natural light…</p>
-        <p class="light-orbit-caption ai-magic-wait">Usually about a minute.</p>
-      </div>
-      <div class="light-orbit-controls">
-        <button type="button" class="light-orbit-action ai-cancel">Cancel</button>
-      </div>
-    </section>
-    <div class="demo-preview-actions" aria-label="Preview controls"${options.isDebug ? '' : ' hidden'}>
-      <span>INTERACTIVE DEMO</span>
-      <button type="button" class="demo-replay">↻ &nbsp;Replay</button>
-      <button type="button" class="demo-preview-complete">Preview completion ↗</button>
-    </div>`;
-
-  const heading = element.querySelector<HTMLElement>('.light-orbit-heading')!;
-  const statusEl = element.querySelector<HTMLElement>('.light-orbit-status')!;
-  const captionEl = element.querySelector<HTMLElement>('.light-orbit-caption')!;
-  const actionBtn = element.querySelector<HTMLButtonElement>('.light-orbit-action')!;
-  const cancel = actionBtn; // alias for existing callers/tests
-
-  let currentPhase: OrbitPhase = 'generating';
-  let statusIndex = 1; // starts at 1 ("Balancing natural light…") exactly as in light-orbit-react App.tsx
-  let statusTimer: ReturnType<typeof lifetime.timeout> | undefined;
-  let parallax: (() => void) | undefined;
-
-  function setPhase(phase: OrbitPhase) {
-    currentPhase = phase;
-    element.dataset.phase = phase;
-
-    if (phase === 'generating') {
-      heading.textContent = 'Creating your image';
-      statusEl.textContent = DEMO_STATUSES[statusIndex] ?? 'Balancing natural light…';
-      captionEl.textContent = 'Usually about a minute.';
-      captionEl.hidden = false;
-      actionBtn.textContent = 'Cancel';
-      actionBtn.disabled = false;
-      trackPointer();
-      startStatusCycle();
-    } else if (phase === 'cancelled') {
-      stopStatusCycle();
-      heading.textContent = 'Creation paused';
-      statusEl.textContent = 'Your design is exactly as you left it.';
-      captionEl.hidden = true;
-      actionBtn.textContent = 'Try again';
-      actionBtn.disabled = false;
-      parallax?.();
-      parallax = undefined;
-    } else if (phase === 'complete') {
-      stopStatusCycle();
-      heading.textContent = 'Your image is ready';
-      statusEl.textContent = 'A new perspective on your space.';
-      captionEl.hidden = true;
-      actionBtn.textContent = 'Create another';
-      actionBtn.disabled = false;
-      parallax?.();
-      parallax = undefined;
-    }
+  element.className = 'ai-image-wait ai-magic'; element.hidden = true;
+  element.innerHTML = `<section class="ai-image-wait-content">
+    <div class="ai-image-wait-preview"></div>
+    <div class="ai-image-wait-copy" role="status" aria-live="polite" aria-atomic="true">
+      <h2>Creating your image</h2><p class="ai-magic-caption">Preparing your design…</p>
+      <p class="ai-magic-wait">This can take about a minute.</p>
+    </div>
+    <button type="button" class="ai-image-wait-cancel ai-cancel">Cancel</button>
+  </section>
+  <div class="demo-preview-actions"${options.isDebug ? '' : ' hidden'}>
+    <button type="button" class="demo-replay">Replay</button>
+    <button type="button" class="demo-preview-complete">Preview completion</button>
+  </div>`;
+  const preview = createLoadingPlaceholder(page, 'Creating your image…', 'canvas');
+  // The visible copy owns the live announcement; the illustration is decorative.
+  preview.removeAttribute('role'); preview.removeAttribute('aria-live'); preview.setAttribute('aria-hidden', 'true');
+  element.querySelector('.ai-image-wait-preview')!.append(preview);
+  const gleam = createLoadingState(preview);
+  preview.classList.remove('ui-loading-surface');
+  const heading = element.querySelector('h2')!;
+  const status = element.querySelector<HTMLElement>('.ai-magic-caption')!;
+  const caption = element.querySelector<HTMLElement>('.ai-magic-wait')!;
+  const cancel = element.querySelector<HTMLButtonElement>('.ai-cancel')!;
+  let phase: OrbitPhase = 'generating';
+  function setPhase(next: OrbitPhase) {
+    phase = next; element.dataset.phase = next;
+    heading.textContent = next === 'complete' ? 'Your image is ready' : next === 'cancelled' ? 'Creation paused' : 'Creating your image';
+    status.textContent = next === 'complete' ? 'A new perspective on your space.' : next === 'cancelled' ? 'Your design is ready when you are.' : 'Preparing your design…';
+    caption.hidden = next !== 'generating';
+    cancel.textContent = next === 'generating' ? 'Cancel' : 'Create another';
+    if (next === 'generating') gleam.start(); else gleam.stop();
   }
-
-  function stopStatusCycle() {
-    if (statusTimer !== undefined) {
-      lifetime.cancelTimeout(statusTimer);
-      statusTimer = undefined;
-    }
-  }
-
-  function startStatusCycle() {
-    stopStatusCycle();
-    const tick = () => {
-      if (currentPhase !== 'generating') return;
-      statusIndex = (statusIndex + 1) % DEMO_STATUSES.length;
-      statusEl.textContent = DEMO_STATUSES[statusIndex]!;
-      statusTimer = lifetime.timeout(tick, 3600); // 3.6s exact match to light-orbit-react
-    };
-    statusTimer = lifetime.timeout(tick, 3600);
-  }
-
-  function trackPointer() {
-    parallax?.();
-    const win = page.defaultView;
-    if (!win || win.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const onPointerMove = (event: PointerEvent) => {
-      const x = (event.clientX / win.innerWidth - 0.5) * 2;
-      const y = (event.clientY / win.innerHeight - 0.5) * 2;
-      element.style.setProperty('--orbit-parallax-x', `${(x * 9).toFixed(2)}px`);
-      element.style.setProperty('--orbit-parallax-y', `${(y * 7).toFixed(2)}px`);
-    };
-    const reset = () => {
-      element.style.setProperty('--orbit-parallax-x', '0px');
-      element.style.setProperty('--orbit-parallax-y', '0px');
-    };
-    win.addEventListener('pointermove', onPointerMove, { passive: true });
-    win.addEventListener('pointerleave', reset);
-    parallax = () => {
-      win.removeEventListener('pointermove', onPointerMove);
-      win.removeEventListener('pointerleave', reset);
-      reset();
-    };
-  }
-
-  function start() {
-    stop();
-    statusIndex = 1;
-    element.hidden = false;
-    setPhase('generating');
-  }
-
-  function rendering() {
-    element.classList.add('is-rendering');
-    if (currentPhase === 'generating') {
-      startStatusCycle();
-    }
-  }
-
-  function stop() {
-    stopStatusCycle();
-    parallax?.();
-    parallax = undefined;
-    element.hidden = true;
-    element.classList.remove('is-rendering');
-  }
-
-  // Action button clicks: Cancel during generating, Restart/Try Again otherwise
-  lifetime.listen(actionBtn, 'click', () => {
-    if (currentPhase === 'generating') {
-      options.onCancel?.();
-    } else {
-      options.onRestart?.();
-    }
-  });
-
-  // Demo controls
-  const replayBtn = element.querySelector<HTMLButtonElement>('.demo-replay');
-  const completeBtn = element.querySelector<HTMLButtonElement>('.demo-preview-complete');
-  if (replayBtn) {
-    lifetime.listen(replayBtn, 'click', () => {
-      statusIndex = 0;
-      setPhase('generating');
-      options.onRestart?.();
-    });
-  }
-  if (completeBtn) {
-    lifetime.listen(completeBtn, 'click', () => {
-      setPhase('complete');
-    });
-  }
-
+  function stop() { gleam.stop(); element.hidden = true; element.classList.remove('is-rendering'); }
+  lifetime.listen(cancel, 'click', () => { if (phase === 'generating') options.onCancel?.(); else options.onRestart?.(); });
+  lifetime.listen(element.querySelector('.demo-replay')!, 'click', () => { setPhase('generating'); options.onRestart?.(); });
+  lifetime.listen(element.querySelector('.demo-preview-complete')!, 'click', () => setPhase('complete'));
   lifetime.cleanup(stop);
-
   return {
-    element,
-    cancel,
-    start,
-    rendering,
-    stop,
-    setPhase,
-    setStatus: (text: string) => { statusEl.textContent = text; },
-    getPhase: () => currentPhase,
+    element, cancel, stop, setPhase,
+    start() { stop(); element.hidden = false; setPhase('generating'); },
+    rendering() { element.classList.add('is-rendering'); status.textContent = 'Rendering your image…'; },
+    setStatus(text: string) { status.textContent = text; },
+    getPhase: () => phase,
   };
 }

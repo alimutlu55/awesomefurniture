@@ -104,7 +104,7 @@ test('opening the planner schedules uncached ideas through its application servi
  const originalDocument=global.document;let scheduled=0,focused=0;
  const classes=new Set();
  const sheet={dataset:{}};
- const elements={'#wizard':{hidden:true,querySelector:()=>sheet},'#app':{getRootNode:()=>({querySelectorAll:()=>[]}),inert:false,classList:{add:c=>classes.add(c),remove:c=>classes.delete(c)}},'#ideas-count':{},'#preferences-note':{},'#ideas':{setAttribute(){},querySelectorAll(){return[]}},'#close-wizard':{focus(){focused++}},'#launch-wizard':{focus(){}}};
+ const elements={'#wizard':{hidden:true,querySelector:()=>sheet},'#app':{getRootNode:()=>({querySelectorAll:()=>[]}),inert:false,classList:{add:c=>classes.add(c),remove:c=>classes.delete(c)}},'#ideas-count':{},'#preferences-note':{},'#ideas':require('./helpers/loading-surface.cjs').loadingSurface(),'#close-wizard':{focus(){focused++}},'#launch-wizard':{focus(){}}};
  global.document={activeElement:null,querySelector:key=>elements[key]??(elements[key]={hidden:true,classList:{remove(){}},setAttribute(){},getRootNode:()=>({querySelectorAll:()=>[]})}),querySelectorAll:()=>[]};
  try{
   const ports={closeDD(){},hidePop(){},syncPreferences(){},$:key=>elements[key],plannerConfig:()=>({}),plannerService:{has:()=>false},lifetime:{cancelFrame(){},cancelTimeout(){},frame(){scheduled++;return 1}},openRaf:0,openTimer:null,ideasTimer:null};

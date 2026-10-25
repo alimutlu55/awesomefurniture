@@ -8,11 +8,14 @@ import { tags, issueTags } from './storage-tags.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { POSSESSION_KEYS, possession } from '../../domain/wardrobe/possessions';
 import { planInBackground } from './planner-worker-client';
+import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
 /** wizard presentation behavior; the view ports provide transient UI state and application commands. */
 /** @param {import('./planner-presenter.ports').CreatePlannerPresenterPorts} ports */
 export function createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }) {
     const kitchenPlan = createKitchenPlan({ $: dom.$, model });
     const { $, document } = dom;
+    let ideasLoading;
+    lifetime?.cleanup?.(() => ideasLoading?.stop());
     const planned = k => Math.ceil((model.activeCabinet().state.profile.needs[k] || 0) * (1 + (model.activeCabinet().state.profile.growth ?? 15) / 100) - 1e-9);
     function miniPlan(p) {
         const H = geometry.ih(), reach = model.activeCabinet().state.profile.reach;
@@ -111,6 +114,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         showIdeas(cfg);
     }
     function showIdeas(cfg) {
+        ideasLoading?.stop();
         plannerState.ideas = plannerService.generate(cfg);
         plannerState.ideasConfig = JSON.stringify({ ...cfg, engaged: 0 });
         renderIdeas();
@@ -118,7 +122,11 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
     }
     function showCalculating(text) {
         $('#ideas-count').textContent = text;
-        $('#ideas').setAttribute('aria-busy', 'true');
+        if (!$('#ideas').querySelector('.idea, .ui-placeholder')) {
+            $('#ideas').replaceChildren(createLoadingPlaceholder(document, 'Calculating layouts…', 'cards'));
+        }
+        ideasLoading ??= createLoadingState($('#ideas'));
+        ideasLoading.start();
         $('#ideas').querySelectorAll('[data-idea]').forEach(b => ( /** @type {HTMLInputElement} */(b)).disabled = true);
     }
     /** Plans the current wardrobe's ideas in the background while the page is idle, a moment after it last
@@ -170,6 +178,7 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         $('#close-wizard').focus({ preventScroll: true }); // the sheet is still sliding in: Safari would scroll the whole editor to it
     }
     function closeWizard() {
+        ideasLoading?.stop();
         lifetime.cancelFrame(plannerState.openRaf);
         lifetime.cancelTimeout(plannerState.openTimer);
         plannerState.openTimer = null;

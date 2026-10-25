@@ -8,5 +8,5 @@ readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../application/commands/design-commands.js').createDesignCommands>, 'setPreferences'>>;
 readonly plannerService: Readonly<Pick<ReturnType<typeof import('../../application/projects/planner-service.js').createPlannerService>, 'generate' | 'has' | 'store'>>;
-readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'cancelFrame' | 'cancelTimeout' | 'frame' | 'timeout'>>;
+readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'cancelFrame' | 'cancelTimeout' | 'frame' | 'timeout' | 'cleanup'>>;
 }

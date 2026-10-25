@@ -11,6 +11,7 @@ import { drawingGestures } from './drawing-gestures';
 import type { AnnotationOffsets } from './annotation-layout';
 import type { CreditWalletApi } from '../credits/credit-wallet';
 import type { CreditFeatureKey } from '../../domain/credits/credit-catalog';
+import { createLoadingPlaceholder, createLoadingState, paintLoading } from '../components/loading-state';
 
 interface Ports {
   /** The editor's controls, and the page it is mounted in (a download link belongs to the page). */
@@ -64,6 +65,8 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
   const list = panel.querySelector<HTMLElement>('.drawings-sheets')!, count = panel.querySelector<HTMLElement>('.drawings-count')!;
   const release = panel.querySelector<HTMLElement>('.drawings-release')!, save = panel.querySelector<HTMLButtonElement>('.drawings-pdf')!;
   let scale = 1, current: DrawingRelease | null = null;
+  const saveLoading = createLoadingState(save);
+  let disposed = false, generation = 0;
 
   /** Zooms to `level` (1: a sheet as wide as the view), keeping the point at `focus` (in the list's box) where it is. */
   const zoomTo = (level: number, focus = { x: list.clientWidth / 2, y: list.clientHeight / 2 }) => {
@@ -99,15 +102,22 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
     closeMenu();
     if (opening) return;
     opening = true;
-    try { if (credits && !await credits.charge(FEATURE)) return; } finally { opening = false; }
-    build();
-    panel.hidden = false;
-    scale = 1;
-    zoomTo(1);
-    list.scrollTo(0, 0);
-    panel.querySelector<HTMLButtonElement>('.drawings-close')!.focus();
+    const token = ++generation;
+    try {
+      if (credits && !await credits.charge(FEATURE)) return;
+      if (disposed || token !== generation) return;
+      list.replaceChildren(createLoadingPlaceholder(page, 'Preparing your drawings…', 'canvas'));
+      count.textContent = 'Preparing your drawings…'; panel.hidden = false; save.disabled = true;
+      panel.querySelector<HTMLButtonElement>('.drawings-close')!.focus();
+      await paintLoading(panel);
+      if (disposed || panel.hidden || token !== generation) return;
+      build(); scale = 1; zoomTo(1); list.scrollTo(0, 0);
+    } catch {
+      list.replaceChildren(); current = null;
+      count.textContent = 'Drawings could not be prepared. Close and try again.';
+    } finally { opening = false; save.disabled = !current; }
   }
-  const close = () => { panel.hidden = true; list.innerHTML = ''; current = null; item.focus(); };
+  const close = () => { generation++; panel.hidden = true; list.innerHTML = ''; current = null; item.focus(); };
   /** Writes the PDF and hands it over: through the share sheet on a phone (Save to Files, Mail), downloaded elsewhere.
    * The file is made from the sheets, not from the screen, so the zoom or scroll of the viewer never changes it; a set
    * made from an older model revision is made again first, so a file never shows stale geometry. */
@@ -129,7 +139,13 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
   }
   lifetime.listen(item, 'click', () => { void open(); });
   lifetime.listen(panel.querySelector('.drawings-close')!, 'click', close);
-  lifetime.listen(panel.querySelector('.drawings-pdf')!, 'click', () => { void savePdf(); });
+  lifetime.listen(save, 'click', () => {
+    if (saveLoading.active || !current) return;
+    saveLoading.start(); save.disabled = true;
+    void paintLoading(save).then(savePdf).catch(() => {
+      release.hidden = false; release.textContent = 'The PDF could not be prepared. Please try again.';
+    }).finally(() => { saveLoading.stop(); save.disabled = false; });
+  });
   lifetime.listen(panel.querySelector('.drawings-zoom')!, 'click', e => {
     const dir = Number((e.target as HTMLElement).closest('button')?.dataset.zoom);
     if (dir) step(dir);
@@ -143,6 +159,6 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
     const edge = e.shiftKey ? focusable[0] : focusable.at(-1), next = e.shiftKey ? focusable.at(-1) : focusable[0];
     if (page.activeElement === edge) { e.preventDefault(); next?.focus(); }
   });
-  lifetime.cleanup(() => { item.remove(); panel.remove(); });
+  lifetime.cleanup(() => { disposed = true; generation++; saveLoading.stop(); item.remove(); panel.remove(); });
   return { open: () => { void open(); }, close };
 }

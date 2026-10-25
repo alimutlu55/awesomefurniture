@@ -39,7 +39,7 @@ export function walletShell() {
     + `<p class="cr-secure">${LOCK}<span>Secure checkout · Cards, Apple Pay and Google Pay. Credits never expire.</span></p></section>`
     + '<section class="cr-account" hidden></section>'
     + '<section class="cr-activity" role="tabpanel" hidden></section>'
-    + '<section class="cr-wait" hidden><span class="cr-spinner" aria-hidden="true"></span><h3>Confirming your payment</h3>'
+    + '<section class="cr-wait" hidden><h3>Confirming your payment</h3>'
     + '<p>This takes a few seconds. You can keep this open.</p></section>'
     + '<section class="cr-done" hidden><div class="cr-burst" aria-hidden="true">'
     + Array.from({ length: 14 }, (_, i) => `<i class="cr-coin cr-spark" style="--a:${i * (360 / 14)}deg;--d:${70 + (i % 3) * 26}px;--t:${i % 4 * 40}ms"></i>`).join('')

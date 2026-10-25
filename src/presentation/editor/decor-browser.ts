@@ -1,5 +1,6 @@
 import { decorBadge, type TargetZone } from '../../domain/materials/decor-catalog';
 import { browseMaterials, materialFilters, type MaterialFilter } from '../../domain/materials/material-browser';
+import { bindLoadingImage } from '../components/loading-image';
 
 /** Each role keeps its own search/filter so switching zones never changes another role's selection. */
 export function appendDecorBrowser(section: HTMLElement, zone: TargetZone, title: string, select: (zone: TargetZone, id: string) => void) {
@@ -23,7 +24,11 @@ export function appendDecorBrowser(section: HTMLElement, zone: TargetZone, title
       const swatch = doc.createElement('span'); swatch.className = 'decor-swatch'; swatch.dataset.family = sku.category;
       swatch.style.backgroundColor = sku.pbr.baseHex;
       const image = sku.pbr.swatchUrl ?? sku.pbr.textureUrl;
-      if (image) swatch.style.backgroundImage = `url("${image}")`;
+      if (image) {
+        const thumbnail = doc.createElement('img');
+        thumbnail.alt = ''; thumbnail.loading = 'lazy'; thumbnail.decoding = 'async';
+        thumbnail.src = image; swatch.append(thumbnail); bindLoadingImage(thumbnail, swatch);
+      }
       const name = doc.createElement('span'); name.textContent = sku.name;
       const badge = doc.createElement('small'); badge.textContent = `${sku.manufacturer} · ${sku.code} ${sku.surfaceStructure}`;
       button.append(swatch, name, badge); button.onclick = () => select(zone, sku.id); grid.appendChild(button);

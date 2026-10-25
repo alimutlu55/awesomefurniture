@@ -54,7 +54,11 @@ test('landing stores a session immediately, existing Share includes its ID, and 
 });
 
 test('the existing menu publishes only when Share is clicked, and copies the returned session link', async () => {
-  const item = { hidden: true }; const menu = {};
+  const item = { hidden: true };
+  const attrs = new Map<string, string>();
+  const menu = { getAttribute: (key: string) => attrs.get(key) ?? null,
+    setAttribute: (key: string, value: string) => attrs.set(key, value), removeAttribute: (key: string) => attrs.delete(key),
+    classList: { add() {}, remove() {} } };
   const listeners = new Map<unknown, () => Promise<void>>(); let copies = ''; let publications = 0;
   bindShareMenu({
     dom: { $: (id: string) => id === '#share-menu' ? item : menu,

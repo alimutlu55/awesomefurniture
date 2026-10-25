@@ -1,10 +1,11 @@
 import type { CreditAccount } from './credits.ports';
 import { accountStep } from './wallet-markup';
+import { createLoadingState } from '../components/loading-state';
 
 interface Ports {
   section: HTMLElement;
   account: CreditAccount;
-  lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void };
+  lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void; cleanup(callback: () => void): void };
   /** The email is verified (or the page is reloading into the account it belongs to). */
   verified(): void;
   back(): void;
@@ -21,10 +22,17 @@ export function bindAccountStep({ section, account, lifetime, verified, back }: 
   let mode: 'link' | 'sign-in' = 'link', email = '';
 
   const say = (message: string | null) => { error.hidden = !message; error.textContent = message ?? ''; };
-  const busy = (form: HTMLFormElement, on: boolean) => form.querySelectorAll('button,input').forEach(el => { (el as HTMLButtonElement).disabled = on; });
+  const emailLoading = createLoadingState(emailForm), codeLoading = createLoadingState(codeForm);
+  lifetime.cleanup(() => { emailLoading.stop(); codeLoading.stop(); });
+  const busy = (form: HTMLFormElement, on: boolean) => {
+    const loading = form === emailForm ? emailLoading : codeLoading;
+    if (on) loading.start(); else loading.stop();
+    form.querySelectorAll('button,input').forEach(el => { (el as HTMLButtonElement).disabled = on; });
+  };
 
   lifetime.listen(emailForm, 'submit', event => {
     event.preventDefault();
+    if (emailLoading.active) return;
     email = emailInput.value.trim().toLowerCase();
     if (!EMAIL.test(email)) { say('Enter your email address.'); emailInput.focus(); return; }
     say(null); busy(emailForm, true);
@@ -38,6 +46,7 @@ export function bindAccountStep({ section, account, lifetime, verified, back }: 
   });
   lifetime.listen(codeForm, 'submit', event => {
     event.preventDefault();
+    if (codeLoading.active) return;
     const code = codeInput.value.replace(/\D/g, '');
     if (code.length < 6) { say('Enter the code from the email.'); codeInput.focus(); return; }
     say(null); busy(codeForm, true);

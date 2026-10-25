@@ -2,6 +2,7 @@ import type { CreditsClient } from './credits-client';
 import { creditErrorMessage, CreditUserError } from './credit-errors';
 import { coin } from './wallet-markup';
 import type { WalletNeed } from './credit-wallet';
+import { createLoadingState } from '../components/loading-state';
 
 interface Ports {
   client: CreditsClient;
@@ -27,13 +28,15 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
   host.append(card);
   const title = card.querySelector<HTMLElement>('h3')!, copy = card.querySelector<HTMLElement>('.cr-confirm-copy')!;
   const go = card.querySelector<HTMLButtonElement>('.cr-confirm-go')!, cancel = card.querySelector<HTMLButtonElement>('.cr-confirm-cancel')!;
+  const loading = createLoadingState(host);
+  let charging = false;
   let answer: ((yes: boolean) => void) | null = null;
   const finish = (yes: boolean) => { card.hidden = true; answer?.(yes); answer = null; };
   lifetime.listen(go, 'click', () => finish(true));
   lifetime.listen(cancel, 'click', () => finish(false));
   lifetime.listen(card, 'mousedown', e => { if (e.target === card) finish(false); });
   lifetime.listen(card, 'keydown', e => { if ((e as KeyboardEvent).key === 'Escape') { e.stopPropagation(); finish(false); } });
-  lifetime.cleanup(() => { finish(false); card.remove(); });
+  lifetime.cleanup(() => { loading.stop(); finish(false); card.remove(); });
 
   function ask(label: string, cost: number, balance: number, passHours: number): Promise<boolean> {
     title.textContent = `${label} · ${cost} credits`;
@@ -45,6 +48,12 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
 
   /** True when the person may use the feature now: it was free, covered by a pass, or paid for. */
   async function charge(key: string): Promise<boolean> {
+    if (charging) return false;
+    charging = true; loading.start();
+    try { return await chargeFeature(key); }
+    finally { charging = false; loading.stop(); }
+  }
+  async function chargeFeature(key: string): Promise<boolean> {
     if (!client.wallet) await client.refresh().catch(() => null);
     const feature = client.feature(key), wallet = client.wallet;
     // Credits are not set up on this server: these features run in the browser, so they stay open.
@@ -53,7 +62,9 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     const covered = client.pass(key) || feature.freeLeft > 0;
     if (!covered) {
       if (wallet.balance < feature.cost) { openWallet({ feature: key, cost: feature.cost, balance: wallet.balance }); return false; }
+      loading.stop();
       if (!await ask(feature.label, feature.cost, wallet.balance, feature.passHours)) return false;
+      loading.start();
     }
     try {
       const receipt = await client.spend(key, crypto.randomUUID());
