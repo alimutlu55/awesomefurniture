@@ -18,7 +18,7 @@ const summaryRow = z.object({
   free_used: z.record(z.string(), z.number().int()),
   passes: z.array(z.object({ feature: z.string(), scope: z.string(), expires_at: z.string() })),
   history: z.array(z.object({ id: z.number().int(), delta: z.number().int(), balance_after: z.number().int(),
-    kind: z.enum(['purchase', 'spend', 'refund', 'reversal', 'restore', 'grant']), feature: z.string().nullable(),
+    kind: z.enum(['purchase', 'spend', 'refund', 'reversal', 'restore', 'grant', 'transfer']), feature: z.string().nullable(),
     description: z.string(), created_at: z.string() })),
 });
 const ORDER_FIELDS = 'id,user_id,pack_id,credits,amount,currency,provider,provider_ref,status,created_at';

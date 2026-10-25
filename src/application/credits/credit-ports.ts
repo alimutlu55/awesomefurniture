@@ -54,7 +54,7 @@ export interface LedgerEntry {
   readonly id: number;
   readonly delta: number;
   readonly balanceAfter: number;
-  readonly kind: 'purchase' | 'spend' | 'refund' | 'reversal' | 'restore' | 'grant';
+  readonly kind: 'purchase' | 'spend' | 'refund' | 'reversal' | 'restore' | 'grant' | 'transfer';
   readonly feature: string | null;
   readonly description: string;
   readonly createdAt: string;

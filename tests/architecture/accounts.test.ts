@@ -120,3 +120,12 @@ test('after signing in, the remembered guest is handed over once; a failure keep
   await rememberGuest(fakeClient(sessionOf(account.id, false)), storage);
   assert.equal(storage.getItem('wardrobe:account:guest'), null, 'an account is never remembered as a guest');
 });
+
+test('the wallet reads every kind of ledger row the database can hold, a moved balance (transfer) included', async () => {
+  const { createSupabaseCreditStore } = await import('../../src/infrastructure/credits/supabase-credit-store');
+  const row = (id: number, kind: string, delta: number) => ({ id, delta, balance_after: 100, kind, feature: null, description: 'x', created_at: '2026-10-25T20:00:00Z' });
+  const kinds = ['purchase', 'spend', 'refund', 'reversal', 'restore', 'grant', 'transfer'];
+  const client = { rpc: async () => ({ data: { balance: 100, free_used: {}, passes: [], history: kinds.map((k, i) => row(i + 1, k, k === 'spend' ? -4 : 4)) }, error: null }) };
+  const summary = await createSupabaseCreditStore(client as never).summary('a0000000-0000-4000-8000-000000000002', 30);
+  assert.deepEqual(summary.history.map(h => h.kind), kinds);
+});
