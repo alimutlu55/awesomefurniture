@@ -48,6 +48,7 @@ import { createSelectionState } from './selection-state.js';
 import { createPlannerState } from './planner-state.js';
 import { createShellState } from './shell-state.js';
 import { createShapeInspector } from './shape-inspector';
+import { mountExperience } from '../experience/experience';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>) {
     const { $ } = dom;
@@ -186,8 +187,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
-        bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
-        bindDesignImageViewer({ dom, lifetime, capture: () => {
+        const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
+        bindDesignImageViewer({ dom, lifetime, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);
@@ -197,7 +198,11 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 design,
             });
             return { specification, references };
-        } });
+        }) });
+        // The welcome, the wardrobe assembling itself, and the moods of the scene: drawn over the editor.
+        const experience = mountExperience({ dom, lifetime, resources, renderState, cameraState, camera, scene: () => model.scene,
+            design: { preview: project => showDesign(project, false), replace: replaceDesign, snapshot: model.snapshot, restore: snapshot => showScene(snapshot) },
+            drawings: () => drawings.open(), autoDesign: () => planner.openWizard(), closeMenu: () => shell.closeDD() });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
@@ -214,9 +219,16 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         lifetime.frame(() => lifetime.frame(() => clothingWarmup.prepare()));
         /** Puts a whole design in the editor (one an agent built, or an import) as one undo step, framed whole. */
         function replaceDesign(project: ProjectDocument) {
+            showDesign(project, true);
+        }
+        /** Shows a design, framed whole: as one undo step, or as a preview that leaves the history alone. */
+        function showDesign(project: ProjectDocument, record: boolean) {
             const next = projectToScene(project) ?? createEditorModel().scene;
-            history.checkpoint(model.snapshot());
-            model.restore(JSON.stringify(next));
+            if (record) history.checkpoint(model.snapshot());
+            showScene(JSON.stringify(next));
+        }
+        function showScene(snapshot: string) {
+            model.restore(snapshot);
             selectionState.room = null;
             selectionState.pendingStudioAction = null;
             inspector.hidePop();
@@ -226,12 +238,13 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             camera.frameScene();
         }
         return {
-            snapshot: model.snapshot, viewport, replaceDesign, scene: () => model.scene,
+            // While the welcome previews a space, the design saved and reported is still the one it opened over.
+            snapshot: model.snapshot, viewport, replaceDesign, scene: () => experience.persisted() ?? model.scene,
             notify: (message: string) => shell.toast(message, undefined, 12000),
-            preview: () => capturePreview(
+            preview: () => experience.neutral(() => capturePreview(
                 resources.R, resources.scene, resources.cam, dom.host.ownerDocument,
                 camera.sceneBox(), camera.cameraFitDistance, (model.activeCabinet().angle ?? 0) * Math.PI / 180,
-            ),
+            )),
             dispose: () => viewport.dispose(),
         };
     }

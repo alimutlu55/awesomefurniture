@@ -1,0 +1,97 @@
+/* Moods of the scene: the backdrop behind the 3D view follows the look and the time of day. */
+#view{transition:background-color .6s var(--ease-out)}
+:host([data-look="maquette"]) #view{background:radial-gradient(ellipse at 52% 28%,#fdfcf9,#efebe4 62%,#e1dbd1)}
+:host([data-look="workshop"]) #view{background:radial-gradient(ellipse at 50% 32%,#1f4a7c,#123259 58%,#0a1f3b)}
+:host([data-look="living"][data-time="morning"]) #view{background:radial-gradient(ellipse at 28% 22%,#f6f8fb,#e2e6ec 62%,#cfd5de)}
+:host([data-look="living"][data-time="golden"]) #view{background:radial-gradient(ellipse at 74% 22%,#fbe6cb,#eccaa3 55%,#cf9d74)}
+:host(:not([data-look="workshop"])[data-time="night"]) #view{background:radial-gradient(ellipse at 50% 26%,#2b3250,#181d30 58%,#0c0f1c)}
+:host([data-look="maquette"][data-time="golden"]) #view{background:radial-gradient(ellipse at 74% 22%,#fff3e4,#f1ddc6 60%,#dcc0a2)}
+/* Measurements read as drafting marks on the blueprint, and as lit labels at night. */
+:host([data-look="workshop"]) .lbl{background:rgba(9,30,56,.55);color:#e2f0ff;border-color:rgba(190,222,255,.45);box-shadow:none;font-family:ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.02em}
+:host(:not([data-look="workshop"])[data-time="night"]) .lbl{background:rgba(24,28,44,.72);color:#eef1fb;border-color:rgba(255,255,255,.18)}
+:host([data-look="workshop"]) #hint,:host([data-time="night"]) #hint{color:#c9d3e6}
+/* While a wardrobe builds itself, its measurements wait until it stands. */
+#labels{transition:opacity .5s var(--ease-out)}
+:host(.xp-assembling) #labels{opacity:0;transition:opacity .15s}
+
+/* The mood button and its panel, in the top bar. */
+.xp-mood-button{gap:6px;white-space:nowrap}
+.xp-mood-button.on{background:var(--seg)}
+.xp-mood{position:absolute;top:calc(100% + 10px);right:0;width:348px;max-width:calc(100cqw - 24px);box-sizing:border-box;z-index:30;padding:14px 14px 10px;color:var(--ink);
+  background:color-mix(in srgb,var(--panel) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid color-mix(in srgb,#fff 50%,transparent);border-radius:22px;box-shadow:0 22px 60px rgba(40,30,15,.22);transform-origin:top right;animation:xp-pop .32s var(--spring) both}
+.xp-mood[hidden]{display:none}
+@keyframes xp-pop{from{opacity:0;transform:scale(.94) translateY(-4px)}}
+.xp-mood h2{margin:2px 2px 8px;font:700 10.5px/1 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.xp-mood section+section{margin-top:14px}
+.xp-looks,.xp-times{display:grid;gap:8px}
+.xp-looks{grid-template-columns:repeat(3,minmax(0,1fr))}
+.xp-times{grid-template-columns:repeat(4,minmax(0,1fr))}
+.xp-looks button,.xp-times button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:5px 5px 8px;border:1px solid var(--line);border-radius:14px;background:var(--panel);
+  color:inherit;font:inherit;text-align:left;cursor:pointer;transition:transform var(--t-fast) var(--ease-out),border-color var(--t-fast),box-shadow var(--t-base);min-width:0}
+.xp-looks button:hover,.xp-times button:hover{transform:translateY(-1px)}
+.xp-looks button[aria-checked="true"],.xp-times button[aria-checked="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.xp-looks b,.xp-times b{font-size:12px;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.xp-looks small{font-size:10.5px;color:var(--mute);padding:0 3px;line-height:1.25}
+.xp-swatch{display:block;width:100%;height:52px;border-radius:10px;position:relative;overflow:hidden}
+.xp-swatch.look-living{background:linear-gradient(180deg,#eee6d9 0 62%,#cdb38c 62%);}
+.xp-swatch.look-living::after{content:"";position:absolute;left:28%;top:18%;width:44%;height:60%;background:linear-gradient(90deg,#c9a77a,#d9bb90);border-radius:2px;box-shadow:3px 4px 6px rgba(70,45,15,.25)}
+.xp-swatch.look-maquette{background:#f7f4ef}
+.xp-swatch.look-maquette::after{content:"";position:absolute;left:28%;top:18%;width:44%;height:60%;background:#fff;border:1px solid #6d665b;border-radius:1px;box-shadow:4px 5px 8px rgba(40,30,20,.16)}
+.xp-swatch.look-workshop{background:#143559;background-image:linear-gradient(rgba(150,195,240,.25) 1px,transparent 1px),linear-gradient(90deg,rgba(150,195,240,.25) 1px,transparent 1px);background-size:8px 8px}
+.xp-swatch.look-workshop::after{content:"";position:absolute;left:28%;top:18%;width:44%;height:60%;border:1.5px solid #dcefff;border-radius:1px}
+.xp-sky{display:block;width:100%;height:40px;border-radius:10px;position:relative;overflow:hidden}
+.xp-sky>i{position:absolute;width:11px;height:11px;margin:0 0 -5px -5px;border-radius:50%;background:#fff7dc;box-shadow:0 0 10px 3px rgba(255,236,180,.85)}
+.xp-sky.moon>i{background:#e9eefc;box-shadow:inset -3px 1px 0 0 #232a45,0 0 8px 2px rgba(200,214,255,.45)}
+.xp-times-section.muted{opacity:.5}
+.xp-workshop-tools{display:none}
+.xp-mood[data-shows="workshop"] .xp-workshop-tools{display:block}
+.xp-apart{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:600;margin:2px 2px 10px}
+.xp-apart input{flex:1;accent-color:var(--ink)}
+.xp-switch{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;cursor:pointer;margin:2px}
+.xp-switch input{appearance:none;-webkit-appearance:none;width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;margin:0;cursor:pointer;transition:background var(--t-base)}
+.xp-switch input::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform var(--t-base) var(--spring)}
+.xp-switch input:checked{background:var(--ink)}
+.xp-switch input:checked::after{transform:translateX(14px)}
+.xp-drawings{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:10px 12px;border:0;border-radius:12px;background:var(--ink);color:var(--panel);font:600 13px system-ui,sans-serif;cursor:pointer}
+.xp-drawings .ic{width:18px;height:18px}
+.xp-mood footer{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+
+/* The reveal: what has a place, the moment a built design stands. */
+.xp-reveal{position:absolute;left:16px;bottom:16px;width:360px;max-width:calc(100% - 32px);box-sizing:border-box;z-index:35;padding:18px 18px 14px;color:var(--ink);
+  background:color-mix(in srgb,var(--panel) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.5);backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid color-mix(in srgb,#fff 50%,transparent);border-radius:24px;box-shadow:0 24px 70px rgba(40,30,15,.24);animation:xp-rise .7s var(--spring) both}
+.xp-reveal[hidden]{display:none}
+.xp-reveal.leaving{animation:xp-sink .3s ease-in both}
+@keyframes xp-rise{from{opacity:0;transform:translateY(24px) scale(.97)}}
+@keyframes xp-sink{to{opacity:0;transform:translateY(16px)}}
+.xp-reveal-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--mute);font-size:20px;cursor:pointer}
+.xp-reveal-close:hover{background:var(--seg);color:var(--ink)}
+.xp-kicker{margin:0;font:700 10.5px/1 system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.xp-reveal h2{font-family:var(--xp-serif);font-weight:500;font-size:32px;line-height:1.05;margin:8px 0 6px;letter-spacing:-.01em}
+.xp-reveal.all h2::after{content:"";display:inline-block;width:10px;height:10px;margin-left:8px;border-radius:50%;background:var(--ok);vertical-align:.2em;box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 20%,transparent)}
+.xp-line{margin:0 0 12px;font-size:13px;color:var(--mute);line-height:1.4}
+.xp-reveal ul{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:7px}
+.xp-reveal li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;grid-template-rows:auto 4px;column-gap:10px;row-gap:4px;align-items:center;font-size:13px;animation:xp-step-in .5s var(--ease-out) both;animation-delay:var(--d)}
+.xp-reveal li .xp-ic{grid-row:span 2;width:20px;height:20px;color:var(--gold)}
+.xp-reveal li b{font-variant-numeric:tabular-nums}
+.xp-reveal li b small{color:var(--mute);font-weight:500}
+.xp-reveal li>i{grid-column:2/4;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.xp-reveal li>i>i{display:block;height:100%;border-radius:2px;background:var(--ok);transform-origin:left;animation:xp-fill 1s var(--ease-out) both;animation-delay:calc(var(--d) + .25s)}
+.xp-reveal li.short>i>i{background:var(--gold)}
+@keyframes xp-fill{from{transform:scaleX(0)}}
+.xp-reveal-actions{display:flex;flex-wrap:wrap;gap:6px}
+.xp-reveal-actions button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font:600 12.5px system-ui,sans-serif;padding:8px 12px;cursor:pointer}
+.xp-reveal-actions button .xp-ic{width:16px;height:16px}
+.xp-reveal-actions .xp-primary{margin-left:auto;background:var(--ink);color:var(--panel);border-color:var(--ink)}
+@media (max-width:700px){
+  .xp-mood-button span{display:none}
+  /* Room for the mood button: on phones the AI image button shows its sparkle alone (its name stays for assistive tools). */
+  .ai-image-button span{display:none}
+  .xp-mood{position:absolute;right:-4px}
+  .xp-reveal{left:8px;right:8px;width:auto;max-width:none;bottom:96px;padding:14px 14px 12px;border-radius:20px}
+  .xp-reveal h2{font-size:26px}
+  .xp-reveal ul{grid-template-columns:1fr 1fr;column-gap:14px}
+  .xp-reveal-actions .xp-primary{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){.xp-mood,.xp-reveal,.xp-reveal li,.xp-reveal li>i>i{animation:none!important}}
