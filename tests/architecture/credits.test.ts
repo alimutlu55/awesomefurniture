@@ -49,7 +49,9 @@ test('every paid feature keeps its margin at the cheapest credit when the provid
   const perCredit = CREDIT_PACKS.map(p => p.price / packCredits(p));
   assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), 'a bigger pack is always cheaper per credit');
   assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 9, 17, 20]);
-  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 4 === 0), 'every pack buys whole AI images');
+  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 5 === 0), 'credit amounts stay round');
+  const image = CREDIT_FEATURES.find(f => f.key === 'ai-image')!;
+  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % image.cost === 0), 'every pack buys whole AI images');
   assert.equal(CREDIT_PACKS.filter(p => 'featured' in p && p.featured).length, 1);
 });
 
@@ -118,16 +120,18 @@ test('technical drawings: the first set is free, the same design stays free for 
 
 test('an AI image reserves its credits, keeps them when the image arrives and refunds them when it fails', async () => {
   const { service, store } = setup();
-  store.grant(buyer.id, 10);
+  // Enough for two images and a little over: the third is refused.
+  const cost = CREDIT_FEATURES.find(f => f.key === 'ai-image')!.cost;
+  store.grant(buyer.id, cost * 2 + 2);
   const runtime: CreditRuntime = { mode: 'test', service, authenticate: async request => request.headers.get('authorization') ? buyer : null, test: null };
   const charge = featureCharge(runtime, 'ai-image');
   const request = (key: string) => new Request('https://app.test/api/design-images', { headers: { authorization: 'Bearer x', 'idempotency-key': key } });
   const kept = await charge.begin(request('image-attempt-1'));
-  assert.equal(kept.balance, 6);
+  assert.equal(kept.balance, cost + 2);
   await kept.commit({ total_tokens: 12000 });
   const failed = await charge.begin(request('image-attempt-2'));
   await failed.refund('PROVIDER_ERROR');
-  assert.equal((await service.wallet(buyer)).balance, 6);
+  assert.equal((await service.wallet(buyer)).balance, cost + 2);
   await assert.rejects(charge.begin(request('image-attempt-1')), /already received/, 'a retried request never runs the provider twice');
   await charge.begin(request('image-attempt-3'));
   await assert.rejects(charge.begin(request('image-attempt-4')), (e: CreditError) => e.code === 'INSUFFICIENT_CREDITS');

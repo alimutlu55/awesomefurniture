@@ -38,12 +38,14 @@ Stripe then takes **3% of the amount charged plus $0.30**.
 
 | Pack | Price (VAT incl.) | VAT 23% | Stripe | Left for us | Credits | AI images | Drawing sets | Per image |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Starter | $4.99 | $0.93 | $0.45 | $3.61 | 40 | 10 | 4 | $0.50 |
-| Popular | $9.99 | $1.87 | $0.60 | $7.52 | 80 + 8 bonus | 22 | 8 | $0.45 (−9%) |
-| Pro | $24.99 | $4.67 | $1.05 | $19.27 | 200 + 40 bonus | 60 | 24 | $0.42 (−17%) |
-| Studio | $49.99 | $9.35 | $1.80 | $38.84 | 400 + 100 bonus | 125 | 50 | $0.40 (−20%) |
+| Starter | $4.99 | $0.93 | $0.45 | $3.61 | 50 | 10 | 5 | $0.50 |
+| Popular | $9.99 | $1.87 | $0.60 | $7.52 | 100 + 10 bonus | 22 | 11 | $0.45 (−9%) |
+| Pro | $24.99 | $4.67 | $1.05 | $19.27 | 250 + 50 bonus | 60 | 30 | $0.42 (−17%) |
+| Studio | $49.99 | $9.35 | $1.80 | $38.84 | 500 + 125 bonus | 125 | 62 | $0.40 (−20%) |
 
-**AI image: 4 credits.** What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier,
+Credit amounts stay round; the image price in credits is what makes the packs profitable.
+
+**AI image: 5 credits.** What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier,
 October 2026): input $1.50, text and thinking output $7.50, image output $30.00 per million tokens. The token
 counts were measured on the current prompts: an ordinary wardrobe sends 3 views and 1 swatch (1,120 tokens each)
 and about 1,700 tokens of instructions and design summary.
@@ -68,13 +70,13 @@ What each image earns, after VAT, Stripe and Gemini:
 | Starter | $0.50 | $0.361 | $0.27 | $0.18 | 74% / 48% |
 | Popular | $0.45 | $0.342 | $0.25 | $0.16 | 73% / 46% |
 | Pro | $0.42 | $0.321 | $0.23 | $0.14 | 71% / 42% |
-| Studio | $0.40 | $0.311 | $0.22 | $0.13 | 70% / 40% |
+| Studio | $0.40 | $0.311 | $0.22 | $0.12 | 70% / 40% |
 
 `tests/architecture/credits.test.ts` fails if any pack keeps less than 65% usually or 40% at worst
 (`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer model shows up in CI. Credits bought and never
 used add to the margin; nothing above counts on them.
 
-**Technical drawings: 10 credits**, with the first set free: $1.00 to $1.25 to the person, $0.78 to $0.90 left
+**Technical drawings: 10 credits**, with the first set free: $0.80 to $1.00 to the person, $0.62 to $0.72 left
 after VAT and Stripe. The drawings are made in the browser and cost nothing per use. A use opens a 24-hour pass
 for that design, so fixing something and opening the drawings again is never charged twice.
 
