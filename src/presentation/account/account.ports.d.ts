@@ -18,11 +18,9 @@ export interface AccountPlatform {
   sendReset(email: string): Promise<void>;
   resetPassword(email: string, code: string, password: string): Promise<void>;
   signOut(): Promise<void>;
-  /** Read once at start: who just signed in and what came along from this browser. */
-  welcome(): AccountWelcome | null;
   /** What this browser's guest session left that is worth asking about, until the person decides. Null: nothing to ask. */
   offer(): GuestOffer | null;
-  /** The person agreed: moves the guest's designs and credits into the account, then reloads. Throws when it could not. */
+  /** The person agreed: moves the guest's designs and credits into the account, then reloads, silently. Throws when it could not. */
   adopt(): Promise<void>;
   /** The person chose not to: the guest's work stays out of the account and out of this browser. */
   decline(): void;
@@ -34,9 +32,3 @@ export interface GuestOffer {
   readonly credits: number;
 }
 
-export interface AccountWelcome {
-  readonly email: string;
-  /** Designs and credits moved from this browser's guest session. */
-  readonly designs: number;
-  readonly credits: number;
-}

@@ -7,7 +7,7 @@ const GOOGLE = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335"
   + '<path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.6l-7.9-6.2A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.2Z"/>'
   + '<path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.9 6.2C6.6 42.6 14.6 48 24 48Z"/></svg>';
 
-/** The sheet: the sign-in and create-account form, the code steps, the account and the welcome. */
+/** The sheet: the sign-in and create-account form, the code steps, the account and the question about earlier work. */
 export function accountSheet() {
   const field = (name: string, label: string, attributes: string) =>
     `<label class="cr-field"><span>${label}</span><input name="${name}" ${attributes} required></label>`;
@@ -33,7 +33,6 @@ export function accountSheet() {
     + '<section class="ac-adopt" hidden><ul class="ac-adopt-list"></ul>'
     + '<button type="button" class="cr-primary ac-adopt-yes">Add to my account</button>'
     + '<button type="button" class="cr-quiet ac-adopt-no">Do not add</button></section>'
-    + '<section class="ac-welcome" hidden><button type="button" class="cr-primary ac-done">Continue designing</button></section>'
     + '<p class="cr-error" role="alert" hidden></p>'
     + '<p class="ac-privacy">We keep only your email. Designs you made in this browser come with you.</p></div>';
 }

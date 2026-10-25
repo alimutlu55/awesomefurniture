@@ -15,9 +15,9 @@ signed in, the same item shows the email and opens the account (sign out).
 - **Earlier work**: signing in never moves anything by itself. If this browser's guest session has real work in it (a
   wardrobe, a room or walls added or changed, a reach, or credits), a sheet asks "Add your earlier work?", naming the
   designs, with **Add to my account** and **Do not add**. A guest that only opened the editor (the starting wall, nothing
-  else) is not asked about and is forgotten. Closing the sheet with ✕ asks again next time. After adding, a card says how
-  many designs and credits came along; if the person declines, the guest's work stays out of the account and out of this
-  browser. Signing in without any earlier work shows a short "Signed in as …" notice.
+  else) is not asked about and is forgotten. Closing the sheet with ✕ asks again next time. Either answer is quiet: the page
+  simply shows the result (the added designs in the library; nothing if declined). Nothing else about signing in is announced:
+  no "signed in" message and no welcome card; only problems (a failed move, a refused sign-out) are said.
 - **Sign out**: designs belong to the account, so nothing of them stays in this browser. The open design is saved to
   the account first; if that fails (offline) the person stays signed in and is told why. Then the account's drafts,
   previews and recovery copies are erased from the browser and the page starts again as a new guest.
@@ -37,11 +37,11 @@ We store only the email (and Supabase's password hash). Google sign-in adds what
    `POST /api/account/merge`; the server checks both (the guest must be a guest, the account a permanent account) and calls
    `account_merge` (`supabase/migrations/20261025200000_account_merge.sql`): designs, credit balance (two `transfer`
    ledger rows), passes and free uses, open orders and follows move in one transaction, and the browser drafts move
-   too. The page reloads, the design that was open opens, and a card says what came along. **Do not add**:
+   too. The page reloads and the design that was open opens, without a message. **Do not add**:
    `declineGuest` forgets the guest and the designs this browser kept for it.
 5. Merging is idempotent: a second tab or a retry moves nothing more. If the guest cannot be checked (offline), it stays
-   remembered and the person is told it will be asked about next time. If the server cannot move it, nothing changes
-   and the question stays. If the guest's session was revoked meanwhile, its designs stay with it and the person is told.
+   remembered and the person is asked next time, without a message. If the server cannot move it, nothing changes
+   and the question stays (that failure is said). If the guest's session was revoked meanwhile, its designs stay with it.
 
 A design's owner still never changes from a browser: the ownership trigger allows it only under a flag set inside
 `account_merge`, never as `anon` or `authenticated`. A transfer keeps the design's revision and dates, so an editor
@@ -55,7 +55,7 @@ sign-out erased it).
 
 | Concern | Place |
 | --- | --- |
-| Sheet, menu item, welcome; customer copy | `src/presentation/account/` (`account-sheet.ts`, `account-markup.ts`, `account-errors.ts`, `account.css`) |
+| Sheet, menu item; customer copy | `src/presentation/account/` (`account-sheet.ts`, `account-markup.ts`, `account-errors.ts`, `account.css`) |
 | Supabase Auth calls, other-tab reloads | `src/app/account-platform.ts` (port: `account.ports.d.ts`) |
 | Remember the guest, look at it, move or drop it | `src/infrastructure/account/guest-handover.ts`, called by `src/app/session-bootstrap.ts` |
 | Merge rules and endpoint | `src/application/account/account-merge.ts`, `src/infrastructure/account/account-http.ts` |

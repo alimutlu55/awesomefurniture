@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const base = process.env.ACCOUNT_TEST_URL ?? 'http://127.0.0.1:5177', shots = process.argv[2];
 
-const harness = (email, welcome) => `<body style="margin:0;min-height:100vh;background:#e9e5dd"><div id="host"></div><script type="module">
+const harness = (email) => `<body style="margin:0;min-height:100vh;background:#e9e5dd"><div id="host"></div><script type="module">
  import {bindAccount} from '/src/presentation/account/account-sheet.ts';
  import {createEditorLifetime} from '/src/presentation/viewport/editor-lifetime.js';
  import credits from '/src/presentation/credits/credits.css?raw';import account from '/src/presentation/account/account.css?raw';
@@ -15,7 +15,7 @@ const harness = (email, welcome) => `<body style="margin:0;min-height:100vh;back
   +credits+account+loading+'</style><div id="app"><div id="menu"><div data-menu-group="account"><div class="menu-group-title">Account</div></div></div></div>';
  const calls=window.calls=[], never=()=>new Promise(()=>{});
  const fail=code=>Promise.reject(Object.assign(new Error(code),{code}));
- const platform={email:()=>(${JSON.stringify(email)}),welcome:()=>(${JSON.stringify(welcome)}),
+ const platform={email:()=>(${JSON.stringify(email)}),
   offer:()=>(window.offerData??null),declined:0,
   adopt:()=>{calls.push(['adopt']);return window.adoptFails?Promise.reject(new Error('503')):never();},
   decline:()=>{calls.push(['decline']);},
@@ -29,19 +29,19 @@ const harness = (email, welcome) => `<body style="margin:0;min-height:100vh;back
   resetPassword:(e,c)=>{calls.push(['resetPassword',e,c]);return never();},
   signOut:()=>{calls.push(['signOut']);return window.unsaved?fail('unsaved_changes'):never();}};
  window.toasts=[];
- window.account=bindAccount({dom:{$:s=>shadow.querySelector(s)},lifetime:createEditorLifetime(),platform,toast:m=>toasts.push(m),closeMenu:()=>{}});
+ window.account=bindAccount({dom:{$:s=>shadow.querySelector(s)},lifetime:createEditorLifetime(),platform,closeMenu:()=>{}});
  </script></body>`;
 
 const browser = await chromium.launch({ headless: true });
 const passed = [];
 try {
   for (const width of [375, 1280]) {
-    const run = async (name, email, welcome, steps, { google = true, offer = null } = {}) => {
+    const run = async (name, email, _unused, steps, { google = true, offer = null } = {}) => {
       const page = await browser.newPage({ viewport: { width, height: width < 600 ? 812 : 800 }, reducedMotion: 'reduce' });
       if (!google) await page.addInitScript(() => { window.noGoogle = true; });
       if (offer) await page.addInitScript(value => { window.offerData = value; }, offer);
       const errors = []; page.on('pageerror', e => errors.push(e.message));
-      await page.route('**/account-flows', r => r.fulfill({ contentType: 'text/html', body: harness(email, welcome) }));
+      await page.route('**/account-flows', r => r.fulfill({ contentType: 'text/html', body: harness(email) }));
       await page.goto(base + '/account-flows');
       await page.locator('.ac-menu').waitFor();
       const sheet = page.locator('.ac-sheet'), error = page.locator('.ac-sheet .cr-error');
@@ -141,14 +141,6 @@ try {
       assert.deepEqual((await calls()).at(-1), ['signOut']);
     });
 
-    await run('just signed in: says what came along from this browser', 'person@example.test', { email: 'person@example.test', designs: 3, credits: 12 },
-      async ({ page, sheet, shot }) => {
-        await sheet.waitFor();
-        assert.match(await page.locator('.ac-lead').innerText(), /3 designs from this browser are now in your account, with 12 credits\./);
-        await shot('welcome');
-        await page.locator('.ac-welcome .ac-done').click();
-        assert.equal(await page.locator('.ac-overlay').isHidden(), true);
-      });
     const offer = { designs: [{ id: 'a', name: 'Bedroom wardrobe' }, { id: 'b', name: 'Attic eaves' }], credits: 12 };
     await run('signed in with work from before: the person is asked, and a failed move can be retried', 'person@example.test', null, async ({ page, sheet, error, calls, shot }) => {
       await sheet.waitFor();
@@ -165,22 +157,18 @@ try {
       await page.locator('.ac-adopt-yes').click();
       assert.deepEqual((await calls()).map(c => c[0]), ['adopt', 'adopt']);
     }, { offer });
-    await run('signed in with work from before: "Do not add" leaves it out and says so', 'person@example.test', null, async ({ page, sheet, calls }) => {
+    await run('signed in with work from before: "Do not add" leaves it out, quietly', 'person@example.test', null, async ({ page, sheet, calls }) => {
       await sheet.waitFor();
       await page.locator('.ac-adopt-no').click();
       assert.deepEqual(await calls(), [['decline']]);
       assert.equal(await page.locator('.ac-overlay').isHidden(), true);
-      assert.deepEqual(await page.evaluate(() => window.toasts), ['Your earlier work was not added to your account.']);
+      assert.deepEqual(await page.evaluate(() => window.toasts), [], 'declining is not announced');
     }, { offer: { designs: [{ id: 'a', name: 'Bedroom wardrobe' }], credits: 0 } });
-    await run('no work from before: nothing is asked', 'person@example.test', null, async ({ page }) => {
+    await run('signed in with no work from before: nothing is asked and nothing is announced', 'person@example.test', null, async ({ page }) => {
       await page.waitForTimeout(300);
       assert.equal(await page.locator('.ac-overlay').isHidden(), true);
+      assert.deepEqual(await page.evaluate(() => window.toasts), []);
     });
-    await run('just signed in with nothing to bring: a short notice', 'person@example.test', { email: 'person@example.test', designs: 0, credits: 0 },
-      async ({ page }) => {
-        assert.equal(await page.locator('.ac-overlay').isHidden(), true);
-        assert.deepEqual(await page.evaluate(() => window.toasts), ['Signed in as person@example.test.']);
-      });
   }
 } finally { await browser.close(); }
 console.log(passed.join('\n'));

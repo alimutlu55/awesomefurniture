@@ -31,8 +31,6 @@ export async function prepareSession(url: URL) {
       ? await navigator.locks.request('wardrobe-identity', identity) : await identity();
   } catch { warning = 'Cloud saving is unavailable. Your design can still be edited in this browser.'; }
   const handover: Handover = client && user ? await handOver(client, { url: project.url, key: project.publishableKey }, localStorage) : { status: 'none' };
-  if (handover.status === 'pending') warning = 'We could not check the designs you made before signing in yet. We will ask you about them the next time you open the editor.';
-  if (handover.status === 'lost') warning = 'This browser\'s earlier guest session had ended, so its designs cannot be added to your account.';
   // Another tab signed in or out: this one stops saving as the old identity and reloads (src/app/account-platform.ts).
   let switched = false;
   client?.auth.onAuthStateChange((event, session) => {
@@ -94,7 +92,6 @@ export async function prepareSession(url: URL) {
       } catch {
         // Removed, private or never shared (an old address, or one from before signing in): open the person's own work.
         await restore();
-        warning = 'That design was removed or is not available. Here is your latest design instead.';
       }
     }
   } else if (requestedId) {

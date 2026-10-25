@@ -1,26 +1,9 @@
-import type { AccountPlatform, AccountWelcome } from '../presentation/account/account.ports';
+import type { AccountPlatform } from '../presentation/account/account.ports';
 import { adoptGuest, declineGuest, rememberGuest } from '../infrastructure/account/guest-handover';
 import { forgetDrafts } from '../infrastructure/persistence/browser-drafts';
 import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
 import type { SessionPlatform } from './session-bootstrap';
 
-const SIGNED_IN = 'wardrobe:account:signed-in';
-const MOVED = 'wardrobe:account:moved';
-/** What was added to the account, kept across the reload that follows so the next page can say so once. */
-const moved = {
-  set(value: { designs: number; credits: number }) { try { sessionStorage.setItem(MOVED, JSON.stringify(value)); } catch { /* private mode: no message */ } },
-  take(): { designs: number; credits: number } | null {
-    try {
-      const raw = sessionStorage.getItem(MOVED); sessionStorage.removeItem(MOVED);
-      const value = JSON.parse(raw ?? 'null') as { designs?: unknown; credits?: unknown } | null;
-      return value && typeof value.designs === 'number' && typeof value.credits === 'number' ? { designs: value.designs, credits: value.credits } : null;
-    } catch { return null; }
-  },
-};
-const marker = {
-  set() { try { sessionStorage.setItem(SIGNED_IN, '1'); } catch { /* private mode: no welcome, nothing else lost */ } },
-  take() { try { const value = sessionStorage.getItem(SIGNED_IN); sessionStorage.removeItem(SIGNED_IN); return value === '1'; } catch { return false; } },
-};
 
 /**
  * Accounts for the editor, on the Supabase session the app already holds. Designing needs none: every visitor starts
@@ -32,9 +15,6 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
   if (!client) return undefined;
   const auth = client.auth;
   const email = user && !user.is_anonymous ? user.email ?? null : null;
-  const added = moved.take();
-  let welcome: AccountWelcome | null = email && (marker.take() || added)
-    ? { email, designs: added?.designs ?? 0, credits: added?.credits ?? 0 } : null;
   let offer = platform.handover.status === 'offer' ? platform.handover : null;
   // Set while this tab changes who is signed in: it reloads itself once done. Any other change (another tab signed
   // in or out) reloads this one, so it never keeps saving as someone it no longer is.
@@ -52,7 +32,6 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
     await rememberGuest(client!, localStorage).catch(() => undefined);
     const { error } = await work().catch((e: unknown) => ({ error: e }));
     if (error) fail(error);
-    marker.set();
     location.reload();
     return new Promise<never>(() => { /* the page is reloading */ });
   }
@@ -68,12 +47,11 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
         .then(settings => settings?.external?.google === true ? ['google'] : [], () => []);
       return providers;
     },
-    welcome() { const value = welcome; welcome = null; return value; },
     offer: () => offer,
     async adopt() {
       const project = resolveSupabaseProject(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-      moved.set(await adoptGuest(client, { url: project.url, key: project.publishableKey }, localStorage));
-      // The page starts again: the added designs are in the library and the design that was open opens.
+      await adoptGuest(client, { url: project.url, key: project.publishableKey }, localStorage);
+      // The page starts again, quietly: the added designs are in the library and the design that was open opens.
       changing = true; location.reload();
       return new Promise<never>(() => { /* the page is reloading */ });
     },
@@ -100,8 +78,7 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
     async google() {
       changing = true;
       await rememberGuest(client, localStorage).catch(() => undefined);
-      marker.set();
-      // Supabase leaves for Google at once; the person comes back to this page, signed in.
+        // Supabase leaves for Google at once; the person comes back to this page, signed in.
       const { error } = await auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.href } });
       if (error) fail(error);
     },
@@ -125,7 +102,7 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
       const { error } = await auth.signOut({ scope: 'local' });
       if (error) fail(error);
       if (user) forgetDrafts(localStorage, user.id);
-      try { ['wardrobe:credits:resume', 'wardrobe:credits:after-sign-in', 'wardrobe:credits:confirming', SIGNED_IN].forEach(key => sessionStorage.removeItem(key)); }
+      try { ['wardrobe:credits:resume', 'wardrobe:credits:after-sign-in', 'wardrobe:credits:confirming'].forEach(key => sessionStorage.removeItem(key)); }
       catch { /* private mode: nothing was kept */ }
       location.reload();
       return new Promise<never>(() => { /* the page is reloading */ });

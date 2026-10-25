@@ -204,7 +204,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     await client.refresh().catch(() => client.balance(result.balance));
     if (result.status === 'paid') {
       if (!overlay.hidden && sheet.dataset.view === 'wait') celebrate(result.credits);
-      else { session.set(null); toast(`+${result.credits} credits are in your wallet.`); }
+      else session.set(null); // the balance in the menu counts up on its own
       return;
     }
     open();
@@ -262,7 +262,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   }, () => undefined);
   const back = platform.returned(), unfinished = confirming.get();
   if (back?.outcome === 'success') void confirmReturn(back.orderId);
-  else if (back?.outcome === 'cancel') { session.set(null); toast('Checkout cancelled. You were not charged.'); }
+  else if (back?.outcome === 'cancel') session.set(null);
   else if (unfinished && ORDER_ID.test(unfinished)) void confirmReturn(unfinished);
 
   lifetime.cleanup(() => {

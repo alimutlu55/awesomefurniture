@@ -70,9 +70,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
       loading.start();
     }
     try {
-      const receipt = await client.spend(key, crypto.randomUUID());
-      if (receipt.charge === 'free') toast(`Your first ${feature.unit.one} is free.${feature.passHours ? ` Changes to this design stay free for ${feature.passHours} hours.` : ''}`);
-      if (receipt.charge === 'paid') toast(`${receipt.cost} credits used. ${receipt.balance} left.`);
+      await client.spend(key, crypto.randomUUID());
       return true;
     } catch (error) {
       if (error instanceof CreditUserError && error.code === 'INSUFFICIENT_CREDITS') {

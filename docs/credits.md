@@ -18,7 +18,7 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
   "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:
   not completed ("you were not charged"), paid but not credited (a reference to quote, see Operations), refunded or
   disputed. A reload while confirming picks the confirmation up again; after two minutes it carries on quietly for
-  half an hour and says "+N credits are in your wallet" when they land.
+  half an hour; the balance in the menu counts up when they land (no message).
 
 Credits belong to an account: buying them and using them (the free first drawing set too) needs one
 (`CREDITS_REQUIRE_ACCOUNT`, on by default; the server refuses with `ACCOUNT_REQUIRED`). A guest still sees the
