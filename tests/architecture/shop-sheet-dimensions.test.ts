@@ -37,3 +37,12 @@ test('no two dimension figures on a shop sheet overlap, and nothing is left unpl
   assert.equal(warnings.length, 0);
   assert.ok(dimensionBoxes.every((a, i) => dimensionBoxes.every((b, k) => i === k || a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0)), 'no two figures overlap');
 });
+
+test('an upright divider standing in a compartment does not hide that compartment\'s clear height', () => {
+  const dividers = [0, 1, 2].map(j => ({ i: 0, orientation: 'vertical' as const, x: 43.2, y0: 14 + j * 22, y1: 34 + j * 22 }));
+  const [divided] = placePieces({ pieces: [{ id: 3, name: 'Wardrobe', x: 0, z: 0, angle: 0, y: 0, design: { ...design, dividers } }] });
+  const clear = (p: typeof piece, title: string) => unitDetailViews(p!).find(v => v.title === title)!.items
+    .filter((i): i is Dimensions => i.kind === 'dims' && i.dir.y === 1 && i.row === 0).flatMap(figures).filter(f => f > 100 && f < 1000).sort((a, b) => a - b);
+  assert.deepEqual(clear(divided, 'Inside'), clear(piece, 'Inside'));
+  assert.deepEqual(clear(divided, 'Section A–A'), clear(piece, 'Section A–A'));
+});

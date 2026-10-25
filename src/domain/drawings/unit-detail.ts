@@ -45,6 +45,10 @@ function frontSpans(ranges: readonly (readonly [number, number])[], lo: number, 
   return { spans, joints };
 }
 
+/** A board lying across a space (a shelf, a base or top), as against an upright divider or post that stands in it: its
+ * thinnest side is the vertical one. Only these split a clear height. */
+const lies = (b: Board) => !!b.outline || b.y1 - b.y0 <= Math.min(b.x1 - b.x0, b.z1 - b.z0) + .01;
+
 /** The clear spaces between boards (centimetres): from `lo` up to `hi`, minus every board's thickness. */
 function clearSpaces(boards: readonly (readonly [number, number])[], lo: number, hi: number): [number, number][] {
   const spans: [number, number][] = [];
@@ -126,7 +130,7 @@ function insideView(p: PlacedPiece, boards: readonly Board[]): Item[] {
     const cornerEdges = bayCorners.flatMap(c => [c.trays[0]!.base.x0, c.post.x, c.trays[0]!.base.x1]);
     clearWidths.push(across(0, [bayL, ...cornerEdges, bayL + sw], -1, 0));
     // Up each section: the clear heights between the boards or corner pull-out trays in it, from the base board to the top.
-    const inBay = carcass.filter(b => b.x0 >= bayL - .01 && b.x1 <= bayL + sw + .01 && b.y0 > iy - .01 && b.name !== 'Side');
+    const inBay = carcass.filter(b => b.x0 >= bayL - .01 && b.x1 <= bayL + sw + .01 && b.y0 > iy - .01 && b.name !== 'Side' && lies(b));
     const trays = bayCorners.flatMap(c => c.trays.map(t => [t.base.y0, t.base.y1] as const));
     if (inBay.length || trays.length) {
       out.push(...chain((v, q) => vertical(bayL, v, -1, 0, q), clearSpaces([...inBay.map(b => [b.y0, b.y1] as const), ...trays], iy, iy + geometry.ceilingTop(i, 0, sw))));
@@ -181,7 +185,7 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
     depths.push(z);
   }
   // Heights: the carcass build-up and the top of each shelf or swing-out tray cut through, set out from the floor.
-  const lift = plinthOf(d), shelves = cutThrough.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => heightsAt(b, cx)).filter(([lo, hi]) => lo > lift + PANEL - .05 && hi < top - PANEL + .05);
+  const lift = plinthOf(d), shelves = cutThrough.filter(b => (b.stock === 'carcass' || b.stock === 'shelf') && lies(b)).map(b => heightsAt(b, cx)).filter(([lo, hi]) => lo > lift + PANEL - .05 && hi < top - PANEL + .05);
   const trays = sectionCorners.flatMap(c => c.trays.map(t => [t.base.y0, t.base.y1] as const));
   const highest = unit?.worktop ? d.h + worktopThickness(d) : top;
   out.push(across(0, depths, -1, 0), across(0, [0, front], -1, 1),
