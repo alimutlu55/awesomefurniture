@@ -7,6 +7,8 @@ function customerMessage(code: unknown): string {
     case 'TIMEOUT': return 'Creating your image is taking longer than expected. Please try again.';
     case 'TOO_LARGE': return 'This design is too large to create an image. Try a smaller design.';
     case 'EMPTY_DESIGN': return 'Add furniture to your design before creating an image.';
+    case 'INSUFFICIENT_CREDITS': return 'You need a few more credits to create this image.';
+    case 'SIGN_IN_REQUIRED': return 'Your session has ended. Reload the page and try again.';
     case 'CAPTURE_FAILED': return 'We couldn’t prepare the design views. Please try again.';
     case 'NO_IMAGE':
     case 'PROVIDER_ERROR':
@@ -16,7 +18,14 @@ function customerMessage(code: unknown): string {
 }
 
 export class DesignImageUserError extends Error {
-  constructor(code: unknown) { super(customerMessage(code)); }
+  readonly code: string | null;
+  /** When short of credits: what the image costs and what the wallet holds. */
+  readonly credits: { cost: number; balance: number } | null;
+  constructor(code: unknown, detail?: { cost?: unknown; balance?: unknown } | null) {
+    super(customerMessage(code));
+    this.code = typeof code === 'string' ? code : null;
+    this.credits = typeof detail?.cost === 'number' && typeof detail.balance === 'number' ? { cost: detail.cost, balance: detail.balance } : null;
+  }
 }
 
 export function designImageErrorMessage(error: unknown): string {

@@ -15,9 +15,10 @@ export function isDebugMode(): boolean {
   return false;
 }
 
-export async function requestDesignImage(input: DesignImageRequest, signal: AbortSignal): Promise<DesignImageResponse> {
+/** `auth`: the credit headers (bearer token and idempotency key) that pay for the image. */
+export async function requestDesignImage(input: DesignImageRequest, signal: AbortSignal, auth: Record<string, string> = {}): Promise<DesignImageResponse> {
   const debug = isDebugMode();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { ...auth, 'Content-Type': 'application/json' };
   if (debug) headers['X-Debug-Mode'] = 'true';
 
   const response = await fetch('/api/design-images', {
@@ -25,7 +26,7 @@ export async function requestDesignImage(input: DesignImageRequest, signal: Abor
   });
 
   const result = await response.json().catch(() => null);
-  if (!response.ok) throw new DesignImageUserError(result?.error?.code);
+  if (!response.ok) throw new DesignImageUserError(result?.error?.code, result?.error);
   if (!result?.image?.data || !['image/png', 'image/jpeg', 'image/webp'].includes(result.image.mimeType)) {
     throw new DesignImageUserError('NO_IMAGE');
   }

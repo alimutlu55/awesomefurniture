@@ -9,6 +9,8 @@ import { PAPER } from './sheet-layout';
 import { paginateDrawingSheets } from './table-marks';
 import { drawingGestures } from './drawing-gestures';
 import type { AnnotationOffsets } from './annotation-layout';
+import type { CreditWalletApi } from '../credits/credit-wallet';
+import type { CreditFeatureKey } from '../../domain/credits/credit-catalog';
 
 interface Ports {
   /** The editor's controls, and the page it is mounted in (a download link belongs to the page). */
@@ -17,7 +19,10 @@ interface Ports {
   /** The scene the drawings are made from, read when they open. */
   scene(): EditorScene;
   closeMenu(): void;
+  /** Pays for a drawing set (the first is free; a design stays open for its pass). Absent: drawings are free. */
+  credits?: CreditWalletApi | null;
 }
+const FEATURE: CreditFeatureKey = 'technical-drawings';
 
 const ZOOMS = [1, 1.6, 2.5, 4, 6] as const, MIN_ZOOM = 1, MAX_ZOOM = 6;
 const ICON = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 15h5v5M9 4v6h6M15 10v10"/></svg>';
@@ -38,12 +43,13 @@ const fileName = (project: string) => project.toLowerCase().replace(/[^a-z0-9]+/
 
 /** "Technical drawings" in the editor menu: the design as a carpenter's drawing set (plan and wall elevations, every
  * dimension in millimetres) on A3 sheets to read on screen, zoomed, and saved as a PDF file the app writes itself. */
-export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
+export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = null }: Ports) {
   const { document } = dom, page = dom.host.ownerDocument, menu = dom.$('#menu'), item = document.createElement('button');
   item.className = 'mi'; item.type = 'button'; item.setAttribute('role', 'menuitem');
   item.innerHTML = ICON + '<span>Technical drawings</span>';
   const help = menu.querySelector('[data-editor-id="help-menu"]');
   if (help) menu.insertBefore(item, help); else menu.append(item);
+  credits?.badge(item, FEATURE);
 
   const panel = document.createElement('div');
   panel.className = 'drawings'; panel.hidden = true;
@@ -88,8 +94,12 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     save.textContent = validation.ready ? 'Save as PDF' : 'Save review PDF';
     save.title = validation.ready ? 'Save the drawings, checked for manufacture' : 'Save the drawings marked NOT FOR MANUFACTURE';
   }
-  function open() {
+  let opening = false;
+  async function open() {
     closeMenu();
+    if (opening) return;
+    opening = true;
+    try { if (credits && !await credits.charge(FEATURE)) return; } finally { opening = false; }
     build();
     panel.hidden = false;
     scale = 1;
@@ -117,7 +127,7 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
-  lifetime.listen(item, 'click', open);
+  lifetime.listen(item, 'click', () => { void open(); });
   lifetime.listen(panel.querySelector('.drawings-close')!, 'click', close);
   lifetime.listen(panel.querySelector('.drawings-pdf')!, 'click', () => { void savePdf(); });
   lifetime.listen(panel.querySelector('.drawings-zoom')!, 'click', e => {
@@ -134,5 +144,5 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu }: Ports) {
     if (page.activeElement === edge) { e.preventDefault(); next?.focus(); }
   });
   lifetime.cleanup(() => { item.remove(); panel.remove(); });
-  return { open, close };
+  return { open: () => { void open(); }, close };
 }

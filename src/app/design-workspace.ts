@@ -7,16 +7,20 @@ import type { OpenDesign } from '../application/projects/design-collection';
 import { projectToScene } from '../application/projects/editor-mapper';
 import { connectSessions } from './session-platform';
 import type { SessionPlatform } from './session-bootstrap';
+import { sceneToProject } from '../application/projects/editor-mapper';
+import { createCreditPlatform, type CheckoutReturn } from './credit-platform';
 
 interface WorkspaceOptions {
   root: HTMLElement;
   platform: SessionPlatform;
   changed(editor: ReturnType<typeof mountEditor> | null): void;
   initialLink(): Promise<void>;
+  /** A checkout that just sent the person back here, for the first editor to confirm. */
+  checkout?: CheckoutReturn | null;
 }
 
 /** The app owns document navigation. A fresh editor mount owns each design's Undo. */
-export function createDesignWorkspace({ root, platform, changed, initialLink }: WorkspaceOptions) {
+export function createDesignWorkspace({ root, platform, changed, initialLink, checkout = null }: WorkspaceOptions) {
   const collection = createDesignCollection(platform.repository, platform.drafts, () => crypto.randomUUID());
   let mounted: ReturnType<typeof mountEditor> | null = null;
   let sessions: ReturnType<typeof connectSessions> | null = null;
@@ -26,6 +30,10 @@ export function createDesignWorkspace({ root, platform, changed, initialLink }: 
   let pending: Promise<unknown> = Promise.resolve();
   let disposed = false, navigation = 0;
   const previewCache = new Map<string, string>();
+  const credits = createCreditPlatform(platform, {
+    designId: () => currentId,
+    document: () => mounted ? sceneToProject(current.draft.document, mounted.scene()) : null,
+  }, checkout);
   function ordered<T>(work: () => Promise<T>): Promise<T> {
     const operation = pending.catch(() => undefined).then(async () => {
       if (disposed) throw new Error('The workspace has closed.');
@@ -74,7 +82,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink }: 
     root.hidden = false;
     let connection: ReturnType<typeof connectSessions> | null = null;
     const editor = mountEditor({
-      root, initialScene:projectToScene(design.draft.document),
+      root, initialScene:projectToScene(design.draft.document), credits,
       onBack: () => {
         void ordered(async () => {
           try { await showDesigns(); }

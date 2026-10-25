@@ -8,6 +8,8 @@ import { createDesignImageLoading } from './design-image-loading';
 import { createDesignImageReferences } from './design-image-references';
 import { loadDecorSwatches } from './decor-swatch-references';
 import { IMAGE_STYLES, SPARKLE_ICON, ARROW_ICON, CLOSE_ICON, type ImageStyle } from './generate-image-dialog';
+import type { CreditWalletApi } from '../credits/credit-wallet';
+import { bindImageCredits } from './design-image-credits';
 
 export { IMAGE_STYLES, type ImageStyle } from './generate-image-dialog';
 
@@ -15,6 +17,8 @@ interface Ports {
   dom: ReturnType<typeof createEditorDom>;
   lifetime: ReturnType<typeof createEditorLifetime>;
   capture(): DesignImageRequest;
+  /** The wallet that pays for each image; absent, images are requested without credits. */
+  credits?: CreditWalletApi | null;
 }
 
 type Phase = 'select' | 'closed' | 'generating' | 'result';
@@ -22,7 +26,7 @@ type Phase = 'select' | 'closed' | 'generating' | 'result';
 const TOOLBAR_SPARKLE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'
   + '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></svg>';
 
-export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
+export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }: Ports) {
   const page = dom.host.ownerDocument;
   const button = page.createElement('button');
   button.type = 'button';
@@ -58,7 +62,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     }).join('')
     + '</div>'
     + '<p class="ai-error" hidden></p>'
-    + `<button type="button" class="ai-generate-button">${SPARKLE_ICON}<span>Generate image</span>${ARROW_ICON}</button>`
+    + `<button type="button" class="ai-generate-button">${SPARKLE_ICON}<span>Generate image</span><span class="ai-cost" hidden></span>${ARROW_ICON}</button>`
     + '</section>'
     + '<section class="ai-result-view" hidden>'
     + '<figure class="ai-result-figure"><img alt="AI-generated photograph of your design"></figure>'
@@ -68,7 +72,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     + '<p class="ai-result-error ai-error" hidden></p>'
     + '<div class="ai-result-actions">'
     + '<a class="ai-generate-button ai-download" download="design-ai.jpg" aria-label="Download image">Save Image</a>'
-    + '<button type="button" class="ai-result-secondary ai-again">Try Again</button>'
+    + '<button type="button" class="ai-result-secondary ai-again">Try Again <span class="ai-cost" hidden></span></button>'
     + '</div>'
     + '</section>'
     + '</div>';
@@ -100,6 +104,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
   const references = createDesignImageReferences(page, debugPreviewEnabled);
   radioGroup.after(references.element);
 
+  const pay = bindImageCredits({ credits, dialog, lifetime, reopen: () => { if (phase === 'closed') openModal('select'); } });
   let phase: Phase = 'closed';
   let selectedStyle: ImageStyle = 'realistic';
   let controller: AbortController | null = null;
@@ -227,6 +232,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
     if (!prepared) await prepare();
     if (!prepared || disposed || phase === 'closed') return;
 
+    if (pay.short()) return;
     const category = renderCategory(prepared.specification);
     const stagingLevel: 1 | 2 | 3 = style === 'studio' ? 1 : style === 'concept' ? 3 : 2;
     const input: DesignImageRequest = {
@@ -250,7 +256,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       await new Promise<void>(resolve => lifetime.frame(() => lifetime.frame(() => resolve())));
       if (request.signal.aborted || disposed) return;
       loading.rendering();
-      const output = await requestDesignImage(input, AbortSignal.any([request.signal, AbortSignal.timeout(180_000)]));
+      const output = await requestDesignImage(input, AbortSignal.any([request.signal, AbortSignal.timeout(180_000)]), await pay.headers());
+      pay.paid(output);
       if (disposed || request.signal.aborted) return;
       const bytes = Uint8Array.from(atob(output.image.data), char => char.charCodeAt(0));
       releaseImage();
@@ -268,6 +275,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture }: Ports) {
       if (disposed || request.signal.aborted) return;
       const message = designImageErrorMessage(error);
       loading.stop();
+      if (pay.refused(error)) { if (imageUrl) showResultDialog(); else showSelectDialog(); return; }
       if (imageUrl) {
         showResultDialog();
         showError(message);

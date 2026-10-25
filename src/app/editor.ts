@@ -4,6 +4,7 @@ import { checkSpec, createAgentApi, registerWebMcpTools, specFromLink } from './
 import { designFromLink, hasDesign } from './design-link';
 import { prepareSession } from './session-bootstrap';
 import { createDesignWorkspace } from './design-workspace';
+import { takeCheckoutReturn } from './credit-platform';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
 if(!root) throw new Error('Editor mount point is missing.');
@@ -15,6 +16,7 @@ Object.defineProperty(window,'wardrobeForge',{value:agents,configurable:true});
 registerWebMcpTools(agents,document,navigator);
 console.info('Wardrobe Forge: AI agents can design here. Call window.wardrobeForge.help() for the guide, or read /llms.txt.');
 async function main(): Promise<void> {
+ const checkout=takeCheckoutReturn(new URL(location.href),history);
  const url=new URL(location.href);
  preloadOakTextures(document);
  const platform=await prepareSession(url);
@@ -32,7 +34,7 @@ async function main(): Promise<void> {
   if(built?.project) editor?.replaceDesign(built.project);
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;},initialLink:openLink});
+ const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;},initialLink:openLink,checkout});
  await workspace.start();
  window.addEventListener('hashchange',openLink);
  const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();};

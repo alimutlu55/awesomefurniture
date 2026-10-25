@@ -20,6 +20,8 @@ import measurementStylesheet from '../components/measurement-badge.css?raw';
 import drawingsStylesheet from '../drawings/drawings.css?raw';
 import designImageStylesheet from '../ai/design-image.css?raw';
 import designImageLoadingStylesheet from '../ai/design-image-loading.css?raw';
+import creditsStylesheet from '../credits/credits.css?raw';
+import type { CreditsPlatform } from '../credits/credits.ports';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
 export interface MountEditorOptions {
@@ -28,11 +30,13 @@ export interface MountEditorOptions {
     /** Makes a link that opens a design; given, the menu offers Share design. */
     shareLink?: ((scene: EditorScene) => Promise<string>) | undefined;
     onBack?: (() => void) | undefined;
+    /** Given, the toolbar shows the credit balance and paid features charge credits (src/app/credit-platform.ts). */
+    credits?: CreditsPlatform | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -42,14 +46,14 @@ export function mountEditor({ root, initialScene, shareLink, onBack }: MountEdit
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
-        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet].join('\n'), controlIds);
+        measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet, creditsStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);
     const dom = createEditorDom(shadow);
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom, shareLink);
+        editor = startEditor(initialScene, dom, shareLink, credits);
         if (onBack) {
             dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
             const back = dom.$('#designs-back');

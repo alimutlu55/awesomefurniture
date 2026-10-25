@@ -46,6 +46,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Auto design search and scoring | `src/domain/planner/` (`selection-*`, `layout-score.ts`). The numerical engine is `wardrobe-planner.js`. |
 | Event listener | The feature's module in `src/presentation/editor/bindings/` |
 | Technical drawings (plan, elevations, shop sheets, cutting and hardware lists, PDF) | `src/domain/drawings/` (data, mm) and `src/presentation/drawings/` (paper marks written as SVG and as the PDF file, viewer). See [docs/technical-drawings.md](docs/technical-drawings.md) |
+| Credits: prices, packs, a new paid feature, a payment provider | One entry in `src/domain/credits/credit-catalog.ts`; providers implement `PaymentProvider` (`application/credits/credit-ports.ts`). The ledger is `supabase/migrations/*_credits.sql`. See [docs/credits.md](docs/credits.md) |
 | What blocks issuing drawings for manufacture | `src/domain/drawings/manufacturing-validation.ts` (independent of the drawing code; a critical finding fails the export closed); the set, revision and stamp in `presentation/drawings/drawing-release.ts` |
 | Toilets, basins and other fixtures (kinds, setups with their boxing, finishes) | One entry in `src/domain/studio/fixtures/fixture-kinds.ts`, its model in `fixture-views.ts` and card in `fixture-art.ts`. See [docs/studio-fixtures.md](docs/studio-fixtures.md) |
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
@@ -54,8 +55,8 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
 Never copy registry contents (kind names, possession keys, purpose labels, furniture kinds, kitchen
-units, fixture kinds) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
-`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`.
+units, fixture kinds, credit prices) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
+`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`, `CREDIT_FEATURES` / `CREDIT_PACKS`.
 
 ## Guards that must stay green
 
@@ -67,6 +68,8 @@ units, fixture kinds) into another file. Ask the registry: `FITTINGS`, `hasTrait
 - **Baseline hashes** (`tests/fixtures/editor-baseline.json`) lock `wardrobe-planner.js`,
   `editor.html` and `editor.css`. When you change one of those files on purpose, refresh the hash
   in the same commit and say why.
+- **Credit margin** (`tests/architecture/credits.test.ts`) fails when a paid feature keeps less than 35% at the
+  cheapest credit with the worst provider cost. The ledger itself is checked by `supabase/tests/credits_ledger.sql`.
 - **Architecture ratchet** (`scripts/architecture-baseline.json`) lists older code that breaks a
   rule. A listed file may only improve. Never raise a number or add a file: fix the code.
 

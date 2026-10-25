@@ -23,6 +23,8 @@ import { capturePreview } from '../viewport/capture-preview';
 import { captureDesignReferences } from '../viewport/capture-design-references';
 import { imageDesignSpecification } from '../../application/projects/image-design-specification';
 import { bindDesignImageViewer } from '../ai/design-image-viewer';
+import { bindCreditWallet } from '../credits/credit-wallet';
+import type { CreditsPlatform } from '../credits/credits.ports';
 import { DesignImageUserError } from '../ai/design-image-errors';
 import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
@@ -50,7 +52,8 @@ import { createShellState } from './shell-state.js';
 import { createShapeInspector } from './shape-inspector';
 import { mountExperience } from '../experience/experience';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
-export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>) {
+export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
+    creditsPlatform?: CreditsPlatform) {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -187,8 +190,10 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
-        const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD() });
-        bindDesignImageViewer({ dom, lifetime, capture: () => experience.neutral(() => {
+        // The coin balance and wallet; paid features ask it before they run.
+        const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform, toast: message => shell.toast(message) }) : null;
+        const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
+        bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);

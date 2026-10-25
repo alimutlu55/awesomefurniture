@@ -100,9 +100,13 @@ including messages about credentials, billing or configuration. Unexpected brows
 Cloudflare serves static assets as before and routes `/api/*` to `src/app/worker.ts`.
 The API rejects cross-origin browser requests and uses a Cloudflare rate-limit binding
 allowing three generations per minute per IP/location. Vite uses a shared three-per-minute
-local limit. This public anonymous editor does not authenticate generations; use provider
-quotas/budget controls for an appropriate total spending limit. Cancellation aborts the
-request, but a generation already accepted by Google may still incur charges. Requests
+local limit. Each generation is paid with credits ([credits](credits.md)): the request carries the
+visitor's Supabase access token and an `Idempotency-Key`, 4 credits are reserved before Gemini is
+called and kept only when an image is returned; any failure, timeout or cancellation refunds them.
+Too few credits answer 402 `INSUFFICIENT_CREDITS` with `cost` and `balance`, and the editor opens the
+wallet. Without a configured ledger the endpoint answers 503 and Gemini is not called. The response
+adds `credits: { balance, cost }`. Keep provider quotas/budget controls as a second limit. Cancellation
+aborts the request, but a generation already accepted by Google may still incur charges. Requests
 have a 150-second upstream timeout and are never automatically retried.
 
 Errors use `{ error: { code, message } }` with 400 (invalid design/JSON), 403 (origin),
