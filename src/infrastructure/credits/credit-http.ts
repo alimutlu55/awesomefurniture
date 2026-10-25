@@ -1,5 +1,5 @@
 import { CreditError, type CreditErrorCode } from '../../application/credits/credit-service';
-import { PaymentSignatureError } from '../../application/credits/credit-ports';
+import { PaymentProviderError, PaymentSignatureError } from '../../application/credits/credit-ports';
 import type { SpendReceipt } from '../../application/credits/credit-wallet';
 import type { CreditRuntime } from './credit-environment';
 import { testCheckoutPage, testCheckoutComplete } from './test-checkout-page';
@@ -88,6 +88,13 @@ export async function handleCredits(request: Request, runtime: CreditRuntime | n
     return failure(404, 'NOT_FOUND', 'Unknown credits endpoint.');
   } catch (error) {
     if (error instanceof CreditError) return creditFailure(error);
+    if (error instanceof PaymentProviderError) {
+      const requestId = crypto.randomUUID();
+      console.error(JSON.stringify({ event: 'credits_provider_failed', requestId, path, reason: error.reason }));
+      const response = failure(502, 'CHECKOUT_FAILED', 'We could not open the payment page. Please try again in a moment.', { reason: error.reason });
+      response.headers.set('X-Request-ID', requestId);
+      return response;
+    }
     return unexpected('credits_request_failed', error);
   }
 }

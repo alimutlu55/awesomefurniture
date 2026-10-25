@@ -1,7 +1,7 @@
 import type { CreditWallet } from '../../application/credits/credit-wallet';
 import type { CreditWalletPorts } from './credit-wallet.ports';
 import { createCreditsClient } from './credits-client';
-import { creditErrorMessage } from './credit-errors';
+import { creditErrorMessage, CreditUserError } from './credit-errors';
 import { bindAccountStep } from './account-step';
 import { bindCreditGate } from './credit-gate';
 import { activityList, coin, featureList, money, packCards, walletShell, worth } from './wallet-markup';
@@ -111,7 +111,11 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     (Object.keys(views) as View[]).forEach(key => { views[key].hidden = key !== view; });
     overlay.querySelectorAll<HTMLElement>('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === view)));
   }
-  function say(message: string | null) { error.hidden = !message; error.textContent = message ?? ''; }
+  /** Shows an error where the person is looking: the sheet scrolls to it, because on a phone it sits above the fold. */
+  function say(message: string | null, reason: string | null = null) {
+    error.hidden = !message; error.textContent = message ? message + (reason ? ` (Reference: ${reason})` : '') : '';
+    if (message) error.scrollIntoView({ block: 'center', behavior: still() ? 'auto' : 'smooth' });
+  }
 
   function open(options: { need?: WalletNeed; view?: View } = {}) {
     if (overlay.hidden) {
@@ -157,7 +161,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     }
     buying = true; syncBuy(); say(null);
     try { await client.checkout(selected); }
-    catch (e) { buying = false; syncBuy(); say(creditErrorMessage(e)); }
+    catch (e) { buying = false; syncBuy(); say(creditErrorMessage(e), e instanceof CreditUserError ? e.reason : null); }
   }
 
   /** Back from checkout: wait for the payment to be confirmed (webhook or lookup), then celebrate. */

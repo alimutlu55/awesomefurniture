@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { PaymentSignatureError, type PaymentProvider, type PaymentUpdate } from '../../application/credits/credit-ports';
+import { PaymentProviderError, PaymentSignatureError, type PaymentProvider, type PaymentUpdate } from '../../application/credits/credit-ports';
 
 /**
  * Stripe Checkout: Stripe hosts the payment page (cards, Apple Pay, Google Pay, Link and the local methods turned on
@@ -10,6 +10,13 @@ export function createStripeProvider(secretKey: string, webhookSecret: string, c
   const stripe = client ?? new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient(), maxNetworkRetries: 2, timeout: 20_000 });
   const crypto = Stripe.createSubtleCryptoProvider();
   const ref = (value: string | { id: string } | null | undefined) => typeof value === 'string' ? value : value?.id ?? null;
+
+  /** Stripe's error code and type, as a short reference ("authentication_error:api_key_invalid"). */
+  function refuse(error: unknown): never {
+    const e = error as { rawType?: unknown; type?: unknown; code?: unknown; statusCode?: unknown };
+    const part = (v: unknown) => typeof v === 'string' && /^[A-Za-z0-9_.-]{1,48}$/.test(v) ? v : null;
+    throw new PaymentProviderError([part(e.rawType) ?? part(e.type) ?? 'stripe_error', part(e.code) ?? (typeof e.statusCode === 'number' ? 'http_' + e.statusCode : 'unknown')].join(':'));
+  }
 
   function fromSession(eventId: string, session: Stripe.Checkout.Session, paid: boolean): PaymentUpdate {
     const orderId = session.client_reference_id ?? session.metadata?.order_id;
@@ -60,13 +67,13 @@ export function createStripeProvider(secretKey: string, webhookSecret: string, c
         payment_intent_data: { metadata: { order_id: order.id, pack: order.packId } },
         success_url: links.success.replace('{ORDER}', order.id),
         cancel_url: links.cancel.replace('{ORDER}', order.id),
-      }, { idempotencyKey: 'checkout:' + order.id });
+      }, { idempotencyKey: 'checkout:' + order.id }).catch(refuse);
       if (!session.url) throw new Error('Stripe returned no checkout page.');
       return { url: session.url, providerRef: session.id };
     },
     async lookup(order) {
       if (!order.providerRef) return null;
-      const session = await stripe.checkout.sessions.retrieve(order.providerRef);
+      const session = await stripe.checkout.sessions.retrieve(order.providerRef).catch(refuse);
       if (session.status === 'open') return null;
       return fromSession(`lookup:${session.id}:${session.status}:${session.payment_status}`, session, session.status === 'complete');
     },

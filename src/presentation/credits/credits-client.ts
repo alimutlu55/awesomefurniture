@@ -16,7 +16,7 @@ export function createCreditsClient(platform: CreditsPlatform) {
   }
   async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await fetch(path, { ...init, headers: await headers(init.body ? { 'Content-Type': 'application/json' } : {}) });
-    const body = await response.json().catch(() => null) as { error?: { code?: string; cost?: number; balance?: number } } | null;
+    const body = await response.json().catch(() => null) as { error?: { code?: string; cost?: number; balance?: number; reason?: string } } | null;
     if (!response.ok) throw new CreditUserError(body?.error?.code, body?.error);
     return body as T;
   }

@@ -4,12 +4,13 @@ import Stripe from 'stripe';
 import { CREDIT_FEATURES, CREDIT_PACKS, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
 import { featureMargins, MINIMUM_WORST_CASE_MARGIN } from '../../src/domain/credits/unit-economics';
 import { createCreditService, CreditError } from '../../src/application/credits/credit-service';
-import { PaymentSignatureError, type CreditUser, type PaymentProvider, type PaymentUpdate } from '../../src/application/credits/credit-ports';
+import { PaymentProviderError, PaymentSignatureError, type CreditUser, type PaymentProvider, type PaymentUpdate } from '../../src/application/credits/credit-ports';
 import { createMemoryCreditStore } from '../../src/infrastructure/credits/memory-credit-store';
 import { createStripeProvider } from '../../src/infrastructure/credits/stripe-provider';
 import { featureCharge } from '../../src/infrastructure/credits/image-charge';
 import type { CreditRuntime } from '../../src/infrastructure/credits/credit-environment';
 import { handleApi } from '../../src/app/api-router';
+import { handleCredits } from '../../src/infrastructure/credits/credit-http';
 
 const buyer: CreditUser = { id: 'b0000000-0000-4000-8000-000000000001', anonymous: false, email: 'buyer@example.test' };
 const guest: CreditUser = { id: 'b0000000-0000-4000-8000-000000000002', anonymous: true, email: null };
@@ -174,4 +175,23 @@ test('the API in test mode: wallet, a pretend checkout through the signed webhoo
     'a deployed Worker never runs test mode');
   assert.equal((await handleApi(new Request('http://x.test/api/credits'), { AI_RATE_LIMITER: env.AI_RATE_LIMITER }))!.status, 503,
     'without a ledger, credits are unavailable rather than free');
+});
+
+test('a refused Stripe request becomes a clear 502 with a secret-free reference, not a silent failure', async () => {
+  const rejected = new Stripe.errors.StripeAuthenticationError({ type: 'authentication_error', code: 'api_key_invalid', message: 'Invalid API Key provided: sk_test_***secret' });
+  const stripe = { checkout: { sessions: { create: async () => { throw rejected; } } } } as unknown as Stripe;
+  const provider = createStripeProvider('sk_test_unused', 'whsec_unused', stripe);
+  const order = { id: 'o1', userId: buyer.id, packId: 'starter', credits: 50, amount: 499, currency: 'usd', provider: 'stripe', providerRef: null, status: 'pending' as const, createdAt: '' };
+  await assert.rejects(provider.checkout(order, links, null, 'Starter'), (e: PaymentProviderError) => e instanceof PaymentProviderError && e.reason === 'authentication_error:api_key_invalid');
+
+  const store = createMemoryCreditStore();
+  const service = createCreditService({ store, providers: [{ ...provider, id: 'stripe' }], requireAccount: false });
+  const runtime: CreditRuntime = { mode: 'live', service, authenticate: async () => buyer, test: null };
+  const response = (await handleCredits(new Request('https://app.test/api/credits/checkout', { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pack: 'starter', returnTo: '/editor.html' }) }), runtime))!;
+  const body = await response.json() as { error: { code: string; reason: string; message: string } };
+  assert.equal(response.status, 502);
+  assert.deepEqual([body.error.code, body.error.reason], ['CHECKOUT_FAILED', 'authentication_error:api_key_invalid']);
+  assert.ok(!JSON.stringify(body).includes('sk_test'), 'the provider message and key never reach the browser');
+  assert.ok(response.headers.get('x-request-id'));
 });

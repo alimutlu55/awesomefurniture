@@ -123,6 +123,12 @@ export interface PaymentProvider {
   webhook(body: string, headers: { get(name: string): string | null }): Promise<PaymentUpdate>;
 }
 
+/** A provider refused or failed a request. `reason` is a short, secret-free code (the provider's error code) for the
+ * operator's logs and the support reference; the provider's own message is never shown to customers. */
+export class PaymentProviderError extends Error {
+  constructor(readonly reason: string) { super('The payment provider could not complete the request.'); }
+}
+
 export class PaymentSignatureError extends Error {
   constructor() { super('The payment notification signature is not valid.'); }
 }
