@@ -6,8 +6,8 @@ API URL: `https://bcsdsuznpgnfyxzsaqzb.supabase.co`.
 
 Anonymous sign-ins are enabled on the hosted project and in `supabase/config.toml`.
 The app restores or creates this identity automatically on landing, stores a design
-session immediately, and autosaves edits. There is no sign-in or account UI, and
-SMTP is not required. All four application tables have RLS and explicit grants;
+session immediately, and autosaves edits. Signing in is optional (the ⋮ menu) and
+needs SMTP and the Auth settings in [accounts.md](accounts.md#setting-it-up). All four application tables have RLS and explicit grants;
 both checked-in migrations are applied.
 
 `src/infrastructure/supabase/project-config.ts` contains the public browser URL
@@ -55,9 +55,9 @@ With anonymous sign-ins enabled, the advisor flags anonymous access policies.
 This is intentional for design persistence: every write still checks ownership,
 and history is visible only to its owner. See the
 [anonymous-policy advisory](https://supabase.com/docs/guides/database/database-advisors?queryGroups=lint&lint=0012_auth_allow_anonymous_sign_ins).
-The advisor also flags the unused password provider's
-[leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection);
-the current flow creates no passwords. Reassess that setting if accounts are added.
+The advisor also flags
+[leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection),
+off for now. Accounts now have passwords: turn it on where the plan allows it.
 
 Set retention and quotas for anonymous identities and full revision snapshots
 before growing usage. Clearing browser storage loses a private anonymous owner's

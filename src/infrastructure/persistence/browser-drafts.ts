@@ -24,6 +24,27 @@ function withoutRetiredCeilings(document: unknown): unknown {
   }) } };
 }
 
+/**
+ * After a guest's designs moved into an account (account_merge), their browser drafts move with them: a draft that was
+ * newer than its saved design keeps its revision and is saved by the account. An account's own draft is never replaced.
+ */
+export function adoptDrafts(storage: Storage, from: string, to: string) {
+  const kinds = ['draft', 'preview', 'deleted'];
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index++) {
+    const key = storage.key(index);
+    if (key && kinds.some(kind => key.startsWith(`wardrobe:${kind}:${from}:`))) keys.push(key);
+  }
+  for (const key of keys) {
+    const moved = key.replace(`:${from}:`, `:${to}:`), value = storage.getItem(key);
+    if (value !== null && storage.getItem(moved) === null) storage.setItem(moved, value);
+    storage.removeItem(key);
+  }
+  const active = storage.getItem(`wardrobe:active:${from}`);
+  if (active) storage.setItem(`wardrobe:active:${to}`, active);
+  storage.removeItem(`wardrobe:active:${from}`);
+}
+
 /** Scoped to the identity. Drafts survive navigation, failures and cloud conflicts. */
 export function createBrowserDrafts(storage: Storage, scope: string) {
   const prefix = `wardrobe:draft:${scope}:`;

@@ -21,6 +21,7 @@
     "check:decors": "node scripts/check-decor-catalog.mjs",
     "check:mobile": "node scripts/check-mobile.cjs",
     "check:designs": "node scripts/check-design-workspace.cjs",
+    "check:accounts": "node scripts/check-account-flows.mjs",
     "check:loading": "node scripts/check-loading-states.mjs && node scripts/check-credit-loading.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
     "agents:guide": "node --import tsx scripts/write-agent-guide.mjs"

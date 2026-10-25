@@ -12,6 +12,8 @@ interface Ports {
   lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void; cleanup(callback: () => void): void };
   toast(message: string): void;
   openWallet(need: WalletNeed): void;
+  /** True (and the sign-in sheet opens) when this is a guest: credits, even free uses, need an account. */
+  needsAccount(): boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ interface Ports {
  * with a short notice; a paid use asks first, on a small card with the price and the balance; too few credits open
  * the wallet on the packs.
  */
-export function bindCreditGate({ client, page, host, lifetime, toast, openWallet }: Ports) {
+export function bindCreditGate({ client, page, host, lifetime, toast, openWallet, needsAccount }: Ports) {
   const card = page.createElement('div');
   card.className = 'cr-overlay cr-confirm'; card.hidden = true;
   card.innerHTML = '<div class="cr-sheet cr-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="cr-confirm-title" tabindex="-1">'
@@ -59,6 +61,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     // Credits are not set up on this server: these features run in the browser, so they stay open.
     if (!client.available) return true;
     if (!feature || !wallet) { toast(creditErrorMessage(null)); return false; }
+    if (needsAccount()) return false;
     const covered = client.pass(key) || feature.freeLeft > 0;
     if (!covered) {
       if (wallet.balance < feature.cost) { openWallet({ feature: key, cost: feature.cost, balance: wallet.balance }); return false; }
@@ -74,7 +77,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     } catch (error) {
       if (error instanceof CreditUserError && error.code === 'INSUFFICIENT_CREDITS') {
         openWallet({ feature: key, cost: error.cost ?? feature.cost, balance: error.balance ?? wallet.balance });
-      } else toast(creditErrorMessage(error));
+      } else if (!(error instanceof CreditUserError && error.code === 'ACCOUNT_REQUIRED' && needsAccount())) toast(creditErrorMessage(error));
       return false;
     }
   }

@@ -14,4 +14,6 @@ export interface CreditWalletPorts {
   toast(message: string): void;
   /** Closes the editor menu the Credits item sits in. */
   closeMenu?(): void;
+  /** Opens signing in or creating an account: credits belong to an account (src/presentation/account). */
+  signIn(): void;
 }

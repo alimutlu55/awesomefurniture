@@ -3,12 +3,11 @@ import type { CreditWallet, OrderConfirmation } from '../../application/credits/
 import type { CreditWalletPorts } from './credit-wallet.ports';
 import { createCreditsClient } from './credits-client';
 import { creditErrorMessage, CreditUserError } from './credit-errors';
-import { bindAccountStep } from './account-step';
 import { bindCreditGate } from './credit-gate';
 import { activityList, coin, featureList, money, packCards, walletShell, worth } from './wallet-markup';
 import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
 
-type View = 'shop' | 'account' | 'activity' | 'wait' | 'done';
+type View = 'shop' | 'activity' | 'wait' | 'done';
 export interface WalletNeed { readonly feature: string; readonly cost: number; readonly balance: number }
 
 const stored = (key: string) => ({
@@ -17,6 +16,8 @@ const stored = (key: string) => ({
 });
 /** The feature a purchase started from, offered again once the credits arrive. */
 const session = stored('wardrobe:credits:resume');
+/** The pack chosen before signing in: the wallet opens on it again once the person is back, signed in. */
+const afterSignIn = stored('wardrobe:credits:after-sign-in');
 /** The order being confirmed: a reload before it settles picks the confirmation up again. */
 const confirming = stored('wardrobe:credits:confirming');
 const ORDER_ID = /^[0-9a-f-]{36}$/;
@@ -31,7 +32,7 @@ const ENDED: Partial<Record<OrderStatus, string>> = {
 };
 
 /** "Credits" with the balance in the editor menu, and the wallet sheet it opens: packs, the email step, checkout and activity. */
-export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = () => {} }: CreditWalletPorts) {
+export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = () => {}, signIn }: CreditWalletPorts) {
   const client = createCreditsClient(platform), page = dom.host.ownerDocument, win = page.defaultView!;
   const still = () => win.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -49,7 +50,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   const $ = <T extends HTMLElement = HTMLElement>(selector: string) => overlay.querySelector<T>(selector)!;
   const sheet = $('.cr-sheet'), balanceEl = $('.cr-balance'), need = $('.cr-need'), packs = $('.cr-packs'), buy = $<HTMLButtonElement>('.cr-buy');
   const error = $('.cr-shop .cr-error'), views: Record<View, HTMLElement> = {
-    shop: $('.cr-shop'), account: $('.cr-account'), activity: $('.cr-activity'), wait: $('.cr-wait'), done: $('.cr-done'),
+    shop: $('.cr-shop'), activity: $('.cr-activity'), wait: $('.cr-wait'), done: $('.cr-done'),
   };
   const resumers = new Map<string, { label: string; run: () => void }>();
   const chipLoading = createLoadingState(chip), packsLoading = createLoadingState(packs), checkoutLoading = createLoadingState(buy);
@@ -157,22 +158,16 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     previousFocus?.focus();
   }
 
+  /** Credits belong to an account: a guest creates one (or signs in) first, and comes back to the pack they chose. */
+  function needsAccount() {
+    const wallet = client.wallet;
+    if (!wallet?.account.required || !wallet.account.anonymous) return false;
+    close(); signIn();
+    return true;
+  }
   async function startCheckout() {
-    let wallet = client.wallet;
-    if (!wallet || !selected || buying) return;
-    if (wallet.account.required && wallet.account.anonymous) {
-      // The email may have been confirmed from its link since this page loaded: read the account again first.
-      buying = true; syncBuy();
-      try { await platform.account.refresh(); wallet = await client.refresh() ?? wallet; } catch { /* still a guest */ }
-      buying = false; syncBuy();
-    }
-    if (wallet.account.required && wallet.account.anonymous) {
-      show('account');
-      bindAccountStep({ section: views.account, account: platform.account, lifetime,
-        verified: () => { void client.refresh().then(() => { show('shop'); void startCheckout(); }, e => { show('shop'); say(creditErrorMessage(e)); }); },
-        back: () => show('shop') }).focus();
-      return;
-    }
+    if (!client.wallet || !selected || buying) return;
+    if (needsAccount()) { afterSignIn.set(selected); return; }
     buying = true; syncBuy(); say(null);
     try { await client.checkout(selected); }
     catch (e) { buying = false; syncBuy(); say(creditErrorMessage(e), e instanceof CreditUserError ? e.reason : null); }
@@ -260,7 +255,11 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   const unsubscribe = client.subscribe(render);
   // Back from the payment page with the browser's Back button: the page is restored as it was left, mid-checkout.
   lifetime.listen(win, 'pageshow', e => { if ((e as PageTransitionEvent).persisted && buying) { buying = false; syncBuy(); } });
-  void client.refresh().catch(() => undefined);
+  const pack = afterSignIn.get();
+  afterSignIn.set(null);
+  void client.refresh().then(wallet => {
+    if (pack && wallet && !wallet.account.anonymous && wallet.packs.some(p => p.id === pack)) { selected = pack; open(); }
+  }, () => undefined);
   const back = platform.returned(), unfinished = confirming.get();
   if (back?.outcome === 'success') void confirmReturn(back.orderId);
   else if (back?.outcome === 'cancel') { session.set(null); toast('Checkout cancelled. You were not charged.'); }
@@ -272,9 +271,9 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     if (!overlay.hidden) page.body.style.overflow = overflow;
     overlay.remove(); chip.remove();
   });
-  const gate = bindCreditGate({ client, page, host: dom.$('#app'), lifetime, toast, openWallet: need => open({ need }) });
+  const gate = bindCreditGate({ client, page, host: dom.$('#app'), lifetime, toast, openWallet: need => open({ need }), needsAccount });
   return {
-    client, open, close, ...gate,
+    client, open, close, ...gate, needsAccount,
     /** What to offer after a purchase that started from this feature ("Create your AI image"). */
     resume(feature: string, label: string, run: () => void) { resumers.set(feature, { label, run }); },
   };

@@ -1,0 +1,30 @@
+/* Accounts: sign in, create an account, the account sheet. Built on the wallet's sheet (credits.css), ac- selectors. */
+.ac-sheet { width: min(100%, 440px); }
+.ac-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; padding-right: 44px; }
+.ac-head h2 { margin: 2px 0 4px; color: var(--cr-ink); font-size: 22px; line-height: 1.2; letter-spacing: -.01em; }
+.ac-head p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--cr-mute); overflow-wrap: anywhere; }
+.ac-avatar { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; color: #8a5a00;
+  background: radial-gradient(circle at 34% 28%, #fff7d1, #f6dd92); box-shadow: inset 0 0 0 1px rgba(201, 138, 18, .25); }
+.ac-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ac-avatar .ac-icon { width: 22px; height: 22px; }
+.ac-sheet .cr-tabs { margin: 0 0 16px; }
+.ac-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 50px; padding: 0 16px;
+  border: 1.5px solid var(--cr-line); border-radius: 14px; background: var(--panel, #fff); color: var(--cr-ink);
+  font-family: inherit; font-size: 15.5px; font-weight: 600; line-height: 1; cursor: pointer; }
+.ac-google:hover:not(:disabled) { border-color: color-mix(in srgb, var(--cr-ink) 30%, var(--cr-line)); }
+.ac-google:disabled { opacity: .6; cursor: default; }
+.ac-google svg { width: 20px; height: 20px; flex: none; }
+.ac-or { display: flex; align-items: center; gap: 12px; margin: 16px 0; font-size: 13px; color: var(--cr-mute); }
+.ac-or::before, .ac-or::after { content: ""; flex: 1; height: 1px; background: var(--cr-line); }
+.ac-form { display: grid; gap: 12px; }
+.ac-form .cr-primary { margin-top: 4px; }
+.ac-form .cr-quiet { margin-top: 0; }
+.ac-hint { margin: -6px 0 0; font-size: 12.5px; color: var(--cr-mute); }
+.ac-account, .ac-welcome { display: grid; gap: 4px; margin-top: 18px; }
+.ac-privacy { margin: 14px 0 0; font-size: 12.5px; line-height: 1.4; text-align: center; color: var(--cr-mute); }
+.ac-sheet[data-view="account"] .ac-privacy, .ac-sheet[data-view="welcome"] .ac-privacy { display: none; }
+#menu .ac-menu-email { margin-left: auto; min-width: 0; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; color: var(--mute); }
+@container (max-width: 620px) {
+  .ac-sheet { width: 100%; }
+}

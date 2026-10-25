@@ -168,7 +168,10 @@ additional_redirect_urls = [
   "https://awesomefurniture.alimutlu535529.workers.dev",
   "https://awesomefurniture.alimutlu535529.workers.dev/editor.html",
   "http://localhost:5173", "http://127.0.0.1:5173",
-  "http://localhost:5173/editor.html", "http://127.0.0.1:5173/editor.html"
+  "http://localhost:5173/editor.html", "http://127.0.0.1:5173/editor.html",
+  # Sign-in returns to the page it started on (docs/accounts.md): every page of each address.
+  "https://awesomefurniture.alimutlu535529.workers.dev/**", "https://awesomefurniture-dev.alimutlu535529.workers.dev/**",
+  "http://localhost:5173/**", "http://127.0.0.1:5173/**"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

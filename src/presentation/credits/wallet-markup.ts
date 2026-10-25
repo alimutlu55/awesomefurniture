@@ -37,7 +37,6 @@ export function walletShell() {
     + '<div class="cr-uses"></div><p class="cr-error" role="alert" hidden></p>'
     + '<button type="button" class="cr-primary cr-buy"><span>Continue</span></button>'
     + `<p class="cr-secure">${LOCK}<span>Secure checkout · Cards, Apple Pay and Google Pay. Credits never expire.</span></p></section>`
-    + '<section class="cr-account" hidden></section>'
     + '<section class="cr-activity" role="tabpanel" hidden></section>'
     + '<section class="cr-wait" hidden><h3>Confirming your payment</h3>'
     + '<p>This takes a few seconds. You can keep this open.</p></section>'
@@ -86,17 +85,4 @@ export function activityList(wallet: CreditWallet) {
     return `<li class="cr-entry cr-entry--${e.delta > 0 ? 'in' : 'out'}">${icon(kind)}<span><b>${escape(title)}</b><small>${day(e.createdAt)}</small></span>`
       + `<span class="cr-delta">${e.delta > 0 ? '+' : '−'}${Math.abs(e.delta)}</span></li>`;
   }).join('') + '</ol>';
-}
-
-export function accountStep(email: string | null) {
-  return `<div class="cr-account-head">${coin('lg')}<div><h3>Keep your credits safe</h3>`
-    + '<p>Credits belong to your account. Add your email once: they stay yours if this browser is cleared, and you can use them on your phone and computer.</p></div></div>'
-    + '<form class="cr-email-form" novalidate><label class="cr-field"><span>Email</span>'
-    + `<input type="email" name="email" autocomplete="email" inputmode="email" required value="${escape(email ?? '')}" placeholder="you@example.com"></label>`
-    + '<button type="submit" class="cr-primary">Email me a code</button>'
-    + '<button type="button" class="cr-quiet cr-confirmed">I already confirmed my email</button></form>'
-    + '<form class="cr-code-form" novalidate hidden><p class="cr-code-note"></p><label class="cr-field"><span>Code</span>'
-    + '<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" required placeholder="12345678"></label>'
-    + '<button type="submit" class="cr-primary">Verify and continue</button><button type="button" class="cr-quiet cr-other-email">Use another email</button></form>'
-    + '<p class="cr-error" role="alert" hidden></p><button type="button" class="cr-quiet cr-account-back">Back to packs</button>';
 }

@@ -14,16 +14,18 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
   on the packs and says what is missing. After the purchase, the success screen offers "Create your AI image".
 - **Technical drawings**: the menu item shows *Free*, *10 ◉* or *Open* (a pass is running). The first set is
   free and opens a 24-hour pass for that design; later designs ask on a small card before taking credits.
-- **Buying**: Continue → (once) the email step → the provider's hosted checkout → back in the editor,
+- **Buying**: Continue → (a guest) create an account or sign in → the provider's hosted checkout → back in the editor,
   "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:
   not completed ("you were not charged"), paid but not credited (a reference to quote, see Operations), refunded or
   disputed. A reload while confirming picks the confirmation up again; after two minutes it carries on quietly for
   half an hour and says "+N credits are in your wallet" when they land.
 
-Buying needs a verified email (`CREDITS_REQUIRE_ACCOUNT`, on by default). Visitors start as anonymous
-Supabase identities; adding an email keeps the same identity (designs and credits included), so paid
-credits survive a cleared browser and reach the person's other devices. An email that already has an
-account signs in to it instead; the open design is copied into that account.
+Credits belong to an account: buying them and using them (the free first drawing set too) needs one
+(`CREDITS_REQUIRE_ACCOUNT`, on by default; the server refuses with `ACCOUNT_REQUIRED`). A guest still sees the
+balance, the packs and the prices; the sign-in sheet opens when they would buy or use credits, and the wallet
+reopens on the chosen pack afterwards. Designing never needs an account. Signing in moves the guest's designs
+and credits into the account, so paid credits survive a cleared browser and reach every device: see
+[accounts.md](accounts.md).
 
 ## Pricing
 
@@ -121,7 +123,7 @@ compares the pre-tax subtotal.
 | HTTP: `/api/credits/*`, `/api/payments/:provider/webhook` | `src/infrastructure/credits/credit-http.ts`, routed by `src/app/api-router.ts` |
 | AI image charge | `src/infrastructure/credits/image-charge.ts`, used by `gemini/design-image-handler.ts` |
 | Wallet UI, gate for paid features | `src/presentation/credits/` |
-| Token, email step, checkout return | `src/app/credit-platform.ts` |
+| Token, checkout return | `src/app/credit-platform.ts`; accounts in [accounts.md](accounts.md) |
 
 ### Adding a paid feature
 
@@ -160,9 +162,8 @@ more `PaymentProvider`.
    `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`,
    `checkout.session.expired`, `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`.
    Its signing secret is `STRIPE_WEBHOOK_SECRET`.
-4. Supabase Auth: set up custom SMTP (the built-in sender allows only a few emails an hour). Put
-   `{{ .Token }}` in the *Change email address* and *Magic link* templates so the email carries the
-   code the wallet asks for.
+4. Supabase Auth: accounts must work first, see [accounts.md](accounts.md#setting-it-up) (SMTP, email
+   templates with the code, Google, redirect URLs).
 5. Stripe turns **Managed Payments** (Stripe as the seller, which needs a tax code on each product) on by default
    for new accounts. This app turns it off for its checkouts, which is how the prices were worked out: you are
    the seller. To use it instead, set `STRIPE_MANAGED_PAYMENTS=true`, add a `tax_code` to the product in
@@ -188,7 +189,7 @@ webhook on its own.
 
 Without `SUPABASE_SECRET_KEY`, `npm run dev` runs credits in **test mode**: the ledger is in memory (gone on
 restart), and Continue opens a pretend checkout on this server, whose Pay goes through the same signed
-webhook path as Stripe. `CREDITS_REQUIRE_ACCOUNT=false` skips the email step. `AI_MOCK_DELAY_MS` with
+webhook path as Stripe. `CREDITS_REQUIRE_ACCOUNT=false` lets guests buy and use credits. `AI_MOCK_DELAY_MS` with
 `LOG_LEVEL=debug` makes mock images quick. With the secret and Stripe test keys in `.env.local`, the dev
 server uses the real ledger instead (`stripe listen --forward-to localhost:5173/api/payments/stripe/webhook`
 for webhooks).
@@ -197,10 +198,9 @@ for webhooks).
 
 - Technical drawings are made in the browser, so their charge is a gate in the editor, not enforced on the
   server. The pass's design id comes from the browser too.
-- The first free drawing set is per identity; someone clearing their browser gets a new guest identity and
-  another free set. A CAPTCHA on guest sign-in (Supabase supports Cloudflare Turnstile) would close that.
+- The first free drawing set is per account. Someone could create several accounts for several free sets; each
+  needs a confirmed email.
 - Free uses and passes are not in the Activity list: it lists balance changes only.
 - One currency (USD). Prices in other currencies are more `CREDIT_PACKS` entries with a currency each.
-- The email step's sending and verifying of codes was not run against a real inbox during development.
 - The debug image mock can be turned on by any browser (`X-Debug-Mode`, older than credits). With a live
   ledger it refunds itself, so nobody is charged for it, but it should be limited to development.

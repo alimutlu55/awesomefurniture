@@ -25,6 +25,8 @@ import { imageDesignSpecification } from '../../application/projects/image-desig
 import { bindDesignImageViewer } from '../ai/design-image-viewer';
 import { bindCreditWallet } from '../credits/credit-wallet';
 import type { CreditsPlatform } from '../credits/credits.ports';
+import { bindAccount } from '../account/account-sheet';
+import type { AccountPlatform } from '../account/account.ports';
 import { DesignImageUserError } from '../ai/design-image-errors';
 import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
@@ -53,7 +55,7 @@ import { createShapeInspector } from './shape-inspector';
 import { mountExperience } from '../experience/experience';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
-    creditsPlatform?: CreditsPlatform) {
+    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform) {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -190,9 +192,12 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
-        // The coin balance and wallet; paid features ask it before they run.
-        const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform,
+        // Signing in, first in the menu; the coin balance and wallet, whose credits need an account.
+        const account = accountPlatform ? bindAccount({ dom, lifetime, platform: accountPlatform,
             toast: message => shell.toast(message), closeMenu: () => shell.closeDD() }) : null;
+        const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform,
+            toast: message => shell.toast(message), closeMenu: () => shell.closeDD(),
+            signIn: () => account?.open({ reason: 'credits' }) }) : null;
         const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
         bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);

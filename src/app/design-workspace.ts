@@ -7,8 +7,8 @@ import type { OpenDesign } from '../application/projects/design-collection';
 import { projectToScene } from '../application/projects/editor-mapper';
 import { connectSessions } from './session-platform';
 import type { SessionPlatform } from './session-bootstrap';
-import { sceneToProject } from '../application/projects/editor-mapper';
 import { createCreditPlatform, type CheckoutReturn } from './credit-platform';
+import { createAccountPlatform } from './account-platform';
 import { createLoadingState, paintLoading } from '../presentation/components/loading-state';
 
 interface WorkspaceOptions {
@@ -33,8 +33,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   const previewCache = new Map<string, string>();
   const credits = createCreditPlatform(platform, {
     designId: () => currentId,
-    document: () => mounted ? sceneToProject(current.draft.document, mounted.scene()) : null,
   }, checkout);
+  const account = createAccountPlatform(platform);
   const transition = createLoadingState(root);
   function ordered<T>(work: () => Promise<T>): Promise<T> {
     const operation = pending.catch(() => undefined).then(async () => {
@@ -89,7 +89,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     root.hidden = false;
     let connection: ReturnType<typeof connectSessions> | null = null;
     const editor = mountEditor({
-      root, initialScene:projectToScene(design.draft.document), credits,
+      root, initialScene:projectToScene(design.draft.document), credits, account,
       onBack: () => {
         if (transition.active) return;
         transition.start();

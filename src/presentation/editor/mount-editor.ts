@@ -22,6 +22,8 @@ import designImageStylesheet from '../ai/design-image.css?raw';
 import designImageLoadingStylesheet from '../ai/design-image-loading.css?raw';
 import creditsStylesheet from '../credits/credits.css?raw';
 import type { CreditsPlatform } from '../credits/credits.ports';
+import accountStylesheet from '../account/account.css?raw';
+import type { AccountPlatform } from '../account/account.ports';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
@@ -33,11 +35,13 @@ export interface MountEditorOptions {
     onBack?: (() => void) | undefined;
     /** Given, the toolbar shows the credit balance and paid features charge credits (src/app/credit-platform.ts). */
     credits?: CreditsPlatform | undefined;
+    /** Given, the menu offers signing in and creating an account (src/app/account-platform.ts). */
+    account?: AccountPlatform | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack, credits }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits, account }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -48,14 +52,14 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits }: 
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
-        creditsStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet].join('\n'), controlIds);
+        creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);
     const dom = createEditorDom(shadow);
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom, shareLink, credits);
+        editor = startEditor(initialScene, dom, shareLink, credits, account);
         if (onBack) {
             dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
             const back = dom.$('#designs-back');

@@ -4,13 +4,14 @@ The editor UI stays unchanged. A visitor lands on the page, an anonymous Supabas
 identity is restored or created, and a design session is stored automatically.
 Edits autosave. Returning to the same browser restores its active session. The
 existing three-dot menu's Share design action saves and copies `?session=<id>`.
-There are no login, session-management, publish, or follow controls.
+Signing in is optional and offered in the same menu; it moves the guest's designs into
+the account (see [accounts.md](accounts.md)). There are no publish or follow controls.
 
 ## Data structure
 
 | Entity | Responsibility |
 | --- | --- |
-| `auth.users` | Persistent anonymous ownership, without email or password |
+| `auth.users` | Guests (anonymous, no email) and accounts (email and password, or Google) |
 | `design_sessions` | Stable session ID, owner, visibility, revision, complete design |
 | `session_revisions` | Immutable snapshots, readable only by the owner |
 | `session_follows`, `creator_follows` | Reserved relationships for future features; no current UI |
@@ -56,8 +57,10 @@ No new UI is needed for these background operations.
 
 Anonymous ownership survives normal reloads. Clearing browser storage loses its
 private write identity; a shared link still grants read access, never ownership.
-Future accounts can link to that same anonymous identity when the product calls
-for cross-device ownership. Email/SMTP is not needed for the current flow.
+Signing in to an account moves everything the guest owns into it with
+`account_merge`, the one place a design's owner may change; an account's designs
+survive a cleared browser and open on every device. Accounts need SMTP for their
+email codes ([accounts.md](accounts.md)).
 
 ## Future extensions
 

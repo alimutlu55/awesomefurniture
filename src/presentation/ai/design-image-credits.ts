@@ -30,8 +30,9 @@ export function bindImageCredits({ credits, dialog, lifetime, reopen }: Ports) {
   }
   const need = (cost: number, balance: number) => credits?.open({ need: { feature: FEATURE, cost, balance } });
   return {
-    /** True when the wallet holds too little: it opens on the packs instead of a request that would be refused. */
+    /** True when it cannot run now: a guest is asked to sign in, and a short wallet opens on the packs. */
     short() {
+      if (credits?.needsAccount()) return true;
       const feature = credits?.client.feature(FEATURE), wallet = credits?.client.wallet;
       if (!feature || !wallet || wallet.balance >= feature.cost) return false;
       need(feature.cost, wallet.balance);
@@ -40,8 +41,9 @@ export function bindImageCredits({ credits, dialog, lifetime, reopen }: Ports) {
     /** One idempotency key per attempt: a retried request is never charged twice. */
     headers: async () => credits ? credits.client.headers({ 'Idempotency-Key': crypto.randomUUID() }) : {},
     paid(output: DesignImageResponse) { if (output.credits) credits?.client.balance(output.credits.balance); },
-    /** True when the server refused for lack of credits: the wallet is opened and no error is shown. */
+    /** True when the server refused for lack of credits or of an account: the wallet or sign-in opens, no error shows. */
     refused(error: unknown) {
+      if (credits && error instanceof DesignImageUserError && error.code === 'ACCOUNT_REQUIRED') return credits.needsAccount();
       if (!credits || !(error instanceof DesignImageUserError) || error.code !== 'INSUFFICIENT_CREDITS') return false;
       const fallback = { cost: credits.client.feature(FEATURE)?.cost ?? 0, balance: 0 };
       const { cost, balance } = error.credits ?? fallback;

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { AccountError, mergeGuest, type AccountStore, type Identity } from '../../src/application/account/account-merge';
 import { handleAccount, type AccountRuntime } from '../../src/infrastructure/account/account-http';
 import { handleApi } from '../../src/app/api-router';
+import { handOver, rememberGuest } from '../../src/infrastructure/account/guest-handover';
+import { adoptDrafts } from '../../src/infrastructure/persistence/browser-drafts';
 
 const guest: Identity = { id: 'a0000000-0000-4000-8000-000000000001', anonymous: true, email: null };
 const account: Identity = { id: 'a0000000-0000-4000-8000-000000000002', anonymous: false, email: 'person@example.test' };
@@ -61,4 +63,60 @@ test('without the server secret, merging answers 503 so the browser keeps the gu
     headers: { 'content-type': 'application/json' }, body: '{}' }), { AI_RATE_LIMITER: { async limit() { return { success: true }; } } }))!;
   assert.equal(response.status, 503);
   assert.equal((await response.json() as { error: { code: string } }).error.code, 'ACCOUNTS_UNAVAILABLE');
+});
+
+function memoryStorage(): Storage {
+  const values = new Map<string, string>();
+  return { get length() { return values.size; }, key: i => [...values.keys()][i] ?? null, getItem: k => values.get(k) ?? null,
+    setItem: (k, v) => { values.set(k, String(v)); }, removeItem: k => { values.delete(k); }, clear: () => values.clear() };
+}
+const sessionOf = (id: string, anonymous: boolean) => ({ user: { id, is_anonymous: anonymous }, access_token: `token-${id}`,
+  refresh_token: `refresh-${id}`, expires_at: Math.floor(Date.now() / 1000) + 3600 });
+function fakeClient(session: ReturnType<typeof sessionOf> | null) {
+  return { auth: { getSession: async () => ({ data: { session } }) } } as never;
+}
+
+test('the guest browser drafts move to the account; drafts the account already has are never replaced', () => {
+  const storage = memoryStorage();
+  storage.setItem(`wardrobe:draft:${guest.id}:d1`, 'guest d1');
+  storage.setItem(`wardrobe:draft:${guest.id}:d2`, 'guest d2');
+  storage.setItem(`wardrobe:preview:${guest.id}:d1`, 'image');
+  storage.setItem(`wardrobe:active:${guest.id}`, 'd1');
+  storage.setItem(`wardrobe:draft:${account.id}:d2`, 'account d2');
+  adoptDrafts(storage, guest.id, account.id);
+  assert.equal(storage.getItem(`wardrobe:draft:${account.id}:d1`), 'guest d1');
+  assert.equal(storage.getItem(`wardrobe:draft:${account.id}:d2`), 'account d2');
+  assert.equal(storage.getItem(`wardrobe:preview:${account.id}:d1`), 'image');
+  assert.equal(storage.getItem(`wardrobe:active:${account.id}`), 'd1', 'the design that was open opens again');
+  assert.equal([...Array(storage.length)].map((_, i) => storage.key(i)).filter(k => k?.includes(guest.id)).length, 0);
+});
+
+test('after signing in, the remembered guest is handed over once; a failure keeps it for the next start', async () => {
+  const project = { url: 'https://project.test', key: 'sb_publishable_test' };
+  const storage = memoryStorage(), calls: { auth: string | null; body: string }[] = [];
+  const answer = (status: number, body: unknown): typeof fetch => async (_url, init) => {
+    calls.push({ auth: new Headers(init?.headers).get('authorization'), body: String(init?.body) });
+    return Response.json(body, { status });
+  };
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(200, {})), { status: 'none' }, 'nothing remembered');
+  await rememberGuest(fakeClient(sessionOf(guest.id, true)), storage);
+  assert.deepEqual(await handOver(fakeClient(sessionOf(guest.id, true)), project, storage, answer(200, {})), { status: 'none' },
+    'still the same guest: signing in is not finished');
+  storage.setItem(`wardrobe:draft:${guest.id}:d1`, 'guest d1');
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(503, { error: { code: 'ACCOUNTS_UNAVAILABLE' } })),
+    { status: 'pending' });
+  assert.equal(storage.getItem(`wardrobe:draft:${guest.id}:d1`), 'guest d1', 'nothing moves until the server has moved the designs');
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(200, { designs: 2, credits: 0 })),
+    { status: 'merged', designs: 2, credits: 0 });
+  assert.equal(calls.at(-1)!.auth, `Bearer token-${account.id}`);
+  assert.equal(JSON.parse(calls.at(-1)!.body).guest, `token-${guest.id}`);
+  assert.equal(storage.getItem(`wardrobe:draft:${account.id}:d1`), 'guest d1');
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(200, { designs: 9, credits: 0 })), { status: 'none' },
+    'handed over once');
+  await rememberGuest(fakeClient(sessionOf(guest.id, true)), storage);
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(401, { error: { code: 'GUEST_REQUIRED' } })),
+    { status: 'lost' });
+  assert.deepEqual(await handOver(fakeClient(sessionOf(account.id, false)), project, storage, answer(200, {})), { status: 'none' }, 'a lost guest is forgotten');
+  await rememberGuest(fakeClient(sessionOf(account.id, false)), storage);
+  assert.equal(storage.getItem('wardrobe:account:guest'), null, 'an account is never remembered as a guest');
 });

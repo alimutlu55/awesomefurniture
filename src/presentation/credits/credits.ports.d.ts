@@ -8,16 +8,4 @@ export interface CreditsPlatform {
   redirect(url: string): void;
   /** A checkout that just sent the person back to the editor, read once at start. */
   returned(): { orderId: string; outcome: 'success' | 'cancel' } | null;
-  account: CreditAccount;
-}
-
-export interface CreditAccount {
-  /** The email of a verified account, or null for a guest. */
-  email(): string | null;
-  /** Reads the account again from the server: an email confirmed from the link in the email counts at once. */
-  refresh(): Promise<void>;
-  /** Emails a code. `link` keeps this guest's designs and credits under the email; `sign-in` opens an existing account. */
-  sendCode(email: string): Promise<'link' | 'sign-in'>;
-  /** Checks the code. After `sign-in` the page reloads into that account, with this design copied into it. */
-  verify(email: string, code: string, mode: 'link' | 'sign-in'): Promise<void>;
 }

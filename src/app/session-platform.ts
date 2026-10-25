@@ -44,7 +44,8 @@ export function connectSessions(platform: SessionPlatform, editor: ReturnType<ty
   }
   // Background failures stay quiet. Autosave keeps the browser draft and the next tick retries.
   const tick = () => {
-    if (!disposed) void ordered(flush).catch(() => undefined);
+    // After signing in or out (here or in another tab) the old identity can no longer save; the page reloads.
+    if (!disposed && !platform.switched?.()) void ordered(flush).catch(() => undefined);
   };
   const ready = ordered(flush).catch(() => undefined); // Creates the stored design as soon as the editor lands.
   const timer = window.setInterval(tick, 2500);

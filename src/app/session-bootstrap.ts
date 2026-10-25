@@ -1,12 +1,18 @@
 import { createBrowserSupabase } from '../infrastructure/supabase/client';
 import { createBrowserDrafts } from '../infrastructure/persistence/browser-drafts';
 import { loadPublicSession, SupabaseProjectRepository } from '../infrastructure/supabase/project-repository';
+import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
+import { handOver, refreshGuest, type Handover } from '../infrastructure/account/guest-handover';
 import { createProject } from '../domain/project/project';
 import type { SessionDraft } from '../application/projects/session-autosave';
 
-/** A persistent anonymous identity owns the design; no account screen is required. */
+/**
+ * A persistent anonymous identity owns the design until the person signs in; no account is required to design. After
+ * signing in, the guest's designs and credits are moved into the account before any design is loaded.
+ */
 export async function prepareSession(url: URL) {
-  const client = createBrowserSupabase(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+  const project = resolveSupabaseProject(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+  const client = createBrowserSupabase(project.url, project.publishableKey);
   async function identity() {
     if (!client) return null;
     const { data, error } = await client.auth.getSession();
@@ -23,6 +29,15 @@ export async function prepareSession(url: URL) {
     user = navigator.locks
       ? await navigator.locks.request('wardrobe-identity', identity) : await identity();
   } catch { warning = 'Cloud saving is unavailable. Your design can still be edited in this browser.'; }
+  const handover: Handover = client && user ? await handOver(client, { url: project.url, key: project.publishableKey }, localStorage) : { status: 'none' };
+  if (handover.status === 'pending') warning = 'Your designs from before you signed in are still being moved to your account. They will appear the next time you open the editor.';
+  if (handover.status === 'lost') warning = 'This browser\'s earlier guest session had ended, so its designs could not be moved to your account.';
+  // Another tab signed in or out: this one stops saving as the old identity and reloads (src/app/account-platform.ts).
+  let switched = false;
+  client?.auth.onAuthStateChange((event, session) => {
+    if (user && (session?.user.id ?? null) !== user.id) switched = true;
+    if (event === 'TOKEN_REFRESHED' && session?.user.is_anonymous) refreshGuest(localStorage, session);
+  });
   const repository = client && user ? new SupabaseProjectRepository(client, user.id) : null;
   const drafts = createBrowserDrafts(localStorage, user?.id ?? 'guest');
   const hasInline = /(?:^#|&)(?:design|spec)=/.test(url.hash);
@@ -40,6 +55,9 @@ export async function prepareSession(url: URL) {
     if (owned) {
       draft = drafts.read(requestedId) ?? { document: owned.document, expectedRevision: owned.revision };
       saved = draft.expectedRevision === owned.revision && JSON.stringify(draft.document) === JSON.stringify(owned.document);
+    } else if (!draft && handover.status === 'pending') {
+      // The design is still the guest's until the move finishes: open the account's own work meanwhile.
+      draft = drafts.read();
     } else if (!draft) {
       const shared = await loadPublicSession(client, requestedId);
       // The recipient sees the shared design but edits an independently owned session.
@@ -66,6 +84,6 @@ export async function prepareSession(url: URL) {
     }
   }
   draft ??= { document: createProject(crypto.randomUUID(), 'Untitled design'), expectedRevision: null };
-  return { client, user, repository, drafts, draft, saved, warning };
+  return { client, user, repository, drafts, draft, saved, warning, handover, switched: () => switched };
 }
 export type SessionPlatform = Awaited<ReturnType<typeof prepareSession>>;

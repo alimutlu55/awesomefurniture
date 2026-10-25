@@ -128,10 +128,6 @@
 .cr-secure svg { width: 14px; height: 14px; flex: none; }
 .cr-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; font-size: 14px; color: #9b2c22; background: rgba(214, 56, 58, .09); }
 
-.cr-account-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
-.cr-account-head h3 { margin: 4px 0 4px; font-size: 22px; letter-spacing: -.01em; }
-.cr-account-head p, .cr-code-note { margin: 0; font-size: 14px; line-height: 1.45; color: var(--cr-mute); }
-.cr-code-note { margin-bottom: 12px; }
 .cr-field { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--cr-mute); }
 .cr-field input {
   width: 100%; min-height: 50px; padding: 0 14px; border: 1.5px solid var(--cr-line); border-radius: 14px;
@@ -200,5 +196,5 @@
 
 .cr-wait > .ui-placeholder{width:100%;max-width:340px}.cr-packs > .ui-placeholder{grid-column:1/-1;width:100%}
 
-.cr-sheet section, .cr-sheet form, .cr-account-head > div, .cr-hero-copy { min-width: 0; }
-.cr-account-head p, .cr-code-note, .cr-need, .cr-error { overflow-wrap: anywhere; }
+.cr-sheet section, .cr-sheet form, .ac-head > div, .cr-hero-copy { min-width: 0; }
+.cr-need, .cr-error { overflow-wrap: anywhere; }
