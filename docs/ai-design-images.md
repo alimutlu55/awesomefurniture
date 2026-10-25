@@ -52,16 +52,36 @@ When complete, the generated photograph is revealed with one-tap image saving an
 The app keeps the result only in the mounted editor's memory; download it before leaving the design.
 Generated images are visualizations and may differ from precise construction geometry.
 
-The server calls `buildSystemInstruction(config)` in `src/infrastructure/gemini/design-image-prompt.ts`
-with category, staging level (1, 2 or 3), `hasIntegratedLed` and `hasCeilingBulkhead`. Optional
-`renderConfig` supplies these settings; its category must match the configured furniture. Without
-it, category follows the furniture product (kitchen if any kitchen unit exists, otherwise wardrobe),
-staging defaults to Level 2, and both flags default to false. The current editor uses these defaults;
-it has no staging, LED or bulkhead controls. Only the active category, staging and lighting/ceiling
-rules reach Gemini. Rug styling appears only at Level 3. The photographic anchor is Architectural
-Digest editorial quality with a Phase One IQ4 and 28–35 mm tilt-shift lens. Tier 1 locks the selected
-finishes and joinery; Tier 2 completes the room and removes CAD artifacts. Shadow-free reference
-captures communicate finishes; the photograph receives natural shadows and lighting.
+Each look in the Generate image dialog has its own prompt, chosen by `renderConfig.style`
+(`RENDER_STYLES` in `src/application/projects/design-image.ts`; omitted means `realistic`).
+`STYLE_PROMPTS` in `src/infrastructure/gemini/design-image-styles.ts` holds, per look, the front
+reference label, the system instruction and the text that opens and closes the final block. The
+left/right labels, the Tier 1 manifest (`serializeConfigurationSummary`), the board swatches, the
+model, `thinking_level: high` and the 2K 4:3 JPEG output are shared, so every look keeps the
+same geometry and finish locks.
+
+| Look | File | Direction |
+|---|---|---|
+| Realistic photo | `design-image-prompt.ts` | Lived-in editorial interior photograph: Architectural Digest standard, Phase One IQ4 with a 28–35 mm tilt-shift lens, completed plaster and oak room, off-camera daylight, staging level 1–3. |
+| Studio look | `studio-image-prompt.ts` | High-key catalogue product photograph: the joinery alone in a minimal warm-white set with a pale floor, large softbox key at 5000K for true-to-swatch colour, deep depth of field, tonal contents, an empty floor. |
+| Concept render | `concept-image-prompt.ts` | Architect's presentation illustration: ruled ink linework with a weight hierarchy over light watercolour washes in the finishes' true hues, the room fading into white paper, no text or annotations. |
+
+All three instructions follow the same structure (camera and perspective, Tier 1 locked
+geometry and finishes, Tier 2 completion of the unfinished capture, Tier 3 forbidden inventions,
+styling, lighting). Following Google's guidance for Gemini image models, they name the medium
+first, describe the scene as prose, state what must stay unchanged, and say what the image is
+(and is not: the studio set has no props on the floor, the concept is "not a photograph or a CGI
+render").
+
+`renderConfig` carries category, style, staging level (1, 2 or 3), `hasIntegratedLed` and
+`hasCeilingBulkhead`; its category must match the configured furniture. Without it, category
+follows the furniture product (kitchen if any kitchen unit exists, otherwise wardrobe), the look
+is realistic, staging is Level 2, and both flags are false. The staging level shapes only the
+realistic photograph; the studio and concept looks set their own restrained styling. The editor
+sends the chosen look with staging Level 2 and has no staging, LED or bulkhead controls. Only the
+active look, category, staging and lighting/ceiling rules reach Gemini; rug styling appears only
+in a realistic Level 3 photograph. Shadow-free reference captures communicate finishes; each look
+adds its own light and shading.
 
 While generation runs, an animated sparkle and light trails show the waiting state; the reference preview returns after generation. The two progress labels reflect capture and the pending image request;
 the animation does not estimate a completion percentage. Decorative captions rotate, with

@@ -240,10 +240,10 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
 
     if (pay.short()) return;
     const category = renderCategory(prepared.specification);
-    const stagingLevel: 1 | 2 | 3 = style === 'studio' ? 1 : style === 'concept' ? 3 : 2;
+    // Each style has its own prompt on the server; the staging level only shapes the realistic photo.
     const input: DesignImageRequest = {
       ...prepared,
-      renderConfig: { category, stagingLevel },
+      renderConfig: { category, style, stagingLevel: 2 },
     };
 
     const request = new AbortController();

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { materialsSchema } from '../serialization/materials-schema';
 import { selectedDecors } from '../../application/projects/selected-decors';
-import { IMAGE_VIEWS, DESIGN_REFERENCE_WIDTH, DESIGN_REFERENCE_HEIGHT } from '../../application/projects/design-image.ts';
+import { IMAGE_VIEWS, RENDER_STYLES, DESIGN_REFERENCE_WIDTH, DESIGN_REFERENCE_HEIGHT } from '../../application/projects/design-image.ts';
 import { renderCategory } from '../../application/projects/configuration-summary.ts';
 import { FITTINGS } from '../../domain/wardrobe/fittings.ts';
 import { PURPOSES } from '../../domain/wardrobe/purposes.ts';
@@ -41,7 +41,7 @@ const specification = z.looseObject({
 export const designImageRequestSchema = z.strictObject({
   specification,
   renderConfig: z.strictObject({
-    category: z.enum(['wardrobe', 'kitchen']), stagingLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+    category: z.enum(['wardrobe', 'kitchen']), style: z.enum(RENDER_STYLES).optional(), stagingLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]),
     hasIntegratedLed: z.boolean().optional(), hasCeilingBulkhead: z.boolean().optional(),
   }).optional(),
   references: z.array(z.strictObject({

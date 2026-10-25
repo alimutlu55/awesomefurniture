@@ -1,4 +1,6 @@
-export type ImageStyle = 'realistic' | 'studio' | 'concept';
+import type { RenderStyle } from '../../application/projects/design-image';
+
+export type ImageStyle = RenderStyle;
 
 export const IMAGE_STYLES: ReadonlyArray<{
   value: ImageStyle;

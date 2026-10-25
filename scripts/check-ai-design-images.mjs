@@ -77,6 +77,9 @@ try {
     await page.screenshot({ path: `${output}/${kind}-references-mobile.png` });
     await page.setViewportSize({ width: 1440, height: 1000 });
 
+    // Each fixture generates a different look, so every style is shown to reach the server.
+    const style = (['realistic', 'studio', 'concept'])[index];
+    await dialog.locator(`.ai-style-option[data-style="${style}"]`).click();
     const requested = page.waitForRequest('**/api/design-images', { timeout: 60_000 });
     await generateBtn.click();
     await requested;
@@ -104,6 +107,7 @@ try {
     assert.equal(await dialog.locator('.ai-model-text').isVisible(), false, 'agent text is ignored and not shown to user');
     assert.equal(calls, index + 1);
     assert.equal(body.references.length, 3);
+    assert.equal(body.renderConfig.style, style, 'the chosen look is sent with the request');
     assert.deepEqual((body.decorSwatches ?? []).map(swatch => swatch.data), reviewedImages.slice(3), 'manufacturer swatches match the preview');
     assert.deepEqual(body.references.map(ref => ref.data), reviewedImages.slice(0, 3), 'generation submits the exact images reviewed before clicking Generate');
     assert.deepEqual(JSON.parse(reviewedJSON), JSON.parse(JSON.stringify(modelSpecification(body.specification))), 'preview matches the design snapshot retained by the app');

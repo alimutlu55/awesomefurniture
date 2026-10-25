@@ -13,6 +13,7 @@ import worker from '../../src/app/worker';
 import { requestDesignImage } from '../../src/presentation/ai/design-image-client';
 import { designImageErrorMessage, DesignImageUserError } from '../../src/presentation/ai/design-image-errors';
 import { buildSystemInstruction } from '../../src/infrastructure/gemini/design-image-prompt';
+import { STYLE_PROMPTS } from '../../src/infrastructure/gemini/design-image-styles';
 import { serializeConfigurationSummary } from '../../src/application/projects/configuration-summary';
 import { defaultMaterials } from '../../src/domain/materials/configured-materials';
 
@@ -152,6 +153,69 @@ test('all render configurations prune inactive category, staging, LED and ceilin
   }
 });
 
+test('studio and concept looks send their own instructions, labels and request, never the realistic photograph', async () => {
+  for (const style of ['studio', 'concept'] as const) for (const category of ['wardrobe', 'kitchen'] as const) {
+    for (const hasIntegratedLed of [false, true]) for (const hasCeilingBulkhead of [false, true]) {
+      const prompts = new Set<string>();
+      for (const stagingLevel of [1, 2, 3] as const) {
+        const input = fixture();
+        if (category === 'kitchen') input.specification.design.furniture = input.specification.design.furniture.map(piece => ({ ...piece, product: 'kitchen' }));
+        input.renderConfig = { category, style, stagingLevel, hasIntegratedLed, hasCeilingBulkhead };
+        let calls = 0;
+        const response = await handleDesignImage(request(input), environment, async (_url, init) => {
+          calls++;
+          const body = JSON.parse(String(init?.body)), prompt: string = body.system_instruction.replace(/\s+/g, ' ');
+          prompts.add(body.system_instruction);
+          assert.equal(body.system_instruction, STYLE_PROMPTS[style].systemInstruction(input.renderConfig!));
+          assert.notEqual(body.system_instruction, buildSystemInstruction({ ...input.renderConfig!, style: 'realistic' }));
+          assert.doesNotMatch(prompt, /Architectural Digest|Phase One|Editorial Interior Photographer|Level [123]|\brug\b|oak flooring/);
+          assert.match(prompt, /TIER 1 — LOCKED/);
+          assert.match(prompt, /customer-specified materials, colors, and finishes explicitly listed in the user prompt/);
+          assert.match(prompt, /protruding wall-base strips/);
+          if (style === 'studio') {
+            assert.match(prompt, /^You are a commercial furniture photographer/);
+            assert.match(prompt, /high-key studio product photograph.*5000K neutral white/);
+          } else {
+            assert.match(prompt, /^You are an architectural illustrator/);
+            assert.match(prompt, /ink linework with soft, translucent watercolor washes.*not a photograph or a CGI render/);
+            assert.match(prompt, /No text, labels, dimensions/);
+          }
+          assert.equal(/LED strips (under|glow)|Show the concealed LED strips/.test(prompt), hasIntegratedLed);
+          assert.equal(prompt.includes('flush bulkhead/fascia'), hasCeilingBulkhead);
+          assert.equal(prompt.includes('open top clearance'), !hasCeilingBulkhead);
+          if (category === 'wardrobe') assert.doesNotMatch(prompt, /kitchen|worktop|ceramics|bowls/i);
+          else assert.doesNotMatch(prompt, /garments|hangers|folded stacks/);
+          const labels: string[] = body.input.filter((part: { type: string }) => part.type === 'text').slice(0, 3).map((part: { text: string }) => part.text);
+          assert.deepEqual(labels, IMAGE_VIEWS.map(view => STYLE_PROMPTS[style].referenceLabels[view]));
+          const [front = '', left = ''] = labels;
+          assert.match(front, /Image 1 as the strict camera and TIER 1 structural reference/);
+          assert.match(front, style === 'studio' ? /minimal studio set/ : /fade softly into the white paper/);
+          assert.match(left, /Image 2 \(left supporting view\).*SAME design.*do not adopt its camera angle/);
+          const finalText: string = body.input.at(-1).text;
+          assert.ok(finalText.startsWith(STYLE_PROMPTS[style].request) && finalText.endsWith(STYLE_PROMPTS[style].completion));
+          assert.match(finalText, /TIER 1 Locked Finishes[\s\S]*TIER 1 Module Breakdown/);
+          assert.doesNotMatch(finalText, /realistic 2K interior photograph|continuous oak flooring|directional off-camera daylight/);
+          return completed();
+        });
+        assert.equal(response.status, 200, JSON.stringify(input.renderConfig));
+        assert.equal(calls, 1);
+      }
+      assert.equal(prompts.size, 1, 'the staging level shapes only the realistic photograph');
+    }
+  }
+});
+
+test('the realistic look is the default when no style is sent', async () => {
+  const bodies: string[] = [];
+  for (const style of [undefined, 'realistic'] as const) {
+    const input = fixture();
+    input.renderConfig = { category: 'wardrobe', stagingLevel: 2, ...(style ? { style } : {}) };
+    await handleDesignImage(request(input), environment, async (_url, init) => { bodies.push(String(init?.body)); return completed(); });
+  }
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[0], bodies[1]);
+});
+
 test('category defaults follow furniture, and invalid render options or manifest state never reach the provider', async () => {
   const kitchen = fixture();
   kitchen.specification.design.furniture = kitchen.specification.design.furniture.map(piece => ({ ...piece, product: 'kitchen' }));
@@ -170,6 +234,7 @@ test('category defaults follow furniture, and invalid render options or manifest
     { category: 'wardrobe', stagingLevel: 2, hasIntegratedLed: 'false' },
     { category: 'wardrobe', stagingLevel: 2, hasCeilingBulkhead: 1 },
     { category: 'kitchen', stagingLevel: 2 }, { category: 'bedroom', stagingLevel: 2 },
+    { category: 'wardrobe', stagingLevel: 2, style: 'watercolor' }, { category: 'wardrobe', stagingLevel: 2, style: null },
   ]) {
     const invalid = { ...fixture(), renderConfig };
     assert.equal((await handleDesignImage(request(invalid), environment, async () => { calls++; return completed(); })).status, 400);

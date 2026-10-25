@@ -83,3 +83,13 @@ cabinet bays. Do not render a visible window.
 3. Physical Realism: Crisp contact shadows where the cabinet base meets the floor, accurate micro-contrast on matte surfaces,
 and zero plastic 3D shader sheen.`;
 }
+
+/** Opens the final text block; the Tier 1 manifest follows it. */
+export const REALISTIC_REQUEST = 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
+  + 'and Images 2 and 3 only for supporting details.';
+
+/** Closes the final text block, after the Tier 1 manifest. */
+export const REALISTIC_COMPLETION = '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
+  + 'continuous oak flooring, and soft directional off-camera daylight. '
+  + 'Remove protruding floor-base strips and complete cropped background geometry. '
+  + 'Include a brief text description of the result mentioning the applied manufacturer board SKUs and surface structures.';

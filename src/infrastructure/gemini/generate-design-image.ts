@@ -2,7 +2,7 @@ import { IMAGE_VIEWS, type DecorSwatchReference, type DesignReferenceImage, type
 import { decorSwatchInputs } from './decor-swatch-inputs';
 import { renderCategory, serializeConfigurationSummary, type ConfigurationForImage } from '../../application/projects/configuration-summary.ts';
 import { generatedImageData } from './design-image-contract.ts';
-import { GEMINI_DESIGN_IMAGE_REFERENCE_LABELS, buildSystemInstruction } from './design-image-prompt.ts';
+import { stylePrompt } from './design-image-styles.ts';
 import { ImageGenerationError } from './image-generation-error.ts';
 
 export { ImageGenerationError };
@@ -61,23 +61,19 @@ export async function generateDesignImage(
 ): Promise<DesignImageResponse & { usage: Record<string, number> }> {
   // Validation accepts views in any order. Keep the numbered image roles stable at the provider boundary.
   const references = [...input.references].sort((a, b) => IMAGE_VIEWS.indexOf(a.view) - IMAGE_VIEWS.indexOf(b.view));
+  const renderConfig = input.renderConfig ?? { category: renderCategory(input.specification), stagingLevel: 2 };
+  const prompt = stylePrompt(renderConfig);
   const requestBody = {
     model: GEMINI_IMAGE_MODEL, store: false,
     generation_config: { thinking_level: 'high' },
-    system_instruction: buildSystemInstruction(input.renderConfig ?? { category: renderCategory(input.specification), stagingLevel: 2 }),
+    system_instruction: prompt.systemInstruction(renderConfig),
     input: [
       ...references.flatMap(image => [
-        { type: 'text', text: GEMINI_DESIGN_IMAGE_REFERENCE_LABELS[image.view] },
+        { type: 'text', text: prompt.referenceLabels[image.view] },
         { type: 'image', mime_type: image.mimeType, data: image.data },
       ]),
       ...decorSwatchInputs(input.specification, input.decorSwatches),
-      { type: 'text', text: 'Create one realistic 2K interior photograph using Image 1 for the exact camera framing and cabinet structure, '
-        + 'and Images 2 and 3 only for supporting details.\n'
-        + serializeConfigurationSummary(input.specification) + '\n'
-        + '- TIER 2 Room Completion: Seamless matte off-white plaster walls and ceiling where no wall finish is specified, '
-        + 'continuous oak flooring, and soft directional off-camera daylight. '
-        + 'Remove protruding floor-base strips and complete cropped background geometry. '
-        + 'Include a brief text description of the result mentioning the applied manufacturer board SKUs and surface structures.' },
+      { type: 'text', text: `${prompt.request}\n${serializeConfigurationSummary(input.specification)}\n${prompt.completion}` },
     ],
     // ImageResponseFormat accepts JPEG output; PNG remains valid as an input image format.
     // Do not send `delivery`: Nano Banana 2.1 rejects it and returns inline data by default.

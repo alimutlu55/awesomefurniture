@@ -6,8 +6,14 @@ export const DESIGN_REFERENCE_HEIGHT = 768;
 export const DESIGN_REFERENCE_JPEG_QUALITY = .97;
 
 export const IMAGE_VIEWS = ['front', 'left', 'right'] as const;
+/** The looks a customer picks in the Generate image dialog; each has its own prompt (src/infrastructure/gemini/design-image-styles.ts). */
+export const RENDER_STYLES = ['realistic', 'studio', 'concept'] as const;
+export type RenderStyle = typeof RENDER_STYLES[number];
 export interface RenderPromptConfig {
   category: 'wardrobe' | 'kitchen';
+  /** Omitted means `realistic`. */
+  style?: RenderStyle | undefined;
+  /** Foreground props of the realistic photo; the studio and concept looks set their own. */
   stagingLevel: 1 | 2 | 3;
   hasIntegratedLed?: boolean | undefined;
   hasCeilingBulkhead?: boolean | undefined;
