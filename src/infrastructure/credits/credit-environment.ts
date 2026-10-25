@@ -1,7 +1,8 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import type { CreditUser, PaymentOrder, PaymentProvider } from '../../application/credits/credit-ports';
 import { createCreditService, type CreditService } from '../../application/credits/credit-service';
 import { PUBLIC_SUPABASE_PROJECT } from '../supabase/project-config';
+import { requestUser } from '../supabase/server-identity';
 import { createMemoryCreditStore } from './memory-credit-store';
 import { createStripeProvider } from './stripe-provider';
 import { createSupabaseCreditStore } from './supabase-credit-store';
@@ -33,19 +34,6 @@ export interface CreditRuntime {
 
 const LOCAL_TEST_USER: CreditUser = { id: '00000000-0000-4000-8000-00000000c0de', anonymous: false, email: 'local-test@wardrobe-forge.invalid' };
 
-function verifier(client: SupabaseClient) {
-  return async (request: Request): Promise<CreditUser | null> => {
-    const token = /^Bearer (\S+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
-    if (!token) return null;
-    // getClaims verifies the signature with the project's public keys (or asks Auth for older symmetric keys).
-    const { data, error } = await client.auth.getClaims(token);
-    const claims = data?.claims;
-    if (error || !claims?.sub || claims.role !== 'authenticated') return null;
-    const email = typeof claims.email === 'string' && claims.email ? claims.email : null;
-    return { id: claims.sub, anonymous: claims.is_anonymous === true || !email, email };
-  };
-}
-
 let testRuntime: CreditRuntime | null = null;
 const runtimes = new WeakMap<object, CreditRuntime | null>();
 
@@ -62,7 +50,7 @@ export function createCreditRuntime(env: CreditEnvironment, origin: string, { al
     if (testRuntime) return testRuntime;
     const store = createMemoryCreditStore(), provider = createTestPaymentProvider(origin);
     const auth = createClient(PUBLIC_SUPABASE_PROJECT.url, PUBLIC_SUPABASE_PROJECT.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const verify = verifier(auth);
+    const verify = requestUser(auth);
     testRuntime = {
       mode: 'test',
       service: createCreditService({ store, providers: [provider], requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false' }),
@@ -83,7 +71,7 @@ export function createCreditRuntime(env: CreditEnvironment, origin: string, { al
   const runtime: CreditRuntime = {
     mode: 'live',
     service: createCreditService({ store: createSupabaseCreditStore(client), providers, requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false' }),
-    authenticate: verifier(client),
+    authenticate: requestUser(client),
     test: null,
   };
   runtimes.set(env, runtime);
