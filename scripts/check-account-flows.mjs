@@ -50,8 +50,8 @@ try {
       await page.close();
     };
 
-    await run('create account, confirm with the code', null, null, async ({ page, sheet, error, fill, submit, calls, shot }) => {
-      assert.equal((await page.locator('.ac-menu').innerText()).trim(), 'Sign in or create account');
+    await run('sign up, confirm with the code', null, null, async ({ page, sheet, error, fill, submit, calls, shot }) => {
+      assert.equal((await page.locator('.ac-menu').innerText()).trim(), 'Sign in / Sign up');
       await page.locator('.ac-menu').click();
       await sheet.waitFor();
       await page.locator('.ac-google').waitFor();

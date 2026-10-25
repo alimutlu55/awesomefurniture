@@ -23,7 +23,7 @@ interface Ports {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CREDITS_LEAD = 'Credits belong to your account, so they are safe on every device. It is free and takes a minute.';
 const COPY: Record<AccountView, readonly [string, string]> = {
-  'sign-up': ['Create your free account', 'Keep your designs and credits safe, and open them on any device.'],
+  'sign-up': ['Sign up for free', 'Keep your designs and credits safe, and open them on any device.'],
   'sign-in': ['Welcome back', 'Sign in to see your designs and credits on this device.'],
   confirm: ['Check your email', ''],
   forgot: ['Reset your password', 'We will email you a code to choose a new password.'],
@@ -41,7 +41,7 @@ export function welcomeCopy(w: AccountWelcome) {
 }
 
 /**
- * "Sign in or create account" first in the ⋮ menu, and the sheet it opens: Google, or an email and a password with a
+ * "Sign in / Sign up" last in the ⋮ menu, and the sheet it opens: Google, or an email and a password with a
  * code to confirm the email. Designing never needs an account; credits do (the wallet opens this sheet).
  */
 export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports) {
@@ -86,7 +86,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
     if (starting) {
       input(credentials, 'password').autocomplete = next === 'sign-up' ? 'new-password' : 'current-password';
       $('.ac-hint', credentials).hidden = next !== 'sign-up';
-      $('.ac-submit', credentials).textContent = next === 'sign-up' ? 'Create account' : 'Sign in';
+      $('.ac-submit', credentials).textContent = next === 'sign-up' ? 'Sign up' : 'Sign in';
       $('.ac-to-forgot', credentials).hidden = next !== 'sign-in';
     }
     focusFirst();

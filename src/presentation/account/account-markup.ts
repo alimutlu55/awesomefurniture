@@ -15,7 +15,7 @@ export function accountSheet() {
   return '<div class="cr-sheet ac-sheet" role="dialog" aria-modal="true" aria-labelledby="ac-title" tabindex="-1">'
     + `<button type="button" class="cr-close" aria-label="Close">${CLOSE}</button>`
     + `<header class="ac-head"><span class="ac-avatar">${PERSON}</span><div><h2 id="ac-title"></h2><p class="ac-lead"></p></div></header>`
-    + '<div class="cr-tabs ac-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" data-tab="sign-up">Create account</button>'
+    + '<div class="cr-tabs ac-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" data-tab="sign-up">Sign up</button>'
     + '<button type="button" role="tab" data-tab="sign-in">Sign in</button></div>'
     + `<section class="ac-start"><button type="button" class="ac-google" hidden>${GOOGLE}<span>Continue with Google</span></button>`
     + '<p class="ac-or" hidden><span>or with your email</span></p>'
@@ -37,5 +37,5 @@ export function accountSheet() {
 
 /** The ⋮ menu's first item: who is signed in, or the way to sign in. */
 export function accountMenuItem(email: string | null) {
-  return email ? `${PERSON}<span>Account</span><small class="ac-menu-email">${escape(email)}</small>` : `${PERSON}<span>Sign in or create account</span>`;
+  return email ? `${PERSON}<span>Account</span><small class="ac-menu-email">${escape(email)}</small>` : `${PERSON}<span>Sign in / Sign up</span>`;
 }

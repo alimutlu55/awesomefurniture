@@ -9,7 +9,7 @@ function customerMessage(code: unknown): string {
     case 'EMPTY_DESIGN': return 'Add furniture to your design before creating an image.';
     case 'INSUFFICIENT_CREDITS': return 'You need a few more credits to create this image.';
     case 'SIGN_IN_REQUIRED': return 'Your session has ended. Reload the page and try again.';
-    case 'ACCOUNT_REQUIRED': return 'Create a free account or sign in to create AI images.';
+    case 'ACCOUNT_REQUIRED': return 'Sign up or sign in to create AI images.';
     case 'CAPTURE_FAILED': return 'We couldn’t prepare the design views. Please try again.';
     case 'NO_IMAGE':
     case 'PROVIDER_ERROR':

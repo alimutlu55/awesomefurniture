@@ -1,4 +1,4 @@
-/* Accounts: sign in, create an account, the account sheet. Built on the wallet's sheet (credits.css), ac- selectors. */
+/* Accounts: sign in, sign up, the account sheet. Built on the wallet's sheet (credits.css), ac- selectors. */
 .ac-sheet { width: min(100%, 440px); }
 .ac-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; padding-right: 44px; }
 .ac-head h2 { margin: 2px 0 4px; color: var(--cr-ink); font-size: 22px; line-height: 1.2; letter-spacing: -.01em; }

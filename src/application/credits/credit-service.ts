@@ -41,7 +41,7 @@ export function createCreditService({ store, providers, requireAccount,
   };
   /** Credits belong to an account, so buying and using them (free uses too) needs one; designing does not. */
   const needAccount = (user: CreditUser, action: string) => {
-    if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', `Create an account or sign in to ${action}.`);
+    if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', `Sign up or sign in to ${action}.`);
   };
   const refuseShort = (result: SpendResult) => {
     if (result.status === 'insufficient') {

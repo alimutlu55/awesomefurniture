@@ -1,5 +1,5 @@
 /**
- * What the app gives the editor so a guest can create an account or sign in (src/app/account-platform.ts). Every call
+ * What the app gives the editor so a guest can sign up or sign in (src/app/account-platform.ts). Every call
  * that changes who is signed in reloads the page when it succeeds; the guest's designs and credits come along.
  */
 export interface AccountPlatform {

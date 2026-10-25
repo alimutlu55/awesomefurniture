@@ -2,12 +2,12 @@
 
 Nobody needs an account to design. Every visitor starts as a guest (an anonymous Supabase identity) whose designs
 are saved automatically. An account is needed for credits, and to see the same designs on another device or after
-clearing the browser. The ⋮ menu always offers it: **Sign in or create account**, first in its Account group;
+clearing the browser. The ⋮ menu always offers it: **Sign in / Sign up**, in the Account group at the end of the menu;
 signed in, the same item shows the email and opens the account (sign out).
 
 ## What a person sees
 
-- **Create account**: Google, or an email and a password (8 characters at least) → a code by email → signed in.
+- **Sign up**: Google, or an email and a password (8 characters at least) → a code by email → signed in.
 - **Sign in**: Google, or email and password. Signing in before confirming the email sends a new code instead of
   failing. **Forgot your password?** emails a code; the code and a new password sign the person in.
 - **Credits**: buying, an AI image or technical drawings as a guest opens the sheet with why ("Credits belong to

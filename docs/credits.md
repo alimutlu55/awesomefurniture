@@ -14,7 +14,7 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
   on the packs and says what is missing. After the purchase, the success screen offers "Create your AI image".
 - **Technical drawings**: the menu item shows *Free*, *10 ◉* or *Open* (a pass is running). The first set is
   free and opens a 24-hour pass for that design; later designs ask on a small card before taking credits.
-- **Buying**: Continue → (a guest) create an account or sign in → the provider's hosted checkout → back in the editor,
+- **Buying**: Continue → (a guest) sign up or sign in → the provider's hosted checkout → back in the editor,
   "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:
   not completed ("you were not charged"), paid but not credited (a reference to quote, see Operations), refunded or
   disputed. A reload while confirming picks the confirmation up again; after two minutes it carries on quietly for
