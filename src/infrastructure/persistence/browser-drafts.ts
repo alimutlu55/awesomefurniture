@@ -45,6 +45,21 @@ export function adoptDrafts(storage: Storage, from: string, to: string) {
   storage.removeItem(`wardrobe:active:${from}`);
 }
 
+/**
+ * Signing out: a design belongs to its owner, so nothing of it stays in this browser. Removes every draft, preview,
+ * deletion marker, recovery copy and the "open design" pointer kept for this account. Save to the account first.
+ */
+export function forgetDrafts(storage: Storage, scope: string) {
+  const prefixes = ['draft', 'preview', 'deleted', 'recovery'].map(kind => `wardrobe:${kind}:${scope}:`);
+  const keys: string[] = [];
+  for (let index = 0; index < storage.length; index++) {
+    const key = storage.key(index);
+    if (key && (prefixes.some(prefix => key.startsWith(prefix)) || key === `wardrobe:active:${scope}`)) keys.push(key);
+  }
+  keys.forEach(key => storage.removeItem(key));
+  return keys.length;
+}
+
 /** Scoped to the identity. Drafts survive navigation, failures and cloud conflicts. */
 export function createBrowserDrafts(storage: Storage, scope: string) {
   const prefix = `wardrobe:draft:${scope}:`;

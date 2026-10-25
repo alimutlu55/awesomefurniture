@@ -50,6 +50,8 @@ export function connectSessions(platform: SessionPlatform, editor: ReturnType<ty
   const ready = ordered(flush).catch(() => undefined); // Creates the stored design as soon as the editor lands.
   const timer = window.setInterval(tick, 2500);
   const beforeUnload = (event: BeforeUnloadEvent) => {
+    // Another tab signed out (its browser copies are erased) or switched account: this page must not write them back.
+    if (platform.switched?.()) return;
     try { void drafts.write({ document: sceneToProject(saver.document, capture()), expectedRevision: saver.revision }, false); }
     catch { event.preventDefault(); }
   };
@@ -62,6 +64,11 @@ export function connectSessions(platform: SessionPlatform, editor: ReturnType<ty
   return {
     ready,
     get id() { return saver.document.id; },
+    /** Saves the design to the account now, without closing the editor. False when it could not be saved (offline). */
+    save: () => ordered(async () => {
+      try { await flush(); } catch (error) { return error instanceof DesignUnavailableError; }
+      return !!repository;
+    }),
     /** Caller freezes editor input until this resolves; no later capture may read a new editor. */
     close: () => ordered(async () => {
       const document = sceneToProject(saver.document, capture());

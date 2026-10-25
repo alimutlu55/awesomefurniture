@@ -4,7 +4,11 @@ import { AccountError, mergeGuest, type AccountStore, type Identity } from '../.
 import { handleAccount, type AccountRuntime } from '../../src/infrastructure/account/account-http';
 import { handleApi } from '../../src/app/api-router';
 import { handOver, rememberGuest } from '../../src/infrastructure/account/guest-handover';
-import { adoptDrafts } from '../../src/infrastructure/persistence/browser-drafts';
+import { adoptDrafts, createBrowserDrafts, forgetDrafts } from '../../src/infrastructure/persistence/browser-drafts';
+import { connectSessions } from '../../src/app/session-platform';
+import { MemoryProjectRepository } from '../../src/infrastructure/persistence/memory/memory-project-repository';
+import { createProject } from '../../src/domain/project/project';
+import { createEditorModel } from '../../src/application/projects/editor-model';
 
 const guest: Identity = { id: 'a0000000-0000-4000-8000-000000000001', anonymous: true, email: null };
 const account: Identity = { id: 'a0000000-0000-4000-8000-000000000002', anonymous: false, email: 'person@example.test' };
@@ -128,4 +132,48 @@ test('the wallet reads every kind of ledger row the database can hold, a moved b
   const client = { rpc: async () => ({ data: { balance: 100, free_used: {}, passes: [], history: kinds.map((k, i) => row(i + 1, k, k === 'spend' ? -4 : 4)) }, error: null }) };
   const summary = await createSupabaseCreditStore(client as never).summary('a0000000-0000-4000-8000-000000000002', 30);
   assert.deepEqual(summary.history.map(h => h.kind), kinds);
+});
+
+test('signing out erases the account\'s designs from the browser and nothing else', () => {
+  const storage = memoryStorage(), other = 'b0000000-0000-4000-8000-000000000009';
+  const mine = createBrowserDrafts(storage, account.id);
+  void mine.write({ document: createProject('d1', 'One'), expectedRevision: 3 });
+  mine.preview('d1', 'image');
+  mine.remove('d2');
+  storage.setItem(`wardrobe:recovery:${account.id}:d1:before-fixture-rollback`, 'copy');
+  void createBrowserDrafts(storage, guest.id).write({ document: createProject('g1', 'Guest'), expectedRevision: null });
+  void createBrowserDrafts(storage, other).write({ document: createProject('o1', 'Other'), expectedRevision: 1 });
+  storage.setItem('wardrobe:length-unit', 'mm');
+  assert.equal(forgetDrafts(storage, account.id), 5, 'draft, preview, deletion marker, recovery copy and the open-design pointer');
+  const left = [...Array(storage.length)].map((_, i) => storage.key(i)!);
+  assert.equal(left.filter(k => k.includes(account.id)).length, 0);
+  assert.ok(left.some(k => k.includes(guest.id)) && left.some(k => k.includes(other)) && left.includes('wardrobe:length-unit'), 'other scopes and preferences stay');
+  assert.equal(mine.read(), null);
+});
+
+test('saving before sign-out says whether the design reached the account; a failed save must not be reported as saved', async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { setInterval: () => 0, addEventListener: () => undefined, removeEventListener: () => undefined } });
+  const memory = new MemoryProjectRepository();
+  let offline = false;
+  const repository = { list: memory.list.bind(memory), load: memory.load.bind(memory), delete: memory.delete.bind(memory),
+    save: (...args: Parameters<typeof memory.save>) => offline ? Promise.reject(new Error('network down')) : memory.save(...args) };
+  const storage = memoryStorage(), model = createEditorModel();
+  const editor = { snapshot: model.snapshot, scene: () => model.scene, notify: () => undefined };
+  const connection = connectSessions({ repository, drafts: createBrowserDrafts(storage, account.id), client: null,
+    draft: { document: createProject('d1', 'One'), expectedRevision: null }, saved: false } as never, editor as never);
+  try {
+    await connection.ready;
+    assert.equal(await connection.save(), true, 'saved, nothing pending');
+    offline = true;
+    model.scene.wardrobes[0]!.name = 'edited while offline';
+    assert.equal(await connection.save(), false, 'the edit could not reach the account: signing out must be refused');
+    assert.equal((await memory.load('d1'))?.document.wardrobes[0]?.name === 'edited while offline', false);
+    offline = false;
+    assert.equal(await connection.save(), true, 'back online it is saved');
+    assert.equal((await memory.load('d1'))?.document.wardrobes[0]?.name, 'edited while offline');
+  } finally {
+    connection.dispose();
+    if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
+  }
 });

@@ -24,7 +24,7 @@ const harness = (email, welcome) => `<body style="margin:0;min-height:100vh;back
   google:()=>{calls.push(['google']);return never();},
   sendReset:(e)=>{calls.push(['sendReset',e]);return Promise.resolve();},
   resetPassword:(e,c)=>{calls.push(['resetPassword',e,c]);return never();},
-  signOut:()=>{calls.push(['signOut']);return never();}};
+  signOut:()=>{calls.push(['signOut']);return window.unsaved?fail('unsaved_changes'):never();}};
  window.toasts=[];
  window.account=bindAccount({dom:{$:s=>shadow.querySelector(s)},lifetime:createEditorLifetime(),platform,toast:m=>toasts.push(m),closeMenu:()=>{}});
  </script></body>`;
@@ -127,6 +127,12 @@ try {
       await sheet.waitFor();
       assert.match(await page.locator('.ac-lead').innerText(), /Signed in as person@example\.test/);
       await shot('account');
+      assert.match(await page.locator('.ac-lead').innerText(), /Signing out removes them from this device/);
+      await page.evaluate(() => { window.unsaved = true; });
+      await page.locator('.ac-sign-out').click();
+      assert.match(await page.locator('.ac-sheet .cr-error').innerText(), /could not be saved to your account yet, so you were not signed out/);
+      assert.equal(await page.locator('.ac-sign-out').isDisabled(), false, 'the person can try again');
+      await page.evaluate(() => { window.unsaved = false; });
       await page.locator('.ac-sign-out').click();
       assert.deepEqual((await calls()).at(-1), ['signOut']);
     });

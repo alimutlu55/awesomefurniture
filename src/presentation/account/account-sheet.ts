@@ -114,7 +114,7 @@ export function bindAccount({ dom, lifetime, platform, toast, closeMenu }: Ports
     overlay.hidden = false;
     const email = platform.email();
     show(options.view ?? (email ? 'account' : 'sign-in'),
-      email && (options.view ?? 'account') === 'account' ? `Signed in as ${email}. Your designs and credits are saved to this account.` : '');
+      email && (options.view ?? 'account') === 'account' ? `Signed in as ${email}. Your designs and credits are saved to this account. Signing out removes them from this device.` : '');
   }
   function close() {
     if (overlay.hidden || busy) return;

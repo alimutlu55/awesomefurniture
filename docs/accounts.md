@@ -14,8 +14,9 @@ signed in, the same item shows the email and opens the account (sign out).
   your account…"). After signing in, the wallet reopens on the pack that was chosen.
 - **Welcome**: after signing in, if the guest had designs or credits, a card says how many came along ("3 designs
   from this browser are now in your account, with 12 credits"). Otherwise a short notice says who is signed in.
-- **Sign out on this device**: the page starts again as a new guest. The account's unsaved changes stay in this
-  browser as its draft and are saved when it signs in again.
+- **Sign out**: designs belong to the account, so nothing of them stays in this browser. The open design is saved to
+  the account first; if that fails (offline) the person stays signed in and is told why. Then the account's drafts,
+  previews and recovery copies are erased from the browser and the page starts again as a new guest.
 
 We store only the email (and Supabase's password hash). Google sign-in adds what Google sends to Supabase Auth
 (name and picture in `auth.users`); the app reads only the email.
@@ -39,7 +40,8 @@ A design's owner still never changes from a browser: the ownership trigger allow
 that is open keeps saving.
 
 Another tab signing in or out reloads every other tab (Supabase broadcasts the change), and background saving stops
-the moment the identity changes, so no tab keeps saving as someone it no longer is.
+the moment the identity changes, so no tab keeps saving as someone it no longer is (nor writes its draft back after a
+sign-out erased it).
 
 ## Code
 
@@ -81,4 +83,4 @@ endpoint answers 503, so a sign-in there keeps the guest remembered and reports 
 - An account cannot change its email or delete itself in the app yet.
 - Guests whose designs were merged stay as empty anonymous users in `auth.users`; define a retention for
   anonymous identities before growing usage.
-- Signing out keeps the account's browser drafts in this browser (readable only by that account in the app).
+- Closing the browser without signing out leaves the account's designs in it, as before: they are erased only by signing out.

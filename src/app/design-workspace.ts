@@ -34,7 +34,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   const credits = createCreditPlatform(platform, {
     designId: () => currentId,
   }, checkout);
-  const account = createAccountPlatform(platform);
+  // Signing out erases this browser's copy of the designs, so everything open is saved to the account first.
+  const account = createAccountPlatform(platform, { save: () => ordered(async () => sessions ? sessions.save() : true) });
   const transition = createLoadingState(root);
   function ordered<T>(work: () => Promise<T>): Promise<T> {
     const operation = pending.catch(() => undefined).then(async () => {

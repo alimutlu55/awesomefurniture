@@ -1,5 +1,6 @@
 import type { AccountPlatform, AccountWelcome } from '../presentation/account/account.ports';
 import { rememberGuest } from '../infrastructure/account/guest-handover';
+import { forgetDrafts } from '../infrastructure/persistence/browser-drafts';
 import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
 import type { SessionPlatform } from './session-bootstrap';
 
@@ -14,7 +15,7 @@ const marker = {
  * as a guest. Signing in or creating an account remembers the guest first, and the next start moves the guest's
  * designs and credits into the account (src/infrastructure/account/guest-handover.ts) before any design opens.
  */
-export function createAccountPlatform(platform: SessionPlatform): AccountPlatform | undefined {
+export function createAccountPlatform(platform: SessionPlatform, workspace: { save(): Promise<boolean> }): AccountPlatform | undefined {
   const { client, user } = platform;
   if (!client) return undefined;
   const auth = client.auth;
@@ -96,9 +97,14 @@ export function createAccountPlatform(platform: SessionPlatform): AccountPlatfor
     }),
     async signOut() {
       changing = true;
-      // Unsaved changes stay as this account's browser draft and are saved when it signs in again.
+      // Designs belong to their owner: nothing stays in this browser. So the open design is saved to the account first,
+      // and a design that could not be saved stops the sign-out instead of being lost.
+      if (!await workspace.save().catch(() => false)) fail(Object.assign(new Error('Unsaved changes.'), { code: 'unsaved_changes' }));
       const { error } = await auth.signOut({ scope: 'local' });
       if (error) fail(error);
+      if (user) forgetDrafts(localStorage, user.id);
+      try { ['wardrobe:credits:resume', 'wardrobe:credits:after-sign-in', 'wardrobe:credits:confirming', SIGNED_IN].forEach(key => sessionStorage.removeItem(key)); }
+      catch { /* private mode: nothing was kept */ }
       location.reload();
       return new Promise<never>(() => { /* the page is reloading */ });
     },
