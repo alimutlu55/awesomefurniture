@@ -15,7 +15,10 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
 - **Technical drawings**: the menu item shows *Free*, *10 ◉* or *Open* (a pass is running). The first set is
   free and opens a 24-hour pass for that design; later designs ask on a small card before taking credits.
 - **Buying**: Continue → (once) the email step → the provider's hosted checkout → back in the editor,
-  "Confirming your payment" → the celebration with the credits added.
+  "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:
+  not completed ("you were not charged"), paid but not credited (a reference to quote, see Operations), refunded or
+  disputed. A reload while confirming picks the confirmation up again; after two minutes it carries on quietly for
+  half an hour and says "+N credits are in your wallet" when they land.
 
 Buying needs a verified email (`CREDITS_REQUIRE_ACCOUNT`, on by default). Visitors start as anonymous
 Supabase identities; adding an email keeps the same identity (designs and credits included), so paid
@@ -91,14 +94,18 @@ compares the pre-tax subtotal.
   captures them; any failure, timeout or cancellation gives them back. If a Worker dies in between, the
   15-minute schedule (`triggers.crons` in `wrangler.jsonc`) releases the reservation.
 - **Credits only from the provider.** Returning to the success page credits nothing. The order is credited
-  from a signed webhook, or from asking the provider directly when the person returns before the webhook
-  does. The paid amount and currency must equal the order's (made from the catalog on the server).
+  from a signed webhook, from asking the provider directly when the person returns before the webhook
+  does, or from the schedule, which asks about checkouts still pending after ten minutes (up to 50 a run, two days
+  back), so a lost webhook or a wrong signing secret never leaves a payment uncredited. The paid amount and currency must equal the order's (made from the catalog on the server).
   Otherwise the order is `rejected`.
-- **Refunds and chargebacks** take credits back in proportion to the amount refunded. A chargeback takes
-  them all until the dispute is won. The balance can go below zero when the credits were already spent;
+- **Refunds and chargebacks** take credits back in proportion to the share of the charge refunded (the charge's
+  own amounts, so tax and the customer's currency do not skew it). A chargeback, or an inquiry, takes them all until
+  the dispute is won or the inquiry closes. The balance can go below zero when the credits were already spent;
   spending then waits until it is positive.
 - **Server only.** The ledger functions are granted to `service_role` alone. People can read their own
   account, ledger, spends and orders through RLS, and change nothing.
+- **Not ours, not retried.** Events for another integration on the same Stripe account (a reference that is not an
+  order id) are recorded and skipped, instead of failing and being redelivered for days.
 - **Fail closed.** Without a ledger configured, images answer 503 rather than running free. The Worker
   never runs test mode, whatever its variables say.
 
@@ -161,6 +168,17 @@ more `PaymentProvider`.
    the seller. To use it instead, set `STRIPE_MANAGED_PAYMENTS=true`, add a `tax_code` to the product in
    `stripe-provider.ts` and recheck `docs/credits.md` pricing (its fees differ).
 6. Optional: Stripe Tax, and Stripe Radar rules against card testing.
+
+### Operations
+
+Alert on these log events (JSON lines from the Worker):
+
+| Event | Meaning | What to do |
+| --- | --- | --- |
+| `credits_paid_not_credited` | Money was taken but no credits were added: the amount or currency differed (`mismatch`, the order is `rejected`) or the account is gone (`unknown`). The person sees the order id as their reference. | Refund in Stripe, or credit by hand (below). |
+| `credits_lookup_failed`, `credits_reconcile_failed` | Stripe did not answer a lookup. | Nothing if it passes; the next poll or run asks again. |
+| `credits_released_stale_failed`, `credits_reconciled_failed` | A scheduled step failed as a whole (usually the database). | Check Supabase. |
+| `credit_capture_failed`, `credit_release_failed` | An image reservation was not settled; the schedule releases it. | Nothing if it passes. |
 
 Support grants or corrections: `select credits_grant('<user id>', 20, 'ticket-123', 'Support: failed image');`
 (once per key; negative to take credits). A refund made in the Stripe dashboard reaches the ledger by

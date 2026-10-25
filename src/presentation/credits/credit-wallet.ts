@@ -1,4 +1,5 @@
-import type { CreditWallet } from '../../application/credits/credit-wallet';
+import type { OrderStatus } from '../../application/credits/credit-ports';
+import type { CreditWallet, OrderConfirmation } from '../../application/credits/credit-wallet';
 import type { CreditWalletPorts } from './credit-wallet.ports';
 import { createCreditsClient } from './credits-client';
 import { creditErrorMessage, CreditUserError } from './credit-errors';
@@ -10,10 +11,23 @@ import { createLoadingState, createLoadingPlaceholder } from '../components/load
 type View = 'shop' | 'account' | 'activity' | 'wait' | 'done';
 export interface WalletNeed { readonly feature: string; readonly cost: number; readonly balance: number }
 
-const RESUME_KEY = 'wardrobe:credits:resume';
-const session = {
-  get(): string | null { try { return sessionStorage.getItem(RESUME_KEY); } catch { return null; } },
-  set(value: string | null) { try { if (value) sessionStorage.setItem(RESUME_KEY, value); else sessionStorage.removeItem(RESUME_KEY); } catch { /* private mode */ } },
+const stored = (key: string) => ({
+  get(): string | null { try { return sessionStorage.getItem(key); } catch { return null; } },
+  set(value: string | null) { try { if (value) sessionStorage.setItem(key, value); else sessionStorage.removeItem(key); } catch { /* private mode */ } },
+});
+/** The feature a purchase started from, offered again once the credits arrive. */
+const session = stored('wardrobe:credits:resume');
+/** The order being confirmed: a reload before it settles picks the confirmation up again. */
+const confirming = stored('wardrobe:credits:confirming');
+const ORDER_ID = /^[0-9a-f-]{36}$/;
+
+/** What an order that ended without credits means for the person. Every case says whether money was taken. */
+const ENDED: Partial<Record<OrderStatus, string>> = {
+  expired: 'This payment was not completed, so you were not charged. You can try again.',
+  rejected: 'Your payment arrived, but its credits could not be added automatically. Contact us with this reference and we will add them or refund you.',
+  refunded: 'This payment was refunded, so its credits are not in your wallet.',
+  partially_refunded: 'Part of this payment was refunded, and its credits were adjusted to match.',
+  disputed: 'This payment is disputed with your bank, so its credits are on hold until that is settled.',
 };
 
 /** "Credits" with the balance in the editor menu, and the wallet sheet it opens: packs, the email step, checkout and activity. */
@@ -164,22 +178,42 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     catch (e) { buying = false; syncBuy(); say(creditErrorMessage(e), e instanceof CreditUserError ? e.reason : null); }
   }
 
-  /** Back from checkout: wait for the payment to be confirmed (webhook or lookup), then celebrate. */
+  /**
+   * Back from checkout: wait for the payment to be confirmed (webhook or lookup), then celebrate. Quick checks while the
+   * person watches, then a quiet one every half minute for half an hour. Only a missing order or session ends the wait
+   * early: a network or server hiccup is asked again, because the person has paid and must learn what happened.
+   */
   async function confirmReturn(orderId: string) {
+    confirming.set(orderId);
     open({ view: 'wait' });
-    for (let attempt = 0; attempt < 40 && !disposed; attempt++) {
+    for (let attempt = 0; attempt < 100 && !disposed; attempt++) {
+      if (attempt === 40 && !overlay.hidden) {
+        show('shop');
+        say('Your payment is still being confirmed. You can keep designing: your credits will appear as soon as it completes.', orderId);
+      }
       try {
         const result = await client.confirm(orderId);
-        if (result.status === 'paid' || result.status !== 'pending') {
-          await client.refresh().catch(() => client.balance(result.balance));
-          if (result.status === 'paid') celebrate(result.credits); else { show('shop'); say('This payment could not be completed. You were not charged for credits.'); }
-          return;
+        if (result.status !== 'pending') { await ended(result); return; }
+      } catch (e) {
+        if (e instanceof CreditUserError && (e.code === 'ORDER_NOT_FOUND' || e.code === 'SIGN_IN_REQUIRED')) {
+          confirming.set(null); open(); say(creditErrorMessage(e), orderId); return;
         }
-      } catch (e) { show('shop'); say(creditErrorMessage(e)); return; }
-      await new Promise<void>(resolve => lifetime.timeout(() => resolve(), attempt < 10 ? 1500 : 4000));
+      }
+      await new Promise<void>(resolve => lifetime.timeout(() => resolve(), attempt < 10 ? 1500 : attempt < 40 ? 4000 : 30_000));
     }
-    show('shop');
-    say('Your payment is still being confirmed by the bank. Your credits will appear here as soon as it completes.');
+    confirming.set(null);
+  }
+  /** The order settled: credits arrived (celebrate, or a notice if the person moved on), or it ended without them (say why). */
+  async function ended(result: OrderConfirmation) {
+    confirming.set(null);
+    await client.refresh().catch(() => client.balance(result.balance));
+    if (result.status === 'paid') {
+      if (!overlay.hidden && sheet.dataset.view === 'wait') celebrate(result.credits);
+      else { session.set(null); toast(`+${result.credits} credits are in your wallet.`); }
+      return;
+    }
+    open();
+    say(ENDED[result.status] ?? creditErrorMessage(null), result.status === 'expired' ? null : result.orderId);
   }
   function celebrate(credits: number) {
     const resume = session.get(), next = resume ? resumers.get(resume) : undefined;
@@ -224,10 +258,13 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     else if (!e.shiftKey && active === last) { e.preventDefault(); first?.focus(); }
   });
   const unsubscribe = client.subscribe(render);
+  // Back from the payment page with the browser's Back button: the page is restored as it was left, mid-checkout.
+  lifetime.listen(win, 'pageshow', e => { if ((e as PageTransitionEvent).persisted && buying) { buying = false; syncBuy(); } });
   void client.refresh().catch(() => undefined);
-  const back = platform.returned();
+  const back = platform.returned(), unfinished = confirming.get();
   if (back?.outcome === 'success') void confirmReturn(back.orderId);
   else if (back?.outcome === 'cancel') { session.set(null); toast('Checkout cancelled. You were not charged.'); }
+  else if (unfinished && ORDER_ID.test(unfinished)) void confirmReturn(unfinished);
 
   lifetime.cleanup(() => {
     chipLoading.stop(); packsLoading.stop(); checkoutLoading.stop(); waitLoading.stop();
