@@ -50,6 +50,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Toilets, basins and other fixtures (kinds, setups with their boxing, finishes) | One entry in `src/domain/studio/fixtures/fixture-kinds.ts`, its model in `fixture-views.ts` and card in `fixture-art.ts`. See [docs/studio-fixtures.md](docs/studio-fixtures.md) |
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
+| The welcome, assembly animation, moods (looks, time of day), fit reveal | `src/presentation/experience/` and `viewport/assembly-motion.ts`, `scene-looks.ts`, `daylight.ts`, `workshop-lens.ts`. Never saved in a project. See [docs/experience.md](docs/experience.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
 Never copy registry contents (kind names, possession keys, purpose labels, furniture kinds, kitchen
@@ -101,6 +102,8 @@ units, fixture kinds) into another file. Ask the registry: `FITTINGS`, `hasTrait
 - Manufacturing check: no material or edge-banding completeness checks, and door swing clearances stay review
   findings on the drawings, not blocking ones.
 - `npm run check:mobile` is not part of `npm run check`; run it (Vite on port 4173) before a push that changes the editor.
+- Experience: the welcome builds wardrobes only; kitchen units get no night lamps; sounds are not covered by
+  automated checks (docs/experience.md, Known limits).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,
