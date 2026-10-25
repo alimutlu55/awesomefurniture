@@ -39,6 +39,10 @@ export function createCreditService({ store, providers, requireAccount,
     if (!found || found.settlement !== settlement) throw new CreditError('UNKNOWN_FEATURE', 'This feature cannot be charged here.');
     return found;
   };
+  /** Credits belong to an account, so buying and using them (free uses too) needs one; designing does not. */
+  const needAccount = (user: CreditUser, action: string) => {
+    if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', `Create an account or sign in to ${action}.`);
+  };
   const refuseShort = (result: SpendResult) => {
     if (result.status === 'insufficient') {
       throw new CreditError('INSUFFICIENT_CREDITS', 'Not enough credits.', { cost: result.cost, balance: result.balance });
@@ -67,7 +71,7 @@ export function createCreditService({ store, providers, requireAccount,
     if (!pack) throw new CreditError('UNKNOWN_PACK', 'Choose one of the credit packs.');
     const via = typeof input.provider === 'string' ? provider(input.provider) : providers[0];
     if (!via) throw new CreditError('UNKNOWN_PROVIDER', 'This payment method is not available.');
-    if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', 'Add your email before buying credits.');
+    needAccount(user, 'buy credits');
     const order = await store.createOrder({ userId: user.id, packId: pack.id, credits: packCredits(pack), amount: pack.price,
       currency: pack.currency, provider: via.id, email: user.email });
     // A checkout that never reached the payment page is closed at once, so it does not count towards the hourly limit.
@@ -135,6 +139,7 @@ export function createCreditService({ store, providers, requireAccount,
   /** Uses a feature that is final when used (technical drawings). */
   async function spend(user: CreditUser, input: { feature: unknown; key: unknown; scope: unknown }) {
     const f = feature(String(input.feature), 'immediate');
+    needAccount(user, 'use credits');
     if (typeof input.key !== 'string' || !KEY.test(input.key)) throw new CreditError('INVALID_REQUEST', 'A request key is required.');
     const scope = typeof input.scope === 'string' && SCOPE.test(input.scope) ? input.scope : null;
     if (f.passHours > 0 && !scope) throw new CreditError('INVALID_REQUEST', 'Say which design this is for.');
@@ -145,6 +150,7 @@ export function createCreditService({ store, providers, requireAccount,
   /** Reserves a feature whose result may fail (an AI image); settle it with `settle` either way. */
   async function reserve(user: CreditUser, featureKey: string, key: string, metadata: Readonly<Record<string, string | number | boolean>> = {}) {
     const f = feature(featureKey, 'result');
+    needAccount(user, 'use credits');
     if (!KEY.test(key)) throw new CreditError('INVALID_REQUEST', 'A request key is required.');
     return refuseShort(await store.spend({ userId: user.id, feature: f.key, key: `${f.key}:${key}`, cost: f.cost, freeUses: f.freeUses,
       passHours: f.passHours, scope: null, capture: false, metadata }));
