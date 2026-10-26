@@ -73,7 +73,7 @@ li.q.done .ck{background:var(--ok);border-color:var(--ok);color:#fff}li.q.done{c
 :root{--ease-out:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.4,.64,1);--t-fast:150ms;--t-base:260ms;--t-slow:420ms;--r-s:8px;--r-m:12px;--r-l:20px;--seg:rgba(120,135,155,.16);--glass:color-mix(in srgb,var(--panel) 74%,transparent)}
 .ic{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 button{border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;transition:transform var(--t-fast) var(--ease-out),background-color var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-base) var(--ease-out),opacity var(--t-base)}
-button:hover:not(:disabled):not(.on){background:color-mix(in srgb,var(--acc) 8%,var(--bg))}
+button:hover:not(:disabled):not(.on),.mi:hover:not(:disabled):not(.on){background:color-mix(in srgb,var(--acc) 8%,var(--bg))}
 button:active:not(:disabled){transform:scale(.97)}
 .histbar button .u{display:inline-flex;align-items:center;gap:6px}
 .pal button,.storage-map button,.pre button{display:flex}
@@ -167,8 +167,8 @@ html,body{height:100%}
 .dd.l{left:0}.dd.r{right:0}
 .dd.wide{width:min(360px,calc(100vw - 24px));max-height:calc(100vh - 84px);overflow:auto;padding:14px}
 .dd-title{padding:6px 10px 8px;font-weight:650;font-size:13px}.dd-title small{color:var(--mute);font-weight:500;margin-left:6px}
-.mi{display:flex;width:100%;justify-content:flex-start;gap:10px;border:0;background:transparent;border-radius:8px;padding:8px 10px;text-align:left;font-weight:500;min-height:36px}
-.mi span{flex:1}.mi kbd{font:inherit;font-size:11px;font-weight:650;color:var(--mute);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+.mi{display:flex;width:100%;justify-content:flex-start;align-items:center;gap:10px;border:0;background:transparent;border-radius:8px;padding:8px 10px;text-align:left;font-weight:500;min-height:36px;color:var(--ink);text-decoration:none}
+.mi span{flex:1}.mi kbd{font:inherit;font-size:11px;font-weight:650;color:var(--mute);border:1px solid var(--line);border-radius:5px;padding:0 5px}.mi small{display:block;font-size:11px;font-weight:400;color:var(--mute);margin-top:1px}
 #menu{max-height:calc(100% - 100px);overflow-y:auto;overscroll-behavior:contain}
 #menu .menu-group{padding:4px 0}
 #menu .menu-group:not(:has(>.mi:not([hidden]))){display:none}
@@ -226,7 +226,7 @@ html,body{height:100%}
 :root{--pw:280px;--rw:306px;--bg:#e9e5df;--panel:#f8f6f2;--ink:#262521;--mute:#76736c;--line:#dcd7cf;--acc:#35352f;--gold:#9c8869;--ok:#67785c;--scene:#ded8cd;--floor:#ded8cd;--glass:rgba(249,247,243,.88)}
 body{font-size:14px;letter-spacing:-.015em}#view{background:radial-gradient(ellipse at 62% 28%,#ede8df 0%,#d9d2c6 60%,#c9c0b1 100%)}
 button{border:0}button:focus-visible,input:focus-visible,summary:focus-visible,select:focus-visible{outline:2px solid #756347;outline-offset:4px}
-button:hover:not(:disabled):not(.on){background:#e3ddd3}
+button:hover:not(:disabled):not(.on),.mi:hover:not(:disabled):not(.on){background:#e3ddd3}
 #left,#app.inspecting #left{left:28px;top:32px;width:var(--pw);max-height:calc(100% - 64px);padding:26px;opacity:1;visibility:visible;transform:none;pointer-events:auto;border:1px solid #ffffff60;border-radius:24px;box-shadow:0 16px 60px #45392312;backdrop-filter:blur(28px)}
 #left h1{font-size:27px;font-weight:650;letter-spacing:-1px;margin-bottom:5px}#left>.sub{font-size:13px;margin-bottom:30px}#left h2,#left h2.ct{font-size:14px;color:var(--ink);margin:24px 0 14px;font-weight:600}
 #left .size-row{display:flex;align-items:center;justify-content:space-between;margin:10px 0;color:#64615b;gap:12px}.size-field{display:flex;align-items:center;background:#fff7;border-radius:15px;padding:0 12px;height:43px;width:117px}.size-field input{width:70px;border:0;background:transparent;padding:8px 0;outline-offset:0}.size-field small{font-size:12px}#sliders b{display:none}

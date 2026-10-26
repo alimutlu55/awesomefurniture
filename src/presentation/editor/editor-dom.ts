@@ -52,6 +52,7 @@ interface EditorControls {
     "#menu-btn": HTMLElementTagNameMap["button"];
     "#menu": HTMLElementTagNameMap["div"];
     "#help-menu": HTMLElementTagNameMap["button"];
+    "#support-menu": HTMLElementTagNameMap["a"];
     "#share-menu": HTMLElementTagNameMap["button"];
     "#toolbar": HTMLElementTagNameMap["div"];
     "#props-btn": HTMLElementTagNameMap["button"];

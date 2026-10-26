@@ -19,6 +19,12 @@ readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').crea
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 
+export interface BindSupportMenuPorts {
+readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
+readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD' | 'toast'>>;
+readonly lifetime: Readonly<Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
+}
+
 export interface BindResetClosesDropdownPorts {
 readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('./editor-shell.js').createEditorShell>, 'closeDD'>>;

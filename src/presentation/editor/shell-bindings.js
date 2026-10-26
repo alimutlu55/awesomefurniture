@@ -41,6 +41,24 @@ export function bindHelpMenu({ dom, shell, lifetime }) {
         shell.openDD('help-btn', 'help-panel');
     });
 }
+/** @param {import('./shell-bindings.ports').BindSupportMenuPorts} ports */
+export function bindSupportMenu({ dom, shell, lifetime }) {
+    const { document, navigator } = dom;
+    const item = document.getElementById('support-menu');
+    if (!item) return;
+    lifetime.listen(item, 'click', () => {
+        shell.closeDD();
+        const address = 'support@furnidraw.com';
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(address).then(
+                () => shell.toast(`Opening email to ${address} · copied to clipboard`),
+                () => shell.toast(`Opening email to ${address}`)
+            );
+        } else {
+            shell.toast(`Opening email to ${address}`);
+        }
+    });
+}
 /** @param {import('./shell-bindings.ports').BindResetClosesDropdownPorts} ports */
 export function bindResetClosesDropdown({ dom, shell, lifetime }) {
     const { document } = dom;

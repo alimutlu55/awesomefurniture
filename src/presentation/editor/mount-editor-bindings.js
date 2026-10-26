@@ -109,6 +109,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     shellBindings.bindFurnitureButtons({ dom, inspector, shell, camera, lifetime });
     shellBindings.bindDropdownOpen({ dom, shell, lifetime });
     shellBindings.bindHelpMenu({ dom, shell, lifetime });
+    shellBindings.bindSupportMenu({ dom, shell, lifetime });
     shellBindings.bindResetClosesDropdown({ dom, shell, lifetime });
     shellBindings.bindDropdownOutsideClose({ dom, shell, lifetime });
     shellBindings.bindDropdownEscape({ dom, shell, lifetime });
