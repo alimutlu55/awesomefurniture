@@ -307,9 +307,6 @@
  #pop2 .mobile-add-categories button[data-auto-design]{
   display:none!important;
  }
- #pop2:not(:is([data-add-context="furniture"],[data-add-context="studio"])) .mobile-add-categories button[data-category="all"]{
-  display:flex!important;
- }
  .ph b{
   font-size:17px;
   font-weight:600;

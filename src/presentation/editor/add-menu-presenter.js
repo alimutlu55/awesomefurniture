@@ -51,7 +51,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         const wallTab = key => ['utilities', 'openings', 'ceilings', 'fixtures'].includes(key) ? ' data-wall-tab' : '';
         const wallPills = [['utilities', 'Utilities', 'room-water'], ['openings', 'Openings', 'room-door'], ['ceilings', 'Ceiling', 'room-stairs'], ['fixtures', 'Fixtures', 'toilet']];
         const scenePills = [['room', 'Walls', 'room-wall'], ['wardrobe', 'Wardrobe', 'wardrobe'], ['kitchen', 'Cabinets', 'cupboard'], ...wallPills];
-        categories.innerHTML = autoDesign + [['all', 'All', 'plus'], ...scenePills, ...pills].map(([key, name, ic]) => '<button type="button" data-category="' + key + '" aria-pressed="' + (key === 'all') + '"' + tab(key) + wallTab(key) + studioTab(key) + (key === 'all' || SCENE_CATEGORIES.includes(key) ? ' hidden' : '') + '>' + icon(ic) + '<span>' + name + '</span></button>').join('');
+        categories.innerHTML = autoDesign + [...scenePills, ...pills].map(([key, name, ic]) => '<button type="button" data-category="' + key + '" aria-pressed="false"' + tab(key) + wallTab(key) + studioTab(key) + (SCENE_CATEGORIES.includes(key) ? ' hidden' : '') + '>' + icon(ic) + '<span>' + name + '</span></button>').join('');
         const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
         products.innerHTML = '<button type="button" data-product-category="wardrobe" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + forSpace.map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('') + roomProducts();
         (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
@@ -68,9 +68,14 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
             });
             products.scrollLeft = 0;
         };
-        (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => { button.onclick = () => show(button.dataset.category); });
         // Add item shows what goes into the wardrobe; Walls and Wardrobe only their own products, under their name.
         const context = $('#pop2').dataset.addContext, heading = categories.ownerDocument.createElement('b');
+        (/** @type {NodeListOf<HTMLButtonElement>} */ (categories.querySelectorAll('[data-category]'))).forEach(button => {
+            button.onclick = () => {
+                const active = button.getAttribute('aria-pressed') === 'true';
+                show(!context && active ? 'all' : button.dataset.category);
+            };
+        });
         heading.className = 'add-context-title';
         const titles = { fixtures: 'Fixtures', ceilings: 'Ceiling', wall: 'Add to wall', studio: 'Add to room', room: 'Walls', kitchen: 'Add a cabinet', furniture: 'Add furniture' };
         heading.textContent = titles[context] ?? 'Add a wardrobe';
