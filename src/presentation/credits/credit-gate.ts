@@ -25,7 +25,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
   const card = page.createElement('div');
   card.className = 'cr-overlay cr-confirm'; card.hidden = true;
   card.innerHTML = '<div class="cr-sheet cr-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="cr-confirm-title" tabindex="-1">'
-    + '<div class="cr-confirm-head"><span class="cr-confirm-icon">' + coin('lg') + '</span><div><h3 id="cr-confirm-title"></h3><p class="cr-confirm-copy"></p></div></div>'
+    + '<div class="cr-confirm-head"><div><h3 id="cr-confirm-title"></h3><p class="cr-confirm-copy"></p></div></div>'
     + '<button type="button" class="cr-primary cr-confirm-go"></button><button type="button" class="cr-quiet cr-confirm-cancel">Not now</button></div>';
   host.append(card);
   const title = card.querySelector<HTMLElement>('h3')!, copy = card.querySelector<HTMLElement>('.cr-confirm-copy')!;

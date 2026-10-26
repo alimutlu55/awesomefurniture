@@ -24,49 +24,38 @@ const uses = (credits: number, f: Feature) => plural(Math.floor(credits / f.cost
 /** "30 AI images or 12 drawing sets": what a number of credits buys, for the hero. */
 export const worth = (credits: number, features: readonly Feature[]) => features.map(f => uses(credits, f)).join(' or ');
 
-/** The sheet: hero balance, the shop, the email step, activity, and the confirming and celebration states. */
+/** The sheet: balance, pack selection, activity, and payment confirmation. */
 export function walletShell() {
   return '<div class="cr-sheet" role="dialog" aria-modal="true" aria-labelledby="cr-title" tabindex="-1" data-view="shop">'
     + `<button type="button" class="cr-close" aria-label="Close credits">${CLOSE}</button>`
-    + '<header class="cr-hero"><div class="cr-hero-coin">' + coin('xl') + '<span class="cr-hero-glow"></span></div>'
-    + '<div class="cr-hero-copy"><p class="cr-eyebrow">Your credits</p>'
+    + '<header class="cr-hero"><div class="cr-hero-copy"><p class="cr-eyebrow">Your credits</p>'
     + '<h2 id="cr-title"><span class="cr-balance">0</span><small> credits</small></h2><p class="cr-worth"></p></div></header>'
     + '<p class="cr-need" role="status" hidden></p>'
     + '<div class="cr-tabs" role="tablist" aria-label="Credits"><button type="button" role="tab" data-tab="shop" aria-selected="true">Buy credits</button>'
     + '<button type="button" role="tab" data-tab="activity" aria-selected="false">Activity</button></div>'
     + '<section class="cr-shop" role="tabpanel"><div class="cr-packs" role="radiogroup" aria-label="Credit packs"></div>'
     + '<div class="cr-uses"></div><p class="cr-error" role="alert" hidden></p>'
-    + '<button type="button" class="cr-primary cr-buy"><span>Continue</span></button>'
-    + `<p class="cr-secure">${LOCK}<span>Secure checkout · Cards, Apple Pay and Google Pay. Credits never expire.</span></p></section>`
+    + '<footer class="cr-checkout"><button type="button" class="cr-primary cr-buy"><span>Continue</span></button>'
+    + `<p class="cr-secure">${LOCK}<span>Secure checkout · Cards, Apple Pay and Google Pay. Credits never expire.</span></p></footer></section>`
     + '<section class="cr-activity" role="tabpanel" hidden></section>'
     + '<section class="cr-wait" hidden><h3>Confirming your payment</h3>'
     + '<p>This takes a few seconds. You can keep this open.</p></section>'
-    + '<section class="cr-done" hidden><div class="cr-burst" aria-hidden="true">'
-    + Array.from({ length: 14 }, (_, i) => `<i class="cr-coin cr-spark" style="--a:${i * (360 / 14)}deg;--d:${70 + (i % 3) * 26}px;--t:${i % 4 * 40}ms"></i>`).join('')
-    + coin('hero') + '</div><h3 class="cr-done-title"></h3><p class="cr-done-copy"></p>'
+    + '<section class="cr-done" hidden><svg class="cr-success-mark" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21"/><path d="m15 24 6 6 12-13"/></svg>'
+    + '<h3 class="cr-done-title"></h3><p class="cr-done-copy"></p>'
     + '<button type="button" class="cr-primary cr-done-go"></button><button type="button" class="cr-quiet cr-done-close">Continue designing</button></section>'
     + '</div>';
 }
 
 export function packCards(packs: readonly Pack[], features: readonly Feature[], selected: string) {
-  // A pack card counts its credits in the first feature of the catalog, the one most people buy for.
-  const headline = features[0], intros = packs.filter(p => p.intro).length;
-  return packs.map((p, index) => {
+  // Each row keeps the pack's credits, uses, bonus and price together for comparison.
+  const headline = features[0];
+  return packs.map(p => {
     const on = p.id === selected, open = `role="radio" data-pack="${escape(p.id)}" aria-checked="${on}" tabindex="${on ? 0 : -1}"`;
-    // The small first pack is one slim row: its credits, what they buy and the price, nothing to compare.
-    if (p.intro) {
-      return `<button type="button" ${open} class="cr-pack cr-pack--intro">${coin()}<span class="cr-intro-copy"><span class="cr-pack-name">${escape(p.label)}</span>`
-        + `<span class="cr-pack-credits"><b>${p.total}</b> credits${headline ? ' · ' + uses(p.total, headline) : ''}</span></span>`
-        + `<span class="cr-pack-price">${money(p.price, p.currency)}</span></button>`;
-    }
-    const i = index - intros;
-    return `<button type="button" ${open} class="cr-pack${p.featured ? ' cr-pack--featured' : ''}">`
-      + (p.featured ? '<span class="cr-ribbon">Most popular</span>' : '')
-      + `<span class="cr-stack" style="--n:${i + 1}">${Array.from({ length: i + 1 }, () => coin()).join('')}</span>`
-      + `<span class="cr-pack-name">${escape(p.label)}</span>`
-      + `<span class="cr-pack-credits"><b>${p.total}</b> credits</span>`
-      + (p.bonus ? `<span class="cr-bonus">+${p.bonus} bonus</span>` : '<span class="cr-bonus cr-bonus--none"></span>')
-      + (headline ? `<span class="cr-pack-uses">${uses(p.total, headline)}</span>` : '')
+    return `<button type="button" ${open} class="cr-pack">`
+      + `<span class="cr-pack-copy"><span class="cr-pack-name">${escape(p.label)}`
+      + (p.featured ? '<span class="cr-ribbon">Most popular</span>' : '') + '</span>'
+      + `<span class="cr-pack-credits"><b>${p.total}</b> credits${headline ? ' · ' + uses(p.total, headline) : ''}</span>`
+      + (p.bonus ? `<span class="cr-bonus">Includes ${p.bonus} bonus credits</span>` : '') + '</span>'
       + `<span class="cr-pack-foot"><span class="cr-pack-price">${money(p.price, p.currency)}</span>`
       + (p.saving ? `<span class="cr-save">Save ${p.saving}%</span>` : '') + '</span></button>';
   }).join('');
@@ -83,7 +72,7 @@ const day = (iso: string) => new Intl.DateTimeFormat(undefined, { month: 'short'
 
 export function activityList(wallet: CreditWallet) {
   if (!wallet.history.length) {
-    return `<div class="cr-empty">${coin('lg')}<p>No activity yet.</p><small>Purchases, images and drawings you use credits for appear here.</small></div>`;
+    return `<div class="cr-empty">${icon('purchase')}<p>No activity yet.</p><small>Purchases, images and drawings you use credits for appear here.</small></div>`;
   }
   const feature = (key: string | null) => wallet.features.find(f => f.key === key);
   const label = (key: string | null) => feature(key)?.label ?? 'Credits';

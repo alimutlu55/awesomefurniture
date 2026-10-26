@@ -221,7 +221,6 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     $('.cr-done-close').classList.toggle('cr-primary', !next);
     $('.cr-done-close').classList.toggle('cr-quiet', !!next);
     show('done');
-    sheet.classList.remove('cr-celebrate'); void sheet.offsetWidth; sheet.classList.add('cr-celebrate');
     (next ? go : $('.cr-done-close')).focus();
   }
 
