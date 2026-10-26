@@ -27,6 +27,7 @@ import { createKitchenRunRenderer } from './kitchen-run-renderer';
 import { deconflictLabels } from './label-deconflict';
 import { createCabinetBuildCache, sceneGeometryFingerprint, wardrobeDesignFingerprint, createCvRectCache, createLabelDimMeasurer } from './cabinet-build-cache.js';
 import { createLabelLayout } from './label-layout.js';
+import { cornerCabinetWidths } from '../../domain/kitchen/corner-widths';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
 export function createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime,
@@ -214,7 +215,8 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         positionLabels();
         inspector.dividerUI();
     }
-    const { buildCabinet, moveSplitHandles } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, dom, createDividerClearances, renderState,
+    const widthSegments = () => cornerCabinetWidths(renderState.renderCabinet ?? model.activeCabinet(), model.scene.wardrobes);
+    const { buildCabinet, moveSplitHandles } = createCabinetLayoutRenderer({ maxReach: () => model.scene.maxReach, getWidthSegments: widthSegments, dom, createDividerClearances, renderState,
         geometry, resources, getRenderDesign: () => renderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag,
         trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState });
 
@@ -223,7 +225,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         studio?.sync(model.scene.studio, wardrobeFootprints());
         fitLight();
         studio?.select(studioEditor?.valid() ?? null);
-        const selected = model.activeCabinet(), currentFingerprint = sceneGeometryFingerprint(model.scene, selectionState, interactionState), activeId = model.scene.activeWardrobe;
+        const selected = model.activeCabinet(), widths = new Map(model.scene.wardrobes.map(w => [w.id, cornerCabinetWidths(w, model.scene.wardrobes)])),
+            widthKey = JSON.stringify([[...widths], !!selectionState.editingSize]),
+            currentFingerprint = sceneGeometryFingerprint(model.scene, selectionState, interactionState) + widthKey, activeId = model.scene.activeWardrobe;
 
         if (currentFingerprint && currentFingerprint === lastSceneFingerprint && buildCache.get(selected.id)) {
             for (const wardrobe of model.scene.wardrobes) {
@@ -284,7 +288,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         cachedActiveRenderMap.clear();
 
         for (const wardrobe of model.scene.wardrobes) {
-            const wKey = wardrobeDesignFingerprint(wardrobe, model.scene.activeWardrobe, selectionState, interactionState);
+            // Fixed return panels and their handles depend on neighbours even when this cabinet is not selected.
+            const wKey = wardrobeDesignFingerprint(wardrobe, model.scene.activeWardrobe, selectionState, interactionState)
+                + JSON.stringify([widths.get(wardrobe.id), wardrobe.id === activeId && !!selectionState.editingSize]);
             let cached = buildCache.get(wardrobe.id);
             if (!cached || cached.key !== wKey) {
                 if (cached) buildCache.disposeWardrobe(wardrobe.id, sharedMaterials(), sharedGeometries());

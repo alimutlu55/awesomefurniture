@@ -23,10 +23,11 @@ export function partMesh(geometry: THREE.BufferGeometry, material: THREE.Materia
 }
 
 /** Overlay fronts on a carcass whose front face is at `face`: panels, hinged doors, drawer boxes, shelves, pulls. */
-export function createFrontParts({ box, group, face, depth, front, inside, metal, door = front, drawer = inside, handleless = false, shelfThickness = 1.6 }: {
+export function createFrontParts({ box, group, face, depth, front, inside, metal, door = front, drawer = inside, handleless = false, shelfThickness = 1.6, fixedFront = () => false }: {
   handleless?: boolean; shelfThickness?: number;
   box: BoxBuilder; group: THREE.Object3D; face: number; depth: number; front: THREE.Material; inside: THREE.Material; metal: THREE.Material;
   door?: THREE.Material; drawer?: THREE.Material;
+  fixedFront?(x0: number, x1: number): boolean;
 }) {
   const gap = handleless ? .2 : .3;
   /** A bar pull standing off the front, across (drawers, flaps) or upright (doors). */
@@ -48,7 +49,8 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   const doors = (x0: number, x1: number, y0: number, y1: number, pullAtTop: boolean, hinge: 'left' | 'right' = 'left', explicit = false) => {
     const py = pullAtTop ? y1 - Math.min(12, (y1 - y0) / 4) : y0 + Math.min(12, (y1 - y0) / 4);
     for (const leaf of hingedLeaves(x0, x1, hinge, explicit)) {
-      panel(leaf.x0, leaf.x1, y0, y1, door);
+      const mesh = panel(leaf.x0, leaf.x1, y0, y1, door);
+      if (fixedFront(leaf.x0, leaf.x1)) { mesh.userData.fixedCornerReturn = true; continue; }
       pull(Math.min(18, (y1 - y0) * .5), leaf.hinge === 'left' ? leaf.x1 - 4 : leaf.x0 + 4, py, true);
     }
   };

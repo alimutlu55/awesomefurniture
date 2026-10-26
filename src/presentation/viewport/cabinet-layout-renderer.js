@@ -18,7 +18,8 @@ import { createItemDimensions } from './item-dimensions.js';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
 import { drawKitchenFixture } from './kitchen-fixture-renderer';
-export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
+import { decorateMeasurementBadge } from '../components/measurement-badge';
+export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWidthSegments = () => [], dom, createDividerClearances, renderState, geometry, resources, getRenderDesign, box, prism, flatShape, shapeInspector, picking, label, garment, handbag, trouserPullOut, bindRuler, dimensionStroke, inspector, selectionState, interactions, commands, interactionState }) {
     const drawItemDims = createItemDimensions({ geometry, renderState, interactionState, inspector, label, bindRuler, dimensionStroke });
     const { $, document } = dom;
     const { shapeHandle, splitHandle, shapeHandlePool, splitPool } = createShapeHandleButtons({ document, shapeInspector });
@@ -141,8 +142,10 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
         const dimLine = (a, b, txt, cls = 'lbl dim', axis = 'width') => {
             const el = label(a.clone().add(b).multiplyScalar(.5), txt, cls);
             bindRuler(el, a, b, axis);
+            return el;
         };
-        const { mod } = createFittingRenderer({ resources, mp, md: materials.drawer, mf, ma, door: materials.door, geometry, h, box, d, mh, group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut });
+        const { mod } = createFittingRenderer({ resources, mp, md: materials.drawer, mf, ma, door: materials.door, geometry, h, box, d, mh,
+            group: renderState.Gr, getRenderDesign, garment, handbag, trouserPullOut, faceWidths: getWidthSegments() });
         const itemDims = (i, j) => drawItemDims(i, j, w, d, h, maxReach());
         let x = -w / 2 + PANEL, noFreeSpace = false;
         ws.forEach((sw, i) => {
@@ -341,7 +344,21 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, dom, c
             }
         });
         if (renderState.renderActive && ((selectionState.showDimensions && selectionState.focusOn && getRenderDesign().item < 0 && (!inspector.inside() || noFreeSpace)) || selectionState.editingSize)) {
-            dimLine(new V(-w / 2, 0, d / 2), new V(w / 2, 0, d / 2), 'W ' + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w', 'under');
+            const segments = getWidthSegments(), split = segments.length > 1;
+            if (split) for (const s of segments) {
+                // Round the shared stops once, as the technical drawings do, so displayed mm add to the total.
+                const value = (Math.round(s.to * 10) - Math.round(s.from * 10)) / 10;
+                const text = s.covered ? (s.from === 0 || s.to === w ? 'To edge ' : 'Return W ') : 'W ';
+                if (value <= 0) continue;
+                const el = dimLine(new V(s.from - w / 2, 0, d / 2), new V(s.to - w / 2, 0, d / 2), text + measureNumber(value) + unitSuffix(), 'lbl dim corner-width', 'under');
+                decorateMeasurementBadge(el, { id: 'corner-width-' + s.from, value, orientation: 'horizontal', readOnly: true,
+                    label: s.covered ? 'Covered cabinet width at return' : 'Exposed cabinet surface width' });
+            }
+            // The Size tool still edits the whole carcass. A surface segment must never resize it as if it were the total.
+            if (!split || selectionState.editingSize) {
+                const z = split ? -d / 2 : d / 2;
+                dimLine(new V(-w / 2, 0, z), new V(w / 2, 0, z), (split ? 'Overall W ' : 'W ') + measureNumber(w) + unitSuffix(), 'lbl dim dimension-scrubber scrub-w', 'under');
+            }
             const top = resolveShape(getRenderDesign()).top, left = top[0].y, right = top[top.length - 1].y, f = measureNumber;
             dimLine(new V(-w / 2, 0, d / 2), new V(-w / 2, left, d / 2), 'H ' + f(left) + unitSuffix(),
                 'lbl dim dimension-scrubber ' + (Math.abs(right - left) > .05 ? 'scrub-h-left' : 'scrub-h'), 'height-left');

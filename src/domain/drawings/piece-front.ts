@@ -5,6 +5,7 @@ import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
 import { type Item, type Line, type P, line, mm, note, rect } from './drawing';
 import { type Front, piecefronts } from './fronts';
 import { type PlacedPiece, pieceName } from './room-pieces';
+import type { FaceWidth } from '../kitchen/corner-widths';
 
 /** How far a hidden outline stands in from its true edges. Centimetres. */
 const INSET = 1;
@@ -38,7 +39,7 @@ function swing(f: Front, at: (x: number, y: number) => P, top: (x: number) => nu
  * (following a sloped or stepped top), the plinth, its fronts with how each opens and what appliance it is, what is
  * behind them dashed (a cupboard's shelves, a wardrobe's fittings and rails), and its mark. A sink or hob is its centre
  * line on the worktop; a shelf its board. Millimetres. */
-export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = true } = {}): Item[] {
+export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = true, faceWidths = [] }: { inside?: boolean; faceWidths?: readonly FaceWidth[] } = {}): Item[] {
   const d = p.design, at = (x: number, y: number): P => ({ x: mm(left + x), y: mm(p.y + y) }), mid = d.w / 2;
   if (p.fixture === 'sink' || p.fixture === 'hob') {
     return [line(at(mid, -12), at(mid, 16), 'centre'), note(at(mid, 20), pieceName(p))];
@@ -49,7 +50,7 @@ export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = 
   out.push({ kind: 'line', stroke: 'outline', closed: true, points: [at(0, 0), at(d.w, 0), ...top.slice().reverse().map(q => at(q.x, q.y))] });
   const plinth = plinthOf(d);
   if (plinth > 0) out.push(line(at(0, plinth), at(d.w, plinth), 'thin'));
-  const { fronts, inside, covered } = piecefronts(d), behind = covered || fronts.length > 0;
+  const { fronts, inside, covered } = piecefronts(d, faceWidths), behind = covered || fronts.length > 0;
   for (const b of showInside ? inside : []) {
     const y1 = Math.min(b.y1, under((b.x0 + b.x1) / 2) - PANEL), stroke = behind ? 'hidden' : b.kind === 'rail' ? 'centre' : 'thin';
     // Behind the fronts each outline stands a little in, so two dashed edges never merge into what reads as a solid one.

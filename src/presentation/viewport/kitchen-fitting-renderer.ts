@@ -5,6 +5,7 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
+import { frontCoveredByReturn, type FaceWidth } from '../../domain/kitchen/corner-widths';
 
 /** What a kitchen front is drawn with. Fronts use the unit's finish; appliances their own metal and glass. */
 export interface KitchenFrontMaterials {
@@ -21,9 +22,10 @@ export interface KitchenFrontMaterials {
  * as overlay fronts do. Cabinet-centred x, floor-relative y, centimetres. What sits in the worktop (sink,
  * hob) is drawn with the worktop (kitchen-run-renderer.ts).
  */
-export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6 }: {
+export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6, faceWidths = [], cabinetWidth = 0 }: {
   handleless?: boolean; shelfThickness?: number;
   box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; doorHang?: 'left' | 'right' | undefined; materials: KitchenFrontMaterials;
+  faceWidths?: readonly FaceWidth[]; cabinetWidth?: number;
 }) {
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
@@ -31,8 +33,9 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
   const face = d / 2 + PANEL / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
+  const fixedFront = (x0: number, x1: number) => frontCoveredByReturn(x0 + cabinetWidth / 2, x1 + cabinetWidth / 2, faceWidths);
   const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside,
-    door: materials.door ?? materials.front, drawer: materials.drawer ?? materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness });
+    door: materials.door ?? materials.front, drawer: materials.drawer ?? materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness, fixedFront });
 
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
@@ -57,8 +60,9 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
         // is the hinged door with two swing-out kidney trays on a post inside.
         const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
         panel(blind.x0, blind.x1, y0, y1);
-        panel(door.x0, door.x1, y0, y1);
-        pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
+        const leaf = panel(door.x0, door.x1, y0, y1);
+        if (fixedFront(door.x0, door.x1)) leaf.userData.fixedCornerReturn = true;
+        else pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
         const { post, trayW, trayD, trays } = cornerPulloutGeometry(cx, y, sw, hh, d, blind, doorSide);
         box(post.size, post.h, post.size, post.x, y + hh / 2, 0, steel);
         for (const t of trays) {

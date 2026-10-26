@@ -175,6 +175,25 @@ presentation sets the paper spacing. Kitchen fronts come from `kitchenFrontRect`
 (`domain/kitchen/kitchen-fronts.ts`), the same rule the 3D view uses. A furniture module's `mark`
 gives the letter of its pieces' marks.
 
+Corner cabinet installation widths use `domain/kitchen/corner-widths.ts`, shared with the selected
+cabinet's editor rulers. The carcass front line is intersected with the actual perpendicular return
+footprints at overlapping heights. The resulting chain gives the exposed face width, then the covered
+distance from the corner to the cabinet edge (and handles returns at both ends). No nominal depth or
+half-door width is substituted. Plans, elevations and the shop sheet's Front view include these stops;
+overall carcass widths, front cutting sizes and cutting lists remain separate. Geometry stays in model
+centimetres; printed stops are rounded once to millimetres, then differenced so the chain adds to its total.
+The Size tool retains the editable overall width; split face rulers are read-only. Neighbour moves,
+depth edits and removal invalidate the selected cabinet's ruler cache when the split changes.
+
+Hinged cupboard leaves intersecting a return are presented as fixed corner cover panels. They have no
+handle in the scene, hinge triangle or opening envelope in the drawings, or handle/hinge in the hardware
+list. Accessible doors keep their normal handles, as does the working door of a dedicated corner pull-out;
+its blind panel is always fixed. Front cutting extents are preserved. This placement-dependent presentation
+is recalculated for every cabinet when a neighbour moves or is removed, including unselected cabinets.
+
+Regression checks: `tests/architecture/corner-widths.test.ts` and, with Vite on port 5177,
+`node scripts/check-corner-dimensions.mjs` (375 px and desktop).
+
 ## Not yet
 
 Sloped ceilings on elevations,

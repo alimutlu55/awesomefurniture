@@ -8,6 +8,7 @@ import { piecefronts } from './fronts';
 import { local } from './plan-symbols';
 import { topAt } from './piece-front';
 import type { PlacedPiece } from './room-pieces';
+import { cornerFaceWidths } from './corner-widths';
 
 /** A quarter circle, sampled every 5 degrees; the same polyline reaches SVG and vector PDF. */
 export function quarterArc(at: (s: number, t: number) => P, hinge: number, front: number, radius: number, sign: 1 | -1): P[] {
@@ -20,7 +21,7 @@ export function quarterArc(at: (s: number, t: number) => P, hinge: number, front
 /** An opening's swept footprint in drawing millimetres, used for both drawing and clash checks. */
 export interface Operation { readonly points: readonly P[]; readonly items: readonly Item[]; readonly bottom: number; readonly top: number }
 
-export function pieceOperations(p: PlacedPiece): Operation[] {
+export function pieceOperations(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): Operation[] {
   if (p.fixture) return [];
   const d = p.design, at = (s: number, t: number) => local(p, s - d.w / 2, t + d.d / 2);
   const out: Operation[] = [], seen = new Set<string>();
@@ -36,7 +37,7 @@ export function pieceOperations(p: PlacedPiece): Operation[] {
     const points = [at(x0, 0), at(x1, 0), at(x1, reach), at(x0, reach)];
     out.push({ points, bottom, top, items: visible ? [{ kind: 'line', points, closed: true, stroke: 'swing' }] : [] });
   };
-  for (const f of piecefronts(d).fronts) {
+  for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
     const key = [f.opens, f.x0, f.x1, f.hinge, f.opens === 'down' ? f.y1 - f.y0 : ''].join(':');
     visible = !seen.has(key);
     seen.add(key);

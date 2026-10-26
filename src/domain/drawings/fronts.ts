@@ -6,6 +6,7 @@ import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
 import { isKitchen } from '../furniture/furniture';
+import { frontCoveredByReturn, type FaceWidth } from '../kitchen/corner-widths';
 
 interface Box { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number }
 /** A front as the drawings show it: how it opens, the side its hinges are on, and an appliance's name. */
@@ -38,7 +39,7 @@ export type CornerPullout = ReturnType<typeof cornerPulloutGeometry> & {
  * wardrobe: those fittings, nothing over them. A kitchen unit: each fitting's own front where it is built (overlay
  * fronts), a wide door as two leaves, a tall fridge as fridge over freezer, with the cupboards' shelves behind.
  */
-export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[] } {
+export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[] } {
   // The rules read a design being edited; nothing is selected in a drawing.
   const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths();
   const fronts: Front[] = [], inside: Inside[] = [], cornerPullouts: CornerPullout[] = [], kitchen = isKitchen(design);
@@ -83,5 +84,7 @@ export function piecefronts(design: EditorDesign): { fronts: Front[]; inside: In
   // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end unless doorHang overrides it.
   const covered = !kitchen && design.doors !== 'none';
   if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
-  return { fronts, inside, covered, cornerPullouts };
+  const installed = fronts.map(f => kitchen && f.opens === 'side' && !f.label && !f.own && frontCoveredByReturn(f.x0, f.x1, faceWidths)
+    ? { ...f, opens: 'fixed' as const, name: 'Corner return panel' } : f);
+  return { fronts: installed, inside, covered, cornerPullouts };
 }

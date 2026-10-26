@@ -10,6 +10,7 @@ import { mm, ROWS_PER_SHEET, type Table } from './drawing';
 import { piecefronts } from './fronts';
 import { pieceBoards } from './unit-detail';
 import type { PlacedPiece } from './room-pieces';
+import { cornerFaceWidths } from './corner-widths';
 
 /** Concealed hinges by a door's height (mm), as hardware makers advise: up to 900 two, to 1600 three, to 2000 four. */
 const hingesFor = (height: number) => height <= 900 ? 2 : height <= 1600 ? 3 : height <= 2000 ? 4 : 5;
@@ -36,7 +37,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     if (p.fixture === 'shelf') { add(p, 'Shelf bracket', 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
     if (p.fixture) continue;
     const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null;
-    for (const f of piecefronts(d).fronts) {
+    for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
       if (f.opens === 'side' && !f.label) {
         const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror';

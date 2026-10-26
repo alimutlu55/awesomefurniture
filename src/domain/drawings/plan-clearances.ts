@@ -113,7 +113,7 @@ export function roomDoorOperation(at: (s: number, t: number) => P, left: number,
 
 export function planClearances(studio: Studio | undefined, pieces: readonly PlacedPiece[], profile: ClearanceProfile = 'project'): { items: Item[]; checks: string[]; issues: DrawingIssue[] } {
   const rule = clearanceRule(profile), issues: DrawingIssue[] = [];
-  const operations = new Map(pieces.map(p => [p.id, pieceOperations(p)]));
+  const operations = new Map(pieces.map(p => [p.id, pieceOperations(p, pieces)]));
   const solids = obstacles(studio, pieces), items: Item[] = [], checks: string[] = [], runs = new Map<string, Clearance>();
   for (const p of pieces.filter(p => !p.hung && !p.fixture)) {
     const gap = clearance(p, solids);

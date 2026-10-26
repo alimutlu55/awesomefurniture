@@ -14,6 +14,7 @@ import type { DrawingOptions } from './view-policy';
 import { appliancePlanNote } from './appliance-setout';
 import { planEndBreak } from './shell-boundaries';
 import { fixtureCentres, fixturePlan } from './fixture-plan';
+import { cornerWidthStops } from './corner-widths';
 
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
@@ -74,7 +75,7 @@ function along(studio: Studio, wallId: string, values: readonly number[], row: n
 
 /** For each wall: the pieces standing on the floor against it with the gaps beside them, then the openings and the
  * centre lines of sinks and hobs, then the wall's whole length; and how deep the run stands out from it. */
-function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[], overview: boolean): Item[] {
+function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[], overview: boolean, context: readonly PlacedPiece[]): Item[] {
   const out: Item[] = [];
   for (const w of studio.walls) {
     const g = wallGeometry(studio, w);
@@ -82,7 +83,10 @@ function wallDimensions(studio: Studio, pieces: readonly PlacedPiece[], overview
     const mine = pieces.filter(p => p.wall === w.id), floor = mine.filter(p => !p.hung && !p.fixture);
     const centres = [...mine.filter(p => p.fixture === 'sink' || p.fixture === 'hob').map(p => (p.lo + p.hi) / 2), ...fixtureCentres(studio, w.id)];
     // Wall units and shelves get their own row: they are set out on the wall, not on the floor.
-    const units = overview && floor.length ? [Math.min(...floor.map(p => p.lo)), Math.max(...floor.map(p => p.hi))] : floor.flatMap(p => [p.lo, p.hi]), hung = mine.filter(p => p.hung).flatMap(p => [p.lo, p.hi]);
+    const split = (p: PlacedPiece) => cornerWidthStops(p, context).map(s => p.lo + s);
+    const units = overview && floor.length
+      ? [Math.min(...floor.map(p => p.lo)), Math.max(...floor.map(p => p.hi)), ...floor.filter(p => cornerWidthStops(p, context).length > 2).flatMap(split)]
+      : floor.flatMap(split), hung = mine.filter(p => p.hung).flatMap(split);
     const openings = [...g.openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), ...centres];
     const rows = (overview ? [units] : [units, hung, openings]).filter(r => r.length);
     [...rows, []].forEach((values, row) => { const dims = along(studio, w.id, values, row); if (dims) out.push(dims); });
@@ -127,16 +131,18 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     if (p.fixture === 'shelf') out.push(note(plan(p.x + v.x * (p.design.d / 2 + 15), p.z + v.z * (p.design.d / 2 + 15)), pieceName(p)));
     if (!operations) out.push(...appliancePlanNote(studio, p, pieces));
     if (!upper) out.push(...pieceSymbols(p).filter(i => operations || i.kind !== 'arrow'));
-    if (operations) out.push(...pieceOperations(p).flatMap(o => o.items));
+    if (operations) out.push(...pieceOperations(p, pieces).flatMap(o => o.items));
     if (p.wall === null) {
       out.push(...freePosition(p, visible, studio));
       const [a, b, , d] = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
       const dir = (q: P) => { const n = Math.hypot(q.x, q.y) || 1; return { x: q.x / n, y: q.y / n }; };
       out.push({ kind: 'dims', origin: a!, dir: dir({ x: b!.x - a!.x, y: b!.y - a!.y }), side: -1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });
       out.push({ kind: 'dims', origin: a!, dir: dir({ x: d!.x - a!.x, y: d!.y - a!.y }), side: 1, clear: 0, row: 0, stops: [0, mm(p.design.d)] });
+      const widths = cornerWidthStops(p, pieces);
+      if (widths.length > 2) out.push({ kind: 'dims', origin: d!, dir: dir({ x: b!.x - a!.x, y: b!.y - a!.y }), side: 1, clear: 0, row: 0, stops: stops(widths.map(mm)) });
     }
   }
-  if (studio) out.push(...wallDimensions(studio, visible, preset === 'layout' || operations));
+  if (studio) out.push(...wallDimensions(studio, visible, preset === 'layout' || operations, pieces));
   if (operations) out.push(...planClearances(studio, pieces, options.clearanceProfile).items);
   return out;
 }

@@ -10,6 +10,7 @@ import { type Board, cabinetBoards } from './cabinet-boards';
 import { piecefronts } from './fronts';
 import { pieceFront } from './piece-front';
 import type { PlacedPiece } from './room-pieces';
+import { cornerFaceWidths, cornerWidthStops } from './corner-widths';
 
 const at = (x: number, y: number): P => ({ x: mm(x), y: mm(y) });
 const vertical = (x: number, values: readonly number[], side: 1 | -1, row = 0, quiet?: readonly number[]): Item =>
@@ -84,15 +85,18 @@ function heightsAt(b: Board, x: number): [number, number] {
 
 /** Front: the piece with its fronts or doors, each front's width × height written on it, and strings of where the
  * fronts start and end across and up, then the whole width and height. */
-function frontView(p: PlacedPiece, boards: readonly Board[]): Item[] {
-  const own = { ...p, y: 0 }, out = pieceFront(own, 0, { inside: false }), fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
+function frontView(p: PlacedPiece, boards: readonly Board[], pieces: readonly PlacedPiece[]): Item[] {
+  const own = { ...p, y: 0 }, out = pieceFront(own, 0, { inside: false, faceWidths: cornerFaceWidths(p, pieces) });
+  const fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
   for (const b of fronts) out.push({ ...note(at((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2 - 4), mm(b.x1 - b.x0) + ' × ' + mm(b.y1 - b.y0)), small: true });
   const top = Math.max(...resolveShape(p.design).top.map(q => q.y));
   if (fronts.length) {
     const across_ = frontSpans(fronts.map(b => [b.x0, b.x1] as const), 0, p.design.w), up = frontSpans(fronts.map(b => [b.y0, b.y1] as const), 0, top);
     out.push(...chain((v, q) => across(0, v, -1, 0, q), across_.spans), ...chain((v, q) => vertical(0, v, 1, 0, q), up.spans));
   }
-  out.push(across(0, [0, p.design.w], -1, fronts.length ? 1 : 0), vertical(0, [0, top], 1, fronts.length ? 1 : 0));
+  const widths = cornerWidthStops(p, pieces), row = fronts.length ? 1 : 0;
+  if (widths.length > 2) out.push(across(0, widths, -1, row));
+  out.push(across(0, [0, p.design.w], -1, row + Number(widths.length > 2)), vertical(0, [0, top], 1, fronts.length ? 1 : 0));
   return out;
 }
 
@@ -196,7 +200,7 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
 
 /** What the figures on a shop sheet mean, written once on the sheet (ISO 129-1: say what a number measures and do not
  * repeat a size that is the same everywhere). Board thicknesses and the joints between fronts are not strings of their own. */
-export function unitDetailLegend(p: PlacedPiece): string[] {
+export function unitDetailLegend(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): string[] {
   const boards = pieceBoards(p), d = p.design, top = Math.max(...resolveShape(d).top.map(q => q.y));
   const thick = [...new Set(boards.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => mm(b.cut.thickness)))].sort((a, b) => b - a);
   const fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
@@ -204,16 +208,18 @@ export function unitDetailLegend(p: PlacedPiece): string[] {
   const back = mm(BACK_PANEL), shelf = mm(fittingDepth(d.d).z1 - BACK_PANEL), setback = mm(d.d - fittingDepth(d.d).z1);
   const stated = 'All dimensions in mm · boards ' + (thick.join(' / ') || '—') + ' mm thick, not repeated in the strings';
   const joined = joints.length ? ' · joints between fronts ' + joints.join(' / ') + ' mm, not dimensioned' : '';
+  const installation = cornerWidthStops(p, pieces).length > 2
+    ? ' · Installation: exposed + covered carcass widths, not front cutting sizes; covered door leaves are fixed return panels, without handles or hinges' : '';
   const depth = isKitchen(d) ? 'back board, shelf depth, carcass depth, then front, worktop and plinth setbacks' : back + ' back board + ' + shelf + ' shelf depth + ' + setback + ' shelf setback';
   return [
-    stated + joined + ' · clear = between board faces',
+    stated + joined + ' · clear = between board faces' + installation,
     'Front: sizes of each front, from the floor up and across · Inside: clear width of each section (below), clear height between boards (in the section), overall at the outer string'
       + ' · Section A–A: clear heights as Inside; depth, back to front: ' + depth,
   ];
 }
 
 /** A piece's detail views for making it: Front, Inside and Section A–A, at one scale. */
-export function unitDetailViews(p: PlacedPiece): View[] {
+export function unitDetailViews(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): View[] {
   const boards = pieceBoards(p);
-  return [{ title: 'Front', items: frontView(p, boards) }, { title: 'Inside', items: insideView(p, boards) }, { title: 'Section A–A', items: sectionView(p, boards) }];
+  return [{ title: 'Front', items: frontView(p, boards, pieces) }, { title: 'Inside', items: insideView(p, boards) }, { title: 'Section A–A', items: sectionView(p, boards) }];
 }

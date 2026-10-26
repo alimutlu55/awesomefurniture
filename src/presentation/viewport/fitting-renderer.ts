@@ -21,7 +21,9 @@ import type { BoxBuilder } from './frame-geometry';
 import { createKitchenFittingRenderer } from './kitchen-fitting-renderer';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { hasTrait } from '../../domain/wardrobe/fittings';
+import type { FaceWidth } from '../../domain/kitchen/corner-widths';
 interface FittingRendererPorts {
+    faceWidths?: readonly FaceWidth[];
     resources: Pick<ReturnType<typeof createViewportResources>, 'M' | 'wood' | 'shade'> & Partial<Pick<ReturnType<typeof createViewportResources>, 'fabric'>>;
     mp: THREE.Material;
     md: THREE.Material;
@@ -48,14 +50,16 @@ export interface FittingCut {
     /** Lowest clear height over an x span. */
     clearAt(x0: number, x1: number): number;
 }
-export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h, box, d, mh, ma = mh, group, getRenderDesign, garment, handbag, trouserPullOut }: FittingRendererPorts) {
+export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h, box, d, mh, ma = mh, group, getRenderDesign, garment, handbag, trouserPullOut, faceWidths = [] }: FittingRendererPorts) {
     /** Woven cloth for folded clothes, or a plain material where no cloth is provided (renderer tests). */
     const cloth = (color: string) => resources.fabric ? resources.fabric(color) : resources.M(color);
     /** Leather by colour, made once per build: a shoe shelf holds many shoes. */
     const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
     // Kitchen cabinets draw their own fronts (drawers, doors, appliances).
     const design = getRenderDesign(), kitchen = isKitchen(design)
-        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, materials: { front: mf, inside: mp, drawer: md, door, hardware: mh, M: resources.M }, handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6 }) : null;
+        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, faceWidths, cabinetWidth: design.w,
+            materials: { front: mf, inside: mp, drawer: md, door, hardware: mh, M: resources.M },
+            handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6 }) : null;
     if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use

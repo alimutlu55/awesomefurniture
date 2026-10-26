@@ -7,6 +7,7 @@ import { type Item, line, mm, rect, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { pieceFront, pieceHeights } from './piece-front';
 import { elevationOpeningItems } from './opening-notes';
+import { cornerFaceWidths, cornerWidthStops } from './corner-widths';
 
 /** How far the floor line runs past the wall's ends. Millimetres. */
 const FLOOR_RUN = 300;
@@ -46,7 +47,7 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     out.push(rect(mm(x(r.t0)), mm(s.y), mm(x(r.t1)), mm(s.y + s.height), s.kind === 'worktop' ? 'outline' : 'thin'));
     if (s.kind === 'worktop') worktops.push(s.y, s.y + s.height);
   }
-  for (const p of mine) out.push(...pieceFront(p, x(p.lo)));
+  for (const p of mine) out.push(...pieceFront(p, x(p.lo), { faceWidths: cornerFaceWidths(p, pieces) }));
   // A piece on the next wall that comes into this wall's corner is seen from its side: its outline and mark.
   const returns = pieces.filter(p => p.wall !== wallId && !p.fixture).map(p => ({ p, ...reach(p.x, p.z, p.angle, p.design.w, p.design.d) })).filter(r => r.near);
   for (const { p, t0, t1 } of returns) {
@@ -61,9 +62,10 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     out.push({ kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
       stops: stops([0, mm(length), ...values.map(v => mm(Math.max(0, Math.min(length, v))))]) });
   let below = 0, above = 0;
-  if (floor.length) across(floor.flatMap(p => [x(p.lo), x(p.hi)]), false, below++);
+  const widthStops = (p: PlacedPiece) => cornerWidthStops(p, pieces).map(s => x(p.lo + s));
+  if (floor.length) across([...mine.filter(p => !p.hung && !p.fixture).flatMap(widthStops), ...side(false).flatMap(p => [x(p.lo), x(p.hi)])], false, below++);
   across([], false, below);
-  if (hung.length) across(hung.flatMap(p => [x(p.lo), x(p.hi)]), true, above++);
+  if (hung.length) across([...mine.filter(p => p.hung).flatMap(widthStops), ...side(true).flatMap(p => [x(p.lo), x(p.hi)])], true, above++);
   if (g.openings.length) across(g.openings.flatMap(o => [x(o.offset - o.width / 2), x(o.offset + o.width / 2)]), true, above);
   const adjacent = studio.walls.filter(q => q.id !== w.id && (q.a === w.a || q.b === w.a));
   out.push(...elevationDimensions(mine.length ? mine : returns.map(r => r.p), worktops, roomHeight(studio), Math.max(0, ...adjacent.map(q => q.thickness))));
@@ -78,10 +80,12 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
 
 /** A piece standing free (or with no room around it) seen from the front: its width along the floor, its heights on
  * the left. Millimetres from its left face and the floor. */
-export function pieceElevation(p: PlacedPiece, studio?: Studio): Item[] {
-  const out = pieceFront(p, 0);
+export function pieceElevation(p: PlacedPiece, studio?: Studio, pieces: readonly PlacedPiece[] = [p]): Item[] {
+  const out = pieceFront(p, 0, { faceWidths: cornerFaceWidths(p, pieces) });
   out.push(line({ x: -FLOOR_RUN, y: mm(p.y) }, { x: mm(p.design.w) + FLOOR_RUN, y: mm(p.y) }, p.y < .5 ? 'cut' : 'thin'));
-  out.push({ kind: 'dims', origin: { x: 0, y: mm(p.y) }, dir: { x: 1, y: 0 }, side: -1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });
+  const widths = cornerWidthStops(p, pieces);
+  out.push({ kind: 'dims', origin: { x: 0, y: mm(p.y) }, dir: { x: 1, y: 0 }, side: -1, clear: 0, row: 0, stops: stops(widths.map(mm)) });
+  if (widths.length > 2) out.push({ kind: 'dims', origin: { x: 0, y: mm(p.y) }, dir: { x: 1, y: 0 }, side: -1, clear: 0, row: 1, stops: [0, mm(p.design.w)] });
   out.push(...elevationDimensions([p], [], studio ? roomHeight(studio) : Math.max(p.y + p.design.h, ...pieceHeights(p))));
   return out;
 }
