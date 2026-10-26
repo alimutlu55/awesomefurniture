@@ -5,6 +5,12 @@ export const PUBLIC_SUPABASE_PROJECT = Object.freeze({
   publishableKey: "sb_publishable_S7s4vb0vW3thRWVluxmkqg_o8ePuobR",
 });
 
+/** Public defaults for the production Worker. Private keys remain Cloudflare secrets. */
+export const PRODUCTION_SUPABASE_PROJECT = Object.freeze({
+  url: 'https://yqeimymddjhqeghgpjcl.supabase.co',
+  publishableKey: 'sb_publishable_vQkpubCtc0yFdSQ6qJ6uYQ_FbaaBdBU',
+});
+
 export function resolveSupabaseProject(url?: string, publishableKey?: string) {
   if (!url && !publishableKey) return PUBLIC_SUPABASE_PROJECT;
   if (!url || !publishableKey) throw new Error('Override both Supabase connection settings together.');

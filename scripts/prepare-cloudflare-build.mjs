@@ -9,7 +9,11 @@ export async function prepareCloudflareBuild(branch, configPath = resolve('wrang
   const name = branch === 'main' ? 'furnidraw-prod' : branch === 'develop' ? 'awesomefurniture-dev' : null;
   if (!name) return;
   const source = await readFile(configPath, 'utf8');
-  const next = source.replace(/^(\s*"name"\s*:\s*)"[^"]+"/m, `$1"${name}"`);
+  const supabaseUrl = branch === 'main'
+    ? 'https://yqeimymddjhqeghgpjcl.supabase.co'
+    : 'https://bcsdsuznpgnfyxzsaqzb.supabase.co';
+  const next = source.replace(/^(\s*"name"\s*:\s*)"[^"]+"/m, `$1"${name}"`)
+    .replace(/("SUPABASE_URL"\s*:\s*)"[^"]+"/, `$1"${supabaseUrl}"`);
   if (next === source && !source.includes(`"name": "${name}"`)) throw new Error('Missing Worker name in wrangler.jsonc');
   if (next !== source) await writeFile(configPath, next);
   console.log(`Cloudflare branch ${branch}: ${name}`);

@@ -26,7 +26,10 @@ At inspection, anonymous sign-ins and Google were disabled; email signup and ema
 
 ### Cloudflare connection
 
-Set the following on the production Worker only:
+Builds of `main` select the production public URL and publishable key automatically.
+The server URL is managed in `wrangler.jsonc`; the build preparation script selects
+the development URL for `develop`. Only `SUPABASE_SECRET_KEY` must be supplied in
+the dashboard. To override the frontend connection, set both build variables below.
 
 | Scope | Name | Value |
 | --- | --- | --- |
@@ -35,7 +38,7 @@ Set the following on the production Worker only:
 | Runtime variable | `SUPABASE_URL` | `https://yqeimymddjhqeghgpjcl.supabase.co` |
 | Runtime secret | `SUPABASE_SECRET_KEY` | The production project's secret key, entered directly into Cloudflare; never commit it or prefix it with `VITE_`. |
 
-Build variables require a new frontend build. Runtime variables alone do not change the browser's bundled project. Both frontend and backend must use the same project.
+Build overrides require a new frontend build. Runtime variables alone do not change the browser's bundled project. Both frontend and backend must use the same project. `keep_vars` preserves other runtime variables configured in the dashboard.
 
 The repository targets `furnidraw-prod` for `main` and local production deployments in both `wrangler.jsonc` and `scripts/prepare-cloudflare-build.mjs`. Development builds continue to target `awesomefurniture-dev`.
 

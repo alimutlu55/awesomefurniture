@@ -14,7 +14,8 @@ test('Cloudflare builds route main and develop independently and preserve the sh
     await prepareCloudflareBuild('develop', path);
     const dev = await readFile(path, 'utf8');
     assert.match(dev, /"name": "awesomefurniture-dev"/);
-    assert.equal(dev, source.replace('"name": "furnidraw-prod"', '"name": "awesomefurniture-dev"'));
+    assert.equal(dev, source.replace('"name": "furnidraw-prod"', '"name": "awesomefurniture-dev"')
+      .replace('https://yqeimymddjhqeghgpjcl.supabase.co', 'https://bcsdsuznpgnfyxzsaqzb.supabase.co'));
     await prepareCloudflareBuild('main', path);
     assert.equal(await readFile(path, 'utf8'), source);
     for (const branch of [undefined, 'feature/test', 'toString']) {

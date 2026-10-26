@@ -140,7 +140,10 @@ as each Worker's production branch. The build reads Cloudflare's
 checkout. Keep automatic builds enabled for each Worker.
 
 `keep_vars` preserves runtime variables configured in the Cloudflare dashboard
-when deploying. Frontend `VITE_` variables must also be configured for the build.
+when deploying. Builds of `main` select the production Supabase project by default;
+`develop` keeps the development project. Optional frontend `VITE_` overrides must
+supply both the URL and publishable key together. The server URL follows the same
+branch selection, and each Worker needs its own `SUPABASE_SECRET_KEY` secret.
 
 The Worker names `furnidraw-prod` and `awesomefurniture-dev` are only Cloudflare's internal names (they hold
 the secrets and builds); the public address is the custom domain `furnidraw.com`, attached to the production Worker
