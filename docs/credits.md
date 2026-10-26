@@ -12,7 +12,7 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
   preselected and marked), what each feature costs, and the Activity tab (every purchase, spend and refund).
 - **AI image**: the price sits on Generate image and Try again (4 ◉). With too few credits the wallet opens
   on the packs and says what is missing. After the purchase, the success screen offers "Create your AI image".
-- **Technical drawings**: the menu item shows *Free*, *10 ◉* or *Open* (a pass is running). The first set is
+- **Technical drawings**: the menu item shows *Free trial*, *10 ◉* or *Open* (a pass is running). The first set is
   free and opens a 24-hour pass for that design; later designs ask on a small card before taking credits.
 - **Buying**: Continue → (a guest) sign up or sign in → the provider's hosted checkout → back in the editor,
   "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:

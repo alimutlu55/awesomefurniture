@@ -80,7 +80,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     }
   }
 
-  /** Keeps a small price tag next to a menu item: "Free", "10 ◉" or "Open" while a pass lasts. */
+  /** Keeps a small price tag next to a menu item: "Free trial", "10 ◉" or "Open" while a pass lasts. */
   function badge(target: HTMLElement, key: string) {
     const tag = page.createElement('small');
     tag.className = 'cr-badge'; tag.hidden = true;
@@ -91,7 +91,7 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
       if (!feature) return;
       const pass = client.pass(key);
       tag.dataset.kind = pass ? 'pass' : feature.freeLeft ? 'free' : 'paid';
-      tag.innerHTML = pass ? 'Open' : feature.freeLeft ? 'Free' : `${feature.cost}${coin()}`;
+      tag.innerHTML = pass ? 'Open' : feature.freeLeft ? 'Free trial' : `${feature.cost}${coin()}`;
     };
     const stop = client.subscribe(sync);
     lifetime.cleanup(stop);
