@@ -1,13 +1,12 @@
-/* The account sheet keeps its own warm palette, independent of the editor theme. */
+/* The account sheet keeps a white background, independent of the editor theme. */
 .ac-sheet {
   --cr-ink: #302e2a; --cr-mute: #74685f; --cr-line: #b5a99c; --cr-gold: #9b8054;
   width: min(100%, 420px); padding: 48px 36px 28px; border-radius: 22px;
-  background: #f5e8e0; border: 0; color-scheme: light;
+  background: #fff; border: 0; color-scheme: light;
   box-shadow: 0 24px 80px rgba(35, 29, 24, .2);
 }
 .ac-sheet .cr-close { top: 12px; right: 12px; width: 44px; height: 44px; background: transparent; color: var(--cr-mute); }
 .ac-sheet .cr-close:hover { background: #eee8de; }
-.ac-sheet[data-view="sign-up"] { background: #fff8ed; }
 .ac-head { margin-bottom: 28px; padding-right: 16px; }
 .ac-head h2 { margin: 0; color: var(--cr-ink); font-family: inherit;
   font-size: 25px; font-weight: 600; line-height: 1.3; letter-spacing: -.025em; }
