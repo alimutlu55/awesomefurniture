@@ -41,6 +41,10 @@ try {
     assert.equal(await page.locator('.cr-pack').count(), payload.packs.length);
     await respond(payload);
     await page.locator('.cr-packs:not(.ui-loading-surface)').waitFor();
+    assert.equal(await sheet.locator('.cr-hero-coin .cr-coin--xl').count(), 1, 'the balance keeps its gold coin artwork');
+    assert.deepEqual(await page.locator('.cr-stack').evaluateAll(stacks => stacks.map(stack => stack.querySelectorAll('.cr-coin').length)),
+      payload.packs.filter(pack => !pack.intro).map((_, index) => index + 1), 'each pack keeps its illustrated coin stack');
+    assert.equal(await page.locator('.cr-pack--featured .cr-ribbon').innerText(), 'Most popular');
     assert.equal(await sheet.evaluate(el => el.scrollWidth <= el.clientWidth), true, 'wallet has no horizontal overflow');
     await shot('credits');
     await sheet.evaluate(el => { el.scrollTop = el.scrollHeight; });
@@ -82,6 +86,7 @@ try {
     assert.deepEqual(await page.evaluate(() => review.redirects), ['https://checkout.example.test']);
     await page.evaluate(() => { review.wallet.close(); review.charge = review.wallet.charge('technical-drawings'); });
     await page.locator('.cr-confirm:not([hidden])').waitFor();
+    assert.equal(await page.locator('.cr-confirm-icon .cr-coin--lg').isVisible(), true);
     await shot('spend-confirmation');
     await page.locator('.cr-confirm-cancel').click();
     assert.equal(await page.evaluate(() => review.charge), false, 'cancelling a paid use spends nothing');
@@ -101,6 +106,7 @@ try {
     await orderRequest.fulfill({ json: { orderId: '00000000-0000-4000-8000-000000000001', status: 'paid', credits: 40, balance: 90 } });
     await respond(paidWallet);
     await page.locator('.cr-done:not([hidden])').waitFor();
+    assert.equal(await page.locator('.cr-burst .cr-coin--hero').isVisible(), true, 'payment completion keeps the coin celebration');
     assert.equal(await page.locator('.cr-done-title').innerText(), '+40 credits');
     assert.equal(await page.locator('.cr-done-close').isVisible(), true);
     await shot('payment-complete');
