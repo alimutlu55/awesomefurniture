@@ -70,7 +70,7 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `FITTI
   `editor.html` and `editor.css`. When you change one of those files on purpose, refresh the hash
   in the same commit and say why.
 - **Credit margin** (`tests/architecture/credits.test.ts`) fails when a paid feature keeps less than 65% usually or 40%
-  at worst on any pack, after 23% VAT, Stripe's fee, refunds, chargebacks and the Gemini token cost (prices in zloty) (`domain/credits/unit-economics.ts`). The ledger itself is checked by `supabase/tests/credits_ledger.sql`.
+  at worst on any pack, after 23% VAT, Stripe's fee, refunds, chargebacks and the Gemini token cost, for every pack in every currency (zloty, euro, dollars) (`domain/credits/unit-economics.ts`). The ledger itself is checked by `supabase/tests/credits_ledger.sql`.
 - **Architecture ratchet** (`scripts/architecture-baseline.json`) lists older code that breaks a
   rule. A listed file may only improve. Never raise a number or add a file: fix the code.
 

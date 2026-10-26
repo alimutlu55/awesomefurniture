@@ -1,4 +1,4 @@
-import { CREDIT_FEATURES, CREDIT_PACKS, creditFeature, creditPack, packCredits, packSaving, type CreditFeature } from '../../domain/credits/credit-catalog';
+import { CREDIT_FEATURES, CREDIT_PACKS, creditFeature, creditPack, packCredits, packSaving, type CreditCurrency, type CreditFeature } from '../../domain/credits/credit-catalog';
 import { PaymentProviderError, type CheckoutLinks, type CreditStore, type CreditUser, type PaymentOrder, type PaymentProvider, type PaymentUpdate,
   type SpendResult } from './credit-ports';
 import type { CreditWallet, OrderConfirmation } from './credit-wallet';
@@ -50,7 +50,8 @@ export function createCreditService({ store, providers, requireAccount,
     return result;
   };
 
-  async function wallet(user: CreditUser): Promise<CreditWallet> {
+  /** The wallet in the currency the visitor buys in (credit-currency.ts: from their country). */
+  async function wallet(user: CreditUser, currency: CreditCurrency = 'usd'): Promise<CreditWallet> {
     const summary = await store.summary(user.id, 30);
     return {
       balance: summary.balance,
@@ -59,21 +60,22 @@ export function createCreditService({ store, providers, requireAccount,
         cost: f.cost, passHours: f.passHours,
         freeLeft: Math.max(0, f.freeUses - (summary.freeUsed[f.key] ?? 0)) })),
       packs: CREDIT_PACKS.map(p => ({ id: p.id, label: p.label, credits: p.credits, bonus: p.bonus, total: packCredits(p),
-        price: p.price, currency: p.currency, featured: 'featured' in p && p.featured === true, saving: packSaving(p) })),
+        price: p.prices[currency], currency, featured: 'featured' in p && p.featured === true, saving: packSaving(p, currency) })),
       providers: providers.map(p => p.id),
       passes: summary.passes,
       history: summary.history,
     };
   }
 
-  async function checkout(user: CreditUser, input: { pack: unknown; provider: unknown; links: CheckoutLinks }) {
+  async function checkout(user: CreditUser, input: { pack: unknown; provider: unknown; links: CheckoutLinks; currency?: CreditCurrency }) {
+    const currency = input.currency ?? 'usd';
     const pack = typeof input.pack === 'string' ? creditPack(input.pack) : undefined;
     if (!pack) throw new CreditError('UNKNOWN_PACK', 'Choose one of the credit packs.');
     const via = typeof input.provider === 'string' ? provider(input.provider) : providers[0];
     if (!via) throw new CreditError('UNKNOWN_PROVIDER', 'This payment method is not available.');
     needAccount(user, 'buy credits');
-    const order = await store.createOrder({ userId: user.id, packId: pack.id, credits: packCredits(pack), amount: pack.price,
-      currency: pack.currency, provider: via.id, email: user.email });
+    const order = await store.createOrder({ userId: user.id, packId: pack.id, credits: packCredits(pack), amount: pack.prices[currency],
+      currency, provider: via.id, email: user.email });
     // A checkout that never reached the payment page is closed at once, so it does not count towards the hourly limit.
     const session = await via.checkout(order, input.links, user.email, `${pack.label} pack · ${packCredits(pack)} credits`)
       .catch(async (error: unknown) => { await store.expireOrder(order.id).catch(() => undefined); throw error; });

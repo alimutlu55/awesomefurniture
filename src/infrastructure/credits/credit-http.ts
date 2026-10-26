@@ -2,6 +2,7 @@ import { CreditError, type CreditErrorCode } from '../../application/credits/cre
 import { PaymentProviderError, PaymentSignatureError } from '../../application/credits/credit-ports';
 import type { SpendReceipt } from '../../application/credits/credit-wallet';
 import type { CreditRuntime } from './credit-environment';
+import { currencyForCountry } from '../../domain/credits/credit-currency';
 import { testCheckoutPage, testCheckoutComplete } from './test-checkout-page';
 
 const STATUS: Record<CreditErrorCode, number> = {
@@ -49,6 +50,15 @@ function returnPath(value: unknown) {
   return typeof value === 'string' && /^\/(?!\/)[A-Za-z0-9/_.-]{0,120}$/.test(value) ? value : '/editor.html';
 }
 
+/** The currency a visitor buys in, from the country Cloudflare puts on every request (a browser cannot set it). Test mode
+ * also takes `x-test-country`, so local checks can try each price list. */
+function buyerCurrency(request: Request, runtime: CreditRuntime) {
+  const cf = (request as Request & { cf?: { country?: unknown } }).cf;
+  const country = (typeof cf?.country === 'string' ? cf.country : null) ?? request.headers.get('cf-ipcountry')
+    ?? (runtime.mode === 'test' ? request.headers.get('x-test-country') : null);
+  return currencyForCountry(country);
+}
+
 /** `/api/credits/*` and `/api/payments/*`. Null for any other path. */
 export async function handleCredits(request: Request, runtime: CreditRuntime | null): Promise<Response | null> {
   const url = new URL(request.url), path = url.pathname;
@@ -72,11 +82,12 @@ export async function handleCredits(request: Request, runtime: CreditRuntime | n
     const user = await runtime.authenticate(request);
     if (!user) throw new CreditError('SIGN_IN_REQUIRED', 'Your session has ended. Reload the page and try again.');
 
-    if (path === '/api/credits' && request.method === 'GET') return json(await service.wallet(user));
+    const currency = buyerCurrency(request, runtime);
+    if (path === '/api/credits' && request.method === 'GET') return json(await service.wallet(user, currency));
     if (path === '/api/credits/checkout' && request.method === 'POST') {
       const body = await readJson(request), back = new URL(returnPath(body.returnTo), url.origin);
       const link = (outcome: string) => { const u = new URL(back); u.searchParams.set('checkout', outcome); u.searchParams.set('order', '{ORDER}'); return u.href.replace('%7BORDER%7D', '{ORDER}'); };
-      return json(await service.checkout(user, { pack: body.pack, provider: body.provider, links: { success: link('success'), cancel: link('cancel') } }));
+      return json(await service.checkout(user, { pack: body.pack, provider: body.provider, currency, links: { success: link('success'), cancel: link('cancel') } }));
     }
     const order = /^\/api\/credits\/orders\/([0-9a-f-]{36})$/.exec(path);
     if (order && request.method === 'GET') return json(await service.confirm(user, order[1]));

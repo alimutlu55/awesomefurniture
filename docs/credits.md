@@ -30,30 +30,37 @@ and credits to the account (the person decides), so paid credits survive a clear
 ## Pricing
 
 Prices live in one place, `src/domain/credits/credit-catalog.ts`; the image cost is worked out from Google's token
-prices in `image-generation-cost.ts`; VAT, payment costs, tax, the exchange rate and running costs are in
+prices in `image-generation-cost.ts`; VAT, payment costs, exchange rates and tax per currency are in
 `unit-economics.ts`. The database stores what each use cost, so a price change never rewrites history.
 
-Packs are sold **in zloty** (Stripe pays out in zloty, so there is no 2% currency conversion, and Polish customers
-can pay with BLIK and Przelewy24 once they are turned on in the Stripe dashboard). Assumptions, each one constant:
+**Three price lists.** Each visitor buys in one currency, picked by the Worker from the country Cloudflare reports on
+every request (`credit-currency.ts`; a browser cannot set it): **zloty in Poland, euro in the rest of the EU, dollars
+everywhere else** and when the country is unknown (local development too; test mode also reads `x-test-country`).
+The wallet shows that currency, and the order charges exactly the price the wallet showed. Zloty is paid out without
+conversion and lets Polish buyers pay with BLIK and Przelewy24 (turn them on in the Stripe dashboard); euro and dollar
+payments are converted into zloty by Stripe, unless EUR and USD payout accounts are added there.
 
-| Cost | Figure | Why |
-| --- | --- | --- |
-| VAT | 23%, included in the price | Polish VAT on a digital service |
-| Stripe | 3% + 1 zł per payment | card processing |
-| Chargebacks | 0.5% of payments lose the payment and a ~65 zł fee | cautious for a new shop (Stripe flags 0.75%) |
-| Refunds | 2% of payments; the processing fee is lost, the credits come back unused | |
-| Exchange rate | 3.90 zł per dollar | Google bills Gemini in dollars (about 3.80 in September 2026) |
-| Income tax and health | 19% flat tax + 4.9% health contribution on profit | sole trader on *podatek liniowy* |
-| Running costs | $50 a month: Supabase Pro $25, Cloudflare Workers $5, email sending ~$20 | once free tiers run out |
+| Cost | Zloty (Poland) | Euro (rest of EU) | Dollars (elsewhere) |
+| --- | --- | --- | --- |
+| VAT in the price, usually / at worst | 23% / 23% | 23% / 27% (buyer's rate once EU cross-border sales pass €10,000 a year) | 0% / 25% (UK, Norway and others tax digital sales) |
+| Stripe | 3% + 1 zł | 3% + €0.25 | 3% + $0.30 |
+| Conversion into zloty | none | 2% | 2% |
+| Chargeback fee | ~65 zł | ~€15 | ~$15 |
+| Gemini bill (in dollars) at | 3.90 zł per $ | €0.92 per $ | $1 |
 
-**AI image: 10 credits. Technical drawings: 20 credits**, the first set free. Credit amounts stay round.
+All currencies: chargebacks on 0.5% of payments (the payment and the fee are lost), refunds on 2% (the processing
+fees are lost, the credits come back unused), 19% flat income tax + 4.9% health contribution on profit (sole trader on
+*podatek liniowy*), and $50 a month of running costs (Supabase Pro $25, Cloudflare Workers $5, email ~$20).
 
-| Pack | Price (VAT incl.) | VAT | Stripe | Refunds and chargebacks | Left | Credits | AI images | Per image |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Starter | 19.99 zł | 3.74 | 1.60 | 0.46 | 14.20 zł | 80 | 8 | 2.50 zł |
-| Popular | 39.99 zł | 7.48 | 2.20 | 0.57 | 29.74 zł | 150 + 30 bonus | 18 | 2.22 zł (−11%) |
-| Pro | 99.99 zł | 18.70 | 4.00 | 0.90 | 76.39 zł | 400 + 80 bonus | 48 | 2.08 zł (−17%) |
-| Studio | 199.99 zł | 37.40 | 7.00 | 1.46 | 154.13 zł | 800 + 200 bonus | 100 | 2.00 zł (−20%) |
+**AI image: 10 credits. Technical drawings: 20 credits**, the first set free. The same round credit amounts in every
+currency:
+
+| Pack | Credits | AI images | Zloty | Euro | Dollars | Saving |
+| --- | --- | --- | --- | --- | --- | --- |
+| Starter | 80 | 8 | 19,99 zł | 4,99 € | $4.99 | |
+| Popular | 150 + 30 bonus | 18 | 39,99 zł | 9,99 € | $9.99 | −11% |
+| Pro | 400 + 80 bonus | 48 | 99,99 zł | 24,99 € | $24.99 | −17% |
+| Studio | 800 + 200 bonus | 100 | 199,99 zł | 49,99 € | $49.99 | −20% |
 
 What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier, October 2026): input $1.50, text
 and thinking output $7.50, image output $30.00 per million tokens. Images are made with `thinking_level: medium`,
@@ -74,25 +81,27 @@ measured on the current prompts: an ordinary wardrobe sends 3 views and 1 swatch
 | Failed attempts Google bills but we refund | +10% | +20% |
 | **Cost per delivered image** | **$0.076 = 0.29 zł** | **$0.150 = 0.59 zł** |
 
-What a pack earns when every credit goes on AI images (the least profitable use):
+What a pack earns when every credit goes on AI images (the least profitable use), after VAT, Stripe, conversion,
+refunds, chargebacks, Gemini and income tax. Usual / worst case:
 
-| Pack | Left | Gemini (usual / worst) | Profit before tax | After 19% + 4.9% | Share of the price kept |
-| --- | --- | --- | --- | --- | --- |
-| Starter | 14.20 zł | 2.36 / 4.68 | 11.84 / 9.51 | **9.01 / 7.24 zł** | 45% / 36% |
-| Popular | 29.74 zł | 5.30 / 10.54 | 24.44 / 19.20 | **18.60 / 14.61 zł** | 47% / 37% |
-| Pro | 76.39 zł | 14.14 / 28.11 | 62.25 / 48.28 | **47.37 / 36.74 zł** | 47% / 37% |
-| Studio | 154.13 zł | 29.46 / 58.56 | 124.67 / 95.57 | **94.87 / 72.73 zł** | 47% / 36% |
+| Pack | Zloty | Euro | Dollars |
+| --- | --- | --- | --- |
+| Starter | 9,01 / 7,24 zł (45% / 36% of the price) | 2,20 / 1,69 € (44% / 34%) | $2.83 / $1.62 (57% / 32%) |
+| Popular | 18,60 / 14,61 zł (47% / 37%) | 4,55 / 3,42 € (46% / 34%) | $5.85 / $3.31 (59% / 33%) |
+| Pro | 47,37 / 36,74 zł (47% / 37%) | 11,61 / 8,61 € (46% / 34%) | $14.90 / $8.37 (60% / 34%) |
+| Studio | 94,87 / 72,73 zł (47% / 36%) | 23,26 / 17,06 € (47% / 34%) | $29.87 / $16.59 (60% / 33%) |
 
-Per image that is 81–83% of what is left usually and 62–67% at worst. `tests/architecture/credits.test.ts` fails if
-any pack keeps less than 65% usually or 40% at worst (`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer
-model shows up in CI. Income tax is left out of that test: it scales with profit, so it never changes which price is
-profitable. Credits spent on drawings, or never spent, add to all of the above.
+Per image that is 81–86% of what is left usually and 59–67% at worst (the worst case takes the worst VAT and the
+worst Gemini cost together). `tests/architecture/credits.test.ts` checks every pack in every currency and fails below
+65% usually or 40% at worst (`MINIMUM_MARGIN`), so a bigger bonus, a price cut, a dearer model or a new currency shows
+up in CI. Income tax is left out of that test: it scales with profit, so it never changes which price is profitable.
+Credits spent on drawings, or never spent, add to all of the above.
 
-**Technical drawings** cost nothing per use (they are made in the browser): 4.00 to 5.00 zł to the person, 3.08 to
-3.55 zł left after VAT and payment costs. A use opens a 24-hour pass for that design, so fixing something and opening
+**Technical drawings** cost nothing per use (they are made in the browser): 4,00 to 5,00 zł (1,00 to 1,25 € or $)
+to the person. A use opens a 24-hour pass for that design, so fixing something and opening
 the drawings again is never charged twice.
 
-**Running costs and ZUS.** About 8 Popular packs a month pay the $50 of hosting and email (`breakEvenPacks`). ZUS
+**Running costs and ZUS.** About 8 Popular packs a month (7 in dollars) pay the $50 of hosting and email (`breakEvenPacks`). ZUS
 social contributions are owed by the sole trader whatever the app sells (reduced in the first years), so they are not
 charged to each pack; count them against the business as a whole.
 
@@ -108,8 +117,8 @@ where feature = 'ai-image' and status = 'captured' and created_at > now() - inte
 Prices include VAT. If Stripe Tax is turned on later, set the prices' tax behaviour to *inclusive*; otherwise
 Stripe adds VAT on top and the person pays 23% more than the pack shows. VAT-exempt (Polish small-business exemption,
 see the accountant)? Then the VAT column is profit, until cross-border EU consumer sales pass €10,000 a year. On
-*ryczałt* or the tax scale instead of the flat tax, change `INCOME_TAX`. Customers paying from abroad see zloty and
-their card converts it.
+*ryczałt* or the tax scale instead of the flat tax, change `INCOME_TAX`. Selling to the UK, Norway or Switzerland can
+mean registering for their VAT; the dollar worst case already assumes 25%.
 
 ## How it stays correct
 

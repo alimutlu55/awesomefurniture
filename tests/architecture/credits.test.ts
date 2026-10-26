@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
-import { CREDIT_FEATURES, CREDIT_PACKS, creditPack, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
+import { CREDIT_CURRENCIES, CREDIT_FEATURES, CREDIT_PACKS, creditPack, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
+import { currencyForCountry } from '../../src/domain/credits/credit-currency';
 import { breakEvenPacks, featureMargins, MINIMUM_MARGIN, packBreakdown, packRevenue } from '../../src/domain/credits/unit-economics';
 import { IMAGE_REQUEST_TOKENS, imageGenerationCost } from '../../src/domain/credits/image-generation-cost';
 import { createCreditService, CreditError } from '../../src/application/credits/credit-service';
@@ -17,7 +18,8 @@ const buyer: CreditUser = { id: 'b0000000-0000-4000-8000-000000000001', anonymou
 const guest: CreditUser = { id: 'b0000000-0000-4000-8000-000000000002', anonymous: true, email: null };
 const links = { success: 'https://app.test/editor.html?checkout=success&order={ORDER}', cancel: 'https://app.test/editor.html?checkout=cancel&order={ORDER}' };
 const POPULAR = packCredits(creditPack('popular')!), STARTER = packCredits(creditPack('starter')!);
-const POPULAR_PRICE = creditPack('popular')!.price, STARTER_PRICE = creditPack('starter')!.price, CURRENCY = creditPack('popular')!.currency;
+// The service sells in dollars when no country is known; the tests buy that way unless they say otherwise.
+const CURRENCY = 'usd' as const, POPULAR_PRICE = creditPack('popular')!.prices[CURRENCY], STARTER_PRICE = creditPack('starter')!.prices[CURRENCY];
 
 /** A provider whose webhooks are whatever the test says, as if Stripe had signed them. */
 function fakeProvider() {
@@ -42,14 +44,17 @@ function setup(requireAccount = true) {
 test('every paid feature keeps its margin at the cheapest credit when the provider costs the most', () => {
   for (const feature of CREDIT_FEATURES) {
     for (const m of featureMargins(feature)) {
-      assert.ok(m.typical >= MINIMUM_MARGIN.typical, `${feature.key} on the ${m.pack} pack usually keeps ${(m.typical * 100).toFixed(0)}%`);
-      assert.ok(m.worst >= MINIMUM_MARGIN.worst, `${feature.key} on the ${m.pack} pack keeps ${(m.worst * 100).toFixed(0)}% at worst`);
+      assert.ok(m.typical >= MINIMUM_MARGIN.typical, `${feature.key} on the ${m.pack} pack in ${m.currency} usually keeps ${(m.typical * 100).toFixed(0)}%`);
+      assert.ok(m.worst >= MINIMUM_MARGIN.worst, `${feature.key} on the ${m.pack} pack in ${m.currency} keeps ${(m.worst * 100).toFixed(0)}% at worst`);
     }
   }
   assert.equal(new Set(CREDIT_FEATURES.map(f => f.key)).size, CREDIT_FEATURES.length);
-  const perCredit = CREDIT_PACKS.map(p => p.price / packCredits(p));
-  assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), 'a bigger pack is always cheaper per credit');
-  assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 11, 17, 20]);
+  assert.equal(featureMargins(CREDIT_FEATURES[0]).length, CREDIT_PACKS.length * CREDIT_CURRENCIES.length, 'every pack is checked in every currency');
+  for (const currency of CREDIT_CURRENCIES) {
+    const perCredit = CREDIT_PACKS.map(p => p.prices[currency] / packCredits(p));
+    assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), `a bigger pack is always cheaper per credit in ${currency}`);
+    assert.deepEqual(CREDIT_PACKS.map(p => packSaving(p, currency)), [0, 11, 17, 20]);
+  }
   assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 10 === 0), 'credit amounts stay round');
   const image = CREDIT_FEATURES.find(f => f.key === 'ai-image')!;
   assert.ok(CREDIT_PACKS.every(p => packCredits(p) % image.cost === 0), 'every pack buys whole AI images');
@@ -293,8 +298,31 @@ test('the image cost comes from Google token prices: input, thinking and answer 
   assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.typical) * 10000), 755);
   assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.worst) * 10000), 1502);
   // 39.99 zł: 23% VAT inside, Stripe 3% + 1 zł, expected refunds and chargebacks: 29.74 zł is left.
-  const popular = packBreakdown(creditPack('popular')!);
-  assert.deepEqual([popular.vat, popular.stripe, popular.losses].map(n => n.toFixed(2)), ['7.48', '2.20', '0.57']);
-  assert.equal(packRevenue(creditPack('popular')!).toFixed(2), '29.74');
-  assert.equal(breakEvenPacks(creditPack('popular')!, CREDIT_FEATURES.find(f => f.key === 'ai-image')!), 8, 'eight Popular packs a month pay hosting and email');
+  const popular = packBreakdown(creditPack('popular')!, 'pln');
+  assert.deepEqual([popular.vat, popular.stripe, popular.conversion, popular.losses].map(n => n.toFixed(2)), ['7.48', '2.20', '0.00', '0.57']);
+  assert.equal(packRevenue(creditPack('popular')!, 'pln').toFixed(2), '29.74');
+  // $9.99 outside the EU: usually no VAT, Stripe 3% + $0.30, 2% conversion into zloty; at worst 25% VAT (Norway).
+  assert.equal(packRevenue(creditPack('popular')!, 'usd').toFixed(2), '9.05');
+  assert.equal(packBreakdown(creditPack('popular')!, 'usd', 'worst').vat.toFixed(2), '2.00');
+  assert.equal(breakEvenPacks(creditPack('popular')!, CREDIT_FEATURES.find(f => f.key === 'ai-image')!, 'pln'), 8, 'eight Popular packs a month pay hosting and email');
+});
+
+test('each visitor buys in their currency: zloty in Poland, euro in the EU, dollars elsewhere', async () => {
+  assert.deepEqual(['PL', 'pl', 'DE', 'FR', 'HU', 'US', 'GB', 'NO', 'TR', null, ''].map(currencyForCountry),
+    ['pln', 'pln', 'eur', 'eur', 'eur', 'usd', 'usd', 'usd', 'usd', 'usd', 'usd']);
+  const { service, store } = setup(false);
+  for (const currency of CREDIT_CURRENCIES) {
+    const wallet = await service.wallet(buyer, currency), popular = creditPack('popular')!;
+    assert.deepEqual([wallet.packs[1]!.price, wallet.packs[1]!.currency], [popular.prices[currency], currency]);
+    const { orderId } = await service.checkout(buyer, { pack: 'popular', provider: 'fake', links, currency });
+    const order = (await store.order(orderId))!;
+    assert.deepEqual([order.amount, order.currency], [popular.prices[currency], currency], 'the order charges the price the wallet showed');
+  }
+  // The API reads the country Cloudflare reports; test mode also takes x-test-country.
+  const env = { CREDITS_MODE: 'test', AI_RATE_LIMITER: { async limit() { return { success: true }; } } };
+  const walletFor = async (headers: Record<string, string>) =>
+    await (await handleApi(new Request('http://localhost:5173/api/credits', { headers }), env, { allowTest: true }))!.json() as { packs: { currency: string }[] };
+  assert.equal((await walletFor({ 'cf-ipcountry': 'PL' })).packs[0]!.currency, 'pln');
+  assert.equal((await walletFor({ 'x-test-country': 'ES' })).packs[0]!.currency, 'eur');
+  assert.equal((await walletFor({})).packs[0]!.currency, 'usd');
 });
