@@ -14,12 +14,24 @@
     "not_found_handling": "none"
   },
   "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }],
+  // Workers logs for every request, kept (Cloudflare dashboard -> Workers -> Logs): payment and credit failures log
+  // a request id there (src/infrastructure/credits/credit-http.ts). Set for each environment so both are the same.
+  "observability": {
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true, "persist": true },
+    "traces": { "enabled": false, "head_sampling_rate": 1, "persist": true },
+    "issue_detection": { "enabled": false }
+  },
   // Gives back credits held by image requests that never finished (src/app/api-router.ts, sweepCredits).
   "triggers": { "crons": ["*/15 * * * *"] },
   "env": {
     "dev": {
       "name": "awesomefurniture-dev",
       "vars": { "SUPABASE_URL": "https://bcsdsuznpgnfyxzsaqzb.supabase.co" },
+      "observability": {
+        "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true, "persist": true },
+        "traces": { "enabled": false, "head_sampling_rate": 1, "persist": true },
+        "issue_detection": { "enabled": false }
+      },
       "triggers": { "crons": ["*/15 * * * *"] },
       "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }]
     }
