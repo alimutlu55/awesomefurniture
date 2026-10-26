@@ -60,7 +60,7 @@ export function marksToPdf(pages: readonly (readonly Mark[])[], size: { w: numbe
   const catalog = add(''), tree = add('');
   const fonts = [add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'), add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>')];
   const safe = title.replace(/[^\x20-\x7e]/g, '-').replace(/[()\\]/g, '');
-  const info = add(`<< /Title (${safe}) /Producer (Wardrobe Forge) >>`);
+  const info = add(`<< /Title (${safe}) /Producer (FurniDraw) >>`);
   const kids = pages.map(marks => {
     const content = `q ${n(K)} 0 0 ${n(-K)} 0 ${n(H)} cm 0 J 0 j ` + marks.map(draw).join('\n') + ' Q';
     const stream = add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);

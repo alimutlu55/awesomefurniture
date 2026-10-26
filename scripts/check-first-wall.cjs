@@ -8,7 +8,7 @@ const {chromium}=require('playwright');
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
   const spec={specVersion:1,...(removedLast?{room:{template:'wall'}}:{}),wardrobes:[]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.furnidraw.describe());
   await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(450);
   if(removedLast){
    select:for(const y of [.4,.3,.5,.6,.25])for(const x of [.5,.35,.65]){

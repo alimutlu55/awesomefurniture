@@ -1,4 +1,4 @@
-# Wardrobe Forge
+# FurniDraw
 
 A browser editor for built-in furniture: wardrobes (shape the cabinet, add fittings, and let Auto
 design plan storage for what someone owns) and kitchen cabinets (modular base, wall and tall units

@@ -11,7 +11,7 @@ import { POSSESSIONS } from '../domain/wardrobe/possessions';
 
 /**
  * The editor's welcome for AI agents. A browser agent can read the guide (`help()`, also /llms.txt), call
- * functions on `window.wardrobeForge`, use the same functions as WebMCP tools where the browser offers them,
+ * functions on `window.furnidraw`, use the same functions as WebMCP tools where the browser offers them,
  * or open a design from a link (`#spec=`). Every design goes through the spec codec and the interpreter, so
  * an agent gets exactly what the editor's own commands build, and the person can undo it in one step.
  */
@@ -46,7 +46,7 @@ const list = (items: readonly { id: string; description: string }[]) => items.ma
 
 /** The guide, with every allowed name read from the registries. */
 export function agentGuide(): string {
-  return `# Wardrobe Forge: guide for AI agents
+  return `# FurniDraw: guide for AI agents
 
 Design a room and fitted wardrobes for a person by describing the result as a design spec (JSON).
 The editor builds it with its own rules and reports back what it built, so you can check and adjust.
@@ -60,7 +60,7 @@ The editor builds it with its own rules and reports back what it built, so you c
 Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
 \`${LINK_EXAMPLE_PATH}\`
 
-## Functions (\`window.wardrobeForge\`, and the same as WebMCP tools where the browser offers them)
+## Functions (\`window.furnidraw\`, and the same as WebMCP tools where the browser offers them)
 - \`help()\`: this guide.
 - \`schema()\`: the JSON Schema of a design spec, every field described.
 - \`example()\`: a complete spec to start from.
@@ -122,7 +122,7 @@ export const fromBase64Url = (code: string) => new TextDecoder().decode(Uint8Arr
 export const NO_EDITOR_NOTE = 'This browser cannot show the 3D editor (WebGL is off), so nothing was shown. The design builds: give the person this link to open in their own browser.';
 
 /**
- * The functions on `window.wardrobeForge`, and the WebMCP tools where the browser offers them. They work
+ * The functions on `window.furnidraw`, and the WebMCP tools where the browser offers them. They work
  * before the editor starts and in a browser that cannot start it (agents' browsers often have no WebGL):
  * then `build` shows nothing and answers with a link for the person, and `describe` reports the last build.
  */
@@ -164,7 +164,7 @@ export function registerWebMcpTools(api: ReturnType<typeof createAgentApi>, doc:
   const reply = (value: unknown) => Promise.resolve({ content: [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }] });
   const spec = designSpecJsonSchema() as object, none = { type: 'object', properties: {} };
   const tools = [
-    { name: 'design_guide', description: 'How to design a room and wardrobes in Wardrobe Forge: functions, conventions, allowed names, an example.', inputSchema: none, execute: () => reply(api.help()) },
+    { name: 'design_guide', description: 'How to design a room and wardrobes in FurniDraw: functions, conventions, allowed names, an example.', inputSchema: none, execute: () => reply(api.help()) },
     { name: 'check_design', description: 'Builds a design spec without changing the editor; returns the report or every problem with its path.', inputSchema: spec, execute: (input: unknown) => reply(api.check(input)) },
     { name: 'build_design', description: 'Builds a design spec and shows it in the editor (the person can undo it); returns the report or the problems.', inputSchema: spec, execute: (input: unknown) => reply(api.build(input)) },
     { name: 'describe_design', description: 'Reports the design the editor shows now: walls, ceilings, wardrobes, gaps, what they hold, warnings.', inputSchema: none, execute: () => reply(api.describe()) },

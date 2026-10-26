@@ -10,7 +10,7 @@ const engine=process.env.LABEL_BROWSER==='webkit'?webkit:chromium;
   page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60}]})));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),size=()=>page.evaluate(()=>{const w=window.wardrobeForge.describe().wardrobes[0];return {w:w.width,h:w.height,d:w.depth};});
+  const el=id=>page.locator(`[data-editor-id="${id}"]`),size=()=>page.evaluate(()=>{const w=window.furnidraw.describe().wardrobes[0];return {w:w.width,h:w.height,d:w.depth};});
   await page.waitForTimeout(500);await selectFurniture(page,{touch});
   const before=await size();
   for(const key of ['w','d','h']){

@@ -32,7 +32,7 @@ export interface CreditRuntime {
   readonly test: (PaymentProvider & { secret: string; grant(userId: string, credits: number): void; order(id: string): Promise<PaymentOrder | null> }) | null;
 }
 
-const LOCAL_TEST_USER: CreditUser = { id: '00000000-0000-4000-8000-00000000c0de', anonymous: false, email: 'local-test@wardrobe-forge.invalid' };
+const LOCAL_TEST_USER: CreditUser = { id: '00000000-0000-4000-8000-00000000c0de', anonymous: false, email: 'local-test@furnidraw.invalid' };
 
 let testRuntime: CreditRuntime | null = null;
 const runtimes = new WeakMap<object, CreditRuntime | null>();

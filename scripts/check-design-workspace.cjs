@@ -15,7 +15,7 @@ const output='docs/verification/design-workspace';
  const choose=name=>library().getByRole('button',{name:'Select '+name,exact:true});
  const input=()=>library().getByRole('textbox',{name:'Design name',exact:true});
  const dialog=()=>library().getByRole('dialog');
- const snapshot=()=>page.evaluate(()=>window.wardrobeForge.describe());
+ const snapshot=()=>page.evaluate(()=>window.furnidraw.describe());
  const create=async name=>{await library().getByRole('button',{name:'New design',exact:true}).first().click();await input().fill(name);await dialog().getByRole('button',{name:'Create design',exact:true}).click();await back().waitFor();};
  try{
   const spec={specVersion:1,room:{template:'bedroom'},wardrobes:[{against:1,width:240,for:{short:20,shoes:10}}]};

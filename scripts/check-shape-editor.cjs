@@ -16,7 +16,7 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
   await page.goto(base+'/editor.html#spec='+encodeURIComponent(JSON.stringify({specVersion:1,room:{template:'bedroom'},wardrobes:[]})));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar'), report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+  const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar'), report=()=>page.evaluate(()=>window.furnidraw.describe());
   await el('view').waitFor(); await page.waitForTimeout(1200);
   await page.locator('[data-view-mode="studio"]').click(); await page.waitForTimeout(600);
   const tap=async locator=>{ if(phone) await locator.tap(); else await locator.click(); await page.waitForTimeout(350); };

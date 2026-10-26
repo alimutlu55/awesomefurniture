@@ -70,7 +70,7 @@ export function createStripeProvider(secretKey: string, webhookSecret: string, c
         client_reference_id: order.id,
         ...(email ? { customer_email: email } : {}),
         line_items: [{ quantity: 1, price_data: { currency: order.currency, unit_amount: order.amount,
-          product_data: { name: label, description: 'Credits for AI images and technical drawings in Wardrobe Forge.' } } }],
+          product_data: { name: label, description: 'Credits for AI images and technical drawings in FurniDraw.' } } }],
         metadata: { order_id: order.id, pack: order.packId },
         payment_intent_data: { metadata: { order_id: order.id, pack: order.packId } },
         success_url: links.success.replace('{ORDER}', order.id),

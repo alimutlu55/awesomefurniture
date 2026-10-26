@@ -79,5 +79,5 @@ changes its finish, removes and restores it, and adds a vanity basin, on a deskt
 - More kinds: shower tray and screen, bath, bidet, washing machine, towel radiator, and flat wall items (mirror, towel
   rail, roll holder) as wall utilities.
 - A fixture moves along its wall only; to put it on another wall, add it there.
-- Design specs and the agent API (`window.wardrobeForge`) do not build fixtures yet.
+- Design specs and the agent API (`window.furnidraw`) do not build fixtures yet.
 - Elevations do not draw fixtures; the plan does.

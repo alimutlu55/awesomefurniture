@@ -1,4 +1,4 @@
-# Wardrobe Forge: guide for AI agents
+# FurniDraw: guide for AI agents
 
 Design a room and fitted wardrobes for a person by describing the result as a design spec (JSON).
 The editor builds it with its own rules and reports back what it built, so you can check and adjust.
@@ -12,7 +12,7 @@ The editor builds it with its own rules and reports back what it built, so you c
 Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
 `/#spec=%7B%22specVersion%22%3A1%2C%22room%22%3A%7B%22template%22%3A%22bedroom%22%7D%2C%22wardrobes%22%3A%5B%7B%22against%22%3A1%2C%22width%22%3A240%2C%22for%22%3A%7B%22short%22%3A30%2C%22shoes%22%3A10%7D%7D%5D%7D`
 
-## Functions (`window.wardrobeForge`, and the same as WebMCP tools where the browser offers them)
+## Functions (`window.furnidraw`, and the same as WebMCP tools where the browser offers them)
 - `help()`: this guide.
 - `schema()`: the JSON Schema of a design spec, every field described.
 - `example()`: a complete spec to start from.

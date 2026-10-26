@@ -72,9 +72,10 @@ The migration is applied to the project. Supabase Auth settings are in the dashb
 2. **Email templates**: the sheet asks for the code, so each template must contain `{{ .Token }}`:
    *Confirm signup* and *Reset password* (and keep it in *Magic link* and *Change email address*).
 3. **URL configuration**: add every address the editor runs on to *Redirect URLs*, with a wildcard so any page
-   matches, for example `https://awesomefurniture.alimutlu535529.workers.dev/**`,
+   matches, for example `https://furnidraw.com/**`, `https://www.furnidraw.com/**`,
+   `https://awesomefurniture.alimutlu535529.workers.dev/**`,
    `https://awesomefurniture-dev.alimutlu535529.workers.dev/**` and `http://localhost:5173/**`. A missing one
-   sends people back to the Site URL (production) after Google or an email link.
+   sends people back to the Site URL (set it to `https://furnidraw.com`) after Google or an email link.
 4. **Google** (Authentication → Sign In / Providers → Google): create an OAuth client in Google Cloud Console
    (type *Web application*, authorised redirect URI `https://bcsdsuznpgnfyxzsaqzb.supabase.co/auth/v1/callback`),
    paste its client ID and secret, and turn it on. Until then the sheet hides the Google button.

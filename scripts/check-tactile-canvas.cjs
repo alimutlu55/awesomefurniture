@@ -10,7 +10,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
   const spec={specVersion:1,wardrobes:[{width:200,height:230,depth:60}]};
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.furnidraw.describe());
   // A design opens with nothing chosen: a tap on the wardrobe chooses it and its measurements show.
   await page.waitForTimeout(500);await selectFurniture(page,{touch:pointer==='touch'});await page.locator('.scrub-w:visible').waitFor();
   const before=await report();
@@ -115,7 +115,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
    ceilings:[{wall:1,shape:'landing',depth:115,points:[[0,205],[80,205],[140,141],[220,141]]}],
    wardrobes:[{against:1,width:216,from:2,depth:60}]};
   await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(studio)));
-  const report=()=>page.evaluate(()=>window.wardrobeForge.describe()),el=id=>page.locator(`[data-editor-id="${id}"]`);
+  const report=()=>page.evaluate(()=>window.furnidraw.describe()),el=id=>page.locator(`[data-editor-id="${id}"]`);
   await page.waitForTimeout(500);await selectFurniture(page,{touch:true});
   // Widening it past the walls in Size stops inside the studio.
   await el('toolbar').locator('[data-action="resize"]:visible').click();await el('w').waitFor({state:'visible'});

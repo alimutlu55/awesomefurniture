@@ -10,8 +10,8 @@ const {chromium}=require('playwright');
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
   const spec={specVersion:1,wardrobes:[{width:200,height:230,depth:60}]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/editor.html#spec='+encodeURIComponent(JSON.stringify(spec)));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),depth=()=>page.evaluate(()=>window.wardrobeForge.describe().wardrobes[0].depth);
-  await el('c').waitFor({state:'visible'});await page.waitForFunction(()=>window.wardrobeForge?.describe().wardrobes[0]?.depth===60);
+  const el=id=>page.locator(`[data-editor-id="${id}"]`),depth=()=>page.evaluate(()=>window.furnidraw.describe().wardrobes[0].depth);
+  await el('c').waitFor({state:'visible'});await page.waitForFunction(()=>window.furnidraw?.describe().wardrobes[0]?.depth===60);
   // A tap chooses the wardrobe: its measurements show, read-only.
   await el('c').click();
   const badge=page.locator('.scrub-d:visible');await badge.waitFor();

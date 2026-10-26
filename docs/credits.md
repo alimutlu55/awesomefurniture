@@ -198,7 +198,7 @@ more `PaymentProvider`.
    npx wrangler secret put STRIPE_WEBHOOK_SECRET
    ```
    Use a Supabase **secret** key (`sb_secret_…`) and Stripe **test-mode** keys on development.
-3. Stripe dashboard → Developers → Webhooks: endpoint `https://<host>/api/payments/stripe/webhook`, API
+3. Stripe dashboard → Developers → Webhooks: endpoint `https://furnidraw.com/api/payments/stripe/webhook` for production (the dev Worker's address for test mode), API
    version `2026-09-30.endive` (the SDK's), events `checkout.session.completed`,
    `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`,
    `checkout.session.expired`, `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`.

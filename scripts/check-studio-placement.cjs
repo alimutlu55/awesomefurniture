@@ -25,7 +25,7 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
    const built=buildFromSpec(spec,'studio-regression');assert.ok(built.ok);
    const studio=projectToScene(built.project).studio;
    await page.goto(baseURL+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
-   const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+   const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.furnidraw.describe());
    await page.locator('[data-editor-id="add-furniture-btn"]').waitFor();await page.waitForTimeout(500);
    assert.equal((await report()).wardrobes.length,0);
    if(scenario==='sloped' && width===375) await page.screenshot({path:'/tmp/wardrobe-studio-ui-before.png'});

@@ -10,7 +10,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   const touch=width===375,page=await browser.newPage({viewport:{width,height:812},hasTouch:true,isMobile:touch,reducedMotion:'reduce'}),errors=[];
   page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+  const el=id=>page.locator(`[data-editor-id="${id}"]`),report=()=>page.evaluate(()=>window.furnidraw.describe());
   const load=async spec=>{await page.goto('about:blank');await page.goto(base+'/#spec='+encodeURIComponent(JSON.stringify(spec)));await el('view').waitFor();await page.waitForTimeout(700);};
   /** A measurement reads its value and nothing on it changes the design. */
   const reads=async(badge,value,what)=>{

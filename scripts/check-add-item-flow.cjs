@@ -36,9 +36,9 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     // Simulate the shared collapsed state left by another inspector.
     await el('pop2').locator('.pmin').evaluate(button=>button.click());await el('px').click();await activate(add());await assertFittings();
    }
-   const before=await page.evaluate(()=>window.wardrobeForge.describe());
+   const before=await page.evaluate(()=>window.furnidraw.describe());
    await activate(el('pop2').locator('.mobile-add-products [data-m="drawer"]'));
-   const after=await page.evaluate(()=>window.wardrobeForge.describe());
+   const after=await page.evaluate(()=>window.furnidraw.describe());
    assert.equal(after.wardrobes.length,before.wardrobes.length,'Adding a fitting never creates furniture');
    const count=report=>report.wardrobes.flatMap(w=>w.sections.flatMap(s=>s.fittings)).filter(f=>f.kind==='drawer').length;
    assert.equal(count(after),count(before)+1,'Drawer is added to the wardrobe');

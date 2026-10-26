@@ -21,7 +21,7 @@ const {serializeProject}=require(root+'/src/infrastructure/serialization/project
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4180')+'/#design='+packed);
   const el=id=>page.locator(`[data-editor-id="${id}"]`);
   await el('add-furniture-btn').waitFor();
-  const before=await page.evaluate(()=>window.wardrobeForge.describe());
+  const before=await page.evaluate(()=>window.furnidraw.describe());
   assert.equal(before.wardrobes[0].width,217.4);
   assert.ok(Math.abs(before.wardrobes[0].gaps.left+before.wardrobes[0].gaps.right-.8)<.001);
   const view=await el('view').boundingBox();await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);
@@ -38,12 +38,12 @@ const {serializeProject}=require(root+'/src/infrastructure/serialization/project
   }else{
    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(end,y,{steps:5});await page.mouse.up();
   }
-  const after=await page.evaluate(()=>window.wardrobeForge.describe());
+  const after=await page.evaluate(()=>window.furnidraw.describe());
   assert.equal(after.wardrobes[0].width,218.2);
   assert.equal(after.wardrobes[0].gaps.left,0);assert.equal(after.wardrobes[0].gaps.right,0);
   await page.screenshot({path:`/tmp/wardrobe-slider-boundary-${width}.png`});
   await el('c').focus();await page.keyboard.press('ControlOrMeta+z');
-  assert.deepEqual(await page.evaluate(()=>window.wardrobeForge.describe()),before);
+  assert.deepEqual(await page.evaluate(()=>window.furnidraw.describe()),before);
   assert.deepEqual(errors,[]);
   console.log(`PASS ${width}px: real slider drag fills the last 8 mm, both gaps close, Undo restores width and pose.`);
   await page.close();

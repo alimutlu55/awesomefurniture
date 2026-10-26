@@ -15,13 +15,15 @@ startup.className = 'ui-loading-startup';
 startup.replaceChildren(createLoadingPlaceholder(document, 'Opening your workspace…', 'canvas'));
 const startupCopy = document.createElement('p'); startupCopy.textContent = 'Opening your workspace…'; startup.append(startupCopy);
 document.body.append(startup);
-// AI agents are welcome: a guide and functions on window.wardrobeForge (WebMCP tools where offered). They are
+// AI agents are welcome: a guide and functions on window.furnidraw (WebMCP tools where offered). They are
 // ready before the editor and stay when it cannot start (agents' browsers often have no WebGL).
 let editor:ReturnType<typeof mountEditor>|null=null;
 const agents=createAgentApi(()=>editor,location);
+Object.defineProperty(window,'furnidraw',{value:agents,configurable:true});
+// The app's earlier name, kept so agents and links written for it still work.
 Object.defineProperty(window,'wardrobeForge',{value:agents,configurable:true});
 registerWebMcpTools(agents,document,navigator);
-console.info('Wardrobe Forge: AI agents can design here. Call window.wardrobeForge.help() for the guide, or read /llms.txt.');
+console.info('FurniDraw: AI agents can design here. Call window.furnidraw.help() for the guide, or read /llms.txt.');
 async function main(): Promise<void> {
  const checkout=takeCheckoutReturn(new URL(location.href),history);
  const url=new URL(location.href);
@@ -61,7 +63,7 @@ void main().finally(() => startup.remove()).catch(error=>{
  if(/webgl/i.test(text)) {
   say('h1','This browser cannot show the 3D editor').role='alert';
   say('p','WebGL is turned off or not available here. Open this page in Chrome, Safari, Edge or Firefox on a phone or computer.');
-  say('p','AI assistants: window.wardrobeForge works in this browser. Call help(), check(spec) and link(spec), and give the person the link to open in their own browser. The guide is at /llms.txt.');
+  say('p','AI assistants: window.furnidraw works in this browser. Call help(), check(spec) and link(spec), and give the person the link to open in their own browser. The guide is at /llms.txt.');
   // A design link is still checked, so an assistant reading this page learns whether it builds.
   if(new URLSearchParams(location.hash.slice(1)).has('spec')) {
    let built:ReturnType<typeof checkSpec>|null=null;

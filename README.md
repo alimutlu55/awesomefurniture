@@ -1,7 +1,9 @@
-# Wardrobe
+# FurniDraw
 
-The Wardrobe Forge editor migrated from `Wardrobe_Forge-4-16-12.html` into the
-existing domain/application/infrastructure/presentation structure.
+FurniDraw ([furnidraw.com](https://furnidraw.com)) designs built-in furniture that fits a room: wardrobes and
+kitchen cabinets, shown as a photo-real AI image and issued as technical drawings to build from. The editor was
+migrated from the earlier single-file `Wardrobe_Forge-4-16-12.html` into the
+domain/application/infrastructure/presentation structure.
 
 ## Run locally
 
@@ -137,7 +139,9 @@ as each Worker's production branch. The build reads Cloudflare's
 `WORKERS_CI_BRANCH` and sets the matching Worker name in the temporary build
 checkout. Keep automatic builds enabled for each Worker.
 
-Local builds retain the `awesomefurniture` default. To deploy development
+The Worker names `awesomefurniture` and `awesomefurniture-dev` are only Cloudflare's internal names (they hold
+the secrets and builds); the public address is the custom domain `furnidraw.com`, attached to the production Worker
+under Settings → Domains & Routes. Local builds retain the `awesomefurniture` default. To deploy development
 locally, use `npx wrangler deploy --env dev` (add `--dry-run` to validate).
 
 # awesomefurniture

@@ -8,7 +8,7 @@ import { POSSESSION_KEYS } from '../../src/domain/wardrobe/possessions';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
 import type { ProjectDocument } from '../../src/domain/project/project';
 
-/** The welcome for AI agents: the guide, window.wardrobeForge, WebMCP tools and design links. */
+/** The welcome for AI agents: the guide, window.furnidraw, WebMCP tools and design links. */
 
 function editor() {
   const loaded: ProjectDocument[] = [], said: string[] = [];

@@ -22,7 +22,7 @@ const {chromium}=require('playwright');
   // Waiting catches a picker which unexpectedly rotates back to the default wall.
   await page.waitForTimeout(900);
   await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
-  const report=()=>page.evaluate(()=>window.wardrobeForge.describe());
+  const report=()=>page.evaluate(()=>window.furnidraw.describe());
   const added=(await report()).wardrobes;
   assert.equal(added.length,1);assert.equal(added[0].against,wall,'Camera-facing wall at '+width+' px');
   assert.equal(added[0].width,200,'Targeting a wall does not enlarge the default wardrobe');
