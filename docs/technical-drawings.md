@@ -177,7 +177,11 @@ gives the letter of its pieces' marks.
 
 Corner cabinet installation widths use `domain/kitchen/corner-widths.ts`, shared with the selected
 cabinet's editor rulers. The carcass front line is intersected with the actual perpendicular return
-footprints at overlapping heights. The resulting chain gives the exposed face width, then the covered
+front/back planes at overlapping heights, accepting the editor's half-degree quarter-turn tolerance.
+A return may start beyond the exact carcass front by the shared run tolerance plus the worktop's
+overhang (30 mm for a base unit). Only its side ends are extended for detection; the real front/back
+planes still determine every width stop. This recognises a corner across a small installation joint
+without changing the gap, angle, cabinet pose or board sizes. The resulting chain gives the exposed face width, then the covered
 distance from the corner to the cabinet edge (and handles returns at both ends). No nominal depth or
 half-door width is substituted. Plans, elevations and the shop sheet's Front view include these stops;
 overall carcass widths, front cutting sizes and cutting lists remain separate. Geometry stays in model

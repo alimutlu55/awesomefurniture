@@ -43,11 +43,45 @@ test('turning and translating the complete installation retains the exact surfac
 
 test('unrelated, parallel, elevated and fixture neighbours do not invent a corner', () => {
   for (const other of [
-    { ...right, angle: 0 }, { ...right, z: right.z + .001 }, { ...right, x: 400 },
-    { ...right, y: box.state.h }, { ...right, angle: 269.9 },
+    { ...right, angle: 0 }, { ...right, z: right.z + 3.01 }, { ...right, x: 400 },
+    { ...right, y: box.state.h }, { ...right, angle: 269 },
     { ...right, state: createKitchenDesign('sink-top') },
   ]) assert.deepEqual(values(box, [other]), [[0, 117.9, false]]);
   assert.deepEqual(values({ ...box, state: { ...box.state, product: undefined } }), [[0, 117.9, false]]);
+});
+
+test('saved corner layout with a 25 mm front offset still splits at the actual return faces', () => {
+  const selected = { ...box, x: -141, z: -15.8, angle: 90, state: { ...box.state, w: 104.4 } };
+  const returnUnit = { ...right, x: -94.5, z: -39, angle: 0, state: { ...right.state, w: 30 } };
+  const before = structuredClone([selected, returnUnit]);
+  assert.deepEqual(values(selected, [returnUnit]), [[0, 46.4, false], [46.4, 104.4, true]]);
+  assert.deepEqual([selected, returnUnit], before, 'recognising a corner does not close its real gap or change its sizes');
+  const pieces = [selected, returnUnit].map(p => ({ ...p, name: 'Cabinet', design: p.state }));
+  for (const title of ['Plan', 'Front elevation K1', 'K1  Base cabinet']) {
+    const sheet = technicalDrawings({ pieces }, { preset: 'installation' }).find(s => s.title === title)!;
+    assert.ok(dims(sheet.views.flatMap(v => v.items)).some(d => JSON.stringify(d.stops) === '[0,464,1044]'),
+      title + ' dimensions the real offset return');
+  }
+  for (const turn of [37, 90, 263]) {
+    const a = turn * Math.PI / 180;
+    const pose = (p: typeof selected) => ({ ...p, x: Math.cos(a) * p.x + Math.sin(a) * p.z,
+      z: -Math.sin(a) * p.x + Math.cos(a) * p.z, angle: p.angle + turn });
+    assert.deepEqual(values(pose(selected), [pose(returnUnit)]), [[0, 46.4, false], [46.4, 104.4, true]]);
+  }
+});
+
+test('near-square returns use their actual angle rather than requiring exact quarter-turn coordinates', () => {
+  for (const angle of [269.5, 269.9, 270.1, 270.5]) {
+    const actual = cornerCabinetWidths(box, [{ ...right, angle }]);
+    assert.ok(actual.length >= 2, 'recognises the editor quarter-turn tolerance at ' + angle);
+    assert.equal(actual[0]!.covered, false); assert.equal(actual[1]!.covered, true);
+    assert.ok(Math.abs(actual[0]!.to - 59.9) > .001, 'retains actual angled intersection');
+    assert.equal(actual[0]!.to, actual[1]!.from);
+    assert.equal(actual.at(-1)!.to, box.state.w);
+    const a = angle * Math.PI / 180, x = actual[0]!.to - box.state.w / 2, z = box.state.d / 2;
+    assert.ok(Math.abs((x - right.x) * Math.sin(a) + (z - right.z) * Math.cos(a) - right.state.d / 2) < 1e-8,
+      'the split lies on the real return front plane');
+  }
 });
 
 test('overlapping returns are merged; movement, depth changes and deletion recompute the split', () => {

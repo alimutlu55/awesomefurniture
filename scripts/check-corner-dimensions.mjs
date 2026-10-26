@@ -34,7 +34,8 @@ try {
       const state = { ...createEditorState(), ...createKitchenDesign('base'), w: 117.9 };
       const scene = { wardrobes: [
         { id: 1, name: 'Corner cabinet', x: 0, z: 0, y: 0, angle: 0, state },
-        { id: 2, name: 'Return', x: 29.95, z: 59, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'drawers') } },
+        // A real installation joint: the side starts 25 mm beyond the selected carcass front.
+        { id: 2, name: 'Return', x: 29.95, z: 61.5, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'drawers') } },
       ], activeWardrobe: 1, nextWardrobeId: 3 };
       const editor = mountEditor({ root: document.querySelector('#editor'), initialScene: scene });
       const render = (active = 1) => {

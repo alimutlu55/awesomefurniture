@@ -1,5 +1,5 @@
-import { unitAxes } from './kitchen-runs';
-import { isFixture } from './kitchen-units';
+import { RUN_TOLERANCE, unitAxes } from './kitchen-runs';
+import { isFixture, kitchenUnit, WORKTOP } from './kitchen-units';
 import type { EditorDesign } from '../wardrobe/editor-design';
 
 interface Cabinet {
@@ -9,6 +9,8 @@ interface Cabinet {
 export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean }
 // Numerical tolerance only (centimetres). Real gaps and offsets are never snapped or rounded here.
 const EPS = 1e-7;
+// The editor recognises quarter-turn alignment within half a degree. Keep actual angles for intersections.
+const QUARTER_TURN = Math.sin(.5 * Math.PI / 180);
 // Remove trigonometric round-off before display rounding (e.g. 611.4999999999999 mm at a half-mm stop).
 const stable = (cm: number) => Math.round(cm * 1e9) / 1e9;
 const cabinet = (p: Cabinet) => p.state.product === 'kitchen' && !isFixture(p.state);
@@ -19,21 +21,28 @@ export function frontCoveredByReturn(x0: number, x1: number, widths: readonly Fa
   return widths.some(s => s.covered && Math.min(x1, s.to) - Math.max(x0, s.from) > EPS);
 }
 
-/** Width along the carcass front, from its left edge, split by perpendicular cabinets actually meeting it.
- * The return's footprint is intersected with the front line; no nominal depth or blind-door split is assumed.
+/** Width along the carcass front, from its left edge, split by a perpendicular return in the same run.
+ * A return can stop just beyond the front (a worktop overhang / joint), rather than on its exact plane.
+ * Extend only the return's side ends for detection; its front/back planes still set the exact width stops.
  * All values remain in model centimetres. Board cutting sizes and the overall cabinet width are unchanged. */
 export function cornerCabinetWidths(box: Cabinet, others: readonly Cabinet[]): FaceWidth[] {
   const w = box.state.w, plain = [{ from: 0, to: w, covered: false }];
   if (!cabinet(box)) return plain;
   const { u, v } = unitAxes(box.angle), front = { x: box.x + v.x * box.state.d / 2, z: box.z + v.z * box.state.d / 2 };
+  const join = RUN_TOLERANCE + (kitchenUnit(box.state.unit).worktop ? WORKTOP.overhang : 0);
   const covered: [number, number][] = [];
   for (const other of others) {
     if (other.id === box.id || !cabinet(other)) continue;
     if ((other.y ?? 0) >= (box.y ?? 0) + box.state.h - EPS || (other.y ?? 0) + other.state.h <= (box.y ?? 0) + EPS) continue;
     const axes = unitAxes(other.angle);
-    if (Math.abs(u.x * axes.u.x + u.z * axes.u.z) > EPS) continue;
+    if (Math.abs(u.x * axes.u.x + u.z * axes.u.z) > QUARTER_TURN + EPS) continue;
+    // A cabinet entirely behind this front does not hide it, even if its projected width lines up.
+    const normal = (other.x - front.x) * v.x + (other.z - front.z) * v.z;
+    const reach = Math.abs(axes.u.x * v.x + axes.u.z * v.z) * other.state.w / 2
+      + Math.abs(axes.v.x * v.x + axes.v.z * v.z) * other.state.d / 2;
+    if (normal + reach < -EPS) continue;
     let lo = -w / 2, hi = w / 2;
-    for (const [axis, half] of [[axes.u, other.state.w / 2], [axes.v, other.state.d / 2]] as const) {
+    for (const [axis, half] of [[axes.u, other.state.w / 2 + join], [axes.v, other.state.d / 2]] as const) {
       const origin = (front.x - other.x) * axis.x + (front.z - other.z) * axis.z;
       const dir = u.x * axis.x + u.z * axis.z;
       if (Math.abs(dir) < EPS) {

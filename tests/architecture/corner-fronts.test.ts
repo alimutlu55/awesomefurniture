@@ -55,6 +55,11 @@ test('standalone and elevated unrelated cabinets retain their normal handles; ha
   assert.equal(render(design, [right], true).handles.length, 0);
 });
 
+test('a 25 mm offset at the corner does not leave a handle on the covered panel', () => {
+  const offset = { ...right, z: right.z + 2.5 };
+  assert.deepEqual(render(design, [offset]), render(design, [right]));
+});
+
 test('a dedicated corner pull-out keeps one accessible door handle and no handle on its blind panel', () => {
   const corner = { ...createKitchenDesign('base', 'corner'), w: 117.9 };
   assert.equal(render(corner, [right]).handles.length, 1);
