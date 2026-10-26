@@ -30,20 +30,29 @@ and credits to the account (the person decides), so paid credits survive a clear
 ## Pricing
 
 Prices live in one place, `src/domain/credits/credit-catalog.ts`; the image cost is worked out from Google's token
-prices in `image-generation-cost.ts`, and VAT and Stripe's fee are in `unit-economics.ts`. The database stores what
-each use cost, so a price change never rewrites history.
+prices in `image-generation-cost.ts`; VAT, payment costs, tax and running costs are in `unit-economics.ts`. The
+database stores what each use cost, so a price change never rewrites history.
 
-Pack prices **include 23% VAT** (the seller is a Polish business). Of every payment, `price / 1.23` is ours;
-Stripe then takes **3% of the amount charged plus $0.30**.
+Assumptions (each is one constant in `unit-economics.ts`):
 
-| Pack | Price (VAT incl.) | VAT 23% | Stripe | Left for us | Credits | AI images | Drawing sets | Per image |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Starter | $4.99 | $0.93 | $0.45 | $3.61 | 50 | 10 | 5 | $0.50 |
-| Popular | $9.99 | $1.87 | $0.60 | $7.52 | 100 + 10 bonus | 22 | 11 | $0.45 (−9%) |
-| Pro | $24.99 | $4.67 | $1.05 | $19.27 | 250 + 50 bonus | 60 | 30 | $0.42 (−17%) |
-| Studio | $49.99 | $9.35 | $1.80 | $38.84 | 500 + 125 bonus | 125 | 62 | $0.40 (−20%) |
+| Cost | Figure | Why |
+| --- | --- | --- |
+| VAT | 23%, included in the price | Polish VAT on a digital service |
+| Stripe | 3% + $0.30 per payment | card processing |
+| Currency conversion | 2% | Stripe pays the US dollars out in zloty |
+| Chargebacks | 0.5% of payments lose the payment and Stripe's $15 fee | cautious for a new shop (Stripe flags 0.75%) |
+| Refunds | 2% of payments; the processing fees are lost, the credits come back unused | |
+| Income tax and health | 19% flat tax + 4.9% health contribution on profit | sole trader on *podatek liniowy* |
+| Running costs | $50 a month: Supabase Pro $25, Cloudflare Workers $5, email sending ~$20 | once free tiers run out |
 
 Credit amounts stay round; the image price in credits is what makes the packs profitable.
+
+| Pack | Price (VAT incl.) | VAT | Stripe | Conversion | Refunds and chargebacks | Left | Credits | AI images | Per image |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Starter | $4.99 | $0.93 | $0.45 | $0.10 | $0.11 | $3.40 | 50 | 10 | $0.50 |
+| Popular | $9.99 | $1.87 | $0.60 | $0.20 | $0.14 | $7.18 | 100 + 10 bonus | 22 | $0.45 (−9%) |
+| Pro | $24.99 | $4.67 | $1.05 | $0.50 | $0.23 | $18.54 | 250 + 40 bonus | 58 | $0.43 (−14%) |
+| Studio | $49.99 | $9.35 | $1.80 | $1.00 | $0.38 | $37.46 | 500 + 100 bonus | 120 | $0.42 (−17%) |
 
 **AI image: 5 credits.** What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier,
 October 2026): input $1.50, text and thinking output $7.50, image output $30.00 per million tokens. The token
@@ -63,22 +72,27 @@ and about 1,700 tokens of instructions and design summary.
 | Failed attempts Google bills but we refund | +10% | +20% |
 | **Cost per delivered image** | **$0.092** | **$0.186** |
 
-What each image earns, after VAT, Stripe and Gemini:
+What a pack earns when every credit goes on AI images (the least profitable use):
 
-| Pack | Person pays | Left after VAT and Stripe | Profit (typical) | Profit (worst) | Margin typical / worst |
+| Pack | Left | Gemini (usual / worst) | Profit before tax | After 19% + 4.9% | Share of the price kept |
 | --- | --- | --- | --- | --- | --- |
-| Starter | $0.50 | $0.361 | $0.27 | $0.18 | 74% / 48% |
-| Popular | $0.45 | $0.342 | $0.25 | $0.16 | 73% / 46% |
-| Pro | $0.42 | $0.321 | $0.23 | $0.14 | 71% / 42% |
-| Studio | $0.40 | $0.311 | $0.22 | $0.12 | 70% / 40% |
+| Starter | $3.40 | $0.92 / $1.86 | $2.48 / $1.53 | **$1.88 / $1.17** | 38% / 23% |
+| Popular | $7.18 | $2.02 / $4.10 | $5.16 / $3.09 | **$3.92 / $2.35** | 39% / 24% |
+| Pro | $18.54 | $5.34 / $10.80 | $13.20 / $7.74 | **$10.04 / $5.89** | 40% / 24% |
+| Studio | $37.46 | $11.04 / $22.34 | $26.42 / $15.12 | **$20.10 / $11.51** | 40% / 23% |
 
-`tests/architecture/credits.test.ts` fails if any pack keeps less than 65% usually or 40% at worst
-(`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer model shows up in CI. Credits bought and never
-used add to the margin; nothing above counts on them.
+Per image that is 71–73% of what is left usually and 40–45% at worst. `tests/architecture/credits.test.ts` fails if
+any pack keeps less than 65% usually or 40% at worst (`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer
+model shows up in CI. Income tax is left out of that test: it scales with profit, so it never changes which price is
+profitable. Credits spent on drawings, or never spent, add to all of the above.
 
-**Technical drawings: 10 credits**, with the first set free: $0.80 to $1.00 to the person, $0.62 to $0.72 left
-after VAT and Stripe. The drawings are made in the browser and cost nothing per use. A use opens a 24-hour pass
-for that design, so fixing something and opening the drawings again is never charged twice.
+**Running costs and ZUS.** About 10 Popular packs a month pay the $50 of hosting and email (`breakEvenPacks`).
+ZUS social contributions are owed by the sole trader whatever the app sells (reduced in the first years), so they
+are not charged to each pack; count them against the business as a whole.
+
+**Technical drawings: 10 credits**, with the first set free: $0.83 to $1.00 to the person, $0.62 to $0.68 left
+after VAT and payment costs. The drawings are made in the browser and cost nothing per use. A use opens a 24-hour
+pass for that design, so fixing something and opening the drawings again is never charged twice.
 
 **Measure the real cost.** Each captured image keeps Google's token counts in `credit_spends.metadata`. The
 thinking figure is the least certain one; compare it with real usage after launch and update
@@ -90,8 +104,9 @@ where feature = 'ai-image' and status = 'captured' and created_at > now() - inte
 ```
 
 Prices are in US dollars with VAT included. If Stripe Tax is turned on later, set the prices' tax behaviour to
-*inclusive*; otherwise Stripe adds VAT on top and the person pays 23% more than the pack shows. Not VAT-registered
-(Polish small-business exemption)? Then the VAT column is extra margin; ask the accountant first.
+*inclusive*; otherwise Stripe adds VAT on top and the person pays 23% more than the pack shows. VAT-exempt (Polish
+small-business exemption, see the accountant)? Then the VAT column is profit, until cross-border EU consumer sales
+pass €10,000 a year. On *ryczałt* or the tax scale instead of the flat tax, change `INCOME_TAX`.
 
 ## How it stays correct
 

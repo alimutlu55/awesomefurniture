@@ -68,12 +68,12 @@ export interface CreditPack {
 }
 
 /** Prices include 23% VAT. Round credit amounts, with the AI image priced (5 credits) so every pack keeps
- * MINIMUM_MARGIN after VAT, Stripe and Gemini (unit-economics.ts): 10, 22, 60 and 125 AI images. */
+ * MINIMUM_MARGIN after VAT, Stripe, currency conversion, refunds and Gemini (unit-economics.ts): 10, 22, 58 and 120 AI images. */
 export const CREDIT_PACKS = [
   { id: 'starter', label: 'Starter', credits: 50, bonus: 0, price: 499, currency: 'usd' },
   { id: 'popular', label: 'Popular', credits: 100, bonus: 10, price: 999, currency: 'usd', featured: true },
-  { id: 'pro', label: 'Pro', credits: 250, bonus: 50, price: 2499, currency: 'usd' },
-  { id: 'studio', label: 'Studio', credits: 500, bonus: 125, price: 4999, currency: 'usd' },
+  { id: 'pro', label: 'Pro', credits: 250, bonus: 40, price: 2499, currency: 'usd' },
+  { id: 'studio', label: 'Studio', credits: 500, bonus: 100, price: 4999, currency: 'usd' },
 ] as const satisfies readonly CreditPack[];
 
 export type CreditPackId = (typeof CREDIT_PACKS)[number]['id'];

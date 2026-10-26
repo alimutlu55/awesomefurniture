@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { CREDIT_FEATURES, CREDIT_PACKS, creditPack, packCredits, packSaving } from '../../src/domain/credits/credit-catalog';
-import { featureMargins, MINIMUM_MARGIN, packRevenue } from '../../src/domain/credits/unit-economics';
+import { breakEvenPacks, featureMargins, MINIMUM_MARGIN, packBreakdown, packRevenue } from '../../src/domain/credits/unit-economics';
 import { IMAGE_REQUEST_TOKENS, imageGenerationCost } from '../../src/domain/credits/image-generation-cost';
 import { createCreditService, CreditError } from '../../src/application/credits/credit-service';
 import { PaymentProviderError, PaymentSignatureError, type CreditUser, type PaymentProvider, type PaymentUpdate } from '../../src/application/credits/credit-ports';
@@ -48,8 +48,8 @@ test('every paid feature keeps its margin at the cheapest credit when the provid
   assert.equal(new Set(CREDIT_FEATURES.map(f => f.key)).size, CREDIT_FEATURES.length);
   const perCredit = CREDIT_PACKS.map(p => p.price / packCredits(p));
   assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), 'a bigger pack is always cheaper per credit');
-  assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 9, 17, 20]);
-  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 5 === 0), 'credit amounts stay round');
+  assert.deepEqual(CREDIT_PACKS.map(packSaving), [0, 9, 14, 17]);
+  assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 10 === 0), 'credit amounts stay round');
   const image = CREDIT_FEATURES.find(f => f.key === 'ai-image')!;
   assert.ok(CREDIT_PACKS.every(p => packCredits(p) % image.cost === 0), 'every pack buys whole AI images');
   assert.equal(CREDIT_PACKS.filter(p => 'featured' in p && p.featured).length, 1);
@@ -289,6 +289,9 @@ test('the image cost comes from Google token prices: input, thinking and answer 
   // Typical: (4 × 1,120 + 1,700) input × $1.50, (3,000 + 200) text × $7.50, 1,680 image × $30, per million, plus 10%.
   assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.typical) * 10000), 920);
   assert.equal(Math.round(imageGenerationCost(IMAGE_REQUEST_TOKENS.worst) * 10000), 1862);
-  // $9.99 with 23% VAT inside and Stripe's 3% + $0.30: $7.52 is left.
-  assert.equal(packRevenue(creditPack('popular')!).toFixed(2), '7.52');
+  // $9.99: 23% VAT inside, Stripe 3% + $0.30, 2% currency conversion, expected refunds and chargebacks: $7.18 is left.
+  const popular = packBreakdown(creditPack('popular')!);
+  assert.deepEqual([popular.vat, popular.stripe, popular.conversion, popular.losses].map(n => n.toFixed(2)), ['1.87', '0.60', '0.20', '0.14']);
+  assert.equal(packRevenue(creditPack('popular')!).toFixed(2), '7.18');
+  assert.equal(breakEvenPacks(creditPack('popular')!, CREDIT_FEATURES.find(f => f.key === 'ai-image')!), 10, 'ten Popular packs a month pay hosting and email');
 });
