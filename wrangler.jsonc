@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "awesomefurniture",
+  "name": "furnidraw-prod",
+  // Preserve environment variables configured in the Cloudflare dashboard.
+  "keep_vars": true,
   "compatibility_date": "2026-10-10",
   "main": "src/app/worker.ts",
   "assets": {

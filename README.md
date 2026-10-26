@@ -134,14 +134,17 @@ Validate deployment locally after building with
 `npx wrangler deploy --dry-run`. A dry run does not publish the site.
 
 Both Workers use `npm run build` and `npx wrangler deploy`. Connect the
-`awesomefurniture` Worker to `main` and `awesomefurniture-dev` to `develop`
+`furnidraw-prod` Worker to `main` and `awesomefurniture-dev` to `develop`
 as each Worker's production branch. The build reads Cloudflare's
 `WORKERS_CI_BRANCH` and sets the matching Worker name in the temporary build
 checkout. Keep automatic builds enabled for each Worker.
 
-The Worker names `awesomefurniture` and `awesomefurniture-dev` are only Cloudflare's internal names (they hold
+`keep_vars` preserves runtime variables configured in the Cloudflare dashboard
+when deploying. Frontend `VITE_` variables must also be configured for the build.
+
+The Worker names `furnidraw-prod` and `awesomefurniture-dev` are only Cloudflare's internal names (they hold
 the secrets and builds); the public address is the custom domain `furnidraw.com`, attached to the production Worker
-under Settings → Domains & Routes. Local builds retain the `awesomefurniture` default. To deploy development
+under Settings → Domains & Routes. Local builds retain the `furnidraw-prod` default. To deploy development
 locally, use `npx wrangler deploy --env dev` (add `--dry-run` to validate).
 
 # awesomefurniture

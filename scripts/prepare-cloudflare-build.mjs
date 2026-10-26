@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
  * Local builds keep the production default (use --env dev for local dev deploys).
  * Other branches keep the default for Cloudflare's preview deployment command. */
 export async function prepareCloudflareBuild(branch, configPath = resolve('wrangler.jsonc')) {
-  const name = branch === 'main' ? 'awesomefurniture' : branch === 'develop' ? 'awesomefurniture-dev' : null;
+  const name = branch === 'main' ? 'furnidraw-prod' : branch === 'develop' ? 'awesomefurniture-dev' : null;
   if (!name) return;
   const source = await readFile(configPath, 'utf8');
   const next = source.replace(/^(\s*"name"\s*:\s*)"[^"]+"/m, `$1"${name}"`);

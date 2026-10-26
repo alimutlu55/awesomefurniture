@@ -1,5 +1,8 @@
 # Supabase setup
 
+For the separate `furnidraw-prod` project and remaining launch configuration, see
+[production-setup.md](production-setup.md). The project below is development.
+
 Project: [wardrobe-app](https://supabase.com/dashboard/project/bcsdsuznpgnfyxzsaqzb),
 organization `alimutlu55`, Free plan, Frankfurt (`eu-central-1`).
 API URL: `https://bcsdsuznpgnfyxzsaqzb.supabase.co`.
