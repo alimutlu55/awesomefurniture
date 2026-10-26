@@ -187,7 +187,7 @@ export const FITTINGS = [
     purposes: ['appliance'], menu: { order: 24, group: 'appliances' }, zone: { ...APPLIANCE, label: 'Hood' },
     icon: 'M3 13h18l-3-6H6zM8 13v3M16 13v3M12 16v4', opens: 'fixed', ownFront: true, traits: ['front', 'appliance'],
     kitchen: { units: ['upper'], score: 34, why: 'Extractor over the hob' } },
-  { key: 'cargo', name: 'Cargo pull-out', code: 'Z', height: 74, min: 50, max: 200, minWidth: 25, minDepth: 40, price: 210, purpose: 'food',
+  { key: 'cargo', name: 'Cargo pull-out', code: 'Z', height: 74, min: 50, max: 200, minWidth: 10, minDepth: 40, price: 210, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 22, group: 'storage' }, zone: { ...KITCHEN, label: 'Cargo' },
     icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front'],
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },

@@ -1,8 +1,8 @@
+import { plinthOf } from '../wardrobe/carcass';
 import { worktopThickness, type ConfiguredMaterialsState } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
-import { kitchenUnit, WORKTOP, KITCHEN_PLINTH_SETBACK } from './kitchen-units';
+import { kitchenUnit, WORKTOP, KITCHEN_PLINTH_SETBACK, installationKind } from './kitchen-units';
 import type { KitchenUnitKey } from './kitchen-units';
-import { PLINTH } from '../wardrobe/catalog.js';
 
 /**
  * Kitchen runs: units standing side by side along the same back line form a run, and share one worktop
@@ -15,7 +15,8 @@ export interface UnitPose {
   readonly y?: number | undefined;
   readonly z: number;
   readonly angle: number;
-  readonly state: { readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
+  readonly state: { readonly plinthHeight?: number | undefined; readonly worktopThickness?: number | undefined;
+    readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
 }
 export interface Pose { x: number; y: number; z: number; angle: number }
 /** A slab along a run: `length` along the units' width, `depth` from `back` towards the front. */
@@ -79,7 +80,8 @@ export function kitchenSpans(units: readonly UnitPose[]): KitchenSpan[] {
   const spans: KitchenSpan[] = [];
   const top = (c: UnitPose) => (c.y || 0) + c.state.h;
   const worktop = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).worktop && onFloor(c));
-  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5 && a.state.materials?.worktopDecorId === b.state.materials?.worktopDecorId)) {
+  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5 && a.state.materials?.worktopDecorId === b.state.materials?.worktopDecorId && worktopThickness(a.state) === worktopThickness(b.state))) {
+    if (!run.some(c => !installationKind(c.state))) continue;
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
     spans.push(span('worktop', run, top(run[0]!), worktopThickness(run[0]!.state), back, Math.max(...run.map(c => backLine(c, angle) - back + c.state.d)) + WORKTOP.overhang));
   }
@@ -91,10 +93,10 @@ export function kitchenSpans(units: readonly UnitPose[]): KitchenSpan[] {
     const thickness = getDecor(first.state.materials!.backsplashDecorId!).thicknessMm / 10;
     spans.push(span('backsplash', run, top(first) + worktopThickness(first.state), 60, back, thickness));
   }
-  const floor = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).plinth && onFloor(c));
-  for (const run of kitchenRuns(floor, (a, b) => a.state.materials?.carcassDecorId === b.state.materials?.carcassDecorId)) {
+  const floor = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).plinth && plinthOf(c.state) > 0 && onFloor(c));
+  for (const run of kitchenRuns(floor, (a, b) => a.state.materials?.carcassDecorId === b.state.materials?.carcassDecorId && plinthOf(a.state) === plinthOf(b.state))) {
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
-    spans.push(span('plinth', run, 0, PLINTH, back, Math.min(...run.map(c => backLine(c, angle) - back + c.state.d)) - KITCHEN_PLINTH_SETBACK));
+    spans.push(span('plinth', run, 0, plinthOf(run[0]!.state), back, Math.min(...run.map(c => backLine(c, angle) - back + c.state.d)) - KITCHEN_PLINTH_SETBACK));
   }
   return spans;
 }

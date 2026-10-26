@@ -25,6 +25,7 @@ export function kitchenPresetArt(preset: Preset, className = 'product-art kitche
     }
     return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${slab}${def.fixture === 'sink' ? sink : hobArt}</svg>`;
   }
+  if (def.installation) return `<svg class="${className}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="M52 18h14v88H52zM66 18l16 8v88l-16-8z" fill="#e9e2d6" stroke="#8d7d65"/></svg>`;
   const unit = { ...def, ...own }, tall = unit.h + (unit.worktop ? WORKTOP.thickness : 0);
   const S = Math.min(96 / tall, 110 / unit.w), w = unit.w * S, x = (W - w) / 2;
   const top = unit.elevation ? (H - unit.h * S) / 2 : FLOOR - unit.h * S, bottom = top + unit.h * S;

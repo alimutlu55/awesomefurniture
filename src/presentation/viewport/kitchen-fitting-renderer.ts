@@ -22,15 +22,15 @@ export interface KitchenFrontMaterials {
  * as overlay fronts do. Cabinet-centred x, floor-relative y, centimetres. What sits in the worktop (sink,
  * hob) is drawn with the worktop (kitchen-run-renderer.ts).
  */
-export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6, faceWidths = [], cabinetWidth = 0 }: {
-  handleless?: boolean; shelfThickness?: number;
+export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6, faceWidths = [], cabinetWidth = 0, fridgeDoorSplit }: {
+  handleless?: boolean; shelfThickness?: number; fridgeDoorSplit?: number | undefined;
   box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; doorHang?: 'left' | 'right' | undefined; materials: KitchenFrontMaterials;
   faceWidths?: readonly FaceWidth[]; cabinetWidth?: number;
 }) {
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
-  const face = d / 2 + PANEL / 2;
+  const face = d / 2 + (materials.front.userData.panelThickness ?? PANEL) / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
   const fixedFront = (x0: number, x1: number) => frontCoveredByReturn(x0 + cabinetWidth / 2, x1 + cabinetWidth / 2, faceWidths);
@@ -58,11 +58,29 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       case 'corner': {
         // A blind-corner unit: one half is a fixed blind panel where the perpendicular run meets it, the other half
         // is the hinged door with two swing-out kidney trays on a post inside.
-        const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        let doorSide = cornerDoorSide(it);
+        let { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide);
+        const doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        const installed = faceWidths.some(s => s.strip);
+        if (installed) {
+          const hidden = faceWidths.find(s => s.covered)!, open = faceWidths.find(s => !s.covered && !s.strip)!;
+          if (hidden && open) {
+            blind = { x0: hidden.from - cabinetWidth / 2, x1: hidden.to - cabinetWidth / 2 };
+            doorSide = open.from < hidden.from ? 'left' : 'right';
+          }
+          for (const s of faceWidths) {
+            const a = Math.max(x0, s.from - cabinetWidth / 2), b = Math.min(x1, s.to - cabinetWidth / 2);
+            if (b <= a) continue;
+            const part = s.strip ? box(b - a, y1 - y0, materials.front.userData.panelThickness ?? PANEL, (a + b) / 2, (y0 + y1) / 2, face, materials.front) : panel(a, b, y0, y1);
+            if (s.strip) part.userData.installationPart = true;
+            if (!s.covered && !s.strip) pull(Math.min(18, (y1 - y0) * .5), hinge === 'left' ? b - 4 : a + 4, y1 - Math.min(12, (y1 - y0) / 4), true);
+          }
+        } else {
         panel(blind.x0, blind.x1, y0, y1);
         const leaf = panel(door.x0, door.x1, y0, y1);
         if (fixedFront(door.x0, door.x1)) leaf.userData.fixedCornerReturn = true;
         else pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
+        }
         const { post, trayW, trayD, trays } = cornerPulloutGeometry(cx, y, sw, hh, d, blind, doorSide);
         box(post.size, post.h, post.size, post.x, y + hh / 2, 0, steel);
         for (const t of trays) {
@@ -119,7 +137,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       }
       case 'fridge': {
         // An integrated fridge behind a door that matches the fronts; a freezer door below in a tall unit.
-        const split = fridgeSplit(y0, y1, hh);
+        const split = fridgeSplit(y0, y1, hh, fridgeDoorSplit);
         if (split !== null) {
           panel(x0, x1, y0, split); panel(x0, x1, split, y1);
           pull(Math.min(28, (split - y0) * .45), pullX, split - 14, true);

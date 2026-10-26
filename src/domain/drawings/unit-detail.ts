@@ -1,5 +1,6 @@
+import { installationKind } from '../kitchen/kitchen-units';
 import { worktopThickness } from '../materials/configured-materials';
-import { PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { PANEL } from '../wardrobe/catalog.js';
 import { BACK_PANEL, fittingDepth, plinthOf } from '../wardrobe/carcass';
 import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
@@ -65,11 +66,11 @@ function clearSpaces(boards: readonly (readonly [number, number])[], lo: number,
 
 /** The boards of a piece, as cut: a cabinet's carcass, shelves and fronts; a wall shelf's one board; nothing for a sink
  * or hob (they are bought). Centimetres, from the piece's left face, bottom and back. */
-export function pieceBoards(p: PlacedPiece): Board[] {
+export function pieceBoards(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): Board[] {
   if (p.fixture === 'sink' || p.fixture === 'hob') return [];
   const { w, h, d } = p.design;
   if (p.fixture === 'shelf') return [{ name: 'Shelf board', stock: 'carcass', x0: 0, x1: w, y0: 0, y1: h, z0: 0, z1: d, cut: { length: w, width: d, thickness: h }, edges: 'L1 W2' }];
-  return cabinetBoards(p.design);
+  return cabinetBoards(p.design, cornerFaceWidths(p, pieces));
 }
 
 /** The heights a board's outline reaches at `x` (a sloped top, a side cut to the slope), or its box's. */
@@ -103,10 +104,10 @@ function frontView(p: PlacedPiece, boards: readonly Board[], pieces: readonly Pl
 /** Inside: the fronts taken off. Every board's front edge (sides, top, base, partitions, shelves), rails, where each front
  * goes (dashed); the clear width of each section between the boards, the clear heights up each section, the carcass
  * heights on the left. The line of Section A–A through the first section. */
-function insideView(p: PlacedPiece, boards: readonly Board[]): Item[] {
+function insideView(p: PlacedPiece, boards: readonly Board[], pieces: readonly PlacedPiece[]): Item[] {
   const d = p.design, out: Item[] = [], carcass = boards.filter(b => b.stock !== 'front' && b.stock !== 'door' && b.stock !== 'back' && !(b.stock === 'plinth' && b.z1 < d.d - 5));
   for (const b of carcass) out.push(b.outline ? { kind: 'line', stroke: 'outline', closed: true, points: b.outline.map(q => at(q.x, q.y)) } : rect(mm(b.x0), mm(b.y0), mm(b.x1), mm(b.y1), 'outline'));
-  const { fronts, inside, cornerPullouts } = piecefronts(d);
+  const { fronts, inside, cornerPullouts } = piecefronts(d, cornerFaceWidths(p, pieces));
   for (const r of inside.filter(q => q.kind === 'rail')) out.push(line(at(r.x0 + 2, r.y0), at(r.x1 - 2, r.y0), 'centre'));
   for (const c of cornerPullouts) {
     out.push(
@@ -150,13 +151,13 @@ function insideView(p: PlacedPiece, boards: readonly Board[]): Item[] {
 /** Section A–A: cut upright through the middle of the first section, seen from its right; the back on the left, the
  * front on the right. Boards cut through are hatched, the side beyond is a thin outline; the worktop and the run's plinth
  * where a kitchen unit has them. Along the bottom: back board, shelf setback, carcass front, front; on the left the heights. */
-function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
+function sectionView(p: PlacedPiece, boards: readonly Board[], pieces: readonly PlacedPiece[]): Item[] {
   const d = p.design, out: Item[] = [], cx = PANEL + createWardrobeGeometry(() => ({ ...d, sel: 0, item: -1, divider: -1, space: null })).widths()[0]! / 2;
   const top = Math.max(...resolveShape(d).top.map(q => q.y)), side = boards.find(b => b.name === 'Side');
   if (side) out.push(rect(mm(side.z0), mm(side.y0), mm(side.z1), mm(heightsAt(side, side.x1)[1]), 'thin'));
   const cutThrough = boards.filter(b => b.x0 <= cx + .01 && b.x1 >= cx - .01);
   for (const b of cutThrough) { const [y0, y1] = heightsAt(b, cx); out.push(rect(mm(b.z0), mm(y0), mm(b.z1), mm(y1), 'cut', 'hatch')); }
-  const { inside, cornerPullouts } = piecefronts(d), sectionCorners = cornerPullouts.filter(c => c.bayIndex === 0);
+  const { inside, cornerPullouts } = piecefronts(d, cornerFaceWidths(p, pieces)), sectionCorners = cornerPullouts.filter(c => c.bayIndex === 0);
   for (const r of inside.filter(q => q.kind === 'rail' && q.x0 <= cx && q.x1 >= cx)) {
     const z = (fittingDepth(d.d).z0 + fittingDepth(d.d).z1) / 2;
     out.push(rect(mm(z - 1.2), mm(r.y0 - 1.2), mm(z + 1.2), mm(r.y0 + 1.2), 'outline'));
@@ -185,7 +186,7 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
   }
   if (unit?.plinth) {
     const z = d.d - KITCHEN_PLINTH_SETBACK;
-    out.push(rect(mm(z - 1.6), 0, mm(z), mm(PLINTH), 'cut', 'hatch'));
+    out.push(rect(mm(z - 1.6), 0, mm(z), mm(plinthOf(d)), 'cut', 'hatch'));
     depths.push(z);
   }
   // Heights: the carcass build-up and the top of each shelf or swing-out tray cut through, set out from the floor.
@@ -201,7 +202,8 @@ function sectionView(p: PlacedPiece, boards: readonly Board[]): Item[] {
 /** What the figures on a shop sheet mean, written once on the sheet (ISO 129-1: say what a number measures and do not
  * repeat a size that is the same everywhere). Board thicknesses and the joints between fronts are not strings of their own. */
 export function unitDetailLegend(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): string[] {
-  const boards = pieceBoards(p), d = p.design, top = Math.max(...resolveShape(d).top.map(q => q.y));
+  if (installationKind(p.design)) return ['Solid installation component: exact installed dimensions in mm; no storage, hinges or handles.', 'Verify scribe allowance, fastening and finish against the installation specification.'];
+  const boards = pieceBoards(p, pieces), d = p.design, top = Math.max(...resolveShape(d).top.map(q => q.y));
   const thick = [...new Set(boards.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => mm(b.cut.thickness)))].sort((a, b) => b - a);
   const fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
   const joints = fronts.length ? [...new Set([...frontSpans(fronts.map(b => [b.x0, b.x1] as const), 0, d.w).joints, ...frontSpans(fronts.map(b => [b.y0, b.y1] as const), 0, top).joints])].sort((a, b) => a - b) : [];
@@ -220,6 +222,12 @@ export function unitDetailLegend(p: PlacedPiece, pieces: readonly PlacedPiece[] 
 
 /** A piece's detail views for making it: Front, Inside and Section A–A, at one scale. */
 export function unitDetailViews(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): View[] {
-  const boards = pieceBoards(p);
-  return [{ title: 'Front', items: frontView(p, boards, pieces) }, { title: 'Inside', items: insideView(p, boards) }, { title: 'Section A–A', items: sectionView(p, boards) }];
+  const boards = pieceBoards(p, pieces);
+  if (installationKind(p.design)) {
+    const b = boards[0]!, w = p.design.w, h = p.design.h, d = p.design.d;
+    return [{ title: 'Front', items: [rect(0, mm(b.y0), mm(w), mm(h), 'outline'), across(0, [0, w], -1), vertical(0, [0, h], 1)] },
+      { title: 'Section A–A', items: [rect(mm(b.z0), mm(b.y0), mm(b.z1), mm(h), 'cut', 'hatch'),
+        across(0, [0, d], -1), note(at(d / 2, h + 12), mm(b.cut.length) + ' × ' + mm(b.cut.width) + ' × ' + mm(b.cut.thickness) + ' cut')] }];
+  }
+  return [{ title: 'Front', items: frontView(p, boards, pieces) }, { title: 'Inside', items: insideView(p, boards, pieces) }, { title: 'Section A–A', items: sectionView(p, boards, pieces) }];
 }

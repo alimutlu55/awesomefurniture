@@ -1,3 +1,5 @@
+import { ventilationDetails } from './ventilation-details';
+import { serviceDrawings } from './service-drawings';
 import { DRAWING_PRESETS, type DrawingOptions } from './view-policy';
 import { constructionIssues, alignmentIssues } from './drawing-issues';
 import { mm, type PieceRow, type Sheet } from './drawing';
@@ -54,7 +56,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   const purpose = DRAWING_PRESETS.find(p => p.key === preset)!.label;
   const legend = ['Solid: visible furniture · light dashes: overhead · FFL: finished floor = 0',
     preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile'
-      : applianceIssues.length ? 'CL = centre line · wall left is its elevation left end · manufacturer cut-outs unconfirmed'
+      : applianceIssues.length ? 'Cabinet dimensions at run fronts · upper units on a separate chain · services and appliance setting-out on dedicated sheets'
         : 'Exact construction sizes: individual detail sheets'];
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
     pieces: pieces.filter(p => p.y < 120).map(p => row(p, letters)), checks: preset === 'clearances' ? checks : geometryChecks }];
@@ -65,9 +67,11 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
     sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, views: [{ title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces) }],
-      legend: ['Reference height chains are identified on the view · FFL = 0 · each cabinet has an exact detail sheet'], issues, purpose,
+      legend: ['Reference height chains are identified on the view · FFL = 0 · each cabinet has an exact detail sheet',
+        'Grey: laminated/other board fronts · light: lacquered MDF · see material schedule for the actual stock and thickness'], issues, purpose,
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
+  sheets.push(...serviceDrawings(studio, pieces));
   for (const p of pieces.filter(q => q.wall === null)) {
     sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p, studio, pieces) }], pieces: [row(p, letters)], checks: about([p.mark]) });
   }
@@ -75,6 +79,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const p of pieces.filter(q => !q.fixture)) {
     sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), legend: unitDetailLegend(p, pieces), views: unitDetailViews(p, pieces), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
+  sheets.push(...ventilationDetails(pieces));
   sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
   const appliances = applianceSchedule(studio, pieces);
   if (appliances) sheets.push({ number: sheets.length + 1, title: 'Appliance schedule', views: [], pieces: [], checks: [], table: appliances });

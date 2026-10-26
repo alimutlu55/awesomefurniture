@@ -158,7 +158,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       if (!original || !isKitchenUnit(original)) return null;
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, y = original.y || 0, d = original.state.d;
       const probeAt = (w: number): EditorCabinet => at({ ...original, id: -1, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
-      const fitsWidth = (w: number) => w >= 5 && fits(probeAt(w));
+      const fitsWidth = (w: number) => w >= .1 && fits(probeAt(w));
       const isPerpCabinet = (o: EditorCabinet, angle: number) =>
         o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && !isFixture(o.state)
         && Math.abs(((o.angle - angle) % 360 + 540) % 360 - 180) > 15;
@@ -167,7 +167,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
       };
       const farEdgeBlocked = (w: number) => {
-        const p = at({ ...original, id: -1, state: { ...original.state, w: .2 } }, besidePose(end, 2 * w - .2, d, side, y)), { v } = unitAxes(p.angle);
+        const p = at({ ...original, id: -1, state: { ...original.state, w: .00001 } }, besidePose(end, 2 * w - .00001, d, side, y)), { v } = unitAxes(p.angle);
         const front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20 };
         return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
       };
@@ -176,7 +176,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       }
       let clearW = 0, unblockedW = 0, pocketW = 0;
       const maxSearch = Math.max(original.state.w, 65);
-      for (let w = 5; w <= maxSearch + .01; w = Math.round((w + .5) * 10) / 10) {
+      for (let w = .1; w <= maxSearch + .01; w = Math.round((w + .1) * 10) / 10) {
         if (!fitsWidth(w)) break;
         if (w <= original.state.w) clearW = w;
         if (w <= original.state.w && !blockedInFront(w)) unblockedW = w;
@@ -193,9 +193,11 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         scene.nextWardrobeId = Math.max(scene.nextWardrobeId, id + 1);
         return narrowed;
       }
-      const coverW = pocketW >= 5 ? pocketW : clearW;
-      if (coverW >= 5) {
-        const id = scene.nextWardrobeId, state = { ...createKitchenCover(original.state, coverW), sel: 0, item: -1, divider: -1, space: null, open: false };
+      const coverW = pocketW >= .1 ? pocketW : clearW;
+      if (coverW >= .1) {
+        const id = scene.nextWardrobeId;
+        const solid = { ...createKitchenDesign('filler'), w: coverW, h: original.state.h, d, fin: original.state.fin, materials: structuredClone(original.state.materials) };
+        const state = { ...(coverW < 5 ? solid : createKitchenCover(original.state, coverW)), sel: 0, item: -1, divider: -1, space: null, open: false };
         const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePose(end, coverW, d, side, y));
         if (recordHistory) checkpoint();
         applyMaxReach(cover.state, scene.maxReach);

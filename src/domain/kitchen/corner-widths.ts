@@ -4,9 +4,9 @@ import type { EditorDesign } from '../wardrobe/editor-design';
 
 interface Cabinet {
   readonly id: number; readonly x: number; readonly z: number; readonly y?: number; readonly angle: number;
-  readonly state: Pick<EditorDesign, 'w' | 'h' | 'd' | 'product' | 'unit'>;
+  readonly state: Pick<EditorDesign, 'w' | 'h' | 'd' | 'product' | 'unit' | 'cornerStrip'>;
 }
-export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean }
+export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean; readonly strip?: boolean }
 // Numerical tolerance only (centimetres). Real gaps and offsets are never snapped or rounded here.
 const EPS = 1e-7;
 // The editor recognises quarter-turn alignment within half a degree. Keep actual angles for intersections.
@@ -18,7 +18,7 @@ const cabinet = (p: Cabinet) => p.state.product === 'kitchen' && !isFixture(p.st
 /** A hinged front intersecting the perpendicular return cannot operate there: it is a fixed cover in the
  * installed view. Front coordinates and width segments are measured from the same cabinet left edge. */
 export function frontCoveredByReturn(x0: number, x1: number, widths: readonly FaceWidth[]): boolean {
-  return widths.some(s => s.covered && Math.min(x1, s.to) - Math.max(x0, s.from) > EPS);
+  return widths.some(s => (s.covered || s.strip) && Math.min(x1, s.to) - Math.max(x0, s.from) > EPS);
 }
 
 /** Width along the carcass front, from its left edge, split by a perpendicular return in the same run.
@@ -29,7 +29,7 @@ export function cornerCabinetWidths(box: Cabinet, others: readonly Cabinet[]): F
   const w = box.state.w, plain = [{ from: 0, to: w, covered: false }];
   if (!cabinet(box)) return plain;
   const { u, v } = unitAxes(box.angle), front = { x: box.x + v.x * box.state.d / 2, z: box.z + v.z * box.state.d / 2 };
-  const join = RUN_TOLERANCE + (kitchenUnit(box.state.unit).worktop ? WORKTOP.overhang : 0);
+  const join = RUN_TOLERANCE + (kitchenUnit(box.state.unit).worktop ? WORKTOP.overhang : 0) + (box.state.cornerStrip ?? 0);
   const covered: [number, number][] = [];
   for (const other of others) {
     if (other.id === box.id || !cabinet(other)) continue;
@@ -68,5 +68,14 @@ export function cornerCabinetWidths(box: Cabinet, others: readonly Cabinet[]): F
     out.push({ from: a, to: b, covered: true }); from = b;
   }
   if (w - from > EPS) out.push({ from, to: w, covered: false });
-  return out.length ? out : plain;
+  const widths = out.length ? out : plain, strip = box.state.cornerStrip ?? 0;
+  if (!(strip > EPS)) return widths;
+  return widths.flatMap((s, i): FaceWidth[] => {
+    if (s.covered) return [s];
+    const left = widths[i - 1]?.covered ? Math.min(strip, s.to - s.from) : 0;
+    const right = widths[i + 1]?.covered ? Math.min(strip, s.to - s.from - left) : 0;
+    return [...(left > EPS ? [{ from: s.from, to: stable(s.from + left), covered: false, strip: true }] : []),
+      ...(s.to - right - s.from - left > EPS ? [{ from: stable(s.from + left), to: stable(s.to - right), covered: false }] : []),
+      ...(right > EPS ? [{ from: stable(s.to - right), to: s.to, covered: false, strip: true }] : [])];
+  });
 }

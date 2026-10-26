@@ -1,3 +1,4 @@
+import { SERVICE_STATUSES } from '../../domain/studio/service-status';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { z } from 'zod';
 import { materialsSchema } from './materials-schema';
@@ -16,7 +17,7 @@ import { studioProblems } from '../../domain/studio/studio-validation';
 import { cleanStudio } from '../../domain/studio/studio-clean';
 import type { Studio } from '../../domain/studio/studio';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
-import { KITCHEN_UNIT_KEYS } from '../../domain/kitchen/kitchen-units';
+import { KITCHEN_UNIT_KEYS, installationKind } from '../../domain/kitchen/kitchen-units';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -84,7 +85,9 @@ const wardrobe = z.strictObject({
   position: z.strictObject({ x: finite, y: nonnegative, z: finite }),
   rotation: finite,
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
-  materials: materialsSchema.optional(),
+  materials: materialsSchema.optional(), plinthHeight: finite.min(0).max(30).optional(), cornerStrip: finite.min(0).max(30).optional(), fridgeSplit: finite.min(0).max(270).optional(),
+  ventilationWidth: finite.min(0).max(150).optional(), ventilationHeight: finite.min(0).max(30).optional(),
+  frontThickness: finite.min(.1).max(5).optional(), worktopThickness: finite.min(.1).max(15).optional(),
   doors: z.enum(['none', 'solid', 'glass']),
   sections: z.array(section),
   shape: shape.optional(),
@@ -111,7 +114,7 @@ const wardrobe = z.strictObject({
     if(n<1 || n>6) fail('An editor wardrobe must have between one and six sections.');
     const total=weights.slice(0,n).reduce((a,b)=>a+b,0);
     cabinet.sections.forEach((section,i)=>{
-      const width=(cabinet.dimensions.width-(n+1)*1.8)*weights[i]!/total;
+      const width=installationKind(cabinet)?cabinet.dimensions.width:(cabinet.dimensions.width-(n+1)*1.8)*weights[i]!/total;
       if(!close(section.width,width)) fail('Section weights disagree with the canonical widths.');
     });
   }
@@ -154,6 +157,7 @@ const studio = z.strictObject({
   walls: z.array(z.strictObject({ id, a: id, b: id, thickness: positive, height: positive, ...boundary,
     color: z.string().regex(/^#[0-9a-f]{6}$/i).optional(), finish: z.enum(['matte', 'eggshell', 'satin']).optional() })),
   openings: z.array(z.strictObject({ id, wall: id, kind: openingKind, offset: finite, width: positive, height: positive, sill: nonnegative,
+    status: z.enum(SERVICE_STATUSES.map(s => s.key)).optional(), label: z.string().trim().max(80).optional(),
     hinge: z.enum(['left', 'right']).optional(), swing: z.enum(['in', 'out']).optional() })),
   ceilings: z.array(z.strictObject({ id, wall: id, run: z.enum(['along', 'across']), depth: positive, ...boundary, edgeRise: finite.optional(), profile: z.array(z.strictObject({ t: finite, y: nonnegative })) })).optional(),
   fixtures: z.array(fixtureSchema).optional(),

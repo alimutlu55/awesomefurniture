@@ -125,8 +125,10 @@ test('long schedules paginate without losing rows, clipping words, or reducing t
 });
 
 test('saved paper positions are applied to the same SVG marks used for export', () => {
-  const s = technicalDrawings(input('l'))[0]!, original = sheetPresentation(s, info), anchor = original.anchors.find(a => a.key.includes('/tag:'))!;
-  const offset = { [anchor.key]: { x: anchor.offset.x + 4, y: anchor.offset.y + 4 } };
+  const s = technicalDrawings({ pieces: [unit(1, 0, 0)] })[0]!, original = sheetPresentation(s, info), anchor = original.anchors.find(a => a.key.includes('/tag:'))!;
+  const offset = [[4, 4], [-4, -4], [0, 12], [12, 0], [-12, 0]].map(([x, y]) =>
+    ({ [anchor.key]: { x: anchor.offset.x + x!, y: anchor.offset.y + y! } })).find(o => sheetSvg(s, info, o) !== sheetSvg(s, info))!;
+  assert.ok(offset, 'a clear moved position is accepted; blocked positions retain a safe fallback');
   const adjusted = sheetPresentation(s, info, offset), actual = adjusted.anchors.find(a => a.key === anchor.key)!;
   assert.ok(actual); assert.notEqual(sheetSvg(s, info), sheetSvg(s, info, offset));
   assert.equal(adjusted.warnings.length, 0); assert.equal(adjusted.anchors.length, original.anchors.length);

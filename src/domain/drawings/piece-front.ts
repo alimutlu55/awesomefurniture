@@ -1,3 +1,6 @@
+import { ventilationGrille } from '../kitchen/ventilation';
+import { getDecor } from '../materials/decor-catalog';
+import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
 import { plinthOf } from '../wardrobe/carcass';
@@ -59,9 +62,15 @@ export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = 
   }
   for (const f of fronts) {
     const y1 = (x: number) => Math.min(f.y1, under(x));
-    out.push({ kind: 'line', stroke: 'thin', closed: true, points: [at(f.x0, f.y0), at(f.x1, f.y0), at(f.x1, y1(f.x1)), at(f.x0, y1(f.x0))] });
+    out.push({ kind: 'line', stroke: 'thin', closed: true, points: [at(f.x0, f.y0), at(f.x1, f.y0), at(f.x1, y1(f.x1)), at(f.x0, y1(f.x0))],
+      ...(!f.own ? { fill: getDecor(resolveMaterials(d).frontDecorId).construction === 'lacquered_mdf' ? 'painted' as const : 'laminated' as const } : {}) });
     out.push(...swing(f, at, under));
     if (f.label) out.push({ ...note(at((f.x0 + f.x1) / 2, y1((f.x0 + f.x1) / 2) - 7), f.label), small: true });
+  }
+  const grille = ventilationGrille(d);
+  if (grille) {
+    out.push({ kind: 'line', stroke: 'outline', closed: true, points: [at(grille.x0, grille.y0), at(grille.x1, grille.y0), at(grille.x1, grille.y1), at(grille.x0, grille.y1)] });
+    for (let y = grille.y0 + 1; y < grille.y1; y += 1) out.push(line(at(grille.x0, y), at(grille.x1, y), 'thin'));
   }
   const tall = Math.min(...top.map(q => q.y));
   out.push({ kind: 'tag', at: at(mid, (plinth + tall) / 2), text: p.mark });

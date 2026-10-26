@@ -23,9 +23,10 @@ test('sink set-out uses exact finished wall, worktop edges and current overall d
   assert.deepEqual(fixtureDatum(input.studio, p, pieces), { wall: 'A', along: 148, normal: 31 });
   const run = fixtureRun(p, pieces)!; assert.ok(run);
   assert.deepEqual(runOffsets(p, run), { s: 48, t: 31, left: 12, right: 36, back: 6, front: 4 });
-  const sheets = technicalDrawings(input, { preset: 'installation' }), plan = sheets[0]!;
-  const labels = plan.views.flatMap(v => v.items).filter(i => i.kind === 'note').flatMap(n => n.lines);
-  assert.ok(labels.includes('K13 Sink · 720 W × 500 D overall'));
+  const sheets = technicalDrawings(input, { preset: 'installation' });
+  const schedule = sheets.find(s => s.title === 'Appliance schedule')!;
+  const labels = schedule.table!.rows.flat().join(' ');
+  assert.ok(labels.includes('720 W × 500 D overall'));
   assert.ok(labels.includes('CL 1480 from Wall A left')); assert.ok(labels.includes('CL 310 from Wall A face'));
   const detail = sheets.find(s => s.title === 'K13 Sink setting out')!;
   const dimensions = detail.views[0]!.items.filter(i => i.kind === 'dims').map(d => d.stops);

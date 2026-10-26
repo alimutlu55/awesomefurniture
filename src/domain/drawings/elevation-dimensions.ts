@@ -1,3 +1,4 @@
+import { installationKind } from '../kitchen/kitchen-units';
 import { worktopThickness } from '../materials/configured-materials';
 import type { PlacedPiece } from './room-pieces';
 import { type Item, mm, stops, note } from './drawing';
@@ -9,7 +10,7 @@ import { plinthOf } from '../wardrobe/carcass';
 /** One real vertical stack, rather than a union of unrelated cabinet tops and internal board faces.
  * Prefer a worktop with upper units; every other cabinet retains its exact heights on its shop sheet. */
 function referenceStack(pieces: readonly PlacedPiece[]): PlacedPiece[] {
-  const cabinets = pieces.filter(p => !p.fixture);
+  const cabinets = pieces.filter(p => (!p.fixture || p.fixture === 'shelf') && !installationKind(p.design));
   const stack = (p: PlacedPiece) => {
     const x = (p.lo + p.hi) / 2;
     return cabinets.filter(q => q.wall === p.wall && q.lo <= x && q.hi > x);

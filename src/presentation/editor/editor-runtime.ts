@@ -1,3 +1,4 @@
+import { bindKitchenConstruction } from './kitchen-construction-fields';
 import { createClothingWarmup } from '../viewport/clothing-warmup';
 import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
@@ -189,6 +190,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray });
+        bindKitchenConstruction({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });

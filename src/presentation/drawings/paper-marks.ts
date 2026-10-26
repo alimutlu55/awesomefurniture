@@ -8,6 +8,8 @@ export interface Pt { readonly x: number; readonly y: number }
 /** Line weights on paper (ISO 128): cut 0.5, frame 0.7, outlines and rules 0.35, thin 0.18, hidden 0.25 dashed, centre
  * lines chain, swings long dashes, dimension lines 0.13 with 0.35 ticks. Colours as 0–255 grey or RGB. */
 export const PENS = {
+  'service-new': { width: .3, colour: [0, 137, 103] }, 'service-retain': { width: .3, colour: [35, 65, 210] },
+  'service-remove': { width: .3, colour: [220, 40, 35], dash: [1, .6] }, lighting: { width: .3, colour: [224, 125, 25] },
   cut: { width: .5, colour: [17, 17, 17] }, outline: { width: .35, colour: [17, 17, 17] }, thin: { width: .18, colour: [51, 51, 51] },
   overhead: { width: .13, colour: [110, 110, 110], dash: [2, 1.5] },
   hidden: { width: .25, colour: [51, 51, 51], dash: [2, 1] }, centre: { width: .18, colour: [51, 51, 51], dash: [6, 1, 1, 1] },
@@ -18,7 +20,7 @@ export const PENS = {
   stamp: { width: .7, colour: [179, 38, 30] },
 } as const satisfies Record<string, { width: number; colour: readonly number[]; dash?: readonly number[] }>;
 export type Pen = keyof typeof PENS;
-export const FILLS = { white: [255, 255, 255], black: [17, 17, 17], glass: [228, 236, 242] } as const;
+export const FILLS = { laminated: [196, 193, 190], painted: [248, 247, 245], white: [255, 255, 255], black: [17, 17, 17], glass: [228, 236, 242] } as const;
 export type Fill = keyof typeof FILLS | 'hatch';
 /** Hatching: thin lines at 45°, this far apart. */
 export const HATCH = { gap: 1.4, width: .13, colour: [51, 51, 51] } as const;

@@ -18,6 +18,7 @@ export interface Front extends Box {
   readonly name: string;
   /** The appliance's own front (an oven): nothing is cut for it. */
   readonly own?: boolean | undefined;
+  readonly installation?: boolean | undefined;
 }
 /** What is inside, behind the fronts: fittings and boards, rails, and a cupboard's shelves. */
 export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
@@ -39,10 +40,11 @@ export type CornerPullout = ReturnType<typeof cornerPulloutGeometry> & {
  * wardrobe: those fittings, nothing over them. A kitchen unit: each fitting's own front where it is built (overlay
  * fronts), a wide door as two leaves, a tall fridge as fridge over freezer, with the cupboards' shelves behind.
  */
-export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[] } {
+export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[]; invalidFridgeSplit?: boolean } {
   // The rules read a design being edited; nothing is selected in a drawing.
   const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths();
   const fronts: Front[] = [], inside: Inside[] = [], cornerPullouts: CornerPullout[] = [], kitchen = isKitchen(design);
+  let invalidFridgeSplit = false;
   let bayL = PANEL;
   widths.forEach((sw, i) => {
     for (const [j, pos] of geometry.computeLayout(i).entries()) {
@@ -53,13 +55,28 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
         continue;
       }
       const r = kitchenFrontRect(design.unit, cx, pos.y0, pos.w, it.h, { bottom: interiorFloorOf(design), top: design.h - PANEL }, { left: PANEL, right: design.w - PANEL });
+      if (it.k === 'fridge' && design.fridgeSplit && design.fridgeSplit >= r.y1 - r.y0) invalidFridgeSplit = true;
       const opens = def.opens ?? 'open', label = hasTrait(it.k, 'appliance') ? def.zone.label : undefined, own = !!def.ownFront;
       const name = (def.zone.label ?? def.name) + (opens === 'side' ? ' door' : ' front'), hinge = itemHingeSide(it, design), explicit = !!(it.hinge ?? design.doorHang);
       if (it.k === 'corner') {
-        const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge, doorSide);
+        let doorSide = cornerDoorSide(it);
+        let { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge, doorSide);
+        if (design.cornerStrip && faceWidths.some(s => s.strip)) {
+          const hidden = faceWidths.find(s => s.covered)!, open = faceWidths.find(s => !s.covered && !s.strip)!;
+          if (hidden && open) {
+            blind = { x0: hidden.from, x1: hidden.to }; door = { x0: open.from, x1: open.to, hinge };
+            doorSide = open.from < hidden.from ? 'left' : 'right';
+          }
+        }
         const mech = cornerPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, blind, doorSide);
-        fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
-        fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name: 'Corner pull-out door' });
+        if (design.cornerStrip && faceWidths.some(s => s.strip)) {
+          for (const s of faceWidths) fronts.push({ x0: Math.max(r.x0, s.from), x1: Math.min(r.x1, s.to), y0: r.y0, y1: r.y1,
+            opens: s.covered || s.strip ? 'fixed' : 'side', hinge, ...(s.strip ? { installation: true } : {}),
+            name: s.strip ? 'Corner installation strip' : s.covered ? 'Corner blind panel' : 'Corner pull-out door' });
+        } else {
+          fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
+          fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name: 'Corner pull-out door' });
+        }
         inside.push({ kind: 'box', x0: mech.post.x0, x1: mech.post.x1, y0: mech.post.y0, y1: mech.post.y1 });
         for (const t of mech.trays) {
           inside.push({ kind: 'box', x0: t.rail.x0, x1: t.rail.x1, y0: t.base.y0, y1: t.rail.y1 });
@@ -67,7 +84,7 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
         }
         cornerPullouts.push({ ...mech, bayIndex: i, cx, y0: pos.y0, sw: pos.w, hh: it.h, doorSide, blind: { ...blind, y0: r.y0, y1: r.y1 }, door: { ...door, y0: r.y0, y1: r.y1 } });
       } else if (opens === 'side') {
-        const split = fridgeSplit(r.y0, r.y1, it.h), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
+        const split = fridgeSplit(r.y0, r.y1, it.h, it.k === 'fridge' ? design.fridgeSplit : undefined), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
         for (const [y0, y1] of rows) for (const leaf of hingedLeaves(r.x0, r.x1, hinge, explicit)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
         if (!label) for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) inside.push({ kind: 'shelf', x0: cx - pos.w / 2, x1: cx + pos.w / 2, y0: y, y1: y });
       } else fronts.push({ ...r, opens, label, name, own });
@@ -86,5 +103,5 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
   if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
   const installed = fronts.map(f => kitchen && f.opens === 'side' && !f.label && !f.own && frontCoveredByReturn(f.x0, f.x1, faceWidths)
     ? { ...f, opens: 'fixed' as const, name: 'Corner return panel' } : f);
-  return { fronts: installed, inside, covered, cornerPullouts };
+  return { fronts: installed, inside, covered, cornerPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
 }

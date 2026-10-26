@@ -6,7 +6,8 @@ import { createTactileEdits } from '../../../application/commands/tactile-edits'
 /** Whole-wardrobe controls: size, finish, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
-export function bindCabinetDimensions({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime }) {
+export function bindCabinetDimensions(ports) {
+    const { dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime } = ports;
     const { $ } = dom;
     // Sliders and the canvas labels share one reversible, boundary-clamped resize.
     // The slider's transaction records history, so previews do not checkpoint again.

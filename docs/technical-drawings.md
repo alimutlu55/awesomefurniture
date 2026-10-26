@@ -240,3 +240,11 @@ niches, ventilation and service requirements therefore remain explicitly UNCONFI
 sheets, the schedule, review issues and worktop cutting-list references. No cut-out is inferred from
 an overall sink/hob footprint. Sink `h` describes its modeled selectable height; mounting `y` is the
 worktop datum, not a manufactured bowl-bottom level. Export never changes design geometry.
+
+## Kitchen installation reference
+
+Cabinet installation dimensions now stand beside the actual run fronts into the room; upper/tall
+units have their own outside chain. Rear gaps, carcass depth and worktop projection remain separate.
+Solid installation strips and end panels, attached corner strips, specified plinth/front/worktop
+thicknesses, fridge door divisions, ventilation envelopes and service intent are documented with
+reference equations and verification in [Professional kitchen reference](professional-kitchen-reference.md).

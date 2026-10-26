@@ -1,3 +1,4 @@
+import { cabinetLighting } from '../kitchen/cabinet-lighting';
 import { roomHeight, type Studio } from '../studio/studio';
 import { elevationDimensions } from './elevation-dimensions';
 import { elevationShell } from './shell-boundaries';
@@ -48,6 +49,8 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     if (s.kind === 'worktop') worktops.push(s.y, s.y + s.height);
   }
   for (const p of mine) out.push(...pieceFront(p, x(p.lo), { faceWidths: cornerFaceWidths(p, pieces) }));
+  for (const p of mine) for (const s of cabinetLighting(p.design))
+    out.push(line({ x: mm(x(p.lo) + s.a.x), y: mm(p.y + s.a.y) }, { x: mm(x(p.lo) + s.b.x), y: mm(p.y + s.b.y) }, 'lighting'));
   // A piece on the next wall that comes into this wall's corner is seen from its side: its outline and mark.
   const returns = pieces.filter(p => p.wall !== wallId && !p.fixture).map(p => ({ p, ...reach(p.x, p.z, p.angle, p.design.w, p.design.d) })).filter(r => r.near);
   for (const { p, t0, t1 } of returns) {
@@ -57,7 +60,8 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     out.push({ kind: 'tag', at: { x: mm(x((t0 + t1) / 2)), y: mm((p.y + top) / 2) }, text: p.mark });
   }
   const side = (hung: boolean) => returns.filter(r => r.p.hung === hung).map(r => ({ lo: r.t0, hi: r.t1 }));
-  const floor = [...mine.filter(p => !p.hung && !p.fixture), ...side(false)], hung = [...mine.filter(p => p.hung), ...side(true)];
+  const upper = mine.filter(p => p.hung || !p.fixture && p.y + p.design.h >= 120);
+  const floor = [...mine.filter(p => !p.hung && !p.fixture), ...side(false)], hung = [...upper, ...side(true)];
   const across = (values: readonly number[], up: boolean, row: number) =>
     out.push({ kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
       stops: stops([0, mm(length), ...values.map(v => mm(Math.max(0, Math.min(length, v))))]) });
@@ -65,7 +69,7 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   const widthStops = (p: PlacedPiece) => cornerWidthStops(p, pieces).map(s => x(p.lo + s));
   if (floor.length) across([...mine.filter(p => !p.hung && !p.fixture).flatMap(widthStops), ...side(false).flatMap(p => [x(p.lo), x(p.hi)])], false, below++);
   across([], false, below);
-  if (hung.length) across([...mine.filter(p => p.hung).flatMap(widthStops), ...side(true).flatMap(p => [x(p.lo), x(p.hi)])], true, above++);
+  if (hung.length) across([...upper.flatMap(widthStops), ...side(true).flatMap(p => [x(p.lo), x(p.hi)])], true, above++);
   if (g.openings.length) across(g.openings.flatMap(o => [x(o.offset - o.width / 2), x(o.offset + o.width / 2)]), true, above);
   const adjacent = studio.walls.filter(q => q.id !== w.id && (q.a === w.a || q.b === w.a));
   out.push(...elevationDimensions(mine.length ? mine : returns.map(r => r.p), worktops, roomHeight(studio), Math.max(0, ...adjacent.map(q => q.thickness))));

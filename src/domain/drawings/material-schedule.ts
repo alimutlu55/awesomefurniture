@@ -1,3 +1,7 @@
+import { ventilationGrille } from '../kitchen/ventilation';
+import { kitchenFrontThickness, installationSlab } from '../kitchen/installation-parts';
+import { worktopThickness } from '../materials/configured-materials';
+import { plinthOf } from '../wardrobe/carcass';
 import { doorThickness } from '../wardrobe/door-layout';
 import { decorCode, getDecor } from '../materials/decor-catalog';
 import { accessoryDescription, hardwareDescription, resolveMaterials } from '../materials/configured-materials';
@@ -9,15 +13,28 @@ export function materialSchedule(pieces: readonly PlacedPiece[]): Table[] {
   const rows: string[][] = [];
   for (const piece of pieces.filter(p => !p.fixture || p.fixture === 'shelf')) {
     const materials = resolveMaterials(piece.design);
+    const slab = installationSlab(piece.design);
+    if (slab) {
+      const sku = getDecor(slab.stock === 'front' ? materials.frontDecorId : materials.carcassDecorId);
+      rows.push([piece.mark, slab.name, `${decorCode(sku)} (${sku.name})`, `${slab.cut.thickness * 10}mm`,
+        `Grain: ${sku.grainDirection}; Edge: ${sku.edgeBandingSpec}; fixed solid part, exact installed size`]);
+      continue;
+    }
     for (const [zone, id] of [['Carcass Board', materials.carcassDecorId], ['Fronts Board', materials.frontDecorId],
       ['Drawer interiors', materials.drawerDecorId], ['Backing', materials.backingDecorId],
       ['Worktop', materials.worktopDecorId], ['Backsplash', materials.backsplashDecorId]] as const) {
       if (!id || (piece.fixture === 'shelf' && zone !== 'Carcass Board')) continue;
       const sku = getDecor(id);
-      const thickness = zone === 'Fronts Board' && !piece.design.product && piece.design.doors === 'hinged' ? doorThickness(piece.design) * 10 : sku.thicknessMm;
+      const thickness = zone === 'Fronts Board' && piece.design.product === 'kitchen' ? kitchenFrontThickness(piece.design) * 10
+        : zone === 'Worktop' ? worktopThickness(piece.design) * 10 : zone === 'Fronts Board' && !piece.design.product && piece.design.doors === 'hinged' ? doorThickness(piece.design) * 10 : sku.thicknessMm;
       rows.push([piece.mark, zone, `${decorCode(sku)} (${sku.name})`, `${thickness}mm`, `Grain: ${sku.grainDirection}; Edge: ${sku.edgeBandingSpec}`
         + (sku.construction ? `; ${sku.construction.replaceAll('_', ' ')}` : '')]);
     }
+    if (piece.design.product === 'kitchen') rows.push([piece.mark, 'Installation', 'Plinth / corner strip', '—',
+      'Plinth ' + plinthOf(piece.design) * 10 + ' mm; corner strip allocation ' + (piece.design.cornerStrip ?? 0) * 10 + ' mm. Finished thickness overrides require matching fabrication stock.']);
+    const vent = ventilationGrille(piece.design);
+    if (vent) rows.push([piece.mark, 'Ventilation grille', 'Purchased component', vent.width * 10 + ' × ' + vent.height * 10 + ' mm overall',
+      'Centre in plinth. Free area, cut-out, duct continuity and manufacturer approval are unconfirmed.']);
     if (piece.fixture) continue;
     const glazed = getDecor(materials.frontDecorId).category === 'glass_mirror';
     if (piece.design.doors === 'glass' && !glazed) rows.push([piece.mark, 'Glazed outer doors', 'Glass as configured', `${doorThickness(piece.design) * 10}mm`,

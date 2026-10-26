@@ -32,6 +32,18 @@ export interface EditorLayout {
   proposal: { title: string; summary: string } | null;
 }
 export interface EditorDesign {
+  /** Kitchen plinth height in centimetres; absent retains the legacy 80 mm construction. */
+  plinthHeight?: number | undefined;
+  /** Specified finished assembly thicknesses (cm); absent uses selected stock or legacy construction. */
+  frontThickness?: number | undefined;
+  worktopThickness?: number | undefined;
+  /** Installed fixed strip beside the perpendicular return, inside the overall corner cabinet width (cm). */
+  cornerStrip?: number | undefined;
+  /** Nominal lower fridge door height from its front bottom (cm); zero/absent uses the legacy split. */
+  fridgeSplit?: number | undefined;
+  /** Purchased plinth grille outer dimensions (cm), not a manufacturer cut-out or free-area specification. */
+  ventilationWidth?: number | undefined;
+  ventilationHeight?: number | undefined;
   /** Real board selections; absent only in legacy designs. */
   materials?: import('../materials/configured-materials').ConfiguredMaterialsState | undefined;
   w: number; h: number; d: number; n: number; wt: number[];

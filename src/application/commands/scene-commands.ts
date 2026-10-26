@@ -1,3 +1,4 @@
+import { createKitchenConstructionCommands } from './kitchen-construction';
 import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
@@ -80,6 +81,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const late = { resize: (_width: number) => false };
     const fill = createFillCommands({ getScene, active, checkpoint, discardCheckpoint, report, resize: width => late.resize(width) });
     const commands = {
+        ...createKitchenConstructionCommands(getScene, checkpoint, report),
         /** A new default design, replacing every wardrobe and the entire room in one undo step. */
         resetScene() {
             checkpoint();

@@ -1,6 +1,9 @@
+import type { FaceWidth } from '../kitchen/corner-widths';
+import { installationSlab } from '../kitchen/installation-parts';
+import { kitchenFrontThickness } from '../kitchen/installation-parts';
 import { defaultMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
-import { PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { PANEL } from '../wardrobe/catalog.js';
 import { BACK_PANEL, fittingDepth, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, outerPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
 import { DOOR, doorThickness } from '../wardrobe/door-layout';
@@ -62,10 +65,12 @@ function upright(name: string, stock: BoardStock, design: EditorDesign, x0: numb
  * fittings and the shelves, the fronts or doors, and a wardrobe drawer's own front. A kitchen run's worktop and plinth
  * belong to the run, not to a unit.
  */
-export function cabinetBoards(design: EditorDesign): Board[] {
+export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): Board[] {
+  const slab = installationSlab(design);
+  if (slab) return [slab];
   const shelfThickness = design.materials ? PANEL : KITCHEN_SHELF.thickness;
   const { w, d } = design, kitchen = isKitchen(design), lift = plinthOf(design), out: Board[] = [];
-  const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? PLINTH : 0) : 0, part = partitionDepth(d), fit = fittingDepth(d);
+  const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? plinthOf(design) : 0) : 0, part = partitionDepth(d), fit = fittingDepth(d);
   for (const b of shapeBoards(resolveShape(design))) {
     const sloped = Math.abs(b.points[0]!.y - b.points[1]!.y) > .05, run = Math.hypot(b.points[1]!.x - b.points[0]!.x, b.points[1]!.y - b.points[0]!.y);
     const x0 = Math.min(...b.points.map(p => p.x)), x1 = Math.max(...b.points.map(p => p.x)), y0 = Math.min(...b.points.map(p => p.y)), y1 = Math.max(...b.points.map(p => p.y));
@@ -116,11 +121,12 @@ export function cabinetBoards(design: EditorDesign): Board[] {
     }
     bayL += sw + PANEL;
   });
-  for (const f of piecefronts(design).fronts) {
+  for (const f of piecefronts(design, faceWidths).fronts) {
     // An appliance's own front and an open shelf's opening are not cut.
     if (f.own || f.opens === 'open') continue;
     if (kitchen) {
-      out.push(board(f.name, 'front', { x0: f.x0 + FRONT_GAP / 2, x1: f.x1 - FRONT_GAP / 2, y0: f.y0 + FRONT_GAP / 2, y1: f.y1 - FRONT_GAP / 2, z0: d, z1: d + PANEL }, 'L2 W2', 'y'));
+      const gap = f.installation ? 0 : FRONT_GAP / 2;
+      out.push(board(f.name, 'front', { x0: f.x0 + gap, x1: f.x1 - gap, y0: f.y0 + gap, y1: f.y1 - gap, z0: d, z1: d + kitchenFrontThickness(design) }, 'L2 W2', 'y'));
       continue;
     }
     // A door leaf stops DOOR.topGap under the outer top (door-renderer.ts); under a slope it is cut to it.

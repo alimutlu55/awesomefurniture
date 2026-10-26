@@ -43,5 +43,5 @@ export const hardwareDescription = (finish: HandleFinish) => finish === 'handlel
 export const accessoryDescription = (finish: AccessoryFinish) => finish.replaceAll('_', ' ');
 
 /** Unselected legacy worktops keep their original 40mm geometry. */
-export const worktopThickness = (design: { materials?: ConfiguredMaterialsState | undefined }) =>
-  design.materials?.worktopDecorId ? getDecor(design.materials.worktopDecorId).thicknessMm / 10 : 4;
+export const worktopThickness = (design: { materials?: ConfiguredMaterialsState | undefined; worktopThickness?: number | undefined }) =>
+  design.worktopThickness ?? (design.materials?.worktopDecorId ? getDecor(design.materials.worktopDecorId).thicknessMm / 10 : 4);

@@ -84,7 +84,7 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     const units = cabinets.filter(isKitchenUnit);
     let next = '';
     for (const u of units) {
-      const pose = [u.x, u.y || 0, u.z, u.angle].map(v => v.toFixed(2)), size = [u.state.w, u.state.h, u.state.d, u.state.n, u.state.wt.join(':')];
+      const pose = [u.x, u.y || 0, u.z, u.angle].map(v => v.toFixed(2)), size = [u.state.w, u.state.h, u.state.d, u.state.plinthHeight, u.state.worktopThickness, u.state.n, u.state.wt.join(':')];
       next += [u.id, ...pose, ...size, u.state.fin, JSON.stringify(u.state.materials), u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
     }
     if (next === key) return;

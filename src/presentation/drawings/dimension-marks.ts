@@ -59,13 +59,27 @@ export function dimensionMarks(d: Dimensions, paper: Paper, figures: Box[] = [])
     else if (l.last) centres[k] = l.s1 + (l.width / 2 + 1.6) * paper.scale;
   });
   for (let k = 0; k < labels.length; k++) {
-    const { text, mid: measured, width } = labels[k]!, position = centres[k]!;
-    const c = at(position, off), half = width / 2, baseline = 2.2, mid = up(c, angle, baseline + fontOf('figure').size / 2), rad = angle * Math.PI / 180;
+    const { text, mid: measured, width } = labels[k]!;
+    const half = width / 2, baseline = 2.2, rad = angle * Math.PI / 180;
+    const ex = Math.abs(Math.cos(rad)) * half + Math.abs(Math.sin(rad)) * fontOf('figure').size / 2, ey = Math.abs(Math.sin(rad)) * half + Math.abs(Math.cos(rad)) * fontOf('figure').size / 2;
+    const bounds = (position: number): Box => {
+      const mid = up(at(position, off), angle, baseline + fontOf('figure').size / 2);
+      return { x0: mid.x - ex, x1: mid.x + ex, y0: mid.y - ey, y1: mid.y + ey };
+    };
+    let position = centres[k]!, figure = bounds(position);
+    const occupied = (b: Box) => figures.some(q => b.x0 < q.x1 + .4 && b.x1 + .4 > q.x0 && b.y0 < q.y1 + .4 && b.y1 + .4 > q.y0);
+    // Intersecting run-front and depth chains share the same figure reserve. Move only lettering along
+    // its own tier; extension stops and measured values remain exact, with a leader to the true midpoint.
+    if (occupied(figure)) for (let step = 1; step <= 30; step++) {
+      const candidate = centres[k]! + (step % 2 ? 1 : -1) * Math.ceil(step / 2) * paper.scale;
+      const box = bounds(candidate);
+      if (!occupied(box)) { position = candidate; figure = box; break; }
+    }
+    const c = at(position, off);
     if (Math.abs(position - measured) / paper.scale > .2) {
       marks.push(shape([at(measured, off), at(position, off + 1.8)], 'dim'));
     }
-    const ex = Math.abs(Math.cos(rad)) * half + Math.abs(Math.sin(rad)) * fontOf('figure').size / 2, ey = Math.abs(Math.sin(rad)) * half + Math.abs(Math.cos(rad)) * fontOf('figure').size / 2;
-    figures.push({ x0: mid.x - ex, x1: mid.x + ex, y0: mid.y - ey, y1: mid.y + ey });
+    figures.push(figure);
     marks.push(words(up(c, angle, baseline), text, 'figure', 'middle', angle));
   }
   return marks;

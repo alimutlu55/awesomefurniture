@@ -50,7 +50,7 @@ test('kitchen units · defaults are inside their limits and their plain storage 
     assert.equal(design.product, 'kitchen');
     assert.equal(design.unit, u.key);
     assert.deepEqual(furnitureModule(design).sizes(design), u.sizes);
-    if (kitchenUnit(u.key).fixture) { assert.deepEqual(design.secs[0], [], `${u.key}: a sink or hob holds nothing`); continue; }
+    if (kitchenUnit(u.key).fixture || kitchenUnit(u.key).installation) { assert.deepEqual(design.secs[0], [], `${u.key}: a sink or hob holds nothing`); continue; }
     const total = design.secs[0]!.reduce((s, it) => s + it.h, 0);
     assert.ok(Math.abs(total - kitchenInside(u.h, u.key)) < .01, `${u.key}: storage fills the inside (${total})`);
   }
@@ -75,6 +75,7 @@ test('kitchen module · each unit offers only the fittings that fit it', () => {
   for (const unit of KITCHEN_UNIT_KEYS) {
     if (kitchenUnit(unit).fixture) continue; // a sink or hob has no inside to fit things in
     const design = createKitchenDesign(unit), offered = furnitureModule(design).fittingKinds(design);
+    if (kitchenUnit(unit).installation) { assert.deepEqual(offered, []); continue; }
     assert.ok(offered.length >= 3, `${unit}: offers a choice`);
     for (const k of offered) assert.ok((defs.find(f => f.key === k)!.kitchen!.units as readonly string[]).includes(unit));
   }

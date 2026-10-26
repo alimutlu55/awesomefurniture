@@ -41,11 +41,12 @@ export function createDecorMaterial(resources: Resources, sku: BoardDecorSKU) {
   return material;
 }
 
-export function createCabinetMaterials(resources: Resources, design: Pick<EditorDesign, 'fin' | 'materials'> | LegacyFinish) {
+export function createCabinetMaterials(resources: Resources, design: Pick<EditorDesign, 'fin' | 'materials' | 'frontThickness'> | LegacyFinish) {
   const materials = resolveMaterials(typeof design === 'string' ? { fin: design } : design);
   const carcass = getDecor(materials.carcassDecorId), fronts = getDecor(materials.frontDecorId);
   const panel = createDecorMaterial(resources, carcass), door = createDecorMaterial(resources, fronts);
   const front = fronts.category === 'glass_mirror' ? createDecorMaterial(resources, carcass) : door;
+  if (typeof design !== 'string' && design.frontThickness !== undefined) door.userData.panelThickness = front.userData.panelThickness = design.frontThickness;
   door.userData.frontProfile = front.userData.frontProfile = materials.frontProfile ?? 'slab';
   door.userData.frameColor = materials.handleFinish === 'anodized_champagne' ? '#c2b69c' : '#242426';
   const back = createDecorMaterial(resources, getDecor(materials.backingDecorId ?? carcass.id)), plinth = createDecorMaterial(resources, carcass);

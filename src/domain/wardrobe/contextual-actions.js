@@ -19,6 +19,7 @@ const actions = {
     // A selected piece of furniture: its kind's tools (the context is its furniture kind).
     ...Object.fromEntries(FURNITURE.map(m => [m.key, toolsOf(m)])),
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
+    installation: [['new', 'Add', 'Add cabinet'], ['resize', 'Size'], ['fronts', 'Finish'], ['more', 'More']],
     fixture: [['new', 'Add', 'Add cabinet'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
