@@ -1,7 +1,7 @@
 import { surfaceBoundary, boundaryControlHeight, setBoundaryControlHeight } from '../../domain/studio/surface-boundary';
 import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
-import { setDoorOperation, moveOpening, moveOpening2D, setInsideLength, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
+import { setDoorOperation, moveOpening, moveOpening2D, setOpeningSize, setWallSize } from '../../domain/studio/studio-edit';
 import { isWallUtility, openingLimits } from '../../domain/studio/wall-utilities';
 import { edgeHeight, outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { ceilingFrame, moveCeilingPoint, setCeilingDepth } from '../../domain/studio/studio-ceiling';
@@ -20,6 +20,7 @@ interface StudioFieldsPorts {
     readonly getStudio: () => Studio | undefined;
     readonly getSelection: () => RoomSelection;
     readonly editStudio: (edit: (room: Studio) => Studio | null) => boolean;
+    readonly resizeWallLength: (id: string, length: number, preview: boolean) => boolean;
     readonly refresh: () => void;
     readonly listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void;
     readonly resize?: { model: StudioEditorPorts['model']; history: { checkpoint(snapshot: string): void };
@@ -31,7 +32,7 @@ type Field = { key: string; label: string; value: number; min: number; max: numb
 const round = (v: number) => Math.round(v * 10) / 10;
 
 /** Shared sizing rows for walls, ceilings and openings. Lengths are inside the room. */
-export function createStudioFields({ document, getStudio, getSelection, editStudio, refresh, listen, resize, rendered }: StudioFieldsPorts) {
+export function createStudioFields({ document, getStudio, getSelection, editStudio, resizeWallLength, refresh, listen, resize, rendered }: StudioFieldsPorts) {
     const root = document.createElement('div');
     root.className = 'room-fields';
 
@@ -152,7 +153,7 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             else if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
             else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value - (r.ceilings?.find(c => c.id === s.id)?.edgeRise ?? 0)) : null; });
         } else if (s.kind === 'wall') {
-            if (key === 'length') write(r => setInsideLength(r, s.id, value));
+            if (key === 'length') resizeWallLength(s.id, value, preview);
             else write(r => setWallSize(r, s.id, { [key]: value }));
         } else if (key === 'left' || key === 'right') {
             write(r => {

@@ -2,7 +2,7 @@ import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createStudio, studioTemplate } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
-import { addOpening, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
+import { addOpening, setInsideLength, suggestWall, translateStudio } from '../../domain/studio/studio-edit';
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { newWallClash } from '../../domain/studio/wall-solids';
@@ -10,7 +10,7 @@ import { sameStudioStructure } from '../../domain/studio/studio-paint';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { flushAgainst, placeAgainstWall, pushOutOfWalls, snapToWall, wallSpot } from '../../domain/studio/studio-placement';
 import type { Pose } from '../../domain/studio/studio-placement';
-import { wallLine } from '../../domain/studio/studio';
+import { cornerDegree, STUDIO_LIMITS, wallFace, wallLine } from '../../domain/studio/studio';
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
@@ -121,6 +121,26 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return true;
   }
 
+  /** The single Length field can resize either end. Prefer a free end so joined walls stay put;
+   * if that candidate is blocked, try the other end before refusing. Rejected attempts never mutate the room. */
+  function resizeWallLength(id: string, length: number, recordHistory = true, quiet = false) {
+    const room = getScene().studio, wall = room?.walls.find(w => w.id === id), face = room && wall && wallFace(room, wall);
+    if (!room || !wall || !face || !Number.isFinite(length)) return false;
+    if (length < STUDIO_LIMITS.minWallLength || length > STUDIO_LIMITS.maxWallLength) return false;
+    if (Math.abs(length - face.length) < .05) return false;
+    const ends = cornerDegree(room, wall.a) < cornerDegree(room, wall.b) ? [true, false] : [false, true];
+    let reason: string | null = null;
+    for (const fromEnd of ends) {
+      const next = setInsideLength(room, id, length, fromEnd);
+      if (!next) continue;
+      const problem = studioProblem(next);
+      if (!problem) return editStudio(() => next, recordHistory, quiet);
+      reason ??= problem;
+    }
+    if (reason && !quiet) report(reason);
+    return false;
+  }
+
   /** Adds a wall: from a free wall end (the selected wall's first), else free-standing in the room. With
    * no room yet, a wall behind the wardrobes. Returns the new wall's id, or null with the reason. */
   function addStudioWall(prefer?: string): string | null {
@@ -228,6 +248,6 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
+  return { placeStudio, editStudio, resizeWallLength, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
     ...createFixtureCommands(getScene, { checkpoint, report }) };
 }

@@ -104,8 +104,12 @@ How it works now:
   as the room allows and say why they stopped; one undo step each; Shift drags freely. Snaps: corners square
   with neighbours, align with other corners, 45°, and join a free end dropped within 36 cm of another free end;
   walls align with corners; openings centre on the wall.
-- **Lengths are inside lengths** (`wallFace`), as a tape measure reads them. Setting one moves the next wall
-  square, so a room grows instead of skewing.
+- **Lengths are inside lengths** (`wallFace`), as a tape measure reads them. The existing Length field and
+  slider use `resizeWallLength`: prefer a free outer end, keeping an inner corner and its adjoining wall in
+  place; if that end is blocked, try the other end. Both candidates pass the same room, opening and furniture
+  checks before anything is committed. If neither fits, refuse without moving anything. Moving a joined end
+  keeps its neighbour square. Numeric entry makes one undo step; slider previews cancel back to the original
+  scene. `scripts/check-smart-wall-length.mjs` verifies 3280 → 3270 mm at 375 px and on desktop with one Length field.
 - **Cutaway**: walls between the camera and the room lower to a 14 cm stub with a darker cut top (no ghosting).
   The selected wall keeps a full-height outline. The ceiling shows only from inside the room.
 - **Camera in a room**: the camera goes exactly where the person moves it, with or without a room; the room never

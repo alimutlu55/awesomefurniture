@@ -18,7 +18,8 @@ interface RoomWiringPorts {
     readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
     readonly model: StudioEditorPorts['model'];
     readonly sceneCommands: StudioEditorPorts['sceneCommands'] & import('./fixture-editor').FixtureEditorPorts['sceneCommands']
-        & Parameters<typeof createFixturePanel>[0]['sceneCommands'];
+        & Parameters<typeof createFixturePanel>[0]['sceneCommands']
+        & Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'resizeWallLength'>;
     readonly history: { checkpoint(snapshot: string): void };
     readonly picking: {
         groundPoint(e: PointerEvent, height?: number): THREE.Vector3 | null; screenPoint(p: THREE.Vector3): { x: number; y: number };
@@ -117,6 +118,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
+        resizeWallLength: (id, length, preview) => sceneCommands.resizeWallLength(id, length, !preview, preview),
         resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
             active: () => dom.$('#left').dataset.roomResize !== undefined },
         rendered: () => resizePanel?.sync(),
