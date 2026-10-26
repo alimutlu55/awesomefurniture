@@ -345,7 +345,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const all = factor > 1 && overview();
         cameraState.zoomAnchor = anchor;
         if (anchor) cameraState.panned = true;
-        cameraState.zoomTarget = all ? furthest(base * factor, base, all) : cameraDistance(base * factor);
+        cameraState.zoomTarget = cameraDistance(base * factor);
         const out = all && zoomOutTarget(from, all, base, cameraState.zoomTarget);
         cameraState.zoomFocus = anchor ? null : out ? new THREE.Vector3(out.x, out.y, out.z) : cameraFocusPoint();
         if (cameraState.reducedCameraMotion.matches) {
@@ -356,11 +356,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     }
     /** The view of the whole scene (the studio, or the wardrobes with floor around them) at the current angle. */
     const overview = () => fittedCamera(cameraState.az, cameraState.el, 1.05, sceneBox());
-    /** Zooming out to `next` from `from` goes no further than half again the view of the whole scene. */
-    const furthest = (next, from, all) => cameraDistance(Math.min(next, Math.max(from, all.dist * 1.5)));
-    /** A pinch zooming out to `next`: toward the middle of the studio, as the zoom buttons do. */
+    /** A pinch zooming out to `next`: the same distance range and scene centering as wheel/button zoom. */
     function zoomOutTo(next) {
-        const all = overview(), dist = furthest(next, cameraState.dist, all), t = zoomOutTarget(cameraState.tgt, all, cameraState.dist, dist);
+        const all = overview(), dist = cameraDistance(next), t = zoomOutTarget(cameraState.tgt, all, cameraState.dist, dist);
         cameraState.tgt.set(t.x, t.y, t.z); cameraState.tgtY = t.y; cameraState.dist = dist;
     }
     function cameraTick(now, dt) {
