@@ -68,16 +68,20 @@ export interface CreditPack {
   readonly prices: Readonly<Record<CreditCurrency, number>>;
   /** The pack the wallet suggests first. */
   readonly featured?: boolean;
+  /** A small first purchase, shown as a slim row above the others: a low price to try the AI image with. */
+  readonly intro?: boolean;
 }
 
 /** Each pack has a price per currency: zloty in Poland, euro in the rest of the EU, dollars everywhere else
  * (credit-currency.ts picks one from the visitor's country). Round credit amounts, with the AI image at 10 credits, so
- * every pack keeps MINIMUM_MARGIN in every currency (unit-economics.ts): 8, 18, 48 and 100 AI images. */
+ * every pack keeps MINIMUM_MARGIN in every currency (unit-economics.ts): 4, 10, 22, 60 and 130 AI images, from
+ * 2,50 zł down to 1,54 zł an image. The first is the 9,99 zł pack to try it with; savings are counted against it. */
 export const CREDIT_PACKS = [
-  { id: 'starter', label: 'Starter', credits: 80, bonus: 0, prices: { pln: 1999, eur: 499, usd: 499 } },
-  { id: 'popular', label: 'Popular', credits: 150, bonus: 30, prices: { pln: 3999, eur: 999, usd: 999 }, featured: true },
-  { id: 'pro', label: 'Pro', credits: 400, bonus: 80, prices: { pln: 9999, eur: 2499, usd: 2499 } },
-  { id: 'studio', label: 'Studio', credits: 800, bonus: 200, prices: { pln: 19999, eur: 4999, usd: 4999 } },
+  { id: 'mini', label: 'Try it', credits: 40, bonus: 0, prices: { pln: 999, eur: 249, usd: 249 }, intro: true },
+  { id: 'starter', label: 'Starter', credits: 100, bonus: 0, prices: { pln: 1999, eur: 499, usd: 499 } },
+  { id: 'popular', label: 'Popular', credits: 200, bonus: 20, prices: { pln: 3999, eur: 999, usd: 999 }, featured: true },
+  { id: 'pro', label: 'Pro', credits: 500, bonus: 100, prices: { pln: 9999, eur: 2499, usd: 2499 } },
+  { id: 'studio', label: 'Studio', credits: 1000, bonus: 300, prices: { pln: 19999, eur: 4999, usd: 4999 } },
 ] as const satisfies readonly CreditPack[];
 
 export type CreditPackId = (typeof CREDIT_PACKS)[number]['id'];

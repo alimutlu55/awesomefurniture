@@ -40,7 +40,7 @@
 .cr-sheet, .cr-sheet * { box-sizing: border-box; }
 .cr-sheet {
   --cr-ink: var(--ink, #262521); --cr-mute: var(--mute, #76736c); --cr-line: var(--line, #dcd7cf); --cr-gold: #c98a12;
-  position: relative; width: min(100%, 640px); max-height: min(100%, 860px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  position: relative; width: min(100%, 720px); max-height: min(100%, 860px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   padding: 28px 30px 26px; border-radius: 26px; color: var(--cr-ink);
   background: linear-gradient(160deg, color-mix(in srgb, var(--panel, #f8f6f2) 96%, #fff), color-mix(in srgb, var(--panel, #f8f6f2) 90%, #e8dcc6));
   border: 1px solid color-mix(in srgb, #fff 55%, transparent);
@@ -199,3 +199,11 @@
 
 .cr-sheet section, .cr-sheet form, .ac-head > div, .cr-hero-copy { min-width: 0; }
 .cr-need, .cr-error { overflow-wrap: anywhere; }
+
+/* The small first pack: one slim row across the grid, above the four packs. */
+.cr-pack--intro { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 12px; padding: 12px 16px; }
+.cr-pack--intro .cr-coin { --cr-size: 26px; }
+.cr-intro-copy { display: grid; gap: 1px; flex: 1; min-width: 0; }
+.cr-pack--intro .cr-pack-credits b { font-size: 18px; }
+.cr-pack--intro .cr-pack-price { font-size: 17px; white-space: nowrap; }
+.cr-pack--intro:hover { transform: none; }

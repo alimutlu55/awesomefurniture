@@ -17,6 +17,8 @@ export interface CreditWallet {
   readonly packs: readonly {
     readonly id: string; readonly label: string; readonly credits: number; readonly bonus: number; readonly total: number;
     readonly price: number; readonly currency: string; readonly featured: boolean; readonly saving: number;
+    /** The small first pack, shown as a slim row above the others. */
+    readonly intro: boolean;
   }[];
   readonly providers: readonly string[];
   readonly passes: readonly { readonly feature: string; readonly scope: string; readonly expiresAt: string }[];

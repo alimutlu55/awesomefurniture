@@ -55,12 +55,15 @@ fees are lost, the credits come back unused), 19% flat income tax + 4.9% health 
 **AI image: 10 credits. Technical drawings: 20 credits**, the first set free. The same round credit amounts in every
 currency:
 
-| Pack | Credits | AI images | Zloty | Euro | Dollars | Saving |
-| --- | --- | --- | --- | --- | --- | --- |
-| Starter | 80 | 8 | 19,99 zł | 4,99 € | $4.99 | |
-| Popular | 150 + 30 bonus | 18 | 39,99 zł | 9,99 € | $9.99 | −11% |
-| Pro | 400 + 80 bonus | 48 | 99,99 zł | 24,99 € | $24.99 | −17% |
-| Studio | 800 + 200 bonus | 100 | 199,99 zł | 49,99 € | $49.99 | −20% |
+| Pack | Credits | AI images | Zloty | Euro | Dollars | Per image (zł) | Saving |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Try it | 40 | 4 | 9,99 zł | 2,49 € | $2.49 | 2,50 | |
+| Starter | 100 | 10 | 19,99 zł | 4,99 € | $4.99 | 2,00 | −20% |
+| Popular | 200 + 20 bonus | 22 | 39,99 zł | 9,99 € | $9.99 | 1,82 | −27% |
+| Pro | 500 + 100 bonus | 60 | 99,99 zł | 24,99 € | $24.99 | 1,67 | −33% |
+| Studio | 1000 + 300 bonus | 130 | 199,99 zł | 49,99 € | $49.99 | 1,54 | −38% |
+
+*Try it* is the low first purchase: a slim row above the four packs in the wallet. Savings are counted against it.
 
 What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier, October 2026): input $1.50, text
 and thinking output $7.50, image output $30.00 per million tokens. Images are made with `thinking_level: medium`,
@@ -86,22 +89,23 @@ refunds, chargebacks, Gemini and income tax. Usual / worst case:
 
 | Pack | Zloty | Euro | Dollars |
 | --- | --- | --- | --- |
-| Starter | 9,01 / 7,24 zł (45% / 36% of the price) | 2,20 / 1,69 € (44% / 34%) | $2.83 / $1.62 (57% / 32%) |
-| Popular | 18,60 / 14,61 zł (47% / 37%) | 4,55 / 3,42 € (46% / 34%) | $5.85 / $3.31 (59% / 33%) |
-| Pro | 47,37 / 36,74 zł (47% / 37%) | 11,61 / 8,61 € (46% / 34%) | $14.90 / $8.37 (60% / 34%) |
-| Studio | 94,87 / 72,73 zł (47% / 36%) | 23,26 / 17,06 € (47% / 34%) | $29.87 / $16.59 (60% / 33%) |
+| Try it | 3,99 / 3,10 zł (40% / 31% of the price) | 0,97 / 0,71 € (39% / 29%) | $1.27 / $0.66 (51% / 27%) |
+| Starter | 8,56 / 6,35 zł (43% / 32%) | 2,09 / 1,48 € (42% / 30%) | $2.72 / $1.39 (55% / 28%) |
+| Popular | 17,70 / 12,83 zł (44% / 32%) | 4,34 / 3,00 € (43% / 30%) | $5.62 / $2.85 (56% / 29%) |
+| Pro | 44,68 / 31,39 zł (45% / 31%) | 10,97 / 7,35 € (44% / 29%) | $14.21 / $7.00 (57% / 28%) |
+| Studio | 88,15 / 59,36 zł (44% / 30%) | 21,67 / 13,91 € (43% / 28%) | $28.15 / $13.16 (56% / 26%) |
 
-Per image that is 81–86% of what is left usually and 59–67% at worst (the worst case takes the worst VAT and the
+Per image that is 75–85% of what is left usually and 47–64% at worst (the worst case takes the worst VAT and the
 worst Gemini cost together). `tests/architecture/credits.test.ts` checks every pack in every currency and fails below
 65% usually or 40% at worst (`MINIMUM_MARGIN`), so a bigger bonus, a price cut, a dearer model or a new currency shows
 up in CI. Income tax is left out of that test: it scales with profit, so it never changes which price is profitable.
 Credits spent on drawings, or never spent, add to all of the above.
 
-**Technical drawings** cost nothing per use (they are made in the browser): 4,00 to 5,00 zł (1,00 to 1,25 € or $)
+**Technical drawings** cost nothing per use (they are made in the browser): 3,08 to 5,00 zł (0,77 to 1,25 € or $)
 to the person. A use opens a 24-hour pass for that design, so fixing something and opening
 the drawings again is never charged twice.
 
-**Running costs and ZUS.** About 8 Popular packs a month (7 in dollars) pay the $50 of hosting and email (`breakEvenPacks`). ZUS
+**Running costs and ZUS.** About 9 Popular packs a month pay the $50 of hosting and email (`breakEvenPacks`). ZUS
 social contributions are owed by the sole trader whatever the app sells (reduced in the first years), so they are not
 charged to each pack; count them against the business as a whole.
 

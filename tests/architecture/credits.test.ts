@@ -53,12 +53,15 @@ test('every paid feature keeps its margin at the cheapest credit when the provid
   for (const currency of CREDIT_CURRENCIES) {
     const perCredit = CREDIT_PACKS.map(p => p.prices[currency] / packCredits(p));
     assert.ok(perCredit.every((price, i) => i === 0 || price < perCredit[i - 1]!), `a bigger pack is always cheaper per credit in ${currency}`);
-    assert.deepEqual(CREDIT_PACKS.map(p => packSaving(p, currency)), [0, 11, 17, 20]);
+    assert.deepEqual(CREDIT_PACKS.map(p => packSaving(p, currency)), [0, 20, 27, 33, 38]);
   }
   assert.ok(CREDIT_PACKS.every(p => packCredits(p) % 10 === 0), 'credit amounts stay round');
   const image = CREDIT_FEATURES.find(f => f.key === 'ai-image')!;
   assert.ok(CREDIT_PACKS.every(p => packCredits(p) % image.cost === 0), 'every pack buys whole AI images');
   assert.equal(CREDIT_PACKS.filter(p => 'featured' in p && p.featured).length, 1);
+  const intro = CREDIT_PACKS.filter(p => 'intro' in p && p.intro);
+  assert.deepEqual(intro.map(p => [p.id, p.prices.pln]), [['mini', 999]], 'one small first pack, at 9,99 zł');
+  assert.equal(CREDIT_PACKS[0], intro[0], 'it comes first, and savings are counted against it');
 });
 
 test('a paid order is credited once, however often the provider repeats it, and only for the right amount', async () => {
@@ -304,7 +307,7 @@ test('the image cost comes from Google token prices: input, thinking and answer 
   // $9.99 outside the EU: usually no VAT, Stripe 3% + $0.30, 2% conversion into zloty; at worst 25% VAT (Norway).
   assert.equal(packRevenue(creditPack('popular')!, 'usd').toFixed(2), '9.05');
   assert.equal(packBreakdown(creditPack('popular')!, 'usd', 'worst').vat.toFixed(2), '2.00');
-  assert.equal(breakEvenPacks(creditPack('popular')!, CREDIT_FEATURES.find(f => f.key === 'ai-image')!, 'pln'), 8, 'eight Popular packs a month pay hosting and email');
+  assert.equal(breakEvenPacks(creditPack('popular')!, CREDIT_FEATURES.find(f => f.key === 'ai-image')!, 'pln'), 9, 'nine Popular packs a month pay hosting and email');
 });
 
 test('each visitor buys in their currency: zloty in Poland, euro in the EU, dollars elsewhere', async () => {
@@ -312,8 +315,8 @@ test('each visitor buys in their currency: zloty in Poland, euro in the EU, doll
     ['pln', 'pln', 'eur', 'eur', 'eur', 'usd', 'usd', 'usd', 'usd', 'usd', 'usd']);
   const { service, store } = setup(false);
   for (const currency of CREDIT_CURRENCIES) {
-    const wallet = await service.wallet(buyer, currency), popular = creditPack('popular')!;
-    assert.deepEqual([wallet.packs[1]!.price, wallet.packs[1]!.currency], [popular.prices[currency], currency]);
+    const wallet = await service.wallet(buyer, currency), popular = creditPack('popular')!, shown = wallet.packs.find(p => p.id === 'popular')!;
+    assert.deepEqual([shown.price, shown.currency], [popular.prices[currency], currency]);
     const { orderId } = await service.checkout(buyer, { pack: 'popular', provider: 'fake', links, currency });
     const order = (await store.order(orderId))!;
     assert.deepEqual([order.amount, order.currency], [popular.prices[currency], currency], 'the order charges the price the wallet showed');

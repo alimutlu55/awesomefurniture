@@ -50,10 +50,17 @@ export function walletShell() {
 
 export function packCards(packs: readonly Pack[], features: readonly Feature[], selected: string) {
   // A pack card counts its credits in the first feature of the catalog, the one most people buy for.
-  const headline = features[0];
-  return packs.map((p, i) => {
-    const on = p.id === selected;
-    return `<button type="button" role="radio" class="cr-pack${p.featured ? ' cr-pack--featured' : ''}" data-pack="${escape(p.id)}" aria-checked="${on}" tabindex="${on ? 0 : -1}">`
+  const headline = features[0], intros = packs.filter(p => p.intro).length;
+  return packs.map((p, index) => {
+    const on = p.id === selected, open = `role="radio" data-pack="${escape(p.id)}" aria-checked="${on}" tabindex="${on ? 0 : -1}"`;
+    // The small first pack is one slim row: its credits, what they buy and the price, nothing to compare.
+    if (p.intro) {
+      return `<button type="button" ${open} class="cr-pack cr-pack--intro">${coin()}<span class="cr-intro-copy"><span class="cr-pack-name">${escape(p.label)}</span>`
+        + `<span class="cr-pack-credits"><b>${p.total}</b> credits${headline ? ' · ' + uses(p.total, headline) : ''}</span></span>`
+        + `<span class="cr-pack-price">${money(p.price, p.currency)}</span></button>`;
+    }
+    const i = index - intros;
+    return `<button type="button" ${open} class="cr-pack${p.featured ? ' cr-pack--featured' : ''}">`
       + (p.featured ? '<span class="cr-ribbon">Most popular</span>' : '')
       + `<span class="cr-stack" style="--n:${i + 1}">${Array.from({ length: i + 1 }, () => coin()).join('')}</span>`
       + `<span class="cr-pack-name">${escape(p.label)}</span>`
