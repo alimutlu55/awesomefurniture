@@ -31,7 +31,7 @@ export interface CreditFeature {
   /** A use opens a pass: the same design again costs nothing for this many hours. 0: every use is charged. */
   readonly passHours: number;
   readonly settlement: CreditSettlement;
-  /** What one use costs us at the provider, in US dollars, for the margin guard (docs/credits.md). */
+  /** What one use costs us at the provider, in US dollars (Google bills in dollars), for the margin guard (docs/credits.md). */
   readonly providerCost: { readonly typical: number; readonly worst: number };
 }
 
@@ -39,15 +39,15 @@ export const CREDIT_FEATURES = [
   {
     key: 'ai-image', label: 'AI image', description: 'A photorealistic 2K image of your design in a finished room.',
     unit: { one: 'AI image', many: 'AI images' }, icon: 'sparkle',
-    cost: 5, freeUses: 0, passHours: 0, settlement: 'result',
-    // Nano Banana 2.1 at 2K with high thinking, failed attempts included: about $0.092 usually, $0.186 at worst.
+    cost: 10, freeUses: 0, passHours: 0, settlement: 'result',
+    // Nano Banana 2.1 at 2K with medium thinking, failed attempts included: about $0.074 usually, $0.155 at worst.
     providerCost: { typical: imageGenerationCost(IMAGE_REQUEST_TOKENS.typical), worst: imageGenerationCost(IMAGE_REQUEST_TOKENS.worst) },
   },
   {
     key: 'technical-drawings', label: 'Technical drawings',
     description: 'The full A3 drawing set and PDF of one design. Changes to that design stay free for 24 hours.',
     unit: { one: 'drawing set', many: 'drawing sets' }, icon: 'sheet',
-    cost: 10, freeUses: 1, passHours: 24, settlement: 'immediate',
+    cost: 20, freeUses: 1, passHours: 24, settlement: 'immediate',
     providerCost: { typical: 0, worst: 0 },
   },
 ] as const satisfies readonly CreditFeature[];
@@ -60,20 +60,20 @@ export interface CreditPack {
   /** Credits the pack pays for, before the bonus. */
   readonly credits: number;
   readonly bonus: number;
-  /** Price in the currency's minor unit (cents). */
+  /** Price in the currency's minor unit (grosze), VAT included. */
   readonly price: number;
-  readonly currency: 'usd';
+  readonly currency: 'pln';
   /** The pack the wallet suggests first. */
   readonly featured?: boolean;
 }
 
-/** Prices include 23% VAT. Round credit amounts, with the AI image priced (5 credits) so every pack keeps
- * MINIMUM_MARGIN after VAT, Stripe, currency conversion, refunds and Gemini (unit-economics.ts): 10, 22, 58 and 120 AI images. */
+/** Prices in zloty, VAT included. Round credit amounts, with the AI image at 10 credits so every pack keeps
+ * MINIMUM_MARGIN after VAT, Stripe, refunds and Gemini (unit-economics.ts): 8, 18, 48 and 100 AI images. */
 export const CREDIT_PACKS = [
-  { id: 'starter', label: 'Starter', credits: 50, bonus: 0, price: 499, currency: 'usd' },
-  { id: 'popular', label: 'Popular', credits: 100, bonus: 10, price: 999, currency: 'usd', featured: true },
-  { id: 'pro', label: 'Pro', credits: 250, bonus: 40, price: 2499, currency: 'usd' },
-  { id: 'studio', label: 'Studio', credits: 500, bonus: 100, price: 4999, currency: 'usd' },
+  { id: 'starter', label: 'Starter', credits: 80, bonus: 0, price: 1999, currency: 'pln' },
+  { id: 'popular', label: 'Popular', credits: 150, bonus: 30, price: 3999, currency: 'pln', featured: true },
+  { id: 'pro', label: 'Pro', credits: 400, bonus: 80, price: 9999, currency: 'pln' },
+  { id: 'studio', label: 'Studio', credits: 800, bonus: 200, price: 19999, currency: 'pln' },
 ] as const satisfies readonly CreditPack[];
 
 export type CreditPackId = (typeof CREDIT_PACKS)[number]['id'];

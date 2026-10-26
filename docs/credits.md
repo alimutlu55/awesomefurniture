@@ -30,69 +30,71 @@ and credits to the account (the person decides), so paid credits survive a clear
 ## Pricing
 
 Prices live in one place, `src/domain/credits/credit-catalog.ts`; the image cost is worked out from Google's token
-prices in `image-generation-cost.ts`; VAT, payment costs, tax and running costs are in `unit-economics.ts`. The
-database stores what each use cost, so a price change never rewrites history.
+prices in `image-generation-cost.ts`; VAT, payment costs, tax, the exchange rate and running costs are in
+`unit-economics.ts`. The database stores what each use cost, so a price change never rewrites history.
 
-Assumptions (each is one constant in `unit-economics.ts`):
+Packs are sold **in zloty** (Stripe pays out in zloty, so there is no 2% currency conversion, and Polish customers
+can pay with BLIK and Przelewy24 once they are turned on in the Stripe dashboard). Assumptions, each one constant:
 
 | Cost | Figure | Why |
 | --- | --- | --- |
 | VAT | 23%, included in the price | Polish VAT on a digital service |
-| Stripe | 3% + $0.30 per payment | card processing |
-| Currency conversion | 2% | Stripe pays the US dollars out in zloty |
-| Chargebacks | 0.5% of payments lose the payment and Stripe's $15 fee | cautious for a new shop (Stripe flags 0.75%) |
-| Refunds | 2% of payments; the processing fees are lost, the credits come back unused | |
+| Stripe | 3% + 1 zł per payment | card processing |
+| Chargebacks | 0.5% of payments lose the payment and a ~65 zł fee | cautious for a new shop (Stripe flags 0.75%) |
+| Refunds | 2% of payments; the processing fee is lost, the credits come back unused | |
+| Exchange rate | 3.90 zł per dollar | Google bills Gemini in dollars (about 3.80 in September 2026) |
 | Income tax and health | 19% flat tax + 4.9% health contribution on profit | sole trader on *podatek liniowy* |
 | Running costs | $50 a month: Supabase Pro $25, Cloudflare Workers $5, email sending ~$20 | once free tiers run out |
 
-Credit amounts stay round; the image price in credits is what makes the packs profitable.
+**AI image: 10 credits. Technical drawings: 20 credits**, the first set free. Credit amounts stay round.
 
-| Pack | Price (VAT incl.) | VAT | Stripe | Conversion | Refunds and chargebacks | Left | Credits | AI images | Per image |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Starter | $4.99 | $0.93 | $0.45 | $0.10 | $0.11 | $3.40 | 50 | 10 | $0.50 |
-| Popular | $9.99 | $1.87 | $0.60 | $0.20 | $0.14 | $7.18 | 100 + 10 bonus | 22 | $0.45 (−9%) |
-| Pro | $24.99 | $4.67 | $1.05 | $0.50 | $0.23 | $18.54 | 250 + 40 bonus | 58 | $0.43 (−14%) |
-| Studio | $49.99 | $9.35 | $1.80 | $1.00 | $0.38 | $37.46 | 500 + 100 bonus | 120 | $0.42 (−17%) |
+| Pack | Price (VAT incl.) | VAT | Stripe | Refunds and chargebacks | Left | Credits | AI images | Per image |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Starter | 19.99 zł | 3.74 | 1.60 | 0.46 | 14.20 zł | 80 | 8 | 2.50 zł |
+| Popular | 39.99 zł | 7.48 | 2.20 | 0.57 | 29.74 zł | 150 + 30 bonus | 18 | 2.22 zł (−11%) |
+| Pro | 99.99 zł | 18.70 | 4.00 | 0.90 | 76.39 zł | 400 + 80 bonus | 48 | 2.08 zł (−17%) |
+| Studio | 199.99 zł | 37.40 | 7.00 | 1.46 | 154.13 zł | 800 + 200 bonus | 100 | 2.00 zł (−20%) |
 
-**AI image: 5 credits.** What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier,
-October 2026): input $1.50, text and thinking output $7.50, image output $30.00 per million tokens. The token
-counts were measured on the current prompts: an ordinary wardrobe sends 3 views and 1 swatch (1,120 tokens each)
-and about 1,700 tokens of instructions and design summary.
+What one image costs at Google with `gemini-nano-banana-2.1` (standard paid tier, October 2026): input $1.50, text
+and thinking output $7.50, image output $30.00 per million tokens. Images are made with `thinking_level: medium`,
+about a fifth cheaper than high; raise it in `generate-design-image.ts` if photographs suffer. Token counts were
+measured on the current prompts: an ordinary wardrobe sends 3 views and 1 swatch (1,120 tokens each) and about
+1,700 tokens of instructions and design summary.
 
 | Part | Typical | Worst |
 | --- | --- | --- |
 | Input images: 3 views + swatches (1 typical, 8 at most) × 1,120 | 4,480 tokens | 12,320 tokens |
 | Input text: instructions, view labels, design summary | 1,700 tokens | 5,000 tokens |
 | Input cost (× $1.50 / M) | $0.0093 | $0.0260 |
-| Thinking at `thinking_level: high` (unpublished; estimate) | 3,000 tokens | 10,000 tokens |
+| Thinking at `medium` (unpublished; estimate) | 1,000 tokens | 6,000 tokens |
 | Answer text | 200 tokens | 500 tokens |
-| Text output cost (× $7.50 / M) | $0.0240 | $0.0788 |
+| Text output cost (× $7.50 / M) | $0.0090 | $0.0488 |
 | The 2K image: 1,680 tokens (× $30 / M) | $0.0504 | $0.0504 |
-| One image | $0.0837 | $0.1551 |
+| One image | $0.0687 | $0.1252 |
 | Failed attempts Google bills but we refund | +10% | +20% |
-| **Cost per delivered image** | **$0.092** | **$0.186** |
+| **Cost per delivered image** | **$0.076 = 0.29 zł** | **$0.150 = 0.59 zł** |
 
 What a pack earns when every credit goes on AI images (the least profitable use):
 
 | Pack | Left | Gemini (usual / worst) | Profit before tax | After 19% + 4.9% | Share of the price kept |
 | --- | --- | --- | --- | --- | --- |
-| Starter | $3.40 | $0.92 / $1.86 | $2.48 / $1.53 | **$1.88 / $1.17** | 38% / 23% |
-| Popular | $7.18 | $2.02 / $4.10 | $5.16 / $3.09 | **$3.92 / $2.35** | 39% / 24% |
-| Pro | $18.54 | $5.34 / $10.80 | $13.20 / $7.74 | **$10.04 / $5.89** | 40% / 24% |
-| Studio | $37.46 | $11.04 / $22.34 | $26.42 / $15.12 | **$20.10 / $11.51** | 40% / 23% |
+| Starter | 14.20 zł | 2.36 / 4.68 | 11.84 / 9.51 | **9.01 / 7.24 zł** | 45% / 36% |
+| Popular | 29.74 zł | 5.30 / 10.54 | 24.44 / 19.20 | **18.60 / 14.61 zł** | 47% / 37% |
+| Pro | 76.39 zł | 14.14 / 28.11 | 62.25 / 48.28 | **47.37 / 36.74 zł** | 47% / 37% |
+| Studio | 154.13 zł | 29.46 / 58.56 | 124.67 / 95.57 | **94.87 / 72.73 zł** | 47% / 36% |
 
-Per image that is 71–73% of what is left usually and 40–45% at worst. `tests/architecture/credits.test.ts` fails if
+Per image that is 81–83% of what is left usually and 62–67% at worst. `tests/architecture/credits.test.ts` fails if
 any pack keeps less than 65% usually or 40% at worst (`MINIMUM_MARGIN`), so a bigger bonus, a price cut or a dearer
 model shows up in CI. Income tax is left out of that test: it scales with profit, so it never changes which price is
 profitable. Credits spent on drawings, or never spent, add to all of the above.
 
-**Running costs and ZUS.** About 10 Popular packs a month pay the $50 of hosting and email (`breakEvenPacks`).
-ZUS social contributions are owed by the sole trader whatever the app sells (reduced in the first years), so they
-are not charged to each pack; count them against the business as a whole.
+**Technical drawings** cost nothing per use (they are made in the browser): 4.00 to 5.00 zł to the person, 3.08 to
+3.55 zł left after VAT and payment costs. A use opens a 24-hour pass for that design, so fixing something and opening
+the drawings again is never charged twice.
 
-**Technical drawings: 10 credits**, with the first set free: $0.83 to $1.00 to the person, $0.62 to $0.68 left
-after VAT and payment costs. The drawings are made in the browser and cost nothing per use. A use opens a 24-hour
-pass for that design, so fixing something and opening the drawings again is never charged twice.
+**Running costs and ZUS.** About 8 Popular packs a month pay the $50 of hosting and email (`breakEvenPacks`). ZUS
+social contributions are owed by the sole trader whatever the app sells (reduced in the first years), so they are not
+charged to each pack; count them against the business as a whole.
 
 **Measure the real cost.** Each captured image keeps Google's token counts in `credit_spends.metadata`. The
 thinking figure is the least certain one; compare it with real usage after launch and update
@@ -103,10 +105,11 @@ select count(*), avg((metadata->>'total_tokens')::int) from credit_spends
 where feature = 'ai-image' and status = 'captured' and created_at > now() - interval '7 days';
 ```
 
-Prices are in US dollars with VAT included. If Stripe Tax is turned on later, set the prices' tax behaviour to
-*inclusive*; otherwise Stripe adds VAT on top and the person pays 23% more than the pack shows. VAT-exempt (Polish
-small-business exemption, see the accountant)? Then the VAT column is profit, until cross-border EU consumer sales
-pass €10,000 a year. On *ryczałt* or the tax scale instead of the flat tax, change `INCOME_TAX`.
+Prices include VAT. If Stripe Tax is turned on later, set the prices' tax behaviour to *inclusive*; otherwise
+Stripe adds VAT on top and the person pays 23% more than the pack shows. VAT-exempt (Polish small-business exemption,
+see the accountant)? Then the VAT column is profit, until cross-border EU consumer sales pass €10,000 a year. On
+*ryczałt* or the tax scale instead of the flat tax, change `INCOME_TAX`. Customers paying from abroad see zloty and
+their card converts it.
 
 ## How it stays correct
 

@@ -65,7 +65,8 @@ export async function generateDesignImage(
   const prompt = stylePrompt(renderConfig);
   const requestBody = {
     model: GEMINI_IMAGE_MODEL, store: false,
-    generation_config: { thinking_level: 'high' },
+    // Medium thinking: about a fifth cheaper per image than high (docs/credits.md); raise it if photographs suffer.
+    generation_config: { thinking_level: 'medium' },
     system_instruction: prompt.systemInstruction(renderConfig),
     input: [
       ...references.flatMap(image => [

@@ -63,7 +63,7 @@ test('server sends labeled references, active rules and a Tier 1 manifest with a
     assert.equal('delivery' in imageFormat, false, 'Nano Banana 2.1 rejects an explicit image delivery mode');
     const [aspectWidth, aspectHeight] = imageFormat.aspect_ratio.split(':').map(Number);
     assert.equal(aspectWidth / aspectHeight, input.references[0]!.width / input.references[0]!.height, 'Output matches the reference aspect ratio');
-    assert.equal(body.generation_config.thinking_level, 'high');
+    assert.equal(body.generation_config.thinking_level, 'medium');
     const labels = body.input.filter((part: { type: string }) => part.type === 'text').slice(0, 3).map((part: { text: string }) => part.text);
     assert.match(labels[0], /Image 1 as the strict camera and TIER 1 structural reference/);
     assert.match(labels[0], /TIER 2 cleanup.*protruding floor-base strips.*truncated walls/);

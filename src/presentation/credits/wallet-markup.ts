@@ -5,8 +5,9 @@ type Feature = CreditWallet['features'][number];
 
 const escape = (value: string) => value.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 export const coin = (size = '') => `<i class="cr-coin${size ? ' cr-coin--' + size : ''}" aria-hidden="true"></i>`;
+/** A price as its buyers write it: zloty the Polish way ("39,99 zł"), any other currency in the reader's own format. */
 export const money = (amount: number, currency: string) =>
-  new Intl.NumberFormat(undefined, { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100);
+  new Intl.NumberFormat(currency.toLowerCase() === 'pln' ? 'pl-PL' : undefined, { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100);
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const CLOSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18"/></svg>';
 const LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z"/></svg>';

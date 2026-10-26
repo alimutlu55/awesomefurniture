@@ -23,7 +23,7 @@ export interface ImageRequestTokens {
   readonly inputImages: number;
   /** System instruction, view labels and the design summary. */
   readonly inputText: number;
-  /** `thinking_level: high`: Google does not publish a figure, so these are estimates to check against the recorded usage. */
+  /** `thinking_level: medium`: Google does not publish a figure, so these are estimates to check against the recorded usage. */
   readonly thinking: number;
   /** The short description returned with the image. */
   readonly answer: number;
@@ -32,10 +32,10 @@ export interface ImageRequestTokens {
 }
 
 /** Measured on the current prompts (October 2026): an ordinary wardrobe sends 3 views, 1 swatch and about 1,700 text
- * tokens. The worst case is a design with 8 finishes, a long summary, heavy thinking and one in five attempts failing. */
+ * tokens. The worst case is a design with 8 finishes, a long summary, long thinking and one in five attempts failing. */
 export const IMAGE_REQUEST_TOKENS = {
-  typical: { inputImages: 4, inputText: 1700, thinking: 3000, answer: 200, failedShare: 0.10 },
-  worst: { inputImages: 11, inputText: 5000, thinking: 10000, answer: 500, failedShare: 0.20 },
+  typical: { inputImages: 4, inputText: 1700, thinking: 1000, answer: 200, failedShare: 0.10 },
+  worst: { inputImages: 11, inputText: 5000, thinking: 6000, answer: 500, failedShare: 0.20 },
 } as const satisfies Record<'typical' | 'worst', ImageRequestTokens>;
 
 /** US dollars one delivered image costs, failed attempts included. */
