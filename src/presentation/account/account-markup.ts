@@ -13,14 +13,14 @@ export function accountSheet() {
   const code = field('code', 'Code', 'inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" placeholder="12345678"');
   return '<div class="cr-sheet ac-sheet" role="dialog" aria-modal="true" aria-labelledby="ac-title" tabindex="-1">'
     + `<button type="button" class="cr-close" aria-label="Close">${CLOSE}</button>`
-    + `<header class="ac-head"><span class="ac-avatar">${PERSON}</span><div><h2 id="ac-title"></h2><p class="ac-lead"></p></div></header>`
-    + '<div class="cr-tabs ac-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" data-tab="sign-in">Sign in</button>'
-    + '<button type="button" role="tab" data-tab="sign-up">Sign up</button></div>'
-    + `<section class="ac-start"><button type="button" class="ac-google" hidden>${GOOGLE}<span>Continue with Google</span></button>`
-    + '<p class="ac-or" hidden><span>or with your email</span></p>'
-    + '<form class="ac-form ac-credentials" novalidate>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')
-    + field('password', 'Password', 'type="password" minlength="8"') + '<p class="ac-hint">At least 8 characters.</p>'
-    + '<button type="submit" class="cr-primary ac-submit"></button><button type="button" class="cr-quiet ac-to-forgot">Forgot your password?</button></form></section>'
+    + '<header class="ac-head"><h2 id="ac-title"></h2><p class="ac-lead"></p></header>'
+    + '<section class="ac-start"><form class="ac-form ac-credentials" novalidate>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')
+    + '<div class="ac-password-row">' + field('password', 'Password', 'type="password" minlength="8"')
+    + '<button type="button" class="cr-quiet ac-to-forgot">Forgot?</button></div><p class="ac-hint">At least 8 characters.</p>'
+    + '<button type="submit" class="cr-primary ac-submit"></button></form>'
+    + '<p class="ac-or" hidden><span>Or continue with</span></p>'
+    + `<button type="button" class="ac-google" hidden>${GOOGLE}<span>Continue with Google</span></button>`
+    + '<p class="ac-switch"><span class="ac-switch-prompt"></span> <button type="button" class="ac-switch-action"></button></p></section>'
     + `<form class="ac-form ac-confirm" novalidate hidden>${code}<button type="submit" class="cr-primary">Confirm and sign in</button>`
     + '<button type="button" class="cr-quiet ac-resend">Send a new code</button><button type="button" class="cr-quiet ac-to-start">Use another email</button></form>'
     + '<form class="ac-form ac-forgot" novalidate hidden>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')

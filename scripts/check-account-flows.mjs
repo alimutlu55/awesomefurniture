@@ -54,14 +54,50 @@ try {
       await page.close();
     };
 
+    await run('compact sign-in, account link and keyboard navigation', null, null, async ({ page, sheet, fill, submit, shot }) => {
+      await page.locator('.ac-menu').click();
+      await sheet.waitFor();
+      assert.equal(await sheet.getAttribute('data-view'), 'sign-in');
+      assert.equal(await sheet.locator('[role="tablist"], .ac-avatar').count(), 0);
+      assert.equal(await page.locator('.ac-switch-action').innerText(), 'Create account');
+      const email = page.locator('.ac-credentials [name="email"]');
+      const password = page.locator('.ac-credentials [name="password"]');
+      const button = page.locator('.ac-submit');
+      for (const field of [email, password]) {
+        const { height } = await field.boundingBox();
+        assert.ok(height >= 52 && height <= 56, `input is ${height}px high`);
+      }
+      assert.equal((await button.boundingBox()).height, 54);
+      assert.equal(await sheet.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight), true, 'the initial form fits without scrolling');
+      await shot('sign-in');
+      await fill('.ac-credentials', { email: 'person@example.test', password: 'a long password' });
+      await page.locator('.ac-switch-action').click();
+      assert.equal(await sheet.getAttribute('data-view'), 'sign-up');
+      assert.equal(await password.getAttribute('autocomplete'), 'new-password');
+      assert.equal(await email.inputValue(), 'person@example.test', 'switching retains entered credentials');
+      assert.equal(await page.locator('.ac-hint').isVisible(), true);
+      assert.equal(await page.locator('.ac-credentials .ac-to-forgot').isHidden(), true);
+      await page.locator('.ac-switch-action').click();
+      assert.equal(await password.getAttribute('autocomplete'), 'current-password');
+      assert.equal(await page.locator('.ac-hint').isHidden(), true);
+      await page.locator('.ac-switch-action').focus();
+      await page.keyboard.press('Tab');
+      assert.equal(await page.locator('.ac-sheet .cr-close').evaluate(el => el.matches(':focus')), true, 'Tab wraps inside the sheet');
+      await page.keyboard.press('Escape');
+      assert.equal(await sheet.isHidden(), true);
+      assert.equal(await page.locator('.ac-menu').evaluate(el => el.matches(':focus')), true, 'closing restores focus');
+      await page.locator('.ac-menu').click();
+      await submit('.ac-credentials');
+      assert.equal(await page.locator('.ac-switch-action').isDisabled(), true, 'a pending sign-in cannot switch modes');
+    });
+
     await run('sign up, confirm with the code', null, null, async ({ page, sheet, error, fill, submit, calls, shot }) => {
       assert.equal((await page.locator('.ac-menu').innerText()).trim(), 'Sign in / Sign up');
       await page.locator('.ac-menu').click();
       await sheet.waitFor();
       await page.locator('.ac-google').waitFor();
-      assert.equal(await page.locator('.ac-tabs [role="tab"]').first().innerText(), 'Sign in', 'Sign in is the first tab');
-      assert.equal(await page.locator('.ac-tabs [aria-selected="true"]').innerText(), 'Sign in', 'and the one that opens');
-      await page.locator('.ac-tabs [data-tab="sign-up"]').click();
+      assert.equal(await sheet.getAttribute('data-view'), 'sign-in', 'Sign in opens first');
+      await page.locator('.ac-switch-action').click();
       await shot('create-account');
       await fill('.ac-credentials', { email: 'Person@Example.test', password: 'short' });
       await submit('.ac-credentials');
@@ -94,7 +130,7 @@ try {
       assert.match(await page.locator('.ac-lead').innerText(), /Confirm your email first/);
       assert.ok((await calls()).some(c => c[0] === 'resendSignUp' && c[1] === 'unconfirmed@example.test'));
       await page.locator('.ac-confirm .ac-to-start').click();
-      await page.locator('.ac-tabs [data-tab="sign-up"]').click();
+      await page.locator('.ac-switch-action').click();
       await fill('.ac-credentials', { email: 'taken@example.test', password: 'long enough password' });
       await submit('.ac-credentials');
       assert.match(await error.innerText(), /already has an account/);

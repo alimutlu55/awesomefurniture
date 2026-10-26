@@ -23,8 +23,8 @@ interface Ports {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CREDITS_LEAD = 'Credits belong to your account, so they are safe on every device. It is free and takes a minute.';
 const COPY: Record<AccountView, readonly [string, string]> = {
-  'sign-up': ['Sign up for free', 'Keep your designs and credits safe, and open them on any device.'],
-  'sign-in': ['Welcome back', 'Sign in to see your designs and credits on this device.'],
+  'sign-up': ['Sign up', ''],
+  'sign-in': ['Log in', ''],
   confirm: ['Check your email', ''],
   forgot: ['Reset your password', 'We will email you a code to choose a new password.'],
   reset: ['Choose a new password', ''],
@@ -55,7 +55,9 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
   overlay.className = 'cr-overlay ac-overlay'; overlay.hidden = true; overlay.innerHTML = accountSheet();
   dom.$('#app').append(overlay);
   const $ = <T extends HTMLElement = HTMLElement>(selector: string, within: ParentNode = overlay) => within.querySelector<T>(selector)!;
-  const sheet = $('.cr-sheet'), heading = $('.ac-head h2'), lead = $('.ac-lead'), error = $('.cr-error'), tabs = $('.ac-tabs'), start = $('.ac-start');
+  const sheet = $('.cr-sheet'), heading = $('.ac-head h2'), lead = $('.ac-lead'), error = $('.cr-error'), start = $('.ac-start');
+  const root = sheet.getRootNode() as Document | ShadowRoot;
+  const switchAction = $('.ac-switch-action'), switchPrompt = $('.ac-switch-prompt');
   const credentials = $<HTMLFormElement>('.ac-credentials'), confirm = $<HTMLFormElement>('.ac-confirm');
   const forgot = $<HTMLFormElement>('.ac-forgot'), reset = $<HTMLFormElement>('.ac-reset');
   const adopt = $('.ac-adopt'), google = $<HTMLButtonElement>('.ac-google');
@@ -77,22 +79,23 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     if (starting) entry = next;
     heading.textContent = COPY[next][0];
     lead.textContent = message || (reason && starting ? CREDITS_LEAD : COPY[next][1]);
-    tabs.hidden = !starting; start.hidden = !starting;
+    start.hidden = !starting;
     confirm.hidden = next !== 'confirm'; forgot.hidden = next !== 'forgot'; reset.hidden = next !== 'reset';
     adopt.hidden = next !== 'adopt';
-    tabs.querySelectorAll<HTMLElement>('[role="tab"]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === next)));
     if (starting) {
       input(credentials, 'password').autocomplete = next === 'sign-up' ? 'new-password' : 'current-password';
       $('.ac-hint', credentials).hidden = next !== 'sign-up';
-      $('.ac-submit', credentials).textContent = next === 'sign-up' ? 'Sign up' : 'Sign in';
+      $('.ac-submit', credentials).textContent = next === 'sign-up' ? 'Sign up' : 'Log in';
       $('.ac-to-forgot', credentials).hidden = next !== 'sign-in';
+      switchPrompt.textContent = next === 'sign-up' ? 'Already have an account?' : 'New here?';
+      switchAction.textContent = next === 'sign-up' ? 'Sign in' : 'Create account';
     }
     focusFirst();
   }
   function setBusy(section: HTMLElement | null, on: boolean) {
     busy = on;
     if (section) { if (on) loading.get(section)?.start(); else loading.get(section)?.stop(); }
-    overlay.querySelectorAll<HTMLButtonElement | HTMLInputElement>('form button, form input, .ac-google')
+    overlay.querySelectorAll<HTMLButtonElement | HTMLInputElement>('form button, form input, .ac-google, .ac-switch-action')
       .forEach(control => { control.disabled = on; });
   }
   /** One request at a time. A request that signs in reloads the page, so the sheet stays busy until then. */
@@ -108,7 +111,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
 
   function open(options: AccountOpenOptions = {}) {
     reason = options.reason ?? null;
-    if (overlay.hidden) previousFocus = page.activeElement as HTMLElement | null;
+    if (overlay.hidden) previousFocus = root.activeElement as HTMLElement | null;
     overlay.hidden = false;
     show(options.view ?? 'sign-in');
   }
@@ -128,9 +131,8 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     leaving = true; item.disabled = true;
     void platform.signOut().catch(e => { toast(accountErrorMessage(e)); leaving = false; item.disabled = false; });
   });
-  lifetime.listen(tabs, 'click', e => {
-    const tab = (e.target as HTMLElement).closest<HTMLElement>('[role="tab"]')?.dataset.tab;
-    if ((tab === 'sign-up' || tab === 'sign-in') && !busy) show(tab);
+  lifetime.listen(switchAction, 'click', () => {
+    if (!busy) show(view === 'sign-in' ? 'sign-up' : 'sign-in');
   });
   lifetime.listen(google, 'click', () => { void run(null, () => platform.google()); });
   lifetime.listen(credentials, 'submit', event => {
@@ -198,7 +200,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
     if (e.key !== 'Tab') return;
     const focusable = [...sheet.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled)')].filter(el => el.offsetParent !== null);
-    const root = sheet.getRootNode() as Document | ShadowRoot, active = root.activeElement;
+    const active = root.activeElement;
     if (e.shiftKey && active === focusable[0]) { e.preventDefault(); focusable.at(-1)?.focus(); }
     else if (!e.shiftKey && active === focusable.at(-1)) { e.preventDefault(); focusable[0]?.focus(); }
   });
@@ -212,7 +214,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
   if (offer) {
     const names = offer.designs.slice(0, 3).map(design => design.name).concat(offer.designs.length > 3 ? [`and ${offer.designs.length - 3} more`] : []);
     $('.ac-adopt-list').replaceChildren(...names.map(name => { const li = page.createElement('li'); li.textContent = name; return li; }));
-    overlay.hidden = false; previousFocus = page.activeElement as HTMLElement | null;
+    overlay.hidden = false; previousFocus = root.activeElement as HTMLElement | null;
     show('adopt', offerCopy(offer, platform.email() ?? 'your account'));
   }
 

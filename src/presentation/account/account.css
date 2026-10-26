@@ -1,32 +1,55 @@
-/* Accounts: sign in, sign up, the account sheet. Built on the wallet's sheet (credits.css), ac- selectors. */
-.ac-sheet { width: min(100%, 440px); }
-.ac-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; padding-right: 44px; }
-.ac-head h2 { margin: 2px 0 4px; color: var(--cr-ink); font-size: 22px; line-height: 1.2; letter-spacing: -.01em; }
-.ac-head p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--cr-mute); overflow-wrap: anywhere; }
-.ac-avatar { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; color: #8a5a00;
-  background: radial-gradient(circle at 34% 28%, #fff7d1, #f6dd92); box-shadow: inset 0 0 0 1px rgba(201, 138, 18, .25); }
+/* The account sheet keeps its own warm palette, independent of the editor theme. */
+.ac-sheet {
+  --cr-ink: #302e2a; --cr-mute: #74685f; --cr-line: #b5a99c; --cr-gold: #9b8054;
+  width: min(100%, 420px); padding: 48px 36px 28px; border-radius: 22px;
+  background: #f5e8e0; border: 0; color-scheme: light;
+  box-shadow: 0 24px 80px rgba(35, 29, 24, .2);
+}
+.ac-sheet .cr-close { top: 12px; right: 12px; width: 44px; height: 44px; background: transparent; color: var(--cr-mute); }
+.ac-sheet .cr-close:hover { background: #eee8de; }
+.ac-sheet[data-view="sign-up"] { background: #fff8ed; }
+.ac-head { margin-bottom: 28px; padding-right: 16px; }
+.ac-head h2 { margin: 0; color: var(--cr-ink); font-family: inherit;
+  font-size: 25px; font-weight: 600; line-height: 1.3; letter-spacing: -.025em; }
+.ac-lead { margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: var(--cr-mute); overflow-wrap: anywhere; }
+.ac-lead:empty { display: none; }
 .ac-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.ac-avatar .ac-icon { width: 22px; height: 22px; }
-.ac-sheet .cr-tabs { margin: 0 0 16px; }
-.ac-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 50px; padding: 0 16px;
-  border: 1.5px solid var(--cr-line); border-radius: 14px; background: var(--panel, #fff); color: var(--cr-ink);
-  font-family: inherit; font-size: 15.5px; font-weight: 600; line-height: 1; cursor: pointer; }
-.ac-google:hover:not(:disabled) { border-color: color-mix(in srgb, var(--cr-ink) 30%, var(--cr-line)); }
+.ac-form { display: grid; gap: 18px; }
+.ac-sheet .cr-field { gap: 0; color: var(--cr-mute); font-size: 11px; font-weight: 400; line-height: 1.5; }
+.ac-sheet .cr-field input {
+  height: 54px; min-height: 54px; padding: 0; border: 0; border-bottom: 1px solid var(--cr-line); border-radius: 0;
+  background: transparent; color: var(--cr-ink); font-size: 16px; font-weight: 400; box-shadow: none;
+}
+.ac-password-row { position: relative; }
+.ac-sheet[data-view="sign-in"] .ac-password-row input { padding-right: 80px; }
+.ac-sheet .cr-field input::placeholder { color: #8c857a; opacity: 1; }
+.ac-sheet .cr-field input:focus { border-bottom-color: var(--cr-gold); box-shadow: 0 1px 0 var(--cr-gold); }
+.ac-sheet .cr-primary {
+  min-height: 54px; margin-top: 6px; padding: 14px 18px; border-radius: 999px;
+  background: #302e2a; color: #fffdf8; box-shadow: 0 5px 10px rgba(48, 46, 42, .12); font-size: 14px; font-weight: 400; letter-spacing: .01em;
+}
+.ac-sheet .cr-quiet { margin-top: 0; border-radius: 999px; font-size: 13px; font-weight: 400; }
+.ac-credentials .ac-to-forgot { position: absolute; right: 0; bottom: 5px; width: auto; min-height: 44px; margin: 0; padding: 0 8px; font-size: 12px; }
+.ac-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: fit-content; max-width: 100%; min-height: 44px; margin: 0 auto; padding: 10px 24px;
+  border: 1px solid var(--cr-line); border-radius: 999px; background: transparent; color: var(--cr-ink);
+  font-family: inherit; font-size: 13px; font-weight: 400; line-height: 1.3; cursor: pointer; }
+.ac-google:hover:not(:disabled) { background: #f2ede4; border-color: #b4a58e; }
 .ac-google:disabled { opacity: .6; cursor: default; }
-.ac-google svg { width: 20px; height: 20px; flex: none; }
-.ac-or { display: flex; align-items: center; gap: 12px; margin: 16px 0; font-size: 13px; color: var(--cr-mute); }
-.ac-or::before, .ac-or::after { content: ""; flex: 1; height: 1px; background: var(--cr-line); }
-.ac-form { display: grid; gap: 12px; }
-.ac-form .cr-primary { margin-top: 4px; }
-.ac-form .cr-quiet { margin-top: 0; }
-.ac-hint { margin: -6px 0 0; font-size: 12.5px; color: var(--cr-mute); }
-.ac-adopt { display: grid; gap: 4px; margin-top: 18px; }
-.ac-adopt-list { margin: 0 0 12px; padding: 12px 14px; list-style: none; border-radius: 14px; font-size: 14px; line-height: 1.5;
-  background: color-mix(in srgb, var(--cr-ink) 5%, transparent); }
+.ac-google svg { width: 16px; height: 16px; flex: none; }
+.ac-or { margin: 20px 0 14px; text-align: center; font-size: 11px; line-height: 16px; color: var(--cr-mute); }
+.ac-switch { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 4px; margin: 10px 0 0; font-size: 13px; color: var(--cr-mute); }
+.ac-switch-action { min-height: 44px; padding: 0 4px; border: 0; border-radius: 4px; background: transparent; color: var(--cr-ink);
+  font: inherit; font-weight: 500; text-decoration: underline; text-decoration-color: #aa9066; text-underline-offset: 4px; cursor: pointer; }
+.ac-switch-action:hover:not(:disabled) { color: #826a45; }
+.ac-switch-action:disabled { opacity: .6; cursor: default; }
+.ac-sheet button:focus-visible { outline: 2px solid var(--cr-gold); outline-offset: 3px; }
+.ac-hint { margin: -7px 0 0; font-size: 12px; line-height: 1.4; color: var(--cr-mute); }
+.ac-adopt { display: grid; gap: 4px; }
+.ac-adopt-list { margin: 0 0 12px; padding: 12px 14px; list-style: none; border-radius: 10px; font-size: 14px; line-height: 1.5; background: #f0ebe2; }
 .ac-adopt-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ac-adopt-list li + li { margin-top: 2px; }
 .ac-sheet[data-view="adopt"] .ac-privacy { display: none; }
-.ac-privacy { margin: 14px 0 0; font-size: 12.5px; line-height: 1.4; text-align: center; color: var(--cr-mute); }
+.ac-privacy { margin: 22px 0 0; font-size: 10px; line-height: 1.6; text-align: center; color: var(--cr-mute); }
 @container (max-width: 620px) {
-  .ac-sheet { width: 100%; }
+  .ac-sheet { width: 100%; padding: 44px 28px calc(24px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; }
 }
