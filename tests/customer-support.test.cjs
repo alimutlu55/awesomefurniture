@@ -4,11 +4,11 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { bindSupportMenu } = require('../src/presentation/editor/shell-bindings.js');
 
-test('editor markup contains customer support link under the menu with support@furnidraw.com', () => {
+test('editor markup contains support link under the menu with support@furnidraw.com', () => {
     const markup = readFileSync(path.join(__dirname, '../src/presentation/editor/editor.html'), 'utf8');
     assert.match(markup, /id="support-menu"/);
     assert.match(markup, /mailto:support@furnidraw\.com/);
-    assert.match(markup, /Customer support/);
+    assert.match(markup, />Support<small>/);
     assert.match(markup, /support@furnidraw\.com<\/small>/);
 });
 
