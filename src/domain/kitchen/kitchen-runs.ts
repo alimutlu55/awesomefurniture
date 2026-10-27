@@ -49,6 +49,13 @@ const onFloor = (c: UnitPose) => Math.abs(c.y || 0) < .5;
 /** Where a unit's back is, measured towards the front of units at `angle`. */
 const backLine = (c: UnitPose, angle: number) => across(c, angle) - c.state.d / 2;
 
+function jointReserve(a: UnitPose, b: UnitPose, side: -1 | 1) {
+  const hasA = Boolean(a.state.endPanelSides?.includes(side)), hasB = Boolean(b.state.endPanelSides?.includes(side === 1 ? -1 : 1));
+  const wA = hasA ? a.state.endPanelThickness ?? PANEL : 0, wB = hasB ? b.state.endPanelThickness ?? PANEL : 0;
+  const cfgA = hasA && wA > 0 && a.state.endPanelThickness !== undefined, cfgB = hasB && wB > 0 && b.state.endPanelThickness !== undefined;
+  return cfgA !== cfgB ? (cfgA ? wA : wB) : Math.max(wA, wB);
+}
+
 /** Groups of units that stand side by side, each sorted from left to right. */
 export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: UnitPose) => boolean = () => true): UnitPose[][] {
   const runs: UnitPose[][] = [];
@@ -60,8 +67,7 @@ export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: 
     let run: UnitPose[] = [];
     for (const c of line) {
       const prev = run[run.length - 1];
-      const reserve = prev && !installationKind(prev.state) && !installationKind(c.state) ? Math.max(prev.state.endPanelSides?.includes(1) ? prev.state.endPanelThickness ?? PANEL : 0,
-        c.state.endPanelSides?.includes(-1) ? c.state.endPanelThickness ?? PANEL : 0) : 0;
+      const reserve = prev && !installationKind(prev.state) && !installationKind(c.state) ? jointReserve(prev, c, 1) : 0;
       const touching = prev && Math.abs((along(c, angle) - c.state.w / 2) - (along(prev, angle) + prev.state.w / 2) - reserve) <= RUN_TOLERANCE && joins(prev, c);
       if (prev && !touching) { runs.push(run); run = []; }
       run.push(c);
@@ -121,12 +127,12 @@ export function stackedPose(anchor: UnitPose, d: number, y: number): Pose {
 /** Poses for `count` copies of `unit` laid side by side towards `side`, nearest first, starting beside `from`
  * (the unit itself, or the end of the run it stands in). */
 export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: UnitPose = unit): Pose[] {
-  const poses: Pose[] = [];
+  const poses: Pose[] = [], fresh: UnitPose = { ...unit, state: { ...unit.state, endPanelSides: undefined } };
   let last: UnitPose = from;
   for (let n = 0; n < count; n++) {
-    const pose = besidePanel(last, unit, side, unit.y || 0);
+    const pose = besidePanel(last, fresh, side, unit.y || 0);
     poses.push(pose);
-    last = { ...unit, ...pose };
+    last = { ...fresh, ...pose };
   }
   return poses;
 }
@@ -161,7 +167,6 @@ export const arrayCount = (distance: number, width: number, max = 12) => Math.ma
 /** Existing stock remains between bodies when another module is placed beside it. */
 export function besidePanel(anchor: UnitPose, next: UnitPose, side: -1 | 1, y = anchor.y ?? 0): Pose {
   const pose = besidePose(anchor, next.state.w, next.state.d, side, y), { u } = unitAxes(anchor.angle);
-  const reserve = Math.max(anchor.state.endPanelSides?.includes(side) ? anchor.state.endPanelThickness ?? PANEL : 0,
-    next.state.endPanelSides?.includes(side === 1 ? -1 : 1) ? next.state.endPanelThickness ?? PANEL : 0);
+  const reserve = jointReserve(anchor, next, side);
   return { ...pose, x: pose.x + u.x * side * reserve, z: pose.z + u.z * side * reserve };
 }

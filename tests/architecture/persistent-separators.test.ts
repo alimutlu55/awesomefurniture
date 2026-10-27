@@ -2,7 +2,7 @@ import { technicalDrawings } from '../../src/domain/drawings/technical-drawings'
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
+import { createKitchenCover, createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
@@ -16,6 +16,7 @@ import { validateForManufacture } from '../../src/domain/drawings/manufacturing-
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import { pieceBoards } from '../../src/domain/drawings/unit-detail';
 import { planLevelRows } from '../../src/domain/drawings/plan-levels';
+import { sceneGeometryFingerprint, wardrobeDesignFingerprint } from '../../src/presentation/viewport/cabinet-build-cache.js';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
 
 const cabinet = (id: number, x: number, unit: 'base' | 'tall' | 'upper' | 'end-panel' = 'base', extra = {}) => ({
@@ -158,4 +159,56 @@ test('an already-added explicit base-height separator grows for an adjoining tal
   assert.equal(createSceneCommands(() => model.scene).setCabinetSize('h', 86), false, 'keep the complete attached side');
   assert.equal(model.scene.wardrobes.filter(p => p.state.unit === 'end-panel').length, 1);
   assert.deepEqual(validateForManufacture(inputOf(model.scene)).findings.filter(f => f.severity === 'critical'), []);
+});
+
+test('configured thinner separator stock governs over unconfigured default and syncs across shared partners', () => {
+  const model = createEditorModel(sceneOf([cabinet(1, 0), cabinet(2, 61.8)]));
+  const commands = createSceneCommands(() => model.scene);
+  assert.equal(commands.setKitchenConstruction('endPanelThickness', 1.2), true);
+  const shared12 = automaticInstallationParts(model.scene.wardrobes).find(p => 'sources' in p && p.sources.length === 2)!;
+  near(shared12.state.w, 1.2);
+  model.select(2);
+  assert.equal(commands.setKitchenConstruction('endPanelThickness', 1.5), true);
+  const shared15 = automaticInstallationParts(model.scene.wardrobes).find(p => 'sources' in p && p.sources.length === 2)!;
+  near(shared15.state.w, 1.5);
+  near(model.scene.wardrobes[0]!.state.endPanelThickness!, 1.5);
+});
+
+test('corner return suppresses retained endPanelSides and alignSnap/fillableSpace respect corner strip + front clearance', () => {
+  const blind = { ...cabinet(1, 0, 'base', { ...createKitchenDesign('base', 'corner'), w: 102 }), z: 0 };
+  const returning = { ...cabinet(2, 22, 'base', { ...createKitchenDesign('base', 'cargo'), w: 30, endPanelSides: [-1, 1] }), z: 51, angle: 270 };
+  const model = createEditorModel(sceneOf([blind, returning])); model.select(2);
+  const parts = automaticInstallationParts(model.scene.wardrobes).filter(p => p.ownerId === 2);
+  assert.deepEqual(parts.map(p => [p.side, p.state.unit, p.state.w]), [[1, 'end-panel', 1.8], [-1, 'filler', 4]]);
+  assert.deepEqual(model.scene.wardrobes[1]!.state.endPanelSides, [1]);
+  const commands = createSceneCommands(() => model.scene);
+  near(commands.alignSnap(model.activeCabinet(), 6).z, 49.8);
+  model.activeCabinet().z = 49.8;
+  near(commands.fillableSpace(), 0);
+});
+
+test('cover units never generate automatic end panels and explicit upper panes do not expand through lower cabinets', () => {
+  const base = cabinet(1, 0);
+  const cover = cabinet(2, -40, 'base', { ...createKitchenCover(base.state, 20), endPanelSides: [-1, 1] as (-1 | 1)[] });
+  const model = createEditorModel(sceneOf([cover, base]));
+  assert.equal(automaticInstallationParts(model.scene.wardrobes).some(p => p.ownerId === 2), false);
+  assert.equal(model.scene.wardrobes[0]!.state.endPanelSides, undefined);
+
+  const lower = cabinet(1, 174.7, 'base', { w: 60, h: 88, d: 58 }); lower.z = 29;
+  const tall = cabinet(2, 234.7, 'tall', { w: 60, h: 261.2, d: 58 }); tall.z = 29;
+  const upperPane = cabinet(3, 203.8, 'end-panel', { w: 1.8, h: 111.2, d: 35 }); upperPane.y = 150; upperPane.z = 17.5;
+  const scene = sceneOf([lower, tall, upperPane]);
+  assert.equal(validateForManufacture(inputOf(scene)).findings.some(f => f.id.startsWith('clash:')), false);
+});
+
+test('multi-cabinet arrayKitchenUnit reserves existing end panel once and build cache tracks endPanelThickness/Sides', () => {
+  const model = createEditorModel(sceneOf([cabinet(1, 0)]));
+  const commands = createSceneCommands(() => model.scene);
+  assert.equal(commands.arrayKitchenUnit(3, 1), 3);
+  assert.deepEqual(model.scene.wardrobes.map(w => Math.round(w.x * 10) / 10), [0, 61.8, 121.8, 181.8]);
+  const fpBefore = sceneGeometryFingerprint(model.scene, {}, {});
+  const wFpBefore = wardrobeDesignFingerprint(model.activeCabinet(), 1, {}, {});
+  model.activeCabinet().state.endPanelThickness = 1.2;
+  assert.notEqual(sceneGeometryFingerprint(model.scene, {}, {}), fpBefore);
+  assert.notEqual(wardrobeDesignFingerprint(model.activeCabinet(), 1, {}, {}), wFpBefore);
 });

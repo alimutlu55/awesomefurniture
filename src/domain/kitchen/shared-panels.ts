@@ -37,7 +37,9 @@ export function sharedEndPanels<T extends End>(panels: T[]) {
   }
   return groups.map(group => {
     // A floor/tall board is the stable datum for the stacked side; input ordering never chooses the plane.
-    const ranked = [...group].sort((a, b) => b.state.w - a.state.w || Number((a.y ?? 0) > .5) - Number((b.y ?? 0) > .5)
+    const configured = (p: T) => Number(p.state.endPanelThickness !== undefined);
+    const ranked = [...group].sort((a, b) => configured(b) - configured(a) || b.state.w - a.state.w
+      || Number((a.y ?? 0) > .5) - Number((b.y ?? 0) > .5)
       || b.state.h * b.state.d - a.state.h * a.state.d || Number(a.ownerId) - Number(b.ownerId));
     const first = ranked[0]!, y = Math.min(...group.map(p => p.y ?? 0)), h = Math.max(...group.map(p => (p.y ?? 0) + p.state.h)) - y;
     const depth = Math.max(...group.map(p => p.state.d)), { u, v } = unitAxes(first.angle), delta = (depth - first.state.d) / 2;

@@ -65,14 +65,15 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
         if (faceWidths.some(s => s.strip)) {
           const hidden = faceWidths.find(s => s.covered)!, open = faceWidths.find(s => !s.covered && !s.strip)!;
           if (hidden && open) {
-            blind = { x0: hidden.from, x1: hidden.to }; door = { x0: open.from, x1: open.to, hinge };
             doorSide = open.from < hidden.from ? 'left' : 'right';
+            const cornerHinge = explicit ? hinge : (doorSide === 'left' ? 'right' : 'left');
+            blind = { x0: hidden.from, x1: hidden.to }; door = { x0: open.from, x1: open.to, hinge: cornerHinge };
           }
         }
         const mech = cornerPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, blind, doorSide);
         if (faceWidths.some(s => s.strip)) {
           for (const s of faceWidths) fronts.push({ x0: Math.max(r.x0, s.from), x1: Math.min(r.x1, s.to), y0: r.y0, y1: r.y1,
-            opens: s.covered || s.strip ? 'fixed' : 'side', hinge, ...(s.strip ? { installation: true } : {}),
+            opens: s.covered || s.strip ? 'fixed' : 'side', hinge: door.hinge, ...(s.strip ? { installation: true } : {}),
             name: s.strip ? 'Corner installation strip' : s.covered ? 'Corner blind panel' : 'Corner pull-out door' });
         } else {
           fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
@@ -86,7 +87,13 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
         cornerPullouts.push({ ...mech, bayIndex: i, cx, y0: pos.y0, sw: pos.w, hh: it.h, doorSide, blind: { ...blind, y0: r.y0, y1: r.y1 }, door: { ...door, y0: r.y0, y1: r.y1 } });
       } else if (opens === 'side') {
         const split = fridgeSplit(r.y0, r.y1, it.h, it.k === 'fridge' ? design.fridgeSplit : undefined), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
-        for (const [y0, y1] of rows) for (const leaf of hingedLeaves(r.x0, r.x1, hinge, explicit)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
+        const spans = faceWidths.some(s => s.strip || s.covered) ? faceWidths.filter(s => !s.strip) : [{ from: r.x0, to: r.x1, covered: false }];
+        for (const [y0, y1] of rows) for (const s of spans) {
+          const a = Math.max(r.x0, s.from), b = Math.min(r.x1, s.to);
+          if (b - a <= 1e-7) continue;
+          if (s.covered) fronts.push({ x0: a, x1: b, y0: y0!, y1: y1!, opens: 'fixed', name: 'Corner return panel' });
+          else for (const leaf of hingedLeaves(a, b, hinge, explicit)) fronts.push({ ...leaf, y0: y0!, y1: y1!, opens, label, name, own });
+        }
         if (!label) for (const y of shelfHeights(pos.y0, pos.y0 + it.h)) inside.push({ kind: 'shelf', x0: cx - pos.w / 2, x1: cx + pos.w / 2, y0: y, y1: y });
       } else fronts.push({ ...r, opens, label, name, own });
     }

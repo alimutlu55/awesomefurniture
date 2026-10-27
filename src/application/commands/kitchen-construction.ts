@@ -9,6 +9,8 @@ import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { plinthOf } from '../../domain/wardrobe/carcass';
 import { cornerCabinetWidths } from '../../domain/kitchen/corner-widths';
 import { kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { automaticEndPanels } from '../../domain/kitchen/end-panels';
+import { sharedEndPanels } from '../../domain/kitchen/shared-panels';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
@@ -16,6 +18,7 @@ import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 export function createKitchenConstructionCommands(getScene: () => EditorScene, checkpoint: () => void, report: (message: string) => void) {
   return {
     setKitchenConstruction(key: 'plinthHeight' | 'endPanelThickness' | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit', value: number, recordHistory = true) {
+      const notify = (message: string) => { if (recordHistory) report(message); };
       const scene = getScene(), cabinet = scene.wardrobes.find(p => p.id === scene.activeWardrobe);
       if (!cabinet || cabinet.state.product !== 'kitchen' || !Number.isFinite(value) || value < 0 || value > (key === 'ventilationWidth' ? cabinet.state.w : key === 'fridgeSplit' ? cabinet.state.h : 30)) return false;
       const next = structuredClone(cabinet), state = next.state, requested = Math.round(value * 10) / 10;
@@ -44,11 +47,25 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
         });
         if (!found || !valid) return false;
       }
-      if (key === 'cornerStrip' && widths.some(s => s.covered || s.strip) && !widths.some(s => !s.covered && !s.strip)) {
-        report('The corner strip needs a perpendicular return and an exposed front beside it.'); return false;
+      const strips = widths.filter(s => s.strip);
+      if (key === 'cornerStrip' && widths.some(s => s.covered || s.strip) && (!widths.some(s => !s.covered && !s.strip) || strips.some(s => Math.abs(s.to - s.from - requested) > .05))) {
+        notify('The corner strip needs a perpendicular return and an exposed front beside it.'); return false;
       }
       const planned = structuredClone(scene);
       planned.wardrobes.find(p => p.id === next.id)!.state = state;
+      const syncedIds: number[] = [];
+      if (key === 'endPanelThickness' && requested > 0) {
+        for (const group of sharedEndPanels(automaticEndPanels(planned.wardrobes))) {
+          if (!group.owners.some(o => o.id === next.id)) continue;
+          for (const owner of group.owners) if (owner.id !== next.id) {
+            const partner = planned.wardrobes.find(p => p.id === owner.id);
+            if (partner && partner.state.endPanelThickness !== undefined && partner.state.endPanelThickness !== requested) {
+              partner.state.endPanelThickness = requested;
+              syncedIds.push(partner.id);
+            }
+          }
+        }
+      }
       const collision = createCabinetGeometry(() => planned.wardrobes.filter(p => {
         const kind = kitchenUnit(p.state.unit).fixture; return kind !== 'sink' && kind !== 'hob';
       }), () => studioObstacles(scene.studio));
@@ -58,7 +75,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       if (collision.cabinetCollides(envelope) || ceilingClearance(scene.studio, { ...next, w: state.w, d: state.d }, 0)({ ...top,
         top: top.top.map(p => ({ ...p, y: p.y + extra })), ...(top.back ? { back: top.back.map(y => y + extra) } : {}) })
         || Array.from({ length: state.n }, (_, i) => i).some(i => !rules.sectionLayoutValid(i) || rules.overflow(i) > .001)) {
-        report('That construction change does not fit the room or the existing fittings.'); return false;
+        notify('That construction change does not fit the room or the existing fittings.'); return false;
       }
       const lift = state.h + worktopThickness(state) - oldTop, { u, v } = unitAxes(cabinet.angle);
       const supported = scene.wardrobes.filter(p => kitchenUnit(p.state.unit).fixture === 'sink' || kitchenUnit(p.state.unit).fixture === 'hob')
@@ -67,6 +84,10 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           && Math.abs((p.x - cabinet.x) * v.x + (p.z - cabinet.z) * v.z) <= state.d / 2);
       if (recordHistory) checkpoint();
       cabinet.state = state;
+      for (const id of syncedIds) {
+        const partner = scene.wardrobes.find(p => p.id === id);
+        if (partner) partner.state.endPanelThickness = requested;
+      }
       for (const fixture of supported) fixture.y = (fixture.y ?? 0) + lift;
       return true;
     },

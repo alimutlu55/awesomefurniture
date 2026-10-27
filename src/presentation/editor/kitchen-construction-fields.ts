@@ -10,6 +10,14 @@ import type { BindCabinetDimensionsPorts } from './bindings/cabinet.ports';
 
 const mounted = new WeakMap<BindCabinetDimensionsPorts['dom'], HTMLElement>();
 
+type ConstructionKey = 'plinthHeight' | 'cornerStrip' | 'endPanelThickness' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit';
+
+function currentConstructionValue(d: EditorDesign, key: ConstructionKey) {
+  return key === 'plinthHeight' ? plinthOf(d) : key === 'cornerStrip' ? cornerStripWidth(d)
+    : key === 'endPanelThickness' ? d.endPanelThickness ?? 1.8 : key === 'frontThickness' ? kitchenFrontThickness(d)
+      : key === 'worktopThickness' ? worktopThickness(d) : d[key] ?? 0;
+}
+
 export function bindKitchenConstruction({ dom, model, sceneCommands, inspector, history, lifetime }: BindCabinetDimensionsPorts) {
   const root = dom.document.createElement('div');
   mounted.set(dom, root);
@@ -24,7 +32,14 @@ export function bindKitchenConstruction({ dom, model, sceneCommands, inspector, 
     const refresh = () => inspector.update(true);
     bindSizeNumber({ input, lifetime, commit: value => { sceneCommands.setKitchenConstruction(key, value); refresh(); }, finished: refresh });
     bindSizeSlider({ range: row.querySelector('input[type="range"]')!, lifetime, model, history,
-      preview: value => { sceneCommands.setKitchenConstruction(key, value, false); }, refresh });
+      preview: value => {
+        if (sceneCommands.setKitchenConstruction(key, value, false)) return;
+        const start = currentConstructionValue(model.activeCabinet().state, key), dir = value > start ? 1 : -1;
+        const steps = Math.min(300, Math.round(Math.abs(value - start) * 10));
+        for (let s = steps - 1; s >= 1; s--) {
+          if (sceneCommands.setKitchenConstruction(key, Math.round((start + dir * s * .1) * 10) / 10, false)) break;
+        }
+      }, refresh });
   }
 }
 
@@ -37,8 +52,7 @@ export function syncKitchenConstruction(dom: BindCabinetDimensionsPorts['dom'], 
     input.closest<HTMLElement>('.size-control')!.hidden = key === 'plinthHeight' ? !kitchenUnit(d.unit).plinth
       : key === 'cornerStrip' || key === 'endPanelThickness' ? !!installationKind(d) : key === 'worktopThickness' ? !kitchenUnit(d.unit).worktop
         : key === 'ventilationWidth' || key === 'ventilationHeight' || key === 'fridgeSplit' ? !d.secs.flat().some(i => i.k === 'fridge') : key === 'frontThickness' ? installationKind(d) === 'end-panel' : false;
-    const value = key === 'plinthHeight' ? plinthOf(d) : key === 'cornerStrip' ? cornerStripWidth(d)
-      : key === 'endPanelThickness' ? d.endPanelThickness ?? 1.8 : key === 'frontThickness' ? kitchenFrontThickness(d) : key === 'worktopThickness' ? worktopThickness(d) : d[key] ?? 0;
+    const value = currentConstructionValue(d, key);
     if (dom.document.activeElement !== input) input.value = String(value);
   }
   syncResizeFields(root);

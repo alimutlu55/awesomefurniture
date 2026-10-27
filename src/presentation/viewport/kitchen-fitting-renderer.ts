@@ -87,11 +87,12 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
             blind = { x0: hidden.from - cabinetWidth / 2, x1: hidden.to - cabinetWidth / 2 };
             doorSide = open.from < hidden.from ? 'left' : 'right';
           }
+          const cornerHinge = explicit ? hinge : (doorSide === 'left' ? 'right' : 'left');
           for (const s of faceWidths) {
             const a = Math.max(x0, s.from - cabinetWidth / 2), b = Math.min(x1, s.to - cabinetWidth / 2);
             if (b <= a || s.strip) continue;
             panel(a, b, y0, y1);
-            if (!s.covered && !s.strip) pull(Math.min(18, (y1 - y0) * .5), hinge === 'left' ? b - 4 : a + 4, y1 - Math.min(12, (y1 - y0) / 4), true);
+            if (!s.covered && !s.strip) pull(Math.min(18, (y1 - y0) * .5), cornerHinge === 'left' ? b - 4 : a + 4, y1 - Math.min(12, (y1 - y0) / 4), true);
           }
         } else {
         panel(blind.x0, blind.x1, y0, y1);
