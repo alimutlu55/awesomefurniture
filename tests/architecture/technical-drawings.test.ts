@@ -28,8 +28,7 @@ const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W9',
-    'P1L  End/Separator pane', 'K1  Tall cabinet', 'P1R  End/Separator pane', 'P2L  End/Separator pane', 'P3L  End/Separator pane',
-    'K2  Base cabinet', 'K3  Wall cabinet', 'P2R  End/Separator pane', 'P3R  End/Separator pane', 'W9  Wardrobe 1', 'K1 appliance allocations', 'Appliance schedule', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule', 'Review issues']);
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'K1 appliance allocations', 'Appliance schedule', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule', 'Review issues']);
   assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule'],
     'no room: the piece on its own');
 });
@@ -46,7 +45,7 @@ test('marks run along the wall, left to right, each kind of furniture counting o
 test('the plan dimensions every piece and gap to the wall ends, the window, the wall, and the depth', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
   const strings = dims(all(plan!)).map(d => d.stops);
-  assert.deepEqual(strings, [[-18, 0, 600, 618, 682, 700, 1300, 1318, 3000], [0, 580, 600], [0, 682, 700, 1300, 1318, 3000], [0, 1700, 2700, 3000], [0, 3000]],
+  assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 580, 600], [0, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
   assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);
@@ -55,9 +54,9 @@ test('the plan dimensions every piece and gap to the wall ends, the window, the 
 test('the elevation stacks every height from the floor and gives the window its sill and head', () => {
   const [, elevation] = technicalDrawings({ studio: room(), pieces: kitchen() });
   const [floor, wall, above, openings, zones, heights, total, window] = dims(all(elevation!)).map(d => d.stops);
-  assert.deepEqual(floor, [-18, 0, 600, 618, 682, 700, 1300, 1318, 3000]);
+  assert.deepEqual(floor, [0, 600, 700, 1300, 3000]);
   assert.deepEqual(wall, [0, 3000]);
-  assert.deepEqual(above, [-18, 0, 600, 618, 682, 700, 1300, 1318, 3000], 'the wall unit and tall cabinet crossing the upper level');
+  assert.deepEqual(above, [0, 600, 700, 1300, 3000], 'the wall unit and tall cabinet crossing the upper level');
   assert.deepEqual(openings, [0, 1700, 2700, 3000]);
   assert.deepEqual(heights, [0, 80, 900, 1420, 2600], 'only installation levels in the middle chain');
   assert.deepEqual(zones, [0, 80, 860, 900, 1420, 2120, 2600], 'one actual base and upper stack; no internal board faces or unrelated tall-unit top');
@@ -92,9 +91,9 @@ test('the plan marks tall units, appliances under the worktop and drawers', () =
 test('what to check: pieces in one place, in front of a window, past the wall, taller than it', () => {
   const clash = [against(1, 'base', 'drawers', 100), against(2, 'base', 'drawers', 130), against(3, 'upper', 'upper', 210, 142), against(4, 'base', 'drawers', 290)];
   const [plan, elevation] = technicalDrawings({ studio: room(), pieces: clash });
-  assert.deepEqual(plan!.checks, ['K1 and K2 overlap', 'P3L stands in front of the window on wall A', 'K3 stands in front of the window on wall A', 'P3R stands in front of the window on wall A', 'K4 runs 200 past the end of wall A', 'P4R runs 218 past the end of wall A']);
+  assert.deepEqual(plan!.checks, ['K1 and K2 overlap', 'K3 stands in front of the window on wall A', 'K4 runs 200 past the end of wall A']);
   assert.deepEqual(elevation!.checks, plan!.checks, 'the wall\'s elevation repeats the checks about its pieces');
-  assert.deepEqual(technicalDrawings({ studio: room(), pieces: kitchen() })[0]!.checks, ['P1L runs 18 past the end of wall A'], 'the added finish pane needs its actual allowance');
+  assert.deepEqual(technicalDrawings({ studio: room(), pieces: kitchen() })[0]!.checks, [], 'a good kitchen has nothing to check');
 });
 
 test('a run turning a corner is seen from its end on the next wall, and a piece standing free is set out from the walls', () => {
@@ -163,7 +162,7 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
     'Drawer front 1 201 597 18 Front 18 · Egger W1100 ST9 L2 W2',
   ]);
   const run = rowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
-  assert.deepEqual(run, ['K2–P2R Worktop 1 636 600 40', 'K1 Plinth 1 600 80 18', 'K2 Plinth 1 600 80 18'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
+  assert.deepEqual(run, ['K2 Worktop 1 600 600 40', 'K1 Plinth 1 600 80 18', 'K2 Plinth 1 600 80 18'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
   const wardrobe = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   const w1 = technicalDrawings({ pieces: [wardrobe] }).find(s => s.title === 'Cutting list')!.table!.rows.map(r => r.slice(1, 6).join(' '));
   assert.deepEqual(w1, ['Top 1 2000 600 18', 'Side 2 2282 600 18', 'Base 1 1964 589 18', 'Back 1 2202 1964 6', 'Plinth rail 1 1964 80 18', 'Plinth rail 1 1964 80 18', 'Plinth bearer 2 504 80 18'],
@@ -260,5 +259,5 @@ test('wall utilities (water pipes, electrical sockets, vents, gas, radiators, sw
     assert.ok(rightVertStops.includes(mmStop), `vertical dimension string includes ${mmStop} mm`);
   }
   // Kitchen units may stand in front of water pipes and electrical points, but standing in front of a radiator is flagged.
-  assert.deepEqual(plan!.checks, ['P1L runs 18 past the end of wall A', 'K1 stands in front of the radiator on wall A']);
+  assert.deepEqual(plan!.checks, ['K1 stands in front of the radiator on wall A']);
 });

@@ -99,7 +99,9 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
 
   const named = (unit: KitchenUnitKey | undefined, id: number) => kitchenUnit(unit).name + ' ' + id;
   /** A copy of a unit's design with nothing chosen inside it (no item, divider or space). */
-  const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state), item: -1, divider: -1, space: null, open: false });
+  const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state),
+    leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined,
+    item: -1, divider: -1, space: null, open: false });
 
   return {
     /** Adds a unit from a preset (Base cabinet, Sink unit, Wall cabinet...). Asked `beside` the selected unit, or with no
@@ -233,7 +235,9 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       if (coverW >= .1) {
         const id = scene.nextWardrobeId;
         const solid = { ...createKitchenDesign('filler'), w: coverW, h: original.state.h, d, fin: original.state.fin, materials: structuredClone(original.state.materials) };
-        const state = { ...(coverW < 5 ? solid : createKitchenCover(original.state, coverW)), endPanelSides: undefined, sel: 0, item: -1, divider: -1, space: null, open: false };
+        const state = { ...(coverW < 5 ? solid : createKitchenCover(original.state, coverW)),
+          leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined,
+          sel: 0, item: -1, divider: -1, space: null, open: false };
         const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePanel(end, { ...original, state }, side, y));
         if (!fits(cover)) return null;
         if (recordHistory) checkpoint();

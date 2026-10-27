@@ -1,6 +1,6 @@
 # Automatic kitchen installation parts
 
-All dimensions in the domain model are centimetres. Corner strips default to 4 cm and exposed run end panes to 1.8 cm. Both have configurable controls in Size. Legacy zero corner strips use the required 4 cm default; positive saved specifications remain effective.
+All dimensions in the domain model are centimetres. Corner strips default to 4 cm and cabinet left/right side panels (`leftPanelThickness`, `rightPanelThickness`) default to 0 cm. Both have configurable controls in Size (**Corner strip**, **Left panel**, **Right panel**). Legacy zero corner strips use the required 4 cm default; positive saved specifications remain effective.
 
 `corner-widths.ts` intersects the actual perpendicular cabinet footprints and front planes. An allocated strip inside a blind cabinet shares that cabinet's overall width: exposed face + strip + covered return = overall width. A returning cargo, drawer, or ordinary cabinet gets an additive strip outside its module width. Two ordinary fronts meeting at an inside corner each get an additive strip. A parallel continuation suppresses a strip at the old run end.
 

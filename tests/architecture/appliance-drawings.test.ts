@@ -22,7 +22,7 @@ test('sink set-out uses exact finished wall, worktop edges and current overall d
   const input = scene(), before = JSON.stringify(input), pieces = placePieces(input), p = pieces.find(p => p.id === 13)!;
   assert.deepEqual(fixtureDatum(input.studio, p, pieces), { wall: 'A', along: 148, normal: 31 });
   const run = fixtureRun(p, pieces)!; assert.ok(run);
-  assert.deepEqual(Object.values(runOffsets(p, run)).map(v => Math.round(v * 10)), [498, 310, 138, 378, 60, 40]);
+  assert.deepEqual(Object.values(runOffsets(p, run)).map(v => Math.round(v * 10)), [480, 310, 120, 360, 60, 40]);
   const sheets = technicalDrawings(input, { preset: 'installation' });
   const schedule = sheets.find(s => s.title === 'Appliance schedule')!;
   const labels = schedule.table!.rows.flat().join(' ');
@@ -31,7 +31,7 @@ test('sink set-out uses exact finished wall, worktop edges and current overall d
   const detail = sheets.find(s => s.title === 'K13 Sink setting out')!;
   const dimensions = detail.views[0]!.items.filter(i => i.kind === 'dims').map(d => d.stops);
   assert.deepEqual(dimensions, [[0, 720], [0, 500]], 'actual footprint gets explicit width and depth dimensions');
-  assert.ok(detail.views[1]!.items.some(i => i.kind === 'dims' && i.stops.join() === '0,498,1236'));
+  assert.ok(detail.views[1]!.items.some(i => i.kind === 'dims' && i.stops.join() === '0,480,1200'));
   assert.ok(detail.views[1]!.items.some(i => i.kind === 'dims' && i.stops.join() === '0,310,600'));
   assert.equal(JSON.stringify(input), before, 'export never moves/resizes the design');
 });
@@ -44,18 +44,18 @@ test('rotating the whole room retains fixture datums and edge gaps to the millim
   const p = pieces.find(p => p.id === 13)!, datum = fixtureDatum(studio, p, pieces)!;
   assert.equal(Math.round(datum.along * 10), 1480); assert.equal(Math.round(datum.normal * 10), 310);
   const gaps = runOffsets(p, fixtureRun(p, pieces)!);
-  assert.deepEqual([gaps.left, gaps.right, gaps.back, gaps.front].map(v => Math.round(v * 10)), [138, 378, 60, 40]);
+  assert.deepEqual([gaps.left, gaps.right, gaps.back, gaps.front].map(v => Math.round(v * 10)), [120, 360, 60, 40]);
 });
 
 test('island fixture uses its worktop datum; unsupported or overhanging fixtures are reported', () => {
   const input = scene(), pieces = placePieces({ pieces: input.pieces }), p = pieces.find(p => p.id === 13)!;
   const notes = fixturePosition(undefined, p, pieces).join(' ');
-  assert.match(notes, /Run K1\/K2/); assert.match(notes, /CL 498 from left/); assert.doesNotMatch(notes, /Wall/);
+  assert.match(notes, /Run K1\/K2/); assert.match(notes, /CL 480 from left/); assert.doesNotMatch(notes, /Wall/);
   const unsupported = placePieces({ pieces: [{ ...sink(), y: 91 }, ...input.pieces.slice(0, 2)] });
   assert.ok(applianceReview(unsupported).some(i => i.id === 'worktop:13'));
   const oversize = placePieces({ pieces: [...input.pieces.slice(0, 2), { ...sink(), design: { ...sink().design, w: 130 } }] });
   assert.ok(applianceReview(oversize).some(i => i.id === 'worktop-edge:13'));
-  assert.equal(Math.round(runOffsets(oversize.find(p => p.id === 13)!, fixtureRun(oversize.find(p => p.id === 13)!, oversize)!).left * 10), -152);
+  assert.equal(Math.round(runOffsets(oversize.find(p => p.id === 13)!, fixtureRun(oversize.find(p => p.id === 13)!, oversize)!).left * 10), -170);
 });
 
 test('oven allocations separate real housing geometry from unconfirmed appliance and niche requirements', () => {

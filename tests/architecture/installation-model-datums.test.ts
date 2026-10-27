@@ -44,7 +44,7 @@ test('plan and service dimensions use arbitrary user geometry, finished-wall dat
     pieces: [{ id: 8, name: 'User cabinet', x: 57.05, y: 0, z: 39, angle: 0, design }] };
   const before = structuredClone(input), sheets = technicalDrawings(input, { preset: 'installation' });
   const dimensions = sheets[0]!.views[0]!.items.filter(i => i.kind === 'dims');
-  assert.ok(dimensions.some(d => d.stops.join() === '0,216,234,907,925,4132'));
+  assert.ok(dimensions.some(d => d.stops.join() === '0,234,907,4132'));
   assert.ok(dimensions.some(d => d.stops.join() === '0,67,613,633'));
   const service = sheets.find(s => s.title === 'Service & lighting schedule')!.table!.rows[0]!;
   assert.deepEqual(service.slice(3), ['1537', '1106', '124 × 82']);

@@ -14,7 +14,8 @@ import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 
-type Unit = UnitPose & { readonly state: UnitPose['state'] & Pick<EditorDesign, 'n' | 'wt' | 'fin' | 'materials' | 'endPanelThickness' | 'endPanelSides' | 'cornerStrip' | 'shape'> & { readonly secs: readonly (readonly EditorItem[])[] } };
+type UnitStatePick = Pick<EditorDesign, 'n' | 'wt' | 'fin' | 'materials' | 'leftPanelThickness' | 'rightPanelThickness' | 'endPanelThickness' | 'endPanelSides' | 'cornerStrip' | 'shape'>;
+type Unit = UnitPose & { readonly state: UnitPose['state'] & UnitStatePick & { readonly secs: readonly (readonly EditorItem[])[] } };
 interface RunResources {
   M: (color: string, options?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
   wood: (color: string) => THREE.Material;
@@ -96,7 +97,8 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
     let next = '';
     for (const u of units) {
       const pose = [u.x, u.y || 0, u.z, u.angle],
-        size = [u.state.w, u.state.h, u.state.d, u.state.plinthHeight, u.state.endPanelThickness, u.state.endPanelSides?.join(':'), u.state.cornerStrip,
+        size = [u.state.w, u.state.h, u.state.d, u.state.plinthHeight,
+          u.state.leftPanelThickness, u.state.rightPanelThickness, u.state.endPanelThickness, u.state.endPanelSides?.join(':'), u.state.cornerStrip,
           JSON.stringify(u.state.shape), u.state.worktopThickness, u.state.n, u.state.wt.join(':')];
       next += [u.id, ...pose, ...size, u.state.fin, JSON.stringify(u.state.materials), u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
     }

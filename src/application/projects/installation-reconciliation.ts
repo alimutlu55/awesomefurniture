@@ -37,7 +37,11 @@ export function reconcileInstallation(scene: EditorScene): boolean {
   for (const next of plan.boxes) {
     const original = originals.get(next.id)!;
     if (installationKind(next.state) === 'end-panel') original.state = next.state;
-    else original.state.endPanelSides = next.state.endPanelSides;
+    else {
+      original.state.endPanelSides = next.state.endPanelSides;
+      original.state.leftPanelThickness = next.state.leftPanelThickness;
+      original.state.rightPanelThickness = next.state.rightPanelThickness;
+    }
     if (installationKind(next.state)) Object.assign(original, { x: next.x, y: next.y ?? 0, z: next.z });
   }
   scene.wardrobes = scene.wardrobes.filter(p => !plan.removed.has(p.id));

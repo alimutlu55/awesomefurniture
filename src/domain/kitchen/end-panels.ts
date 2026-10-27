@@ -9,6 +9,7 @@ import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 interface PanelState {
   w: number; h: number; d: number; product?: 'kitchen' | undefined; unit?: EditorDesign['unit'];
   n?: number | undefined; secs?: readonly (readonly EditorItem[])[] | undefined;
+  leftPanelThickness?: number | undefined; rightPanelThickness?: number | undefined;
   endPanelSides?: (-1 | 1)[] | undefined;
   endPanelThickness?: number | undefined; cornerStrip?: number | undefined; shape?: WardrobeShape | undefined;
 }
@@ -16,7 +17,20 @@ export interface PanelPose<S extends PanelState = PanelState> {
   id: number | string; x: number; y?: number | undefined; z: number; angle: number; state: S;
 }
 const EPS = 1e-7;
-export const endPanelThickness = (d: PanelState) => d.endPanelThickness ?? PANEL;
+export const sidePanelThickness = (d: PanelState, side: -1 | 1) =>
+  (side < 0 ? d.leftPanelThickness : d.rightPanelThickness)
+  ?? (d.endPanelSides ? (d.endPanelSides.includes(side) ? d.endPanelThickness ?? PANEL : 0) : d.endPanelThickness ?? 0);
+export const endPanelThickness = (d: PanelState) =>
+  d.endPanelThickness ?? Math.max(d.leftPanelThickness ?? 0, d.rightPanelThickness ?? 0);
+type PanelSideConfig = Pick<PanelState, 'leftPanelThickness' | 'rightPanelThickness' | 'endPanelThickness'>
+  & { readonly endPanelSides?: readonly (-1 | 1)[] | undefined };
+export function panelAtSide(d: PanelSideConfig, side: -1 | 1) {
+  const explicit = side < 0 ? d.leftPanelThickness : d.rightPanelThickness;
+  if (explicit !== undefined) return { width: explicit, configured: explicit > 0 };
+  const has = Boolean(d.endPanelSides?.includes(side));
+  const width = has ? d.endPanelThickness ?? PANEL : 0;
+  return { width, configured: has && width > 0 && d.endPanelThickness !== undefined };
+}
 const solid = (p: PanelPose) => !isFixture(p.state);
 
 function cornerClosed(box: PanelPose, others: readonly PanelPose[], side: -1 | 1) {
@@ -46,13 +60,14 @@ function sideOccupiedWithin(box: PanelPose, others: readonly PanelPose[], side: 
 
 /** A vertical extension inherits the source's finishes and construction, with the side's actual roof profile.
  * Stored cabinet dimensions stay intact: this board occupies an additional, separately dimensioned width. */
-export function endPanelDesign<S extends PanelState>(source: S, side: -1 | 1, width = endPanelThickness(source) || PANEL) {
+export function endPanelDesign<S extends PanelState>(source: S, side: -1 | 1, width = sidePanelThickness(source, side) || PANEL) {
   const from = structuredClone(source), top = from.shape?.top, at = side < 0 ? 0 : (top?.length ?? 1) - 1;
   const front = top?.[at]?.y ?? from.h, back = from.shape?.back?.[at] ?? front;
   const shape: WardrobeShape | undefined = top ? { template: 'custom', top: [{ x: 0, y: front }, { x: width, y: front }], back: [back, back] } : undefined;
   return { ...from, product: 'kitchen' as const, unit: 'end-panel' as const, w: width, h: Math.max(front, back), n: 1,
     wt: [100, 100, 100, 100, 100, 100], secs: [[], [], [], [], [], []], dividers: [], doors: 'none' as const,
-    shape, endPanelSides: undefined, cornerStrip: undefined, ventilationWidth: undefined, ventilationHeight: undefined, fridgeSplit: undefined };
+    shape, leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined,
+    endPanelSides: undefined, cornerStrip: undefined, ventilationWidth: undefined, ventilationHeight: undefined, fridgeSplit: undefined };
 }
 
 /** Is the complete run end occupied by another unit? Exact footprint tests, with only numerical tolerance.
@@ -67,13 +82,20 @@ export function exposedEnd(box: PanelPose, others: readonly PanelPose[], side: -
 export function automaticEndPanels<S extends PanelState>(boxes: readonly PanelPose<S>[]) {
   return boxes.flatMap(box => {
     if (Number(box.id) < 0 || !Number.isFinite(Number(box.id)) || box.state.product !== 'kitchen' || isFixture(box.state) || installationKind(box.state) || isCoverUnit(box.state)) return [];
-    const { u } = unitAxes(box.angle), width = endPanelThickness(box.state);
-    if (width <= 0) return [];
-    return ([-1, 1] as const).filter(side => !cornerClosed(box, boxes, side) && !explicitSidePanel(box, boxes, side) && (box.state.endPanelSides?.includes(side) || exposedEnd(box, boxes, side))).map(side => ({
-      id: -Number(box.id) * 4 - (side > 0 ? 1 : 0), ownerId: box.id, side, name: 'End/Separator pane',
-      x: box.x + u.x * side * (box.state.w + width) / 2, y: box.y ?? 0,
-      z: box.z + u.z * side * (box.state.w + width) / 2, angle: box.angle, state: endPanelDesign(box.state, side, width),
-    }));
+    const { u } = unitAxes(box.angle);
+    return ([-1, 1] as const).flatMap(side => {
+      const width = sidePanelThickness(box.state, side);
+      if (width <= 0 || cornerClosed(box, boxes, side) || explicitSidePanel(box, boxes, side)) return [];
+      if (!box.state.endPanelSides?.includes(side) && sideOccupiedWithin(box, boxes, side, .05)) return [];
+      const hasExplicitSide = (side < 0 ? box.state.leftPanelThickness : box.state.rightPanelThickness) !== undefined;
+      const configured = hasExplicitSide || box.state.endPanelThickness !== undefined;
+      return [{
+        id: -Number(box.id) * 4 - (side > 0 ? 1 : 0), ownerId: box.id, side, name: 'End/Separator pane',
+        x: box.x + u.x * side * (box.state.w + width) / 2, y: box.y ?? 0,
+        z: box.z + u.z * side * (box.state.w + width) / 2, angle: box.angle,
+        state: { ...endPanelDesign(box.state, side, width), ...(configured ? { endPanelThickness: width } : {}) },
+      }];
+    });
   });
 }
 
@@ -92,9 +114,19 @@ function explicitSidePanel(box: PanelPose, boxes: readonly PanelPose[], side: -1
 export function rememberEndPanels(boxes: readonly PanelPose[]) {
   const parts = automaticEndPanels(boxes);
   for (const box of boxes) {
-    if (isCoverUnit(box.state)) { delete box.state.endPanelSides; continue; }
-    const open = (box.state.endPanelSides ?? []).filter(side => !cornerClosed(box, boxes, side) && !sideOccupiedWithin(box, boxes, side, .05));
-    const sides = [...new Set([...open, ...parts.filter(p => p.ownerId === box.id).map(p => p.side)])].sort();
+    if (isCoverUnit(box.state)) {
+      delete box.state.endPanelSides;
+      delete box.state.leftPanelThickness;
+      delete box.state.rightPanelThickness;
+      continue;
+    }
+    const closedSide = (side: -1 | 1) => cornerClosed(box, boxes, side)
+      || sideOccupiedWithin(box, boxes, side, .05) && !box.state.endPanelSides?.includes(side);
+    if (closedSide(-1) && box.state.leftPanelThickness !== undefined) delete box.state.leftPanelThickness;
+    if (closedSide(1) && box.state.rightPanelThickness !== undefined) delete box.state.rightPanelThickness;
+    const open = (box.state.endPanelSides ?? []).filter(side => sidePanelThickness(box.state, side) > 0 && !cornerClosed(box, boxes, side) && !sideOccupiedWithin(box, boxes, side, .05));
+    const active = parts.filter(p => p.ownerId === box.id && sidePanelThickness(box.state, p.side) > 0).map(p => p.side);
+    const sides = [...new Set([...open, ...active])].sort();
     if (sides.length) box.state.endPanelSides = sides;
     else delete box.state.endPanelSides;
   }

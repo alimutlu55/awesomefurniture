@@ -41,12 +41,16 @@ test('both perpendicular cabinets receive 40 mm strips for cargo, drawers, cupbo
   }
 });
 
-test('a straight run gets two 18 mm external ends, no middle panels; adding/removing a unit recomputes ends', () => {
+test('left and right panels default to 0; configured external ends produce 18 mm boards and cut sheets', () => {
   const a = unit(1, 0, 0, 0, 'base'), b = unit(2, 60, 0, 0, 'base');
+  assert.deepEqual(automaticInstallationParts([a, b]), [], 'default left and right panel thicknesses are 0');
+  a.state.leftPanelThickness = 1.8; b.state.rightPanelThickness = 1.8;
   const ends = automaticInstallationParts([a, b]);
   assert.deepEqual(ends.map(p => [p.ownerId, p.side, p.state.w]), [[1, -1, 1.8], [2, 1, 1.8]]);
   assert.ok(Math.abs(ends[0]!.x + 30.9) < 1e-8);
+  a.state.rightPanelThickness = 1.8;
   assert.equal(automaticInstallationParts([a]).length, 2);
+  a.state.rightPanelThickness = 0;
   const pieces = placePieces({ pieces: [a, b].map(p => ({ ...p, design: p.state })) });
   const panels = pieces.filter(p => p.id < 0);
   assert.deepEqual(panels.map(p => p.mark), ['P1L', 'P2R']);
@@ -58,7 +62,7 @@ test('strip and panel defaults, custom values and construction settings survive 
   boxes[1]!.z = 49.8; // Start with the required strip/front clearance already present.
   let undo = 0; const commands = createSceneCommands(() => scene, { checkpoint: () => { undo++; } });
   assert.equal(commands.setKitchenConstruction('cornerStrip', 2.5), true);
-  assert.equal(commands.setKitchenConstruction('endPanelThickness', 2.2), true);
+  assert.equal(commands.setKitchenConstruction('rightPanelThickness', 2.2), true);
   assert.equal(undo, 2);
   const project = sceneToProject(createProject('construction', 'Construction'), scene);
   const restored = projectToScene(deserializeProject(serializeProject(project)))!;
@@ -98,16 +102,20 @@ test('two ordinary cabinet fronts meeting at an inside corner receive separate s
 });
 
 test('moving an assembly stops its actual end panel at the wall, and joining a run removes facing panels', () => {
-  const a = unit(1, 0, 0, 0, 'base'), wall = { id: 'wall:test', x: 60, z: 0, y: 0, angle: 0, state: { w: 10, h: 270, d: 200 } };
+  const a = unit(1, 0, 0, 0, 'base'); a.state.rightPanelThickness = 1.8;
+  const wall = { id: 'wall:test', x: 60, z: 0, y: 0, angle: 0, state: { w: 10, h: 270, d: 200 } };
   const collision = createCabinetGeometry(() => [a], () => [wall]);
   assert.ok(Math.abs(collision.safeCabinetTranslation(a, { x: 100, y: 0, z: 0 }).x - 23.2) < .001);
+  a.state.rightPanelThickness = 0;
   const b = unit(2, 120, 0, 0, 'base'), join = createCabinetGeometry(() => [a, b]);
   assert.ok(Math.abs(join.safeCabinetTranslation(a, { x: 60, y: 0, z: 0 }).x - 60) < .001);
 });
 
 
 test('a roomless plan dimensions both 18 mm ends and the additive 40 mm corner strip beside their parts', () => {
-  const boxes = layout('cargo'), pieces = boxes.map(p => ({ ...p, design: p.state }));
+  const boxes = layout('cargo');
+  boxes[0]!.state.leftPanelThickness = 1.8; boxes[1]!.state.rightPanelThickness = 1.8;
+  const pieces = boxes.map(p => ({ ...p, design: p.state }));
   const plan = technicalDrawings({ pieces }, { preset: 'installation' })[0]!;
   const widths = plan.views[0]!.items.flatMap(i => i.kind === 'dims' && i.stops.length === 2 ? [i.stops[1]] : []);
   assert.equal(widths.filter(w => w === 18).length, 2);

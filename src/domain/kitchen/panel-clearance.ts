@@ -1,6 +1,6 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { cornerStripWidth } from './corner-widths';
-import { endPanelThickness, type PanelPose } from './end-panels';
+import { panelAtSide, type PanelPose } from './end-panels';
 import { kitchenFrontThickness } from './installation-parts';
 import { unitAxes } from './kitchen-runs';
 import { installationKind, isFixture } from './kitchen-units';
@@ -22,9 +22,6 @@ export function sidePanelClearance(box: PanelPose, other: PanelPose | undefined,
       return 0;
     }
   }
-  const hasA = Boolean(box.state.endPanelSides?.includes(side)), hasB = Boolean(other?.state.endPanelSides?.includes(side === 1 ? -1 : 1));
-  const wA = hasA ? endPanelThickness(box.state) : 0, wB = hasB && other ? endPanelThickness(other.state) : 0;
-  const cfgA = hasA && wA > 0 && box.state.endPanelThickness !== undefined;
-  const cfgB = hasB && wB > 0 && other?.state.endPanelThickness !== undefined;
-  return cfgA !== cfgB ? (cfgA ? wA : wB) : Math.max(wA, wB);
+  const pA = panelAtSide(box.state, side), pB = other ? panelAtSide(other.state, side === 1 ? -1 : 1) : { width: 0, configured: false };
+  return pA.configured !== pB.configured ? (pA.configured ? pA.width : pB.width) : Math.max(pA.width, pB.width);
 }

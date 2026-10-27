@@ -17,6 +17,7 @@ export interface UnitPose {
   readonly z: number;
   readonly angle: number;
   readonly state: { readonly plinthHeight?: number | undefined; readonly worktopThickness?: number | undefined;
+    readonly leftPanelThickness?: number | undefined; readonly rightPanelThickness?: number | undefined;
     readonly endPanelThickness?: number | undefined; readonly endPanelSides?: readonly (-1 | 1)[] | undefined;
     readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
 }
@@ -49,11 +50,16 @@ const onFloor = (c: UnitPose) => Math.abs(c.y || 0) < .5;
 /** Where a unit's back is, measured towards the front of units at `angle`. */
 const backLine = (c: UnitPose, angle: number) => across(c, angle) - c.state.d / 2;
 
+function sidePanel(s: UnitPose['state'], side: -1 | 1) {
+  const explicit = side < 0 ? s.leftPanelThickness : s.rightPanelThickness;
+  if (explicit !== undefined) return { w: explicit, cfg: explicit > 0 };
+  const has = Boolean(s.endPanelSides?.includes(side)), w = has ? s.endPanelThickness ?? PANEL : 0;
+  return { w, cfg: has && w > 0 && s.endPanelThickness !== undefined };
+}
+
 function jointReserve(a: UnitPose, b: UnitPose, side: -1 | 1) {
-  const hasA = Boolean(a.state.endPanelSides?.includes(side)), hasB = Boolean(b.state.endPanelSides?.includes(side === 1 ? -1 : 1));
-  const wA = hasA ? a.state.endPanelThickness ?? PANEL : 0, wB = hasB ? b.state.endPanelThickness ?? PANEL : 0;
-  const cfgA = hasA && wA > 0 && a.state.endPanelThickness !== undefined, cfgB = hasB && wB > 0 && b.state.endPanelThickness !== undefined;
-  return cfgA !== cfgB ? (cfgA ? wA : wB) : Math.max(wA, wB);
+  const pA = sidePanel(a.state, side), pB = sidePanel(b.state, side === 1 ? -1 : 1);
+  return pA.cfg !== pB.cfg ? (pA.cfg ? pA.w : pB.w) : Math.max(pA.w, pB.w);
 }
 
 /** Groups of units that stand side by side, each sorted from left to right. */
@@ -127,7 +133,7 @@ export function stackedPose(anchor: UnitPose, d: number, y: number): Pose {
 /** Poses for `count` copies of `unit` laid side by side towards `side`, nearest first, starting beside `from`
  * (the unit itself, or the end of the run it stands in). */
 export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: UnitPose = unit): Pose[] {
-  const poses: Pose[] = [], fresh: UnitPose = { ...unit, state: { ...unit.state, endPanelSides: undefined } };
+  const poses: Pose[] = [], fresh: UnitPose = { ...unit, state: { ...unit.state, leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined } };
   let last: UnitPose = from;
   for (let n = 0; n < count; n++) {
     const pose = besidePanel(last, fresh, side, unit.y || 0);

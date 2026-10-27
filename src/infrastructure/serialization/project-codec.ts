@@ -86,6 +86,8 @@ const wardrobe = z.strictObject({
   rotation: finite,
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
   materials: materialsSchema.optional(), plinthHeight: finite.min(0).max(30).optional(), cornerStrip: finite.min(0).max(30).optional(), fridgeSplit: finite.min(0).max(270).optional(),
+  leftPanelThickness: finite.min(0).max(10).optional(),
+  rightPanelThickness: finite.min(0).max(10).optional(),
   endPanelThickness: finite.min(0).max(10).optional(),
   endPanelSides: z.array(z.union([z.literal(-1), z.literal(1)])).max(2).optional(),
   ventilationWidth: finite.min(0).max(150).optional(), ventilationHeight: finite.min(0).max(30).optional(),

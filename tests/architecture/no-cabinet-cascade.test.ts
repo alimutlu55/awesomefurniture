@@ -40,11 +40,11 @@ test('width, depth and height resizing affect only the selected cabinet', () => 
 });
 
 test('a cabinet constrained on both sides cannot grow by moving either neighbour', () => {
-  const model = createEditorModel(sceneOf([unit(1, -61.8), unit(2, 0), unit(3, 61.8)], 2)), before = model.snapshot();
+  const model = createEditorModel(sceneOf([unit(1, -60), unit(2, 0), unit(3, 60)], 2)), before = model.snapshot();
   assert.equal(createSceneCommands(() => model.scene).setCabinetSize('w', 60.1), false);
   assert.equal(model.snapshot(), before);
   assert.equal(createSceneCommands(() => model.scene).setCabinetSize('w', 59.9), true);
-  assert.equal(model.scene.wardrobes[0]!.x, -61.8); assert.equal(model.scene.wardrobes[2]!.x, 61.8);
+  assert.equal(model.scene.wardrobes[0]!.x, -60); assert.equal(model.scene.wardrobes[2]!.x, 60);
 });
 
 test('opening or rendering a saved layout never relocates cabinets to repair installation gaps', () => {

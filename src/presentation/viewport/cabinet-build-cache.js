@@ -15,7 +15,8 @@ export function sceneGeometryFingerprint(scene, selectionState, interactionState
             const s = w.state, isAct = w.id === active;
             return [
                 w.id, s.w, s.h, s.d, s.n, s.wt,
-                s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip, s.endPanelThickness, s.endPanelSides,
+                s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip,
+                s.leftPanelThickness, s.rightPanelThickness, s.endPanelThickness, s.endPanelSides,
                 s.fridgeSplit, s.frontThickness, s.worktopThickness, s.ventilationWidth, s.ventilationHeight, s.doors, s.open, s.doorHang, s.unit, s.product,
                 isAct ? [focus, shape, dims, move, selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space] : null,
                 s.dividers,
@@ -38,7 +39,8 @@ export function wardrobeDesignFingerprint(w, activeId, selectionState, interacti
             selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space
         ] : null,
         s.w, s.h, s.d, s.n, s.wt,
-        s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip, s.endPanelThickness, s.endPanelSides,
+        s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip,
+        s.leftPanelThickness, s.rightPanelThickness, s.endPanelThickness, s.endPanelSides,
         s.fridgeSplit, s.frontThickness, s.worktopThickness, s.ventilationWidth, s.ventilationHeight, s.doors, s.open, s.doorHang, s.unit, s.product,
         s.dividers,
         s.secs

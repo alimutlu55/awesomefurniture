@@ -15,9 +15,12 @@ import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 
+type KitchenConstructionKey = 'plinthHeight' | 'leftPanelThickness' | 'rightPanelThickness' | 'endPanelThickness'
+  | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit';
+
 export function createKitchenConstructionCommands(getScene: () => EditorScene, checkpoint: () => void, report: (message: string) => void) {
   return {
-    setKitchenConstruction(key: 'plinthHeight' | 'endPanelThickness' | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit', value: number, recordHistory = true) {
+    setKitchenConstruction(key: KitchenConstructionKey, value: number, recordHistory = true) {
       const notify = (message: string) => { if (recordHistory) report(message); };
       const scene = getScene(), cabinet = scene.wardrobes.find(p => p.id === scene.activeWardrobe);
       if (!cabinet || cabinet.state.product !== 'kitchen' || !Number.isFinite(value) || value < 0 || value > (key === 'ventilationWidth' ? cabinet.state.w : key === 'fridgeSplit' ? cabinet.state.h : 30)) return false;
@@ -32,11 +35,17 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           ...(state.shape.back ? { back: state.shape.back.map(y => y + delta) } : {}) };
       } else if (key === 'cornerStrip' && (requested < .1 || requested === state.cornerStrip)) return false;
       else if ((key === 'frontThickness' || key === 'worktopThickness') && requested < .1) return false;
-      if (key === 'endPanelThickness' && requested > 10) return false;
+      if ((key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness') && requested > 10) return false;
       if (key === 'frontThickness' && requested > 5 || key === 'worktopThickness' && requested > 15) return false;
       if (key === 'ventilationHeight' && requested > plinthOf(state)) return false;
       const oldTop = cabinet.state.h + worktopThickness(cabinet.state);
       state[key] = requested;
+      if (key === 'leftPanelThickness' && state.endPanelSides) state.endPanelSides = state.endPanelSides.filter(s => s !== -1);
+      if (key === 'rightPanelThickness' && state.endPanelSides) state.endPanelSides = state.endPanelSides.filter(s => s !== 1);
+      if (key === 'endPanelThickness') {
+        state.leftPanelThickness = requested;
+        state.rightPanelThickness = requested;
+      }
       const rules = createWardrobeGeometry(() => state), widths = cornerCabinetWidths(next, scene.wardrobes);
       if (key === 'fridgeSplit' && requested > 0) {
         let found = false, valid = true;
@@ -53,15 +62,20 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       }
       const planned = structuredClone(scene);
       planned.wardrobes.find(p => p.id === next.id)!.state = state;
-      const syncedIds: number[] = [];
-      if (key === 'endPanelThickness' && requested > 0) {
-        for (const group of sharedEndPanels(automaticEndPanels(planned.wardrobes))) {
-          if (!group.owners.some(o => o.id === next.id)) continue;
+      const syncedPartners: { id: number; side: -1 | 1; syncLegacy: boolean }[] = [];
+      if ((key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness') && requested > 0) {
+        const editedSides = key === 'leftPanelThickness' ? [-1] : key === 'rightPanelThickness' ? [1] : [-1, 1];
+        const groups = [...sharedEndPanels(automaticEndPanels(scene.wardrobes)), ...sharedEndPanels(automaticEndPanels(planned.wardrobes))];
+        for (const group of groups) {
+          if (!group.owners.some(o => o.id === next.id && editedSides.includes(o.side))) continue;
           for (const owner of group.owners) if (owner.id !== next.id) {
             const partner = planned.wardrobes.find(p => p.id === owner.id);
-            if (partner && partner.state.endPanelThickness !== undefined && partner.state.endPanelThickness !== requested) {
-              partner.state.endPanelThickness = requested;
-              syncedIds.push(partner.id);
+            const pSide = owner.side < 0 ? -1 : 1, sideKey = pSide < 0 ? 'leftPanelThickness' : 'rightPanelThickness';
+            if (partner && !syncedPartners.some(s => s.id === partner.id && s.side === pSide)
+              && (partner.state[sideKey] !== undefined || partner.state.endPanelThickness !== undefined || partner.state.endPanelSides?.includes(pSide))) {
+              partner.state[sideKey] = requested;
+              if (partner.state.endPanelThickness !== undefined) partner.state.endPanelThickness = requested;
+              syncedPartners.push({ id: partner.id, side: pSide, syncLegacy: partner.state.endPanelThickness !== undefined });
             }
           }
         }
@@ -84,9 +98,12 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           && Math.abs((p.x - cabinet.x) * v.x + (p.z - cabinet.z) * v.z) <= state.d / 2);
       if (recordHistory) checkpoint();
       cabinet.state = state;
-      for (const id of syncedIds) {
+      for (const { id, side, syncLegacy } of syncedPartners) {
         const partner = scene.wardrobes.find(p => p.id === id);
-        if (partner) partner.state.endPanelThickness = requested;
+        if (partner) {
+          partner.state[side < 0 ? 'leftPanelThickness' : 'rightPanelThickness'] = requested;
+          if (syncLegacy) partner.state.endPanelThickness = requested;
+        }
       }
       for (const fixture of supported) fixture.y = (fixture.y ?? 0) + lift;
       return true;

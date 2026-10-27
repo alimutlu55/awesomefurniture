@@ -1,7 +1,7 @@
 import { expandedEndPanels } from './explicit-panel-fit';
 import { resolvePanelJoints } from './panel-joints';
 import { automaticInstallationParts } from './automatic-installation';
-import { endPanelThickness, type PanelPose } from './end-panels';
+import { sidePanelThickness, type PanelPose } from './end-panels';
 import { matchingPanelLine, samePanelBack, flatPanel } from './shared-panels';
 import { installationSolid, localSolid } from './installation-parts';
 import { unitAxes, RUN_TOLERANCE } from './kitchen-runs';
@@ -32,7 +32,8 @@ function run<T extends InstallationPose>(boxes: T[], seed: T, blocked = new Set<
       if (b.state.product !== seed.state.product || !sameDirection(b, seed)
         || Math.abs(at(b, v) - b.state.d / 2 - at(seed, v) + seed.state.d / 2) > RUN_TOLERANCE) continue;
       if ([...members].some(a => Math.abs(at(a, u) - at(b, u)) - (a.state.w + b.state.w) / 2
-        <= endPanelThickness(a.state) + endPanelThickness(b.state) + EPS)) members.add(b);
+        <= sidePanelThickness(a.state, at(b, u) >= at(a, u) ? 1 : -1)
+        + sidePanelThickness(b.state, at(a, u) >= at(b, u) ? 1 : -1) + EPS)) members.add(b);
     }
     if (members.size === before) break;
   }
@@ -90,11 +91,12 @@ export function planInstallationLayout<T extends InstallationPose>(input: readon
   // Facing automatic end panes share one stock thickness. Preserve deliberate clearance beyond it.
   for (const a of boxes.filter(normal)) for (const b of boxes.filter(normal)) {
     const { u, v } = unitAxes(a.angle), gap = at(b, u) - at(a, u) - (a.state.w + b.state.w) / 2;
-    if (gap <= RUN_TOLERANCE + EPS || gap > 2 * endPanelThickness(a.state) + EPS
-      || Math.abs(endPanelThickness(a.state) - endPanelThickness(b.state)) > EPS
+    const wA = sidePanelThickness(a.state, 1), wB = sidePanelThickness(b.state, -1);
+    if (wA <= 0 || gap <= RUN_TOLERANCE + EPS || gap > wA + wB + EPS
+      || Math.abs(wA - wB) > EPS
       || Math.abs(at(a, v) - at(b, v)) > EPS || !matchingPanelLine(a, b)
       || a.state.fin !== b.state.fin || JSON.stringify(a.state.materials) !== JSON.stringify(b.state.materials)) continue;
-    const width = endPanelThickness(a.state);
+    const width = wA;
     if (gap >= width - EPS && Math.abs(gap - 2 * width) > EPS) continue;
     const blocked = new Set(boxes.filter(p => at(p, u) <= at(a, u) + EPS).map(p => p.id));
     shift(run(boxes, b, blocked), u, width - gap);

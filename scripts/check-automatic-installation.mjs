@@ -26,10 +26,10 @@ try {
         this.position.set(-190, 165, 280); return lookAt.call(this, 0, 45, 25);
       };
       setLengthUnit('mm');
-      const state = { ...createEditorState(), ...createKitchenDesign('base', 'corner'), w: 102 };
+      const state = { ...createEditorState(), ...createKitchenDesign('base', 'corner'), w: 102, leftPanelThickness: 1.8 };
       const scene = { wardrobes: [
         { id: 1, name: 'Corner cabinet', x: 0, z: 0, y: 0, angle: 0, state },
-        { id: 2, name: 'Cargo', x: 22, z: 49.8, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo') } },
+        { id: 2, name: 'Cargo', x: 22, z: 49.8, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo'), rightPanelThickness: 1.8 } },
       ], activeWardrobe: 1, nextWardrobeId: 3 };
       const editor = mountEditor({ root: document.querySelector('#editor'), initialScene: scene });
       window.installationEditor = editor;
@@ -47,9 +47,9 @@ try {
     assert.deepEqual(parts, [1.8, 1.8, 4], 'two end panes and the additive return strip are rendered');
     await page.screenshot({ path: output + '/app-' + width + '.png' });
     await page.locator('.contextual-actions [data-action="resize"]').click();
-    const strip = page.locator('[data-construction="cornerStrip"]'), end = page.locator('[data-construction="endPanelThickness"]');
+    const strip = page.locator('[data-construction="cornerStrip"]'), left = page.locator('[data-construction="leftPanelThickness"]'), right = page.locator('[data-construction="rightPanelThickness"]');
     await strip.waitFor({ state: 'visible' });
-    assert.equal(await strip.inputValue(), '40'); assert.equal(await end.inputValue(), '18');
+    assert.equal(await strip.inputValue(), '40'); assert.equal(await left.inputValue(), '18'); assert.equal(await right.inputValue(), '0');
     assert.equal(await page.locator('#kitchen-construction .room-field-hint').count(), 0);
     await strip.fill('35'); await strip.press('Tab');
     assert.equal(await strip.inputValue(), '35');

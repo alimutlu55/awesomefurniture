@@ -121,7 +121,7 @@ test('wall plan and elevation include the actual return front and retain the wal
   const sheets = technicalDrawings({ studio, pieces: drawingPieces() }, { preset: 'installation' });
   for (const title of ['Plan', 'Elevation A']) {
     const chains = dims(sheets.find(s => s.title === title)!.views.flatMap(v => v.items));
-    assert.ok(chains.some(d => JSON.stringify(d.stops) === '[-18,0,559,599,1179,2590]'), title + ' includes return split and wall end');
+    assert.ok(chains.some(d => JSON.stringify(d.stops) === '[0,559,599,1179,2590]'), title + ' includes return split and wall end');
     assert.ok(chains.some(d => JSON.stringify(d.stops) === '[0,2590]'), title + ' wall total');
   }
 });

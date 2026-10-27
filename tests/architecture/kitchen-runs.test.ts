@@ -73,7 +73,7 @@ test('adding units: beside the selected one, wall units above it, one undo step 
   near(wall.y, 142, 'hangs above the worktop'); near(wall.x, 60, 'over the selected unit');
   near(wall.z, -29 + 35 / 2, 'back against the same wall');
   const another = commands.addKitchenUnit('upper')!;
-  near(Math.abs(another.x - wall.x), 61.8, 'next wall unit retains the existing 18 mm separator');
+  near(Math.abs(another.x - wall.x), 60, 'next wall unit lines up with the first');
   assert.equal(checkpoints, 3);
   assert.equal(kitchenSpans(s.wardrobes).filter(x => x.kind === 'worktop').length, 1, 'the base units share one worktop');
 });
@@ -94,7 +94,7 @@ test('duplicate and pull-to-array copy size and finish but never the appliance',
   assert.deepEqual(kitchenSpans(s.wardrobes).filter(x => x.kind === 'worktop').map(x => x.length), [320], 'the worktop runs over all four');
   assert.equal(commands.arrayKitchenUnit(1, 1), 1, 'pulling the same side again continues after the copies');
   assert.equal(commands.arrayKitchenUnit(1, -1), 1, 'and the other side starts before the run');
-  s.wardrobes.map(c => c.x).sort((a, b) => a - b).forEach((x, i) => near(x, [-81.8, 0, 80, 160, 240, 321.8][i]!, 'existing outer panes remain between new copies'));
+  assert.deepEqual(s.wardrobes.map(c => c.x).sort((a, b) => a - b), [-80, 0, 80, 160, 240, 320]);
   const copy = commands.addCabinet(true)!;
   assert.equal(copy.state.unit, 'base');
   assert.ok(copy.state.secs[0]!.every(it => !hasTrait(it.k, 'appliance')));
@@ -151,7 +151,7 @@ test('Add furniture puts a cabinet against the wall in view, in front of the vie
   assert.ok(standsAgainst(room, second.id, b, b.state), 'looking at another wall puts it there, not beside the last kitchen');
   const c = commands.addKitchenUnit('drawers', { placementWall: first.id, placementAlong: face.end - 40 })!;
   assert.ok(standsAgainst(room, first.id, c, c.state));
-  near(Math.abs(along(c, first.id) - along(a, first.id)), 61.8, 'a kitchen on the wall is joined while retaining its existing separator');
+  near(Math.abs(along(c, first.id) - along(a, first.id)), 60, 'a kitchen already on the wall in view is joined');
   s.activeWardrobe = a.id;
   const d = commands.addKitchenUnit('base', { placementWall: second.id, beside: true })!;
   assert.ok(standsAgainst(room, first.id, d, d.state), 'a cabinet\'s own Add stands beside it whatever is in view');

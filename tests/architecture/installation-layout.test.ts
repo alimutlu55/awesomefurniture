@@ -52,7 +52,10 @@ test('custom strip and front thickness are exact, and a supported sink follows t
 
 test('facing 18 mm panes become one physical 18 mm board, including drawing stock', () => {
   for (const gap of [1.8, 2, 3.6]) {
-    const input = [unit(1, 0), unit(2, 60 + gap), unit(3, 120 + gap)];
+    const u1 = unit(1, 0); u1.state.leftPanelThickness = 1.8; u1.state.rightPanelThickness = 1.8;
+    const u2 = unit(2, 60 + gap); u2.state.leftPanelThickness = 1.8;
+    const u3 = unit(3, 120 + gap); u3.state.rightPanelThickness = 1.8;
+    const input = [u1, u2, u3];
     const plan = reposition(input), boxes = plan.boxes;
     near(boxes[1]!.x, 60 + (gap === 3.6 ? 1.8 : gap));
     near(boxes[2]!.x - boxes[1]!.x, 60);
@@ -67,7 +70,9 @@ test('facing 18 mm panes become one physical 18 mm board, including drawing stoc
 });
 
 test('a 1 mm intentional joint beside a shared pane remains adjustable without jumping', () => {
-  const boxes = [unit(1, 0), unit(2, 61.9)];
+  const u1 = unit(1, 0); u1.state.rightPanelThickness = 1.8;
+  const u2 = unit(2, 61.9);
+  const boxes = [u1, u2];
   const collision = createCabinetGeometry(() => boxes);
   const target = collision.safeCabinetTranslation(boxes[1]!, { x: 61.8, y: 0, z: 0 });
   near(target.x, 61.8);
@@ -127,7 +132,7 @@ test('floor run reflow preserves upper/appliance alignment; an isolated upper mo
   const boxes = corner(), upper = { ...unit(4, 22, 91.5, 270), y: 140 };
   const planned = reposition([...boxes, upper]);
   near(planned.boxes[3]!.z - upper.z, 3.3);
-  const cabinet = unit(1, 0), wallUnit = { ...unit(2, 0), y: 140 };
+  const cabinet = unit(1, 0), wallUnit = { ...unit(2, 0), y: 140 }; wallUnit.state.leftPanelThickness = 1.8;
   const wall = { id: 'wall', x: -35, y: 100, z: 0, angle: 0, state: { w: 10, h: 170, d: 200 } };
   const result = reposition([cabinet, wallUnit], [wall]);
   assert.equal(result.valid, true); near(result.boxes[0]!.x, 0); near(result.boxes[1]!.x, 1.8);
