@@ -15,10 +15,6 @@ export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides:
   return { gaps, aligned: alignments(box(cabinet), gaps, all) };
 }
 
-/** How close a size dragged on a slider must come to one that lines the piece up to catch it. A slider spans hundreds
- * of centimetres in a few hundred pixels, so a hand cannot land on a line such as 218.2 cm; a value farther away than
- * this was meant and is kept. Typed values are never snapped. Centimetres. */
-export const SIZE_SNAP = .5;
 const turned = (a: EditorCabinet, b: EditorCabinet) => Math.abs(((a.angle - b.angle) % 360 + 540) % 360 - 180) > .5;
 /** The sizes `key` of a wardrobe can be dragged to that line it up with what is around it, as the measuring assistant
  * shows them: its top level with a neighbour's; its side touching the nearer neighbour or wall, or filling the gap; its

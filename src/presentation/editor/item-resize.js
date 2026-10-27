@@ -112,7 +112,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!c) {
             return null;
         }
-        const g = a.g, tol = Math.max(.4, Math.min(4, 8 / snapPxPerCm(a))), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
+        const g = a.g, tol = 0, top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
             add = (v, kind, label, src) => cand.push({ v, kind, label, src, penalty: kind === 'size' ? tol * .35 : 0 });
         if (top) {
             add(c.top, 'wall', 'Flush with top');
@@ -157,7 +157,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             : a.edge === 'left' ? target.x : target.x + target.w;
         // Resolve the interval once per pointer move, rather than rescanning every neighbor for every candidate.
         const low = position(solve(-Infinity)), high = position(solve(Infinity));
-        // The shared alignment rule: a held line first, else the nearest, a matching size losing to an edge at nearly the same distance.
+        // Guides only at exact contact. Nearby candidates must never change the requested edge position.
         const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, within: [low, high] });
         if (!best) {
             a.lock = null;

@@ -60,7 +60,7 @@ test('pointer cancellation, a second contact, blur and disposal restore previews
     }
 });
 test('keyboard steps and limits use the same validation; blocked values never bounce', () => {
-    const f = fixture(); f.fire(f.layer, 'keydown', { key: 'ArrowRight', shiftKey: true }); assert.equal(f.state().value, 105);
+    const f = fixture(); f.fire(f.layer, 'keydown', { key: 'ArrowRight', shiftKey: true }); assert.equal(f.state().value, 101);
     f.fire(f.layer, 'keydown', { key: 'End' }); assert.equal(f.state().value, 150);
     f.fire(f.layer, 'keydown', { key: 'ArrowRight' }); assert.equal(f.state().commits, 2); assert.equal(f.state().springs, 2);
 });
@@ -94,4 +94,11 @@ test('a captured tap opens on the native layer click and preserves editing on su
     assert.equal(f.input(), input);
     input.value = '115'; input.onkeydown({ key: 'Enter', preventDefault() {}, stopPropagation() {} });
     assert.equal(f.state().value, 115); assert.equal(f.state().commits, 1);
+});
+
+
+test('ordinary keyboard arrows change a length by 1 mm without a modifier', () => {
+    const f = fixture();
+    f.fire(f.layer, 'keydown', { key: 'ArrowRight' }); assert.equal(f.state().value, 100.1);
+    f.fire(f.layer, 'keydown', { key: 'ArrowLeft' }); assert.equal(f.state().value, 100);
 });

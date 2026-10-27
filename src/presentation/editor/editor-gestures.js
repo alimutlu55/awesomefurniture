@@ -102,7 +102,7 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
                 plan = slot === undefined ? { valid: false, reason: 'Point at another item to swap. Both items must fit their new sections.' } : geometry.planItemMove(from, to, slot, true);
             }
             else {
-                plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (interiorFloorOf(model.activeCabinet().state)) }, { free: e.altKey });
+                plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (interiorFloorOf(model.activeCabinet().state)) }, { free: true });
             }
         }
         rendering.clearPreview(false);

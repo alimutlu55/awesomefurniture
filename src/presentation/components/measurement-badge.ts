@@ -149,7 +149,7 @@ export function bindMeasurementBadges({ layer, boundary, windowEvents, lifetime,
         if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault(); e.stopImmediatePropagation(); const value = b.read();
         const delta = e.key === 'Home' ? (b.min ?? value) - value : e.key === 'End' ? (b.max ?? value) - value
-            : (e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 5 : 1);
+            : (e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 1 : .1);
         b.begin(); feedback.begin(value); const actual = b.preview(delta), changed = b.finish(false);
         const next = refresh(b, true); if (changed) { if (actual !== null) feedback.tick(actual); feedback.settle(next); }
     }, true);

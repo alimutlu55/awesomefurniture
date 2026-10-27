@@ -7,7 +7,7 @@ import { sizeTargets } from '../../src/application/commands/align-commands';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { translateStudio } from '../../src/domain/studio/studio-edit';
 
-/** Resizing with a Size slider lines a wardrobe up through the shared alignment rule, like moving it does. */
+/** Alignment targets remain available for explicit actions; Size sliders preserve the requested millimetres. */
 
 function fixture() {
   const model = createEditorModel();
@@ -31,17 +31,17 @@ test('the sizes that line a wardrobe up: level with its neighbour, touching, fil
   assert.deepEqual(sizeTargets(model.scene, w1, 'd').map(t => t.label + '@' + t.v), ['Front in line with W2@50'], 'backs in line: the same depth puts the fronts in line');
 });
 
-test('a slider near a size that lines it up catches it exactly, holds it, and lets go', () => {
+test('a slider preserves every millimetre near alignment and never holds a nearby target', () => {
   const { model, edits } = fixture();
   edits.beginDimension('h');
-  assert.equal(edits.previewDimension(29.6), 230, 'within half a centimetre of W2: level with it');
-  assert.equal(edits.previewDimension(30.7), 230, 'held while the slider stays near');
+  assert.equal(edits.previewDimension(29.6), 229.6, '4 mm below its neighbour stays 4 mm below');
+  assert.equal(edits.previewDimension(30.7), 230.7, '7 mm above is not held at the old alignment');
   assert.equal(edits.previewDimension(29), 229, 'a centimetre away: the slider value is kept');
   assert.equal(edits.previewDimension(15), 215, 'far from any line: the slider value');
   edits.finish();
   assert.equal(model.activeCabinet().state.h, 215);
   edits.beginDimension('w');
-  assert.equal(edits.previewDimension(19.7), 220, 'touching W2: the wardrobe grows to meet it');
+  assert.equal(edits.previewDimension(19.7), 219.7, 'the remaining gap is preserved until contact is requested');
   edits.finish(true);
 });
 

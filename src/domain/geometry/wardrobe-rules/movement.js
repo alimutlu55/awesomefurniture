@@ -114,7 +114,7 @@ export function createMovementRules(ctx, deps) {
             old[i] = computeLayout(i);
             getDesign().secs[i].forEach((o, j) => oldPos.set(o, old[i][j]));
         }
-        const r = WardrobePlanner.placeItem({ bw: ws[to], H: ih(to), w, h: it.h, want, snap: !opts.free, others: old[to].map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).filter((_, j) => !(to === from.i && j === from.j)).concat(sectionDividers(to).map(dividerRect)) });
+        const r = WardrobePlanner.placeItem({ bw: ws[to], H: ih(to), w, h: it.h, want, snap: !opts.free, grid: .1, others: old[to].map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 })).filter((_, j) => !(to === from.i && j === from.j)).concat(sectionDividers(to).map(dividerRect)) });
         if (!r) {
             return fail('No free space in section ' + (to + 1) + ' for a ' + rd(w) + ' × ' + rd(it.h) + ' cm item.');
         }

@@ -1,3 +1,4 @@
+import { millimetreTranslation } from '../../domain/geometry/millimetres';
 import * as THREE from "three";
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
@@ -141,19 +142,14 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             const v = g.projected[g.axis], length = v.x * v.x + v.y * v.y;
             delta[g.axis] = length > .005 ? (dx * v.x + dy * v.y) / length : dx * 1.5;
         }
-        // Whole centimetres follow the pointer smoothly; Shift moves freely.
+        // One millimetre per step; Shift retains continuous pointer travel.
         if (!e.shiftKey) {
-            for (const k in delta) {
-                delta[k] = Math.round(delta[k]);
-            }
+            delta = millimetreTranslation(delta, g.axis === 'floor' ? model.activeCabinet().angle : 0);
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
         const w = model.activeCabinet();
-        // In a room, a wardrobe brought near a wall settles flush and square against it (Shift: free).
-        const snap = g.axis === 'floor' && !e.shiftKey ? sceneCommands.wallSnap(w, { x: w.x, z: w.z, angle: w.angle }) : null;
-        if (snap) sceneCommands.restorePose(g.id, snap);
-        // Lines up with what is near (touching, centred, fronts in line) within about 8 pixels; Shift moves freely.
-        if (g.axis !== 'y' && !e.shiftKey) sceneCommands.restorePose(g.id, sceneCommands.alignSnap(w, Math.min(15, 8 / Math.max(.05, Math.hypot(g.projected.x.x, g.projected.x.y))), !snap));
+        // Show an exact wall-contact guide without pulling the cabinet across a gap or turning it.
+        const snap = g.axis === 'floor' && !e.shiftKey ? sceneCommands.wallSnap(w, { x: w.x, z: w.z, angle: w.angle }, 0, 0) : null;
         callbacks.wallGuide(snap ? backEdge(snap, w.state) : null);
         // The gaps it is moved along: to the walls and wardrobes beside it, behind and in front, or the ceiling and units above and below.
         const sides = g.axis === 'x' ? ['left', 'right'] : g.axis === 'z' ? ['back', 'front'] : g.axis === 'y' ? ['top', 'bottom']

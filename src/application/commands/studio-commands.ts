@@ -239,10 +239,10 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   }
 
   /** The flush, square pose against a wall for a wardrobe being dragged near it, if it is free. */
-  function wallSnap(cabinet: EditorCabinet, pose: Pose): Pose | null {
+  function wallSnap(cabinet: EditorCabinet, pose: Pose, distance = 10, maxTurn = 20): Pose | null {
     const room = getScene().studio;
     if (!room) return null;
-    const snapped = snapToWall(room, pose, footprint(cabinet));
+    const snapped = snapToWall(room, pose, footprint(cabinet), distance, maxTurn);
     if (!snapped) return null;
     const collision = collisionWith(room, () => getScene().wardrobes);
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
