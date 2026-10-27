@@ -51,8 +51,8 @@ The `Security` GitHub workflow audits production dependencies on changes and che
 the public site twice an hour. It verifies sensitive-path denial, security headers,
 unauthenticated API rejection and forged Stripe webhook rejection. Workflow failure
 notifications follow GitHub account settings; an exact email destination is not
-guaranteed by this workflow. The requested security-alert recipient is
-`alimutlu535529@gmail.com`.
+guaranteed by this workflow. Configure the owner's requested security-alert recipient
+in the provider's notification settings rather than keeping contact details here.
 
 Cloudflare query-monitor setup was attempted, but its SQL preview returned
 `Connection blocked`; no unverified query monitor was enabled. Native email alert
