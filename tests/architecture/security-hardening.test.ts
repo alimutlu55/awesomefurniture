@@ -158,3 +158,19 @@ test('production monitoring fails on exposed files and never submits a valid ide
   await securitySmoke('https://app.test', fetcher(false));
   await assert.rejects(securitySmoke('https://app.test', fetcher(true)), /\.env.production: unexpected HTTP 200/);
 });
+
+test('production monitoring follows the canonical editor route and rejects external redirects', async t => {
+  t.mock.method(console, 'log', () => {});
+  const fetcher = (external: boolean): typeof fetch => async url => {
+    const path = new URL(String(url)).pathname;
+    if (path === '/editor.html') return new Response(null, { status: 307,
+      headers: { location: external ? 'https://other.test/editor' : '/editor' } });
+    const status = path === '/' || path === '/editor' ? 200
+      : path === '/api/credits' || path === '/api/design-images' ? 401 : path.endsWith('/webhook') ? 400 : 404;
+    return new Response(null, { status, headers: {
+      'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': "object-src 'none'",
+    } });
+  };
+  await securitySmoke('https://app.test', fetcher(false));
+  await assert.rejects(securitySmoke('https://app.test', fetcher(true)), /Editor redirected outside the app/);
+});

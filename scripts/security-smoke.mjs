@@ -12,7 +12,16 @@ export async function securitySmoke(base = 'https://furnidraw.com', fetcher = fe
   const failures = [];
   for (const [path, statuses, init] of checks) {
     try {
-      const response = await fetcher(new URL(path, base), { ...init, redirect: 'manual', signal: AbortSignal.timeout(15_000) });
+      const url = new URL(path, base);
+      const options = { ...init, redirect: 'manual', signal: AbortSignal.timeout(15_000) };
+      let response = await fetcher(url, options);
+      if (path === '/editor.html' && [301, 302, 307, 308].includes(response.status)) {
+        const canonical = new URL(response.headers.get('location') ?? '', url);
+        assert.equal(canonical.origin, url.origin, 'Editor redirected outside the app');
+        assert.ok(['/editor', '/editor/'].includes(canonical.pathname), 'Unexpected editor redirect');
+        await response.body?.cancel();
+        response = await fetcher(canonical, options);
+      }
       assert.ok(statuses.includes(response.status), `${path}: unexpected HTTP ${response.status}`);
       if (path === '/' || path === '/editor.html' || path === '/api/env') {
         assert.equal(response.headers.get('x-content-type-options'), 'nosniff', `${path}: missing nosniff`);
