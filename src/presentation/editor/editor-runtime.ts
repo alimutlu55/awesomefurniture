@@ -1,3 +1,4 @@
+import { reconcileInstallation } from '../../application/projects/installation-reconciliation';
 import { bindKitchenConstruction } from './kitchen-construction-fields';
 import { createClothingWarmup } from '../viewport/clothing-warmup';
 import { createStudioPanel } from './studio-panel';
@@ -127,6 +128,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 const flags = applyViewportSession(project, next, session);
                 model.restore(JSON.stringify(next));
                 history.clear();
+                checkInstallation();
                 Object.assign(selectionState, flags);
                 selectionState.viewMode = 'furniture';
                 selectionState.room = null;
@@ -224,6 +226,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         camera.frameScene({ instant: true });
         camera.resize();
         inspector.update(true);
+        checkInstallation();
         rendering.loop();
         const clothingWarmup = createClothingWarmup(resources.R, resources.scene, resources.cam, dom.host.ownerDocument);
         lifetime.cleanup(() => clothingWarmup.dispose());
@@ -239,6 +242,10 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             const next = projectToScene(project) ?? createEditorModel().scene;
             if (record) history.checkpoint(model.snapshot());
             showScene(JSON.stringify(next), !record);
+            checkInstallation();
+        }
+        function checkInstallation() {
+            if (!reconcileInstallation(model.scene)) shell.toast('There is no room for the full installation strips or shared separators. Move the run to make space.', undefined, 12000);
         }
         function showScene(snapshot: string, keepPanel = false) {
             model.restore(snapshot);

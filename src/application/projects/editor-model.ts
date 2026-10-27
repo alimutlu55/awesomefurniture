@@ -1,3 +1,4 @@
+import { reconcileInstallation } from './installation-reconciliation';
 import type {EditorCabinet, EditorScene} from './editor-scene';
 import { createEditorState } from './editor-state';
 import { ensureEditorIdentities } from './editor-identities';
@@ -9,6 +10,7 @@ export const emptyCabinet = (): EditorCabinet => ({ id: 0, name: '', x: 0, y: 0,
 
 export function createEditorModel(initialScene?:EditorScene, newId = () => crypto.randomUUID()) {
     let scene:EditorScene = initialScene ? structuredClone(initialScene) : { wardrobes: [{ id: 1, name: 'Wardrobe 1', x: 0, y: 0, z: 0, angle: 0, state: createEditorState() }], activeWardrobe: 1, nextWardrobeId: 2 };
+    reconcileInstallation(scene);
     let spare: EditorCabinet | null = null;
     return {
         get scene() {

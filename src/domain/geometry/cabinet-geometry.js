@@ -1,3 +1,4 @@
+import { installationCollisionSolids, installationPair } from '../kitchen/installation-collision';
 import { automaticInstallationParts } from '../kitchen/automatic-installation';
 /** Collision rules receive scene data explicitly; no editor or renderer state.
  * Wardrobes collide with each other and with fixed obstacles (the room's walls). Obstacles never move
@@ -8,12 +9,12 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     /** Everything a wardrobe can bump into. */
     const bodies = candidate => candidate ? [...getCabinets().filter(p => p.id !== candidate.id), candidate] : getCabinets();
     const panels = candidate => automaticInstallationParts(bodies(candidate));
-    const solids = candidate => [...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()];
-    const owned = candidate => [candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)];
+    const solids = candidate => installationCollisionSolids([...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()], bodies(candidate));
+    const owned = candidate => installationCollisionSolids([candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
     const assembly = candidate => {
         const parts = panels(candidate);
-        return { moving: [candidate, ...parts.filter(p => p.ownerId === candidate.id)],
-            fixed: [...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()] };
+        return { moving: installationCollisionSolids([candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
+            fixed: installationCollisionSolids([...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()], bodies(candidate)) };
     };
     function cabinetBounds(w) {
         const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
@@ -38,12 +39,12 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     }
     function cabinetCollides(candidate) {
         const { moving, fixed } = assembly(candidate);
-        return moving.some(part => fixed.some(other => cabinetOverlaps(part, other)));
+        return moving.some(part => fixed.some(other => installationPair(part, other) && cabinetOverlaps(part, other)));
     }
     /** What a wardrobe in this pose would run into: 'wall', 'fixture' (a toilet, a basin), 'wardrobe', or null. */
     function cabinetObstruction(candidate) {
         const { moving, fixed } = assembly(candidate);
-        const hit = fixed.find(other => moving.some(part => cabinetOverlaps(part, other))), id = String(hit?.id);
+        const hit = fixed.find(other => moving.some(part => installationPair(part, other) && cabinetOverlaps(part, other))), id = String(hit?.id);
         return !hit ? null : id.startsWith('wall:') ? 'wall' : id.startsWith('fixture:') ? 'fixture' : 'wardrobe';
     }
     /** Size fields normally grow around the centre. At a wall, distribute growth
@@ -91,7 +92,7 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         const targetPose = { ...w, ...target };
         const movingParts = owned(targetPose).map(p => ({ ...p, x: p.x - delta.x, y: (p.y || 0) - delta.y, z: p.z - delta.z }));
         for (const part of movingParts) for (const other of solids(targetPose)) {
-            if (other.id === w.id) {
+            if (other.id === w.id || !installationPair(part, other)) {
                 continue;
             }
             let enter = -Infinity, leave = Infinity;

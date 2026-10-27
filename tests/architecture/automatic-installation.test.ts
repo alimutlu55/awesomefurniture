@@ -86,7 +86,7 @@ test('an added End/Separator pane inherits a shaped wardrobe side and all select
 test('external panels consume physical clearance; exact cabinet contact replaces the two facing finish panels', () => {
   const a = unit(1, 0, 0, 0, 'base'), b = unit(2, 62, 0, 0, 'base');
   const collision = createCabinetGeometry(() => [a, b]);
-  assert.equal(collision.cabinetCollides(a), true, 'two 18 mm panels do not fit in a 20 mm gap');
+  assert.equal(collision.cabinetCollides(a), false, 'one shared 18 mm pane fits in a 20 mm gap');
   assert.equal(collision.cabinetCollides({ ...b, x: 60 }), false, 'a new cabinet at direct contact closes the run');
 });
 

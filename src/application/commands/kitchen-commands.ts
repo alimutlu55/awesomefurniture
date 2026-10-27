@@ -103,6 +103,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const fresh: EditorCabinet = { id, name: preset.name + ' ' + id, x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
       const anchor = anchorFor(), { beside, ...spot } = placement, studio = scene.studio, wall = spot.placementWall;
       if (preset.unit === 'end-panel' && anchor) {
+        if (anchor.state.unit === 'end-panel') { scene.activeWardrobe = anchor.id; return anchor; }
         for (const side of [1, -1] as const) {
           const inherited = { ...endPanelDesign(anchor.state, side), sel: 0, item: -1, divider: -1, space: null, open: false };
           const panel = { ...fresh, state: inherited, ...besidePose(anchor, inherited.w, inherited.d, side, anchor.y) };

@@ -1,3 +1,4 @@
+import { reconcileInstallation } from './installation-reconciliation';
 import { installationKind } from '../../domain/kitchen/kitchen-units';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { EditorScene, EditorState } from './editor-scene';
@@ -87,7 +88,9 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};
  });
- return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
+ const scene = {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
+ reconcileInstallation(scene);
+ return scene;
 }
 
 /** Selection, open doors, and the next ID counter are transient UI state. */

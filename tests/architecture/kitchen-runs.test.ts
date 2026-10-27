@@ -239,7 +239,8 @@ test('extending a run with + fits a narrower cabinet (>= 30 cm), a filler cover 
   // The return reserves its required 40 mm corner strip before the 60 cm module.
   // Unit 1 stands at x: -30..30, z: -29..29 facing +z (angle 0).
   // Perpendicular Unit 2 (d = 58 cm) stands at x: 30..88, z: 29..89 facing -x (angle -90), right in front of the corner pocket (x: 30..88, z: -29..29).
-  const s3 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 59, 63, -90, 60));
+  // Reserve 40 mm beyond the neighbouring 18 mm finished front, not just the carcass.
+  const s3 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 59, 64.8, -90, 60));
   const cmd3 = createSceneCommands(() => s3);
   const cornerCover = cmd3.extendKitchenRun(1)!;
   assert.ok(cornerCover, 'places a unit into the corner pocket');

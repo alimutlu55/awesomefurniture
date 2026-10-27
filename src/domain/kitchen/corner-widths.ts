@@ -1,10 +1,11 @@
+import { kitchenFrontThickness } from './installation-parts';
 import { RUN_TOLERANCE, unitAxes } from './kitchen-runs';
 import { isFixture, installationKind, kitchenUnit, WORKTOP } from './kitchen-units';
 import type { EditorDesign } from '../wardrobe/editor-design';
 
 interface Cabinet {
   readonly id: number | string; readonly x: number; readonly z: number; readonly y?: number | undefined; readonly angle: number;
-  readonly state: Pick<EditorDesign, 'w' | 'h' | 'd' | 'product' | 'unit' | 'cornerStrip'>;
+  readonly state: Pick<EditorDesign, 'w' | 'h' | 'd' | 'product' | 'unit' | 'cornerStrip'> & Partial<Pick<EditorDesign, 'frontThickness' | 'materials' | 'fin' | 'shape'>>;
 }
 export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean; readonly strip?: boolean }
 // Numerical tolerance only (centimetres). Real gaps and offsets are never snapped or rounded here.
@@ -31,11 +32,13 @@ function coveredWidths(box: Cabinet, others: readonly Cabinet[]): FaceWidth[] {
   const w = box.state.w, plain = [{ from: 0, to: w, covered: false }];
   if (!cabinet(box)) return plain;
   const { u, v } = unitAxes(box.angle), front = { x: box.x + v.x * box.state.d / 2, z: box.z + v.z * box.state.d / 2 };
-  const join = RUN_TOLERANCE + (kitchenUnit(box.state.unit).worktop ? WORKTOP.overhang : 0) + cornerStripWidth(box.state);
+  const allowance = RUN_TOLERANCE + (kitchenUnit(box.state.unit).worktop ? WORKTOP.overhang : 0);
+  const finish = Math.max(allowance, kitchenFrontThickness({ ...box.state, fin: box.state.fin ?? 'White' }));
   const covered: [number, number][] = [];
   for (const other of others) {
     if (other.id === box.id || !cabinet(other)) continue;
     if ((other.y ?? 0) >= (box.y ?? 0) + box.state.h - EPS || (other.y ?? 0) + other.state.h <= (box.y ?? 0) + EPS) continue;
+    const join = Math.max(cornerStripWidth(box.state), cornerStripWidth(other.state)) + finish;
     const axes = unitAxes(other.angle);
     if (Math.abs(u.x * axes.u.x + u.z * axes.u.z) > QUARTER_TURN + EPS) continue;
     // A cabinet entirely behind this front does not hide it, even if its projected width lines up.
@@ -104,7 +107,7 @@ export function cornerReturnSides(box: Cabinet, others: readonly Cabinet[]): (-1
     if (Math.abs(dir) < .99) continue;
     const plane = { x: other.x + axes.v.x * other.state.d / 2, z: other.z + axes.v.z * other.state.d / 2 };
     const at = ((plane.x - front.x) * axes.v.x + (plane.z - front.z) * axes.v.z) / dir + box.state.w / 2;
-    const join = RUN_TOLERANCE + WORKTOP.overhang + strip;
+    const join = Math.max(strip, cornerStripWidth(other.state)) + Math.max(RUN_TOLERANCE + WORKTOP.overhang, kitchenFrontThickness({ ...other.state, fin: other.state.fin ?? 'White' }));
     const ix = front.x + u.x * (at - box.state.w / 2), iz = front.z + u.z * (at - box.state.w / 2);
     const onOther = (ix - other.x) * axes.u.x + (iz - other.z) * axes.u.z + other.state.w / 2;
     const nearOtherEnd = Math.min(Math.abs(onOther), Math.abs(onOther - other.state.w)) <= join + EPS;

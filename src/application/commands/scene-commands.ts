@@ -1,3 +1,4 @@
+import { reconcileInstallation } from '../projects/installation-reconciliation';
 import { createKitchenConstructionCommands } from './kitchen-construction';
 import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
@@ -118,6 +119,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         settleCabinet(id: number) {
             const cabinet = getScene().wardrobes.find(w => w.id === id), problem = cabinet ? ceilings.follow(cabinet) : null;
             if (problem) report(problem);
+            else if (!reconcileInstallation(getScene())) report('There is no room to reserve the full installation strip or separator width.');
             return problem;
         },
         /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it

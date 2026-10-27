@@ -1,3 +1,4 @@
+import { sharedEndPanels } from './shared-panels';
 import { automaticEndPanels, endPanelDesign, type PanelPose } from './end-panels';
 import { cornerReturnSides, cornerStripWidth } from './corner-widths';
 import { besidePose, unitAxes } from './kitchen-runs';
@@ -22,5 +23,5 @@ export function automaticInstallationParts<S extends PanelPose['state']>(boxes: 
     return [{ id: -Number(box.id) * 4 - (side > 0 ? 3 : 2), ownerId: box.id, side, name: 'Corner installation strip',
       ...besidePose(box, width, state.d, side), state }];
   }));
-  return [...automaticEndPanels(boxes), ...strips];
+  return [...sharedEndPanels(automaticEndPanels(boxes)), ...strips];
 }

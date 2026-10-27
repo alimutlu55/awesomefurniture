@@ -1,3 +1,4 @@
+import { reconcileInstallation } from '../projects/installation-reconciliation';
 import { worktopThickness } from '../../domain/materials/configured-materials';
 import { unitAxes, kitchenSpans } from '../../domain/kitchen/kitchen-runs';
 import type { EditorScene } from '../projects/editor-scene';
@@ -47,10 +48,14 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       if (key === 'cornerStrip' && widths.some(s => s.covered || s.strip) && !widths.some(s => !s.covered && !s.strip)) {
         report('The corner strip needs a perpendicular return and an exposed front beside it.'); return false;
       }
-      const collision = createCabinetGeometry(() => scene.wardrobes.filter(p => {
+      const planned = structuredClone(scene);
+      planned.wardrobes.find(p => p.id === next.id)!.state = state;
+      if (!reconcileInstallation(planned)) { report('There is no room to reserve the full installation strip or separator width.'); return false; }
+      Object.assign(next, planned.wardrobes.find(p => p.id === next.id)!);
+      const collision = createCabinetGeometry(() => planned.wardrobes.filter(p => {
         const kind = kitchenUnit(p.state.unit).fixture; return kind !== 'sink' && kind !== 'hob';
       }), () => studioObstacles(scene.studio));
-      const top = resolveShape(state), spans = kitchenSpans(scene.wardrobes.map(p => p.id === next.id ? next : p));
+      const top = resolveShape(state), spans = kitchenSpans(planned.wardrobes);
       const extra = spans.find(s => s.kind === 'worktop' && s.units.includes(next.id))?.height ?? 0;
       const envelope = { ...next, state: { ...state, h: state.h + extra } };
       if (collision.cabinetCollides(envelope) || ceilingClearance(scene.studio, { ...next, w: state.w, d: state.d }, 0)({ ...top,
@@ -64,6 +69,9 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           && Math.abs((p.x - cabinet.x) * u.x + (p.z - cabinet.z) * u.z) <= state.w / 2
           && Math.abs((p.x - cabinet.x) * v.x + (p.z - cabinet.z) * v.z) <= state.d / 2);
       if (recordHistory) checkpoint();
+      for (const p of scene.wardrobes) { const moved = planned.wardrobes.find(b => b.id === p.id); if (moved) Object.assign(p, { x: moved.x, y: moved.y, z: moved.z }); }
+      scene.wardrobes = scene.wardrobes.filter(p => planned.wardrobes.some(b => b.id === p.id));
+      scene.activeWardrobe = planned.activeWardrobe;
       cabinet.state = state;
       for (const fixture of supported) fixture.y = (fixture.y ?? 0) + lift;
       return true;
