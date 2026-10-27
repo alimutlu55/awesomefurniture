@@ -6,6 +6,7 @@ import type { WardrobeShape } from '../wardrobe/shape/wardrobe-shape';
 
 interface PanelState {
   w: number; h: number; d: number; product?: 'kitchen' | undefined; unit?: EditorDesign['unit'];
+  endPanelSides?: (-1 | 1)[] | undefined;
   endPanelThickness?: number | undefined; cornerStrip?: number | undefined; shape?: WardrobeShape | undefined;
 }
 export interface PanelPose<S extends PanelState = PanelState> {
@@ -23,7 +24,7 @@ export function endPanelDesign<S extends PanelState>(source: S, side: -1 | 1, wi
   const shape: WardrobeShape | undefined = top ? { template: 'custom', top: [{ x: 0, y: front }, { x: width, y: front }], back: [back, back] } : undefined;
   return { ...from, product: 'kitchen' as const, unit: 'end-panel' as const, w: width, h: Math.max(front, back), n: 1,
     wt: [100, 100, 100, 100, 100, 100], secs: [[], [], [], [], [], []], dividers: [], doors: 'none' as const,
-    shape, cornerStrip: undefined, ventilationWidth: undefined, ventilationHeight: undefined, fridgeSplit: undefined };
+    shape, endPanelSides: undefined, cornerStrip: undefined, ventilationWidth: undefined, ventilationHeight: undefined, fridgeSplit: undefined };
 }
 
 /** Is the complete run end occupied by another unit? Exact footprint tests, with only numerical tolerance.
@@ -56,10 +57,30 @@ export function automaticEndPanels<S extends PanelState>(boxes: readonly PanelPo
   return boxes.flatMap(box => {
     if (Number(box.id) < 0 || !Number.isFinite(Number(box.id)) || box.state.product !== 'kitchen' || isFixture(box.state) || installationKind(box.state)) return [];
     const { u } = unitAxes(box.angle), width = endPanelThickness(box.state);
-    return ([-1, 1] as const).filter(side => exposedEnd(box, boxes, side)).map(side => ({
+    return ([-1, 1] as const).filter(side => (box.state.endPanelSides?.includes(side) || exposedEnd(box, boxes, side)) && !explicitSidePanel(box, boxes, side)).map(side => ({
       id: -Number(box.id) * 4 - (side > 0 ? 1 : 0), ownerId: box.id, side, name: 'End/Separator pane',
       x: box.x + u.x * side * (box.state.w + width) / 2, y: box.y ?? 0,
       z: box.z + u.z * side * (box.state.w + width) / 2, angle: box.angle, state: endPanelDesign(box.state, side, width),
     }));
   });
+}
+
+
+/** An explicit board remains a cabinet entity; do not draw a second attached board in the same place. */
+function explicitSidePanel(box: PanelPose, boxes: readonly PanelPose[], side: -1 | 1) {
+  const { u, v } = unitAxes(box.angle);
+  return boxes.some(p => p.id !== box.id && installationKind(p.state) === 'end-panel'
+    && Math.abs(Math.sin((p.angle - box.angle) * Math.PI / 180)) < EPS
+    && Math.abs((p.x - box.x) * u.x + (p.z - box.z) * u.z - side * (box.state.w + p.state.w) / 2) < EPS
+    && Math.abs((p.x - box.x) * v.x + (p.z - box.z) * v.z - (p.state.d - box.state.d) / 2) < EPS
+    && (p.y ?? 0) <= (box.y ?? 0) + EPS && (p.y ?? 0) + p.state.h >= (box.y ?? 0) + box.state.h - EPS);
+}
+
+/** Called at a committed scene boundary, never by a renderer or collision preview. */
+export function rememberEndPanels(boxes: readonly PanelPose[]) {
+  const parts = automaticEndPanels(boxes);
+  for (const box of boxes) {
+    const sides = parts.filter(p => p.ownerId === box.id).map(p => p.side);
+    if (sides.length) box.state.endPanelSides = [...new Set([...(box.state.endPanelSides ?? []), ...sides])].sort();
+  }
 }

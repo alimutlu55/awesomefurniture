@@ -41,6 +41,8 @@ export interface EditorDesign {
   cornerStrip?: number | undefined;
   /** Attached finish panel thickness at exposed kitchen run ends (cm); default 18 mm. */
   endPanelThickness?: number | undefined;
+  /** Existing attached end/separator boards survive joining another cabinet. */
+  endPanelSides?: (-1 | 1)[] | undefined;
   /** Nominal lower fridge door height from its front bottom (cm); zero/absent uses the legacy split. */
   fridgeSplit?: number | undefined;
   /** Purchased plinth grille outer dimensions (cm), not a manufacturer cut-out or free-area specification. */

@@ -1,5 +1,8 @@
+import { expandedEndPanels } from '../kitchen/explicit-panel-fit';
 import { installationCollisionSolids, installationPair } from '../kitchen/installation-collision';
 import { automaticInstallationParts } from '../kitchen/automatic-installation';
+// Centimetres: tolerate only 0.0001 mm of serialized transform noise, never a real 1 mm joint.
+const CONTACT = 1e-5;
 /** Collision rules receive scene data explicitly; no editor or renderer state.
  * Wardrobes collide with each other and with fixed obstacles (the room's walls). Obstacles never move
  * and are not wardrobes: scene bounds and wardrobe lists ignore them.
@@ -7,13 +10,13 @@ import { automaticInstallationParts } from '../kitchen/automatic-installation';
  * @param {() => readonly import('../studio/studio-obstacles').Obstacle[]} [getObstacles] */
 export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     /** Everything a wardrobe can bump into. */
-    const bodies = candidate => candidate ? [...getCabinets().filter(p => p.id !== candidate.id), candidate] : getCabinets();
+    const bodies = candidate => expandedEndPanels(candidate ? [...getCabinets().filter(p => p.id !== candidate.id), candidate] : getCabinets());
     const panels = candidate => automaticInstallationParts(bodies(candidate));
     const solids = candidate => installationCollisionSolids([...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()], bodies(candidate));
-    const owned = candidate => installationCollisionSolids([candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
+    const owned = candidate => installationCollisionSolids([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
     const assembly = candidate => {
         const parts = panels(candidate);
-        return { moving: installationCollisionSolids([candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
+        return { moving: installationCollisionSolids([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
             fixed: installationCollisionSolids([...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()], bodies(candidate)) };
     };
     function cabinetBounds(w) {
@@ -29,13 +32,13 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         return Math.abs(u.x * axis.x + u.z * axis.z) * w.state.w / 2 + Math.abs(v.x * axis.x + v.z * axis.z) * w.state.d / 2;
     }
     function cabinetGap(a, b) {
-        if ((a.y || 0) + a.state.h <= (b.y || 0) + 1e-8 || (b.y || 0) + b.state.h <= (a.y || 0) + 1e-8) {
+        if ((a.y || 0) + a.state.h <= (b.y || 0) + CONTACT || (b.y || 0) + b.state.h <= (a.y || 0) + CONTACT) {
             return Infinity;
         }
         return Math.max(...[...cabinetAxes(a), ...cabinetAxes(b)].map(axis => Math.abs((a.x - b.x) * axis.x + (a.z - b.z) * axis.z) - cabinetRadius(a, axis) - cabinetRadius(b, axis)));
     }
     function cabinetOverlaps(a, b) {
-        return cabinetGap(a, b) < -1e-8;
+        return cabinetGap(a, b) < -CONTACT;
     }
     function cabinetCollides(candidate) {
         const { moving, fixed } = assembly(candidate);
@@ -51,6 +54,8 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
      * across the available gaps. Each growing candidate contains the old footprint. */
     function cabinetResizePose(w, key, value, slide = false) {
         const pose = { x: w.x, y: w.y || 0, z: w.z }, next = { ...w, state: { ...w.state, [key]: value } };
+        const prepared = bodies(next).find(p => p.id === next.id);
+        if (prepared && Math.abs(prepared.state[key] - value) > CONTACT) return null;
         if (!cabinetCollides(next)) return pose;
         const growth = value - w.state[key];
         if ((key !== 'w' && key !== 'd') || growth <= 0) return null;
@@ -113,7 +118,7 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
                     leave = Math.min(leave, Math.max(a, b));
                 }
             }
-            if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -1e-8) {
+            if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -CONTACT / Math.max(1, Math.hypot(delta.x, delta.y, delta.z))) {
                 limit = Math.max(0, enter);
             }
         }

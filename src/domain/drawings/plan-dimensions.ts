@@ -1,3 +1,4 @@
+import { planLevelRows } from './plan-levels';
 import { isWallUtility } from '../studio/wall-utilities';
 import type { Studio } from '../studio/studio';
 import { cornerDegree } from '../studio/studio';
@@ -16,7 +17,7 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
     const g = wallGeometry(studio, wall);
     if (!g) continue;
     const { line: l, face } = g, mine = visible.filter(p => p.wall === wall.id);
-    const floor = mine.filter(p => !p.hung && !p.fixture);
+    const floor = upper ? [] : mine.filter(p => !p.hung && !p.fixture);
     const split = (p: PlacedPiece) => cornerWidthStops(p, context).map(s => p.lo + s);
     const chain = (values: readonly number[], row: number, depth = 0, side: 1 | -1 = 1): Dimensions => ({
       kind: 'dims', origin: plan(face.from.x + l.nx * depth, face.from.z + l.nz * depth),
@@ -50,12 +51,13 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
           dir: { x: l.nx, y: -l.nz }, side: atRight ? 1 : -1, clear: 0, row: 0, stops: stops([0, mm(floor.find(p => Math.abs(p.off + p.design.d - deepest) < 1e-7)!.off), mm(deepest), mm(top)]) });
       }
     }
-    const hung = (upper ? visible : context).filter(p => p.wall === wall.id && (p.hung || p.y + p.design.h >= 120) && (!p.fixture || p.fixture === 'shelf'));
-    if (hung.length && !overview) out.push(chain(hung.flatMap(split), 0));
+    const hung = (upper ? visible : context).filter(p => p.wall === wall.id && (p.hung || installationKind(p.design)) && (!p.fixture || p.fixture === 'shelf'));
+    const rows = overview ? [] : planLevelRows(hung).filter(row => row.some(p => p.hung && !installationKind(p.design)));
+    rows.forEach((row, i) => out.push(chain(row.flatMap(split), i)));
     // Structural openings have their own outer setting-out tier; service datums belong on service elevations.
     const openings = g.openings.filter(o => !isWallUtility(o.kind));
-    if (openings.length && !overview) out.push(chain(openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), Number(hung.length > 0)));
-    out.push(chain([], Number(hung.length > 0 && !overview) + Number(openings.length > 0 && !overview)));
+    if (openings.length && !overview) out.push(chain(openings.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), rows.length));
+    out.push(chain([], rows.length + Number(openings.length > 0 && !overview)));
   }
   return out;
 }

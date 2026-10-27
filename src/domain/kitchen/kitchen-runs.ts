@@ -1,3 +1,4 @@
+import { PANEL } from '../wardrobe/catalog.js';
 import { plinthOf } from '../wardrobe/carcass';
 import { worktopThickness, type ConfiguredMaterialsState } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
@@ -16,6 +17,7 @@ export interface UnitPose {
   readonly z: number;
   readonly angle: number;
   readonly state: { readonly plinthHeight?: number | undefined; readonly worktopThickness?: number | undefined;
+    readonly endPanelThickness?: number | undefined; readonly endPanelSides?: readonly (-1 | 1)[] | undefined;
     readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
 }
 export interface Pose { x: number; y: number; z: number; angle: number }
@@ -58,7 +60,9 @@ export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: 
     let run: UnitPose[] = [];
     for (const c of line) {
       const prev = run[run.length - 1];
-      const touching = prev && Math.abs((along(c, angle) - c.state.w / 2) - (along(prev, angle) + prev.state.w / 2)) <= RUN_TOLERANCE && joins(prev, c);
+      const reserve = prev && !installationKind(prev.state) && !installationKind(c.state) ? Math.max(prev.state.endPanelSides?.includes(1) ? prev.state.endPanelThickness ?? PANEL : 0,
+        c.state.endPanelSides?.includes(-1) ? c.state.endPanelThickness ?? PANEL : 0) : 0;
+      const touching = prev && Math.abs((along(c, angle) - c.state.w / 2) - (along(prev, angle) + prev.state.w / 2) - reserve) <= RUN_TOLERANCE && joins(prev, c);
       if (prev && !touching) { runs.push(run); run = []; }
       run.push(c);
     }
@@ -120,7 +124,7 @@ export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: Un
   const poses: Pose[] = [];
   let last: UnitPose = from;
   for (let n = 0; n < count; n++) {
-    const pose = besidePose(last, unit.state.w, unit.state.d, side, unit.y || 0);
+    const pose = besidePanel(last, unit, side, unit.y || 0);
     poses.push(pose);
     last = { ...unit, ...pose };
   }
@@ -152,3 +156,12 @@ export function runReach(units: readonly UnitPose[], unit: UnitPose): [number, n
 /** How many copies of a unit `width` wide a pull of `distance` centimetres from its side asks for. A copy
  * appears once the pull passes 40% of its width, so it follows the pointer without waiting a whole width. */
 export const arrayCount = (distance: number, width: number, max = 12) => Math.max(0, Math.min(max, Math.floor(distance / width + .6)));
+
+
+/** Existing stock remains between bodies when another module is placed beside it. */
+export function besidePanel(anchor: UnitPose, next: UnitPose, side: -1 | 1, y = anchor.y ?? 0): Pose {
+  const pose = besidePose(anchor, next.state.w, next.state.d, side, y), { u } = unitAxes(anchor.angle);
+  const reserve = Math.max(anchor.state.endPanelSides?.includes(side) ? anchor.state.endPanelThickness ?? PANEL : 0,
+    next.state.endPanelSides?.includes(side === 1 ? -1 : 1) ? next.state.endPanelThickness ?? PANEL : 0);
+  return { ...pose, x: pose.x + u.x * side * reserve, z: pose.z + u.z * side * reserve };
+}

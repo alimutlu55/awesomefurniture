@@ -1,3 +1,4 @@
+import { expandedEndPanels } from './explicit-panel-fit';
 import { sharedEndPanels } from './shared-panels';
 import { automaticEndPanels, endPanelDesign, type PanelPose } from './end-panels';
 import { cornerReturnSides, cornerStripWidth } from './corner-widths';
@@ -7,6 +8,7 @@ import { installationKind } from './kitchen-units';
 /** The return-side strip is additive: unlike the blind unit's allocated strip, it must never reduce
  * a cargo module's nominal width. Explicitly placed strips/panes suppress derived duplicates. */
 export function automaticInstallationParts<S extends PanelPose['state']>(boxes: readonly PanelPose<S>[]) {
+  boxes = expandedEndPanels(boxes);
   const strips = boxes.flatMap(box => cornerReturnSides(box, boxes).flatMap(side => {
     if (Number(box.id) < 0 || !Number.isFinite(Number(box.id))) return [];
     const { u, v } = unitAxes(box.angle);

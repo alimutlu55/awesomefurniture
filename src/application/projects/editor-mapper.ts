@@ -1,3 +1,4 @@
+import { rememberEndPanels } from '../../domain/kitchen/end-panels';
 import { reconcileInstallation } from './installation-reconciliation';
 import { installationKind } from '../../domain/kitchen/kitchen-units';
 import type { ProjectDocument } from '../../domain/project/project';
@@ -26,6 +27,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    doors:s.doors==='hinged'?'solid' as const:s.doors,
    ...(s.materials?{materials:structuredClone(s.materials)}:{}),
    ...(s.plinthHeight===undefined?{}:{plinthHeight:s.plinthHeight}), ...(s.cornerStrip===undefined?{}:{cornerStrip:s.cornerStrip}),
+   ...(s.endPanelSides===undefined?{}:{endPanelSides:[...s.endPanelSides]}),
    ...(s.endPanelThickness===undefined?{}:{endPanelThickness:s.endPanelThickness}),
    ...(s.fridgeSplit===undefined?{}:{fridgeSplit:s.fridgeSplit}),
    ...(s.ventilationWidth===undefined?{}:{ventilationWidth:s.ventilationWidth}), ...(s.ventilationHeight===undefined?{}:{ventilationHeight:s.ventilationHeight}),
@@ -75,6 +77,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
    ...(w.materials?{materials:structuredClone(resolveMaterials(w))}:{}),
    ...(w.plinthHeight===undefined?{}:{plinthHeight:w.plinthHeight}), ...(w.cornerStrip===undefined?{}:{cornerStrip:w.cornerStrip}),
+   ...(w.endPanelSides===undefined?{}:{endPanelSides:[...w.endPanelSides]}),
    ...(w.endPanelThickness===undefined?{}:{endPanelThickness:w.endPanelThickness}),
    ...(w.fridgeSplit===undefined?{}:{fridgeSplit:w.fridgeSplit}),
    ...(w.ventilationWidth===undefined?{}:{ventilationWidth:w.ventilationWidth}), ...(w.ventilationHeight===undefined?{}:{ventilationHeight:w.ventilationHeight}),
@@ -90,6 +93,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
  });
  const scene = {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
  reconcileInstallation(scene);
+ rememberEndPanels(scene.wardrobes);
  return scene;
 }
 

@@ -1,3 +1,4 @@
+import { installationKind } from '../kitchen/kitchen-units';
 import { fixtureSymbols } from './fixture-symbols';
 import { planDimensions } from './plan-dimensions';
 import type { Studio } from '../studio/studio';
@@ -65,12 +66,16 @@ function walls(studio: Studio, pieces: readonly PlacedPiece[], operations: boole
   return out;
 }
 
+/** A shared upright crossing the upper level belongs to both plans, even though it starts at floor level. */
+export const planPieceShown = (p: PlacedPiece, upper = false) => upper
+  ? p.y >= 120 || installationKind(p.design) === 'end-panel' && p.y + p.design.h > 120 : p.y < 120;
+
 /** The plan: walls cut and hatched, openings with their sizes, every piece's footprint with its mark (wall-hung
  * pieces dashed, as they are above the cut), worktops, and the dimension strings. Pieces standing free carry
  * their own width and depth. */
 export function planView(studio: Studio | undefined, pieces: readonly PlacedPiece[], options: DrawingOptions = {}): Item[] {
   const preset = options.preset ?? 'installation', upper = options.upperPlan ?? false, operations = preset === 'clearances';
-  const visible = pieces.filter(p => upper ? p.y >= 120 : p.y < 120);
+  const visible = pieces.filter(p => planPieceShown(p, upper));
   const out: Item[] = studio ? [...walls(studio, visible, operations), ...(upper ? [] : fixturePlan(studio))] : [];
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {

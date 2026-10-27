@@ -46,7 +46,7 @@ test('marks run along the wall, left to right, each kind of furniture counting o
 test('the plan dimensions every piece and gap to the wall ends, the window, the wall, and the depth', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
   const strings = dims(all(plan!)).map(d => d.stops);
-  assert.deepEqual(strings, [[-18, 0, 600, 618, 682, 700, 1300, 1318, 3000], [0, 580, 600], [-18, 0, 600, 618, 682, 700, 1300, 1318, 3000], [0, 1700, 2700, 3000], [0, 3000]],
+  assert.deepEqual(strings, [[-18, 0, 600, 618, 682, 700, 1300, 1318, 3000], [0, 580, 600], [0, 682, 700, 1300, 1318, 3000], [0, 1700, 2700, 3000], [0, 3000]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
   assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);

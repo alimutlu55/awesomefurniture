@@ -47,9 +47,9 @@ test('pulling a grip adds copies as the pull passes most of a unit width, and le
   assert.equal((JSON.parse(f.checkpoints[0]!) as EditorScene).wardrobes.length, 1, 'undo returns to before the pull');
   assert.match(f.toasts[0]!, /1 cabinet added, with plain storage in place of the appliances/);
   const copy = f.model.scene.wardrobes[1]!;
-  assert.ok(Math.abs(copy.x - 60) < 1e-6, 'right beside it');
+  assert.ok(Math.abs(copy.x - 61.8) < 1e-6, 'beside the retained 18 mm separator');
   assert.ok(copy.state.secs[0]!.every(it => !hasTrait(it.k, 'appliance')), 'no hob or oven copied');
-  assert.deepEqual(kitchenSpans(f.model.scene.wardrobes).filter(s => s.kind === 'worktop').map(s => s.length), [120], 'one worktop over both');
+  assert.deepEqual(kitchenSpans(f.model.scene.wardrobes).filter(s => s.kind === 'worktop').map(s => s.length), [121.8], 'one worktop over both, including the retained separator');
 });
 
 test('a long press then a slide pulls copies towards the side it slides to; a cancelled pull leaves nothing', () => {

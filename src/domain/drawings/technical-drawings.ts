@@ -5,7 +5,7 @@ import { constructionIssues, alignmentIssues } from './drawing-issues';
 import { mm, type PieceRow, type Sheet } from './drawing';
 import { type DrawingInput, type PlacedPiece, pieceName, placePieces, wallGeometry } from './room-pieces';
 import { planClearances } from './plan-clearances';
-import { planView } from './plan-view';
+import { planView, planPieceShown } from './plan-view';
 import { pieceElevation, wallElevation } from './wall-elevation';
 import { designChecks } from './checks';
 import { unitDetailLegend, unitDetailViews } from './unit-detail';
@@ -61,9 +61,9 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
     pieces: pieces.filter(p => p.y < 120).map(p => row(p, letters)), checks: preset === 'clearances' ? checks : geometryChecks }];
   if (options.upperPlan !== false && pieces.some(p => p.y >= 120)) sheets.push({ number: 2, title: 'Upper furniture plan', purpose,
-    legend: ['Upper units only · elevations show exact mounting levels · dimensions in mm'], issues,
+    legend: ['Upper units and shared separators · elevations show exact mounting levels · dimensions in mm'], issues,
     views: [{ title: 'Upper furniture plan', items: planView(studio, pieces, { ...config, upperPlan: true }) }],
-    pieces: pieces.filter(p => p.y >= 120).map(p => row(p, letters)), checks: [] });
+    pieces: pieces.filter(p => planPieceShown(p, true)).map(p => row(p, letters)), checks: [] });
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
     sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, views: [{ title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces) }],

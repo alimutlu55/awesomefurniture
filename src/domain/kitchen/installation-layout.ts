@@ -1,6 +1,8 @@
+import { expandedEndPanels } from './explicit-panel-fit';
+import { resolvePanelJoints } from './panel-joints';
 import { automaticInstallationParts } from './automatic-installation';
 import { endPanelThickness, type PanelPose } from './end-panels';
-import { matchingPanelLine } from './shared-panels';
+import { matchingPanelLine, samePanelBack, flatPanel } from './shared-panels';
 import { installationSolid, localSolid } from './installation-parts';
 import { unitAxes, RUN_TOLERANCE } from './kitchen-runs';
 import { installationKind, isFixture, kitchenUnit } from './kitchen-units';
@@ -61,14 +63,20 @@ const fronts = (p: InstallationPose, boxes: InstallationPose[]) => normal(p)
 /** Plan before committing: preserve module dimensions and internal run spacings. The caller validates room
  * constraints atomically. This is an installation reconciliation, never a pointer-movement snap. */
 export function planInstallationLayout<T extends InstallationPose>(input: readonly T[], obstacles: readonly PanelPose[] = []) {
-  const boxes = structuredClone([...input]), removed = new Map<number | string, number | string>();
+  const boxes = expandedEndPanels(structuredClone([...input])), removed = new Map<number | string, number | string>();
   // Explicit double separators: keep the first board and close exactly the removed board's width.
   for (const a of [...boxes]) for (const b of [...boxes]) {
     if (a === b || !boxes.includes(a) || !boxes.includes(b) || installationKind(a.state) !== 'end-panel'
-      || installationKind(b.state) !== 'end-panel' || !matchingPanelLine(a, b) || Math.abs(a.state.w - b.state.w) > EPS
-      || a.state.fin !== b.state.fin || JSON.stringify(a.state.materials) !== JSON.stringify(b.state.materials)) continue;
+      || installationKind(b.state) !== 'end-panel' || Math.abs(a.state.w - b.state.w) > EPS
+      || !(matchingPanelLine(a, b) || samePanelBack(a, b) && flatPanel(a) && flatPanel(b)
+        && Math.max(a.y ?? 0, b.y ?? 0) <= Math.min((a.y ?? 0) + a.state.h, (b.y ?? 0) + b.state.h) + EPS)) continue;
     const { u } = unitAxes(a.angle), distance = at(b, u) - at(a, u);
     if (distance < -EPS || distance > a.state.w + EPS) continue;
+    const bottom = Math.min(a.y ?? 0, b.y ?? 0), height = Math.max((a.y ?? 0) + a.state.h, (b.y ?? 0) + b.state.h) - bottom;
+    const depth = Math.max(a.state.d, b.state.d), across = (depth - a.state.d) / 2, { v: normal } = unitAxes(a.angle);
+    const stock = a.state.h * a.state.d >= b.state.h * b.state.d ? a : b, shape = flatPanel(a) && flatPanel(b) ? undefined : a.state.shape;
+    a.state = { ...structuredClone(stock.state), w: a.state.w, h: height, d: depth, shape };
+    a.y = bottom; a.x += normal.x * across; a.z += normal.z * across;
     const index = boxes.indexOf(b); boxes.splice(index, 1); removed.set(b.id, a.id);
     for (const [id, target] of removed) if (target === b.id) removed.set(id, a.id);
     const { v } = unitAxes(a.angle);
@@ -92,7 +100,11 @@ export function planInstallationLayout<T extends InstallationPose>(input: readon
   // A strip is additional to its owner's nominal width. Reserve its envelope AND its actual front stock,
   // checking the neighbouring finished fronts as well as carcasses. No millimetre stepping or rounding.
   for (let iteration = 0; iteration < boxes.length * 4 + 4; iteration++) {
-    let changed = false;
+    let changed = resolvePanelJoints(boxes, (owner, delta, blocked) => {
+      const row = (owner.y ?? 0) < .5 ? boxes : boxes.filter(p => p.id === owner.id
+        || Math.min((p.y ?? 0) + p.state.h, (owner.y ?? 0) + owner.state.h) - Math.max(p.y ?? 0, owner.y ?? 0) > Math.min(p.state.h, owner.state.h) / 2);
+      shift(run(row, owner, blocked), unitAxes(owner.angle).u, delta);
+    });
     for (const strip of automaticInstallationParts(boxes).filter(p => p.state.unit === 'filler')) {
       const owner = boxes.find(p => p.id === strip.ownerId)!;
       const members = run(boxes, owner), { u } = unitAxes(owner.angle), dir = { x: -strip.side * u.x, z: -strip.side * u.z };

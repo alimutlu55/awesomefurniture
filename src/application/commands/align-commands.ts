@@ -1,3 +1,4 @@
+import { sidePanelClearance } from '../../domain/kitchen/panel-clearance';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { smallestMove, type AlignTarget } from '../../domain/geometry/alignment';
 import { alignments, cornerMoves, gapsAround, nearerWallEnds, wallEndsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
@@ -11,7 +12,15 @@ export const FILL_REACH = 15;
  * to where the wall behind stops (its end, a doorway) when that comes first: for the eye, never for fillers or snaps. */
 export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[], { wallEnds = false } = {}) {
   const all = scene.wardrobes.map(box), found = gapsAround(box(cabinet), all, scene.studio, sides);
-  const gaps = wallEnds ? nearerWallEnds(found, wallEndsAround(box(cabinet), scene.studio, sides)) : found;
+  const raw = wallEnds ? nearerWallEnds(found, wallEndsAround(box(cabinet), scene.studio, sides)) : found;
+  const gaps = raw.map(g => {
+    if (g.side !== 'left' && g.side !== 'right' || g.target === 'wall-end') return g;
+    const reserve = sidePanelClearance(cabinet, scene.wardrobes.find(p => p.id === g.other), g.side === 'left' ? -1 : 1);
+    if (!reserve) return g;
+    const t = g.distance > 0 ? Math.min(1, reserve / g.distance) : 0;
+    return { ...g, distance: Math.max(0, g.distance - reserve),
+      from: { x: g.from.x + (g.to.x - g.from.x) * t, y: g.from.y, z: g.from.z + (g.to.z - g.from.z) * t } };
+  });
   return { gaps, aligned: alignments(box(cabinet), gaps, all) };
 }
 
