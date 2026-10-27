@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { AccountError, mergeGuest, type AccountErrorCode, type AccountStore } from '../../application/account/account-merge';
 import { PUBLIC_SUPABASE_PROJECT } from '../supabase/project-config';
 import { verifyAccessToken, type VerifiedUser } from '../supabase/server-identity';
+import { readBoundedText, RequestBodyError } from '../http/request-body';
+import { safeError } from '../http/safe-error';
 
 /** Server settings: the same Supabase secret key the credit ledger uses. */
 export interface AccountEnvironment {
@@ -47,8 +49,7 @@ export function createAccountRuntime(env: AccountEnvironment): AccountRuntime | 
 
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   if (request.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') throw new AccountError('INVALID_REQUEST', 'Send JSON.');
-  const text = await request.text();
-  if (text.length > MAX_BODY) throw new AccountError('INVALID_REQUEST', 'The request is too large.');
+  const text = await readBoundedText(request, MAX_BODY);
   try {
     const value = JSON.parse(text) as unknown;
     if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
@@ -68,15 +69,17 @@ export async function handleAccount(request: Request, runtime: AccountRuntime | 
   if (!sameOrigin(request)) return failure(403, 'ORIGIN_REJECTED', 'Sign in from the design editor.');
   try {
     if (!runtime) throw new AccountError('ACCOUNTS_UNAVAILABLE', 'Accounts are temporarily unavailable. Please try again later.');
-    const body = await readJson(request);
     const token = /^Bearer (\S+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
     const account = token ? await runtime.verify(token) : null;
+    if (!account || account.anonymous) throw new AccountError('SIGN_IN_REQUIRED', 'Sign in to move your designs.');
+    const body = await readJson(request);
     const guest = typeof body.guest === 'string' && body.guest.length < 8192 ? await runtime.verify(body.guest) : null;
     return json(await mergeGuest(runtime.store, account, guest));
   } catch (error) {
+    if (error instanceof RequestBodyError) return failure(error.status, 'INVALID_REQUEST', error.message);
     if (error instanceof AccountError) return failure(STATUS[error.code], error.code, error.message);
     const requestId = crypto.randomUUID();
-    console.error(JSON.stringify({ event: 'account_merge_failed', requestId, error: error instanceof Error ? error.message.slice(0, 300) : 'unknown' }));
+    console.error(JSON.stringify({ event: 'account_merge_failed', requestId, error: safeError(error) }));
     const response = failure(500, 'ACCOUNT_MERGE_FAILED', 'Your designs could not be moved yet. They will be moved the next time you open the editor.', { reason: requestId });
     response.headers.set('X-Request-ID', requestId);
     return response;

@@ -1,6 +1,8 @@
 import { defineConfig, loadEnv } from 'vite';
 import { designImageDev } from './scripts/design-image-dev.ts';
 import { PRODUCTION_SUPABASE_PROJECT } from './src/infrastructure/supabase/project-config.ts';
+import { auditPublicAssets } from './scripts/security-build';
+import { resolve } from 'node:path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -17,8 +19,13 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify(productionProject.publishableKey),
       } : {}),
     },
-    plugins: [designImageDev()],
+    plugins: [designImageDev(), {
+      name: 'public-asset-security',
+      apply: 'build',
+      async closeBundle() { await auditPublicAssets(resolve('dist')); },
+    }],
     build: {
+      sourcemap: false,
       rolldownOptions: {
         input: {
           main: 'index.html',

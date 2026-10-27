@@ -3,6 +3,7 @@ import { generateDesignImage, ImageGenerationError, GEMINI_IMAGE_MODEL } from '.
 import { CreditError } from '../../application/credits/credit-service.ts';
 import { creditFailure } from '../credits/credit-http.ts';
 import type { ChargeHold, FeatureCharge } from '../credits/image-charge.ts';
+import { readBoundedText, RequestBodyError } from '../http/request-body';
 
 export interface ImageServiceEnvironment {
   GEMINI_API_KEY?: string | undefined;
@@ -15,31 +16,18 @@ const failure = (status: number, code: string, message: string) => json({ error:
 
 /** Bounded streaming read also protects requests that omit or lie about Content-Length. */
 async function readRequest(request: Request) {
-  if (Number(request.headers.get('content-length')) > MAX_REQUEST_BYTES) throw new ImageGenerationError(413, 'TOO_LARGE', 'The design images are too large.');
-  const reader = request.body?.getReader();
-  if (!reader) throw new ImageGenerationError(400, 'INVALID_REQUEST', 'A design and three reference views are required.');
-  const decoder = new TextDecoder();
-  let bytes = 0, text = '';
   try {
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      bytes += chunk.value.byteLength;
-      if (bytes > MAX_REQUEST_BYTES) {
-        await reader.cancel();
-        throw new ImageGenerationError(413, 'TOO_LARGE', 'The design images are too large.');
-      }
-      text += decoder.decode(chunk.value, { stream: true });
-    }
-    return JSON.parse(text + decoder.decode()) as unknown;
+    return JSON.parse(await readBoundedText(request, MAX_REQUEST_BYTES)) as unknown;
   } catch (error) {
-    if (error instanceof ImageGenerationError) throw error;
+    if (error instanceof RequestBodyError) throw new ImageGenerationError(error.status,
+      error.status === 413 ? 'TOO_LARGE' : 'INVALID_REQUEST', error.message);
     throw new ImageGenerationError(400, 'INVALID_JSON', 'The design request contains invalid JSON.');
-  } finally { reader.releaseLock(); }
+  }
 }
 
 /** `charge` takes credits for each image (src/app/api-router.ts always passes it); a failed or cancelled generation refunds them. */
-export async function handleDesignImage(request: Request, env: ImageServiceEnvironment, fetcher: typeof fetch = fetch, charge?: FeatureCharge) {
+export async function handleDesignImage(request: Request, env: ImageServiceEnvironment, fetcher: typeof fetch = fetch,
+  charge?: FeatureCharge, { allowMock = false } = {}) {
   if (request.method !== 'POST') {
     const response = failure(405, 'METHOD_NOT_ALLOWED', 'Use POST to generate a design image.');
     response.headers.set('Allow', 'POST');
@@ -52,20 +40,24 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
   if (request.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') {
     return failure(415, 'INVALID_CONTENT_TYPE', 'Send the design as JSON.');
   }
-  const isDebug = env.LOG_LEVEL?.toLowerCase() === 'debug'
+  const isDebug = allowMock && (env.LOG_LEVEL?.toLowerCase() === 'debug'
     || new URL(request.url).searchParams.has('debug')
-    || request.headers.get('x-debug-mode') === 'true';
+    || request.headers.get('x-debug-mode') === 'true');
 
   if (!isDebug && !env.GEMINI_API_KEY?.trim()) return failure(503, 'NOT_CONFIGURED', 'Image generation is temporarily unavailable. Please try again later.');
   try {
-    const input = parseDesignImageRequest(await readRequest(request));
-    if (!input) return failure(400, 'INVALID_DESIGN', 'A valid design specification and three distinct reference views are required.');
-    const limit = await env.AI_RATE_LIMITER.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'local' });
-    if (!limit.success) {
+    const limited = () => {
       const response = failure(429, 'RATE_LIMITED', 'Please wait a minute before generating another image.');
       response.headers.set('Retry-After', '60');
       return response;
-    }
+    };
+    const ipLimit = await env.AI_RATE_LIMITER.limit({ key: 'ip:' + (request.headers.get('CF-Connecting-IP') ?? 'local') });
+    if (!ipLimit.success) return limited();
+    // Prove identity before reading images; reserve credits only after validating the request.
+    const userId = await charge?.authorize(request);
+    if (userId && !(await env.AI_RATE_LIMITER.limit({ key: 'user:' + userId })).success) return limited();
+    const input = parseDesignImageRequest(await readRequest(request));
+    if (!input) return failure(400, 'INVALID_DESIGN', 'A valid design specification and three distinct reference views are required.');
     let hold: ChargeHold | null = null;
     try { hold = await charge?.begin(request) ?? null; }
     catch (error) { if (error instanceof CreditError) return creditFailure(error); throw error; }
@@ -102,9 +94,9 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
       throw error;
     }
   } catch (error) {
+    if (error instanceof CreditError) return creditFailure(error);
     const requestId = crypto.randomUUID();
-    // Failure logs never include errors, provider bodies or keys. Request payloads are logged
-    // separately at the provider boundary for debugging; providerReason/providerMessage are redacted and capped.
+    // Failure logs exclude request payloads, tokens, provider bodies and keys.
     const known = error instanceof ImageGenerationError ? error : null;
     console.error(JSON.stringify({ event: 'design_image_failed', requestId, model: GEMINI_IMAGE_MODEL,
       code: known ? known.code : 'GENERATION_FAILED',

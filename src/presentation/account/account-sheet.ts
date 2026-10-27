@@ -2,6 +2,7 @@ import type { AccountPlatform, GuestOffer } from './account.ports';
 import { accountErrorMessage, needsConfirmation } from './account-errors';
 import { accountMenuItem, accountSheet } from './account-markup';
 import { createLoadingState } from '../components/loading-state';
+import { MIN_PASSWORD_LENGTH } from '../../application/account/password-policy';
 
 export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'adopt';
 export interface AccountOpenOptions {
@@ -139,7 +140,9 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     event.preventDefault();
     const email = input(credentials, 'email').value.trim().toLowerCase(), password = input(credentials, 'password').value;
     if (!EMAIL.test(email)) return refuse(credentials, 'email', 'Enter your email address.');
-    if (view === 'sign-up' && password.length < 8) return refuse(credentials, 'password', 'Choose a password of at least 8 characters.');
+    if (view === 'sign-up' && password.length < MIN_PASSWORD_LENGTH) {
+      return refuse(credentials, 'password', `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
+    }
     if (!password) return refuse(credentials, 'password', 'Enter your password.');
     address = email;
     void run(credentials, async () => {
@@ -182,7 +185,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     event.preventDefault();
     const code = input(reset, 'code').value.replace(/\D/g, ''), password = input(reset, 'password').value;
     if (code.length < 6) return refuse(reset, 'code', 'Enter the code from the email.');
-    if (password.length < 8) return refuse(reset, 'password', 'Choose a password of at least 8 characters.');
+    if (password.length < MIN_PASSWORD_LENGTH) return refuse(reset, 'password', `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
     void run(reset, () => platform.resetPassword(address, code, password));
   });
   lifetime.listen($('.ac-adopt-yes'), 'click', () => {

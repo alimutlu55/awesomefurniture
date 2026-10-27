@@ -426,7 +426,8 @@ test('photo geometry removes editing overlays, restores ghosted materials and cl
 
 test('Worker serves existing assets and keeps unknown API routes out of the static fallback', async () => {
   let assets = 0;
-  const env = { ...environment, ASSETS: { async fetch() { assets++; return new Response('editor'); } } };
+  const env = { ...environment, API_RATE_LIMITER: environment.AI_RATE_LIMITER,
+    ASSETS: { async fetch() { assets++; return new Response('editor'); } } };
   assert.equal(await (await worker.fetch(new Request('https://design.example/editor.html'), env)).text(), 'editor');
   assert.equal((await worker.fetch(new Request('https://design.example/api/missing'), env)).status, 404);
   assert.equal((await worker.fetch(new Request('https://design.example/api/design-images'), env)).status, 405);
@@ -492,6 +493,7 @@ test('debugging mode mocks Gemini call and returns mock response (defaults to 10
     request(input, { 'X-Debug-Mode': 'true' }),
     { ...environment, GEMINI_API_KEY: '', AI_MOCK_DELAY_MS: 100 },
     fetcher,
+    undefined, { allowMock: true },
   );
   const elapsed = Date.now() - start;
   assert.equal(response.status, 200);
@@ -511,6 +513,7 @@ test('debugging mode mock respects request cancellation during the wait', async 
   const response = await handleDesignImage(
     cancelled,
     { ...environment, GEMINI_API_KEY: '', AI_MOCK_DELAY_MS: 10000 },
+    fetch, undefined, { allowMock: true },
   );
   assert.equal(response.status, 499);
 });

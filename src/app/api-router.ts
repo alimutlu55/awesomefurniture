@@ -3,6 +3,7 @@ import { createCreditRuntime, type CreditEnvironment } from '../infrastructure/c
 import { handleCredits } from '../infrastructure/credits/credit-http';
 import { featureCharge } from '../infrastructure/credits/image-charge';
 import { createAccountRuntime, handleAccount, type AccountEnvironment } from '../infrastructure/account/account-http';
+import { safeError } from '../infrastructure/http/safe-error';
 
 export interface ApiEnvironment extends ImageServiceEnvironment, CreditEnvironment, AccountEnvironment {}
 
@@ -13,7 +14,9 @@ export async function handleApi(request: Request, env: ApiEnvironment, { allowTe
   if (url.pathname.startsWith('/api/account/')) return handleAccount(request, createAccountRuntime(env));
   const credits = createCreditRuntime(env, url.origin, { allowTest });
   // An image is always paid for: without a credit runtime the charge refuses before Gemini is called.
-  if (url.pathname === '/api/design-images') return handleDesignImage(request, env, fetch, featureCharge(credits, 'ai-image'));
+  if (url.pathname === '/api/design-images') {
+    return handleDesignImage(request, env, fetch, featureCharge(credits, 'ai-image'), { allowMock: allowTest });
+  }
   return await handleCredits(request, credits)
     ?? Response.json({ error: { code: 'NOT_FOUND', message: 'Unknown API endpoint.' } }, { status: 404 });
 }
@@ -30,7 +33,7 @@ export async function sweepCredits(env: ApiEnvironment) {
       const count = await work();
       if (count) console.info(JSON.stringify({ event, count }));
     } catch (error) {
-      console.error(JSON.stringify({ event: event + '_failed', error: error instanceof Error ? error.message.slice(0, 300) : 'unknown' }));
+      console.error(JSON.stringify({ event: event + '_failed', error: safeError(error) }));
     }
   };
   await run('credits_released_stale', service.releaseStale);

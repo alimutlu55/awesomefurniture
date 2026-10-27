@@ -3,6 +3,7 @@ import { adoptGuest, declineGuest, rememberGuest } from '../infrastructure/accou
 import { forgetDrafts } from '../infrastructure/persistence/browser-drafts';
 import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
 import type { SessionPlatform } from './session-bootstrap';
+import { authCaptchaOptions } from '../infrastructure/account/auth-captcha';
 
 
 /**
@@ -56,12 +57,14 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
       return new Promise<never>(() => { /* the page is reloading */ });
     },
     decline() { declineGuest(localStorage); offer = null; },
-    signIn: (address, password) => signInWith(() => auth.signInWithPassword({ email: address, password })),
+    signIn: (address, password) => signInWith(async () => auth.signInWithPassword({ email: address, password,
+      options: await authCaptchaOptions() })),
     async signUp(address, password) {
       // Remembered first: a project that confirms new accounts at once signs in within signUp itself.
       changing = true;
       await rememberGuest(client, localStorage).catch(() => undefined);
-      const { data, error } = await auth.signUp({ email: address, password, options: { emailRedirectTo: location.href } })
+      const captcha = await authCaptchaOptions().catch(fail);
+      const { data, error } = await auth.signUp({ email: address, password, options: { emailRedirectTo: location.href, ...captcha } })
         .catch((e: unknown) => ({ data: null, error: e }));
       if (error) fail(error);
       // An email that already has an account gets no new one (and no email): Supabase answers without identities.
@@ -72,7 +75,8 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
     },
     confirmSignUp: (address, code) => signInWith(() => auth.verifyOtp({ email: address, token: code, type: 'email' })),
     async resendSignUp(address) {
-      const { error } = await auth.resend({ type: 'signup', email: address, options: { emailRedirectTo: location.href } });
+      const { error } = await auth.resend({ type: 'signup', email: address,
+        options: { emailRedirectTo: location.href, ...await authCaptchaOptions() } });
       if (error) throw error;
     },
     async google() {
@@ -83,7 +87,7 @@ export function createAccountPlatform(platform: SessionPlatform, workspace: { sa
       if (error) fail(error);
     },
     async sendReset(address) {
-      const { error } = await auth.resetPasswordForEmail(address, { redirectTo: location.href });
+      const { error } = await auth.resetPasswordForEmail(address, { redirectTo: location.href, ...await authCaptchaOptions() });
       if (error) throw error;
     },
     resetPassword: (address, code, password) => signInWith(async () => {

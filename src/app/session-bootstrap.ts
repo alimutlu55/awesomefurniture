@@ -5,6 +5,7 @@ import { resolveSupabaseProject } from '../infrastructure/supabase/project-confi
 import { handOver, refreshGuest, type Handover } from '../infrastructure/account/guest-handover';
 import { createProject } from '../domain/project/project';
 import type { SessionDraft } from '../application/projects/session-autosave';
+import { authCaptchaOptions } from '../infrastructure/account/auth-captcha';
 
 /**
  * A persistent anonymous identity owns the design until the person signs in; no account is required to design. After
@@ -19,7 +20,7 @@ export async function prepareSession(url: URL) {
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     if (data.session) return data.session.user;
-    const created = await client.auth.signInAnonymously();
+    const created = await client.auth.signInAnonymously({ options: await authCaptchaOptions() });
     if (created.error) throw created.error;
     return created.data.user;
   }
