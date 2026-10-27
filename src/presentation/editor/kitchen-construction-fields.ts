@@ -17,7 +17,7 @@ export function bindKitchenConstruction({ dom, model, sceneCommands, inspector, 
   dom.$('#sliders').append(root);
   for (const [key, label] of [['plinthHeight', 'Plinth height'], ['cornerStrip', 'Corner strip width'], ['endPanelThickness', 'End/Separator pane thickness'], ['frontThickness', 'Front thickness'], ['worktopThickness', 'Worktop thickness'],
     ['ventilationWidth', 'Vent grille width'], ['ventilationHeight', 'Vent grille height'], ['fridgeSplit', 'Lower fridge door height']] as const) {
-    root.insertAdjacentHTML('beforeend', sizeControlMarkup({ label, min: key === 'plinthHeight' || key === 'ventilationWidth' || key === 'ventilationHeight' || key === 'fridgeSplit' ? 0 : .1,
+    root.insertAdjacentHTML('beforeend', sizeControlMarkup({ label, min: key === 'plinthHeight' || key === 'endPanelThickness' || key === 'ventilationWidth' || key === 'ventilationHeight' || key === 'fridgeSplit' ? 0 : .1,
       max: key === 'endPanelThickness' ? 10 : key === 'frontThickness' ? 5 : key === 'worktopThickness' ? 15 : key === 'ventilationWidth' ? 150 : key === 'fridgeSplit' ? 270 : 30,
       inputAttributes: { 'data-construction': key, 'aria-label': label } }));
     const input = root.querySelector<HTMLInputElement>('[data-construction="' + key + '"]')!, row = input.closest<HTMLElement>('.size-control')!;

@@ -39,7 +39,7 @@ export interface EditorDesign {
   worktopThickness?: number | undefined;
   /** Installed fixed strip beside the perpendicular return, inside the overall corner cabinet width (cm). */
   cornerStrip?: number | undefined;
-  /** Attached finish panel thickness at exposed kitchen run ends (cm); default 18 mm. */
+  /** Attached finish panel thickness (cm); default 18 mm, zero disables automatic panes. */
   endPanelThickness?: number | undefined;
   /** Existing attached end/separator boards survive joining another cabinet. */
   endPanelSides?: (-1 | 1)[] | undefined;

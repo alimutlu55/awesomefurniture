@@ -29,7 +29,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           ...(state.shape.back ? { back: state.shape.back.map(y => y + delta) } : {}) };
       } else if (key === 'cornerStrip' && (requested < .1 || requested === state.cornerStrip)) return false;
       else if ((key === 'frontThickness' || key === 'worktopThickness') && requested < .1) return false;
-      if (key === 'endPanelThickness' && (requested < .1 || requested > 10)) return false;
+      if (key === 'endPanelThickness' && requested > 10) return false;
       if (key === 'frontThickness' && requested > 5 || key === 'worktopThickness' && requested > 15) return false;
       if (key === 'ventilationHeight' && requested > plinthOf(state)) return false;
       const oldTop = cabinet.state.h + worktopThickness(cabinet.state);

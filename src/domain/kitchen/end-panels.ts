@@ -1,3 +1,4 @@
+import { PANEL } from '../wardrobe/catalog.js';
 import { installationKind, isFixture } from './kitchen-units';
 import { unitAxes, RUN_TOLERANCE } from './kitchen-runs';
 import { cornerCabinetWidths, cornerReturnSides } from './corner-widths';
@@ -13,12 +14,12 @@ export interface PanelPose<S extends PanelState = PanelState> {
   id: number | string; x: number; y?: number | undefined; z: number; angle: number; state: S;
 }
 const EPS = 1e-7;
-export const endPanelThickness = (d: PanelState) => d.endPanelThickness ?? 1.8;
+export const endPanelThickness = (d: PanelState) => d.endPanelThickness ?? PANEL;
 const solid = (p: PanelPose) => !isFixture(p.state);
 
 /** A vertical extension inherits the source's finishes and construction, with the side's actual roof profile.
  * Stored cabinet dimensions stay intact: this board occupies an additional, separately dimensioned width. */
-export function endPanelDesign<S extends PanelState>(source: S, side: -1 | 1, width = endPanelThickness(source)) {
+export function endPanelDesign<S extends PanelState>(source: S, side: -1 | 1, width = endPanelThickness(source) || PANEL) {
   const from = structuredClone(source), top = from.shape?.top, at = side < 0 ? 0 : (top?.length ?? 1) - 1;
   const front = top?.[at]?.y ?? from.h, back = from.shape?.back?.[at] ?? front;
   const shape: WardrobeShape | undefined = top ? { template: 'custom', top: [{ x: 0, y: front }, { x: width, y: front }], back: [back, back] } : undefined;
@@ -57,6 +58,7 @@ export function automaticEndPanels<S extends PanelState>(boxes: readonly PanelPo
   return boxes.flatMap(box => {
     if (Number(box.id) < 0 || !Number.isFinite(Number(box.id)) || box.state.product !== 'kitchen' || isFixture(box.state) || installationKind(box.state)) return [];
     const { u } = unitAxes(box.angle), width = endPanelThickness(box.state);
+    if (width <= 0) return [];
     return ([-1, 1] as const).filter(side => (box.state.endPanelSides?.includes(side) || exposedEnd(box, boxes, side)) && !explicitSidePanel(box, boxes, side)).map(side => ({
       id: -Number(box.id) * 4 - (side > 0 ? 1 : 0), ownerId: box.id, side, name: 'End/Separator pane',
       x: box.x + u.x * side * (box.state.w + width) / 2, y: box.y ?? 0,
