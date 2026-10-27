@@ -39,7 +39,7 @@ export const KITCHEN_UNITS = [
     sizes: { w: [30, 100], h: [150, 270], d: [30, 80] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
   { key: 'filler', name: 'Installation strip', description: 'A fixed front strip reserving its exact width along the run', w: 4, h: 86, d: 58, elevation: 0,
     sizes: { w: [.1, 30], h: [10, 300], d: [2, 90] }, worktop: true, plinth: true, installation: 'filler', storage: [] },
-  { key: 'end-panel', name: 'End panel', description: 'A solid full-depth end panel; width is its actual thickness', w: 1.8, h: 86, d: 58, elevation: 0,
+  { key: 'end-panel', name: 'End/Separator pane', description: 'A solid full-depth end panel; width is its actual thickness', w: 1.8, h: 86, d: 58, elevation: 0,
     sizes: { w: [.1, 10], h: [10, 300], d: [2, 90] }, worktop: true, plinth: false, installation: 'end-panel', storage: [] },
   // A sink or hob is placed by itself on the worktop (its underside is the worktop's top), never part of a cabinet.
   { key: 'sink-top', name: 'Sink', description: 'A sink and tap, placed on any worktop', w: 80, h: 30, d: 50, elevation: 90,

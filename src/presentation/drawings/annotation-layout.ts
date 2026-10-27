@@ -68,7 +68,7 @@ export function annotationLayout(geometry: readonly Mark[], taken: Box[], area: 
       candidates.push({ x: x! * radius, y: y! * radius });
     // If the preferred neighbourhood is full, use empty paper in stable rows, nearest candidates first.
     const bank: Pt[] = [];
-    for (let y = area.y0 + 6; y < area.y1 - 5; y += 10) for (let x = area.x0 + 8; x < area.x1 - 8; x += 12)
+    for (let y = area.y0 + 6; y < area.y1 - 5; y += 5) for (let x = area.x0 + 8; x < area.x1 - 8; x += 6)
       bank.push({ x: x - (base.x0 + base.x1) / 2, y: y - (base.y0 + base.y1) / 2 });
     bank.sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y)); candidates.push(...bank);
     for (const offset of candidates) {
@@ -77,9 +77,15 @@ export function annotationLayout(geometry: readonly Mark[], taken: Box[], area: 
       const centre = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 }, moved = Math.hypot(offset.x, offset.y) > .2;
       const edge = { x: Math.max(b.x0, Math.min(b.x1, source.x)), y: Math.max(b.y0, Math.min(b.y1, source.y)) };
       const start = leaderStart(source, edge, taken);
-      if (moved && taken.some(t => segmentHits(start, edge, t))) continue;
+      let leader = [start, edge];
+      if (moved && taken.some(t => segmentHits(start, edge, t))) {
+        const bends = [{ x: start.x, y: edge.y }, { x: edge.x, y: start.y }];
+        const bend = bends.find(p => !taken.some(t => segmentHits(start, p, t) || segmentHits(p, edge, t)));
+        if (!bend) continue;
+        leader = [start, bend, edge];
+      }
       taken.push(b); anchors.push({ key, at: centre, box: b, offset });
-      return [...(moved ? [shape([start, edge], 'thin')] : []), ...marks.map(m => shifted(m, offset.x, offset.y))];
+      return [...(moved ? [shape(leader, 'thin')] : []), ...marks.map(m => shifted(m, offset.x, offset.y))];
     }
     warnings.push('Enlarged detail or label adjustment required: ' + key.split('/').at(-1));
     return [];

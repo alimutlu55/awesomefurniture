@@ -73,7 +73,7 @@ export function pieceFront(p: PlacedPiece, left: number, { inside: showInside = 
     for (let y = grille.y0 + 1; y < grille.y1; y += 1) out.push(line(at(grille.x0, y), at(grille.x1, y), 'thin'));
   }
   const tall = Math.min(...top.map(q => q.y));
-  out.push({ kind: 'tag', at: at(mid, (plinth + tall) / 2), text: p.mark });
+  if (p.id > 0) out.push({ kind: 'tag', at: at(mid, (plinth + tall) / 2), text: p.mark });
   return out;
 }
 

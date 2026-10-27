@@ -21,7 +21,7 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
     const chain = (values: readonly number[], row: number, depth = 0, side: 1 | -1 = 1): Dimensions => ({
       kind: 'dims', origin: plan(face.from.x + l.nx * depth, face.from.z + l.nz * depth),
       dir: { x: l.ux, y: -l.uz }, side, clear: side === 1 ? mm(wall.thickness) : 0, row,
-      stops: stops([0, mm(face.length), ...values.map(t => mm(Math.max(face.start, Math.min(face.end, t)) - face.start))]),
+      stops: stops([0, mm(face.length), ...values.map(t => mm(t - face.start))]),
     });
     if (floor.length) {
       const deepest = Math.max(...floor.map(p => p.off + p.design.d));

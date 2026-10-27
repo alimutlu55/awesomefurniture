@@ -59,7 +59,7 @@ const dirOf = (a: P, b: P): P => { const n = Math.hypot(b.x - a.x, b.y - a.y) ||
 /** Where a piece standing free is: its distance to what is behind it and to the nearer thing beside it (a wall or another
  * piece), so a fitter can set it out. */
 export function freePosition(p: PlacedPiece, pieces: readonly PlacedPiece[], studio: Studio | undefined): Item[] {
-  const gaps = gapsAround(box(p), pieces.map(box), studio, ['back', 'left', 'right']);
+  const gaps = gapsAround(box(p), pieces.filter(q => q.attachedTo !== p.id || q.design.unit === 'filler').map(box), studio, ['back', 'left', 'right']);
   const side = gaps.filter(g => g.side !== 'back').sort((a, b) => a.distance - b.distance)[0], back = gaps.find(g => g.side === 'back');
   return [back, side].filter(g => g && g.distance > .5).map(g => {
     const a = plan(g!.from.x, g!.from.z), b = plan(g!.to.x, g!.to.z);

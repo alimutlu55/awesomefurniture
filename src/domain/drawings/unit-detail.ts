@@ -225,8 +225,10 @@ export function unitDetailViews(p: PlacedPiece, pieces: readonly PlacedPiece[] =
   const boards = pieceBoards(p, pieces);
   if (installationKind(p.design)) {
     const b = boards[0]!, w = p.design.w, h = p.design.h, d = p.design.d;
-    return [{ title: 'Front', items: [rect(0, mm(b.y0), mm(w), mm(h), 'outline'), across(0, [0, w], -1), vertical(0, [0, h], 1)] },
-      { title: 'Section A–A', items: [rect(mm(b.z0), mm(b.y0), mm(b.z1), mm(h), 'cut', 'hatch'),
+    const front = p.design.shape?.top[0]?.y ?? h, back = p.design.shape?.back?.[0] ?? front;
+    return [{ title: 'Front', items: [rect(0, mm(b.y0), mm(w), mm(front), 'outline'), across(0, [0, w], -1), vertical(0, [0, front], 1)] },
+      { title: 'Section A–A', items: [{ kind: 'line', stroke: 'cut', fill: 'hatch', closed: true,
+        points: [at(b.z0, b.y0), at(b.z1, b.y0), at(b.z1, front), at(b.z0, back)] },
         across(0, [0, d], -1), note(at(d / 2, h + 12), mm(b.cut.length) + ' × ' + mm(b.cut.width) + ' × ' + mm(b.cut.thickness) + ' cut')] }];
   }
   return [{ title: 'Front', items: frontView(p, boards, pieces) }, { title: 'Inside', items: insideView(p, boards, pieces) }, { title: 'Section A–A', items: sectionView(p, boards, pieces) }];

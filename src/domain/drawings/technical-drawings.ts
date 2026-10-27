@@ -72,7 +72,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }
   sheets.push(...serviceDrawings(studio, pieces));
-  for (const p of pieces.filter(q => q.wall === null)) {
+  for (const p of pieces.filter(q => q.wall === null && q.id > 0)) {
     sheets.push({ number: sheets.length + 1, title: 'Front elevation ' + p.mark, views: [{ title: 'Front elevation ' + p.mark, items: pieceElevation(p, studio, pieces) }], pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   // Shop drawings: each cabinet and wardrobe on its own sheet, to make it from.

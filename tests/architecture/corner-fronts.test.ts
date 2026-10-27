@@ -67,17 +67,18 @@ test('a dedicated corner pull-out keeps one accessible door handle and no handle
   assert.equal(render(mirrored, [left]).handles.length, 1);
 });
 
-test('installed drawings and hardware treat the return as fixed without changing front cutting extents', () => {
+test('installed drawings and hardware reserve the strip and leave only the exposed front operational', () => {
   const widths = cornerCabinetWidths(subject, [right]);
   const before = piecefronts(design).fronts, after = piecefronts(design, widths).fronts;
-  assert.deepEqual(after.map(f => [f.x0, f.x1, f.y0, f.y1]), before.map(f => [f.x0, f.x1, f.y0, f.y1]));
-  assert.deepEqual(after.map(f => f.opens), ['side', 'fixed']);
+  assert.equal(before.length, 2);
+  assert.deepEqual(after.map(f => Math.round((f.x1 - f.x0) * 10)), [559, 580, 40]);
+  assert.deepEqual(after.map(f => f.opens), ['side', 'fixed', 'fixed']);
   const pieces = placePieces({ pieces: [subject, right].map(p => ({ ...p, name: 'Cabinet', design: p.state })) });
   const hardware = hardwareList(pieces).flatMap(t => t.rows);
   assert.equal(hardware.find(r => r[0] === 'Handle')![2], '1');
   assert.equal(hardware.find(r => r[0] === 'Concealed hinge, 110°')![2], '2');
-  assert.equal(pieceOperations(pieces[0]!, pieces).length, 1, 'fixed panel has no opening envelope');
-  assert.equal(pieceOperations(pieces[0]!).length, 2, 'standalone cabinet retains two doors');
+  assert.equal(pieceOperations(pieces.find(p => p.id === 1)!, pieces).length, 1, 'fixed panel has no opening envelope');
+  assert.equal(pieceOperations(pieces.find(p => p.id === 1)!).length, 2, 'standalone cabinet retains two doors');
   const shop = technicalDrawings({ pieces: pieces.map(p => ({ ...p })) }).find(s => s.title === 'K1  Base cabinet')!;
   const front = shop.views.find(v => v.title === 'Front')!;
   assert.equal(front.items.filter(i => i.kind === 'line' && i.stroke === 'swing').length, 1, 'fixed panel has no hinge triangle');

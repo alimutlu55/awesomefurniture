@@ -70,6 +70,8 @@ export interface Wardrobe {
   worktopThickness?: number | undefined;
   /** Installed fixed strip beside the perpendicular return, inside the overall corner cabinet width (cm). */
   cornerStrip?: number | undefined;
+  /** Attached finish panel thickness at exposed kitchen run ends (cm); default 18 mm. */
+  endPanelThickness?: number | undefined;
   /** Nominal lower fridge door height from its front bottom (cm); zero/absent uses the legacy split. */
   fridgeSplit?: number | undefined;
   /** Purchased plinth grille outer dimensions (cm), not a manufacturer cut-out or free-area specification. */

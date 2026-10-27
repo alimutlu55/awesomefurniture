@@ -96,13 +96,17 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     }
     // A wall unit's mark sits towards the wall, so it never covers the mark of the unit under it.
     const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d * .3;
-    out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
+    if (p.id > 0) out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
     if (p.fixture === 'shelf') out.push(note(plan(p.x + v.x * (p.design.d / 2 + 15), p.z + v.z * (p.design.d / 2 + 15)), pieceName(p)));
     // Appliance setting-out callouts have their own detail sheets; keep the cabinet plan clear.
     if (!studio && !operations) out.push(...appliancePlanNote(studio, p, pieces));
     if (!upper) out.push(...pieceSymbols(p, pieces).filter(i => operations || i.kind !== 'arrow'));
     if (operations) out.push(...pieceOperations(p, pieces).flatMap(o => o.items));
-    if (p.wall === null) {
+    if (p.wall === null && p.id < 0) {
+      const pts = footprint(p.x, p.z, p.angle, p.design.w, p.design.d), { u } = unitAxes(p.angle);
+      out.push({ kind: 'dims', origin: pts[3]!, dir: { x: u.x, y: -u.z }, side: 1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });
+    }
+    if (p.wall === null && p.id > 0) {
       out.push(...freePosition(p, visible, studio));
       const [a, b, , d] = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
       const dir = (q: P) => { const n = Math.hypot(q.x, q.y) || 1; return { x: q.x / n, y: q.y / n }; };

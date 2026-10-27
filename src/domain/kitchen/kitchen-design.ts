@@ -15,7 +15,7 @@ import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
  */
 export const KITCHEN_PRESETS = [
   { key: 'filler', unit: 'filler', name: 'Installation strip', parts: [] },
-  { key: 'end-panel', unit: 'end-panel', name: 'End panel', parts: [] },
+  { key: 'end-panel', unit: 'end-panel', name: 'End/Separator pane', parts: [] },
   { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
   { key: 'oven-under', unit: 'base', name: 'Oven unit', parts: [['cutlery', 1], ['oven', 5]] },

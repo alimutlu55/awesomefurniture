@@ -1,3 +1,4 @@
+import { endPanelDesign } from '../../domain/kitchen/end-panels';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
@@ -41,7 +42,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
   /** The unit a new one goes next to: the selected kitchen unit, else the one added last. */
   function anchorFor(): EditorCabinet | null {
     const selected = active();
-    if (selected && isKitchenUnit(selected)) return selected;
+    if (selected && !isFixture(selected.state)) return selected;
     return [...getScene().wardrobes].reverse().find(isKitchenUnit) ?? null;
   }
 
@@ -101,6 +102,14 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const scene = getScene(), id = scene.nextWardrobeId, state = { ...createKitchenDesign(preset.unit, preset.key), sel: 0, item: -1, divider: -1, space: null, open: false };
       const fresh: EditorCabinet = { id, name: preset.name + ' ' + id, x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
       const anchor = anchorFor(), { beside, ...spot } = placement, studio = scene.studio, wall = spot.placementWall;
+      if (preset.unit === 'end-panel' && anchor) {
+        for (const side of [1, -1] as const) {
+          const inherited = { ...endPanelDesign(anchor.state, side), sel: 0, item: -1, divider: -1, space: null, open: false };
+          const panel = { ...fresh, state: inherited, ...besidePose(anchor, inherited.w, inherited.d, side, anchor.y) };
+          if (fits(panel)) return add(panel);
+        }
+        return keep(null, preset.name);
+      }
       const near = anchor ? placeNear(anchor, structuredClone(fresh)) : null;
       if (beside || !wall || !studio) return keep(near ?? placeAlone(fresh, spot), preset.name);
       // On the wall in view: beside the kitchen already against it (the unit nearest the point in view), else in front of the viewer.
@@ -157,7 +166,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const scene = getScene(), original = active();
       if (!original || !isKitchenUnit(original)) return null;
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, y = original.y || 0, d = original.state.d;
-      const probeAt = (w: number): EditorCabinet => at({ ...original, id: -1, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
+      const probeAt = (w: number): EditorCabinet => at({ ...original, id: scene.nextWardrobeId, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
       const fitsWidth = (w: number) => w >= .1 && fits(probeAt(w));
       const isPerpCabinet = (o: EditorCabinet, angle: number) =>
         o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && !isFixture(o.state)
@@ -177,7 +186,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       let clearW = 0, unblockedW = 0, pocketW = 0;
       const maxSearch = Math.max(original.state.w, 65);
       for (let w = .1; w <= maxSearch + .01; w = Math.round((w + .1) * 10) / 10) {
-        if (!fitsWidth(w)) break;
+        if (!fitsWidth(w)) continue;
         if (w <= original.state.w) clearW = w;
         if (w <= original.state.w && !blockedInFront(w)) unblockedW = w;
         if (farEdgeBlocked(w)) pocketW = w;
@@ -187,6 +196,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         state.w = unblockedW;
         for (const it of state.secs[0]!) if ((fitting(it.k)?.minWidth ?? 0) > unblockedW - 2 * PANEL) it.k = 'cupboard';
         const narrowed = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, besidePose(end, unblockedW, d, side, y));
+        if (!fits(narrowed)) return null;
         if (recordHistory) checkpoint();
         applyMaxReach(narrowed.state, scene.maxReach);
         scene.wardrobes.push(narrowed);
@@ -199,6 +209,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         const solid = { ...createKitchenDesign('filler'), w: coverW, h: original.state.h, d, fin: original.state.fin, materials: structuredClone(original.state.materials) };
         const state = { ...(coverW < 5 ? solid : createKitchenCover(original.state, coverW)), sel: 0, item: -1, divider: -1, space: null, open: false };
         const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePose(end, coverW, d, side, y));
+        if (!fits(cover)) return null;
         if (recordHistory) checkpoint();
         applyMaxReach(cover.state, scene.maxReach);
         scene.wardrobes.push(cover);

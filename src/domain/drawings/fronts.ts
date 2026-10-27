@@ -1,4 +1,5 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
+import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
 import { cabinetDoorAreas, doorHingeSide } from '../wardrobe/door-layout';
@@ -6,7 +7,7 @@ import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
 import { isKitchen } from '../furniture/furniture';
-import { frontCoveredByReturn, type FaceWidth } from '../kitchen/corner-widths';
+import { type FaceWidth } from '../kitchen/corner-widths';
 
 interface Box { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number }
 /** A front as the drawings show it: how it opens, the side its hinges are on, and an appliance's name. */
@@ -61,7 +62,7 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
       if (it.k === 'corner') {
         let doorSide = cornerDoorSide(it);
         let { blind, door } = cornerFrontSplit(r.x0, r.x1, hinge, doorSide);
-        if (design.cornerStrip && faceWidths.some(s => s.strip)) {
+        if (faceWidths.some(s => s.strip)) {
           const hidden = faceWidths.find(s => s.covered)!, open = faceWidths.find(s => !s.covered && !s.strip)!;
           if (hidden && open) {
             blind = { x0: hidden.from, x1: hidden.to }; door = { x0: open.from, x1: open.to, hinge };
@@ -69,7 +70,7 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
           }
         }
         const mech = cornerPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, blind, doorSide);
-        if (design.cornerStrip && faceWidths.some(s => s.strip)) {
+        if (faceWidths.some(s => s.strip)) {
           for (const s of faceWidths) fronts.push({ x0: Math.max(r.x0, s.from), x1: Math.min(r.x1, s.to), y0: r.y0, y1: r.y1,
             opens: s.covered || s.strip ? 'fixed' : 'side', hinge, ...(s.strip ? { installation: true } : {}),
             name: s.strip ? 'Corner installation strip' : s.covered ? 'Corner blind panel' : 'Corner pull-out door' });
@@ -101,7 +102,14 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
   // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end unless doorHang overrides it.
   const covered = !kitchen && design.doors !== 'none';
   if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
-  const installed = fronts.map(f => kitchen && f.opens === 'side' && !f.label && !f.own && frontCoveredByReturn(f.x0, f.x1, faceWidths)
-    ? { ...f, opens: 'fixed' as const, name: 'Corner return panel' } : f);
+  const installed = !kitchen || !faceWidths.some(s => s.strip || s.covered) ? fronts : fronts.flatMap(f => {
+    if (f.installation) return [];
+    return faceWidths.filter(s => !s.strip).flatMap(s => {
+      const x0 = Math.max(f.x0, s.from), x1 = Math.min(f.x1, s.to);
+      return x1 - x0 > 1e-7 ? [{ ...f, x0, x1, ...(s.covered ? { opens: 'fixed' as const, name: 'Corner return panel' } : {}) }] : [];
+    });
+  });
+  if (kitchen) for (const s of faceWidths.filter(s => s.strip)) installed.push({ x0: s.from, x1: s.to,
+    y0: plinthOf(design), y1: design.h, opens: 'fixed', installation: true, name: 'Corner installation strip' });
   return { fronts: installed, inside, covered, cornerPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
 }

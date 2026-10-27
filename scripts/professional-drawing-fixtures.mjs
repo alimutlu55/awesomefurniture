@@ -14,9 +14,9 @@ export function drawingFixture(kind = 'l') {
   add('sink-top', 'sink-top', -100, 29, 0, 90);
   if (kind === 'appliances') {
     wardrobes.at(-1).state.w = 72;
-    wardrobes.find(p => p.id === 13).z = 90;
-    wardrobes.find(p => p.id === 15).state.w = 80;
-    wardrobes.find(p => p.id === 17).z = 230;
+    wardrobes.find(p => p.id === 13).z = 92;
+    wardrobes.find(p => p.id === 15).state.w = 80; wardrobes.find(p => p.id === 15).z = 162;
+    wardrobes.find(p => p.id === 17).z = 232;
     add('hob-top', 'hob-top', -181, 160, 90, 90); wardrobes.at(-1).state.w = 80;
     const tower = wardrobes.find(p => p.id === 9); tower.state = { ...createKitchenDesign('tall', 'oven-tower'), sel: 0, item: -1, divider: -1, space: null, open: false };
   }

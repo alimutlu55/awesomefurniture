@@ -57,14 +57,14 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     const top = Math.max(...pieceHeights(p)), plinth = plinthOf(p.design);
     out.push(rect(mm(x(t0)), mm(p.y), mm(x(t1)), mm(top), 'outline'));
     if (plinth > 0) out.push(line({ x: mm(x(t0)), y: mm(p.y + plinth) }, { x: mm(x(t1)), y: mm(p.y + plinth) }, 'thin'));
-    out.push({ kind: 'tag', at: { x: mm(x((t0 + t1) / 2)), y: mm((p.y + top) / 2) }, text: p.mark });
+    if (p.id > 0) out.push({ kind: 'tag', at: { x: mm(x((t0 + t1) / 2)), y: mm((p.y + top) / 2) }, text: p.mark });
   }
   const side = (hung: boolean) => returns.filter(r => r.p.hung === hung).map(r => ({ lo: r.t0, hi: r.t1 }));
   const upper = mine.filter(p => p.hung || !p.fixture && p.y + p.design.h >= 120);
   const floor = [...mine.filter(p => !p.hung && !p.fixture), ...side(false)], hung = [...upper, ...side(true)];
   const across = (values: readonly number[], up: boolean, row: number) =>
     out.push({ kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
-      stops: stops([0, mm(length), ...values.map(v => mm(Math.max(0, Math.min(length, v))))]) });
+      stops: stops([0, mm(length), ...values.map(mm)]) });
   let below = 0, above = 0;
   const widthStops = (p: PlacedPiece) => cornerWidthStops(p, pieces).map(s => x(p.lo + s));
   if (floor.length) across([...mine.filter(p => !p.hung && !p.fixture).flatMap(widthStops), ...side(false).flatMap(p => [x(p.lo), x(p.hi)])], false, below++);

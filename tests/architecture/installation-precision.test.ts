@@ -86,7 +86,7 @@ test('unsupported or exhausted corner allowance is rejected atomically and block
   const cmd = createSceneCommands(() => scene), before = structuredClone(scene);
   assert.equal(cmd.setKitchenConstruction('cornerStrip', 30), false);
   assert.deepEqual(scene, before);
-  scene.wardrobes = [scene.wardrobes[0]!];
+  scene.wardrobes[0]!.state.cornerStrip = 30;
   assert.ok(validateForManufacture(drawingInputOf(scene)).findings.some(f => f.id === 'strip:K1' && f.severity === 'critical'));
 });
 

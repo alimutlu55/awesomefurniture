@@ -15,7 +15,7 @@ import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 
 export function createKitchenConstructionCommands(getScene: () => EditorScene, checkpoint: () => void, report: (message: string) => void) {
   return {
-    setKitchenConstruction(key: 'plinthHeight' | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit', value: number, recordHistory = true) {
+    setKitchenConstruction(key: 'plinthHeight' | 'endPanelThickness' | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit', value: number, recordHistory = true) {
       const scene = getScene(), cabinet = scene.wardrobes.find(p => p.id === scene.activeWardrobe);
       if (!cabinet || cabinet.state.product !== 'kitchen' || !Number.isFinite(value) || value < 0 || value > (key === 'ventilationWidth' ? cabinet.state.w : key === 'fridgeSplit' ? cabinet.state.h : 30)) return false;
       const next = structuredClone(cabinet), state = next.state, requested = Math.round(value * 10) / 10;
@@ -27,8 +27,9 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
         state.h += delta;
         if (state.shape) state.shape = { ...state.shape, top: state.shape.top.map(p => ({ ...p, y: p.y + delta })),
           ...(state.shape.back ? { back: state.shape.back.map(y => y + delta) } : {}) };
-      } else if (key === 'cornerStrip' && (!state.secs.flat().some(i => i.k === 'corner') || requested === (state.cornerStrip ?? 0))) return false;
+      } else if (key === 'cornerStrip' && (requested < .1 || requested === state.cornerStrip)) return false;
       else if ((key === 'frontThickness' || key === 'worktopThickness') && requested < .1) return false;
+      if (key === 'endPanelThickness' && (requested < .1 || requested > 10)) return false;
       if (key === 'frontThickness' && requested > 5 || key === 'worktopThickness' && requested > 15) return false;
       if (key === 'ventilationHeight' && requested > plinthOf(state)) return false;
       const oldTop = cabinet.state.h + worktopThickness(cabinet.state);
@@ -43,7 +44,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
         });
         if (!found || !valid) return false;
       }
-      if (key === 'cornerStrip' && requested > 0 && (!widths.some(s => s.strip) || !widths.some(s => !s.covered && !s.strip))) {
+      if (key === 'cornerStrip' && widths.some(s => s.covered || s.strip) && !widths.some(s => !s.covered && !s.strip)) {
         report('The corner strip needs a perpendicular return and an exposed front beside it.'); return false;
       }
       const collision = createCabinetGeometry(() => scene.wardrobes.filter(p => {

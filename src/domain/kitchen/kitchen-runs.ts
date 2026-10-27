@@ -71,7 +71,7 @@ export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: 
 function span(kind: KitchenSpan['kind'], run: readonly UnitPose[], y: number, height: number, back: number, depth: number): KitchenSpan {
   const angle = run[0]!.angle, left = Math.min(...run.map(c => along(c, angle) - c.state.w / 2)), right = Math.max(...run.map(c => along(c, angle) + c.state.w / 2));
   const centre = toScene((left + right) / 2, back + depth / 2, angle);
-  return { kind, ...centre, y, angle, length: right - left, depth, height, units: run.map(c => c.id) };
+  return { kind, ...centre, y, angle, length: right - left, depth, height, units: [...run.filter(c => !installationKind(c.state)), ...run.filter(c => installationKind(c.state))].map(c => c.id) };
 }
 
 /** One worktop over each row of base units that touch at the same height, and one plinth under each row of

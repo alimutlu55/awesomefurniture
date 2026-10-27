@@ -1,3 +1,4 @@
+import { cornerStripWidth } from '../kitchen/corner-widths';
 import { ventilationGrille } from '../kitchen/ventilation';
 import { kitchenFrontThickness, installationSlab } from '../kitchen/installation-parts';
 import { worktopThickness } from '../materials/configured-materials';
@@ -31,7 +32,7 @@ export function materialSchedule(pieces: readonly PlacedPiece[]): Table[] {
         + (sku.construction ? `; ${sku.construction.replaceAll('_', ' ')}` : '')]);
     }
     if (piece.design.product === 'kitchen') rows.push([piece.mark, 'Installation', 'Plinth / corner strip', '—',
-      'Plinth ' + plinthOf(piece.design) * 10 + ' mm; corner strip allocation ' + (piece.design.cornerStrip ?? 0) * 10 + ' mm. Finished thickness overrides require matching fabrication stock.']);
+      'Plinth ' + plinthOf(piece.design) * 10 + ' mm; corner strip allocation ' + cornerStripWidth(piece.design) * 10 + ' mm. Finished thickness overrides require matching fabrication stock.']);
     const vent = ventilationGrille(piece.design);
     if (vent) rows.push([piece.mark, 'Ventilation grille', 'Purchased component', vent.width * 10 + ' × ' + vent.height * 10 + ' mm overall',
       'Centre in plinth. Free area, cut-out, duct continuity and manufacturer approval are unconfirmed.']);

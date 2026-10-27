@@ -1,3 +1,6 @@
+import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
+import { studioObstacles } from '../studio/studio-obstacles';
+import { cornerStripWidth } from '../kitchen/corner-widths';
 import { piecefronts } from './fronts';
 import { ventilationGrille } from '../kitchen/ventilation';
 import { cornerFaceWidths } from './corner-widths';
@@ -55,7 +58,11 @@ const finite = (...values: number[]) => values.every(v => Number.isFinite(v));
 /** Pieces in the same place, taller than their room, or with a size that is not a real length. */
 function geometryFindings(studio: Studio | undefined, pieces: readonly PlacedPiece[]): ManufacturingFinding[] {
   const out: ManufacturingFinding[] = [];
+  const walls = createCabinetGeometry(() => [], () => studioObstacles(studio));
   for (const p of pieces) {
+    if (p.id < 0 && walls.cabinetCollides({ ...p, state: p.design })) out.push({
+      id: 'panel-room:' + p.mark, severity: 'critical', area: 'geometry', marks: [p.mark],
+      message: p.mark + ': the attached end pane intersects the room', rule: 'Reserve the finish panel thickness in the installed run' });
     const { w, h, d } = p.design;
     if (!finite(w, h, d, p.x, p.y, p.z, p.angle) || w <= 0 || h <= 0 || d <= 0)
       out.push({ id: 'size:' + p.mark, severity: 'critical', area: 'geometry', marks: [p.mark], message: p.mark + ' has no valid size or position', rule: 'Every size is a positive length' });
@@ -99,9 +106,9 @@ function assemblyFindings(pieces: readonly PlacedPiece[]): ManufacturingFinding[
     if ((p.design.ventilationWidth || p.design.ventilationHeight) && !ventilationGrille(p.design))
       out.push({ id: 'vent:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
         message: p.mark + ': ventilation grille needs a valid width and height inside its plinth', rule: 'Grille outer envelope fits the modeled plinth' });
-    if (p.design.cornerStrip) {
+    if (!installationKind(p.design)) {
       const widths = cornerFaceWidths(p, pieces), strips = widths.filter(s => s.strip);
-      if (!strips.length || strips.some(s => Math.abs(s.to - s.from - p.design.cornerStrip!) > EXACT))
+      if (widths.some(s => s.covered || s.strip) && (!strips.length || strips.some(s => Math.abs(s.to - s.from - cornerStripWidth(p.design)) > EXACT)))
         out.push({ id: 'strip:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
           message: p.mark + ': the specified corner strip cannot be reserved beside a perpendicular return', rule: 'Installation allowances fit their actual geometry' });
     }

@@ -1,3 +1,4 @@
+import { sizeTargets } from './align-commands';
 import type { EditorScene } from '../projects/editor-scene';
 import { createSceneCommands } from './scene-commands';
 import { furnitureModule } from '../../domain/furniture/furniture';
@@ -30,7 +31,13 @@ export function createCabinetSizeRange(getScene: () => EditorScene) {
             const endpoint = (target: number) => {
                 if (accepts(target)) return target;
                 const direction = Math.sign(target - start);
-                let lo = 0, hi = Math.ceil(Math.abs(target - start) * 10);
+                // Contact can remove automatic finish panels between units, so a reachable exact contact
+                // may sit beyond an interval that those panels obstruct. Probe the shared alignment targets.
+                const stops = sizeTargets(original, cabinet, axis).map(t => t.v)
+                    .filter(v => (v - start) * direction > 0 && (target - v) * direction >= 0)
+                    .sort((a, b) => direction * (b - a));
+                const contact = stops.find(accepts) ?? start;
+                let lo = Math.round(Math.abs(contact - start) * 10), hi = Math.ceil(Math.abs(target - start) * 10);
                 while (hi - lo > 1) {
                     const mid = Math.floor((lo + hi) / 2), value = Math.round((start + direction * mid / 10) * 10) / 10;
                     if (accepts(value)) lo = mid; else hi = mid;
