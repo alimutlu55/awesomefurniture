@@ -13,7 +13,10 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "none"
   },
-  "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }],
+  "ratelimits": [
+    { "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
+    { "name": "API_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 60, "period": 60 } }
+  ],
   // Workers logs for every request, kept (Cloudflare dashboard -> Workers -> Logs): payment and credit failures log
   // a request id there (src/infrastructure/credits/credit-http.ts). Set for each environment so both are the same.
   "observability": {
@@ -33,7 +36,10 @@
         "issue_detection": { "enabled": false }
       },
       "triggers": { "crons": ["*/15 * * * *"] },
-      "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }]
+      "ratelimits": [
+        { "name": "AI_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } },
+        { "name": "API_RATE_LIMITER", "namespace_id": "1002", "simple": { "limit": 60, "period": 60 } }
+      ]
     }
   },
   // Builds of branches other than the production one run `wrangler preview`, which needs this block.

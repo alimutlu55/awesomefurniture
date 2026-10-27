@@ -86,9 +86,9 @@ export async function generateDesignImage(
   };
   const serializedRequestBody = JSON.stringify(requestBody);
   if (logLevel?.toLowerCase() === 'debug') {
-    // Deliberately includes full prompts and base64 reference images for operator debugging.
-    // Never include headers here: x-goog-api-key is a secret. Logs may contain user design data.
-    console.debug(JSON.stringify({ event: 'gemini_image_request', model: GEMINI_IMAGE_MODEL, body: serializedRequestBody }));
+    // Even debug logs exclude designs, prompts, images and credentials.
+    console.debug(JSON.stringify({ event: 'gemini_image_request', model: GEMINI_IMAGE_MODEL,
+      referenceCount: references.length, requestBytes: new TextEncoder().encode(serializedRequestBody).byteLength }));
   }
   const response = await fetcher('https://generativelanguage.googleapis.com/v1beta/interactions', {
     method: 'POST', signal,

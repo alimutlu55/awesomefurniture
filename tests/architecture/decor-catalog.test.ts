@@ -96,7 +96,7 @@ test('two-tone viewport uses separate SKU colors and roughness, and removes ward
   materials.owned.forEach(m => m.dispose());
 });
 
-test('final Gemini text and debug log contain exact two-tone SKUs, tactile descriptor, grain and handleless rules; swatches follow geometry', async () => {
+test('Gemini receives exact board details and swatches while debug logs retain only request metadata', async () => {
   const model = fixture(), specification = imageDesignSpecification(model.scene);
   const input = { specification, references: IMAGE_VIEWS.map(view => ({ view, mimeType: 'image/jpeg' as const, data: '/9j/2Q==',
     width: 1024 as const, height: 768 as const, camera: { position: [0, 180, 600], target: [0, 110, 0], fov: 35 } })),
@@ -119,7 +119,9 @@ test('final Gemini text and debug log contain exact two-tone SKUs, tactile descr
       return Response.json({ status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'image', mime_type: 'image/jpeg', data: '/9j/2Q==' }] }] });
     }, 'debug');
   } finally { console.debug = oldDebug; }
-  assert.match(logs.join(''), /Egger H1318 ST10/); assert.match(logs.join(''), /Egger U702 ST9/); assert.doesNotMatch(logs.join(''), /secret-key/);
+  assert.doesNotMatch(logs.join(''), /Egger|secret-key|\/9j\/2Q==/);
+  assert.equal(JSON.parse(logs[0]!).referenceCount, 3);
+  assert.ok(JSON.parse(logs[0]!).requestBytes > 0);
   assert.match(serializeDecorPromptManifest(getDecor('egger-u702-pm'), getDecor('egger-u702-pm'), 'brushed_brass', 'Bay 1'), /Unified Decor.*U702 PM/);
 });
 

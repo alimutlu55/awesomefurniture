@@ -4,6 +4,8 @@ import type { SpendReceipt } from '../../application/credits/credit-wallet';
 import type { CreditRuntime } from './credit-environment';
 import { currencyForCountry } from '../../domain/credits/credit-currency';
 import { testCheckoutPage, testCheckoutComplete } from './test-checkout-page';
+import { readBoundedText, RequestBodyError } from '../http/request-body';
+import { safeError } from '../http/safe-error';
 
 const STATUS: Record<CreditErrorCode, number> = {
   UNKNOWN_PACK: 400, UNKNOWN_PROVIDER: 400, UNKNOWN_FEATURE: 400, INVALID_REQUEST: 400, SIGN_IN_REQUIRED: 401,
@@ -22,23 +24,21 @@ export function creditFailure(error: CreditError) {
 /** Unexpected failures are logged with a request id and never show their message; the id is the person's support reference. */
 function unexpected(event: string, error: unknown) {
   const requestId = crypto.randomUUID();
-  console.error(JSON.stringify({ event, requestId, error: error instanceof Error ? error.message.slice(0, 300) : 'unknown' }));
+  console.error(JSON.stringify({ event, requestId, error: safeError(error) }));
   const response = failure(500, 'CREDITS_FAILED', 'Credits are temporarily unavailable. Please try again.', { reason: requestId });
   response.headers.set('X-Request-ID', requestId);
   return response;
 }
 
 async function readBody(request: Request) {
-  const text = await request.text();
-  if (text.length > MAX_BODY) throw new CreditError('INVALID_REQUEST', 'The request is too large.');
-  return text;
+  return readBoundedText(request, MAX_BODY);
 }
 async function readJson(request: Request): Promise<Record<string, unknown>> {
   if (request.headers.get('content-type')?.split(';')[0]?.trim() !== 'application/json') throw new CreditError('INVALID_REQUEST', 'Send JSON.');
   try {
     const value = JSON.parse(await readBody(request)) as unknown;
     if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
-  } catch (error) { if (error instanceof CreditError) throw error; }
+  } catch (error) { if (error instanceof CreditError || error instanceof RequestBodyError) throw error; }
   throw new CreditError('INVALID_REQUEST', 'The request contains invalid JSON.');
 }
 const sameOrigin = (request: Request) => {
@@ -98,6 +98,7 @@ export async function handleCredits(request: Request, runtime: CreditRuntime | n
     }
     return failure(404, 'NOT_FOUND', 'Unknown credits endpoint.');
   } catch (error) {
+    if (error instanceof RequestBodyError) return failure(error.status, 'INVALID_REQUEST', error.message);
     if (error instanceof CreditError) return creditFailure(error);
     if (error instanceof PaymentProviderError) {
       const requestId = crypto.randomUUID();

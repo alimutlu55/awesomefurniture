@@ -1,13 +1,16 @@
+import { MIN_PASSWORD_LENGTH } from '../../application/account/password-policy';
+
 const fallback = 'Something went wrong. Please try again.';
 
 /** Customer copy for sign-in errors is owned here; Supabase's messages never become UI text. */
 export function accountErrorMessage(error: unknown): string {
   const code = typeof error === 'object' && error && 'code' in error ? String((error as { code: unknown }).code) : '';
   switch (code) {
+    case 'captcha_failed': return 'The security check could not be completed. Please try again.';
     case 'invalid_credentials': return 'That email and password do not match. Check them, or reset your password.';
     case 'user_already_exists':
     case 'email_exists': return 'This email already has an account. Sign in instead.';
-    case 'weak_password': return 'Choose a stronger password: at least 8 characters, not a common one.';
+    case 'weak_password': return `Choose a stronger password: at least ${MIN_PASSWORD_LENGTH} characters, not a common one.`;
     case 'same_password': return 'Choose a password you have not used here before.';
     case 'otp_expired': return 'That code is wrong or has expired. Check it, or ask for a new one.';
     case 'email_address_invalid':

@@ -18,7 +18,7 @@ const ORDER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 /** A refund in what the order is worth: the share refunded of what was charged, so tax and the customer's currency do not skew it. */
 const refundedShare = (order: PaymentOrder, refunded: number, charged: number) =>
   Math.min(order.amount, charged > 0 ? Math.round(order.amount * refunded / charged) : refunded);
-const reasonOf = (error: unknown) => error instanceof PaymentProviderError ? error.reason : error instanceof Error ? error.message.slice(0, 200) : 'unknown';
+const reasonOf = (error: unknown) => error instanceof PaymentProviderError ? error.reason : 'unexpected_error';
 
 interface Dependencies {
   store: CreditStore;

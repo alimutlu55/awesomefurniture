@@ -1,3 +1,5 @@
+import { MIN_PASSWORD_LENGTH } from '../../application/account/password-policy';
+
 const CLOSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18"/></svg>';
 export const PERSON = '<svg class="ac-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20a7.5 7.5 0 0 1 15 0"/></svg>';
 // Google's sign-in mark, as its brand guidelines ask for on a "Continue with Google" button.
@@ -15,8 +17,8 @@ export function accountSheet() {
     + `<button type="button" class="cr-close" aria-label="Close">${CLOSE}</button>`
     + '<header class="ac-head"><h2 id="ac-title"></h2><p class="ac-lead"></p></header>'
     + '<section class="ac-start"><form class="ac-form ac-credentials" novalidate>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')
-    + '<div class="ac-password-row">' + field('password', 'Password', 'type="password" minlength="8"')
-    + '<button type="button" class="cr-quiet ac-to-forgot">Forgot?</button></div><p class="ac-hint">At least 8 characters.</p>'
+    + '<div class="ac-password-row">' + field('password', 'Password', 'type="password"')
+    + `<button type="button" class="cr-quiet ac-to-forgot">Forgot?</button></div><p class="ac-hint">At least ${MIN_PASSWORD_LENGTH} characters.</p>`
     + '<button type="submit" class="cr-primary ac-submit"></button></form>'
     + '<p class="ac-or" hidden><span>Or continue with</span></p>'
     + `<button type="button" class="ac-google" hidden>${GOOGLE}<span>Continue with Google</span></button>`
@@ -25,7 +27,8 @@ export function accountSheet() {
     + '<button type="button" class="cr-quiet ac-resend">Send a new code</button><button type="button" class="cr-quiet ac-to-start">Use another email</button></form>'
     + '<form class="ac-form ac-forgot" novalidate hidden>' + field('email', 'Email', 'type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"')
     + '<button type="submit" class="cr-primary">Email me a code</button><button type="button" class="cr-quiet ac-to-start">Back to sign in</button></form>'
-    + `<form class="ac-form ac-reset" novalidate hidden>${code}` + field('password', 'New password', 'type="password" autocomplete="new-password" minlength="8"')
+    + `<form class="ac-form ac-reset" novalidate hidden>${code}`
+    + field('password', 'New password', `type="password" autocomplete="new-password" minlength="${MIN_PASSWORD_LENGTH}"`)
     + '<button type="submit" class="cr-primary">Save and sign in</button><button type="button" class="cr-quiet ac-to-forgot">Send a new code</button></form>'
     + '<section class="ac-adopt" hidden><ul class="ac-adopt-list"></ul>'
     + '<button type="button" class="cr-primary ac-adopt-yes">Add to my account</button>'
