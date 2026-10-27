@@ -9,7 +9,9 @@ import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { plinthOf } from '../../domain/wardrobe/carcass';
 import { cornerCabinetWidths } from '../../domain/kitchen/corner-widths';
 import { kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
-import { automaticEndPanels } from '../../domain/kitchen/end-panels';
+import { automaticInstallationParts } from '../../domain/kitchen/automatic-installation';
+import { installationCollisionSolids } from '../../domain/kitchen/installation-collision';
+import { automaticEndPanels, rememberEndPanels, sidePanelThickness } from '../../domain/kitchen/end-panels';
 import { sharedEndPanels } from '../../domain/kitchen/shared-panels';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
@@ -39,12 +41,23 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       if (key === 'frontThickness' && requested > 5 || key === 'worktopThickness' && requested > 15) return false;
       if (key === 'ventilationHeight' && requested > plinthOf(state)) return false;
       const oldTop = cabinet.state.h + worktopThickness(cabinet.state);
+      const isSideKey = key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness';
+      const oldSide = key === 'leftPanelThickness' ? sidePanelThickness(cabinet.state, -1)
+        : key === 'rightPanelThickness' ? sidePanelThickness(cabinet.state, 1)
+          : key === 'endPanelThickness' ? Math.max(sidePanelThickness(cabinet.state, -1), sidePanelThickness(cabinet.state, 1)) : 0;
+      if (key === 'leftPanelThickness' || key === 'rightPanelThickness') {
+        state.leftPanelThickness = sidePanelThickness(state, -1);
+        state.rightPanelThickness = sidePanelThickness(state, 1);
+        delete state.endPanelThickness;
+      }
       state[key] = requested;
       if (key === 'leftPanelThickness' && state.endPanelSides) state.endPanelSides = state.endPanelSides.filter(s => s !== -1);
       if (key === 'rightPanelThickness' && state.endPanelSides) state.endPanelSides = state.endPanelSides.filter(s => s !== 1);
+      if (state.endPanelSides && !state.endPanelSides.length) delete state.endPanelSides;
       if (key === 'endPanelThickness') {
         state.leftPanelThickness = requested;
         state.rightPanelThickness = requested;
+        if (requested === 0) delete state.endPanelSides;
       }
       const rules = createWardrobeGeometry(() => state), widths = cornerCabinetWidths(next, scene.wardrobes);
       if (key === 'fridgeSplit' && requested > 0) {
@@ -63,7 +76,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       const planned = structuredClone(scene);
       planned.wardrobes.find(p => p.id === next.id)!.state = state;
       const syncedPartners: { id: number; side: -1 | 1; syncLegacy: boolean }[] = [];
-      if ((key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness') && requested > 0) {
+      if (isSideKey) {
         const editedSides = key === 'leftPanelThickness' ? [-1] : key === 'rightPanelThickness' ? [1] : [-1, 1];
         const groups = [...sharedEndPanels(automaticEndPanels(scene.wardrobes)), ...sharedEndPanels(automaticEndPanels(planned.wardrobes))];
         for (const group of groups) {
@@ -71,9 +84,12 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
           for (const owner of group.owners) if (owner.id !== next.id) {
             const partner = planned.wardrobes.find(p => p.id === owner.id);
             const pSide = owner.side < 0 ? -1 : 1, sideKey = pSide < 0 ? 'leftPanelThickness' : 'rightPanelThickness';
-            if (partner && !syncedPartners.some(s => s.id === partner.id && s.side === pSide)
-              && (partner.state[sideKey] !== undefined || partner.state.endPanelThickness !== undefined || partner.state.endPanelSides?.includes(pSide))) {
+            const canSync = requested > 0
+              ? (partner?.state[sideKey] !== undefined || partner?.state.endPanelThickness !== undefined || partner?.state.endPanelSides?.includes(pSide))
+              : (partner?.state[sideKey] === undefined && partner?.state.endPanelThickness === undefined && partner?.state.endPanelSides?.includes(pSide));
+            if (partner && !syncedPartners.some(s => s.id === partner.id && s.side === pSide) && canSync) {
               partner.state[sideKey] = requested;
+              if (requested === 0 && partner.state.endPanelSides) partner.state.endPanelSides = partner.state.endPanelSides.filter(s => s !== pSide);
               if (partner.state.endPanelThickness !== undefined) partner.state.endPanelThickness = requested;
               syncedPartners.push({ id: partner.id, side: pSide, syncLegacy: partner.state.endPanelThickness !== undefined });
             }
@@ -86,9 +102,28 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       const top = resolveShape(state), spans = kitchenSpans(planned.wardrobes);
       const extra = spans.find(s => s.kind === 'worktop' && s.units.includes(next.id))?.height ?? 0;
       const envelope = { ...next, state: { ...state, h: state.h + extra } };
-      if (collision.cabinetCollides(envelope) || ceilingClearance(scene.studio, { ...next, w: state.w, d: state.d }, 0)({ ...top,
-        top: top.top.map(p => ({ ...p, y: p.y + extra })), ...(top.back ? { back: top.back.map(y => y + extra) } : {}) })
-        || Array.from({ length: state.n }, (_, i) => i).some(i => !rules.sectionLayoutValid(i) || rules.overflow(i) > .001)) {
+      const checksHeight = key === 'plinthHeight' || key === 'worktopThickness';
+      const editedSides = key === 'leftPanelThickness' ? [-1] : key === 'rightPanelThickness' ? [1] : [-1, 1];
+      const sideCollides = () => {
+        if (requested <= oldSide) return false;
+        const parts = automaticInstallationParts(planned.wardrobes);
+        const activePanels = parts.filter(p => p.ownerId === next.id && editedSides.includes(p.side)
+          || ('owners' in p && p.owners.some(o => o.id === next.id && editedSides.includes(o.side))));
+        return activePanels.some(panel => {
+          const ownerIds = new Set<number | string>([panel.ownerId, ...('owners' in panel ? panel.owners.map(o => o.id) : [])]);
+          const ownerCabinets = planned.wardrobes.filter(p => ownerIds.has(p.id));
+          const nonOwners = planned.wardrobes.filter(p => !ownerIds.has(p.id)
+            && kitchenUnit(p.state.unit).fixture !== 'sink' && kitchenUnit(p.state.unit).fixture !== 'hob');
+          const others = [...installationCollisionSolids(nonOwners, planned.wardrobes),
+            ...parts.filter(p => p !== panel && !ownerIds.has(p.ownerId)), ...studioObstacles(scene.studio)];
+          return others.some(other => collision.cabinetOverlaps(panel, other)
+            && !ownerCabinets.some(owner => collision.cabinetOverlaps(owner, other)));
+        });
+      };
+      if ((isSideKey ? sideCollides() : collision.cabinetCollides(envelope))
+        || (checksHeight && state.h + extra > oldTop && ceilingClearance(scene.studio, { ...next, w: state.w, d: state.d }, 0)({ ...top,
+          top: top.top.map(p => ({ ...p, y: p.y + extra })), ...(top.back ? { back: top.back.map(y => y + extra) } : {}) }))
+        || (checksHeight && Array.from({ length: state.n }, (_, i) => i).some(i => !rules.sectionLayoutValid(i) || rules.overflow(i) > .001))) {
         notify('That construction change does not fit the room or the existing fittings.'); return false;
       }
       const lift = state.h + worktopThickness(state) - oldTop, { u, v } = unitAxes(cabinet.angle);
@@ -102,9 +137,11 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
         const partner = scene.wardrobes.find(p => p.id === id);
         if (partner) {
           partner.state[side < 0 ? 'leftPanelThickness' : 'rightPanelThickness'] = requested;
+          if (requested === 0 && partner.state.endPanelSides) partner.state.endPanelSides = partner.state.endPanelSides.filter(s => s !== side);
           if (syncLegacy) partner.state.endPanelThickness = requested;
         }
       }
+      rememberEndPanels(scene.wardrobes);
       for (const fixture of supported) fixture.y = (fixture.y ?? 0) + lift;
       return true;
     },

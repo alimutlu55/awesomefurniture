@@ -10,6 +10,7 @@ import { createProject } from '../../src/domain/project/project';
 import { serializeProject, deserializeProject } from '../../src/infrastructure/serialization/project-codec';
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
+import { createStudio } from '../../src/domain/studio/studio-templates';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
 
 const unit = (id: number, x = 0) => ({ id, name: 'Cabinet', x, y: 0, z: 0, angle: 0,
@@ -58,4 +59,20 @@ test('an explicitly requested new pane still uses actual stock when automatic pa
   const model = modelOf(); const command = createSceneCommands(() => model.scene);
   const pane = command.addKitchenUnit('end-panel', { beside: true })!;
   assert.ok(pane); assert.equal(pane.state.w, 1.8);
+});
+
+test('an elevated wall cabinet above room ceiling height can resize and zero its right panel', () => {
+  const upper = { id: 1, name: 'Wall cabinet', x: 0, y: 221.2, z: -11.5, angle: 0,
+    state: { ...createEditorState(), ...createKitchenDesign('upper'), w: 61, h: 117.4, d: 35, endPanelSides: [1] as (-1 | 1)[] } };
+  const tall = { id: 2, name: 'Tall cabinet', x: 62.3, y: 0, z: 0, angle: 0,
+    state: { ...createEditorState(), ...createKitchenDesign('tall'), w: 60, h: 270, d: 58, endPanelSides: [-1] as (-1 | 1)[] } };
+  const model = createEditorModel({ studio: createStudio('bedroom'), wardrobes: [upper, tall], activeWardrobe: 1, nextWardrobeId: 3 });
+  const command = createSceneCommands(() => model.scene);
+  assert.equal(command.setKitchenConstruction('rightPanelThickness', 0), true);
+  assert.equal(model.activeCabinet().state.rightPanelThickness, 0);
+  assert.equal(automaticInstallationParts(model.scene.wardrobes).length, 0);
+  assert.equal(command.setKitchenConstruction('rightPanelThickness', 1.2), true);
+  assert.equal(model.activeCabinet().state.rightPanelThickness, 1.2);
+  assert.equal(command.setKitchenConstruction('rightPanelThickness', 0), true);
+  assert.equal(model.activeCabinet().state.rightPanelThickness, 0);
 });
