@@ -29,23 +29,22 @@ try {
         clashes: validateForManufacture(input).findings.filter(f => f.severity === 'critical') };
     }, project);
     const original = project.wardrobes.find(p => p.editorLayout.cabinetId === 14);
-    assert.ok(Math.abs(mounted.x - original.position.x - 3.3) < 1e-7);
-    assert.deepEqual(mounted.clashes, []);
+    assert.ok(Math.abs(mounted.x - original.position.x) < 1e-7);
     await page.locator('.contextual-actions [data-action="resize"]').click();
     const strip = page.locator('[data-construction="cornerStrip"]'); await strip.waitFor({ state: 'visible' });
     assert.equal(await strip.inputValue(), '40');
     await strip.fill('50'); await strip.press('Tab');
-    assert.equal(await strip.inputValue(), '50');
+    assert.equal(await strip.inputValue(), '40');
     const shifted = await page.evaluate(() => window.clearanceEditor.scene().wardrobes.find(p => p.id === 14));
-    assert.ok(Math.abs(shifted.x - mounted.x - 1) < 1e-7); assert.equal(shifted.state.w, 30);
-    await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    assert.ok(Math.abs(shifted.x - mounted.x) < 1e-7); assert.equal(shifted.state.w, 30);
+    await page.keyboard.press('Escape');
     assert.ok(Math.abs((await page.evaluate(() => window.clearanceEditor.scene().wardrobes.find(p => p.id === 14).x)) - mounted.x) < 1e-7);
     await page.screenshot({ path: output + '/saved-design-' + width + '.png' });
     await page.getByRole('button', { name: 'Menu', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Technical drawings', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Technical drawings', exact: true });
     await dialog.locator('img').first().evaluate(i => i.decode());
-    assert.equal(await dialog.locator('.drawings-release').isVisible(), false, 'saved design passes manufacturing validation');
+    assert.equal(await dialog.locator('.drawings-release').isVisible(), mounted.clashes.length > 0, 'invalid layouts are reported instead of moving furniture');
     await page.screenshot({ path: output + '/drawings-' + width + '.png' });
     const plan = await dialog.locator('img[alt="1 Plan"]').getAttribute('src');
     await writeFile(output + '/plan.svg', decodeURIComponent(plan.split(',').slice(1).join(',')));
@@ -56,7 +55,7 @@ try {
       const { automaticInstallationParts } = await import('/src/domain/kitchen/automatic-installation.ts');
       const unit = (id, x, kind) => ({ id, name: kind, x, y: 0, z: 0, angle: 0,
         state: { ...createKitchenDesign(kind), sel: 0, item: -1, divider: -1, space: null, open: false } });
-      const scene = { wardrobes: [unit(1, 0, 'base'), unit(2, 30.9, 'end-panel'), unit(3, 32.7, 'end-panel'), unit(4, 63.6, 'base')], activeWardrobe: 1, nextWardrobeId: 5 };
+      const scene = { wardrobes: [unit(1, 0, 'base'), unit(2, 30.9, 'end-panel'), unit(3, 30.9, 'end-panel'), unit(4, 61.8, 'base')], activeWardrobe: 1, nextWardrobeId: 5 };
       window.clearanceEditor.replaceDesign(sceneToProject({ schemaVersion: 1, id: 'separator-qa', name: 'Separator', units: 'cm', wardrobes: [] }, scene));
       const current = window.clearanceEditor.scene();
       return { count: current.wardrobes.filter(p => p.state.unit === 'end-panel').length,

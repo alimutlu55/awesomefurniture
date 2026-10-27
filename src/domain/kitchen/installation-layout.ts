@@ -62,16 +62,16 @@ const fronts = (p: InstallationPose, boxes: InstallationPose[]) => normal(p)
 
 /** Plan before committing: preserve module dimensions and internal run spacings. The caller validates room
  * constraints atomically. This is an installation reconciliation, never a pointer-movement snap. */
-export function planInstallationLayout<T extends InstallationPose>(input: readonly T[], obstacles: readonly PanelPose[] = []) {
+export function planInstallationLayout<T extends InstallationPose>(input: readonly T[], obstacles: readonly PanelPose[] = [], repositionCabinets = false) {
   const boxes = expandedEndPanels(structuredClone([...input])), removed = new Map<number | string, number | string>();
-  // Explicit double separators: keep the first board and close exactly the removed board's width.
+  // Coincident duplicates share one board. Closing a doubled joint requires explicit repositioning.
   for (const a of [...boxes]) for (const b of [...boxes]) {
     if (a === b || !boxes.includes(a) || !boxes.includes(b) || installationKind(a.state) !== 'end-panel'
       || installationKind(b.state) !== 'end-panel' || Math.abs(a.state.w - b.state.w) > EPS
       || !(matchingPanelLine(a, b) || samePanelBack(a, b) && flatPanel(a) && flatPanel(b)
         && Math.max(a.y ?? 0, b.y ?? 0) <= Math.min((a.y ?? 0) + a.state.h, (b.y ?? 0) + b.state.h) + EPS)) continue;
     const { u } = unitAxes(a.angle), distance = at(b, u) - at(a, u);
-    if (distance < -EPS || distance > a.state.w + EPS) continue;
+    if (distance < -EPS || distance > a.state.w + EPS || !repositionCabinets && distance > EPS) continue;
     const bottom = Math.min(a.y ?? 0, b.y ?? 0), height = Math.max((a.y ?? 0) + a.state.h, (b.y ?? 0) + b.state.h) - bottom;
     const depth = Math.max(a.state.d, b.state.d), across = (depth - a.state.d) / 2, { v: normal } = unitAxes(a.angle);
     const stock = a.state.h * a.state.d >= b.state.h * b.state.d ? a : b, shape = flatPanel(a) && flatPanel(b) ? undefined : a.state.shape;
@@ -83,8 +83,10 @@ export function planInstallationLayout<T extends InstallationPose>(input: readon
     const after = boxes.filter(p => at(p, u) > at(b, u) + EPS && vertical(p, a) && sameDirection(p, a)
       && Math.abs(at(p, v) - p.state.d / 2 - at(a, v) + a.state.d / 2) < EPS);
     const next = after.filter(p => !isFixture(p.state)).sort((p, q) => at(p, u) - at(q, u))[0];
-    if (next && at(next, u) - next.state.w / 2 - at(b, u) - b.state.w / 2 <= RUN_TOLERANCE) shift(run(boxes, next, new Set(boxes.filter(p => at(p, u) <= at(a, u) + EPS).map(p => p.id))), u, -distance);
+    if (repositionCabinets && next && at(next, u) - next.state.w / 2 - at(b, u) - b.state.w / 2 <= RUN_TOLERANCE) shift(run(boxes, next, new Set(boxes.filter(p => at(p, u) <= at(a, u) + EPS).map(p => p.id))), u, -distance);
   }
+  // Ordinary edits and reopening never relocate furniture. Repositioning is an explicit planning operation.
+  if (!repositionCabinets) return { boxes, removed, valid: true };
   // Facing automatic end panes share one stock thickness. Preserve deliberate clearance beyond it.
   for (const a of boxes.filter(normal)) for (const b of boxes.filter(normal)) {
     const { u, v } = unitAxes(a.angle), gap = at(b, u) - at(a, u) - (a.state.w + b.state.w) / 2;

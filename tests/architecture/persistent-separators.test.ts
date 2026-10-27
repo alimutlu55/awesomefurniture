@@ -28,8 +28,8 @@ const inputOf = (s: EditorScene) => ({ ...(s.studio ? { studio: s.studio } : {})
 
 function stackedJoint() {
   const floor = cabinet(1, -30), tall = cabinet(2, 31.8, 'tall', { h: 164 });
-  const shallow = { ...cabinet(3, -31.8, 'upper', { w: 60, h: 117.4, d: 35 }), y: 152.6, z: 17.5 };
-  const lower = { ...cabinet(4, 31.7, 'upper', { w: 60, h: 50.9, d: 58 }), y: 164 };
+  const shallow = { ...cabinet(3, -30, 'upper', { w: 60, h: 117.4, d: 35 }), y: 152.6, z: 17.5 };
+  const lower = { ...cabinet(4, 31.8, 'upper', { w: 60, h: 50.9, d: 58 }), y: 164 };
   const upper = { ...cabinet(5, 31.8, 'upper', { w: 60, h: 55, d: 58 }), y: 214.9 };
   return sceneOf([floor, tall, shallow, lower, upper]);
 }
@@ -104,8 +104,8 @@ test('custom stock and retained intent survive rotation; a real 1 mm clearance i
 
 
 test('two explicit separators of different heights become one full shared upright and preserve an actual panel entity', () => {
-  const a = cabinet(2, 30.9, 'end-panel'), b = cabinet(3, 32.7, 'end-panel', { h: 164 });
-  const scene = sceneOf([cabinet(1, 0), a, b, cabinet(4, 63.6, 'tall', { h: 164 })]);
+  const a = cabinet(2, 30.9, 'end-panel'), b = cabinet(3, 30.9, 'end-panel', { h: 164 });
+  const scene = sceneOf([cabinet(1, 0), a, b, cabinet(4, 61.8, 'tall', { h: 164 })]);
   assert.equal(reconcileInstallation(scene), true);
   const panes = scene.wardrobes.filter(p => p.state.unit === 'end-panel');
   assert.equal(panes.length, 1); near(panes[0]!.state.w, 1.8); near(panes[0]!.state.h, 164);
@@ -134,10 +134,10 @@ test('alignment and filling measure available space beyond the persistent separa
   near(fill.activeCabinet().state.w, 63.2); near(filling.fillableSpace(), 0);
 });
 
-test('one retained board is reserved even if an imported adjoining cabinet had no stored panel intent', () => {
+test('an imported cabinet overlapping a retained board is reported without moving any furniture', () => {
   const a = cabinet(1, 0, 'base', { endPanelSides: [1] }), b = cabinet(2, 60);
-  const scene = sceneOf([a, b]); assert.equal(reconcileInstallation(scene), true);
-  near(b.x, 61.8); assert.ok(automaticInstallationParts(scene.wardrobes).some(p => p.state.unit === 'end-panel'));
+  const scene = sceneOf([a, b]); assert.equal(reconcileInstallation(scene), false);
+  near(a.x, 0); near(b.x, 60); assert.ok(automaticInstallationParts(scene.wardrobes).some(p => p.state.unit === 'end-panel'));
 });
 
 

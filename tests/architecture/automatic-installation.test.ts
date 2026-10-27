@@ -55,6 +55,7 @@ test('a straight run gets two 18 mm external ends, no middle panels; adding/remo
 
 test('strip and panel defaults, custom values and construction settings survive save/reopen and undo checkpointing', () => {
   const boxes = layout('cargo'), scene: EditorScene = { wardrobes: boxes, activeWardrobe: 2, nextWardrobeId: 3 };
+  boxes[1]!.z = 49.8; // Start with the required strip/front clearance already present.
   let undo = 0; const commands = createSceneCommands(() => scene, { checkpoint: () => { undo++; } });
   assert.equal(commands.setKitchenConstruction('cornerStrip', 2.5), true);
   assert.equal(commands.setKitchenConstruction('endPanelThickness', 2.2), true);

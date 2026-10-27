@@ -29,7 +29,7 @@ try {
       const state = { ...createEditorState(), ...createKitchenDesign('base', 'corner'), w: 102 };
       const scene = { wardrobes: [
         { id: 1, name: 'Corner cabinet', x: 0, z: 0, y: 0, angle: 0, state },
-        { id: 2, name: 'Cargo', x: 22, z: 48, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo') } },
+        { id: 2, name: 'Cargo', x: 22, z: 49.8, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo') } },
       ], activeWardrobe: 1, nextWardrobeId: 3 };
       const editor = mountEditor({ root: document.querySelector('#editor'), initialScene: scene });
       window.installationEditor = editor;

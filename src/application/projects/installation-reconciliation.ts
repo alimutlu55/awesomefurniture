@@ -9,7 +9,7 @@ import { kitchenSpans } from '../../domain/kitchen/kitchen-runs';
 import { isFixture, installationKind } from '../../domain/kitchen/kitchen-units';
 import type { EditorScene } from './editor-scene';
 
-/** Reconcile on load and construction edits, never on pointer updates or undo/redo. A blocked plan
+/** Validate/merge installation parts on load or drop without relocating furniture. A blocked plan
  * leaves the complete scene untouched; manufacturing validation still identifies the unresolved clash. */
 export function reconcileInstallation(scene: EditorScene): boolean {
   const requested = structuredClone(scene.wardrobes);
@@ -22,6 +22,7 @@ export function reconcileInstallation(scene: EditorScene): boolean {
   const solids = plan.boxes.filter(p => !isFixture(p.state));
   const collision = createCabinetGeometry(() => solids, () => studioObstacles(scene.studio));
   const spans = kitchenSpans([...solids, ...automaticInstallationParts(solids)]);
+  if (solids.some(p => collision.cabinetCollides(p))) return false;
   for (const p of moved.filter(p => !isFixture(p.state))) {
     const extra = spans.find(s => s.kind === 'worktop' && s.units.includes(p.id))?.height ?? 0, shape = resolveShape(p.state);
     if (collision.cabinetCollides(p) || ceilingClearance(scene.studio, { ...p, w: p.state.w, d: p.state.d }, 1e-5)({ ...shape,
@@ -37,7 +38,7 @@ export function reconcileInstallation(scene: EditorScene): boolean {
     const original = originals.get(next.id)!;
     if (installationKind(next.state) === 'end-panel') original.state = next.state;
     else original.state.endPanelSides = next.state.endPanelSides;
-    Object.assign(original, { x: next.x, y: next.y ?? 0, z: next.z });
+    if (installationKind(next.state)) Object.assign(original, { x: next.x, y: next.y ?? 0, z: next.z });
   }
   scene.wardrobes = scene.wardrobes.filter(p => !plan.removed.has(p.id));
   scene.activeWardrobe = Number(plan.removed.get(scene.activeWardrobe) ?? scene.activeWardrobe);

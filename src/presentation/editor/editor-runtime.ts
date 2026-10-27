@@ -245,7 +245,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             checkInstallation();
         }
         function checkInstallation() {
-            if (!reconcileInstallation(model.scene)) shell.toast('There is no room for the full installation strips or shared separators. Move the run to make space.', undefined, 12000);
+            if (!reconcileInstallation(model.scene)) shell.toast('An installation strip or separator does not fit. Adjust the cabinets manually.', undefined, 12000);
         }
         function showScene(snapshot: string, keepPanel = false) {
             model.restore(snapshot);
