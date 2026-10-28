@@ -15,7 +15,7 @@ test('international public pages contain their complete content before JavaScrip
     assert.ok(html.includes(`<html lang="${copy.lang}"`));
     assert.ok(html.includes(`<link rel="canonical" href="https://furnidraw.com${path}">`));
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-    assert.ok(html.includes(copy.lang === 'fr' ? 'Une idée.' : copy.headline[0].split('.')[0]!));
+    assert.ok(html.includes(copy.headline[0]));
     for (const other of languages) assert.ok(html.includes(`hreflang="${other.lang}" href="https://furnidraw.com${homePath(other.lang)}"`));
     assert.ok(html.includes('hreflang="x-default"'));
     const title = html.match(/<title>(.*?)<\/title>/)![1]!;
@@ -65,4 +65,22 @@ test('every illustrative size and shape opens a valid cabinet in the actual desi
     const result = buildFromSpec({ specVersion: 1, wardrobes: [{ width, height: 240, depth: 60, shape, autoDesign: false }] }, 'marketing-preview');
     assert.equal(result.ok, true, `${width} / ${shape}`);
   }
+});
+
+test('search snippets exclude illustrative geometry and assistant instructions', () => {
+  const html = renderMarketing(template, '/');
+  assert.match(html, /class="fitting-room" data-nosnippet/);
+  assert.match(html, /<div data-nosnippet><details class="agent-note">/);
+  assert.ok(html.includes('ONLINE 3D FURNITURE DESIGNER'));
+  assert.ok(html.includes('3D furniture design.'));
+});
+
+test('application metadata describes the free design workspace without inventing reviews', () => {
+  const html = renderMarketing(template, '/');
+  const data = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)![1]!);
+  const app = data['@graph'].find((node: { '@type': string }) => node['@type'] === 'WebApplication');
+  assert.equal(app.offers.price, 0);
+  assert.ok(app.offers.description.includes('credit'));
+  assert.equal(app.aggregateRating, undefined);
+  assert.equal(app.review, undefined);
 });

@@ -6,6 +6,7 @@ import { languages, homePath } from '../src/presentation/marketing/translations'
 import { guides } from '../src/presentation/marketing/guides';
 import { homeBody, guideBody } from '../src/presentation/marketing/page';
 import { seoHead, siteOrigin, escapeHtml } from '../src/presentation/marketing/seo';
+import { agentGuide } from '../src/app/agent-api';
 
 export const publicPaths = () => [...languages.map(c => homePath(c.lang)), ...guides.map(g => `/${g.slug}/`)];
 export const isIndexableBuild = (branch = process.env.WORKERS_CI_BRANCH) => !branch || branch === 'main';
@@ -40,6 +41,9 @@ export function marketingSite(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const path = new URL(request.url ?? '/', 'http://local.test').pathname;
+        if (path === '/llms.txt') {
+          response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end(agentGuide()); return;
+        }
         if (path === '/editor/' || path === '/editor') {
           request.url = '/editor.html' + (request.url?.slice(path.length) ?? ''); next(); return;
         }
@@ -71,6 +75,7 @@ export function marketingSite(): Plugin {
         await mkdir(resolve(output, 'editor'), { recursive: true });
         await writeFile(resolve(output, 'editor/index.html'), await readFile(resolve(output, 'editor.html'), 'utf8'));
         await writeFile(resolve(output, 'sitemap.xml'), sitemap());
+        await writeFile(resolve(output, 'llms.txt'), agentGuide());
         await writeFile(resolve(output, 'robots.txt'), isIndexableBuild()
           ? `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${siteOrigin}/sitemap.xml\n`
           : 'User-agent: *\nDisallow: /\n');
