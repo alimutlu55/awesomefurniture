@@ -100,7 +100,8 @@ export async function prepareSession(url: URL) {
   } else if (!hasInline) {
     await restore();
   }
+  const deferCreation = !draft || (!saved && draft.expectedRevision === null && !drafts.read(draft.document.id));
   draft ??= { document: createProject(crypto.randomUUID(), 'Untitled design'), expectedRevision: null };
-  return { client, user, repository, drafts, draft, saved, warning, handover, switched: () => switched };
+  return { client, user, repository, drafts, draft, saved, deferCreation, warning, handover, switched: () => switched };
 }
 export type SessionPlatform = Awaited<ReturnType<typeof prepareSession>>;

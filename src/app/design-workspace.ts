@@ -26,7 +26,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   let mounted: ReturnType<typeof mountEditor> | null = null;
   let sessions: ReturnType<typeof connectSessions> | null = null;
   let unbindViewport = () => {};
-  let current: OpenDesign = { draft: platform.draft, saved: platform.saved };
+  let current: OpenDesign = { draft: platform.draft, saved: platform.saved, deferCreation: platform.deferCreation };
   let currentId: string | null = platform.drafts.read()?.document.id ?? null;
   let pending: Promise<unknown> = Promise.resolve();
   let disposed = false, navigation = 0;
@@ -80,8 +80,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     try {
       if (!deleted) {
         try {
-          current = await sessions.close(); currentId = current.draft.document.id;
-          savePreview(currentId);
+          current = await sessions.close(); currentId = sessions.persisted ? current.draft.document.id : null;
+          if (currentId) savePreview(currentId);
         } catch (error) {
           // The design was removed elsewhere: it cannot be saved, but the person must still be able to leave it.
           if (!(error instanceof DesignUnavailableError)) throw error;
@@ -116,15 +116,17 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     unbindViewport = bindPageViewport(root, window);
     try {
       if (initialize) await initialLink();
-      platform.drafts.activate(currentId);
-      connection = connectSessions({ ...platform, ...design }, editor, id => {
+      connection = connectSessions({ ...platform, ...design, deferCreation: design.deferCreation ?? false }, editor, id => {
         currentId = id;
         if (!library.visible) route('editor', true);
         editor.notify('Another tab changed this design. Your work is kept in a recovered copy.');
+      }, id => {
+        currentId = id;
+        if (!library.visible) route('editor', true);
       });
       sessions = connection;
       await connection.ready;
-      currentId = connection.id;
+      currentId = connection.persisted ? connection.id : null;
     } catch (error) {
       await connection?.dispose(); editor.dispose(); unbindViewport(); mounted = null; sessions = null; changed(null);
       throw error;

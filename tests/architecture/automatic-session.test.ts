@@ -7,7 +7,7 @@ import { createProject } from '../../src/domain/project/project';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { bindShareMenu } from '../../src/presentation/editor/bindings/share.js';
 
-test('landing stores a session immediately, existing Share includes its ID, and reload reuses it without adding UI', async () => {
+test('existing sessions save immediately, Share includes their ID, and reload reuses them', async () => {
   const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
   const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
   Object.defineProperty(globalThis, 'window', { configurable: true, value: {
@@ -165,3 +165,69 @@ test('closing retains local recovery on a cloud failure, but refuses navigation 
     if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
   }
 });
+
+for (const action of ['none', 'edit', 'unload-edit', 'share'] as const) {
+  test(`fresh landing defers all storage until meaningful action: ${action}`, async () => {
+    const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
+    let tick = () => {};
+    const listeners = new Map<string, (event: unknown) => void>();
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+      setInterval: (callback: () => void) => { tick = callback; return 0; }, clearInterval: () => {},
+      addEventListener: (event: string, callback: (event: unknown) => void) => listeners.set(event, callback),
+      removeEventListener: () => {},
+    } });
+    Object.defineProperty(globalThis, 'location', { configurable: true, value: new URL('https://wardrobe.test/') });
+    const memory = new MemoryProjectRepository();
+    const data = new Map<string, string>();
+    const disk: Storage = {
+      get length() { return data.size; }, clear: () => data.clear(), key: index => [...data.keys()][index] ?? null,
+      getItem: key => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value); }, removeItem: key => { data.delete(key); },
+    };
+    const drafts = createBrowserDrafts(disk, 'visitor');
+    const model = createEditorModel();
+    const repository = { save: memory.save.bind(memory), load: memory.load.bind(memory),
+      async visibility(id: string, revision: number) { return memory.save((await memory.load(id))!.document, revision); },
+    };
+    let connection: ReturnType<typeof connectSessions> | undefined;
+    try {
+      connection = connectSessions({ repository, drafts, client: null, deferCreation: true,
+        draft: { document: createProject('fresh', 'Untitled design'), expectedRevision: null }, saved: false } as never,
+        { snapshot: model.snapshot, scene: () => model.scene } as never);
+      await connection.ready;
+      tick(); await new Promise(resolve => setImmediate(resolve));
+      assert.equal(await connection.save(), true, 'account navigation does not force an untouched design to save');
+      listeners.get('beforeunload')!({ preventDefault() {} });
+      assert.equal(data.size, 0, 'no draft, active pointer, or other temporary design data');
+      assert.equal((await memory.list()).length, 0);
+      assert.equal(connection.persisted, false);
+      if (action === 'edit' || action === 'unload-edit') {
+        model.scene.wardrobes[0]!.state.w += 10;
+        if (action === 'unload-edit') {
+          listeners.get('beforeunload')!({ preventDefault() {} });
+          assert.ok(drafts.read('fresh'), 'last-moment edits survive unloading before the timer');
+        } else {
+          tick(); await new Promise(resolve => setImmediate(resolve));
+          assert.equal((await memory.list()).length, 1);
+          assert.ok(drafts.read('fresh'));
+          assert.equal(connection.persisted, true);
+        }
+      } else if (action === 'share') {
+        assert.equal(new URL(await connection.share()).searchParams.get('session'), 'fresh');
+        assert.equal((await memory.list()).length, 1);
+      }
+      await connection.close();
+      if (action === 'none') {
+        assert.equal(data.size, 0, 'leaving for the library must not persist an untouched design');
+        assert.equal((await memory.list()).length, 0);
+      } else {
+        assert.equal((await memory.list()).length, 1);
+        assert.ok(drafts.read());
+      }
+    } finally {
+      await connection?.dispose();
+      if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow); else Reflect.deleteProperty(globalThis, 'window');
+      if (previousLocation) Object.defineProperty(globalThis, 'location', previousLocation); else Reflect.deleteProperty(globalThis, 'location');
+    }
+  });
+}

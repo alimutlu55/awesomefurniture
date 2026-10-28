@@ -12,7 +12,7 @@ export interface DesignDraftStore {
   deleted(id: string): boolean;
   remove(id: string): void;
 }
-export interface OpenDesign { draft: SessionDraft; saved: boolean }
+export interface OpenDesign { draft: SessionDraft; saved: boolean; deferCreation?: boolean }
 export class DesignUnavailableError extends Error {
   constructor() { super('This design is private, deleted, or unavailable.'); }
 }
