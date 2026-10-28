@@ -8,7 +8,8 @@ import { cornerCabinetWidths } from '../../src/domain/kitchen/corner-widths';
 import { pieceBoards } from '../../src/domain/drawings/unit-detail';
 import { technicalDrawings } from '../../src/domain/drawings/technical-drawings';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
-import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
+import { createKitchenDesign, createKitchenCover } from '../../src/domain/kitchen/kitchen-design';
+import { automaticInstallationParts } from '../../src/domain/kitchen/automatic-installation';
 import { sceneToProject, projectToScene } from '../../src/application/projects/editor-mapper';
 import { createProject } from '../../src/domain/project/project';
 import { serializeProject, deserializeProject } from '../../src/infrastructure/serialization/project-codec';
@@ -178,5 +179,27 @@ test('cabinets slide tangentially along contact faces without friction or gettin
   assert.ok(Math.abs(pureInward.x - 60) < 1e-4);
   assert.ok(Math.abs(pureInward.z - 0) < 1e-4);
 });
+
+test('cover and filler units allow explicit panel sizing when space is available', () => {
+  const base = { id: 30, x: -115.9, y: 152.6, z: -50.5, angle: 0, state: { ...createKitchenDesign('upper'), w: 60, h: 117.4, d: 35 } };
+  const cover = { id: 52, x: -155.4, y: 152.6, z: -50.5, angle: 0, state: { ...createKitchenDesign('upper'), ...createKitchenCover(createKitchenDesign('upper'), 18), w: 18, h: 117.4, d: 35 } };
+  const scene: EditorScene = { wardrobes: [base, cover], activeWardrobe: 52, nextWardrobeId: 100 };
+  const cmds = createSceneCommands(() => scene);
+
+  // Left side has open space (wall at -170, cover left edge at -164.4)
+  assert.equal(cmds.setKitchenConstruction('leftPanelThickness', 1.8), true);
+  assert.equal(cover.state.leftPanelThickness, 1.8);
+  const parts = automaticInstallationParts(scene.wardrobes);
+  assert.ok(parts.some(p => p.ownerId === 52 && p.side === -1 && p.state.w === 1.8));
+
+  // Right side touches base unit with 0 clearance: blocked
+  assert.equal(cmds.setKitchenConstruction('rightPanelThickness', 1.8), false);
+
+  // Setting to 0 removes the panel
+  assert.equal(cmds.setKitchenConstruction('leftPanelThickness', 0), true);
+  assert.equal(cover.state.leftPanelThickness, 0);
+  assert.ok(!automaticInstallationParts(scene.wardrobes).some(p => p.ownerId === 52));
+});
+
 
 

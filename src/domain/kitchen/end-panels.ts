@@ -81,13 +81,16 @@ export function exposedEnd(box: PanelPose, others: readonly PanelPose[], side: -
  * Negative ids are reserved for these derived parts. Cabinet ids in a saved scene are positive. */
 export function automaticEndPanels<S extends PanelState>(boxes: readonly PanelPose<S>[]) {
   return boxes.flatMap(box => {
-    if (Number(box.id) < 0 || !Number.isFinite(Number(box.id)) || box.state.product !== 'kitchen' || isFixture(box.state) || installationKind(box.state) || isCoverUnit(box.state)) return [];
+    if (Number(box.id) < 0 || !Number.isFinite(Number(box.id)) || box.state.product !== 'kitchen' || isFixture(box.state) || installationKind(box.state)) return [];
+    const isCover = isCoverUnit(box.state);
     const { u } = unitAxes(box.angle);
     return ([-1, 1] as const).flatMap(side => {
+      const explicit = side < 0 ? box.state.leftPanelThickness : box.state.rightPanelThickness;
+      if (isCover && (explicit === undefined || explicit <= 0)) return [];
       const width = sidePanelThickness(box.state, side);
       if (width <= 0 || cornerClosed(box, boxes, side) || explicitSidePanel(box, boxes, side)) return [];
       if (!box.state.endPanelSides?.includes(side) && sideOccupiedWithin(box, boxes, side, .05)) return [];
-      const hasExplicitSide = (side < 0 ? box.state.leftPanelThickness : box.state.rightPanelThickness) !== undefined;
+      const hasExplicitSide = explicit !== undefined;
       const configured = hasExplicitSide || box.state.endPanelThickness !== undefined;
       return [{
         id: -Number(box.id) * 4 - (side > 0 ? 1 : 0), ownerId: box.id, side, name: 'End/Separator pane',
@@ -116,8 +119,12 @@ export function rememberEndPanels(boxes: readonly PanelPose[]) {
   for (const box of boxes) {
     if (isCoverUnit(box.state)) {
       delete box.state.endPanelSides;
-      delete box.state.leftPanelThickness;
-      delete box.state.rightPanelThickness;
+      if (box.state.leftPanelThickness === undefined || cornerClosed(box, boxes, -1) || sideOccupiedWithin(box, boxes, -1, .05)) {
+        delete box.state.leftPanelThickness;
+      }
+      if (box.state.rightPanelThickness === undefined || cornerClosed(box, boxes, 1) || sideOccupiedWithin(box, boxes, 1, .05)) {
+        delete box.state.rightPanelThickness;
+      }
       continue;
     }
     const closedSide = (side: -1 | 1) => cornerClosed(box, boxes, side)

@@ -53,7 +53,8 @@ export const isCoverUnit = (design: { readonly product?: EditorDesign['product']
 export function createKitchenCover(from: EditorDesign, width: number): EditorDesign {
   const unitKey = from.unit ?? 'base', inside = kitchenInside(from.h, unitKey), def = fitting('cover')!;
   const secs: EditorItem[][] = [[{ k: 'cover', h: Math.max(def.min, Math.min(def.max, inside)), purpose: def.purpose }], [], [], [], [], []];
-  return { ...structuredClone(from), w: Math.round(width * 10) / 10, n: 1, wt: [100, 100, 100, 100, 100, 100], secs, dividers: [] };
+  return { ...structuredClone(from), w: Math.round(width * 10) / 10, n: 1, wt: [100, 100, 100, 100, 100, 100], secs, dividers: [],
+    leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelSides: undefined, endPanelThickness: undefined };
 }
 
 /** Items that share `height` in proportion to their parts, rounded so they fill it exactly. */
