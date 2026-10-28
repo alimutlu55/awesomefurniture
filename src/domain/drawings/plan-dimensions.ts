@@ -71,7 +71,8 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
       const novel = cabs.filter(p => !rows.some(r => r.some(q => !installationKind(q.design) && Math.abs(p.lo - q.lo) < .2 && Math.abs(p.hi - q.hi) < .2)));
       if (!novel.length) continue;
       const boards = row.filter(p => installationKind(p.design) && (upper || p.hung)
-        && novel.some(q => Math.abs(p.off + p.design.d - q.off - q.design.d) < .2));
+        && novel.some(q => installationKind(p.design) === 'end-panel'
+          || Math.abs(p.off + p.design.d - q.off - q.design.d) < .2));
       const target = rows.find(r => r.filter(q => !installationKind(q.design)).every(q => novel.every(p => Math.min(p.hi, q.hi) - Math.max(p.lo, q.lo) <= .2)));
       if (target) target.push(...novel, ...boards.filter(b => !target.some(t => Math.abs(b.lo - t.lo) < .2 && Math.abs(b.hi - t.hi) < .2)));
       else rows.push([...novel, ...boards]);
