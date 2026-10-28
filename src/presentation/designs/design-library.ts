@@ -1,7 +1,5 @@
 import { currentLanguage, onLanguageChange, translate } from '../i18n/language';
 import { bindLocalizedUi } from '../i18n/localized-ui';
-import { createLanguageControl } from '../i18n/language-control';
-import languageStyles from '../i18n/language-control.css?raw';
 import type { ProjectSummary } from '../../application/ports/project-repository';
 import { createDesignDialog } from './name-dialog';
 import styles from './design-library.css?raw';
@@ -29,7 +27,7 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
   const host = document.createElement('div'); host.id = 'design-library'; host.hidden = true;
   host.dataset.theme = document.documentElement.dataset.theme ?? 'light';
   const shadow = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style'); style.textContent = styles + loadingStyles + languageStyles; shadow.append(style);
+  const style = document.createElement('style'); style.textContent = styles + loadingStyles; shadow.append(style);
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
     const node = document.createElement(tag); node.className = className; node.textContent = text; return node;
   };
@@ -38,8 +36,7 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
   const heading = el('h1', '', 'Your designs'); heading.tabIndex = -1;
   const select = el('button', 'select', 'Select'); select.setAttribute('aria-pressed', 'false');
   const add = el('button', 'new', '＋'); add.setAttribute('aria-label', 'New design');
-  const language = createLanguageControl(document);
-  header.append(heading, language.element, select, add);
+  header.append(heading, select, add);
   const sort = el('p', 'sort', 'Recently edited');
   const search = el('input', 'search'); search.type = 'search'; search.placeholder = 'Find a design'; search.setAttribute('aria-label', 'Find a design');
   const message = el('p', 'message'); message.setAttribute('role', 'status');
@@ -191,6 +188,6 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
     show() { host.dataset.theme = document.documentElement.dataset.theme ?? 'light'; host.hidden = false; heading.focus({ preventScroll: true }); },
     hide() { host.hidden = true; selecting = false; selected = null; search.value = ''; },
     error(text: string) { loaded = true; message.textContent = text; message.classList.add('error'); retry.hidden = false; controls(); },
-    dispose() { stopDates(); stopTranslation(); language.dispose(); observer.disconnect(); dialog.dispose(); host.remove(); },
+    dispose() { stopDates(); stopTranslation(); observer.disconnect(); dialog.dispose(); host.remove(); },
   };
 }

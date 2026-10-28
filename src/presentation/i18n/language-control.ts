@@ -1,10 +1,11 @@
 import { APP_LANGUAGES, currentLanguage, onLanguageChange, setLanguage, translate } from './language';
-/** Native select supports keyboard, touch and assistive technology, including while a modal is open. */
+/** Native language select for the three-dot menu, with keyboard and touch support. */
 export function createLanguageControl(doc: Document): { element: HTMLLabelElement; dispose(): void } {
-  const element = doc.createElement('label'); element.className = 'language-control';
+  const element = doc.createElement('label'); element.className = 'mi language-control';
   const icon = doc.createElement('span'); icon.setAttribute('aria-hidden', 'true');
   icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">'
     + '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>';
+  const caption = doc.createElement('span'); caption.className = 'language-caption'; caption.textContent = 'Language';
   const select = doc.createElement('select'); select.setAttribute('aria-label', translate('Language'));
   select.setAttribute('translate', 'no');
   for (const language of APP_LANGUAGES) {
@@ -21,6 +22,6 @@ export function createLanguageControl(doc: Document): { element: HTMLLabelElemen
     finally { select.disabled = false; }
   };
   select.addEventListener('change', change); const unsubscribe = onLanguageChange(refresh);
-  element.append(icon, select, status);
+  element.append(icon, caption, select, status);
   return { element, dispose() { select.removeEventListener('change', change); unsubscribe(); element.remove(); } };
 }

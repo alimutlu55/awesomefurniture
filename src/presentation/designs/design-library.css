@@ -34,5 +34,3 @@ h1:focus{outline:none}
 .design:disabled{opacity:1;cursor:wait}.design:disabled .copy{opacity:.7}
 @media(max-width:700px){.preview-frame{width:86px;height:82px}.selecting .preview-frame{width:67px;height:70px}}
 @media(max-width:350px){.preview-frame{width:72px;height:74px}.selecting .preview-frame{width:54px;height:62px}}
-
-@media(max-width:480px){header{flex-wrap:wrap;gap:8px}header h1{flex-basis:100%;font-size:26px}header .language-control{margin-right:auto}}
