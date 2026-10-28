@@ -89,7 +89,7 @@ svg.kitchen-art{filter:none}
 /* The bottom edge of a fitting resizes its height like the top edge. */
 .item-resize-handle[data-edge="bottom"]{cursor:ns-resize}
 #menu .mi.reach-menu-row{display:flex;align-items:center;gap:10px;cursor:default}
-#menu .reach-menu-row>span:first-of-type{flex:1;min-width:0;white-space:nowrap}
+#menu .reach-menu-row>span:first-of-type{flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 #app #menu .reach-field{display:inline-flex;align-items:center;gap:4px;flex:none;height:28px}
 #app #menu .reach-field input{box-sizing:border-box;width:56px;height:28px;min-height:0!important;margin:0;font:inherit;font-size:12px;font-variant-numeric:tabular-nums;padding:0 4px;text-align:center;border:1px solid var(--line,#d9cfbd);border-radius:8px;-moz-appearance:textfield;appearance:textfield;background:transparent;color:inherit}
 @media (max-width:900px){#app #menu .reach-field input{font-size:16px!important}}
