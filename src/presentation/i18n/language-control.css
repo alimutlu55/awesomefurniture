@@ -1,7 +1,8 @@
-.language-control.mi{display:flex;flex-wrap:wrap;align-items:center;gap:8px;white-space:normal;cursor:default}
-.language-control>span:first-child{display:flex;flex:none;pointer-events:none}
-.language-caption{flex:1;min-width:0;overflow-wrap:anywhere}
-.language-control select{font:inherit;color:inherit;background:var(--panel,#faf9f6);border:1px solid var(--line,#d9d8d2);border-radius:8px;min-height:36px;padding:5px 7px;min-width:114px;max-width:132px;cursor:pointer}
-.language-control select:focus-visible{outline:2px solid var(--ink,#292b25);outline-offset:2px}
-.language-status{flex:0 0 100%;font-size:12px;line-height:1.4}
+.language-control>summary.mi{list-style:none;cursor:pointer}
+.language-control>summary::-webkit-details-marker{display:none}
+.language-control[open]>.mi .language-chevron{transform:rotate(90deg)}
+.language-options .mi{padding-inline-start:40px}
+.language-options .ic{visibility:hidden}
+.language-options [aria-checked="true"] .ic{visibility:visible}
+.language-status{padding:0 12px}
 .language-status:empty{display:none}
