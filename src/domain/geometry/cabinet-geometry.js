@@ -66,15 +66,15 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         // translation interval. Its endpoints are exact contact poses, unlike a
         // fixed-step search, which can skip the only pose that fills an opening.
         for (const other of solids(w)) {
-            if (other.id === w.id || (w.y || 0) + w.state.h <= (other.y || 0) + 1e-8 ||
-                (other.y || 0) + other.state.h <= (w.y || 0) + 1e-8) continue;
+            if (other.id === w.id || (w.y || 0) + w.state.h <= (other.y || 0) + CONTACT ||
+                (other.y || 0) + other.state.h <= (w.y || 0) + CONTACT) continue;
             let enter = -Infinity, leave = Infinity;
             for (const normal of [...cabinetAxes(next), ...cabinetAxes(other)]) {
                 const offset = (next.x - other.x) * normal.x + (next.z - other.z) * normal.z;
                 const velocity = axis.x * normal.x + axis.z * normal.z;
                 const radius = cabinetRadius(next, normal) + cabinetRadius(other, normal);
                 if (Math.abs(velocity) < 1e-10) {
-                    if (Math.abs(offset) >= radius - 1e-8) { enter = Infinity; break; }
+                    if (Math.abs(offset) >= radius - CONTACT) { enter = Infinity; break; }
                 } else {
                     const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
                     enter = Math.max(enter, Math.min(a, b));
@@ -82,7 +82,7 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
                 }
             }
             if (enter < leave) for (const t of [enter, leave]) {
-                if (Number.isFinite(t) && t >= -half - 1e-8 && t <= half + 1e-8) candidates.push(Math.max(-half, Math.min(half, t)));
+                if (Number.isFinite(t) && t >= -half - CONTACT && t <= half + CONTACT) candidates.push(Math.max(-half, Math.min(half, t)));
             }
         }
         for (const t of candidates.sort((a, b) => Math.abs(a) - Math.abs(b))) {
@@ -107,7 +107,7 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
             constraints.push({ offset: (part.y || 0) + part.state.h / 2 - (other.y || 0) - other.state.h / 2, velocity: delta.y, radius: (part.state.h + other.state.h) / 2 });
             for (const { offset, velocity, radius } of constraints) {
                 if (Math.abs(velocity) < 1e-10) {
-                    if (Math.abs(offset) >= radius - 1e-8) {
+                    if (Math.abs(offset) >= radius - CONTACT) {
                         enter = Infinity;
                         break;
                     }
