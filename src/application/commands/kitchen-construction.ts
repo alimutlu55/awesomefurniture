@@ -7,7 +7,7 @@ import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { plinthOf } from '../../domain/wardrobe/carcass';
-import { cornerCabinetWidths } from '../../domain/kitchen/corner-widths';
+import { cornerCabinetWidths, cornerReturnJoints } from '../../domain/kitchen/corner-widths';
 import { kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
 import { automaticInstallationParts } from '../../domain/kitchen/automatic-installation';
 import { installationCollisionSolids } from '../../domain/kitchen/installation-collision';
@@ -75,6 +75,10 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       }
       const planned = structuredClone(scene);
       planned.wardrobes.find(p => p.id === next.id)!.state = state;
+      if (key === 'cornerStrip' || key === 'frontThickness') {
+        const exhausted = planned.wardrobes.some(p => cornerReturnJoints(p, planned.wardrobes).some(j => j.stripWidth < .1));
+        if (exhausted) { notify('The corner allowance must leave a usable return strip after the adjoining front thickness.'); return false; }
+      }
       const syncedPartners: { id: number; side: -1 | 1; syncLegacy: boolean }[] = [];
       if (isSideKey) {
         const editedSides = key === 'leftPanelThickness' ? [-1] : key === 'rightPanelThickness' ? [1] : [-1, 1];

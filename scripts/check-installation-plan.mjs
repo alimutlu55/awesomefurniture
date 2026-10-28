@@ -42,7 +42,9 @@ try {
     assert.deepEqual(await page.locator('.corner-width').allTextContents(), expected);
     await page.screenshot({ path: output + '/app-' + width + '.png' });
     await page.locator('.contextual-actions [data-action="resize"]').click();
-    const strip = page.getByRole('spinbutton', { name: 'Corner strip width', exact: true });
+    await page.locator('.corner-joint-summary').waitFor({ state: 'visible' });
+    assert.match(await page.locator('.corner-joint-summary').textContent(), /corner = .* overlap \+ .* return strip/);
+    const strip = page.getByRole('spinbutton', { name: 'Corner allowance', exact: true });
     await strip.fill('30'); await strip.press('Enter');
     const edited = await page.evaluate(() => window.fixtureEditor.scene().wardrobes);
     assert.equal(edited.find(p => p.id === selected.id).state.cornerStrip, 3);
@@ -60,10 +62,14 @@ try {
     const plan = decodeURIComponent(await dialog.locator('img[alt="1 Plan"]').getAttribute('src'));
     for (const s of cornerCabinetWidths(selected, scene.wardrobes)) assert.ok(plan.includes('>' + Math.round((s.to - s.from) * 10) + '<'));
     assert.ok(await dialog.locator('img[alt$=" Service & lighting schedule"]').count());
+    const cornerDetail = dialog.locator('img[alt*=" Corner K"]');
+    assert.ok(await cornerDetail.count(), 'installed corner has an enlarged detail');
+    assert.match(decodeURIComponent(await cornerDetail.first().getAttribute('src')), /Butt joint:/);
     await page.screenshot({ path: output + '/viewer-' + width + '.png' });
     if (width === 1440) {
       const pdf = page.waitForEvent('download');
-      await dialog.getByRole('button', { name: 'Save as PDF', exact: true }).click();
+      // A reference fixture can have unrelated blocking findings; review exports keep their stamp.
+      await dialog.getByRole('button', { name: /^Save (as PDF|review PDF)$/ }).click();
       await (await pdf).saveAs(output + '/drawings.pdf');
     }
     assert.deepEqual(errors, []);

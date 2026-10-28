@@ -7,7 +7,7 @@ import { installationSolid, localSolid } from './installation-parts';
 import { unitAxes, RUN_TOLERANCE } from './kitchen-runs';
 import { installationKind, isFixture, kitchenUnit } from './kitchen-units';
 import { cabinetBoards } from '../drawings/cabinet-boards';
-import { cornerCabinetWidths } from './corner-widths';
+import { cornerCabinetWidths, cornerReturnJoints } from './corner-widths';
 import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
 import { worktopThickness } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
@@ -88,6 +88,8 @@ export function planInstallationLayout<T extends InstallationPose>(input: readon
   }
   // Ordinary edits and reopening never relocate furniture. Repositioning is an explicit planning operation.
   if (!repositionCabinets) return { boxes, removed, valid: true };
+  if (boxes.some(p => cornerReturnJoints(p, boxes).some(j => j.stripWidth < .1)))
+    return { boxes: structuredClone([...input]), removed: new Map<number | string, number | string>(), valid: false };
   // Facing automatic end panes share one stock thickness. Preserve deliberate clearance beyond it.
   for (const a of boxes.filter(normal)) for (const b of boxes.filter(normal)) {
     const { u, v } = unitAxes(a.angle), gap = at(b, u) - at(a, u) - (a.state.w + b.state.w) / 2;

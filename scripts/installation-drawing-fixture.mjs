@@ -17,7 +17,8 @@ export function installationDrawingFixture() {
   add('drawers', 31.5, 213.6, 90, 80, { h: 88, d: 53 });
   add('drawers', 31.5, 289.4, 90, 71.6, { h: 88, d: 53 });
   add('end-panel', 31.5, 326.1, 90, 1.8, { h: 88, d: 53 });
-  add('filler', 60, 29, 0, 4, { h: 88 });
+  // Gross 40 mm corner allocation: 18 mm overlapping blind front plus a 22 mm return strip.
+  add('filler', 60.9, 29, 0, 2.2, { h: 88 });
   add('cargo', 72, 29, 0, 20, { h: 88 });
   add('cargo', 113.35, 29, 0, 62.7, { h: 88 });
   add('dishwasher', 174.7, 29, 0, 60, { h: 88 });

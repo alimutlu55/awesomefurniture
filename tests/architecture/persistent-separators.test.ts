@@ -179,17 +179,17 @@ test('configured thinner separator stock governs over unconfigured default and s
   near(model.scene.wardrobes[0]!.state.rightPanelThickness!, 1.5);
 });
 
-test('corner return suppresses retained endPanelSides and alignSnap/fillableSpace respect corner strip + front clearance', () => {
+test('corner return suppresses retained end panels and alignment counts gross allowance once', () => {
   const blind = { ...cabinet(1, 0, 'base', { ...createKitchenDesign('base', 'corner'), w: 102 }), z: 0 };
   const returning = { ...cabinet(2, 22, 'base', { ...createKitchenDesign('base', 'cargo'), w: 30, leftPanelThickness: 1.8, rightPanelThickness: 1.8, endPanelSides: [-1, 1] }), z: 51, angle: 270 };
   const model = createEditorModel(sceneOf([blind, returning])); model.select(2);
   const parts = automaticInstallationParts(model.scene.wardrobes).filter(p => p.ownerId === 2);
-  assert.deepEqual(parts.map(p => [p.side, p.state.unit, p.state.w]), [[1, 'end-panel', 1.8], [-1, 'filler', 4]]);
+  assert.deepEqual(parts.map(p => [p.side, p.state.unit, p.state.w]), [[1, 'end-panel', 1.8], [-1, 'filler', 2.2]]);
   assert.equal(model.scene.wardrobes[1]!.state.leftPanelThickness, undefined);
   assert.equal(model.scene.wardrobes[1]!.state.rightPanelThickness, 1.8);
   const commands = createSceneCommands(() => model.scene);
-  near(commands.alignSnap(model.activeCabinet(), 6).z, 49.8);
-  model.activeCabinet().z = 49.8;
+  near(commands.alignSnap(model.activeCabinet(), 6).z, 48);
+  model.activeCabinet().z = 48;
   near(commands.fillableSpace(), 0);
 });
 

@@ -15,6 +15,8 @@ import { applianceDetailSheets } from './appliance-details';
 import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
 import { materialSchedule } from './material-schedule';
+import { cornerDetails } from './corner-details';
+import { cornerJointFindings } from './corner-joints';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -48,7 +50,8 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
     const at = { x: g.face.from.x + g.line.ux * t + g.line.nx * out, z: g.face.from.z + g.line.uz * t + g.line.nz * out };
     plan.push({ kind: 'view-mark', at: { x: mm(at.x), y: -mm(at.z) }, dir: { x: -g.line.nx, y: g.line.nz }, text: letter });
   }
-  const geometryChecks = designChecks(studio, pieces, letters), clearance = planClearances(studio, pieces, options.clearanceProfile);
+  const geometryChecks = [...designChecks(studio, pieces, letters), ...cornerJointFindings(pieces).map(f => f.message)];
+  const clearance = planClearances(studio, pieces, options.clearanceProfile);
   const applianceIssues = applianceReview(pieces);
   const issues = [...constructionIssues(geometryChecks, pieces), ...alignmentIssues(studio, pieces), ...clearance.issues, ...applianceIssues];
   const checks = [...new Set([...geometryChecks, ...clearance.checks])], about = (marks: readonly string[]) =>
@@ -80,6 +83,7 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
     sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), legend: unitDetailLegend(p, pieces), views: unitDetailViews(p, pieces), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
   sheets.push(...ventilationDetails(pieces));
+  sheets.push(...cornerDetails(pieces));
   sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
   const appliances = applianceSchedule(studio, pieces);
   if (appliances) sheets.push({ number: sheets.length + 1, title: 'Appliance schedule', views: [], pieces: [], checks: [], table: appliances });

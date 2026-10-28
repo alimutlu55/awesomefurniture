@@ -29,7 +29,7 @@ try {
       const state = { ...createEditorState(), ...createKitchenDesign('base', 'corner'), w: 102, leftPanelThickness: 1.8 };
       const scene = { wardrobes: [
         { id: 1, name: 'Corner cabinet', x: 0, z: 0, y: 0, angle: 0, state },
-        { id: 2, name: 'Cargo', x: 22, z: 49.8, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo'), rightPanelThickness: 1.8 } },
+        { id: 2, name: 'Cargo', x: 22, z: 48, y: 0, angle: 270, state: { ...createEditorState(), ...createKitchenDesign('base', 'cargo'), rightPanelThickness: 1.8 } },
       ], activeWardrobe: 1, nextWardrobeId: 3 };
       const editor = mountEditor({ root: document.querySelector('#editor'), initialScene: scene });
       window.installationEditor = editor;
@@ -44,7 +44,7 @@ try {
       run.traverse(o => { if (o.userData.installationPart) found.push(o.geometry.parameters.width); });
       return found.sort((a, b) => a - b);
     });
-    assert.deepEqual(parts, [1.8, 1.8, 4], 'two end panes and the additive return strip are rendered');
+    assert.deepEqual(parts, [1.8, 1.8, 2.2], 'two end panes and the net return strip are rendered');
     await page.screenshot({ path: output + '/app-' + width + '.png' });
     await page.locator('.contextual-actions [data-action="resize"]').click();
     const strip = page.locator('[data-construction="cornerStrip"]'), left = page.locator('[data-construction="leftPanelThickness"]'), right = page.locator('[data-construction="rightPanelThickness"]');

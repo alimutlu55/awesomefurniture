@@ -21,14 +21,14 @@ const corner = () => {
 test('construction size fields reject missing stock clearance instead of shifting another cabinet/run', () => {
   const model = createEditorModel(corner()), initial = model.snapshot(), before = poses(model.scene); let checkpoints = 0;
   const commands = createSceneCommands(() => model.scene, { checkpoint: () => { checkpoints++; } });
-  assert.equal(commands.setKitchenConstruction('cornerStrip', 5), false);
+  assert.equal(commands.setKitchenConstruction('cornerStrip', 7), false);
   assert.equal(model.snapshot(), initial); assert.equal(checkpoints, 0);
   model.select(1);
-  assert.equal(commands.setKitchenConstruction('frontThickness', 1.9), false);
-  assert.deepEqual(poses(model.scene), before); assert.equal(checkpoints, 0);
+  assert.equal(commands.setKitchenConstruction('frontThickness', 1.9), true, 'thicker overlap shortens the return strip inside its allocation');
+  assert.deepEqual(poses(model.scene), before); assert.equal(checkpoints, 1);
   model.select(2);
   assert.equal(commands.setKitchenConstruction('cornerStrip', 3.5), true);
-  assert.deepEqual(poses(model.scene), before); assert.equal(checkpoints, 1);
+  assert.deepEqual(poses(model.scene), before); assert.equal(checkpoints, 2);
 });
 
 test('width, depth and height resizing affect only the selected cabinet', () => {

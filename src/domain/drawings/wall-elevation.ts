@@ -8,7 +8,7 @@ import { type Item, line, mm, rect, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { pieceFront, pieceHeights } from './piece-front';
 import { elevationOpeningItems } from './opening-notes';
-import { cornerFaceWidths, cornerWidthStops } from './corner-widths';
+import { cornerFaceWidths, cornerWidthStops, installationWidthStops } from './corner-widths';
 
 /** How far the floor line runs past the wall's ends. Millimetres. */
 const FLOOR_RUN = 300;
@@ -59,14 +59,19 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     if (plinth > 0) out.push(line({ x: mm(x(t0)), y: mm(p.y + plinth) }, { x: mm(x(t1)), y: mm(p.y + plinth) }, 'thin'));
     if (p.id > 0) out.push({ kind: 'tag', at: { x: mm(x((t0 + t1) / 2)), y: mm((p.y + top) / 2) }, text: p.mark });
   }
-  const side = (hung: boolean) => returns.filter(r => r.p.hung === hung).map(r => ({ lo: r.t0, hi: r.t1 }));
+  // The overview's return depth includes its rear service void, as in a wall-to-front installation
+  // dimension. Keep the rear gap/body split on plan depth chains and the cabinet section.
+  const side = (hung: boolean) => returns.filter(r => r.p.hung === hung).map(r => ({
+    lo: r.t0 <= face.start + RETURN ? face.start : r.t0,
+    hi: r.t1 >= face.end - RETURN ? face.end : r.t1,
+  }));
   const upper = mine.filter(p => p.hung || !p.fixture && p.y + p.design.h >= 120);
   const floor = [...mine.filter(p => !p.hung && !p.fixture), ...side(false)], hung = [...upper, ...side(true)];
   const across = (values: readonly number[], up: boolean, row: number) =>
     out.push({ kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
       stops: stops([0, mm(length), ...values.map(mm)]) });
   let below = 0, above = 0;
-  const widthStops = (p: PlacedPiece) => cornerWidthStops(p, pieces).map(s => x(p.lo + s));
+  const widthStops = (p: PlacedPiece) => installationWidthStops(p, pieces).map(s => x(p.lo + s));
   if (floor.length) across([...mine.filter(p => !p.hung && !p.fixture).flatMap(widthStops), ...side(false).flatMap(p => [x(p.lo), x(p.hi)])], false, below++);
   across([], false, below);
   if (hung.length) across([...upper.flatMap(widthStops), ...side(true).flatMap(p => [x(p.lo), x(p.hi)])], true, above++);

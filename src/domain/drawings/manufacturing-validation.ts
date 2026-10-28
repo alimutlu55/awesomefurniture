@@ -21,6 +21,7 @@ import { pieceTop } from './checks';
 import { type DrawingInput, type PlacedPiece, placePieces, wallGeometry } from './room-pieces';
 import { pieceBoards } from './unit-detail';
 import { cuttingList } from './cutting-list';
+import { cornerJointFindings } from './corner-joints';
 
 export type FindingArea = 'geometry' | 'assembly' | 'drawing' | 'export';
 export interface ManufacturingFinding {
@@ -164,6 +165,7 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
  */
 export function validateForManufacture(input: DrawingInput, drawing: readonly ManufacturingFinding[] = []): ManufacturingValidation {
   const pieces = placePieces(input);
-  const findings = [...geometryFindings(input.studio, pieces), ...assemblyFindings(pieces), ...listFindings(pieces, cuttingList(pieces)), ...drawing];
+  const findings = [...geometryFindings(input.studio, pieces), ...assemblyFindings(pieces), ...cornerJointFindings(pieces),
+    ...listFindings(pieces, cuttingList(pieces)), ...drawing];
   return { ready: !findings.some(f => f.severity === 'critical'), revision: modelRevision(input), findings };
 }

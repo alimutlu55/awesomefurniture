@@ -1,5 +1,5 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
-import { cornerStripWidth } from './corner-widths';
+import { cornerReturnJoints, cornerStripWidth } from './corner-widths';
 import { panelAtSide, type PanelPose } from './end-panels';
 import { kitchenFrontThickness } from './installation-parts';
 import { unitAxes } from './kitchen-runs';
@@ -15,6 +15,8 @@ export function sidePanelClearance(box: PanelPose, other: PanelPose | undefined,
         && other.state.product === 'kitchen' && !isFixture(other.state)) {
         const { u } = unitAxes(box.angle), oa = unitAxes(other.angle);
         if (side * (u.x * oa.v.x + u.z * oa.v.z) < -.99) {
+          const joint = cornerReturnJoints(box, [other]).find(j => j.side === side && j.blind);
+          if (joint) return joint.requiredGap;
           const otherState = other.state as PanelPose['state'] & Partial<Pick<EditorDesign, 'frontThickness' | 'fin' | 'materials'>>;
           return cornerStripWidth(box.state) + kitchenFrontThickness({ ...otherState, fin: otherState.fin ?? 'White' });
         }

@@ -5,7 +5,7 @@ import { cornerDegree } from '../studio/studio';
 import { type Dimensions, type Item, mm, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { plan } from './plan-symbols';
-import { cornerWidthStops } from './corner-widths';
+import { cornerWidthStops, installationWidthStops } from './corner-widths';
 import { unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP, installationKind } from '../kitchen/kitchen-units';
 
@@ -18,7 +18,7 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
     if (!g) continue;
     const { line: l, face } = g, mine = visible.filter(p => p.wall === wall.id);
     const floor = upper ? [] : mine.filter(p => !p.hung && !p.fixture);
-    const split = (p: PlacedPiece) => cornerWidthStops(p, context).map(s => p.lo + s);
+    const split = (p: PlacedPiece) => installationWidthStops(p, context).map(s => p.lo + s);
     const chain = (values: readonly number[], row: number, depth = 0, side: 1 | -1 = 1, from = face.start, to = face.end): Dimensions => ({
       kind: 'dims', origin: plan(face.from.x + l.nx * depth, face.from.z + l.nz * depth),
       dir: { x: l.ux, y: -l.uz }, side, clear: side === 1 ? mm(wall.thickness) : 0, row,
@@ -26,7 +26,7 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
     });
     if (floor.length) {
       const deepest = Math.max(...floor.map(p => p.off + p.design.d));
-      const left = Math.min(...floor.map(p => p.lo)), right = Math.max(...floor.map(p => p.hi));
+      const left = Math.min(...floor.flatMap(split)), right = Math.max(...floor.flatMap(split));
       // Project actual neighbouring footprints: start the front chain at a corner return face rather than cutting through the perpendicular cabinet.
       const returns = context.filter(p => p.wall !== wall.id && !p.hung && !p.fixture).flatMap(p => {
         const { u, v } = unitAxes(p.angle);

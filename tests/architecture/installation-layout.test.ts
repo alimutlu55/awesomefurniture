@@ -24,14 +24,14 @@ const corner = () => {
 };
 const near = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-7, `${actual} should be ${expected}`);
 
-test('full strips reserve adjoining finished fronts, moving the complete return run at arbitrary rotations', () => {
+test('gross corner allocations count the adjoining front once, moving the complete return run at arbitrary rotations', () => {
   for (const angle of [0, 17, 90, 180, 270]) {
     const rad = angle * Math.PI / 180;
     const input = corner().map(p => ({ ...p, x: p.x * Math.cos(rad) + p.z * Math.sin(rad), z: -p.x * Math.sin(rad) + p.z * Math.cos(rad), angle: p.angle + angle }));
     const before = structuredClone(input), plan = reposition(input);
     assert.equal(plan.valid, true);
     const a = plan.boxes[1]!, b = plan.boxes[2]!;
-    near(Math.hypot(a.x - before[1]!.x, a.z - before[1]!.z), 3.3);
+    near(Math.hypot(a.x - before[1]!.x, a.z - before[1]!.z), 1.5);
     near(b.x - a.x, before[2]!.x - before[1]!.x); near(b.z - a.z, before[2]!.z - before[1]!.z);
     assert.deepEqual(input, before, 'planner is detached');
     assert.deepEqual(plan.boxes.map(p => p.state), before.map(p => p.state), 'module widths and construction stay intact');
@@ -45,8 +45,8 @@ test('custom strip and front thickness are exact, and a supported sink follows t
   const boxes = corner(); boxes[1]!.state.cornerStrip = 5; boxes[0]!.state.frontThickness = 2.2;
   const sink = { ...unit(4, 22, 91.5, 270), state: { ...createEditorState(), ...createKitchenDesign('sink-top') }, y: 90 };
   const plan = reposition([...boxes, sink]);
-  near(plan.boxes[1]!.z - boxes[1]!.z, 4.7);
-  near(plan.boxes[3]!.z - sink.z, 4.7);
+  near(plan.boxes[1]!.z - boxes[1]!.z, 2.5);
+  near(plan.boxes[3]!.z - sink.z, 2.5);
   near(plan.boxes[3]!.y, sink.y);
 });
 
@@ -116,14 +116,14 @@ test('changing strip width never moves a run and rejects growth without clearanc
 });
 
 
-test('large configured strips and 50 mm fronts remain detected after the exact reflow', () => {
-  for (const width of [4, 10, 20]) {
+test('large corner allocations and 50 mm fronts remain detected after the exact reflow', () => {
+  for (const width of [6, 10, 20]) {
     const boxes = corner(); boxes[1]!.state.cornerStrip = width; boxes[0]!.state.frontThickness = 5;
     const plan = reposition(boxes);
     assert.equal(plan.valid, true);
     const strip = automaticInstallationParts(plan.boxes).find(p => p.state.unit === 'filler' && p.ownerId === 2);
-    assert.ok(strip, 'the configured strip must remain present'); near(strip.state.w, width);
-    near(plan.boxes[1]!.z - boxes[1]!.z, width + 5 - 2.5);
+    assert.ok(strip, 'the configured strip must remain present'); near(strip.state.w, width - 5);
+    near(plan.boxes[1]!.z - boxes[1]!.z, width - 2.5);
     assert.deepEqual(reposition(plan.boxes).boxes, plan.boxes);
   }
 });
@@ -131,7 +131,7 @@ test('large configured strips and 50 mm fronts remain detected after the exact r
 test('floor run reflow preserves upper/appliance alignment; an isolated upper move leaves the floor row', () => {
   const boxes = corner(), upper = { ...unit(4, 22, 91.5, 270), y: 140 };
   const planned = reposition([...boxes, upper]);
-  near(planned.boxes[3]!.z - upper.z, 3.3);
+  near(planned.boxes[3]!.z - upper.z, 1.5);
   const cabinet = unit(1, 0), wallUnit = { ...unit(2, 0), y: 140 }; wallUnit.state.leftPanelThickness = 1.8;
   const wall = { id: 'wall', x: -35, y: 100, z: 0, angle: 0, state: { w: 10, h: 170, d: 200 } };
   const result = reposition([cabinet, wallUnit], [wall]);

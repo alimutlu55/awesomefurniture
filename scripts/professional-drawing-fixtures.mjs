@@ -14,8 +14,9 @@ export function drawingFixture(kind = 'l') {
   add('sink-top', 'sink-top', -100, 29, 0, 90);
   if (kind === 'appliances') {
     wardrobes.at(-1).state.w = 72;
-    // The return strip starts after the 18 mm finished front of the perpendicular run.
+    // This example deliberately reserves 58 mm gross: 18 mm overlap plus a full 40 mm return strip.
     wardrobes.find(p => p.id === 13).z = 93.8;
+    wardrobes.find(p => p.id === 13).state.cornerStrip = 5.8;
     wardrobes.find(p => p.id === 15).state.w = 80; wardrobes.find(p => p.id === 15).z = 163.8;
     wardrobes.find(p => p.id === 17).z = 233.8;
     add('hob-top', 'hob-top', -181, 161.8, 90, 90); wardrobes.at(-1).state.w = 80;

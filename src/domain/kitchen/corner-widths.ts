@@ -3,11 +3,23 @@ import { RUN_TOLERANCE, unitAxes } from './kitchen-runs';
 import { isFixture, installationKind, kitchenUnit, WORKTOP } from './kitchen-units';
 import type { EditorDesign } from '../wardrobe/editor-design';
 
-interface Cabinet {
+export interface CornerCabinet {
   readonly id: number | string; readonly x: number; readonly z: number; readonly y?: number | undefined; readonly angle: number;
   readonly state: Pick<EditorDesign, 'w' | 'h' | 'd' | 'product' | 'unit' | 'cornerStrip'> & Partial<Pick<EditorDesign, 'frontThickness' | 'materials' | 'fin' | 'shape'>>;
 }
+type Cabinet = CornerCabinet;
 export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean; readonly strip?: boolean }
+export interface CornerReturnJoint {
+  readonly side: -1 | 1;
+  readonly otherId: number | string;
+  readonly blind: boolean;
+  /** From the other carcass front to this module's end; actual positions are never corrected here. */
+  readonly bodyGap: number;
+  readonly frontProjection: number;
+  /** Blind return: gross allowance includes the overlapping front. Open corner: two full strips. */
+  readonly requiredGap: number;
+  readonly stripWidth: number;
+}
 // Numerical tolerance only (centimetres). Real gaps and offsets are never snapped or rounded here.
 const EPS = 1e-5;
 // The editor recognises quarter-turn alignment within half a degree. Keep actual angles for intersections.
@@ -15,7 +27,8 @@ const QUARTER_TURN = Math.sin(.5 * Math.PI / 180);
 // Remove trigonometric round-off before display rounding (e.g. 611.4999999999999 mm at a half-mm stop).
 const stable = (cm: number) => Math.round(cm * 1e9) / 1e9;
 const cabinet = (p: Cabinet) => p.state.product === 'kitchen' && !isFixture(p.state) && !installationKind(p.state);
-/** Every actual cabinet corner reserves 40 mm unless a different positive width is specified. */
+/** Blind-corner gross allocation from the carcass face (not an extra width beyond the finished front).
+ * On the blind cabinet this is the long strip; its return leg deducts the overlapping front thickness. */
 export const cornerStripWidth = (d: { cornerStrip?: number | undefined }) => d.cornerStrip && d.cornerStrip > 0 ? d.cornerStrip : 4;
 
 /** A hinged front intersecting the perpendicular return cannot operate there: it is a fixed cover in the
@@ -93,11 +106,11 @@ export function cornerCabinetWidths(box: Cabinet, others: readonly Cabinet[]): F
 
 /** Sides of the returning unit that meet the blind cabinet front. Their strips are separate installation
  * parts outside this cabinet's width; a cargo/appliance front retains its full nominal module width. */
-export function cornerReturnSides(box: Cabinet, others: readonly Cabinet[]): (-1 | 1)[] {
+export function cornerReturnJoints(box: Cabinet, others: readonly Cabinet[]): CornerReturnJoint[] {
   if (!cabinet(box)) return [];
   const strip = cornerStripWidth(box.state);
   const { u, v } = unitAxes(box.angle), front = { x: box.x + v.x * box.state.d / 2, z: box.z + v.z * box.state.d / 2 };
-  let leftEnd = false, rightEnd = false;
+  const joints: CornerReturnJoint[] = [];
   for (const other of others) {
     if (other.id === box.id || !cabinet(other)) continue;
     const covered = coveredWidths(other, [box]);
@@ -114,10 +127,15 @@ export function cornerReturnSides(box: Cabinet, others: readonly Cabinet[]): (-1
     const facesRoom = (other.x - front.x) * v.x + (other.z - front.z) * v.z >= -EPS
       && (box.x - plane.x) * axes.v.x + (box.z - plane.z) * axes.v.z >= -EPS;
     if (!blind && !(nearOtherEnd && facesRoom)) continue;
-    if (Math.abs(at) <= join + EPS) leftEnd = true;
-    if (Math.abs(at - box.state.w) <= join + EPS) rightEnd = true;
+    const frontProjection = kitchenFrontThickness({ ...other.state, fin: other.state.fin ?? 'White' }) / Math.abs(dir);
+    for (const side of [-1, 1] as const) {
+      const end = side < 0 ? 0 : box.state.w;
+      if (Math.abs(at - end) > join + EPS) continue;
+      joints.push({ side, otherId: other.id, blind, bodyGap: stable(side * (at - end)), frontProjection,
+        requiredGap: stable(strip + (blind ? 0 : frontProjection)), stripWidth: stable(strip - (blind ? frontProjection : 0)) });
+    }
   }
-  return [...(leftEnd ? [-1 as const] : []), ...(rightEnd ? [1 as const] : [])].filter(side => !others.some(p => {
+  return joints.filter(({ side }) => !others.some(p => {
     if (p.id === box.id || !cabinet(p) || (p.y ?? 0) >= (box.y ?? 0) + box.state.h - EPS
       || (p.y ?? 0) + p.state.h <= (box.y ?? 0) + EPS) return false;
     const axes = unitAxes(p.angle);
@@ -127,4 +145,8 @@ export function cornerReturnSides(box: Cabinet, others: readonly Cabinet[]): (-1
     return Math.abs(along - side * (box.state.w + p.state.w) / 2) <= RUN_TOLERANCE + EPS
       && Math.abs(across) < (box.state.d + p.state.d) / 2 - EPS;
   }));
+}
+
+export function cornerReturnSides(box: Cabinet, others: readonly Cabinet[]): (-1 | 1)[] {
+  return [...new Set(cornerReturnJoints(box, others).map(j => j.side))];
 }

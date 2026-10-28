@@ -22,7 +22,7 @@ const layout = (preset: string) => [
   unit(2, 22, 48, 270, preset),
 ];
 
-test('both perpendicular cabinets receive 40 mm strips for cargo, drawers, cupboard and corner fittings', () => {
+test('blind corners reserve 40 mm with a long strip and a 22 mm butt-joint return for all fitting types', () => {
   for (const preset of ['cargo', 'drawers', 'base', 'corner']) {
     const boxes = layout(preset), before = structuredClone(boxes);
     // Keep the return's near end exactly 40 mm off the blind cabinet's front for any preset width.
@@ -30,7 +30,7 @@ test('both perpendicular cabinets receive 40 mm strips for cargo, drawers, cupbo
     const widths = cornerCabinetWidths(boxes[0]!, boxes);
     assert.deepEqual(widths.map(s => Math.round((s.to - s.from) * 10)), [400, 40, 580]);
     const parts = automaticInstallationParts(boxes), strip = parts.find(p => p.ownerId === 2 && p.state.unit === 'filler')!;
-    assert.equal(strip.state.w, 4);
+    assert.equal(strip.state.w, 2.2, '40 mm gross allowance less the adjoining 18 mm front');
     assert.equal(strip.state.h, boxes[1]!.state.h);
     assert.equal(strip.state.d, boxes[1]!.state.d);
     assert.equal(cornerCabinetWidths(boxes[1]!, boxes).filter(s => s.strip).length, 0, 'return front keeps its nominal width');
@@ -67,7 +67,7 @@ test('strip and panel defaults, custom values and construction settings survive 
   const project = sceneToProject(createProject('construction', 'Construction'), scene);
   const restored = projectToScene(deserializeProject(serializeProject(project)))!;
   const parts = automaticInstallationParts(restored.wardrobes).filter(p => p.ownerId === 2);
-  assert.equal(parts.find(p => p.state.unit === 'filler')!.state.w, 2.5);
+  assert.equal(parts.find(p => p.state.unit === 'filler')!.state.w, .7, '25 mm allocation less 18 mm overlap');
   assert.equal(parts.find(p => p.state.unit === 'end-panel')!.state.w, 2.2);
   // Old projects stored zero for the previous optional strip; these now use the required default.
   boxes[0]!.state.cornerStrip = 0;
@@ -112,13 +112,13 @@ test('moving an assembly stops its actual end panel at the wall, and joining a r
 });
 
 
-test('a roomless plan dimensions both 18 mm ends and the additive 40 mm corner strip beside their parts', () => {
+test('a roomless plan dimensions both 18 mm ends and the actual 22 mm return strip beside their parts', () => {
   const boxes = layout('cargo');
   boxes[0]!.state.leftPanelThickness = 1.8; boxes[1]!.state.rightPanelThickness = 1.8;
   const pieces = boxes.map(p => ({ ...p, design: p.state }));
   const plan = technicalDrawings({ pieces }, { preset: 'installation' })[0]!;
   const widths = plan.views[0]!.items.flatMap(i => i.kind === 'dims' && i.stops.length === 2 ? [i.stops[1]] : []);
   assert.equal(widths.filter(w => w === 18).length, 2);
-  assert.equal(widths.filter(w => w === 40).length, 1, 'the occupied strip is not repeated as an empty gap');
+  assert.equal(widths.filter(w => w === 22).length, 1, 'the actual strip cutting width excludes the overlap');
   assert.ok(widths.includes(300), 'cargo nominal width is still 300 mm');
 });
