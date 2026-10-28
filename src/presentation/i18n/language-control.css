@@ -5,4 +5,4 @@
 .language-status{position:absolute;top:100%;right:0;background:var(--panel,#fff);width:220px;font-size:12px}
 .language-status:empty{display:none}
 .editor-language{position:absolute;z-index:21;top:calc(env(safe-area-inset-top,0px) + 86px);right:28px}
-@media(max-width:640px){.editor-language{top:calc(env(safe-area-inset-top,0px) + 65px);left:14px;transform:none}.editor-language select{min-width:114px;max-width:120px;min-height:36px;font-size:11px}.language-control>span:first-child{font-size:18px}}
+@media(max-width:640px){.editor-language{top:calc(env(safe-area-inset-top,0px) + 65px);left:14px;right:auto;transform:none}.editor-language select{min-width:114px;max-width:120px;min-height:36px;font-size:11px}.language-control>span:first-child{font-size:18px}}
