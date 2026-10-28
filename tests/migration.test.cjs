@@ -11,11 +11,13 @@ test('planner and controls match reviewed feature baselines; styles match the sh
  assert.equal(hash(read('src/presentation/editor/editor.css')),baseline.css);
  assert.equal(hash(read('src/presentation/editor/editor.html')),baseline.markup);
 });
-test('application entries restore the editor and delegate collection navigation to the workspace',()=>{
+test('public and editor entries are separate; the editor restores designs through the workspace',()=>{
  assert.ok(read('vite.config.ts').includes("editor: 'editor.html'"));
  assert.ok(!read('vite.config.ts').includes('Wardrobe_Forge-4-16-7-4'));
- assert.match(read('index.html'), /id="editor-root"/);
- assert.match(read('src/app/main.ts'), /import '\.\/editor'/);
+ assert.match(read('index.html'), /href="\/editor\/"/);
+ assert.doesNotMatch(read('index.html'), /id="editor-root"/);
+ assert.match(read('editor.html'), /id="editor-root"/);
+ assert.match(read('src/app/main.ts'), /import '\.\.\/presentation\/marketing\/marketing'/);
  // The workspace restores the document into an isolated editor mount.
  assert.match(read('src/app/editor.ts'), /prepareSession/);
  assert.match(read('src/app/editor.ts'), /createDesignWorkspace/);
