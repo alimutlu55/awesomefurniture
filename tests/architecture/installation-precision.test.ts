@@ -17,6 +17,7 @@ import { cabinetLighting } from '../../src/domain/kitchen/cabinet-lighting';
 import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
 import { piecefronts } from '../../src/domain/drawings/fronts';
 import { ventilationGrille } from '../../src/domain/kitchen/ventilation';
+import type { Dimensions, Item } from '../../src/domain/drawings/drawing';
 
 const reference = () => installationDrawingFixture() as EditorScene;
 const sizes = (scene: EditorScene) => cornerCabinetWidths(scene.wardrobes[0]!, scene.wardrobes)
