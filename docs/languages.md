@@ -14,7 +14,9 @@ to English so they cannot block opening a design. Translation files load only as
 ## Ownership and safety
 
 `src/presentation/i18n/` owns the language state, dictionaries, exact-message interpolation,
-native language selector and the legacy DOM presentation adapter. Each mounted studio or library
+menu language picker and the legacy DOM presentation adapter. The picker reuses the existing `.mi`
+rows, `.ic` icons and secondary text; its CSS only arranges the disclosure and checkmarks.
+Each mounted studio or library
 owns and disposes its observer and subscription. The adapter translates only visible text and
 accessibility copy. It never changes IDs, command keys, input values, event listeners or project data.
 It updates newly inserted panels and messages, including during a language change.
