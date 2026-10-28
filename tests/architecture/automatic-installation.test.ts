@@ -112,13 +112,14 @@ test('moving an assembly stops its actual end panel at the wall, and joining a r
 });
 
 
-test('a roomless plan dimensions both 18 mm ends and the actual 22 mm return strip beside their parts', () => {
+test('a roomless plan dimensions both 18 mm ends and the full corner allocation rather than the strip cut', () => {
   const boxes = layout('cargo');
   boxes[0]!.state.leftPanelThickness = 1.8; boxes[1]!.state.rightPanelThickness = 1.8;
   const pieces = boxes.map(p => ({ ...p, design: p.state }));
   const plan = technicalDrawings({ pieces }, { preset: 'installation' })[0]!;
-  const widths = plan.views[0]!.items.flatMap(i => i.kind === 'dims' && i.stops.length === 2 ? [i.stops[1]] : []);
+  const widths = plan.views[0]!.items.flatMap(i => i.kind === 'dims' && i.stops.length === 2 ? [i.stops[1]! - i.stops[0]!] : []);
   assert.equal(widths.filter(w => w === 18).length, 2);
-  assert.equal(widths.filter(w => w === 22).length, 1, 'the actual strip cutting width excludes the overlap');
+  assert.equal(widths.filter(w => w === 22).length, 0, 'the cutting width belongs to the detail');
+  assert.ok(plan.views[0]!.items.some(i => i.kind === 'dims' && i.stops.length === 2 && i.stops[1]! - i.stops[0]! === 40));
   assert.ok(widths.includes(300), 'cargo nominal width is still 300 mm');
 });

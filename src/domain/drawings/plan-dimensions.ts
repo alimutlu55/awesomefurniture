@@ -8,6 +8,7 @@ import { plan } from './plan-symbols';
 import { cornerWidthStops, installationWidthStops } from './corner-widths';
 import { unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP, installationKind } from '../kitchen/kitchen-units';
+import { cornerChainLabels } from './corner-setout';
 
 /** All stops use one finished-wall datum and are rounded once, after projection. The front-side chain is
  * independent of the upper-unit chain outside the wall. Real fillers, panels and empty gaps retain their ticks. */
@@ -36,7 +37,8 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
         const normal = corners.map(q => (q.x - face.from.x) * l.nx + (q.z - face.from.z) * l.nz);
         const along = corners.map(q => face.start + (q.x - face.from.x) * l.ux + (q.z - face.from.z) * l.uz);
         return Math.min(...normal) < .05 && Math.max(...normal) >= 0 && Math.max(...along) > face.start && Math.min(...along) < face.end
-          ? [[Math.min(...along), Math.max(...along)] as const] : [];
+          ? [[Math.min(...along) <= face.start + 5 ? face.start : Math.min(...along),
+            Math.max(...along) >= face.end - 5 ? face.end : Math.max(...along)] as const] : [];
       });
       const startReturn = returns.some(([a, b]) => a <= face.start + .5 && b <= left + .5) ? left : face.start;
       const endReturn = returns.some(([a, b]) => b >= face.end - .5 && a >= right - .5) ? right : face.end;
@@ -44,7 +46,8 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
       const values = overview ? [left, right,
         ...floor.filter(p => cornerWidthStops(p, context).length > 2).flatMap(split)] : [...floor.flatMap(split), ...midReturns];
       const top = floor.some(p => p.design.product === 'kitchen' && !installationKind(p.design) && kitchenUnit(p.design.unit).worktop) ? deepest + WORKTOP.overhang : deepest;
-      out.push(chain(values, 0, top, -1, startReturn, endReturn));
+      out.push(cornerChainLabels(chain(values, 0, top, -1, startReturn, endReturn), wall.id, context,
+        (x, z) => (x - face.from.x) * l.ux + (z - face.from.z) * l.uz));
       if (!overview) {
         // Put depth setting-out at an open run end, clear of the intersecting corner dimension chains.
         const startDegree = cornerDegree(studio, wall.a), endDegree = cornerDegree(studio, wall.b);

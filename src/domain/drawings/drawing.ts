@@ -44,6 +44,8 @@ export interface Dimensions {
   readonly origin: P;
   readonly dir: P;
   readonly stops: readonly number[];
+  /** Specified allocation labels for review drawings; actual stops and discrepancies remain in the check/detail. */
+  readonly labels?: Readonly<Record<number, string>>;
   readonly side: 1 | -1;
   readonly clear: number;
   readonly row: number;

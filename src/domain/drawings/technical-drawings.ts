@@ -16,7 +16,7 @@ import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
 import { materialSchedule } from './material-schedule';
 import { cornerDetails } from './corner-details';
-import { cornerJointFindings } from './corner-joints';
+import { cornerJointFindings, installedCorners } from './corner-joints';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
 const MARK_OUT = 45;
@@ -57,8 +57,10 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   const checks = [...new Set([...geometryChecks, ...clearance.checks])], about = (marks: readonly string[]) =>
     checks.filter(c => marks.some(m => c.startsWith(m + ' ') || c.includes(' ' + m + ' ')));
   const purpose = DRAWING_PRESETS.find(p => p.key === preset)!.label;
+  const unclosedCorner = installedCorners(pieces).some(j => j.blind && Math.abs(j.bodyGap - j.requiredGap) > .05);
   const legend = ['Solid: visible furniture · light dashes: overhead · FFL: finished floor = 0',
-    preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile'
+    unclosedCorner ? 'Corner figures show specified allowances. Actual spacing and clashes: see corner details and Manufacturing check.'
+      : preset === 'clearances' ? 'Long dashes: opening envelopes · dimensions in mm · verify the selected review profile'
       : applianceIssues.length ? 'Cabinet dimensions at run fronts · upper units on a separate chain · services and appliance setting-out on dedicated sheets'
         : 'Exact construction sizes: individual detail sheets'];
   const sheets: Sheet[] = [{ number: 1, title: 'Plan', purpose, legend, issues, views: [{ title: purpose + ' plan', items: plan }],
@@ -70,7 +72,8 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const [id, letter] of letters) {
     const mine = pieces.filter(p => p.wall === id);
     sheets.push({ number: sheets.length + 1, title: 'Elevation ' + letter, views: [{ title: 'Elevation ' + letter, items: wallElevation(studio!, id, pieces) }],
-      legend: ['Reference height chains are identified on the view · FFL = 0 · each cabinet has an exact detail sheet',
+      legend: [unclosedCorner ? 'Corner figures show specified allowances; see corner details for actual spacing and clashes. FFL = 0.'
+        : 'Reference height chains are identified on the view · FFL = 0 · each cabinet has an exact detail sheet',
         'Grey: laminated/other board fronts · light: lacquered MDF · see material schedule for the actual stock and thickness'], issues, purpose,
       pieces: mine.map(p => row(p, letters)), checks: about(mine.map(p => p.mark)) });
   }

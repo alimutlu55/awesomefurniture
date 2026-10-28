@@ -42,7 +42,7 @@ export function dimensionMarks(d: Dimensions, paper: Paper, figures: Box[] = [],
   // This keeps short zone dimensions legible inside their own tier instead of spilling into the next row.
   const quiet = new Set(d.quiet ?? []);
   const labels = d.stops.slice(1).flatMap((s1, k) => {
-    const s0 = d.stops[k]!, text = String(Math.round((s1 - s0) * 10) / 10);
+    const s0 = d.stops[k]!, text = d.labels?.[k] ?? String(Math.round((s1 - s0) * 10) / 10);
     return quiet.has(k) ? [] : [{ text, mid: (s0 + s1) / 2, width: figureWidth(text), s0, s1, first: k === 0, last: k === d.stops.length - 2 }];
   });
   const spacing = labels.map(() => 0);

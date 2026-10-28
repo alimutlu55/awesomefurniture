@@ -4,11 +4,13 @@ import { elevationDimensions } from './elevation-dimensions';
 import { elevationShell } from './shell-boundaries';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { plinthOf } from '../wardrobe/carcass';
-import { type Item, line, mm, rect, stops } from './drawing';
+import { type Dimensions, type Item, line, mm, rect, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { pieceFront, pieceHeights } from './piece-front';
 import { elevationOpeningItems } from './opening-notes';
 import { cornerFaceWidths, cornerWidthStops, installationWidthStops } from './corner-widths';
+import { cornerChainLabels, cornerElevationSetout } from './corner-setout';
+import { installedCorners } from './corner-joints';
 
 /** How far the floor line runs past the wall's ends. Millimetres. */
 const FLOOR_RUN = 300;
@@ -53,9 +55,11 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
     out.push(line({ x: mm(x(p.lo) + s.a.x), y: mm(p.y + s.a.y) }, { x: mm(x(p.lo) + s.b.x), y: mm(p.y + s.b.y) }, 'lighting'));
   // A piece on the next wall that comes into this wall's corner is seen from its side: its outline and mark.
   const returns = pieces.filter(p => p.wall !== wallId && !p.fixture).map(p => ({ p, ...reach(p.x, p.z, p.angle, p.design.w, p.design.d) })).filter(r => r.near);
+  const blindReturns = new Set(installedCorners(pieces).filter(j => j.blind && j.owner.wall === wallId).map(j => j.other.id));
   for (const { p, t0, t1 } of returns) {
     const top = Math.max(...pieceHeights(p)), plinth = plinthOf(p.design);
     out.push(rect(mm(x(t0)), mm(p.y), mm(x(t1)), mm(top), 'outline'));
+    if (blindReturns.has(p.id)) out.push(rect(mm(x(t0)), mm(p.y + plinth), mm(x(t1)), mm(top), 'outline', 'hatch'));
     if (plinth > 0) out.push(line({ x: mm(x(t0)), y: mm(p.y + plinth) }, { x: mm(x(t1)), y: mm(p.y + plinth) }, 'thin'));
     if (p.id > 0) out.push({ kind: 'tag', at: { x: mm(x((t0 + t1) / 2)), y: mm((p.y + top) / 2) }, text: p.mark });
   }
@@ -67,13 +71,17 @@ export function wallElevation(studio: Studio, wallId: string, pieces: readonly P
   }));
   const upper = mine.filter(p => p.hung || !p.fixture && p.y + p.design.h >= 120);
   const floor = [...mine.filter(p => !p.hung && !p.fixture), ...side(false)], hung = [...upper, ...side(true)];
-  const across = (values: readonly number[], up: boolean, row: number) =>
-    out.push({ kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
-      stops: stops([0, mm(length), ...values.map(mm)]) });
+  const across = (values: readonly number[], up: boolean, row: number) => {
+    const d: Dimensions = { kind: 'dims', origin: { x: 0, y: up ? mm(height) : 0 }, dir: { x: 1, y: 0 }, side: up ? 1 : -1, clear: 0, row,
+      stops: stops([0, mm(length), ...values.map(mm)]) };
+    out.push(!up && row === 0 ? cornerChainLabels(d, wallId, pieces,
+      (cx, cz) => (cx - face.from.x) * l.ux + (cz - face.from.z) * l.uz) : d);
+  };
   let below = 0, above = 0;
   const widthStops = (p: PlacedPiece) => installationWidthStops(p, pieces).map(s => x(p.lo + s));
   if (floor.length) across([...mine.filter(p => !p.hung && !p.fixture).flatMap(widthStops), ...side(false).flatMap(p => [x(p.lo), x(p.hi)])], false, below++);
   across([], false, below);
+  out.push(...cornerElevationSetout(studio, wallId, pieces));
   if (hung.length) across([...upper.flatMap(widthStops), ...side(true).flatMap(p => [x(p.lo), x(p.hi)])], true, above++);
   if (g.openings.length) across(g.openings.flatMap(o => [x(o.offset - o.width / 2), x(o.offset + o.width / 2)]), true, above);
   const adjacent = studio.walls.filter(q => q.id !== w.id && (q.a === w.a || q.b === w.a));

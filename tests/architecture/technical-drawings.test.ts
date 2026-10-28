@@ -110,7 +110,7 @@ test('a run turning a corner is seen from its end on the next wall, and a piece 
   const floor = dims(all(sheets[1]!))[0]!.stops;
   assert.ok(floor.includes(2370) && floor.includes(3000 - 50 - 580 - 600), 'the return and the unit on the floor string: ' + floor);
   // The island: its distance to the wall behind it and to the nearer wall beside it.
-  const free = dims(all(sheets[0]!)).filter(d => d.stops.length === 2 && ![18, 40, 600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
+  const free = dims(all(sheets[0]!)).filter(d => d.stops.length === 2 && ![18, 20, 40, 600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
   assert.deepEqual(free.sort((a, b) => a! - b!), [1150, 1660]);
 });
 

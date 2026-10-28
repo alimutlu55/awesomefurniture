@@ -12,9 +12,8 @@ export function cornerWidthStops(p: PlacedPiece, pieces: readonly PlacedPiece[])
   return [0, ...cornerFaceWidths(p, pieces).map(s => s.to)];
 }
 
-/** Installation overview uses the gross joint allowance. The inner butt-joint thickness and strip
- * cutting width are dimensioned on the corner detail. An unclosed joint keeps every actual stop. */
-export function installationWidthStops(p: PlacedPiece, pieces: readonly PlacedPiece[]): number[] {
+/** Recognise a corner installation part by its front and module-end contact, including explicit parts. */
+export function installationCorner(p: PlacedPiece, pieces: readonly PlacedPiece[]) {
   if (p.design.unit === 'filler') {
     const owners = pieces.filter(q => q.id > 0 && q.id !== p.id && (p.attachedTo === undefined || q.id === p.attachedTo));
     for (const owner of owners) {
@@ -27,12 +26,21 @@ export function installationWidthStops(p: PlacedPiece, pieces: readonly PlacedPi
         || Math.abs(p.y - owner.y) > 1e-5 || Math.abs(p.angle - owner.angle) > 1e-5) continue;
       const joints = cornerReturnJoints({ ...owner, state: owner.design }, pieces.map(q => ({ ...q, state: q.design })))
         .filter(j => j.side === side && j.blind);
-      if (joints.length === 1 && Math.abs(joints[0]!.bodyGap - joints[0]!.requiredGap) < 1e-5
-        && Math.abs(joints[0]!.stripWidth - p.design.w) < 1e-5) {
-        const t = joints[0]!.frontProjection;
-        return side < 0 ? [-t, p.design.w] : [0, p.design.w + t];
+      if (joints.length === 1) {
+        return { side, joint: joints[0]!, owner };
       }
     }
+  }
+  return undefined;
+}
+
+/** The overview measures the complete corner interval between carcass and module, never the strip
+ * cutting width. An unclosed interval retains its true endpoints and receives a required-value label. */
+export function installationWidthStops(p: PlacedPiece, pieces: readonly PlacedPiece[]): number[] {
+  const corner = installationCorner(p, pieces);
+  if (corner) {
+    const gap = corner.joint.bodyGap;
+    return corner.side < 0 ? [p.design.w - gap, p.design.w] : [0, gap];
   }
   return cornerWidthStops(p, pieces);
 }

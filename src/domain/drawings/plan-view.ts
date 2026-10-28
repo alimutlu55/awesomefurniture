@@ -15,7 +15,9 @@ import type { DrawingOptions } from './view-policy';
 import { appliancePlanNote } from './appliance-setout';
 import { planEndBreak } from './shell-boundaries';
 import { fixturePlan } from './fixture-plan';
-import { cornerWidthStops } from './corner-widths';
+import { cornerWidthStops, installationCorner, installationWidthStops } from './corner-widths';
+import { cornerChainLabels, cornerPlanSetout } from './corner-setout';
+import { installationSolid } from '../kitchen/installation-parts';
 
 
 /** An angle turned to read from the bottom or the right of the sheet. Degrees. */
@@ -85,7 +87,10 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     const shown = visible.includes(p);
     if (!shown && upper) continue;
     const stroke: Line['stroke'] = shown ? (p.fixture ? 'thin' : 'outline') : 'overhead';
-    out.push({ kind: 'line', stroke, closed: true, points: footprint(p.x, p.z, p.angle, p.design.w, p.design.d) });
+    const solid = installationKind(p.design) === 'filler' ? installationSolid({ ...p, state: p.design }) : undefined;
+    out.push({ kind: 'line', stroke, closed: true, points: solid
+      ? footprint(solid.x, solid.z, solid.angle, solid.state.w, solid.state.d)
+      : footprint(p.x, p.z, p.angle, p.design.w, p.design.d) });
     if (!shown) {
       if (p.hung && !p.fixture) {
         const pts = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
@@ -107,11 +112,15 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     if (!studio && !operations) out.push(...appliancePlanNote(studio, p, pieces));
     if (!upper) out.push(...pieceSymbols(p, pieces).filter(i => operations || i.kind !== 'arrow'));
     if (operations) out.push(...pieceOperations(p, pieces).flatMap(o => o.items));
-    if (p.wall === null && p.id < 0) {
-      const pts = footprint(p.x, p.z, p.angle, p.design.w, p.design.d), { u } = unitAxes(p.angle);
-      out.push({ kind: 'dims', origin: pts[3]!, dir: { x: u.x, y: -u.z }, side: 1, clear: 0, row: 0, stops: [0, mm(p.design.w)] });
+    const cornerPart = installationCorner(p, pieces);
+    if (p.wall === null && (p.id < 0 || cornerPart)) {
+      const pts = footprint(p.x, p.z, p.angle, p.design.w, p.design.d), { u, v } = unitAxes(p.angle);
+      const start = { x: p.x - u.x * p.design.w / 2 + v.x * p.design.d / 2,
+        z: p.z - u.z * p.design.w / 2 + v.z * p.design.d / 2 };
+      out.push(cornerChainLabels({ kind: 'dims', origin: pts[3]!, dir: { x: u.x, y: -u.z }, side: 1, clear: 0, row: 0,
+        stops: installationWidthStops(p, pieces).map(mm) }, null, pieces, (x, z) => (x - start.x) * u.x + (z - start.z) * u.z));
     }
-    if (p.wall === null && p.id > 0) {
+    if (p.wall === null && p.id > 0 && !cornerPart) {
       out.push(...freePosition(p, visible, studio));
       const [a, b, , d] = footprint(p.x, p.z, p.angle, p.design.w, p.design.d);
       const dir = (q: P) => { const n = Math.hypot(q.x, q.y) || 1; return { x: q.x / n, y: q.y / n }; };
@@ -122,6 +131,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
     }
   }
   if (studio) out.push(...planDimensions(studio, visible, pieces, preset === 'layout' || operations, upper));
+  if (!upper && !operations) out.push(...cornerPlanSetout(pieces));
   if (operations) out.push(...planClearances(studio, pieces, options.clearanceProfile).items);
   return out;
 }

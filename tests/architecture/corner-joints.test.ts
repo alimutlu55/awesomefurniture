@@ -14,6 +14,7 @@ import { cornerJointFindings } from '../../src/domain/drawings/corner-joints';
 import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
 import { technicalDrawings } from '../../src/domain/drawings/technical-drawings';
 import { sheetPresentation } from '../../src/presentation/drawings/sheet-marks';
+import { cornerPlanSetout } from '../../src/domain/drawings/corner-setout';
 import { installationDrawingFixture } from '../../scripts/installation-drawing-fixture.mjs';
 import { createEditorState } from '../../src/application/projects/editor-state';
 import type { EditorCabinet, EditorScene } from '../../src/application/projects/editor-scene';
@@ -119,10 +120,59 @@ test('the supplied reference chain remains 580 + 40 + 200 with 18 + 22 only on t
   const chain = elevation.views.flatMap(v => v.items).find(i => i.kind === 'dims' && i.dir.x === 1 && i.side === -1 && i.row === 0)!;
   assert.equal(chain.kind, 'dims'); if (chain.kind !== 'dims') return;
   assert.deepEqual(chain.stops.slice(0, 4), [0, 580, 620, 820]);
+  const planDimensions = sheets[0]!.views.flatMap(v => v.items).filter(i => i.kind === 'dims');
+  const main = planDimensions.find(i => i.dir.x === 1 && i.side === -1 && i.stops.length > 4)!;
+  assert.deepEqual(main.stops.slice(0, 3), [580, 620, 820], 'plan starts at the return face and measures the full allowance');
+  assert.ok(planDimensions.some(i => i.stops.join() === '0,20' && i.origin.y !== main.origin.y), 'local projection has its own dimension line');
+  assert.ok(elevation.views.flatMap(v => v.items).some(i => i.kind === 'dims' && i.stops.join() === '0,20' && i.origin.y > 0),
+    'local projection is beside the worktop, not on the bottom installation chain');
+  assert.equal(planDimensions.some(i => i.stops.slice(1).some((s, k) => s - i.stops[k]! === 22)), false,
+    'the return strip cutting width never appears as a separate cabinet-plan interval');
   const detail = sheets.find(s => s.title === 'Corner K1 / K7')!;
   assert.match(detail.legend!.join(' '), /40 allocation = 18 overlap \+ 22 return strip/);
   assert.ok(detail.views[0]!.items.some(i => i.kind === 'dims' && i.stops.join() === '0,18,40'));
   assert.deepEqual(cornerCabinetWidths(scene.wardrobes[0]!, scene.wardrobes).map(s => Math.round((s.to - s.from) * 10)), [400, 40, 580]);
+});
+
+test('a submillimetre placement difference cannot bring the strip cutting width back onto the overview', () => {
+  const scene = installationDrawingFixture() as EditorScene;
+  scene.wardrobes = scene.wardrobes.filter(p => p.id !== 6);
+  scene.wardrobes.find(p => p.id === 7)!.x += .004;
+  const sheets = technicalDrawings({ studio: scene.studio, pieces: scene.wardrobes.map(p => ({ ...p, design: p.state })) }, { preset: 'installation' });
+  for (const title of ['Plan', 'Elevation A']) {
+    const dimensions = sheets.find(s => s.title === title)!.views.flatMap(v => v.items).filter(i => i.kind === 'dims');
+    const prefix = title === 'Plan' ? '580,620,820,' : '0,580,620,820,';
+    assert.ok(dimensions.some(i => i.stops.join().startsWith(prefix)), title + ' retains the gross chain');
+    assert.equal(dimensions.some(i => i.stops.slice(1).some((s, k) => s - i.stops[k]! === 22)), false);
+  }
+});
+
+test('the local projection follows the actual shared worktop when the next cabinet is deeper', () => {
+  const scene = installationDrawingFixture() as EditorScene;
+  const next = scene.wardrobes.find(p => p.id === 2)!;
+  next.state.d += 2; next.x += 1;
+  const pieces = placePieces({ studio: scene.studio, pieces: scene.wardrobes.map(p => ({ ...p, design: p.state })) });
+  assert.ok(cornerPlanSetout(pieces).some(i => i.kind === 'dims' && i.stops.join() === '0,40'),
+    '20 mm deeper neighbouring body plus 20 mm overhang reaches 40 mm beyond the corner body');
+});
+
+test('a saved 22 mm corner shows a plain 40 allocation on the overview without altering its pose or hiding its clash', () => {
+  const scene = installationDrawingFixture() as EditorScene;
+  scene.wardrobes = scene.wardrobes.filter(p => p.id !== 6);
+  for (const id of [7, 8, 9]) scene.wardrobes.find(p => p.id === id)!.x -= 1.8;
+  const before = structuredClone(scene);
+  const input = { studio: scene.studio, pieces: scene.wardrobes.map(p => ({ ...p, design: p.state })) };
+  const sheets = technicalDrawings(input, { preset: 'installation' });
+  for (const title of ['Plan', 'Elevation A']) {
+    const sheet = sheets.find(s => s.title === title)!;
+    assert.ok(sheet.views.flatMap(v => v.items).some(i => i.kind === 'dims' && Object.values(i.labels ?? {}).includes('40')));
+    const paper = sheetPresentation(sheet, { project: 'Existing corner', date: '2026-10-28', total: sheets.length });
+    assert.ok(paper.marks.some(m => m.kind === 'text' && m.font === 'figure' && m.text === '40'));
+    assert.equal(paper.marks.some(m => m.kind === 'text' && m.font === 'figure' && /required/.test(m.text)), false);
+    assert.equal(paper.marks.some(m => m.kind === 'text' && m.font === 'figure' && m.text === '22'), false);
+  }
+  assert.ok(validateForManufacture(input).findings.some(f => f.id.startsWith('corner:') && f.message.includes('18 mm is missing')));
+  assert.deepEqual(scene, before, 'overview annotations never move saved furniture or remove a configured panel');
 });
 
 test('parallel, elevated and unrelated neighbours create no corner detail', () => {
