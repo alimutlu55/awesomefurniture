@@ -160,12 +160,11 @@ for (const width of [375, 1280]) {
         assert.equal(f.frames, 0); assert.deepEqual(f.camera.camNow(), pose);
     });
 
-    test(`${width}px: empty-space taps retain their existing camera behavior`, t => {
+    test(`${width}px: empty-space taps retain camera behavior across screen sizes`, t => {
         const f = fixture(t, width); f.tap(); f.camera.cameraTick(2000, 1 / 60);
         const pose = f.camera.camNow(); f.background(); f.tap(); f.camera.cameraTick(2000, 1 / 60);
         assert.equal(f.selectionState.room, null);
-        if (width === 375) { assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose); }
-        else { assert.equal(f.frames, 1); assert.equal(f.cameraState.tgt.z, 80); assert.equal(f.cameraState.tgt.y, 130); }
+        assert.equal(f.frames, 0); samePose(f.camera.camNow(), pose);
     });
 
     for (const wall of ['w1', 'w2', 'w3', 'w4']) test(`${width}px: selecting ${wall} preserves the camera on first and repeated taps`, t => {

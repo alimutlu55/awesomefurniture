@@ -47,10 +47,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
     const divWord = i => model.activeCabinet().state.dividers?.[i]?.orientation === 'horizontal' ? 'shelf' : 'divider';
     const bar = (id, p) => $(id).style.width = Math.max(0, Math.min(100, p)) + '%';
     const hidePop = () => {
-        // Closing the phone catalogue enlarges the canvas. Stop its automatic fit
+        // Closing the catalogue enlarges the canvas. Stop its automatic fit
         // before ResizeObserver can pull the camera away from the newly placed item.
         const add = $('#pop2');
-        if (dom.width <= 900 && add.classList.contains('show') && !add.dataset.addContext) camera.camRelease();
+        if (add.classList.contains('show') && !add.dataset.addContext) camera.camRelease();
         (document.querySelectorAll('.pop.show')).forEach(p => { animateMobileSheetClose(p); p.classList.remove('show'); });
         cameraState.vsT = camera.baseShift();
         cameraState.vzT = 1;
@@ -73,7 +73,6 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.pillOn = false;
         selectionState.deep = false;
         if (refresh) update();
-        if (refresh && dom.width > 900) camera.frameMobileInspector(true);
     }
     function addCabinet(copy = false, template, wall) {
         // A new wardrobe stands against the wall in view, in front of the viewer.

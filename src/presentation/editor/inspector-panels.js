@@ -51,8 +51,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         if ((id === '#pop3' || id === '#pop4') && mode !== 'resize') {
             callbacks.hidePop();
             takeMobilePanel(dom, $(id));
-            if (dom.width > 900) camera.frameMobileInspector(true);
-            else camera.camRelease();
+            camera.camRelease();
             return;
         }
         const p = $(id), v = $('#view').getBoundingClientRect();
@@ -79,10 +78,7 @@ export function createInspectorPanels({ dom, geometry, model, resources, cameraS
         if (id === '#pop2') {
             $('#app').classList.add('adding', 'inspecting');
             // Adding to the scene frames the scene: its opener does that.
-            if (!p.dataset.addContext) {
-                if (dom.width > 900) camera.frameMobileInspector();
-                else camera.camRelease();
-            }
+            if (!p.dataset.addContext) camera.camRelease();
         }
         else {
             $('#app').classList.remove('adding');

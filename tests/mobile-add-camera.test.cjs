@@ -42,6 +42,9 @@ for(const kind of ['drawer','short','shelf'])test(`mobile: adding ${kind} and cl
  assert.deepEqual(f.camera.camNow(),before,'Canvas growth must not refit the wardrobe or zoom out');
  assert.equal(f.releases,1);
 });
-for(const [width,context] of [[1440,undefined],[375,'wardrobe'],[375,'room']])test(`${width}px ${context??'fittings'}: existing desktop and scene-add framing is unchanged`,()=>{
+for(const [width,context] of [[375,'wardrobe'],[375,'room'],[1440,'wardrobe']])test(`${width}px ${context}: scene-add framing is unchanged`,()=>{
  const f=fixture(width,context);f.close();assert.equal(f.releases,0);
+});
+test('1440px fittings: closing catalogue releases framing just like mobile',()=>{
+ const f=fixture(1440);f.close();assert.equal(f.releases,1);
 });

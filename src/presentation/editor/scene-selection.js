@@ -37,11 +37,10 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         if (!h) {
             inspector.clearFocus();
             selectionState.pendingStudioAction = null;
-            // A finger lets go of the selection and leaves the view where it was; a double tap shows everything.
-            // A mouse click still backs away to the whole scene.
+            // Letting go of the selection leaves the view where it was; a double tap/click shows everything.
             const now = e.timeStamp ?? 0, again = emptyTap && now - emptyTap.at < 400 && Math.hypot(e.clientX - emptyTap.x, e.clientY - emptyTap.y) < 40;
-            emptyTap = e.pointerType === 'touch' && !again ? { at: now, x: e.clientX, y: e.clientY } : null;
-            if (e.pointerType !== 'touch' || again) camera.frameScene();
+            emptyTap = !again ? { at: now, x: e.clientX, y: e.clientY } : null;
+            if (again) camera.frameScene();
             return;
         }
         emptyTap = null;
@@ -55,7 +54,6 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             model.activeCabinet().state.space = null;
             if (at) inspector.selectSpaceAt(u.i, at);
             inspector.update();
-            if (dom.width > 900) camera.frameMobileInspector(true);
             return;
         }
         const m = picking.cast(e, renderState.allItemHits);
@@ -72,7 +70,6 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
                 selectionState.pillOn = false;
                 inspector.update();
                 if (replacePanel) inspector.showPop(e, '#pop4');
-                else if (dom.width > 900) camera.frameMobileInspector(true);
                 return;
             }
             model.activeCabinet().state.divider = -1;
@@ -82,7 +79,6 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
             model.activeCabinet().state.item = item.j;
             inspector.update();
             if (replacePanel) inspector.showPop(e, '#pop3');
-            else if (dom.width > 900) camera.frameMobileInspector(true);
             return;
         }
         inspector.hidePop();

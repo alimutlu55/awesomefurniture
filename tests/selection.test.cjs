@@ -24,12 +24,12 @@ function fixture(width=1200){
  context.hit=hit();context.itemHit=hit();
  return {context,run:code=>vm.runInContext(code,context),hit};
 }
-for(const width of [375,844,1280])test(`${width}px: repeated item and space selection retains mobile view and desktop framing policy`,()=>{
+for(const width of [375,844,1280])test(`${width}px: repeated item and space selection retains camera view across screen sizes`,()=>{
  const {context:c,run}=fixture(width);
  c.focusOn=true;
  run('pick({})');assert.equal(c.S.item,0);
  c.itemHit=null;run('pick({})');assert.equal(c.S.item,-1);
- assert.equal(c.frames,width>900?1:0);
+ assert.equal(c.frames,0);
  assert.equal(c.releases,2,'selection cancels an old camera fit before changing its target');
 });
 test('first click on an item selects its wardrobe, second click edits the item',()=>{
