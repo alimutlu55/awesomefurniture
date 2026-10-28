@@ -1,6 +1,7 @@
 import { expandedEndPanels } from '../kitchen/explicit-panel-fit';
 import { installationCollisionSolids, installationPair } from '../kitchen/installation-collision';
 import { automaticInstallationParts } from '../kitchen/automatic-installation';
+import { cornerSweepSolids } from '../kitchen/corner-sweep';
 // Centimetres: tolerate only 0.0001 mm of serialized transform noise, never a real 1 mm joint.
 const CONTACT = 1e-5;
 /** Collision rules receive scene data explicitly; no editor or renderer state.
@@ -12,12 +13,16 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     /** Everything a wardrobe can bump into. */
     const bodies = candidate => expandedEndPanels(candidate ? [...getCabinets().filter(p => p.id !== candidate.id), candidate] : getCabinets());
     const panels = candidate => automaticInstallationParts(bodies(candidate));
-    const solids = candidate => installationCollisionSolids([...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()], bodies(candidate));
-    const owned = candidate => installationCollisionSolids([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
+    /** @param {Parameters<typeof cornerSweepSolids>[0]} poses
+     * @param {Parameters<typeof cornerSweepSolids>[0]} context
+     * @param {Parameters<typeof cornerSweepSolids>[0]} [guardTargets] */
+    const solidParts = (poses, context, guardTargets = context) => [...installationCollisionSolids(poses, context), ...cornerSweepSolids(poses, guardTargets)];
+    const solids = candidate => solidParts([...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()], bodies(candidate), candidate ? [candidate] : []);
+    const owned = candidate => solidParts([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
     const assembly = candidate => {
         const parts = panels(candidate);
-        return { moving: installationCollisionSolids([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
-            fixed: installationCollisionSolids([...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()], bodies(candidate)) };
+        return { moving: solidParts([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
+            fixed: solidParts([...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()], bodies(candidate), [candidate]) };
     };
     function cabinetBounds(w) {
         const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
@@ -101,7 +106,8 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
             let hitNormal = null;
             const targetPose = { ...w, x: currentPos.x + remainingDelta.x, y: currentPos.y + remainingDelta.y, z: currentPos.z + remainingDelta.z };
             const movingParts = owned(targetPose).map(p => ({ ...p, x: p.x - remainingDelta.x, y: (p.y || 0) - remainingDelta.y, z: p.z - remainingDelta.z }));
-            for (const part of movingParts) for (const other of solids(targetPose)) {
+            const fixedParts = solids(targetPose);
+            for (const part of movingParts) for (const other of fixedParts) {
                 if (other.id === w.id || !installationPair(part, other)) {
                     continue;
                 }
@@ -135,6 +141,19 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
                         leave = Math.min(leave, Math.max(a, b));
                     }
                 }
+                // Imported/legacy overlaps may move out or slide along their existing contact, but
+                // must not be driven deeper through a board while the sweep starts inside it.
+                if (enter < 0 && leave > 0) {
+                    const gap = Math.max(...constraints.map(c => Math.abs(c.offset) - c.radius));
+                    const inward = constraints.find(c => Math.abs(c.offset) - c.radius >= gap - CONTACT
+                        && Math.sign(c.offset) * c.velocity < -1e-10);
+                    if (gap < -CONTACT && inward) {
+                        limit = 0;
+                        const sign = Math.sign(inward.offset);
+                        hitNormal = { x: sign * inward.axis.x, y: sign * inward.axis.y, z: sign * inward.axis.z };
+                        continue;
+                    }
+                }
                 if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -CONTACT / Math.max(1, dist)) {
                     limit = Math.max(0, enter);
                     hitNormal = enterNormal;
@@ -159,6 +178,19 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
                 break;
             }
         }
+        // Derived parts can change at a corner boundary. Validate the actual stopped pose too,
+        // rather than committing a pose checked using only the pointer destination's parts.
+        const travel = Math.hypot(currentPos.x - w.x, currentPos.y - (w.y || 0), currentPos.z - w.z);
+        if (travel > CONTACT && cabinetCollides({ ...w, ...currentPos }) && !cabinetCollides(w)) {
+            const at = t => ({ x: w.x + (currentPos.x - w.x) * t, y: (w.y || 0) + (currentPos.y - (w.y || 0)) * t,
+                z: w.z + (currentPos.z - w.z) * t });
+            let lo = 0, hi = 1;
+            for (let n = 0; n < 40; n++) {
+                const mid = (lo + hi) / 2;
+                if (cabinetCollides({ ...w, ...at(mid) })) hi = mid; else lo = mid;
+            }
+            return at(lo);
+        }
         return currentPos;
     }
     function safeCabinetRotation(w, target) {
@@ -170,7 +202,7 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         let t = 0;
         // Conservative advancement: no corner travels farther than the available gap.
         for (let i = 0; i < 512 && t < 1; i++) {
-            const pose = { ...w, angle: start + delta * t }, gap = Math.min(...owned(pose).flatMap(p => solids(pose).filter(o => o.id !== w.id).map(o => cabinetGap(p, o)))), step = Math.min(1 - t, Math.max(1e-7, gap * .8 / speed)), next = t + step, candidate = { ...w, angle: start + delta * next };
+            const pose = { ...w, angle: start + delta * t }, gap = Math.min(...owned(pose).flatMap(p => solids(pose).filter(o => o.id !== w.id && installationPair(p, o)).map(o => cabinetGap(p, o)))), step = Math.min(1 - t, Math.max(1e-7, gap * .8 / speed)), next = t + step, candidate = { ...w, angle: start + delta * next };
             if (cabinetCollides(candidate)) {
                 let lo = t, hi = next;
                 for (let n = 0; n < 24; n++) {

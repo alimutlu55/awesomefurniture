@@ -18,7 +18,12 @@ export function installationCollisionSolids<T extends Envelope>(poses: readonly 
   });
 }
 /** Front extensions apply to installation contact, leaving normal carcass/fixture rules intact. */
-export function installationPair(a: { state: { unit?: unknown }; frontStock?: boolean; installationStock?: boolean }, b: { state: { unit?: unknown }; frontStock?: boolean; installationStock?: boolean }) {
+type CollisionPart = { id?: string | number; state: { w: number; h: number; d: number; unit?: unknown }; frontStock?: boolean; installationStock?: boolean; cornerGuardFor?: string | number; cornerFront?: boolean };
+export function installationPair(a: CollisionPart, b: CollisionPart) {
+  if (a.cornerGuardFor !== undefined && b.cornerGuardFor !== undefined) return false;
+  if (a.cornerGuardFor !== undefined) return b.cornerFront === true && b.id === a.cornerGuardFor;
+  if (b.cornerGuardFor !== undefined) return a.cornerFront === true && a.id === b.cornerGuardFor;
+  if (a.cornerFront || b.cornerFront) return false;
   return (!a.frontStock || b.installationStock || !!installationKind(b.state as InstallationPose['state']))
     && (!b.frontStock || a.installationStock || !!installationKind(a.state as InstallationPose['state']));
 }

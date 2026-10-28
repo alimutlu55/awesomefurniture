@@ -68,6 +68,15 @@ that ambiguity is not copied into front cutting mathematics. Actual model zones 
 - The 3D mesh thickness, cutting list and section use the same specified front stock thickness.
 - Raw arithmetic floating-point residue is retained until the drawing's shared stop conversion; no image-based scaling changes model geometry.
 
+Editor movement reserves the corner joint throughout the swept path, including large pointer jumps
+whose destination is beyond the neighbouring cabinet. Prospective return-leg collision guards are
+used only for movement; they are never saved, drawn or included in the cutting list. The stopped
+pose is checked again with its actual derived parts, and an overlapping drop is refused. Legacy
+overlaps remain visible for review and can be moved apart without pushing further into the stock.
+`tests/architecture/corner-collision-sweep.test.ts` covers both hands, arbitrary room rotations,
+thicknesses, sideways/vertical jumps and numeric/preview commands. With Vite running,
+`node scripts/check-corner-movement.mjs` verifies the isolated example at 375 px and desktop.
+
 ## Verification
 
 `tests/architecture/installation-precision.test.ts` checks reference chain closure, exact strips/panels,

@@ -117,7 +117,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         followCeilings: (refit = true) => ceilings.followAll(refit),
         /** A wardrobe dropped after a drag or a turn takes the ceiling over it. Returns why it cannot stand there. */
         settleCabinet(id: number) {
-            const cabinet = getScene().wardrobes.find(w => w.id === id), problem = cabinet ? ceilings.follow(cabinet) : null;
+            const cabinet = getScene().wardrobes.find(w => w.id === id);
+            const problem = cabinet && collision.cabinetCollides(cabinet)
+                ? 'That placement overlaps another cabinet or its corner installation parts.' : cabinet ? ceilings.follow(cabinet) : null;
             if (problem) report(problem);
             else if (!reconcileInstallation(getScene())) report('An installation strip or separator does not fit. Adjust the cabinets manually.');
             return problem;
