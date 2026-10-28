@@ -534,5 +534,7 @@
   "Creating your image is taking longer than expected. Please try again.": "Die Bilderstellung dauert länger als erwartet. Bitte erneut versuchen.",
   "Too many emails were sent just now. Wait a minute and try again.": "Es wurden zu viele E-Mails gesendet. Warten Sie eine Minute.",
   "Choose a password you have not used here before.": "Wählen Sie ein hier noch nicht verwendetes Passwort.",
-  "The security check could not be completed. Please try again.": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte erneut versuchen."
+  "The security check could not be completed. Please try again.": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte erneut versuchen.",
+  "Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels.": "Schrankeditor. Klicken Sie auf einen Schrank zum Auswählen. Ziehen Sie seinen Korpus zum Platzieren. Bodengriffe drehen und verschieben ihn seitlich, nach vorne, hinten, oben oder unten. Wählen Sie ein Element für seine Maße. Ziehen Sie die Seiten- oder oberen Griffe zum Skalieren und den Korpus zum Verschieben. Ziehen Sie leere Flächen zum Drehen der Ansicht. Escape bricht ab.",
+  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "{0}. Zum Vergrößern nach oben, zum Verkleinern nach unten ziehen. Antippen ändert die Höhe."
 }

@@ -534,5 +534,7 @@
   "Creating your image is taking longer than expected. Please try again.": "A imagem está a demorar mais do que o previsto. Tente novamente.",
   "Too many emails were sent just now. Wait a minute and try again.": "Foram enviados demasiados e-mails. Aguarde um minuto.",
   "Choose a password you have not used here before.": "Escolha uma palavra-passe que não usou aqui antes.",
-  "The security check could not be completed. Please try again.": "Não foi possível concluir a verificação de segurança. Tente novamente."
+  "The security check could not be completed. Please try again.": "Não foi possível concluir a verificação de segurança. Tente novamente.",
+  "Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels.": "Editor de roupeiros. Clique num roupeiro para o selecionar e arraste o corpo para o posicionar. Os controlos no chão permitem rodar e mover para os lados, frente, trás, cima ou baixo. Clique num elemento para ver as medidas. Arraste os controlos para redimensionar ou o corpo para mover. Arraste o espaço vazio para orientar a vista. Escape cancela.",
+  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "Painel {0}. Arraste para cima para expandir ou para baixo para reduzir. Toque para alterar a altura."
 }

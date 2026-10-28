@@ -534,5 +534,7 @@
   "Creating your image is taking longer than expected. Please try again.": "Tworzenie obrazu trwa dłużej niż oczekiwano. Spróbuj ponownie.",
   "Too many emails were sent just now. Wait a minute and try again.": "Wysłano zbyt wiele e-maili. Poczekaj minutę.",
   "Choose a password you have not used here before.": "Wybierz hasło, którego tu wcześniej nie używano.",
-  "The security check could not be completed. Please try again.": "Nie udało się wykonać kontroli bezpieczeństwa. Spróbuj ponownie."
+  "The security check could not be completed. Please try again.": "Nie udało się wykonać kontroli bezpieczeństwa. Spróbuj ponownie.",
+  "Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels.": "Edytor szaf. Kliknij szafę, aby ją wybrać, i przeciągnij korpus, aby ją ustawić. Uchwyty przy podłodze obracają szafę i przesuwają ją na boki, w przód, w tył, w górę i w dół. Kliknij element, aby zobaczyć wymiary. Przeciągnij uchwyty, aby zmienić rozmiar, lub korpus, aby przesunąć. Przeciągnij puste miejsce, aby obrócić widok. Escape anuluje.",
+  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "Panel: {0}. Przeciągnij w górę, aby rozwinąć, lub w dół, aby obniżyć. Dotknij, aby zmienić wysokość."
 }

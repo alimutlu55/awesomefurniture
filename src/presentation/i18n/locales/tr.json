@@ -534,5 +534,7 @@
   "Creating your image is taking longer than expected. Please try again.": "Görsel oluşturma beklenenden uzun sürüyor. Tekrar deneyin.",
   "Too many emails were sent just now. Wait a minute and try again.": "Çok fazla e-posta gönderildi. Bir dakika bekleyin.",
   "Choose a password you have not used here before.": "Burada daha önce kullanmadığınız bir şifre seçin.",
-  "The security check could not be completed. Please try again.": "Güvenlik kontrolü tamamlanamadı. Tekrar deneyin."
+  "The security check could not be completed. Please try again.": "Güvenlik kontrolü tamamlanamadı. Tekrar deneyin.",
+  "Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels.": "Gardırop düzenleyicisi. Seçmek için bir gardıroba tıklayın, yerleştirmek için gövdesini sürükleyin. Zemin tutamaçları döndürür; sağa, sola, öne, arkaya, yukarı ve aşağı taşır. Ölçüler için bir öğeye tıklayın. Boyutlandırmak için yan veya üst tutamaçları, taşımak için gövdesini sürükleyin. Görünümü döndürmek için boş alanı sürükleyin. Escape iptal eder.",
+  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "{0} paneli. Genişletmek için yukarı, küçültmek için aşağı sürükleyin. Yüksekliği değiştirmek için dokunun."
 }
