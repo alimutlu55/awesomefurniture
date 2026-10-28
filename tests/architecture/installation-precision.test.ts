@@ -17,6 +17,7 @@ import { cabinetLighting } from '../../src/domain/kitchen/cabinet-lighting';
 import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
 import { piecefronts } from '../../src/domain/drawings/fronts';
 import { ventilationGrille } from '../../src/domain/kitchen/ventilation';
+import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry.js';
 import type { Dimensions, Item } from '../../src/domain/drawings/drawing';
 
 const reference = () => installationDrawingFixture() as EditorScene;
@@ -151,4 +152,31 @@ test('plan drawing excludes redundant upper shelf chains and nests cabinet tags 
   assert.ok(tags.some(t => t.text === 'K1'), 'K1 corner cabinet tag is present on plan');
   assert.ok(tags.some(t => t.text === 'K2'), 'K2 cabinet tag is present on plan');
 });
+
+test('cabinets slide tangentially along contact faces without friction or getting stuck', () => {
+  const c1 = { id: 1, x: 0, y: 0, z: 0, angle: 0, state: { w: 60, h: 86, d: 58 } };
+  const c2 = { id: 2, x: 60, y: 0, z: 0, angle: 0, state: { w: 60, h: 86, d: 58 } };
+  const scene = { wardrobes: [c1, c2], walls: [] };
+  const geom = createCabinetGeometry(() => scene.wardrobes);
+
+  // 1. Sliding along a side neighbour in Z when mouse drifts 10 cm into neighbour (x: 50 instead of 60)
+  const slideZ = geom.safeCabinetTranslation(c2, { x: 50, y: 0, z: 25 });
+  assert.ok(Math.abs(slideZ.x - 60) < 1e-4, 'lateral penetration into neighbour is stopped at contact face');
+  assert.ok(Math.abs(slideZ.z - 25) < 1e-4, 'sliding displacement along contact face is preserved without friction');
+
+  // 2. Sliding vertically down between two cabinets in an exact-fit opening with lateral mouse drift
+  const cLeft = { id: 24, x: -55.0, y: 152.6, z: -50.5, angle: 0, state: { w: 61, h: 117.4, d: 35 } };
+  const cRight = { id: 8, x: 67.0, y: 152.6, z: -50.5, angle: 0, state: { w: 61, h: 117.4, d: 35 } };
+  const cMid = { id: 54, x: 6.0, y: 200, z: -50.5, angle: 0, state: { w: 61, h: 117.4, d: 35 } };
+  const slotGeom = createCabinetGeometry(() => [cLeft, cRight, cMid]);
+  const slideDown = slotGeom.safeCabinetTranslation(cMid, { x: 6.2, y: 160, z: -50.5 });
+  assert.ok(Math.abs(slideDown.x - 6.0) < 1e-4, 'slot lateral drift is constrained to exact slot boundary');
+  assert.ok(Math.abs(slideDown.y - 160) < 1e-4, 'vertical descent into slot succeeds smoothly without getting stuck');
+
+  // 3. Pure inward motion into neighbour is blocked cleanly
+  const pureInward = geom.safeCabinetTranslation(c2, { x: -100, y: 0, z: 0 });
+  assert.ok(Math.abs(pureInward.x - 60) < 1e-4);
+  assert.ok(Math.abs(pureInward.z - 0) < 1e-4);
+});
+
 

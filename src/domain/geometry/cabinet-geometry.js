@@ -92,39 +92,74 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         return null;
     }
     function safeCabinetTranslation(w, target) {
-        const start = { x: w.x, y: w.y || 0, z: w.z }, delta = { x: target.x - start.x, y: (target.y || 0) - start.y, z: target.z - start.z };
-        let limit = 1;
-        const targetPose = { ...w, ...target };
-        const movingParts = owned(targetPose).map(p => ({ ...p, x: p.x - delta.x, y: (p.y || 0) - delta.y, z: p.z - delta.z }));
-        for (const part of movingParts) for (const other of solids(targetPose)) {
-            if (other.id === w.id || !installationPair(part, other)) {
-                continue;
-            }
-            let enter = -Infinity, leave = Infinity;
-            const constraints = [...cabinetAxes(part), ...cabinetAxes(other)].map(axis => ({
-                offset: (part.x - other.x) * axis.x + (part.z - other.z) * axis.z,
-                velocity: delta.x * axis.x + delta.z * axis.z, radius: cabinetRadius(part, axis) + cabinetRadius(other, axis) }));
-            constraints.push({ offset: (part.y || 0) + part.state.h / 2 - (other.y || 0) - other.state.h / 2, velocity: delta.y, radius: (part.state.h + other.state.h) / 2 });
-            for (const { offset, velocity, radius } of constraints) {
-                if (Math.abs(velocity) < 1e-10) {
-                    if (Math.abs(offset) >= radius - CONTACT) {
-                        enter = Infinity;
-                        break;
+        let currentPos = { x: w.x, y: w.y || 0, z: w.z };
+        let remainingDelta = { x: target.x - currentPos.x, y: (target.y || 0) - currentPos.y, z: target.z - currentPos.z };
+        for (let pass = 0; pass < 3; pass++) {
+            const dist = Math.hypot(remainingDelta.x, remainingDelta.y, remainingDelta.z);
+            if (dist < 1e-5) break;
+            let limit = 1;
+            let hitNormal = null;
+            const targetPose = { ...w, x: currentPos.x + remainingDelta.x, y: currentPos.y + remainingDelta.y, z: currentPos.z + remainingDelta.z };
+            const movingParts = owned(targetPose).map(p => ({ ...p, x: p.x - remainingDelta.x, y: (p.y || 0) - remainingDelta.y, z: p.z - remainingDelta.z }));
+            for (const part of movingParts) for (const other of solids(targetPose)) {
+                if (other.id === w.id || !installationPair(part, other)) {
+                    continue;
+                }
+                let enter = -Infinity, leave = Infinity;
+                let enterNormal = null;
+                const constraints = [...cabinetAxes(part), ...cabinetAxes(other)].map(axis => ({
+                    offset: (part.x - other.x) * axis.x + (part.z - other.z) * axis.z,
+                    velocity: remainingDelta.x * axis.x + remainingDelta.z * axis.z,
+                    radius: cabinetRadius(part, axis) + cabinetRadius(other, axis),
+                    axis: { x: axis.x, y: 0, z: axis.z } }));
+                constraints.push({
+                    offset: (part.y || 0) + part.state.h / 2 - (other.y || 0) - other.state.h / 2,
+                    velocity: remainingDelta.y,
+                    radius: (part.state.h + other.state.h) / 2,
+                    axis: { x: 0, y: 1, z: 0 } });
+                for (const { offset, velocity, radius, axis } of constraints) {
+                    if (Math.abs(velocity) < 1e-10) {
+                        if (Math.abs(offset) >= radius - CONTACT) {
+                            enter = Infinity;
+                            break;
+                        }
+                    }
+                    else {
+                        const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
+                        const entryTime = Math.min(a, b);
+                        if (entryTime > enter) {
+                            enter = entryTime;
+                            const sgn = velocity > 0 ? -1 : 1;
+                            enterNormal = { x: axis.x * sgn, y: axis.y * sgn, z: axis.z * sgn };
+                        }
+                        leave = Math.min(leave, Math.max(a, b));
                     }
                 }
-                else {
-                    const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
-                    enter = Math.max(enter, Math.min(a, b));
-                    leave = Math.min(leave, Math.max(a, b));
+                if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -CONTACT / Math.max(1, dist)) {
+                    limit = Math.max(0, enter);
+                    hitNormal = enterNormal;
                 }
             }
-            if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -CONTACT / Math.max(1, Math.hypot(delta.x, delta.y, delta.z))) {
-                limit = Math.max(0, enter);
+            const t = limit < 1 ? Math.max(0, limit - 1e-7) : 1;
+            currentPos = { x: currentPos.x + remainingDelta.x * t, y: currentPos.y + remainingDelta.y * t, z: currentPos.z + remainingDelta.z * t };
+            if (limit >= 1 || !hitNormal) break;
+            const unspent = {
+                x: remainingDelta.x * (1 - limit),
+                y: remainingDelta.y * (1 - limit),
+                z: remainingDelta.z * (1 - limit)
+            };
+            const vn = unspent.x * hitNormal.x + unspent.y * hitNormal.y + unspent.z * hitNormal.z;
+            if (vn < 0) {
+                remainingDelta = {
+                    x: unspent.x - vn * hitNormal.x,
+                    y: unspent.y - vn * hitNormal.y,
+                    z: unspent.z - vn * hitNormal.z
+                };
+            } else {
+                break;
             }
         }
-        // A tiny numerical margin avoids jitter without introducing a visible gap.
-        const t = limit < 1 ? Math.max(0, limit - 1e-7) : 1;
-        return { x: start.x + delta.x * t, y: start.y + delta.y * t, z: start.z + delta.z * t };
+        return currentPos;
     }
     function safeCabinetRotation(w, target) {
         const start = w.angle, delta = ((target - start + 540) % 360) - 180;

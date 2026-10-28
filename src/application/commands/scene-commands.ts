@@ -193,11 +193,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         previewTranslation(id: number, pose: Pick<EditorCabinet, 'x' | 'y' | 'z'>) {
             const cabinet = getScene().wardrobes.find(w => w.id === id);
-            if (!cabinet) {
-                return false;
-            }
+            if (!cabinet) return false;
             // Pressed against a wall or a neighbour, it slides along it: the part of the move that is free still happens.
-            const moves = [pose, { ...pose, z: cabinet.z }, { ...pose, x: cabinet.x }].map(p => collision.safeCabinetTranslation(cabinet, p));
+            const moves = [pose, { ...pose, z: cabinet.z }, { ...pose, x: cabinet.x }, { ...pose, x: cabinet.x, z: cabinet.z }, { ...pose, y: cabinet.y }].map(p => collision.safeCabinetTranslation(cabinet, p));
             const travel = (p: Pick<EditorCabinet, 'x' | 'y' | 'z'>) => Math.hypot(p.x - cabinet.x, (p.y || 0) - (cabinet.y || 0), p.z - cabinet.z);
             Object.assign(cabinet, moves.reduce((best, p) => travel(p) > travel(best) + .01 ? p : best));
             return true;
