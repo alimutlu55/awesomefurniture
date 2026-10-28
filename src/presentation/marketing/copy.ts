@@ -83,8 +83,8 @@ export const english: MarketingCopy = {
     ['Can I use the drawings to make furniture?', "Use the dimensioned drawings to review the design with a furniture maker. Confirm site measurements, materials, "
       + "clearances and hardware before manufacture. Current cutting lists give finished sizes; drilling plans are not included."],
     ['Can I use FurniDraw in my country?', "FurniDraw is a browser-based tool. These introduction pages are available in several languages, and you can choose "
-      + "centimetres or inches in this preview. The full studio currently uses English and centimetres."],
+      + "centimetres or inches in this preview. The studio supports seven interface languages and centimetres, millimetres or inches."],
   ],
   closing: ["Plan your next project.","Define the details in 3D."],
-  language: 'Language', editorLanguage: 'Studio in English · dimensions in cm', skip: 'Skip to content', units: 'Units',
+  language: 'Language', editorLanguage: 'Studio in 7 languages · flexible units', skip: 'Skip to content', units: 'Units',
 };

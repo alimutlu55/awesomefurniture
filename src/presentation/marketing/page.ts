@@ -18,7 +18,7 @@ export function header(c: MarketingCopy): string {
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>
         ${c.lang.toUpperCase()}</summary><nav aria-label="${e(c.language)}">${languages.map(l =>
           `<a href="${homePath(l.lang)}" lang="${l.lang}" hreflang="${l.lang}" ${l.lang === c.lang ? 'aria-current="page"' : ''}>${l.name}</a>`).join('')}</nav>
-      </details><a class="button button-small" href="/editor/">${e(c.start)} ${arrow}</a></div>
+      </details><a class="button button-small" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></div>
     </header>`;
 }
 
@@ -48,14 +48,14 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
       </div>
       <label class="unit-control"><span class="sr-only">${e(c.units)}</span><select id="study-units" aria-label="${e(c.units)}"><option value="cm">cm</option><option value="in">in</option></select></label>
     </div>
-    <div class="study-handoff"><a id="study-start" class="text-link" href="/editor/">${e(c.dimensionCta)} ${arrow}</a>
+    <div class="study-handoff"><a id="study-start" class="text-link" href="/editor/?lang=${c.lang}">${e(c.dimensionCta)} ${arrow}</a>
       <p>${e(c.illustration)}</p></div>
   </div>`;
 }
 
 export function footer(c: MarketingCopy): string {
   return `<footer class="site-footer"><div class="footer-top"><a class="brand" href="${homePath(c.lang)}">${brand}</a>
-    <p>${e(c.editorLanguage)}</p><a class="text-link" href="/editor/">${e(c.start)} ${arrow}</a></div>
+    <p>${e(c.editorLanguage)}</p><a class="text-link" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></div>
     <div class="footer-bottom"><span>© ${new Date().getUTCFullYear()} FurniDraw</span>
       <nav class="language-links" aria-label="${e(c.language)}">${languages.map(l =>
         `<a lang="${l.lang}" hreflang="${l.lang}" href="${homePath(l.lang)}" ${l.lang === c.lang ? 'aria-current="page"' : ''}>${l.name}</a>`).join('')}</nav>
@@ -84,7 +84,7 @@ export function homeBody(c: MarketingCopy): string {
       <div class="detail-copy"><p class="eyebrow">02 / ${e(c.detail[0])}</p>
         <h2>${e(c.detail[1])}<br><span>${e(c.detail[2])}</span></h2><p>${e(c.materials)}</p>
         <div class="detail-rule"><span>01—03</span><span>${e(c.steps.map(s => s[0]).join(' / '))}</span></div>
-        <a class="text-link" href="/editor/">${e(c.start)} ${arrow}</a>
+        <a class="text-link" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a>
         <p class="quiet">${e(c.editorLanguage)}</p>
       </div></div></section>
     <section id="notes" class="notes section-wrap"><div class="notes-heading"><p class="eyebrow">03 / ${e(c.nav[2])}</p>
@@ -95,7 +95,7 @@ export function homeBody(c: MarketingCopy): string {
     <section class="faq section-wrap"><h2>${e(c.questions)}</h2><div>${c.faqs.map(([q, a]) =>
       `<details><summary>${e(q)}<span aria-hidden="true">+</span></summary><p>${e(a)}</p></details>`).join('')}</div></section>
     <section class="closing section-wrap"><p class="eyebrow">FURNIDRAW</p><h2>${e(c.closing[0])}<br><span>${e(c.closing[1])}</span></h2>
-      <a class="button" href="/editor/">${e(c.start)} ${arrow}</a><p class="quiet">${e(c.note)}</p></section>
+      <a class="button" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a><p class="quiet">${e(c.note)}</p></section>
   </main>${footer(c)}`;
 }
 
@@ -104,10 +104,10 @@ export function guideBody(c: MarketingCopy, guide: Guide): string {
     <section class="guide-hero section-wrap"><nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/">FurniDraw</a><span aria-hidden="true"> / </span><span aria-current="page">${e(guide.label)}</span></nav>
       <p class="eyebrow">${e(guide.eyebrow)}</p><h1>${e(guide.heading).replace('\n', '<br>')}</h1><p>${e(guide.intro)}</p>
-      <a class="button" href="${guide.slug === 'cabinet-design-software' ? '/editor/' : '#fitting-room'}">${e(c.explore)} ${arrow}</a></section>
+      <a class="button" href="${guide.slug === 'cabinet-design-software' ? `/editor/?lang=${c.lang}` : '#fitting-room'}">${e(c.explore)} ${arrow}</a></section>
     <div class="guide-content section-wrap"><article class="guide-article">${guide.sections.map(s =>
       `<section><h2>${e(s.title)}</h2><p>${e(s.body)}</p>${s.list ? `<ul>${s.list.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : ''}</section>`).join('')}
-      <a class="text-link" href="/editor/">${e(c.start)} ${arrow}</a></article>
+      <a class="text-link" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></article>
       <aside id="fitting-room" aria-label="${e(c.study)}">${fittingRoom(c, guide.shape)}</aside></div>
     <section class="related section-wrap"><p class="eyebrow">KEEP EXPLORING</p><div class="related-links">${guides.filter(g => g.slug !== guide.slug).map(g =>
       `<a href="/${g.slug}/">${e(g.label)} ${arrow}</a>`).join('')}</div></section>

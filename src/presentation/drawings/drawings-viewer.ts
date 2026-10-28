@@ -60,7 +60,7 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
     + '<button type="button" data-zoom="1" aria-label="Zoom in">+</button></div><button type="button" class="drawings-pdf">Save as PDF</button></div>'
     + '<button type="button" class="drawings-close" aria-label="Close technical drawings">×</button></header>'
     + '<p class="drawings-release" role="status" hidden></p>'
-    + '<div class="drawings-sheets" tabindex="0" aria-label="Sheets"></div>';
+    + '<div class="drawings-sheets" translate="no" lang="en" tabindex="0" aria-label="Sheets"></div>';
   dom.$('#app').append(panel);
   const list = panel.querySelector<HTMLElement>('.drawings-sheets')!, count = panel.querySelector<HTMLElement>('.drawings-count')!;
   const release = panel.querySelector<HTMLElement>('.drawings-release')!, save = panel.querySelector<HTMLButtonElement>('.drawings-pdf')!;

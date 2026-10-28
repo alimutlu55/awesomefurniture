@@ -22,7 +22,7 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
       applicationCategory: 'DesignApplication', operatingSystem: 'Web browser',
       browserRequirements: 'Modern browser with JavaScript and WebGL enabled',
       description: 'Browser-based 3D design for fitted wardrobes and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
-      inLanguage: 'en', offers: { '@type': 'Offer', name: 'Browser design workspace', price: 0, priceCurrency: 'USD',
+      inLanguage: languages.map(c => c.lang), offers: { '@type': 'Offer', name: 'Browser design workspace', price: 0, priceCurrency: 'USD',
         url: `${siteOrigin}/editor/`, description: 'Begin designing without buying credits. AI images and drawing exports use the in-app credit system.' },
       featureList: ['3D furniture design', 'Fitted wardrobes', 'Modular kitchen cabinets',
         'AI design images', 'Dimensioned technical drawings'], publisher: { '@id': `${siteOrigin}/#organization` } },

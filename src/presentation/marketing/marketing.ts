@@ -24,7 +24,7 @@ if (room) {
     if (coordinate) coordinate.textContent = `X ${state.width * 10} · Y 2400 · Z 600`;
     const spec = { specVersion: 1, name: 'My furniture idea', wardrobes: [{ width: state.width, height: 240,
       depth: 60, shape: state.shape, autoDesign: false }] };
-    start.href = '/editor/#spec=' + encodeURIComponent(JSON.stringify(spec));
+    start.href = '/editor/?lang=' + encodeURIComponent(lang) + '#spec=' + encodeURIComponent(JSON.stringify(spec));
   };
   width.addEventListener('input', () => { state.width = Number(width.value); update(); });
   room.querySelector<HTMLSelectElement>('#study-units')!.addEventListener('change', event => {

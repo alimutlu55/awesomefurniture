@@ -29,7 +29,7 @@ export function appendDecorBrowser(section: HTMLElement, zone: TargetZone, title
         thumbnail.alt = ''; thumbnail.loading = 'lazy'; thumbnail.decoding = 'async';
         thumbnail.src = image; swatch.append(thumbnail); bindLoadingImage(thumbnail, swatch);
       }
-      const name = doc.createElement('span'); name.textContent = sku.name;
+      const name = doc.createElement('span'); name.textContent = sku.name; name.setAttribute('translate', 'no');
       const badge = doc.createElement('small'); badge.textContent = `${sku.manufacturer} · ${sku.code} ${sku.surfaceStructure}`;
       button.append(swatch, name, badge); button.onclick = () => select(zone, sku.id); grid.appendChild(button);
     }

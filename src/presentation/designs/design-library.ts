@@ -1,3 +1,7 @@
+import { currentLanguage, onLanguageChange, translate } from '../i18n/language';
+import { bindLocalizedUi } from '../i18n/localized-ui';
+import { createLanguageControl } from '../i18n/language-control';
+import languageStyles from '../i18n/language-control.css?raw';
 import type { ProjectSummary } from '../../application/ports/project-repository';
 import { createDesignDialog } from './name-dialog';
 import styles from './design-library.css?raw';
@@ -25,7 +29,7 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
   const host = document.createElement('div'); host.id = 'design-library'; host.hidden = true;
   host.dataset.theme = document.documentElement.dataset.theme ?? 'light';
   const shadow = host.attachShadow({ mode: 'open' });
-  const style = document.createElement('style'); style.textContent = styles + loadingStyles; shadow.append(style);
+  const style = document.createElement('style'); style.textContent = styles + loadingStyles + languageStyles; shadow.append(style);
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
     const node = document.createElement(tag); node.className = className; node.textContent = text; return node;
   };
@@ -34,7 +38,8 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
   const heading = el('h1', '', 'Your designs'); heading.tabIndex = -1;
   const select = el('button', 'select', 'Select'); select.setAttribute('aria-pressed', 'false');
   const add = el('button', 'new', '＋'); add.setAttribute('aria-label', 'New design');
-  header.append(heading, select, add);
+  const language = createLanguageControl(document);
+  header.append(heading, language.element, select, add);
   const sort = el('p', 'sort', 'Recently edited');
   const search = el('input', 'search'); search.type = 'search'; search.placeholder = 'Find a design'; search.setAttribute('aria-label', 'Find a design');
   const message = el('p', 'message'); message.setAttribute('role', 'status');
@@ -53,6 +58,7 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
   content.append(header, sort, search, message, retry, status, placeholder, list, empty, note); page.append(content); shadow.append(page, bar);
   const dialog = createDesignDialog(document, shadow);
   document.body.append(host);
+  const stopTranslation = bindLocalizedUi(shadow);
   let state: LibraryState = { items: [], currentId: null, warning: null, localOnly: true };
   let selecting = false, selected: string | null = null, busy = false, generation = 0;
   let fetching = false, loaded = false, activeId: string | null = null;
@@ -97,7 +103,8 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
     list.replaceChildren();
     for (const item of items) {
       const row = el('button', 'design' + (selecting ? ' selecting' : '')); row.dataset.id = item.id;
-      row.setAttribute('aria-label', (selecting ? 'Select ' : 'Open ') + item.name);
+      row.setAttribute('data-i18n-preserve-attributes', 'aria-label');
+      row.setAttribute('aria-label', translate(selecting ? 'Select' : 'Open') + ' ' + item.name);
       if (selecting) {
         row.setAttribute('aria-pressed', String(selected === item.id));
         const check = el('span', 'selection', selected === item.id ? '✓' : ''); check.setAttribute('aria-hidden', 'true'); row.append(check);
@@ -105,9 +112,9 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
       const image = el('img', 'preview'); image.alt = ''; image.hidden = true;
       const frame = el('span', 'preview-frame ui-loading-surface');
       frame.setAttribute('aria-busy', 'true'); frame.append(image);
-      const copy = el('span', 'copy'), name = el('strong', '', item.name); name.title = item.name;
+      const copy = el('span', 'copy'), name = el('strong', '', item.name); name.title = item.name; name.setAttribute('translate', 'no');
       const date = new Date(item.updatedAt);
-      const edited = Number.isNaN(date.valueOf()) ? 'Saved in this browser' : 'Edited ' + new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date);
+      const edited = Number.isNaN(date.valueOf()) ? 'Saved in this browser' : 'Edited ' + new Intl.DateTimeFormat(currentLanguage(), { dateStyle: 'medium' }).format(date);
       copy.append(name, el('small', '', edited));
       if (item.id === state.currentId) copy.append(el('span', 'badge', 'Current design'));
       row.append(frame, copy); list.append(row); observer.observe(row);
@@ -171,6 +178,7 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
     }
   });
   render();
+  const stopDates = onLanguageChange(render);
   return {
     get visible() { return !host.hidden; },
     update(next: LibraryState) { state = next; loaded = true; message.classList.remove('error'); render(); },
@@ -183,6 +191,6 @@ export function mountDesignLibrary(document: Document, actions: LibraryActions) 
     show() { host.dataset.theme = document.documentElement.dataset.theme ?? 'light'; host.hidden = false; heading.focus({ preventScroll: true }); },
     hide() { host.hidden = true; selecting = false; selected = null; search.value = ''; },
     error(text: string) { loaded = true; message.textContent = text; message.classList.add('error'); retry.hidden = false; controls(); },
-    dispose() { observer.disconnect(); dialog.dispose(); host.remove(); },
+    dispose() { stopDates(); stopTranslation(); language.dispose(); observer.disconnect(); dialog.dispose(); host.remove(); },
   };
 }
