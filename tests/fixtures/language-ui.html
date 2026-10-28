@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Language UI regression checks</title></head>
+<body><h1>Language UI regression checks</h1><button id="run">Run language checks</button><output id="result" role="status">Ready</output>
+<div id="mount"></div><div id="unrelated">Width</div>
+<script type="module">
+import { bindLocalizedUi } from '/src/presentation/i18n/localized-ui.ts';
+import { setLanguage } from '/src/presentation/i18n/language.ts';
+const result = document.querySelector('#result');
+const settle = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+document.querySelector('#run').addEventListener('click', async () => {
+ const verify = (on, label) => { if (!on) throw new Error(label); };
+ const root = document.querySelector('#mount').attachShadow({mode:'open'});
+ root.innerHTML = '<label for="width">Width</label><input id="width" type="number" value="240.5" aria-label="Width">'
+   + '<strong translate="no">Width</strong><textarea>Width</textarea><span data-user-content>Drawer</span><div class="dynamic"></div>';
+ await setLanguage('en'); const dispose = bindLocalizedUi(root);
+ try {
+  await setLanguage('de'); await settle();
+  verify(root.querySelector('label').textContent === 'Breite', 'Initial text must translate');
+  verify(root.querySelector('input').getAttribute('aria-label') === 'Breite', 'Accessibility labels must translate');
+  verify(root.querySelector('input').value === '240.5', 'Dimensions must stay unchanged');
+  verify(root.querySelector('label').htmlFor === 'width', 'Label association must stay unchanged');
+  verify(root.querySelector('strong').textContent === 'Width', 'Project names must stay unchanged');
+  verify(root.querySelector('textarea').value === 'Width', 'Entered text must stay unchanged');
+  verify(root.querySelector('[data-user-content]').textContent === 'Drawer', 'User content must stay unchanged');
+  verify(document.querySelector('#unrelated').textContent === 'Width', 'Other DOM roots must stay unchanged');
+  root.querySelector('.dynamic').innerHTML = '<button title="New design">New design</button>';
+  await settle(); verify(root.querySelector('button').textContent === 'Neuer Entwurf', 'Late menus must translate');
+  verify(root.querySelector('button').title === 'Neuer Entwurf', 'Late tooltip must translate');
+  await setLanguage('pl'); await settle();
+  verify(root.querySelector('label').textContent === 'Szerokość', 'Switch must start from English source');
+  root.querySelector('label').textContent = 'Height'; await settle();
+  verify(root.querySelector('label').textContent === 'Wysokość', 'Updated source must translate');
+  root.querySelector('input').setAttribute('aria-label','Height'); await settle();
+  verify(root.querySelector('input').getAttribute('aria-label') === 'Wysokość', 'Updated attributes must translate');
+  await setLanguage('en'); await settle();
+  verify(root.querySelector('label').textContent === 'Height', 'English must restore the current source');
+  verify(root.querySelector('button').textContent === 'New design', 'English must restore dynamic source');
+  dispose(); await setLanguage('fr'); await settle();
+  verify(root.querySelector('label').textContent === 'Height', 'Disposed roots must unsubscribe');
+  root.querySelector('.dynamic').textContent = 'Width'; await settle();
+  verify(root.querySelector('.dynamic').textContent === 'Width', 'Disposed roots must stop observing');
+  result.textContent = 'PASS: 18 language, dynamic DOM, isolation and user-data checks';
+ } catch (error) { result.textContent = 'FAIL: ' + error.message; } finally { dispose(); }
+});
+</script></body></html>

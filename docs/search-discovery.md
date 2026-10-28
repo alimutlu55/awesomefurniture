@@ -10,7 +10,7 @@ the studio with their original query and fragment intact.
 The English homepage is `/`. Translated introductions are `/de/`, `/fr/`, `/es/`, `/pl/`, `/pt/`
 and `/tr/`. Each has complete primary content in its own HTML, its own canonical address, and
 reciprocal language alternates, including `x-default`. Language selection is explicit; there is
-no country or browser-language redirect. The editor and detailed guides currently use English.
+no country or browser-language redirect. The studio interface supports the same seven languages; detailed guides and manufacturing documents currently use English.
 
 The English search pages are:
 

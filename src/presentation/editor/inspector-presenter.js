@@ -93,6 +93,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         select.replaceChildren(...model.scene.wardrobes.map(w => {
             const option = document.createElement('option');
             option.value = String(w.id);
+            option.setAttribute('translate', 'no');
             option.textContent = w.name;
             return option;
         }));
@@ -239,11 +240,12 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         if (!selectionState.focusOn) {
             return;
         }
-        const add = (t, fn) => {
+        const add = (t, fn, userContent = false) => {
             const b = document.createElement(fn ? 'button' : 'span');
             if (b instanceof HTMLButtonElement) {
                 b.type = 'button';
             }
+            if (userContent) b.setAttribute('translate', 'no');
             b.textContent = t;
             if (fn) {
                 b.onclick = fn;
@@ -257,7 +259,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             c.append(b);
         };
         const w = model.activeCabinet().name, lvl = model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0 ? 2 : selectionState.deep ? 1 : 0;
-        add(w, lvl ? () => goUp('wardrobe') : null);
+        add(w, lvl ? () => goUp('wardrobe') : null, true);
         if (lvl > 0) {
             add('Space', lvl > 1 ? () => goUp('section') : null);
         }

@@ -216,7 +216,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
   const offer = platform.offer();
   if (offer) {
     const names = offer.designs.slice(0, 3).map(design => design.name).concat(offer.designs.length > 3 ? [`and ${offer.designs.length - 3} more`] : []);
-    $('.ac-adopt-list').replaceChildren(...names.map(name => { const li = page.createElement('li'); li.textContent = name; return li; }));
+    $('.ac-adopt-list').replaceChildren(...names.map(name => { const li = page.createElement('li'); li.setAttribute('translate', 'no'); li.textContent = name; return li; }));
     overlay.hidden = false; previousFocus = root.activeElement as HTMLElement | null;
     show('adopt', offerCopy(offer, platform.email() ?? 'your account'));
   }

@@ -1,3 +1,5 @@
+import { initializeLanguage } from '../presentation/i18n/language';
+import { bindLocalizedUi } from '../presentation/i18n/localized-ui';
 import { preloadOakTextures } from '../presentation/viewport/wood-textures';
 import type { mountEditor } from '../presentation/editor/mount-editor';
 import { checkSpec, createAgentApi, registerWebMcpTools, specFromLink } from './agent-api';
@@ -15,6 +17,7 @@ startup.className = 'ui-loading-startup';
 startup.replaceChildren(createLoadingPlaceholder(document, 'Opening your workspace…', 'canvas'));
 const startupCopy = document.createElement('p'); startupCopy.textContent = 'Opening your workspace…'; startup.append(startupCopy);
 document.body.append(startup);
+const stopStartupTranslation = bindLocalizedUi(startup);
 // AI agents are welcome: a guide and functions on window.furnidraw (WebMCP tools where offered). They are
 // ready before the editor and stay when it cannot start (agents' browsers often have no WebGL).
 let editor:ReturnType<typeof mountEditor>|null=null;
@@ -25,6 +28,7 @@ Object.defineProperty(window,'wardrobeForge',{value:agents,configurable:true});
 registerWebMcpTools(agents,document,navigator);
 console.info('FurniDraw: AI agents can design here. Call window.furnidraw.help() for the guide, or read /llms.txt.');
 async function main(): Promise<void> {
+ await initializeLanguage();
  const checkout=takeCheckoutReturn(new URL(location.href),history);
  const url=new URL(location.href);
  preloadOakTextures(document);
@@ -51,7 +55,7 @@ async function main(): Promise<void> {
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});
  import.meta.hot?.dispose(dispose);
 }
-void main().finally(() => startup.remove()).catch(error=>{
+void main().finally(() => { stopStartupTranslation(); startup.remove(); }).catch(error=>{
  editor=null;
  const errorRoot=root.shadowRoot??root;
  errorRoot.replaceChildren();

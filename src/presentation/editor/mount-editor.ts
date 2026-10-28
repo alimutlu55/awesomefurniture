@@ -1,3 +1,6 @@
+import { bindLocalizedUi } from '../i18n/localized-ui';
+import { createLanguageControl } from '../i18n/language-control';
+import languageStylesheet from '../i18n/language-control.css?raw';
 import { scopeEditorStyles } from './editor-styles';
 import { startEditor } from './editor-runtime.js';
 import { createEditorDom } from './editor-dom.js';
@@ -52,11 +55,14 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
         shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
-        creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet].join('\n'), controlIds);
+        creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet, languageStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);
+    const language = createLanguageControl(root.ownerDocument);
+    language.element.id = 'editor-language'; language.element.classList.add('editor-language'); shadow.append(language.element);
     const dom = createEditorDom(shadow);
+    const stopTranslation = bindLocalizedUi(shadow);
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
         editor = startEditor(initialScene, dom, shareLink, credits, account);
@@ -81,6 +87,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
                 if (disposed)
                     return;
                 disposed = true;
+                stopTranslation(); language.dispose();
                 mountedEditor.dispose();
                 shadow.replaceChildren();
                 mounted.delete(root);
@@ -88,6 +95,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         };
     }
     catch (error) {
+        stopTranslation(); language.dispose();
         editor?.dispose();
         dom.dispose();
         shadow.replaceChildren();

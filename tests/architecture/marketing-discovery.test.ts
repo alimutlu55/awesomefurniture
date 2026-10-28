@@ -84,3 +84,10 @@ test('application metadata describes the free design workspace without inventing
   assert.equal(app.aggregateRating, undefined);
   assert.equal(app.review, undefined);
 });
+
+test('translated public pages pass their language into studio links', () => {
+  for (const copy of languages) {
+    const path = copy.lang === 'en' ? '/' : `/${copy.lang}/`;
+    assert.ok(renderMarketing(template, path).includes(`href="/editor/?lang=${copy.lang}"`));
+  }
+});

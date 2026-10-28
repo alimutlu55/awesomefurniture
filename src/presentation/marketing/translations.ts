@@ -36,14 +36,15 @@ const german: MarketingCopy = {
     ['Was kann ich mit FurniDraw planen?', "Einbauschränke, geformten Stauraum und modulare Küchenschränke. Das Studio bietet Räume, Materialien, Innenausstattung "
       + "und technische Zeichnungen. Die automatischen Beispiele erstellen Kleiderschränke."],
     ['Brauche ich ein Konto oder eine Installation?', 'Sie können in einem modernen Browser ohne Konto und ohne Installation beginnen. Lokale Entwürfe bleiben im Browser; Konto- und Cloudfunktionen finden Sie im Studio.'],
-    ['Kann ich FurniDraw kostenlos ausprobieren?', 'Sie können ohne Credits mit der Planung beginnen. KI-Bilder und technische Zeichnungen nutzen das Creditsystem im Studio. Dort finden Sie die aktuellen Freikontingente und Preise.'],
+    ['Kann ich FurniDraw kostenlos ausprobieren?', "Sie können ohne Credits mit der Planung beginnen. KI-Bilder und technische Zeichnungen nutzen das Creditsystem "
+      + "im Studio. Dort finden Sie die aktuellen Freikontingente und Preise."],
     ['Kann ich die Möbel nach den Zeichnungen bauen?', "Besprechen Sie die bemaßten Zeichnungen mit Ihrer Tischlerei. Prüfen Sie Raummaße, Materialien, Freiräume und Beschläge "
       + "vor der Fertigung. Zuschnittlisten zeigen Fertigmaße; Bohrpläne sind nicht enthalten."],
     ['Kann ich FurniDraw in meinem Land nutzen?', "FurniDraw funktioniert im Browser. Die Einführung gibt es in mehreren Sprachen. Diese Vorschau bietet Zentimeter und "
-      + "Zoll; das vollständige Studio verwendet derzeit Englisch und Zentimeter."],
+      + "Zoll; das Studio bietet sieben Sprachen sowie Zentimeter, Millimeter und Zoll."],
   ],
   closing: ["Planen Sie Ihr nächstes Projekt.","Bestimmen Sie die Details in 3D."], language: 'Sprache',
-  editorLanguage: 'Studio auf Englisch · Maße in cm', skip: 'Zum Inhalt springen', units: 'Einheiten',
+  editorLanguage: 'Studio in 7 Sprachen · flexible Einheiten', skip: 'Zum Inhalt springen', units: 'Einheiten',
 };
 
 const french: MarketingCopy = {
@@ -87,10 +88,10 @@ const french: MarketingCopy = {
     ['Les plans permettent-ils de fabriquer le meuble ?', "Étudiez les plans cotés avec votre artisan. Vérifiez mesures, matériaux, dégagements et quincaillerie avant fabrication. "
       + "Les listes de débit indiquent les dimensions finies ; les plans de perçage ne sont pas inclus."],
     ['Puis-je utiliser FurniDraw dans mon pays ?', "FurniDraw fonctionne dans votre navigateur. Cette présentation existe en plusieurs langues. L’aperçu propose centimètres "
-      + "et pouces ; le studio complet utilise actuellement l’anglais et les centimètres."],
+      + "et pouces ; le studio propose sept langues et des mesures en centimètres, millimètres ou pouces."],
   ],
   closing: ["Planifiez votre prochain projet.","Définissez les détails en 3D."], language: 'Langue',
-  editorLanguage: 'Studio en anglais · dimensions en cm', skip: 'Aller au contenu', units: 'Unités',
+  editorLanguage: 'Studio en 7 langues · unités au choix', skip: 'Aller au contenu', units: 'Unités',
 };
 
 const spanish: MarketingCopy = {
@@ -132,10 +133,11 @@ const spanish: MarketingCopy = {
     ['¿Puedo probar FurniDraw gratis?', 'Puedes empezar a diseñar sin comprar créditos. Las imágenes con IA y los planos usan el sistema de créditos del estudio. Consulta allí los precios y los usos gratuitos actuales.'],
     ['¿Puedo fabricar los muebles con los planos?', "Revisa los planos acotados con un carpintero. Confirma medidas, materiales, holguras y herrajes antes de fabricar. Las "
       + "listas de corte muestran medidas finales; no incluyen planos de taladrado."],
-    ['¿Puedo usar FurniDraw en mi país?', 'FurniDraw funciona en el navegador. Esta presentación está en varios idiomas. La vista previa ofrece centímetros y pulgadas; el estudio completo utiliza actualmente inglés y centímetros.'],
+    ['¿Puedo usar FurniDraw en mi país?', "FurniDraw funciona en el navegador. Esta presentación está en varios idiomas. La vista previa ofrece "
+      + "centímetros y pulgadas; el estudio ofrece siete idiomas y medidas en centímetros, milímetros o pulgadas."],
   ],
   closing: ["Planifica tu próximo proyecto.","Define los detalles en 3D."], language: 'Idioma',
-  editorLanguage: 'Estudio en inglés · medidas en cm', skip: 'Ir al contenido', units: 'Unidades',
+  editorLanguage: 'Estudio en 7 idiomas · unidades flexibles', skip: 'Ir al contenido', units: 'Unidades',
 };
 
 const polish: MarketingCopy = {
@@ -179,7 +181,7 @@ const polish: MarketingCopy = {
     ['Czy mogę korzystać z FurniDraw w moim kraju?', 'FurniDraw działa w przeglądarce. Wprowadzenie jest dostępne w kilku językach. Podgląd obsługuje centymetry i cale; pełne studio używa obecnie języka angielskiego i centymetrów.'],
   ],
   closing: ["Zaplanuj kolejny projekt.","Określ szczegóły w 3D."], language: 'Język',
-  editorLanguage: 'Studio po angielsku · wymiary w cm', skip: 'Przejdź do treści', units: 'Jednostki',
+  editorLanguage: 'Studio w 7 językach · wybór jednostek', skip: 'Przejdź do treści', units: 'Jednostki',
 };
 
 const portuguese: MarketingCopy = {
@@ -222,10 +224,11 @@ const portuguese: MarketingCopy = {
       + "Consulte os preços e os usos gratuitos atuais antes de usar um recurso pago."],
     ['Posso fabricar os móveis com os desenhos?', "Revise os desenhos cotados com um marceneiro. Confirme medidas, materiais, folgas e ferragens antes de fabricar. As "
       + "listas de corte indicam medidas finais; não incluem planos de furação."],
-    ['Posso usar FurniDraw no meu país?', 'FurniDraw funciona no navegador. Esta apresentação está disponível em vários idiomas. A prévia oferece centímetros e polegadas; o estúdio completo usa atualmente inglês e centímetros.'],
+    ['Posso usar FurniDraw no meu país?', "FurniDraw funciona no navegador. Esta apresentação está disponível em vários idiomas. A prévia oferece "
+      + "centímetros e polegadas; o estúdio oferece sete idiomas e medidas em centímetros, milímetros ou polegadas."],
   ],
   closing: ["Planeje seu próximo projeto.","Defina os detalhes em 3D."], language: 'Idioma',
-  editorLanguage: 'Estúdio em inglês · medidas em cm', skip: 'Ir para o conteúdo', units: 'Unidades',
+  editorLanguage: 'Estúdio em 7 idiomas · unidades flexíveis', skip: 'Ir para o conteúdo', units: 'Unidades',
 };
 
 const turkish: MarketingCopy = {
@@ -268,10 +271,10 @@ const turkish: MarketingCopy = {
       + "kullanır. Güncel fiyatları ve ücretsiz kullanımları orada kontrol edin."],
     ['Çizimlerle mobilya üretebilir miyim?', "Ölçülü çizimleri marangozunuzla inceleyin. Üretimden önce yerinde ölçüleri, malzemeleri, boşlukları ve donanımları "
       + "doğrulayın. Kesim listeleri bitmiş ölçüleri verir; delik planları dahil değildir."],
-    ['FurniDraw ülkemde kullanılabilir mi?', 'FurniDraw tarayıcıda çalışır. Bu tanıtım birkaç dilde sunulur. Önizlemede santimetre veya inç seçebilirsiniz; tam stüdyo şu anda İngilizce ve santimetre kullanır.'],
+    ['FurniDraw ülkemde kullanılabilir mi?', 'FurniDraw tarayıcıda çalışır. Bu tanıtım birkaç dilde sunulur. Önizlemede santimetre veya inç seçebilirsiniz; stüdyo yedi dil ile santimetre, milimetre ve inç ölçülerini destekler.'],
   ],
   closing: ["Yeni projenizi planlayın.","Detayları 3D belirleyin."], language: 'Dil',
-  editorLanguage: 'Stüdyo İngilizce · ölçüler cm', skip: 'İçeriğe geç', units: 'Birimler',
+  editorLanguage: '7 dilde stüdyo · esnek birimler', skip: 'İçeriğe geç', units: 'Birimler',
 };
 
 export const languages: readonly MarketingCopy[] = [english, german, french, spanish, polish, portuguese, turkish];
