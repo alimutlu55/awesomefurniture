@@ -1,7 +1,7 @@
 import type { Item, Sheet } from '../../domain/drawings/drawing';
 import { textWidth } from './helvetica-metrics';
 import { annotationLayout, type AnnotationOffsets } from './annotation-layout';
-import { type Box, dimensionMarks } from './dimension-marks';
+import { type Box, dimensionCorridor, dimensionMarks } from './dimension-marks';
 import { ARROW, LIST_ROW, PAPER, TITLE, type Paper, drawingArea, layoutSheet } from './sheet-layout';
 import { tableMarks } from './table-marks';
 import { type Mark, type Pen, type Pt, box, marksToSvg, shape, words } from './paper-marks';
@@ -83,7 +83,12 @@ export function sheetPresentation(sheet: Sheet, info: SheetSetInfo, offsets: Ann
   sheet.legend?.slice(0, 2).forEach((l, k) => out.push(words({ x: area.x, y: PAPER.edge + 13 + k * 3.6 }, l, 'small')));
   for (const { view, paper } of placed) {
     for (const i of view.items.filter(i => i.kind === 'line' || i.kind === 'arrow')) allGeometry.push(...item(i, paper, []));
-    for (const i of view.items.filter(i => i.kind === 'dims')) allGeometry.push(...item(i, paper, taken));
+    const dims = view.items.filter((i): i is Extract<Item, { kind: 'dims' }> => i.kind === 'dims');
+    const corridors = dims.map(d => ({ d, box: dimensionCorridor(d, paper) }));
+    for (const d of dims) {
+      const otherCorridors = corridors.filter(c => Math.abs(c.d.dir.x * d.dir.x + c.d.dir.y * d.dir.y) < .99).map(c => c.box);
+      allGeometry.push(...dimensionMarks(d, paper, taken, otherCorridors));
+    }
     for (const i of view.items.filter(i => i.kind === 'tag' || i.kind === 'view-mark' || i.kind === 'note')) {
       const key = sheet.title + '/' + view.title + '/' + (i.kind === 'tag' ? 'tag:' + i.text : i.kind === 'view-mark' ? 'view:' + i.text : 'note:' + i.lines.join(' '));
       groups.push({ key, marks: item(i, paper, []), at: paper(i.at) });

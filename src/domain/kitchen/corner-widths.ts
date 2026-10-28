@@ -9,7 +9,7 @@ interface Cabinet {
 }
 export interface FaceWidth { readonly from: number; readonly to: number; readonly covered: boolean; readonly strip?: boolean }
 // Numerical tolerance only (centimetres). Real gaps and offsets are never snapped or rounded here.
-const EPS = 1e-7;
+const EPS = 1e-5;
 // The editor recognises quarter-turn alignment within half a degree. Keep actual angles for intersections.
 const QUARTER_TURN = Math.sin(.5 * Math.PI / 180);
 // Remove trigonometric round-off before display rounding (e.g. 611.4999999999999 mm at a half-mm stop).

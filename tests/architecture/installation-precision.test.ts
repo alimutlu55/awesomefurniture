@@ -129,3 +129,25 @@ test('grille dimensions are purchased envelopes, are independently dimensioned, 
   cabinet.state.ventilationHeight = 12;
   assert.ok(validateForManufacture(drawingInputOf(scene)).findings.some(f => f.id === 'vent:K' + cabinet.id && f.severity === 'critical'));
 });
+
+test('plan drawing excludes redundant upper shelf chains and nests cabinet tags inside footprints', () => {
+  const scene = reference();
+  const sheets = technicalDrawings(drawingInputOf(scene), { preset: 'installation' });
+  const plan = sheets.find(s => s.title === 'Plan')!;
+  const dims = plan.views.flatMap(v => v.items).filter((i): i is Dimensions => i.kind === 'dims');
+  // Wall A outer chain does not include shelf K32 (no 10 | 2920 | 350 chain on the floor plan)
+  const wallAOuter = dims.filter(d => d.dir.y === 1 && d.side === 1);
+  assert.equal(wallAOuter.length, 1, 'only total wall dimension exists on wall A outer side on floor plan');
+  assert.deepEqual(wallAOuter[0]!.stops, [0, 3270]);
+
+  // Open-end depth chain at the end of wall B measures 580 with no phantom 20 mm worktop overhang for tall unit
+  const endDepthChain = dims.find(d => d.dir.y === -1 && d.stops.length === 2);
+  assert.ok(endDepthChain, 'found open-end depth chain');
+  assert.deepEqual(endDepthChain!.stops, [0, 580]);
+
+  // Tags are positioned cleanly inside their footprints
+  const tags = plan.views.flatMap(v => v.items).filter((i): i is Extract<Item, { kind: 'tag' }> => i.kind === 'tag');
+  assert.ok(tags.some(t => t.text === 'K1'), 'K1 corner cabinet tag is present on plan');
+  assert.ok(tags.some(t => t.text === 'K2'), 'K2 cabinet tag is present on plan');
+});
+
