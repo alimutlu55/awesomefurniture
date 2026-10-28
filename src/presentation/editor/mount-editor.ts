@@ -60,7 +60,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     shadow.innerHTML = markup;
     shadow.prepend(style);
     const language = createLanguageControl(root.ownerDocument);
-    language.element.id = 'editor-language'; language.element.classList.add('editor-language'); shadow.append(language.element);
+    shadow.querySelector('[data-menu-group="preferences"]')!.append(language.element);
     const dom = createEditorDom(shadow);
     const stopTranslation = bindLocalizedUi(shadow);
     let editor:ReturnType<typeof startEditor>|undefined;

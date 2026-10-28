@@ -1,7 +1,9 @@
 # Studio language support
 
 The studio and design library offer English, German, French, Spanish, Polish, Portuguese and Turkish.
-Choose a language using the globe selector. A choice takes effect without remounting the editor,
+Choose a language only in the studio’s three-dot menu under Preferences. There is no floating
+selector or selector in the design library. The chosen language still applies throughout the app.
+A choice takes effect without remounting the editor,
 changing a design, losing Undo history or navigating away. It is remembered in this browser.
 
 A public site's studio links carry `?lang=xx`; the studio consumes that preference while preserving
