@@ -53,13 +53,13 @@ test('opening Add item expands a collapsed inspector and clears furniture catalo
  assert.deepEqual(f.renders,['wardrobe',undefined]);
 });
 
-for(const width of [375,844,1440])test(`${width}px: Add item and passive item selection preserve mobile view and retain desktop framing`,()=>{
+for(const width of [375,844,1440])test(`${width}px: Add item and passive item selection preserve camera view across screen sizes`,()=>{
  const f=fixture(width);
  f.panels.showPop(null,'#pop2');
  f.panels.showPop(null,'#pop3');
  f.panels.showPop(null,'#pop4');
- assert.equal(f.frames.length,width>900?3:0);
- assert.equal(f.releases.length,width>900?0:3);
+ assert.equal(f.frames.length,0);
+ assert.equal(f.releases.length,3);
 });
 
 test('returning from item editing opens fittings instead of a stale scene catalogue',()=>{

@@ -53,8 +53,8 @@ function fixture(t, width, studio = true) {
         const e = { button: 0, pointerId: 1, pointerType, clientX: 10, clientY: 20, timeStamp: clock };
         handlers.pointerdown(e); handlers.pointerup(e);
     };
-    /** Asks for the whole scene from empty space: a click with a mouse, a double tap with a finger. */
-    const overview = pointerType => { tap(pointerType); if (pointerType === 'touch') tap(pointerType, 200); };
+    /** Asks for the whole scene from empty space: a double tap with a finger or double click with a mouse. */
+    const overview = pointerType => { tap(pointerType); tap(pointerType, 200); };
     return { camera, cameraState, interactionState, selectionState, model, tap, overview,
         get overviewCalls() { return overviewCalls; }, setHeight: n => { height = n; },
         hit: () => { hit = { object: { userData: { wardrobe: 1, i: 0 } }, distance: 10 }; },
@@ -104,7 +104,7 @@ for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
             assert.equal(f.cameraState.tgt.z, initial.z);
         });
     }
-    test(`${pointerType}: ${pointerType === 'touch' ? 'double tap' : 'click'} on empty space after adding a fitting frames the studio and both wardrobes`, t => {
+    test(`${pointerType}: double tap/click on empty space after adding a fitting frames the studio and both wardrobes`, t => {
         const f = fixture(t, width), snapshot = JSON.stringify(f.model.scene);
         const before = f.cameraState.dist;
         f.overview(pointerType);
@@ -124,16 +124,18 @@ for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
     });
 }
 
-test('touch: a single tap on empty space lets go of the selection and leaves the view where it was', t => {
-    const f = fixture(t, 375), before = f.camera.camNow();
-    f.tap('touch'); f.camera.cameraTick(2000, 1 / 60);
-    assert.equal(f.selectionState.focusOn, false);
-    assert.equal(f.overviewCalls, 0);
-    assert.deepEqual(f.camera.camNow(), before);
-    // Taps further apart in time are not a double tap.
-    f.tap('touch'); f.camera.cameraTick(4000, 1 / 60);
-    assert.equal(f.overviewCalls, 0);
-});
+for (const [width, pointerType] of [[375, 'touch'], [1280, 'mouse']]) {
+    test(`${pointerType}: a single tap on empty space lets go of the selection and leaves the view where it was`, t => {
+        const f = fixture(t, width), before = f.camera.camNow();
+        f.tap(pointerType); f.camera.cameraTick(2000, 1 / 60);
+        assert.equal(f.selectionState.focusOn, false);
+        assert.equal(f.overviewCalls, 0);
+        assert.deepEqual(f.camera.camNow(), before);
+        // Taps further apart in time are not a double tap.
+        f.tap(pointerType); f.camera.cameraTick(4000, 1 / 60);
+        assert.equal(f.overviewCalls, 0);
+    });
+}
 
 test('background overview works without room walls and contains every wardrobe', t => {
     const f = fixture(t, 375, false);
