@@ -12,19 +12,22 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
   const title = guide?.title ?? copy.title, description = guide?.description ?? copy.description;
   const graph: object[] = [
     { '@type': 'Organization', '@id': `${siteOrigin}/#organization`, name: 'FurniDraw', url: siteOrigin,
-      logo: `${siteOrigin}/favicon.svg` },
-    { '@type': 'WebSite', '@id': `${siteOrigin}/#website`, name: 'FurniDraw', url: siteOrigin,
+      logo: { '@type': 'ImageObject', url: `${siteOrigin}/assets/furnidraw-mark.png`, width: 512, height: 512 } },
+    { '@type': 'WebSite', '@id': `${siteOrigin}/#website`, name: 'FurniDraw', alternateName: 'furnidraw.com', url: siteOrigin + '/',
       inLanguage: languages.map(c => c.lang), publisher: { '@id': `${siteOrigin}/#organization` } },
     { '@type': 'WebPage', '@id': url, url, name: title, description, inLanguage: copy.lang,
-      isPartOf: { '@id': `${siteOrigin}/#website` }, about: { '@id': `${siteOrigin}/#app` } },
+      isPartOf: { '@id': `${siteOrigin}/#website` }, about: { '@id': `${siteOrigin}/#app` },
+      ...(guide ? { breadcrumb: { '@id': url + '#breadcrumb' } } : {}) },
     { '@type': 'WebApplication', '@id': `${siteOrigin}/#app`, name: 'FurniDraw', url: `${siteOrigin}/editor/`,
       applicationCategory: 'DesignApplication', operatingSystem: 'Web browser',
       browserRequirements: 'Modern browser with JavaScript and WebGL enabled',
       description: 'Browser-based 3D design for fitted wardrobes and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
-      inLanguage: 'en', featureList: ['3D furniture design', 'Fitted wardrobes', 'Modular kitchen cabinets',
+      inLanguage: 'en', offers: { '@type': 'Offer', name: 'Browser design workspace', price: 0, priceCurrency: 'USD',
+        url: `${siteOrigin}/editor/`, description: 'Begin designing without buying credits. AI images and drawing exports use the in-app credit system.' },
+      featureList: ['3D furniture design', 'Fitted wardrobes', 'Modular kitchen cabinets',
         'AI design images', 'Dimensioned technical drawings'], publisher: { '@id': `${siteOrigin}/#organization` } },
   ];
-  if (guide) graph.push({ '@type': 'BreadcrumbList', itemListElement: [
+  if (guide) graph.push({ '@type': 'BreadcrumbList', '@id': url + '#breadcrumb', itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
     { '@type': 'ListItem', position: 2, name: guide.label, item: url },
   ] });
@@ -41,16 +44,24 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:url" content="${url}">
-    <meta property="og:locale" content="${({ en: 'en_US', de: 'de_DE', fr: 'fr_FR', es: 'es_ES', pl: 'pl_PL', pt: 'pt_BR', tr: 'tr_TR' })[copy.lang]}">
-    <meta property="og:image" content="${siteOrigin}/assets/furnidraw-social.png">
+    <meta property="og:locale" content="${socialLocales[copy.lang]}">
+    ${guide ? '' : languages.filter(c => c.lang !== copy.lang).map(c =>
+      `<meta property="og:locale:alternate" content="${socialLocales[c.lang]}">`).join('\n')}
+    <meta property="og:image" content="${siteOrigin}/assets/furnidraw-design-social.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="FurniDraw — an idea, a perfect fit, something you made">
+    <meta property="og:image:alt" content="${escapeHtml(copy.lang === 'en' ? 'FurniDraw — 3D furniture design with precise plans' : copy.title)}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
-    <meta name="twitter:image" content="${siteOrigin}/assets/furnidraw-social.png">
+    <meta name="twitter:image" content="${siteOrigin}/assets/furnidraw-design-social.png">
+    <meta name="twitter:image:alt" content="${escapeHtml(copy.title)}">
     <meta name="theme-color" content="#f7f6f2">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="help" type="text/markdown" href="/llms.txt" title="Guide for AI agents">
     <script type="application/ld+json">${jsonLd({ '@context': 'https://schema.org', '@graph': graph })}</script>`;
 }
+
+const socialLocales: Readonly<Record<string, string>> = {
+  en: 'en_US', de: 'de_DE', fr: 'fr_FR', es: 'es_ES', pl: 'pl_PL', pt: 'pt_BR', tr: 'tr_TR',
+};

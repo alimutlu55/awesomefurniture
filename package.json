@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.cjs tests/architecture/*.test.ts",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "check": "npm run check:boundaries && npm run check:architecture && npm run typecheck:editor && npm test && npm run build",
+    "check": "npm run check:boundaries && npm run check:architecture && npm run typecheck:editor && npm test && npm run build && npm run check:seo",
     "typecheck:editor": "tsc -p tsconfig.editor.json",
     "review:planner": "node --import tsx scripts/planner-review.mjs",
     "check:drawings": "node --import tsx scripts/check-professional-drawings.mjs",
@@ -24,7 +24,8 @@
     "check:accounts": "node scripts/check-account-flows.mjs",
     "check:loading": "node scripts/check-loading-states.mjs && node scripts/check-credit-loading.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
-    "agents:guide": "node --import tsx scripts/write-agent-guide.mjs"
+    "agents:guide": "node --import tsx scripts/write-agent-guide.mjs",
+    "check:seo": "node --import tsx scripts/check-search-discovery.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

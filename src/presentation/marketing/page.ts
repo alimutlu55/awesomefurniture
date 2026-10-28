@@ -24,7 +24,7 @@ export function header(c: MarketingCopy): string {
 
 function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stairs' = 'regular'): string {
   const shapes = ['regular', 'alcove', 'under-stairs'];
-  return `<div class="fitting-room" data-shape="${shape}" data-view="material">
+  return `<div class="fitting-room" data-nosnippet data-shape="${shape}" data-view="material">
     <div class="study-topline"><span class="eyebrow">${e(c.study)}</span>
       <div class="segmented" role="group" aria-label="${e(c.study)}">
         ${c.views.map((v, i) => `<button type="button" data-view="${i ? 'drawing' : 'material'}" aria-pressed="${!i}">${e(v)}</button>`).join('')}
@@ -75,7 +75,7 @@ export function homeBody(c: MarketingCopy): string {
       <p class="eyebrow">01 / ${e(c.nav[0])}</p><h2>${e(c.statement[0])}<br><span>${e(c.statement[1])}</span></h2>
       <p>${e(c.statementBody)}</p></div>
       <div class="process">${c.steps.map(([title, body], i) => `<article class="process-step">
-        <div class="process-visual process-visual-${i}" aria-hidden="true">${processArt(i)}</div>
+        <div class="process-visual process-visual-${i}" data-nosnippet aria-hidden="true">${processArt(i)}</div>
         <span class="step-number">0${i + 1}</span><h3>${e(title)}</h3><p>${e(body)}</p></article>`).join('')}</div>
     </section>
     <section id="details" class="details-section"><div class="details-grid section-wrap">
@@ -101,7 +101,8 @@ export function homeBody(c: MarketingCopy): string {
 
 export function guideBody(c: MarketingCopy, guide: Guide): string {
   return `${header(c)}<main id="main" class="guide-page">
-    <section class="guide-hero section-wrap"><a class="breadcrumb" href="/">FurniDraw <span aria-hidden="true">/</span></a>
+    <section class="guide-hero section-wrap"><nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">FurniDraw</a><span aria-hidden="true"> / </span><span aria-current="page">${e(guide.label)}</span></nav>
       <p class="eyebrow">${e(guide.eyebrow)}</p><h1>${e(guide.heading).replace('\n', '<br>')}</h1><p>${e(guide.intro)}</p>
       <a class="button" href="${guide.slug === 'cabinet-design-software' ? '/editor/' : '#fitting-room'}">${e(c.explore)} ${arrow}</a></section>
     <div class="guide-content section-wrap"><article class="guide-article">${guide.sections.map(s =>
