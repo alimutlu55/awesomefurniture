@@ -1,10 +1,11 @@
+import { ventilationGrille } from '../kitchen/ventilation';
+import { plinthOf } from '../wardrobe/carcass';
 import { resolveMaterials } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
-import { PLINTH } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { kitchenUnit } from '../kitchen/kitchen-units';
+import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
 import { piecefronts } from './fronts';
@@ -35,7 +36,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
   for (const p of pieces) {
     const d = p.design;
     if (p.fixture === 'shelf') { add(p, 'Shelf bracket', 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
-    if (p.fixture) continue;
+    if (p.fixture || installationKind(d)) continue;
+    const vent = ventilationGrille(d);
+    if (vent) add(p, 'Ventilation grille', mm(vent.width) + ' × ' + mm(vent.height) + ' overall; confirm cut-out/free area', 1);
     const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null;
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
@@ -66,9 +69,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         else add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
       }
     }));
-    const shelves = pieceBoards(p).filter(b => b.note === 'adjustable').length;
+    const shelves = pieceBoards(p, pieces).filter(b => b.note === 'adjustable').length;
     add(p, 'Shelf support', '5 mm pin', 4 * shelves);
-    if (unit?.plinth) add(p, 'Adjustable leg', 'for ' + mm(PLINTH) + ' plinth', 4);
+    if (unit?.plinth && plinthOf(d) > 0) add(p, 'Adjustable leg', 'for ' + mm(plinthOf(d)) + ' plinth', 4);
     if (p.hung) add(p, 'Cabinet hanger, adjustable', 'pair', 1);
     if (!kitchen || (unit && !unit.worktop && unit.plinth)) add(p, 'Wall fixing bracket', 'anti-tip', 2);
   }

@@ -199,3 +199,17 @@ test('cancelled resizing restores the item and returns the movement camera',()=>
   assert.deepEqual(calls,['movement framing','restore']);
  }
 });
+
+test('edge resize preserves every 10..1 mm gap and has no magnetic hold after exact contact',()=>{
+ const {c,api,begin,interactionState}=edgeGestureFixture([
+  {k:'drawer',h:20,w:34,x:15,y:25},{k:'sdrawer',h:20,w:10,x:50,y:25}],0);
+ begin('right');const a=interactionState.itemEdgeGesture;
+ for(const gap of [10,9,8,7,6,5,4,3,2,1,0,1,5,10]){
+  a.delta=(10-gap)/10;
+  const align=api.snapItemEdge(a);
+  if(gap>0)assert.equal(align,null,'remaining '+gap+' mm must not snap closed');
+  const target=align?.target??c.itemEdgeSize(a.g,a.edge,a.delta,a.layout,a.index,a.minW,a.minH,a.maxH);
+  assert.equal(Math.round((50-target.x-target.w)*10),gap);
+ }
+ api.finishItemEdgeResize(true);
+});

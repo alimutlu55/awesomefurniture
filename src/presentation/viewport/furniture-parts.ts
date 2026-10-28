@@ -34,7 +34,7 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   const pull = (length: number, x: number, y: number, vertical = false) => {
     if (handleless) return;
     const bar = barPull(length, metal, vertical);
-    bar.position.set(x, y, face + PANEL / 2);
+    bar.position.set(x, y, face + (front.userData.panelThickness ?? PANEL) / 2);
     group.add(bar);
   };
   /** One front panel from y0 to y1 across x0..x1, a hairline gap all round. */

@@ -38,8 +38,8 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
         }
         const hor = g.original.orientation === 'horizontal';
         const raw = (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x);
-        // Lines up with the shelves, fittings and middle of its space through the shared alignment rule (Shift: free).
-        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: g.tolerance, lock: g.lock, free: e.shiftKey });
+        // Show exact alignment without pulling the board across a remaining millimetre gap.
+        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: 0, lock: g.lock, free: e.shiftKey });
         g.lock = line;
         g.guide = guide;
         // Shelves and fittings attached to it moved too: the wardrobe is redrawn, else just the board.

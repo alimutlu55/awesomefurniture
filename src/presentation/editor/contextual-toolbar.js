@@ -42,7 +42,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
         water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders')};
-    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions};
+    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),installation:fixtureMoreActions,
+        item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
         : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : undefined;

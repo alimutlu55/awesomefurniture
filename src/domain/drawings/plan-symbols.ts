@@ -1,3 +1,4 @@
+import { cornerFaceWidths } from './corner-widths';
 import type { Studio } from '../studio/studio';
 import { gapsAround, type PlacedBox } from '../studio/scene-gaps';
 import { unitAxes } from '../kitchen/kitchen-runs';
@@ -27,14 +28,14 @@ const kinds = (p: PlacedPiece) => p.design.secs.flat().map(it => it.k);
  * stands floor to top); a dashed cross over a base unit housing an appliance (a dishwasher, an oven) under the worktop; an
  * arrow out of a unit whose fronts pull out (drawers). Kinematic envelopes are drawn by plan-operations.
  */
-export function pieceSymbols(p: PlacedPiece): Item[] {
+export function pieceSymbols(p: PlacedPiece, pieces: readonly PlacedPiece[] = [p]): Item[] {
   const out: Item[] = [], w = p.design.w, d = p.design.d, at = (s: number, t: number) => local(p, s, t);
   const corners = [at(-w / 2, -d / 2), at(w / 2, -d / 2), at(w / 2, d / 2), at(-w / 2, d / 2)] as const;
   const appliance = kinds(p).some(k => hasTrait(k, 'appliance') && !hasTrait(k, 'worktop'));
   if (tallUnit(p)) out.push(line(corners[0], corners[2], 'thin'), line(corners[1], corners[3], 'thin'));
   else if (appliance && !p.hung) out.push(line(corners[0], corners[2], 'hidden'), line(corners[1], corners[3], 'hidden'));
   if (!p.hung && kinds(p).some(k => fitting(k)?.opens === 'pull')) out.push({ kind: 'arrow', at: at(0, d / 2), dir: dirOf(at(0, 0), at(0, 1)) });
-  const { cornerPullouts } = piecefronts(p.design);
+  const { cornerPullouts } = piecefronts(p.design, cornerFaceWidths(p, pieces));
   if (!p.hung) {
     for (const c of cornerPullouts) {
       const splitS = (c.doorSide === 'right' ? c.blind.x1 : c.blind.x0) - w / 2, px = c.post.x - w / 2, r = c.post.size / 2;
@@ -58,7 +59,7 @@ const dirOf = (a: P, b: P): P => { const n = Math.hypot(b.x - a.x, b.y - a.y) ||
 /** Where a piece standing free is: its distance to what is behind it and to the nearer thing beside it (a wall or another
  * piece), so a fitter can set it out. */
 export function freePosition(p: PlacedPiece, pieces: readonly PlacedPiece[], studio: Studio | undefined): Item[] {
-  const gaps = gapsAround(box(p), pieces.map(box), studio, ['back', 'left', 'right']);
+  const gaps = gapsAround(box(p), pieces.filter(q => q.attachedTo !== p.id || q.design.unit === 'filler').map(box), studio, ['back', 'left', 'right']);
   const side = gaps.filter(g => g.side !== 'back').sort((a, b) => a.distance - b.distance)[0], back = gaps.find(g => g.side === 'back');
   return [back, side].filter(g => g && g.distance > .5).map(g => {
     const a = plan(g!.from.x, g!.from.z), b = plan(g!.to.x, g!.to.z);

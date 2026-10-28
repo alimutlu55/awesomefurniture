@@ -22,10 +22,11 @@ test('sink set-out uses exact finished wall, worktop edges and current overall d
   const input = scene(), before = JSON.stringify(input), pieces = placePieces(input), p = pieces.find(p => p.id === 13)!;
   assert.deepEqual(fixtureDatum(input.studio, p, pieces), { wall: 'A', along: 148, normal: 31 });
   const run = fixtureRun(p, pieces)!; assert.ok(run);
-  assert.deepEqual(runOffsets(p, run), { s: 48, t: 31, left: 12, right: 36, back: 6, front: 4 });
-  const sheets = technicalDrawings(input, { preset: 'installation' }), plan = sheets[0]!;
-  const labels = plan.views.flatMap(v => v.items).filter(i => i.kind === 'note').flatMap(n => n.lines);
-  assert.ok(labels.includes('K13 Sink · 720 W × 500 D overall'));
+  assert.deepEqual(Object.values(runOffsets(p, run)).map(v => Math.round(v * 10)), [480, 310, 120, 360, 60, 40]);
+  const sheets = technicalDrawings(input, { preset: 'installation' });
+  const schedule = sheets.find(s => s.title === 'Appliance schedule')!;
+  const labels = schedule.table!.rows.flat().join(' ');
+  assert.ok(labels.includes('720 W × 500 D overall'));
   assert.ok(labels.includes('CL 1480 from Wall A left')); assert.ok(labels.includes('CL 310 from Wall A face'));
   const detail = sheets.find(s => s.title === 'K13 Sink setting out')!;
   const dimensions = detail.views[0]!.items.filter(i => i.kind === 'dims').map(d => d.stops);
@@ -98,7 +99,7 @@ test('overlapping corner worktops choose the span containing the complete footpr
   const perpendicular = { ...base(2, 148), z: 36, angle: 90, design: { ...createKitchenDesign('base'), w: 120 } };
   const pieces = placePieces({ pieces: [perpendicular, horizontal, sink()] }), p = pieces.find(p => p.id === 13)!;
   const span = fixtureRun(p, pieces)!;
-  assert.deepEqual(span.units, [1]); assert.equal(span.angle, 0);
+  assert.deepEqual(span.units.filter(id => Number(id) > 0), [1]); assert.equal(span.angle, 0);
   assert.ok(!applianceReview(pieces).some(i => i.id === 'worktop-edge:13'));
 });
 

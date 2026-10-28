@@ -8,7 +8,7 @@ export interface P { readonly x: number; readonly y: number }
 /** The weight of a line, heaviest first: cut through (walls on a plan, the floor on an elevation), seen
  * outlines, thin detail, hidden or overhead (dashed), centre lines (chain), and how a door or flap swings
  * (long dashes: an elevation's triangle pointing at the hinges, a door drawn open on a plan). */
-export type Stroke = 'cut' | 'outline' | 'overhead' | 'thin' | 'hidden' | 'centre' | 'swing';
+export type Stroke = 'cut' | 'outline' | 'overhead' | 'thin' | 'hidden' | 'centre' | 'swing' | 'service-new' | 'service-retain' | 'service-remove' | 'lighting';
 
 export interface Line {
   readonly kind: 'line';
@@ -16,7 +16,7 @@ export interface Line {
   readonly stroke: Stroke;
   readonly closed?: boolean | undefined;
   /** A cut wall is hatched; glass is a light tint. */
-  readonly fill?: 'hatch' | 'glass' | undefined;
+  readonly fill?: 'hatch' | 'glass' | 'laminated' | 'painted' | undefined;
 }
 export interface Note {
   readonly kind: 'note';
@@ -44,6 +44,8 @@ export interface Dimensions {
   readonly origin: P;
   readonly dir: P;
   readonly stops: readonly number[];
+  /** Specified allocation labels for review drawings; actual stops and discrepancies remain in the check/detail. */
+  readonly labels?: Readonly<Record<number, string>>;
   readonly side: 1 | -1;
   readonly clear: number;
   readonly row: number;

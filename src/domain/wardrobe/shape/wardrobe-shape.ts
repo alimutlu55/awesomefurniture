@@ -1,3 +1,4 @@
+import { installationKind } from '../../kitchen/kitchen-units';
 import { PANEL, PLINTH } from '../catalog.js';
 import { rearShape, withRear } from './depth-shape';
 import { shareMillimetres, toMm } from '../../geometry/millimetres';
@@ -68,7 +69,8 @@ export function isRegularShape(shape: WardrobeShape | undefined): boolean {
 /** Net inner section widths, shared out by weight in whole millimetres (shareMillimetres), so the bays
  * plus every side panel and partition add up to the outer width exactly, with nothing lost to rounding.
  * A width off the millimetre grid (older saves) keeps its fraction in the last bay. */
-export function sectionWidths(design: Pick<ShapedDesign, 'w' | 'n' | 'wt'>): number[] {
+export function sectionWidths(design: Pick<ShapedDesign, 'w' | 'n' | 'wt'> & { product?: string | undefined; unit?: string | undefined }): number[] {
+  if (installationKind(design)) return [design.w];
   const iw = design.w - (design.n + 1) * PANEL, mm = toMm(iw);
   const ws = shareMillimetres(mm, design.wt.slice(0, design.n)).map(v => v / 10), residual = iw - mm / 10;
   if (ws.length && Math.abs(residual) > 1e-9) ws[ws.length - 1]! += residual;

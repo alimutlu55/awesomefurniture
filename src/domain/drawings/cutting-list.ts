@@ -1,7 +1,6 @@
 import { decorCode, getDecor } from '../materials/decor-catalog';
 import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
-import { PLINTH } from '../wardrobe/catalog.js';
 import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { KITCHEN_PLINTH_SETBACK } from '../kitchen/kitchen-units';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
@@ -28,9 +27,9 @@ function material(b: Pick<Board, 'stock' | 'cut' | 'decorId'>, design: EditorDes
 }
 
 /** A piece's boards as rows, identical boards counted together. */
-function rows(p: PlacedPiece): Row[] {
+function rows(p: PlacedPiece, pieces: readonly PlacedPiece[]): Row[] {
   const out: Row[] = [];
-  for (const b of pieceBoards(p)) {
+  for (const b of pieceBoards(p, pieces)) {
     const row = { mark: p.mark, part: b.name, qty: 1, length: mm(b.cut.length), width: mm(b.cut.width), thick: mm(b.cut.thickness),
       material: material(b, p.design), edges: b.edges, note: b.note ?? '' };
     const same = out.find(r => r.part === row.part && r.length === row.length && r.width === row.width && r.thick === row.thick && r.material === row.material && r.edges === row.edges && r.note === row.note);
@@ -45,7 +44,7 @@ function rows(p: PlacedPiece): Row[] {
  * area of each material. A list longer than a sheet runs on to the next.
  */
 export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
-  const all = pieces.flatMap(rows), markOf = new Map(pieces.map(p => [p.id, p.mark]));
+  const all = pieces.flatMap(p => rows(p, pieces)), markOf = new Map(pieces.map(p => [p.id, p.mark]));
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {
     const marks = s.units.map(id => markOf.get(id as number)!).filter(Boolean), run = marks.length > 1 ? marks[0] + '–' + marks[marks.length - 1] : marks[0] ?? '';
@@ -62,7 +61,7 @@ export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
       all.push({ mark: run, part: 'Backsplash', qty: 1, length: mm(s.length), width: mm(s.height), thick: mm(s.depth),
         material: decorCode(getDecor(materials.backsplashDecorId!)), edges: 'L2 W2', note: '600mm high; sealed edges and worktop joint' });
     } else {
-      all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(PLINTH), thick: mm(design.materials ? 1.8 : PLINTH_BOARD), material: 'Plinth ' + mm(design.materials ? 1.8 : PLINTH_BOARD) + ' · ' + fin,
+      all.push({ mark: run, part: 'Plinth', qty: 1, length: mm(s.length), width: mm(s.height), thick: mm(design.materials ? 1.8 : PLINTH_BOARD), material: 'Plinth ' + mm(design.materials ? 1.8 : PLINTH_BOARD) + ' · ' + fin,
         edges: '—', note: 'set back ' + mm(KITCHEN_PLINTH_SETBACK) + ' from the fronts' });
     }
   }

@@ -265,7 +265,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
                     if (v?.clearances) v.clearances.forEach(c => c.entry.visible = renderDesign.divider === j && c.entry.ruler.a.distanceTo(c.entry.ruler.b) > .1);
                 }
             }
-            inspector.crumbUI(); syncWallGhosting(); overlay?.draw();
+            inspector.crumbUI(); kitchenRuns?.sync(model.scene.wardrobes); syncWallGhosting(); overlay?.draw();
             if (!interactionState.wardrobeGesture) assist(selectionState.editingSize ? SIZE_SIDES[selectionState.editingSize] : null, 'size');
             moveSplitHandles();
             positionLabels();

@@ -73,7 +73,7 @@ test('adding units: beside the selected one, wall units above it, one undo step 
   near(wall.y, 142, 'hangs above the worktop'); near(wall.x, 60, 'over the selected unit');
   near(wall.z, -29 + 35 / 2, 'back against the same wall');
   const another = commands.addKitchenUnit('upper')!;
-  assert.ok(Math.abs(another.x - 120) < 1e-6 || Math.abs(another.x) < 1e-6, 'next wall unit lines up with the first');
+  near(Math.abs(another.x - wall.x), 60, 'next wall unit lines up with the first');
   assert.equal(checkpoints, 3);
   assert.equal(kitchenSpans(s.wardrobes).filter(x => x.kind === 'worktop').length, 1, 'the base units share one worktop');
 });
@@ -122,7 +122,7 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   assert.equal(s.doors, 0, 'fridge housing is continuous fridge, no separate cupboard door; the sink and fridge fronts are appliances');
   assert.deepEqual(s.appliances, ['Sink and tap', 'Integrated fridge']);
   assert.equal(s.worktop, 120, 'the worktop stops at the tall unit');
-  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1, 'sink-top': 0, 'hob-top': 0, shelf: 0 }, 'a unit on another wall is another kitchen');
+  assert.deepEqual(s.units, { base: 2, upper: 1, tall: 1, filler: 0, 'end-panel': 0, 'sink-top': 0, 'hob-top': 0, shelf: 0 }, 'a unit on another wall is another kitchen');
   assert.deepEqual(s.notes, ['No hob yet: add one from Sinks and appliances, then place it on the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });
 
@@ -236,9 +236,11 @@ test('extending a run with + fits a narrower cabinet (>= 30 cm), a filler cover 
   assert.deepEqual(kitchenSpans(s2.wardrobes).filter(x => x.kind === 'worktop').map(x => x.length), [138], 'continuous worktop bridges across the cover');
 
   // 3. A 58 x 58 cm dead corner pocket blocked in front by a perpendicular kitchen cabinet (d = 58 cm): places a 58 cm corner cover.
+  // The return reserves its required 40 mm corner strip before the 60 cm module.
   // Unit 1 stands at x: -30..30, z: -29..29 facing +z (angle 0).
   // Perpendicular Unit 2 (d = 58 cm) stands at x: 30..88, z: 29..89 facing -x (angle -90), right in front of the corner pocket (x: 30..88, z: -29..29).
-  const s3 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 59, 59, -90, 60));
+  // Reserve 40 mm beyond the neighbouring 18 mm finished front, not just the carcass.
+  const s3 = scene(unit(1, 'base', 0, 0, 0, 60), unit(2, 'base', 59, 64.8, -90, 60));
   const cmd3 = createSceneCommands(() => s3);
   const cornerCover = cmd3.extendKitchenRun(1)!;
   assert.ok(cornerCover, 'places a unit into the corner pocket');

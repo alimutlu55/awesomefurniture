@@ -139,7 +139,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         wardrobeUI();
         measurementUI();
         const s = geometry.stats(), f = geometry.free(model.activeCabinet().state.sel), ws = geometry.widths(), mn = geometry.maxN();
-        $('#sliders').querySelectorAll('input').forEach(i => {
+        (/** @type {NodeListOf<HTMLInputElement>} */ ($('#sliders').querySelectorAll('input[data-dimension],input[id]'))).forEach(i => {
             const key = i.dataset.dimension || dom.controlId(i), cabinet = model.activeCabinet(), value = key === 'y' ? cabinet.y || 0 : cabinet.state[key];
             // Height above the floor is only for what hangs on a wall.
             if (key === 'y') /** @type {HTMLElement} */ (i.closest('.resize-field-control')).hidden = !(isKitchen(cabinet.state) && kitchenUnit(cabinet.state.unit).elevation > 0);

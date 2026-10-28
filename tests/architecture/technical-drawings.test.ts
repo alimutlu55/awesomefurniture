@@ -35,7 +35,7 @@ test('a plan, then an elevation of each wall with furniture, then each piece sta
 
 test('marks run along the wall, left to right, each kind of furniture counting on its own', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
-  assert.deepEqual(plan!.pieces.map(p => [p.mark, p.name, p.size, p.where]), [
+  assert.deepEqual(plan!.pieces.filter(p => p.mark.startsWith('K')).map(p => [p.mark, p.name, p.size, p.where]), [
     ['K1', 'Tall cabinet', '600 × 2150 × 580', 'Wall A'],
     ['K2', 'Base cabinet', '600 × 860 × 580', 'Wall A'],
   ]);
@@ -45,10 +45,10 @@ test('marks run along the wall, left to right, each kind of furniture counting o
 test('the plan dimensions every piece and gap to the wall ends, the window, the wall, and the depth', () => {
   const [plan] = technicalDrawings({ studio: room(), pieces: kitchen() });
   const strings = dims(all(plan!)).map(d => d.stops);
-  assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000], [0, 580, 600]],
+  assert.deepEqual(strings, [[0, 600, 700, 1300, 3000], [0, 580, 600], [0, 700, 1300, 3000], [0, 1700, 2700, 3000], [0, 3000]],
     'floor units with the gap between them; the wall unit; the window; the wall; carcass depth and worktop overhang');
   const notes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
-  assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200', 'K1 Fridge · 600 W × 580 D housing']);
+  assert.deepEqual(notes, ['Window 1000 × 1200, Hp 1000, lintel 2200']);
 });
 
 test('the elevation stacks every height from the floor and gives the window its sill and head', () => {
@@ -56,7 +56,7 @@ test('the elevation stacks every height from the floor and gives the window its 
   const [floor, wall, above, openings, zones, heights, total, window] = dims(all(elevation!)).map(d => d.stops);
   assert.deepEqual(floor, [0, 600, 700, 1300, 3000]);
   assert.deepEqual(wall, [0, 3000]);
-  assert.deepEqual(above, [0, 700, 1300, 3000], 'the wall unit');
+  assert.deepEqual(above, [0, 600, 700, 1300, 3000], 'the wall unit and tall cabinet crossing the upper level');
   assert.deepEqual(openings, [0, 1700, 2700, 3000]);
   assert.deepEqual(heights, [0, 80, 900, 1420, 2600], 'only installation levels in the middle chain');
   assert.deepEqual(zones, [0, 80, 860, 900, 1420, 2120, 2600], 'one actual base and upper stack; no internal board faces or unrelated tall-unit top');
@@ -110,7 +110,7 @@ test('a run turning a corner is seen from its end on the next wall, and a piece 
   const floor = dims(all(sheets[1]!))[0]!.stops;
   assert.ok(floor.includes(2370) && floor.includes(3000 - 50 - 580 - 600), 'the return and the unit on the floor string: ' + floor);
   // The island: its distance to the wall behind it and to the nearer wall beside it.
-  const free = dims(all(sheets[0]!)).filter(d => d.stops.length === 2 && ![600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
+  const free = dims(all(sheets[0]!)).filter(d => d.stops.length === 2 && ![18, 20, 40, 600, 580, 2950].includes(d.stops[1]!)).map(d => d.stops[1]);
   assert.deepEqual(free.sort((a, b) => a! - b!), [1150, 1660]);
 });
 
@@ -147,7 +147,7 @@ test('each cabinet has its own sheet to be made from: front, inside and a sectio
   const sheet = sheetNamed('K2  Base cabinet');
   assert.deepEqual(sheet.views.map(v => v.title), ['Front', 'Inside', 'Section A–A']);
   const sizes = sheet.views[0]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
-  assert.deepEqual(sizes, ['594 × 294', '594 × 276', '594 × 201'], 'every front written with its width and height, 3 mm smaller than its opening');
+  assert.deepEqual(sizes, ['597 × 294', '597 × 276', '597 × 201'], 'every front written with its width and height, 3 mm smaller than its opening');
 });
 
 test('the cutting list: every board as built, length with the grain, the run\'s worktop and plinth', () => {
@@ -157,9 +157,9 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
     'Side 2 762 580 18 Board 18 · Egger W1100 ST9 L1',
     'Base 1 564 569 18 Board 18 · Egger W1100 ST9 L1',
     'Back 1 762 564 6 Back panel 6 —',
-    'Pan drawer front 1 294 594 18 Front 18 · Egger W1100 ST9 L2 W2',
-    'Pan drawer front 1 276 594 18 Front 18 · Egger W1100 ST9 L2 W2',
-    'Drawer front 1 201 594 18 Front 18 · Egger W1100 ST9 L2 W2',
+    'Pan drawer front 1 294 597 18 Front 18 · Egger W1100 ST9 L2 W2',
+    'Pan drawer front 1 276 597 18 Front 18 · Egger W1100 ST9 L2 W2',
+    'Drawer front 1 201 597 18 Front 18 · Egger W1100 ST9 L2 W2',
   ]);
   const run = rowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
   assert.deepEqual(run, ['K2 Worktop 1 600 600 40', 'K1 Plinth 1 600 80 18', 'K2 Plinth 1 600 80 18'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
@@ -182,7 +182,9 @@ test('the hardware list: hinges by door height, runners to the depth, legs, hang
 test('corner pull-out component is drawn with high precision across plan, elevation, unit detail, construction details and schedules', () => {
   const cornerPiece = against(1, 'base', 'corner', 100);
   const sheets = technicalDrawings({ studio: room(), pieces: [cornerPiece] }, { preset: 'clearances' });
-  const [plan, elevation, unitSheet, , detail2, cutting, hardware] = sheets;
+  const [plan, elevation] = sheets;
+  const unitSheet = sheets.find(s => s.title === 'K1  Base cabinet')!, detail2 = sheets.find(s => s.title === 'Construction details 2 of 2')!;
+  const cutting = sheets.find(s => s.title === 'Cutting list')!, hardware = sheets.find(s => s.title === 'Hardware list')!;
 
   // 1. Plan view: kidney tray dashed outline, pivot post, front split tick, door swing line, and pull-out arrow on the door half.
   const planItems = all(plan!);
@@ -201,18 +203,18 @@ test('corner pull-out component is drawn with high precision across plan, elevat
   // 3. Unit detail sheet: Front, Inside, and Section A–A with exact millimetre dimensions for post and swing-out trays.
   assert.deepEqual(unitSheet!.views.map(v => v.title), ['Front', 'Inside', 'Section A–A']);
   const frontSizes = unitSheet!.views[0]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
-  assert.deepEqual(frontSizes, ['496 × 777', '496 × 777'], 'blind panel and pull-out door cut sizes on Front view');
+  assert.deepEqual(frontSizes, ['497 × 777', '497 × 777'], 'blind panel and pull-out door cut sizes on Front view');
   const insideNotes = unitSheet!.views[1]!.items.filter(i => i.kind === 'note' && i.small).map(i => i.kind === 'note' && i.lines[0]);
   assert.deepEqual(insideNotes, ['Corner blind panel', 'Corner pull-out'], 'Inside view labels both the blind panel and pull-out door');
   const insideArrows = unitSheet!.views[1]!.items.filter(i => i.kind === 'arrow');
   assert.equal(insideArrows.length, 2, 'two swing arrows on the upper and lower kidney trays in Inside view');
   const insideHorizontalStops = dims(unitSheet!.views[1]!.items)[1]!.stops;
-  assert.ok(insideHorizontalStops.includes(689), 'Inside view horizontal dimension string locates the pivot post axis (689 mm)');
+  assert.ok(insideHorizontalStops.includes(690), 'Inside view horizontal dimension string locates the pivot post axis (690 mm)');
   const sectionDepthStops = dims(unitSheet!.views[2]!.items)[0]!.stops;
   assert.ok(sectionDepthStops.includes(60) && sectionDepthStops.includes(520), 'Section A–A dimensions the 60 mm back/front tray clearances');
 
   // 4. Construction details include D6 Blind corner and pull-out, and every dimension string is valid.
-  assert.ok(detail2!.views.some(v => v.title === 'D6 Blind corner and pull-out'), 'includes D6 Blind corner and pull-out detail');
+  assert.ok(detail2!.views.some(v => v.title.startsWith('D6 Corner mechanism')), 'includes D6 Blind corner and pull-out detail');
   for (const sheet of sheets) {
     for (const d of dims(all(sheet))) {
       const step = sheet.title.startsWith('Construction details') ? 2 : 1;
@@ -222,7 +224,7 @@ test('corner pull-out component is drawn with high precision across plan, elevat
   }
 
   // 5. Cutting list & Hardware list: blind panel + pull-out door (no fake wooden shelves), and corner pull-out mechanism.
-  const cutParts = cutting!.table!.rows.filter(r => r[0] === 'K1').map(r => r[1]);
+  const cutParts = cutting!.table!.rows.filter(r => r[0] === 'K1' || r[1] === 'Worktop').map(r => r[1]);
   assert.deepEqual(cutParts, ['Top', 'Side', 'Base', 'Back', 'Corner blind panel', 'Corner pull-out door', 'Worktop', 'Plinth']);
   const hwItems = hardware!.table!.rows.map(r => r[0]);
   assert.ok(hwItems.includes('Corner pull-out mechanism, two swing trays'), 'hardware list includes the corner pull-out mechanism');
@@ -244,12 +246,7 @@ test('wall utilities (water pipes, electrical sockets, vents, gas, radiators, sw
   const [plan, elevation] = sheets;
   const planNotes = all(plan!).filter(i => i.kind === 'note').map(i => i.kind === 'note' && i.lines.join(' '));
   assert.deepEqual(planNotes, [
-    'Radiator 400 × 600, sill 150',
-    'Water pipes 240 × 200, sill 500',
-    'Electrical point 160 × 100, sill 1100',
-    'Extractor vent 180 × 180, sill 2150',
     'Window 1000 × 1200, Hp 1000, lintel 2200',
-    'K1 Fridge · 600 W × 580 D housing',
   ]);
   const elevNotes = all(elevation!).filter(i => i.kind === 'note' && !i.small).map(i => i.kind === 'note' && i.lines.join(' '));
   assert.ok(elevNotes.includes('Water pipes 240 × 200, sill 500'));

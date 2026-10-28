@@ -17,3 +17,11 @@ export function shareMillimetres(totalMm: number, weights: readonly number[]): n
   for (let left = totalMm - parts.reduce((a, b) => a + b, 0), n = 0; left > 0; left--, n = (n + 1) % order.length) parts[order[n]!.k]!++;
   return parts;
 }
+
+/** Pointer displacement at 1 mm resolution. In a cabinet's frame the rounding preserves parallel travel
+ * along a rotated wall; axis handles can pass angle 0 to retain their world-axis constraint. */
+export function millimetreTranslation(delta: { x?: number; y?: number; z?: number }, angle = 0) {
+  const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), x = delta.x ?? 0, z = delta.z ?? 0;
+  const along = toMm(x * c - z * s) / 10, across = toMm(x * s + z * c) / 10;
+  return { x: along * c + across * s, y: toMm(delta.y ?? 0) / 10, z: -along * s + across * c };
+}

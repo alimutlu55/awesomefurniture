@@ -1,5 +1,7 @@
+import { automaticInstallationParts } from '../../domain/kitchen/automatic-installation';
+import { drawKitchenFixture } from './kitchen-fixture-renderer';
 import * as THREE from 'three';
-import { kitchenSpans, isKitchenUnit, type UnitPose } from '../../domain/kitchen/kitchen-runs';
+import { kitchenSpans, type UnitPose } from '../../domain/kitchen/kitchen-runs';
 import { hob, sinkWithTap, spanSlab } from './furniture-parts';
 import { WORKTOP, kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { hasTrait } from '../../domain/wardrobe/fittings';
@@ -12,7 +14,8 @@ import { sectionWidths } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 
-type Unit = UnitPose & { readonly state: UnitPose['state'] & Pick<EditorDesign, 'n' | 'wt' | 'fin' | 'materials'> & { readonly secs: readonly (readonly EditorItem[])[] } };
+type UnitStatePick = Pick<EditorDesign, 'n' | 'wt' | 'fin' | 'materials' | 'leftPanelThickness' | 'rightPanelThickness' | 'endPanelThickness' | 'endPanelSides' | 'cornerStrip' | 'shape'>;
+type Unit = UnitPose & { readonly state: UnitPose['state'] & UnitStatePick & { readonly secs: readonly (readonly EditorItem[])[] } };
 interface RunResources {
   M: (color: string, options?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
   wood: (color: string) => THREE.Material;
@@ -55,7 +58,16 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   }
   function build(units: readonly Unit[]) {
     clear();
-    const spans = kitchenSpans(units);
+    const panels = automaticInstallationParts(units as readonly (Unit & { id: number })[]);
+    const spans = kitchenSpans([...units, ...panels]);
+    for (const p of panels) {
+      const frame = new THREE.Group();
+      frame.position.set(p.x, p.y, p.z); frame.rotation.y = p.angle * Math.PI / 180;
+      const material = boardMaterial(p.state, 'plinth');
+      drawKitchenFixture({ group: frame, design: p.state, hitMaterial: material, panel: material, front: material,
+        M: resources.M, owned: [], hits: [], measure: null, interactive: false });
+      frame.userData.ownerId = p.ownerId; group.add(frame);
+    }
     for (const span of spans) {
       const first = units.find(u => u.id === span.units[0]);
       spanSlab(span, first ? boardMaterial(first.state, span.kind) : stone, group);
@@ -81,10 +93,13 @@ export function createKitchenRunRenderer(scene: THREE.Scene, resources: RunResou
   }
   /** Brings the shared parts up to date with the units; cheap when nothing a run depends on changed. */
   function sync(cabinets: readonly Unit[]) {
-    const units = cabinets.filter(isKitchenUnit);
+    const units = cabinets;
     let next = '';
     for (const u of units) {
-      const pose = [u.x, u.y || 0, u.z, u.angle].map(v => v.toFixed(2)), size = [u.state.w, u.state.h, u.state.d, u.state.n, u.state.wt.join(':')];
+      const pose = [u.x, u.y || 0, u.z, u.angle],
+        size = [u.state.w, u.state.h, u.state.d, u.state.plinthHeight,
+          u.state.leftPanelThickness, u.state.rightPanelThickness, u.state.endPanelThickness, u.state.endPanelSides?.join(':'), u.state.cornerStrip,
+          JSON.stringify(u.state.shape), u.state.worktopThickness, u.state.n, u.state.wt.join(':')];
       next += [u.id, ...pose, ...size, u.state.fin, JSON.stringify(u.state.materials), u.state.unit, u.state.secs.map(s => s.map(it => [it.k, it.w, it.x, it.ax, it.h].join(':')).join('.')).join('/')].join(',') + ';';
     }
     if (next === key) return;

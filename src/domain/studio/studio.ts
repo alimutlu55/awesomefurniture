@@ -45,6 +45,9 @@ export interface StudioWall extends SurfaceBoundary {
 }
 
 export interface StudioOpening {
+  /** Renovation intent; absent means unconfirmed, never inferred from placement. */
+  status?: import('./service-status').ServiceStatus | undefined;
+  label?: string | undefined;
   readonly id: string;
   readonly wall: string;
   readonly kind: OpeningKind;

@@ -6,7 +6,7 @@ export const FRONT_GAP = .3;
 
 /**
  * Where a kitchen fitting's front is: overlay fronts reach over the boards around them. A front at the unit's edge
- * reaches over the whole side panel (less half the gap to the next unit); beside another front in the same unit it
+ * reaches over the whole side panel; the shared renderer/cutting pass deducts the joint once. It beside another front in the same unit it
  * stops halfway across their shared partition. The lowest front reaches over the bottom board (a wall unit's down to
  * its lower edge, as its bottom is solid), the highest over the top board. `cx`, `sw`: the fitting's centre and width;
  * `y`, `h`: its bottom and height; `inside`: the bottom and top of the unit's inside; `outer`: the inner faces of its
@@ -14,7 +14,7 @@ export const FRONT_GAP = .3;
  */
 export function kitchenFrontRect(unit: KitchenUnitKey | undefined, cx: number, y: number, sw: number, h: number,
   inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
-  const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL - FRONT_GAP / 2 : PANEL / 2;
+  const edge = (side: number, face: number) => outer !== undefined && Math.abs(side - face) < PANEL + .01 ? PANEL : PANEL / 2;
   const x0 = cx - sw / 2 - edge(cx - sw / 2, outer?.left ?? 0), x1 = cx + sw / 2 + edge(cx + sw / 2, outer?.right ?? 0);
   const y0 = Math.abs(y - inside.bottom) < .05 ? (kitchenUnit(unit).plinth ? y - PANEL : 0) : y, y1 = Math.abs(y + h - inside.top) < .05 ? y + h + PANEL : y + h;
   return { x0, x1, y0, y1 };
@@ -66,7 +66,8 @@ export function cornerPulloutGeometry(cx: number, y: number, sw: number, hh: num
 }
 /** Where a fridge front splits into a freezer door below and a fridge door above: only in a tall housing (a fitting
  * over 140 cm). Null for one door. */
-export const fridgeSplit = (y0: number, y1: number, h: number) => h > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
+export const fridgeSplit = (y0: number, y1: number, h: number, specified?: number) => specified && specified > 0 && specified < y1 - y0
+  ? y0 + specified : h > 140 ? y0 + Math.max(50, (y1 - y0) * .32) : null;
 /** Heights of the adjustable shelves in a cupboard from y0 to y1: about one every 34 cm, evenly spaced. */
 export function shelfHeights(y0: number, y1: number): number[] {
   const count = Math.floor((y1 - y0) / 34);

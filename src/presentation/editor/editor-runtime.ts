@@ -1,3 +1,5 @@
+import { reconcileInstallation } from '../../application/projects/installation-reconciliation';
+import { bindKitchenConstruction } from './kitchen-construction-fields';
 import { createClothingWarmup } from '../viewport/clothing-warmup';
 import { createStudioPanel } from './studio-panel';
 import { createRoomWiring } from './room-wiring';
@@ -126,6 +128,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 const flags = applyViewportSession(project, next, session);
                 model.restore(JSON.stringify(next));
                 history.clear();
+                checkInstallation();
                 Object.assign(selectionState, flags);
                 selectionState.viewMode = 'furniture';
                 selectionState.room = null;
@@ -189,6 +192,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray });
+        bindKitchenConstruction({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
@@ -222,6 +226,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         camera.frameScene({ instant: true });
         camera.resize();
         inspector.update(true);
+        checkInstallation();
         rendering.loop();
         const clothingWarmup = createClothingWarmup(resources.R, resources.scene, resources.cam, dom.host.ownerDocument);
         lifetime.cleanup(() => clothingWarmup.dispose());
@@ -237,6 +242,10 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             const next = projectToScene(project) ?? createEditorModel().scene;
             if (record) history.checkpoint(model.snapshot());
             showScene(JSON.stringify(next), !record);
+            checkInstallation();
+        }
+        function checkInstallation() {
+            if (!reconcileInstallation(model.scene)) shell.toast('An installation strip or separator does not fit. Adjust the cabinets manually.', undefined, 12000);
         }
         function showScene(snapshot: string, keepPanel = false) {
             model.restore(snapshot);

@@ -114,3 +114,13 @@ neighbors, a fitted drawer below its catalogue minimum, a wall unit, and a shelf
 - Browser checks: `check-contextual-toolbar`, `check-mobile-sheets`, `check-tactile-canvas`,
   `check-first-wall`, `check-front-growth`, `check-roof-divider`, `check-desktop-regression` and
   `check-shape-editing` fail identically on `develop` before these changes.
+
+## Millimetre resize and movement controls (October 2026)
+
+Furniture Size sliders and dimension scrubbing now preserve the requested millimetre. Near a neighbour's edge they do not capture or hold a magnetic size; collision and fitting limits still clamp an impossible edit at its real boundary. Numeric entry continues using the same validation.
+
+Cabinet body drags use a 1 mm movement grid, with displacement rounded in the cabinet's frame for floor drags so a rotated unit can keep its direction along a wall. Axis handles retain their world-axis constraint. Movement no longer pulls a unit into nearby contacts or turns it to match a wall. Exact wall contact can still show a guide. Shift retains continuous movement.
+
+Fitting edge and board drags show alignment at exact contact without closing nearby gaps. Interior fitting drags use a 1 mm placement grid with magnetic placement disabled. Measurement badge arrow keys change lengths by 1 mm, or 10 mm with Shift. Explicit Fill and alignment commands remain separate actions.
+
+`tests/architecture/millimetre-interaction.test.ts` and the edge-resize tests cover 10..1 mm gaps, contact, reversal, rotated movement and undo. `scripts/check-millimetre-edits.mjs` checks native Size range arrows and exact number entry at 375 and 1440 px.

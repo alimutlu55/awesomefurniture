@@ -1,3 +1,6 @@
+import { rememberEndPanels } from '../../domain/kitchen/end-panels';
+import { reconcileInstallation } from './installation-reconciliation';
+import { installationKind } from '../../domain/kitchen/kitchen-units';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { EditorScene, EditorState } from './editor-scene';
 import type { EditorItem, EditorDivider } from '../../domain/wardrobe/editor-design';
@@ -15,7 +18,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
  const {studio: _previousStudio,maxReach: _previousReach,...base}=project;
  return {...base, ...(scene.studio?{studio:structuredClone(scene.studio)}:{}), ...(scene.maxReach===undefined?{}:{maxReach:scene.maxReach}), wardrobes: scene.wardrobes.map(cabinet=>{
   const s=cabinet.state, weights=s.wt.slice(0,s.n), total=weights.reduce((a,b)=>a+b,0);
-  const widths=weights.map(w=>(s.w-(s.n+1)*PANEL)*w/total);
+  const widths=installationKind(s)?[s.w]:weights.map(w=>(s.w-(s.n+1)*PANEL)*w/total);
   const prefix=`${project.id}/cabinet/${cabinet.id}`;
   const {reachStd,engaged,...preferences}=s.profile;
   return {
@@ -23,6 +26,14 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    position:{x:cabinet.x,y:cabinet.y||0,z:cabinet.z},rotation:cabinet.angle,finish:s.fin,
    doors:s.doors==='hinged'?'solid' as const:s.doors,
    ...(s.materials?{materials:structuredClone(s.materials)}:{}),
+   ...(s.plinthHeight===undefined?{}:{plinthHeight:s.plinthHeight}), ...(s.cornerStrip===undefined?{}:{cornerStrip:s.cornerStrip}),
+   ...(s.leftPanelThickness===undefined?{}:{leftPanelThickness:s.leftPanelThickness}),
+   ...(s.rightPanelThickness===undefined?{}:{rightPanelThickness:s.rightPanelThickness}),
+   ...(s.endPanelSides===undefined?{}:{endPanelSides:[...s.endPanelSides]}),
+   ...(s.endPanelThickness===undefined?{}:{endPanelThickness:s.endPanelThickness}),
+   ...(s.fridgeSplit===undefined?{}:{fridgeSplit:s.fridgeSplit}),
+   ...(s.ventilationWidth===undefined?{}:{ventilationWidth:s.ventilationWidth}), ...(s.ventilationHeight===undefined?{}:{ventilationHeight:s.ventilationHeight}),
+   ...(s.frontThickness===undefined?{}:{frontThickness:s.frontThickness}), ...(s.worktopThickness===undefined?{}:{worktopThickness:s.worktopThickness}),
    preferences:{...preferences,budget:900},
    ...(s.shape?{shape:structuredClone(s.shape)}:{}),
    ...(s.product?{product:s.product}:{}),...(s.unit?{unit:s.unit}:{}),
@@ -67,6 +78,14 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    wt:layout?structuredClone(layout.weights):w.sections.map(s=>s.width).concat(Array(6).fill(100)).slice(0,6),
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
    ...(w.materials?{materials:structuredClone(resolveMaterials(w))}:{}),
+   ...(w.plinthHeight===undefined?{}:{plinthHeight:w.plinthHeight}), ...(w.cornerStrip===undefined?{}:{cornerStrip:w.cornerStrip}),
+   ...(w.leftPanelThickness===undefined?{}:{leftPanelThickness:w.leftPanelThickness}),
+   ...(w.rightPanelThickness===undefined?{}:{rightPanelThickness:w.rightPanelThickness}),
+   ...(w.endPanelSides===undefined?{}:{endPanelSides:[...w.endPanelSides]}),
+   ...(w.endPanelThickness===undefined?{}:{endPanelThickness:w.endPanelThickness}),
+   ...(w.fridgeSplit===undefined?{}:{fridgeSplit:w.fridgeSplit}),
+   ...(w.ventilationWidth===undefined?{}:{ventilationWidth:w.ventilationWidth}), ...(w.ventilationHeight===undefined?{}:{ventilationHeight:w.ventilationHeight}),
+   ...(w.frontThickness===undefined?{}:{frontThickness:w.frontThickness}), ...(w.worktopThickness===undefined?{}:{worktopThickness:w.worktopThickness}),
    // Projects saved before a possession existed get its default count.
    profile:{...profile,needs:{...defaultNeeds(),...profile.needs},...(layout?.reachStd===undefined?{}:{reachStd:layout.reachStd}),...(layout?.engaged===undefined?{}:{engaged:layout.engaged})},
    proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),...(layout?.doorHang===undefined?{}:{doorHang:layout.doorHang}),
@@ -76,7 +95,10 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};
  });
- return {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
+ const scene = {wardrobes,activeWardrobe:wardrobes[0]!.id,nextWardrobeId:Math.max(...wardrobes.map(w=>w.id))+1,...(project.studio?{studio:structuredClone(project.studio)}:{}),...reach};
+ reconcileInstallation(scene);
+ rememberEndPanels(scene.wardrobes);
+ return scene;
 }
 
 /** Selection, open doors, and the next ID counter are transient UI state. */

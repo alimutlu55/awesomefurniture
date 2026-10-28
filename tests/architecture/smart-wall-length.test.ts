@@ -32,7 +32,7 @@ function fixture(studio: Studio, wardrobes: ReturnType<typeof cabinet>[] = []) {
 }
 
 for (const free of ['a', 'b'] as const) test(`3280 to 3270 mm moves free end ${free}, preserving the inner corner and furniture`, () => {
-  const room = corner(free), f = fixture(room, [free === 'a' ? cabinet(1, -94.5, -39) : cabinet(1, 36, 35)]);
+  const room = corner(free), f = fixture(room, [free === 'a' ? cabinet(1, -94.5, -39) : cabinet(1, 37.8, 35)]);
   const before = structuredClone(f.model.scene), original = room.walls.find(w => w.id === 'w1')!;
   if (free === 'a') assert.ok(f.commands.studioProblem(setInsideLength(room, 'w1', 327)!), 'old fixed-end choice is blocked');
   assert.equal(f.length(), 328);
@@ -51,7 +51,7 @@ for (const free of ['a', 'b'] as const) test(`3280 to 3270 mm moves free end ${f
 });
 
 test('when the preferred end is blocked, the Length field can use the other end of a closed room', () => {
-  const room = rectangleStudio(400, 350, 270, 12), f = fixture(room, [cabinet(1, 170, 29)]);
+  const room = rectangleStudio(400, 350, 270, 12), f = fixture(room, [cabinet(1, 168.2, 29)]);
   const before = structuredClone(f.model.scene);
   assert.ok(f.commands.studioProblem(setInsideLength(room, 'w1', 390)!), 'right wall would cut through the cabinet');
   assert.equal(f.commands.resizeWallLength('w1', 390), true);

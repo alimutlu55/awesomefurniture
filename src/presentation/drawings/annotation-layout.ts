@@ -57,29 +57,45 @@ function shifted(m: Mark, dx: number, dy: number): Mark {
   return { ...m, points: m.points.map(at) };
 }
 
+function segmentsIntersect(a: Pt, b: Pt, c: Pt, d: Pt): boolean {
+  const ccw = (p: Pt, q: Pt, r: Pt) => (r.y - p.y) * (q.x - p.x) > (q.y - p.y) * (r.x - p.x);
+  return ccw(a, c, d) !== ccw(b, c, d) && ccw(a, b, c) !== ccw(a, b, d);
+}
+
 /** Paper-space placement with exact PDF font metrics, geometry avoidance and deterministic fallback lanes.
  * Unplaceable annotations become explicit review issues; they are never silently drawn over each other. */
 export function annotationLayout(geometry: readonly Mark[], taken: Box[], area: Box, offsets: AnnotationOffsets = {}) {
-  const segments = geometrySegments(geometry), anchors: Anchor[] = [], warnings: string[] = [];
+  const segments = geometrySegments(geometry);
+  const borderSegments = geometrySegments(geometry.filter(m => m.kind === 'shape' && (m.pen === 'cut' || m.pen === 'outline')));
+  const anchors: Anchor[] = [], warnings: string[] = [];
   const place = (key: string, marks: readonly Mark[], source: Pt): Mark[] => {
-    const base = bounds(marks), saved = offsets[key], candidates: Pt[] = saved ? [saved] : [];
+    const isTag = key.includes('/tag:'), base = bounds(marks), saved = offsets[key], candidates: Pt[] = saved ? [saved] : [];
     candidates.push({ x: 0, y: 0 });
-    for (const radius of [8, 14, 22, 32, 45, 60]) for (const [x, y] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]])
-      candidates.push({ x: x! * radius, y: y! * radius });
+    for (const radius of [3, 5, 8, 11, 14, 17, 20, 24, 30, 38, 48, 60])
+      for (const [x, y] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-.2, -1], [.2, -1], [-.2, 1], [.2, 1], [-.4, -1], [.4, -1], [-.4, 1], [.4, 1], [-1, -.5], [1, -.5], [-1, .5], [1, .5], [-1, -1], [1, -1], [-1, 1], [1, 1]])
+        candidates.push({ x: x! * radius, y: y! * radius });
     // If the preferred neighbourhood is full, use empty paper in stable rows, nearest candidates first.
     const bank: Pt[] = [];
-    for (let y = area.y0 + 6; y < area.y1 - 5; y += 10) for (let x = area.x0 + 8; x < area.x1 - 8; x += 12)
+    for (let y = area.y0 + 6; y < area.y1 - 5; y += 5) for (let x = area.x0 + 8; x < area.x1 - 8; x += 6)
       bank.push({ x: x - (base.x0 + base.x1) / 2, y: y - (base.y0 + base.y1) / 2 });
     bank.sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y)); candidates.push(...bank);
     for (const offset of candidates) {
       const b = { x0: base.x0 + offset.x, x1: base.x1 + offset.x, y0: base.y0 + offset.y, y1: base.y1 + offset.y };
-      if (!inside(b, area) || taken.some(t => intersectsBox(b, t)) || segments.some(([a, c]) => segmentHits(a, c, b))) continue;
-      const centre = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 }, moved = Math.hypot(offset.x, offset.y) > .2;
+      const centre = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 }, dist = Math.hypot(offset.x, offset.y), moved = dist > .2;
+      const inCabinet = isTag && !saved && dist <= 22 && !borderSegments.some(([p1, p2]) => segmentsIntersect(source, centre, p1, p2));
+      const activeSegments = inCabinet ? borderSegments : segments;
+      if (!inside(b, area) || taken.some(t => intersectsBox(b, t)) || activeSegments.some(([a, c]) => segmentHits(a, c, b))) continue;
       const edge = { x: Math.max(b.x0, Math.min(b.x1, source.x)), y: Math.max(b.y0, Math.min(b.y1, source.y)) };
       const start = leaderStart(source, edge, taken);
-      if (moved && taken.some(t => segmentHits(start, edge, t))) continue;
+      let leader = [start, edge];
+      if (moved && !inCabinet && taken.some(t => segmentHits(start, edge, t))) {
+        const bends = [{ x: start.x, y: edge.y }, { x: edge.x, y: start.y }];
+        const bend = bends.find(p => !taken.some(t => segmentHits(start, p, t) || segmentHits(p, edge, t)));
+        if (!bend) continue;
+        leader = [start, bend, edge];
+      }
       taken.push(b); anchors.push({ key, at: centre, box: b, offset });
-      return [...(moved ? [shape([start, edge], 'thin')] : []), ...marks.map(m => shifted(m, offset.x, offset.y))];
+      return [...(moved && !inCabinet ? [shape(leader, 'thin')] : []), ...marks.map(m => shifted(m, offset.x, offset.y))];
     }
     warnings.push('Enlarged detail or label adjustment required: ' + key.split('/').at(-1));
     return [];

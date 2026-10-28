@@ -14,6 +14,8 @@ import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
  * A preset only names a unit and its contents: sizes and rules come from the unit and fittings registries.
  */
 export const KITCHEN_PRESETS = [
+  { key: 'filler', unit: 'filler', name: 'Installation strip', parts: [] },
+  { key: 'end-panel', unit: 'end-panel', name: 'End/Separator pane', parts: [] },
   { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
   { key: 'oven-under', unit: 'base', name: 'Oven unit', parts: [['cutlery', 1], ['oven', 5]] },
@@ -51,7 +53,8 @@ export const isCoverUnit = (design: { readonly product?: EditorDesign['product']
 export function createKitchenCover(from: EditorDesign, width: number): EditorDesign {
   const unitKey = from.unit ?? 'base', inside = kitchenInside(from.h, unitKey), def = fitting('cover')!;
   const secs: EditorItem[][] = [[{ k: 'cover', h: Math.max(def.min, Math.min(def.max, inside)), purpose: def.purpose }], [], [], [], [], []];
-  return { ...structuredClone(from), w: Math.round(width * 10) / 10, n: 1, wt: [100, 100, 100, 100, 100, 100], secs, dividers: [] };
+  return { ...structuredClone(from), w: Math.round(width * 10) / 10, n: 1, wt: [100, 100, 100, 100, 100, 100], secs, dividers: [],
+    leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelSides: undefined, endPanelThickness: undefined };
 }
 
 /** Items that share `height` in proportion to their parts, rounded so they fill it exactly. */

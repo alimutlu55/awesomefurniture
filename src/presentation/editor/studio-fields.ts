@@ -1,3 +1,5 @@
+import { esc } from './editor-format.js';
+import { SERVICE_STATUSES } from '../../domain/studio/service-status';
 import { surfaceBoundary, boundaryControlHeight, setBoundaryControlHeight } from '../../domain/studio/surface-boundary';
 import { STUDIO_LIMITS as L, roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio } from '../../domain/studio/studio';
@@ -97,6 +99,16 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
 
     listen(root, 'change', event => {
         const select = event.target as HTMLSelectElement, key = select.dataset.roomDoor, selection = getSelection();
+        if (select.dataset.roomServiceLabel !== undefined && selection?.kind === 'opening') {
+            const label = select.value.trim().slice(0, 80);
+            editStudio(r => ({ ...r, openings: r.openings.map(o => o.id === selection.id ? { ...o, label } : o) }));
+            refresh(); render(); return;
+        }
+        if (select.dataset.roomService !== undefined && selection?.kind === 'opening') {
+            const status = SERVICE_STATUSES.find(s => s.key === select.value)?.key;
+            editStudio(r => ({ ...r, openings: r.openings.map(o => o.id === selection.id ? { ...o, status } : o) }));
+            refresh(); render(); return;
+        }
         if (!key || selection?.kind !== 'opening') return;
         const value = select.value;
         if (key === 'hinge' && (value === '' || value === 'left' || value === 'right'))
@@ -109,11 +121,15 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const list = resize?.active() ? fields() : [];
         const selection = getSelection(), opening = selection?.kind === 'opening' ? getStudio()?.openings.find(o => o.id === selection.id) : undefined;
         const door = opening?.kind === 'door' ? opening : undefined;
-        const shape = JSON.stringify([getSelection(), list.map(x => x.key), !!door]);
+        const service = opening && isWallUtility(opening.kind) ? opening : undefined;
+        const shape = JSON.stringify([getSelection(), list.map(x => x.key), !!door, !!service]);
         if (root.dataset.shape !== shape) {
             root.dataset.shape = shape;
             root.innerHTML = list.map(x => sizeControlMarkup({ label: x.label, min: x.min, max: x.max, hint: x.hint, hintKey: x.key,
                 inputAttributes: { 'data-room-field': x.key, 'aria-label': x.label } })).join('');
+            if (service) root.innerHTML += '<label>Installation status<select data-room-service aria-label="Installation status"><option value="">Unconfirmed</option>'
+                + SERVICE_STATUSES.map(s => '<option value="' + s.key + '">' + s.label + '</option>').join('') + '</select></label>';
+            if (service) root.innerHTML += '<label>Service label<input type="text" maxlength="80" data-room-service-label aria-label="Service label" value="' + esc(service.label ?? '') + '"></label>';
             if (door) root.innerHTML += ( '<p>Door handing · viewed from inside the room</p>'
                 + '<label>Hinge side<select data-room-door="hinge" aria-label="Door hinge side"><option value="">Unconfirmed</option>'
                 + '<option value="left">Left</option><option value="right">Right</option></select></label>'
@@ -133,6 +149,8 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
             const hint = root.querySelector('[data-room-hint="' + x.key + '"]');
             if (hint) hint.textContent = x.hint ?? '';
         }
+        const serviceSelect = root.querySelector<HTMLSelectElement>('[data-room-service]');
+        if (serviceSelect) serviceSelect.value = service?.status ?? '';
         if (door) for (const key of ['hinge', 'swing'] as const) {
             const select = root.querySelector<HTMLSelectElement>('[data-room-door="' + key + '"]');
             if (select) select.value = door[key] ?? '';

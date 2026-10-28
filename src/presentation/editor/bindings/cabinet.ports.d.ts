@@ -6,7 +6,7 @@ readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-present
 readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'editingSize'>;
 readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'snapshot' | 'restore' | 'scene'>;
 readonly history: Readonly<Pick<ReturnType<typeof import('../../../application/history/scene-history.js').createSceneHistory>, 'checkpoint'>>;
-readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/scene-commands.js').createSceneCommands>, 'setCabinetSize' | 'setCabinetPose' | 'previewTranslation' | 'fillSpace'>>;
+readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/scene-commands.js').createSceneCommands>, 'setCabinetSize' | 'setCabinetPose' | 'previewTranslation' | 'fillSpace' | 'setKitchenConstruction'>>;
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }
 

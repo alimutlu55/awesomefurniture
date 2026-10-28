@@ -1,3 +1,4 @@
+import { installationSlab } from '../../domain/kitchen/installation-parts';
 import * as THREE from 'three';
 import { hob, sinkWithTap } from './furniture-parts';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
@@ -6,10 +7,12 @@ import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 interface Ports {
   /** The cabinet's group: the fixture is drawn in it, cabinet-centred, its underside at y = 0. */
   group: THREE.Group;
-  design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'unit'>;
+  interactive?: boolean;
+  design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'unit' | 'product' | 'materials' | 'fin' | 'frontThickness' | 'plinthHeight' | 'shape'>;
   /** The hit-box material, the unit's own board material (a shelf is made of it) and the shared material factory. */
   hitMaterial: THREE.Material;
   panel: THREE.Material | undefined;
+  front: THREE.Material | undefined;
   M: (color: string, options?: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial;
   /** Materials this fixture made, so the cabinet disposes them with its own. */
   owned: THREE.Material[];
@@ -21,11 +24,26 @@ interface Ports {
 
 /** A sink or hob that stands on its own on a worktop, or a shelf on the wall (a `fixture` unit): drawn as the fitting alone, as wide and deep as the
  * unit says, with a hit box so it is picked, moved and sized like any cabinet. Returns true when it drew one. */
-export function drawKitchenFixture({ group, design, hitMaterial, panel, M, owned, hits, measure }: Ports): boolean {
-  const kind = kitchenUnit(design.unit).fixture;
-  if (!kind) return false;
+export function drawKitchenFixture({ group, design, hitMaterial, panel, front, M, owned, hits, measure, interactive = true }: Ports): boolean {
+  const kind = kitchenUnit(design.unit).fixture, slab = installationSlab(design);
+  if (!kind && !slab) return false;
   const { w, d } = design;
-  if (kind === 'shelf') {
+  if (slab) {
+    const material = slab.stock === 'front' ? front : panel;
+    const geometry = new THREE.BoxGeometry(slab.x1, slab.y1 - slab.y0, slab.z1 - slab.z0);
+    if (design.shape && kind !== 'shelf') {
+      const frontHeight = design.shape.top[0]!.y, backHeight = design.shape.back?.[0] ?? frontHeight;
+      const position = geometry.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < position.count; i++) if (position.getY(i) > 0) {
+        const t = (position.getZ(i) + d / 2) / d;
+        position.setY(i, backHeight + (frontHeight - backHeight) * t - (slab.y0 + slab.y1) / 2);
+      }
+      geometry.computeVertexNormals();
+    }
+    const board = new THREE.Mesh(geometry, material ?? hitMaterial);
+    board.position.set(0, (slab.y0 + slab.y1) / 2, (slab.z0 + slab.z1) / 2 - d / 2);
+    board.castShadow = board.receiveShadow = true; board.userData.installationPart = true; group.add(board);
+  } else if (kind === 'shelf') {
     // An open board on the wall: its thickness is the unit's height, its underside the unit's elevation.
     const board = new THREE.Mesh(new THREE.BoxGeometry(w, design.h, d), panel ?? hitMaterial);
     board.position.set(0, design.h / 2, 0);
@@ -38,6 +56,7 @@ export function drawKitchenFixture({ group, design, hitMaterial, panel, M, owned
     if (kind === 'sink') sinkWithTap(group, 0, 0, w, d, 0, { steel, basin, drain: glass });
     else hob(group, 0, 0, w, d, 0, { glass, ring });
   }
+  if (!interactive && slab) return true;
   const height = Math.max(6, design.h), hit = new THREE.Mesh(new THREE.BoxGeometry(w, height, d), hitMaterial);
   hit.position.set(0, height / 2, 0);
   hit.userData.i = 0;
@@ -50,6 +69,7 @@ export function drawKitchenFixture({ group, design, hitMaterial, panel, M, owned
         'lbl dim dimension-scrubber scrub-' + key);
       measure.bindRuler(el, a, b, axis);
     };
+    if (slab) ruler(new V(-w / 2, 0, d / 2), new V(-w / 2, design.h, d / 2), 'height-left', 'h', design.h);
     ruler(new V(-w / 2, 0, d / 2), new V(w / 2, 0, d / 2), 'under', 'w', w);
     ruler(new V(w / 2, 0, -d / 2), new V(w / 2, 0, d / 2), 'depth', 'd', d);
   }

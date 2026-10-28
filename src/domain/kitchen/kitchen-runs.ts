@@ -1,8 +1,9 @@
+import { PANEL } from '../wardrobe/catalog.js';
+import { plinthOf } from '../wardrobe/carcass';
 import { worktopThickness, type ConfiguredMaterialsState } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
-import { kitchenUnit, WORKTOP, KITCHEN_PLINTH_SETBACK } from './kitchen-units';
+import { kitchenUnit, WORKTOP, KITCHEN_PLINTH_SETBACK, installationKind } from './kitchen-units';
 import type { KitchenUnitKey } from './kitchen-units';
-import { PLINTH } from '../wardrobe/catalog.js';
 
 /**
  * Kitchen runs: units standing side by side along the same back line form a run, and share one worktop
@@ -15,7 +16,10 @@ export interface UnitPose {
   readonly y?: number | undefined;
   readonly z: number;
   readonly angle: number;
-  readonly state: { readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
+  readonly state: { readonly plinthHeight?: number | undefined; readonly worktopThickness?: number | undefined;
+    readonly leftPanelThickness?: number | undefined; readonly rightPanelThickness?: number | undefined;
+    readonly endPanelThickness?: number | undefined; readonly endPanelSides?: readonly (-1 | 1)[] | undefined;
+    readonly materials?: ConfiguredMaterialsState | undefined; readonly w: number; readonly h: number; readonly d: number; readonly product?: 'kitchen' | undefined; readonly unit?: KitchenUnitKey | undefined };
 }
 export interface Pose { x: number; y: number; z: number; angle: number }
 /** A slab along a run: `length` along the units' width, `depth` from `back` towards the front. */
@@ -46,6 +50,18 @@ const onFloor = (c: UnitPose) => Math.abs(c.y || 0) < .5;
 /** Where a unit's back is, measured towards the front of units at `angle`. */
 const backLine = (c: UnitPose, angle: number) => across(c, angle) - c.state.d / 2;
 
+function sidePanel(s: UnitPose['state'], side: -1 | 1) {
+  const explicit = side < 0 ? s.leftPanelThickness : s.rightPanelThickness;
+  if (explicit !== undefined) return { w: explicit, cfg: explicit > 0 };
+  const has = Boolean(s.endPanelSides?.includes(side)), w = has ? s.endPanelThickness ?? PANEL : 0;
+  return { w, cfg: has && w > 0 && s.endPanelThickness !== undefined };
+}
+
+function jointReserve(a: UnitPose, b: UnitPose, side: -1 | 1) {
+  const pA = sidePanel(a.state, side), pB = sidePanel(b.state, side === 1 ? -1 : 1);
+  return pA.cfg !== pB.cfg ? (pA.cfg ? pA.w : pB.w) : Math.max(pA.w, pB.w);
+}
+
 /** Groups of units that stand side by side, each sorted from left to right. */
 export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: UnitPose) => boolean = () => true): UnitPose[][] {
   const runs: UnitPose[][] = [];
@@ -57,7 +73,8 @@ export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: 
     let run: UnitPose[] = [];
     for (const c of line) {
       const prev = run[run.length - 1];
-      const touching = prev && Math.abs((along(c, angle) - c.state.w / 2) - (along(prev, angle) + prev.state.w / 2)) <= RUN_TOLERANCE && joins(prev, c);
+      const reserve = prev && !installationKind(prev.state) && !installationKind(c.state) ? jointReserve(prev, c, 1) : 0;
+      const touching = prev && Math.abs((along(c, angle) - c.state.w / 2) - (along(prev, angle) + prev.state.w / 2) - reserve) <= RUN_TOLERANCE && joins(prev, c);
       if (prev && !touching) { runs.push(run); run = []; }
       run.push(c);
     }
@@ -70,7 +87,7 @@ export function kitchenRuns(units: readonly UnitPose[], joins: (a: UnitPose, b: 
 function span(kind: KitchenSpan['kind'], run: readonly UnitPose[], y: number, height: number, back: number, depth: number): KitchenSpan {
   const angle = run[0]!.angle, left = Math.min(...run.map(c => along(c, angle) - c.state.w / 2)), right = Math.max(...run.map(c => along(c, angle) + c.state.w / 2));
   const centre = toScene((left + right) / 2, back + depth / 2, angle);
-  return { kind, ...centre, y, angle, length: right - left, depth, height, units: run.map(c => c.id) };
+  return { kind, ...centre, y, angle, length: right - left, depth, height, units: [...run.filter(c => !installationKind(c.state)), ...run.filter(c => installationKind(c.state))].map(c => c.id) };
 }
 
 /** One worktop over each row of base units that touch at the same height, and one plinth under each row of
@@ -79,7 +96,8 @@ export function kitchenSpans(units: readonly UnitPose[]): KitchenSpan[] {
   const spans: KitchenSpan[] = [];
   const top = (c: UnitPose) => (c.y || 0) + c.state.h;
   const worktop = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).worktop && onFloor(c));
-  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5 && a.state.materials?.worktopDecorId === b.state.materials?.worktopDecorId)) {
+  for (const run of kitchenRuns(worktop, (a, b) => Math.abs(top(a) - top(b)) < .5 && a.state.materials?.worktopDecorId === b.state.materials?.worktopDecorId && worktopThickness(a.state) === worktopThickness(b.state))) {
+    if (!run.some(c => !installationKind(c.state))) continue;
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
     spans.push(span('worktop', run, top(run[0]!), worktopThickness(run[0]!.state), back, Math.max(...run.map(c => backLine(c, angle) - back + c.state.d)) + WORKTOP.overhang));
   }
@@ -91,10 +109,10 @@ export function kitchenSpans(units: readonly UnitPose[]): KitchenSpan[] {
     const thickness = getDecor(first.state.materials!.backsplashDecorId!).thicknessMm / 10;
     spans.push(span('backsplash', run, top(first) + worktopThickness(first.state), 60, back, thickness));
   }
-  const floor = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).plinth && onFloor(c));
-  for (const run of kitchenRuns(floor, (a, b) => a.state.materials?.carcassDecorId === b.state.materials?.carcassDecorId)) {
+  const floor = units.filter(c => isKitchenUnit(c) && kitchenUnit(c.state.unit).plinth && plinthOf(c.state) > 0 && onFloor(c));
+  for (const run of kitchenRuns(floor, (a, b) => a.state.materials?.carcassDecorId === b.state.materials?.carcassDecorId && plinthOf(a.state) === plinthOf(b.state))) {
     const angle = run[0]!.angle, back = Math.min(...run.map(c => backLine(c, angle)));
-    spans.push(span('plinth', run, 0, PLINTH, back, Math.min(...run.map(c => backLine(c, angle) - back + c.state.d)) - KITCHEN_PLINTH_SETBACK));
+    spans.push(span('plinth', run, 0, plinthOf(run[0]!.state), back, Math.min(...run.map(c => backLine(c, angle) - back + c.state.d)) - KITCHEN_PLINTH_SETBACK));
   }
   return spans;
 }
@@ -115,12 +133,12 @@ export function stackedPose(anchor: UnitPose, d: number, y: number): Pose {
 /** Poses for `count` copies of `unit` laid side by side towards `side`, nearest first, starting beside `from`
  * (the unit itself, or the end of the run it stands in). */
 export function arrayPoses(unit: UnitPose, count: number, side: 1 | -1, from: UnitPose = unit): Pose[] {
-  const poses: Pose[] = [];
+  const poses: Pose[] = [], fresh: UnitPose = { ...unit, state: { ...unit.state, leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined } };
   let last: UnitPose = from;
   for (let n = 0; n < count; n++) {
-    const pose = besidePose(last, unit.state.w, unit.state.d, side, unit.y || 0);
+    const pose = besidePanel(last, fresh, side, unit.y || 0);
     poses.push(pose);
-    last = { ...unit, ...pose };
+    last = { ...fresh, ...pose };
   }
   return poses;
 }
@@ -150,3 +168,11 @@ export function runReach(units: readonly UnitPose[], unit: UnitPose): [number, n
 /** How many copies of a unit `width` wide a pull of `distance` centimetres from its side asks for. A copy
  * appears once the pull passes 40% of its width, so it follows the pointer without waiting a whole width. */
 export const arrayCount = (distance: number, width: number, max = 12) => Math.max(0, Math.min(max, Math.floor(distance / width + .6)));
+
+
+/** Existing stock remains between bodies when another module is placed beside it. */
+export function besidePanel(anchor: UnitPose, next: UnitPose, side: -1 | 1, y = anchor.y ?? 0): Pose {
+  const pose = besidePose(anchor, next.state.w, next.state.d, side, y), { u } = unitAxes(anchor.angle);
+  const reserve = jointReserve(anchor, next, side);
+  return { ...pose, x: pose.x + u.x * side * reserve, z: pose.z + u.z * side * reserve };
+}

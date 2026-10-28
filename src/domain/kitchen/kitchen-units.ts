@@ -24,17 +24,23 @@ export interface KitchenUnitDef {
   readonly plinth: boolean;
   /** A sink or hob that stands on its own on a worktop, or a shelf on the wall: placed, moved and sized by itself, with no cabinet. */
   readonly fixture?: 'sink' | 'hob' | 'shelf';
+  /** A solid installation component, with no carcass or storage bays. */
+  readonly installation?: 'filler' | 'end-panel';
   /** What a new unit holds, and what replaces an appliance when a unit is duplicated: [kind, height][]. */
   readonly storage: readonly (readonly [string, number])[];
 }
 
 export const KITCHEN_UNITS = [
   { key: 'base', name: 'Base cabinet', description: 'Stands on the floor under the worktop', w: 60, h: 86, d: 58, elevation: 0,
-    sizes: { w: [30, 150], h: [70, 100], d: [30, 80] }, worktop: true, plinth: true, storage: [['cupboard', 72]] },
+    sizes: { w: [15, 150], h: [70, 100], d: [30, 80] }, worktop: true, plinth: true, storage: [['cupboard', 72]] },
   { key: 'upper', name: 'Wall cabinet', description: 'Hangs on the wall above the worktop', w: 60, h: 70, d: 35, elevation: 142,
     sizes: { w: [30, 150], h: [35, 130], d: [25, 70] }, worktop: false, plinth: false, storage: [['cupboard', 56]] },
   { key: 'tall', name: 'Tall cabinet', description: 'Floor to top: larder, fridge or ovens', w: 60, h: 215, d: 58, elevation: 0,
     sizes: { w: [30, 100], h: [150, 270], d: [30, 80] }, worktop: false, plinth: true, storage: [['cupboard', 200]] },
+  { key: 'filler', name: 'Installation strip', description: 'A fixed front strip reserving its exact width along the run', w: 4, h: 86, d: 58, elevation: 0,
+    sizes: { w: [.1, 30], h: [10, 300], d: [2, 90] }, worktop: true, plinth: true, installation: 'filler', storage: [] },
+  { key: 'end-panel', name: 'End/Separator pane', description: 'A solid full-depth end panel; width is its actual thickness', w: 1.8, h: 86, d: 58, elevation: 0,
+    sizes: { w: [.1, 10], h: [10, 300], d: [2, 90] }, worktop: true, plinth: false, installation: 'end-panel', storage: [] },
   // A sink or hob is placed by itself on the worktop (its underside is the worktop's top), never part of a cabinet.
   { key: 'sink-top', name: 'Sink', description: 'A sink and tap, placed on any worktop', w: 80, h: 30, d: 50, elevation: 90,
     sizes: { w: [40, 200], h: [30, 30], d: [35, 70] }, worktop: false, plinth: false, fixture: 'sink', storage: [] },
@@ -55,3 +61,6 @@ export const kitchenUnit = (key: string | undefined): KitchenUnitDef =>
 /** Worktop thickness, its overhang at the front, and the plinth's setback from the front. */
 export const WORKTOP = { thickness: 4, overhang: 2 } as const;
 export const KITCHEN_PLINTH_SETBACK = 6;
+
+export const installationKind = (design: { product?: string | undefined; unit?: string | undefined }) =>
+  design.product === 'kitchen' ? kitchenUnit(design.unit).installation : undefined;

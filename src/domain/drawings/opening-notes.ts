@@ -1,3 +1,4 @@
+import { serviceStatus } from '../studio/service-status';
 import type { StudioOpening } from '../studio/studio';
 import { isWallUtility } from '../studio/wall-utilities';
 import { type Item, line, mm, note, rect } from './drawing';
@@ -17,7 +18,7 @@ const KIND: Record<StudioOpening['kind'], string> = {
 /** An opening or wall utility as an architect writes it beside the symbol: what it is, width × height, and its
  * height above the floor (window `Hp`, utility `sill`) and structural lintel height, in millimetres. */
 export const openingNote = (o: StudioOpening) =>
-  KIND[o.kind] + ' ' + mm(o.width) + ' × ' + mm(o.height) + (o.kind === 'window' ? ', Hp ' + mm(o.sill) : isWallUtility(o.kind) ? ', sill ' + mm(o.sill) : '')
+  (o.label || KIND[o.kind]) + ' ' + mm(o.width) + ' × ' + mm(o.height) + (o.kind === 'window' ? ', Hp ' + mm(o.sill) : isWallUtility(o.kind) ? ', sill ' + mm(o.sill) : '')
   + (!isWallUtility(o.kind) ? ', lintel ' + mm(o.sill + o.height) : '');
 
 /** Draws an opening or wall utility on a wall elevation (`a` to `b` in cm from the wall's left inside end). */
@@ -66,5 +67,6 @@ export function elevationOpeningItems(o: StudioOpening, a: number, b: number): I
 
   const labelY = o.height >= 40 ? y1 - 120 : y1 + 45;
   out.push(note({ x: cx, y: labelY }, openingNote(o)));
-  return out;
+  const status = isWallUtility(o.kind) ? serviceStatus(o.status) : undefined;
+  return status ? out.map(i => i.kind === 'line' ? { ...i, stroke: status.stroke } : i) : out;
 }

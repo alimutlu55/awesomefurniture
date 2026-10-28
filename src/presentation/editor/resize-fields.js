@@ -1,3 +1,4 @@
+import { syncKitchenConstruction } from './kitchen-construction-fields';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import { bindSizeSlider, syncSizeRange } from './size-control';
 import { createCabinetSizeRange } from '../../application/commands/cabinet-size-range';
@@ -21,9 +22,10 @@ export function createCabinetSizeSync(dom, model) {
 /** Size fields and sliders take the selected furniture's limits (a wall cabinet's are not a wardrobe's). A slider
  * being dragged keeps its scale while a gesture changes the front/rear height difference.
  * @param {ReturnType<typeof import('./editor-dom.js').createEditorDom>} dom
- * @param {import('../../domain/furniture/furniture-module').FurnitureDesign} design
+ * @param {import('../../domain/wardrobe/editor-design').EditorDesign} design
  * @param {false | 'w' | 'h' | 'd'} editingSize */
 export function syncCabinetSizeLimits(dom, design, editingSize, sizes = furnitureModule(design).sizes(design)) {
+    syncKitchenConstruction(dom, design);
     for (const axis of /** @type {const} */ (['w', 'h', 'd'])) {
         const min = String(Math.min(sizes[axis][0], design[axis])), max = String(Math.max(sizes[axis][1], design[axis]));
         const input = /** @type {HTMLInputElement} */ (dom.$('#' + axis));

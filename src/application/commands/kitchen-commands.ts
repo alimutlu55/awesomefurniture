@@ -1,9 +1,13 @@
+import { expandedEndPanels } from '../../domain/kitchen/explicit-panel-fit';
+import { ceilingClearance } from '../../domain/studio/studio-clearance';
+import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
+import { endPanelDesign, rememberEndPanels } from '../../domain/kitchen/end-panels';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createKitchenCover, createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
 import { isFixture, kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { arrayPoses, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { arrayPoses, besidePanel, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
@@ -34,14 +38,16 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     (active()?.y || 0) + (active()?.state.h || 0) + .01,
   );
   const fits = (candidate: EditorCabinet) => !collision.cabinetCollides(candidate)
-    && (!getScene().studio || (candidate.y || 0) + candidate.state.h <= maxTop());
+    && (!getScene().studio || (candidate.y || 0) + candidate.state.h <= maxTop())
+    && expandedEndPanels([...getScene().wardrobes.filter(p => p.id !== candidate.id), candidate]).filter(p => p.state.unit === 'end-panel')
+      .every(p => !ceilingClearance(getScene().studio, { ...p, w: p.state.w, d: p.state.d }, 1e-5)(resolveShape(p.state)));
   // Preserve contact exactly: rounding a pose can nudge a copy into the original or the wall.
   const at = (cabinet: EditorCabinet, pose: Pose): EditorCabinet => ({ ...cabinet, ...pose });
 
   /** The unit a new one goes next to: the selected kitchen unit, else the one added last. */
   function anchorFor(): EditorCabinet | null {
     const selected = active();
-    if (selected && isKitchenUnit(selected)) return selected;
+    if (selected && !isFixture(selected.state)) return selected;
     return [...getScene().wardrobes].reverse().find(isKitchenUnit) ?? null;
   }
 
@@ -52,7 +58,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
   /** Spots at the two ends of the run a unit stands in: after its right end first. */
   function besideRun(unit: EditorCabinet, cabinet: EditorCabinet, y: number): Pose[] {
     const run = runOf(unit);
-    return [besidePose(run[run.length - 1]!, cabinet.state.w, cabinet.state.d, 1, y), besidePose(run[0]!, cabinet.state.w, cabinet.state.d, -1, y)];
+    return [besidePanel(run[run.length - 1]!, cabinet, 1, y), besidePanel(run[0]!, cabinet, -1, y)];
   }
 
   /** Where a new unit can stand next to `anchor`: a wall unit over it (or over its run) first, then along the
@@ -75,6 +81,10 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     checkpoint();
     applyMaxReach(cabinet.state, scene.maxReach);
     scene.wardrobes.push(cabinet);
+    for (const p of expandedEndPanels(scene.wardrobes)) if (p.state.unit === 'end-panel') {
+      const original = scene.wardrobes.find(q => q.id === p.id)!; Object.assign(original, { x: p.x, y: p.y, z: p.z, state: p.state });
+    }
+    rememberEndPanels(scene.wardrobes);
     scene.activeWardrobe = cabinet.id;
     scene.nextWardrobeId = Math.max(scene.nextWardrobeId, cabinet.id + 1);
     return cabinet;
@@ -89,7 +99,9 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
 
   const named = (unit: KitchenUnitKey | undefined, id: number) => kitchenUnit(unit).name + ' ' + id;
   /** A copy of a unit's design with nothing chosen inside it (no item, divider or space). */
-  const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state), item: -1, divider: -1, space: null, open: false });
+  const copyOf = (original: EditorCabinet) => ({ ...furnitureModule(original.state).duplicate(original.state),
+    leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined,
+    item: -1, divider: -1, space: null, open: false });
 
   return {
     /** Adds a unit from a preset (Base cabinet, Sink unit, Wall cabinet...). Asked `beside` the selected unit, or with no
@@ -101,6 +113,15 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const scene = getScene(), id = scene.nextWardrobeId, state = { ...createKitchenDesign(preset.unit, preset.key), sel: 0, item: -1, divider: -1, space: null, open: false };
       const fresh: EditorCabinet = { id, name: preset.name + ' ' + id, x: 0, y: kitchenUnit(preset.unit).elevation, z: 0, angle: 0, state };
       const anchor = anchorFor(), { beside, ...spot } = placement, studio = scene.studio, wall = spot.placementWall;
+      if (preset.unit === 'end-panel' && anchor) {
+        if (anchor.state.unit === 'end-panel') { scene.activeWardrobe = anchor.id; return anchor; }
+        for (const side of [1, -1] as const) {
+          const inherited = { ...endPanelDesign(anchor.state, side), sel: 0, item: -1, divider: -1, space: null, open: false };
+          const panel = { ...fresh, state: inherited, ...besidePose(anchor, inherited.w, inherited.d, side, anchor.y) };
+          if (fits(panel)) return add(panel);
+        }
+        return keep(null, preset.name);
+      }
       const near = anchor ? placeNear(anchor, structuredClone(fresh)) : null;
       if (beside || !wall || !studio) return keep(near ?? placeAlone(fresh, spot), preset.name);
       // On the wall in view: beside the kitchen already against it (the unit nearest the point in view), else in front of the viewer.
@@ -142,6 +163,7 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       if (recordHistory) checkpoint();
       for (const copy of copies) applyMaxReach(copy.state, scene.maxReach);
       scene.wardrobes.push(...copies);
+      rememberEndPanels(scene.wardrobes);
       scene.nextWardrobeId += copies.length;
       return copies.length;
     },
@@ -157,8 +179,8 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
       const scene = getScene(), original = active();
       if (!original || !isKitchenUnit(original)) return null;
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!, y = original.y || 0, d = original.state.d;
-      const probeAt = (w: number): EditorCabinet => at({ ...original, id: -1, state: { ...original.state, w } }, besidePose(end, w, d, side, y));
-      const fitsWidth = (w: number) => w >= 5 && fits(probeAt(w));
+      const probeAt = (w: number): EditorCabinet => at({ ...original, id: scene.nextWardrobeId, state: { ...original.state, w } }, besidePanel(end, { ...original, state: { ...original.state, w } }, side, y));
+      const fitsWidth = (w: number) => w >= .1 && fits(probeAt(w));
       const isPerpCabinet = (o: EditorCabinet, angle: number) =>
         o.id !== original.id && o.id !== end.id && isKitchenUnit(o) && !isFixture(o.state)
         && Math.abs(((o.angle - angle) % 360 + 540) % 360 - 180) > 15;
@@ -167,17 +189,31 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
       };
       const farEdgeBlocked = (w: number) => {
-        const p = at({ ...original, id: -1, state: { ...original.state, w: .2 } }, besidePose(end, 2 * w - .2, d, side, y)), { v } = unitAxes(p.angle);
-        const front = { ...p, x: p.x + v.x * 20, z: p.z + v.z * 20 };
-        return scene.wardrobes.some(o => isPerpCabinet(o, p.angle) && collision.cabinetOverlaps(front, o));
+        const p = probeAt(w), { u, v } = unitAxes(p.angle);
+        const point = { x: p.x + u.x * side * w / 2 + v.x * 20, z: p.z + u.z * side * w / 2 + v.z * 20 };
+        // Test the exact far edge inclusively; an infinitesimally thin box depends on collision tolerance.
+        return scene.wardrobes.some(o => {
+          if (!isPerpCabinet(o, p.angle) || o.y >= y + p.state.h || o.y + o.state.h <= y) return false;
+          const axes = unitAxes(o.angle), dx = point.x - o.x, dz = point.z - o.z;
+          let lo = -p.state.d / 2, hi = p.state.d / 2;
+          for (const [axis, half] of [[axes.u, o.state.w / 2], [axes.v, o.state.d / 2]] as const) {
+            const offset = dx * axis.x + dz * axis.z, velocity = v.x * axis.x + v.z * axis.z;
+            if (Math.abs(velocity) < 1e-9) { if (Math.abs(offset) > half + 1e-7) return false; }
+            else {
+              const a = (-half - offset) / velocity, b = (half - offset) / velocity;
+              lo = Math.max(lo, Math.min(a, b)); hi = Math.min(hi, Math.max(a, b));
+            }
+          }
+          return hi >= lo - 1e-7;
+        });
       };
       if (fitsWidth(original.state.w) && !blockedInFront(original.state.w)) {
         return this.arrayKitchenUnit(1, side, recordHistory) ? scene.wardrobes[scene.wardrobes.length - 1]! : null;
       }
       let clearW = 0, unblockedW = 0, pocketW = 0;
       const maxSearch = Math.max(original.state.w, 65);
-      for (let w = 5; w <= maxSearch + .01; w = Math.round((w + .5) * 10) / 10) {
-        if (!fitsWidth(w)) break;
+      for (let w = .1; w <= maxSearch + .01; w = Math.round((w + .1) * 10) / 10) {
+        if (!fitsWidth(w)) continue;
         if (w <= original.state.w) clearW = w;
         if (w <= original.state.w && !blockedInFront(w)) unblockedW = w;
         if (farEdgeBlocked(w)) pocketW = w;
@@ -186,20 +222,28 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
         const id = scene.nextWardrobeId, state = copyOf(original);
         state.w = unblockedW;
         for (const it of state.secs[0]!) if ((fitting(it.k)?.minWidth ?? 0) > unblockedW - 2 * PANEL) it.k = 'cupboard';
-        const narrowed = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, besidePose(end, unblockedW, d, side, y));
+        const narrowed = at({ ...structuredClone(original), id, name: named(state.unit, id), state }, besidePanel(end, { ...original, state: { ...original.state, w: unblockedW } }, side, y));
+        if (!fits(narrowed)) return null;
         if (recordHistory) checkpoint();
         applyMaxReach(narrowed.state, scene.maxReach);
         scene.wardrobes.push(narrowed);
+        rememberEndPanels(scene.wardrobes);
         scene.nextWardrobeId = Math.max(scene.nextWardrobeId, id + 1);
         return narrowed;
       }
-      const coverW = pocketW >= 5 ? pocketW : clearW;
-      if (coverW >= 5) {
-        const id = scene.nextWardrobeId, state = { ...createKitchenCover(original.state, coverW), sel: 0, item: -1, divider: -1, space: null, open: false };
-        const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePose(end, coverW, d, side, y));
+      const coverW = pocketW >= .1 ? pocketW : clearW;
+      if (coverW >= .1) {
+        const id = scene.nextWardrobeId;
+        const solid = { ...createKitchenDesign('filler'), w: coverW, h: original.state.h, d, fin: original.state.fin, materials: structuredClone(original.state.materials) };
+        const state = { ...(coverW < 5 ? solid : createKitchenCover(original.state, coverW)),
+          leftPanelThickness: undefined, rightPanelThickness: undefined, endPanelThickness: undefined, endPanelSides: undefined,
+          sel: 0, item: -1, divider: -1, space: null, open: false };
+        const cover = at({ ...structuredClone(original), id, name: 'Corner cover ' + id, state }, besidePanel(end, { ...original, state }, side, y));
+        if (!fits(cover)) return null;
         if (recordHistory) checkpoint();
         applyMaxReach(cover.state, scene.maxReach);
         scene.wardrobes.push(cover);
+        rememberEndPanels(scene.wardrobes);
         scene.nextWardrobeId = Math.max(scene.nextWardrobeId, id + 1);
         return cover;
       }

@@ -22,30 +22,49 @@ export interface KitchenFrontMaterials {
  * as overlay fronts do. Cabinet-centred x, floor-relative y, centimetres. What sits in the worktop (sink,
  * hob) is drawn with the worktop (kitchen-run-renderer.ts).
  */
-export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6, faceWidths = [], cabinetWidth = 0 }: {
-  handleless?: boolean; shelfThickness?: number;
+export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, materials, handleless = false, shelfThickness = 1.6, faceWidths = [], cabinetWidth = 0, cabinetHeight = 0, plinthHeight = 0, fridgeDoorSplit }: {
+  handleless?: boolean; shelfThickness?: number; fridgeDoorSplit?: number | undefined;
   box: BoxBuilder; group: THREE.Group; d: number; unit: KitchenUnitKey | undefined; doorHang?: 'left' | 'right' | undefined; materials: KitchenFrontMaterials;
-  faceWidths?: readonly FaceWidth[]; cabinetWidth?: number;
+  faceWidths?: readonly FaceWidth[]; cabinetWidth?: number; cabinetHeight?: number; plinthHeight?: number;
 }) {
   const steel = materials.M('#b9bdc2', { metalness: .85, roughness: .32 });
   const glass = materials.M('#1b1e22', { metalness: .3, roughness: .12 });
   const owned: THREE.Material[] = [steel, glass];
-  const face = d / 2 + PANEL / 2;
+  const face = d / 2 + (materials.front.userData.panelThickness ?? PANEL) / 2;
   /** Doors whose middle is lower than this (cm from the floor) take their handle at the top, higher ones at the bottom. */
   const HANDLE_REACH = 110;
   const fixedFront = (x0: number, x1: number) => frontCoveredByReturn(x0 + cabinetWidth / 2, x1 + cabinetWidth / 2, faceWidths);
   const { panel, doors, shelves, drawerBox, pull } = createFrontParts({ box, group, face, depth: d, front: materials.front, inside: materials.inside,
     door: materials.door ?? materials.front, drawer: materials.drawer ?? materials.inside, metal: materials.hardware ?? steel, handleless, shelfThickness, fixedFront });
 
+  for (const s of faceWidths.filter(s => s.strip)) {
+    const a = s.from - cabinetWidth / 2, b = s.to - cabinetWidth / 2;
+    const part = box(b - a, cabinetHeight - plinthHeight, materials.front.userData.panelThickness ?? PANEL,
+      (a + b) / 2, (cabinetHeight + plinthHeight) / 2, face, materials.front);
+    part.userData.installationPart = true;
+  }
+
   /** Draws one kitchen fitting. `inside` is the bottom and top of the unit's inside, so the end fronts can cover the boards;
    * `outer` is where the unit's left and right faces are, so the fronts at its edges can cover the side panels. */
   function kitchenFitting(it: EditorItem, cx: number, y: number, sw: number, inside: { bottom: number; top: number }, outer?: { left: number; right: number }) {
-    const hh = it.h, { x0, x1, y0, y1 } = kitchenFrontRect(unit, cx, y, sw, hh, inside, outer);
+    const hh = it.h;
+    let { x0, x1, y0, y1 } = kitchenFrontRect(unit, cx, y, sw, hh, inside, outer);
+    if (it.k !== 'corner' && faceWidths.some(s => s.strip)) {
+      for (const s of faceWidths.filter(s => s.covered)) {
+        const a = Math.max(x0, s.from - cabinetWidth / 2), b = Math.min(x1, s.to - cabinetWidth / 2);
+        if (b > a) panel(a, b, y0, y1).userData.fixedCornerReturn = true;
+      }
+      const open = faceWidths.filter(s => !s.covered && !s.strip).map(s => ({ a: Math.max(x0, s.from - cabinetWidth / 2), b: Math.min(x1, s.to - cabinetWidth / 2) }))
+        .filter(s => s.b > s.a).sort((a, b) => (b.b - b.a) - (a.b - a.a))[0];
+      if (!open) return;
+      x0 = open.a; x1 = open.b;
+    }
+    const frontCentre = (x0 + x1) / 2;
     const mid = (y0 + y1) / 2, hinge = itemHingeSide(it, { doorHang }), explicit = !!(it.hinge ?? doorHang), pullX = hinge === 'right' ? x0 + 4 : x1 - 4;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
         panel(x0, x1, y0, y1);
-        pull(Math.min(32, sw * .45), cx, it.k === 'pan' ? y1 - Math.min(7, (y1 - y0) / 3) : mid);
+        pull(Math.min(32, (x1 - x0) * .45), frontCentre, it.k === 'pan' ? y1 - Math.min(7, (y1 - y0) / 3) : mid);
         drawerBox(cx, y, sw, hh);
         break;
       }
@@ -58,11 +77,29 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       case 'corner': {
         // A blind-corner unit: one half is a fixed blind panel where the perpendicular run meets it, the other half
         // is the hinged door with two swing-out kidney trays on a post inside.
-        const doorSide = cornerDoorSide(it), { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide), doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        let doorSide = cornerDoorSide(it);
+        let { blind, door } = cornerFrontSplit(x0, x1, hinge, doorSide);
+        const doorPullX = door.hinge === 'left' ? door.x1 - 4 : door.x0 + 4;
+        const installed = faceWidths.some(s => s.strip);
+        if (installed) {
+          const hidden = faceWidths.find(s => s.covered)!, open = faceWidths.find(s => !s.covered && !s.strip)!;
+          if (hidden && open) {
+            blind = { x0: hidden.from - cabinetWidth / 2, x1: hidden.to - cabinetWidth / 2 };
+            doorSide = open.from < hidden.from ? 'left' : 'right';
+          }
+          const cornerHinge = explicit ? hinge : (doorSide === 'left' ? 'right' : 'left');
+          for (const s of faceWidths) {
+            const a = Math.max(x0, s.from - cabinetWidth / 2), b = Math.min(x1, s.to - cabinetWidth / 2);
+            if (b <= a || s.strip) continue;
+            panel(a, b, y0, y1);
+            if (!s.covered && !s.strip) pull(Math.min(18, (y1 - y0) * .5), cornerHinge === 'left' ? b - 4 : a + 4, y1 - Math.min(12, (y1 - y0) / 4), true);
+          }
+        } else {
         panel(blind.x0, blind.x1, y0, y1);
         const leaf = panel(door.x0, door.x1, y0, y1);
         if (fixedFront(door.x0, door.x1)) leaf.userData.fixedCornerReturn = true;
         else pull(Math.min(18, (y1 - y0) * .5), doorPullX, y1 - Math.min(12, (y1 - y0) / 4), true);
+        }
         const { post, trayW, trayD, trays } = cornerPulloutGeometry(cx, y, sw, hh, d, blind, doorSide);
         box(post.size, post.h, post.size, post.x, y + hh / 2, 0, steel);
         for (const t of trays) {
@@ -73,7 +110,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       }
       case 'flap':
         panel(x0, x1, y0, y1);
-        pull(Math.min(32, sw * .45), cx, y0 + 4);
+        pull(Math.min(32, (x1 - x0) * .45), frontCentre, y0 + 4);
         break;
       case 'niche': {
         // An open shelf: a board and a few bowls and jars on it.
@@ -99,7 +136,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       case 'dishwasher': {
         // An integrated dishwasher: a door that matches the fronts, with its handle along the top edge and a thin control strip.
         panel(x0, x1, y0, y1);
-        pull(Math.min(60, sw * .75), cx, y1 - 5);
+        pull(Math.min(60, (x1 - x0) * .75), frontCentre, y1 - 5);
         break;
       }
       case 'hood': {
@@ -119,7 +156,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       }
       case 'fridge': {
         // An integrated fridge behind a door that matches the fronts; a freezer door below in a tall unit.
-        const split = fridgeSplit(y0, y1, hh);
+        const split = fridgeSplit(y0, y1, hh, fridgeDoorSplit);
         if (split !== null) {
           panel(x0, x1, y0, split); panel(x0, x1, split, y1);
           pull(Math.min(28, (split - y0) * .45), pullX, split - 14, true);
@@ -130,7 +167,7 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
       case 'cargo':
         // A slim pull-out is opened from its top edge: a bar across the middle of the front, near the top.
         panel(x0, x1, y0, y1);
-        pull(Math.min(24, sw * .8), cx, y1 - 5);
+        pull(Math.min(24, (x1 - x0) * .8), frontCentre, y1 - 5);
         shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
         break;
       case 'pantry':

@@ -1,3 +1,4 @@
+import { plinthOf } from '../../domain/wardrobe/carcass';
 import { defaultMaterials, resolveMaterials } from '../../domain/materials/configured-materials';
 import { getDecor } from '../../domain/materials/decor-catalog';
 import { createDecorMaterial } from './cabinet-materials';
@@ -57,7 +58,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
     const leathers = new Map<string, THREE.Material>(), leather = (color: string) => leathers.get(color) ?? leathers.set(color, resources.M(color, { roughness: .6 })).get(color)!;
     // Kitchen cabinets draw their own fronts (drawers, doors, appliances).
     const design = getRenderDesign(), kitchen = isKitchen(design)
-        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, faceWidths, cabinetWidth: design.w,
+        ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, fridgeDoorSplit: design.fridgeSplit, faceWidths, cabinetWidth: design.w, cabinetHeight: design.h, plinthHeight: plinthOf(design),
             materials: { front: mf, inside: mp, drawer: md, door, hardware: mh, M: resources.M },
             handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6 }) : null;
     if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);

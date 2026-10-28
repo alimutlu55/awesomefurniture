@@ -1,3 +1,5 @@
+import { reconcileInstallation } from '../projects/installation-reconciliation';
+import { createKitchenConstructionCommands } from './kitchen-construction';
 import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
@@ -80,6 +82,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const late = { resize: (_width: number) => false };
     const fill = createFillCommands({ getScene, active, checkpoint, discardCheckpoint, report, resize: width => late.resize(width) });
     const commands = {
+        ...createKitchenConstructionCommands(getScene, checkpoint, report),
         /** A new default design, replacing every wardrobe and the entire room in one undo step. */
         resetScene() {
             checkpoint();
@@ -114,8 +117,11 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         followCeilings: (refit = true) => ceilings.followAll(refit),
         /** A wardrobe dropped after a drag or a turn takes the ceiling over it. Returns why it cannot stand there. */
         settleCabinet(id: number) {
-            const cabinet = getScene().wardrobes.find(w => w.id === id), problem = cabinet ? ceilings.follow(cabinet) : null;
+            const cabinet = getScene().wardrobes.find(w => w.id === id);
+            const problem = cabinet && collision.cabinetCollides(cabinet)
+                ? 'That placement overlaps another cabinet or its corner installation parts.' : cabinet ? ceilings.follow(cabinet) : null;
             if (problem) report(problem);
+            else if (!reconcileInstallation(getScene())) report('An installation strip or separator does not fit. Adjust the cabinets manually.');
             return problem;
         },
         /** Adds a wardrobe beside the others, or in a room against the first free wall. Given a `wall`, it
@@ -189,11 +195,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         },
         previewTranslation(id: number, pose: Pick<EditorCabinet, 'x' | 'y' | 'z'>) {
             const cabinet = getScene().wardrobes.find(w => w.id === id);
-            if (!cabinet) {
-                return false;
-            }
+            if (!cabinet) return false;
             // Pressed against a wall or a neighbour, it slides along it: the part of the move that is free still happens.
-            const moves = [pose, { ...pose, z: cabinet.z }, { ...pose, x: cabinet.x }].map(p => collision.safeCabinetTranslation(cabinet, p));
+            const moves = [pose, { ...pose, z: cabinet.z }, { ...pose, x: cabinet.x }, { ...pose, x: cabinet.x, z: cabinet.z }, { ...pose, y: cabinet.y }].map(p => collision.safeCabinetTranslation(cabinet, p));
             const travel = (p: Pick<EditorCabinet, 'x' | 'y' | 'z'>) => Math.hypot(p.x - cabinet.x, (p.y || 0) - (cabinet.y || 0), p.z - cabinet.z);
             Object.assign(cabinet, moves.reduce((best, p) => travel(p) > travel(best) + .01 ? p : best));
             return true;

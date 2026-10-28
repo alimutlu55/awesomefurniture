@@ -1,4 +1,4 @@
-import { addCabinetLighting } from './cabinet-accents';
+import { addCabinetLighting, addCabinetVentilation } from './cabinet-accents';
 import { roofDividerMesh } from './roof-divider-mesh';
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import * as THREE from "three";
@@ -116,11 +116,12 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
         resources.scene.add(renderState.Gr);
         // A sink or hob placed on its own is just the fixture: no carcass, sections or shadow.
         const owned = [], focused = renderState.renderActive && selectionState.focusOn;
-        const own = isKitchen(getRenderDesign()) && kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' ? createCabinetMaterials(resources, getRenderDesign()) : null;
+        const own = isKitchen(getRenderDesign()) && (kitchenUnitDef(getRenderDesign().unit).fixture === 'shelf' || kitchenUnitDef(getRenderDesign().unit).installation) ? createCabinetMaterials(resources, getRenderDesign()) : null;
         if (own) owned.push(...own.owned);
         const measure = focused ? { format: v => measureNumber(v) + unitSuffix(), label: (p, text, cls) => label(p, text, cls), bindRuler } : null;
-        if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, panel: own?.panel, M: resources.M, owned, hits: renderState.hits, measure })) {
-            renderState.Gr.userData.ownedMaterials = owned;
+        if (drawKitchenFixture({ group: renderState.Gr, design: getRenderDesign(), hitMaterial: resources.HM, panel: own?.panel, front: own?.front, M: resources.M, owned, hits: renderState.hits, measure })) {
+            addCabinetLighting(getRenderDesign(), renderState.Gr);
+            renderState.Gr.userData.ownedMaterials = [...owned, ...(renderState.Gr.userData.ownedMaterials ?? [])];
             renderState.Gr.updateMatrixWorld(true);
             return;
         }
@@ -136,7 +137,8 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
         // A kitchen unit stands on its run's plinth (wall units hang with a light rail under them).
         const kitchenUnit = isKitchen(getRenderDesign()) ? kitchenUnitDef(getRenderDesign().unit) : null;
         // A wall unit has a solid bottom down to its lower edge.
-        renderCabinetFrame(getRenderDesign(), box, prism, materials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? PLINTH : 0, plinth: false, base: plinthOf(getRenderDesign()) } : {});
+        renderCabinetFrame(getRenderDesign(), box, prism, materials, kitchenUnit ? { sidesFrom: kitchenUnit.plinth ? plinthOf(getRenderDesign()) : 0, plinth: false, base: plinthOf(getRenderDesign()) } : {});
+        addCabinetVentilation(getRenderDesign(), box, mh);
         /** Section-local outline of a span under the top, in cabinet-centred coordinates. */
         const sectionOutline = (i, sx, x0, x1, y0 = 0) => [{ x: sx + x0, y: iy + y0 }, { x: sx + x1, y: iy + y0 }, ...geometry.ceilingOutline(i, x0, x1).reverse().map(p => ({ x: sx + p.x, y: iy + p.y }))];
         const dimLine = (a, b, txt, cls = 'lbl dim', axis = 'width') => {
@@ -348,11 +350,11 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
             if (split) for (const s of segments) {
                 // Round the shared stops once, as the technical drawings do, so displayed mm add to the total.
                 const value = (Math.round(s.to * 10) - Math.round(s.from * 10)) / 10;
-                const text = s.covered ? (s.from === 0 || s.to === w ? 'To edge ' : 'Return W ') : 'W ';
+                const text = s.strip ? 'Strip ' : s.covered ? (s.from === 0 || s.to === w ? 'To edge ' : 'Return W ') : 'W ';
                 if (value <= 0) continue;
                 const el = dimLine(new V(s.from - w / 2, 0, d / 2), new V(s.to - w / 2, 0, d / 2), text + measureNumber(value) + unitSuffix(), 'lbl dim corner-width', 'under');
                 decorateMeasurementBadge(el, { id: 'corner-width-' + s.from, value, orientation: 'horizontal', readOnly: true,
-                    label: s.covered ? 'Covered cabinet width at return' : 'Exposed cabinet surface width' });
+                    label: s.strip ? 'Fixed installation strip width' : s.covered ? 'Covered cabinet width at return' : 'Exposed cabinet surface width' });
             }
             // The Size tool still edits the whole carcass. A surface segment must never resize it as if it were the total.
             if (!split || selectionState.editingSize) {
@@ -374,8 +376,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
         if (renderState.renderActive && selectionState.focusOn && reach !== undefined && cabinetY + h >= reach - 25) {
             const ry = reach - cabinetY, reachGeo = new THREE.BufferGeometry().setFromPoints([new V(-w / 2 - 5, ry, d / 2 + 5), new V(w / 2 + 5, ry, d / 2 + 5)]), reachLine = new THREE.Line(reachGeo, new THREE.LineDashedMaterial({ color: new THREE.Color('#75664f').convertSRGBToLinear(), toneMapped: false, dashSize: 3, gapSize: 2, transparent: true, opacity: .9, depthTest: false }));
             reachLine.computeLineDistances();
-            reachLine.renderOrder = 15;
-            renderState.Gr.add(reachLine);
+            reachLine.renderOrder = 15; renderState.Gr.add(reachLine);
             const reachLabel = label(new V(w / 2 + 5, ry, d / 2 + 5), 'Max reach ' + measureNumber(reach) + unitSuffix(), 'lbl dim reach-dimension');
             sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Max reach height', reach, 'vertical', 100, 250);
             renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, ry, d / 2 + 5);

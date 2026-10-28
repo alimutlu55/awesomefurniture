@@ -1,3 +1,11 @@
+import { installationSolid, localSolid } from '../kitchen/installation-parts';
+import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
+import { studioObstacles } from '../studio/studio-obstacles';
+import { cornerStripWidth } from '../kitchen/corner-widths';
+import { piecefronts } from './fronts';
+import { ventilationGrille } from '../kitchen/ventilation';
+import { cornerFaceWidths } from './corner-widths';
+import { installationKind } from '../kitchen/kitchen-units';
 /**
  * The checks a design must pass before its drawings are issued for manufacture, kept apart from the code that draws
  * them: what the drawings show is checked against the model, not against itself. A critical finding means the set
@@ -9,10 +17,11 @@ import { roomHeight } from '../studio/studio';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { PANEL } from '../wardrobe/catalog.js';
 import { mm, type Table } from './drawing';
-import { pieceTop, piecesOverlap } from './checks';
+import { pieceTop } from './checks';
 import { type DrawingInput, type PlacedPiece, placePieces, wallGeometry } from './room-pieces';
 import { pieceBoards } from './unit-detail';
 import { cuttingList } from './cutting-list';
+import { cornerJointFindings } from './corner-joints';
 
 export type FindingArea = 'geometry' | 'assembly' | 'drawing' | 'export';
 export interface ManufacturingFinding {
@@ -51,13 +60,24 @@ const finite = (...values: number[]) => values.every(v => Number.isFinite(v));
 /** Pieces in the same place, taller than their room, or with a size that is not a real length. */
 function geometryFindings(studio: Studio | undefined, pieces: readonly PlacedPiece[]): ManufacturingFinding[] {
   const out: ManufacturingFinding[] = [];
+  const walls = createCabinetGeometry(() => [], () => studioObstacles(studio));
   for (const p of pieces) {
+    if (p.id < 0 && walls.cabinetCollides(installationSolid({ ...p, state: p.design }))) out.push({
+      id: 'panel-room:' + p.mark, severity: 'critical', area: 'geometry', marks: [p.mark],
+      message: p.mark + ': the attached end pane intersects the room', rule: 'Reserve the finish panel thickness in the installed run' });
     const { w, h, d } = p.design;
     if (!finite(w, h, d, p.x, p.y, p.z, p.angle) || w <= 0 || h <= 0 || d <= 0)
       out.push({ id: 'size:' + p.mark, severity: 'critical', area: 'geometry', marks: [p.mark], message: p.mark + ' has no valid size or position', rule: 'Every size is a positive length' });
   }
+  const poses = new Map(pieces.map(p => [p.id, { ...p, state: p.design }]));
+  const solids = new Map(pieces.map(p => [p.id, installationSolid(poses.get(p.id)!)]));
+  const fronts = new Map(pieces.map(p => [p.id, pieceBoards(p, pieces).filter(b => b.z0 >= p.design.d - 1e-7)
+    .map(b => localSolid(poses.get(p.id)!, b))]));
   pieces.forEach((a, k) => pieces.slice(k + 1).forEach(b => {
-    if (piecesOverlap(a, b)) out.push({ id: 'clash:' + a.mark + ':' + b.mark, severity: 'critical', area: 'geometry', marks: [a.mark, b.mark],
+    const sa = solids.get(a.id)!, sb = solids.get(b.id)!;
+    const frontHit = installationKind(a.design) && fronts.get(b.id)!.some(f => walls.cabinetOverlaps(sa, f))
+      || installationKind(b.design) && fronts.get(a.id)!.some(f => walls.cabinetOverlaps(sb, f));
+    if (walls.cabinetOverlaps(sa, sb) || frontHit) out.push({ id: 'clash:' + a.mark + ':' + b.mark, severity: 'critical', area: 'geometry', marks: [a.mark, b.mark],
       message: a.mark + ' and ' + b.mark + ' are in the same place', rule: 'No two pieces may intersect; touching is allowed' });
   }));
   for (const p of pieces) {
@@ -80,7 +100,7 @@ function assemblyFindings(pieces: readonly PlacedPiece[]): ManufacturingFinding[
   const out: ManufacturingFinding[] = [];
   for (const p of pieces) {
     if (p.fixture) continue;
-    const boards = pieceBoards(p), { w, h } = p.design;
+    const boards = pieceBoards(p, pieces), { w, h } = p.design;
     boards.forEach((b, i) => {
       const { length, width, thickness } = b.cut;
       if (!finite(length, width, thickness, b.x0, b.x1, b.y0, b.y1) || length < .1 || width < .1 || thickness < .1)
@@ -90,6 +110,18 @@ function assemblyFindings(pieces: readonly PlacedPiece[]): ManufacturingFinding[
         out.push({ id: 'outside:' + p.mark + ':' + i, severity: 'critical', area: 'assembly', marks: [p.mark],
           message: p.mark + ' ' + b.name + ' reaches outside the piece (' + mm(w) + ' × ' + mm(h) + ' mm)', rule: 'Boards stay inside their assembly' });
     });
+    if (piecefronts(p.design).invalidFridgeSplit) out.push({ id: 'fridge-split:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
+      message: p.mark + ': the specified fridge door split is outside its front', rule: 'Door subdivisions stay inside their actual opening' });
+    if ((p.design.ventilationWidth || p.design.ventilationHeight) && !ventilationGrille(p.design))
+      out.push({ id: 'vent:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
+        message: p.mark + ': ventilation grille needs a valid width and height inside its plinth', rule: 'Grille outer envelope fits the modeled plinth' });
+    if (!installationKind(p.design)) {
+      const widths = cornerFaceWidths(p, pieces), strips = widths.filter(s => s.strip);
+      if (widths.some(s => s.covered || s.strip) && (!strips.length || strips.some(s => Math.abs(s.to - s.from - cornerStripWidth(p.design)) > EXACT)))
+        out.push({ id: 'strip:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
+          message: p.mark + ': the specified corner strip cannot be reserved beside a perpendicular return', rule: 'Installation allowances fit their actual geometry' });
+    }
+    if (installationKind(p.design)) continue;
     const rules = createWardrobeGeometry(() => ({ sel: 0, item: -1, divider: -1, space: null, ...p.design })), widths = rules.widths();
     const total = widths.reduce((s, x) => s + x, 0) + (widths.length + 1) * PANEL;
     if (Math.abs(total - w) > EXACT)
@@ -112,7 +144,7 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
   for (const p of pieces) {
     if (p.fixture === 'sink' || p.fixture === 'hob') continue;
     const model = new Map<string, number>();
-    for (const b of pieceBoards(p)) model.set(b.name, (model.get(b.name) ?? 0) + 1);
+    for (const b of pieceBoards(p, pieces)) model.set(b.name, (model.get(b.name) ?? 0) + 1);
     for (const [part, boards] of model) {
       const count = listed.get(key(p.mark, part)) ?? 0;
       if (count !== boards) out.push({ id: 'list:' + p.mark + ':' + part, severity: 'critical', area: 'export', marks: [p.mark],
@@ -133,6 +165,7 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
  */
 export function validateForManufacture(input: DrawingInput, drawing: readonly ManufacturingFinding[] = []): ManufacturingValidation {
   const pieces = placePieces(input);
-  const findings = [...geometryFindings(input.studio, pieces), ...assemblyFindings(pieces), ...listFindings(pieces, cuttingList(pieces)), ...drawing];
+  const findings = [...geometryFindings(input.studio, pieces), ...assemblyFindings(pieces), ...cornerJointFindings(pieces),
+    ...listFindings(pieces, cuttingList(pieces)), ...drawing];
   return { ready: !findings.some(f => f.severity === 'critical'), revision: modelRevision(input), findings };
 }
