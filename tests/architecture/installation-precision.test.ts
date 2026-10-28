@@ -8,6 +8,7 @@ import { cornerCabinetWidths } from '../../src/domain/kitchen/corner-widths';
 import { pieceBoards } from '../../src/domain/drawings/unit-detail';
 import { technicalDrawings } from '../../src/domain/drawings/technical-drawings';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
+import { createEditorState } from '../../src/application/projects/editor-state';
 import { createKitchenDesign, createKitchenCover } from '../../src/domain/kitchen/kitchen-design';
 import { automaticInstallationParts } from '../../src/domain/kitchen/automatic-installation';
 import { sceneToProject, projectToScene } from '../../src/application/projects/editor-mapper';
@@ -181,8 +182,8 @@ test('cabinets slide tangentially along contact faces without friction or gettin
 });
 
 test('cover and filler units allow explicit panel sizing when space is available', () => {
-  const base = { id: 30, x: -115.9, y: 152.6, z: -50.5, angle: 0, state: { ...createKitchenDesign('upper'), w: 60, h: 117.4, d: 35 } };
-  const cover = { id: 52, x: -155.4, y: 152.6, z: -50.5, angle: 0, state: { ...createKitchenDesign('upper'), ...createKitchenCover(createKitchenDesign('upper'), 18), w: 18, h: 117.4, d: 35 } };
+  const base = { id: 30, name: 'Wall cabinet 30', x: -115.9, y: 152.6, z: -50.5, angle: 0, state: { ...createEditorState(), ...createKitchenDesign('upper'), w: 60, h: 117.4, d: 35 } };
+  const cover = { id: 52, name: 'Corner cover 52', x: -155.4, y: 152.6, z: -50.5, angle: 0, state: { ...createEditorState(), ...createKitchenDesign('upper'), ...createKitchenCover(createKitchenDesign('upper'), 18), w: 18, h: 117.4, d: 35 } };
   const scene: EditorScene = { wardrobes: [base, cover], activeWardrobe: 52, nextWardrobeId: 100 };
   const cmds = createSceneCommands(() => scene);
 
