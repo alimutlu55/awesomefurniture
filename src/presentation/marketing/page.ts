@@ -26,15 +26,11 @@ export function header(c: MarketingCopy): string {
 function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stairs' = 'regular'): string {
   const shapes = ['regular', 'alcove', 'under-stairs'];
   const a = assemblyCopy(c.lang);
-  return `<div class="fitting-room" data-shape="${shape}" data-view="material">
-    <div class="study-topline"><p class="study-title">${e(a.name)}</p>
-      <div class="segmented" role="group" aria-label="${e(a.name)}">
-        ${c.views.map((v, i) => `<button type="button" data-view="${i ? 'drawing' : 'material'}" aria-pressed="${!i}">${e(v)}</button>`).join('')}
-      </div>
-    </div>
+  return `<div class="fitting-room" data-shape="${shape}" data-view="drawing">
+    <div class="study-topline"><p class="study-title">${e(a.name)}</p></div>
     <div class="assembly-stage">
       <div class="study-canvas" id="study-canvas" aria-busy="true">
-        <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'oak', inches: false }, c.lang)}</div>
+        <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'chalk', inches: false }, c.lang)}</div>
         <p class="assembly-status" role="status">${e(a.loading)}</p>
         <div class="assembly-heading"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M5 6c-2 1-3 2.4-3 4s1 3 3 4m10-8c2 1 3 2.4 3 4s-1 3-3 4M5 3v3H2m13 11v-3h3M7 10h6"
@@ -62,11 +58,6 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
       </div>
     </div>
     <div class="study-controls">
-      <fieldset class="finish-control"><legend>${e(c.finish)}</legend><div class="swatches">
-        ${['oak', 'smoked', 'chalk'].map((v, i) => `<button class="swatch swatch-${v}" type="button" data-finish="${v}"
-          aria-label="${e(c.finishes[i]!)}" aria-pressed="${!i}" title="${e(c.finishes[i]!)}"></button>`).join('')}
-        <span id="finish-name">${e(c.finishes[0])}</span>
-      </div></fieldset>
       <div class="width-control"><div class="width-top"><label for="study-width">${e(c.width)}</label>
         <div class="width-value"><output for="study-width" id="width-output" aria-label="240 cm">240</output>
           <label class="unit-control"><span class="sr-only">${e(c.units)}</span><select id="study-units" aria-label="${e(c.units)}">

@@ -1,6 +1,6 @@
 import './marketing.css';
 import './assembly.css';
-import { studyMeasure, studySvg, type StudyState, type StudyShape, type StudyFinish } from './study';
+import { studyMeasure, studySvg, type StudyState, type StudyShape } from './study';
 import { editorEntry } from './entry-route';
 import { assemblyCopy } from './assembly-copy';
 import type { AssemblyScene } from './assembly-scene';
@@ -12,17 +12,15 @@ if (destination) location.replace(destination);
 const room = document.querySelector<HTMLElement>('.fitting-room');
 if (room) {
   const lang = document.documentElement.lang || 'en';
-  const state: StudyState = { width: 240, shape: room.dataset.shape as StudyShape, finish: 'oak', inches: false };
+  const state: StudyState = { width: 240, shape: room.dataset.shape as StudyShape, finish: 'chalk', inches: false };
   const canvas = room.querySelector<HTMLElement>('#study-canvas')!;
   const width = room.querySelector<HTMLInputElement>('#study-width')!;
   const output = room.querySelector<HTMLOutputElement>('#width-output')!;
   const start = room.querySelector<HTMLAnchorElement>('#study-start')!;
-  const finishName = room.querySelector<HTMLElement>('#finish-name')!;
-  const finishButtons = [...room.querySelectorAll<HTMLButtonElement>('[data-finish]')];
   const assembly = room.querySelector<HTMLInputElement>('#study-assembly')!;
   const play = room.querySelector<HTMLButtonElement>('.assembly-play')!;
   const labels = assemblyCopy(lang);
-  let scene: AssemblyScene | null = null, drawing = false, progress = 0, animation = 0;
+  let scene: AssemblyScene | null = null, progress = 0, animation = 0;
   const stop = () => {
     cancelAnimationFrame(animation); animation = 0;
     play.dataset.playing = 'false'; play.setAttribute('aria-label', labels.play); play.title = labels.play;
@@ -32,10 +30,10 @@ if (room) {
     assembly.setAttribute('aria-valuetext', `${Math.round(value * 100)}%`);
     assembly.style.setProperty('--assembly-progress', `${value * 100}%`);
     room.querySelector('.assembly-percent')!.textContent = `${Math.round(value * 100)}%`;
-    scene?.update(state, progress, drawing);
+    scene?.update(state, progress);
   };
   const update = () => {
-    if (scene) scene.update(state, progress, drawing);
+    if (scene) scene.update(state, progress);
     else canvas.querySelector('.study-fallback')!.innerHTML = studySvg(state, lang);
     const measure = studyMeasure(state.width, state.inches, lang);
     output.value = measure.replace(/\s(?:cm|in)$/, ''); output.setAttribute('aria-label', measure);
@@ -49,30 +47,18 @@ if (room) {
   room.querySelector<HTMLSelectElement>('#study-units')!.addEventListener('change', event => {
     state.inches = (event.target as HTMLSelectElement).value === 'in'; update();
   });
-  finishButtons.forEach(button => button.addEventListener('click', () => {
-    state.finish = button.dataset.finish as StudyFinish;
-    finishButtons.forEach(b => b.setAttribute('aria-pressed', String(b === button)));
-    finishName.textContent = button.getAttribute('aria-label');
-    update();
-  }));
   room.querySelectorAll<HTMLButtonElement>('button[data-shape]').forEach(button => button.addEventListener('click', () => {
     state.shape = button.dataset.shape as StudyShape;
     room.dataset.shape = state.shape;
     room.querySelectorAll('button[data-shape]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
     update();
   }));
-  room.querySelectorAll<HTMLButtonElement>('button[data-view]').forEach(button => button.addEventListener('click', () => {
-    room.dataset.view = button.dataset.view;
-    drawing = button.dataset.view === 'drawing';
-    room.querySelectorAll('button[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
-    scene?.update(state, progress, drawing);
-  }));
   assembly.addEventListener('input', () => { stop(); setAssembly(Number(assembly.value) / 100); });
   play.addEventListener('click', () => {
     if (animation) { stop(); return; }
     const from = progress < .98 ? progress : 0;
     setAssembly(from);
-    const began = performance.now(), duration = (1 - from) * 6500;
+    const began = performance.now(), duration = (1 - from) * 5200;
     play.dataset.playing = 'true'; play.setAttribute('aria-label', labels.pause); play.title = labels.pause;
     const frame = (now: number) => {
       const t = Math.min(1, (now - began) / duration); setAssembly(from + (1 - from) * t);
@@ -94,7 +80,7 @@ if (room) {
   void import('./assembly-scene').then(({ createAssemblyScene }) => {
     if (ended) return;
     scene = createAssemblyScene(canvas, `${labels.slider}. ${labels.rotate}.`, labels.unavailable);
-    scene.update(state, progress, drawing);
+    scene.update(state, progress);
     canvas.setAttribute('aria-busy', 'false');
     assembly.disabled = false; play.disabled = false;
     setAssembly(progress);

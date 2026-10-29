@@ -4,9 +4,6 @@
 .hero #fitting-room{min-width:0;width:100%;max-width:none}
 .study-topline{padding:4px 0 12px;gap:14px}
 .study-title{font-size:19px;font-weight:580;letter-spacing:-.55px;line-height:1.2}
-.study-topline .segmented{padding:4px;background:#eaece580;border-radius:999px}
-.study-topline .segmented button{min-height:36px;min-width:76px;padding:8px 14px;font-size:11px;font-weight:500}
-.study-topline .segmented button[aria-pressed=true]{background:#fffefa;box-shadow:0 1px 5px #292c2510}
 .assembly-stage{position:relative;isolation:isolate;overflow:visible;border:0;border-radius:0;background:transparent}
 .assembly-heading{position:absolute;bottom:12px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:7px;
   z-index:2;pointer-events:none;font-size:10px;color:#969b8e;transition:opacity .2s}
@@ -14,8 +11,6 @@
 .fitting-room .study-canvas{position:relative;width:100%;height:470px;margin:0;overflow:hidden}
 .assembly-webgl{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y;transition:opacity .35s}
 .assembly-webgl.is-dragging{cursor:grabbing}
-.fitting-room[data-view=material] .assembly-webgl{
-  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 92%,transparent)}
 .study-fallback{position:absolute;inset:0;display:grid;place-items:center;opacity:.4;transition:opacity .3s}
 .study-fallback svg{width:100%;height:100%;object-fit:contain}
 .study-canvas[aria-busy=true] .study-fallback{opacity:0}
@@ -46,13 +41,7 @@
 .study-shapes button{min-height:40px;padding:8px 10px;border:0;border-radius:9px;font-size:12px;line-height:1.3;
   color:#7b8271;white-space:normal;transition:background .2s,color .2s,box-shadow .2s}
 .study-shapes button[aria-pressed=true]{background:#fffefa;color:#303b29;border:0;box-shadow:0 1px 5px #292c2510}
-.study-controls{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:0;padding:22px 0;border:0;align-items:center}
-.finish-control{grid-column:auto}.finish-control legend{font-size:11px;color:#868d7d;margin-bottom:13px}
-.swatch{width:32px;height:32px;border-width:5px;outline-color:transparent;transition:outline-color .15s}
-.swatch[aria-pressed=true]{outline-color:#929e84}
-.swatch-oak{background:repeating-linear-gradient(92deg,#b9996f 0,#c8ab81 2px,#cdb18b 4px,#c0a07a 7px)}
-.swatch-smoked{background:repeating-linear-gradient(92deg,#645142 0,#806b55 3px,#75624e 5px,#645142 7px)}
-.swatches{gap:8px}.swatches span{font-size:11px;margin-left:6px;color:#606b55}
+.study-controls{display:grid;grid-template-columns:1fr;gap:0;margin-top:0;padding:22px 0;border:0;align-items:center}
 .width-control{width:100%;min-width:0}.width-top{align-items:center;gap:10px;margin-bottom:8px}
 .width-top label{margin:0;font-size:11px;color:#868d7d}.width-value{display:flex;align-items:center;gap:3px}
 .width-top output{font-family:inherit;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
@@ -88,22 +77,19 @@
 @media(min-width:1600px){.hero{padding-inline:64px}.fitting-room .study-canvas{height:510px}}
 @media(max-width:1150px) and (min-width:801px){.hero{grid-template-columns:minmax(250px,.7fr) minmax(0,1.3fr);gap:30px;padding-inline:4%}
   .hero h1{font-size:47px;letter-spacing:-2.7px}.hero-intro{font-size:15px}.fitting-room .study-canvas{height:410px}
-  .study-title{font-size:18px}.study-controls{gap:16px}.swatches{gap:5px}.swatches span{font-size:10px}}
+  .study-title{font-size:18px}}
 @media(max-width:800px){.hero{grid-template-columns:1fr;gap:36px;padding:50px 6% 55px}.hero-copy{padding:0;max-width:590px}
   .hero h1{font-size:clamp(41px,7.5vw,59px);letter-spacing:-2.6px}.hero-intro{max-width:440px;font-size:16px}
   .hero #fitting-room{max-width:640px}.fitting-room .study-canvas{height:420px}.study-topline{padding-top:0}
-  .assembly-play{width:44px;height:44px}#study-assembly{height:44px}.assembly-reset{width:40px;height:44px}.study-controls{gap:22px}
-  .swatch{width:40px;height:40px;border-width:8px}.swatches span{font-size:12px}}
+  .assembly-play{width:44px;height:44px}#study-assembly{height:44px}.assembly-reset{width:40px;height:44px}}
 @media(max-width:500px){.hero{padding:36px 22px 45px;gap:30px}.hero h1{font-size:42px;letter-spacing:-2.4px;margin:22px 0}
-  .hero-intro{font-size:15px}.study-title{font-size:18px}.study-topline .segmented button{min-width:65px;min-height:40px;padding:9px 11px}
+  .hero-intro{font-size:15px}.study-title{font-size:18px}
   .fitting-room .study-canvas,.guide-content .fitting-room .study-canvas{height:360px}
   .assembly-heading{bottom:10px;font-size:10px}.assembly-footer{width:300px;padding-top:10px}
   .assembly-stage-caption{font-size:11px}.assembly-controls{gap:9px;margin-top:7px}
   .study-bottomline{padding-top:22px}.study-shapes button{min-height:44px;font-size:11px;padding-inline:6px}
   .study-controls{grid-template-columns:1fr;gap:0;padding:6px 0 15px}
-  .finish-control{grid-column:auto;padding:18px 0;border-bottom:1px solid #deded580}
-  .finish-control legend{padding-top:16px;margin-bottom:10px}.swatches{gap:8px}.swatches span{margin-left:auto;font-size:12px}
-  .swatch{width:44px;height:44px;border-width:10px}.width-control{padding-top:12px}.width-top label{font-size:11px}
+  .width-control{padding-top:12px}.width-top label{font-size:11px}
   .width-top output{font-size:15px}.unit-control select{min-height:36px;font-size:12px}#study-width{height:36px}
   .study-handoff{padding-top:0}.study-handoff>.text-link{font-size:12px;padding:16px 18px}.study-handoff p{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.assembly-webgl,.study-fallback{transition:none}}

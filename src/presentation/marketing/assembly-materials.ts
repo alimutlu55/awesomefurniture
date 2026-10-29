@@ -1,50 +1,13 @@
 import * as THREE from 'three';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import oakNormal from '../viewport/textures/oak_veneer_02_nor_gl.webp';
-import oakRoughness from '../viewport/textures/oak_veneer_02_rough.webp';
-import type { StudyFinish } from './study';
 import type { AssemblyPart } from './assembly-model';
 
-export function assemblyMaterials(renderer: THREE.WebGLRenderer, changed: () => void) {
-  const textures: THREE.Texture[] = [], loader = new THREE.TextureLoader();
-  const load = (url: string, color = false) => {
-    const texture = loader.load(url, changed, undefined, changed);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    if (color) texture.encoding = THREE.sRGBEncoding;
-    textures.push(texture); return texture;
-  };
-  const wood = new THREE.MeshStandardMaterial({ map: load('/textures/decors/egger-h1318-st10.webp', true), normalMap: load(oakNormal),
-    roughnessMap: load(oakRoughness), normalScale: new THREE.Vector2(.12, .12), roughness: .8, envMapIntensity: .4 });
-  const metal = new THREE.MeshStandardMaterial({ color: '#a6aaa7', metalness: .95, roughness: .24, envMapIntensity: 1.4 });
-  const dark = new THREE.MeshStandardMaterial({ color: '#383a34', metalness: .72, roughness: .34 });
+export function assemblyMaterials() {
   const line = new THREE.LineBasicMaterial({ color: new THREE.Color('#43544b').convertSRGBToLinear(), toneMapped: false });
   const paper = new THREE.MeshBasicMaterial({ color: new THREE.Color('#fbfcf8').convertSRGBToLinear(),
     polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, toneMapped: false });
   const ink = new THREE.MeshBasicMaterial({ color: new THREE.Color('#59685e').convertSRGBToLinear(), toneMapped: false });
-  const generator = new THREE.PMREMGenerator(renderer), room = new RoomEnvironment();
-  const environment = generator.fromScene(room, .04);
-  room.traverse(object => {
-    if (object instanceof THREE.Mesh) { object.geometry.dispose();
-      for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.dispose(); }
-  });
-  generator.dispose();
-  let previousFinish = '';
-  return {
-    wood, metal, dark, line, paper, ink, environment: environment.texture,
-    finish(finish: StudyFinish) {
-      if (previousFinish === finish) return;
-      previousFinish = finish;
-      wood.color.set(finish === 'smoked' ? '#8b7564' : finish === 'chalk' ? '#e6e4dc' : '#ebe5d9').convertSRGBToLinear();
-      wood.map = finish === 'chalk' ? null : textures[0]!;
-      wood.normalScale.setScalar(finish === 'chalk' ? .025 : .12);
-      wood.roughness = finish === 'chalk' ? .92 : .8;
-      wood.needsUpdate = true;
-    },
-    dispose() { for (const texture of textures) texture.dispose();
-      wood.dispose(); metal.dispose(); dark.dispose(); line.dispose(); paper.dispose(); ink.dispose(); environment.dispose(); },
-  };
+  return { line, paper, ink, dispose() { line.dispose(); paper.dispose(); ink.dispose(); } };
 }
 
 /** Metre-scaled grain follows the long axis of each board, including its thin finished edges. */

@@ -54,16 +54,11 @@ try {
   await page.locator('button[data-shape="regular"]').click();
   await page.locator('#study-width').fill('240');
   await page.locator('#study-units').selectOption('cm');
-  const materials = [];
-  for (const finish of ['oak', 'smoked', 'chalk']) {
-    await page.locator(`button[data-finish="${finish}"]`).click();
-    materials.push(await page.locator('.assembly-stage').screenshot());
-  }
-  assert.notDeepEqual(materials[0], materials[1]); assert.notDeepEqual(materials[1], materials[2]);
-  await page.locator('button[data-view="drawing"]').click();
+  assert.equal(await page.locator('[data-finish], button[data-view], .finish-control').count(), 0);
+  assert.equal(await page.locator('.fitting-room').getAttribute('data-view'), 'drawing');
   assert.equal(await page.locator('#study-canvas').getAttribute('data-projection'), 'orthographic');
   await page.locator('.assembly-drawing').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('.assembly-drawing text').first().textContent(), '240 cm');
+  await page.waitForFunction(() => document.querySelector('.assembly-drawing text')?.textContent === '240 cm');
   await page.locator('#study-width').fill('320');
   await page.waitForFunction(() => document.querySelector('.assembly-drawing text')?.textContent === '320 cm');
   await page.locator('#study-units').selectOption('in');
@@ -77,30 +72,21 @@ try {
     assert.equal(await page.locator('.assembly-drawing text').count(), 2);
   }
   await page.locator('.assembly-stage').screenshot({ path: `${output}/04-drawing.png` });
-  await page.locator('button[data-view="material"]').click();
-  assert.equal(await page.locator('#study-canvas').getAttribute('data-projection'), 'perspective');
-  await page.locator('.assembly-drawing').waitFor({ state: 'hidden' });
-  await page.locator('button[data-finish="oak"]').click();
-  checks.push('Drawing uses orthographic linework and live dimensions in cm/in for every shape; material rendering restores correctly');
+  checks.push('Drawing is the only view, with no material controls; live dimensions work in cm/in for every shape');
 
-  // Regression: reaching 100% used to schedule a different, blurry shadow pipeline after 220 ms.
+  // The finished drawing must stay identical after playback settles.
   await page.locator('button[data-shape="under-stairs"]').click();
-  for (const view of ['material', 'drawing']) {
-    await page.locator(`button[data-view="${view}"]`).click();
-    await slider.fill('100');
-    const rendered = await page.evaluate(() => new Promise(resolve => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve(window.assemblyDraws)));
-    }));
-    const finished = await page.locator('.assembly-webgl').screenshot();
-    await page.waitForTimeout(500);
-    assert.equal(await page.evaluate(() => window.assemblyDraws), rendered, `${view}: no deferred shading pass`);
-    assert.deepEqual(await page.locator('.assembly-webgl').screenshot(), finished, `${view}: the finished frame stays crisp`);
-    assert.equal(await page.locator('.fitting-room').getAttribute('data-view'), view);
-    await page.locator('.assembly-stage').screenshot({ path: `${output}/finished-${view}.png` });
-  }
-  await page.locator('button[data-view="material"]').click();
+  await slider.fill('100');
+  const rendered = await page.evaluate(() => new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve(window.assemblyDraws)));
+  }));
+  const finished = await page.locator('.assembly-webgl').screenshot();
+  await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => window.assemblyDraws), rendered, 'no deferred shading pass');
+  assert.deepEqual(await page.locator('.assembly-webgl').screenshot(), finished, 'the finished frame stays crisp');
+  await page.locator('.assembly-stage').screenshot({ path: `${output}/finished-drawing.png` });
   await page.locator('button[data-shape="regular"]').click();
-  checks.push('The completed material and drawing views stay identical after settling; no delayed blurry shadows');
+  checks.push('The completed drawing stays crisp after settling with no deferred rendering');
 
   await page.waitForTimeout(300);
   const still = await page.evaluate(() => window.assemblyDraws);
@@ -155,10 +141,8 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`);
     await page.locator('.assembly-stage').scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/mobile-${width}.png` });
-    await page.locator('button[data-view="drawing"]').click();
     await slider.fill('100');
     await page.locator('.assembly-stage').screenshot({ path: `${output}/drawing-mobile-${width}.png` });
-    await page.locator('button[data-view="material"]').click();
   }
   checks.push('No horizontal overflow at 320, 390 or 768 pixels');
 
