@@ -16,14 +16,15 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 export function assemblyPose(part: AssemblyPart, index: number, progress: number): AssemblyPose {
   if (progress >= 1) return { position: part.position, rotation: part.rotation };
   const unfold = ease(progress / .48);
-  const start = part.position[1] < .13 ? .48 : part.kind === 'back' ? .53 : part.kind === 'drawer' ? .77
-    : part.kind === 'rail' ? .7 : part.size[1] > .5 ? .55 : part.position[1] > 2.3 ? .74 : .63;
+  const start = part.position[1] < .13 ? .3 : part.kind === 'back' ? .35 : part.kind === 'drawer' ? .59
+    : part.kind === 'rail' ? .52 : part.size[1] > .5 ? .37 : part.position[1] > 2.3 ? .56 : .45;
   const join = ease((progress - start) / (1 - start));
   const spread = part.position.map((v, axis) => v + part.spread[axis]!) as unknown as Triple;
   // The longest dimension lies horizontally in every stack.
   const flatRotation: Triple = part.size[0] < part.size[1] && part.size[0] < part.size[2] ? [0, 0, Math.PI / 2]
     : part.size[2] < part.size[1] ? [-Math.PI / 2, 0, 0] : [0, 0, 0];
   const flat: Triple = part.flatPosition ?? [0, .035 + index * .026, 0];
+  // Joining overlaps the lift, so the exploded construction stays readable without a mid-animation hold.
   const position = part.position.map((v, axis) => mix(mix(flat[axis]!, spread[axis]!, unfold), v, join));
   const rotation = part.rotation.map((v, axis) => mix(flatRotation[axis]!, v, unfold)) as unknown as Triple;
   // A long board lifts before it turns upright; its corners never travel through the floor.
@@ -35,6 +36,33 @@ export function assemblyPose(part: AssemblyPart, index: number, progress: number
   const lowest = Math.min(...outline.map(([x, y]) => a * x! + b * y! - Math.abs(c) * part.size[2] / 2));
   position[1] = Math.max(position[1]!, -lowest + .002 * (1 - join));
   return { position: position as unknown as Triple, rotation };
+}
+
+/** Equal travel per unit of playback time, with a short acceleration and deceleration at the endpoints. */
+export function assemblyTimeline(parts: readonly AssemblyPart[]): (progress: number) => number {
+  const samples = 200, distances = [0];
+  let previous = parts.map((part, index) => assemblyPose(part, index, 0));
+  for (let n = 1; n <= samples; n++) {
+    const next = parts.map((part, index) => assemblyPose(part, index, n / samples));
+    const travel = next.reduce((sum, pose, index) => {
+      const from = previous[index]!;
+      return sum + Math.hypot(...pose.position.map((v, axis) => v - from.position[axis]!))
+        + Math.hypot(...pose.rotation.map((v, axis) => v - from.rotation[axis]!));
+    }, 0);
+    distances.push(distances[n - 1]! + travel); previous = next;
+  }
+  return progress => {
+    if (progress <= 0 || progress >= 1) return Math.max(0, Math.min(1, progress));
+    const distance = progress < .1 ? progress ** 2 / .18
+      : progress > .9 ? 1 - (1 - progress) ** 2 / .18 : (progress - .05) / .9;
+    const target = distance * distances[samples]!;
+    let low = 0, high = samples;
+    while (high - low > 1) {
+      const mid = (low + high) >> 1;
+      if (distances[mid]! < target) low = mid; else high = mid;
+    }
+    return (low + (target - distances[low]!) / (distances[high]! - distances[low]! || 1)) / samples;
+  };
 }
 
 /** This is a visual construction study; manufacturing geometry remains owned by the editor. Units: metres. */

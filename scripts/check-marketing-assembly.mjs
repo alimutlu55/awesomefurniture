@@ -123,6 +123,16 @@ try {
   await slider.fill('50');
   checks.push('Playback replays from the floor, resumes from a scrubbed position and yields to scrubbing; idle rendering stops');
 
+  await slider.fill('0');
+  await page.locator('.assembly-play').click();
+  await page.waitForFunction(() => Number(document.querySelector('#study-assembly').value) >= 55);
+  assert.equal(await page.locator('.assembly-play').getAttribute('data-playing'), 'true');
+  await page.waitForFunction(() => document.querySelector('#study-assembly').value === '100'
+    && document.querySelector('.assembly-play').dataset.playing === 'false');
+  assert.equal(await page.locator('.assembly-play').getAttribute('data-playing'), 'false');
+  checks.push('Uninterrupted playback passes 55% and completes at 100%');
+  await slider.fill('50');
+
   const canvas = page.locator('.assembly-webgl');
   const beforeRotation = await canvas.screenshot();
   await canvas.focus(); await canvas.press('ArrowRight');

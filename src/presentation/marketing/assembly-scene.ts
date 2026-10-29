@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { assemblyParts, assemblyPose } from './assembly-model';
+import { assemblyParts, assemblyPose, assemblyTimeline } from './assembly-model';
 import { assemblyMaterials, panelGeometry } from './assembly-materials';
 import { drawingEdges, assemblyDimensions } from './assembly-drawing';
 import type { StudyState } from './study';
@@ -27,6 +27,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   let pending = 0, disposed = false, visible = true, lost = false, yaw = .43, pitch = .21, progress = 0;
   let width = 240, shape = '', drawing = false;
   let parts = assemblyParts(width, 'regular');
+  let timeline = assemblyTimeline(parts);
   const bounds = new THREE.Box3(), center = new THREE.Vector3(), direction = new THREE.Vector3();
   const right = new THREE.Vector3(), cameraUp = new THREE.Vector3(), corner = new THREE.Vector3();
   const geometries = new Set<THREE.BufferGeometry>();
@@ -75,6 +76,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   function rebuild() {
     for (const geometry of geometries) geometry.dispose(); geometries.clear(); object.clear();
     parts = assemblyParts(width, shape as StudyState['shape']);
+    timeline = assemblyTimeline(parts);
     for (const part of parts) {
       const group = new THREE.Group();
       const geometry = part.kind === 'rail' ? new THREE.CylinderGeometry(.009, .009, part.size[0], 20) : panelGeometry(part);
@@ -102,12 +104,13 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   function render() {
     pending = 0; if (disposed || !visible || lost) return;
     const camera = drawing ? orthographic : perspective;
+    const motion = timeline(progress);
     parts.forEach((part, i) => {
-      const group = object.children[i]!, pose = assemblyPose(part, i, progress);
+      const group = object.children[i]!, pose = assemblyPose(part, i, motion);
       group.position.set(...pose.position); group.rotation.set(...pose.rotation);
       group.getObjectByName('drawing')!.visible = drawing;
     });
-    const flat = 1 - Math.min(1, progress / .48);
+    const flat = (1 - Math.min(1, motion / .48)) ** 2;
     const elevation = pitch + .13 + flat * .44;
     direction.set(Math.sin(yaw) * Math.cos(elevation), Math.sin(elevation), Math.cos(yaw) * Math.cos(elevation));
     right.set(Math.cos(yaw), 0, -Math.sin(yaw)); cameraUp.crossVectors(direction, right);
