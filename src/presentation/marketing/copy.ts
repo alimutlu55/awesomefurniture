@@ -6,7 +6,7 @@ export interface MarketingCopy {
   nav: [string, string, string];
   start: string;
   eyebrow: string;
-  headline: [string, string];
+  headline: [string, string, string];
   intro: string;
   explore: string;
   note: string;
@@ -40,30 +40,39 @@ export interface MarketingCopy {
 export const english: MarketingCopy = {
   lang: 'en', name: 'English',
   title: 'FurniDraw — Online Furniture Designer for Wardrobes & Kitchens',
-  description: 'Make room for your ideas. Design fitted wardrobes and kitchen cabinets in 3D, explore AI visualisations and create dimensioned technical drawings with FurniDraw.',
+  description: "Design it. Engineer it. Build it. Plan your room and furniture in one 3D studio, then create dimensioned drawings and parts lists with FurniDraw.",
   nav: ['The experience', 'The details', 'Field notes'], start: 'Open the studio',
-  eyebrow: 'FURNITURE DESIGN, CONSIDERED.',
-  headline: ['An idea. A perfect fit.', 'Something you made.'],
-  intro: 'That awkward corner. That room you keep imagining. Turn it into furniture that belongs, down to the last millimetre.',
+  eyebrow: "YOUR FURNITURE. FROM IDEA TO BUILD.",
+  headline: ["Design it.", "Engineer it.", "Build it."],
+  intro: "See what fits your space, work out how it goes together, and create clear plans to build from—all in one 3D studio.",
   explore: 'Make it yours', note: 'Design in your browser. No account needed to begin.',
   study: 'THE FITTING ROOM / STUDY 001', views: ['Material', 'Drawing'],
   shapes: ['Wardrobe', 'Alcove', 'Under stairs'], width: 'Width',
   finishes: ['Natural oak', 'Smoked oak', 'Chalk'], finish: 'Material study',
   dimensionCta: 'Start with these dimensions',
   illustration: 'An interactive illustration. Your dimensions carry into the studio; choose fittings and finishes there.',
-  statement: ['Good furniture starts', 'with a little thought.'],
-  statementBody: 'A place for the things you own. A shape that follows your room. And a clear plan for the person who will make it.',
+  statement: ["One studio.", "From first idea to the build."],
+  statementBody: "Keep your room, furniture and construction details in one project. Explore the design, work through the technical decisions, and take clear information into the workshop.",
   steps: [
-    ['Find the fit.', 'Start with your room. Shape a fitted wardrobe around a recess, a sloping ceiling or the space under your stairs.'],
-    ['Feel the finish.', 'Explore materials in 3D. When you are ready, create an AI image to imagine the design in a finished room.'],
-    ['Make it tangible.', 'Take the idea into technical drawings: dimensions, elevations, parts and hardware, ready for a conversation with your maker.'],
+    [
+      "Design it.",
+      "Plan your room and furniture together in 3D. Explore layouts and finishes, then use an AI image to picture your design in a finished room."
+    ],
+    [
+      "Engineer it.",
+      "Refine dimensions, materials and fittings. Work through the construction and review how the parts fit together before anything is cut."
+    ],
+    [
+      "Build it.",
+      "Create dimensioned drawings, cutting lists and hardware schedules. Build it yourself or give your furniture maker a clear plan to work from."
+    ],
   ],
-  detail: ['ROOM FOR THE DETAILS', 'Beautiful on the outside.', 'Thought through on the inside.'],
+  detail: ["THE DETAILS THAT MAKE IT WORK", "Designed for your space.", "Engineered for the build."],
   imageAlt: 'Warm oak fitted wardrobe with open shelves, hanging storage and drawers in a sunlit interior',
   imageCaption: 'An interior inspiration study. AI visualisations are illustrative; technical drawings describe your design.',
-  materials: 'Start with the way you live. Refine the shelves, rails, drawers and doors. Bring a wardrobe or kitchen cabinet into your room, and work through the details at your own pace.',
-  resourceTitle: 'A little know-how. A better beginning.',
-  resourceIntro: 'Practical notes on fitted furniture, thoughtful storage and the drawings that bring an idea closer to making.',
+  materials: "Make the storage work for you, from shelves and hanging space to drawers and doors. Then refine the dimensions, panel materials and fittings, with your room and furniture in the same 3D studio.",
+  resourceTitle: "A clearer plan. A better build.",
+  resourceIntro: "Practical guides for planning your room, designing fitted furniture and understanding the drawings and parts behind the build.",
   resourceLink: 'Explore the guide', questions: 'Before you begin.',
   faqs: [
     ['What can I design with FurniDraw?', 'Fitted wardrobes, shaped storage and modular kitchen cabinets. The studio includes rooms, materials, fittings and technical drawings. The automatic starting examples here create wardrobes.'],
@@ -76,6 +85,6 @@ export const english: MarketingCopy = {
     ['Can I use FurniDraw in my country?', "FurniDraw is a browser-based tool. These introduction pages are available in several languages, and you can choose "
       + "centimetres or inches in this preview. The full studio currently uses English and centimetres."],
   ],
-  closing: ['Your space. Your ideas.', 'Let’s make room for them.'],
+  closing: ["Design it. Engineer it.", "Build it."],
   language: 'Language', editorLanguage: 'Studio in English · dimensions in cm', skip: 'Skip to content', units: 'Units',
 };

@@ -15,7 +15,7 @@ test('international public pages contain their complete content before JavaScrip
     assert.ok(html.includes(`<html lang="${copy.lang}"`));
     assert.ok(html.includes(`<link rel="canonical" href="https://furnidraw.com${path}">`));
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-    assert.ok(html.includes(copy.lang === 'fr' ? 'Une idée.' : copy.headline[0].split('.')[0]!));
+    for (const line of copy.headline) assert.ok(html.includes(line));
     for (const other of languages) assert.ok(html.includes(`hreflang="${other.lang}" href="https://furnidraw.com${homePath(other.lang)}"`));
     assert.ok(html.includes('hreflang="x-default"'));
     const title = html.match(/<title>(.*?)<\/title>/)![1]!;

@@ -92,7 +92,7 @@ export function homeBody(c: MarketingCopy): string {
   return `${header(c)}<main id="main">
     <section class="hero section-wrap" aria-labelledby="hero-title"><div class="hero-copy">
       <p class="eyebrow">${e(c.eyebrow)}</p>
-      <h1 id="hero-title">${e(c.headline[0])}<br><span>${e(c.headline[1])}</span></h1>
+      <h1 id="hero-title">${c.headline.map((line, i) => i === 2 ? `<span>${e(line)}</span>` : e(line)).join('<br>')}</h1>
       <p class="hero-intro">${e(c.intro)}</p>
       <a class="button" href="#fitting-room">${e(c.explore)} <span aria-hidden="true">↓</span></a>
       <p class="quiet hero-note">${e(c.note)}</p>

@@ -2,26 +2,35 @@ import { english, type MarketingCopy } from './copy';
 
 const german: MarketingCopy = {
   lang: 'de', name: 'Deutsch', title: 'FurniDraw — Möbel online planen: Schränke & Küchen',
-  description: 'Planen Sie Einbauschränke und Küchenschränke in 3D. Entdecken Sie Materialien, KI-Visualisierungen und bemaßte technische Zeichnungen mit FurniDraw.',
-  nav: ['Das Erlebnis', 'Die Details', 'Planungswissen'], start: 'Studio öffnen', eyebrow: 'MÖBELPLANUNG MIT GEFÜHL.',
-  headline: ['Eine Idee. Passt genau.', 'Von Ihnen gestaltet.'],
-  intro: 'Die schwierige Ecke. Der Raum in Ihrer Vorstellung. Machen Sie daraus Möbel, die dazugehören. Bis ins letzte Detail.',
+  description: "Gestalten. Konstruieren. Bauen. Planen Sie Raum und Möbel in einem 3D-Studio und erstellen Sie bemaßte Zeichnungen und Teilelisten mit FurniDraw.",
+  nav: ['Das Erlebnis', 'Die Details', 'Planungswissen'], start: 'Studio öffnen', eyebrow: "IHRE MÖBEL. VON DER IDEE BIS ZUM BAU.",
+  headline: ["Gestalten.", "Konstruieren.", "Bauen."],
+  intro: "Sehen Sie, was in Ihren Raum passt, arbeiten Sie die Konstruktion aus und erstellen Sie klare Pläne für den Bau. Alles in einem 3D-Studio.",
   explore: 'Selbst gestalten', note: 'Direkt im Browser. Zum Start ist kein Konto nötig.',
   study: 'DER PLANUNGSRAUM / STUDIE 001', views: ['Material', 'Zeichnung'], shapes: ['Schrank', 'Nische', 'Unter der Treppe'], width: 'Breite',
   finishes: ['Eiche natur', 'Räuchereiche', 'Kreideweiß'], finish: 'Materialstudie', dimensionCta: 'Mit diesen Maßen beginnen',
   illustration: 'Eine interaktive Illustration. Die Maße werden ins Studio übernommen; Innenaufteilung und Oberflächen wählen Sie dort.',
-  statement: ['Gute Möbel beginnen', 'mit einem guten Gedanken.'],
-  statementBody: 'Ein Platz für Ihre Dinge. Eine Form, die zum Raum passt. Und ein verständlicher Plan für die Menschen, die Ihre Möbel bauen.',
+  statement: ["Ein Studio.", "Von der ersten Idee bis zum Bau."],
+  statementBody: "Planen Sie Raum, Möbel und Konstruktionsdetails in einem Projekt. Entdecken Sie Möglichkeiten, klären Sie technische Fragen und nehmen Sie klare Unterlagen mit in die Werkstatt.",
   steps: [
-    ['Die passende Form.', 'Beginnen Sie mit Ihrem Raum. Planen Sie einen Einbauschrank für eine Nische, eine Dachschräge oder unter einer Treppe.'],
-    ['Das richtige Gefühl.', 'Entdecken Sie Materialien in 3D. Mit einem KI-Bild können Sie sich Ihren Entwurf später in einem fertigen Raum vorstellen.'],
-    ['Ein konkreter Plan.', 'Entwickeln Sie aus Ihrer Idee bemaßte Zeichnungen, Ansichten, Teile- und Beschlaglisten für das Gespräch mit Ihrer Tischlerei.'],
+    [
+      "Gestalten.",
+      "Planen Sie Raum und Möbel gemeinsam in 3D. Probieren Sie Aufteilungen und Oberflächen aus und stellen Sie sich den fertigen Raum mit einem KI-Bild vor."
+    ],
+    [
+      "Konstruieren.",
+      "Verfeinern Sie Maße, Materialien und Beschläge. Arbeiten Sie die Konstruktion aus und prüfen Sie, wie die Teile zusammenpassen, bevor etwas zugeschnitten wird."
+    ],
+    [
+      "Bauen.",
+      "Erstellen Sie bemaßte Zeichnungen, Zuschnitt- und Beschlaglisten. Bauen Sie selbst oder geben Sie Ihrer Tischlerei einen klaren Plan."
+    ],
   ],
-  detail: ['RAUM FÜR DETAILS', 'Außen schön.', 'Innen durchdacht.'],
+  detail: ["DETAILS FÜR DIE UMSETZUNG", "Für Ihren Raum gestaltet.", "Für den Bau durchdacht."],
   imageAlt: 'Einbauschrank aus warmer Eiche mit offenen Regalen, Kleiderstangen und Schubladen in einem sonnigen Raum',
   imageCaption: 'Eine Wohninspiration. KI-Bilder dienen der Veranschaulichung; technische Zeichnungen beschreiben Ihren Entwurf.',
-  materials: 'Beginnen Sie mit Ihrem Alltag. Verfeinern Sie Regale, Stangen, Schubladen und Türen. Planen Sie Schränke und Küchenmodule in Ihrem eigenen Tempo.',
-  resourceTitle: 'Ein wenig Wissen. Ein besserer Anfang.', resourceIntro: 'Praktische Hinweise zu Einbaumöbeln, Stauraum und technischen Zeichnungen. Die ausführlichen Anleitungen sind auf Englisch.',
+  materials: "Gestalten Sie Stauraum für Ihren Alltag, mit Böden, Kleiderstangen, Schubladen und Türen. Verfeinern Sie danach Maße, Plattenmaterialien und Beschläge im selben 3D-Studio.",
+  resourceTitle: "Ein klarer Plan. Ein besseres Ergebnis.", resourceIntro: "Praktische Hinweise zur Raumplanung, zu Einbaumöbeln und zu den Zeichnungen und Teilen für den Bau. Die ausführlichen Anleitungen sind auf Englisch.",
   resourceLink: 'Anleitung lesen', questions: 'Bevor Sie beginnen.',
   faqs: [
     ['Was kann ich mit FurniDraw planen?', "Einbauschränke, geformten Stauraum und modulare Küchenschränke. Das Studio bietet Räume, Materialien, Innenausstattung "
@@ -33,32 +42,41 @@ const german: MarketingCopy = {
     ['Kann ich FurniDraw in meinem Land nutzen?', "FurniDraw funktioniert im Browser. Die Einführung gibt es in mehreren Sprachen. Diese Vorschau bietet Zentimeter und "
       + "Zoll; das vollständige Studio verwendet derzeit Englisch und Zentimeter."],
   ],
-  closing: ['Ihr Raum. Ihre Ideen.', 'Geben wir ihnen einen Platz.'], language: 'Sprache',
+  closing: ["Gestalten. Konstruieren.", "Bauen."], language: 'Sprache',
   editorLanguage: 'Studio auf Englisch · Maße in cm', skip: 'Zum Inhalt springen', units: 'Einheiten',
 };
 
 const french: MarketingCopy = {
   lang: 'fr', name: 'Français', title: 'FurniDraw — Concevez vos meubles et placards en ligne',
-  description: 'Concevez des placards sur mesure et des meubles de cuisine en 3D. Explorez les matières, les visualisations IA et les plans cotés avec FurniDraw.',
-  nav: ['L’expérience', 'Les détails', 'Carnet de conception'], start: 'Ouvrir le studio', eyebrow: 'LE MEUBLE, PENSÉ AVEC SOIN.',
-  headline: ['Une idée. La juste place.', 'Votre création.'],
-  intro: 'Ce recoin difficile. Cette pièce que vous imaginez. Faites-en un meuble qui trouve naturellement sa place, jusque dans les moindres détails.',
+  description: "Imaginez. Concevez. Fabriquez. Planifiez votre pièce et vos meubles dans un studio 3D, puis créez des plans cotés et des listes de pièces avec FurniDraw.",
+  nav: ['L’expérience', 'Les détails', 'Carnet de conception'], start: 'Ouvrir le studio', eyebrow: "VOS MEUBLES. DE L’IDÉE À LA FABRICATION.",
+  headline: ["Imaginez.", "Concevez.", "Fabriquez."],
+  intro: "Voyez ce qui convient à votre espace, précisez l’assemblage et créez des plans clairs pour la fabrication. Tout cela dans un seul studio 3D.",
   explore: 'À vous de créer', note: 'Dans votre navigateur. Aucun compte requis pour commencer.',
   study: 'L’ATELIER / ÉTUDE 001', views: ['Matière', 'Dessin'], shapes: ['Placard', 'Alcôve', 'Sous l’escalier'], width: 'Largeur',
   finishes: ['Chêne naturel', 'Chêne fumé', 'Blanc craie'], finish: 'Étude de matière', dimensionCta: 'Commencer avec ces dimensions',
   illustration: 'Une illustration interactive. Vos dimensions passent dans le studio ; choisissez ensuite les aménagements et les finitions.',
-  statement: ['Un beau meuble commence', 'par une intention.'],
-  statementBody: 'Une place pour vos affaires. Une forme qui épouse votre pièce. Et un plan clair pour la personne qui le fabriquera.',
+  statement: ["Un seul studio.", "De la première idée à la fabrication."],
+  statementBody: "Réunissez la pièce, les meubles et les détails de construction dans un même projet. Explorez le design, précisez les choix techniques et préparez des documents clairs pour l’atelier.",
   steps: [
-    ['Trouver la juste forme.', 'Partez de votre pièce. Dessinez un placard pour une niche, un plafond incliné ou l’espace sous votre escalier.'],
-    ['Ressentir la matière.', 'Explorez les matières en 3D. Créez ensuite une image IA pour imaginer votre projet dans une pièce aménagée.'],
-    ['Donner corps à l’idée.', 'Obtenez des plans cotés, des élévations et des listes de pièces et de quincaillerie pour échanger avec votre artisan.'],
+    [
+      "Imaginez.",
+      "Dessinez votre pièce et vos meubles en 3D. Explorez les agencements et les finitions, puis créez une image IA pour imaginer votre projet dans une pièce aménagée."
+    ],
+    [
+      "Concevez.",
+      "Précisez les dimensions, les matériaux et la quincaillerie. Examinez la construction et la façon dont les pièces s’assemblent avant la découpe."
+    ],
+    [
+      "Fabriquez.",
+      "Créez des plans cotés et des listes de découpe et de quincaillerie. Fabriquez vous-même ou confiez un plan clair à votre artisan."
+    ],
   ],
-  detail: ['LA PLACE DU DÉTAIL', 'Beau à l’extérieur.', 'Réfléchi à l’intérieur.'],
+  detail: ["LES DÉTAILS QUI FONT LA DIFFÉRENCE", "Pensé pour votre espace.", "Conçu pour la fabrication."],
   imageAlt: 'Placard en chêne avec étagères ouvertes, penderies et tiroirs dans une pièce ensoleillée',
   imageCaption: 'Une inspiration d’intérieur. Les images IA illustrent une ambiance ; les plans techniques décrivent votre projet.',
-  materials: 'Commencez par votre quotidien. Ajustez les étagères, tringles, tiroirs et portes. Concevez un placard ou un meuble de cuisine à votre rythme.',
-  resourceTitle: 'Un peu de savoir-faire. Un meilleur départ.', resourceIntro: 'Des conseils pratiques sur les meubles sur mesure, le rangement et les plans. Les guides détaillés sont en anglais.',
+  materials: "Adaptez le rangement à vos besoins : étagères, penderies, tiroirs et portes. Affinez ensuite les dimensions, les panneaux et la quincaillerie dans le même studio 3D.",
+  resourceTitle: "Un plan plus clair. Une fabrication mieux préparée.", resourceIntro: "Des conseils pour concevoir votre pièce, vos meubles sur mesure et les plans utiles à leur fabrication. Les guides détaillés sont en anglais.",
   resourceLink: 'Lire le guide', questions: 'Avant de commencer.',
   faqs: [
     ['Que puis-je concevoir avec FurniDraw ?', "Des placards sur mesure, des rangements de forme adaptée et des meubles de cuisine modulaires. Le studio comprend "
@@ -71,32 +89,41 @@ const french: MarketingCopy = {
     ['Puis-je utiliser FurniDraw dans mon pays ?', "FurniDraw fonctionne dans votre navigateur. Cette présentation existe en plusieurs langues. L’aperçu propose centimètres "
       + "et pouces ; le studio complet utilise actuellement l’anglais et les centimètres."],
   ],
-  closing: ['Votre espace. Vos idées.', 'Faisons-leur une place.'], language: 'Langue',
+  closing: ["Imaginez. Concevez.", "Fabriquez."], language: 'Langue',
   editorLanguage: 'Studio en anglais · dimensions en cm', skip: 'Aller au contenu', units: 'Unités',
 };
 
 const spanish: MarketingCopy = {
   lang: 'es', name: 'Español', title: 'FurniDraw — Diseña muebles y armarios online en 3D',
-  description: 'Diseña armarios a medida y muebles de cocina en 3D. Explora materiales, visualizaciones con IA y planos acotados con FurniDraw.',
-  nav: ['La experiencia', 'Los detalles', 'Cuaderno de diseño'], start: 'Abrir el estudio', eyebrow: 'MUEBLES DISEÑADOS CON CUIDADO.',
-  headline: ['Una idea. El encaje perfecto.', 'Algo hecho por ti.'],
-  intro: 'Ese rincón difícil. Esa habitación que imaginas. Conviértelos en muebles que encuentran su lugar, hasta el último detalle.',
+  description: "Diseña. Detalla. Construye. Planifica tu habitación y tus muebles en un estudio 3D y crea planos acotados y listas de piezas con FurniDraw.",
+  nav: ['La experiencia', 'Los detalles', 'Cuaderno de diseño'], start: 'Abrir el estudio', eyebrow: "TUS MUEBLES. DE LA IDEA A LA CONSTRUCCIÓN.",
+  headline: ["Diseña.", "Detalla.", "Construye."],
+  intro: "Descubre qué encaja en tu espacio, define cómo se ensambla y crea planos claros para construirlo. Todo en un estudio 3D.",
   explore: 'Hazlo tuyo', note: 'En tu navegador. Sin cuenta para empezar.',
   study: 'EL ESTUDIO / PROYECTO 001', views: ['Material', 'Plano'], shapes: ['Armario', 'Hueco', 'Bajo la escalera'], width: 'Ancho',
   finishes: ['Roble natural', 'Roble ahumado', 'Blanco tiza'], finish: 'Estudio de materiales', dimensionCta: 'Empezar con estas medidas',
   illustration: 'Una ilustración interactiva. Las medidas pasan al estudio; allí eliges los interiores y los acabados.',
-  statement: ['Un buen mueble empieza', 'con una buena idea.'],
-  statementBody: 'Un lugar para tus cosas. Una forma que se adapta a tu espacio. Y un plan claro para quien lo fabricará.',
+  statement: ["Un solo estudio.", "De la primera idea a la construcción."],
+  statementBody: "Reúne la habitación, los muebles y los detalles de construcción en un proyecto. Explora el diseño, resuelve las decisiones técnicas y lleva información clara al taller.",
   steps: [
-    ['Encuentra el encaje.', 'Empieza por tu habitación. Diseña un armario para un hueco, un techo inclinado o el espacio bajo la escalera.'],
-    ['Siente el material.', 'Explora materiales en 3D. Después crea una imagen con IA para imaginar tu diseño en una habitación terminada.'],
-    ['Hazlo tangible.', 'Convierte la idea en planos acotados, alzados y listas de piezas y herrajes para hablar con tu carpintero.'],
+    [
+      "Diseña.",
+      "Planifica tu habitación y tus muebles en 3D. Prueba distribuciones y acabados, y usa una imagen con IA para imaginar tu diseño en una habitación terminada."
+    ],
+    [
+      "Detalla.",
+      "Ajusta las medidas, los materiales y los herrajes. Revisa la construcción y cómo encajan las piezas antes de cortar."
+    ],
+    [
+      "Construye.",
+      "Crea planos acotados y listas de corte y herrajes. Fabrica tus muebles o entrega a tu carpintero un plan claro."
+    ],
   ],
-  detail: ['ESPACIO PARA LOS DETALLES', 'Bello por fuera.', 'Bien pensado por dentro.'],
+  detail: ["LOS DETALLES QUE LO HACEN FUNCIONAR", "Diseñado para tu espacio.", "Preparado para construir."],
   imageAlt: 'Armario de roble cálido con estantes abiertos, barras y cajones en una habitación luminosa',
   imageCaption: 'Un estudio de inspiración. Las imágenes con IA son ilustrativas; los planos técnicos describen tu diseño.',
-  materials: 'Empieza por tu forma de vivir. Ajusta estantes, barras, cajones y puertas. Diseña armarios y muebles de cocina a tu ritmo.',
-  resourceTitle: 'Un poco de conocimiento. Un mejor comienzo.', resourceIntro: 'Consejos sobre muebles a medida, almacenamiento y planos. Las guías completas están en inglés.',
+  materials: "Adapta el almacenamiento a tus necesidades con estantes, barras, cajones y puertas. Después ajusta las medidas, los tableros y los herrajes en el mismo estudio 3D.",
+  resourceTitle: "Un plan más claro. Una mejor construcción.", resourceIntro: "Guías prácticas para planificar tu habitación, diseñar muebles a medida y entender los planos y las piezas. Las guías completas están en inglés.",
   resourceLink: 'Leer la guía', questions: 'Antes de empezar.',
   faqs: [
     ['¿Qué puedo diseñar con FurniDraw?', "Armarios a medida, almacenamiento con formas adaptadas y muebles de cocina modulares. El estudio incluye habitaciones, "
@@ -107,32 +134,41 @@ const spanish: MarketingCopy = {
       + "listas de corte muestran medidas finales; no incluyen planos de taladrado."],
     ['¿Puedo usar FurniDraw en mi país?', 'FurniDraw funciona en el navegador. Esta presentación está en varios idiomas. La vista previa ofrece centímetros y pulgadas; el estudio completo utiliza actualmente inglés y centímetros.'],
   ],
-  closing: ['Tu espacio. Tus ideas.', 'Hagámosles sitio.'], language: 'Idioma',
+  closing: ["Diseña. Detalla.", "Construye."], language: 'Idioma',
   editorLanguage: 'Estudio en inglés · medidas en cm', skip: 'Ir al contenido', units: 'Unidades',
 };
 
 const polish: MarketingCopy = {
   lang: 'pl', name: 'Polski', title: 'FurniDraw — Projektowanie mebli i szaf online w 3D',
-  description: 'Projektuj szafy na wymiar i szafki kuchenne w 3D. Odkrywaj materiały, wizualizacje AI i zwymiarowane rysunki techniczne z FurniDraw.',
-  nav: ['Jak to działa', 'Detale', 'Poradnik'], start: 'Otwórz studio', eyebrow: 'MEBLE PRZEMYŚLANE OD POCZĄTKU.',
-  headline: ['Pomysł. Idealne dopasowanie.', 'Coś Twojego.'],
-  intro: 'Ten trudny narożnik. Pokój, który sobie wyobrażasz. Zamień je w meble, które pasują do Twojego życia. Do ostatniego milimetra.',
+  description: "Zaprojektuj. Dopracuj. Zbuduj. Zaplanuj pokój i meble w jednym studiu 3D, a potem przygotuj zwymiarowane rysunki i listy części z FurniDraw.",
+  nav: ['Jak to działa', 'Detale', 'Poradnik'], start: 'Otwórz studio', eyebrow: "TWOJE MEBLE. OD POMYSŁU DO WYKONANIA.",
+  headline: ["Zaprojektuj.", "Dopracuj.", "Zbuduj."],
+  intro: "Zobacz, co pasuje do Twojej przestrzeni, dopracuj konstrukcję i przygotuj czytelne plany do wykonania mebli. Wszystko w jednym studiu 3D.",
   explore: 'Zaprojektuj po swojemu', note: 'W przeglądarce. Na początek nie potrzebujesz konta.',
   study: 'PRZYMIERZALNIA / STUDIUM 001', views: ['Materiał', 'Rysunek'], shapes: ['Szafa', 'Wnęka', 'Pod schodami'], width: 'Szerokość',
   finishes: ['Dąb naturalny', 'Dąb wędzony', 'Kredowa biel'], finish: 'Studium materiału', dimensionCta: 'Zacznij od tych wymiarów',
   illustration: 'Interaktywna ilustracja. Wymiary przeniosą się do studia; tam dobierzesz wyposażenie i wykończenia.',
-  statement: ['Dobre meble zaczynają się', 'od odrobiny namysłu.'],
-  statementBody: 'Miejsce na Twoje rzeczy. Kształt dopasowany do pokoju. I czytelny plan dla osoby, która wykona mebel.',
+  statement: ["Jedno studio.", "Od pierwszego pomysłu do wykonania."],
+  statementBody: "Planuj pomieszczenie, meble i szczegóły konstrukcji w jednym projekcie. Wypróbuj pomysły, dopracuj rozwiązania techniczne i przygotuj czytelne informacje do pracy w warsztacie.",
   steps: [
-    ['Znajdź dopasowanie.', 'Zacznij od pomieszczenia. Zaprojektuj szafę do wnęki, pod skosem lub pod schodami.'],
-    ['Poczuj materiał.', 'Odkrywaj materiały w 3D. Następnie stwórz obraz AI, aby wyobrazić sobie projekt w gotowym wnętrzu.'],
-    ['Nadaj pomysłowi formę.', 'Przejdź do rysunków z wymiarami, widoków oraz list elementów i okuć, które ułatwią rozmowę ze stolarzem.'],
+    [
+      "Zaprojektuj.",
+      "Zaplanuj pokój i meble w 3D. Wypróbuj układy i wykończenia, a potem stwórz obraz AI, aby zobaczyć swój pomysł w urządzonym wnętrzu."
+    ],
+    [
+      "Dopracuj.",
+      "Dopasuj wymiary, materiały i okucia. Sprawdź konstrukcję i sposób połączenia elementów, zanim zaczniesz je przycinać."
+    ],
+    [
+      "Zbuduj.",
+      "Przygotuj zwymiarowane rysunki, listy cięcia i zestawienia okuć. Wykonaj meble samodzielnie albo przekaż stolarzowi czytelny plan."
+    ],
   ],
-  detail: ['MIEJSCE NA DETALE', 'Piękne z zewnątrz.', 'Przemyślane od środka.'],
+  detail: ["SZCZEGÓŁY, KTÓRE MAJĄ ZNACZENIE", "Zaprojektowane do Twojej przestrzeni.", "Dopracowane do wykonania."],
   imageAlt: 'Szafa z ciepłego dębu z otwartymi półkami, drążkami i szufladami w słonecznym wnętrzu',
   imageCaption: 'Inspiracja wnętrzarska. Obrazy AI mają charakter poglądowy; rysunki techniczne opisują Twój projekt.',
-  materials: 'Zacznij od codzienności. Dopracuj półki, drążki, szuflady i drzwi. Projektuj szafy i szafki kuchenne we własnym tempie.',
-  resourceTitle: 'Trochę wiedzy. Lepszy początek.', resourceIntro: 'Praktyczne wskazówki o meblach na wymiar, przechowywaniu i rysunkach. Pełne poradniki są w języku angielskim.',
+  materials: "Dopasuj przechowywanie do swoich potrzeb: półki, drążki, szuflady i drzwi. Następnie dopracuj wymiary, materiały płyt i okucia w tym samym studiu 3D.",
+  resourceTitle: "Czytelniejszy plan. Lepsze wykonanie.", resourceIntro: "Praktyczne poradniki o planowaniu pomieszczeń, meblach na wymiar oraz rysunkach i częściach potrzebnych do wykonania. Pełne poradniki są po angielsku.",
   resourceLink: 'Przeczytaj poradnik', questions: 'Zanim zaczniesz.',
   faqs: [
     ['Co mogę zaprojektować w FurniDraw?', "Szafy na wymiar, zabudowy o niestandardowym kształcie i modułowe szafki kuchenne. Studio zawiera pomieszczenia, "
@@ -142,32 +178,41 @@ const polish: MarketingCopy = {
     ['Czy mogę wykonać mebel na podstawie rysunków?', 'Omów zwymiarowane rysunki ze stolarzem. Przed wykonaniem sprawdź pomiary, materiały, luzy i okucia. Listy cięcia podają wymiary gotowe; nie zawierają planów wierceń.'],
     ['Czy mogę korzystać z FurniDraw w moim kraju?', 'FurniDraw działa w przeglądarce. Wprowadzenie jest dostępne w kilku językach. Podgląd obsługuje centymetry i cale; pełne studio używa obecnie języka angielskiego i centymetrów.'],
   ],
-  closing: ['Twoja przestrzeń. Twoje pomysły.', 'Zróbmy dla nich miejsce.'], language: 'Język',
+  closing: ["Zaprojektuj. Dopracuj.", "Zbuduj."], language: 'Język',
   editorLanguage: 'Studio po angielsku · wymiary w cm', skip: 'Przejdź do treści', units: 'Jednostki',
 };
 
 const portuguese: MarketingCopy = {
   lang: 'pt', name: 'Português', title: 'FurniDraw — Projete móveis e armários online em 3D',
-  description: 'Crie armários sob medida e móveis de cozinha em 3D. Explore materiais, visualizações com IA e desenhos técnicos cotados com FurniDraw.',
-  nav: ['A experiência', 'Os detalhes', 'Caderno de projeto'], start: 'Abrir o estúdio', eyebrow: 'MÓVEIS PENSADOS COM CUIDADO.',
-  headline: ['Uma ideia. O encaixe ideal.', 'Algo criado por você.'],
-  intro: 'Aquele canto difícil. O ambiente que você imagina. Transforme tudo em móveis que encontram seu lugar, até o último detalhe.',
+  description: "Projete. Detalhe. Construa. Planeje o ambiente e os móveis em um estúdio 3D e crie desenhos cotados e listas de peças com FurniDraw.",
+  nav: ['A experiência', 'Os detalhes', 'Caderno de projeto'], start: 'Abrir o estúdio', eyebrow: "SEUS MÓVEIS. DA IDEIA À CONSTRUÇÃO.",
+  headline: ["Projete.", "Detalhe.", "Construa."],
+  intro: "Veja o que cabe no seu espaço, defina como as peças se encaixam e crie planos claros para construir. Tudo em um estúdio 3D.",
   explore: 'Crie do seu jeito', note: 'No navegador. Sem conta para começar.',
   study: 'O ESTÚDIO / ESTUDO 001', views: ['Material', 'Desenho'], shapes: ['Armário', 'Nicho', 'Sob a escada'], width: 'Largura',
   finishes: ['Carvalho natural', 'Carvalho fumado', 'Branco giz'], finish: 'Estudo de materiais', dimensionCta: 'Começar com estas medidas',
   illustration: 'Uma ilustração interativa. As medidas passam para o estúdio; lá você escolhe os interiores e acabamentos.',
-  statement: ['Um bom móvel começa', 'com uma boa ideia.'],
-  statementBody: 'Um lugar para suas coisas. Uma forma que acompanha o ambiente. E um plano claro para quem vai fabricar.',
+  statement: ["Um só estúdio.", "Da primeira ideia à construção."],
+  statementBody: "Reúna o ambiente, os móveis e os detalhes de construção em um projeto. Explore o design, resolva as decisões técnicas e leve informações claras para a oficina.",
   steps: [
-    ['Encontre o encaixe.', 'Comece pelo ambiente. Projete um armário para um nicho, um teto inclinado ou o espaço sob a escada.'],
-    ['Sinta o material.', 'Explore materiais em 3D. Depois crie uma imagem com IA para imaginar o projeto em um ambiente pronto.'],
-    ['Torne a ideia concreta.', 'Obtenha desenhos cotados, elevações e listas de peças e ferragens para conversar com seu marceneiro.'],
+    [
+      "Projete.",
+      "Planeje o ambiente e os móveis em 3D. Experimente layouts e acabamentos e use uma imagem de IA para imaginar seu projeto em um ambiente pronto."
+    ],
+    [
+      "Detalhe.",
+      "Ajuste as medidas, os materiais e as ferragens. Revise a construção e o encaixe das peças antes de cortar."
+    ],
+    [
+      "Construa.",
+      "Crie desenhos cotados e listas de corte e ferragens. Faça os móveis você mesmo ou entregue um plano claro ao seu marceneiro."
+    ],
   ],
-  detail: ['ESPAÇO PARA OS DETALHES', 'Bonito por fora.', 'Bem pensado por dentro.'],
+  detail: ["OS DETALHES QUE FAZEM FUNCIONAR", "Projetado para seu espaço.", "Preparado para construir."],
   imageAlt: 'Armário de carvalho com prateleiras abertas, cabideiros e gavetas em um ambiente ensolarado',
   imageCaption: 'Um estudo de inspiração. Imagens com IA são ilustrativas; desenhos técnicos descrevem seu projeto.',
-  materials: 'Comece pelo seu dia a dia. Ajuste prateleiras, cabideiros, gavetas e portas. Projete armários e móveis de cozinha no seu ritmo.',
-  resourceTitle: 'Um pouco de conhecimento. Um começo melhor.', resourceIntro: 'Notas práticas sobre móveis sob medida, organização e desenhos. Os guias completos estão em inglês.',
+  materials: "Adapte o armazenamento à sua rotina com prateleiras, cabideiros, gavetas e portas. Depois ajuste as medidas, os painéis e as ferragens no mesmo estúdio 3D.",
+  resourceTitle: "Um plano mais claro. Uma construção melhor.", resourceIntro: "Guias práticos para planejar o ambiente, projetar móveis sob medida e entender os desenhos e as peças da construção. Os guias completos estão em inglês.",
   resourceLink: 'Ler o guia', questions: 'Antes de começar.',
   faqs: [
     ['O que posso projetar com FurniDraw?', "Armários sob medida, armazenamento com formas adaptadas e móveis de cozinha modulares. O estúdio inclui ambientes, "
@@ -179,32 +224,41 @@ const portuguese: MarketingCopy = {
       + "listas de corte indicam medidas finais; não incluem planos de furação."],
     ['Posso usar FurniDraw no meu país?', 'FurniDraw funciona no navegador. Esta apresentação está disponível em vários idiomas. A prévia oferece centímetros e polegadas; o estúdio completo usa atualmente inglês e centímetros.'],
   ],
-  closing: ['Seu espaço. Suas ideias.', 'Vamos abrir espaço para elas.'], language: 'Idioma',
+  closing: ["Projete. Detalhe.", "Construa."], language: 'Idioma',
   editorLanguage: 'Estúdio em inglês · medidas em cm', skip: 'Ir para o conteúdo', units: 'Unidades',
 };
 
 const turkish: MarketingCopy = {
   lang: 'tr', name: 'Türkçe', title: 'FurniDraw — Online 3D Mobilya ve Gardırop Tasarımı',
-  description: 'Özel ölçü gardıropları ve mutfak dolaplarını 3D tasarlayın. FurniDraw ile malzemeleri, yapay zekâ görsellerini ve ölçülü teknik çizimleri keşfedin.',
-  nav: ['Deneyim', 'Detaylar', 'Tasarım notları'], start: 'Stüdyoyu aç', eyebrow: 'ÖZENLE DÜŞÜNÜLMÜŞ MOBİLYALAR.',
-  headline: ['Bir fikir. Kusursuz uyum.', 'Sizin tasarımınız.'],
-  intro: 'O zor köşe. Hayalinizdeki oda. Onları, son milimetresine kadar hayatınıza uyan mobilyalara dönüştürün.',
+  description: "Tasarla. Detaylandır. Üret. Odanızı ve mobilyalarınızı tek bir 3D stüdyoda planlayın, ardından FurniDraw ile ölçülü çizimler ve parça listeleri oluşturun.",
+  nav: ['Deneyim', 'Detaylar', 'Tasarım notları'], start: 'Stüdyoyu aç', eyebrow: "MOBİLYANIZ. FİKİRDEN ÜRETİME.",
+  headline: ["Tasarla.", "Detaylandır.", "Üret."],
+  intro: "Alanınıza neyin uyduğunu görün, parçaların nasıl birleşeceğini planlayın ve üretim için net planlar hazırlayın. Hepsi tek bir 3D stüdyoda.",
   explore: 'Kendinize göre tasarlayın', note: 'Tarayıcınızda tasarlayın. Başlamak için hesap gerekmez.',
   study: 'TASARIM ODASI / ÇALIŞMA 001', views: ['Malzeme', 'Çizim'], shapes: ['Gardırop', 'Niş', 'Merdiven altı'], width: 'Genişlik',
   finishes: ['Doğal meşe', 'Füme meşe', 'Tebeşir beyazı'], finish: 'Malzeme çalışması', dimensionCta: 'Bu ölçülerle başlayın',
   illustration: 'Etkileşimli bir görsel çalışma. Ölçüleriniz stüdyoya aktarılır; iç düzeni ve yüzeyleri orada seçersiniz.',
-  statement: ['İyi mobilyalar', 'biraz düşünceyle başlar.'],
-  statementBody: 'Eşyalarınıza bir yer. Odanıza uyan bir biçim. Ve mobilyayı üretecek kişi için açık bir plan.',
+  statement: ["Tek stüdyo.", "İlk fikirden üretime kadar."],
+  statementBody: "Odanızı, mobilyalarınızı ve üretim detaylarını tek projede ele alın. Tasarımı keşfedin, teknik kararları netleştirin ve atölyeye anlaşılır bilgiler götürün.",
   steps: [
-    ['Doğru biçimi bulun.', 'Odanızdan başlayın. Bir nişe, eğimli tavana veya merdiven altına uygun gardırop tasarlayın.'],
-    ['Malzemeyi hissedin.', 'Malzemeleri 3D keşfedin. Ardından tasarımınızı tamamlanmış bir odada hayal etmek için yapay zekâ görseli oluşturun.'],
-    ['Fikri somutlaştırın.', 'Ölçülü çizimler, görünüşler, parça ve donanım listeleriyle marangozunuzla konuşmaya hazırlanın.'],
+    [
+      "Tasarla.",
+      "Odanızı ve mobilyalarınızı 3D olarak planlayın. Yerleşimleri ve yüzeyleri deneyin, ardından bir yapay zekâ görseliyle tasarımınızı bitmiş bir odada hayal edin."
+    ],
+    [
+      "Detaylandır.",
+      "Ölçüleri, malzemeleri ve donanımları netleştirin. Kesime başlamadan önce yapıyı ve parçaların nasıl birleştiğini gözden geçirin."
+    ],
+    [
+      "Üret.",
+      "Ölçülü çizimler, kesim listeleri ve donanım listeleri oluşturun. Kendiniz üretin veya mobilya ustanıza net bir plan verin."
+    ],
   ],
-  detail: ['DETAYLARA YER AÇIN', 'Dışı güzel.', 'İçi düşünülmüş.'],
+  detail: ["İŞİ TAMAMLAYAN DETAYLAR", "Alanınız için tasarlandı.", "Üretim için detaylandırıldı."],
   imageAlt: 'Güneşli bir odada açık rafları, askılıkları ve çekmeceleri bulunan sıcak meşe gardırop',
   imageCaption: 'Bir iç mekân ilham çalışması. Yapay zekâ görselleri temsilidir; teknik çizimler tasarımınızı anlatır.',
-  materials: 'Günlük yaşamınızdan başlayın. Rafları, askıları, çekmeceleri ve kapakları düzenleyin. Gardırop ve mutfak dolaplarını kendi hızınızda tasarlayın.',
-  resourceTitle: 'Biraz bilgi. Daha iyi bir başlangıç.', resourceIntro: 'Özel ölçü mobilya, depolama ve çizimler hakkında pratik notlar. Ayrıntılı rehberler İngilizcedir.',
+  materials: "Raflar, askılıklar, çekmeceler ve kapaklarla depolamayı ihtiyaçlarınıza uyarlayın. Ardından aynı 3D stüdyoda ölçüleri, panel malzemelerini ve donanımları netleştirin.",
+  resourceTitle: "Daha net bir plan. Daha iyi bir üretim.", resourceIntro: "Oda planlama, özel ölçü mobilya tasarımı ve üretim için gerekli çizimler ve parçalar hakkında pratik rehberler. Ayrıntılı rehberler İngilizcedir.",
   resourceLink: 'Rehberi okuyun', questions: 'Başlamadan önce.',
   faqs: [
     ['FurniDraw ile neler tasarlayabilirim?', "Özel ölçü gardıroplar, farklı biçimlerde depolama alanları ve modüler mutfak dolapları. Stüdyoda odalar, malzemeler, iç "
@@ -216,7 +270,7 @@ const turkish: MarketingCopy = {
       + "doğrulayın. Kesim listeleri bitmiş ölçüleri verir; delik planları dahil değildir."],
     ['FurniDraw ülkemde kullanılabilir mi?', 'FurniDraw tarayıcıda çalışır. Bu tanıtım birkaç dilde sunulur. Önizlemede santimetre veya inç seçebilirsiniz; tam stüdyo şu anda İngilizce ve santimetre kullanır.'],
   ],
-  closing: ['Sizin alanınız. Sizin fikirleriniz.', 'Onlara yer açalım.'], language: 'Dil',
+  closing: ["Tasarla. Detaylandır.", "Üret."], language: 'Dil',
   editorLanguage: 'Stüdyo İngilizce · ölçüler cm', skip: 'İçeriğe geç', units: 'Birimler',
 };
 
