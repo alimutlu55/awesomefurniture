@@ -34,17 +34,16 @@ export async function generateFavicons(publicDir = resolve('public')) {
   try {
     const page = await browser.newPage();
 
-    // Solid charcoal background matching brand #292c25, centered wardrobe lines in #f7f6f2.
-    // Solid background prevents white corner bleeding when Google crops favicons into circular search badges.
+    // Brand colors: light cream background #f7f6f2, dark charcoal olive stroke #292c25.
+    // Matches the site's brand wardrobe icon with clean architectural butt caps and miter joints.
     const renderHtml = (size) => `<!DOCTYPE html>
 <html>
 <head><style>*{margin:0;padding:0;}html,body{width:100%;height:100%;overflow:hidden;background:transparent;}</style></head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}" style="display:block;">
-  <rect width="64" height="64" fill="#292c25"/>
-  <g stroke="#f7f6f2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M15 50V14h34v36M15 31h34M32 14v36M12 51h40"/>
-  </g>
+  <rect width="64" height="64" fill="#f7f6f2"/>
+  <path d="M13 49V13h38v36M13 31h38M32 13v36" stroke="#292c25" stroke-width="3.2" stroke-linecap="butt" stroke-linejoin="miter" fill="none"/>
+  <path d="M10 53h44" stroke="#292c25" stroke-width="3.2" stroke-linecap="butt" fill="none"/>
 </svg>
 </body>
 </html>`;
@@ -70,8 +69,11 @@ export async function generateFavicons(publicDir = resolve('public')) {
       { width: 48, height: 48, buffer: png48 },
     ]);
 
+    const svgVector = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#f7f6f2"/><path d="M13 49V13h38v36M13 31h38M32 13v36" stroke="#292c25" stroke-width="3.2" stroke-linecap="butt" stroke-linejoin="miter" fill="none"/><path d="M10 53h44" stroke="#292c25" stroke-width="3.2" stroke-linecap="butt" fill="none"/></svg>\n`;
+
     await Promise.all([
       writeFile(resolve(publicDir, 'favicon.ico'), ico),
+      writeFile(resolve(publicDir, 'favicon.svg'), svgVector),
       writeFile(resolve(publicDir, 'favicon-48x48.png'), png48),
       writeFile(resolve(publicDir, 'favicon-96x96.png'), png96),
       writeFile(resolve(publicDir, 'apple-touch-icon.png'), png180),
@@ -86,14 +88,14 @@ export async function generateFavicons(publicDir = resolve('public')) {
       start_url: '/',
       display: 'standalone',
       background_color: '#f7f6f2',
-      theme_color: '#292c25',
+      theme_color: '#f7f6f2',
       icons: [
         { src: '/favicon-192x192.png', sizes: '192x192', type: 'image/png' },
         { src: '/favicon-512x512.png', sizes: '512x512', type: 'image/png' },
       ],
     };
     await writeFile(resolve(publicDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-    console.log('Generated favicon stack (ICO, 48x48, 96x96, 180x180, 192x192, 512x512, manifest.json)');
+    console.log('Generated favicon stack (ICO, SVG, 48x48, 96x96, 180x180, 192x192, 512x512, manifest.json)');
   } finally {
     await browser.close();
   }
