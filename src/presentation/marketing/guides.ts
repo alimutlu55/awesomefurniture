@@ -33,11 +33,11 @@ export const guides: readonly Guide[] = [
     ],
   },
   {
-    slug: 'cabinet-design-software', label: 'Kitchen cabinet planning',
+    slug: 'cabinet-design-software', label: 'Kitchen cabinet design software',
     title: 'Online Cabinet Design Software — Plan Kitchen Units in 3D | FurniDraw',
-    description: 'Plan modular kitchen cabinets in your browser with FurniDraw. Explore base, wall and tall units, materials, room layouts and dimensioned technical drawings.',
+    description: 'Plan and design modular kitchen cabinets online with FurniDraw. Explore base, wall and tall units, materials, room layouts and dimensioned drawings in 3D.',
     eyebrow: 'MODULAR KITCHEN CABINET PLANNING', heading: 'Kitchen cabinet design.\nPlanned in 3D.',
-    intro: 'Plan modular base, wall and tall kitchen units in your browser. Review cabinet dimensions, materials and room layouts before discussing the installation with your maker.', shape: 'regular',
+    intro: 'Plan modular base, wall and tall kitchen units in your browser. Review cabinet dimensions, materials and room layouts before discussing the installation with your kitchen maker or installer.', shape: 'regular',
     sections: [
       { title: 'Plan the room before the run.', body: "Begin with walls, doors, windows and the space you need to move. Mark the locations of services before deciding where "
         + "cabinets belong. FurniDraw lets you work with a room in 3D, so you can compare the cabinet layout with its surroundings. "
@@ -46,30 +46,29 @@ export const guides: readonly Guide[] = [
         + "dimensions and explore finishes. Look at the arrangement from more than one angle: an attractive elevation can still "
         + "hide an awkward drawer or an inaccessible corner.",
         list: ['Check door and drawer opening space.', 'Review appliance dimensions with the manufacturer’s instructions.', 'Leave room for service access and installation tolerances.'] },
-      { title: 'Know what the design describes.', body: "Use dimensioned technical drawings to discuss the cabinet arrangement with your maker. Kitchen runs currently do not "
+      { title: 'Know what the design describes.', body: "Use dimensioned technical drawings to discuss the cabinet arrangement with your cabinet maker. Kitchen runs currently do not "
         + "turn corners automatically. Placing a sink or hob does not create its worktop cut-out, and drilling plans are not "
         + "included. Ask your maker to confirm joints, fittings, cut-outs and installation details. The interactive study on this "
         + "page illustrates a wardrobe; open the studio to add kitchen units." },
     ],
   },
   {
-    slug: 'furniture-making-software', label: 'Furniture design to making',
-    title: 'Furniture Making Software — From 3D Design to Drawings | FurniDraw',
-    description: 'Bring furniture ideas closer to the workshop. Design wardrobes and kitchen cabinets online, explore finishes and create dimensioned drawings with FurniDraw.',
-    eyebrow: 'FURNITURE DESIGN AND TECHNICAL DOCUMENTATION', heading: 'Furniture making software.\nFrom design to drawings.',
-    intro: 'Develop wardrobe and cabinet designs with dimensions, materials and internal fittings. Produce technical information for review with the furniture maker.', shape: 'regular',
+    slug: 'furniture-making-software', label: 'Furniture design & making software',
+    title: 'Furniture Making & Design Software — 3D to Workshop Plans | FurniDraw',
+    description: 'Design custom furniture online and prepare workshop-ready plans. Create 3D wardrobes and cabinets, explore finishes, and generate dimensioned drawings with FurniDraw.',
+    eyebrow: 'FURNITURE DESIGN & WORKSHOP DOCUMENTATION', heading: 'Furniture making software.\nFrom design to drawings.',
+    intro: 'Design custom wardrobe and cabinet layouts with exact dimensions, materials and internal fittings. Produce clear technical documentation for review with your furniture maker or workshop.', shape: 'regular',
     sections: [
-      { title: 'Define the furniture dimensions.', body: "In FurniDraw, a wardrobe or kitchen cabinet is a "
-        + "design with dimensions, internal fittings and materials. Work in the browser, explore the model in 3D and refine it as "
-        + "you learn more about the room. You can start without installing software or creating an account." },
-      { title: 'Separate the look from the construction.', body: "An AI image can help you imagine the furniture in a finished room. It is a visual interpretation, not a manufacturing "
-        + "document. Use the model and its dimensioned drawings when reviewing the actual geometry. Keep a clear distinction "
-        + "between what an image suggests and what the drawing set specifies.",
-        list: ['Use a 3D view to review proportions and access.', 'Use an AI visualisation to discuss atmosphere and finishes.', 'Use dimensions and parts lists to discuss the construction.'] },
-      { title: 'Bring useful information to the workshop.', body: "FurniDraw’s technical drawing set includes views and schedules for review with a furniture maker. Current limitations "
-        + "include no drilling plans or drawer-box parts, and cutting lists use finished sizes without deducting edge banding. "
-        + "Manufacturing requires site checks and agreement on materials, hardware and tolerances. FurniDraw helps prepare that "
-        + "conversation; it does not replace a maker’s production detailing." },
+      { title: 'Design custom furniture with exact dimensions.', body: "In FurniDraw, designing furniture means working with real dimensions, internal fittings and board "
+        + "materials in 3D. Explore wardrobes and modular cabinets directly in your browser and refine the design as "
+        + "you measure your room. You can start designing custom furniture without installing software or creating an account." },
+      { title: 'Separate 3D visualization from workshop construction.', body: "An AI image helps you picture finished furniture in a room, but dimensioned drawings specify the build. "
+        + "Use the 3D model to review proportions and access, and rely on dimensioned elevations, section details and cutting lists "
+        + "when reviewing construction with a furniture maker or joiner.",
+        list: ['Use 3D views to design furniture proportions and test clearance.', 'Use AI visualisations to explore materials, decor and finishes.', 'Use dimensioned drawings, cutting lists and hardware schedules for the workshop.'] },
+      { title: 'Bring clear plans to your furniture maker or workshop.', body: "FurniDraw’s technical drawing set produces elevations, cabinet sections and parts schedules to review with "
+        + "your furniture maker, carpenter or joinery workshop. Cutting lists provide finished component sizes before "
+        + "edge-banding deductions, giving the maker an accurate starting point for site checks, joint selection and workshop fabrication." },
     ],
   },
   {

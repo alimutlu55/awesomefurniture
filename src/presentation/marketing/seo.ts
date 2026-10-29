@@ -21,11 +21,11 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
     { '@type': 'WebApplication', '@id': `${siteOrigin}/#app`, name: 'FurniDraw', url: `${siteOrigin}/editor/`,
       applicationCategory: 'DesignApplication', operatingSystem: 'Web browser',
       browserRequirements: 'Modern browser with JavaScript and WebGL enabled',
-      description: 'Browser-based 3D design for fitted wardrobes and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
+      description: 'Browser-based 3D design software for custom furniture, fitted wardrobes and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
       inLanguage: languages.map(c => c.lang), offers: { '@type': 'Offer', name: 'Browser design workspace', price: 0, priceCurrency: 'USD',
         url: `${siteOrigin}/editor/`, description: 'Begin designing without buying credits. AI images and drawing exports use the in-app credit system.' },
-      featureList: ['3D furniture design', 'Fitted wardrobes', 'Modular kitchen cabinets',
-        'AI design images', 'Dimensioned technical drawings'], publisher: { '@id': `${siteOrigin}/#organization` } },
+      featureList: ['3D furniture design', 'Online furniture designer', 'Furniture making software', 'Fitted wardrobes', 'Modular kitchen cabinets',
+        'AI design images', 'Dimensioned technical drawings', 'Cutting lists and parts schedules'], publisher: { '@id': `${siteOrigin}/#organization` } },
   ];
   if (guide) graph.push({ '@type': 'BreadcrumbList', '@id': url + '#breadcrumb', itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
