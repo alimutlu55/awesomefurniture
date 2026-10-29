@@ -15,7 +15,7 @@ test('international public pages contain their complete content before JavaScrip
     assert.ok(html.includes(`<html lang="${copy.lang}"`));
     assert.ok(html.includes(`<link rel="canonical" href="https://furnidraw.com${path}">`));
     assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-    assert.ok(html.includes(copy.headline[0]));
+    for (const line of copy.headline) assert.ok(html.includes(line));
     for (const other of languages) assert.ok(html.includes(`hreflang="${other.lang}" href="https://furnidraw.com${homePath(other.lang)}"`));
     assert.ok(html.includes('hreflang="x-default"'));
     const title = html.match(/<title>(.*?)<\/title>/)![1]!;
@@ -71,8 +71,8 @@ test('search snippets exclude illustrative geometry and assistant instructions',
   const html = renderMarketing(template, '/');
   assert.match(html, /class="fitting-room" data-nosnippet/);
   assert.match(html, /<div data-nosnippet><details class="agent-note">/);
-  assert.ok(html.includes('ONLINE 3D FURNITURE DESIGNER'));
-  assert.ok(html.includes('3D furniture design.'));
+  assert.ok(html.includes('YOUR FURNITURE. FROM IDEA TO BUILD.'));
+  assert.ok(html.includes('Design it.'));
 });
 
 test('application metadata describes the free design workspace without inventing reviews', () => {

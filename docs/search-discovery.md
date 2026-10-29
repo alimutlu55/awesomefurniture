@@ -43,7 +43,7 @@ Both are original code-rendered graphics; `scripts/render-discovery-brand.py` re
 The application offer describes the free browser design workspace and identifies credit-based
 features. Optional ratings remain absent until genuine review data is available.
 
-The material study is an illustration, not the editor's manufacturing model. Its width and
+The drawing-only assembly preview is an illustration, not the editor's manufacturing model. Its width and
 shape carry into a validated design specification; the user chooses fittings and finishes in
 the editor. The public preview can show inches; the editor receives centimetres. Controls work
 with keyboard and touch. Motion preferences are respected. No new analytics trackers are added.
@@ -51,7 +51,7 @@ with keyboard and touch. Motion preferences are respected. No new analytics trac
 ## Verify
 
 Run `npm run check`, then inspect the homepage, at least one guide and language version on
-desktop and at 375px. Test material and drawing views, dimensions, inches, language navigation
+desktop and at 375px. Test drawing assembly, playback, dimensions, inches, language navigation
 and the editor handoff. Inspect the emitted HTML and sitemap, not only the client DOM.
 
 `npm run check:seo` audits the emitted pages after a build and is included in `npm run check`.
