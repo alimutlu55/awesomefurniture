@@ -1,0 +1,147 @@
+import assert from 'node:assert/strict';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { chromium } from 'playwright';
+
+const url = process.env.ASSEMBLY_URL ?? 'http://127.0.0.1:5173/';
+const output = 'output/assembly-study';
+await mkdir(output, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+const errors = [], checks = [];
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1.5 });
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.addInitScript(() => {
+    window.assemblyDraws = 0;
+    for (const api of [WebGLRenderingContext, WebGL2RenderingContext]) {
+      const draw = api.prototype.drawElements;
+      api.prototype.drawElements = function (...args) { window.assemblyDraws++; return draw.apply(this, args); };
+    }
+  });
+  await page.goto(url, { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => document.querySelector('#study-canvas')?.dataset.ready === 'true');
+  const slider = page.locator('#study-assembly');
+  await slider.focus(); await page.keyboard.press('Home');
+  assert.equal(await slider.inputValue(), '0');
+  await page.locator('.assembly-stage').screenshot({ path: `${output}/01-pieces.png` });
+  await slider.press('End'); assert.equal(await slider.inputValue(), '100');
+  await page.locator('.assembly-stage').screenshot({ path: `${output}/03-assembled.png` });
+  await slider.press('ArrowLeft'); assert.equal(await slider.inputValue(), '99');
+  await page.locator('button[data-assembly="50"]').click();
+  await page.locator('.assembly-stage').screenshot({ path: `${output}/02-exploded.png` });
+  checks.push('Slider supports scrubbing, keyboard endpoints and named construction stages');
+
+  for (const shape of ['regular', 'alcove', 'under-stairs']) {
+    await page.locator(`button[data-shape="${shape}"]`).click();
+    for (const width of [140, 320]) {
+      await page.locator('#study-width').fill(String(width));
+      assert.equal(await page.locator('#width-output').textContent(), `${width} cm`);
+      const href = await page.locator('#study-start').getAttribute('href');
+      const spec = JSON.parse(decodeURIComponent(href.split('#spec=')[1]));
+      assert.equal(spec.wardrobes[0].width, width); assert.equal(spec.wardrobes[0].shape, shape);
+      for (const value of ['0', '25', '50', '75', '100']) await slider.fill(value);
+    }
+  }
+  await page.locator('#study-units').selectOption('in');
+  assert.equal(await page.locator('#width-output').textContent(), '126 in');
+  checks.push('All shapes and width extremes render; dimensions and shape carry into the editor');
+
+  await page.locator('button[data-shape="regular"]').click();
+  await page.locator('#study-width').fill('240');
+  await page.locator('#study-units').selectOption('cm');
+  const materials = [];
+  for (const finish of ['oak', 'smoked', 'chalk']) {
+    await page.locator(`button[data-finish="${finish}"]`).click();
+    materials.push(await page.locator('.assembly-stage').screenshot());
+  }
+  assert.notDeepEqual(materials[0], materials[1]); assert.notDeepEqual(materials[1], materials[2]);
+  await page.locator('button[data-view="drawing"]').click();
+  await page.locator('.assembly-stage').screenshot({ path: `${output}/04-drawing.png` });
+  await page.locator('button[data-view="material"]').click();
+  await page.locator('button[data-finish="oak"]').click();
+  checks.push('All materials and the drawing view visibly change the live model');
+
+  // Regression: reaching 100% used to schedule a different, blurry shadow pipeline after 220 ms.
+  await page.locator('button[data-shape="under-stairs"]').click();
+  for (const view of ['material', 'drawing']) {
+    await page.locator(`button[data-view="${view}"]`).click();
+    await slider.fill('100');
+    const rendered = await page.evaluate(() => new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve(window.assemblyDraws)));
+    }));
+    const finished = await page.locator('.assembly-webgl').screenshot();
+    await page.waitForTimeout(500);
+    assert.equal(await page.evaluate(() => window.assemblyDraws), rendered, `${view}: no deferred shading pass`);
+    assert.deepEqual(await page.locator('.assembly-webgl').screenshot(), finished, `${view}: the finished frame stays crisp`);
+    assert.equal(await page.locator('.fitting-room').getAttribute('data-view'), view);
+    await page.locator('.assembly-stage').screenshot({ path: `${output}/finished-${view}.png` });
+  }
+  await page.locator('button[data-view="material"]').click();
+  await page.locator('button[data-shape="regular"]').click();
+  checks.push('The completed material and drawing views stay identical after settling; no delayed blurry shadows');
+
+  await page.waitForTimeout(300);
+  const still = await page.evaluate(() => window.assemblyDraws);
+  await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => window.assemblyDraws), still);
+  await page.locator('.assembly-play').click();
+  await page.waitForFunction(() => {
+    const value = Number(document.querySelector('#study-assembly').value); return value > 0 && value < 100;
+  });
+  assert.ok(Number(await slider.inputValue()) > 0 && Number(await slider.inputValue()) < 100);
+  await page.locator('.assembly-play').click();
+  const paused = await slider.inputValue(); await page.waitForTimeout(150);
+  assert.equal(await slider.inputValue(), paused);
+  await page.locator('.assembly-play').click(); await page.waitForTimeout(200);
+  await slider.fill('50'); await page.waitForTimeout(150);
+  assert.equal(await slider.inputValue(), '50');
+  checks.push('Playback replays from the floor, pauses, resumes and yields to scrubbing; idle rendering stops');
+
+  const canvas = page.locator('.assembly-webgl');
+  const beforeRotation = await canvas.screenshot();
+  await canvas.focus(); await canvas.press('ArrowRight');
+  assert.notDeepEqual(await canvas.screenshot(), beforeRotation);
+  await canvas.press('Home');
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  assert.notDeepEqual(await canvas.screenshot(), beforeRotation);
+  await page.locator('.assembly-reset').click();
+  checks.push('Pointer and keyboard rotation both work, with a reset view control');
+
+  await slider.fill('72');
+  await page.screenshot({ path: `${output}/desktop.png` });
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 1100 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`);
+    await page.locator('.assembly-stage').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${output}/mobile-${width}.png` });
+  }
+  checks.push('No horizontal overflow at 320, 390 or 768 pixels');
+
+  const fallback = await browser.newPage();
+  await fallback.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type.includes('webgl') ? null : getContext.call(this, type, ...args);
+    };
+  });
+  await fallback.goto(url);
+  await fallback.locator('[data-renderer="unavailable"]').waitFor();
+  assert.equal(await fallback.locator('#study-assembly').isDisabled(), true);
+  await fallback.locator('#study-width').fill('300');
+  assert.equal(await fallback.locator('.study-fallback svg').getAttribute('aria-label'), '300 cm');
+  assert.ok((await fallback.locator('#study-start').getAttribute('href')).includes('#spec='));
+  checks.push('Without WebGL, the static preview, size controls and editor handoff still work');
+  const noMotion = await browser.newPage({ reducedMotion: 'reduce' });
+  await noMotion.goto(url, { waitUntil: 'networkidle' });
+  await noMotion.waitForFunction(() => document.querySelector('#study-canvas')?.dataset.ready === 'true');
+  const initial = await noMotion.locator('#study-assembly').inputValue();
+  await noMotion.waitForTimeout(200);
+  assert.equal(await noMotion.locator('#study-assembly').inputValue(), initial);
+  checks.push('Reduced motion starts with a still scene; animation requires an explicit play action');
+  assert.deepEqual(errors, []);
+  await writeFile(`${output}/checks.json`, JSON.stringify({ checks, errors }, null, 2));
+  console.log(checks.join('\n'));
+} finally { await browser.close(); }

@@ -1,1 +1,1 @@
-import './editor';
+import '../presentation/marketing/marketing';
