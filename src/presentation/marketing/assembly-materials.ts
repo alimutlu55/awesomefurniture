@@ -19,7 +19,10 @@ export function assemblyMaterials(renderer: THREE.WebGLRenderer, changed: () => 
     roughnessMap: load(oakRoughness), normalScale: new THREE.Vector2(.12, .12), roughness: .8, envMapIntensity: .4 });
   const metal = new THREE.MeshStandardMaterial({ color: '#a6aaa7', metalness: .95, roughness: .24, envMapIntensity: 1.4 });
   const dark = new THREE.MeshStandardMaterial({ color: '#383a34', metalness: .72, roughness: .34 });
-  const line = new THREE.LineBasicMaterial({ color: '#657063', transparent: true, opacity: .65 });
+  const line = new THREE.LineBasicMaterial({ color: new THREE.Color('#43544b').convertSRGBToLinear(), toneMapped: false });
+  const paper = new THREE.MeshBasicMaterial({ color: new THREE.Color('#fbfcf8').convertSRGBToLinear(),
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, toneMapped: false });
+  const ink = new THREE.MeshBasicMaterial({ color: new THREE.Color('#59685e').convertSRGBToLinear(), toneMapped: false });
   const generator = new THREE.PMREMGenerator(renderer), room = new RoomEnvironment();
   const environment = generator.fromScene(room, .04);
   room.traverse(object => {
@@ -27,20 +30,20 @@ export function assemblyMaterials(renderer: THREE.WebGLRenderer, changed: () => 
       for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.dispose(); }
   });
   generator.dispose();
-  let previousFinish = '', previousDrawing = false;
+  let previousFinish = '';
   return {
-    wood, metal, dark, line, environment: environment.texture,
-    finish(finish: StudyFinish, drawing: boolean) {
-      if (previousFinish === finish && previousDrawing === drawing) return;
-      previousFinish = finish; previousDrawing = drawing;
-      wood.color.set(drawing ? '#eeeae0' : finish === 'smoked' ? '#8b7564' : finish === 'chalk' ? '#e6e4dc' : '#ebe5d9').convertSRGBToLinear();
-      wood.map = drawing || finish === 'chalk' ? null : textures[0]!;
-      wood.normalScale.setScalar(drawing || finish === 'chalk' ? .025 : .12);
+    wood, metal, dark, line, paper, ink, environment: environment.texture,
+    finish(finish: StudyFinish) {
+      if (previousFinish === finish) return;
+      previousFinish = finish;
+      wood.color.set(finish === 'smoked' ? '#8b7564' : finish === 'chalk' ? '#e6e4dc' : '#ebe5d9').convertSRGBToLinear();
+      wood.map = finish === 'chalk' ? null : textures[0]!;
+      wood.normalScale.setScalar(finish === 'chalk' ? .025 : .12);
       wood.roughness = finish === 'chalk' ? .92 : .8;
       wood.needsUpdate = true;
     },
     dispose() { for (const texture of textures) texture.dispose();
-      wood.dispose(); metal.dispose(); dark.dispose(); line.dispose(); environment.dispose(); },
+      wood.dispose(); metal.dispose(); dark.dispose(); line.dispose(); paper.dispose(); ink.dispose(); environment.dispose(); },
   };
 }
 

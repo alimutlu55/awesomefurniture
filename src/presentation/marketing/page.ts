@@ -33,7 +33,7 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
       </div>
     </div>
     <div class="assembly-stage">
-      <div class="assembly-heading"><span class="live-badge"><i></i>${e(a.live)}</span><span>${e(a.rotate)}</span></div>
+      <div class="assembly-heading"><span>${e(a.rotate)}</span></div>
       <div class="study-canvas" id="study-canvas" aria-busy="true">
         <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'oak', inches: false }, c.lang)}</div>
         <p class="assembly-status" role="status">${e(a.loading)}</p>

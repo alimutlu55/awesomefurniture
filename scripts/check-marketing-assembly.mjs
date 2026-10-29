@@ -56,10 +56,27 @@ try {
   }
   assert.notDeepEqual(materials[0], materials[1]); assert.notDeepEqual(materials[1], materials[2]);
   await page.locator('button[data-view="drawing"]').click();
+  assert.equal(await page.locator('#study-canvas').getAttribute('data-projection'), 'orthographic');
+  await page.locator('.assembly-drawing').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('.assembly-drawing text').first().textContent(), '240 cm');
+  await page.locator('#study-width').fill('320');
+  await page.waitForFunction(() => document.querySelector('.assembly-drawing text')?.textContent === '320 cm');
+  await page.locator('#study-units').selectOption('in');
+  await page.waitForFunction(() => document.querySelector('.assembly-drawing text')?.textContent === '126 in');
+  await page.locator('#study-units').selectOption('cm');
+  await page.locator('#study-width').fill('240');
+  for (const shape of ['regular', 'alcove', 'under-stairs']) {
+    await page.locator(`button[data-shape="${shape}"]`).click();
+    await slider.fill('100');
+    await page.locator('.assembly-stage').screenshot({ path: `${output}/drawing-${shape}.png` });
+    assert.equal(await page.locator('.assembly-drawing text').count(), 2);
+  }
   await page.locator('.assembly-stage').screenshot({ path: `${output}/04-drawing.png` });
   await page.locator('button[data-view="material"]').click();
+  assert.equal(await page.locator('#study-canvas').getAttribute('data-projection'), 'perspective');
+  await page.locator('.assembly-drawing').waitFor({ state: 'hidden' });
   await page.locator('button[data-finish="oak"]').click();
-  checks.push('All materials and the drawing view visibly change the live model');
+  checks.push('Drawing uses orthographic linework and live dimensions in cm/in for every shape; material rendering restores correctly');
 
   // Regression: reaching 100% used to schedule a different, blurry shadow pipeline after 220 ms.
   await page.locator('button[data-shape="under-stairs"]').click();
@@ -117,6 +134,10 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`);
     await page.locator('.assembly-stage').scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/mobile-${width}.png` });
+    await page.locator('button[data-view="drawing"]').click();
+    await slider.fill('100');
+    await page.locator('.assembly-stage').screenshot({ path: `${output}/drawing-mobile-${width}.png` });
+    await page.locator('button[data-view="material"]').click();
   }
   checks.push('No horizontal overflow at 320, 390 or 768 pixels');
 

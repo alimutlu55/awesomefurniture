@@ -3,28 +3,24 @@
 .hero-copy{padding:0 0 45px}.hero-intro{font-size:17px;max-width:350px}
 .hero #fitting-room{min-width:0;width:100%;max-width:none}
 .study-topline{padding:0 2px 14px}.study-topline>.eyebrow{font-size:8px;letter-spacing:1.2px}
-.assembly-stage{position:relative;isolation:isolate;overflow:hidden;border:1px solid #e0dfd5;border-radius:18px;
-  background:radial-gradient(ellipse at 38% 35%,#fffefa 0%,#eeebe3 66%,#e3e1d7 100%)}
-.assembly-stage::after{content:"";position:absolute;inset:60% 0 0;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,transparent,#e5e1d630)}
-.assembly-heading{position:absolute;top:21px;left:24px;right:24px;display:flex;align-items:center;justify-content:space-between;
+.assembly-stage{position:relative;isolation:isolate;overflow:visible;border:0;border-radius:0;background:transparent}
+.assembly-heading{position:absolute;top:12px;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;
   z-index:2;pointer-events:none;font-size:10px;color:#888a7c}
-.live-badge{display:inline-flex;align-items:center;gap:7px;font:8px ui-monospace,monospace;letter-spacing:1.4px;color:#637059;
-  background:#fffffa8c;border:1px solid #dfdfd0a6;padding:7px 9px;border-radius:5px}
-.live-badge i{width:5px;height:5px;border-radius:50%;background:#70885a;box-shadow:0 0 0 3px #70885a12}
 .fitting-room .study-canvas{position:relative;width:100%;height:550px;margin:0;overflow:hidden}
 .assembly-webgl{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:pan-y;transition:opacity .35s}
 .assembly-webgl.is-dragging{cursor:grabbing}
+.fitting-room[data-view=material] .assembly-webgl{
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 92%,transparent)}
 .study-fallback{position:absolute;inset:0;display:grid;place-items:center;opacity:.4;transition:opacity .3s}
 .study-fallback svg{width:100%;height:100%;object-fit:contain}
 .study-canvas[data-ready=true] .study-fallback,.study-canvas[data-ready=true] .assembly-status{visibility:hidden;opacity:0}
 .assembly-status{position:absolute;bottom:58px;left:20px;right:20px;text-align:center;font-size:10px;color:#6d7364;z-index:1;pointer-events:none}
-.assembly-footer{position:absolute;left:24px;bottom:13px;width:272px;max-width:calc(100% - 96px)}
+.assembly-footer{position:absolute;left:0;bottom:13px;width:272px;max-width:calc(100% - 64px)}
 .assembly-stage-caption{color:#7d8072;font-size:10px;line-height:1.5;letter-spacing:.1px;pointer-events:none}
 .assembly-percent{font:9px ui-monospace,monospace;color:#7d8273;min-width:26px;text-align:right}
-.assembly-reset{position:absolute;right:21px;bottom:19px;width:35px;height:35px;display:grid;place-items:center;
-  background:#fdfcf780;border:1px solid #d6d8ca99;border-radius:50%;font-size:20px;color:#7d8470;transition:background .2s}
-.assembly-reset:hover{background:#fffdf8}
+.assembly-reset{position:absolute;right:0;bottom:19px;width:35px;height:35px;display:grid;place-items:center;
+  background:transparent;border:0;border-radius:50%;font-size:20px;color:#7d8470;transition:background .2s}
+.assembly-reset:hover{background:#e8ebe180}
 .assembly-controls{display:flex;align-items:center;gap:10px;margin-top:3px}
 .assembly-play{display:grid;place-items:center;width:28px;height:32px;border:0;border-radius:50%;background:transparent;
   transition:background .2s,color .2s;flex-shrink:0;color:#59654c}
@@ -45,11 +41,18 @@
 .swatch{width:30px;height:30px;border-width:5px}.swatch-oak{background:repeating-linear-gradient(92deg,#b9996f 0,#c8ab81 2px,#cdb18b 4px,#c0a07a 7px)}
 .swatch-smoked{background:repeating-linear-gradient(92deg,#645142 0,#806b55 3px,#75624e 5px,#645142 7px)}
 .swatches{gap:8px}.swatches span{font-size:11px}.study-shapes button{min-height:36px}
-.fitting-room[data-view=drawing] .assembly-stage{background:radial-gradient(ellipse at 40% 30%,#fafbf6,#e9ede3)}
+.fitting-room[data-view=drawing] .study-canvas::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(#82927d0c 1px,transparent 1px),linear-gradient(90deg,#82927d0c 1px,transparent 1px);
+  background-size:22px 22px;mask-image:radial-gradient(ellipse at center,#000 28%,transparent 72%)}
+.assembly-drawing{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;overflow:hidden}
+.assembly-drawing path{fill:none;stroke:#74816f;stroke-width:.75}.assembly-drawing .extension{stroke:#8a9683;stroke-width:.55}
+.assembly-drawing text{font:9px ui-monospace,monospace;letter-spacing:.5px;text-anchor:middle;fill:#52634e;
+  paint-order:stroke;stroke:var(--paper);stroke-width:5px;stroke-linejoin:round}
 .fitting-room[data-renderer=unavailable] .assembly-footer{display:none}
 .fitting-room[data-renderer=unavailable] .assembly-heading,.fitting-room[data-renderer=unavailable] .assembly-reset,
 .fitting-room[data-renderer=unavailable] .assembly-stage-caption{display:none}
 .study-canvas[data-ready=lost] .assembly-webgl{visibility:hidden}
+.study-canvas[data-ready=lost] .assembly-drawing{visibility:hidden}
 .study-canvas[data-ready=lost] .study-fallback{opacity:1}
 .guide-content .fitting-room .study-canvas{height:420px;margin:0}
 .guide-content .study-topline{gap:8px}.guide-content .study-topline>.eyebrow{font-size:7px;letter-spacing:.5px}
@@ -66,11 +69,11 @@
   .swatch{width:36px;height:36px;border-width:7px}.swatches span{font-size:11px}}
 @media(max-width:500px){.hero{padding:36px 22px 45px;gap:30px}.hero h1{font-size:42px;letter-spacing:-2.4px;margin:22px 0}
   .hero-intro{font-size:15px}.study-topline>.eyebrow{font-size:6px;letter-spacing:.6px}.segmented button{min-height:36px;padding-inline:12px}
-  .fitting-room .study-canvas,.guide-content .fitting-room .study-canvas{height:410px}.assembly-stage{border-radius:12px}
-  .assembly-heading{left:16px;right:16px;top:16px;font-size:9px}.live-badge{font-size:7px;padding:6px 7px}
-  .assembly-footer{left:16px;bottom:8px;width:248px;max-width:calc(100% - 80px)}
+  .fitting-room .study-canvas,.guide-content .fitting-room .study-canvas{height:410px}
+  .assembly-heading{top:10px;font-size:9px}
+  .assembly-footer{bottom:8px;width:248px;max-width:calc(100% - 56px)}
   .assembly-stage-caption{font-size:9px}.assembly-percent{font-size:8px;min-width:23px}.assembly-controls{gap:7px;margin-top:0}
-  .assembly-reset{right:12px;bottom:13px;width:40px;height:40px}.study-bottomline{padding-top:3px}.study-shapes{gap:18px}
+  .assembly-reset{bottom:13px;width:40px;height:40px}.study-bottomline{padding-top:3px}.study-shapes{gap:18px}
   .study-shapes button{min-height:44px;font-size:11px}.study-controls{padding:15px 0;gap:13px 20px}
   .swatch{width:44px;height:44px;border-width:10px}.swatches{gap:7px}.swatches span{font-size:12px}
   .study-handoff{padding-top:13px}.study-handoff>.text-link{font-size:12px}.study-handoff p{font-size:9px}
