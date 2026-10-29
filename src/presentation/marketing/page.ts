@@ -39,17 +39,17 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
         <p class="assembly-status" role="status">${e(a.loading)}</p>
       </div>
       <button type="button" class="assembly-reset" aria-label="${e(a.reset)}" title="${e(a.reset)}">↺</button>
-      <div class="assembly-stage-caption"><span>${e(a.title)}</span><span class="assembly-percent" aria-hidden="true">72%</span></div>
-    </div>
-    <div class="assembly-controls">
-      <div class="assembly-control-heading"><div><label for="study-assembly">${e(a.slider)}</label><p>${e(a.subtitle)}</p></div>
-        <button type="button" class="assembly-play" aria-label="${e(a.play)}" title="${e(a.play)}" disabled>
-          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>
-        </button>
+      <div class="assembly-footer">
+        <p class="assembly-stage-caption">${e(a.title)}</p>
+        <div class="assembly-controls">
+          <label for="study-assembly" class="sr-only">${e(a.slider)}</label>
+          <input id="study-assembly" type="range" min="0" max="100" step="1" value="72" aria-valuetext="72%" disabled>
+          <span class="assembly-percent" aria-hidden="true">72%</span>
+          <button type="button" class="assembly-play" aria-label="${e(a.play)}" title="${e(a.play)}" disabled>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>
+          </button>
+        </div>
       </div>
-      <input id="study-assembly" type="range" min="0" max="100" step="1" value="72" aria-valuetext="72%" disabled>
-      <div class="assembly-stages">${a.stages.map((stage, i) => `<button type="button" data-assembly="${i * 50}"
-        aria-pressed="${i === 1}" disabled><span>0${i + 1}</span>${e(stage)}</button>`).join('')}</div>
     </div>
     <div class="study-bottomline"><span class="study-coordinate" aria-hidden="true">X 2400 · Y 2400 · Z 600</span>
       <div class="study-shapes" role="group" aria-label="${e(c.shapes[0])}">

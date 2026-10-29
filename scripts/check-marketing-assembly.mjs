@@ -27,9 +27,9 @@ try {
   await slider.press('End'); assert.equal(await slider.inputValue(), '100');
   await page.locator('.assembly-stage').screenshot({ path: `${output}/03-assembled.png` });
   await slider.press('ArrowLeft'); assert.equal(await slider.inputValue(), '99');
-  await page.locator('button[data-assembly="50"]').click();
+  await slider.fill('50');
   await page.locator('.assembly-stage').screenshot({ path: `${output}/02-exploded.png` });
-  checks.push('Slider supports scrubbing, keyboard endpoints and named construction stages');
+  checks.push('Compact slider supports scrubbing and keyboard endpoints');
 
   for (const shape of ['regular', 'alcove', 'under-stairs']) {
     await page.locator(`button[data-shape="${shape}"]`).click();

@@ -21,7 +21,6 @@ if (room) {
   const finishButtons = [...room.querySelectorAll<HTMLButtonElement>('[data-finish]')];
   const assembly = room.querySelector<HTMLInputElement>('#study-assembly')!;
   const play = room.querySelector<HTMLButtonElement>('.assembly-play')!;
-  const stages = [...room.querySelectorAll<HTMLButtonElement>('[data-assembly]')];
   const labels = assemblyCopy(lang);
   let scene: AssemblyScene | null = null, drawing = false, progress = .72, animation = 0, resume = false;
   const stop = () => {
@@ -33,7 +32,6 @@ if (room) {
     assembly.setAttribute('aria-valuetext', `${Math.round(value * 100)}%`);
     assembly.style.setProperty('--assembly-progress', `${value * 100}%`);
     room.querySelector('.assembly-percent')!.textContent = `${Math.round(value * 100)}%`;
-    stages.forEach((button, i) => button.setAttribute('aria-pressed', String(i === (value < .24 ? 0 : value < .88 ? 1 : 2))));
     scene?.update(state, progress, drawing);
   };
   const update = () => {
@@ -70,7 +68,6 @@ if (room) {
     scene?.update(state, progress, drawing);
   }));
   assembly.addEventListener('input', () => { stop(); setAssembly(Number(assembly.value) / 100); });
-  stages.forEach(button => button.addEventListener('click', () => { stop(); setAssembly(Number(button.dataset.assembly) / 100); }));
   play.addEventListener('click', () => {
     if (animation) { stop(); resume = true; return; }
     const from = resume && progress < .98 ? progress : 0;
@@ -99,7 +96,7 @@ if (room) {
     scene = createAssemblyScene(canvas, `${labels.slider}. ${labels.rotate}.`, labels.unavailable);
     scene.update(state, progress, drawing);
     canvas.setAttribute('aria-busy', 'false');
-    assembly.disabled = false; play.disabled = false; stages.forEach(button => { button.disabled = false; });
+    assembly.disabled = false; play.disabled = false;
     setAssembly(progress);
   }).catch(() => {
     scene?.dispose(); scene = null;
