@@ -58,7 +58,7 @@ if (room) {
     if (animation) { stop(); return; }
     const from = progress < .98 ? progress : 0;
     setAssembly(from);
-    const began = performance.now(), duration = (1 - from) * 5200;
+    const began = performance.now(), duration = (1 - from) * 4400;
     play.dataset.playing = 'true'; play.setAttribute('aria-label', labels.pause); play.title = labels.pause;
     const frame = (now: number) => {
       const t = Math.min(1, (now - began) / duration); setAssembly(from + (1 - from) * t);
