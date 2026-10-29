@@ -56,8 +56,14 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
     <meta name="twitter:description" content="${escapeHtml(description)}">
     <meta name="twitter:image" content="${siteOrigin}/assets/furnidraw-design-social.png">
     <meta name="twitter:image:alt" content="${escapeHtml(copy.title)}">
-    <meta name="theme-color" content="#f7f6f2">
+    <meta name="theme-color" content="#292c25">
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
     <link rel="help" type="text/markdown" href="/llms.txt" title="Guide for AI agents">
     <script type="application/ld+json">${jsonLd({ '@context': 'https://schema.org', '@graph': graph })}</script>`;
 }

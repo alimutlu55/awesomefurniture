@@ -25,7 +25,8 @@
     "check:loading": "node scripts/check-loading-states.mjs && node scripts/check-credit-loading.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
     "agents:guide": "node --import tsx scripts/write-agent-guide.mjs",
-    "check:seo": "node --import tsx scripts/check-search-discovery.mjs"
+    "check:seo": "node --import tsx scripts/check-search-discovery.mjs",
+    "generate:favicons": "node scripts/generate-favicons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.3",

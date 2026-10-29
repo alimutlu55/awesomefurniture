@@ -91,3 +91,23 @@ test('translated public pages pass their language into studio links', () => {
     assert.ok(renderMarketing(template, path).includes(`href="/editor/?lang=${copy.lang}"`));
   }
 });
+
+test('public pages provide a Google-compliant favicon stack with multiples of 48px and root ICO', () => {
+  const html = renderMarketing(template, '/');
+  assert.ok(html.includes('<link rel="icon" href="/favicon.ico" sizes="any">'), 'root ICO for search crawler fallback');
+  assert.ok(html.includes('<link rel="icon" type="image/svg+xml" href="/favicon.svg">'), 'SVG vector favicon');
+  assert.ok(html.includes('<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">'), 'Google 48px requirement');
+  assert.ok(html.includes('<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">'), 'Google 96px requirement');
+  assert.ok(html.includes('<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">'), 'Apple touch icon');
+  assert.ok(html.includes('<link rel="manifest" href="/manifest.json">'), 'PWA webmanifest');
+
+  // Verify all referenced favicon assets exist in public/ and have valid non-zero content
+  for (const file of [
+    'public/favicon.ico', 'public/favicon.svg', 'public/favicon-48x48.png',
+    'public/favicon-96x96.png', 'public/favicon-192x192.png', 'public/favicon-512x512.png',
+    'public/apple-touch-icon.png', 'public/manifest.json',
+  ]) {
+    const data = readFileSync(file);
+    assert.ok(data.length > 50, `${file} is present and non-empty`);
+  }
+});
