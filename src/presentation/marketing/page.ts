@@ -27,7 +27,6 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
   const shapes = ['regular', 'alcove', 'under-stairs'];
   const a = assemblyCopy(c.lang);
   return `<div class="fitting-room" data-nosnippet data-shape="${shape}" data-view="drawing">
-    <div class="study-topline"><p class="study-title">${e(a.name)}</p></div>
     <div class="assembly-stage">
       <div class="study-canvas" id="study-canvas" aria-busy="true">
         <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'chalk', inches: false }, c.lang)}</div>

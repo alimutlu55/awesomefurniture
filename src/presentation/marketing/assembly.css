@@ -2,8 +2,6 @@
 .hero h1{font-size:clamp(43px,4.1vw,65px);letter-spacing:-3.3px;line-height:1.09}
 .hero-copy{padding:0 0 45px}.hero-intro{font-size:17px;max-width:350px}
 .hero #fitting-room{min-width:0;width:100%;max-width:none}
-.study-topline{padding:4px 0 12px;gap:14px}
-.study-title{font-size:19px;font-weight:580;letter-spacing:-.55px;line-height:1.2}
 .assembly-stage{position:relative;isolation:isolate;overflow:visible;border:0;border-radius:0;background:transparent}
 .assembly-heading{position:absolute;bottom:12px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:7px;
   z-index:2;pointer-events:none;font-size:10px;color:#969b8e;transition:opacity .2s}
@@ -73,17 +71,15 @@
 .study-canvas[data-ready=lost] .assembly-drawing{visibility:hidden}
 .study-canvas[data-ready=lost] .study-fallback{opacity:1}
 .guide-content .fitting-room .study-canvas{height:390px;margin:0}
-.guide-content .study-topline{gap:8px}.guide-content .study-title{font-size:17px}
 @media(min-width:1600px){.hero{padding-inline:64px}.fitting-room .study-canvas{height:510px}}
 @media(max-width:1150px) and (min-width:801px){.hero{grid-template-columns:minmax(250px,.7fr) minmax(0,1.3fr);gap:30px;padding-inline:4%}
-  .hero h1{font-size:47px;letter-spacing:-2.7px}.hero-intro{font-size:15px}.fitting-room .study-canvas{height:410px}
-  .study-title{font-size:18px}}
+  .hero h1{font-size:47px;letter-spacing:-2.7px}.hero-intro{font-size:15px}.fitting-room .study-canvas{height:410px}}
 @media(max-width:800px){.hero{grid-template-columns:1fr;gap:36px;padding:50px 6% 55px}.hero-copy{padding:0;max-width:590px}
   .hero h1{font-size:clamp(41px,7.5vw,59px);letter-spacing:-2.6px}.hero-intro{max-width:440px;font-size:16px}
-  .hero #fitting-room{max-width:640px}.fitting-room .study-canvas{height:420px}.study-topline{padding-top:0}
+  .hero #fitting-room{max-width:640px}.fitting-room .study-canvas{height:420px}
   .assembly-play{width:44px;height:44px}#study-assembly{height:44px}.assembly-reset{width:40px;height:44px}}
 @media(max-width:500px){.hero{padding:36px 22px 45px;gap:30px}.hero h1{font-size:42px;letter-spacing:-2.4px;margin:22px 0}
-  .hero-intro{font-size:15px}.study-title{font-size:18px}
+  .hero-intro{font-size:15px}
   .fitting-room .study-canvas,.guide-content .fitting-room .study-canvas{height:360px}
   .assembly-heading{bottom:10px;font-size:10px}.assembly-footer{width:300px;padding-top:10px}
   .assembly-stage-caption{font-size:11px}.assembly-controls{gap:9px;margin-top:7px}
