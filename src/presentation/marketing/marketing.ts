@@ -22,9 +22,9 @@ if (room) {
   const assembly = room.querySelector<HTMLInputElement>('#study-assembly')!;
   const play = room.querySelector<HTMLButtonElement>('.assembly-play')!;
   const labels = assemblyCopy(lang);
-  let scene: AssemblyScene | null = null, drawing = false, progress = .72, animation = 0, resume = false;
+  let scene: AssemblyScene | null = null, drawing = false, progress = 0, animation = 0;
   const stop = () => {
-    cancelAnimationFrame(animation); animation = 0; resume = false;
+    cancelAnimationFrame(animation); animation = 0;
     play.dataset.playing = 'false'; play.setAttribute('aria-label', labels.play); play.title = labels.play;
   };
   const setAssembly = (value: number) => {
@@ -37,10 +37,10 @@ if (room) {
   const update = () => {
     if (scene) scene.update(state, progress, drawing);
     else canvas.querySelector('.study-fallback')!.innerHTML = studySvg(state, lang);
-    output.value = studyMeasure(state.width, state.inches, lang);
-    width.setAttribute('aria-valuetext', output.value);
-    const coordinate = room.querySelector('.study-coordinate');
-    if (coordinate) coordinate.textContent = `X ${state.width * 10} · Y 2400 · Z 600`;
+    const measure = studyMeasure(state.width, state.inches, lang);
+    output.value = measure.replace(/\s(?:cm|in)$/, ''); output.setAttribute('aria-label', measure);
+    width.setAttribute('aria-valuetext', measure);
+    width.style.setProperty('--width-progress', `${(state.width - 140) / 180 * 100}%`);
     const spec = { specVersion: 1, name: 'My furniture idea', wardrobes: [{ width: state.width, height: 240,
       depth: 60, shape: state.shape, autoDesign: false }] };
     start.href = '/editor/#spec=' + encodeURIComponent(JSON.stringify(spec));
@@ -69,8 +69,8 @@ if (room) {
   }));
   assembly.addEventListener('input', () => { stop(); setAssembly(Number(assembly.value) / 100); });
   play.addEventListener('click', () => {
-    if (animation) { stop(); resume = true; return; }
-    const from = resume && progress < .98 ? progress : 0;
+    if (animation) { stop(); return; }
+    const from = progress < .98 ? progress : 0;
     setAssembly(from);
     const began = performance.now(), duration = (1 - from) * 6500;
     play.dataset.playing = 'true'; play.setAttribute('aria-label', labels.pause); play.title = labels.pause;
@@ -80,7 +80,7 @@ if (room) {
     };
     animation = requestAnimationFrame(frame);
   });
-  room.querySelector('.assembly-reset')!.addEventListener('click', () => scene?.reset());
+  room.querySelector('.assembly-reset')!.addEventListener('click', () => { stop(); setAssembly(0); scene?.reset(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
   const visibility = new IntersectionObserver(entries => { if (!entries[0]!.isIntersecting) stop(); });
   visibility.observe(room);

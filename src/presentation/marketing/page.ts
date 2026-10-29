@@ -27,31 +27,36 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
   const shapes = ['regular', 'alcove', 'under-stairs'];
   const a = assemblyCopy(c.lang);
   return `<div class="fitting-room" data-shape="${shape}" data-view="material">
-    <div class="study-topline"><span class="eyebrow">${e(c.study)}</span>
-      <div class="segmented" role="group" aria-label="${e(c.study)}">
+    <div class="study-topline"><p class="study-title">${e(a.name)}</p>
+      <div class="segmented" role="group" aria-label="${e(a.name)}">
         ${c.views.map((v, i) => `<button type="button" data-view="${i ? 'drawing' : 'material'}" aria-pressed="${!i}">${e(v)}</button>`).join('')}
       </div>
     </div>
     <div class="assembly-stage">
-      <div class="assembly-heading"><span>${e(a.rotate)}</span></div>
       <div class="study-canvas" id="study-canvas" aria-busy="true">
         <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'oak', inches: false }, c.lang)}</div>
         <p class="assembly-status" role="status">${e(a.loading)}</p>
+        <div class="assembly-heading"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M5 6c-2 1-3 2.4-3 4s1 3 3 4m10-8c2 1 3 2.4 3 4s-1 3-3 4M5 3v3H2m13 11v-3h3M7 10h6"
+            stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${e(a.rotate)}</span></div>
       </div>
-      <button type="button" class="assembly-reset" aria-label="${e(a.reset)}" title="${e(a.reset)}">↺</button>
       <div class="assembly-footer">
         <p class="assembly-stage-caption">${e(a.title)}</p>
         <div class="assembly-controls">
-          <label for="study-assembly" class="sr-only">${e(a.slider)}</label>
-          <input id="study-assembly" type="range" min="0" max="100" step="1" value="72" aria-valuetext="72%" disabled>
-          <span class="assembly-percent" aria-hidden="true">72%</span>
           <button type="button" class="assembly-play" aria-label="${e(a.play)}" title="${e(a.play)}" disabled>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 9 6-9 6z"/></svg>
+          </button>
+          <label for="study-assembly" class="sr-only">${e(a.slider)}</label>
+          <input id="study-assembly" type="range" min="0" max="100" step="1" value="0" aria-valuetext="0%" disabled>
+          <span class="assembly-percent" aria-hidden="true">0%</span>
+          <button type="button" class="assembly-reset" aria-label="${e(a.reset)}" title="${e(a.reset)}">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 6a6 6 0 1 1-1 7M5 2v4H1"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </div>
     </div>
-    <div class="study-bottomline"><span class="study-coordinate" aria-hidden="true">X 2400 · Y 2400 · Z 600</span>
+    <div class="study-bottomline">
       <div class="study-shapes" role="group" aria-label="${e(c.shapes[0])}">
         ${c.shapes.map((s, i) => `<button type="button" data-shape="${shapes[i]}" aria-pressed="${shapes[i] === shape}">${e(s)}</button>`).join('')}
       </div>
@@ -63,10 +68,11 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
         <span id="finish-name">${e(c.finishes[0])}</span>
       </div></fieldset>
       <div class="width-control"><div class="width-top"><label for="study-width">${e(c.width)}</label>
-        <output for="study-width" id="width-output">240 cm</output></div>
+        <div class="width-value"><output for="study-width" id="width-output" aria-label="240 cm">240</output>
+          <label class="unit-control"><span class="sr-only">${e(c.units)}</span><select id="study-units" aria-label="${e(c.units)}">
+            <option value="cm">cm</option><option value="in">in</option></select></label></div></div>
         <input id="study-width" type="range" min="140" max="320" step="5" value="240" aria-valuetext="240 cm">
       </div>
-      <label class="unit-control"><span class="sr-only">${e(c.units)}</span><select id="study-units" aria-label="${e(c.units)}"><option value="cm">cm</option><option value="in">in</option></select></label>
     </div>
     <div class="study-handoff"><a id="study-start" class="text-link" href="/editor/">${e(c.dimensionCta)} ${arrow}</a>
       <p>${e(c.illustration)}</p></div>

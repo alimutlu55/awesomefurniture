@@ -21,6 +21,9 @@ try {
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForFunction(() => document.querySelector('#study-canvas')?.dataset.ready === 'true');
   const slider = page.locator('#study-assembly');
+  assert.equal(await slider.inputValue(), '0');
+  assert.equal(await page.locator('.assembly-percent').textContent(), '0%');
+  await page.locator('.fitting-room').screenshot({ path: `${output}/initial-zero.png` });
   await slider.focus(); await page.keyboard.press('Home');
   assert.equal(await slider.inputValue(), '0');
   await page.locator('.assembly-stage').screenshot({ path: `${output}/01-pieces.png` });
@@ -35,7 +38,8 @@ try {
     await page.locator(`button[data-shape="${shape}"]`).click();
     for (const width of [140, 320]) {
       await page.locator('#study-width').fill(String(width));
-      assert.equal(await page.locator('#width-output').textContent(), `${width} cm`);
+      assert.equal(await page.locator('#width-output').textContent(), String(width));
+      assert.equal(await page.locator('#width-output').getAttribute('aria-label'), `${width} cm`);
       const href = await page.locator('#study-start').getAttribute('href');
       const spec = JSON.parse(decodeURIComponent(href.split('#spec=')[1]));
       assert.equal(spec.wardrobes[0].width, width); assert.equal(spec.wardrobes[0].shape, shape);
@@ -43,7 +47,8 @@ try {
     }
   }
   await page.locator('#study-units').selectOption('in');
-  assert.equal(await page.locator('#width-output').textContent(), '126 in');
+  assert.equal(await page.locator('#width-output').textContent(), '126');
+  assert.equal(await page.locator('#width-output').getAttribute('aria-label'), '126 in');
   checks.push('All shapes and width extremes render; dimensions and shape carry into the editor');
 
   await page.locator('button[data-shape="regular"]').click();
@@ -112,7 +117,11 @@ try {
   await page.locator('.assembly-play').click(); await page.waitForTimeout(200);
   await slider.fill('50'); await page.waitForTimeout(150);
   assert.equal(await slider.inputValue(), '50');
-  checks.push('Playback replays from the floor, pauses, resumes and yields to scrubbing; idle rendering stops');
+  await page.locator('.assembly-play').click();
+  await page.waitForFunction(() => Number(document.querySelector('#study-assembly').value) > 50);
+  await page.locator('.assembly-play').click();
+  await slider.fill('50');
+  checks.push('Playback replays from the floor, resumes from a scrubbed position and yields to scrubbing; idle rendering stops');
 
   const canvas = page.locator('.assembly-webgl');
   const beforeRotation = await canvas.screenshot();
@@ -125,9 +134,11 @@ try {
   await page.mouse.up();
   assert.notDeepEqual(await canvas.screenshot(), beforeRotation);
   await page.locator('.assembly-reset').click();
-  checks.push('Pointer and keyboard rotation both work, with a reset view control');
+  assert.equal(await slider.inputValue(), '0');
+  assert.equal(await page.locator('.has-explored').count(), 0);
+  checks.push('Preview starts at 0%; pointer/keyboard rotation work and reset returns to the initial assembly and camera');
 
-  await slider.fill('72');
+  await slider.fill('0');
   await page.screenshot({ path: `${output}/desktop.png` });
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 1100 });

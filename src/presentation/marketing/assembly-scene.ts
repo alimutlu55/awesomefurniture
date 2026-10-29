@@ -24,7 +24,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   const perspective = new THREE.PerspectiveCamera(34, 1, .05, 70);
   const orthographic = new THREE.OrthographicCamera(-1, 1, 1, -1, .05, 70);
   let aspect = 1, state: StudyState = { width: 240, shape: 'regular', finish: 'oak', inches: false };
-  let pending = 0, disposed = false, visible = true, lost = false, yaw = .43, pitch = .21, progress = .72;
+  let pending = 0, disposed = false, visible = true, lost = false, yaw = .43, pitch = .21, progress = 0;
   let width = 240, shape = '', drawing = false;
   let parts = assemblyParts(width, 'regular');
   const bounds = new THREE.Box3(), center = new THREE.Vector3(), direction = new THREE.Vector3();
@@ -148,6 +148,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   const down = (event: PointerEvent) => {
     if (event.button !== 0) return;
     drag = { x: event.clientX, y: event.clientY, yaw, pitch, id: event.pointerId };
+    host.classList.add('has-explored');
     canvas.setPointerCapture(event.pointerId); canvas.classList.add('is-dragging');
   };
   const move = (event: PointerEvent) => {
@@ -159,6 +160,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   const keydown = (event: KeyboardEvent) => {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return;
     event.preventDefault();
+    host.classList.add('has-explored');
     if (event.key === 'Home') { yaw = .43; pitch = .21; }
     else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') yaw += event.key === 'ArrowLeft' ? -.12 : .12;
     else pitch = Math.max(.02, Math.min(.7, pitch + (event.key === 'ArrowUp' ? .06 : -.06)));
@@ -186,7 +188,7 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
       if (rebuilt || changed) applyView();
       request();
     },
-    reset() { yaw = .43; pitch = .21; request(); },
+    reset() { yaw = .43; pitch = .21; host.classList.remove('has-explored'); request(); },
     dispose() {
       disposed = true; cancelAnimationFrame(pending); resize.disconnect(); intersection.disconnect();
       canvas.removeEventListener('pointerdown', down); canvas.removeEventListener('pointermove', move);
