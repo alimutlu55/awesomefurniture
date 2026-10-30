@@ -235,7 +235,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
       const opposite = reachAt(g.original, c.wall, (fr.along.from + fr.along.to) / 2);
       const lock = g.free ? null : alignTo(raw, [...opposite === null ? [] : [{ v: Math.round(opposite * 10) / 10, label: 'Wall' }], ...depthTargets(g.original, c, standing())], g.lock, tolerance());
       g.lock = lock;
-      g.guides = lock && lock.label !== 'Wall' ? depthGuide(g.original, c, lock.v, h.y) : [];
+      g.guides = lock ? depthGuide(g.original, c, lock.v, h.y) : [];
       const target = lock ? lock.v : raw, from = ceilingOf(g.last, h.id)?.depth ?? c.depth;
       want = t => setCeilingDepth(g.original, h.id, from + (target - from) * t);
     } else if (h.kind === 'tilt') {
@@ -268,6 +268,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
     const whole = want(1), wanted = whole && problem(whole);
     // Go as far as the room allows; say why it stopped.
     const result = furthestValid(t => want!(t), s => !problem(s));
+    if (!result.whole) g.guides = [];
     g.reason = wanted || null;
     if (result.room && JSON.stringify(result.room) !== JSON.stringify(g.last)) {
       g.last = result.room;

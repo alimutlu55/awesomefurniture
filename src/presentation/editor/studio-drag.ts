@@ -5,6 +5,7 @@ import { isWallUtility } from '../../domain/studio/wall-utilities';
 import { alignTo, type Align, type AlignTarget } from '../../domain/geometry/alignment';
 import { measureNumber, unitSuffix } from './editor-format.js';
 import type { RoomMeasure } from './studio-editor.ports';
+import type { GuideLine } from './smart-guides';
 
 /** The geometry of dragging a room's corners, walls and openings: where the pointer wants the part to
  * go, the lines it can snap to, and the guides that show why it snapped. Plain data in scene
@@ -12,7 +13,7 @@ import type { RoomMeasure } from './studio-editor.ports';
 
 type P = { x: number; z: number; y?: number };
 /** A guide line on the floor and why it shows. `info` is a reading (an angle), not a snap. */
-export interface Guide { readonly a: P; readonly b: P; readonly label: string; readonly info?: boolean }
+export interface Guide extends GuideLine<P> { readonly label: string; readonly info?: boolean }
 export interface CornerLocks { x: Align | null; z: Align | null; ray: Align | null; join: string | null }
 
 /** A free wall end dropped this close to another (centimetres) joins it: people aim at the end of the

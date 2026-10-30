@@ -91,6 +91,7 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         };
         let next = valid(1);
         if (!next) {
+            g.guides = [];
             let lo = 0, hi = 1;
             for (let n = 0; n < 14; n++) {
                 const mid = (lo + hi) / 2, edit = valid(mid);

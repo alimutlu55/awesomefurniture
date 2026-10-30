@@ -1,10 +1,11 @@
 import type { ProfileVertex, Vec } from '../../domain/geometry/profile-polygon';
 import type { SurfaceProfile } from '../../domain/studio/surface-profile';
 import { measureNumber, unitSuffix } from './editor-format.js';
+import type { GuideLine } from './smart-guides';
 
 /** What is picked in the drawing: a corner or an edge (from that corner to the next). */
 export type ShapePick = { readonly kind: 'vertex' | 'edge'; readonly index: number } | null;
-export interface ShapeGuide { readonly a: Vec; readonly b: Vec }
+export interface ShapeGuide extends GuideLine<Vec> { readonly delta?: number }
 
 /** The drawing's frame in centimetres, y up: the wall (or the room in section) with a margin for labels. */
 export function drawingBox(profile: SurfaceProfile, points: readonly Vec[]) {
@@ -38,7 +39,10 @@ export function drawingMarkup({ profile, points, pick, guides, px, problem, box 
   if (profile.view === 'side') out.push(`<text class="shape-room" x="${n(box.x + box.w - 8 * px)}" y="${n(box.y + box.h - 8 * px)}" font-size="${n(11 * px)}" text-anchor="end">Room →</text>`);
   // The shape: filled, its outline, and the picked edge above it.
   out.push(`<path class="shape-solid${problem ? ' problem' : ''}" d="M${points.map(P).join('L')}Z"/>`);
-  for (const g of guides) out.push(`<path class="shape-guide" d="M${P(g.a)}L${P(g.b)}"/>`);
+  for (const g of guides) {
+    const near = Math.abs(g.delta ?? 0) > .001;
+    out.push(`<path class="shape-guide${near ? ' near' : ''}" d="M${P(g.a)}L${P(g.b)}"/>`);
+  }
   points.forEach((a, i) => {
     const b = points[(i + 1) % points.length]!, picked = pick?.kind === 'edge' && pick.index === i;
     out.push(`<path class="shape-edge${picked ? ' picked' : ''}" data-edge="${i}" d="M${P(a)}L${P(b)}"/>`);

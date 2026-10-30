@@ -1,6 +1,6 @@
 import { syncKitchenConstruction } from './kitchen-construction-fields';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { bindSizeSlider, syncSizeRange } from './size-control';
+import { bindGuideField, bindSizeSlider, syncSizeRange } from './size-control';
 import { createCabinetSizeRange } from '../../application/commands/cabinet-size-range';
 
 /** Whole-piece limits are queried when Size opens, and after each completed edit.
@@ -40,6 +40,7 @@ export function syncCabinetSizeLimits(dom, design, editingSize, sizes = furnitur
 /** Wrap existing bound dimension inputs in the shared value-and-slider layout. */
 export function mountResizeFields({ dom, lifetime, fields, preview, model, history, refresh, commit = () => {} }) {
     for (const { input, axis } of fields) {
+        bindGuideField(input, lifetime);
         const existing = input.closest('.resize-field-control')?.querySelector?.('input[type="range"]');
         if (existing) {
             bindSizeSlider({ range: existing, lifetime, model, history, preview: value => preview(input, value), refresh, commit });

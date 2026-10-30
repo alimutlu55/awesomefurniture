@@ -4,7 +4,7 @@ import { primaryView, profileMessage, setSurfaceDepth, surfaceProfile, withSurfa
 import { outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { STUDIO_LIMITS } from '../../domain/studio/studio';
 import { drawingBox, drawingMarkup, type ShapeGuide, type ShapePick } from './surface-shape-drawing';
-import { hitShape, snapCorner, snapMove, snapSlide, SHAPE_PX } from './surface-shape-snap';
+import { hitShape, snapCorner, snapMove, snapSlide, profileSmartGuides, SHAPE_PX } from './surface-shape-snap';
 import { applyShapeField, shapeFields } from './surface-shape-fields';
 import { neighbourPoints } from './studio-align';
 import { createShapeSession } from './surface-shape-session';
@@ -42,6 +42,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   const svg = $<SVGSVGElement>('svg'), stage = $<HTMLElement>('.surface-shape-stage'), pill = $<HTMLElement>('.surface-shape-pill');
   const badge = $<HTMLElement>('.surface-shape-badge'), fieldsRoot = $<HTMLElement>('.surface-shape-fields');
   let ref: SurfaceRef | null = null, view: SurfaceView | null = null, pick: ShapePick = null, drag: Drag | null = null, guides: ShapeGuide[] = [];
+  let fieldEditing = false;
   const session = createShapeSession({ model, sceneCommands, history, callbacks }), zoom = createDrawingZoom();
   /** Pointers down on the drawing, for a pinch. */
   const pointers = new Map<number, Vec>();
@@ -75,6 +76,9 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     const points = drag?.last ?? s.points, box = drag?.box ?? clearTop(zoom.view(drawingBox(s, points)));
     svg.setAttribute('viewBox', `${box.x} ${box.y} ${box.w} ${box.h}`);
     svg.style.aspectRatio = `${box.w} / ${box.h}`;
+    if (fieldEditing && !drag) {
+      guides = profileSmartGuides(points, s.bounds, { ...s.context, points: neighbours(s) }, scale());
+    }
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
       guides, px: scale(), problem: !!drag?.problem, box });
     renderViews(s);
@@ -270,7 +274,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
         : (r.applied >= 0 ? 'Out ' : 'In ') + len(Math.abs(r.applied));
     } else {
       const snapped = snapMove(s.points, at.x - g.start.x, at.y - g.start.y, s.bounds, roomLevels, px, grid);
-      next = translateProfile(s.points, snapped.dx, snapped.dy, s.bounds); guides = [];
+      next = translateProfile(s.points, snapped.dx, snapped.dy, s.bounds);
+      guides = profileSmartGuides(next, s.bounds, roomLevels, px);
       const xs = next.map(p => p.x), ys = next.map(p => p.y);
       g.badge = len(Math.min(...xs) - s.origin) + (s.view === 'side' ? ' from the wall · ' : ' from the left · ') + len(Math.min(...ys)) + ' up';
     }
@@ -280,6 +285,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       if (session.preview(next)) g.last = next;
       else g.problem = 'A wardrobe or wall is in the way here.';
     }
+    if (g.problem) guides = [];
     render();
     placeBadge(e);
   }
@@ -365,6 +371,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     if (!next || !commit(next)) { callbacks.report('That size does not fit here. Try a smaller change.'); render(); }
   });
   listen(fieldsRoot, 'keydown', e => { if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLInputElement).blur?.(); });
+  listen(fieldsRoot, 'focusin', () => { fieldEditing = true; render(); });
+  listen(fieldsRoot, 'focusout', () => { fieldEditing = false; guides = []; render(); });
 
   return {
     root,

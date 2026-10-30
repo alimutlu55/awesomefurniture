@@ -32,13 +32,13 @@ export function bindSizeSlider({ range, lifetime, model, history, preview, refre
   let before: string | null = null;
   const start = () => {
     if (before !== null) return;
-    before = model.snapshot(); sliding.add(range); started();
+    before = model.snapshot(); sliding.add(range); range.toggleAttribute?.('data-smart-guide-active', true); started();
   };
   const finish = (cancel = false) => {
     if (before === null) return;
     const original = before; before = null;
     if (cancel) model.restore(original); else commit();
-    sliding.delete(range); finished();
+    sliding.delete(range); range.toggleAttribute?.('data-smart-guide-active', false); finished();
     if (!cancel && model.snapshot() !== original) history.checkpoint(original);
     refresh();
   };
@@ -57,12 +57,19 @@ export function bindSizeSlider({ range, lifetime, model, history, preview, refre
   lifetime.listen(range, 'lostpointercapture', () => finish(true));
 }
 
+/** Numeric fields with either shared or legacy edit handlers participate in the same guide lifecycle. */
+export function bindGuideField(input: HTMLInputElement,
+  lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void }, started = () => {}, finished = () => {}) {
+  lifetime.listen(input, 'focus', () => { input.toggleAttribute?.('data-smart-guide-active', true); started(); });
+  lifetime.listen(input, 'blur', () => { input.toggleAttribute?.('data-smart-guide-active', false); finished(); });
+}
+
 /** Numeric entry commits on change; Enter leaves the input and runs the same commit path. */
 export function bindSizeNumber({ input, lifetime, commit, started = () => {}, finished = () => {} }: {
   input: HTMLInputElement; lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void };
   commit(value: number): void; started?(): void; finished?(): void;
 }) {
   lifetime.listen(input, 'change', () => commit(input.valueAsNumber));
-  lifetime.listen(input, 'focus', started); lifetime.listen(input, 'blur', finished);
+  bindGuideField(input, lifetime, started, finished);
   lifetime.listen(input, 'keydown', e => { if ((e as KeyboardEvent).key === 'Enter') input.blur(); });
 }

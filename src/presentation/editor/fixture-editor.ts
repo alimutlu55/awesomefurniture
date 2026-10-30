@@ -79,6 +79,7 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     const want = (t: number) => slideFixture(g.original, g.id, from + (goal - from) * t);
     const problem = (s: Studio) => sceneCommands.fixtureProblem(s, g.id);
     const whole = want(1), result = furthestValid(want, s => !problem(s));
+    if (!result.whole) g.guides = [];
     g.reason = whole ? problem(whole) : null;
     if (result.room) model.scene.studio = result.room;
     callbacks.redraw();

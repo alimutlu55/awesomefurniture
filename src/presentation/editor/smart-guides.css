@@ -1,0 +1,5 @@
+.smart-guides{position:absolute;pointer-events:none;z-index:8;overflow:hidden;isolation:isolate}
+.smart-guides[hidden]{display:none}
+.smart-guides>svg{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+.smart-guides path{fill:none;stroke:#6174d5;stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.smart-guides .aligned path{stroke:#32815b;stroke-dasharray:3 3;stroke-width:2}

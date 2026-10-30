@@ -26,6 +26,7 @@
 .surface-shape-svg .shape-length.picked{fill:var(--acc)}
 .surface-shape-svg .shape-room{fill:var(--mute);opacity:.8;pointer-events:none}
 .surface-shape-svg .shape-guide{stroke:var(--acc);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.surface-shape-svg .shape-guide.near{stroke:#6174d5;stroke-dasharray:6 4}
 .surface-shape-pill{position:absolute;z-index:2;transform:translate(-50%,-50%);display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.22)}
 .surface-shape-pill[hidden]{display:none}
 .surface-shape-pill button{min-height:38px;padding:0 13px;border:0;border-radius:999px;background:transparent;color:var(--panel);font-size:12px;font-weight:600;white-space:nowrap}

@@ -130,7 +130,11 @@ const attached = process.env.INTERIOR_ATTACHED === '1';
    assert.deepEqual(await pose(), initialPose);
    await tap(await point('fitting')); assert.equal((await state()).item, 0);
    const before = (await state()).secs[0][0].y;
-   await drag(await point('fitting'), 0, 12);
+   await drag(await point('fitting'), 0, 12, async () => {
+    await page.waitForTimeout(50);
+    assert.ok(await page.locator('[data-smart-guides]').isVisible(), 'fitting movement has alignment guides');
+   });
+   assert.equal(await page.locator('[data-smart-guides]').isVisible(), false, 'drop clears fitting guides');
    assert.ok((await state()).secs[0][0].y > before + 2, 'fitting follows a vertical drag: ' + JSON.stringify({ before, after: (await state()).secs[0][0] }));
    assert.deepEqual(await pose(), initialPose);
    await drag(await framePoint(), 10, 0); assert.deepEqual(await pose(), initialPose, 'dragging the frame cannot move furniture while an item is selected');

@@ -7,6 +7,7 @@ import { studioBounds } from '../../domain/studio/studio';
 import { createStudioOverlay } from './studio-overlay';
 import { createWardrobeOcclusion, syncFurnitureTransparency } from './wardrobe-occlusion';
 import { createWardrobeAssist, SIZE_SIDES } from './assist-overlay';
+import { createSmartGuideOverlay } from './smart-guide-overlay';
 import * as THREE from "three";
 import { boardBox, boardSeed, boardUVs } from './board-geometry';
 import { disposeCabinetGroup } from './render-disposal';
@@ -63,6 +64,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     };
     const sceneFrame = { shadowKey, frame: (cam, dt) => {
         studio?.frame(cam, dt); kitchenRuns?.sync(model.scene.wardrobes); syncWallGhosting();
+        smartGuides?.draw();
         occlusion?.frame(cam, model.scene.wardrobes, renderState.wardrobeGroups, selectionState.focusOn ? model.scene.activeWardrobe : null, dt);
         // Which wardrobes stepped aside, for assistive tools and checks (no visible label shows it).
         const hidden = occlusion?.hiddenIds().join(' ') ?? '', view = $('#view');
@@ -75,6 +77,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     // The measuring assistant: gaps to the walls, neighbours and ceiling while a wardrobe moves or is resized.
     const wardrobeAssist = resources?.scene ? createWardrobeAssist({ document, labels: () => $('#labels'), scene: resources.scene, renderState }) : null;
     if (wardrobeAssist) lifetime.cleanup(() => wardrobeAssist.dispose());
+    const smartGuides = resources?.scene ? createSmartGuideOverlay({ dom, model, resources, interactionState, selectionState,
+        shapeInspector, studioEditor }) : null;
+    if (smartGuides) lifetime.cleanup(() => smartGuides.dispose());
     /** @param {import('../../domain/studio/scene-gaps').GapSide[] | null} sides @param {'move' | 'size'} [mode] */
     const assist = (sides, mode = 'move') => wardrobeAssist?.show(model.scene, model.scene.wardrobes.length ? model.activeCabinet() : null, sides, mode, selectionState.editingSize);
     /** Where the wardrobes stand, so the room leaves out door and window trim hidden behind one. */
