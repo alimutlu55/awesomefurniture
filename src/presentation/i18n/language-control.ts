@@ -21,25 +21,52 @@ export function createLanguageControl(doc: Document): { element: HTMLDetailsElem
   }
   const buttons = [...options.querySelectorAll<HTMLButtonElement>('button')];
   const status = doc.createElement('p'); status.className = 'sub language-status'; status.setAttribute('role', 'status');
-  let busy = false, interacting = false;
-  options.addEventListener('pointerdown', () => { interacting = true; });
-  const endInteraction = () => { interacting = false; };
+  let busy = false, interacting = false, resetTimer: ReturnType<typeof setTimeout> | null = null;
+  const startInteraction = () => {
+    interacting = true;
+    if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
+  };
+  const endInteraction = () => {
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => { interacting = false; resetTimer = null; }, 400);
+  };
+  options.addEventListener('pointerdown', startInteraction);
+  options.addEventListener('mousedown', startInteraction);
   doc.addEventListener('pointerup', endInteraction, true);
   doc.addEventListener('pointercancel', endInteraction, true);
+  doc.addEventListener('mouseup', endInteraction, true);
   const refresh = () => {
     const language = APP_LANGUAGES.find(item => item.code === currentLanguage())!;
     current.textContent = language.name; current.lang = language.code;
     buttons.forEach(button => button.setAttribute('aria-checked', String(button.dataset.language === language.code)));
   };
-  const activate = async (event: Event) => {
-    const button = (event.target as Element).closest<HTMLButtonElement>('button[data-language]');
-    const language = APP_LANGUAGES.find(item => item.code === button?.dataset.language);
+  const selectLanguage = async (code: string | undefined) => {
+    const language = APP_LANGUAGES.find(item => item.code === code);
     if (!language || busy) return;
     busy = true; status.textContent = ''; summary.setAttribute('aria-busy', 'true');
     buttons.forEach(button => { button.disabled = true; });
-    try { await setLanguage(language.code); element.open = false; summary.focus({ preventScroll: true }); }
+    try {
+      await setLanguage(language.code);
+      element.open = false;
+      summary.focus({ preventScroll: true });
+    }
     catch { element.open = true; status.textContent = 'Language could not be loaded. Try again.'; }
     finally { busy = false; summary.removeAttribute('aria-busy'); buttons.forEach(button => { button.disabled = false; }); }
+  };
+  for (const button of buttons) {
+    const code = button.dataset.language;
+    button.addEventListener('pointerdown', e => { e.stopPropagation(); startInteraction(); });
+    button.addEventListener('mousedown', e => { e.stopPropagation(); startInteraction(); });
+    button.addEventListener('click', async e => {
+      e.preventDefault();
+      e.stopPropagation();
+      await selectLanguage(code);
+    });
+  }
+  const activate = async (event: Event) => {
+    const target = event.target as Element | null;
+    const button = target?.closest?.<HTMLButtonElement>('button[data-language]');
+    if (button?.dataset?.language) await selectLanguage(button.dataset.language);
   };
   const toggle = () => {
     summary.setAttribute('aria-expanded', String(element.open));
@@ -56,10 +83,12 @@ export function createLanguageControl(doc: Document): { element: HTMLDetailsElem
   const leave = (event: FocusEvent) => {
     if (interacting) return;
     const target = event.relatedTarget as Node | null;
-    if (target && !element.contains(target)) element.open = false;
+    if (target && target instanceof Node && !element.contains(target)) element.open = false;
   };
   const outside = (event: Event) => {
-    if (element.open && !event.composedPath().includes(element)) element.open = false;
+    if (!element.open) return;
+    const path = event.composedPath ? event.composedPath() : [];
+    if (path.length > 0 && !path.includes(element)) element.open = false;
   };
   doc.addEventListener('pointerdown', outside, true);
   refresh(); const unsubscribe = onLanguageChange(refresh);
@@ -67,8 +96,10 @@ export function createLanguageControl(doc: Document): { element: HTMLDetailsElem
   element.addEventListener('toggle', toggle); element.addEventListener('focusout', leave);
   element.append(summary, options, status);
   return { element, dispose() {
+    if (resetTimer) clearTimeout(resetTimer);
     doc.removeEventListener('pointerup', endInteraction, true);
     doc.removeEventListener('pointercancel', endInteraction, true);
+    doc.removeEventListener('mouseup', endInteraction, true);
     doc.removeEventListener('pointerdown', outside, true);
     options.removeEventListener('click', activate); options.removeEventListener('keydown', navigate);
     element.removeEventListener('toggle', toggle); element.removeEventListener('focusout', leave);
