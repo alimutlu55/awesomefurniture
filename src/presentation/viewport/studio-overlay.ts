@@ -35,7 +35,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
     const guideGroup = new THREE.Group();
     guideGroup.name = 'studio-guides';
     scene.add(guideGroup);
-    const guideMaterial = new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(), toneMapped: false, dashSize: 6, gapSize: 4, transparent: true, opacity: .95, depthTest: false });
+    const guideMaterial = new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(),
+        toneMapped: false, dashSize: 3, gapSize: 5, transparent: true, opacity: .4, depthTest: false });
     let mine: Lab[] = [];
 
     function handleElement(h: RoomHandle) {

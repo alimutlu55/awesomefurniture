@@ -26,8 +26,8 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   group.name = 'measuring-assistant';
   scene.add(group);
   const material = (hex: string, dashed = false) => dashed
-    ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 5, gapSize: 4, toneMapped: false, depthTest: false, transparent: true })
-    : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true });
+    ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 3, gapSize: 5, toneMapped: false, depthTest: false, transparent: true, opacity: .45 })
+    : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true, opacity: .45 });
   const ok = material('#2f8a57'), level = material('#2f8a57', true);
   const tagPool: Lab[] = [];
   let activeTags = 0;
@@ -72,7 +72,7 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   /** A dimension line with short ticks across its ends. */
   function dimension(a: THREE.Vector3, b: THREE.Vector3, m: THREE.Material, angle = 0) {
     const dir = b.clone().sub(a), vertical = Math.abs(dir.y) > Math.hypot(dir.x, dir.z), rad = angle * Math.PI / 180;
-    const tick = vertical ? new THREE.Vector3(Math.cos(rad) * 5, 0, -Math.sin(rad) * 5) : new THREE.Vector3(0, 5, 0);
+    const tick = vertical ? new THREE.Vector3(Math.cos(rad) * 1.5, 0, -Math.sin(rad) * 1.5) : new THREE.Vector3(0, 1.5, 0);
     const pts = [a, b, a.clone().add(tick), a.clone().sub(tick), b.clone().add(tick), b.clone().sub(tick)];
     if (activeLines < linePool.length) {
       const line = linePool[activeLines]!;

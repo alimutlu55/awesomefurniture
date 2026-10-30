@@ -1,5 +1,6 @@
 .smart-guides{position:absolute;pointer-events:none;z-index:8;overflow:hidden;isolation:isolate}
 .smart-guides[hidden]{display:none}
 .smart-guides>svg{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
-.smart-guides path{fill:none;stroke:#5f9f78;stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
-.smart-guides .aligned path{stroke:#32815b;stroke-dasharray:3 3;stroke-width:2}
+.smart-guides path{fill:none;stroke:#5f9f78;stroke-width:.6;stroke-dasharray:2 4;stroke-linecap:butt;opacity:.5;vector-effect:non-scaling-stroke}
+.smart-guides .aligned path{stroke:#32815b;stroke-width:.75;stroke-dasharray:2 4;opacity:.75}
+[data-editor-id="view"]:has(> .smart-guides:not([hidden])) [data-editor-id="snap-layer"]{visibility:hidden}

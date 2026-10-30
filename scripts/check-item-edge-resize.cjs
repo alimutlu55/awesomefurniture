@@ -84,10 +84,14 @@ const near = (a, b, message) => assert.ok(Math.abs(a - b) < .001, `${message}: $
     near(grown.items[1].y, kind === 'slope-board' ? 21.8 : 20, 'stops exactly at the support');
     const guides = page.locator('[data-smart-guides]');
     assert.ok(await guides.isVisible(), 'the real resize handler shows Smart Guides at the supporting edge');
-    assert.ok((await guides.locator('svg path:visible').count()) > 0, 'alignment is shown with guide lines');
+    assert.ok(Number(await guides.getAttribute('data-guide-count')) > 0, 'alignment is shown with guide lines');
     assert.equal((await guides.textContent()).trim(), '', 'Smart Guides never add alignment text');
     assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => getComputedStyle(p).stroke)))
      .every(color => color === 'rgb(50, 129, 91)' || color === 'rgb(95, 159, 120)'), 'all Smart Guide strokes are green');
+    assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => parseFloat(getComputedStyle(p).strokeWidth))))
+     .every(width => width <= .75), 'guide strokes remain hairlines at every camera zoom');
+    assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => (p.getAttribute('d').match(/M/g) || []).length)))
+     .every(count => count === 1), 'guides have no endpoint crosses or ornaments');
     assert.equal(await guides.evaluate(el => getComputedStyle(el).pointerEvents), 'none', 'guides leave drag handles interactive');
     for (const index of [0, 2]) near(grown.items[index].y, before.items[index].y, 'neighbors stay fixed');
     await page.screenshot({ path: `/tmp/wardrobe-item-edge-${width}-${kind}-grown.png` });

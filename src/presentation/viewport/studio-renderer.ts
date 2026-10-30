@@ -294,18 +294,16 @@ export function createStudioRenderer(scene: THREE.Scene) {
     return mesh;
   }
 
-  /** A green strip on the floor where a dragged wardrobe sits flush against a wall: it snapped there. */
-  const guideStrip = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: linear('#5f9f78'), toneMapped: false, depthTest: false, transparent: true, opacity: .9 }));
+  /** Wall contact uses a one-pixel line, never a band that grows thicker as the camera moves closer. */
+  const guideStrip = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({
+    color: linear('#5f9f78'), toneMapped: false, depthTest: false, transparent: true, opacity: .4 }));
   guideStrip.renderOrder = 16;
   guideStrip.visible = false;
   scene.add(guideStrip);
   function guide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null) {
     guideStrip.visible = !!segment;
     if (!segment) return;
-    const dx = segment.b.x - segment.a.x, dz = segment.b.z - segment.a.z;
-    guideStrip.position.set((segment.a.x + segment.b.x) / 2, .8, (segment.a.z + segment.b.z) / 2);
-    guideStrip.rotation.y = Math.atan2(-dz, dx);
-    guideStrip.scale.set(Math.hypot(dx, dz) + 8, 1, 3);
+    guideStrip.geometry.setFromPoints([new THREE.Vector3(segment.a.x, .8, segment.a.z), new THREE.Vector3(segment.b.x, .8, segment.b.z)]);
   }
 
   return {

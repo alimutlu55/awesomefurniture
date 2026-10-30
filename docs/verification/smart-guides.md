@@ -1,6 +1,6 @@
 # Smart Guides
 
-The editor now has a shared `GuideLine<P>` / `SmartGuide` interface and an editor-scoped SVG overlay. Guides are green lines only: no alignment captions, messages, badges or tooltips are added. Nearby references use dashed lines; exact alignment uses a different stroke. Guides follow the camera and never intercept input.
+The editor now has a shared `GuideLine<P>` / `SmartGuide` interface and an editor-scoped SVG overlay. Guides use muted green hairlines (0.6–0.75 CSS px), short dashes and restrained opacity. There are no endpoint crosses, alignment captions, messages, badges or tooltips. The legacy exact-contact layer hides while the shared guides are visible. Wall contact is a screen-width line rather than a floor band. Guides follow the camera and never intercept input.
 
 Coverage includes:
 

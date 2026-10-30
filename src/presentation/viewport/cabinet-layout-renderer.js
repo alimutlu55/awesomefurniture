@@ -71,13 +71,13 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                 const pts = g.orient === 'h'
                     ? [new THREE.Vector3(-w / 2, g.pos, z), new THREE.Vector3(w / 2, g.pos, z)]
                     : [new THREE.Vector3(g.pos - w / 2, 0, z), new THREE.Vector3(g.pos - w / 2, h, z)];
-                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(), toneMapped: false, dashSize: 4, gapSize: 3, transparent: true, opacity: .9, depthTest: false }));
+                const material = new THREE.LineDashedMaterial({ color: new THREE.Color('#5f9f78').convertSRGBToLinear(),
+                    toneMapped: false, dashSize: 3, gapSize: 5, transparent: true, opacity: .4, depthTest: false });
+                const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), material);
                 line.computeLineDistances();
                 line.renderOrder = 16;
                 renderState.Gr.add(line);
-
             }
-            // While a point is dragged only its own rulers and guides show, so nothing competes for space.
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
 
             for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(true)) {

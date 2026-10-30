@@ -121,7 +121,7 @@ export function createSmartGuideOverlay({ dom, model, resources, interactionStat
             }
             const a = project(g.a), b = project(g.b), aligned = Math.abs(g.delta) < .001;
             row.group.setAttribute('class', aligned ? 'aligned' : 'near');
-            row.path.setAttribute('d', `M${a.x},${a.y}L${b.x},${b.y}M${a.x - 3},${a.y - 3}l6,6m-6,0l6,-6M${b.x - 3},${b.y - 3}l6,6m-6,0l6,-6`);
+            row.path.setAttribute('d', `M${a.x},${a.y}L${b.x},${b.y}`);
             row.group.style.display = '';
         });
         pool.slice(guides.length).forEach(row => { row.group.style.display = 'none'; });
