@@ -21,7 +21,11 @@ export function createLanguageControl(doc: Document): { element: HTMLDetailsElem
   }
   const buttons = [...options.querySelectorAll<HTMLButtonElement>('button')];
   const status = doc.createElement('p'); status.className = 'sub language-status'; status.setAttribute('role', 'status');
-  let busy = false;
+  let busy = false, interacting = false;
+  options.addEventListener('pointerdown', () => { interacting = true; });
+  const endInteraction = () => { interacting = false; };
+  doc.addEventListener('pointerup', endInteraction, true);
+  doc.addEventListener('pointercancel', endInteraction, true);
   const refresh = () => {
     const language = APP_LANGUAGES.find(item => item.code === currentLanguage())!;
     current.textContent = language.name; current.lang = language.code;
@@ -49,12 +53,23 @@ export function createLanguageControl(doc: Document): { element: HTMLDetailsElem
       : (active + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
     buttons[index]?.focus();
   };
-  const leave = (event: FocusEvent) => { if (!element.contains(event.relatedTarget as Node | null)) element.open = false; };
+  const leave = (event: FocusEvent) => {
+    if (interacting) return;
+    const target = event.relatedTarget as Node | null;
+    if (target && !element.contains(target)) element.open = false;
+  };
+  const outside = (event: Event) => {
+    if (element.open && !event.composedPath().includes(element)) element.open = false;
+  };
+  doc.addEventListener('pointerdown', outside, true);
   refresh(); const unsubscribe = onLanguageChange(refresh);
   options.addEventListener('click', activate); options.addEventListener('keydown', navigate);
   element.addEventListener('toggle', toggle); element.addEventListener('focusout', leave);
   element.append(summary, options, status);
   return { element, dispose() {
+    doc.removeEventListener('pointerup', endInteraction, true);
+    doc.removeEventListener('pointercancel', endInteraction, true);
+    doc.removeEventListener('pointerdown', outside, true);
     options.removeEventListener('click', activate); options.removeEventListener('keydown', navigate);
     element.removeEventListener('toggle', toggle); element.removeEventListener('focusout', leave);
     unsubscribe(); element.remove();

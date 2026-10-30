@@ -1,4 +1,6 @@
 import { bindLocalizedUi } from '../i18n/localized-ui';
+import { onLanguageChange } from '../i18n/language';
+import { refreshContextualToolbar } from './contextual-toolbar.js';
 import { createLanguageControl } from '../i18n/language-control';
 import languageStylesheet from '../i18n/language-control.css?raw';
 import { scopeEditorStyles } from './editor-styles';
@@ -64,6 +66,9 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     shadow.querySelector('[data-menu-group="preferences"]')!.append(language.element);
     const dom = createEditorDom(shadow);
     const stopTranslation = bindLocalizedUi(shadow);
+    const stopToolbarLanguage = onLanguageChange(() => {
+        refreshContextualToolbar(dom.$('#toolbar'));
+    });
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
         editor = startEditor(initialScene, dom, shareLink, credits, account);
@@ -88,7 +93,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
                 if (disposed)
                     return;
                 disposed = true;
-                stopTranslation(); language.dispose();
+                stopToolbarLanguage(); stopTranslation(); language.dispose();
                 mountedEditor.dispose();
                 shadow.replaceChildren();
                 mounted.delete(root);
@@ -96,7 +101,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         };
     }
     catch (error) {
-        stopTranslation(); language.dispose();
+        stopToolbarLanguage(); stopTranslation(); language.dispose();
         editor?.dispose();
         dom.dispose();
         shadow.replaceChildren();

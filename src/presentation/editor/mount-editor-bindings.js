@@ -169,12 +169,30 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     // Group the existing wardrobe controls without replacing their bindings.
     const body = $('#left-body');
     let group;
+    const sectionByHeading = {
+        Size: 'resize', Shape: 'shape', Sections: 'sections', Finish: 'material', Doors: 'doors',
+        Wymiary: 'resize', Kształt: 'shape', Sekcje: 'sections', Wykończenie: 'material', Drzwi: 'doors',
+        Größe: 'resize', Form: 'shape', Abschnitte: 'sections', Oberfläche: 'material', Türen: 'doors',
+        Dimensions: 'resize', Forme: 'shape', Finition: 'material', Portes: 'doors',
+        Dimensiones: 'resize', Forma: 'shape', Secciones: 'sections', Acabado: 'material', Puertas: 'doors',
+        Dimensões: 'resize', Seções: 'sections', Acabamento: 'material', Portas: 'doors',
+        Boyut: 'resize', Şekil: 'shape', Bölümler: 'sections', Yüzey: 'material', Kapaklar: 'doors',
+    };
     for (const child of [...body.children]) {
         if (child.tagName === 'H2' || !group || child.classList.contains('reset-row')) {
             group = document.createElement('section');
             const label = child.textContent.trim();
-            group.dataset.wardrobeControls = child.classList.contains('reset-row') ? 'reset' : ({Size:'resize',Shape:'shape',Sections:'sections',Finish:'material',Doors:'doors'}[label] || 'resize');
-            body.insertBefore(group,child);
+            const nextId = child.nextElementSibling?.id;
+            const nextClass = child.nextElementSibling?.className;
+            const inferred = child.getAttribute('data-wardrobe-section')
+                || sectionByHeading[label]
+                || (nextId === 'sliders' ? 'resize'
+                    : nextId === 'fins' ? 'material'
+                    : nextClass && String(nextClass).includes('door-grid') ? 'doors'
+                    : nextId === 'shape-templates' ? 'shape'
+                    : nextId === 'section-row' ? 'sections' : null);
+            group.dataset.wardrobeControls = child.classList.contains('reset-row') ? 'reset' : (inferred || 'resize');
+            body.insertBefore(group, child);
         }
         group.append(child);
     }

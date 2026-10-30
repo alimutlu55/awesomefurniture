@@ -536,5 +536,16 @@
   "Choose a password you have not used here before.": "Choisissez un mot de passe jamais utilisé ici.",
   "The security check could not be completed. Please try again.": "Le contrôle de sécurité a échoué. Réessayez.",
   "Wardrobe editor. Click a wardrobe to select it; drag its body to place it on the floor. Ground handles rotate it or move it left/right, forward/back, and up/down. Click an item to see dimensions. Drag its side or top handles to resize, or its body to move. Drag empty space to look around. Escape cancels.": "Éditeur d’armoires. Cliquez sur une armoire pour la sélectionner et faites glisser son corps pour la placer. Les poignées au sol permettent de la tourner et de la déplacer horizontalement ou verticalement. Cliquez sur un élément pour voir ses dimensions. Faites glisser ses poignées pour le redimensionner ou son corps pour le déplacer. Faites glisser l’espace vide pour orienter la vue. Échap annule.",
-  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "Panneau {0}. Glissez vers le haut pour agrandir, vers le bas pour réduire. Touchez pour changer la hauteur."
+  "{0:ui} panel. Drag up to expand, down to lower. Tap to change height.": "Panneau {0}. Glissez vers le haut pour agrandir, vers le bas pour réduire. Touchez pour changer la hauteur.",
+  "Interior": "Intérieur",
+  "More": "Plus",
+  "Replace": "Remplacer",
+  "Paint / Finish": "Peinture / Finition",
+  "Split": "Diviser",
+  "Remove wall": "Supprimer le mur",
+  "Flip": "Retourner",
+  "How it is fitted": "Mode de pose",
+  "New wardrobe": "Nouvelle armoire",
+  "Add cabinet": "Ajouter un meuble",
+  "Add to the room": "Ajouter à la pièce"
 }
