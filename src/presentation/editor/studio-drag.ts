@@ -25,16 +25,19 @@ const neighbours = (room: Studio, id: string) => room.walls.flatMap(w => w.a ===
 /** Where a dragged corner goes: squared with the corners at the other ends of its walls, aligned with any
  * other corner, along a 45° line from a neighbour, or onto a free wall end it can join. `tolerance` is
  * in centimetres (about 8 screen pixels at the current zoom). */
-export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks, tolerance: number) {
+export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks, tolerance: number, physical = false) {
   const own = new Set(neighbours(room, id)), guides: Guide[] = [];
   const others = room.corners.filter(c => c.id !== id);
   // A free end can join another free end: the room closes there.
   const free = cornerDegree(room, id) === 1;
-  const join = free ? others.filter(c => cornerDegree(room, c.id) === 1 && !own.has(c.id)).find(c => near(c, raw) <= Math.max(JOIN, tolerance * 2.5) * (locks.join === c.id ? 1.35 : 1)) : undefined;
+  const reach = physical ? tolerance + 1e-6 : Math.max(JOIN, tolerance * 2.5);
+  const join = free ? others.filter(c => cornerDegree(room, c.id) === 1 && !own.has(c.id))
+    .find(c => near(c, raw) <= reach * (!physical && locks.join === c.id ? 1.35 : 1)) : undefined;
   if (join) return { at: { x: join.x, z: join.z }, locks: { x: null, z: null, ray: null, join: join.id }, guides: [{ a: join, b: join, label: 'Join walls' }] };
   const name = (cid: string) => own.has(cid) ? 'Square' : 'Aligned with corner';
   const xs = others.map(c => ({ v: c.x, label: name(c.id) })), zs = others.map(c => ({ v: c.z, label: name(c.id) }));
-  const x = alignTo(raw.x, xs, locks.x, tolerance), z = alignTo(raw.z, zs, locks.z, tolerance);
+  const hold = physical ? 1 : 1.6;
+  const x = alignTo(raw.x, xs, locks.x, tolerance, hold), z = alignTo(raw.z, zs, locks.z, tolerance, hold);
   const at = { x: x?.v ?? raw.x, z: z?.v ?? raw.z };
   const source = (axis: 'x' | 'z', v: number) => others.filter(c => Math.abs(c[axis] - v) < 1e-6).sort((p, q) => Number(own.has(q.id)) - Number(own.has(p.id)) || near(p, at) - near(q, at))[0]!;
   if (x) guides.push({ a: source('x', x.v), b: at, label: x.label });
@@ -47,7 +50,7 @@ export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks,
     if (len > 1) {
       const ux = (o2.x - o1.x) / len, uz = (o2.z - o1.z) / len, t = (raw.x - o1.x) * ux + (raw.z - o1.z) * uz, off = (raw.x - o1.x) * -uz + (raw.z - o1.z) * ux;
       const held = locks.ray?.label === 'straight';
-      if (t > 0 && t < len && Math.abs(off) <= tolerance * (held ? 1.6 : 1)) {
+      if (t > 0 && t < len && Math.abs(off) <= tolerance * (held ? hold : 1)) {
         at.x = o1.x + ux * t; at.z = o1.z + uz * t;
         return { at, locks: { x: null, z: null, ray: { v: 0, label: 'straight' }, join: null }, guides: [{ a: o1, b: o2, label: 'Straight' }] };
       }
@@ -64,7 +67,7 @@ export function snapCorner(room: Studio, id: string, raw: P, locks: CornerLocks,
       const options = [...(diagonal ? [{ v: step, label: '45°' }] : []), ...others.flatMap(a => [a, a + Math.PI, a - Math.PI].map(v => ({ v, label: 'Parallel' })))];
       for (const c of options) {
         const off = len * Math.sin(angle - c.v), held = locks.ray?.label === o.id && Math.abs(locks.ray.v - c.v) < 1e-6;
-        if (Math.abs(off) > tolerance * (held ? 1.6 : 1) || Math.cos(angle - c.v) <= 0) continue;
+        if (Math.abs(off) > tolerance * (held ? hold : 1) || Math.cos(angle - c.v) <= 0) continue;
         const along = len * Math.cos(angle - c.v);
         at.x = o.x + Math.cos(c.v) * along; at.z = o.z + Math.sin(c.v) * along;
         ray = { v: c.v, label: o.id };

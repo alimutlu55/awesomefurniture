@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { pointerTapSlop } from './interaction-state.js';
+import { cabinetSmartGuides } from './scene-smart-guides';
+import { autoGuideTranslation } from './smart-guides';
 /** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
  * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
 const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
@@ -148,6 +150,13 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
         const w = model.activeCabinet();
+        if (!e.shiftKey && !e.altKey) {
+            const axes = g.axis === 'floor' ? (hangs(w.state) ? ['x', 'y', 'z'] : ['x', 'z']) : [g.axis];
+            const correction = autoGuideTranslation(cabinetSmartGuides(model.scene, w), axes);
+            if (Math.hypot(correction.x, correction.y, correction.z) > 1e-6) {
+                sceneCommands.previewTranslation(g.id, { x: w.x + correction.x, y: (w.y || 0) + correction.y, z: w.z + correction.z });
+            }
+        }
         // Show an exact wall-contact guide without pulling the cabinet across a gap or turning it.
         const snap = g.axis === 'floor' && !e.shiftKey ? sceneCommands.wallSnap(w, { x: w.x, z: w.z, angle: w.angle }, 0, 0) : null;
         callbacks.wallGuide(snap ? backEdge(snap, w.state) : null);

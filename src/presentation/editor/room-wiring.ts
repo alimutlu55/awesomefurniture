@@ -118,6 +118,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
+        valid: r => !sceneCommands.studioProblem(r),
         resizeWallLength: (id, length, preview) => sceneCommands.resizeWallLength(id, length, !preview, preview),
         resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
             active: () => dom.$('#left').dataset.roomResize !== undefined },

@@ -25,6 +25,8 @@ export type Align = AlignTarget<never>;
 /** A held line lets go once the pointer is this many tolerances away from it, so it does not flicker
  * between two lines that are close together. */
 export const ALIGN_HOLD = 1.6;
+/** Interactive edits catch within one physical millimetre, independent of camera zoom. Units are centimetres. */
+export const AUTO_ALIGN_CM = .1;
 /** Two candidate values this close are the same line. */
 const SAME = 1e-6;
 
@@ -35,6 +37,8 @@ export interface AlignOptions {
     readonly lock?: AlignTarget | null;
     /** The reachable range [low, high]: candidates outside it are never caught. */
     readonly within?: readonly [number, number];
+    /** A physical snap can release at its catch distance instead of using visual-guide hysteresis. */
+    readonly hold?: number;
 }
 
 const sameLine = (a: AlignTarget, b: AlignTarget) => Math.abs(a.v - b.v) < SAME && (a.kind ?? a.label) === (b.kind ?? b.label);
@@ -42,11 +46,11 @@ const sameLine = (a: AlignTarget, b: AlignTarget) => Math.abs(a.v - b.v) < SAME 
 /** The candidate `raw` aligns with, or null. Deterministic: the held line while it is near enough, else the
  * nearest within `tolerance` (distance plus its penalty); on a tie, the one listed first. Scores closer than
  * SAME are a tie, so floating-point noise never decides between two lines the same distance away. */
-export function resolveAlignment<T extends AlignTarget>(raw: number, targets: readonly T[], { tolerance, lock = null, within }: AlignOptions): T | null {
+export function resolveAlignment<T extends AlignTarget>(raw: number, targets: readonly T[], { tolerance, lock = null, within, hold = ALIGN_HOLD }: AlignOptions): T | null {
     const reachable = within ? targets.filter(t => t.v >= within[0] - SAME && t.v <= within[1] + SAME) : targets;
     if (lock) {
         const held = reachable.find(t => sameLine(t, lock));
-        if (held && Math.abs(held.v - raw) <= tolerance * ALIGN_HOLD) return held;
+        if (held && Math.abs(held.v - raw) <= tolerance * hold + SAME) return held;
     }
     let best: T | null = null, score = Infinity;
     for (const t of reachable) {
@@ -59,8 +63,8 @@ export function resolveAlignment<T extends AlignTarget>(raw: number, targets: re
 }
 
 /** `resolveAlignment` for the plain value-and-reason targets: the room and shape editors' lines. */
-export function alignTo(raw: number, targets: readonly Align[], lock: Align | null, tolerance: number): Align | null {
-    return resolveAlignment(raw, targets, { tolerance, lock });
+export function alignTo(raw: number, targets: readonly Align[], lock: Align | null, tolerance: number, hold = ALIGN_HOLD): Align | null {
+    return resolveAlignment(raw, targets, { tolerance, lock, hold });
 }
 
 /** The nearest value within `tolerance` of `raw`, or null: a level a dragged corner or side can land on. */

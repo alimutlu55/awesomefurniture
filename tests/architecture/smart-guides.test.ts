@@ -105,11 +105,11 @@ test('room Size fields expose guides for walls and every existing opening on its
 });
 
 test('profile boundary snaps always provide a visible guide, including whole-shape movement', () => {
-    const corner = snapCorner(points, 2, { x: 90, y: 259.7 }, bounds, room, .1, .1);
+    const corner = snapCorner(points, 2, { x: 90, y: 259.9 }, bounds, room, .1, .1);
     assert.equal(corner.at.y, 260); assert.ok(corner.guides.some(g => g.a.y === 260 && g.b.y === 260));
-    const edge = snapSlide(points, 2, 179.7, bounds, room, .1, .1);
+    const edge = snapSlide(points, 2, 179.9, bounds, room, .1, .1);
     assert.equal(edge.d, 180); assert.ok(edge.guides.length > 0);
-    const move = snapMove(points, -19.7, 0, bounds, room, .1, .1);
+    const move = snapMove(points, -19.9, 0, bounds, room, .1, .1);
     assert.equal(move.dx, -20); assert.ok(move.guides.some(g => g.a.x === 0 && g.b.x === 0));
 });
 

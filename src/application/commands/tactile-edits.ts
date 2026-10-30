@@ -3,6 +3,9 @@ import { createSceneCommands } from './scene-commands';
 import { changeAccordionShelf } from './accordion-shelves';
 import { resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { editProfilePoint } from '../../domain/wardrobe/shape/shape-handle-edit';
+import { AUTO_ALIGN_CM } from '../../domain/geometry/alignment';
+import { sizeTargets } from './align-commands';
+import { cabinetResizeTravel } from './millimetre-alignment';
 
 export type ScrubDimension = 'w' | 'd' | 'h' | 'h-left' | 'h-right';
 interface Ports {
@@ -44,8 +47,6 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
             }
             return commands.setCabinetSize(g.dimension, g.start + amount, false);
         };
-        // Preserve every requested millimetre, including gaps immediately beside a matching edge.
-        // Contact is reached only when requested or when the collision boundary clamps further travel.
         if (!apply(delta)) {
             // Search whole millimetres, so a large pointer jump cannot leave a
             // visible remainder at a wall after a fixed number of iterations.
@@ -56,6 +57,18 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
                 if (apply(sign * mid / 10)) lo = mid; else hi = mid;
             }
             apply(sign * lo / 10);
+        }
+        if (g.dimension === 'w' || g.dimension === 'h' || g.dimension === 'd') {
+            const raw = model.snapshot(), before = structuredClone(model.activeCabinet()), key = g.dimension;
+            const limit = key === 'h' ? AUTO_ALIGN_CM : AUTO_ALIGN_CM * 2;
+            const targets = sizeTargets(model.scene, before, key).filter(t => Math.abs(t.v - before.state[key]) <= limit + 1e-6)
+                .sort((a, b) => Math.abs(a.v - before.state[key]) - Math.abs(b.v - before.state[key]));
+            for (const target of targets) {
+                if (Math.abs(target.v - before.state[key]) < 1e-6) continue;
+                if (apply(target.v - g.start) && Math.abs(value(key) - target.v) < .001
+                    && cabinetResizeTravel(before, model.activeCabinet()) <= AUTO_ALIGN_CM + 1e-6) return value(key);
+                model.restore(raw);
+            }
         }
         return value(g.dimension);
     }

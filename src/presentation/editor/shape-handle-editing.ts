@@ -3,11 +3,12 @@ import type { createSceneCommands, ShapeFrame } from '../../application/commands
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { friendlyProblem, partitionPositions, resolveShape, shapeProblems, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { moveShapeHandle, profileAt, type ShapeSide } from '../../domain/wardrobe/shape/shape-handle-edit';
-import { alignTo, type Align } from '../../domain/geometry/alignment';
+import { AUTO_ALIGN_CM, alignTo, type Align } from '../../domain/geometry/alignment';
 import { lengthText, unitSuffix } from './length-unit-state';
 
 export interface ShapeHandlePorts {
-    model: { activeCabinet(): EditorCabinet; snapshot(): string; restore(raw: string): void };
+    model: { activeCabinet(): EditorCabinet; snapshot(): string; restore(raw: string): void;
+        scene?: import('../../application/projects/editor-scene').EditorScene };
     sceneCommands: Pick<ReturnType<typeof createSceneCommands>, 'setShape' | 'shapeEditProblem' | 'growFrontShape'>;
     picking: { frontPoint(e: PointerEvent, side?: ShapeSide): { x: number; y: number } | null };
     callbacks: { refresh(): void; rebuild(): void; histUI(): void; frame?(): void };
@@ -21,13 +22,13 @@ interface HandleDrag {
     reason: string | null;
 }
 export function createShapeHandleEditing({ model, sceneCommands, picking, callbacks }: ShapeHandlePorts) {
-    let drag: HandleDrag | null = null, pxPerCm = 4;
+    let drag: HandleDrag | null = null;
     let focusedPoint: number | null = null, focusedSide: ShapeSide = 'front';
     const state = () => model.activeCabinet().state;
     const current = () => resolveShape(state());
     const editable = (shape: WardrobeShape): WardrobeShape => ({ ...shape, template: 'custom' });
     const round = (v: number) => Math.round(v * 10) / 10;
-    const tolerance = () => Math.max(.4, Math.min(4, 8 / pxPerCm));
+    const tolerance = () => AUTO_ALIGN_CM;
     const profileSide = () => drag?.side ?? focusedSide;
     const profile = () => profileAt(drag?.last ?? current(), profileSide());
     function frameFor(frame: ShapeFrame, angle: number, offset: number, w: number): ShapeFrame {
@@ -35,7 +36,10 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         return { w, x: frame.x + offset * Math.cos(a), z: frame.z - offset * Math.sin(a) };
     }
     function heightTargets(shape: WardrobeShape, index: number): Align[] {
-        return shape.top.flatMap((p, k) => k === index ? [] : [{ v: p.y, label: 'Level with break ' + (k + 1) }]);
+        const c = model.activeCabinet(), base = c.y || 0;
+        return [...shape.top.flatMap((p, k) => k === index ? [] : [{ v: p.y, label: 'Level with break ' + (k + 1) }]),
+            ...(model.scene?.wardrobes ?? []).filter(o => o.id !== c.id).map(o => ({ v: (o.y || 0) + o.state.h - base, label: 'Level with neighbour' })),
+            ...(model.scene?.studio?.walls ?? []).map(w => ({ v: w.height - base, label: 'Level with wall' }))];
     }
     function positionTargets(shape: WardrobeShape, index: number): Align[] {
         const w = state().w, out: Align[] = [{ v: w / 2, label: 'Centred' }];
@@ -66,9 +70,9 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         const x = p.x + (cabinet.x - g.frame.x) * Math.cos(a) - (cabinet.z - g.frame.z) * Math.sin(a);
         const o = profileAt(g.original, g.side), point = o.top[g.index]!;
         const rawY = point.y + p.y - g.start.y, rawX = point.x + x - g.start.x;
-        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY, tolerance());
+        const alignY = alignTo(rawY, heightTargets(o, g.index), g.lockY, tolerance(), 1);
         const interior = g.index > 0 && g.index < o.top.length - 1;
-        const alignX = interior ? alignTo(rawX, positionTargets(o, g.index), g.lockX, tolerance()) : null;
+        const alignX = interior ? alignTo(rawX, positionTargets(o, g.index), g.lockX, tolerance(), 1) : null;
         g.lockX = alignX; g.lockY = alignY;
         g.guides = [
             ...(alignY ? [{ orient: 'h' as const, pos: alignY.v, label: alignY.label }] : []),
@@ -144,5 +148,5 @@ export function createShapeHandleEditing({ model, sceneCommands, picking, callba
         return out;
     }
     return { beginHandleDrag, moveHandleDrag, endHandleDrag, nudge, setFocusedPoint, dragRulers, profileSide,
-        drag: () => drag, dragging: () => drag !== null, guides: () => drag?.guides ?? [], setScale: (v: number) => { pxPerCm = Math.max(.5, v); } };
+        drag: () => drag, dragging: () => drag !== null, guides: () => drag?.guides ?? [], setScale: (_v: number) => { /* Snapping uses physical millimetres at every zoom. */ } };
 }

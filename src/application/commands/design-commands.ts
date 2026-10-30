@@ -13,12 +13,21 @@ import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
 import { plinthOf } from '../../domain/wardrobe/carcass';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import type { ItemKind } from '../../domain/wardrobe/wardrobe';
+import { AUTO_ALIGN_CM } from '../../domain/geometry/alignment';
 /** Compatibility facade: compose independent command families around one workflow. */
 export function createDesignCommands(getDesign: () => EditorState, supplied: CommandEffects = {}) {
     const { effects, run } = createCommandWorkflow(getDesign, supplied);
     const rules = createWardrobeGeometry(getDesign, effects.getBudget);
     const dividers = createDividerCommands({ getDesign, effects, rules, run });
     const dividerAlign = createDividerAlign({ getDesign, rules, moveDividerTo: dividers.moveDividerTo });
+    const setDividerClearance: typeof dividers.setDividerClearance = (index, side, value) => {
+        if (!Number.isFinite(value) || value < 0 || side !== 'before' && side !== 'after') return false;
+        const moved = dividers.setDividerClearance(index, side, value), d = getDesign().dividers?.[index];
+        if (!d) return moved;
+        const raw = d.orientation === 'horizontal' ? d.y : d.x;
+        const aligned = raw === undefined ? null : dividerAlign.alignDividerTo(index, raw, { tolerance: AUTO_ALIGN_CM });
+        return !!(moved || aligned?.moved);
+    };
     const sizing = createSizingCommands({ getDesign, effects, rules });
     const items = createItemCommands({ getDesign, effects, rules, run, callbacks: { addShelfBoard: dividers.addShelfBoard } });
     const layouts = createLayoutCommands({ getDesign, effects, rules });
@@ -58,5 +67,6 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     // Section changes validate detached geometry before committing; a shape refit
     // afterward could compact or remove the very fittings the command preserves.
     const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
-    return { run, ...dividers, ...dividerAlign, ...sizing, ...items, addMod, editItem, ...layouts, applyProposal, autofill, changeSections, ...appearance };
+    return { run, ...dividers, ...dividerAlign, setDividerClearance, ...sizing, ...items, addMod, editItem,
+        ...layouts, applyProposal, autofill, changeSections, ...appearance };
 }

@@ -57,13 +57,14 @@ export function cabinetSmartGuides(scene: EditorScene, c: EditorCabinet, dimensi
         out.push({ id: `gap:${g.side}`, group: horizontal ? 'x' : vertical ? 'y' : 'depth', label: 'Flush with ' + g.target,
             a: { x: target.x - tangent.x, y: target.y - tangent.y, z: target.z - tangent.z },
             b: { x: target.x + tangent.x, y: target.y + tangent.y, z: target.z + tangent.z },
-            current: g.from, target, delta: g.distance });
+            current: g.from, target, delta: Math.hypot(shift.x, shift.y, shift.z) });
     }
     for (const [lo, hi, axis] of [['left', 'right', 'x'], ['bottom', 'top', 'y']] as const) {
         if (dimension && !(axis === 'x' && across || axis === 'y' && up)) continue;
         const l = gaps.find(g => g.side === lo), r = gaps.find(g => g.side === hi);
         if (!l || !r) continue;
-        const move = (r.distance - l.distance) / 2;
+        const distance = (g: typeof l) => Math.hypot(g.to.x - g.from.x, g.to.y - g.from.y, g.to.z - g.from.z);
+        const move = (distance(r) - distance(l)) / 2;
         out.push(axisGuide(`gap:centre:${axis}`, 'Equal spacing', axis, axis === 'x' ? 0 : s.h / 2,
             (axis === 'x' ? 0 : s.h / 2) + move, axis === 'x' ? [0, s.h] : [-s.w / 2, s.w / 2], frame));
     }

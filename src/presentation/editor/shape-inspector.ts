@@ -8,6 +8,7 @@ import { measureNumber, esc, unitSuffix } from './editor-format.js';
 import { createShapeHandleEditing, type ShapeHandlePorts } from './shape-handle-editing';
 import { editProfilePoint, profileAt } from '../../domain/wardrobe/shape/shape-handle-edit';
 import { createShapeSplitCursor } from './shape-split-cursor';
+import { autoProfileValue } from './surface-shape-snap';
 
 interface ShapeInspectorPorts {
     dom: {
@@ -102,8 +103,17 @@ export function createShapeInspector({ dom, model, sceneCommands, picking, selec
 
     /** Commit a typed value. Angles pivot on the panel's left end. */
     function onChange(input: HTMLInputElement) {
-        const value = input.valueAsNumber, shape = current();
+        let value = input.valueAsNumber;
+        const shape = current(), side = input.dataset.side === 'rear' ? 'rear' : 'front';
         if (!Number.isFinite(value)) { render(); return; }
+        const pointEdit = (v: number) => input.dataset.k === 'angle' ? setPanelAngle(shape, Number(input.dataset.s), v)
+            : input.dataset.k === 'rise' ? setStepRise(shape, Number(input.dataset.p), v)
+                : editProfilePoint(shape, side, Number(input.dataset.p), input.dataset.k === 'x' ? { x: v } : { y: v });
+        const c = model.activeCabinet(), base = c.y || 0;
+        const neighbours = (model.scene?.wardrobes ?? []).filter(o => o.id !== c.id).map(o => ({ x: 0, y: (o.y || 0) + o.state.h - base }));
+        for (const w of model.scene?.studio?.walls ?? []) neighbours.push({ x: 0, y: w.height - base });
+        value = autoProfileValue(value, v => profileAt(pointEdit(v), side).top,
+            { minX: 0, maxX: state().w, minY: 0, maxY: 400 }, { from: 0, to: state().w, top: 400, points: neighbours });
         if (input.dataset.k === 'angle') commit({ ...setPanelAngle(shape, Number(input.dataset.s), value), back: shape.back ?? shape.top.map(p => p.y) });
         else if (input.dataset.k === 'rise') commit({ ...setStepRise(shape, Number(input.dataset.p), value), back: shape.back ?? shape.top.map(p => p.y) });
         else {

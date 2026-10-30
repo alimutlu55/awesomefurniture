@@ -16,6 +16,8 @@ import { fixtureKind, fixtureType } from '../../domain/studio/fixtures/fixture-k
 import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
 import { fixtureFromEnd, setFixtureSize } from '../../domain/studio/fixtures/fixture-edit';
 import { placeFromEnd } from '../../domain/studio/fixtures/fixture-setup';
+import { alignRoomField } from './room-field-alignment';
+import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
 
 interface StudioFieldsPorts {
     readonly document: { createElement: Document['createElement']; activeElement?: Element | null };
@@ -28,13 +30,15 @@ interface StudioFieldsPorts {
     readonly resize?: { model: StudioEditorPorts['model']; history: { checkpoint(snapshot: string): void };
         preview(edit: (room: Studio) => Studio | null): boolean; commit(): void; active(): boolean };
     readonly rendered?: () => void;
+    readonly valid?: (room: Studio) => boolean;
 }
 type Field = { key: string; label: string; value: number; min: number; max: number; hint?: string };
 
 const round = (v: number) => Math.round(v * 10) / 10;
 
 /** Shared sizing rows for walls, ceilings and openings. Lengths are inside the room. */
-export function createStudioFields({ document, getStudio, getSelection, editStudio, resizeWallLength, refresh, listen, resize, rendered }: StudioFieldsPorts) {
+export function createStudioFields({ document, getStudio, getSelection, editStudio, resizeWallLength, refresh, listen, resize, rendered,
+    valid = () => true }: StudioFieldsPorts) {
     const root = document.createElement('div');
     root.className = 'room-fields';
 
@@ -164,27 +168,33 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         const s = getSelection();
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
-        if (s.kind === 'fixture') write(r => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, value) : setFixtureSize(r, s.id, { [key]: value }));
-        else if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) write(r => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), value));
+        const update = (edit: (r: Studio, v: number) => Studio | null) => write(r => alignRoomField(r, s, key, value, edit, valid));
+        if (s.kind === 'fixture') update((r, v) => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, v) : setFixtureSize(r, s.id, { [key]: v }));
+        else if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) {
+            update((r, v) => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), v));
+        }
         else if (s.kind === 'ceiling') {
-            if (key === 'outer') write(r => setOuterEdgeHeight(r, s.id, value));
-            else if (key === 'depth') write(r => setCeilingDepth(r, s.id, value));
-            else write(r => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k]; return p ? moveCeilingPoint(r, s.id, k, p.t, value - (r.ceilings?.find(c => c.id === s.id)?.edgeRise ?? 0)) : null; });
+            if (key === 'outer') update((r, v) => setOuterEdgeHeight(r, s.id, v));
+            else if (key === 'depth') update((r, v) => setCeilingDepth(r, s.id, v));
+            else update((r, v) => { const k = Number(key.slice(1)), p = r.ceilings?.find(x => x.id === s.id)?.profile[k];
+                return p ? moveCeilingPoint(r, s.id, k, p.t, v - (r.ceilings?.find(c => c.id === s.id)?.edgeRise ?? 0)) : null; });
         } else if (s.kind === 'wall') {
-            if (key === 'length') resizeWallLength(s.id, value, preview);
-            else write(r => setWallSize(r, s.id, { [key]: value }));
+            if (key === 'length') {
+                const room = getStudio(), targets = room?.walls.filter(w => w.id !== s.id).map(w => ({ v: wallFace(room, w)?.length ?? NaN, label: '' })) ?? [];
+                resizeWallLength(s.id, resolveAlignment(value, targets, { tolerance: AUTO_ALIGN_CM })?.v ?? value, preview);
+            } else update((r, v) => setWallSize(r, s.id, { [key]: v }));
         } else if (key === 'left' || key === 'right') {
-            write(r => {
+            update((r, v) => {
                 const o = r.openings.find(x => x.id === s.id)!, w = r.walls.find(x => x.id === o.wall)!, face = wallFace(r, w);
                 if (!face || !wallLine(r, w)) return null;
-                return moveOpening(r, s.id, key === 'left' ? face.start + value + o.width / 2 : face.end - value - o.width / 2);
+                return moveOpening(r, s.id, key === 'left' ? face.start + v + o.width / 2 : face.end - v - o.width / 2);
             });
         } else if (key === 'sill' || key === 'top') {
-            write(r => {
+            update((r, v) => {
                 const o = r.openings.find(x => x.id === s.id)!, w = r.walls.find(x => x.id === o.wall)!;
-                return o && w ? moveOpening2D(r, s.id, o.offset, key === 'sill' ? value : w.height - o.height - value) : null;
+                return o && w ? moveOpening2D(r, s.id, o.offset, key === 'sill' ? v : w.height - o.height - v) : null;
             });
-        } else write(r => setOpeningSize(r, s.id, { [key]: value }));
+        } else update((r, v) => setOpeningSize(r, s.id, { [key]: v }));
         if (!preview) { refresh(); render(); }
     }
 

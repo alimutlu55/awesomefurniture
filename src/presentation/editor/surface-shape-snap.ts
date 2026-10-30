@@ -1,5 +1,5 @@
 import { pointToSegment, profileExtent, type ProfileBounds, type ProfileVertex, type Vec } from '../../domain/geometry/profile-polygon';
-import { nearestValue, resolveAlignment } from '../../domain/geometry/alignment';
+import { AUTO_ALIGN_CM, nearestValue, resolveAlignment } from '../../domain/geometry/alignment';
 import type { ShapeGuide, ShapePick } from './surface-shape-drawing';
 
 /** Screen distances of the shape editor, in CSS pixels: what a finger or a pointer catches, and how close
@@ -32,12 +32,12 @@ const levels = (bounds: ProfileBounds, top: number, from: number, to: number, po
 /** What a shape is drawn against: the room's levels, and corners of the other parts on the same view (other
  * shapes, doors and windows, wardrobes) that a corner or edge can line up with. */
 export interface RoomLevels { top: number; from: number; to: number; points?: readonly Vec[] }
-const round = (v: number, grid: number) => Math.round(v / grid) * grid;
+const round = (v: number, grid: number) => { const step = Math.min(grid, AUTO_ALIGN_CM); return Math.round(v / step) * step; };
 
 /** A corner dragged to `target`: on the grid, square with its neighbours, on the room's levels, or onto a
  * neighbour (which merges the two when the drag ends). */
-export function snapCorner(points: readonly ProfileVertex[], index: number, target: Vec, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
-  const n = points.length, prev = points[(index - 1 + n) % n]!, next = points[(index + 1) % n]!, tolerance = SHAPE_PX.snap * px;
+export function snapCorner(points: readonly ProfileVertex[], index: number, target: Vec, bounds: ProfileBounds, room: RoomLevels, _px: number, grid: number) {
+  const n = points.length, prev = points[(index - 1 + n) % n]!, next = points[(index + 1) % n]!, tolerance = AUTO_ALIGN_CM;
   const clamp = { x: Math.max(bounds.minX, Math.min(bounds.maxX, target.x)), y: Math.max(bounds.minY, Math.min(bounds.maxY, target.y)) };
   for (const [k, q] of [[index - 1, prev], [index + 1, next]] as const)
     if (Math.hypot(q.x - clamp.x, q.y - clamp.y) <= tolerance) return { at: { x: q.x, y: q.y },
@@ -60,14 +60,14 @@ export function snapCorner(points: readonly ProfileVertex[], index: number, targ
 }
 
 /** An edge slid by `d` along its outward normal: on the grid, or level with another corner or a room level. */
-export function snapSlide(points: readonly ProfileVertex[], edge: number, d: number, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
+export function snapSlide(points: readonly ProfileVertex[], edge: number, d: number, bounds: ProfileBounds, room: RoomLevels, _px: number, grid: number) {
   const n = points.length, a = points[edge]!, b = points[(edge + 1) % n]!, l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   const normal = { x: (b.y - a.y) / l, y: -(b.x - a.x) / l }, offset = (p: Vec) => (p.x - a.x) * normal.x + (p.y - a.y) * normal.y;
   const { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), targets: { v: number; label: string; src?: Vec }[] = [];
   points.forEach((p, k) => { if (k !== edge && k !== (edge + 1) % n) targets.push({ v: offset(p), label: 'corner', src: p }); });
   if (Math.abs(normal.y) > .999) ys.forEach(y => targets.push({ v: (y - a.y) / normal.y, label: 'level' }));
   if (Math.abs(normal.x) > .999) xs.forEach(x => targets.push({ v: (x - a.x) / normal.x, label: 'level' }));
-  const hit = resolveAlignment(d, targets, { tolerance: SHAPE_PX.snap * px });
+  const hit = resolveAlignment(d, targets, { tolerance: AUTO_ALIGN_CM });
   // A level or upright edge lands on the grid; a sloped one moves by whole steps.
   const onGrid = Math.abs(normal.y) > .999 ? (round(a.y + d * normal.y, grid) - a.y) / normal.y : Math.abs(normal.x) > .999 ? (round(a.x + d * normal.x, grid) - a.x) / normal.x : round(d, grid);
   if (!hit) return { d: onGrid, guides: [] as ShapeGuide[] };
@@ -81,7 +81,7 @@ export function snapSlide(points: readonly ProfileVertex[], edge: number, d: num
 
 /** The whole shape moved by (dx, dy): on the grid, or with a side on a room level. */
 export function snapMove(points: readonly ProfileVertex[], dx: number, dy: number, bounds: ProfileBounds, room: RoomLevels, px: number, grid: number) {
-  const box = profileExtent(points), { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), tolerance = SHAPE_PX.snap * px;
+  const box = profileExtent(points), { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), tolerance = AUTO_ALIGN_CM;
   const along = (values: readonly number[], lo: number, hi: number, delta: number) =>
     nearestValue(delta, values.flatMap(v => [v - lo, v - hi]), tolerance) ?? round(delta, grid);
   const x = along(xs, box.minX, box.maxX, dx), y = along(ys, box.minY, box.maxY, dy);
@@ -105,4 +105,30 @@ export function profileSmartGuides(points: readonly Vec[], bounds: ProfileBounds
       : { a: { x: room.from, y: v }, b: { x: room.to, y: v }, label: 'Aligned with room level / neighbour', delta: best.distance });
   }
   return guides;
+}
+
+/** A typed field can move a corner, an edge or a whole profile. Only coordinates that the edit actually moves
+ * participate, so stationary anchors never conceal a nearby target or create a self-alignment. */
+export function autoProfileValue(value: number, edit: (value: number) => readonly Vec[] | null,
+  bounds: ProfileBounds, room: RoomLevels): number {
+  const points = edit(value), plus = edit(value + .2), probe = plus ?? edit(value - .2), step = plus ? .2 : -.2;
+  if (!points || !probe || points.length !== probe.length) return value;
+  const { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points);
+  const candidates: { value: number; distance: number; axis: 'x' | 'y'; index: number; target: number }[] = [];
+  for (const axis of ['x', 'y'] as const) {
+    const fixed = points.filter((p, i) => Math.abs(p[axis] - probe[i]![axis]) < 1e-6).map(p => p[axis]);
+    points.forEach((p, index) => {
+      const derivative = (probe[index]![axis] - p[axis]) / step;
+      if (Math.abs(derivative) < 1e-6) return;
+      for (const target of [...axis === 'x' ? xs : ys, ...fixed]) {
+        const distance = Math.abs(p[axis] - target);
+        if (distance <= AUTO_ALIGN_CM + 1e-6) candidates.push({ value: value + (target - p[axis]) / derivative, distance, axis, index, target });
+      }
+    });
+  }
+  for (const c of candidates.sort((a, b) => a.distance - b.distance)) {
+    const next = edit(c.value);
+    if (next && Math.abs(next[c.index]![c.axis] - c.target) < .001) return c.value;
+  }
+  return value;
 }

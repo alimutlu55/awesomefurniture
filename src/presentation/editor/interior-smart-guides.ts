@@ -1,7 +1,8 @@
 import { PANEL } from '../../domain/wardrobe/catalog';
 import { boardAlignTargets, type BayView } from '../../domain/geometry/board-alignment';
 import { axisGuide, type GuideFrame, type SmartGuide } from './smart-guides';
-type Geometry = ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>;
+type Geometry = Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>,
+    'widths' | 'interiorFloor' | 'ceilingTop' | 'computeLayout' | 'dividerRect' | 'clampDivider'>;
 type State = import('../../application/projects/editor-scene').EditorState;
 export interface GuideRect { x0: number; x1: number; y0: number; y1: number }
 

@@ -4,7 +4,7 @@ import { primaryView, profileMessage, setSurfaceDepth, surfaceProfile, withSurfa
 import { outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
 import { STUDIO_LIMITS } from '../../domain/studio/studio';
 import { drawingBox, drawingMarkup, type ShapeGuide, type ShapePick } from './surface-shape-drawing';
-import { hitShape, snapCorner, snapMove, snapSlide, profileSmartGuides, SHAPE_PX } from './surface-shape-snap';
+import { hitShape, snapCorner, snapMove, snapSlide, profileSmartGuides, autoProfileValue, SHAPE_PX } from './surface-shape-snap';
 import { applyShapeField, shapeFields } from './surface-shape-fields';
 import { neighbourPoints } from './studio-align';
 import { createShapeSession } from './surface-shape-session';
@@ -367,7 +367,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       else render();
       return;
     }
-    const next = applyShapeField(s, s.points, pick, keyName, value);
+    const snapped = autoProfileValue(value, v => applyShapeField(s, s.points, pick, keyName, v), s.bounds, { ...s.context, points: neighbours(s) });
+    const next = applyShapeField(s, s.points, pick, keyName, snapped);
     if (!next || !commit(next)) { callbacks.report('That size does not fit here. Try a smaller change.'); render(); }
   });
   listen(fieldsRoot, 'keydown', e => { if ((e as KeyboardEvent).key === 'Enter') (e.target as HTMLInputElement).blur?.(); });

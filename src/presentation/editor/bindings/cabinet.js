@@ -3,6 +3,8 @@ import { bindDecorPicker } from '../decor-picker';
 import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from '../size-control';
 import { measureNumber, unitSuffix } from '../editor-format.js';
 import { createTactileEdits } from '../../../application/commands/tactile-edits';
+import { cabinetSmartGuides } from '../scene-smart-guides';
+import { autoGuideTranslation } from '../smart-guides';
 /** Whole-wardrobe controls: size, finish, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
@@ -12,6 +14,12 @@ export function bindCabinetDimensions(ports) {
     // Sliders and the canvas labels share one reversible, boundary-clamped resize.
     // The slider's transaction records history, so previews do not checkpoint again.
     const edits = createTactileEdits({ model, checkpoint() {} });
+    const previewLift = value => {
+        const c = model.activeCabinet();
+        sceneCommands.previewTranslation(c.id, { x: c.x, y: value, z: c.z });
+        const d = autoGuideTranslation(cabinetSmartGuides(model.scene, c, 'y'), ['y']);
+        if (Math.abs(d.y) > 1e-6) sceneCommands.previewTranslation(c.id, { x: c.x, y: (c.y || 0) + d.y, z: c.z });
+    };
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [
         ['w', 'Width', MIN_WARDROBE_WIDTH, 600], ['h', 'Height', 180, 300],
         ['d', 'Depth', MIN_CABINET_DEPTH, 90], ['y', 'From floor', 0, 200]];
@@ -29,8 +37,14 @@ export function bindCabinetDimensions(ports) {
         // A wall unit also has a height above the floor: part of its place in the room, not of its size.
         const lift = id === 'y', read = () => lift ? model.activeCabinet().y || 0 : model.activeCabinet().state[id];
         const commit = value => {
-            if (value !== read() && (lift ? sceneCommands.setCabinetPose('y', value) : sceneCommands.setCabinetSize(id, value))) {
-                inspector.update();
+            if (Number.isFinite(value) && value !== read()) {
+                const before = model.snapshot(), start = read();
+                if (lift) previewLift(value);
+                else {
+                    edits.beginDimension(/** @type {'w' | 'h' | 'd'} */ (id));
+                    edits.previewDimension(value - start); edits.finish();
+                }
+                if (model.snapshot() !== before) { history.checkpoint(before); inspector.update(); }
             }
             ( /** @type {HTMLInputElement} */(el)).value = read();
             range.value = read();
@@ -41,7 +55,7 @@ export function bindCabinetDimensions(ports) {
         bindSizeSlider({ range, lifetime, model, history,
             started: () => { started(); startValue = read(); if (!lift) edits.beginDimension(/** @type {'w' | 'h' | 'd'} */ (id)); },
             finished: () => { if (!lift) edits.finish(); selectionState.editingSize = false; },
-            preview: value => lift ? sceneCommands.previewTranslation(model.activeCabinet().id, { x: model.activeCabinet().x, y: value, z: model.activeCabinet().z }) : edits.previewDimension(value - startValue),
+            preview: value => lift ? previewLift(value) : edits.previewDimension(value - startValue),
             refresh: () => inspector.update(true) });
         bindSizeNumber({ input: /** @type {HTMLInputElement} */ (el), lifetime, commit,
             started: () => { started(); rendering.build(); }, finished: () => { selectionState.editingSize = false; inspector.update(true); } });

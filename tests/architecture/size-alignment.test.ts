@@ -7,7 +7,7 @@ import { sizeTargets } from '../../src/application/commands/align-commands';
 import { createStudio } from '../../src/domain/studio/studio-templates';
 import { translateStudio } from '../../src/domain/studio/studio-edit';
 
-/** Alignment targets remain available for explicit actions; Size sliders preserve the requested millimetres. */
+/** Automatic alignment catches within one physical millimetre and releases immediately outside it. */
 
 function fixture() {
   const model = createEditorModel();
@@ -31,10 +31,13 @@ test('the sizes that line a wardrobe up: level with its neighbour, touching, fil
   assert.deepEqual(sizeTargets(model.scene, w1, 'd').map(t => t.label + '@' + t.v), ['Front in line with W2@50'], 'backs in line: the same depth puts the fronts in line');
 });
 
-test('a slider preserves every millimetre near alignment and never holds a nearby target', () => {
+test('a slider snaps within 1 mm and preserves distances beyond that threshold', () => {
   const { model, edits } = fixture();
   edits.beginDimension('h');
   assert.equal(edits.previewDimension(29.6), 229.6, '4 mm below its neighbour stays 4 mm below');
+  assert.equal(edits.previewDimension(29.9), 230, '1 mm below automatically aligns');
+  assert.equal(edits.previewDimension(30.1), 230, '1 mm above automatically aligns');
+  assert.equal(edits.previewDimension(30.2), 230.2, '2 mm away releases the alignment');
   assert.equal(edits.previewDimension(30.7), 230.7, '7 mm above is not held at the old alignment');
   assert.equal(edits.previewDimension(29), 229, 'a centimetre away: the slider value is kept');
   assert.equal(edits.previewDimension(15), 215, 'far from any line: the slider value');

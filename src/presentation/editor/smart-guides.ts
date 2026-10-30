@@ -1,4 +1,5 @@
 /** Shared interface for viewport and profile-editor guides. Coordinates belong to the producer's frame. */
+import { AUTO_ALIGN_CM } from '../../domain/geometry/alignment';
 export interface GuideLine<P> { readonly a: P; readonly b: P; readonly label?: string }
 export interface GuidePoint { readonly x: number; readonly y: number; readonly z: number }
 /** Visual assistance never changes geometry. `current` and `target` distinguish a nearby target from contact. */
@@ -13,6 +14,19 @@ export interface SmartGuide extends GuideLine<GuidePoint> {
 }
 export type GuideProject = (point: GuidePoint) => { x: number; y: number; visible?: boolean };
 export type GuideFrame = (x: number, y: number) => GuidePoint;
+
+/** A physical correction from the same targets the lines show. Callers apply it through their collision-checked commands. */
+export function autoGuideTranslation(candidates: readonly SmartGuide[], axes: readonly ('x' | 'y' | 'z')[] = ['x', 'y', 'z']): GuidePoint {
+    const groups = new Map<string, SmartGuide>(), result = { x: 0, y: 0, z: 0 };
+    for (const g of candidates) {
+        if (g.unit === 'angle' || !Number.isFinite(g.delta) || Math.abs(g.delta) > AUTO_ALIGN_CM + 1e-6) continue;
+        if ((['x', 'y', 'z'] as const).some(a => !axes.includes(a) && Math.abs(g.target[a] - g.current[a]) > 1e-6)) continue;
+        const prior = groups.get(g.group);
+        if (!prior || Math.abs(g.delta) < Math.abs(prior.delta) - 1e-6) groups.set(g.group, g);
+    }
+    for (const g of groups.values()) for (const axis of axes) result[axis] += g.target[axis] - g.current[axis];
+    return result;
+}
 
 /** A target line in an elevation. `span` includes the edited object and its reference. */
 export function axisGuide(id: string, label: string, axis: 'x' | 'y', value: number, target: number,

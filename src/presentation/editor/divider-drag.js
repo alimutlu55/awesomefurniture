@@ -1,3 +1,4 @@
+import { AUTO_ALIGN_CM } from '../../domain/geometry/alignment';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'resources' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'rendering' | 'history' | 'inspector'>} ports */
 export function createDividerDrag({ dom, resources, model, picking, camera, cameraState, interactionState, commands, rendering, history, inspector }) {
     function beginDividerDrag(e, index, target = resources.cv) {
@@ -38,8 +39,7 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
         }
         const hor = g.original.orientation === 'horizontal';
         const raw = (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x);
-        // Show exact alignment without pulling the board across a remaining millimetre gap.
-        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: 0, lock: g.lock, free: e.shiftKey });
+        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: AUTO_ALIGN_CM, free: e.shiftKey });
         g.lock = line;
         g.guide = guide;
         // Shelves and fittings attached to it moved too: the wardrobe is redrawn, else just the board.

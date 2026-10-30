@@ -200,16 +200,17 @@ test('cancelled resizing restores the item and returns the movement camera',()=>
  }
 });
 
-test('edge resize preserves every 10..1 mm gap and has no magnetic hold after exact contact',()=>{
+test('edge resize snaps within 1 mm and releases beyond 1 mm',()=>{
  const {c,api,begin,interactionState}=edgeGestureFixture([
   {k:'drawer',h:20,w:34,x:15,y:25},{k:'sdrawer',h:20,w:10,x:50,y:25}],0);
  begin('right');const a=interactionState.itemEdgeGesture;
  for(const gap of [10,9,8,7,6,5,4,3,2,1,0,1,5,10]){
   a.delta=(10-gap)/10;
   const align=api.snapItemEdge(a);
-  if(gap>0)assert.equal(align,null,'remaining '+gap+' mm must not snap closed');
+  if(gap>1)assert.equal(align,null,'remaining '+gap+' mm stays outside the catch distance');
+  else assert.ok(align,'within 1 mm the edge automatically aligns');
   const target=align?.target??c.itemEdgeSize(a.g,a.edge,a.delta,a.layout,a.index,a.minW,a.minH,a.maxH);
-  assert.equal(Math.round((50-target.x-target.w)*10),gap);
+  assert.equal(Math.round((50-target.x-target.w)*10),gap<=1?0:gap);
  }
  api.finishItemEdgeResize(true);
 });

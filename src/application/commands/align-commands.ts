@@ -17,7 +17,8 @@ export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides:
     if (g.side !== 'left' && g.side !== 'right' || g.target === 'wall-end') return g;
     const reserve = sidePanelClearance(cabinet, scene.wardrobes.find(p => p.id === g.other), g.side === 'left' ? -1 : 1);
     if (!reserve) return g;
-    const t = g.distance > 0 ? Math.min(1, reserve / g.distance) : 0;
+    const exact = Math.hypot(g.to.x - g.from.x, g.to.y - g.from.y, g.to.z - g.from.z);
+    const t = exact > 0 ? Math.min(1, reserve / exact) : 0;
     return { ...g, distance: Math.max(0, g.distance - reserve),
       from: { x: g.from.x + (g.to.x - g.from.x) * t, y: g.from.y, z: g.from.z + (g.to.z - g.from.z) * t } };
   });
@@ -32,20 +33,27 @@ export function sizeTargets(scene: EditorScene, cabinet: EditorCabinet, key: 'w'
   const s = cabinet.state, y0 = cabinet.y || 0, out: AlignTarget[] = [], a = cabinet.angle * Math.PI / 180;
   const u = { x: Math.cos(a), z: -Math.sin(a) }, f = { x: Math.sin(a), z: Math.cos(a) };
   const { gaps } = measureAround(scene, cabinet, key === 'w' ? ['left', 'right'] : []);
-  const gap = (side: GapSide) => gaps.find(g => g.side === side)?.distance;
+  const gap = (side: GapSide) => {
+    const g = gaps.find(g => g.side === side);
+    return g && Math.hypot(g.to.x - g.from.x, g.to.y - g.from.y, g.to.z - g.from.z);
+  };
   // Neighbours turned the same way and standing beside it (less than 30 cm between their sides).
   const beside = scene.wardrobes.filter(o => o.id !== cabinet.id && !turned(o, cabinet)
     && Math.abs((o.x - cabinet.x) * u.x + (o.z - cabinet.z) * u.z) - (o.state.w + s.w) / 2 < 30);
   if (key === 'h') {
     // Not "up to the ceiling": the editor lets a top come CEILING_CLEARANCE_TOLERANCE above it, so the slider's own end
     // is the ceiling as the editor sees it, and a snap a few millimetres short of it would fight the slider.
-    for (const o of beside) if (Math.abs((o.y || 0) - y0) < .5) out.push({ v: o.state.h, label: 'Level with ' + o.name, kind: 'level' });
+    for (const o of beside) if (Math.abs((o.y || 0) - y0) < .5) out.push({ v: (o.y || 0) + o.state.h - y0, label: 'Level with ' + o.name, kind: 'level' });
   }
   if (key === 'w') {
     const left = gap('left'), right = gap('right');
     const near = Math.min(left ?? Infinity, right ?? Infinity);
-    if (Number.isFinite(near) && near > .05) out.push({ v: s.w + 2 * near, label: 'Touching', kind: 'touch' });
-    if (left !== undefined && right !== undefined && left > .05 && right > .05) out.push({ v: s.w + left + right, label: 'Filling the gap', kind: 'fill' });
+    if (Number.isFinite(near) && near > 1e-6) out.push({ v: s.w + 2 * near, label: 'Touching', kind: 'touch' });
+    if (left !== undefined && right !== undefined) {
+      if (left <= 1e-6 && right > 1e-6) out.push({ v: s.w + right, label: 'Touching', kind: 'touch' });
+      if (right <= 1e-6 && left > 1e-6) out.push({ v: s.w + left, label: 'Touching', kind: 'touch' });
+      if (left > 1e-6 && right > 1e-6) out.push({ v: s.w + left + right, label: 'Filling the gap', kind: 'fill' });
+    }
   }
   if (key === 'd') {
     // Backs in line (against the same wall): the same depth puts the fronts in line.

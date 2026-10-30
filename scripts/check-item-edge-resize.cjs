@@ -86,6 +86,8 @@ const near = (a, b, message) => assert.ok(Math.abs(a - b) < .001, `${message}: $
     assert.ok(await guides.isVisible(), 'the real resize handler shows Smart Guides at the supporting edge');
     assert.ok((await guides.locator('svg path:visible').count()) > 0, 'alignment is shown with guide lines');
     assert.equal((await guides.textContent()).trim(), '', 'Smart Guides never add alignment text');
+    assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => getComputedStyle(p).stroke)))
+     .every(color => color === 'rgb(50, 129, 91)' || color === 'rgb(95, 159, 120)'), 'all Smart Guide strokes are green');
     assert.equal(await guides.evaluate(el => getComputedStyle(el).pointerEvents), 'none', 'guides leave drag handles interactive');
     for (const index of [0, 2]) near(grown.items[index].y, before.items[index].y, 'neighbors stay fixed');
     await page.screenshot({ path: `/tmp/wardrobe-item-edge-${width}-${kind}-grown.png` });
@@ -109,6 +111,16 @@ const near = (a, b, message) => assert.ok(Math.abs(a - b) < .001, `${message}: $
     assert.equal((await guides.textContent()).trim(), '', 'Size assistance also has no alignment text');
     await heightField.press('Tab'); await page.waitForTimeout(80);
     assert.equal(await guides.isVisible(), false, 'leaving the Size field clears guides');
+    if (kind === 'wardrobe') {
+     const alignedHeight = (await read()).items[1].h;
+     await heightField.fill((alignedHeight - .1).toFixed(1)); await heightField.press('Tab'); await page.waitForTimeout(80);
+     near((await read()).items[1].h, alignedHeight, 'the Size field automatically closes a 1 mm gap');
+     await heightField.fill((alignedHeight - .2).toFixed(1)); await heightField.press('Tab'); await page.waitForTimeout(80);
+     near((await read()).items[1].h, alignedHeight - .2, 'the Size field preserves a gap beyond 1 mm');
+     await page.locator('#editor').locator('canvas').focus();
+     await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(80);
+     near((await read()).items[1].h, alignedHeight, 'one undo reverses the unsnapped edit');
+    }
     assert.deepEqual(errors, []);
     console.log(`PASS ${width}px ${kind}: bottom handle grows between neighbors, stops at support, reverses, cancels, undoes and accepts keyboard input`);
     await page.screenshot({ path: `/tmp/wardrobe-item-edge-${width}-${kind}.png` });

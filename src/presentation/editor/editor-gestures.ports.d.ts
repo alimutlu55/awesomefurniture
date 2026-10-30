@@ -11,7 +11,9 @@ readonly interactionState: Pick<ReturnType<typeof import('./interaction-state.js
 readonly renderState: Pick<ReturnType<typeof import('../viewport/render-state.js').createRenderState>, 'Gr' | 'allHits' | 'allItemHits' | 'hits' | 'ihits' | 'itemGroups' | 'outs' | 'previewGroup' | 'settling' | 'wardrobeGroups'>;
 readonly selectionState: Pick<ReturnType<typeof import('./selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'room' | 'viewMode' | 'pendingStudioAction'>;
 readonly shellState: Pick<ReturnType<typeof import('./shell-state.js').createShellState>, 'G'>;
-readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'interiorFloor' | 'computeLayout' | 'effectiveMin' | 'ih' | 'itemEdgeSize' | 'itemGeom' | 'itemMinW' | 'planFreeMove' | 'planItemMove' | 'resizeObstacles' | 'verticalNeighbor' | 'widthEdgeFor' | 'widths'>>;
+readonly geometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>,
+    'interiorFloor' | 'computeLayout' | 'effectiveMin' | 'ih' | 'itemEdgeSize' | 'itemGeom' | 'itemMinW' | 'planFreeMove' | 'planItemMove'
+    | 'resizeObstacles' | 'verticalNeighbor' | 'widthEdgeFor' | 'widths' | 'ceilingTop' | 'dividerRect' | 'clampDivider'>>;
 readonly cabinetGeometry: Readonly<Pick<ReturnType<typeof import('../../domain/geometry/cabinet-geometry.js').createCabinetGeometry>, 'cabinetTranslation'>>;
 readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'cv' | 'scene'>;
 readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'restore' | 'scene' | 'snapshot'>;

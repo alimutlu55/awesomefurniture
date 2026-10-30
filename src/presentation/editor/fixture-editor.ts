@@ -1,7 +1,7 @@
 import type { Studio, StudioFixture } from '../../domain/studio/studio';
 import { wallFace, wallLine } from '../../domain/studio/studio';
 import { slideFixture } from '../../domain/studio/fixtures/fixture-setup';
-import { resolveAlignment } from '../../domain/geometry/alignment';
+import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
@@ -36,19 +36,18 @@ export interface FixtureEditorPorts {
  * middle, a window, its boxing and its neighbours (Shift moves freely); a boxing of its own goes with it. It goes as far as the room allows, says why it
  * stopped, and takes one undo step. Arrow keys slide it 1 cm (10 with Shift). */
 export function createFixtureEditor({ model, sceneCommands, history, picking, selection, callbacks }: FixtureEditorPorts) {
-  let drag: Drag | null = null, pxPerCm = 2;
+  let drag: Drag | null = null;
   const room = () => model.scene.studio;
   const selected = (studio = room()): StudioFixture | undefined => {
     const s = selection();
     return s?.kind === 'fixture' ? studio?.fixtures?.find(f => f.id === s.id) : undefined;
   };
-  const tolerance = () => Math.max(.5, Math.min(25, 8 / pxPerCm));
+  const tolerance = () => AUTO_ALIGN_CM;
 
   /** Pointer travel along the fixture's wall, in centimetres, measured on screen. */
   function along(e: PointerEvent, g: Drag, ux: number, uz: number) {
     const a = picking.screenPoint(g.at), b = picking.screenPoint({ x: g.at.x + ux * 50, y: g.at.y, z: g.at.z + uz * 50 });
     const sx = (b.x - a.x) / 50, sy = (b.y - a.y) / 50, len2 = sx * sx + sy * sy;
-    pxPerCm = Math.sqrt(len2) || pxPerCm;
     return len2 < 1e-4 ? 0 : ((e.clientX - g.client.x) * sx + (e.clientY - g.client.y) * sy) / len2;
   }
 
@@ -72,7 +71,7 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     const f = g.original.fixtures!.find(x => x.id === g.id)!, w = g.original.walls.find(x => x.id === f.wall), line = w && wallLine(g.original, w), face = w && wallFace(g.original, w);
     if (!line || !face) return;
     const raw = f.offset + along(e, g, line.ux, line.uz);
-    const hit = e.shiftKey ? null : resolveAlignment(raw, fixtureTargets(g.original, f), { tolerance: tolerance(), lock: g.lock, within: [face.start + f.width / 2, face.end - f.width / 2] });
+    const hit = e.shiftKey ? null : resolveAlignment(raw, fixtureTargets(g.original, f), { tolerance: tolerance(), hold: 1, lock: g.lock, within: [face.start + f.width / 2, face.end - f.width / 2] });
     g.lock = hit;
     g.guides = hit ? fixtureGuide(g.original, f, hit) : [];
     const goal = hit ? hit.v : raw, from = model.scene.studio?.fixtures?.find(x => x.id === g.id)?.offset ?? f.offset;

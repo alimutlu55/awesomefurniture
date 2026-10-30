@@ -23,20 +23,20 @@ function fixture(kitchen = false) {
   return { model, history, edits: createTactileEdits({ model, checkpoint: history.checkpoint }) };
 }
 
-for (const kitchen of [false, true]) test(`${kitchen ? 'kitchen' : 'wardrobe'} resize retains each 10..1 mm gap, contact, reversal and undo`, () => {
+for (const kitchen of [false, true]) test(`${kitchen ? 'kitchen' : 'wardrobe'} resize preserves gaps beyond 1 mm and snaps at 1 mm, with reversal and undo`, () => {
   const { model, history, edits } = fixture(kitchen), before = model.snapshot();
   edits.beginDimension('w');
   for (const gap of [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 5, 10, 5]) {
     const desired = 100 + (10 - gap) / 5; // Centre growth closes half the width change on each side.
-    assert.equal(edits.previewDimension(desired - 100), desired);
+    assert.equal(edits.previewDimension(desired - 100), gap <= 1 ? 102 : desired);
     const [a, b] = model.scene.wardrobes;
-    assert.equal(mm(b!.x - b!.state.w / 2 - a!.x - a!.state.w / 2), gap);
+    assert.equal(mm(b!.x - b!.state.w / 2 - a!.x - a!.state.w / 2), gap <= 1 ? 0 : gap);
   }
   edits.finish(); assert.equal(history.undoCount, 1);
   history.undo(); assert.equal(model.snapshot(), before);
 });
 
-test('pointer movement retains 10, 5 and 1 mm gaps without a modifier key', () => {
+test('pointer movement snaps a 1 mm gap while preserving larger gaps', () => {
   const { model, history } = fixture(), commands = createSceneCommands(() => model.scene);
   const group = new THREE.Group(), interactionState = { wardrobeGesture: null };
   let forced = 0;
@@ -52,7 +52,7 @@ test('pointer movement retains 10, 5 and 1 mm gaps without a modifier key', () =
   drag.beginWardrobeDrag(pointer(0), 'floor');
   for (const gap of [5, 4, 3, 2, 1, 0, 1, 5, 10, 5]) {
     drag.moveWardrobeFromPointer(pointer((10 - gap) * 10));
-    assert.equal(mm(1 - model.activeCabinet().x), gap);
+    assert.equal(mm(1 - model.activeCabinet().x), gap <= 1 ? 0 : gap);
   }
   assert.equal(forced, 0); drag.finishWardrobeDrag();
   assert.equal(history.undoCount, 1); history.undo(); assert.equal(model.activeCabinet().x, 0);

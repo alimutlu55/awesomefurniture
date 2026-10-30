@@ -7,6 +7,8 @@ import { createDividerDrag } from './divider-drag.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
+import { fittingSmartGuides } from './interior-smart-guides';
+import { autoGuideTranslation } from './smart-guides';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./editor-gestures.ports').CreateEditorGesturesPorts} ports */
 export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room }) {
@@ -103,6 +105,18 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
             }
             else {
                 plan = geometry.planFreeMove(from, to, { x: local - w / 2, y: centerY - it.h / 2 - (interiorFloorOf(model.activeCabinet().state)) }, { free: true });
+                if (plan.valid && !e.altKey) {
+                    const rect = plan.layouts?.[to]?.[plan.index];
+                    if (rect) {
+                        const frame = (x, y) => ({ x, y, z: 0 });
+                        const d = autoGuideTranslation(fittingSmartGuides(model.activeCabinet().state, geometry, to, from.i === to ? from.j : -1, rect, frame));
+                        if (Math.hypot(d.x, d.y) > 1e-6) {
+                            const aligned = geometry.planFreeMove(from, to, { x: rect.x0 + d.x,
+                                y: rect.y0 - interiorFloorOf(model.activeCabinet().state) + d.y }, { free: true });
+                            if (aligned.valid) plan = aligned;
+                        }
+                    }
+                }
             }
         }
         rendering.clearPreview(false);

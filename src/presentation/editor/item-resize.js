@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { PANEL, MODS } from '../../domain/wardrobe/catalog.js';
-import { resolveAlignment } from '../../domain/geometry/alignment';
+import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'geometry' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'history' | 'shellState' | 'inspector' | 'renderState'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> }} ports */
 export function createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks }) {
     function beginItemEdgeResize(e, edge, handle) {
@@ -112,7 +112,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!c) {
             return null;
         }
-        const g = a.g, tol = 0, top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL, raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
+        const g = a.g, tol = AUTO_ALIGN_CM, top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL,
+            raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
             add = (v, kind, label, src) => cand.push({ v, kind, label, src, penalty: kind === 'size' ? tol * .35 : 0 });
         if (top) {
             add(c.top, 'wall', 'Flush with top');
@@ -157,8 +158,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             : a.edge === 'left' ? target.x : target.x + target.w;
         // Resolve the interval once per pointer move, rather than rescanning every neighbor for every candidate.
         const low = position(solve(-Infinity)), high = position(solve(Infinity));
-        // Guides only at exact contact. Nearby candidates must never change the requested edge position.
-        const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, within: [low, high] });
+        const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, hold: 1, within: [low, high] });
         if (!best) {
             a.lock = null;
             return null;
@@ -178,7 +178,11 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         }
         const vertical = edge === 'top' || edge === 'bottom';
         const delta = edge === 'top' ? value - g.h : edge === 'bottom' ? g.h - value : edge === 'left' ? g.w - value : value - g.w;
-        const before = model.snapshot(), target = geometry.itemEdgeSize(g, edge, delta, geometry.resizeObstacles(model.activeCabinet().state.sel), model.activeCabinet().state.item, geometry.itemMinW(it), geometry.effectiveMin(it.k), MODS[it.k].mx);
+        const before = model.snapshot(), section = model.activeCabinet().state.sel, index = model.activeCabinet().state.item;
+        const a = { edge, g, section, index, delta, layout: geometry.resizeObstacles(section), original: model.activeCabinet().state.secs[section],
+            minW: geometry.itemMinW(it), minH: geometry.effectiveMin(it.k), maxH: MODS[it.k].mx };
+        const target = snapItemEdge({ ...a, snap: buildSnapContext(a), lock: null })?.target
+            ?? geometry.itemEdgeSize(g, edge, delta, a.layout, index, a.minW, a.minH, a.maxH);
         if (vertical ? Math.abs(target.h - g.h) < .001 : Math.abs(target.w - g.w) < .001) {
             inspector.itemUI();
             return;
