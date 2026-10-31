@@ -231,7 +231,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         const whole = key === 'resize' && (selectionState.deep || model.activeCabinet().state.space);
         if (whole) { selectionState.deep = false; model.activeCabinet().state.space = null; }
         const module = furnitureModule(model.activeCabinet().state);
-        const editShape = key === 'resize' && module.shaped;
+        const editShape = false;
         const shapeChanged = !!selectionState.shapeEditing !== editShape;
         selectionState.shapeEditing = editShape;
         if (whole || shapeChanged) rendering.build();
@@ -246,7 +246,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         $('#left').scrollTop = 0;
         // Wardrobes retain the outline editor's framing; other furniture keeps the user's view.
         if (key === 'resize') {
-            if (editShape) camera.frameMobileInspector(true); else camera.camRelease(true);
+            if (module.shaped) camera.frameMobileInspector(true); else camera.camRelease(true);
             inspector.update(true);
         } else camera.frameMobileInspector(false);
     };

@@ -116,7 +116,9 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
             toolbar.querySelector<HTMLButtonElement>('[data-action="more"]')?.click();
             (toolbar.getRootNode() as ParentNode).querySelector<HTMLButtonElement>('.contextual-popover ' + selector)?.click();
         }
-        const input = fields?.root.querySelector<HTMLInputElement>('[data-room-field="' + field + '"]') ?? shape.root.querySelector<HTMLInputElement>('[data-shape-field="' + field + '"]');
+        const drawingField = field === 'length' ? 'width' : /^(p|b)\d+$/.test(field) ? 'height' : field;
+        const input = section === 'surface-shape' ? shape.root.querySelector<HTMLInputElement>('[data-shape-field="' + drawingField + '"]')
+            : fields?.root.querySelector<HTMLInputElement>('[data-room-field="' + field + '"]');
         input?.focus({ preventScroll: true });
         input?.select();
     }
@@ -126,7 +128,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         valid: r => !sceneCommands.studioProblem(r),
         resizeWallLength: (id, length, preview) => sceneCommands.resizeWallLength(id, length, !preview, preview),
         resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
-            active: () => dom.$('#left').dataset.roomResize !== undefined },
+            active: () => dom.$('#left').dataset.roomResize !== undefined && dom.$('#left').dataset.contextSection === 'resize' },
         rendered: () => resizePanel?.sync(),
     });
     paintPanel = createStudioPaintPanel({ document: dom.document as Document, getStudio: () => model.scene.studio,

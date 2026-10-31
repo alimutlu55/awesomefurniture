@@ -1,16 +1,17 @@
 import { healProfile, type ProfileVertex } from '../../domain/geometry/profile-polygon';
-import { surfaceProfile, withSurfaceProfile, type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
+import { type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
+import { createSurfaceShapeBackend } from './shape-editor-backend';
 import type { SurfaceShapeEditorPorts } from './surface-shape-editor.ports';
 
 /** One drag of a shape: the room before it, live previews that reshape the wardrobes under it, and the end,
  * which heals the outline and takes one undo step, or a cancel that puts everything back. */
-export function createShapeSession({ model, sceneCommands, history, callbacks }: Pick<SurfaceShapeEditorPorts, 'model' | 'sceneCommands' | 'history' | 'callbacks'>) {
+type SessionPorts = Pick<SurfaceShapeEditorPorts, 'model' | 'sceneCommands' | 'history' | 'callbacks' | 'backend'>;
+export function createShapeSession({ model, sceneCommands, history, callbacks, backend = createSurfaceShapeBackend({ model, sceneCommands, callbacks }) }: SessionPorts) {
   let active: { ref: SurfaceRef; view: SurfaceView | undefined; snapshot: string; last: ProfileVertex[] } | null = null;
-  const studioOf = (snapshot: string) => JSON.stringify(JSON.parse(snapshot).studio ?? null);
   return {
     /** `view`: which side is being shaped (its main outline when left out). */
     begin(ref: SurfaceRef, view?: SurfaceView) {
-      const room = model.scene.studio, s = room && surfaceProfile(room, ref, view);
+      const s = backend.read(ref, view);
       if (!s) return false;
       active = { ref, view, snapshot: model.snapshot(), last: s.points };
       return true;
@@ -19,9 +20,14 @@ export function createShapeSession({ model, sceneCommands, history, callbacks }:
     preview(points: readonly ProfileVertex[]) {
       if (!active) return false;
       const { ref, view } = active;
-      if (!sceneCommands.editStudio(r => withSurfaceProfile(r, ref, points, view), false, true)) return false;
+      const previous = backend.restorePreview ? model.snapshot() : null;
+      if (backend.restorePreview) model.restore(active.snapshot);
+      if (!backend.write(ref, points, view, false, true)) {
+        if (previous) model.restore(previous);
+        return false;
+      }
       active.last = [...points];
-      if (sceneCommands.followCeilings(false)) callbacks.rebuild(); else callbacks.redraw();
+      backend.preview();
       return true;
     },
     /** Ends the drag: the last preview, healed, as one undo step when anything changed. Returns the healed outline. */
@@ -30,9 +36,10 @@ export function createShapeSession({ model, sceneCommands, history, callbacks }:
       if (!g) return null;
       active = null;
       const healed = healProfile(g.last);
-      sceneCommands.editStudio(r => withSurfaceProfile(r, g.ref, healed, g.view), false, true);
-      if (JSON.stringify(model.scene.studio ?? null) !== studioOf(g.snapshot)) history.checkpoint(g.snapshot);
-      sceneCommands.followCeilings(true);
+      if (backend.restorePreview) model.restore(g.snapshot);
+      backend.write(g.ref, healed, g.view, false, false);
+      if (model.snapshot() !== g.snapshot) history.checkpoint(g.snapshot);
+      backend.settle();
       callbacks.refresh();
       return healed;
     },

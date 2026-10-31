@@ -21,7 +21,7 @@ async function openShape(page) {
  const panel = page.locator('[data-editor-id="left"]');
  if (!await panel.isVisible() || await panel.getAttribute('data-context-section') !== 'resize')
   await page.locator('[data-editor-id="toolbar"] [data-action="resize"]:visible').click();
- await page.locator('[data-editor-id="shape-panels"]').waitFor();
+ await page.locator('[data-editor-id="wardrobe-size-drawing"] .surface-shape-svg').waitFor();
  await page.waitForTimeout(400);
 }
 module.exports = { selectFurniture, openShape };

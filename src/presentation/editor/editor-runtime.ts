@@ -54,6 +54,7 @@ import { createSelectionState } from './selection-state.js';
 import { createPlannerState } from './planner-state.js';
 import { createShellState } from './shell-state.js';
 import { createShapeInspector } from './shape-inspector';
+import { createWardrobeSizeEditor } from './wardrobe-size-editor';
 import { mountExperience } from '../experience/experience';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
@@ -184,11 +185,19 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: {
             refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(),
             frame: () => camera.frameMobileInspector(true), report: message => shell.toast(message) } });
+        const sizeDrawing = createWardrobeSizeEditor({ dom, model, sceneCommands, history,
+            listen: (target, type, handler, options) => lifetime.listen(target, type, handler, options), callbacks: {
+                redraw: () => rendering.build(), rebuild: () => rendering.build(), refresh: () => inspector.update(true),
+                report: message => shell.toast(message), history: step => dom.$(step === 'undo' ? '#undo2' : '#redo2').click(),
+                viewChanged: () => { const c = model.activeCabinet(); camera.frameBox({ x: c.x, z: c.z, w: c.state.w, d: c.state.d, h: c.state.h },
+                    c.angle * Math.PI / 180 + (sizeDrawing.view() === 'side' ? Math.PI / 2 : 0), .16, 1.12); },
+            } });
         cameraPort.connect(createCameraController({ dom, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }));
         renderingPort.connect(createCabinetRenderer({ dom, camera, interactions, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, resources, model, commands, settings, lifetime, shapeInspector, studioEditor: room.editor, kitchenArray }));
         interactionsPort.connect(createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room: room.room }));
         inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState,
-            renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields: room.fields }));
+            renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector: { render() { shapeInspector.render(); sizeDrawing.render(); } },
+            studioPanel, kitchenPanel, roomFields: room.fields }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray });

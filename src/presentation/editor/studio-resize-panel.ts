@@ -60,13 +60,11 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
       shapeSection.append(dom.document.createElement('h2'), shape.root); dom.$('#left-body').append(shapeSection);
     }
     for (const heading of [shapeSection.querySelector('h2'), panel.querySelector('#left-title, [data-editor-id="left-title"]')]) if (heading) heading.textContent = 'Size';
-    shapeSection.append(fields.root);
     if (panel.dataset.contextSection !== 'surface-shape') { prepare(); takeMobilePanel(dom, panel); }
     panel.dataset.roomResize = ''; panel.dataset.contextSection = 'surface-shape'; panel.dataset.sheetPosition = 'compact';
     app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
     if (fresh) panel.scrollTop = 0;
     shape.render();
-    fields.render();
   }
   /** A fixture's Type or Finish, in the same panel as its Size: beside the room on a desktop, a sheet on a phone. */
   function openFixture(view: 'fixture-type' | 'fixture-finish') {

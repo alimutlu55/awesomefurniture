@@ -34,7 +34,7 @@ for (const cancel of [false, true]) test(`shared ceiling sizing slider ${cancel 
     }
 });
 
-test('wall and ceiling Size keep the drawing and original dimensions together across selections', () => {
+test('wall and ceiling Size show only the drawing, without appending duplicate slider fields', () => {
     const nodes = {}, dom = { width: 1280, $: key => nodes[key] ??= node(), document: { createElement: node } };
     let selection = { kind: 'wall', id: 'w1' }, fieldRenders = 0, drawingRenders = 0;
     const fields = { root: node(), render: () => fieldRenders++ };
@@ -43,18 +43,18 @@ test('wall and ceiling Size keep the drawing and original dimensions together ac
     panel.openShape();
     const section = dom.$('#left-body').children[0];
     assert.equal(section.children[0].textContent, 'Size');
-    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
-    assert.equal(fieldRenders, 1); assert.equal(drawingRenders, 1);
+    assert.deepEqual(section.children.slice(1), [shape.root]);
+    assert.equal(fieldRenders, 0); assert.equal(drawingRenders, 1);
     dom.$('#left').scrollTop = 120;
     selection = { kind: 'ceiling', id: 'k1' }; panel.openShape(false);
     assert.equal(dom.$('#left-body').children.length, 1);
     assert.equal(dom.$('#left').scrollTop, 120);
-    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
+    assert.deepEqual(section.children.slice(1), [shape.root]);
     selection = { kind: 'opening', id: 'o1' }; panel.open();
     assert.equal(fields.root.parent, dom.$('#left-body').children[1]);
     assert.equal(section.children.includes(fields.root), false);
     selection = { kind: 'wall', id: 'w1' }; panel.openShape();
-    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
+    assert.deepEqual(section.children.slice(1), [shape.root]);
     assert.equal(dom.$('#left-body').children.length, 2, 'reopening reuses both hosts');
 });
 

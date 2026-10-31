@@ -41,7 +41,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
   assert.ok(initialLeft.x < 100, 'Desktop panel floats on the left side');
   assert.ok(initialLeft.width <= 360, 'Desktop panel has compact sidebar width');
   const original=await el('w').inputValue();
-  await el('w').fill('210');await el('w').press('Tab');
+  await el('wardrobe-size-drawing').locator('[data-shape-field="width"]').fill('210');
+  await el('wardrobe-size-drawing').locator('[data-shape-field="width"]').press('Tab');
   assert.equal(await el('w-range').inputValue(),'210');
   // Resizing an open panel must retain its values, ownership and selection.
   for(const width of [900,901,390,1440,1920]) {
@@ -73,7 +74,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
   await openShape(page);await waitLayout();
   assert.equal(await el('topright').isVisible(),false);
   await page.screenshot({path:'/tmp/focused-shape-desktop.png'});
-  assert.equal(await page.locator('[data-wardrobe-controls="shape"]').isVisible(),true);await closeSettings();
+  assert.equal(await el('wardrobe-size-drawing').isVisible(),true);await closeSettings();
   // Material and doors are the wardrobe's Fronts.
   await action('fronts').click();await waitLayout();assert.equal(await el('fins').isVisible(),true);
   assert.equal(await page.locator('[data-wardrobe-controls="doors"]').isVisible(),true);await closeSettings();

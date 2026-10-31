@@ -9,15 +9,12 @@
 }
 
 @media (max-width:900px){
- /* Size splits the workspace equally; wardrobes retain the outline editor's larger model preview. */
+ /* The shared Size drawing and numeric inputs use the same split as studio surfaces. */
  #app:is(
   .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ){
   --mobile-settings-sheet-height:50vh;
- }
- #app.props-open:has(#left[data-shaped]:not([data-room-resize])[data-context-section="resize"]){
-  --mobile-settings-sheet-height:25vh;
  }
  #app:is(
   .props-open:has(#left[data-context-section="resize"][data-sheet-position="compact"]:not([data-sheet-dragging])),

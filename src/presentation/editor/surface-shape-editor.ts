@@ -1,12 +1,10 @@
 import { addPoint, findPoint, flipProfile, healProfile, movePoint, profileProblem, removePoint, slideEdge, stepEdge, translateProfile, PROFILE,
   type ProfileVertex, type Vec } from '../../domain/geometry/profile-polygon';
-import { primaryView, profileMessage, setSurfaceDepth, surfaceProfile, withSurfaceProfile, type SurfaceProfile, type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
-import { outerEdgeHeight, setOuterEdgeHeight } from '../../domain/studio/ceiling-edge';
-import { STUDIO_LIMITS } from '../../domain/studio/studio';
+import { profileMessage, type SurfaceProfile, type SurfaceRef, type SurfaceView } from '../../domain/studio/surface-profile';
 import { drawingBox, drawingMarkup, type ShapeGuide, type ShapePick } from './surface-shape-drawing';
 import { hitShape, snapCorner, snapMove, snapSlide, profileSmartGuides, autoProfileValue, SHAPE_PX } from './surface-shape-snap';
-import { applyShapeField, shapeFields } from './surface-shape-fields';
-import { neighbourPoints } from './studio-align';
+import { applyShapeField } from './surface-shape-fields';
+import { createSurfaceShapeBackend } from './shape-editor-backend';
 import { createShapeSession } from './surface-shape-session';
 import { createDrawingZoom } from './surface-shape-zoom';
 import { esc, measureNumber, unitSuffix } from './editor-format.js';
@@ -24,7 +22,7 @@ const HINT = 'Drag a corner or an edge. Tap an edge for a step or a new corner. 
  * edges; the solid is what both sides allow. A drag previews live in the room and takes one undo step when it ends;
  * a second finger, Escape or a cancelled pointer puts it back (two fingers then pinch the drawing). Exact sizes are
  * typed below the drawing. */
-export function createSurfaceShapeEditor({ document, model, sceneCommands, history, listen, callbacks }: SurfaceShapeEditorPorts) {
+export function createSurfaceShapeEditor({ document, model, sceneCommands, history, listen, callbacks, backend = createSurfaceShapeBackend({ model, sceneCommands, callbacks }) }: SurfaceShapeEditorPorts) {
   const root = document.createElement('div');
   root.className = 'surface-shape';
   root.setAttribute('data-sheet-scroll', '');
@@ -43,7 +41,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   const badge = $<HTMLElement>('.surface-shape-badge'), fieldsRoot = $<HTMLElement>('.surface-shape-fields');
   let ref: SurfaceRef | null = null, view: SurfaceView | null = null, pick: ShapePick = null, drag: Drag | null = null, guides: ShapeGuide[] = [];
   let fieldEditing = false;
-  const session = createShapeSession({ model, sceneCommands, history, callbacks }), zoom = createDrawingZoom();
+  const session = createShapeSession({ model, sceneCommands, history, callbacks, backend }), zoom = createDrawingZoom();
   /** Pointers down on the drawing, for a pinch. */
   const pointers = new Map<number, Vec>();
   /** Set when a part or a side opens: its first drawing checks whether it needs zooming in. */
@@ -52,14 +50,10 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
    * or the next drag starts. What stays picked keeps its sizes in the fields below. */
   let tools = false;
 
-  const room = () => model.scene.studio;
-  const neighbours = (s: SurfaceProfile) => {
-    const studio = room();
-    return studio ? neighbourPoints(studio, s, model.scene.wardrobes.map(f => ({ x: f.x, z: f.z, angle: f.angle, w: f.state.w, d: f.state.d, h: f.state.h }))) : [];
-  };
+  const neighbours = backend.neighbours;
   /** The view on show: the one chosen, else the part's main one. */
   const current = (): SurfaceView | undefined => view ?? undefined;
-  const profile = () => { const r = room(); return r && ref ? surfaceProfile(r, ref, current()) : null; };
+  const profile = () => ref ? backend.read(ref, current()) : null;
   /** Centimetres per CSS pixel of the drawing, and a pointer's place in centimetres (y up). */
   const scale = () => { const m = svg.getScreenCTM(); return m && m.a > 0 ? 1 / m.a : 1; };
   const toCm = (e: { clientX: number; clientY: number }): Vec => {
@@ -82,7 +76,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
       guides, px: scale(), problem: !!drag?.problem, box });
     renderViews(s);
-    root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.hidden = s.ref.kind !== 'wall';
+    root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.hidden = !backend.reset?.(s);
     renderPill(points);
     renderBadge();
     renderFields(s, points);
@@ -114,7 +108,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       b.title = b.dataset.shapeView === 'side' ? 'Seen from the side' : 'Seen face on from the room';
     });
     root.querySelector<HTMLElement>('[data-shape-act="fit"]')!.hidden = !zoom.zoomed();
-    root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = s.primary ? 'Full wall' : 'Plain side';
+    root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = backend.resetLabel?.(s) ?? 'Reset';
   }
   function renderPill(points: readonly ProfileVertex[]) {
     const p = !drag && tools && pick && points[pick.index] ? pick : null;
@@ -153,10 +147,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     badge.style.top = (y < 70 ? y + 55 : y - 45) + 'px';
   }
   function renderFields(s: SurfaceProfile, points: readonly ProfileVertex[]) {
-    // A ceiling hung along its wall can lift its outer edge; one standing on the floor cannot.
-    const c = s.ref.kind === 'ceiling' ? room()?.ceilings?.find(x => x.id === s.ref.id) : undefined;
-    const outer = c && c.run === 'along' && s.primary && !c.section && Math.min(...points.map(p => p.y)) >= STUDIO_LIMITS.minCeilingHeight ? outerEdgeHeight(c) : undefined;
-    const list = shapeFields(s, points, pick, outer), active = document.activeElement ?? root.ownerDocument.activeElement;
+    const list = backend.fields(s, points, pick), active = document.activeElement ?? root.ownerDocument.activeElement;
     const markup = list.map(f => `<label class="surface-shape-field"><span>${esc(f.label)}</span><span class="size-field">`
       + `<input type="number" inputmode="decimal" step="0.1" data-shape-field="${f.key}"><small>${f.unit ?? 'cm'}</small></span></label>`).join('');
     // Rebuilt when the fields change, or only their names (another side of the same part).
@@ -173,9 +164,9 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     const s = profile();
     if (!s || !ref) return false;
     const healed = healProfile(points), at = next && points[next.index], target = ref, side = s.view;
-    if (!sceneCommands.editStudio(r => withSurfaceProfile(r, target, healed, side))) return false;
+    if (!backend.write(target, healed, side)) return false;
     pick = next && at ? (() => { const index = findPoint(healed, at); return index >= 0 ? { kind: next.kind, index } : null; })() : null;
-    sceneCommands.followCeilings(true);
+    backend.settle();
     callbacks.refresh();
     return true;
   }
@@ -203,10 +194,9 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       callbacks.history(key);
     } else if (key === 'flip') {
       commit(flipProfile(points), null);
-    } else if (key === 'reset' && s.ref.kind === 'wall') {
-      // Back to a plain wall at its full height.
-      const box = s.bounds, top = s.wall.height;
-      commit([{ x: box.minX, y: 0 }, { x: box.maxX, y: 0 }, { x: box.maxX, y: top }, { x: box.minX, y: top }], null);
+    } else if (key === 'reset') {
+      const points = backend.reset?.(s);
+      if (points) commit(points, null);
     }
   }
 
@@ -306,10 +296,9 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   }
   /** Shows the other side: what was picked and the zoom start afresh; the room turns to face it. */
   function turn(next: SurfaceView) {
-    const r = room();
-    if (!r || !ref || profile()?.view === next) return;
+    if (!ref || profile()?.view === next) return;
     cancel();
-    view = next === primaryView(r, ref) ? null : next;
+    view = next === backend.primary(ref) ? null : next;
     pick = null; tools = false; zoom.reset(); fitNext = true;
     render();
     callbacks.viewChanged();
@@ -360,11 +349,10 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   listen(fieldsRoot, 'change', e => {
     const input = e.target as HTMLInputElement, keyName = input.dataset.shapeField, s = profile();
     if (!keyName || !s || !ref) return;
-    const value = input.valueAsNumber, target = ref;
-    if (keyName === 'depth' || keyName === 'outer') {
-      const edit = (r: NonNullable<ReturnType<typeof room>>) => keyName === 'depth' ? setSurfaceDepth(r, target, value) : setOuterEdgeHeight(r, target.id, value);
-      if (sceneCommands.editStudio(edit)) { sceneCommands.followCeilings(true); callbacks.refresh(); }
-      else render();
+    const value = input.valueAsNumber;
+    const changed = backend.field(keyName, value, s, pick);
+    if (changed !== undefined) {
+      if (changed) { backend.settle(); callbacks.refresh(); } else render();
       return;
     }
     const snapped = autoProfileValue(value, v => applyShapeField(s, s.points, pick, keyName, v), s.bounds, { ...s.context, points: neighbours(s) });

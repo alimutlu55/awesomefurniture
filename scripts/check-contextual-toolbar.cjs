@@ -77,10 +77,10 @@ const assert=require('node:assert/strict');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
-   await checkEditingRatio('left',.25);
+   await checkEditingRatio('left',.5);
    // The safe-area inset belongs inside the drawer, rather than taking model space twice.
    await el('app').evaluate(e=>e.style.setProperty('--safe-bottom','34px'));
-   await page.waitForTimeout(320);await checkEditingRatio('left',.25);
+   await page.waitForTimeout(320);await checkEditingRatio('left',.5);
    await el('app').evaluate(e=>e.style.removeProperty('--safe-bottom'));
    await page.waitForTimeout(320);
    assert.equal(await toolbar.isVisible(),false,'Properties take over the toolbar');
@@ -99,16 +99,12 @@ const assert=require('node:assert/strict');
    assert.equal(await toolbar.isVisible(),true);
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
    assert.equal(await el('left').isVisible(),true);
-   assert.equal(await el('w').isVisible(),true);
+   assert.equal(await el('w').isVisible(),false,'Legacy wardrobe size controls are hidden');
    assert.equal(await el('section-row').isVisible(),false);
-   for(const key of ['w','h','d']) {
-    const slider=el(key+'-range'), before=await el(key).inputValue();
-    await slider.evaluate(e=>{e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));e.value=String(Number(e.value)+1);e.dispatchEvent(new Event('input',{bubbles:true}));});
-    assert.equal(Number(await el(key).inputValue()),Number(before)+1,'Live '+key+' slider');
-    await slider.dispatchEvent('pointercancel',{pointerType:'touch',isPrimary:true});
-    assert.equal(await el(key).inputValue(),before);
-   }
-   await checkKeyboardSplit(el('d'),.25);
+   const drawing=el('wardrobe-size-drawing');
+   assert.equal(await drawing.locator('.surface-shape-svg').isVisible(),true);
+   assert.equal(await el('left').locator('input[type="range"]:visible').count(),0,'The shared drawing has no duplicate sliders');
+   await checkKeyboardSplit(drawing.locator('[data-shape-field="depth"]'));
    assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'none');
    const closeProperties=async()=>{
     await el('left').locator('.mobile-sheet-handle').evaluate(e=>{
@@ -125,12 +121,12 @@ const assert=require('node:assert/strict');
    await closeProperties();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
    assert.equal(await el('left').locator('[data-size-tab]').count(),0,'Size has no separate Shape tab');
-   assert.equal(await el('shape-templates').isVisible(),true,'Size includes the existing templates');
-   assert.equal(await el('shape-panels').isVisible(),true,'Size opens the existing panel editor');
+   assert.equal(await el('shape-templates').isVisible(),false,'Size removes the legacy templates');
+   assert.equal(await drawing.locator('.surface-shape-svg').isVisible(),true,'Size opens the shared drawing editor');
    assert.equal(await el('view-modes').isVisible(),false,'Shape hides mode switching');
    assert.equal(await el('topright').isVisible(),false,'Shape hides Storage and Menu');
    assert.equal(await el('left').isVisible(),true,'Shape controls remain available');
-   await checkEditingRatio('left',.25);
+   await checkEditingRatio('left',.5);
    if(width===390) await page.screenshot({path:'/tmp/focused-shape-mobile.png'});
    await closeProperties();
    assert.equal(await el('view-modes').isVisible(),true,'Leaving Shape restores mode switching');

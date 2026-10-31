@@ -3,6 +3,7 @@ import type { Studio } from '../../domain/studio/studio';
 /** Explicit dependencies of the Shape editor: the face-on drawing of a wall or a ceiling shape. */
 export interface SurfaceShapeEditorPorts {
     readonly document: Document;
+    readonly backend?: import('./shape-editor-backend').ShapeEditorBackend;
     readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene' | 'snapshot' | 'restore'>;
     readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'followCeilings'>> & {
         /** Applies a room edit after the room's rules; `recordHistory` false previews a drag, `quiet` keeps refusals silent. */
