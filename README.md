@@ -55,8 +55,11 @@ so the migrated renderer does not require a CDN connection.
 
 Both layouts use the same contextual toolbar, category catalogue, bottom sheets,
 and selection and camera behavior. Select a wardrobe, fitting, or room surface to
-see its actions. Resize, Shape, Sections, materials, and doors open the same
-editing surface at every width. Panels replace one another and release their
+see its actions. Size, Sections, materials, and doors open the same
+editing surface at every width. Wardrobes, walls, and ceilings share the Front/Side
+Size drawing, corner and edge editing, and direct numeric inputs, without duplicate
+sliders or a separate Shape section. Size-only items keep their existing controls.
+Panels replace one another and release their
 space when closed. Drag a sheet's handle down to close it, or up to expand it;
 tapping the handle changes its height. Mouse, keyboard, and touch remain supported.
 
