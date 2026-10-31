@@ -23,8 +23,8 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    await el('toolbar').locator('[data-action="resize"]:visible').click();
    await page.waitForTimeout(350);
    if(width<=900) {
-    assert.ok(Math.abs((await el('left').boundingBox()).height-height*.5)<1,'Resize drawer gets 50%');
-    assert.ok(Math.abs((await el('view').boundingBox()).height-height*.5)<1,'Resize model gets 50%');
+    assert.ok(Math.abs((await el('left').boundingBox()).height-height*.25)<1,'Size retains the outline drawer height');
+    assert.ok(Math.abs((await el('view').boundingBox()).height-height*.75)<1,'Size retains the outline model preview');
    }
    if(width===375 && pointer==='touch') await page.screenshot({path:'/tmp/wardrobe-sizing-mobile.png'});
    await page.keyboard.press('Escape');await page.waitForTimeout(300);
@@ -35,7 +35,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
    const label=()=>handle().getAttribute('aria-label');
    const focused=async()=>{
     assert.equal(await el('left').isVisible(),true,'A shape edit must keep its panel open');
-    assert.equal(await el('left').getAttribute('data-context-section'),'shape');
+    assert.equal(await el('left').getAttribute('data-context-section'),'resize');
     assert.equal(await el('topright').isVisible(),false,'Storage/Menu stay hidden during editing');
     assert.ok(await page.locator('.shape-handle.point').count()>=2,'Shape handles remain available');
    };

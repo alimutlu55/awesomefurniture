@@ -241,7 +241,6 @@
  /* Highlight active contextual action on desktop */
  #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
  #app:has(#pop3[data-context-section="resize"].show) #toolbar [data-action="resize"],
- #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="resize"],
  #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  #app:has(#pop4.show) #toolbar [data-action="sections"],
  #app.props-open:has(#left[data-context-section="fronts"]) #toolbar [data-action="fronts"],
@@ -255,7 +254,6 @@
  }
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="resize"]) #toolbar [data-action="resize"],
  :host([data-theme="dark"]) #app:has(#pop3[data-context-section="resize"].show) #toolbar [data-action="resize"],
- :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="shape"]) #toolbar [data-action="resize"],
  :host([data-theme="dark"]) #app.props-open:has(#left[data-context-section="sections"]) #toolbar [data-action="interior"],
  :host([data-theme="dark"]) #app:has(#pop4.show) #toolbar [data-action="sections"],
  :host([data-theme="dark"]) #app:has(#pop2[data-add-context="furniture"].show) #toolbar #add-furniture-btn,

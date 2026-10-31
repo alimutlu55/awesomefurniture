@@ -24,11 +24,11 @@ const actions = {
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
-    // The room: a selected wall has Add, Size, Shape (its outline face on), Paint, More (Split, Remove).
-    wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['surface-shape', 'Shape'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
+    // Size contains the wall's outline editor and dimension controls.
+    wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
-    // A ceiling shape is drawn and sized in one place, its Shape editor.
-    ceiling: [['surface-shape', 'Shape'], ['flip', 'Flip'], ['remove', 'Remove']],
+    // A ceiling is drawn and sized in the same Size section.
+    ceiling: [['ceiling-size', 'Size'], ['flip', 'Flip'], ['remove', 'Remove']],
     // A toilet or basin: how it is fitted (with its boxing), its size, its finishes; More copies or removes it.
     'room-fixture': [['fixture-type', 'Type', 'How it is fitted'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
 };

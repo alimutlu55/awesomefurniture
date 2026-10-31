@@ -170,13 +170,13 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     const body = $('#left-body');
     let group;
     const sectionByHeading = {
-        Size: 'resize', Shape: 'shape', Sections: 'sections', Finish: 'material', Doors: 'doors',
-        Wymiary: 'resize', Kształt: 'shape', Sekcje: 'sections', Wykończenie: 'material', Drzwi: 'doors',
-        Größe: 'resize', Form: 'shape', Abschnitte: 'sections', Oberfläche: 'material', Türen: 'doors',
-        Dimensions: 'resize', Forme: 'shape', Finition: 'material', Portes: 'doors',
-        Dimensiones: 'resize', Forma: 'shape', Secciones: 'sections', Acabado: 'material', Puertas: 'doors',
+        Size: 'resize', Sections: 'sections', Finish: 'material', Doors: 'doors',
+        Wymiary: 'resize', Sekcje: 'sections', Wykończenie: 'material', Drzwi: 'doors',
+        Größe: 'resize', Abschnitte: 'sections', Oberfläche: 'material', Türen: 'doors',
+        Dimensions: 'resize', Finition: 'material', Portes: 'doors',
+        Dimensiones: 'resize', Secciones: 'sections', Acabado: 'material', Puertas: 'doors',
         Dimensões: 'resize', Seções: 'sections', Acabamento: 'material', Portas: 'doors',
-        Boyut: 'resize', Şekil: 'shape', Bölümler: 'sections', Yüzey: 'material', Kapaklar: 'doors',
+        Boyut: 'resize', Bölümler: 'sections', Yüzey: 'material', Kapaklar: 'doors',
     };
     for (const child of [...body.children]) {
         if (child.tagName === 'H2' || !group || child.classList.contains('reset-row')) {
@@ -189,7 +189,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 || (nextId === 'sliders' ? 'resize'
                     : nextId === 'fins' ? 'material'
                     : nextClass && String(nextClass).includes('door-grid') ? 'doors'
-                    : nextId === 'shape-templates' ? 'shape'
                     : nextId === 'section-row' ? 'sections' : null);
             group.dataset.wardrobeControls = child.classList.contains('reset-row') ? 'reset' : (inferred || 'resize');
             body.insertBefore(group, child);
@@ -219,19 +218,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     leftBtns.append(leftClose);
     leftHeader.append(leftTitle, leftBtns);
     $('#left').prepend(leftHeader);
-    // Size and Shape are tabs of one sheet for furniture whose top can be reshaped (wardrobes).
-    const sizeTabs = document.createElement('div');
-    sizeTabs.className = 'size-tabs';
-    sizeTabs.setAttribute('role', 'tablist');
-    sizeTabs.setAttribute('aria-label', 'Size or shape');
-    for (const [key, label] of [['resize', 'Size'], ['shape', 'Shape']]) {
-        const tab = document.createElement('button');
-        tab.type = 'button'; tab.dataset.sizeTab = key; tab.setAttribute('role', 'tab'); tab.textContent = label;
-        tab.onclick = () => { if ($('#left').dataset.contextSection !== key) key === 'shape' ? openShape() : resize.open(); };
-        sizeTabs.append(tab);
-    }
-    $('#left-body').prepend(sizeTabs);
-    const sectionTitles = { resize: 'Size', shape: 'Size', sections: 'Sections', material: 'Finish', doors: 'Doors', fronts: 'Fronts' };
+    const sectionTitles = { resize: 'Size', sections: 'Sections', material: 'Finish', doors: 'Doors', fronts: 'Fronts' };
     const openControls = key => {
         if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === key) {
             animateMobileSheetClose($('#left'));
@@ -240,30 +227,29 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             return;
         }
         inspector.hidePop();
-        // Size and Shape measure the whole piece: leave the space chosen inside, so its W, H and D show as controls.
-        const whole = (key === 'resize' || key === 'shape') && (selectionState.deep || model.activeCabinet().state.space);
+        // Size measures and reshapes the whole piece, outside any selected interior space.
+        const whole = key === 'resize' && (selectionState.deep || model.activeCabinet().state.space);
         if (whole) { selectionState.deep = false; model.activeCabinet().state.space = null; }
-        const leaveShape = key !== 'shape' && selectionState.shapeEditing;
-        if (leaveShape) selectionState.shapeEditing = false;
-        if (whole || leaveShape) rendering.build();
+        const module = furnitureModule(model.activeCabinet().state);
+        const editShape = key === 'resize' && module.shaped;
+        const shapeChanged = !!selectionState.shapeEditing !== editShape;
+        selectionState.shapeEditing = editShape;
+        if (whole || shapeChanged) rendering.build();
         takeMobilePanel(dom, $('#left'));
         delete $('#left').dataset.roomResize;
         $('#left').dataset.contextSection = key;
-        const module = furnitureModule(model.activeCabinet().state);
         $('#left').toggleAttribute('data-shaped', module.shaped);
         $('#left').toggleAttribute('data-whole-doors', module.wholeDoors);
-        sizeTabs.querySelectorAll('[data-size-tab]').forEach(tab => tab.setAttribute('aria-selected', String(tab.getAttribute('data-size-tab') === key)));
         leftTitle.textContent = sectionTitles[key] || ($('#left').dataset.studioResize ? 'Wall Size' : 'Settings');
         elements.app.classList.add('props-open');
         elements.app.classList.remove('props-hidden', 'inspecting', 'adding');
         $('#left').scrollTop = 0;
-        // Opening Size keeps the user's view and releases any fit that would
-        // otherwise restart when the drawer changes the canvas dimensions.
-        if (key === 'resize') { camera.camRelease(true); inspector.update(true); }
-        else camera.frameMobileInspector(key === 'shape');
+        // Wardrobes retain the outline editor's framing; other furniture keeps the user's view.
+        if (key === 'resize') {
+            if (editShape) camera.frameMobileInspector(true); else camera.camRelease(true);
+            inspector.update(true);
+        } else camera.frameMobileInspector(false);
     };
-    // The shape sheet opens with its panel list and break-point handles.
-    const openShape = () => { openControls('shape'); if (!selectionState.shapeEditing) { selectionState.shapeEditing = true; inspector.update(true); } };
     const resize = createResizePresenter({
         getSelection: () => model.activeCabinet().state,
         prepare: target => {
@@ -321,13 +307,13 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.viewMode === 'studio' && OPENING_KINDS.includes(key)) {
                 room.actOnWall(key); return;
             }
-            if (key === 'surface-shape' || (key === 'ceiling-size' && selectionState.room?.kind === 'ceiling')) {
+            if (key === 'wall-size' || key === 'ceiling-size') {
                 if (room.resizePanel.showing('surface-shape')) { animateMobileSheetClose($('#left')); elements.app.classList.add('props-hidden'); elements.app.classList.remove('props-open'); return; }
-                leftTitle.textContent = 'Shape';
+                leftTitle.textContent = 'Size';
                 room.openShape(); return;
             }
-            if (['wall-size', 'opening-size', 'ceiling-size', 'fixture-size'].includes(key)) {
-                leftTitle.textContent = key === 'fixture-size' ? 'Size' : 'Wall Size';
+            if (['opening-size', 'fixture-size'].includes(key)) {
+                leftTitle.textContent = 'Size';
                 room.resizePanel.open(); return;
             }
             if (selectionState.room?.kind === 'wall' && key === 'wardrobe-here') { const wall = selectionState.room.id; inspector.addCabinet(false, undefined, wall); return; }
@@ -352,7 +338,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (key === 'new') { shellBindings.openSceneAdd({ dom, inspector, shell }, furnitureKind(state)); return; }
             // Add item fills the selected section, as the + on the model does.
             if (key === 'add-item') { inspector.showPop(null, '#pop2'); return; }
-            if (key === 'shape') { openShape(); return; }
             if (key === 'duplicate') {
                 if (state.divider >= 0) commands.duplicateDivider();
                 else if (state.item >= 0) inspector.itemAction('dup');

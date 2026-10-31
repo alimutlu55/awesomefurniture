@@ -17,7 +17,7 @@ const assert=require('node:assert/strict');
    assert.ok(Math.abs(view.height-height*(1-drawerRatio))<1,'Incorrect model ratio: '+JSON.stringify(view));
    assert.ok(Math.abs(view.y+view.height-sheet.y)<1,'Model and drawer meet without overlap or a gap');
   };
-  const checkKeyboardSplit=async(field)=>{
+  const checkKeyboardSplit=async(field,ratio=.5)=>{
    await field.focus();
    const keyboardHeight=Math.min(300,height-150);
    await page.evaluate(visibleHeight=>{
@@ -37,8 +37,8 @@ const assert=require('node:assert/strict');
    assert.equal(backdrop.color,await field.locator('xpath=ancestor::*[contains(@class,"mobile-bottom-sheet")][1]').evaluate(e=>getComputedStyle(e).backgroundColor),'Exposed scene background matches the drawer');
    const canvasBox=await el('c').boundingBox();
    assert.ok(Math.abs(canvasBox.height-keyboardView.height)<1,'Canvas fills the preview without a blank strip');
-   assert.ok(Math.abs(keyboardSheet.height-editorBox.height*.5)<1,'Size drawer keeps half the visible viewport with keyboard open');
-   assert.ok(Math.abs(keyboardView.height-editorBox.height*.5)<1,'Model keeps half the visible viewport with keyboard open');
+   assert.ok(Math.abs(keyboardSheet.height-editorBox.height*ratio)<1,'Size drawer retains its split with keyboard open');
+   assert.ok(Math.abs(keyboardView.height-editorBox.height*(1-ratio))<1,'Model retains its split with keyboard open');
    assert.ok(Math.abs(keyboardView.y+keyboardView.height-keyboardSheet.y)<1,'Model and size drawer meet above keyboard');
    assert.ok(inputBox.y>=keyboardSheet.y && inputBox.y+inputBox.height<=keyboardSheet.y+keyboardSheet.height,'Focused input scrolls inside the drawer');
    assert.ok(inputBox.y>=editorBox.y && inputBox.y+inputBox.height<=editorBox.y+editorBox.height,'Depth stays above keyboard');
@@ -46,7 +46,7 @@ const assert=require('node:assert/strict');
    await field.blur();
    await page.evaluate(()=>{delete window.innerHeight;delete window.visualViewport.height;delete window.visualViewport.offsetTop;window.visualViewport.dispatchEvent(new Event('resize'));});
    await page.waitForTimeout(100);
-   assert.ok(Math.abs((await el('view').boundingBox()).height-height*.5)<1,'Dismissing keyboard restores the regular size split');
+   assert.ok(Math.abs((await el('view').boundingBox()).height-height*(1-ratio))<1,'Dismissing keyboard restores the regular size split');
   };
   const selected=async()=>{
    const box=await el('view').boundingBox();
@@ -77,13 +77,12 @@ const assert=require('node:assert/strict');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});
    await checkActionSlots();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
-   await checkEditingRatio('left',.5);
-   // The safe-area inset belongs inside the 50% drawer, rather than taking model space twice.
+   await checkEditingRatio('left',.25);
+   // The safe-area inset belongs inside the drawer, rather than taking model space twice.
    await el('app').evaluate(e=>e.style.setProperty('--safe-bottom','34px'));
-   await page.waitForTimeout(320);await checkEditingRatio('left',.5);
+   await page.waitForTimeout(320);await checkEditingRatio('left',.25);
    await el('app').evaluate(e=>e.style.removeProperty('--safe-bottom'));
    await page.waitForTimeout(320);
-   const wardrobeResizeHeight=(await el('left').boundingBox()).height;
    assert.equal(await toolbar.isVisible(),false,'Properties take over the toolbar');
    for (const id of ['view-modes','topright','topleft']) assert.equal(await el(id).isVisible(),false,'Resize hides '+id);
    // Leave focused editing before opening another global surface.
@@ -109,7 +108,7 @@ const assert=require('node:assert/strict');
     await slider.dispatchEvent('pointercancel',{pointerType:'touch',isPrimary:true});
     assert.equal(await el(key).inputValue(),before);
    }
-   await checkKeyboardSplit(el('d'));
+   await checkKeyboardSplit(el('d'),.25);
    assert.equal(await el('left').evaluate(e=>getComputedStyle(e).animationName),'none');
    const closeProperties=async()=>{
     await el('left').locator('.mobile-sheet-handle').evaluate(e=>{
@@ -125,7 +124,9 @@ const assert=require('node:assert/strict');
    };
    await closeProperties();
    await toolbar.locator('[data-action="resize"]').click();await page.waitForTimeout(320);
-   await el('left').locator('[data-size-tab="shape"]').click();await page.waitForTimeout(320);
+   assert.equal(await el('left').locator('[data-size-tab]').count(),0,'Size has no separate Shape tab');
+   assert.equal(await el('shape-templates').isVisible(),true,'Size includes the existing templates');
+   assert.equal(await el('shape-panels').isVisible(),true,'Size opens the existing panel editor');
    assert.equal(await el('view-modes').isVisible(),false,'Shape hides mode switching');
    assert.equal(await el('topright').isVisible(),false,'Shape hides Storage and Menu');
    assert.equal(await el('left').isVisible(),true,'Shape controls remain available');
@@ -181,7 +182,6 @@ const assert=require('node:assert/strict');
    assert.equal(await el('topright').isVisible(),false,'Item resizing hides global controls');
    assert.equal(await toolbar.isVisible(),false,'Resize replaces the toolbar instead of stacking');
    assert.equal(await el('pop3').evaluate(e=>getComputedStyle(e).animationName),'none');
-   assert.ok(Math.abs((await el('pop3').boundingBox()).height-wardrobeResizeHeight)<2,'Wardrobe and item Resize use the same initial height: '+JSON.stringify({wardrobeResizeHeight,item:await el('pop3').boundingBox()}));
    const resizeBox=await el('pop3').boundingBox();
    assert.ok(Math.abs(resizeBox.y+resizeBox.height-height)<1,'Resize sheet is attached to the bottom in every orientation');
    assert.ok(Math.abs(resizeBox.width-width)<1,'Resize uses the same full-width sheet');

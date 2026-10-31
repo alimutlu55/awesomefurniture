@@ -16,10 +16,12 @@ async function selectFurniture(page, { touch = false, context = /wardrobe|kitche
  }
  throw new Error('No furniture could be chosen with a tap; the toolbar says ' + await bar.getAttribute('data-context'));
 }
-/** Opens the chosen piece's Shape editor: the Shape tab of its Size panel. */
+/** Opens the chosen piece's outline editor through its single Size entry. */
 async function openShape(page) {
- const tab = page.locator('[data-size-tab="shape"]:visible');
- if (!await tab.count()) { await page.locator('[data-editor-id="toolbar"] [data-action="resize"]:visible').click(); await tab.waitFor(); }
- await tab.click(); await page.waitForTimeout(400);
+ const panel = page.locator('[data-editor-id="left"]');
+ if (!await panel.isVisible() || await panel.getAttribute('data-context-section') !== 'resize')
+  await page.locator('[data-editor-id="toolbar"] [data-action="resize"]:visible').click();
+ await page.locator('[data-editor-id="shape-panels"]').waitFor();
+ await page.waitForTimeout(400);
 }
 module.exports = { selectFurniture, openShape };

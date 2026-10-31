@@ -19,12 +19,20 @@ test('every kind of furniture has the same More: duplicate, reset, remove',()=>{
 test('no toolbar offers Move: furniture, an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});
 test('item More exposes its storage purpose; Replace is a tool',()=>assert.deepEqual(itemMoreActions,[['stores','Stores']]));
 const {wallMoreActions,studioMoreActions,fieldActions}=require('../src/domain/wardrobe/contextual-actions.js');
-test('a selected wall offers Add, Size, Shape, Paint/Finish directly with Split and Remove in More',()=>{
- assert.deepEqual(contextualActions('wall').map(([key])=>key),['new','wall-size','surface-shape','wall-paint','more','undo','redo']);
+test('a selected wall offers Add, Size, Paint/Finish directly with Split and Remove in More',()=>{
+ assert.deepEqual(contextualActions('wall').map(([key])=>key),['new','wall-size','wall-paint','more','undo','redo']);
  assert.equal(contextualActions('wall')[0][1],'Add');
  assert.deepEqual(wallMoreActions.map(([key])=>key),['split','remove']);
  assert.deepEqual(contextualActions('opening').map(([key])=>key),['opening-size','remove','undo','redo']);
- // A ceiling shape is drawn and sized in one place, its Shape editor.
- assert.deepEqual(contextualActions('ceiling').map(([key])=>key),['surface-shape','flip','remove','undo','redo']);
+ // A ceiling's drawing and dimensions share Size.
+ assert.deepEqual(contextualActions('ceiling').map(([key])=>key),['ceiling-size','flip','remove','undo','redo']);
  assert.ok(fieldActions.every(key=>['studio','wall','opening','ceiling'].some(s=>contextualActions(s).some(([k])=>k===key))||wallMoreActions.some(([k])=>k===key)));
+});
+
+test('every editable selection has exactly one Size entry and no separate Shape entry',()=>{
+ for(const selection of ['wardrobe','kitchen','installation','fixture','item','divider','wall','ceiling','opening','room-fixture']) {
+  const actions=contextualActions(selection);
+  assert.equal(actions.filter(([,label])=>label==='Size').length,1,selection);
+  assert.ok(!actions.some(([,label])=>label==='Shape'),selection);
+ }
 });

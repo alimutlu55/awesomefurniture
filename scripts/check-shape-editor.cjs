@@ -45,6 +45,9 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
   assert.equal((await report()).ceilings.length,1,'one shape added, no wall to pick first');
   const corners=page.locator('.surface-shape-svg circle.shape-corner'), edges=page.locator('.surface-shape-svg path.shape-edge');
   assert.ok(await corners.count()>=5,'its corners are drawn');
+  assert.equal(await el('left-title').textContent(),'Size','the drawing opens through Size');
+  assert.ok(await page.locator('.room-fields [data-room-field]:visible').count()>0,'Size retains the original ceiling dimensions');
+  assert.equal(await toolbar.locator('[data-action="surface-shape"]').count(),0,'there is no separate Shape action');
   await shot('added');
 
   // Dragging the lowest corner: a live badge, then one undo step.
@@ -118,11 +121,24 @@ const VIEWS=[{name:'desktop',width:1440,height:900},{name:'phone',width:375,heig
 
   // A wall: + Point on its top edge, the corner pulled down for a sloped top, then Full wall.
   await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  // Restore the room overview before picking a wall rather than sampling the ceiling's close-up.
+  await tap(page.locator('[data-view-mode="furniture"]'));
+  await tap(page.locator('[data-view-mode="studio"]')); await page.waitForTimeout(800);
   const b=await el('view').boundingBox();
-  for(const [x,y] of [[.5,.35],[.4,.3],[.6,.45]]) { await tapAt({x:b.x+b.width*x,y:b.y+b.height*y}); if(await toolbar.getAttribute('data-context')==='wall') break; }
+  pickWall: for(const y of [.45,.55,.35,.65,.25]) for(const x of [.5,.4,.6,.3,.7]) {
+   await tapAt({x:b.x+b.width*x,y:b.y+b.height*y}); if(await toolbar.getAttribute('data-context')==='wall') break pickWall;
+  }
   assert.equal(await toolbar.getAttribute('data-context'),'wall');
-  await tap(toolbar.locator('[data-action="surface-shape"]'));
+  await tap(toolbar.locator('[data-action="wall-size"]'));
   await page.waitForTimeout(800);
+  assert.equal(await el('left-title').textContent(),'Size');
+  const thickness=page.locator('[data-room-field="thickness"]');
+  const initialThickness=Number(await thickness.inputValue()), wallBefore=await page.locator('.surface-shape-svg path.shape-solid').getAttribute('d');
+  await thickness.fill(String(initialThickness+1)); await thickness.press('Enter'); await page.waitForTimeout(300);
+  assert.equal(Number(await thickness.inputValue()),initialThickness+1,'Size retains the wall thickness control');
+  await thickness.fill(String(initialThickness)); await thickness.press('Enter');
+  assert.equal(await page.locator('.surface-shape-svg path.shape-solid').getAttribute('d'),wallBefore,'wall dimensions and drawing stay available together');
+  await page.locator('[data-shape-view="front"]').scrollIntoViewIfNeeded();
   let top=null; for(let i=0;i<await edges.count();i++){ const e=await edges.nth(i).boundingBox(); if(e.width>e.height*3&&(!top||e.y<top.y)) top=e; }
   await tapAt({x:top.x+top.width/2,y:top.y+top.height/2});
   await tap(page.locator('.surface-shape-pill button',{hasText:'+ Point'}));

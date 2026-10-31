@@ -30,6 +30,7 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
       const title = dom.document.createElement('h2'); title.textContent = 'Size'; section.append(title, fields.root);
       dom.$('#left-body').append(section);
     }
+    section.append(fields.root);
     prepare(); takeMobilePanel(dom, panel);
     panel.dataset.roomResize = ''; panel.dataset.contextSection = 'resize'; panel.dataset.sheetPosition = 'compact';
     fields.render();
@@ -49,21 +50,23 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
     app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
     frame();
   }
-  /** Opens the Shape editor in the same panel: beside the room on a desktop, a sheet on a phone. */
+  /** Size combines the drawing and original dimensions: a desktop panel or a phone sheet. */
   /** `fresh` starts the panel at its top; moving from one shape to the next keeps where it was scrolled. */
-  function openShape(title: string, fresh = true) {
+  function openShape(fresh = true) {
     if (!selection() || !shape) return;
     if (!shapeSection) {
       shapeSection = dom.document.createElement('section');
       shapeSection.dataset.wardrobeControls = 'surface-shape'; shapeSection.dataset.studioResize = '';
       shapeSection.append(dom.document.createElement('h2'), shape.root); dom.$('#left-body').append(shapeSection);
     }
-    for (const heading of [shapeSection.querySelector('h2'), panel.querySelector('#left-title, [data-editor-id="left-title"]')]) if (heading) heading.textContent = title;
+    for (const heading of [shapeSection.querySelector('h2'), panel.querySelector('#left-title, [data-editor-id="left-title"]')]) if (heading) heading.textContent = 'Size';
+    shapeSection.append(fields.root);
     if (panel.dataset.contextSection !== 'surface-shape') { prepare(); takeMobilePanel(dom, panel); }
     panel.dataset.roomResize = ''; panel.dataset.contextSection = 'surface-shape'; panel.dataset.sheetPosition = 'compact';
     app.classList.add('props-open'); app.classList.remove('props-hidden', 'inspecting', 'adding');
     if (fresh) panel.scrollTop = 0;
     shape.render();
+    fields.render();
   }
   /** A fixture's Type or Finish, in the same panel as its Size: beside the room on a desktop, a sheet on a phone. */
   function openFixture(view: 'fixture-type' | 'fixture-finish') {

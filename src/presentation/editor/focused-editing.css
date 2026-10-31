@@ -1,7 +1,7 @@
-/* Size and shape panels own the workspace until they close. Derive this from
+/* Size panels own the workspace until they close. Derive this from
    visible panels so selection changes, Escape and sheet dismissal restore chrome. */
 #app:is(
- .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+ .props-open:has(#left[data-context-section="resize"]),
  :has(:is(#pop3,#pop4)[data-context-section="resize"].show),
  :has(.item-resize-handle.resizing)
 ) :is(#view-modes,#topright,#topleft,#toolbar,#br,#hint,.mobile-feedback,.contextual-popover,.lbl.add){
@@ -9,19 +9,18 @@
 }
 
 @media (max-width:900px){
- /* Shape prioritizes the model; sizing splits the available space equally.
-    The shared sheet limit also applies during expansion and dragging. */
- #app.props-open:has(#left[data-context-section="shape"]){
-  --mobile-settings-sheet-height:25vh;
- }
+ /* Size splits the workspace equally; wardrobes retain the outline editor's larger model preview. */
  #app:is(
   .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ){
   --mobile-settings-sheet-height:50vh;
  }
+ #app.props-open:has(#left[data-shaped]:not([data-room-resize])[data-context-section="resize"]){
+  --mobile-settings-sheet-height:25vh;
+ }
  #app:is(
-  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])[data-sheet-position="compact"]:not([data-sheet-dragging])),
+  .props-open:has(#left[data-context-section="resize"][data-sheet-position="compact"]:not([data-sheet-dragging])),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show[data-sheet-position="compact"]:not([data-sheet-dragging]))
  ){
   /* Safe-area padding is already inside the drawer's border-box height. */
@@ -33,7 +32,7 @@
    that visible space instead of letting the keyboard fallback cover the model. */
 @media (max-width:900px){
  :host([data-keyboard-open]) #app:is(
-  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ){
   --panel-height:var(--mobile-settings-sheet-height);
@@ -42,13 +41,13 @@
   background:var(--panel);
  }
  :host([data-keyboard-open]) #app:is(
-  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ) #view{
   inset:0 0 var(--sheet);visibility:visible;transition:none;
  }
  :host([data-keyboard-open]) #app:is(
-  .props-open:has(#left:is([data-context-section="resize"],[data-context-section="shape"])),
+  .props-open:has(#left[data-context-section="resize"]),
   :has(:is(#pop3,#pop4)[data-context-section="resize"].show)
  ) :is(#left,#pop3,#pop4).mobile-bottom-sheet{
   top:auto;bottom:0;left:0;right:0;width:auto;

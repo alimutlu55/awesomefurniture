@@ -75,8 +75,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 // A fixture's Type or Finish stays open from one fixture to the next, and closes with anything else.
                 if (resizePanel?.showing('fixture') && room.selection()?.kind !== 'fixture') resizePanel.close();
                 fixturePanel?.render();
-                // The Shape editor stays open from one wall or shape to the next, and closes with anything else.
-                if (resizePanel?.showing('surface-shape')) { if (shapeTarget()) openShape(false); else shape.close(); }
+                // Size follows the selection, with a drawing for walls and ceilings and fields for other parts.
+                if (resizePanel?.showing('surface-shape') || resizePanel?.showing('resize')) {
+                    if (shapeTarget()) openShape(false);
+                    else { shape.close(); if (room.selection()) resizePanel.open(); else resizePanel.close(); }
+                }
                 frameSelection();
             },
             redraw: () => { late.rendering().redrawStudio(); fields?.render(); if (shape.active() && !shape.dragging()) shape.render(); },
@@ -103,9 +106,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     };
     /** Tap to type: opens the toolbar's fields for the selection and puts one in focus. */
     function openFields(action: string, field: string) {
+        if (action === 'surface-shape') action = editor.selection()?.kind === 'wall' ? 'wall-size' : 'ceiling-size';
         const toolbar = dom.$('#toolbar'), selector = '[data-action="' + action + '"]';
         const button = toolbar.querySelector<HTMLButtonElement>(selector);
-        if (button && button.getAttribute('aria-expanded') !== 'true') button.click();
+        const section = action === 'wall-size' || action === 'ceiling-size' ? 'surface-shape' : 'resize';
+        if (button && !resizePanel?.showing(section)) button.click();
         // Kept in More: open More, then the fields from it.
         if (!button) {
             toolbar.querySelector<HTMLButtonElement>('[data-action="more"]')?.click();
@@ -117,7 +122,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
-        editStudio: edit => sceneCommands.editStudio(edit), refresh: () => late.inspector().update(true), listen,
+        editStudio: edit => sceneCommands.editStudio(edit), refresh, listen,
         valid: r => !sceneCommands.studioProblem(r),
         resizeWallLength: (id, length, preview) => sceneCommands.resizeWallLength(id, length, !preview, preview),
         resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
@@ -202,7 +207,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         const target = shapeTarget(), room = model.scene.studio;
         if (!target || !room) return;
         shape.open(target);
-        resizePanel!.openShape(target.kind === 'wall' ? 'Wall shape' : 'Shape', turn);
+        resizePanel!.openShape(turn);
         if (turn) frameShape();
     }
     /** Turns the view to face the shape from the side the editor shows: the wall face on, or along the wall. */

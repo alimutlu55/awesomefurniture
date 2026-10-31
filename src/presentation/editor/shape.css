@@ -27,8 +27,6 @@
 .lbl.shape-handle:active{cursor:grabbing}
 .lbl.shape-handle:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
- #left[data-context-section="shape"] [data-wardrobe-controls="shape"]{display:block}
- #left [data-wardrobe-controls="shape"] h2{margin-top:0}
  .shape-input input{font-size:16px;padding:7px 8px}
  .shape-action{width:40px;height:40px}
  .shape-fields{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}

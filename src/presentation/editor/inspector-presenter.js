@@ -1,5 +1,5 @@
 import { syncDecorPicker } from './decor-picker';
-import { isKitchen } from '../../domain/furniture/furniture';
+import { furnitureModule, isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { itemHingeSide } from '../../domain/kitchen/kitchen-fronts';
 import { createAddMenuPresenter } from './add-menu-presenter.js';
@@ -67,6 +67,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         interactions.cancelMovement();
         hidePop();
         model.select(id);
+        const panel = $('#left'), module = furnitureModule(model.activeCabinet().state);
+        panel.toggleAttribute('data-shaped', module.shaped); panel.toggleAttribute('data-whole-doors', module.wholeDoors);
+        if (panel.dataset.contextSection === 'resize' && panel.dataset.roomResize === undefined && elements.app.classList.contains('props-open')) selectionState.shapeEditing = module.shaped;
         model.activeCabinet().state.item = -1;
         model.activeCabinet().state.divider = -1;
         model.activeCabinet().state.space = null;

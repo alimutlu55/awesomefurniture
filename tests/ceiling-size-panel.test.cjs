@@ -5,11 +5,13 @@ const { createStudioResizePanel } = require('../src/presentation/editor/studio-r
 const { moveCeilingPoint } = require('../src/domain/studio/studio-ceiling.ts');
 const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
 
-function node() {
+function node(tagName) {
     const classes = new Set();
-    return { hidden: true, setAttribute() {}, getRootNode: () => ({querySelectorAll: () => []}), dataset: {}, children: [], handlers: {}, classList: { add: (...xs) => xs.forEach(x => classes.add(x)),
+    return { tagName, hidden: true, setAttribute() {}, getRootNode: () => ({querySelectorAll: () => []}), dataset: {}, children: [], handlers: {}, classList: { add: (...xs) => xs.forEach(x => classes.add(x)),
         remove: (...xs) => xs.forEach(x => classes.delete(x)), contains: x => classes.has(x) },
-        append(...xs) { this.children.push(...xs); }, replaceWith() {}, closest() { return this.label; } };
+        append(...xs) { for(const x of xs) { if(x.parent) x.parent.children.splice(x.parent.children.indexOf(x),1); this.children.push(x); x.parent=this; } },
+        querySelector(selector) { return this.children.find(x=>x.tagName===selector)??null; },
+        replaceWith() {}, closest() { return this.label; } };
 }
 for (const cancel of [false, true]) test(`shared ceiling sizing slider ${cancel ? 'cancels atomically' : 'commits its previews as one undo step'}`, t => {
     const f = roomRenderFixture(t), input = node(), label = node(); input.label = label;
@@ -30,6 +32,30 @@ for (const cancel of [false, true]) test(`shared ceiling sizing slider ${cancel 
         range.handlers.change(); range.handlers.blur();
         assert.equal(f.checkpoints.length, 1); assert.equal(f.history.undo(), true); assert.equal(f.model.snapshot(), before);
     }
+});
+
+test('wall and ceiling Size keep the drawing and original dimensions together across selections', () => {
+    const nodes = {}, dom = { width: 1280, $: key => nodes[key] ??= node(), document: { createElement: node } };
+    let selection = { kind: 'wall', id: 'w1' }, fieldRenders = 0, drawingRenders = 0;
+    const fields = { root: node(), render: () => fieldRenders++ };
+    const shape = { root: node(), render: () => drawingRenders++ };
+    const panel = createStudioResizePanel({ dom, fields, shape, selection: () => selection, prepare() {}, frame() {} });
+    panel.openShape();
+    const section = dom.$('#left-body').children[0];
+    assert.equal(section.children[0].textContent, 'Size');
+    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
+    assert.equal(fieldRenders, 1); assert.equal(drawingRenders, 1);
+    dom.$('#left').scrollTop = 120;
+    selection = { kind: 'ceiling', id: 'k1' }; panel.openShape(false);
+    assert.equal(dom.$('#left-body').children.length, 1);
+    assert.equal(dom.$('#left').scrollTop, 120);
+    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
+    selection = { kind: 'opening', id: 'o1' }; panel.open();
+    assert.equal(fields.root.parent, dom.$('#left-body').children[1]);
+    assert.equal(section.children.includes(fields.root), false);
+    selection = { kind: 'wall', id: 'w1' }; panel.openShape();
+    assert.deepEqual(section.children.slice(1), [shape.root, fields.root]);
+    assert.equal(dom.$('#left-body').children.length, 2, 'reopening reuses both hosts');
 });
 
 test('ceiling sizing takes the existing wardrobe panel, reuses its section and releases it on selection change', () => {

@@ -30,7 +30,14 @@ function fixture(t, width, shape = 'landing', wall = 'w1') {
     const commands = createSceneCommands(() => model.scene); commands.followCeilings();
     const selectionState = { focusOn: true, deep: false, pillOn: false, room: null };
     const interactionState = createInteractionState(), cameraState = createCameraState();
-    const element = () => ({ dataset: {}, classList: { contains: () => true, add() {}, remove() {} }, append() {}, click() {}, setAttribute() {}, getRootNode: () => ({ querySelectorAll: () => [] }), querySelector: () => null,
+    const element = () => ({ dataset: {}, classList: { contains: () => true, add() {}, remove() {} }, append() {}, click() {}, setAttribute() {}, getRootNode: () => ({ querySelectorAll: () => [] }),
+        querySelector(selector) {
+            // Combined Size mounts the original numeric controls beside the drawing.
+            const field = selector.match(/^\[data-room-field="([^"]+)"\]$/)?.[1];
+            if (!field) return null;
+            this.fields ??= {};
+            return this.fields[field] ??= { ...element(), dataset: { roomField: field }, closest: () => ({ querySelector: () => element() }) };
+        },
         querySelectorAll: () => [], matches: () => false, getBoundingClientRect: () => ({ width, height: 812 }) });
     const nodes = {}, document = { createElement: element, documentElement: { hasAttribute: () => false }, querySelector: () => null };
     const dom = { width, document, window: {}, $: id => nodes[id] ??= element() };
