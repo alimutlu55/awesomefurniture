@@ -1,5 +1,5 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
-import { uprightContact } from './board-contact.js';
+import { shelfContact, uprightContact } from './board-contact.js';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
@@ -119,17 +119,17 @@ export function createAttachmentRules(ctx, deps) {
                 if (!Number.isFinite(it.y)) it.y = q.y0;
             }
         } else {
-            const dy = value - d.y, top = r.y1, bottom = r.y0;
+            const dy = value - d.y, top = r.y1;
             dividers[index] = { ...d, y: value };
             for (const q of now.items) {
                 if (!near(q.y0, top) || !overlaps(q.x0, q.x1, r.x0, r.x1)) continue;
                 Object.assign(secs[q.j], { y: Math.round((q.y0 + dy) * 100) / 100, x: Number.isFinite(secs[q.j].x) ? secs[q.j].x : q.x0 });
             }
             for (const b of now.boards) {
-                if (b.d.orientation !== 'vertical' || !overlaps(b.x0, b.x1, r.x0, r.x1)) continue;
-                const s = dividers[b.k];
-                if (near(b.y0, top)) dividers[b.k] = { ...s, y0: s.y0 + dy, y1: s.y1 + dy, want: (s.want ?? s.y1) + dy };
-                else if (near(b.y1, bottom)) dividers[b.k] = { ...s, y1: s.y1 + dy, want: s.y1 + dy };
+                if (b.d.orientation !== 'vertical') continue;
+                const s = dividers[b.k], contact = shelfContact(b, r);
+                if (contact === 'top') dividers[b.k] = { ...s, y0: s.y0 + dy, y1: s.y1 + dy, want: (s.want ?? s.y1) + dy };
+                else if (contact === 'bottom') dividers[b.k] = { ...s, y1: s.y1 + dy, want: s.y1 + dy };
                 else continue;
                 changed.add(b.k);
             }

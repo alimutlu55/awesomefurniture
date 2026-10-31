@@ -116,6 +116,33 @@ test('upright distances still stop at fixed upright neighbours and unattached fi
   {i:1,orientation:'horizontal',x0:35.9,x1:54.1,y:150}];
  const m=run('dividerMeasurements(0)');near(m.low,20);near(m.high,54.1);near(m.before,14.1);near(m.after,18.2);
 });
+test('shelf distances measure past attached uprights to neighbouring shelves while dragging',()=>{
+ const {c,run}=fixture();
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:99.1,y1:100.9}},
+  {i:1,orientation:'vertical',x:32,y0:100.9,y1:179.1},
+  {i:1,orientation:'vertical',x:32,y0:40.9,y1:99.1},
+  {i:1,orientation:'horizontal',x0:0,x1:BW,y:40},
+  {i:1,orientation:'horizontal',x0:0,x1:BW,y:180}];
+ const gaps=(below,above)=>{const m=run('dividerMeasurements(0)');near(m.low,40.9);near(m.high,179.1);near(m.before,below);near(m.after,above)};
+ gaps(58.2,78.2);
+ for(const y of [80,120,70]){
+  assert.equal(run(`moveDividerTo(0,${y})`),'all');gaps(y-41.8,178.2-y);
+ }
+ run('setDividerClearance(0,"before",30)');gaps(30,106.4);
+ run('setDividerClearance(0,"after",40)');gaps(96.4,40);
+});
+test('shelf distances use attachment tolerance and still stop at fixed uprights and fittings',()=>{
+ const {c,run}=fixture([{k:'drawer',h:30,w:20,x:0,y:0}]);
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:99.1,y1:100.9}},
+  {i:1,orientation:'vertical',x:32,y0:101.3,y1:TOP},
+  {i:1,orientation:'vertical',x:32,y0:0,y1:98.7}];
+ let m=run('dividerMeasurements(0)');near(m.before,69.1);near(m.after,117.5);
+ // A neighbouring upright with a real gap does not move with the shelf.
+ c.S.dividers.push({i:1,orientation:'vertical',x:50,y0:150,y1:TOP});
+ m=run('dividerMeasurements(0)');near(m.before,69.1);near(m.after,49.1);
+ c.S.dividers.push({i:1,orientation:'vertical',x:50,y0:0,y1:60});
+ m=run('dividerMeasurements(0)');near(m.before,39.1);near(m.after,49.1);
+});
 test('a divider fits the height where it stands: standing on a fitting, and down to the floor past it',()=>{
  const {c,run}=fixture([{k:'drawer',h:40,w:30,x:0,y:0}]);
  c.S.dividers=[{i:1,orientation:'vertical',x:15,y0:40,y1:TOP,area:{x0:0,x1:30,y0:40,y1:TOP}}];

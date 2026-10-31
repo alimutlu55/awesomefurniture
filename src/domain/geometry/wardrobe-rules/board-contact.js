@@ -6,3 +6,11 @@ export function uprightContact(part, board) {
     if (Math.abs(part.x0 - board.x1) <= .6) return 'right';
     return null;
 }
+
+/** The face of a shelf an upright meets. These uprights follow the shelf as it moves. */
+export function shelfContact(part, board) {
+    if (part.x0 >= board.x1 - .01 || part.x1 <= board.x0 + .01) return null;
+    if (Math.abs(part.y0 - board.y1) <= .6) return 'top';
+    if (Math.abs(part.y1 - board.y0) <= .6) return 'bottom';
+    return null;
+}

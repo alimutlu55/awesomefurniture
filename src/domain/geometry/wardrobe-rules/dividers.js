@@ -1,7 +1,7 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
 import { fittingDepth } from '../../wardrobe/carcass';
 import { MIN_CUT_BOARD } from '../../wardrobe/shape/angle-cut';
-import { uprightContact } from './board-contact.js';
+import { shelfContact, uprightContact } from './board-contact.js';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** Shortest vertical divider, in cm. */
@@ -32,20 +32,20 @@ export function createDividersRules(ctx, deps) {
         if (!d) {
             return null;
         }
-        const r = visibleRect(d), area = dividerBounds(d), hor = d.orientation === 'horizontal';
-        // Upright distances describe the opening to fixed neighbours. The saved
-        // area may end on an attached shelf; that shelf stretches/slides with the
-        // divider and is not the boundary of its horizontal opening.
-        let low = hor ? area.y0 : 0, high = hor ? area.y1 : widths()[d.i];
+        const r = visibleRect(d), hor = d.orientation === 'horizontal';
+        // Measure the opening to fixed neighbours. An attached perpendicular board
+        // follows this board; neither it nor a cached area is the opening's boundary.
+        let low = 0, high = widths()[d.i] ?? 0;
         // Above a shelf, the clear height is measured up to the top where the shelf is, not the wardrobe's tallest point.
         if (hor) {
             const mid = (r.x0 + r.x1) / 2;
-            high = Math.min(high, ceilingIn(d.i, mid - .5, mid + .5));
+            high = ceilingIn(d.i, mid - .5, mid + .5);
         }
         const items = computeLayout(d.i).map(q => ({ x0: q.x0, x1: q.x1, y0: q.relY0, y1: q.relY1 }));
         const boards = (getDesign().dividers || []).filter((q, j) => j !== index && q.i === d.i);
         const obstacles = items.filter(q => hor || !uprightContact(q, r)).concat(boards
-            .filter(q => hor || q.orientation !== 'horizontal' || !uprightContact(dividerRect(q), r))
+            .filter(q => hor ? q.orientation !== 'vertical' || !shelfContact(dividerRect(q), r)
+                : q.orientation !== 'horizontal' || !uprightContact(dividerRect(q), r))
             .map(q => visibleRect(q)));
         obstacles.forEach(q => {
             if (hor) {
