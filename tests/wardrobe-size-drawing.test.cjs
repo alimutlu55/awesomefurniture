@@ -71,3 +71,30 @@ test('invalid bases and excessive dimensions cannot silently deform or clamp a w
  assert.equal(f.backend.field('depth',200,s,null),false);
  assert.equal(f.model.snapshot(),before);assert.equal(f.checkpoints.length,0);
 });
+
+test('an outer corner resizes its connected upright side instead of producing a false collision',()=>{
+ const f=fixture(),s=f.read(),before=f.model.snapshot();
+ const requested=s.points.map((p,i)=>i===3?{x:p.x+5,y:p.y-20}:p);
+ const projected=f.backend.project(s,requested),roof=wardrobeDrawingRoof(projected);
+ assert.ok(roof);assert.equal(roof.width,195);assert.equal(projected[0].x,projected[3].x);
+ assert.equal(f.backend.write(f.ref,projected,'front'),true);
+ assert.equal(f.backend.problem(),null);assert.equal(f.state().w,195);
+ assert.equal(f.state().shape.top[0].y,210);assert.deepEqual(f.checkpoints,[before]);
+});
+test('corner shrinking beside a touching wardrobe succeeds; expansion into it reports the actual collision',()=>{
+ const f=fixture();f.model.scene.wardrobes.push({id:2,name:'Neighbour',x:200,y:0,z:0,angle:0,state:structuredClone(f.state())});
+ const s=f.read(),before=f.model.snapshot();
+ const expanded=applyShapeField(s,s.points,null,'width',220);
+ assert.equal(f.backend.write(f.ref,expanded,'front',false,true),false);
+ assert.match(f.backend.problem(),/overlap.*wardrobe/i);assert.equal(f.model.snapshot(),before);
+ const corner=s.points.map((p,i)=>i===3?{x:p.x+5,y:p.y-20}:p);
+ assert.equal(f.backend.write(f.ref,f.backend.project(s,corner),'front'),true);
+ assert.equal(f.backend.problem(),null);assert.equal(f.state().w,195);
+});
+test('a base corner keeps the whole base level and can be undone as one edit',()=>{
+ const f=fixture(),s=f.read(),before=f.model.snapshot();
+ const moved=s.points.map((p,i)=>i===0?{...p,y:10}:p),projected=f.backend.project(s,moved);
+ assert.equal(projected[0].y,10);assert.equal(projected[1].y,10);
+ assert.equal(f.backend.write(f.ref,projected,'front'),true);assert.equal(f.model.activeCabinet().y,10);
+ assert.deepEqual(f.checkpoints,[before]);f.model.restore(f.checkpoints[0]);assert.equal(f.model.snapshot(),before);
+});

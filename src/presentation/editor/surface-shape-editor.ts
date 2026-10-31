@@ -80,7 +80,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     renderPill(points);
     renderBadge();
     renderFields(s, points);
-    if (fitNext && !drag) { fitNext = false; focusNarrow(s); }
+    if (fitNext && !drag) { fitNext = false; if (backend.autoFocusNarrow !== false) focusNarrow(s); }
   }
   /** A part narrower on screen than a fingertip's reach (a wall's 12 cm cross-section) opens zoomed on its top,
    * where it is usually shaped; Fit shows it whole. */
@@ -163,7 +163,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   function commit(points: readonly ProfileVertex[], next: ShapePick = pick) {
     const s = profile();
     if (!s || !ref) return false;
-    const healed = healProfile(points), at = next && points[next.index], target = ref, side = s.view;
+    const projected = backend.project?.(s, points) ?? points;
+    const healed = healProfile(projected), at = next && projected[next.index], target = ref, side = s.view;
     if (!backend.write(target, healed, side)) return false;
     pick = next && at ? (() => { const index = findPoint(healed, at); return index >= 0 ? { kind: next.kind, index } : null; })() : null;
     backend.settle();
@@ -269,11 +270,12 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       const xs = next.map(p => p.x), ys = next.map(p => p.y);
       g.badge = len(Math.min(...xs) - s.origin) + (s.view === 'side' ? ' from the wall · ' : ' from the left · ') + len(Math.min(...ys)) + ' up';
     }
+    if (next && backend.project) next = backend.project(s, next);
     const problem = next ? null : profileProblem(raw, s.bounds);
     g.problem = problem ? profileMessage(problem) : null;
     if (next && JSON.stringify(next) !== JSON.stringify(g.last)) {
       if (session.preview(next)) g.last = next;
-      else g.problem = 'A wardrobe or wall is in the way here.';
+      else g.problem = backend.problem?.() ?? 'A wardrobe or wall is in the way here.';
     }
     if (g.problem) guides = [];
     render();

@@ -11,6 +11,9 @@ import type { SurfaceShapeEditorPorts } from './surface-shape-editor.ports';
 /** Geometry and commands behind the shared Size drawing. The pointer, zoom and field UI have one owner. */
 export interface ShapeEditorBackend {
   readonly restorePreview?: boolean;
+  readonly autoFocusNarrow?: boolean;
+  project?(profile: SurfaceProfile, points: readonly ProfileVertex[]): ProfileVertex[];
+  problem?(): string | null;
   read(ref: SurfaceRef, view?: SurfaceView): SurfaceProfile | null;
   write(ref: SurfaceRef, points: readonly ProfileVertex[], view: SurfaceView | undefined, record?: boolean, quiet?: boolean): boolean;
   primary(ref: SurfaceRef): SurfaceView;
