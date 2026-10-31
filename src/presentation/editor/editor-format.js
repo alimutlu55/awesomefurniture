@@ -36,6 +36,8 @@ export const ICONP = { "menu": "M4 7h16M4 12h16M4 17h16", "chev": "M6 9l6 6 6-6"
 export const icon = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONP[n] + '"/></svg>';
 export const RANKS = ['Apprentice', 'Joiner', 'Carpenter', 'Cabinetmaker', 'Master Builder', 'Legend'];
 ICONP.plus = "M12 5v14M5 12h14";
+/** Make: a piece taken apart into its boards. */
+ICONP.make = "M3 10h7v11H3zM13 3h8v7h-8zM13 13h8v8h-8zM10 7l3-2";
 ICONP.divider = "M9 4v16M15 4v16";
 // The room: walls, doors, windows and archways, drawn in plan or elevation.
 ICONP["room-wall"] = "M3 9h18v6H3zM8 9v6M13 9v6M18 9v6";

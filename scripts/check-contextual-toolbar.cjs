@@ -71,7 +71,7 @@ const assert=require('node:assert/strict');
    await checkActionSlots();
    await selected();
    assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['new','interior','resize','fronts','more']);
+   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['new','interior','resize','fronts','make','more']);
    assert.equal(await el('launch-wizard').isVisible(),false,'Auto design is in the Interior menu');
    assert.equal(await page.locator('.lbl.add').isVisible(),true,'First tap shows internal Add item');
    if(width===390) await page.screenshot({path:'/tmp/contextual-selected.png'});

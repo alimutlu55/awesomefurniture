@@ -1,10 +1,10 @@
 import { FURNITURE } from '../furniture/furniture';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
 /** Every piece of furniture shows the same tools in the same order, the steps furniture planners use: add another,
- * its interior, its size, its fronts, then More. Moving needs no tool: furniture, an item or a divider is dragged where it goes.
+ * its interior, its size, its fronts, Make (the piece taken down to its parts, every part measured), then More. Moving needs no tool: furniture, an item or a divider is dragged where it goes.
  * Add is named for what it adds ("New wardrobe", "Add cabinet"): a tool's third entry is its accessible name.
  * @param {import('../furniture/furniture').FurnitureModule} module */
-const toolsOf = module => [['new', 'Add', module.addLabel], ['interior', 'Interior'], ['resize', 'Size'], ['fronts', 'Fronts'], ['more', 'More']];
+const toolsOf = module => [['new', 'Add', module.addLabel], ['interior', 'Interior'], ['resize', 'Size'], ['fronts', 'Fronts'], ['make', 'Make', 'Make: every part, measured'], ['more', 'More']];
 /** What a furniture tool's menu offers. Interior: Auto design where the module plans, its sections, Add item.
  * More: duplicating, resetting or removing it, the same for every kind. @param {import('../furniture/furniture').FurnitureModule} module */
 const menusOf = module => ({

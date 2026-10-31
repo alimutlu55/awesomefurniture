@@ -36,7 +36,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
     const icons = {new:icon('plus'),interior:icon('divider'),fronts:icon('doors'),resize:icon('sliders'),shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),
-        'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material')};
+        'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),

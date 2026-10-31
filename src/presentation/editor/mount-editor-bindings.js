@@ -27,10 +27,10 @@ import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture
 import { isFixture, installationKind } from '../../domain/kitchen/kitchen-units';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
-export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray }) {
+export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray, make }) {
     const { $, document } = dom;
     bindTactileCanvas({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState,
-        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray });
+        renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray, make });
     bindSceneReset({ dom, selectionState, interactionState, plannerState, shellState, inspector,
         interactions, planner, shell, camera, sceneCommands, lifetime });
     mountResizeFields({ dom, lifetime, model, history, refresh: () => inspector.update(true),
@@ -322,6 +322,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 shellBindings.openSceneAdd({ dom, inspector, shell }, 'wall'); return;
             }
             if (selectionState.room) { room.editor.act(key); return; }
+            if (key === 'make') { make.open(); return; }
             const state = model.activeCabinet().state;
             if (key === 'resize') {
                 if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'resize') {

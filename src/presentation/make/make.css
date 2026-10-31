@@ -1,0 +1,136 @@
+/* Make: one piece taken down to its parts, over the editor. Drawn in the editor's own tokens, so light and dark follow it.
+   Lines are the content: hairline boards, blue measurements, orange only for what needs attention. */
+.mk{position:absolute;inset:0;z-index:55;display:grid;grid-template-rows:auto minmax(0,1fr);background:var(--bg);color:var(--ink);outline:none;
+  --mk-dim:#2c5fc4;--mk-face-top:var(--panel);--mk-face-front:color-mix(in srgb,var(--panel) 94%,var(--ink));--mk-face-side:color-mix(in srgb,var(--panel) 86%,var(--ink));
+  --mk-sel:color-mix(in srgb,var(--mk-dim) 16%,var(--panel))}
+/* Measurements and the picked part in a drafting blue, as on a drawing; the editor's own controls keep its accent. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mk{--mk-dim:#8db4f5}}
+:root[data-theme="dark"] .mk{--mk-dim:#8db4f5}
+.mk[hidden]{display:none}
+/* The editor gives buttons a fixed height; these hold drawings, so they size to them and never shrink below them. */
+.mk-rail button,.mk-tile,.mk-sheetbtn{height:auto;min-height:min-content;flex-shrink:0}
+.mk .ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mk button{font:inherit;color:inherit}
+.mk-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:12px;padding-top:max(12px,env(safe-area-inset-top))}
+.mk-pill{display:flex;align-items:center;gap:2px;background:var(--panel);border-radius:999px;padding:4px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:0}
+.mk-pill>button,.mk-pill>label,.mk-backbtn{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;border-radius:999px;padding:7px 10px;cursor:pointer;
+  font-size:13px;font-weight:500;white-space:nowrap;min-height:36px}
+.mk-backbtn{justify-self:start;padding:7px 14px 7px 8px}
+.mk-pill>button[aria-pressed="true"],.mk-pill>button[aria-selected="true"]{background:var(--seg);color:var(--acc)}
+.mk-right{justify-self:end}
+.mk-unit{font-variant-numeric:tabular-nums;min-width:44px;justify-content:center}
+.mk-sep{width:1px;height:20px;background:var(--line);margin:0 3px}
+.mk button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+
+/* Model: the piece, its parts strip and its tools; a picked part docks its drawing beside the model. */
+.mk-model{display:grid;grid-template-columns:minmax(0,1fr) 0;grid-template-rows:minmax(0,1fr) auto auto;grid-template-areas:"stage dock" "film film" "tools tools";min-height:0}
+.mk-model.focused{grid-template-columns:minmax(0,1fr) min(380px,40%)}
+.mk-model[hidden],.mk-drawings[hidden]{display:none}
+.mk-stagebox{grid-area:stage;position:relative;min-width:0;min-height:0}
+.mk-stage{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.mk-stage.turning{cursor:grabbing}
+.mk-views{position:absolute;right:12px;top:4px;flex-direction:column;border-radius:16px}
+.mk-views>button{padding:8px}
+.mk-dock{grid-area:dock;min-width:0;margin:0 12px 8px 0;background:var(--panel);border-radius:var(--r-m,12px);box-shadow:0 1px 4px rgba(0,0,0,.08);padding:12px;
+  display:flex;flex-direction:column;gap:10px;overflow:auto}
+.mk-dock>*{flex:none}
+.mk-dock[hidden]{display:none}
+.mk-dh{display:flex;align-items:center;gap:8px}
+.mk-dh b{font-size:16px;font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-q{color:var(--mute);font-size:13px;font-variant-numeric:tabular-nums}
+.mk-sp{flex:1}
+.mk-ibtn{width:36px;height:36px;border:0;border-radius:10px;background:var(--seg);display:grid;place-items:center;cursor:pointer;flex:none}
+.mk-ibtn .ic{width:18px;height:18px}
+.mk-num{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--ink);color:var(--panel);font-size:10px;font-weight:650;padding:0 4px;
+  font-variant-numeric:tabular-nums;flex:none}
+.mk-num.lg{min-width:24px;height:24px;border-radius:12px;font-size:12px}
+.mk-big{font-size:22px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.mk-big small{display:flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;font-weight:500;letter-spacing:0;color:var(--mute)}
+.mk-big small .ic{width:14px;height:14px}
+.mk-sheetbtn{display:block;width:100%;padding:0;border:0;background:transparent;cursor:zoom-in;border-radius:8px}
+.mk-seg{display:inline-flex;align-items:center;gap:2px;background:var(--seg);border-radius:10px;padding:2px;align-self:flex-start;color:var(--mk-dim)}
+.mk-seg .ic{width:16px;height:16px;margin:0 4px}
+.mk-seg button{border:0;background:transparent;border-radius:8px;padding:5px 8px;font-size:12px;color:var(--mute);cursor:pointer;font-variant-numeric:tabular-nums}
+.mk-seg button[aria-pressed="true"]{background:var(--panel);color:var(--mk-dim)}
+.mk-links{display:flex;flex-wrap:wrap;gap:4px 14px}
+.mk-link{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--mk-dim)!important;font-size:13px;font-weight:500;padding:6px 0;cursor:pointer}
+.mk-film{grid-area:film;display:flex;gap:6px;overflow-x:auto;padding:4px 12px 8px;scrollbar-width:thin;overscroll-behavior-x:contain}
+.mk-tile{position:relative;flex:0 0 96px;display:grid;gap:2px;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;text-align:left}
+.mk-tile:hover{border-color:var(--mute)}
+.mk-tile[aria-pressed="true"]{border-color:var(--mk-dim);background:var(--mk-sel)}
+.mk-tile[aria-pressed="true"] .mk-num{background:var(--mk-dim)}
+.mk-tile svg{width:100%;height:34px;display:block}
+.mk-tn{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.mk-qty{position:absolute;top:3px;right:6px;font-size:10px;font-weight:650;color:var(--acc)}
+.mk-tile-face{fill:var(--bg);stroke:var(--ink);stroke-width:.8}
+.mk-tile-band{stroke:var(--mk-dim);stroke-width:2.2}
+.mk-tools{grid-area:tools;display:flex;justify-content:center;padding:2px 12px 14px;padding-bottom:max(14px,env(safe-area-inset-bottom))}
+.mk-tools .mk-pill{flex-wrap:wrap;justify-content:center;border-radius:20px}
+.mk-tools .mk-pill>button{padding:8px}
+.mk-apart input{width:150px;accent-color:var(--acc)}
+
+/* The model: boards as hairlines on paper (Lines), in their decor (Material), or see-through (X-ray). */
+.mk-f{stroke:var(--ink);stroke-width:.9;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mk[data-look="lines"] .ft{fill:var(--mk-face-top)}.mk[data-look="lines"] .ff{fill:var(--mk-face-front)}.mk[data-look="lines"] .fs{fill:var(--mk-face-side)}
+.mk[data-look="material"] .mk-f{stroke:color-mix(in srgb,var(--ink) 45%,transparent)}
+.mk[data-look="material"] .ft{fill:var(--ft,var(--mk-face-top))}.mk[data-look="material"] .ff{fill:var(--ff,var(--mk-face-front))}.mk[data-look="material"] .fs{fill:var(--fs,var(--mk-face-side))}
+.mk[data-look="xray"] .mk-f{fill:var(--mk-dim);fill-opacity:.05;stroke:var(--mk-dim);stroke-opacity:.75}
+.mk-part{cursor:pointer}
+.mk-part:hover .mk-f{stroke:var(--mk-dim)}
+.mk-part.phantom .mk-f{fill:none!important;stroke-dasharray:7 3 1.5 3;stroke-opacity:.7;pointer-events:stroke}
+.mk-stage.has-sel .mk-part:not(.sel){opacity:.16}
+.mk-part.sel .mk-f{stroke:var(--mk-dim);stroke-width:1.8}
+.mk:not([data-look="xray"]) .mk-part.sel:not(.phantom) .mk-f{fill:var(--mk-sel)}
+.mk-dim{stroke:var(--mk-dim);stroke-width:.8;vector-effect:non-scaling-stroke;fill:none}
+.mk-ext{stroke:var(--mk-dim);stroke-width:.5;vector-effect:non-scaling-stroke;fill:none;opacity:.6}
+.mk-dimtx{fill:var(--mk-dim);font-weight:650;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
+.mk-plab{fill:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round;pointer-events:none}
+.mk-lead{stroke:var(--mute);stroke-width:.7;vector-effect:non-scaling-stroke;fill:none}
+.mk-ldot{fill:var(--gold)}
+.mk-tagc{fill:var(--panel);stroke:var(--ink);stroke-width:.9;vector-effect:non-scaling-stroke}
+.mk-tagt{fill:var(--ink);font-weight:650;pointer-events:none}
+.mk-tag{cursor:pointer}
+.mk-tag.sel .mk-tagc{fill:var(--mk-dim);stroke:var(--mk-dim)}.mk-tag.sel .mk-tagt{fill:var(--panel)}
+.mk-stage.has-sel .mk-tag:not(.sel){opacity:.25}
+
+/* A part lying flat: paper in either theme, ink lines, banded edges in blue. */
+.mk-ps{display:block;width:100%;height:auto;background:var(--bg);border-radius:8px;font-variant-numeric:tabular-nums}
+.mk-ps-face{fill:var(--panel);stroke:var(--ink);stroke-width:1.3}
+.mk-ps-band{stroke:var(--mk-dim);stroke-width:3.5;stroke-linecap:square}
+.mk-ps-grain{stroke:var(--mute);stroke-width:.9;fill:none}
+.mk-ps-edge{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.mk-ps-edge.banded{stroke:var(--mk-dim);stroke-width:2}
+.mk-ps-dim{stroke:var(--mk-dim);stroke-width:.8}
+.mk-ps-ext{stroke:var(--mk-dim);stroke-width:.5}
+.mk-ps-tx{fill:var(--mk-dim);font-size:11px;font-weight:600}
+.mk-ps-tx.big{font-size:13px}
+.mk-ps-title{fill:none;stroke:var(--ink);stroke-width:.8}
+.mk-ps-rule{stroke:var(--ink);stroke-width:.6}
+.mk-ps-cell{fill:var(--ink);font-size:11px}
+.mk-ps-cell.b{font-size:13px;font-weight:700}
+
+/* Drawings: every part flat, picked from the rail; the full set is a paid feature of its own. */
+.mk-drawings{display:grid;grid-template-columns:170px minmax(0,1fr);gap:10px;padding:0 12px 12px;min-height:0}
+.mk-rail{display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0}
+.mk-rail button{display:grid;gap:3px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;text-align:left;font-size:12px}
+.mk-rail button[aria-pressed="true"]{border-color:var(--mk-dim);background:var(--mk-sel)}
+.mk-rail button>span{display:flex;align-items:center;gap:6px;min-width:0}
+.mk-rn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-rail svg{width:100%;height:30px;display:block}
+.mk-viewer{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;min-width:0;min-height:0}
+.mk-viewer-bar{display:flex;justify-content:flex-end}
+.mk-sheet{overflow:auto;min-height:0}
+
+@media (max-width:760px){
+  .mk-bar{grid-template-columns:1fr auto;row-gap:8px}
+  .mk-tabs{grid-column:1/-1;grid-row:2;justify-self:center}
+  .mk-model.focused{grid-template-columns:minmax(0,1fr) 0}
+  .mk-model{grid-template-rows:minmax(300px,1fr) auto auto auto;grid-template-areas:"stage stage" "dock dock" "film film" "tools tools";overflow:auto}
+  .mk-dock{margin:0 12px 8px;max-height:46cqh}
+  .mk-drawings{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}
+  .mk-rail{flex-direction:row;overflow-x:auto}
+  .mk-rail button{width:110px}
+  .mk-apart input{width:100px}
+  .mk-tools .mk-pill>button{padding:7px}
+}
+@media (prefers-reduced-motion:reduce){.mk *{transition:none!important;animation:none!important}}
