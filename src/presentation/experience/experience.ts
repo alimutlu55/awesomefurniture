@@ -3,7 +3,7 @@ import type { EditorScene } from '../../application/projects/editor-scene';
 import type { ProjectDocument } from '../../domain/project/project';
 import { buildFromSpec } from '../../application/spec/build-from-spec';
 import { describeScene } from '../../application/spec/describe-scene';
-import { singleWallStudio } from '../../domain/studio/studio-edit';
+import { createStudio } from '../../domain/studio/studio-templates';
 import type { CameraPose, CameraState } from '../viewport/camera-types';
 import type { LightSetting } from '../viewport/scene-lighting';
 import { createSceneLooks, type SceneLook } from '../viewport/scene-looks';
@@ -213,7 +213,7 @@ export function mountExperience(ports: ExperiencePorts) {
   lifetime.listen(item, 'click', () => { ports.closeMenu(); reveal.hide(); welcome.open(); });
   lifetime.cleanup(() => item.remove());
 
-  const fresh = () => { const s = ports.scene(); return !s.wardrobes.length && (!s.studio || JSON.stringify(s.studio) === JSON.stringify(singleWallStudio())); };
+  const fresh = () => { const s = ports.scene(); return !s.wardrobes.length && (!s.studio || JSON.stringify(s.studio) === JSON.stringify(createStudio('bedroom'))); };
   const params = new URLSearchParams(view?.location.search ?? ''), hash = view?.location.hash ?? '';
   const asked = params.get('welcome'), automated = !!(view?.navigator as Navigator | undefined)?.webdriver;
   // Automated browsers (scripted checks, assistants) drive the editor directly unless they ask for the welcome.

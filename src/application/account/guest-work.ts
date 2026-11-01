@@ -1,3 +1,4 @@
+import { createStudio } from '../../domain/studio/studio-templates';
 import { singleWallStudio } from '../../domain/studio/studio-edit';
 import type { ProjectDocument } from '../../domain/project/project';
 
@@ -15,5 +16,5 @@ const same = (a: unknown, b: unknown) => JSON.stringify(canonical(a)) === JSON.s
  */
 export function hasDesignWork(document: ProjectDocument): boolean {
   if (document.wardrobes.length || document.maxReach !== undefined) return true;
-  return !!document.studio && !same(document.studio, singleWallStudio());
+  return !!document.studio && !same(document.studio, createStudio('bedroom')) && !same(document.studio, singleWallStudio());
 }
