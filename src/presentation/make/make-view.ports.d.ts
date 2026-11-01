@@ -1,7 +1,7 @@
 /** Explicit dependencies of Make: the selected piece taken down to its parts, inside the editor. */
 export interface MakeViewPorts {
   readonly dom: Pick<ReturnType<typeof import('../editor/editor-dom').createEditorDom>, '$' | 'document' | 'matchMedia' | 'window'>;
-  readonly lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup' | 'frame'>;
+  readonly lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup' | 'frame' | 'observe'>;
   /** The editor's own scene, camera and canvas: Make draws its boards there, on a layer of their own. */
   readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'scene' | 'cam' | 'cv' | 'M' | 'decorTexture' | 'frameHooks'>;
   /** The editor's own camera framing. */

@@ -89,11 +89,11 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
       for (const s of hingeStations(edgeTop - b.y0)) {
         const y = b.y0 + s, cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0], clamped = glass(b);
-        if (!clamped) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13 });
+        if (!clamped) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13, of: fittings.length });
         fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: clamped ? 'glass' : '110°' });
         if (!post) continue;
         const face = hinge === 'left' ? post.b.x1 : post.b.x0, sign = hinge === 'left' ? -1 : 1, z = post.b.z1 - SYSTEM_LINE;
-        for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12 });
+        for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12, of: fittings.length });
         fittings.push({ kind: 'plate', at: [face, y, z], axis: 0, boards: [post.i] });
       }
     }
@@ -102,7 +102,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const door = f?.opens === 'side', free = f?.hinge === 'right' ? b.x0 + 4 : b.x1 - 4;
       const y = door ? (b.y0 >= 120 ? b.y0 + 8 : b.y1 <= 100 ? b.y1 - 8 : Math.min(b.y1 - 10, Math.max(b.y0 + 10, 100))) : b.y1 - b.y0 < 20 ? cy : b.y1 - 6;
       const points: Vec3[] = door ? [[free, y - 6.4, b.z1], [free, y + 6.4, b.z1]] : [[cx - 6.4, y, b.z1], [cx + 6.4, y, b.z1]];
-      if (!glass(b)) for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: -1, d: 5, depth: 0 });
+      if (!glass(b)) for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: -1, d: 5, depth: 0, of: fittings.length });
       fittings.push({ kind: 'handle', at: [door ? free : cx, y, b.z1], axis: 2, boards: [i], size: '128' });
     }
   });
@@ -114,8 +114,10 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     if (!left || !right) return;
     const post = b.x0 - left.b.x1 < right.b.x0 - b.x1 ? left : right;
     const face = post === left ? post.b.x1 : post.b.x0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
-    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) holes.push({ board: post.i, kind: 'runner', at: [face, y, post.b.z1 - SYSTEM_LINE - back], axis: 0, sign, d: 5, depth: 12 });
+    // One fitting is the pair: the left side adds it, the right side's holes are for it too.
     if (post === left) fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: [i, post.i], size: String(runner) });
+    const of = fittings.map((f, k) => f.kind === 'runner' && Math.abs(f.at[1] - y) < .01 ? k : -1).reduce((m, k) => Math.max(m, k), -1);
+    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) holes.push({ board: post.i, kind: 'runner', at: [face, y, post.b.z1 - SYSTEM_LINE - back], axis: 0, sign, d: 5, depth: 12, of });
   });
   // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down.
   boards.forEach((b, i) => {
@@ -124,7 +126,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     for (const [post, face, sign] of [[left, left?.b.x1, -1], [right, right?.b.x0, 1]] as const) {
       if (!post || face === undefined) continue;
       for (const z of [b.z0 + SYSTEM_LINE, b.z1 - SYSTEM_LINE]) {
-        for (let k = -2; k <= 2; k++) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + 3.2 * k, z], axis: 0, sign, d: 5, depth: 10 });
+        for (let k = -2; k <= 2; k++) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + 3.2 * k, z], axis: 0, sign, d: 5, depth: 10, of: fittings.length });
         fittings.push({ kind: 'pin', at: [face, b.y0, z], axis: 0, boards: [i, post.i] });
       }
     }

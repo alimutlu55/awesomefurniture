@@ -8,7 +8,8 @@ import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
 import { marksSvg, type Projector } from './make-marks';
 import { partDetail, pieceTabs } from './make-panel';
-import type { PanelTab } from './make-panel-tabs';
+import { type PanelTab, updatePlayer } from './make-panel-tabs';
+import { createMakePlayer } from './make-player';
 import type { MakeViewPorts } from './make-view.ports';
 import { cutListCsv, makePdf } from './make-export';
 import { saveFile } from '../components/save-file';
@@ -45,7 +46,8 @@ export function createMakeView(ports: MakeViewPorts) {
 
   const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0, openOn: false, open: 0,
     solidFronts: false, measures: true, numbers: false, selected: null as number | null, panel: 'closed' as 'closed' | 'list' | 'part', marks: '',
-    id: -1, tab: 'parts' as PanelTab, build: 0, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null };
+    id: -1, tab: 'parts' as PanelTab, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null, filming: false };
+  const player = createMakePlayer();
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
   const length = (cm: number) => lengthText(cm);
   const raycaster = new THREE.Raycaster(), local = new THREE.Vector3();
@@ -73,10 +75,11 @@ export function createMakeView(ports: MakeViewPorts) {
     const ease = (now: number, goal: number, rate: number) => reduce || Math.abs(goal - now) < .01 ? goal : now + (goal - now) * (1 - Math.exp(-dt * rate));
     if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
     if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
+    if (st.filming && player.advance(dt)) showFilm();
     camera.updateMatrixWorld();
     const w = view.clientWidth, h = view.clientHeight;
     const key = camera.matrixWorld.elements.map(v => v.toFixed(2)).join() + camera.projectionMatrix.elements.slice(8, 10).map(v => v.toFixed(4)).join()
-      + [w, h, st.apart.toFixed(3), st.open.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100), [...st.building ?? []].join(':')].join();
+      + [w, h, st.apart.toFixed(3), st.open.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100), [...st.building ?? []].join(':'), st.filming ? player.time.toFixed(2) : ''].join();
     if (key === st.marks) return;
     st.marks = key;
     overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -88,18 +91,35 @@ export function createMakeView(ports: MakeViewPorts) {
     const part = st.piece.parts.find(p => p.n === st.selected), showPart = st.panel === 'part' && !!part;
     panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : 'Parts';
     panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart;
-    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, build: st.build, cut: () => st.cut ??= cutLayout(piece.parts) };
+    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts) };
     panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : pieceTabs(shown);
-    building();
+    filming();
   }
-  /** In the Steps tab the piece is shown as built up to the step, the boards it adds picked out. */
-  function building() {
-    const piece = st.piece, step = piece && st.panel === 'list' && st.tab === 'steps' ? piece.steps[st.build] : undefined;
-    st.marks = '';
-    if (!piece || !step) { make3d.setStep(null); st.building = null; return; }
-    const before = piece.steps.slice(0, st.build + 1);
-    make3d.setStep({ shown: new Set(before.flatMap(s => s.boards)), now: new Set(step.boards), items: new Set(before.flatMap(s => s.items)) });
-    st.building = new Set(piece.parts.filter(p => p.ids.some(i => step.boards.includes(i))).map(p => p.n));
+  /** The Steps tab plays the assembly as a film: the piece assembled and opened, the camera backed off far enough to
+   * see every board come in; leaving it shows the piece as it is again. */
+  function filming() {
+    const on = !!st.piece && st.panel === 'list' && st.tab === 'steps';
+    if (on === st.filming) { if (on) showFilm(); return; }
+    st.filming = on;
+    if (on) {
+      Object.assign(st, { apartOn: false, apart: 0, openOn: false, open: 0 });
+      make3d.setApart(0); make3d.setOpen(0);
+      const now = ports.camera.camNow();
+      ports.camera.frameBox(bounds(.5), now.az, now.el, 1.04);
+      showFilm();
+    } else {
+      player.pause();
+      make3d.setFilm(null);
+      st.building = null; st.marks = '';
+    }
+    pressed();
+  }
+  /** Shows the film at the player's time: the piece, the part numbers it puts in, and the player's controls. */
+  function showFilm() {
+    if (!st.piece || !st.filming) return;
+    make3d.setFilm(player.film());
+    st.building = player.building();
+    updatePlayer(panel, st.piece, player);
   }
   function showPanel(mode: 'list' | 'part') {
     st.panel = mode;
@@ -109,7 +129,7 @@ export function createMakeView(ports: MakeViewPorts) {
   function hidePanel() {
     if (panel.classList.contains('show')) { animateMobileSheetClose(panel); panel.classList.remove('show'); }
     st.panel = 'closed';
-    building();
+    filming();
     pressed();
   }
   function select(n: number | null) {
@@ -135,9 +155,9 @@ export function createMakeView(ports: MakeViewPorts) {
     const angle = st.pose.angle * Math.PI / 180;
     ports.camera.frameBox(bounds(), angle + (at === 'side' ? Math.PI / 2 : 0), at === 'top' ? 1.35 : 0, 1.12);
   }
-  /** The room the piece takes, assembled or taken apart (its boards spread out about this far). */
-  function bounds() {
-    const box = make3d.extent(st.apartOn ? 1 : 0), centre = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  /** The room the piece takes, assembled or taken apart (its boards spread out `apart` far). */
+  function bounds(apart = st.apartOn ? 1 : 0) {
+    const box = make3d.extent(apart), centre = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
     return { x: centre.x, z: centre.z, w: size.x, d: size.z, h: size.y, y: centre.y };
   }
 
@@ -152,7 +172,8 @@ export function createMakeView(ports: MakeViewPorts) {
     if (!piece || !cabinet) { ports.toast('Select a wardrobe or cabinet to make'); return; }
     ports.closePanels();
     Object.assign(st, { piece, pose: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, apartOn: false, apart: 0, selected: null, marks: '',
-      id: cabinet.id, tab: 'parts', build: 0, cut: null, openOn: false, open: 0 });
+      id: cabinet.id, tab: 'parts', cut: null, openOn: false, open: 0, filming: false });
+    player.load(piece); player.seek(0);
     make3d.show(piece, st.pose);
     make3d.setLook(st.look);
     make3d.setSolidFronts(st.solidFronts);
@@ -213,7 +234,9 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (stepBy) step(Number(stepBy.dataset.step));
     else if (t.closest('[data-set]')) ports.openDrawings();
     else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); }
-    else if (t.closest<HTMLElement>('[data-build]')) { const n = st.piece?.steps.length ?? 1; st.build = (st.build + Number(t.closest<HTMLElement>('[data-build]')!.dataset.build) + n) % n; renderPanel(); }
+    else if (t.closest('[data-play]')) { player.toggle(); showFilm(); }
+    else if (t.closest<HTMLElement>('[data-build]')) { player.step(Number(t.closest<HTMLElement>('[data-build]')!.dataset.build)); showFilm(); }
+    else if (t.closest<HTMLElement>('[data-chapter]')) { player.chapter(Number(t.closest<HTMLElement>('[data-chapter]')!.dataset.chapter)); showFilm(); }
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
     else if (t.closest<HTMLElement>('[data-save]')) void save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv');
   });
@@ -229,7 +252,8 @@ export function createMakeView(ports: MakeViewPorts) {
     const { piece } = pieceOf(st.id);
     if (!piece) { close(); return; }
     const selected = st.selected !== null && piece.parts.some(p => p.n === st.selected) ? st.selected : null;
-    Object.assign(st, { piece, cut: null, marks: '', build: Math.min(st.build, piece.steps.length - 1) });
+    Object.assign(st, { piece, cut: null, marks: '' });
+    player.load(piece);
     make3d.show(piece, st.pose);
     make3d.setLook(st.look); make3d.setSolidFronts(st.solidFronts); make3d.setApart(st.apart); make3d.setOpen(st.open); make3d.setSelected(selected);
     st.selected = selected;
@@ -245,12 +269,24 @@ export function createMakeView(ports: MakeViewPorts) {
       : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
     await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
   }
+  // Something else closing the panel (the editor closes its panels on some gestures) closes it for Make too.
+  lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),
+    panel, { attributes: true, attributeFilter: ['class'] });
+  // Scrubbing: the film follows the bar, paused, while it is dragged.
+  listen(panel, 'input', e => {
+    const bar = (e.target as Element).closest<HTMLInputElement>('.make-scrub');
+    if (!bar) return;
+    player.pause(); player.seek(Number(bar.value) / 1000 * player.duration); showFilm();
+  });
   // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
   listen(dom.window, 'keydown', e => {
     const k = e as KeyboardEvent;
     if (!st.piece || (k.target as Element | null)?.closest?.('input,select,textarea')) return;
-    if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
-    if (k.key === 'Escape') { if (st.selected !== null) select(null); else close(); }
+    // The film: Space plays or pauses (a focused button keeps its own Space), the arrows go a step back or on.
+    if (st.filming && k.key === ' ' && !(k.target as Element | null)?.closest?.('button')) { player.toggle(); showFilm(); }
+    else if (st.filming && (k.key === 'ArrowRight' || k.key === 'ArrowLeft')) { player.step(k.key === 'ArrowRight' ? 1 : -1); showFilm(); }
+    else if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
+    else if (k.key === 'Escape') { if (st.selected !== null) select(null); else close(); }
     else if ((k.key === 'ArrowRight' || k.key === 'ArrowLeft') && st.selected !== null) step(k.key === 'ArrowRight' ? 1 : -1);
     k.preventDefault();
     k.stopImmediatePropagation();

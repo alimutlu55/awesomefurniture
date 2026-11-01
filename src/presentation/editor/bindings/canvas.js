@@ -167,7 +167,8 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
             else if (interactionState.moved >= pointerTapSlop(e) && e.shiftKey) {
                 // Shift-drag on empty space pans, for trackpads without a right button.
                 camera.panBy(e.clientX - o.clientX, e.clientY - o.clientY);
-                inspector.hidePop();
+                // Make's panel (a part, the assembly film) stays open while the view turns or pans.
+                if (!make?.active) inspector.hidePop();
             }
             else if (interactionState.moved >= pointerTapSlop(e)) {
                 // A finger turns the view around what is in the middle of it, keeping to its direction (touch-camera.ts).
@@ -176,7 +177,7 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
                     cameraState.az -= (e.clientX - o.clientX) * .007;
                     cameraState.el = Math.max(0, Math.min(1.35, cameraState.el + (e.clientY - o.clientY) * .007));
                 }
-                inspector.hidePop();
+                if (!make?.active) inspector.hidePop();
             }
         }
         const before = interactionState.ptrs.size === 2 ? [...interactionState.ptrs.values()] : null;

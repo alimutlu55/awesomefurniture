@@ -594,5 +594,14 @@
   "Step {0:n} of {1:n}": "Adım {0} / {1}",
   "Longer than a sheet: {0}": "Levhadan uzun: {0}",
   "Cut list": "Kesim listesi",
-  "Open doors": "Kapakları aç"
+  "Open doors": "Kapakları aç",
+  "Base and sides": "Taban ve yanlar",
+  "Partitions": "Ara bölmeler",
+  "Inside": "İç",
+  "Doors and fronts": "Kapaklar ve önler",
+  "Fix to the wall": "Duvara sabitle",
+  "Play": "Oynat",
+  "Pause": "Duraklat",
+  "Replay": "Yeniden oynat",
+  "Assembly": "Montaj"
 }

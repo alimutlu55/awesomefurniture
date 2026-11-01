@@ -48,11 +48,28 @@ const assert=require('node:assert/strict');
    assert.ok(box.x>=0 && box.x+box.width<=width,tab+': tabs inside the screen');
    await fits(tab);
   }
+  // Steps: the assembly as a film that plays, pauses, scrubs and jumps to a chapter.
   await panel.locator('[data-tab="steps"]').click();
-  const step=async()=>Number(/\d+/.exec(await panel.locator('.make-size').textContent())[0]);
+  const step=async()=>Number(/\d+/.exec(await panel.locator('.make-caption b').textContent())[0]);
+  const time=async()=>{const [m,s]=(await panel.locator('.make-time').textContent()).split(' / ')[0].split(':').map(Number);return m*60+s;};
   assert.equal(await step(),1);
+  await panel.locator('[data-play]').click();
+  await page.waitForTimeout(2300);
+  assert.ok(await time()>=1,'Play moves the film on');
+  assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Pause');
+  // Turning the view while it plays keeps the player open.
+  await page.mouse.move(view.x+view.width*.6,view.y+view.height*.2);await page.mouse.down();
+  await page.mouse.move(view.x+view.width*.45,view.y+view.height*.18,{steps:5});await page.mouse.up();
+  assert.equal(await panel.isVisible(),true,'The player stays while the view turns');
+  await panel.locator('[data-play]').click();
+  assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Play');
+  await panel.locator('.make-scrub').fill('600');
+  assert.ok(await step()>2,'Scrubbing jumps through the steps');
+  await panel.locator('[data-chapter="1"]').click();
+  assert.equal(await step(),2,'A chapter starts its step');
+  assert.equal(await panel.locator('[data-chapter="1"]').getAttribute('aria-current'),'');
   await panel.locator('[data-build="1"]').click();
-  assert.equal(await step(),2,'Next shows the next step');
+  assert.equal(await step(),3,'Next shows the next step');
   await panel.locator('[data-tab="cutting"]').click();
   assert.ok(await panel.locator('.make-stock').count()>=1,'The parts are laid out on stock sheets');
   await panel.locator('[data-tab="hardware"]').click();

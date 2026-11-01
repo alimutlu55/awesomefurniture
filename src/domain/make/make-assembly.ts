@@ -46,8 +46,12 @@ export function drillingSignature(b: Board, holes: readonly Hole[]): string {
 const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 0), short: Number(/W(\d)/.exec(code)?.[1] ?? 0) });
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
+/** What a step does, in the order a maker works. */
+export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawers', 'fronts', 'wall'] as const;
+export type Stage = typeof STAGES[number];
 export interface Step {
   readonly n: number;
+  readonly stage: Stage;
   readonly boards: readonly number[];
   readonly fittings: readonly { kind: FittingKind; size?: string; qty: number }[];
   /** The fittings it adds, by their place in the piece's list. */
@@ -88,7 +92,7 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
       if (line) line.qty++; else held.set(key, { kind: f.kind, ...(f.size ? { size: f.size } : {}), qty: 1 });
       items.push(i);
     });
-    if (mine.length || held.size) out.push({ n: out.length + 1, boards: mine, fittings: [...held.values()], items });
+    if (mine.length || held.size) out.push({ n: out.length + 1, stage: STAGES[s - 1]!, boards: mine, fittings: [...held.values()], items });
   }
   return out;
 }

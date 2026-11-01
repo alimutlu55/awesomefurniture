@@ -14,8 +14,8 @@ const Y = new THREE.Vector3(0, 1, 0), AXES = [new THREE.Vector3(1, 0, 0), new TH
 export interface FittingsLayer {
   /** Builds the holes and hardware; `meshOf(i)` is board i's mesh and `rest(i)` where it stands assembled. */
   build(piece: MakePiece, meshOf: (board: number) => THREE.Object3D | undefined, rest: (board: number) => THREE.Vector3, root: THREE.Object3D): void;
-  /** Shows only these holes' boards and these fittings (a build step), or everything (null). */
-  only(boards: ReadonlySet<number> | null, fittings: ReadonlySet<number> | null): void;
+  /** Shows only the holes and fittings that pass (the film of the assembly at one moment), or everything (null). */
+  only(hole: ((index: number) => boolean) | null, fitting: ((index: number) => boolean) | null): void;
   /** Hides the holes of every board but this part's (null: every board's holes show). */
   focus(boards: ReadonlySet<number> | null): void;
   clear(): void;
@@ -27,8 +27,8 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const bar = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 14);
   const holeMaterial = new THREE.MeshBasicMaterial({ color: INK, side: THREE.DoubleSide });
   const metal = new THREE.MeshLambertMaterial({ color: METAL, emissive: 0x3a3c40, emissiveIntensity: .4 });
-  let holes: { mesh: THREE.Object3D; board: number }[] = [], fittings: { mesh: THREE.Object3D; index: number; board: number | null }[] = [];
-  let shown: ReadonlySet<number> | null = null, shownFittings: ReadonlySet<number> | null = null, focused: ReadonlySet<number> | null = null;
+  let holes: { mesh: THREE.Object3D; board: number; index: number }[] = [], fittings: { mesh: THREE.Object3D; index: number; board: number | null }[] = [];
+  let shown: ((index: number) => boolean) | null = null, shownFittings: ((index: number) => boolean) | null = null, focused: ReadonlySet<number> | null = null;
 
   const tag = (o: THREE.Object3D) => { o.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; }); return o; };
   /** A mesh of `geometry` (unit size) scaled to `size`, its y axis along `axis`, centred at `at`. */
@@ -63,21 +63,21 @@ export function createMakeFittings(layer: number): FittingsLayer {
     return null;
   }
   function visible() {
-    for (const h of holes) h.mesh.visible = (!shown || shown.has(h.board)) && (!focused || focused.has(h.board));
-    for (const f of fittings) f.mesh.visible = !shownFittings || shownFittings.has(f.index);
+    for (const h of holes) h.mesh.visible = (!shown || shown(h.index)) && (!focused || focused.has(h.board));
+    for (const f of fittings) f.mesh.visible = !shownFittings || shownFittings(f.index);
   }
 
   return {
     build(piece, meshOf, rest, root) {
       this.clear();
-      for (const h of piece.holes) {
+      piece.holes.forEach((h, index) => {
         const host = meshOf(h.board);
-        if (!host) continue;
+        if (!host) return;
         const mesh = holeMesh(piece, h);
         mesh.position.sub(rest(h.board));
         host.add(mesh);
-        holes.push({ mesh, board: h.board });
-      }
+        holes.push({ mesh, board: h.board, index });
+      });
       piece.fittings.forEach((f, index) => {
         if (f.kind === 'runner') {
           // A pair: one on the outer face of each side of the box, as long as the runner, riding on that side.

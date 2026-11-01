@@ -19,6 +19,8 @@ export interface Hole {
   readonly sign: 1 | -1;
   readonly d: number;
   readonly depth: number;
+  /** The fitting it is drilled for, by its place in the fitting list it was made with. */
+  readonly of?: number | undefined;
 }
 /** Bought hardware, where it goes and the boards it joins or sits on. */
 export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
@@ -92,20 +94,20 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
       outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
       const into = j.side as 1 | -1, back = -j.side as 1 | -1;
       if (system === 'confirmat' || system === 'screw') {
-        holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: system === 'screw' ? 4 : 7, depth: 0 },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: system === 'screw' ? 2.5 : 5, depth: system === 'screw' ? 30 : 45 });
+        holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: system === 'screw' ? 4 : 7, depth: 0, of: fittings.length },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: system === 'screw' ? 2.5 : 5, depth: system === 'screw' ? 30 : 45, of: fittings.length });
         fittings.push({ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size: system === 'screw' ? '4 × 40' : '7 × 50' });
       } else if (system === 'dowel') {
-        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: 8, depth: 12 },
-          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: 8, depth: 25 });
+        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: 8, depth: 12, of: fittings.length },
+          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: 8, depth: 25, of: fittings.length });
         fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size: '8 × 35' });
       } else {
         // The cam sits in the edge board's inner face 34 mm from the joint; its bolt is screwed into the face board.
         const cam = [...p] as [number, number, number];
         cam[j.axis] = j.plane + j.side * 3.4; cam[tb] = hi(B)[tb];
-        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: 5, depth: 11 },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: 8, depth: 34 },
-          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: 15, depth: 12.5 });
+        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: 5, depth: 11, of: fittings.length },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: 8, depth: 34, of: fittings.length },
+          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: 15, depth: 12.5, of: fittings.length });
         fittings.push({ kind: 'cam', at: p, axis: j.axis, boards: [j.face, j.edge], size: '15 mm' });
       }
     }

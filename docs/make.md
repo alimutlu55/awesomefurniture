@@ -26,9 +26,13 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   - **Parts**: every part, numbered; save the drawings; the full (paid) drawing set.
   - **Hardware**: Joints (Screws, Cams, Dowels) and Back (Nailed, Grooved), saved with the design; the drilling check
     (holes running into each other, too near an edge, through the far face, meeting inside); everything to buy, counted.
-  - **Steps**: the piece built up step by step in the view (plinth; base and sides; partitions; top; back; inside;
-    drawer boxes on runners; doors and fronts; fixing to the wall), the parts each step adds numbered over the view and
-    listed with the hardware that holds them.
+  - **Steps**: the assembly as a film, in the editor's own view. Each step (plinth; base and sides; partitions; top;
+    back; inside; drawers; doors and fronts; fixing to the wall) drills its holes one after another (a drill bit going
+    in and out, the hole left behind), brings its boards in from where they wait, then fixes them: screws turning in
+    along their holes, cams turned, dowels, shelf pins and hinge plates pushed in first, nails driven, hinges set on.
+    The parts a step adds are picked out and numbered over the view. Play / pause (Space), a scrub bar (the editor's
+    slider), the time, Previous / Next step (the arrows), and every step as a chapter with its start time. The view
+    turns and zooms while it plays; the player stays open.
   - **Cutting**: every stock sheet (2800 × 2070 mm, 10 mm trim, 4 mm kerf) per decor and thickness with its parts on
     it and how much is used, parts longer than a sheet, and the edge banding to buy; save the cut list (CSV).
 - **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, hardware and steps) or the
@@ -61,15 +65,20 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 | Domain | `make/make-joints.ts`, `make-hardware.ts` | Joints and connectors, the back; hinges, handles, runners, pins, rails, legs; drawer boxes; door and drawer motion |
 | Domain | `make/make-assembly.ts` | Holes on a flat board, drilling signatures, assembly steps, buy list, drilling checks |
 | Domain | `make/make-cut-layout.ts` | Stock sheets, strips, kerf, trim, grain; edge banding metres |
+| Domain | `make/make-timeline.ts` | The film: each step's drill, place and fix phases in seconds; what is where at any time (pure) |
 | Domain | `make/make-construction.ts`, `make/make-measures.ts` | Joint system and back fixing; ranked measurements, take apart |
 | Application | `commands/make-commands.ts` | `setConstruction`: one undo step, defaults never written down |
-| Presentation | `make/make-3d.ts`, `make-fittings-3d.ts` | Boards, holes and hardware on `MAKE_LAYER`; looks, selection, take apart, open, build steps |
+| Presentation | `make/make-3d.ts`, `make-fittings-3d.ts` | Boards, holes and hardware on `MAKE_LAYER`; looks, selection, take apart, open, the film's boards |
+| Presentation | `make/make-play-3d.ts`, `make-player.ts` | Drill bits and fasteners moving in the film; the player (time, play, seek, chapters) |
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
 | Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts` | The panel and its tabs; the PDF and CSV |
 | Presentation | `make/make-view.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys, the per-frame overlay |
 | Wiring | `contextual-actions.js`, `contextual-toolbar.js`, `mount-editor-bindings.js`, `bindings/canvas.js`, `editor-runtime.ts` | The Make tool, its toolbar and View menu, taps, the joint command, paying |
 
 ## Decisions (keep them)
+
+- **The film is a function of time.** `make-timeline.ts` says where everything is at any second, so play, pause,
+  scrubbing and replay always agree; every hole names its fitting (`Hole.of`) so it is drilled before that goes in.
 
 - **Make is part of the editor.** No screen, bar, pill or panel of its own: the editor's toolbar, panels and camera.
 - **The camera is the editor's.** While Make is open the canvas drags nothing; drags turn and taps pick. The camera sees
@@ -84,9 +93,10 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 
 - A top set at a slope is not drilled (its box is not its shape); it is joined by hand.
 - The cut layout lays parts in strips (guillotine), with no free nesting or offcut reuse, on one stock size.
+- The film shows hardware 1.6 times its size while it moves (it lands at its size); the camera does not follow it.
 - Hole positions follow common practice (System 32, 37 mm line, cups 22.5 mm in), not a particular hardware maker's
   template; the PDF says so. Edge-hole positions are not dimensioned on the drawings.
 - Measurements over the view do not follow open doors (a front's sizes hide while it is open).
 
-Tests: `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`,
+Tests: `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`, `tests/architecture/make-timeline.test.ts`,
 `tests/contextual-actions.test.cjs`; in a browser, `scripts/check-make.cjs` (part of `npm run check:mobile`).

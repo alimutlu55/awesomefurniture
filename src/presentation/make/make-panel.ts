@@ -1,6 +1,7 @@
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePiece } from '../../domain/make/make-parts';
 import type { LengthText } from './make-marks';
+import type { MakePlayer } from './make-player';
 import { cuttingTab, hardwareTab, type PanelTab, stepsTab, tabsHtml } from './make-panel-tabs';
 import { drillingSummary, partDrilling, partSheetSvg, partTileSvg } from './make-sheet';
 
@@ -15,15 +16,15 @@ export interface PanelView {
   readonly length: LengthText;
   readonly material: (decorId: string) => string;
   readonly tab: PanelTab;
-  /** The build step shown (from 0). */
-  readonly build: number;
+  /** The assembly film's player. */
+  readonly player: MakePlayer;
   /** The cut layout, made when the Cutting tab is first shown. */
   readonly cut: () => CutLayout;
 }
 
 /** The piece as a whole, by tab: its parts, its hardware, how it goes together, how it is cut. */
 export function pieceTabs(view: PanelView) {
-  const body = view.tab === 'hardware' ? hardwareTab(view.piece) : view.tab === 'steps' ? stepsTab(view.piece, view.build)
+  const body = view.tab === 'hardware' ? hardwareTab(view.piece) : view.tab === 'steps' ? stepsTab(view.piece, view.player)
     : view.tab === 'cutting' ? cuttingTab(view.cut(), view.material) : partsList(view);
   return tabsHtml(view.tab) + body;
 }

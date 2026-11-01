@@ -89,3 +89,23 @@
 .make-stock-sheet{fill:var(--seg);stroke:var(--line)}
 .make-stock-part{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
 .make-stock-n{fill:var(--ink);font-size:9px;font-weight:650;text-anchor:middle;font-variant-numeric:tabular-nums}
+
+/* The assembly film: the step and what holds it, play and the editor's own slider as the scrub bar, then chapters. */
+.make-player{margin:0 0 6px}
+.make-caption{display:flex;align-items:baseline;gap:8px;min-height:26px}
+.make-caption b{font-size:17px;font-weight:650;letter-spacing:-.2px;font-variant-numeric:tabular-nums}
+.make-caption span{color:var(--mute);font-size:13px}
+.make-holds{min-height:28px;margin:6px 0 2px}
+.make-transport{display:flex;align-items:center;gap:10px}
+.make-play{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:22px;background:var(--ink);color:var(--panel);cursor:pointer}
+.make-play .make-ico{width:20px;height:20px;stroke:currentColor}
+.make-play .make-ico .fill{fill:currentColor;stroke:none}
+.make-scrub{flex:1;min-width:0}
+.make-scrub::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--ink) var(--played,0%),var(--seg) var(--played,0%))}
+.make-scrub::-moz-range-progress{height:4px;border-radius:2px;background:var(--ink)}
+.make-time{flex:none;min-width:74px;text-align:right;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+.make-chapters{margin-top:4px}
+.make-chapter{grid-template-columns:22px minmax(0,1fr) auto}
+.make-chapter[aria-current] {background:var(--seg)}
+.make-chapter[aria-current] .make-n{background:var(--ink);color:var(--panel)}
+.make-chapter b{color:var(--mute);font-weight:500}

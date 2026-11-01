@@ -594,5 +594,14 @@
   "Step {0:n} of {1:n}": "Passo {0} de {1}",
   "Longer than a sheet: {0}": "Mais comprido que uma placa: {0}",
   "Cut list": "Lista de corte",
-  "Open doors": "Abrir portas"
+  "Open doors": "Abrir portas",
+  "Base and sides": "Base e laterais",
+  "Partitions": "Divisórias",
+  "Inside": "Interior",
+  "Doors and fronts": "Portas e frentes",
+  "Fix to the wall": "Fixar à parede",
+  "Play": "Reproduzir",
+  "Pause": "Pausa",
+  "Replay": "Repetir",
+  "Assembly": "Montagem"
 }

@@ -3,7 +3,8 @@ import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { STOCK } from '../../domain/make/make-cut-layout';
 import { JOINT_SYSTEMS, BACK_FIXINGS } from '../../domain/make/make-construction';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { partTileSvg } from './make-sheet';
+import type { Stage } from '../../domain/make/make-assembly';
+import type { MakePlayer } from './make-player';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -50,17 +51,47 @@ export function hardwareTab(piece: MakePiece) {
       + `${b.size ? ` <small translate="no">${esc(sold(b.size))}</small>` : ''}</span><b>×${b.qty}</b></div>`).join('')}</div>`;
 }
 
-/** One step of putting it together: the parts it adds (to scale, numbered) and the hardware that holds them. */
-export function stepsTab(piece: MakePiece, at: number) {
-  const step = piece.steps[at];
-  if (!step) return '';
-  const added = new Map<number, number>();
-  for (const i of step.boards) { const p = piece.parts.find(q => q.ids.includes(i))!; added.set(p.n, (added.get(p.n) ?? 0) + 1); }
-  return `<div class="make-size">Step ${step.n} of ${piece.steps.length}</div>`
-    + `<div class="make-rows">${[...added].map(([n, qty]) => { const p = piece.parts.find(q => q.n === n)!; return `<button type="button" class="make-row" data-n="${n}">`
-      + `${partTileSvg(p, 28)}<span class="make-n">${n}</span><span class="make-name" translate="no">${esc(p.name)}</span><b>${qty > 1 ? '×' + qty : ''}</b></button>`; }).join('')}</div>`
-    + (step.fittings.length ? `<div class="make-chips">${step.fittings.map(f => `<span class="make-chip">${fittingIcon(f.kind)}<span>×${f.qty}</span></span>`).join('')}</div>` : '')
-    + '<div class="make-line make-steps"><button type="button" data-build="-1">Previous</button><button type="button" data-build="1">Next</button></div>';
+/** What each step does, as its chapter is called. */
+export const STAGE_NAMES: Record<Stage, string> = {
+  plinth: 'Plinth', carcass: 'Base and sides', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Inside', drawers: 'Drawers',
+  fronts: 'Doors and fronts', wall: 'Fix to the wall',
+};
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const PLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5l11 7-11 7z"/></svg>';
+const PAUSE = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+const REPLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-5M5 4v4h4"/></svg>';
+
+/** The assembly as a film: the step showing and what holds it, play and the scrub bar, then every step as a chapter. */
+export function stepsTab(piece: MakePiece, player: MakePlayer) {
+  const chapters = piece.steps.map((s, k) => `<button type="button" class="make-row make-chapter" data-chapter="${k}"><span class="make-n">${s.n}</span>`
+    + `<span class="make-name">${STAGE_NAMES[s.stage]}</span><b translate="no">${clock(player.starts[k] ?? 0)}</b></button>`).join('');
+  return '<div class="make-player"><div class="make-caption"></div>'
+    + `<div class="make-transport"><button type="button" class="make-play" data-play aria-label="Play"></button>`
+    + `<input type="range" class="make-scrub" min="0" max="1000" step="1" value="0" aria-label="Assembly">`
+    + '<span class="make-time" translate="no"></span></div><div class="make-chips make-holds"></div>'
+    + '<div class="make-line make-steps"><button type="button" data-build="-1">Previous</button><button type="button" data-build="1">Next</button></div></div>'
+    + `<div class="make-rows make-chapters">${chapters}</div>`;
+}
+/** Brings the player's controls up to the film's time (every frame while it plays); the caption only when the step changes. */
+export function updatePlayer(root: ParentNode, piece: MakePiece, player: MakePlayer) {
+  const body = root.querySelector<HTMLElement>('.make-player');
+  if (!body) return;
+  const { step } = player.head, s = piece.steps[step]!, end = player.time >= player.duration - .01;
+  const play = body.querySelector<HTMLButtonElement>('[data-play]')!, mode = player.playing ? 'pause' : end ? 'replay' : 'play';
+  if (play.dataset.mode !== mode) {
+    play.dataset.mode = mode;
+    play.innerHTML = mode === 'pause' ? PAUSE : mode === 'replay' ? REPLAY : PLAY;
+    play.setAttribute('aria-label', mode === 'pause' ? 'Pause' : mode === 'replay' ? 'Replay' : 'Play');
+  }
+  const scrub = body.querySelector<HTMLInputElement>('.make-scrub')!;
+  if (root.ownerDocument?.activeElement !== scrub || player.playing) scrub.value = String(Math.round(player.time / (player.duration || 1) * 1000));
+  scrub.style.setProperty('--played', `${player.time / (player.duration || 1) * 100}%`);
+  body.querySelector('.make-time')!.textContent = `${clock(player.time)} / ${clock(player.duration)}`;
+  if (body.dataset.showing === String(step)) return;
+  body.dataset.showing = String(step);
+  body.querySelector('.make-caption')!.innerHTML = `<b>Step ${s.n} of ${piece.steps.length}</b><span>${STAGE_NAMES[s.stage]}</span>`;
+  body.querySelector('.make-holds')!.innerHTML = s.fittings.map(f => `<span class="make-chip" title="${FITTING_NAMES[f.kind]}">${fittingIcon(f.kind)}<span>×${f.qty}</span></span>`).join('');
+  root.querySelectorAll<HTMLElement>('.make-chapter').forEach(c => c.toggleAttribute('aria-current', c.dataset.chapter === String(step)));
 }
 
 /** Every stock sheet, its parts drawn on it to scale and numbered, how much of it is used; then the banding to buy. */
