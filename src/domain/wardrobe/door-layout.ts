@@ -6,6 +6,8 @@ import { ceilingMin, ceilingPieces, resolveShape } from './shape/wardrobe-shape'
 /** A wardrobe door leaf: its thickness, how far its middle stands in front of the carcass, and the gap left under the
  * wardrobe's top. Centimetres. */
 export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
+/** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
+export const DOOR_LIMITS = { width: 60, height: 240 } as const;
 
 export const doorThickness = (design: Pick<EditorDesign, 'materials' | 'doors'>) =>
   design.materials && (design.doors !== 'glass' || getDecor(design.materials.frontDecorId).category === 'glass_mirror') ? getDecor(design.materials.frontDecorId).thicknessMm / 10 : DOOR.thickness;

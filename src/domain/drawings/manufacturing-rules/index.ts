@@ -1,5 +1,6 @@
 import type { ManufacturingFinding } from '../manufacturing-validation';
 import type { DrawingInput, PlacedPiece } from '../room-pieces';
+import { leafSize } from './leaf-size';
 
 /**
  * Engineering rules: what a piece must meet to be built, beyond the model being sound. Each rule reads the placed
@@ -10,4 +11,5 @@ import type { DrawingInput, PlacedPiece } from '../room-pieces';
 export type Rule = (input: DrawingInput, pieces: readonly PlacedPiece[]) => ManufacturingFinding[];
 
 export const RULES: readonly Rule[] = [
+  leafSize,
 ];

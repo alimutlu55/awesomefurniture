@@ -1,0 +1,49 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
+import { RULES } from '../../src/domain/drawings/manufacturing-rules/index';
+import { leafSize } from '../../src/domain/drawings/manufacturing-rules/leaf-size';
+import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
+import { alone, goldenWardrobes, wardrobe, welcomeSpaces } from './rule-fixtures';
+
+/** A hinged door leaf is at most 600 mm wide and 2400 mm tall (D1): wider leaves sag and overload their hinges. */
+
+const leaves = (input: Parameters<typeof validateForManufacture>[0]) => validateForManufacture(input).findings.filter(f => f.id.startsWith('leaf-'));
+
+test('one 120 cm bay behind hinged doors is refused, with the split that clears it', () => {
+  const found = leaves(alone(wardrobe({ w: 120, n: 1, doors: 'hinged' })));
+  assert.equal(found.length, 1, JSON.stringify(found));
+  const f = found[0]!;
+  assert.equal(f.severity, 'critical');
+  assert.equal(f.measured, 1180);
+  assert.equal(f.limit, 600);
+  assert.equal(f.fix, 'Split into 2 leaves of 590 mm');
+  assert.equal(f.at?.mark, 'W1');
+  assert.equal(typeof f.at?.board, 'number');
+});
+
+test('a 60 cm bay passes; two 989 mm doors on a 200 cm wardrobe do not', () => {
+  assert.deepEqual(leaves(alone(wardrobe({ w: 60, n: 1, doors: 'hinged' }))), []);
+  const wide = leaves(alone(wardrobe({ w: 200, n: 2, wt: [1, 1], doors: 'hinged' })));
+  assert.equal(wide.length, 2);
+  assert.deepEqual(wide.map(f => f.fix), ['Split into 2 leaves of 495 mm', 'Split into 2 leaves of 495 mm']);
+});
+
+test('a leaf taller than 2400 mm is refused; no doors, no leaves', () => {
+  const tall = leaves(alone(wardrobe({ w: 60, h: 270, n: 1, doors: 'hinged' })));
+  assert.deepEqual(tall.map(f => [f.id.split(':')[0], f.limit]), [['leaf-height', 2400]]);
+  assert.ok(tall[0]!.measured! > 2400);
+  assert.deepEqual(leaves(alone(wardrobe({ w: 120, n: 1, doors: 'none' }))), []);
+});
+
+test('kitchen appliance doors are not checked; a kitchen cupboard door is', () => {
+  assert.deepEqual(leaves(alone(createKitchenDesign('tall', 'fridge'))), []);
+  for (const unit of ['base', 'upper'] as const) assert.deepEqual(leaves(alone(createKitchenDesign(unit, unit === 'base' ? 'drawers' : 'upper'))), [], unit);
+});
+
+test('no golden wardrobe and no welcome space is refused by the rule', () => {
+  for (const [name, design] of goldenWardrobes()) assert.deepEqual(leaves(alone(design)), [], name);
+  for (const [name, input] of welcomeSpaces()) assert.deepEqual(leaves(input), [], name);
+});
+
+test('the rule is in the list the manufacturing check runs', () => assert.ok(RULES.includes(leafSize)));
