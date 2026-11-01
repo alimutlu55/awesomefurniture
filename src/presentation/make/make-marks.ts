@@ -153,7 +153,7 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
   rows.forEach((r, i) => {
     const y = y0 + pad + i * row + (row - fs * .4) / 2, tx = x0 + pad + icon + fs * .5;
     out += fittingIcon(r.kind).replace('<svg class="make-ico"', `<svg class="make-callico" x="${n1(x0 + pad)}" y="${n1(y - icon / 2)}" width="${n1(icon)}" height="${n1(icon)}"`)
-      + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dominant-baseline="central"><tspan class="make-calln">${r.name}</tspan> ${r.label}`
+      + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dy=".35em" dominant-baseline="alphabetic"><tspan class="make-calln">${r.name}</tspan> ${r.label}`
       + `${r.small ? `<tspan class="make-calls" font-size="${n1(fs * .85)}" dx="${n1(fs * .45)}">${r.small}</tspan>` : ''}</text>`;
   });
   return out + '</g>';
