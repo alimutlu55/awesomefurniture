@@ -22,6 +22,7 @@ import { type DrawingInput, type PlacedPiece, placePieces, wallGeometry } from '
 import { pieceBoards } from './unit-detail';
 import { cuttingList } from './cutting-list';
 import { cornerJointFindings } from './corner-joints';
+import { RULES, type Rule } from './manufacturing-rules/index';
 
 export type FindingArea = 'geometry' | 'assembly' | 'drawing' | 'export';
 export interface ManufacturingFinding {
@@ -32,6 +33,13 @@ export interface ManufacturingFinding {
   readonly marks: readonly string[];
   readonly message: string;
   readonly rule: string;
+  /** For an engineering rule: the limit it holds the design to and what the design measures, in mm. */
+  readonly limit?: number;
+  readonly measured?: number;
+  /** For an engineering rule: the change that clears it, as a short label ("Add a partition"). */
+  readonly fix?: string;
+  /** For an engineering rule: the part it is on, by piece mark and the board's index in `pieceBoards`. */
+  readonly at?: { readonly mark: string; readonly board?: number };
 }
 export interface ManufacturingValidation {
   /** No critical finding: the set may be issued for manufacture. */
@@ -160,12 +168,12 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
 /**
  * Checks a design for manufacture: geometry (no clashes, under the ceiling, real sizes), assembly (real boards inside
  * each piece, bays adding up to the width, fittings that fit) and the cutting list against the model. `drawing` adds
- * findings only the paper can show (annotations that could not be placed). Deterministic: the same model gives the
- * same findings in the same order.
+ * findings only the paper can show (annotations that could not be placed). The engineering `rules` run after them.
+ * Deterministic: the same model gives the same findings in the same order.
  */
-export function validateForManufacture(input: DrawingInput, drawing: readonly ManufacturingFinding[] = []): ManufacturingValidation {
+export function validateForManufacture(input: DrawingInput, drawing: readonly ManufacturingFinding[] = [], rules: readonly Rule[] = RULES): ManufacturingValidation {
   const pieces = placePieces(input);
   const findings = [...geometryFindings(input.studio, pieces), ...assemblyFindings(pieces), ...cornerJointFindings(pieces),
-    ...listFindings(pieces, cuttingList(pieces)), ...drawing];
+    ...listFindings(pieces, cuttingList(pieces)), ...drawing, ...rules.flatMap(rule => rule(input, pieces))];
   return { ready: !findings.some(f => f.severity === 'critical'), revision: modelRevision(input), findings };
 }

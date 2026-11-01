@@ -107,6 +107,11 @@ model independently of the drawing code. Blocking (critical) findings:
 - the cutting list disagreeing with the model, part by part, or two pieces sharing a mark;
 - annotations the sheet layout could not place clear of the drawing.
 
+Engineering rules (what a sound model must still meet to be built) live one per module in
+`domain/drawings/manufacturing-rules/` and are listed in its `RULES`; they run after the checks above. Their findings
+also carry the `limit` and the `measured` value (mm), the part they are `at` (piece mark and board index) and a short
+`fix`.
+
 A piece running past the end of its wall is a review finding. The set is made against one model revision (a
 fingerprint of the model, printed in every title block); saving a set made from an older revision makes it again.
 Every set ends with a **Manufacturing check** sheet. With any blocking finding, every sheet and the PDF are stamped
