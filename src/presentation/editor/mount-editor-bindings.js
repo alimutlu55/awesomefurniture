@@ -117,8 +117,15 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     shellBindings.bindDropdownEscape({ dom, shell, lifetime });
     shellBindings.bindPlanPanel({ dom, shell, lifetime });
     shellBindings.bindDocumentFocusin({ dom, camera, lifetime });
-    shellBindings.bindZoomIn({ dom, camera });
-    shellBindings.bindZoomOut({ dom, camera });
+    let planner2D = null;
+    const zoomCamera = {
+        ...camera,
+        cameraZoom: (f, p) => (selectionState.viewMode === 'studio' && selectionState.studioView === '2d' && planner2D)
+            ? (f < 1 ? planner2D.zoomIn() : planner2D.zoomOut())
+            : camera.cameraZoom(f, p),
+    };
+    shellBindings.bindZoomIn({ dom, camera: zoomCamera });
+    shellBindings.bindZoomOut({ dom, camera: zoomCamera });
     shellBindings.bindPropertiesToggle({ dom, inspector, shell, lifetime, elements });
     shellBindings.observeInspectorPanels({ dom, shell, lifetime });
     shellBindings.bindResponsiveInspectors({ dom, inspector, model, lifetime, elements });
@@ -264,13 +271,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openItem: () => inspector.showPop(null, '#pop3', 'resize'),
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
-    const planner2D = createStudio2DPlanner({
+    planner2D = createStudio2DPlanner({
         dom, model, sceneCommands, history, selectionState,
         callbacks: {
-            onSwitch3D: () => viewModes.setStudioFormat('3d'),
-            openFields: (_action, field) => {
-                room.editor.editMeasure({ a: { x: 0, y: 0, z: 0 }, b: { x: 0, y: 0, z: 0 }, text: '', edit: field });
-            },
+            openFields: (_a, f) => room.editor.editMeasure({ a: { x: 0, y: 0, z: 0 }, b: { x: 0, y: 0, z: 0 }, text: '', edit: f }),
             selectionChanged: () => { inspector.update(true); rendering.redrawStudio(); },
         },
         listen: lifetime.listen,

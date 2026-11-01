@@ -22,7 +22,7 @@ export interface Studio2DPlannerPorts {
     room?: RoomSelection;
   };
   readonly callbacks: {
-    onSwitch3D: () => void;
+    onSwitch3D?: () => void;
     openFields: (action: string, field: string) => void;
     selectionChanged: () => void;
   };
@@ -67,22 +67,8 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
           <span>Draw wall</span>
         </button>
       </div>
-      <div class="sp2d-zoom-group" role="group" aria-label="View controls">
-        <button type="button" class="sp2d-btn" data-zoom="in" title="Zoom in (+)">+</button>
-        <button type="button" class="sp2d-btn sp2d-zoom-level" data-zoom="fit" title="Fit to room (0)">100%</button>
-        <button type="button" class="sp2d-btn" data-zoom="out" title="Zoom out (−)">−</button>
-        <button type="button" class="sp2d-btn" data-zoom="fit-icon" title="Fit scene">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/></svg>
-        </button>
-      </div>
     </div>
-    <div class="sp2d-bottom-bar">
-      <div class="sp2d-coords" id="sp2d-coords">X: 0 cm · Z: 0 cm</div>
-      <button type="button" class="sp2d-switch-3d-btn" id="sp2d-switch-3d" title="Switch to 3D walk-through">
-        <svg class="ic" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        <span>View in 3D</span>
-      </button>
-    </div>
+    <div class="sp2d-coords" id="sp2d-coords">X: 0 cm · Z: 0 cm</div>
   `;
 
   $('#view').appendChild(root);
@@ -90,7 +76,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const topRulerEl = root.querySelector<HTMLElement>('#sp2d-top-ruler')!;
   const leftRulerEl = root.querySelector<HTMLElement>('#sp2d-left-ruler')!;
   const coordsEl = root.querySelector<HTMLElement>('#sp2d-coords')!;
-  const zoomLevelEl = root.querySelector<HTMLButtonElement>('.sp2d-zoom-level')!;
 
   const worldGroup = svg.querySelector<SVGGElement>('#sp2d-world')!;
   const roomsGroup = svg.querySelector<SVGGElement>('#sp2d-rooms')!;
@@ -176,7 +161,8 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     overlaysGroup.innerHTML = renderOverlays(transform);
     topRulerEl.innerHTML = renderTopRuler(transform, cursorSceneX);
     leftRulerEl.innerHTML = renderLeftRuler(transform, cursorSceneZ);
-    zoomLevelEl.textContent = `${Math.round(transform.zoom * 100)}%`;
+    const ze = dom.document?.getElementById('zoom-val') ?? root.ownerDocument?.getElementById('zoom-val');
+    if (ze) ze.textContent = `${Math.round(transform.zoom * 100)}%`;
 
     // Only rebuild geometry DOM when studio, selection, or wardrobes change
     const studioSnap = JSON.stringify(studio);
@@ -243,26 +229,11 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   listen(root, 'click', (e: Event) => {
     const btn = (e.target as Element).closest<HTMLButtonElement>('button');
     if (!btn) return;
-    if (btn.id.endsWith('sp2d-switch-3d') || btn.classList.contains('sp2d-switch-3d-btn')) {
-      callbacks.onSwitch3D();
-      return;
-    }
     const tool = btn.dataset.tool;
     if (tool === 'select' || tool === 'wall') {
       root.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b === btn));
       gestures.setTool(tool);
       svg.classList.toggle('drawing-wall', tool === 'wall');
-      return;
-    }
-    const zoom = btn.dataset.zoom;
-    if (zoom === 'in') {
-      transform = { ...transform, zoom: Math.min(6.0, transform.zoom * 1.25) };
-      render();
-    } else if (zoom === 'out') {
-      transform = { ...transform, zoom: Math.max(0.15, transform.zoom * 0.8) };
-      render();
-    } else if (zoom === 'fit' || zoom === 'fit-icon') {
-      fitScene();
     }
   });
 
@@ -289,6 +260,17 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   return {
     render,
     fitScene,
+    zoomIn() {
+      transform = { ...transform, zoom: Math.min(6.0, transform.zoom * 1.25) };
+      render();
+    },
+    zoomOut() {
+      transform = { ...transform, zoom: Math.max(0.15, transform.zoom * 0.8) };
+      render();
+    },
+    getZoom() {
+      return transform.zoom;
+    },
     show() {
       root.style.display = 'block';
       fitScene();

@@ -65,9 +65,12 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
             lastClockSec = s;
             $('#clock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
         }
-        const zv = Math.round(cameraState.fitDist / cameraState.dist * 100) + '%', ze = $('#zoom-val');
-        if (ze.textContent !== zv) {
-            ze.textContent = zv;
+        const app = $('#app');
+        if (app?.dataset?.studioView !== '2d') {
+            const zv = Math.round(cameraState.fitDist / cameraState.dist * 100) + '%', ze = $('#zoom-val');
+            if (ze && ze.textContent !== zv) {
+                ze.textContent = zv;
+            }
         }
     }
     return { loop };
