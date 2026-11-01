@@ -1,6 +1,8 @@
 import type { Board } from '../../domain/drawings/cabinet-boards';
 import { type Measure, partMeasures, pieceMeasures, thinAxis, type Vec3 } from '../../domain/make/make-measures';
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
+import { fittingIcon, sold } from './make-panel-tabs';
+import type { Fixing } from './make-player';
 
 /** A length (centimetres) as the person reads it, in their unit. */
 export type LengthText = (cm: number) => string;
@@ -20,6 +22,8 @@ export interface MarksState {
   readonly open?: number | undefined;
   /** In a build step: the parts it adds (only their numbers are written). */
   readonly building?: ReadonlySet<number> | null | undefined;
+  /** In a build step: the joint being fixed now. */
+  readonly fixing?: Fixing | null | undefined;
 }
 
 type Box = [number, number, number, number];
@@ -114,12 +118,52 @@ function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Ve
   return out;
 }
 
+/**
+ * A joint being fixed, as an assembly manual draws it: a dashed line from where each fastener waits into its hole, the
+ * hole ringed, and beside them what goes in, counted ("×4", the screw and its size).
+ */
+function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number; left?: number }, fs: number) {
+  let out = '', seen = 0;
+  const tails: (readonly [number, number])[] = [], heads: (readonly [number, number])[] = [];
+  for (const l of fixing.lines) {
+    const a = pr(l.from), b = pr(l.to);
+    if (!a || !b) continue;
+    seen = Math.max(seen, l.seen);
+    if (l.go < 1) out += `<g style="opacity:${n1(l.seen * (1 - l.go ** 6))}">${line(a, b, 'make-way')}</g>`;
+    out += `<circle class="make-at${l.go >= 1 ? ' home' : ''}" style="opacity:${n1(l.seen)}" cx="${n1(b[0])}" cy="${n1(b[1])}" r="${n1(fs * .38)}"/>`;
+    tails.push(a); heads.push(b);
+  }
+  if (!tails.length || !fixing.hardware.length) return out;
+  // The callout stands clear of the joint, beside it where the view has room, with a leader to the nearest fastener.
+  const rows = fixing.hardware.map(h => ({ ...h, label: `×${h.qty}`, small: sold(h.size) })), row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
+  const bw = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.label.length + 1) * fs * .62 + r.small.length * fs * .52)), bh = pad * 2 + rows.length * row - fs * .4;
+  const xs = [...tails, ...heads].map(p => p[0]), ys = [...tails, ...heads].map(p => p[1]), gap = 28;
+  const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as const, mx = (box[0] + box[2]) / 2, my = (box[1] + box[3]) / 2;
+  const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
+  const spots = [[box[2] + gap + bw / 2, my], [box[0] - gap - bw / 2, my], [mx, box[1] - gap - bh / 2], [mx, box[3] + gap + bh / 2]] as const;
+  const fits = (c: readonly [number, number]) => c[0] - bw / 2 >= left && c[0] + bw / 2 <= right && c[1] - bh / 2 >= top && c[1] + bh / 2 <= bottom;
+  const spot = spots.find(fits) ?? spots[0];
+  const cx = Math.max(left + bw / 2, Math.min(right - bw / 2, spot[0])), cy = Math.max(top + bh / 2, Math.min(bottom - bh / 2, spot[1]));
+  const near = tails.reduce((m, p) => Math.hypot(p[0] - cx, p[1] - cy) < Math.hypot(m[0] - cx, m[1] - cy) ? p : m);
+  const x0 = cx - bw / 2, y0 = cy - bh / 2, ex = Math.max(x0, Math.min(x0 + bw, near[0])), ey = Math.max(y0, Math.min(y0 + bh, near[1]));
+  out += `<g class="make-callout" style="opacity:${n1(seen)}"><line class="make-lead" x1="${n1(near[0])}" y1="${n1(near[1])}" x2="${n1(ex)}" y2="${n1(ey)}"/>`
+    + `<rect class="make-tag" x="${n1(x0)}" y="${n1(y0)}" width="${n1(bw)}" height="${n1(bh)}" rx="${n1(fs * .7)}"/>`;
+  rows.forEach((r, i) => {
+    const y = y0 + pad + i * row + (row - fs * .4) / 2, tx = x0 + pad + icon + fs * .5;
+    out += fittingIcon(r.kind).replace('<svg class="make-ico"', `<svg class="make-callico" x="${n1(x0 + pad)}" y="${n1(y - icon / 2)}" width="${n1(icon)}" height="${n1(icon)}"`)
+      + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dominant-baseline="central">${r.label}`
+      + `${r.small ? `<tspan class="make-calls" font-size="${n1(fs * .85)}" dx="${n1(fs * .45)}">${r.small}</tspan>` : ''}</text>`;
+  });
+  return out + '</g>';
+}
+
 /** Everything Make writes over the model for its state, in screen pixels. */
-export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, offsetOf: (b: Board) => Vec3, length: LengthText, size: { w: number; h: number }, fs = 13) {
+export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, offsetOf: (b: Board) => Vec3, length: LengthText, size: { w: number; h: number; left?: number }, fs = 13) {
   const placed: Box[] = [];
   let out = '';
   // A build step: only the numbers of the parts it adds, the piece's own sizes would measure what is not there yet.
-  if (state.building) return numberMarks(pr, piece, offsetOf, size, fs, null, state.building);
+  // While a joint is fixed, only what goes into it.
+  if (state.building) return state.fixing ? fixingMarks(pr, state.fixing, size, fs) : numberMarks(pr, piece, offsetOf, size, fs, null, state.building);
   if (state.measures) {
     const part = state.selected === null ? null : piece.parts.find(p => p.n === state.selected) ?? null;
     if (part) out = measureMarks(pr, partMeasures(part, state.apart < .05), length, fs, () => offsetOf(part.boards[0]!), placed);

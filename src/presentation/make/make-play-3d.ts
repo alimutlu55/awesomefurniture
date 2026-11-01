@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import type { Fitting, Hole } from '../../domain/make/make-joints';
+import type { Fitting } from '../../domain/make/make-joints';
+import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
 
 /** The film of the assembly at one moment: where each board is, which holes and fittings show, what is moving. */
@@ -16,8 +17,10 @@ export interface MakeFilm {
   item(index: number): number | null;
   /** A hole being drilled: the drill's way down and back out (0 to 1), or null. */
   bit(hole: number): number | null;
-  /** A fastener: null not yet, 0 at the hole, 1 home. */
+  /** A fastener: null not yet, 0 waiting at the end of its line, 1 home. */
   fit(item: number): number | null;
+  /** How far a fastener has come into view where it waits (0 to 1). */
+  seen(item: number): number;
 }
 
 const STEEL = 0x555b62, BRASS = 0x9a7434, BIT = 0x2b2e33;
@@ -26,13 +29,14 @@ const VIS = 1.6;
 const Y = new THREE.Vector3(0, 1, 0), AXES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 const ease = (t: number) => 1 - (1 - t) ** 3;
 
-interface Fastener { readonly group: THREE.Object3D; readonly item: number; readonly home: THREE.Vector3; readonly dir: THREE.Vector3; readonly travel: number; readonly spin: number; readonly grow: boolean }
+interface Fastener { readonly group: THREE.Object3D; readonly item: number; readonly home: THREE.Vector3; readonly dir: THREE.Vector3; readonly spin: number; readonly board: number | null }
 interface Bit { readonly mesh: THREE.Object3D; readonly hole: number; readonly mouth: THREE.Vector3; readonly dir: THREE.Vector3; readonly depth: number }
 
 /**
  * The moving parts of the assembly film: a drill bit going into each hole and out again, and every fastener going home:
  * screws turning in along their hole, a cam turned to lock, dowels and shelf pins pushed in, nails driven, hinges and
- * plates set on. Drill bits ride on their board, so a board is drilled where it waits before it comes in.
+ * plates set on. Bits and fasteners ride on their board, so a board is drilled where it waits before it comes in, and a
+ * door has its hinges pressed in lying there.
  */
 export function createMakePlay(layer: number) {
   const rod = new THREE.CylinderGeometry(1, 1, 1, 12), cone = new THREE.ConeGeometry(1, 1, 12), box = new THREE.BoxGeometry(1, 1, 1);
@@ -58,45 +62,31 @@ export function createMakePlay(layer: number) {
   }
 
   function fastenerOf(piece: MakePiece, f: Fitting, item: number): Fastener | null {
-    const frame = (p: readonly number[]) => new THREE.Vector3(p[0]! - piece.size.w / 2, p[1]!, p[2]! - piece.size.d / 2);
-    const mine = piece.holes.filter(h => h.of === item), along = (h: Hole) => AXES[h.axis]!.clone().multiplyScalar(h.sign);
-    const make = (group: THREE.Object3D, home: THREE.Vector3, dir: THREE.Vector3, travel: number, spin = 0, grow = false) => {
+    const e = entryOf(piece, item);
+    if (!e) return null;
+    const home = new THREE.Vector3(e.at[0] - piece.size.w / 2, e.at[1], e.at[2] - piece.size.d / 2), dir = new THREE.Vector3(...e.dir);
+    const make = (group: THREE.Object3D, spin = 0) => {
       group.quaternion.setFromUnitVectors(Y, dir);
-      return { group: tag(group), item, home, dir, travel, spin, grow };
+      return { group: tag(group), item, home, dir, spin, board: e.board };
     };
-    if (f.kind === 'confirmat' || f.kind === 'screw') {
-      // Turned in through the face board's hole: its head ends flush with the face.
-      const h = mine.find(x => x.kind === 'connector' || x.kind === 'screw');
-      if (!h) return null;
-      const length = f.kind === 'screw' ? 4 : 5;
-      return make(screw(length, f.kind === 'screw' ? .2 : .32, steel), frame(h.at), along(h), length + 3, 8 * Math.PI);
-    }
+    // Turned in through the face board's hole: its head ends flush with the face.
+    if (f.kind === 'confirmat' || f.kind === 'screw') return make(screw(f.kind === 'screw' ? 4 : 5, f.kind === 'screw' ? .2 : .32, steel), 8 * Math.PI);
     if (f.kind === 'cam') {
-      // The bolt turned into the face board, then the cam set in its hole and turned half round to draw it tight.
-      const h = mine.find(x => x.kind === 'cam'), bolt = mine.find(x => x.kind === 'bolt');
-      if (!h || !bolt) return null;
-      const g = new THREE.Group(), dir = along(h);
+      // The cam set in its hole and turned half round to draw the bolt in the other board tight.
+      const g = new THREE.Group();
       g.add(solid(rod, brass, new THREE.Vector3(0, .62, 0), new THREE.Vector3(.72, 1.2, .72)), solid(box, steel, new THREE.Vector3(0, .02, 0), new THREE.Vector3(1.1, .08, .18)));
-      return make(g, frame(h.at), dir, 3, Math.PI);
+      return make(g, Math.PI);
     }
-    if (f.kind === 'dowel') {
-      const h = mine.find(x => x.depth === 25) ?? mine[0];
-      if (!h) return null;
-      return make(solid(rod, brass, new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, 3.5, .4)), frame(f.at), along(h), 0, 0, true);
-    }
-    if (f.kind === 'nail') return make(screw(2, .08, steel), frame(f.at), AXES[2]!.clone(), 3);
-    if (f.kind === 'pin') {
-      const h = mine[2] ?? mine[0];
-      if (!h) return null;
-      return make(solid(rod, brass, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(.25, 1.6, .25)), frame(f.at), along(h), 2);
-    }
+    if (f.kind === 'dowel') return make(solid(rod, brass, new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, 3.5, .4)));
+    if (f.kind === 'nail') return make(screw(2, .08, steel));
+    if (f.kind === 'pin') return make(solid(rod, brass, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(.25, 1.6, .25)));
     if (f.kind === 'hinge') {
       // The hinge's cup pressed into the door, its arm reaching back to the plate.
       const g = new THREE.Group();
       g.add(solid(rod, steel, new THREE.Vector3(0, .6, 0), new THREE.Vector3(1.75, 1.2, 1.75)), solid(box, steel, new THREE.Vector3(0, -.7, 0), new THREE.Vector3(1.6, 1.6, 4)));
-      return make(g, frame(f.at), AXES[2]!.clone(), 3);
+      return make(g);
     }
-    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(1.2, .5, 4.8)), frame(f.at), AXES[0]!.clone().multiplyScalar(mine[0]?.sign ?? 1), 2);
+    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(1.2, .5, 4.8)));
     return null;
   }
 
@@ -120,7 +110,9 @@ export function createMakePlay(layer: number) {
         const fastener = fastenerOf(piece, f, item);
         if (!fastener) return;
         fastener.group.visible = false;
-        root.add(fastener.group);
+        // It rides on the board it goes in through, so one fitted while that board lies on the floor goes in with it.
+        const host = fastener.board === null ? undefined : meshOf(fastener.board);
+        if (host) { fastener.home.sub(rest(fastener.board!)); host.add(fastener.group); } else root.add(fastener.group);
         fasteners.push(fastener);
       });
     },
@@ -141,11 +133,11 @@ export function createMakePlay(layer: number) {
         const p = film?.fit(f.item) ?? null;
         f.group.visible = p !== null;
         if (p === null) continue;
-        // It comes into view from further back along its way in, growing from nothing as it comes: never a pop.
-        const e = ease(p), seen = Math.min(1, p / .25);
-        f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * (f.travel + 6));
+        // It grows into view where it waits, at the end of its dashed line, then goes in along it (a screw turning).
+        const e = ease(p), seen = ease(film!.seen(f.item));
+        f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * WAIT);
         f.group.quaternion.setFromUnitVectors(Y, f.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, e * f.spin));
-        f.group.scale.setScalar(Math.max(.01, (f.grow ? e : 1) * seen) * (1 + (VIS - 1) * (1 - e)));
+        f.group.scale.setScalar(Math.max(.01, seen) * (1 + (VIS - 1) * (1 - e)));
       }
     },
     clear() {

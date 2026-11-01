@@ -1,6 +1,9 @@
 import type { MakePiece } from '../../domain/make/make-parts';
-import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, type Playhead, playhead, stepStart, type Timeline } from '../../domain/make/make-timeline';
-import { type Staged, stagingLayout } from '../../domain/make/make-staging';
+import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { entryOf, WAIT } from '../../domain/make/make-fixing';
+import type { FittingKind } from '../../domain/make/make-joints';
+import type { Vec3 } from '../../domain/make/make-measures';
+import { lyingPoint, type Staged, stagingLayout } from '../../domain/make/make-staging';
 import type { MakeFilm } from './make-play-3d';
 
 /**
@@ -9,7 +12,7 @@ import type { MakeFilm } from './make-play-3d';
  */
 export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false;
-  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0 };
+  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
     load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; },
@@ -53,12 +56,40 @@ export function createMakePlayer() {
         stage: board => staged[board]!,
         now: board => line.boardStep[board] === ph.step,
         hole: index => drilled(line, ph, index),
-        // Hardware drawn on the piece comes in as its step fixes it; runners are on their drawer from the start.
-        item: index => fittings[index]!.kind === 'runner' || line.itemStep[index]! < ph.step ? 1 : line.itemStep[index] === ph.step && ph.fix > 0 ? ph.fix : null,
+        // Hardware drawn on the piece comes in as its joint is fixed; runners are on their drawer from the start.
+        item: index => fittings[index]!.kind === 'runner' ? 1 : fittedAt(line, ph, index, fittings[index]!.kind),
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
+        seen: item => seenAt(line, ph, item),
       };
+    },
+    /** The joint being fixed now: each fitting's dashed line in (from where it waits to its hole), how far it has come
+     * into view and gone in, and what goes in, counted. */
+    fixing(): Fixing | null {
+      if (!piece || !tl) return null;
+      const ph = head(), now = fixingNow(tl, ph), p = piece;
+      if (!now) return null;
+      // A joint fixed on a board lying on the floor is drawn where that board lies.
+      const board = now.board, where = (q: Vec3) => now.lying && board !== null ? lyingPoint(p.boards[board]!, staged[board]!, q) : q;
+      const lines = now.items.flatMap(i => {
+        const e = entryOf(p, i);
+        if (!e) return [];
+        const from: Vec3 = where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]);
+        return [{ from, to: where(e.at), seen: seenAt(tl!, ph, i), go: fittedAt(tl!, ph, i, p.fittings[i]!.kind) ?? 0 }];
+      });
+      const counts = new Map<string, { kind: FittingKind; size?: string; qty: number }>();
+      for (const i of now.items) {
+        const f = p.fittings[i]!, key = `${f.kind} ${f.size ?? ''}`, c = counts.get(key) ?? { kind: f.kind, ...f.size ? { size: f.size } : {}, qty: 0 };
+        c.qty++;
+        counts.set(key, c);
+      }
+      return { lines, hardware: [...counts.values()] };
     },
   };
 }
 export type MakePlayer = ReturnType<typeof createMakePlayer>;
+/** A joint being fixed, as Make writes it over the film. */
+export interface Fixing {
+  readonly lines: readonly { readonly from: Vec3; readonly to: Vec3; readonly seen: number; readonly go: number }[];
+  readonly hardware: readonly { readonly kind: FittingKind; readonly size?: string; readonly qty: number }[];
+}

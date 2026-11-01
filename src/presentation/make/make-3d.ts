@@ -200,7 +200,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** Shows the film of the assembly at one moment (null: the piece as it is). */
     setFilm(next: MakeFilm | null) {
       film = next;
-      fittings.only(next?.hole ?? null, next?.item ?? null);
+      fittings.only(next?.hole ?? null, next?.item ?? null, next?.seen);
       play.show(next);
       place(); paint();
     },

@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import type { MakePiece } from '../../domain/make/make-parts';
-import type { Staged } from '../../domain/make/make-staging';
+import { lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
 import { INTRO, OUTRO, type Timeline } from '../../domain/make/make-timeline';
+import { entryOf, WAIT } from '../../domain/make/make-fixing';
+import type { Vec3 } from '../../domain/make/make-measures';
 
 /** A camera pose as the editor's camera holds it: turned `az` round the target, raised `el`, `dist` away. */
 export interface Pose { az: number; el: number; dist: number; x: number; y: number; z: number }
@@ -27,11 +29,6 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   const shot = (t: number, points: THREE.Vector3[], az: number, el: number, padding: number) => {
     if (points.length) shots.push({ t, pose: camera.fittedCamera(az, el, padding, bounds(points)) });
   };
-  /** The turn that looks at the piece from the side a direction in its own frame points to, kept three-quarters on. */
-  const from = (local: THREE.Vector3, front = .9) => {
-    const v = local.clone().normalize().add(new THREE.Vector3(0, 0, front)).applyAxisAngle(new THREE.Vector3(0, 1, 0), facing);
-    return Math.atan2(v.x, v.z);
-  };
   // Opening: every part laid out in front of where the piece will stand (its footprint on the floor), easing in.
   const floor = Math.min(...staged.map(s => s.at[1] - s.size[1] / 2)), site = corners([0, floor, 0], [w, floor + 1, d]).map(half);
   const everything = [...all.flatMap(waiting), ...site];
@@ -52,14 +49,22 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       shot(s.place[0] + (s.place[1] - s.place[0]) * .25, [...piece, ...step.boards.flatMap(waiting)], facing + side * .55, .45, 1.04);
       shot(s.place[0] + (s.place[1] - s.place[0]) * .9, piece, facing + side * .5, .4, 1.1);
     }
-    // Fixing: close, from the side the screws go in from (a side's screws from that side, the back's nails behind).
-    if (s.fix[1] > s.fix[0]) {
-      const items = step.items.map(i => piece.fittings[i]!), axis = [0, 1, 2].map(a => items.filter(f => f.axis === a).length);
-      const main = axis.indexOf(Math.max(...axis)), mean = items.reduce((m, f) => m + (f.at[main]! - [w, piece.size.h, d][main]! / 2), 0) / Math.max(1, items.length);
-      const out = new THREE.Vector3(), el = main === 1 ? .95 : .4;
-      if (main === 1) out.set(side, 0, 1); else out.setComponent(main, mean < 0 ? -1 : 1);
-      shot(s.fix[0] + (s.fix[1] - s.fix[0]) * .4, items.flatMap(f => around(f.at, 12)), main === 1 ? facing + side * .3 : from(out, main === 2 ? -.6 : .9), el, 1.2);
-    }
+    // Fixing, joint by joint: close on each, from the side its screws go in from (a side's from outside it, the back's
+    // nails from behind, a base's screws from above, a door's hinges from above it lying face down), held while they go
+    // in one after another.
+    s.fixes.forEach((fix, j) => {
+      const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null), lying = fix.lying && fix.board !== null ? fix.board : null;
+      const where = (p: Vec3): Vec3 => lying === null ? p : lyingPoint(piece.boards[lying]!, staged[lying]!, p), dir = lying === null ? fix.dir : lyingDir(staged[lying]!, fix.dir);
+      const points = entries.flatMap(e => [...around(where(e.at), 5), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 3)]);
+      // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
+      // their line, turned towards the front.
+      const out = new THREE.Vector3(...dir).negate(), up = Math.abs(out.y) > .7, turn = j % 2 ? .25 : -.25;
+      const w = out.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), facing), way = Math.atan2(w.x, w.z), off = (a: number) => Math.abs(Math.atan2(Math.sin(a - facing), Math.cos(a - facing)));
+      const az = up ? facing + side * .3 + turn : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!, el = up ? (out.y > 0 ? .85 : .12) : .34;
+      const span = fix.at[1] - fix.at[0];
+      shot(fix.at[0] + span * .2, points, az, el, .95);
+      shot(fix.at[1] - span * .08, points, az + turn * .3, el, .9);
+    });
     // A breath: the piece so far.
     shot(s.end - .15, [...all.filter(i => tl.boardStep[i]! <= k).flatMap(placed)], facing + side * .45, .45, 1.1);
   });

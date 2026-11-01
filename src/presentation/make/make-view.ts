@@ -93,7 +93,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (key === st.marks) return;
     st.marks = key;
     overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    overlay.innerHTML = marksSvg(st.piece, { ...st, open: st.open > .02 ? st.open : 0 }, projector(), b => make3d.offsetOf(b), length, { w, h });
+    overlay.innerHTML = marksSvg(st.piece, { ...st, open: st.open > .02 ? st.open : 0, fixing: st.filming ? player.fixing() : null }, projector(), b => make3d.offsetOf(b), length, { w, h, left: dockedLeft() });
   }
 
   function renderPanel() {
@@ -142,8 +142,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const tl = player.timeline;
     if (!st.piece || !tl) return;
     make3d.group.updateMatrixWorld(true);
-    const docked = dom.matchMedia('(min-width:901px)').matches && panel.classList.contains('show');
-    const W = view.clientWidth, H = view.clientHeight, left = docked ? Math.max(0, panel.getBoundingClientRect().right - view.getBoundingClientRect().left) : 0;
+    const W = view.clientWidth, H = view.clientHeight, left = dockedLeft();
     const room = Math.max(W * .4, W - left - 36), tanV = Math.tan(35 * Math.PI / 360);
     const camera = {
       cameraSample: ports.camera.cameraSample,
@@ -153,6 +152,11 @@ export function createMakeView(ports: MakeViewPorts) {
       },
     };
     st.shots = planShots(camera, st.piece, tl, player.staged, p => make3d.group.localToWorld(p), st.pose.angle * Math.PI / 180);
+  }
+  /** How much of the view the panel covers at its left, docked beside it on a desktop (pixels). */
+  function dockedLeft() {
+    const docked = dom.matchMedia('(min-width:901px)').matches && panel.classList.contains('show');
+    return docked ? Math.max(0, panel.getBoundingClientRect().right - view.getBoundingClientRect().left) : 0;
   }
   function followFrom(from: Pose) { st.follow = true; st.glide = { from: { ...from }, left: GLIDE }; }
   function showPanel(mode: 'list' | 'part') {

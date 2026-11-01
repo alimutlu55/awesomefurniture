@@ -34,3 +34,18 @@ export function stagingLayout(piece: MakePiece, floor = 0): Staged[] {
   }
   return out;
 }
+
+/** A direction of a board as it stands built, turned as the board lies flat: a quarter turn about x takes y to z and
+ * z down, one about z takes x up, and the spin about y takes z to x. */
+export function lyingDir(staged: Staged, v: Vec3): Vec3 {
+  let [x, y, z] = v;
+  if (staged.lie === 'x') [y, z] = [-z, y];
+  else if (staged.lie === 'z') [x, y] = [-y, x];
+  if (staged.spin) [x, z] = [z, -x];
+  return [x, y, z];
+}
+/** Where a point of a board (in the piece's frame, as it stands built) is while the board waits lying flat. */
+export function lyingPoint(board: Board, staged: Staged, p: Vec3): Vec3 {
+  const v = lyingDir(staged, [p[0] - (board.x0 + board.x1) / 2, p[1] - (board.y0 + board.y1) / 2, p[2] - (board.z0 + board.z1) / 2]);
+  return [staged.at[0] + v[0], staged.at[1] + v[1], staged.at[2] + v[2]];
+}

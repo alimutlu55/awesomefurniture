@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Fitting, Hole } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
+import { WAIT } from '../../domain/make/make-fixing';
 
 /**
  * What is drilled and bought, drawn in Make's 3D: every hole as a dark ring at its mouth, and the hardware a maker can
@@ -15,8 +16,8 @@ export interface FittingsLayer {
   /** Builds the holes and hardware; `meshOf(i)` is board i's mesh and `rest(i)` where it stands assembled. */
   build(piece: MakePiece, meshOf: (board: number) => THREE.Object3D | undefined, rest: (board: number) => THREE.Vector3, root: THREE.Object3D): void;
   /** The film of the assembly at one moment: which holes are drilled, and how far each fitting has come in (null: not
-   * yet; 0 just in view, 1 home); or everything, home (null). */
-  only(hole: ((index: number) => boolean) | null, fitting: ((index: number) => number | null) | null): void;
+   * yet; 0 waiting at the end of its line, 1 home) and into view (`seen`, 0 to 1); or everything, home (null). */
+  only(hole: ((index: number) => boolean) | null, fitting: ((index: number) => number | null) | null, seen?: (index: number) => number): void;
   /** Hides the holes of every board but this part's (null: every board's holes show). */
   focus(boards: ReadonlySet<number> | null): void;
   clear(): void;
@@ -29,10 +30,11 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const holeMaterial = new THREE.MeshBasicMaterial({ color: INK, side: THREE.DoubleSide });
   const metal = new THREE.MeshLambertMaterial({ color: METAL, emissive: 0x3a3c40, emissiveIntensity: .4 });
   let holes: { mesh: THREE.Object3D; board: number; index: number }[] = [];
-  let fittings: { mesh: THREE.Object3D; index: number; board: number | null; home: THREE.Vector3; from: THREE.Vector3 }[] = [];
+  let fittings: { mesh: THREE.Object3D; index: number; board: number | null; home: THREE.Vector3; from: THREE.Vector3; size: THREE.Vector3 }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
     : kind === 'runner' ? new THREE.Vector3() : new THREE.Vector3(0, 0, 1);
   let shown: ((index: number) => boolean) | null = null, shownFittings: ((index: number) => number | null) | null = null, focused: ReadonlySet<number> | null = null;
+  let seenFittings: ((index: number) => number) | null = null;
 
   const tag = (o: THREE.Object3D) => { o.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; }); return o; };
   /** A mesh of `geometry` (unit size) scaled to `size`, its y axis along `axis`, centred at `at`. */
@@ -69,10 +71,11 @@ export function createMakeFittings(layer: number): FittingsLayer {
   function visible() {
     for (const h of holes) h.mesh.visible = (!shown || shown(h.index)) && (!focused || focused.has(h.board));
     for (const f of fittings) {
-      // Coming in: from 40 cm off along its way in (a handle from the front, a leg from below), easing home.
-      const p = shownFittings ? shownFittings(f.index) : 1;
+      // Coming in: growing into view where it waits at the end of its line (a handle in front, a leg below), easing home.
+      const p = shownFittings ? shownFittings(f.index) : 1, seen = seenFittings?.(f.index) ?? 1;
       f.mesh.visible = p !== null;
-      f.mesh.position.copy(f.home).addScaledVector(f.from, (1 - (p ?? 1)) ** 3 * 40);
+      f.mesh.position.copy(f.home).addScaledVector(f.from, (1 - (p ?? 1)) ** 3 * WAIT);
+      f.mesh.scale.copy(f.size).multiplyScalar(Math.max(.01, 1 - (1 - seen) ** 3));
     }
   }
 
@@ -99,7 +102,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
             const mesh = solid(bar, metal, frame(piece, [x, b.y0 + 3.2, b.z1 - len / 2]), new THREE.Vector3(1.25, 3.5, len));
             mesh.position.sub(rest(i));
             host.add(mesh);
-            fittings.push({ mesh, index, board: i, home: mesh.position.clone(), from: fromFor('runner') });
+            fittings.push({ mesh, index, board: i, home: mesh.position.clone(), from: fromFor('runner'), size: mesh.scale.clone() });
           }
           return;
         }
@@ -108,11 +111,11 @@ export function createMakeFittings(layer: number): FittingsLayer {
         // Handles ride on their front; the rest stay with the piece.
         const board = f.kind === 'handle' ? f.boards[0] ?? null : null, host = board === null ? undefined : meshOf(board);
         if (host && board !== null) { mesh.position.sub(rest(board)); host.add(mesh); } else root.add(mesh);
-        fittings.push({ mesh, index, board: host ? board : null, home: mesh.position.clone(), from: fromFor(f.kind) });
+        fittings.push({ mesh, index, board: host ? board : null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone() });
       });
       visible();
     },
-    only(boards, items) { shown = boards; shownFittings = items; visible(); },
+    only(boards, items, seen) { shown = boards; shownFittings = items; seenFittings = seen ?? null; visible(); },
     focus(boards) { focused = boards; visible(); },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);

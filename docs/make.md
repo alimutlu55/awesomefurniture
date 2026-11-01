@@ -34,12 +34,16 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   - **Steps**: the assembly as a film, in the editor's own view. Every part starts laid flat on the floor in front of
     the piece (nothing appears from nowhere); a directed camera opens on the parts, looks down on the drilling, stands
     back as each board is lifted, stood up and carried in (one after another, the base before the sides, shelves from
-    the bottom up), comes close from the side the screws go in, and ends going round the finished piece. Dragging or
+    the bottom up), then fixes them joint by joint, and ends going round the finished piece. Dragging or
     zooming takes the camera; Follow gives it back. Each step (plinth; base and sides; partitions; top;
     back; inside; drawers; doors and fronts; fixing to the wall) drills its holes one after another (a drill bit going
-    in and out, the hole left behind), brings its boards in from where they wait, then fixes them: screws turning in
-    along their holes, cams turned, dowels, shelf pins and hinge plates pushed in first, nails driven, hinges set on.
-    The parts a step adds are picked out and numbered over the view. Play / pause (Space), a scrub bar (the editor's
+    in and out, the hole left behind), presses hinge cups into each door lying face down, brings its boards in from
+    where they wait (shelf pins and hinge plates pushed in first), then fixes them **one joint at a time**
+    (`make-fixing.ts`): the fittings going in through one board from one side, split where they are far apart. For each
+    joint the camera comes close and looks across the way they go in (never down it), every fastener grows into view
+    at the end of a dashed line into its ringed hole, a callout counts what goes in ("×3", the screw, 7 × 50 mm), and
+    they go in one after another: screws turning, cams turned, dowels pushed, nails driven. The parts a step adds are
+    picked out and numbered over the view while they come in. Play / pause (Space), a scrub bar (the editor's
     slider), the time, Previous / Next step (the arrows), and every step as a chapter with its start time. The view
     turns and zooms while it plays; the player stays open.
   - **Cutting**: every stock sheet (2800 × 2070 mm, 10 mm trim, 4 mm kerf) per decor and thickness with its parts on
@@ -75,6 +79,7 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 | Domain | `make/make-assembly.ts` | Holes on a flat board, drilling signatures, assembly steps, buy list, drilling checks |
 | Domain | `make/make-cut-layout.ts` | Stock sheets, strips, kerf, trim, grain; edge banding metres |
 | Domain | `make/make-timeline.ts` | The film: each step's drill, place and fix phases in seconds; what is where at any time (pure) |
+| Domain | `make/make-fixing.ts` | Where and which way each fitting goes in, and a step's fittings gathered into joints fixed in turn |
 | Domain | `make/make-construction.ts`, `make/make-measures.ts` | Joint system and back fixing; ranked measurements, take apart |
 | Application | `commands/make-commands.ts` | `setConstruction`: one undo step, defaults never written down |
 | Presentation | `make/make-3d.ts`, `make-fittings-3d.ts` | Boards, holes and hardware on `MAKE_LAYER`; looks, selection, take apart, open, the film's boards |

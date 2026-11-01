@@ -21,6 +21,11 @@
 .make-numt{fill:var(--ink);font-weight:650}
 .make-num.sel .make-numc{fill:var(--ink)}
 .make-num.sel .make-numt{fill:var(--panel)}
+.make-way{stroke:var(--ink);stroke-width:1.3;stroke-dasharray:5 3;fill:none}
+.make-at{fill:none;stroke:var(--ink);stroke-width:1.6}
+.make-at.home{stroke-opacity:.45}
+.make-callico{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.make-calls{fill:var(--mute);font-weight:500}
 
 /* The parts panel: rows like the editor's lists, a part's size, its drawing. */
 .make-panel .make-back[hidden]{display:none}

@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
-import { lyingFlat, stagingLayout } from '../../src/domain/make/make-staging';
+import { arrivalAt, assemblyTimeline, drillAt, drilled, FITTED_FIRST, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
+import { lyingDir, lyingFlat, lyingPoint, stagingLayout } from '../../src/domain/make/make-staging';
+import { entryOf } from '../../src/domain/make/make-fixing';
 import { JOINT_SYSTEMS } from '../../src/domain/make/make-construction';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 
@@ -96,4 +97,43 @@ test('a step puts its boards in one after another: the base before the sides, sh
   for (const side of at('Side')) assert.ok(tl.boardStart[side.i]! > tl.boardStart[at('Base')[0]!.i]!, 'the base goes in before a side');
   const shelves = at('Shelf').filter(x => tl.boardStep[x.i] === tl.boardStep[at('Shelf')[0]!.i]).sort((p, q) => p.b.y0 - q.b.y0);
   shelves.slice(1).forEach((x, k) => assert.ok(Math.round(x.b.y0 / 10) === Math.round(shelves[k]!.b.y0 / 10) || tl.boardStart[x.i]! > tl.boardStart[shelves[k]!.i]!, 'lower shelves first'));
+});
+
+test('each joint is fixed in its own time, its fittings going in one after another, through a board that is there', () => {
+  for (const joints of JOINT_SYSTEMS) for (const [name, design] of Object.entries(designs)) {
+    const mp = make({ ...design, construction: { joints, back: 'nailed' } }), tl = assemblyTimeline(mp), staged = stagingLayout(mp);
+    tl.steps.forEach((s, k) => {
+      s.fixes.forEach((fix, j) => {
+        const before = s.fixes[j - 1];
+        assert.ok(!before || before.at[1] <= fix.at[0] + 1e-9, `${name}: joints of step ${k + 1} one after another`);
+        assert.ok(fix.lying ? s.drill[1] <= fix.at[0] && fix.at[1] <= s.place[0] + 1e-9 : s.place[1] <= fix.at[0] && fix.at[1] <= s.end, `${name}: a joint in its phase`);
+        let last = -Infinity;
+        for (const i of fix.items) {
+          const [shown, go, home] = tl.itemTime[i]!, e = entryOf(mp, i)!;
+          assert.ok(shown === fix.at[0] && go > shown && home > go && home < fix.at[1], `${name}: ${mp.fittings[i]!.kind} goes in within its joint`);
+          assert.ok(go > last, `${name}: one after another`);
+          last = go;
+          assert.equal(fittedAt(tl, playhead(tl, (shown + go) / 2), i, mp.fittings[i]!.kind), 0, 'it waits at the end of its line first');
+          if (e.board === null) continue;
+          const there = arrivalAt(tl, playhead(tl, go), e.board);
+          assert.equal(there, fix.lying ? 0 : 1, `${name}: the ${mp.fittings[i]!.kind} goes in through a board ${fix.lying ? 'lying where it waits' : 'in place'}`);
+          if (fix.lying) assert.deepEqual(lyingDir(staged[e.board]!, e.dir).map(v => Math.round(v) + 0), [0, -1, 0], `${name}: a ${mp.fittings[i]!.kind} goes in from above its board lying`);
+        }
+      });
+    });
+    mp.fittings.forEach((f, i) => {
+      if (FITTED_FIRST.has(f.kind) || f.kind === 'runner') return;
+      assert.ok(tl.itemTime[i], `${name}: the ${f.kind} ${i} is fixed in a joint of its own step`);
+    });
+  }
+});
+
+test('a point of a board lying flat is where that board lies, turned as it is', () => {
+  const mp = make(wardrobe), staged = stagingLayout(mp);
+  mp.boards.forEach((b, i) => {
+    const s = staged[i]!, c: [number, number, number] = [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
+    assert.deepEqual(lyingPoint(b, s, c), s.at, `${b.name}: its middle where it waits`);
+    const lo = lyingPoint(b, s, [b.x0, b.y0, b.z0]), hi = lyingPoint(b, s, [b.x1, b.y1, b.z1]);
+    [0, 1, 2].forEach(a => assert.ok(Math.abs(Math.abs(hi[a]! - lo[a]!) - s.size[a]!) < 1e-6, `${b.name}: lies within its own footprint`));
+  });
 });
