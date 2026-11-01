@@ -47,10 +47,14 @@ const shots = process.argv[2] || '/tmp';
     camera.updateMatrixWorld(true); const q = new THREE.Vector3(...p).project(camera);
     return { x: r.x + (q.x + 1) * r.width / 2, y: r.y + (1 - q.y) * r.height / 2 };
    }, p);
+   // The guide a person sees: the editor's smart guides, a hairline per alignment near the board (the longest is measured).
    const guide = () => page.evaluate(() => {
-    const layer = document.querySelector('#editor').shadowRoot.querySelector('[data-editor-id="snap-layer"]');
-    const line = layer?.querySelector('.snap-line');
-    return { on: !!layer?.classList.contains('on'), width: line ? parseFloat(line.style.width) : 0 };
+    const layer = document.querySelector('#editor').shadowRoot.querySelector('[data-smart-guides]');
+    const lengths = layer && !layer.hidden ? [...layer.querySelectorAll('g')].filter(g => g.style.display !== 'none').map(g => {
+     const n = (g.querySelector('path')?.getAttribute('d') ?? '').match(/-?[\d.]+/g)?.map(Number) ?? [];
+     return n.length >= 4 ? Math.hypot(n[2] - n[0], n[3] - n[1]) : 0;
+    }) : [];
+    return { on: lengths.length > 0, width: lengths.length ? Math.max(...lengths) : 0 };
    });
    const cdp = await page.context().newCDPSession(page);
    const tap = async p => { const q = await project(p); if (mobile) await page.touchscreen.tap(q.x, q.y); else await page.mouse.click(q.x, q.y); await page.waitForTimeout(150); };
@@ -76,12 +80,14 @@ const shots = process.argv[2] || '/tmp';
    assert.equal((await state()).divider, 0, 'the shelf board is selected');
    assert.equal((await guide()).on, false, 'no guide before anything moves');
    let during;
+   // Near the next bay's shelf: the guide shows its level, but the shelf lands where it is let go. Boards line up by
+   // themselves only within 1 mm (alignment.ts, AUTO_ALIGN_CM); exact landing is covered by the alignment tests.
    await drag(await board(0), 0, 18.7, async () => {
     during = await guide();
     await page.screenshot({ path: `${shots}/board-level-${width}.png` });
    });
-   assert.ok(during.on && during.width > 20, 'the existing snap line shows while the shelf is level with the next one: ' + JSON.stringify(during));
-   assert.equal((await state()).dividers[0].y, 120, 'lands exactly level, to the millimetre');
+   assert.ok(during.on && during.width > 20, 'a guide shows the next shelf\'s level while the shelf nears it: ' + JSON.stringify(during));
+   assert.ok(Math.abs((await state()).dividers[0].y - 118.7) < .05, 'it lands where it was let go, not pulled from beyond 1 mm: ' + (await state()).dividers[0].y);
    assert.equal((await guide()).on, false, 'the guide goes when the drag ends');
    await page.locator('#editor').locator('canvas').focus(); await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(150);
    assert.equal((await state()).dividers[0].y, 100, 'one undo puts it back');
@@ -96,22 +102,22 @@ const shots = process.argv[2] || '/tmp';
     await tap(await board(0));
     await drag(await board(0), 0, 19.3, async () => { during = await guide(); }, true);
     const y = (await state()).dividers[0].y;
-    assert.equal(during.on, false, 'Shift: no snap and no guide'); assert.ok(y !== 120 && Math.abs(y - 119.3) < 1, 'Shift moves freely: ' + y);
+    assert.ok(y !== 120 && Math.abs(y - 119.3) < .05, 'Shift moves freely: ' + y);
    }
-   // The divider in the next bay: centred in its space.
+   // The divider in the next bay, dragged near the middle of its space: the guide shows the middle, and it lands where
+   // it is let go.
    await tap(await board(2)); await tap(await board(2));
    assert.equal((await state()).divider, 2, 'the divider is selected');
-   const ws = await page.evaluate(() => window.fx.rules.widths());
+   const ws = await page.evaluate(() => window.fx.rules.widths()), from = (await state()).dividers[2].x;
    await drag(await board(2), -9.4, 0, async () => {
     during = await guide();
     await page.screenshot({ path: `${shots}/board-centred-${width}.png` });
    });
-   assert.ok(during.on, 'the snap line shows while the divider is centred');
-   const d = (await state()).dividers[2]; assert.ok(Math.abs(d.x - ws[1] / 2) < 1e-9, 'exactly centred: ' + d.x);
-   const gaps = await page.evaluate(() => { const m = window.fx.rules.dividerMeasurements(2); return [m.before, m.after]; });
-   assert.ok(Math.abs(gaps[0] - gaps[1]) < 1e-9, 'equal gaps either side: ' + gaps);
+   assert.ok(during.on, 'a guide shows while the divider nears the middle of its space');
+   const d = (await state()).dividers[2];
+   assert.ok(Math.abs(d.x - (from - 9.4)) < .05 && Math.abs(d.x - ws[1] / 2) < 1.5, 'near the middle, where it was let go: ' + d.x);
    assert.deepEqual(errors, []);
-   console.log(`PASS ${width}px: shelf level with the next bay, divider centred, guide only while aligned, exact landing, undo${mobile ? '' : ', Shift free'}`);
+   console.log(`PASS ${width}px: guides show a shelf nearing the next bay's level and a divider nearing the middle, none far away; boards land where let go; undo${mobile ? '' : ', Shift free'}`);
    await page.evaluate(() => window.fx.editor.dispose()); await page.close();
   }
  } finally { await browser.close(); }

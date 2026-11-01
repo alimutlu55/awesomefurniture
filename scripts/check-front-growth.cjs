@@ -1,6 +1,10 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const {selectFurniture,openShape}=require('./lib/select-furniture.cjs');
+// Under a ceiling sloping down to the back wall (180 cm there, 212 cm over the wardrobe's front), the Size drawing's
+// side view lets the front of the top rise into its own headroom while the back stays at the ceiling; a height above
+// the ceiling is refused; dragging the front corner (a finger on a phone) moves it within that headroom; every edit is
+// one undo step.
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
  for(const width of [375,1440]){
   const page=await browser.newPage({viewport:{width,height:812},hasTouch:true,isMobile:width===375,reducedMotion:'reduce'}),errors=[];
@@ -9,53 +13,34 @@ const {selectFurniture,openShape}=require('./lib/select-furniture.cjs');
   const spec={specVersion:1,room:{width:400,depth:150,height:260},ceilings:[{wall:1,shape:'slope',points:[[0,180],[150,260]]}],
    wardrobes:[{against:1,from:120,width:160,depth:60}]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
-  const el=id=>page.locator(`[data-editor-id="${id}"]`),bar=el('toolbar');
-  // A design opens with nothing chosen: a tap on the wardrobe chooses it.
   await page.waitForTimeout(450);await selectFurniture(page);
-  const v=await el('view').boundingBox();
-  await bar.locator('[data-action="resize"]').click();await page.waitForTimeout(350);
-  await el('h').fill('100');await el('h').press('Tab');await page.waitForTimeout(200);
   await openShape(page);
-  if(width===1440){await page.locator('.shape-handle.split-handle:visible').click();await page.waitForTimeout(350);}
-  const index=width===375?0:1;
-  const front=()=>page.locator(`.shape-row[data-point="${index}"] input[data-k="y"]:not([data-side="rear"])`);
-  const rear=()=>page.locator(`.shape-row[data-point="${index}"] input[data-k="y"][data-side="rear"]`);
-  const heights=async()=>[Number(await front().inputValue()),Number(await rear().inputValue())];
-  assert.deepEqual(await heights(),[100,100]);
-  const cdp=await page.context().newCDPSession(page);
-  const drag=async(pixels,cancel=false)=>{
-   const handle=page.locator(`.shape-handle.point[data-side="front"][data-index="${index}"]:visible`),b=await handle.boundingBox();
-   const x=b.x+b.width/2,y=b.y+b.height/2;
-   if(width===375){
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
-    for(let n=1;n<=10;n++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-pixels*n/10,id:1}]});await page.waitForTimeout(25);}
-    await cdp.send('Input.dispatchTouchEvent',{type:cancel?'touchCancel':'touchEnd',touchPoints:[]});
-   }else{
-    await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x,y-pixels,{steps:10});
-    if(cancel){await handle.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.move(x,y);}await page.mouse.up();
-   }
-   await page.waitForTimeout(350);
-  };
-  await drag(25);const first=await heights();assert.ok(first[0]>100 && first[0]<180,JSON.stringify({width,first}));assert.equal(first[1],first[0],'Rear uses available headroom');
-  let capped=first,beforeFinal=first;
-  if(width===1440){
-   await front().fill('200');await front().press('Tab');await page.waitForTimeout(350);capped=await heights();
-   await page.locator(`.shape-handle.point[data-side="front"][data-index="${index}"]:visible`).focus();
-  }else for(let n=0;n<10 && capped[0]<=180;n++){beforeFinal=capped;await drag(120);capped=await heights();}
-  assert.ok(capped[0]>180,'Front uses its higher clearance: '+JSON.stringify({width,capped}));assert.equal(capped[1],180,'Rear stops at the physical ceiling');
-  await drag(20,true);assert.deepEqual(await heights(),capped,'Cancel restores both edges');
-  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),beforeFinal,'Undo restores both edges in one step');
-  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),capped);
-  await front().fill('150');await front().press('Tab');await page.waitForTimeout(350);
-  assert.deepEqual(await heights(),[150,150],'Lowering below the rear lowers both edges');
-  await page.locator(`.shape-handle.point[data-side="front"][data-index="${index}"]:visible`).focus();
-  if(width===1440){await page.mouse.move(v.x+v.width*.7,v.y+v.height*.7);await page.mouse.wheel(0,650);await page.waitForTimeout(450);}
-  await drag(-25);const lowered=await heights();
-  assert.ok(lowered[0]<150,JSON.stringify({width,lowered}));assert.equal(lowered[1],lowered[0],'Rear follows downward drag');
-  await drag(-20,true);assert.deepEqual(await heights(),lowered,'Downward cancellation restores both edges');
-  await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),[150,150]);
-  await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(250);assert.deepEqual(await heights(),lowered);
+  const d=page.locator('[data-editor-id="wardrobe-size-drawing"]');
+  await d.locator('[data-shape-view="side"]').click();await page.waitForTimeout(300);
+  // In the side view corner 2 is the front of the top and corner 3 its back; a chosen corner shows its Height.
+  const at=async c=>{await d.locator(`.shape-corner[data-corner="${c}"]`).click();await page.waitForTimeout(150);return Number(await d.locator('[data-shape-field="y"]').inputValue());};
+  const heights=async()=>[await at(2),await at(3)];
+  const front=async v=>{await at(2);const f=d.locator('[data-shape-field="y"]');await f.fill(String(v));await f.press('Tab');await page.waitForTimeout(350);};
+  const undo=async(redo=false)=>{await page.locator('[data-editor-id="c"]').focus();await page.keyboard.press(redo?'ControlOrMeta+Shift+z':'ControlOrMeta+z');await page.waitForTimeout(300);};
+  assert.deepEqual(await heights(),[180,180],'it opens following the ceiling at the back');
+  await front(200);assert.deepEqual(await heights(),[200,180],'the front uses its higher headroom; the back stays at the ceiling');
+  await front(230);assert.deepEqual(await heights(),[200,180],'a front above the ceiling is refused');
+  await undo();assert.deepEqual(await heights(),[180,180],'one undo');
+  await undo(true);assert.deepEqual(await heights(),[200,180],'one redo');
+  await front(150);assert.equal((await heights())[0],150,'the front comes down');
+  const corner=d.locator('.shape-corner[data-corner="2"]'),r=await corner.boundingBox(),x=r.x+r.width/2,y=r.y+r.height/2;
+  if(width===375){
+   const cdp=await page.context().newCDPSession(page);
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
+   for(let n=1;n<=10;n++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-25*n/10,id:1}]});await page.waitForTimeout(25);}
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }else{await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x,y-25,{steps:10});await page.mouse.up();}
+  await page.waitForTimeout(350);
+  const dragged=await heights();
+  assert.ok(dragged[0]>150 && dragged[0]<=212,'dragging the front corner up raises it within its headroom: '+JSON.stringify(dragged));
+  assert.ok(dragged[1]<=180,'the back never passes the ceiling');
+  await undo();assert.equal((await heights())[0],150,'one undo puts the drag back');
   await page.screenshot({path:'/tmp/wardrobe-front-growth-'+width+'.png'});assert.deepEqual(errors,[]);
-  console.log(`PASS ${width}px: rear follows upward and downward edits, stops at ceiling, cancellation and single-step undo/redo`);await page.close();
+  console.log(`PASS ${width}px: under a sloped ceiling the front rises into its headroom, the back stays at the ceiling, too high is refused, drag and single-step undo/redo`);await page.close();
  }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

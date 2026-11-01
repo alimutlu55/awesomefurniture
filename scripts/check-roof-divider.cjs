@@ -1,26 +1,20 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
-const {selectFurniture,openShape}=require('./lib/select-furniture.cjs');
+const {selectFurniture}=require('./lib/select-furniture.cjs');
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});try{
  for(const width of [375,1440]){
   const page=await browser.newPage({viewport:{width,height:812},hasTouch:true,isMobile:width===375,reducedMotion:'reduce'}),errors=[];
   page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,body:'{}'}));
-  const spec={specVersion:1,wardrobes:[{width:200,height:230,depth:80}]};
+  // A ceiling coming down to the back wall: the wardrobe's top falls from 230 cm at its front to 140 cm at its back.
+  const spec={specVersion:1,room:{width:400,depth:200,height:260},ceilings:[{wall:1,shape:'slope',points:[[0,140],[80,230],[200,260]]}],
+   wardrobes:[{against:1,from:100,width:200,height:230,depth:80}]};
   await page.goto((process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173')+'/#spec='+encodeURIComponent(JSON.stringify(spec)));
   const el=id=>page.locator(`[data-editor-id="${id}"]`),bar=el('toolbar');
   // A design opens with nothing chosen: a tap on the wardrobe chooses it.
   await page.waitForTimeout(450);await selectFurniture(page);
   const v=await el('view').boundingBox();
-  await openShape(page);
-  for(const index of [0,1]){
-   const rear=page.locator(`.shape-row[data-point="${index}"] input[data-k="y"][data-side="rear"]`);
-   await rear.fill('140');await rear.press('Tab');await page.waitForTimeout(200);
-  }
-  await page.locator('.shape-handle.point[data-side="front"]').first().focus();
-  await page.keyboard.press('Escape');await page.waitForTimeout(350);
-  // Add item is on the model, in the selected section.
-  // Add item is on the model: leave Shape editing, then choose the wardrobe's space.
+  // Add item is on the model: choose the wardrobe's space.
   for(let tries=0;tries<4&&!await page.locator('.lbl.add:visible').count();tries++){
    if(await page.locator('.shape-handle.point:visible').count()){await page.keyboard.press('Escape');await page.waitForTimeout(350);continue;}
    if(await el('wardrobe-btn').isVisible())await el('wardrobe-btn').click();

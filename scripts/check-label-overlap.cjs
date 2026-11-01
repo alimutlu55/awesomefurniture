@@ -18,11 +18,14 @@ const audit=()=>{const h=[...document.querySelectorAll('*')].find(x=>x.shadowRoo
   const page=await browser.newPage({viewport:{width,height:812},hasTouch:width<500,isMobile:width<500,reducedMotion:'reduce'});
   page.setDefaultTimeout(8000);
   await page.route('https://*.supabase.co/**',r=>r.fulfill({status:400,contentType:'application/json',body:'{}'}));
-  await page.goto(base+'/');
+  await page.goto(base+'/editor.html');
   const el=id=>page.locator(`[data-editor-id="${id}"]`);await el('view').waitFor();await page.waitForTimeout(1200);
   const problems=[];
   for(const kind of ['base','upper','oven-tower','sink-top','upper']){
-   await page.locator('[data-editor-id="add-furniture-btn"]:visible, [data-editor-id="toolbar"] [data-action="new"]:visible').first().click();await page.waitForTimeout(400);
+   // The unit just added stays chosen (its own tools show): let it go to get Add back.
+   const add=page.locator('[data-editor-id="add-furniture-btn"]:visible, [data-editor-id="toolbar"] [data-action="new"]:visible').first();
+   for(let n=0;n<3&&!await add.isVisible();n++){await el('c').focus().catch(()=>{});await page.keyboard.press('Escape');await page.waitForTimeout(300);}
+   await add.click();await page.waitForTimeout(400);
    await page.getByRole('button',{name:/Cabinets/}).first().click().catch(()=>{});await page.waitForTimeout(250);
    await page.locator(`[data-add-kitchen="${kind}"]:visible`).first().click();await page.waitForTimeout(900);
    problems.push(...(await page.evaluate(audit)).map(p=>kind+': '+p));
