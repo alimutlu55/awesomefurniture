@@ -163,8 +163,8 @@ export function createMakeView(ports: MakeViewPorts) {
   function showPanel(mode: 'list' | 'part') {
     st.panel = mode;
     renderPanel();
-    if (!panel.classList.contains('show')) { panel.dataset.sheetPosition = 'compact'; panel.classList.add('show'); }
-    if (mode === 'part') panel.dataset.sheetPosition = 'expanded';
+    panel.dataset.sheetPosition = 'expanded';
+    if (!panel.classList.contains('show')) panel.classList.add('show');
   }
   function hidePanel() {
     if (panel.classList.contains('show')) { animateMobileSheetClose(panel); panel.classList.remove('show'); }
