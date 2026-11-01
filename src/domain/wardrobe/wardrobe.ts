@@ -63,6 +63,8 @@ export interface WardrobePreferences {
 }
 
 export interface Wardrobe {
+  /** How it is put together (joints, back), chosen in Make; absent uses the defaults. */
+  construction?: import('../make/make-construction').Construction | undefined;
   /** Kitchen plinth height in centimetres; absent retains the legacy 80 mm construction. */
   plinthHeight?: number | undefined;
   /** Specified finished assembly thicknesses (cm); absent uses selected stock or legacy construction. */

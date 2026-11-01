@@ -1,0 +1,143 @@
+import type { Board } from '../drawings/cabinet-boards';
+import { isFrontBoard, piecefronts, type Front } from '../drawings/fronts';
+import { cornerFaceWidths } from '../drawings/corner-widths';
+import type { PlacedPiece } from '../drawings/room-pieces';
+import { isKitchen } from '../furniture/furniture';
+import { kitchenUnit } from '../kitchen/kitchen-units';
+import { resolveMaterials } from '../materials/configured-materials';
+import { plinthOf } from '../wardrobe/carcass';
+import { PANEL } from '../wardrobe/catalog.js';
+import { drawerExtension } from '../wardrobe/drawer-runners';
+import type { Fitting, Hole } from './make-joints';
+import { thinAxis, type Vec3 } from './make-measures';
+
+/** Concealed hinges by a door's height, as the drawing set's hardware list counts them: up to 900 mm two, to 1600 three,
+ * to 2000 four, above five. Millimetres. */
+export const hingesFor = (heightMm: number) => heightMm <= 900 ? 2 : heightMm <= 1600 ? 3 : heightMm <= 2000 ? 4 : 5;
+/** Hinge centres along a door `length` cm tall: 10 cm from each end and evenly between. */
+export function hingeStations(length: number): number[] {
+  const n = hingesFor(Math.round(length * 10));
+  return Array.from({ length: n }, (_, k) => 10 + (length - 20) * k / (n - 1));
+}
+/** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
+export const SYSTEM_LINE = 3.7;
+/** Cup centre 22.5 mm from the door's hinge edge (a 5 mm boring distance); plate holes 32 mm apart. */
+const CUP = 2.25, PLATE_PITCH = 3.2, RUNNER_CLEARANCE = 1.25;
+
+const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
+const isUpright = (b: Board, h: number) => b.stock === 'carcass' && thinAxis(b) === 'x' && b.y1 - b.y0 > h * .2;
+/** The uprights either side of a point, nearest first: the board whose face is left of `x` and the one right of it. */
+function uprightsAround(boards: readonly Board[], x: number, y: number, h: number) {
+  const ups = boards.map((b, i) => ({ b, i })).filter(({ b }) => isUpright(b, h) && b.y0 <= y && b.y1 >= y);
+  const left = ups.filter(u => u.b.x1 <= x + .01).sort((p, q) => q.b.x1 - p.b.x1)[0];
+  const right = ups.filter(u => u.b.x0 >= x - .01).sort((p, q) => p.b.x0 - q.b.x0)[0];
+  return { left, right };
+}
+/** The cut front that is this board. */
+const frontOf = (fronts: readonly Front[], b: Board) => fronts.find(f => isFrontBoard(f, b));
+
+function box(name: string, stock: Board['stock'], x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, grain: 0 | 1 | 2, edges: string, decorId: string): Board {
+  const e = [x1 - x0, y1 - y0, z1 - z0], order = [0, 1, 2].sort((a, b) => e[a]! - e[b]!), t = order[0]!;
+  const along = grain === t ? order[2]! : grain, across = [0, 1, 2].find(a => a !== along && a !== t)!;
+  return { name, stock, decorId, x0, x1, y0, y1, z0, z1, cut: { length: e[along]!, width: e[across]!, thickness: e[t]! }, edges, note: 'drawer box' };
+}
+
+/**
+ * Drawer boxes for side-mount runners: two sides and two ends 18 mm thick, the ends between the sides, on a 6 mm
+ * bottom; 12.5 mm clear of each upright for the runners, as long as the runner, 40 mm lower than the front and clear of
+ * the boards under and over it.
+ */
+export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board[] {
+  const { design } = piece, out: Board[] = [], length = drawerExtension(design.d), h = design.h;
+  const m = resolveMaterials(design), decor = m.drawerDecorId ?? m.carcassDecorId, bottomDecor = m.backingDecorId ?? decor;
+  const fronts = piecefronts(design).fronts;
+  for (const f of boards) {
+    const opening = frontOf(fronts, f)?.opens;
+    if (!(f.name === 'Drawer front' || (f.stock === 'front' && opening === 'pull'))) continue;
+    const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
+    if (!left || !right) continue;
+    const x0 = left.b.x1 + RUNNER_CLEARANCE, x1 = right.b.x0 - RUNNER_CLEARANCE;
+    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - .2, z0 = Math.max(z1 - length, left.b.z0);
+    // Between the boards under and over it: the base or a shelf below, the top or a shelf above.
+    const across = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.x0 < x1 && b.x1 > x0);
+    const floor = Math.max(f.y0, left.b.y0, ...across.filter(b => b.y1 <= cy).map(b => b.y1));
+    const ceiling = Math.min(f.y1, left.b.y1, ...across.filter(b => b.y0 >= cy).map(b => b.y0));
+    const y0 = floor + 1.5, yb = y0 + .6, tall = Math.min(25, f.y1 - f.y0 - 4, ceiling - yb - 1.5);
+    if (x1 - x0 < 4 * PANEL || z1 - z0 < 10 || tall < 6) continue;
+    out.push(box('Box side', 'carcass', x0, x0 + PANEL, yb, yb + tall, z0, z1, 2, 'L1', decor), box('Box side', 'carcass', x1 - PANEL, x1, yb, yb + tall, z0, z1, 2, 'L1', decor),
+      box('Box end', 'carcass', x0 + PANEL, x1 - PANEL, yb, yb + tall, z1 - PANEL, z1, 0, 'L1', decor),
+      box('Box end', 'carcass', x0 + PANEL, x1 - PANEL, yb, yb + tall, z0, z0 + PANEL, 0, 'L1', decor),
+      box('Box bottom', 'back', x0, x1, y0, yb, z0, z1, 0, '—', bottomDecor));
+  }
+  return out;
+}
+
+/** Hinges, runners, shelf pins and handles, with the holes each needs, and the rails, legs, hangers and wall brackets. */
+export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]) {
+  const { design } = piece, holes: Hole[] = [], fittings: Fitting[] = [], h = design.h, kitchen = isKitchen(design);
+  const { fronts, inside } = piecefronts(design, cornerFaceWidths(piece, pieces)), handles = resolveMaterials(design).handleFinish !== 'handleless_tip_on';
+  boards.forEach((b, i) => {
+    if (b.stock !== 'door' && b.stock !== 'front') return;
+    const f = frontOf(fronts, b), [cx, cy] = centre(b);
+    if (f?.opens === 'side' && !f.label) {
+      // Hinges along the hinge edge: a cup in the door's back, a plate on the upright it hangs from.
+      const hinge = f.hinge ?? 'left', edgeX = hinge === 'left' ? b.x0 : b.x1, { left, right } = uprightsAround(boards, hinge === 'left' ? edgeX + 3 : edgeX - 3, b.y0 + 10, h);
+      // Under a slope the upright it hangs from can end below the door's top: hinges go along what they share.
+      const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
+      for (const s of hingeStations(edgeTop - b.y0)) {
+        const y = b.y0 + s, cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0];
+        holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13 });
+        fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: '110°' });
+        if (!post) continue;
+        const face = hinge === 'left' ? post.b.x1 : post.b.x0, sign = hinge === 'left' ? -1 : 1, z = post.b.z1 - SYSTEM_LINE;
+        for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12 });
+        fittings.push({ kind: 'plate', at: [face, y, z], axis: 0, boards: [post.i] });
+      }
+    }
+    if (handles && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
+      // Two holes 128 mm apart, through the front: upright beside a door's free edge, level across a drawer.
+      const door = f?.opens === 'side', free = f?.hinge === 'right' ? b.x0 + 4 : b.x1 - 4;
+      const y = door ? (b.y0 >= 120 ? b.y0 + 8 : b.y1 <= 100 ? b.y1 - 8 : Math.min(b.y1 - 10, Math.max(b.y0 + 10, 100))) : b.y1 - b.y0 < 20 ? cy : b.y1 - 6;
+      const points: Vec3[] = door ? [[free, y - 6.4, b.z1], [free, y + 6.4, b.z1]] : [[cx - 6.4, y, b.z1], [cx + 6.4, y, b.z1]];
+      for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: -1, d: 5, depth: 0 });
+      fittings.push({ kind: 'handle', at: [door ? free : cx, y, b.z1], axis: 2, boards: [i], size: '128' });
+    }
+  });
+  // Runners: a pair for every drawer box, screwed to the uprights on the System 32 line.
+  const runner = Math.round(drawerExtension(design.d) * 10);
+  boards.forEach((b, i) => {
+    if (b.name !== 'Box side') return;
+    const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
+    if (!left || !right) return;
+    const post = b.x0 - left.b.x1 < right.b.x0 - b.x1 ? left : right;
+    const face = post === left ? post.b.x1 : post.b.x0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
+    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) holes.push({ board: post.i, kind: 'runner', at: [face, y, post.b.z1 - SYSTEM_LINE - back], axis: 0, sign, d: 5, depth: 12 });
+    if (post === left) fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: [i, post.i], size: String(runner) });
+  });
+  // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down.
+  boards.forEach((b, i) => {
+    if (b.note !== 'adjustable') return;
+    const { left, right } = uprightsAround(boards, (b.x0 + b.x1) / 2, b.y0, h);
+    for (const [post, face, sign] of [[left, left?.b.x1, -1], [right, right?.b.x0, 1]] as const) {
+      if (!post || face === undefined) continue;
+      for (const z of [b.z0 + SYSTEM_LINE, b.z1 - SYSTEM_LINE]) {
+        for (let k = -2; k <= 2; k++) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + 3.2 * k, z], axis: 0, sign, d: 5, depth: 10 });
+        fittings.push({ kind: 'pin', at: [face, b.y0, z], axis: 0, boards: [i, post.i] });
+      }
+    }
+  });
+  // Hanging rails with an end support at each side, cut 4 mm shorter than the bay.
+  for (const r of inside.filter(x => x.kind === 'rail')) {
+    const y = r.y0, at: Vec3 = [(r.x0 + r.x1) / 2, y, design.d / 2];
+    fittings.push({ kind: 'rail', at, axis: 0, boards: [], size: String(Math.round((r.x1 - r.x0) * 10) - 4) });
+    fittings.push({ kind: 'support', at: [r.x0, y, design.d / 2], axis: 0, boards: [] }, { kind: 'support', at: [r.x1, y, design.d / 2], axis: 0, boards: [] });
+  }
+  // Standing, hanging and fixing: legs under a kitchen floor unit, hangers on a wall unit, brackets on tall pieces.
+  const unit = kitchen ? kitchenUnit(design.unit) : null, base = boards.findIndex(b => b.name === 'Base');
+  if (unit?.plinth && plinthOf(design) > 0) for (const [x, z] of [[5, 5], [design.w - 5, 5], [5, design.d - 5], [design.w - 5, design.d - 5]] as const) {
+    fittings.push({ kind: 'leg', at: [x, 0, z], axis: 1, boards: base >= 0 ? [base] : [], size: String(Math.round(plinthOf(design) * 10)) });
+  }
+  if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - 3, 0], axis: 2, boards: [], size: 'pair' });
+  if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) fittings.push({ kind: 'bracket', at: [x, design.h - 2, 0], axis: 2, boards: [] });
+  return { holes, fittings };
+}

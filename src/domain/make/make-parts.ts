@@ -4,6 +4,10 @@ import { type DrawingInput, type PlacedPiece, placePieces } from '../drawings/ro
 import { pieceBoards } from '../drawings/unit-detail';
 import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
+import { assemblySteps, buyList, drillingChecks, drillingSignature, type BuyLine, type Finding, type Step } from './make-assembly';
+import { type Construction, constructionOf } from './make-construction';
+import { drawerBoxes, frontHardware } from './make-hardware';
+import { backFixing, findJoints, type Fitting, type Groove, type Hole, jointFittings } from './make-joints';
 
 /**
  * Make: one piece of furniture taken down to the boards it is cut from. Every board comes from `cabinetBoards` (through
@@ -22,11 +26,22 @@ export interface MakePart {
   readonly decorId: string;
   readonly note?: string | undefined;
   readonly boards: readonly Board[];
+  /** Where its boards are in the piece's board list (holes, grooves and fittings name boards by this index). */
+  readonly ids: readonly number[];
 }
 export interface MakePiece {
   readonly piece: PlacedPiece;
   readonly parts: readonly MakePart[];
   readonly size: { readonly w: number; readonly h: number; readonly d: number };
+  /** Every board: the cutting list's, then the drawer boxes Make adds for side-mount runners. */
+  readonly boards: readonly Board[];
+  readonly construction: Construction;
+  readonly holes: readonly Hole[];
+  readonly grooves: readonly Groove[];
+  readonly fittings: readonly Fitting[];
+  readonly steps: readonly Step[];
+  readonly buy: readonly BuyLine[];
+  readonly findings: readonly Finding[];
 }
 
 /** The decor a board is cut from. */
@@ -38,24 +53,25 @@ export function decorOf(b: Board, design: EditorDesign): string {
   return m.carcassDecorId;
 }
 
-/** What makes two boards the same part: name, stock, cutting size to the millimetre, banding, decor, and the shape
- * of a sloped outline (taken from its own corner, so a left and a right side under a slope stay apart). */
-function sameness(b: Board, decor: string): string {
+/** What makes two boards the same part: name, stock, cutting size to the millimetre, banding, decor, the shape of a
+ * sloped outline (taken from its own corner, so a left and a right side under a slope stay apart), and its drilling. */
+function sameness(b: Board, decor: string, drilling: string): string {
   const x = b.outline ? Math.min(...b.outline.map(p => p.x)) : 0, y = b.outline ? Math.min(...b.outline.map(p => p.y)) : 0;
   const outline = b.outline ? b.outline.map(p => mm(p.x - x) + ',' + mm(p.y - y)).join(' ') : '';
-  return [b.name, b.stock, mm(b.cut.length), mm(b.cut.width), mm(b.cut.thickness), b.edges, decor, outline].join('|');
+  return [b.name, b.stock, mm(b.cut.length), mm(b.cut.width), mm(b.cut.thickness), b.edges, decor, outline, drilling].join('|');
 }
 
-/** The boards of a piece as numbered parts. Numbers follow the order the boards are built in (`cabinetBoards`). */
-export function makeParts(boards: readonly Board[], design: EditorDesign): MakePart[] {
-  const groups = new Map<string, { decor: string; boards: Board[] }>();
-  for (const b of boards) {
-    const decor = decorOf(b, design), key = sameness(b, decor), group = groups.get(key);
-    if (group) group.boards.push(b); else groups.set(key, { decor, boards: [b] });
-  }
+/** The boards of a piece as numbered parts. Numbers follow the order the boards are built in (`cabinetBoards`); boards
+ * drilled differently (a left and a right side) are different parts. */
+export function makeParts(boards: readonly Board[], design: EditorDesign, holes: readonly Hole[] = []): MakePart[] {
+  const groups = new Map<string, { decor: string; boards: Board[]; ids: number[] }>();
+  boards.forEach((b, i) => {
+    const decor = decorOf(b, design), key = sameness(b, decor, drillingSignature(b, holes.filter(h => h.board === i))), group = groups.get(key);
+    if (group) { group.boards.push(b); group.ids.push(i); } else groups.set(key, { decor, boards: [b], ids: [i] });
+  });
   return [...groups.values()].map((g, i) => {
     const b = g.boards[0]!;
-    return { n: i + 1, name: b.name, stock: b.stock, cut: b.cut, edges: b.edges, decorId: g.decor, note: b.note, boards: g.boards };
+    return { n: i + 1, name: b.name, stock: b.stock, cut: b.cut, edges: b.edges, decorId: g.decor, note: b.note, boards: g.boards, ids: g.ids };
   });
 }
 
@@ -63,10 +79,16 @@ export function makeParts(boards: readonly Board[], design: EditorDesign): MakeP
 export function makePiece(input: DrawingInput, id: number): MakePiece | null {
   const pieces = placePieces(input), piece = pieces.find(p => p.id === id);
   if (!piece) return null;
-  const boards = pieceBoards(piece, pieces);
-  if (!boards.length) return null;
+  const cut = pieceBoards(piece, pieces);
+  if (!cut.length) return null;
+  const boards = [...cut, ...drawerBoxes(piece, cut)], construction = constructionOf(piece.design);
+  const joints = jointFittings(boards, findJoints(boards), construction), back = backFixing(boards, construction), hardware = frontHardware(piece, pieces, boards);
+  const holes = [...joints.holes, ...hardware.holes], fittings = [...joints.fittings, ...back.fittings, ...hardware.fittings];
   const { w, h, d } = piece.design;
-  return { piece, parts: makeParts(boards, piece.design), size: { w, h, d } };
+  return {
+    piece, parts: makeParts(boards, piece.design, holes), size: { w, h, d }, boards, construction, holes, grooves: back.grooves, fittings,
+    steps: assemblySteps(boards, fittings), buy: buyList(fittings), findings: drillingChecks(boards, holes),
+  };
 }
 
 /** How many long and short edges are banded, from the cutting list's code (L1, L2 W2, L1 W2, —). */

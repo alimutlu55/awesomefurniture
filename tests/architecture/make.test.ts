@@ -15,14 +15,17 @@ const piece = (design: EditorDesign) => makePiece({ pieces: [{ id: 7, name: 'W',
 test('every board of the piece is in exactly one numbered part, numbered 1, 2, 3… in build order', () => {
   const mp = piece(wardrobe), boards = cabinetBoards(wardrobe);
   assert.deepEqual(mp.parts.map(p => p.n), mp.parts.map((_, i) => i + 1));
-  assert.equal(mp.parts.reduce((s, p) => s + p.boards.length, 0), boards.length);
+  // The cutting list's boards, then the drawer boxes Make adds for the runners.
+  assert.deepEqual(mp.boards.slice(0, boards.length), boards);
+  assert.ok(mp.boards.slice(boards.length).every(b => b.note === 'drawer box'));
+  assert.equal(mp.parts.reduce((s, p) => s + p.boards.length, 0), mp.boards.length);
   assert.equal(mp.parts[0]!.name, boards[0]!.name);
   const mm = (c: { length: number; width: number; thickness: number }) => [c.length, c.width, c.thickness].map(v => Math.round(v * 10));
   for (const p of mp.parts) for (const b of p.boards) assert.deepEqual(mm(b.cut), mm(p.cut), `part ${p.n} groups boards of one size`);
 });
 
 test('identical boards are one part counted together; the two sides of a plain wardrobe are one part of two', () => {
-  const sides = piece(wardrobe).parts.filter(p => p.name === 'Side');
+  const sides = piece(createInitialDesign()).parts.filter(p => p.name === 'Side');
   assert.equal(sides.length, 1);
   assert.equal(sides[0]!.boards.length, 2);
 });

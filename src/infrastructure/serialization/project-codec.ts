@@ -8,6 +8,7 @@ import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
 import { POSSESSIONS } from '../../domain/wardrobe/possessions';
 import { ALL_PURPOSES } from '../../domain/wardrobe/purposes';
+import { BACK_FIXINGS, JOINT_SYSTEMS } from '../../domain/make/make-construction';
 import type { Needs } from '../../domain/wardrobe/possessions';
 import type { ItemKind, StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
@@ -85,6 +86,7 @@ const wardrobe = z.strictObject({
   position: z.strictObject({ x: finite, y: nonnegative, z: finite }),
   rotation: finite,
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
+  construction: z.strictObject({ joints: z.enum(JOINT_SYSTEMS), back: z.enum(BACK_FIXINGS) }).optional(),
   materials: materialsSchema.optional(), plinthHeight: finite.min(0).max(30).optional(), cornerStrip: finite.min(0).max(30).optional(), fridgeSplit: finite.min(0).max(270).optional(),
   leftPanelThickness: finite.min(0).max(10).optional(),
   rightPanelThickness: finite.min(0).max(10).optional(),
