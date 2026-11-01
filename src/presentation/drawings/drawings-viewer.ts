@@ -12,6 +12,7 @@ import type { AnnotationOffsets } from './annotation-layout';
 import type { CreditWalletApi } from '../credits/credit-wallet';
 import type { CreditFeatureKey } from '../../domain/credits/credit-catalog';
 import { createLoadingPlaceholder, createLoadingState, paintLoading } from '../components/loading-state';
+import { saveFile } from '../components/save-file';
 
 interface Ports {
   /** The editor's controls, and the page it is mounted in (a download link belongs to the page). */
@@ -125,17 +126,7 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
     if (!current) return;
     if (!releaseCurrent(current, scene())) build();
     const name = fileName(current.info.project), bytes = marksToPdf(current.marks, { w: PAPER.w, h: PAPER.h }, current.info.project + ' - technical drawings');
-    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }), win = page.defaultView;
-    const file = typeof File === 'function' ? new File([blob], name, { type: 'application/pdf' }) : null, nav = win?.navigator;
-    if (file && nav?.canShare?.({ files: [file] }) && win?.matchMedia('(pointer: coarse)').matches) {
-      try { await nav.share({ files: [file], title: name }); return; } catch (e) { if ((e as Error).name === 'AbortError') return; }
-    }
-    const url = URL.createObjectURL(blob), link = page.createElement('a');
-    link.href = url; link.download = name; link.rel = 'noopener';
-    page.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    await saveFile(page, name, new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }));
   }
   lifetime.listen(item, 'click', () => { void open(); });
   lifetime.listen(panel.querySelector('.drawings-close')!, 'click', close);
