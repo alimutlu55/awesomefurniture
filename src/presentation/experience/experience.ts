@@ -60,7 +60,7 @@ export function mountExperience(ports: ExperiencePorts) {
   const saved = readPreferences(storage);
   const mood: Mood = { look: (['living', 'maquette', 'workshop'].includes(saved.look) ? saved.look : 'living') as SceneLook, time: timeOfDay(saved.time).id, sounds: saved.sounds, apart: 0, flat: false };
   const reduced = () => !!view?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const looks = createSceneLooks({ scene: resources.scene, skip: o => o === resources.ground,
+  const looks = createSceneLooks({ scene: resources.scene, skip: o => o === resources.ground || !!o.userData.make,
     shading: m => !!resources.aoTexture && (m as THREE.MeshBasicMaterial).map === resources.aoTexture,
     version: () => renderState.buildStamp * 1e6 + resources.R.info.memory.geometries });
   const lamps = createWardrobeLamps(resources.scene);

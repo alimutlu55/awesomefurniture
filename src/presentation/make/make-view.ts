@@ -1,140 +1,211 @@
-import type { EditorScene } from '../../application/projects/editor-scene';
+import * as THREE from 'three';
 import { getDecor } from '../../domain/materials/decor-catalog';
 import { makePiece, type MakePiece } from '../../domain/make/make-parts';
-import { LENGTH_UNITS } from '../../domain/geometry/length-units';
-import { pieceName } from '../../domain/drawings/room-pieces';
-import { currentLengthUnit, lengthText, onLengthUnitChange, setLengthUnit } from '../editor/length-unit-state';
-import { createModelPane } from './make-model-pane';
-import { partSheetSvg, partTileSvg } from './make-sheet';
-import { MAKE_ICONS as I } from './make-icons';
+import { lengthText, onLengthUnitChange } from '../editor/length-unit-state';
+import { mountMobileSheet } from '../editor/mobile-sheet.js';
+import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
+import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
+import { marksSvg, type Projector } from './make-marks';
+import { partDetail, partsList } from './make-panel';
 import type { MakeViewPorts } from './make-view.ports';
 
-const BAND_KEY = 'furnidraw.make.band';
-const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
-/** A decor's colour lightened (k > 0) or darkened (k < 0), for the three shaded faces of the Material look. */
-function tone(hex: string, k: number) {
-  const n = parseInt(hex.replace('#', ''), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
-  return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
-}
-function decorOf(id: string) { try { return getDecor(id); } catch { return null; } }
-
-const MARKUP = `<header class="mk-bar">
-  <button type="button" class="mk-pill mk-backbtn" data-close aria-label="Back to Furniture">${I.back}<span class="mk-name" translate="no"></span></button>
-  <div class="mk-pill mk-tabs" role="tablist" aria-label="Views">
-    <button type="button" role="tab" data-tab="model" aria-selected="true">${I.model}<span>Model</span></button>
-    <button type="button" role="tab" data-tab="drawings" aria-selected="false">${I.drawings}<span>Drawings</span></button>
-  </div>
-  <div class="mk-pill mk-right"><button type="button" class="mk-unit" aria-label="Units" title="Units"></button></div>
-</header>
-<section class="mk-pane mk-model" data-pane="model">
-  <div class="mk-stagebox"><svg class="mk-stage" role="img" aria-label="The piece with its measurements. Drag to turn it; tap a part to see its own."></svg>
-    <div class="mk-pill mk-views" role="group" aria-label="View">
-      <button type="button" data-view="iso" aria-label="3D view" title="3D">${I.view3d}</button>
-      <button type="button" data-view="front" aria-label="Front view" title="Front">${I.front}</button>
-      <button type="button" data-view="side" aria-label="Side view" title="Side">${I.side}</button>
-      <button type="button" data-view="top" aria-label="Top view" title="Top">${I.top}</button>
-    </div></div>
-  <aside class="mk-dock" aria-label="Selected part" hidden></aside>
-  <div class="mk-film" aria-label="Parts"></div>
-  <div class="mk-tools"><div class="mk-pill" role="group" aria-label="Model tools">
-    <label class="mk-apart" title="Take apart">${I.assembled}<input type="range" min="0" max="100" value="0" data-apart aria-label="Take apart">${I.apart}</label>
-    <span class="mk-sep"></span>
-    <button type="button" data-toggle="solidFronts" aria-pressed="false" aria-label="Solid doors and fronts" title="Doors and fronts">${I.fronts}</button>
-    <button type="button" data-toggle="measures" aria-pressed="true" aria-label="Measurements" title="Measurements">${I.measures}</button>
-    <button type="button" data-toggle="numbers" aria-pressed="false" aria-label="Part numbers" title="Part numbers">${I.numbers}</button>
-    <span class="mk-sep"></span>
-    <button type="button" data-choose-look="lines" aria-pressed="true" aria-label="Lines" title="Lines">${I.lines}</button>
-    <button type="button" data-choose-look="material" aria-pressed="false" aria-label="Material" title="Material">${I.material}</button>
-    <button type="button" data-choose-look="xray" aria-pressed="false" aria-label="X-ray" title="X-ray">${I.xray}</button>
-  </div></div>
-</section>
-<section class="mk-pane mk-drawings" data-pane="drawings" hidden>
-  <nav class="mk-rail" aria-label="Part sheets"></nav>
-  <div class="mk-viewer"><div class="mk-viewer-bar"><button type="button" class="mk-link" data-set>${I.sheet}<span>Full drawing set</span></button></div><div class="mk-sheet"></div></div>
-</section>`;
+const BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
+const material = (id: string) => { try { return getDecor(id).name; } catch { return ''; } };
+type View = 'iso' | 'front' | 'side' | 'top';
 
 /**
- * Make: the selected wardrobe or cabinet taken down to its parts, opened from the piece's toolbar in Furniture. Model
- * shows it with every measurement; Drawings shows each part flat, to cut from. It reads the design and never changes it.
+ * Make: the selected wardrobe or cabinet taken down to its parts, inside the editor. Its boards replace the room in
+ * the editor's own view (the editor's camera, gestures and light), measurements are written over them, the bottom
+ * toolbar holds Make's tools, and a part's sizes and drawing open in the editor's own panel. Make reads the design and
+ * never changes it; Done (or Escape, or Studio | Furniture) puts the editor back as it was.
  */
-export function createMakeView({ dom, lifetime, scene, openDrawings, toast }: MakeViewPorts) {
-  const panel = dom.document.createElement('div');
-  panel.className = 'mk';
-  panel.hidden = true;
-  panel.tabIndex = -1;
+export function createMakeView(ports: MakeViewPorts) {
+  const { dom, lifetime, resources } = ports, doc = dom.document;
+  type Target = Pick<EventTarget, 'addEventListener' | 'removeEventListener'>;
+  const listen = lifetime.listen as (target: Target, event: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
+  const app = dom.$('#app'), view = dom.$('#view');
+  const make3d = createMake3d(resources, resources.scene);
+  const overlay = doc.createElementNS(SVG, 'svg') as SVGSVGElement;
+  overlay.setAttribute('class', 'make-overlay');
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.setAttribute('translate', 'no');
+  view.append(overlay);
+  const panel = doc.createElement('div');
+  panel.className = 'pop editor-panel make-panel';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
-  panel.setAttribute('aria-label', 'Make');
-  panel.dataset.look = 'lines';
-  panel.innerHTML = MARKUP;
-  dom.$('#app').append(panel);
-  const q = <E extends Element>(selector: string) => panel.querySelector<E>(selector)!;
-  const listen = lifetime.listen as (target: EventTarget, event: string, handler: (e: Event) => void, options?: AddEventListenerOptions) => void;
-  let piece: MakePiece | null = null, tab: 'model' | 'drawings' = 'model', sheet = 1;
+  panel.setAttribute('aria-label', 'Parts');
+  panel.innerHTML = '<div class="ph"><b class="make-title">Parts</b><span class="pbtns"><button type="button" class="make-back" aria-label="All parts" title="All parts">‹</button>'
+    + '<button type="button" class="make-close" aria-label="Close" title="Close">×</button></span></div><div class="make-body"></div>';
+  app.append(panel);
+  mountMobileSheet({ document: doc, lifetime, panel, name: 'Parts', close: () => hidePanel(), bottom: true, scene: app, docked: dom.matchMedia('(min-width:901px)') });
+
+  const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0,
+    solidFronts: false, measures: true, numbers: false, selected: null as number | null, panel: 'closed' as 'closed' | 'list' | 'part', marks: '' };
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
-  const length = () => (cm: number) => lengthText(cm);
-  const material = (id: string) => decorOf(id)?.name ?? '';
-  const shades = () => new Map((piece?.parts ?? []).flatMap(p => {
-    const hex = decorOf(p.decorId)?.pbr.baseHex;
-    return hex ? [[p.n, { ft: tone(hex, .18), ff: hex, fs: tone(hex, -.16) }] as const] : [];
-  }));
+  const length = (cm: number) => lengthText(cm);
+  const raycaster = new THREE.Raycaster(), local = new THREE.Vector3();
 
-  const model = createModelPane({ stage: q<SVGSVGElement>('.mk-stage'), dock: q('.mk-dock'), film: q('.mk-film'), tools: q('.mk-tools'), views: q('.mk-views'),
-    listen, frame: callback => lifetime.frame(callback), reducedMotion: () => dom.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    length, material, shades, band: { get: () => band, set: mm => { band = mm; try { globalThis.localStorage?.setItem(BAND_KEY, String(mm)); } catch { /* private window */ } } },
-    openSheet: n => { sheet = n; show('drawings'); }, close });
+  /** A point of the piece (centimetres from its left face, floor and back) where the editor's camera shows it. */
+  function projector(): Projector {
+    const piece = st.piece!, w = view.clientWidth, h = view.clientHeight;
+    // The camera in the piece's frame, to tell which way each measured plane faces it.
+    const eye = make3d.group.worldToLocal(resources.cam.position.clone()).add(new THREE.Vector3(piece.size.w / 2, 0, piece.size.d / 2));
+    const pr: Projector = p => {
+      local.set(p[0] - piece.size.w / 2, p[1], p[2] - piece.size.d / 2).applyMatrix4(make3d.group.matrixWorld).project(resources.cam);
+      return local.z > 1 || local.z < -1 ? false : [(local.x + 1) / 2 * w, (1 - local.y) / 2 * h];
+    };
+    pr.facing = (at, n) => {
+      const dx = eye.x - at[0], dy = eye.y - at[1], dz = eye.z - at[2], l = Math.hypot(dx, dy, dz) || 1;
+      return (dx * n[0] + dy * n[1] + dz * n[2]) / l;
+    };
+    return pr;
+  }
+  /** Runs every frame while Make is open, after the camera has moved: eases the piece apart, and rewrites the marks
+   * when the view, the size or what is shown has changed. */
+  function frame(camera: THREE.PerspectiveCamera, dt: number) {
+    if (!st.piece) return;
+    const goal = st.apartOn ? 1 : 0;
+    if (st.apart !== goal) {
+      const reduce = dom.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      st.apart = reduce || Math.abs(goal - st.apart) < .01 ? goal : st.apart + (goal - st.apart) * (1 - Math.exp(-dt * 9));
+      make3d.setApart(st.apart);
+    }
+    camera.updateMatrixWorld();
+    const w = view.clientWidth, h = view.clientHeight;
+    const key = camera.matrixWorld.elements.map(v => v.toFixed(2)).join() + camera.projectionMatrix.elements.slice(8, 10).map(v => v.toFixed(4)).join()
+      + [w, h, st.apart.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100)].join();
+    if (key === st.marks) return;
+    st.marks = key;
+    overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    overlay.innerHTML = marksSvg(st.piece, st, projector(), b => make3d.offsetOf(b), length, { w, h });
+  }
 
-  function renderDrawings() {
-    if (!piece) return;
-    q('.mk-rail').innerHTML = piece.parts.map(p => `<button type="button" data-sheet="${p.n}" aria-pressed="${p.n === sheet}">${partTileSvg(p, 30)}`
-      + `<span><span class="mk-num">${p.n}</span><span class="mk-rn" translate="no">${esc(p.name)}</span></span></button>`).join('');
-    const part = piece.parts.find(p => p.n === sheet) ?? piece.parts[0]!;
-    q('.mk-sheet').innerHTML = partSheetSvg(part, length(), material(part.decorId), band);
+  function renderPanel() {
+    if (!st.piece || st.panel === 'closed') return;
+    const part = st.piece.parts.find(p => p.n === st.selected), showPart = st.panel === 'part' && !!part;
+    panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : 'Parts';
+    panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart;
+    const shown = { piece: st.piece, selected: st.selected, band, length, material };
+    panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : partsList(shown);
   }
-  function show(next: 'model' | 'drawings') {
-    tab = next;
-    panel.querySelectorAll<HTMLElement>('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === next)));
-    panel.querySelectorAll<HTMLElement>('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== next; });
-    if (next === 'drawings') renderDrawings(); else model.render();
+  function showPanel(mode: 'list' | 'part') {
+    st.panel = mode;
+    renderPanel();
+    if (!panel.classList.contains('show')) { panel.dataset.sheetPosition = 'compact'; panel.classList.add('show'); }
   }
-  function renderUnit() { q('.mk-unit').textContent = currentLengthUnit(); }
+  function hidePanel() {
+    if (panel.classList.contains('show')) { animateMobileSheetClose(panel); panel.classList.remove('show'); }
+    st.panel = 'closed';
+    pressed();
+  }
+  function select(n: number | null) {
+    st.selected = n;
+    make3d.setSelected(n);
+    if (n === null) hidePanel(); else showPanel('part');
+    pressed();
+  }
+  function step(by: number) {
+    if (!st.piece) return;
+    const parts = st.piece.parts, at = parts.findIndex(p => p.n === st.selected);
+    select(parts[(at + by + parts.length) % parts.length]!.n);
+  }
+  /** Marks Make's toggles in the bottom toolbar as on or off. */
+  function pressed() {
+    const set = (key: string, on: boolean) => doc.querySelector(`[data-action="${key}"]`)?.setAttribute('aria-pressed', String(on));
+    set('make-apart', st.apartOn); set('make-fronts', st.solidFronts); set('make-measures', st.measures); set('make-parts', st.panel !== 'closed');
+  }
+  /** Squares the editor's camera on the piece: from the front, the side or above; 3D is the editor's own framing. */
+  function look(at: View) {
+    if (!st.piece) return;
+    if (at === 'iso') { ports.camera.frameWardrobe(); return; }
+    const angle = st.pose.angle * Math.PI / 180;
+    ports.camera.frameBox(bounds(), angle + (at === 'side' ? Math.PI / 2 : 0), at === 'top' ? 1.35 : 0, 1.12);
+  }
+  /** The room the piece takes, assembled or taken apart (its boards spread out about this far). */
+  function bounds() {
+    const box = make3d.extent(st.apartOn ? 1 : 0), centre = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    return { x: centre.x, z: centre.z, w: size.x, d: size.z, h: size.y, y: centre.y };
+  }
+
   function open() {
-    const s: EditorScene = scene(), cabinet = s.wardrobes.find(w => w.id === s.activeWardrobe);
+    const s = ports.scene(), cabinet = s.wardrobes.find(c => c.id === s.activeWardrobe);
     const input = { studio: s.studio, pieces: s.wardrobes.map(c => ({ id: c.id, name: c.name, x: c.x, y: c.y || 0, z: c.z, angle: c.angle, design: c.state })) };
-    piece = cabinet ? makePiece(input, cabinet.id) : null;
-    if (!piece || !cabinet) { toast('Select a wardrobe or cabinet to make'); return; }
-    q('.mk-name').textContent = pieceName({ design: cabinet.state, name: cabinet.name });
-    sheet = piece.parts[0]!.n;
-    panel.hidden = false;
-    renderUnit();
-    model.show(piece);
-    show('model');
-    panel.focus({ preventScroll: true });
+    const piece = cabinet ? makePiece(input, cabinet.id) : null;
+    if (!piece || !cabinet) { ports.toast('Select a wardrobe or cabinet to make'); return; }
+    ports.closePanels();
+    Object.assign(st, { piece, pose: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, apartOn: false, apart: 0, selected: null, marks: '' });
+    make3d.show(piece, st.pose);
+    make3d.setLook(st.look);
+    make3d.setSolidFronts(st.solidFronts);
+    resources.scene.traverse(o => { if ((o as THREE.Light).isLight) o.layers.enable(MAKE_LAYER); });
+    resources.cam.layers.set(MAKE_LAYER);
+    resources.frameHooks.add(frame);
+    app.classList.add('make-on');
+    ports.refreshToolbar();
+    pressed();
+    ports.camera.frameWardrobe();
   }
-  function close() { panel.hidden = true; piece = null; }
+  function close() {
+    if (!st.piece) return;
+    hidePanel();
+    resources.frameHooks.delete(frame);
+    resources.cam.layers.set(0);
+    make3d.hide();
+    overlay.innerHTML = '';
+    app.classList.remove('make-on');
+    Object.assign(st, { piece: null, selected: null, marks: '' });
+    ports.refreshToolbar();
+    ports.camera.frameWardrobe();
+  }
+  /** A tool from the bottom toolbar or its View menu. */
+  function act(key: string) {
+    if (!st.piece) return;
+    if (key === 'make-done') { close(); return; }
+    if (key === 'make-apart') {
+      st.apartOn = !st.apartOn;
+      // The camera keeps its angle and backs away (or comes back) so the whole piece stays in view.
+      const now = ports.camera.camNow();
+      ports.camera.frameBox(bounds(), now.az, now.el, 1.04);
+    }
+    else if (key === 'make-fronts') { st.solidFronts = !st.solidFronts; make3d.setSolidFronts(st.solidFronts); }
+    else if (key === 'make-measures') st.measures = !st.measures;
+    else if (key === 'make-numbers') st.numbers = !st.numbers;
+    else if (key === 'make-parts') { if (st.panel === 'closed') showPanel(st.selected === null ? 'list' : 'part'); else hidePanel(); }
+    else if (key.startsWith('look-')) { st.look = key.slice(5) as MakeLook; make3d.setLook(st.look); }
+    else if (key.startsWith('view-')) look(key.slice(5) as View);
+    st.marks = '';
+    pressed();
+  }
+  /** A tap on the canvas while Make is open: the part under it, or nothing. */
+  function pick(e: { clientX: number; clientY: number }) {
+    if (!st.piece) return;
+    const r = resources.cv.getBoundingClientRect();
+    raycaster.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), resources.cam);
+    select(make3d.pick(raycaster));
+  }
 
   listen(panel, 'click', e => {
-    const t = e.target as Element, tabButton = t.closest<HTMLElement>('[data-tab]'), look = t.closest<HTMLElement>('[data-choose-look]'), part = t.closest<HTMLElement>('.mk-rail [data-sheet]');
-    if (t.closest('[data-close]')) close();
-    else if (tabButton) show(tabButton.dataset.tab as 'model' | 'drawings');
-    else if (look) {
-      panel.dataset.look = look.dataset.chooseLook!;
-      panel.querySelectorAll<HTMLElement>('[data-choose-look]').forEach(b => b.setAttribute('aria-pressed', String(b === look)));
-    } else if (part) { sheet = Number(part.dataset.sheet); renderDrawings(); }
-    else if (t.closest('[data-set]')) openDrawings();
-    else if (t.closest('.mk-unit')) {
-      const at = LENGTH_UNITS.findIndex(u => u.key === currentLengthUnit());
-      setLengthUnit(LENGTH_UNITS[(at + 1) % LENGTH_UNITS.length]!.key);
-    }
+    const t = e.target as Element, row = t.closest<HTMLElement>('[data-n]'), bandButton = t.closest<HTMLElement>('[data-band]'), stepBy = t.closest<HTMLElement>('[data-step]');
+    if (t.closest('.make-close')) hidePanel();
+    else if (t.closest('.make-back')) { st.selected = null; make3d.setSelected(null); showPanel('list'); }
+    else if (row) select(Number(row.dataset.n));
+    else if (bandButton) { band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
+    else if (stepBy) step(Number(stepBy.dataset.step));
+    else if (t.closest('[data-set]')) ports.openDrawings();
   });
-  // Keys stay inside Make, so editor shortcuts (delete, undo) never act on the design behind it.
-  listen(panel, 'keydown', e => {
+  // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
+  listen(dom.window, 'keydown', e => {
     const k = e as KeyboardEvent;
-    k.stopPropagation();
-    if (k.key === 'Escape') { if (tab === 'model' && model.selected !== null) model.select(null); else close(); }
-    else if (tab === 'model' && model.selected !== null && (k.key === 'ArrowRight' || k.key === 'ArrowLeft')) { model.step(k.key === 'ArrowRight' ? 1 : -1); k.preventDefault(); }
-  });
-  lifetime.cleanup(onLengthUnitChange(() => { if (panel.hidden) return; renderUnit(); if (tab === 'drawings') renderDrawings(); else model.render(); }));
-  lifetime.cleanup(() => panel.remove());
-  return { open, close, get isOpen() { return !panel.hidden; } };
+    if (!st.piece || (k.target as Element | null)?.closest?.('input,select,textarea')) return;
+    if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
+    if (k.key === 'Escape') { if (st.selected !== null) select(null); else close(); }
+    else if ((k.key === 'ArrowRight' || k.key === 'ArrowLeft') && st.selected !== null) step(k.key === 'ArrowRight' ? 1 : -1);
+    k.preventDefault();
+    k.stopImmediatePropagation();
+  }, true);
+  // Changing between Studio and Furniture leaves Make.
+  listen(dom.$('#view-modes'), 'click', () => close(), true);
+  lifetime.cleanup(onLengthUnitChange(() => { st.marks = ''; renderPanel(); }));
+  lifetime.cleanup(() => { close(); make3d.dispose(); overlay.remove(); panel.remove(); });
+  return { open, close, act, pick, get active() { return !!st.piece; } };
 }

@@ -1,6 +1,6 @@
 import { bandedEdges, cutWithBand, type MakePart } from '../../domain/make/make-parts';
 import { thinAxis } from '../../domain/make/make-measures';
-import type { LengthText } from './make-scene';
+import type { LengthText } from './make-marks';
 
 /** A part's face as it lies flat, in centimetres: length across, width up. A back or front cut to a slope keeps its
  * outline (seen from the front); every other board is its cutting rectangle. */
@@ -29,12 +29,14 @@ function bandedSides(part: MakePart, pts: readonly { x: number; y: number }[]) {
  * sizes, and a title strip with what to cut. `bandMm` is the edge banding taken off the cut size. */
 export function partSheetSvg(part: MakePart, length: LengthText, material: string, bandMm: number, compact = false) {
   const pts = faceOutline(part), L = Math.max(...pts.map(p => p.x)), Wd = Math.max(...pts.map(p => p.y)), T = part.cut.thickness;
-  const VW = 680, VH = compact ? 290 : 360, x0 = 70, base = compact ? 200 : 230, s = Math.min(480 / L, (compact ? 150 : 175) / Wd);
+  // Compact (in a panel): a narrower sheet, so its figures read at the panel's width.
+  const VW = compact ? 400 : 680, VH = compact ? 230 : 360, x0 = compact ? 24 : 70, base = compact ? 150 : 230;
+  const s = Math.min((compact ? 290 : 480) / L, (compact ? 115 : 175) / Wd);
   const X = (x: number) => x0 + x * s, Y = (y: number) => base - y * s, w = L * s, h = Wd * s, te = Math.max(T * s, 6);
   const ln = (a: number, b: number, c: number, d: number, cls = 'mk-ps-dim') => `<line class="${cls}" x1="${n2(a)}" y1="${n2(b)}" x2="${n2(c)}" y2="${n2(d)}"/>`;
   const tx = (x: number, y: number, t: string, cls = 'mk-ps-tx', rot = 0) =>
     `<text class="${cls}" x="${n2(x)}" y="${n2(y)}" text-anchor="middle"${rot ? ` transform="rotate(${rot} ${n2(x)} ${n2(y)})"` : ''}>${t}</text>`;
-  let g = `<svg class="mk-ps" viewBox="0 0 ${VW} ${VH}" role="img" translate="no" aria-label="${esc(part.name)}, ${length(part.cut.length)} by ${length(part.cut.width)} by ${length(T)}">`;
+  let g = `<svg class="mk-ps${compact ? ' compact' : ''}" viewBox="0 0 ${VW} ${VH}" role="img" translate="no" aria-label="${esc(part.name)}, ${length(part.cut.length)} by ${length(part.cut.width)} by ${length(T)}">`;
   g += `<polygon class="mk-ps-face" points="${pts.map(p => n2(X(p.x)) + ',' + n2(Y(p.y))).join(' ')}"/>`;
   for (const [a, b] of bandedSides(part, pts)) g += ln(X(a.x), Y(a.y), X(b.x), Y(b.y), 'mk-ps-band');
   const gy = Y(Wd / 2), gx = X(L / 2);

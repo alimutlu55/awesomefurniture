@@ -95,44 +95,37 @@ test('a kitchen unit and a sloped wardrobe are taken apart too', () => {
   assert.ok(sloped.parts.length > 3);
 });
 
-// The drawing: the same boards, painted far to near, every part pickable, labels that never sit on each other.
-import { boundsOf, MAKE_VIEWS, paintOrder, projector } from '../../src/presentation/make/make-projection';
-import { modelSvg } from '../../src/presentation/make/make-scene';
+// The marks: drawn over the editor's view in screen pixels, every label clear of every other.
+import { marksSvg, type Projector } from '../../src/presentation/make/make-marks';
 import { partSheetSvg } from '../../src/presentation/make/make-sheet';
 
-const state = { view: MAKE_VIEWS.iso, apart: 0, solidFronts: true, measures: true, numbers: false, selected: null };
 const text = (cm: number) => String(Math.round(cm * 10) / 10);
+/** A plain view from the front and a little to the side and above, 3 px per centimetre, as a camera would give. */
+const camera: Projector = p => [80 + p[0] * 3 + p[2] * 1.1, 760 - p[1] * 3 + p[2] * .9];
+const marksState = { measures: true, numbers: false, apart: 0, solidFronts: true, selected: null as number | null };
+const labels = (svg: string) => [...svg.matchAll(/<rect class="make-tag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)]
+  .map(m => [Number(m[1]), Number(m[2]), Number(m[1]) + Number(m[3]), Number(m[2]) + Number(m[4])] as const);
 
-test('seen from the front and above, the back is painted before the doors in front of it', () => {
-  const mp = piece(wardrobe), boards = mp.parts.flatMap(p => p.boards), pr = projector(MAKE_VIEWS.iso);
-  const screen = boards.map(b => {
-    const pts = [b.x0, b.x1].flatMap(x => [b.y0, b.y1].flatMap(y => [b.z0, b.z1].map(z => pr([x, y, z]))));
-    return { x0: Math.min(...pts.map(p => p[0])), x1: Math.max(...pts.map(p => p[0])), y0: Math.min(...pts.map(p => p[1])), y1: Math.max(...pts.map(p => p[1])) };
-  });
-  const order = paintOrder(boards.map(b => boundsOf(b, [0, 0, 0])), MAKE_VIEWS.iso, screen);
-  const back = order.indexOf(boards.findIndex(b => b.name === 'Back')), door = order.indexOf(boards.findIndex(b => b.name === 'Door'));
-  assert.ok(back < door, `back painted at ${back}, door at ${door}`);
+test('the piece is measured overall on screen: its width, height and depth are written', () => {
+  const svg = marksSvg(piece(wardrobe), marksState, camera, () => [0, 0, 0], text, { w: 900, h: 900 });
+  for (const size of ['100', '220', '60']) assert.ok(svg.includes(`>${size}</text>`), size);
 });
 
-test('the model draws every part, pickable by its number, and writes the overall width', () => {
-  const mp = piece(wardrobe), out = modelSvg(mp, state, text);
-  for (const p of mp.parts) assert.ok(out.markup.includes(`data-n="${p.n}"`), `part ${p.n}`);
-  assert.ok(out.markup.includes('>100</text>'));
-});
-
-test('no two measurement labels overlap, assembled or with a part picked', () => {
+test('no two labels overlap, for the whole piece, for every part picked, and taken apart', () => {
   const mp = piece(wardrobe);
-  for (const selected of [null, ...mp.parts.map(p => p.n)]) {
-    const markup = modelSvg(mp, { ...state, selected }, text, new Map(), 4).markup, boxes: [number, number, number, number][] = [];
-    for (const m of markup.matchAll(/class="mk-dimtx" font-size="([\d.]+)" x="([-\d.]+)" y="([-\d.]+)"[^>]*>([^<]+)</g)) {
-      const size = Number(m[1]), x = Number(m[2]), y = Number(m[3]), w = m[4]!.length * size * .62 + size * .5, h = size * 1.25;
-      boxes.push([x - w / 2, y - h / 2, x + w / 2, y + h / 2]);
-    }
+  for (const state of [marksState, { ...marksState, apart: 1 }, ...mp.parts.map(p => ({ ...marksState, selected: p.n }))]) {
+    const boxes = labels(marksSvg(mp, state, camera, () => [0, 0, 0], text, { w: 900, h: 900 }));
+    assert.ok(boxes.length > 0);
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
       const a = boxes[i]!, b = boxes[j]!;
-      assert.ok(!(a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]), `labels ${i} and ${j} overlap (part ${selected})`);
+      assert.ok(!(a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]), `labels ${i} and ${j} overlap (part ${state.selected})`);
     }
   }
+});
+
+test('a point behind the camera is left out rather than drawn wrongly', () => {
+  const behind: Projector = p => p[0] > 50 ? false : [p[0], p[1]];
+  assert.doesNotThrow(() => marksSvg(piece(wardrobe), marksState, behind, () => [0, 0, 0], text, { w: 900, h: 900 }));
 });
 
 test('a part sheet gives the finished size and the cut size with the banding taken off', () => {

@@ -1,10 +1,18 @@
-/** Explicit dependencies of the Make view: one piece of furniture taken down to its parts. */
+/** Explicit dependencies of Make: the selected piece taken down to its parts, inside the editor. */
 export interface MakeViewPorts {
-  readonly dom: Pick<ReturnType<typeof import('../editor/editor-dom').createEditorDom>, '$' | 'document' | 'matchMedia'>;
+  readonly dom: Pick<ReturnType<typeof import('../editor/editor-dom').createEditorDom>, '$' | 'document' | 'matchMedia' | 'window'>;
   readonly lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup' | 'frame'>;
+  /** The editor's own scene, camera and canvas: Make draws its boards there, on a layer of their own. */
+  readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'scene' | 'cam' | 'cv' | 'M' | 'decorTexture' | 'frameHooks'>;
+  /** The editor's own camera framing. */
+  readonly camera: Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameWardrobe' | 'frameBox' | 'camNow'>;
   /** The scene, read when Make opens: the active piece is the one taken apart. */
   scene(): import('../../application/projects/editor-scene').EditorScene;
-  /** Opens the full technical drawing set (a paid feature) over Make. */
+  /** Closes the editor's own panels before Make opens its own. */
+  closePanels(): void;
+  /** Redraws the bottom toolbar for the current selection (Make's tools while it is open). */
+  refreshToolbar(): void;
+  /** Opens the full technical drawing set (a paid feature). */
   openDrawings(): void;
   /** A short message over the editor. */
   toast(message: string): void;

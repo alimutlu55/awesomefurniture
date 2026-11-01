@@ -49,9 +49,10 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindDividerRemove({ dom, commands });
     observeViewportSize({ dom, camera, lifetime });
     const touch = createTouchCamera({ dom, camera, cameraState, lifetime, picking });
-    bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface, kitchenArray });
-    bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray });
+    bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room: room.surface,
+        kitchenArray, make });
+    bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room: room.surface, kitchenArray, make });
+    bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room: room.surface, kitchenArray, make });
     bindCanvasPointercancel({ dom, touch, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     // Escape during a pull puts the copies back.
     if (kitchenArray) lifetime.listen(dom.window, 'keydown', e => {
@@ -267,6 +268,8 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
+            // Make, while it is open, holds the toolbar: its own tools in place of the piece's.
+            if (make.active) return 'make';
             // A selected toilet or basin has its own tools ('fixture' is a kitchen sink or hob's).
             if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'room-fixture' : selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
@@ -323,6 +326,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             }
             if (selectionState.room) { room.editor.act(key); return; }
             if (key === 'make') { make.open(); return; }
+            if (make.active) { make.act(key); return; }
             const state = model.activeCabinet().state;
             if (key === 'resize') {
                 if (elements.app.classList.contains('props-open') && $('#left').dataset.contextSection === 'resize') {

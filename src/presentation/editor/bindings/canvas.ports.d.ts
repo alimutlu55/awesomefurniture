@@ -29,6 +29,8 @@ readonly model: Pick<ReturnType<typeof import('../../../application/projects/edi
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
 readonly kitchenArray?: KitchenArray;
+/** Make, while it is open: nothing is dragged, and a tap picks one of its parts. */
+readonly make?: Readonly<Pick<ReturnType<typeof import('../../make/make-view').createMakeView>, 'active' | 'pick'>>;
 }
 
 export interface BindCanvasPointermovePorts {
@@ -44,6 +46,8 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
 readonly kitchenArray?: KitchenArray;
+/** Make, while it is open: nothing is dragged, and a tap picks one of its parts. */
+readonly make?: Readonly<Pick<ReturnType<typeof import('../../make/make-view').createMakeView>, 'active' | 'pick'>>;
 }
 
 export interface BindCanvasPointerupPorts {
@@ -56,6 +60,8 @@ readonly resources: Pick<ReturnType<typeof import('../../viewport/viewport-resou
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 readonly room?: RoomSurface;
 readonly kitchenArray?: KitchenArray;
+/** Make, while it is open: nothing is dragged, and a tap picks one of its parts. */
+readonly make?: Readonly<Pick<ReturnType<typeof import('../../make/make-view').createMakeView>, 'active' | 'pick'>>;
 }
 
 export interface BindCanvasPointercancelPorts {

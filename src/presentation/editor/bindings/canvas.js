@@ -11,7 +11,8 @@ export function observeViewportSize({ dom, camera, lifetime }) {
     lifetime.observe(new ResizeObserver(camera.resize), $('#view'));
 }
 /** @param {import('./canvas.ports').BindCanvasPointerdownPorts} ports */
-export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray }) {
+export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspector, picking, geometry, interactionState, renderState, selectionState, resources, model, lifetime, room, kitchenArray,
+    make }) {
     // The right button pans; it opens no menu on the model.
     lifetime.listen(resources.cv, 'contextmenu', e => e.preventDefault());
     lifetime.listen(resources.cv, 'pointerdown', e => {
@@ -58,6 +59,8 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
             interactions.finishRotation();
             return;
         }
+        // In Make nothing is dragged: a drag turns the view and a tap picks a part, as on empty space.
+        if (make?.active) return;
         // The selected room surface moves unless furniture is in front of it.
         if (room?.grab(e, picking.cast(e, renderState.allHits))) return;
         // Two selection layers: only the furniture layer may move the whole
@@ -98,7 +101,7 @@ export function bindCanvasPointerdown({ dom, camera, touch, interactions, inspec
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointermovePorts} ports */
-export function bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room, kitchenArray }) {
+export function bindCanvasPointermove({ dom, camera, touch, rendering, interactions, inspector, cameraState, interactionState, resources, lifetime, room, kitchenArray, make }) {
     const { $ } = dom;
     lifetime.listen(resources.cv, 'pointermove', e => {
         if (room?.dragging()) {
@@ -135,7 +138,7 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
             if (interactionState.moveMode) {
                 interactions.previewAt(e);
             }
-            else {
+            else if (!make?.active) {
                 interactions.hover(e);
             }
             return;
@@ -188,7 +191,7 @@ export function bindCanvasPointermove({ dom, camera, touch, rendering, interacti
     });
 }
 /** @param {import('./canvas.ports').BindCanvasPointerupPorts} ports */
-export function bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room, kitchenArray }) {
+export function bindCanvasPointerup({ dom, touch, interactions, shell, interactionState, resources, lifetime, room, kitchenArray, make }) {
     lifetime.listen(resources.cv, 'pointerup', e => {
         // Retire the press before any tool can return early or rebuild the scene.
         // An up from a cancelled session (or a control outside the canvas) is
@@ -252,12 +255,13 @@ export function bindCanvasPointerup({ dom, touch, interactions, shell, interacti
                     shell.toast(interactionState.previewPlan?.reason || 'Choose a destination.');
                 }
             }
+            else if (make?.active) make.pick(e);
             else {
                 interactions.pick(e);
             }
         }
         interactionState.drag = null;
-        if (!interactionState.ptrs.size) {
+        if (!interactionState.ptrs.size && !make?.active) {
             interactions.hover(e);
         }
     });

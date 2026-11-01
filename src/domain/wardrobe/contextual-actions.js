@@ -18,6 +18,9 @@ const actions = {
     // A sink or hob placed on its own has no inside or fronts: it is sized, copied or removed.
     installation: [['new', 'Add', 'Add cabinet'], ['resize', 'Size'], ['fronts', 'Finish'], ['more', 'More']],
     fixture: [['new', 'Add', 'Add cabinet'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
+    // Make, open on a piece: Done goes back to Furniture; the piece taken apart, its doors solid or as outlines, its
+    // measurements on or off; View holds the square views, the looks and part numbers; Parts lists every part.
+    make: [['make-done', 'Done'], ['make-apart', 'Take apart'], ['make-fronts', 'Doors'], ['make-measures', 'Sizes'], ['make-view', 'View'], ['make-parts', 'Parts']],
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
@@ -38,6 +41,9 @@ export const studioMoreActions = [];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
 export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
 export const itemMoreActions = [['stores', 'Stores']];
+/** Make's View menu: the camera squared on the piece, how its boards look, and part numbers beside it. */
+export const makeViewActions = [['view-iso', '3D'], ['view-front', 'Front'], ['view-side', 'Side'], ['view-top', 'Top'],
+    ['look-lines', 'Lines'], ['look-material', 'Material'], ['look-xray', 'X-ray'], ['make-numbers', 'Part numbers']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = [];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */

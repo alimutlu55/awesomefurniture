@@ -57,6 +57,7 @@ import { createShapeInspector } from './shape-inspector';
 import { createWardrobeSizeEditor } from './wardrobe-size-editor';
 import { mountExperience } from '../experience/experience';
 import { createMakeView } from '../make/make-view';
+import { refreshContextualToolbar } from './contextual-toolbar.js';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
     creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform) {
@@ -201,8 +202,13 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             studioPanel, kitchenPanel, roomFields: room.fields }));
         plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
+        // Make: the selected piece taken down to its parts, in the editor's own view, toolbar and panel. Its full drawing set
+        // is the paid one (bound below).
+        const make = createMakeView({ dom, lifetime, resources, camera, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message),
+            refreshToolbar: () => refreshContextualToolbar(dom.$('#toolbar')),
+            closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray,
-            make: { open: () => make.open() } });
+            make });
         bindKitchenConstruction({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
@@ -213,8 +219,6 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             toast: message => shell.toast(message), closeMenu: () => shell.closeDD(),
             signIn: () => account?.open({ reason: 'credits' }) }) : null;
         const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
-        // Make: the selected piece taken down to its parts; its full drawing set is the paid one above.
-        const make = createMakeView({ dom, lifetime, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message) });
         bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');

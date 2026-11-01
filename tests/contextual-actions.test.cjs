@@ -7,6 +7,11 @@ const FURNITURE_TOOLS=['add-item','interior','resize','fronts','make','more'];
 for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',FURNITURE_TOOLS],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
  test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
 }
+test('Make holds the toolbar while it is open: Done first, then its own tools; View lists the views, looks and part numbers',()=>{
+ const {makeViewActions}=require('../src/domain/wardrobe/contextual-actions.js');
+ assert.deepEqual(contextualActions('make').map(([key])=>key),['make-done','make-apart','make-fronts','make-measures','make-view','make-parts','undo','redo']);
+ assert.deepEqual(makeViewActions.map(([key])=>key),['view-iso','view-front','view-side','view-top','look-lines','look-material','look-xray','make-numbers']);
+});
 test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.deepEqual(contextualActions(kind)[0],['add-item','Add item']);});
 test('Interior leads with Auto design only where it can plan, then sections',()=>{
  assert.deepEqual(furnitureMenus.wardrobe.interior.map(([key])=>key),['auto','sections']);

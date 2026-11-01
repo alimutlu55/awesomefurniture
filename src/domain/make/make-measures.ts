@@ -17,6 +17,9 @@ export interface Measure {
   readonly offset: Vec3;
   readonly length: number;
   readonly part?: number;
+  /** The way the plane it lies in faces (the front, a shelf's top): it is shown only while that plane faces the viewer,
+   * so measurements across the inside never collapse onto one line when the piece is seen from its side. */
+  readonly face?: Vec3;
 }
 
 const EPS = .01;
@@ -27,9 +30,10 @@ export function thinAxis(b: Board): 'x' | 'y' | 'z' {
   return e.x <= e.y && e.x <= e.z ? 'x' : e.y <= e.z ? 'y' : 'z';
 }
 const isFront = (b: Board) => b.stock === 'door' || b.stock === 'front';
-const measure = (rank: Measure['rank'], a: Vec3, b: Vec3, offset: Vec3 = [0, 0, 0], part?: number): Measure => {
+const FRONT: Vec3 = [0, 0, 1], UP: Vec3 = [0, 1, 0];
+const measure = (rank: Measure['rank'], a: Vec3, b: Vec3, offset: Vec3 = [0, 0, 0], part?: number, face?: Vec3): Measure => {
   const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-  return part === undefined ? { rank, a, b, offset, length } : { rank, a, b, offset, length, part };
+  return { rank, a, b, offset, length, ...(part === undefined ? {} : { part }), ...(face ? { face } : {}) };
 };
 
 /** The heights a board occupies at `x`: its sloped outline's where it has one, else its box's. */
@@ -58,27 +62,27 @@ export function pieceMeasures(mp: MakePiece): Measure[] {
   const { w, h, d } = mp.size, out: Measure[] = [], boards = mp.parts.flatMap(p => p.boards);
   out.push(measure(1, [0, h, 0], [w, h, 0], [0, 10, 0]), measure(1, [w, 0, 0], [w, h, 0], [12, 0, 0]), measure(1, [w, 0, 0], [w, 0, d], [12, 0, 0]));
   const lift = plinthOf(mp.piece.design);
-  if (lift > 0) out.push(measure(1, [0, 0, d], [0, lift, d], [-6, 0, 0]));
+  if (lift > 0) out.push(measure(1, [0, 0, d], [0, lift, d], [-6, 0, 0], undefined, FRONT));
   const posts = uprights(boards, h), across = boards.filter(b => thinAxis(b) === 'y' && b.stock !== 'plinth' && !isFront(b));
   const found: { shelf?: Board } = {};
   posts.slice(0, -1).forEach((left, i) => {
     const right = posts[i + 1]!, x0 = left.x1, x1 = right.x0, mid = (x0 + x1) / 2;
     if (x1 - x0 < 2) return;
     const level = Math.min(heightsAt(left, x0)[1], heightsAt(right, x1)[1]) - 4;
-    out.push(measure(2, [x0, level, d], [x1, level, d]));
+    out.push(measure(2, [x0, level, d], [x1, level, d], undefined, undefined, FRONT));
     const stack = across.filter(b => b.x0 <= mid + EPS && b.x1 >= mid - EPS).sort((p, q) => heightsAt(p, mid)[0] - heightsAt(q, mid)[0]);
     stack.slice(0, -1).forEach((below, k) => {
       const above = stack[k + 1]!, y0 = heightsAt(below, mid)[1], y1 = heightsAt(above, mid)[0];
-      if (y1 - y0 >= 3) out.push(measure(2, [x1 - 5, y0, d], [x1 - 5, y1, d]));
+      if (y1 - y0 >= 3) out.push(measure(2, [x1 - 5, y0, d], [x1 - 5, y1, d], undefined, undefined, FRONT));
       if (k > 0 && (!found.shelf || heightsAt(below, mid)[1] > found.shelf.y1)) found.shelf = below;
     });
   });
   const shelf = found.shelf;
-  if (shelf) out.push(measure(2, [shelf.x0 + 4, shelf.y1, shelf.z0], [shelf.x0 + 4, shelf.y1, shelf.z1]));
+  if (shelf) out.push(measure(2, [shelf.x0 + 4, shelf.y1, shelf.z0], [shelf.x0 + 4, shelf.y1, shelf.z1], undefined, undefined, UP));
   for (const part of mp.parts) {
     const b = part.boards[0]!;
     if (!isFront(b)) continue;
-    out.push(measure(2, [b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [0, -3, 0], part.n), measure(2, [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [3, 0, 0], part.n));
+    out.push(measure(2, [b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [0, -3, 0], part.n, FRONT), measure(2, [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [3, 0, 0], part.n, FRONT));
   }
   return out;
 }
