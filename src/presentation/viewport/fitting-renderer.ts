@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
+import { besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
 import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
@@ -21,7 +21,7 @@ import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geom
 import type { BoxBuilder } from './frame-geometry';
 import { createKitchenFittingRenderer } from './kitchen-fitting-renderer';
 import { isKitchen } from '../../domain/furniture/furniture';
-import { hasTrait } from '../../domain/wardrobe/fittings';
+import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import type { FaceWidth } from '../../domain/kitchen/corner-widths';
 interface FittingRendererPorts {
     faceWidths?: readonly FaceWidth[];
@@ -73,7 +73,9 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         const k = it.k, hh = it.h, override = it.f ? getDecor(defaultMaterials(it.f).carcassDecorId) : null;
         const P = override ? createDecorMaterial(resources, override) : mp, D = override ? createDecorMaterial(resources, override) : md;
         if (override) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(P, D);
-        const slab: BoxBuilder = cut ? cut.slab : box, board = fittingDepth(d);
+        // A drawer's own front, and the boards over and under it stopping behind that front (carcass.ts).
+        const front = fitting(k)?.innerFront ? innerFront(d, y, hh) : null;
+        const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d) : fittingDepth(d);
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;
         const clears = (x0: number, x1: number, top: number) => !cut || top <= cut.clearAt(x0, x1) + .01;
@@ -89,11 +91,11 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {
             // An angled front over a rectangular drawer box that runs on standard slides.
-            slab(sw - .4, hh - 1, PANEL, cx, y + hh / 2, d / 2 - 1.2, override ? P : mf);
+            slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf);
             box(Math.max(4, coreW - 3), Math.max(4, coreH - 6), d - 8, coreX, y + coreH / 2 - 1, -2, D);
             if (resolveMaterials(design).handleFinish !== 'handleless_tip_on') {
                 const pull = barPull(Math.min(16, Math.max(6, coreW * .4)), mh);
-                pull.position.set(coreX, y + Math.min(coreH, hh) / 2, d / 2 - 1.2 + PANEL / 2);
+                pull.position.set(coreX, y + Math.min(coreH, hh) / 2, front!.centre + PANEL / 2);
                 group.add(pull);
             }
         }

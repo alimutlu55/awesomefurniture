@@ -13,12 +13,14 @@ export function flatFrame(b: Board): { along: Axis; across: Axis; thin: Axis } {
   const along = others.reduce((m, a) => Math.abs(e[a]! - b.cut.length) < Math.abs(e[m]! - b.cut.length) ? a : m, others[0]!);
   return { along, across: others.find(a => a !== along)!, thin };
 }
+/** Millimetres to the tenth, settled first so arithmetic noise never splits a half (35.2499… and 35.2500… are one place). */
+const tenths = (mm: number) => Math.round(Math.round(mm * 1e5) / 1e4) / 10;
 /** A board's holes as marked on it lying flat. */
 export function flatHoles(b: Board, holes: readonly Hole[]): FlatHole[] {
   const { along, across, thin } = flatFrame(b), tilt = tiltOf(b), slope = tilt ? b.cut.length / (hi(b)[along] - lo(b)[along]) : 1;
   return holes.map(h => {
     // On a sloped top a hole's place along the board is measured along the slope.
-    const u = Math.round((h.at[along] - lo(b)[along]) * slope * 100) / 10, v = Math.round((h.at[across] - lo(b)[across]) * 100) / 10;
+    const u = tenths((h.at[along] - lo(b)[along]) * slope * 10), v = tenths((h.at[across] - lo(b)[across]) * 10);
     const face = h.axis === thin ? (h.sign < 0 ? '+' : '-') : h.axis === along ? (h.sign > 0 ? 'u0' : 'u1') : (h.sign > 0 ? 'v0' : 'v1');
     return { kind: h.kind, u, v, d: h.d, depth: h.depth, face };
   });

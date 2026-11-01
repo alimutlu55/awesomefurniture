@@ -4,7 +4,7 @@ import { kitchenFrontThickness } from '../kitchen/installation-parts';
 import { defaultMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
-import { BACK_PANEL, fittingDepth, partitionDepth, plinthOf } from '../wardrobe/carcass';
+import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, outerPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
 import { DOOR, doorThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait } from '../wardrobe/fittings';
@@ -106,11 +106,12 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
       const shared = geometry.sectionDividers(i).filter(q => q.orientation === 'horizontal').map(q => { const r = geometry.dividerRect(q); return { ...r, y0: r.y0 + iy, y1: r.y1 + iy }; });
       const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared);
       panels.forEach((p, j) => {
-        for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: fit.z0, z1: fit.z1 }, 'L1', 'x'));
-        const it = items[j]!, pos = lay[j]!;
-        if (fitting(it.k)?.innerFront) {
-          const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: pos.y0, y1: pos.y0 + it.h - 1,
-            z0: d - 1.2 - PANEL / 2, z1: d - 1.2 + PANEL / 2 };
+        const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, pos.y0, it.h) : null;
+        // The boards over and under a drawer stop behind its front (carcass.ts).
+        const deck = front ? besideInnerFrontDepth(d) : fit;
+        for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'x'));
+        if (front) {
+          const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: front.y0, y1: front.y1, z0: front.z0, z1: front.z1 };
           out.push(board('Drawer front', 'front', extent, 'L2 W2', 'y', it.f ? { decorId: defaultMaterials(it.f).frontDecorId } : {}));
         }
       });

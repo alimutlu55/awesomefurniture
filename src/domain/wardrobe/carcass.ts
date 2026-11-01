@@ -29,6 +29,15 @@ export function boardDepth(d: number, setback: number) {
 }
 /** Shelves, fitting boards and the space a fitting may use. */
 export const fittingDepth = (d: number) => boardDepth(d, FITTING_SETBACK);
+/** A drawer's own front inside the carcass (behind any doors): PANEL thick, its face INNER_FRONT_GAP behind the front
+ * edge, and 5 mm short of its space top and bottom, so stacked drawers show a 1 cm line between them. The board over or
+ * under a drawer stops 1 mm behind that front, which closes over its edge: the deeper shelf line would run into it. */
+export const INNER_FRONT_GAP = .3;
+export function innerFront(d: number, y0: number, h: number) {
+  const z1 = d - INNER_FRONT_GAP, z0 = z1 - PANEL;
+  return { y0: y0 + .5, y1: y0 + h - .5, z0, z1, centre: (z0 + z1) / 2 - d / 2 };
+}
+export const besideInnerFrontDepth = (d: number) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1);
 /** Partitions between bays and the base board. */
 export const partitionDepth = (d: number) => boardDepth(d, PARTITION_SETBACK);
 /** Clear depth inside the carcass, from the back board to the front edge. */
