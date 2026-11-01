@@ -2,6 +2,7 @@ import type { ManufacturingFinding } from '../manufacturing-validation';
 import type { DrawingInput, PlacedPiece } from '../room-pieces';
 import { leafSize } from './leaf-size';
 import { shelfSpan } from './shelf-span';
+import { hangingDepth } from './hanging-depth';
 
 /**
  * Engineering rules: what a piece must meet to be built, beyond the model being sound. Each rule reads the placed
@@ -14,4 +15,5 @@ export type Rule = (input: DrawingInput, pieces: readonly PlacedPiece[]) => Manu
 export const RULES: readonly Rule[] = [
   leafSize,
   shelfSpan,
+  hangingDepth,
 ];

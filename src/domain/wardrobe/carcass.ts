@@ -21,6 +21,8 @@ export function shelfSpanFor(thickness: number): number {
   const listed = Object.keys(SHELF_SPAN).map(Number).sort((a, b) => a - b), mm = Math.round(thickness * 10);
   return SHELF_SPAN[[...listed].reverse().find(t => t <= mm) ?? listed[0]!]!;
 }
+/** The clear fitting depth a side-facing hanging rail needs for clothes on hangers (decision D3). Centimetres. */
+export const MIN_HANGING_DEPTH = 53;
 /** Height of the base board's top face: where the clear interior starts. */
 export const INTERIOR_FLOOR = PLINTH + PANEL;
 /** The plinth under a carcass: 8 cm, except for a unit that hangs on a wall (a kitchen wall unit), whose bottom board is
