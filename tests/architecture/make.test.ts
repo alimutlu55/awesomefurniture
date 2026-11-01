@@ -234,3 +234,23 @@ test('a top, base and plinth rails longer than a sheet are split over partitions
   const regular = cabinetBoards({ ...createInitialDesign(), w: 200, n: 2, wt: [1, 1] });
   assert.deepEqual(['Top', 'Base', 'Back', 'Plinth rail', 'Plinth bearer'].map(n => regular.filter(b => b.name === n).length), [1, 1, 1, 2, 2], 'a 2 m wardrobe is unchanged');
 });
+
+test('drawers behind hinged doors buy no handles: handles go on the doors only, and the hardware list agrees', async () => {
+  const { hardwareList } = await import('../../src/domain/drawings/hardware-list');
+  const { placePieces } = await import('../../src/domain/drawings/room-pieces');
+  const { innerFrontBehindDoor } = await import('../../src/domain/drawings/fronts');
+  const handles = (design: EditorDesign) => piece(design).buy.filter(l => l.kind === 'handle').reduce((s, l) => s + l.qty, 0);
+  const listed = (design: EditorDesign) => hardwareList(placePieces({ pieces: [{ id: 7, name: 'W', x: 0, y: 0, z: 0, angle: 0, design }] }))
+    .flatMap(t => t.rows).filter(r => r[0] === 'Handle').reduce((s, r) => s + Number(r[2]), 0);
+  const doors = cabinetBoards(wardrobe).filter(b => b.stock === 'door').length, drawers = cabinetBoards(wardrobe).filter(b => b.name === 'Drawer front');
+  assert.equal(doors, 2);
+  assert.equal(handles(wardrobe), doors, 'one handle per door, none on the drawers');
+  assert.equal(listed(wardrobe), doors, 'the hardware list buys the same');
+  assert.ok(drawers.every(b => b.note === 'finger grip'), 'each drawer front behind the doors is drawn with a finger grip');
+  assert.equal(innerFrontBehindDoor(wardrobe, { k: 'drawer' }), true);
+  const open: EditorDesign = { ...wardrobe, doors: 'none' };
+  assert.equal(innerFrontBehindDoor(open, { k: 'drawer' }), false);
+  assert.equal(handles(open), 2, 'without doors the drawers keep their handles');
+  assert.equal(listed(open), 2);
+  assert.ok(cabinetBoards(open).filter(b => b.name === 'Drawer front').every(b => b.note === undefined));
+});

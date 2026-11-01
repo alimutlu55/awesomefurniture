@@ -1,6 +1,7 @@
 import { frontHardware } from '../../make/make-hardware';
 import { mm } from '../drawing';
 import { pieceBoards } from '../unit-detail';
+import type { Board } from '../cabinet-boards';
 import type { ManufacturingFinding } from '../manufacturing-validation';
 import type { Rule } from './index';
 
@@ -8,6 +9,9 @@ import type { Rule } from './index';
 export const INNER_FRONT_CLEARANCE = .3;
 /** How far a handle stands proud of its front, as the 3D model draws it (hardware.ts barPull: posts 24 mm, bar 6 mm). Cm. */
 const HANDLE_PROJECTION = 3;
+
+/** The room left between an inner front, with a handle when it has one, and the back face of the closed door. Mm. */
+export const frontClearance = (front: Pick<Board, 'z1'>, door: Pick<Board, 'z0'>, handle: boolean) => mm(door.z0 - front.z1 - (handle ? HANDLE_PROJECTION : 0));
 
 /**
  * Fronts against closed doors (D4): a drawer front behind a door, with what is fitted on it (a handle, as Make buys and
@@ -22,8 +26,7 @@ export const frontClash: Rule = (_input, pieces) => {
       if (front.name !== 'Drawer front') return;
       const door = boards.find(b => b.stock === 'door' && b.x0 < front.x1 && b.x1 > front.x0 && b.y0 < front.y1 && b.y1 > front.y0);
       if (!door) return;
-      const proud = handles.some(h => h.boards.includes(board)) ? HANDLE_PROJECTION : 0;
-      const measured = mm(door.z0 - front.z1 - proud), limit = mm(INNER_FRONT_CLEARANCE);
+      const proud = handles.some(h => h.boards.includes(board)), measured = frontClearance(front, door, proud), limit = mm(INNER_FRONT_CLEARANCE);
       if (measured >= limit) return;
       out.push({ id: 'front-clash:' + p.mark + ':' + board, severity: 'critical', area: 'assembly', marks: [p.mark],
         message: p.mark + ' ' + front.name + (proud ? ': its handle reaches ' : ' reaches ') + (limit - measured) + ' mm too far for the closed door',

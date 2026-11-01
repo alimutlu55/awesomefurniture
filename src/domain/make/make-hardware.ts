@@ -1,5 +1,5 @@
 import type { Board } from '../drawings/cabinet-boards';
-import { isFrontBoard, piecefronts, type Front } from '../drawings/fronts';
+import { innerFrontBehindDoor, isFrontBoard, piecefronts, type Front } from '../drawings/fronts';
 import { cornerFaceWidths } from '../drawings/corner-widths';
 import type { PlacedPiece } from '../drawings/room-pieces';
 import { isKitchen } from '../furniture/furniture';
@@ -97,7 +97,9 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
         fittings.push({ kind: 'plate', at: [face, y, z], axis: 0, boards: [post.i] });
       }
     }
-    if (handles && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
+    // A drawer's own front behind closed doors has a finger grip, not a handle (D4).
+    const grip = !f && !!b.kind && innerFrontBehindDoor(design, { k: b.kind });
+    if (handles && !grip && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
       // Two holes 128 mm apart, through the front: upright beside a door's free edge, level across a drawer.
       const door = f?.opens === 'side', free = f?.hinge === 'right' ? b.x0 + 4 : b.x1 - 4;
       const y = door ? (b.y0 >= 120 ? b.y0 + 8 : b.y1 <= 100 ? b.y1 - 8 : Math.min(b.y1 - 10, Math.max(b.y0 + 10, 100))) : b.y1 - b.y0 < 20 ? cy : b.y1 - 6;

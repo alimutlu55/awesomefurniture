@@ -1,4 +1,4 @@
-import type { EditorDesign } from '../wardrobe/editor-design';
+import type { EditorDesign, EditorItem } from '../wardrobe/editor-design';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
@@ -120,6 +120,11 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
     y0: plinthOf(design), y1: design.h, opens: 'fixed', installation: true, name: 'Corner installation strip' });
   return { fronts: installed, inside, covered, cornerPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
 }
+
+/** Whether a fitting's own inner front (a drawer's, inside a wardrobe) stands behind the wardrobe's closed doors. Then it
+ * has no handle, which would reach through the door, only a finger grip (decision D4). */
+export const innerFrontBehindDoor = (design: Pick<EditorDesign, 'doors' | 'product'>, item: Pick<EditorItem, 'k'>) =>
+  !isKitchen(design) && design.doors !== 'none' && !!fitting(item.k)?.innerFront;
 
 /** Whether a cut board is this front: the same rectangle on the face, to the millimetre or so. A drawer front behind a
  * door is not the door (it lies within it). A door that runs up to the top has no finite top here, so its top is not

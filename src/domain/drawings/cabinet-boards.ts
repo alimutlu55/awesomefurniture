@@ -8,13 +8,13 @@ import { PANEL } from '../wardrobe/catalog.js';
 import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, outerPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
 import { DOOR, doorThickness } from '../wardrobe/door-layout';
-import { fitting, hasTrait } from '../wardrobe/fittings';
+import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { fittingPanels } from '../geometry/shared-board-spans';
 import { FRONT_GAP, shelfHeights } from '../kitchen/kitchen-fronts';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
-import { piecefronts } from './fronts';
+import { innerFrontBehindDoor, piecefronts } from './fronts';
 import type { P } from './drawing';
 
 /** What a board is cut from. */
@@ -37,6 +37,8 @@ export interface Board {
   readonly cut: { readonly length: number; readonly width: number; readonly thickness: number };
   readonly edges: string;
   readonly note?: string | undefined;
+  /** The fitting whose own front it is (a drawer front inside a wardrobe). */
+  readonly kind?: FittingKind | undefined;
 }
 
 const span = (pts: readonly P[], axis: 'x' | 'y') => Math.max(...pts.map(p => p[axis])) - Math.min(...pts.map(p => p[axis]));
@@ -138,7 +140,8 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'x'));
         if (front) {
           const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: front.y0, y1: front.y1, z0: front.z0, z1: front.z1 };
-          out.push(board('Drawer front', 'front', extent, 'L2 W2', 'y', it.f ? { decorId: defaultMaterials(it.f).frontDecorId } : {}));
+          out.push(board('Drawer front', 'front', extent, 'L2 W2', 'y', { kind: it.k, ...(it.f ? { decorId: defaultMaterials(it.f).frontDecorId } : {}),
+            ...(innerFrontBehindDoor(design, it) ? { note: 'finger grip' } : {}) }));
         }
       });
       for (const q of geometry.sectionDividers(i)) {

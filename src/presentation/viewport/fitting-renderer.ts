@@ -14,6 +14,7 @@ import { type GarmentKey } from './garment-types';
 import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
 import type { createTrouserRenderer } from './trouser-renderer';
 import { barPull } from './hardware';
+import { innerFrontBehindDoor } from '../../domain/drawings/fronts';
 import { GARMENT_COLOURS, SHOE_COLOURS, shoe, softBox } from './fabric';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import type { createViewportResources } from './viewport-resources.js';
@@ -93,7 +94,8 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
             // An angled front over a rectangular drawer box that runs on standard slides.
             slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf);
             box(Math.max(4, coreW - 3), Math.max(4, coreH - 6), d - 8, coreX, y + coreH / 2 - 1, -2, D);
-            if (resolveMaterials(design).handleFinish !== 'handleless_tip_on') {
+            // Behind closed doors a drawer has a finger grip: a handle would reach through the door (D4).
+            if (resolveMaterials(design).handleFinish !== 'handleless_tip_on' && !innerFrontBehindDoor(getRenderDesign(), it)) {
                 const pull = barPull(Math.min(16, Math.max(6, coreW * .4)), mh);
                 pull.position.set(coreX, y + Math.min(coreH, hh) / 2, front!.centre + PANEL / 2);
                 group.add(pull);

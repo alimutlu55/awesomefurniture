@@ -8,7 +8,7 @@ import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
-import { isFrontBoard, piecefronts, type Front } from './fronts';
+import { innerFrontBehindDoor, isFrontBoard, piecefronts, type Front } from './fronts';
 import type { Board } from './cabinet-boards';
 import { pieceBoards } from './unit-detail';
 import type { PlacedPiece } from './room-pieces';
@@ -61,7 +61,8 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     const runner = mm(drawerExtension(d.d));
     geometry.widths().forEach((_, i) => geometry.computeLayout(i).forEach((pos, j) => {
       const it = d.secs[i]![j]!;
-      if (!kitchen && fitting(it.k)?.innerFront) {
+      // A drawer's own front takes a handle, unless it is behind closed doors (a finger grip, D4).
+      if (!kitchen && fitting(it.k)?.innerFront && !innerFrontBehindDoor(d, it)) {
         const finish = resolveMaterials(d).handleFinish;
         if (finish === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
         else add(p, 'Handle', finish.replaceAll('_', ' '), 1);
