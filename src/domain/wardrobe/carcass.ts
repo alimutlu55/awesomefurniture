@@ -12,6 +12,15 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 export const BACK_PANEL = .6;
 export const PARTITION_SETBACK = .5;
 export const FITTING_SETBACK = 1.4;
+/** The longest clear span between supports a shelf carries without bowing (decision D2), by board thickness: millimetres
+ * of thickness to centimetres of span. */
+export const SHELF_SPAN: Readonly<Record<number, number>> = { 18: 80, 25: 100 };
+/** The span for a board `thickness` centimetres thick: the thickest listed board it is at least as thick as, or the
+ * thinnest listed one. Centimetres. */
+export function shelfSpanFor(thickness: number): number {
+  const listed = Object.keys(SHELF_SPAN).map(Number).sort((a, b) => a - b), mm = Math.round(thickness * 10);
+  return SHELF_SPAN[[...listed].reverse().find(t => t <= mm) ?? listed[0]!]!;
+}
 /** Height of the base board's top face: where the clear interior starts. */
 export const INTERIOR_FLOOR = PLINTH + PANEL;
 /** The plinth under a carcass: 8 cm, except for a unit that hangs on a wall (a kitchen wall unit), whose bottom board is

@@ -1,5 +1,6 @@
 import type { PlannerConfig } from './wardrobe-planner';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
+import { shelfSpanFor } from '../wardrobe/carcass';
 import { POSSESSIONS, defaultNeeds } from '../wardrobe/possessions';
 import type { PossessionKey } from '../wardrobe/possessions';
 /** Planner categories are the possessions registry: add a possession there, not here. */
@@ -13,7 +14,7 @@ export type Criteria = Record<Criterion,number>;
 export const SELECTION_RULES = Object.freeze({
  proposalCount:8,candidateCount:24,beamWidth:32,conceptBeamQuota:4,maxSteps:48,maxParts:40,maxSections:6,grid:32,panel:PANEL*10,base:(PLINTH+PANEL)*10,
  minBay:250,widths:[400,500,600,800,1000],zones:[.2,.4,.8,1],rearDepth:450,
- railSpan:1200,coatSpan:900,shelfSpan:800,hookAllowance:100,hemClearance:50,
+ railSpan:1200,coatSpan:900,shelfSpan:shelfSpanFor(PANEL)*10,hookAllowance:100,hemClearance:50,
  handGap:40,idealHandGap:[30,60],wasteHandGap:150,sliver:30,defaultSpare:15,
  foldThickness:30,stackLayers:{compact:8,comfort:6,spacious:5},drawerIdeal:260,smallDrawerIdeal:120,removalGap:20,
  normalisedWeights:{storage:{accessibility:.25,clearance:.15,utilisation:.30,grouping:.10,safety:.10,buildability:.10},
