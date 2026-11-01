@@ -23,7 +23,7 @@ export interface Hole {
   readonly of?: number | undefined;
 }
 /** Bought hardware, where it goes and the boards it joins or sits on. */
-export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
+export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
   | 'bracket';
 export interface Fitting {
   readonly kind: FittingKind;
@@ -103,13 +103,15 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
           { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: 8, depth: 25, of: fittings.length });
         fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size: '8 × 35' });
       } else {
-        // The cam sits in the edge board's inner face 34 mm from the joint; its bolt is screwed into the face board.
-        const cam = [...p] as [number, number, number];
+        // The bolt is screwed into the face board; the edge board goes on over it (its head in a pilot hole 34 mm into
+        // the board's end), and the cam, set in the edge board's inner face 34 mm from the joint, is turned to grip it.
+        const cam = [...p] as [number, number, number], bolt = fittings.length;
         cam[j.axis] = j.plane + j.side * 3.4; cam[tb] = hi(B)[tb];
-        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: 5, depth: 11, of: fittings.length },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: 8, depth: 34, of: fittings.length },
-          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: 15, depth: 12.5, of: fittings.length });
-        fittings.push({ kind: 'cam', at: p, axis: j.axis, boards: [j.face, j.edge], size: '15 mm' });
+        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: 5, depth: 11, of: bolt },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: 8, depth: 34, of: bolt + 1 },
+          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: 15, depth: 12.5, of: bolt + 1 });
+        fittings.push({ kind: 'bolt', at: p, axis: j.axis, boards: [j.face, j.edge], size: '34' },
+          { kind: 'cam', at: cam, axis: tb, boards: [j.face, j.edge], size: '15 mm' });
       }
     }
   }

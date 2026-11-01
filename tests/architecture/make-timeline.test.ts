@@ -25,6 +25,8 @@ test('every hole is drilled for a fitting', () => {
     for (const h of mp.holes.filter(x => x.kind === 'cup')) assert.equal(mp.fittings[h.of!]!.kind, 'hinge');
     for (const h of mp.holes.filter(x => x.kind === 'connector')) assert.equal(mp.fittings[h.of!]!.kind, 'confirmat');
     for (const h of mp.holes.filter(x => x.kind === 'runner')) assert.equal(mp.fittings[h.of!]!.kind, 'runner');
+    for (const h of mp.holes.filter(x => x.kind === 'bolt')) assert.equal(mp.fittings[h.of!]!.kind, 'bolt');
+    for (const h of mp.holes.filter(x => x.kind === 'cam')) assert.equal(mp.fittings[h.of!]!.kind, 'cam');
   }
 });
 
@@ -108,7 +110,8 @@ test('each joint is fixed in its own time, its fittings going in one after anoth
       s.fixes.forEach((fix, j) => {
         const before = s.fixes[j - 1];
         assert.ok(!before || before.at[1] <= fix.at[0] + 1e-9, `${name}: joints of step ${k + 1} one after another`);
-        assert.ok(fix.lying ? s.drill[1] <= fix.at[0] && fix.at[1] <= s.place[0] + 1e-9 : s.place[1] <= fix.at[0] && fix.at[1] <= s.end, `${name}: a joint in its phase`);
+        assert.ok(fix.before ? s.drill[1] <= fix.at[0] && fix.at[1] <= s.place[0] + 1e-9 : s.place[1] <= fix.at[0] && fix.at[1] <= s.end, `${name}: a joint in its phase`);
+        assert.ok(!fix.lying || fix.before, `${name}: only what goes in before the boards meet goes into a board on the floor`);
         let last = -Infinity;
         for (const i of fix.items) {
           const [shown, go, home] = tl.itemTime[i]!, e = entryOf(mp, i)!;
@@ -119,7 +122,9 @@ test('each joint is fixed in its own time, its fittings going in one after anoth
           if (e.board === null) continue;
           const there = arrivalAt(tl, playhead(tl, go), e.board);
           assert.equal(there, fix.lying ? 0 : 1, `${name}: the ${mp.fittings[i]!.kind} goes in through a board ${fix.lying ? 'lying where it waits' : 'in place'}`);
-          if (fix.lying) assert.deepEqual(lyingDir(staged[e.board]!, e.dir).map(v => Math.round(v) + 0), [0, -1, 0], `${name}: a ${mp.fittings[i]!.kind} goes in from above its board lying`);
+          // Into a board on the floor from above (a bolt, a hinge cup) or into its end (a dowel), never from under the floor.
+          if (fix.lying) assert.ok(lyingDir(staged[e.board]!, e.dir)[1] < 1e-9, `${name}: a ${mp.fittings[i]!.kind} goes into its board lying from above or its end`);
+          if (fix.lying && mp.fittings[i]!.kind !== 'dowel') assert.ok(lyingDir(staged[e.board]!, e.dir)[1] < -.99, `${name}: a ${mp.fittings[i]!.kind} from above`);
         }
       });
     });
@@ -157,4 +162,17 @@ test('a sloped top is screwed straight down into every upright under it, and lie
   assert.deepEqual(lyingDir(staged, [Math.cos(tiltOf(b)), Math.sin(tiltOf(b)), 0]).map(v => Math.round(v * 1e6) / 1e6 + 0), [1, 0, 0], 'levelled');
   assert.ok(Math.abs(staged.size[0] - b.cut.length) < 1e-9 && Math.abs(staged.size[1] - b.cut.thickness) < 1e-9, 'as long as its slope, as thick as it is');
   assert.equal(mp.findings.filter(f => f.board === top).length, 0, 'its drilling checks out');
+});
+
+test('a cam joint is a bolt put into the face board before the other board goes on over it, then a cam turned to grip it', () => {
+  const mp = make({ ...wardrobe, construction: { joints: 'cam', back: 'nailed' } }), tl = assemblyTimeline(mp);
+  const bolts = mp.fittings.map((f, i) => ({ f, i })).filter(({ f }) => f.kind === 'bolt'), cams = mp.fittings.filter(f => f.kind === 'cam');
+  assert.ok(bolts.length > 0 && bolts.length === cams.length, 'a bolt for every cam');
+  for (const { f, i } of bolts) {
+    const [face, edge] = f.boards, cam = mp.fittings.findIndex((c, k) => c.kind === 'cam' && c.boards[0] === face && c.boards[1] === edge && Math.abs(c.at[f.axis]! - f.at[f.axis]!) < 4 && k > i);
+    const [, boltIn] = tl.itemTime[i]!, [, camIn] = tl.itemTime[cam]!;
+    assert.ok(boltIn < tl.steps[tl.itemStep[i]!]!.place[0], 'the bolt is in before the boards come together');
+    assert.ok(camIn > tl.steps[tl.itemStep[cam]!]!.place[1], 'the cam goes in once the board is on');
+    assert.equal(arrivalAt(tl, playhead(tl, camIn), edge!), 1);
+  }
 });

@@ -1,9 +1,12 @@
-import type { Hole } from './make-joints';
+import type { FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Vec3 } from './make-measures';
 
 /** How far from its hole a fastener waits (centimetres) before it goes in, along the dashed line it goes in by. */
 export const WAIT = 10;
+/** Hardware put in before the boards it joins come together, into a board lying on the floor or one already standing:
+ * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down. */
+export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge']);
 
 /** Where a fitting goes in: the point it ends at (a screw's head at the hole's mouth), the way it travels (a unit
  * vector, into the board) and the board it goes in through (null for hardware standing on its own). */
@@ -23,6 +26,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
   switch (f.kind) {
     case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
+    case 'bolt': return through(mine.find(h => h.kind === 'bolt'));
     case 'dowel': return through(mine.find(h => h.depth === 25) ?? mine[0], f.at);
     case 'pin': return through(mine[2] ?? mine[0], f.at);
     case 'nail': return { at: f.at, dir: [0, 0, 1], board: back() };

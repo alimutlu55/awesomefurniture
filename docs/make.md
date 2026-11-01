@@ -37,12 +37,15 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
     the bottom up), then fixes them joint by joint, and ends going round the finished piece. Dragging or
     zooming takes the camera; Follow gives it back. Each step (plinth; base and sides; partitions; top;
     back; inside; drawers; doors and fronts; fixing to the wall) drills its holes one after another (a drill bit going
-    in and out, the hole left behind), presses hinge cups into each door lying face down, brings its boards in from
-    where they wait (shelf pins and hinge plates pushed in first), then fixes them **one joint at a time**
+    in and out, the hole left behind), puts in what goes in before the boards come together (a cam's bolt into the
+    face board, dowels into a board's end, hinge cups into the back of each door; into a board waiting on the floor, its
+    drilled face turned up, or one already standing), brings its boards in from where they wait (shelf pins and hinge
+    plates pushed in first), then fixes them **one joint at a time**
     (`make-fixing.ts`): the fittings going in through one board from one side, split where they are far apart. For each
     joint the camera comes close and looks across the way they go in (never down it), every fastener grows into view
     at the end of a dashed line into its ringed hole, a callout counts what goes in ("×3", the screw, 7 × 50 mm), and
-    they go in one after another: screws turning, cams turned, dowels pushed, nails driven. The parts a step adds are
+    they go in one after another: screws turning, each cam pushed home and then turned half round onto its bolt,
+    nails driven. Every part in a callout is named (translated). The parts a step adds are
     picked out and numbered over the view while they come in. Play / pause (Space), a scrub bar (the editor's
     slider), the time, Previous / Next step (the arrows), and every step as a chapter with its start time. The view
     turns and zooms while it plays; the player stays open.

@@ -3,6 +3,7 @@ import { getDecor } from '../../domain/materials/decor-catalog';
 import { cutLayout, type CutLayout } from '../../domain/make/make-cut-layout';
 import { makePiece, type MakePiece } from '../../domain/make/make-parts';
 import { lengthText, onLengthUnitChange } from '../editor/length-unit-state';
+import { onLanguageChange } from '../i18n/language';
 import { mountMobileSheet } from '../editor/mobile-sheet.js';
 import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
@@ -345,6 +346,7 @@ export function createMakeView(ports: MakeViewPorts) {
   // Changing between Studio and Furniture leaves Make.
   listen(dom.$('#view-modes'), 'click', () => close(), true);
   lifetime.cleanup(onLengthUnitChange(() => { st.marks = ''; renderPanel(); }));
+  lifetime.cleanup(onLanguageChange(() => { st.marks = ''; }));
   lifetime.cleanup(() => { close(); make3d.dispose(); overlay.remove(); panel.remove(); });
   return { open, close, act, pick, get active() { return !!st.piece; } };
 }

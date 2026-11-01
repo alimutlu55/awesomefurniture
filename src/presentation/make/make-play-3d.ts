@@ -29,7 +29,11 @@ const VIS = 1.6;
 const Y = new THREE.Vector3(0, 1, 0), AXES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 const ease = (t: number) => 1 - (1 - t) ** 3;
 
-interface Fastener { readonly group: THREE.Object3D; readonly item: number; readonly home: THREE.Vector3; readonly dir: THREE.Vector3; readonly spin: number; readonly board: number | null }
+interface Fastener {
+  readonly group: THREE.Object3D; readonly item: number; readonly home: THREE.Vector3; readonly dir: THREE.Vector3; readonly spin: number; readonly board: number | null;
+  /** Pushed home first, then turned (a cam), rather than turned as it goes in (a screw). */
+  readonly turnLast?: boolean;
+}
 interface Bit { readonly mesh: THREE.Object3D; readonly hole: number; readonly mouth: THREE.Vector3; readonly dir: THREE.Vector3; readonly depth: number }
 
 /**
@@ -71,11 +75,19 @@ export function createMakePlay(layer: number) {
     };
     // Turned in through the face board's hole: its head ends flush with the face.
     if (f.kind === 'confirmat' || f.kind === 'screw') return make(screw(f.kind === 'screw' ? 4 : 5, f.kind === 'screw' ? .2 : .32, steel), 8 * Math.PI);
-    if (f.kind === 'cam') {
-      // The cam set in its hole and turned half round to draw the bolt in the other board tight.
+    if (f.kind === 'bolt') {
+      // Its thread turned 11 mm into the face board, its shank and head standing 34 mm out for the cam to grip.
       const g = new THREE.Group();
-      g.add(solid(rod, brass, new THREE.Vector3(0, .62, 0), new THREE.Vector3(.72, 1.2, .72)), solid(box, steel, new THREE.Vector3(0, .02, 0), new THREE.Vector3(1.1, .08, .18)));
-      return make(g, Math.PI);
+      g.add(solid(rod, steel, new THREE.Vector3(0, .55, 0), new THREE.Vector3(.25, 1.1, .25)), solid(rod, steel, new THREE.Vector3(0, -1.6, 0), new THREE.Vector3(.18, 3.2, .18)),
+        solid(rod, steel, new THREE.Vector3(0, -3.3, 0), new THREE.Vector3(.36, .3, .36)), solid(box, steel, new THREE.Vector3(0, .02, 0), new THREE.Vector3(.5, .06, .1)));
+      return make(g, 6 * Math.PI);
+    }
+    if (f.kind === 'cam') {
+      // The cam pushed into its hole, its slot and arrow to the face, then turned half round to grip the bolt's head.
+      const g = new THREE.Group();
+      g.add(solid(rod, brass, new THREE.Vector3(0, .62, 0), new THREE.Vector3(.72, 1.2, .72)), solid(box, steel, new THREE.Vector3(0, -.01, 0), new THREE.Vector3(1.1, .08, .2)),
+        solid(cone, steel, new THREE.Vector3(.5, -.01, 0), new THREE.Vector3(.22, .08, .22)));
+      return { ...make(g, Math.PI), turnLast: true };
     }
     if (f.kind === 'dowel') return make(solid(rod, brass, new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, 3.5, .4)));
     if (f.kind === 'nail') return make(screw(2, .08, steel));
@@ -133,10 +145,11 @@ export function createMakePlay(layer: number) {
         const p = film?.fit(f.item) ?? null;
         f.group.visible = p !== null;
         if (p === null) continue;
-        // It grows into view where it waits, at the end of its dashed line, then goes in along it (a screw turning).
-        const e = ease(p), seen = ease(film!.seen(f.item));
+        // It grows into view where it waits, at the end of its dashed line, then goes in along it (a screw turning; a
+        // cam pushed home, then turned).
+        const e = ease(f.turnLast ? Math.min(1, p / .55) : p), turn = f.turnLast ? ease(Math.max(0, (p - .55) / .45)) : e, seen = ease(film!.seen(f.item));
         f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * WAIT);
-        f.group.quaternion.setFromUnitVectors(Y, f.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, e * f.spin));
+        f.group.quaternion.setFromUnitVectors(Y, f.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn * f.spin));
         f.group.scale.setScalar(Math.max(.01, seen) * (1 + (VIS - 1) * (1 - e)));
       }
     },

@@ -1,6 +1,6 @@
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
-import { fixGroups, type FixGroup } from './make-fixing';
+import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
 import { thinAxis } from './make-measures';
 
 /**
@@ -11,9 +11,7 @@ import { thinAxis } from './make-measures';
 
 /** Hardware fitted between drilling and bringing the boards in: shelf pins and hinge plates go on the uprights first. */
 export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(['pin', 'plate']);
-/** Hardware fitted to its board while it still lies on the floor, before it goes in: a hinge's cup pressed into the
- * back of its door, laid face down. */
-export const FITTED_LYING: ReadonlySet<FittingKind> = new Set(['hinge']);
+
 /** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
 export const INTRO = 2.6, OUTRO = 4;
 const DRILL = 1.8, PLACE = 2.6, HOLD = .9;
@@ -23,8 +21,9 @@ const SHOW = .8, REST = .45, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (
 /** How much of the drilling phase each hole's own drilling takes; the rest staggers them, one after another. */
 export const HOLE_WINDOW = .35;
 
-/** A joint fixed in a step, and when (seconds); `lying` when it is fixed to its board where it waits on the floor. */
-export interface Fix extends FixGroup { readonly at: readonly [number, number]; readonly lying: boolean }
+/** A joint fixed in a step, and when (seconds): `before` the boards come in, and then `lying` when it goes into a
+ * board still waiting on the floor. */
+export interface Fix extends FixGroup { readonly at: readonly [number, number]; readonly before: boolean; readonly lying: boolean }
 export interface StepTime {
   readonly start: number; readonly drill: readonly [number, number]; readonly place: readonly [number, number]; readonly fix: readonly [number, number]; readonly end: number;
   /** Its fixing, one joint after another. */
@@ -66,12 +65,13 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // More boards take longer to bring in, each in its turn.
     const placing = s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
-    const fixing = (lying: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || FITTED_LYING.has(piece.fittings[i]!.kind) !== lying).map(g => {
+    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || FITTED_BEFORE.has(piece.fittings[i]!.kind) !== before).map(g => {
       const n = g.items.length, travel = travelFor(n), own = n > 1 ? Math.min(1, travel * .55) : travel, from = t + SHOW;
       g.items.forEach((i, j) => { const go = from + (n > 1 ? (travel - own) * j / (n - 1) : 0); itemTime[i] = [t, go, go + own]; });
-      return { ...g, lying, at: [t, t += SHOW + travel + REST] as const };
+      return { ...g, before, lying: before && g.board !== null && boardStep[g.board] === k, at: [t, t += SHOW + travel + REST] as const };
     });
-    // Drilled, then what is fitted to a board lying on the floor, then the boards brought in and fixed.
+    // Drilled, then what goes in before the boards come together (bolts, dowels, hinge cups), then the boards brought
+    // in and fixed.
     const start = t, drill = [t, t += mine.length ? DRILL : 0] as const, before = fixing(true), place = [t, t += placing] as const;
     const fixStart = t, fixes = [...before, ...fixing(false)];
     steps.push({ start, drill, place, fix: [fixStart, t] as const, end: t += HOLD, fixes });

@@ -1,7 +1,8 @@
 import type { Board } from '../../domain/drawings/cabinet-boards';
 import { type Measure, partMeasures, pieceMeasures, thinAxis, type Vec3 } from '../../domain/make/make-measures';
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
-import { fittingIcon, sold } from './make-panel-tabs';
+import { translate } from '../i18n/language';
+import { FITTING_NAMES, fittingIcon, sold } from './make-panel-tabs';
 import type { Fixing } from './make-player';
 
 /** A length (centimetres) as the person reads it, in their unit. */
@@ -29,6 +30,7 @@ export interface MarksState {
 type Box = [number, number, number, number];
 const isFront = (p: MakePart) => p.stock === 'door' || p.stock === 'front';
 const n1 = (v: number) => v.toFixed(1);
+const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const line = (a: readonly [number, number], b: readonly [number, number], cls: string) =>
   `<line class="${cls}" x1="${n1(a[0])}" y1="${n1(a[1])}" x2="${n1(b[0])}" y2="${n1(b[1])}"/>`;
 const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -135,8 +137,8 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
   }
   if (!tails.length || !fixing.hardware.length) return out;
   // The callout stands clear of the joint, beside it where the view has room, with a leader to the nearest fastener.
-  const rows = fixing.hardware.map(h => ({ ...h, label: `×${h.qty}`, small: sold(h.size) })), row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
-  const bw = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.label.length + 1) * fs * .62 + r.small.length * fs * .52)), bh = pad * 2 + rows.length * row - fs * .4;
+  const rows = fixing.hardware.map(h => ({ ...h, name: esc(translate(FITTING_NAMES[h.kind])), label: `×${h.qty}`, small: esc(sold(h.size)) })), row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
+  const bw = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52)), bh = pad * 2 + rows.length * row - fs * .4;
   const xs = [...tails, ...heads].map(p => p[0]), ys = [...tails, ...heads].map(p => p[1]), gap = 28;
   const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as const, mx = (box[0] + box[2]) / 2, my = (box[1] + box[3]) / 2;
   const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
@@ -151,7 +153,7 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
   rows.forEach((r, i) => {
     const y = y0 + pad + i * row + (row - fs * .4) / 2, tx = x0 + pad + icon + fs * .5;
     out += fittingIcon(r.kind).replace('<svg class="make-ico"', `<svg class="make-callico" x="${n1(x0 + pad)}" y="${n1(y - icon / 2)}" width="${n1(icon)}" height="${n1(icon)}"`)
-      + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dominant-baseline="central">${r.label}`
+      + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dominant-baseline="central"><tspan class="make-calln">${r.name}</tspan> ${r.label}`
       + `${r.small ? `<tspan class="make-calls" font-size="${n1(fs * .85)}" dx="${n1(fs * .45)}">${r.small}</tspan>` : ''}</text>`;
   });
   return out + '</g>';

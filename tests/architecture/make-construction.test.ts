@@ -126,6 +126,7 @@ test('the joint system and back fixing change what is drilled, never a board', (
   assert.deepEqual(cam.boards, confirmat.boards);
   assert.ok(qty(confirmat, 'confirmat') > 0 && qty(cam, 'confirmat') === 0);
   assert.equal(qty(cam, 'cam'), qty(confirmat, 'confirmat'));
+  assert.equal(qty(cam, 'bolt'), qty(cam, 'cam'), 'a bolt for every cam');
   assert.ok(cam.holes.some(h => h.kind === 'cam' && h.d === 15));
   assert.equal(qty(dowel, 'dowel'), qty(confirmat, 'confirmat'));
   assert.equal(qty(dowel, 'nail'), 0);

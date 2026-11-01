@@ -10,13 +10,13 @@ const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 
 /** Hardware by what it is called and drawn as: a small line icon (24 × 24) beside its name. */
 export const FITTING_NAMES: Record<FittingKind, string> = {
-  confirmat: 'Connector screw', cam: 'Cam connector', dowel: 'Dowel', screw: 'Screw', nail: 'Nail', pin: 'Shelf pin', hinge: 'Hinge',
+  confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail', pin: 'Shelf pin', hinge: 'Hinge',
   plate: 'Hinge plate', runner: 'Runners, pair', handle: 'Handle', rail: 'Hanging rail', support: 'Rail support', leg: 'Leg',
   hanger: 'Hangers, pair', bracket: 'Wall bracket',
 };
 const ICONS: Record<FittingKind, string> = {
   confirmat: 'M8 4h8M12 4v14l-2 2M12 7l3 1-6 2 6 2-6 2 6 2', screw: 'M8 4h8M12 4v14l-2 2M12 7l3 1-6 2 6 2-6 2 6 2',
-  cam: 'M12 4a8 8 0 1 0 .01 0zM8 12h8', dowel: 'M5 10h14v4H5zM8 10v4M11 10v4M14 10v4', nail: 'M8 4h8M12 4v16', pin: 'M9 6h6v5H9zM12 11v8',
+  cam: 'M12 4a8 8 0 1 0 .01 0zM8 12h8', bolt: 'M9 3h6M12 3v18M10 8l4 1M10 11l4 1M10 14l4 1M10 17l4 1', dowel: 'M5 10h14v4H5zM8 10v4M11 10v4M14 10v4', nail: 'M8 4h8M12 4v16', pin: 'M9 6h6v5H9zM12 11v8',
   hinge: 'M7 12a4 4 0 1 0 .01 0zM11 12h9M16 9v6', plate: 'M5 8h14v8H5zM9 12h.01M15 12h.01', runner: 'M3 9h18v6H3zM3 12h18',
   handle: 'M5 9h14M7 9v6M17 9v6', rail: 'M3 10h18v4H3z', support: 'M8 6v8a4 4 0 0 0 8 0V6', leg: 'M9 4h6v13H9zM8 20h8',
   hanger: 'M5 6h14v5H5zM9 11l3 6 3-6', bracket: 'M7 4v16h10',
