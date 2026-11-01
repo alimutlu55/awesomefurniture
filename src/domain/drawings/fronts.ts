@@ -120,3 +120,9 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
     y0: plinthOf(design), y1: design.h, opens: 'fixed', installation: true, name: 'Corner installation strip' });
   return { fronts: installed, inside, covered, cornerPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
 }
+
+/** Whether a cut board is this front: the same rectangle on the face, to the millimetre or so. A drawer front behind a
+ * door is not the door (it lies within it). A door that runs up to the top has no finite top here, so its top is not
+ * compared; the board's own top is the real one. */
+export const isFrontBoard = (f: Box, b: Box) => Math.abs(f.x0 - b.x0) < .3 && Math.abs(f.x1 - b.x1) < .3 && Math.abs(f.y0 - b.y0) < .3
+  && (Math.abs(f.y1 - b.y1) < .3 || !Number.isFinite(f.y1));

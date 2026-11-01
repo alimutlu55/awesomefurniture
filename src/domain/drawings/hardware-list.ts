@@ -8,7 +8,8 @@ import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
-import { piecefronts } from './fronts';
+import { isFrontBoard, piecefronts, type Front } from './fronts';
+import type { Board } from './cabinet-boards';
 import { pieceBoards } from './unit-detail';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
@@ -19,6 +20,8 @@ const hingesFor = (height: number) => height <= 900 ? 2 : height <= 1600 ? 3 : h
 const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / 800);
 
 interface Line { item: string; size: string; qty: number; marks: string[] }
+/** A door's height: its cut board's (a door up to a sloped or flat top is cut to it), else the front's own. */
+const doorHeight = (f: Front, boards: readonly Board[]) => { const b = boards.find(x => (x.stock === 'door' || x.stock === 'front') && isFrontBoard(f, x)); return (b ? b.y1 : f.y1) - f.y0; };
 
 /**
  * The hardware list: every hinge, runner, rail, fitting and handle the pieces need, added up across the job, with the
@@ -40,12 +43,13 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     const vent = ventilationGrille(d);
     if (vent) add(p, 'Ventilation grille', mm(vent.width) + ' × ' + mm(vent.height) + ' overall; confirm cut-out/free area', 1);
     const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null;
+    const boards = pieceBoards(p, pieces);
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
       if (f.opens === 'side' && !f.label) {
         const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror';
         add(p, glass ? 'Glass/mirror door hinge' : 'Concealed hinge, 110°',
-          glass ? 'compatible with frame/carrier; no cup drilling in glass' : '35 mm cup', hingesFor(mm(f.y1 - f.y0)));
+          glass ? 'compatible with frame/carrier; no cup drilling in glass' : '35 mm cup', hingesFor(mm(doorHeight(f, boards))));
       }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
       const hardware = resolveMaterials(d).handleFinish;
@@ -69,7 +73,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         else add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
       }
     }));
-    const shelves = pieceBoards(p, pieces).filter(b => b.note === 'adjustable').length;
+    const shelves = boards.filter(b => b.note === 'adjustable').length;
     add(p, 'Shelf support', '5 mm pin', 4 * shelves);
     if (unit?.plinth && plinthOf(d) > 0) add(p, 'Adjustable leg', 'for ' + mm(plinthOf(d)) + ' plinth', 4);
     if (p.hung) add(p, 'Cabinet hanger, adjustable', 'pair', 1);

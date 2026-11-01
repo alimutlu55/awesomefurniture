@@ -281,3 +281,13 @@ test('corner pull-out and filler cover · blind panel + hinged door, kidney mech
   assert.equal(handles?.[2], '1', 'only the corner door leaf takes a handle; the blind panel and cover take none');
 });
 
+
+test('the hardware list counts a door\'s hinges by its cut height, not the top it runs up to', async () => {
+  const { createInitialDesign } = await import('../../src/domain/wardrobe/default-design');
+  const { hardwareList } = await import('../../src/domain/drawings/hardware-list');
+  const { placePieces } = await import('../../src/domain/drawings/room-pieces');
+  const hinges = (h: number) => hardwareList(placePieces({ pieces: [{ id: 1, name: 'W', x: 0, y: 0, z: 0, angle: 0,
+    design: { ...createInitialDesign(), w: 100, h, d: 60, n: 2, wt: [1, 1], doors: 'hinged' } }] })).flatMap(t => t.rows).find(r => /hinge/i.test(r[0]!))?.[2];
+  assert.equal(hinges(120), '6');
+  assert.equal(hinges(220), '10');
+});
