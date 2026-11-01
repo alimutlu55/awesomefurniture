@@ -3,6 +3,7 @@ import { bindTactileCanvas } from './tactile-canvas';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
 import { createViewModes } from './view-modes';
+import { createStudio2DPlanner } from './studio-2d-planner';
 import { bindSceneReset } from './scene-reset';
 import { createResizePresenter } from './resize-presenter.js';
 import { mountResizeFields } from './resize-fields.js';
@@ -263,13 +264,38 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         openItem: () => inspector.showPop(null, '#pop3', 'resize'),
         openDivider: () => inspector.showPop(null, '#pop4', 'resize'),
     });
-    const viewModes = createViewModes({ dom, selectionState, camera, inspector, shell, planner, lifetime });
+    const planner2D = createStudio2DPlanner({
+        dom, model, sceneCommands, history, selectionState,
+        callbacks: {
+            onSwitch3D: () => viewModes.setStudioFormat('3d'),
+            openFields: (_action, field) => {
+                room.editor.editMeasure({ a: { x: 0, y: 0, z: 0 }, b: { x: 0, y: 0, z: 0 }, text: '', edit: field });
+            },
+            selectionChanged: () => { inspector.update(true); rendering.redrawStudio(); },
+        },
+        listen: lifetime.listen,
+    });
+    const viewModes = createViewModes({
+        dom, selectionState, camera, inspector, shell, planner, lifetime,
+        onStudioFormatChange: format => {
+            if (format === '2d') {
+                planner2D.show();
+            } else {
+                planner2D.hide();
+                rendering.redrawStudio();
+                camera.frameScene();
+            }
+        },
+    });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime, autoDesign:$('#launch-wizard'),
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
             // Make, while it is open, holds the toolbar: its own tools in place of the piece's.
             if (make.active) return 'make';
+            if (selectionState.viewMode === 'studio' && selectionState.studioView === '2d') {
+                planner2D.render();
+            }
             // A selected toilet or basin has its own tools ('fixture' is a kitchen sink or hob's).
             if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'room-fixture' : selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';

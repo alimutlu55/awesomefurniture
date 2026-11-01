@@ -33,6 +33,7 @@ import type { AccountPlatform } from '../account/account.ports';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
+import studio2DStylesheet from './studio-2d.css?raw';
 import makeStylesheet from '../make/make.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
@@ -55,9 +56,9 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     const shadow = root.shadowRoot ?? root.attachShadow({ mode: 'open' });
     root.dataset.theme ??= root.ownerDocument.documentElement.dataset.theme ?? 'light';
     const style = root.ownerDocument.createElement('style');
-    const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu']));
+    const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu', 'studio-2d-planner']));
     const styles = scopeEditorStyles([stylesheet, mobileStylesheet, mobileSheetStylesheet,
-        shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
+        shapeStylesheet, studioStylesheet, studio2DStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, smartGuideStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
         creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet, languageStylesheet,
         makeStylesheet].join('\n'), controlIds);

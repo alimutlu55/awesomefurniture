@@ -2,6 +2,8 @@ export function createSelectionState() {
     return { responsivePanel: null,
         /** @type {'studio' | 'furniture'} */
         viewMode: 'furniture',
+        /** @type {'2d' | '3d'} */
+        studioView: '3d',
         /** An opening or ceiling awaiting a wall chosen on the canvas. @type {string | null} */
         pendingStudioAction: null,
         showDimensions: true,
