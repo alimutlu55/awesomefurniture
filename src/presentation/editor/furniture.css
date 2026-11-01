@@ -25,16 +25,13 @@ svg.kitchen-art{filter:none}
 /* The grips belong to a selected cabinet alone: a sheet open over it (Size, Fronts, Add item...) hides them. */
 #app:is(.props-open,.auto-design-open):not(.props-hidden) .lbl.array-grip,#app:has(.pop.show) .lbl.array-grip{display:none!important}
 
-/* A wardrobe's eight tools on a narrow phone: smaller labels, and Auto design reads "Auto" (its accessible name
-   stays "Auto design"), so no label runs into its neighbour. */
+/* Keep the full Auto design label legible within its toolbar slot on narrow phones. */
 @media (max-width:430px){
  #toolbar .contextual-actions .tb span{font-size:10px!important;letter-spacing:-.1px;white-space:nowrap}
- #toolbar .contextual-actions #launch-wizard .tl{font-size:0!important}
- #toolbar .contextual-actions #launch-wizard .tl::after{content:'Auto';font-size:10px;letter-spacing:-.1px}
+ #toolbar .contextual-actions .tb[data-action="auto"] span{white-space:normal;line-height:10px;text-align:center}
 }
 @media (max-width:340px){
  #toolbar .contextual-actions .tb span{font-size:9px!important;letter-spacing:-.2px}
- #toolbar .contextual-actions #launch-wizard .tl::after{font-size:9px}
 }
 
 /* Fronts: a piece of furniture's doors (where it has whole-front doors) and its finish, on one sheet. */

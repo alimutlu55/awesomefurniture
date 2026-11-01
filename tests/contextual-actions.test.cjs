@@ -1,10 +1,9 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreActions,furnitureMenus}=require('../src/domain/wardrobe/contextual-actions.js');
-// Furniture: nothing selected offers Add (a tab per kind); every piece of furniture has the same tools in the same order,
-// the steps furniture planners use (add an item, interior, size, fronts, Make), so learning one teaches the other.
-const FURNITURE_TOOLS=['add-item','interior','resize','fronts','make','more'];
-for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',FURNITURE_TOOLS],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
+// Auto design is available for wardrobes, but not kitchen cabinets.
+const FURNITURE_TOOLS=['add-item','resize','make','more'];
+for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',['auto',...FURNITURE_TOOLS]],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
  test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
 }
 test('Make holds the toolbar while it is open: Done first, then its own tools; View lists the views, looks, opening the doors and part numbers',()=>{
@@ -12,13 +11,9 @@ test('Make holds the toolbar while it is open: Done first, then its own tools; V
  assert.deepEqual(contextualActions('make').map(([key])=>key),['make-done','make-apart','make-fronts','make-measures','make-view','make-parts','undo','redo']);
  assert.deepEqual(makeViewActions.map(([key])=>key),['view-iso','view-front','view-side','view-top','look-lines','look-material','look-xray','make-open','make-numbers']);
 });
-test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.deepEqual(contextualActions(kind)[0],['add-item','Add item']);});
-test('Interior leads with Auto design only where it can plan, then sections',()=>{
- assert.deepEqual(furnitureMenus.wardrobe.interior.map(([key])=>key),['auto','sections']);
- assert.deepEqual(furnitureMenus.kitchen.interior.map(([key])=>key),['sections']);
-});
-test('every kind of furniture has the same More: duplicate, reset, remove',()=>{
- for(const more of Object.values(furnitureMoreActions))assert.deepEqual(more.map(([key])=>key),['duplicate','reset','remove']);
+test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.ok(contextualActions(kind).some(action=>action[0]==='add-item'&&action[1]==='Add item'));});
+test('every kind of furniture has Fronts and Sections in More alongside duplicate, reset and remove',()=>{
+ for(const more of Object.values(furnitureMoreActions))assert.deepEqual(more.map(([key])=>key),['fronts','sections','duplicate','reset','remove']);
  assert.deepEqual(wardrobeMoreActions,furnitureMoreActions.wardrobe);
 });
 test('no toolbar offers Move: furniture, an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});

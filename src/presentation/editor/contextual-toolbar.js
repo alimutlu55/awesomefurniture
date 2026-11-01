@@ -3,7 +3,7 @@ import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
- * button: it waits hidden among the defaults, and the Interior menu of furniture that Auto design can plan presses it. */
+ * button: it waits hidden among the defaults and the Auto design action presses it. */
 export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime, autoDesign }) {
     const defaults = document.createElement('div');
     defaults.className = 'contextual-defaults';
@@ -34,14 +34,14 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         menu.hidden = true;
         root.querySelectorAll('[aria-haspopup="menu"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     };
-    const icons = {new:icon('plus'),'add-item':icon('plus'),interior:icon('divider'),fronts:icon('doors'),resize:icon('sliders'),
+    const icons = {new:icon('plus'),auto:icon('spark'),'add-item':icon('plus'),interior:icon('divider'),fronts:icon('doors'),resize:icon('sliders'),
         shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),
         'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make'),
         'make-done':icon('done'),'make-apart':icon('apart'),'make-fronts':icon('doors'),'make-measures':icon('dims'),'make-view':icon('view'),'make-parts':icon('parts')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
-        shape:icon('wardrobe'),sections:icon('divider'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
+        shape:icon('wardrobe'),sections:icon('divider'),fronts:icon('doors'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
         water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders'),
@@ -130,7 +130,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             b.innerHTML = icons[key] + '<span>' + label + '</span>';
             if (opensMenu(key)) {b.setAttribute('aria-haspopup','menu'); b.setAttribute('aria-expanded','false');}
             if (fieldActions.includes(key)) {b.setAttribute('aria-haspopup','dialog'); b.setAttribute('aria-expanded','false');}
-            b.onclick = () => opensMenu(key) ? showMenu(menuOf(key, selection),b)
+            b.onclick = () => key === 'auto' && autoDesign ? (close(), autoDesign.click()) : opensMenu(key) ? showMenu(menuOf(key, selection),b)
                 : fieldActions.includes(key) ? (menu.hidden || menuTrigger !== b ? showControls(key,label,b) : close()) : (close(),execute(key));
             return b;
         }));
