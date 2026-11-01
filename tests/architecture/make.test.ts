@@ -179,3 +179,17 @@ test('a sloped top, falling or rising, is measured along its slope, through its 
     assert.ok(mp.fittings.filter(f => f.boards.includes(part.ids[0]!)).length >= 9, 'screwed down into the sides and the partition');
   }
 });
+
+test('Make moves the editor\'s own camera only through the editor\'s camera controller, never a camera of its own', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = 'src/presentation/make', files = readdirSync(dir).filter(f => /\.ts$/.test(f) && !f.endsWith('.d.ts'));
+  for (const f of files) {
+    const code = readFileSync(`${dir}/${f}`, 'utf8');
+    assert.doesNotMatch(code, /new THREE\.(Perspective|Orthographic)Camera|OrbitControls|TrackballControls/, `${f} makes no camera or controls of its own`);
+    // The camera is read (where it looks from), never set: its pose, lens and gestures stay the editor's.
+    assert.doesNotMatch(code, /\bcam(era)?\.(position|quaternion|rotation|up)\.(set|copy|add|lerp)|\bcam(era)?\.(fov|near|far|zoom)\s*=|\bcam(era)?\.lookAt\(/, `${f} never moves the camera itself`);
+  }
+  // Every shot, glide and framing goes through the controller the rest of the editor uses.
+  const view = readFileSync(`${dir}/make-view.ts`, 'utf8');
+  for (const call of ['cameraTransition', 'cameraSample', 'fittedCamera', 'frameBox', 'frameWardrobe']) assert.match(view, new RegExp(`ports\\.camera\\.${call}\\b`), call);
+});
