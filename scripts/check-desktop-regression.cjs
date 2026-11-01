@@ -31,7 +31,7 @@ const baseURL = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
   // A design opens with nothing chosen; a tap on the wardrobe chooses it.
   await selectFurniture(page);await waitLayout();
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
-  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['new','interior','resize','fronts','make','more']);
+  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),['add-item','interior','resize','fronts','make','more']);
   await action('resize').click();await waitLayout();
   assert.equal(await toolbar.isVisible(),false,'Focused sizing hides the desktop toolbar');
   assert.equal(await el('view-modes').isVisible(),false);
