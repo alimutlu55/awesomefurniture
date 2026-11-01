@@ -33,7 +33,6 @@ import type { AccountPlatform } from '../account/account.ports';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
-import floorPlanStylesheet from './floor-plan.css?raw';
 import makeStylesheet from '../make/make.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
@@ -61,7 +60,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         shapeStylesheet, studioStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, smartGuideStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
         creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet, languageStylesheet,
-        makeStylesheet, floorPlanStylesheet].join('\n'), controlIds);
+        makeStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

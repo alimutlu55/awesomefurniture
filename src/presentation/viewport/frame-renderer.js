@@ -8,8 +8,6 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
         lifetime.frame(loop);
         const _n = clock.now(), dt = Math.min(.05, (_n - (renderState.lastFrameTime ?? _n)) / 1000);
         renderState.lastFrameTime = _n;
-        // The opaque plan projection owns the viewport; preserve the 3D camera and avoid hidden GPU work.
-        if ($('#app').dataset?.floorPlan === 'true') return;
         const kk = r => matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1 - Math.exp(-dt * r);
         camera.cameraTick(_n, dt);
         const now = clock.now(), ease = t => t * t * (3 - 2 * t);
