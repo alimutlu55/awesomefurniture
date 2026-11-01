@@ -109,3 +109,6 @@
 .make-chapter[aria-current] {background:var(--seg)}
 .make-chapter[aria-current] .make-n{background:var(--ink);color:var(--panel)}
 .make-chapter b{color:var(--mute);font-weight:500}
+.make-follow{flex:none;display:grid;place-items:center;width:36px;height:36px;padding:0;border:0;border-radius:18px;background:transparent;color:var(--mute);cursor:pointer}
+.make-follow[aria-pressed="true"]{background:var(--seg);color:var(--ink)}
+.make-follow .make-ico{stroke:currentColor}

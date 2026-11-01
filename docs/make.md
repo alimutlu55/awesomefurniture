@@ -12,8 +12,13 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   Make adds for the runners. Every hole is a dark ring at its mouth; handles, hanging rails, runners, legs, hangers and
   wall brackets are drawn in metal. Drag turns the view, right-drag or shift-drag pans, two fingers pinch and pan, the
   wheel zooms: the editor's own camera code, unchanged.
+- **A drawing, by default**: the Lines look draws the piece as an assembly manual does, on a sheet of paper (the
+  editor's panel colour) with ink outlines of a steady width (Three's thick lines) and unshaded boards; hardware in grey.
+  Material and X-ray are in View.
 - **Every measurement on show**, written over the view as the editor writes its own (hairlines, white rounded labels):
-  rank 1 the piece, rank 2 its openings and fronts, rank 3 the part picked. A label that would overlap another waits
+  rank 1 the piece, rank 2 its openings and fronts (a column of fronts measured across once, every front up its side),
+  rank 3 the part picked. Where each of a part's boards sits is a running dimension: one line up from the floor (or
+  across from the left face) with a tick at each board and its figure beside that tick. A label that would overlap another waits
   until the view turns; a measurement across the inside shows only while its plane faces the viewer.
 - **The toolbar holds Make's tools:** Done, Take apart (the boards move away from what they touch; the camera backs off
   to keep them in view), Doors (solid, or dashed outlines), Sizes, View (3D, Front, Side, Top; Lines, Material, X-ray;
@@ -26,7 +31,11 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   - **Parts**: every part, numbered; save the drawings; the full (paid) drawing set.
   - **Hardware**: Joints (Screws, Cams, Dowels) and Back (Nailed, Grooved), saved with the design; the drilling check
     (holes running into each other, too near an edge, through the far face, meeting inside); everything to buy, counted.
-  - **Steps**: the assembly as a film, in the editor's own view. Each step (plinth; base and sides; partitions; top;
+  - **Steps**: the assembly as a film, in the editor's own view. Every part starts laid flat on the floor in front of
+    the piece (nothing appears from nowhere); a directed camera opens on the parts, looks down on the drilling, stands
+    back as each board is lifted, stood up and carried in (one after another, the base before the sides, shelves from
+    the bottom up), comes close from the side the screws go in, and ends going round the finished piece. Dragging or
+    zooming takes the camera; Follow gives it back. Each step (plinth; base and sides; partitions; top;
     back; inside; drawers; doors and fronts; fixing to the wall) drills its holes one after another (a drill bit going
     in and out, the hole left behind), brings its boards in from where they wait, then fixes them: screws turning in
     along their holes, cams turned, dowels, shelf pins and hinge plates pushed in first, nails driven, hinges set on.
@@ -70,6 +79,8 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 | Application | `commands/make-commands.ts` | `setConstruction`: one undo step, defaults never written down |
 | Presentation | `make/make-3d.ts`, `make-fittings-3d.ts` | Boards, holes and hardware on `MAKE_LAYER`; looks, selection, take apart, open, the film's boards |
 | Presentation | `make/make-play-3d.ts`, `make-player.ts` | Drill bits and fasteners moving in the film; the player (time, play, seek, chapters) |
+| Presentation | `make/make-director.ts` | The film's shots, fitted with the editor's own framing and glided between, a function of time |
+| Domain | `make/make-staging.ts` | Where each part waits, lying flat on the floor in front of the piece |
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
 | Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts` | The panel and its tabs; the PDF and CSV |
 | Presentation | `make/make-view.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys, the per-frame overlay |
@@ -96,6 +107,7 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 - The film shows hardware 1.6 times its size while it moves (it lands at its size); the camera does not follow it.
 - Hole positions follow common practice (System 32, 37 mm line, cups 22.5 mm in), not a particular hardware maker's
   template; the PDF says so. Edge-hole positions are not dimensioned on the drawings.
+- Labels keep a 6 px gap; one that would crowd another waits until the view turns.
 - Measurements over the view do not follow open doors (a front's sizes hide while it is open).
 
 Tests: `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`, `tests/architecture/make-timeline.test.ts`,

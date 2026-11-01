@@ -57,10 +57,18 @@ const assert=require('node:assert/strict');
   await page.waitForTimeout(2300);
   assert.ok(await time()>=1,'Play moves the film on');
   assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Pause');
-  // Turning the view while it plays keeps the player open.
+  // The director moves the camera while it plays.
+  const cameraAt=()=>page.locator('.make-overlay').innerHTML();
+  const shotA=await cameraAt();await page.waitForTimeout(600);
+  assert.notEqual(await cameraAt(),shotA,'The camera moves with the film');
+  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'true');
+  // Turning the view while it plays keeps the player open, and the camera is the person's until they ask for Follow.
   await page.mouse.move(view.x+view.width*.6,view.y+view.height*.2);await page.mouse.down();
   await page.mouse.move(view.x+view.width*.45,view.y+view.height*.18,{steps:5});await page.mouse.up();
   assert.equal(await panel.isVisible(),true,'The player stays while the view turns');
+  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'false','Looking around takes the camera');
+  await panel.locator('[data-follow]').click();
+  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'true','Follow gives it back');
   await panel.locator('[data-play]').click();
   assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Play');
   await panel.locator('.make-scrub').fill('600');

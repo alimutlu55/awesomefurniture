@@ -1,5 +1,6 @@
 import type { MakePiece } from '../../domain/make/make-parts';
 import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, type Playhead, playhead, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { type Staged, stagingLayout } from '../../domain/make/make-staging';
 import type { MakeFilm } from './make-play-3d';
 
 /**
@@ -7,10 +8,13 @@ import type { MakeFilm } from './make-play-3d';
  * holds no view: Make draws the film and writes the controls.
  */
 export function createMakePlayer() {
-  let piece: MakePiece | null = null, tl: Timeline | null = null, t = 0, playing = false;
+  let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false;
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0 };
   return {
-    load(next: MakePiece) { piece = next; tl = assemblyTimeline(next); t = Math.min(t, tl.duration); playing = false; },
+    /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
+    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; },
+    get timeline() { return tl; },
+    get staged() { return staged; },
     get time() { return t; },
     get duration() { return tl?.duration ?? 0; },
     get playing() { return playing; },
@@ -46,10 +50,11 @@ export function createMakePlayer() {
       const line = tl, ph = head(), fittings = piece.fittings;
       return {
         arrive: board => arrivalAt(line, ph, board),
+        stage: board => staged[board]!,
         now: board => line.boardStep[board] === ph.step,
         hole: index => drilled(line, ph, index),
-        // Hardware drawn on the piece comes on as its step fixes it; runners come in with their drawer.
-        item: index => line.itemStep[index]! < ph.step || (line.itemStep[index] === ph.step && (ph.fix > 0 || (fittings[index]!.kind === 'runner' && ph.place > 0))),
+        // Hardware drawn on the piece comes in as its step fixes it; runners are on their drawer from the start.
+        item: index => fittings[index]!.kind === 'runner' || line.itemStep[index]! < ph.step ? 1 : line.itemStep[index] === ph.step && ph.fix > 0 ? ph.fix : null,
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
       };

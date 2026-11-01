@@ -59,6 +59,7 @@ export const STAGE_NAMES: Record<Stage, string> = {
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const PLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5l11 7-11 7z"/></svg>';
 const PAUSE = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+const CAMERA = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h10v8H4zM14 11l6-3v8l-6-3"/></svg>';
 const REPLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-5M5 4v4h4"/></svg>';
 
 /** The assembly as a film: the step showing and what holds it, play and the scrub bar, then every step as a chapter. */
@@ -68,14 +69,17 @@ export function stepsTab(piece: MakePiece, player: MakePlayer) {
   return '<div class="make-player"><div class="make-caption"></div>'
     + `<div class="make-transport"><button type="button" class="make-play" data-play aria-label="Play"></button>`
     + `<input type="range" class="make-scrub" min="0" max="1000" step="1" value="0" aria-label="Assembly">`
-    + '<span class="make-time" translate="no"></span></div><div class="make-chips make-holds"></div>'
+    + '<span class="make-time" translate="no"></span>'
+    + `<button type="button" class="make-follow" data-follow aria-pressed="true" aria-label="Follow the build" title="Follow the build">${CAMERA}</button></div>`
+    + '<div class="make-chips make-holds"></div>'
     + '<div class="make-line make-steps"><button type="button" data-build="-1">Previous</button><button type="button" data-build="1">Next</button></div></div>'
     + `<div class="make-rows make-chapters">${chapters}</div>`;
 }
 /** Brings the player's controls up to the film's time (every frame while it plays); the caption only when the step changes. */
-export function updatePlayer(root: ParentNode, piece: MakePiece, player: MakePlayer) {
+export function updatePlayer(root: ParentNode, piece: MakePiece, player: MakePlayer, follow: boolean) {
   const body = root.querySelector<HTMLElement>('.make-player');
   if (!body) return;
+  body.querySelector('[data-follow]')!.setAttribute('aria-pressed', String(follow));
   const { step } = player.head, s = piece.steps[step]!, end = player.time >= player.duration - .01;
   const play = body.querySelector<HTMLButtonElement>('[data-play]')!, mode = player.playing ? 'pause' : end ? 'replay' : 'play';
   if (play.dataset.mode !== mode) {

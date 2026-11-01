@@ -126,6 +126,26 @@ test('no two labels overlap, for the whole piece, for every part picked, and tak
   }
 });
 
+test('every figure shows the length of what it measures, and a shelf\'s height stands beside that shelf', async () => {
+  const { partMeasures, pieceMeasures: all } = await import('../../src/domain/make/make-measures');
+  const mp = piece({ ...wardrobe, secs: [[{ k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }], [{ k: 'long', h: 160 }]] });
+  for (const m of [...all(mp), ...mp.parts.flatMap(p => partMeasures(p))]) assert.ok(Math.abs(m.length - Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1], m.b[2] - m.a[2])) < 1e-9);
+  const shelf = mp.parts.filter(p => p.name === 'Shelf').sort((a, b) => b.boards.length - a.boards.length)[0]!;
+  assert.ok(shelf.boards.length >= 3, 'several shelves of one part');
+  const heights = partMeasures(shelf).filter(m => m.ordinate);
+  assert.deepEqual(heights.map(m => m.b[1]).sort((a, b) => a - b), shelf.boards.map(b => b.y0).sort((a, b) => a - b), 'one height for each shelf, to its underside');
+  const svg = marksSvg(mp, { ...marksState, selected: shelf.n }, camera, () => [0, 0, 0], text, { w: 900, h: 900 });
+  let found = 0;
+  for (const m of heights) {
+    const label = [...svg.matchAll(/<rect class="make-tag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"[^>]*\/><text[^>]*>([^<]+)<\/text>/g)].find(x => x[5] === text(m.length));
+    if (!label) continue;
+    found++;
+    const mid = Number(label[2]) + Number(label[4]) / 2, at = (camera([m.b[0] + m.offset[0], m.b[1], m.b[2]]) as [number, number])[1];
+    assert.ok(Math.abs(mid - at) < 8, `the figure ${label[5]} stands level with its shelf (${mid.toFixed(1)} vs ${at.toFixed(1)})`);
+  }
+  assert.ok(found >= heights.length - 1, `the heights are written (${found} of ${heights.length})`);
+});
+
 test('a point behind the camera is left out rather than drawn wrongly', () => {
   const behind: Projector = p => p[0] > 50 ? false : [p[0], p[1]];
   assert.doesNotThrow(() => marksSvg(piece(wardrobe), marksState, behind, () => [0, 0, 0], text, { w: 900, h: 900 }));
@@ -135,4 +155,14 @@ test('a part sheet gives the finished size and the cut size with the banding tak
   const door = piece(wardrobe).parts.find(p => p.name === 'Door')!, svg = partSheetSvg(door, text, 'Oak', 1);
   assert.ok(svg.includes(`${text(door.cut.length)} × ${text(door.cut.width)} × ${text(door.cut.thickness)}`));
   assert.ok(svg.includes(`✂ ${text(door.cut.length - .2)} × ${text(door.cut.width - .2)}`));
+});
+
+test('a column of fronts is measured across once, and every front up its own side', async () => {
+  const { pieceMeasures: all } = await import('../../src/domain/make/make-measures');
+  const mp = piece({ ...wardrobe, doors: 'none', secs: [[{ k: 'drawer', h: 20 }, { k: 'drawer', h: 25 }, { k: 'shelf', h: 30 }], [{ k: 'long', h: 160 }]] });
+  const fronts = mp.parts.filter(p => p.stock === 'front'), measures = all(mp).filter(m => m.part !== undefined);
+  assert.ok(fronts.length >= 2, 'two drawer fronts of different heights');
+  const across = measures.filter(m => m.a[1] === m.b[1]), up = measures.filter(m => m.a[0] === m.b[0]);
+  assert.equal(new Set(across.map(m => `${m.a[0]},${m.b[0]}`)).size, across.length, 'one width a column');
+  for (const f of fronts) assert.ok(up.some(m => Math.abs(m.length - (f.boards[0]!.y1 - f.boards[0]!.y0)) < 1e-9), `${f.name} ${f.n} has its height`);
 });

@@ -20,6 +20,9 @@ export interface Measure {
   /** The way the plane it lies in faces (the front, a shelf's top): it is shown only while that plane faces the viewer,
    * so measurements across the inside never collapse onto one line when the piece is seen from its side. */
   readonly face?: Vec3;
+  /** A running dimension from a datum (the floor, the left face): its figure stands beside the tick at `b`, where the
+   * board is, not halfway along, so a column of shelves reads as a column of heights. */
+  readonly ordinate?: boolean;
 }
 
 const EPS = .01;
@@ -68,7 +71,7 @@ export function pieceMeasures(mp: MakePiece): Measure[] {
   posts.slice(0, -1).forEach((left, i) => {
     const right = posts[i + 1]!, x0 = left.x1, x1 = right.x0, mid = (x0 + x1) / 2;
     if (x1 - x0 < 2) return;
-    const level = Math.min(heightsAt(left, x0)[1], heightsAt(right, x1)[1]) - 4;
+    const level = Math.min(heightsAt(left, x0)[1], heightsAt(right, x1)[1]) - 8;
     out.push(measure(2, [x0, level, d], [x1, level, d], undefined, undefined, FRONT));
     const stack = across.filter(b => b.x0 <= mid + EPS && b.x1 >= mid - EPS).sort((p, q) => heightsAt(p, mid)[0] - heightsAt(q, mid)[0]);
     stack.slice(0, -1).forEach((below, k) => {
@@ -79,10 +82,19 @@ export function pieceMeasures(mp: MakePiece): Measure[] {
   });
   const shelf = found.shelf;
   if (shelf) out.push(measure(2, [shelf.x0 + 4, shelf.y1, shelf.z0], [shelf.x0 + 4, shelf.y1, shelf.z1], undefined, undefined, UP));
+  // Every front: its height up its side, and its width under it, once for a column of fronts the same width (two
+  // drawer fronts one above the other share one width; each has its own height).
+  const widths = new Set<string>();
   for (const part of mp.parts) {
     const b = part.boards[0]!;
     if (!isFront(b)) continue;
-    out.push(measure(2, [b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [0, -3, 0], part.n, FRONT), measure(2, [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [3, 0, 0], part.n, FRONT));
+    const column = [b.x0, b.x1, b.z1].map(v => Math.round(v * 10)).join();
+    if (!widths.has(column)) {
+      widths.add(column);
+      const low = Math.min(...mp.parts.filter(p => isFront(p.boards[0]!)).flatMap(p => p.boards).filter(o => [o.x0, o.x1, o.z1].map(v => Math.round(v * 10)).join() === column).map(o => o.y0));
+      out.push(measure(2, [b.x0, low, b.z1], [b.x1, low, b.z1], [0, -3, 0], part.n, FRONT));
+    }
+    out.push(measure(2, [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [3, 0, 0], part.n, FRONT));
   }
   return out;
 }
@@ -98,9 +110,11 @@ export function partMeasures(part: MakePart, withPositions = true): Measure[] {
   if (thin === 'y') out.push(measure(3, [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [G, 0, 0]));
   if (thin === 'z') out.push(measure(3, [b.x1, b.y1, b.z0], [b.x1, b.y1, b.z1], [0, G, 0]));
   if (isFront(b) || !withPositions) return out;
+  // Where each board sits: a shelf's underside up from the floor, an upright's left face across from the piece's left
+  // face, as running dimensions up (or across) one line beside the boards, each figure at its own board.
   for (const board of part.boards) {
-    if (thin === 'y' && board.y0 > .5) out.push(measure(3, [board.x0 + 3, 0, board.z1], [board.x0 + 3, board.y0, board.z1]));
-    if (thin === 'x' && board.x0 > .5) out.push(measure(3, [0, board.y0 + 10, board.z1], [board.x0, board.y0 + 10, board.z1]));
+    if (thin === 'y' && board.y0 > .5) out.push({ ...measure(3, [b.x0, 0, board.z1], [b.x0, board.y0, board.z1], [-2 * G, 0, 0]), ordinate: true });
+    if (thin === 'x' && board.x0 > .5) out.push({ ...measure(3, [0, b.y0, board.z1], [board.x0, b.y0, board.z1], [0, -2 * G, 0]), ordinate: true });
   }
   return out;
 }

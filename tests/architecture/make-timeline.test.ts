@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, playhead, stepStart } from '../../src/domain/make/make-timeline';
+import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
+import { lyingFlat, stagingLayout } from '../../src/domain/make/make-staging';
 import { JOINT_SYSTEMS } from '../../src/domain/make/make-construction';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 
@@ -29,24 +30,25 @@ test('the steps follow each other without gaps, each drilling, then bringing boa
     const mp = make(design), tl = assemblyTimeline(mp);
     assert.equal(tl.steps.length, mp.steps.length);
     tl.steps.forEach((s, k) => {
-      assert.equal(s.start, k ? tl.steps[k - 1]!.end : 0, `${name}: step ${k + 1} starts where the last ended`);
+      assert.equal(s.start, k ? tl.steps[k - 1]!.end : INTRO, `${name}: step ${k + 1} starts where the last ended, after the opening`);
       assert.ok(s.start <= s.drill[0] && s.drill[1] <= s.place[0] && s.place[1] <= s.fix[0] && s.fix[1] < s.end, `${name}: phases in order`);
       assert.equal(playhead(tl, stepStart(tl, k)).step, k);
     });
-    assert.equal(tl.duration, tl.steps.at(-1)!.end);
+    assert.equal(tl.duration, tl.steps.at(-1)!.end + OUTRO, 'the film ends going round the finished piece');
     assert.equal(playhead(tl, -5).step, 0, 'before the start is the start');
     assert.equal(playhead(tl, tl.duration + 5).step, tl.steps.length - 1, 'after the end is the end');
   }
 });
 
-test('at any moment a board is hidden before its step, coming in during it and in place after; the end is the piece built', () => {
+test('at any moment a board waits before its step, comes in during it and is in place after; the end is the piece built', () => {
   for (const [name, design] of Object.entries(designs)) {
     const mp = make(design), tl = assemblyTimeline(mp), end = playhead(tl, tl.duration);
     mp.boards.forEach((_, i) => {
       assert.equal(arrivalAt(tl, end, i), 1, `${name}: board ${i} in place at the end`);
+      assert.equal(arrivalAt(tl, playhead(tl, 0), i), 0, `${name}: board ${i} waits at the start`);
       let last = -1;
       for (const t of times(tl.duration)) {
-        const a = arrivalAt(tl, playhead(tl, t), i) ?? -1;
+        const a = arrivalAt(tl, playhead(tl, t), i);
         assert.ok(a >= last - 1e-9, `${name}: board ${i} never goes back out`);
         last = a;
       }
@@ -69,4 +71,29 @@ test('a hole is drilled before its fitting goes in, and the drill is in it only 
       });
     }
   }
+});
+
+test('every part waits lying flat on the floor in front of the piece, none on another', () => {
+  for (const [name, design] of Object.entries(designs)) for (const floor of [0, -142]) {
+    const mp = make(design), staged = stagingLayout(mp, floor);
+    staged.forEach((s, i) => {
+      const b = mp.boards[i]!, flat = lyingFlat(b);
+      assert.ok(Math.abs(s.size[1] - Math.min(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)) < 1e-9, `${name}: ${b.name} lies on its face`);
+      assert.ok(s.size[0] >= s.size[2] - 1e-9, `${name}: ${b.name} lies with its length across`);
+      assert.deepEqual(s.size, flat.size);
+      assert.ok(Math.abs(s.at[1] - s.size[1] / 2 - floor) < 1e-9, `${name}: ${b.name} on the floor`);
+      assert.ok(s.at[2] - s.size[2] / 2 >= mp.size.d, `${name}: ${b.name} in front of the piece`);
+      staged.slice(i + 1).forEach((o, k) => {
+        const apart = [0, 2].some(a => Math.abs(s.at[a]! - o.at[a]!) >= (s.size[a]! + o.size[a]!) / 2 - 1e-6);
+        assert.ok(apart, `${name}: ${b.name} and board ${i + k + 1} lie apart`);
+      });
+    });
+  }
+});
+
+test('a step puts its boards in one after another: the base before the sides, shelves from the bottom up', () => {
+  const mp = make(wardrobe), tl = assemblyTimeline(mp), at = (name: string) => mp.boards.map((b, i) => ({ b, i })).filter(x => x.b.name === name);
+  for (const side of at('Side')) assert.ok(tl.boardStart[side.i]! > tl.boardStart[at('Base')[0]!.i]!, 'the base goes in before a side');
+  const shelves = at('Shelf').filter(x => tl.boardStep[x.i] === tl.boardStep[at('Shelf')[0]!.i]).sort((p, q) => p.b.y0 - q.b.y0);
+  shelves.slice(1).forEach((x, k) => assert.ok(Math.round(x.b.y0 / 10) === Math.round(shelves[k]!.b.y0 / 10) || tl.boardStart[x.i]! > tl.boardStart[shelves[k]!.i]!, 'lower shelves first'));
 });

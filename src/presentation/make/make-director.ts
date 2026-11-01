@@ -1,0 +1,87 @@
+import * as THREE from 'three';
+import type { MakePiece } from '../../domain/make/make-parts';
+import type { Staged } from '../../domain/make/make-staging';
+import { INTRO, OUTRO, type Timeline } from '../../domain/make/make-timeline';
+
+/** A camera pose as the editor's camera holds it: turned `az` round the target, raised `el`, `dist` away. */
+export interface Pose { az: number; el: number; dist: number; x: number; y: number; z: number }
+interface Bounds { x: number; y: number; z: number; w: number; h: number; d: number }
+/** The editor's own camera framing: the pose that fits `bounds` from `az`, `el`, and gliding from one pose to another. */
+export interface DirectorCamera {
+  fittedCamera(az: number, el: number, padding: number, bounds: Bounds): Pose;
+  cameraSample(from: Pose, to: Pose, t: number): Pose;
+}
+
+/**
+ * The assembly film's camera, as a building video is shot: it opens on the parts laid out, looks down on each step's
+ * drilling, stands back as its boards are carried in, comes in close from the side the screws go in from, steps back,
+ * and ends going slowly round the finished piece. Every shot is fitted with the editor's own framing, and the camera
+ * glides from one to the next. Like the film, it is a function of the time: scrubbing shows the same shot.
+ */
+export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline, staged: readonly Staged[], toWorld: (p: THREE.Vector3) => THREE.Vector3, facing: number) {
+  const { w, d } = piece.size, half = (p: readonly number[]) => toWorld(new THREE.Vector3(p[0]! - w / 2, p[1]!, p[2]! - d / 2));
+  const placed = (i: number) => { const b = piece.boards[i]!; return corners([b.x0, b.y0, b.z0], [b.x1, b.y1, b.z1]).map(half); };
+  const waiting = (i: number) => { const s = staged[i]!; return corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half); };
+  const around = (p: readonly number[], r: number) => corners(p.map(v => v - r), p.map(v => v + r)).map(half);
+  const all = piece.boards.map((_, i) => i), shots: { t: number; pose: Pose }[] = [];
+  const shot = (t: number, points: THREE.Vector3[], az: number, el: number, padding: number) => {
+    if (points.length) shots.push({ t, pose: camera.fittedCamera(az, el, padding, bounds(points)) });
+  };
+  /** The turn that looks at the piece from the side a direction in its own frame points to, kept three-quarters on. */
+  const from = (local: THREE.Vector3, front = .9) => {
+    const v = local.clone().normalize().add(new THREE.Vector3(0, 0, front)).applyAxisAngle(new THREE.Vector3(0, 1, 0), facing);
+    return Math.atan2(v.x, v.z);
+  };
+  // Opening: every part laid out in front of where the piece will stand (its footprint on the floor), easing in.
+  const floor = Math.min(...staged.map(s => s.at[1] - s.size[1] / 2)), site = corners([0, floor, 0], [w, floor + 1, d]).map(half);
+  const everything = [...all.flatMap(waiting), ...site];
+  shot(0, everything, facing + .7, .7, .95);
+  shot(INTRO * .85, everything, facing + .45, .62, .8);
+  tl.steps.forEach((s, k) => {
+    const side = k % 2 ? 1 : -1, step = piece.steps[k]!, before = all.filter(i => tl.boardStep[i]! < k);
+    const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k);
+    // Drilling: from above, on the boards waiting and the holes in what already stands.
+    if (s.drill[1] > s.drill[0]) {
+      const points = [...step.boards.flatMap(waiting), ...holes.filter(({ h }) => !step.boards.includes(h.board)).flatMap(({ h }) => around(h.at, 6))];
+      shot(s.drill[0] + (s.drill[1] - s.drill[0]) * .45, points, facing + side * .35, .9, 1.12);
+    }
+    // Bringing the boards in: back far enough to see each come up from the floor to where it goes, then closer on the
+    // piece as the last goes in.
+    if (s.place[1] > s.place[0]) {
+      const piece = [...step.boards.flatMap(placed), ...before.flatMap(placed)];
+      shot(s.place[0] + (s.place[1] - s.place[0]) * .25, [...piece, ...step.boards.flatMap(waiting)], facing + side * .55, .45, 1.04);
+      shot(s.place[0] + (s.place[1] - s.place[0]) * .9, piece, facing + side * .5, .4, 1.1);
+    }
+    // Fixing: close, from the side the screws go in from (a side's screws from that side, the back's nails behind).
+    if (s.fix[1] > s.fix[0]) {
+      const items = step.items.map(i => piece.fittings[i]!), axis = [0, 1, 2].map(a => items.filter(f => f.axis === a).length);
+      const main = axis.indexOf(Math.max(...axis)), mean = items.reduce((m, f) => m + (f.at[main]! - [w, piece.size.h, d][main]! / 2), 0) / Math.max(1, items.length);
+      const out = new THREE.Vector3(), el = main === 1 ? .95 : .4;
+      if (main === 1) out.set(side, 0, 1); else out.setComponent(main, mean < 0 ? -1 : 1);
+      shot(s.fix[0] + (s.fix[1] - s.fix[0]) * .4, items.flatMap(f => around(f.at, 12)), main === 1 ? facing + side * .3 : from(out, main === 2 ? -.6 : .9), el, 1.2);
+    }
+    // A breath: the piece so far.
+    shot(s.end - .15, [...all.filter(i => tl.boardStep[i]! <= k).flatMap(placed)], facing + side * .45, .45, 1.1);
+  });
+  // The finished piece, turning slowly.
+  shot(tl.duration - OUTRO + .6, all.flatMap(placed), facing + .65, .36, 1.06);
+  shot(tl.duration, all.flatMap(placed), facing - .7, .26, 1.06);
+  shots.sort((a, b) => a.t - b.t);
+  /** The camera at time `t`: between the shots either side, glided with the editor's own easing. */
+  return (t: number): Pose => {
+    const next = shots.findIndex(s => s.t > t);
+    if (next <= 0) return { ...shots[next === 0 ? 0 : shots.length - 1]!.pose };
+    const a = shots[next - 1]!, b = shots[next]!;
+    return camera.cameraSample(a.pose, b.pose, (t - a.t) / (b.t - a.t));
+  };
+}
+
+function corners(lo: readonly number[], hi: readonly number[]) {
+  const out: number[][] = [];
+  for (const x of [lo[0]!, hi[0]!]) for (const y of [lo[1]!, hi[1]!]) for (const z of [lo[2]!, hi[2]!]) out.push([x, y, z]);
+  return out;
+}
+function bounds(points: readonly THREE.Vector3[]): Bounds {
+  const box = new THREE.Box3().setFromPoints([...points]), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  return { x: c.x, y: c.y, z: c.z, w: Math.max(s.x, 20), h: Math.max(s.y, 20), d: Math.max(s.z, 20) };
+}

@@ -28,7 +28,9 @@ const n1 = (v: number) => v.toFixed(1);
 const line = (a: readonly [number, number], b: readonly [number, number], cls: string) =>
   `<line class="${cls}" x1="${n1(a[0])}" y1="${n1(a[1])}" x2="${n1(b[0])}" y2="${n1(b[1])}"/>`;
 const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-const overlaps = (box: Box, placed: readonly Box[]) => placed.some(q => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1]);
+/** Labels keep a clear gap (pixels) from each other, so two figures never read as one ("200 60"). */
+const GAP = 6;
+const overlaps = (box: Box, placed: readonly Box[]) => placed.some(q => box[0] < q[2] + GAP && box[2] > q[0] - GAP && box[1] < q[3] + GAP && box[3] > q[1] - GAP);
 
 /**
  * Measurement lines and their labels, in screen pixels. Higher ranks are placed first; a label that would sit on one
@@ -44,17 +46,21 @@ export function measureMarks(pr: Projector, list: readonly Measure[], length: Le
     if (!pa || !pb || !PA || !PB) continue;
     const size = m.rank === 1 ? fs : fs * .92, label = length(m.length), d = [PB[0] - PA[0], PB[1] - PA[1]] as const, dl = Math.hypot(d[0], d[1]);
     const tw = label.length * size * .62 + size * .8, th = size * 1.45;
-    if (dl < Math.min(tw, th * 2.2)) continue;
+    if (dl < (m.ordinate ? 2 : Math.min(tw, th * 2.2))) continue;
     let e = [PA[0] - pa[0], PA[1] - pa[1]], el = Math.hypot(e[0]!, e[1]!);
     if (el < 1e-6) { e = [-d[1] / dl, d[0] / dl]; if (e[1]! > 0) e = [-e[0]!, -e[1]!]; el = 0; } else e = [e[0]! / el, e[1]! / el];
-    const cx = (PA[0] + PB[0]) / 2 + e[0]! * size * .85, cy = (PA[1] + PB[1]) / 2 + e[1]! * size * .85;
+    // A running dimension's figure stands beside its tick, out from the line; any other's in the middle of its line.
+    const out1 = Math.abs(e[0]!) * tw / 2 + Math.abs(e[1]!) * th / 2 + 6;
+    const cx = m.ordinate ? PB[0] + e[0]! * out1 : (PA[0] + PB[0]) / 2 + e[0]! * size * .85;
+    const cy = m.ordinate ? PB[1] + e[1]! * out1 : (PA[1] + PB[1]) / 2 + e[1]! * size * .85;
     const box: Box = [cx - tw / 2, cy - th / 2, cx + tw / 2, cy + th / 2];
     if (overlaps(box, placed)) continue;
     placed.push(box);
     const k = 4, u = [d[0] / dl, d[1] / dl] as const, tick = (p: readonly [number, number]) =>
       line([p[0] - (u[0] + e[0]!) * k * .7, p[1] - (u[1] + e[1]!) * k * .7], [p[0] + (u[0] + e[0]!) * k * .7, p[1] + (u[1] + e[1]!) * k * .7], 'make-dim');
     if (el) out += line(pa, [PA[0] + e[0]! * k, PA[1] + e[1]! * k], 'make-ext') + line(pb, [PB[0] + e[0]! * k, PB[1] + e[1]! * k], 'make-ext');
-    out += `<g class="make-measure r${m.rank}">` + line(PA, PB, 'make-dim') + tick(PA) + tick(PB)
+    const level = (p: readonly [number, number]) => line([p[0] - e[0]! * 6, p[1] - e[1]! * 6], [p[0] + e[0]! * 6, p[1] + e[1]! * 6], 'make-dim');
+    out += `<g class="make-measure r${m.rank}${m.ordinate ? ' ord' : ''}">` + line(PA, PB, 'make-dim') + (m.ordinate ? level(PA) + level(PB) : tick(PA) + tick(PB))
       + `<rect class="make-tag" x="${n1(box[0])}" y="${n1(box[1])}" width="${n1(tw)}" height="${n1(th)}" rx="${n1(th / 2)}"/>`
       + `<text class="make-tagt" font-size="${n1(size)}" x="${n1(cx)}" y="${n1(cy)}" text-anchor="middle" dominant-baseline="central">${label}</text></g>`;
   }

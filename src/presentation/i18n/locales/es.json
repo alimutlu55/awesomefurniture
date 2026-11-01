@@ -603,5 +603,6 @@
   "Play": "Reproducir",
   "Pause": "Pausa",
   "Replay": "Repetir",
-  "Assembly": "Montaje"
+  "Assembly": "Montaje",
+  "Follow the build": "Seguir el montaje"
 }

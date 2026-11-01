@@ -4,14 +4,16 @@ import type { MakePiece } from '../../domain/make/make-parts';
 
 /** The film of the assembly at one moment: where each board is, which holes and fittings show, what is moving. */
 export interface MakeFilm {
-  /** A board: null hidden, 0 away, 1 in place. */
-  arrive(board: number): number | null;
+  /** A board: 0 lying where it waits, 1 in place. */
+  arrive(board: number): number;
+  /** Where a board waits, lying flat on the floor in front of the piece. */
+  stage(board: number): import('../../domain/make/make-staging').Staged;
   /** Whether a board is one the step is putting in now (drawn picked out). */
   now(board: number): boolean;
   /** Whether a hole is drilled by now. */
   hole(index: number): boolean;
-  /** Whether bought hardware drawn on the piece (a handle, a rail, a leg) is on by now. */
-  item(index: number): boolean;
+  /** Bought hardware drawn on the piece (a handle, a rail, a leg): null not yet, 0 coming into view, 1 on. */
+  item(index: number): number | null;
   /** A hole being drilled: the drill's way down and back out (0 to 1), or null. */
   bit(hole: number): number | null;
   /** A fastener: null not yet, 0 at the hole, 1 home. */
@@ -139,10 +141,11 @@ export function createMakePlay(layer: number) {
         const p = film?.fit(f.item) ?? null;
         f.group.visible = p !== null;
         if (p === null) continue;
-        const e = ease(p);
-        f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * f.travel);
+        // It comes into view from further back along its way in, growing from nothing as it comes: never a pop.
+        const e = ease(p), seen = Math.min(1, p / .25);
+        f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * (f.travel + 6));
         f.group.quaternion.setFromUnitVectors(Y, f.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, e * f.spin));
-        f.group.scale.setScalar((f.grow ? Math.max(.01, e) : 1) * (1 + (VIS - 1) * (1 - e)));
+        f.group.scale.setScalar(Math.max(.01, (f.grow ? e : 1) * seen) * (1 + (VIS - 1) * (1 - e)));
       }
     },
     clear() {
