@@ -1,5 +1,5 @@
-import { getDecor } from '../materials/decor-catalog';
 import { bandedEdges, type MakePart } from './make-parts';
+import { hasGrain, STOCK } from './stock-sheet';
 
 /**
  * The cut layout: every part placed on stock boards, as a panel saw cuts them. Boards of one decor and thickness share
@@ -8,7 +8,7 @@ import { bandedEdges, type MakePart } from './make-parts';
  * a part may turn only when its decor has no grain. Millimetres throughout.
  */
 
-export const STOCK = { length: 2800, width: 2070, kerf: 4, trim: 10 } as const;
+export { STOCK };
 
 export interface Placed { readonly n: number; readonly x: number; readonly y: number; readonly l: number; readonly w: number; readonly turned: boolean }
 export interface StockSheet { readonly decorId: string; readonly thickness: number; readonly parts: readonly Placed[]; readonly used: number }
@@ -23,8 +23,6 @@ export interface CutLayout {
 interface Piece { n: number; l: number; w: number; grain: boolean }
 interface Strip { y: number; h: number; x: number }
 interface Open { decorId: string; thickness: number; strips: Strip[]; parts: Placed[]; y: number }
-
-const hasGrain = (decorId: string) => { try { return getDecor(decorId).grainDirection !== 'none'; } catch { return true; } };
 
 export function cutLayout(parts: readonly MakePart[], stock = STOCK): CutLayout {
   const L = stock.length - 2 * stock.trim, W = stock.width - 2 * stock.trim, k = stock.kerf, sheets: Open[] = [], oversize: number[] = [];
