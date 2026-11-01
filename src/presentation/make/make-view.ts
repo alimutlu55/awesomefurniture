@@ -164,6 +164,7 @@ export function createMakeView(ports: MakeViewPorts) {
     st.panel = mode;
     renderPanel();
     if (!panel.classList.contains('show')) { panel.dataset.sheetPosition = 'compact'; panel.classList.add('show'); }
+    if (mode === 'part') panel.dataset.sheetPosition = 'expanded';
   }
   function hidePanel() {
     if (panel.classList.contains('show')) { animateMobileSheetClose(panel); panel.classList.remove('show'); }
