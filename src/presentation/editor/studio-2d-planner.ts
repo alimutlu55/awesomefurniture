@@ -1,5 +1,7 @@
 import type { Studio } from '../../domain/studio/studio';
-import { studioBounds } from '../../domain/studio/studio';
+import { studioBounds, wallLine } from '../../domain/studio/studio';
+import { splitWall } from '../../domain/studio/studio-edit';
+import { stepStudioWall } from '../../domain/studio/studio-plan';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { buildDefsSvg, createTransform, renderFurniture, renderHandles, renderOpenings, renderOverlays, renderRooms, renderWalls, type ViewportTransform } from './studio-2d-canvas';
@@ -68,6 +70,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
         </button>
       </div>
     </div>
+    <div class="sp2d-action-pill" id="sp2d-action-pill" hidden></div>
     <div class="sp2d-coords" id="sp2d-coords">X: 0 cm · Z: 0 cm</div>
   `;
 
@@ -76,6 +79,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const topRulerEl = root.querySelector<HTMLElement>('#sp2d-top-ruler')!;
   const leftRulerEl = root.querySelector<HTMLElement>('#sp2d-left-ruler')!;
   const coordsEl = root.querySelector<HTMLElement>('#sp2d-coords')!;
+  const pillEl = root.querySelector<HTMLElement>('#sp2d-action-pill')!;
 
   const worldGroup = svg.querySelector<SVGGElement>('#sp2d-world')!;
   const roomsGroup = svg.querySelector<SVGGElement>('#sp2d-rooms')!;
@@ -210,6 +214,28 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     } else {
       drawPreviewGroup.innerHTML = '';
     }
+
+    // Step & Point contextual action pill on selected wall
+    if (sel?.kind === 'wall' && studio) {
+      const w = studio.walls.find(x => x.id === sel.id);
+      const line = w && wallLine(studio, w);
+      if (line) {
+        const { toScreen } = createTransform(transform);
+        const mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+        const scr = toScreen(mid);
+        pillEl.innerHTML = `
+          <button type="button" data-sp2d-act="step" data-wall-id="${w.id}">+ Step</button>
+          <button type="button" data-sp2d-act="point" data-wall-id="${w.id}">+ Point</button>
+        `;
+        pillEl.style.left = `${Math.max(70, Math.min(transform.width - 70, scr.x))}px`;
+        pillEl.style.top = `${Math.max(65, Math.min(transform.height - 35, scr.z - 36))}px`;
+        pillEl.hidden = false;
+      } else {
+        pillEl.hidden = true;
+      }
+    } else {
+      pillEl.hidden = true;
+    }
   }
 
   listen(svg, 'pointerdown', (e: Event) => gestures.onPointerDown(e as PointerEvent, svg));
@@ -225,8 +251,25 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   listen(svg, 'pointercancel', (e: Event) => gestures.onPointerUp(e as PointerEvent));
   listen(svg, 'wheel', (e: Event) => gestures.onWheel(e as WheelEvent, svg), { passive: false });
 
-  // Floating toolbar buttons
+  // Floating toolbar & action pill buttons
   listen(root, 'click', (e: Event) => {
+    const actBtn = (e.target as Element).closest<HTMLButtonElement>('[data-sp2d-act]');
+    if (actBtn) {
+      const act = actBtn.dataset.sp2dAct;
+      const wid = actBtn.dataset.wallId ?? (selectionState.room?.kind === 'wall' ? selectionState.room.id : null);
+      if (act === 'step' && wid) {
+        history.checkpoint(model.snapshot());
+        sceneCommands.editStudio(s => stepStudioWall(s, wid), true);
+        render();
+        return;
+      }
+      if (act === 'point' && wid) {
+        history.checkpoint(model.snapshot());
+        sceneCommands.editStudio(s => splitWall(s, wid), true);
+        render();
+        return;
+      }
+    }
     const btn = (e.target as Element).closest<HTMLButtonElement>('button');
     if (!btn) return;
     const tool = btn.dataset.tool;

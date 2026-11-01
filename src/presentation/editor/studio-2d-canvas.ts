@@ -167,32 +167,47 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
       <polygon points="${pts}" class="sp2d-furn-body" vector-effect="non-scaling-stroke"/>
       <line x1="${corners[3]!.x}" y1="${corners[3]!.z}" x2="${corners[2]!.x}" y2="${corners[2]!.z}" class="sp2d-furn-front" vector-effect="non-scaling-stroke"/>
       ${bayLines.join('')}
-      <text x="${c.x}" y="${c.z + 4}" class="sp2d-furn-label">${esc(c.name || 'Wardrobe')}</text>
     </g>`);
   }
   return out.join('');
 }
 
-/** Renders corner control nodes and free end "+" wall extension handles. */
+/** Renders corner control nodes, wall extension "+" handles, and mid-wall split "+" handles. */
 export function renderHandles(studio: Studio, selection: RoomSelection): string {
   const out: string[] = [];
   for (const c of studio.corners) {
     const deg = cornerDegree(studio, c.id);
     const isCornerSel = selection?.kind === 'wall' && (studio.walls.find(w => w.id === selection.id)?.a === c.id || studio.walls.find(w => w.id === selection.id)?.b === c.id);
-    out.push(`<circle cx="${c.x}" cy="${c.z}" r="${isCornerSel ? 7 : 5}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" data-corner-id="${c.id}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>`);
+    out.push(`<g class="sp2d-corner-handle-group" data-corner-id="${c.id}">
+      <circle cx="${c.x}" cy="${c.z}" r="22" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
+      <circle cx="${c.x}" cy="${c.z}" r="${isCornerSel ? 9 : 7}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
+    </g>`);
 
     if (deg === 1) {
       const joined = studio.walls.find(w => w.a === c.id || w.b === c.id);
       const line = joined && wallLine(studio, joined);
       if (line) {
         const sign = c.id === joined.b ? 1 : -1;
-        const ext = { x: c.x + line.ux * sign * 40, z: c.z + line.uz * sign * 40 };
+        const ext = { x: c.x + line.ux * sign * 44, z: c.z + line.uz * sign * 44 };
         out.push(`<g class="sp2d-handle-extend" data-extend-id="${c.id}" transform="translate(${ext.x}, ${ext.z})" title="Extend wall">
-          <circle cx="0" cy="0" r="11" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
-          <path d="M -5 0 L 5 0 M 0 -5 L 0 5" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
+          <circle cx="0" cy="0" r="26" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
+          <circle cx="0" cy="0" r="14" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
+          <path d="M -6 0 L 6 0 M 0 -6 L 0 6" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
         </g>`);
       }
     }
+  }
+
+  for (const w of studio.walls) {
+    const line = wallLine(studio, w);
+    if (!line || line.length < 50) continue;
+    const isWallSel = selection?.kind === 'wall' && selection.id === w.id;
+    const mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
+    out.push(`<g class="sp2d-handle-split ${isWallSel ? 'selected' : ''}" data-wall-split-id="${w.id}" transform="translate(${mid.x}, ${mid.z})" title="Add point (+ Point)">
+      <circle cx="0" cy="0" r="26" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
+      <circle cx="0" cy="0" r="12" class="sp2d-split-circle ${isWallSel ? 'selected' : ''}" vector-effect="non-scaling-stroke"/>
+      <path d="M -5 0 L 5 0 M 0 -5 L 0 5" class="sp2d-split-plus" vector-effect="non-scaling-stroke"/>
+    </g>`);
   }
   return out.join('');
 }

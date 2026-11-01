@@ -1,4 +1,4 @@
-import { corner, wallExtent, wallFace, wallLine, type Studio, type StudioOpening, type StudioWall } from './studio';
+import { corner, cornerDegree, nextId, wall, wallExtent, wallFace, wallLine, type Studio, type StudioCorner, type StudioOpening, type StudioWall } from './studio';
 import { studioTemplate } from './studio-templates';
 
 export interface Point2D { readonly x: number; readonly z: number; }
@@ -213,4 +213,87 @@ export function detectRooms(studio: Studio): readonly DetectedRoom[] {
   }
 
   return rooms;
+}
+
+const custom = (studio: Studio, changes: Partial<Studio>): Studio => ({
+  ...studio,
+  ...changes,
+  template: 'custom',
+});
+
+/** Splits a wall into an architectural step with a riser, creating an alcove/recess or L-step. */
+export function stepStudioWall(studio: Studio, wallId: string, depth = 50, fraction = 0.5): Studio | null {
+  const w = wall(studio, wallId);
+  const line = w && wallLine(studio, w);
+  if (!w || !line || line.length < 80) return null;
+
+  const f = Math.max(0.2, Math.min(0.8, fraction));
+  const d = line.length * f;
+  const stepRun = Math.min(80, Math.max(40, line.length - d - 20));
+
+  const p1 = { x: Math.round(line.a.x + line.ux * d), z: Math.round(line.a.z + line.uz * d) };
+  const p2 = { x: Math.round(p1.x + line.nx * depth), z: Math.round(p1.z + line.nz * depth) };
+
+  const next = studio.walls.find(o => o.id !== w.id && (o.a === w.b || o.b === w.b));
+  const nl = next && wallLine(studio, next);
+  const isPerp = nl && Math.abs(line.ux * nl.ux + line.uz * nl.uz) < 0.3;
+
+  if (isPerp || cornerDegree(studio, w.b) === 1) {
+    const bNew = { x: Math.round(line.b.x + line.nx * depth), z: Math.round(line.b.z + line.nz * depth) };
+    const c1: StudioCorner = { id: nextId('c', studio.corners), x: p1.x, z: p1.z };
+    const c2: StudioCorner = { id: nextId('c', [...studio.corners, c1]), x: p2.x, z: p2.z };
+
+    const wall1: StudioWall = { ...w, id: nextId('w', studio.walls), a: w.a, b: c1.id };
+    const wallRiser: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1]), a: c1.id, b: c2.id };
+    const wall2: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1, wallRiser]), a: c2.id, b: w.b };
+
+    const corners = studio.corners.map(c => c.id === w.b ? { ...c, x: bNew.x, z: bNew.z } : c).concat([c1, c2]);
+    const walls = studio.walls.filter(x => x.id !== w.id).concat([wall1, wallRiser, wall2]);
+    return custom(studio, { corners, walls });
+  }
+
+  const p3 = { x: Math.round(p2.x + line.ux * stepRun), z: Math.round(p2.z + line.uz * stepRun) };
+  const p4 = { x: Math.round(p1.x + line.ux * stepRun), z: Math.round(p1.z + line.uz * stepRun) };
+
+  const c1: StudioCorner = { id: nextId('c', studio.corners), x: p1.x, z: p1.z };
+  const c2: StudioCorner = { id: nextId('c', [...studio.corners, c1]), x: p2.x, z: p2.z };
+  const c3: StudioCorner = { id: nextId('c', [...studio.corners, c1, c2]), x: p3.x, z: p3.z };
+  const c4: StudioCorner = { id: nextId('c', [...studio.corners, c1, c2, c3]), x: p4.x, z: p4.z };
+
+  const wall1: StudioWall = { ...w, id: nextId('w', studio.walls), a: w.a, b: c1.id };
+  const wall2: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1]), a: c1.id, b: c2.id };
+  const wall3: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1, wall2]), a: c2.id, b: c3.id };
+  const wall4: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1, wall2, wall3]), a: c3.id, b: c4.id };
+  const wall5: StudioWall = { ...w, id: nextId('w', [...studio.walls, wall1, wall2, wall3, wall4]), a: c4.id, b: w.b };
+
+  return custom(studio, {
+    corners: [...studio.corners, c1, c2, c3, c4],
+    walls: studio.walls.filter(x => x.id !== w.id).concat([wall1, wall2, wall3, wall4, wall5]),
+  });
+}
+
+/** Removes a corner where two walls meet, merging them into one direct wall. */
+export function removeStudioCorner(studio: Studio, cornerId: string): Studio | null {
+  const c = corner(studio, cornerId);
+  if (!c || studio.corners.length <= 3) return null;
+  const connected = studio.walls.filter(w => w.a === cornerId || w.b === cornerId);
+  const w1 = connected[0], w2 = connected[1];
+  if (connected.length === 2 && w1 && w2) {
+    const otherA = w1.a === cornerId ? w1.b : w1.a;
+    const otherB = w2.a === cornerId ? w2.b : w2.a;
+    if (otherA === otherB) return null;
+    const mergedWall: StudioWall = {
+      ...w1,
+      id: nextId('w', studio.walls),
+      a: otherA,
+      b: otherB,
+      thickness: w1.thickness,
+      height: w1.height,
+    };
+    return custom(studio, {
+      corners: studio.corners.filter(x => x.id !== cornerId),
+      walls: studio.walls.filter(w => w.id !== w1.id && w.id !== w2.id).concat([mergedWall]),
+    });
+  }
+  return null;
 }

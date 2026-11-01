@@ -1,6 +1,6 @@
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { wallLine } from '../../domain/studio/studio';
-import { extendFromCorner } from '../../domain/studio/studio-edit';
+import { extendFromCorner, splitWall } from '../../domain/studio/studio-edit';
 import { snapCorner } from './studio-drag';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -17,22 +17,17 @@ interface DragState {
   snapshot: string;
   moved: boolean;
   guides: readonly { a: Point2D; b: Point2D; label: string }[];
-  at?: Point2D;
-  carry?: import('../../application/commands/studio-commands').Carried;
-  initialDist?: number;
-  initialZoom?: number;
+  at?: Point2D; carry?: import('../../application/commands/studio-commands').Carried;
+  initialDist?: number; initialZoom?: number;
 }
 
 export interface Studio2DGesturesPorts {
   readonly getStudio: () => Studio | null;
-  readonly getWardrobes: () => readonly EditorCabinet[];
-  readonly getActiveWardrobe: () => number;
+  readonly getWardrobes: () => readonly EditorCabinet[]; readonly getActiveWardrobe: () => number;
   readonly setActiveWardrobe: (id: number) => void;
-  readonly getSelection: () => RoomSelection;
-  readonly setSelection: (s: RoomSelection) => void;
+  readonly getSelection: () => RoomSelection; readonly setSelection: (s: RoomSelection) => void;
   readonly editStudio: (fn: (s: Studio) => Studio | null, record?: boolean, quiet?: boolean) => boolean;
-  readonly checkpoint: () => void;
-  readonly refresh: () => void;
+  readonly checkpoint: () => void; readonly refresh: () => void;
   readonly openFields: (action: string, field: string) => void;
   readonly getTransform: () => ViewportTransform;
   readonly setTransform: (updater: (prev: ViewportTransform) => ViewportTransform) => void;
@@ -134,11 +129,23 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     if (cornerEl) {
       const cornerId = cornerEl.getAttribute('data-corner-id')!;
       const studio = ports.getStudio()!;
+      const connWall = studio.walls.find(w => w.a === cornerId || w.b === cornerId);
+      if (connWall) ports.setSelection({ kind: 'wall', id: connWall.id });
       drag = {
         kind: 'corner', id: cornerId, startScreen: { x: e.clientX, y: e.clientY },
         startScene: scenePt, startTransform: t, snapshot: JSON.stringify(studio),
         moved: false, guides: [],
       };
+      return true;
+    }
+
+    const splitEl = (e.target as Element).closest('[data-wall-split-id]');
+    if (splitEl) {
+      const wid = splitEl.getAttribute('data-wall-split-id')!;
+      ports.checkpoint();
+      ports.editStudio(s => splitWall(s, wid), true);
+      ports.setSelection({ kind: 'wall', id: wid });
+      scheduleRefresh();
       return true;
     }
 

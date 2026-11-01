@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStudio } from '../../src/domain/studio/studio-templates';
-import { detectRooms, door2DPlan, wall2DPlan, window2DPlan } from '../../src/domain/studio/studio-plan';
+import { detectRooms, door2DPlan, removeStudioCorner, stepStudioWall, wall2DPlan, window2DPlan } from '../../src/domain/studio/studio-plan';
 
 test('detectRooms calculates area and centroid for built-in bedroom', () => {
   const bedroom = createStudio('bedroom');
@@ -41,4 +41,22 @@ test('door2DPlan and window2DPlan generate accurate geometry', () => {
     assert.equal(wp.width, win.width);
     assert.ok(Number.isFinite(wp.glassFrom.x));
   }
+});
+
+test('stepStudioWall and removeStudioCorner modify room topology cleanly', () => {
+  const bedroom = createStudio('bedroom');
+  const w = bedroom.walls[0]!;
+  const initialWallsCount = bedroom.walls.length;
+  const initialCornersCount = bedroom.corners.length;
+
+  const stepped = stepStudioWall(bedroom, w.id, 50, 0.5);
+  assert.ok(stepped, 'stepping a wall succeeds');
+  assert.ok(stepped.walls.length > initialWallsCount, 'adds wall segments for step and riser');
+  assert.ok(stepped.corners.length > initialCornersCount, 'adds corners for step');
+
+  // Removing a corner merges adjacent walls
+  const addedCorner = stepped.corners[stepped.corners.length - 1]!;
+  const merged = removeStudioCorner(stepped, addedCorner.id);
+  assert.ok(merged, 'removing corner succeeds');
+  assert.equal(merged.corners.length, stepped.corners.length - 1);
 });
