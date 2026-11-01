@@ -143,7 +143,6 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         // The editor lives in a shadow root, which hides its elements from window listeners: ask the root what has focus.
         const root = dom.$('#app').getRootNode() as Document | ShadowRoot, k = e as KeyboardEvent;
         const target = (root.activeElement ?? k.target) as HTMLElement | null;
-        if (k.key === 'Escape' && dom.$('#app').dataset.floorPlan === 'true') return;
         if (dom.$('#app').dataset.scrubbing !== undefined || target?.closest?.('[data-measurement-badge]')) return;
         if (k.key === 'Escape' && selectionState.pendingStudioAction && !target?.closest?.('.contextual-popover')) {
             selectionState.pendingStudioAction = null;

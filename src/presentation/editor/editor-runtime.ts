@@ -1,4 +1,3 @@
-import { createFloorPlan } from './floor-plan';
 import { reconcileInstallation } from '../../application/projects/installation-reconciliation';
 import { bindKitchenConstruction } from './kitchen-construction-fields';
 import { createClothingWarmup } from '../viewport/clothing-warmup';
@@ -213,9 +212,6 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray,
             make });
-        createFloorPlan({ dom, model, history, commands: sceneCommands, selection: selectionState, lifetime,
-            refresh: () => { inspector.update(true); },
-            closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         bindKitchenConstruction({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
         bindShareMenu({ dom, shell, model, lifetime, shareLink });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });

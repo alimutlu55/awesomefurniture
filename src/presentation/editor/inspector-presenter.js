@@ -339,7 +339,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             return;
         }
         selectionState.pendingStudioAction = null;
-        update(selectionState.viewMode === 'studio' || $('#app').dataset.floorPlan === 'true');
+        update(selectionState.viewMode === 'studio');
         histUI();
     }
     function redo() {
@@ -357,7 +357,7 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             return;
         }
         selectionState.pendingStudioAction = null;
-        update(selectionState.viewMode === 'studio' || $('#app').dataset.floorPlan === 'true');
+        update(selectionState.viewMode === 'studio');
         histUI();
     }
     function setCabinetPose(key, value) {
