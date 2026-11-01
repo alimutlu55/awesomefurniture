@@ -2,15 +2,15 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreActions,furnitureMenus}=require('../src/domain/wardrobe/contextual-actions.js');
 // Furniture: nothing selected offers Add (a tab per kind); every piece of furniture has the same tools in the same order,
-// the steps furniture planners use (add another, interior, size, fronts, Make), so learning one teaches the other.
-const FURNITURE_TOOLS=['new','interior','resize','fronts','make','more'];
+// the steps furniture planners use (add an item, interior, size, fronts, Make), so learning one teaches the other.
+const FURNITURE_TOOLS=['add-item','interior','resize','fronts','make','more'];
 for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',FURNITURE_TOOLS],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
  test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
 }
-test('Add is named for what it adds',()=>{assert.equal(contextualActions('wardrobe')[0][2],'New wardrobe');assert.equal(contextualActions('kitchen')[0][2],'Add cabinet');});
-test('Interior leads with Auto design only where it can plan, then sections and Add item',()=>{
- assert.deepEqual(furnitureMenus.wardrobe.interior.map(([key])=>key),['auto','sections','add-item']);
- assert.deepEqual(furnitureMenus.kitchen.interior.map(([key])=>key),['sections','add-item']);
+test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.deepEqual(contextualActions(kind)[0],['add-item','Add item']);});
+test('Interior leads with Auto design only where it can plan, then sections',()=>{
+ assert.deepEqual(furnitureMenus.wardrobe.interior.map(([key])=>key),['auto','sections']);
+ assert.deepEqual(furnitureMenus.kitchen.interior.map(([key])=>key),['sections']);
 });
 test('every kind of furniture has the same More: duplicate, reset, remove',()=>{
  for(const more of Object.values(furnitureMoreActions))assert.deepEqual(more.map(([key])=>key),['duplicate','reset','remove']);
