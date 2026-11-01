@@ -24,6 +24,20 @@ export function hingeStations(length: number): number[] {
 export const SYSTEM_LINE = 3.7;
 /** Cup centre 22.5 mm from the door's hinge edge (a 5 mm boring distance); plate holes 32 mm apart. */
 const CUP = 2.25, PLATE_PITCH = 3.2, RUNNER_CLEARANCE = 1.25;
+/** One System 32 step: runner slots and shelf pin rows are this far apart. A runner screw hole, mm. */
+const PITCH = 3.2, RUNNER_SCREW = { d: 5, depth: 12 } as const;
+
+/** Whether a hole drilled into an upright's face at `at` (going in along x, `sign` the way it faces out) is in another
+ * hole's way: one on the same face less than 2 mm from it (a hinge plate's), or one from the other face that it would
+ * meet, their circles overlapping and together deeper than the board less 1 mm. */
+function inTheWay(holes: readonly Hole[], post: { b: Board; i: number }, at: Vec3, sign: 1 | -1, hole: { d: number; depth: number }) {
+  const thick = (post.b.x1 - post.b.x0) * 10;
+  return holes.some(h => {
+    if (h.board !== post.i || h.axis !== 0) return false;
+    const reach = Math.hypot(h.at[1] - at[1], h.at[2] - at[2]) * 10 - (h.d + hole.d) / 2;
+    return h.sign === sign ? reach < 2 : h.depth > 0 && reach < 0 && h.depth + hole.depth > thick - 1;
+  });
+}
 
 const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
 const isUpright = (b: Board, h: number) => b.stock === 'carcass' && thinAxis(b) === 'x' && b.y1 - b.y0 > h * .2;
@@ -119,7 +133,13 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     // One fitting is the pair: the left side adds it, the right side's holes are for it too.
     if (post === left) fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: [i, post.i], size: String(runner) });
     const of = fittings.map((f, k) => f.kind === 'runner' && Math.abs(f.at[1] - y) < .01 ? k : -1).reduce((m, k) => Math.max(m, k), -1);
-    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) holes.push({ board: post.i, kind: 'runner', at: [face, y, post.b.z1 - SYSTEM_LINE - back], axis: 0, sign, d: 5, depth: 12, of });
+    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
+      // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
+      // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else one forward.
+      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay(holes, post, [face, y, z], sign, RUNNER_SCREW);
+      const slots = [0, 1, 2, 3].map(k => z - k * PITCH).filter(s => s >= post.b.z0 + 2);
+      holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z + PITCH], axis: 0, sign, ...RUNNER_SCREW, of });
+    }
   });
   // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down.
   boards.forEach((b, i) => {

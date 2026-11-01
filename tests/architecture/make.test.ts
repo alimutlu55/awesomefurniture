@@ -6,6 +6,8 @@ import { bandedEdges, cutWithBand, makePiece } from '../../src/domain/make/make-
 import { apartOffset, partMeasures, pieceMeasures, thinAxis } from '../../src/domain/make/make-measures';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
+import type { DrawingInput } from '../../src/domain/drawings/room-pieces';
+import { alone, goldenWardrobes, welcomeSpaces } from './rule-fixtures';
 
 // A two-bay wardrobe with drawers and shelves in one bay, a long hang under a shelf in the other, and hinged doors.
 const wardrobe: EditorDesign = { ...createInitialDesign(), w: 100, h: 220, d: 60, n: 2, wt: [1, 1], doors: 'hinged',
@@ -253,4 +255,20 @@ test('drawers behind hinged doors buy no handles: handles go on the doors only, 
   assert.equal(handles(open), 2, 'without doors the drawers keep their handles');
   assert.equal(listed(open), 2);
   assert.ok(cabinetBoards(open).filter(b => b.name === 'Drawer front').every(b => b.note === undefined));
+});
+
+// Auto design makes no drilling warnings: the app's own designs pass its own drilling check in Make.
+const drillingFindings = (input: DrawingInput) => input.pieces.flatMap(p => (makePiece(input, p.id)?.findings ?? []).map(f => ({ piece: p.name, part: f.board, kind: f.kind, gap: f.gap })));
+
+test('every golden wardrobe opens in Make with no drilling finding', () => {
+  for (const [name, design] of goldenWardrobes()) for (const doors of ['none', 'hinged'] as const)
+    assert.deepEqual(drillingFindings(alone({ ...design, doors })), [], name + ', doors ' + doors);
+});
+
+test('every welcome space opens in Make with no drilling finding', () => {
+  for (const [name, input] of welcomeSpaces()) {
+    assert.deepEqual(drillingFindings(input), [], name);
+    const hinged = { ...input, pieces: input.pieces.map(p => ({ ...p, design: { ...p.design, doors: 'hinged' as const } })) };
+    assert.deepEqual(drillingFindings(hinged), [], name + ', hinged doors');
+  }
 });
