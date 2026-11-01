@@ -3,6 +3,7 @@ import type { DrawingInput, PlacedPiece } from '../room-pieces';
 import { leafSize } from './leaf-size';
 import { shelfSpan } from './shelf-span';
 import { hangingDepth } from './hanging-depth';
+import { stockSize } from './stock-size';
 
 /**
  * Engineering rules: what a piece must meet to be built, beyond the model being sound. Each rule reads the placed
@@ -16,4 +17,5 @@ export const RULES: readonly Rule[] = [
   leafSize,
   shelfSpan,
   hangingDepth,
+  stockSize,
 ];
