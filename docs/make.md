@@ -55,6 +55,10 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 
 - `findJoints`: every place one board's edge meets another's face. Doors, fronts, backs, adjustable shelves and a top
   set at a slope are not joined there.
+- A top set at a slope (`tiltOf`) is screwed down into every side and partition under it: connector screws Ø7 straight
+  down through it in the upright's own plane, whatever the joint system (a cam or dowel cannot sit square to a sloped
+  edge). Its holes are marked along the slope on its drawing; it is measured along the slope, through its thickness and
+  up to each end, and it waits on the floor levelled.
 - `jointFittings`: connectors 5 cm in from each end of a joint and no more than 30 cm apart. Confirmat Ø7 through the
   face board, Ø5 × 45 pilot in the edge; cam Ø15 × 12.5 in the edge board 34 mm from the joint, bolt Ø5 × 11, Ø8 × 34;
   dowels Ø8 × 12 / × 25. Plinths are screwed (Ø4, pilot Ø2.5 × 30). A board joined from both faces at one place moves
@@ -107,9 +111,11 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 
 ## Known limits
 
-- A top set at a slope is not drilled (its box is not its shape); it is joined by hand.
+- A sloped top is screwed down vertically, not square to its face; its hole rings in 3D lie level on the slope.
 - The cut layout lays parts in strips (guillotine), with no free nesting or offcut reuse, on one stock size.
-- The film shows hardware 1.6 times its size while it moves (it lands at its size); the camera does not follow it.
+- The film shows hardware 1.6 times its size while it moves (it lands at its size). The camera comes close on each
+  joint, not on each single screw; a joint whose screws go in from underneath (a partition through the base) is seen
+  from a low side, partly behind the plinth.
 - Hole positions follow common practice (System 32, 37 mm line, cups 22.5 mm in), not a particular hardware maker's
   template; the PDF says so. Edge-hole positions are not dimensioned on the drawings.
 - Labels keep a 6 px gap; one that would crowd another waits until the view turns.

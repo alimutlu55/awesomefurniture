@@ -1,6 +1,6 @@
 import type { Board } from '../drawings/cabinet-boards';
 import { type Axis, type Fitting, type FittingKind, type Hole, type HoleKind, hi, lo } from './make-joints';
-import { thinAxis } from './make-measures';
+import { thinAxis, tiltOf } from './make-measures';
 
 /** A hole as it is marked on its board lying flat: millimetres along the board's length (u) and across it (v) from its
  * corner, on the face shown (+), the face under it (−), or in an edge (u0, u1: the ends; v0, v1: the long edges). */
@@ -15,9 +15,10 @@ export function flatFrame(b: Board): { along: Axis; across: Axis; thin: Axis } {
 }
 /** A board's holes as marked on it lying flat. */
 export function flatHoles(b: Board, holes: readonly Hole[]): FlatHole[] {
-  const { along, across, thin } = flatFrame(b);
+  const { along, across, thin } = flatFrame(b), tilt = tiltOf(b), slope = tilt ? b.cut.length / (hi(b)[along] - lo(b)[along]) : 1;
   return holes.map(h => {
-    const u = Math.round((h.at[along] - lo(b)[along]) * 100) / 10, v = Math.round((h.at[across] - lo(b)[across]) * 100) / 10;
+    // On a sloped top a hole's place along the board is measured along the slope.
+    const u = Math.round((h.at[along] - lo(b)[along]) * slope * 100) / 10, v = Math.round((h.at[across] - lo(b)[across]) * 100) / 10;
     const face = h.axis === thin ? (h.sign < 0 ? '+' : '-') : h.axis === along ? (h.sign > 0 ? 'u0' : 'u1') : (h.sign > 0 ? 'v0' : 'v1');
     return { kind: h.kind, u, v, d: h.d, depth: h.depth, face };
   });

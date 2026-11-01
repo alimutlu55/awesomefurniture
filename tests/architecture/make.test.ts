@@ -166,3 +166,16 @@ test('a column of fronts is measured across once, and every front up its own sid
   assert.equal(new Set(across.map(m => `${m.a[0]},${m.b[0]}`)).size, across.length, 'one width a column');
   for (const f of fronts) assert.ok(up.some(m => Math.abs(m.length - (f.boards[0]!.y1 - f.boards[0]!.y0)) < 1e-9), `${f.name} ${f.n} has its height`);
 });
+
+test('a sloped top, falling or rising, is measured along its slope, through its thickness and up to each end', () => {
+  for (const top of [[{ x: 0, y: 220 }, { x: 100, y: 160 }], [{ x: 0, y: 160 }, { x: 100, y: 220 }]]) {
+    const mp = piece({ ...wardrobe, doors: 'none', shape: { template: 'sloped', top } as EditorDesign['shape'] }), part = mp.parts.find(p => p.name === 'Top')!, b = part.boards[0]!;
+    const lengths = partMeasures(part).map(m => Math.round(m.length * 10) / 10), heights = partMeasures(part).filter(m => m.ordinate).map(m => Math.round(m.b[1] * 10) / 10).sort();
+    assert.equal(thinAxis(b), 'y');
+    for (const want of [b.cut.length, b.cut.thickness, b.z1 - b.z0]) assert.ok(lengths.includes(Math.round(want * 10) / 10), `${want} among ${lengths}`);
+    const ends = [0, 100].map(x => Math.round((x === 0 ? b.outline![0]! : b.outline![1]!).y * 10) / 10).sort();
+    assert.deepEqual(heights, ends, 'the underside at each end');
+    assert.ok(heights[1]! - heights[0]! > 55, 'its ends at their own heights');
+    assert.ok(mp.fittings.filter(f => f.boards.includes(part.ids[0]!)).length >= 9, 'screwed down into the sides and the partition');
+  }
+});

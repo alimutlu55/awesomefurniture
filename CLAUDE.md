@@ -111,8 +111,8 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `FITTI
   automated checks (docs/experience.md, Known limits).
 - Accounts: no real sign-up, email code or Google sign-in was run during development; Google stays hidden until it is
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
-- Make: a top set at a slope is not drilled (joined by hand), the cut layout is strips only (no free nesting or
-  offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
+- Make: a sloped top is screwed straight down rather than square to its face, the cut layout is strips only (no free
+  nesting or offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
   template (docs/make.md, Known limits).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.

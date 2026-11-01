@@ -33,9 +33,9 @@ interface BoardMesh {
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1), LIFT = 22;
 const smooth = (a: number, b: number, t: number) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
 /** How a board lies flat where it waits: a quarter turn onto its face, then round so its length runs across. */
-function lying(lie: 'x' | 'z' | null, spin: boolean) {
-  const q = new THREE.Quaternion();
-  if (lie) q.setFromAxisAngle(lie === 'x' ? X : Z, Math.PI / 2);
+function lying(lie: 'x' | 'z' | null, spin: boolean, tilt = 0) {
+  const q = new THREE.Quaternion().setFromAxisAngle(Z, tilt);
+  if (lie) q.premultiply(new THREE.Quaternion().setFromAxisAngle(lie === 'x' ? X : Z, Math.PI / 2));
   if (spin) q.premultiply(new THREE.Quaternion().setFromAxisAngle(Y, Math.PI / 2));
   return q;
 }
@@ -137,7 +137,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       const st = f.stage(b.index), e = easeInOut(f.arrive(b.index));
       start.set(st.at[0] - size.w / 2, st.at[1], st.at[2] - size.d / 2);
       centre.lerpVectors(start, b.centre, e).y += LIFT * Math.sin(Math.PI * e);
-      turned.copy(lying(st.lie, st.spin)).slerp(IDENTITY, smooth(.08, .7, e));
+      turned.copy(lying(st.lie, st.spin, st.tilt)).slerp(IDENTITY, smooth(.08, .7, e));
       off.subVectors(b.centre, b.rest).applyQuaternion(turned);
       b.face.position.subVectors(centre, off);
       b.face.quaternion.copy(turned);

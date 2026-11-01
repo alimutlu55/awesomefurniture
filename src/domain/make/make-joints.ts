@@ -1,6 +1,6 @@
 import type { Board } from '../drawings/cabinet-boards';
 import type { Construction } from './make-construction';
-import { thinAxis, type Vec3 } from './make-measures';
+import { thinAxis, tiltOf, type Vec3 } from './make-measures';
 
 /**
  * How the boards of a piece hold together: every place one board's edge meets another board's face, and what joins
@@ -42,8 +42,9 @@ const EPS = .05, AX = { x: 0, y: 1, z: 2 } as const;
 export const lo = (b: Board): Vec3 => [b.x0, b.y0, b.z0];
 export const hi = (b: Board): Vec3 => [b.x1, b.y1, b.z1];
 const thin = (b: Board) => AX[thinAxis(b)];
-/** A board set at a slope (the top under a sloped ceiling): its box is not its shape, so it is joined by hand. */
-export const isTilted = (b: Board) => Math.min(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0) > b.cut.thickness + .05;
+/** A board set at a slope (the top under a sloped ceiling): its box is not its shape, so it is screwed down onto the
+ * uprights under it (`slopeFittings`) rather than joined like a square board. */
+export const isTilted = (b: Board) => tiltOf(b) !== 0;
 const isPanel = (b: Board) => b.stock !== 'door' && b.stock !== 'front' && b.stock !== 'back' && b.note !== 'adjustable' && !isTilted(b);
 
 /** Every place a board's edge meets another board's face (one sits on, against or between the other). */
@@ -112,7 +113,42 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
       }
     }
   }
+  slopeFittings(boards, holes, fittings);
   return { holes, fittings };
+}
+
+/** The lowest and highest point of an outline straight up from `x`. */
+function across(outline: readonly { x: number; y: number }[], x: number): [number, number] {
+  const ys: number[] = [];
+  outline.forEach((p, i) => {
+    const q = outline[(i + 1) % outline.length]!;
+    if ((p.x - x) * (q.x - x) > 0 || p.x === q.x) { if (Math.abs(p.x - x) < EPS) ys.push(p.y); return; }
+    ys.push(p.y + (q.y - p.y) * (x - p.x) / (q.x - p.x));
+  });
+  return [Math.min(...ys), Math.max(...ys)];
+}
+/**
+ * A top set at a slope, screwed down into each side and partition standing under it: straight down through the top in
+ * the upright's own plane, so the screw stays in the upright's thickness however steep the slope. Connector screws
+ * whatever the joint system: a cam or a dowel cannot be set square to a sloped edge.
+ */
+function slopeFittings(boards: readonly Board[], holes: Hole[], fittings: Fitting[]) {
+  boards.forEach((top, t) => {
+    if (!top.outline || !isTilted(top) || top.stock !== 'carcass') return;
+    boards.forEach((up, u) => {
+      if (!isPanel(up) || thin(up) !== 0 || up.stock === 'plinth') return;
+      const x = (up.x0 + up.x1) / 2, r0 = Math.max(top.z0, up.z0), r1 = Math.min(top.z1, up.z1);
+      if (x < top.x0 || x > top.x1 || r1 - r0 < .5) return;
+      const [under, over] = across(top.outline!, x), end = up.outline ? across(up.outline, x)[1] : up.y1;
+      if (Math.abs(end - under) > .3) return;
+      for (const station of connectorStations(r1 - r0)) {
+        const z = r0 + station, at: Vec3 = [x, under, z];
+        holes.push({ board: t, kind: 'connector', at: [x, over, z], axis: 1, sign: -1, d: 7, depth: 0, of: fittings.length },
+          { board: u, kind: 'pilot', at, axis: 1, sign: -1, d: 5, depth: 45, of: fittings.length });
+        fittings.push({ kind: 'confirmat', at, axis: 1, boards: [t, u], size: '7 × 50' });
+      }
+    });
+  });
 }
 
 /** The back: nailed into the boards around it every 15 cm, or slid into a groove cut in each of them. */

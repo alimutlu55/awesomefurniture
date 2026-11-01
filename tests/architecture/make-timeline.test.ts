@@ -6,13 +6,15 @@ import { makePiece } from '../../src/domain/make/make-parts';
 import { arrivalAt, assemblyTimeline, drillAt, drilled, FITTED_FIRST, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
 import { lyingDir, lyingFlat, lyingPoint, stagingLayout } from '../../src/domain/make/make-staging';
 import { entryOf } from '../../src/domain/make/make-fixing';
+import { tiltOf } from '../../src/domain/make/make-measures';
 import { JOINT_SYSTEMS } from '../../src/domain/make/make-construction';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 
 // The assembly film: a pure function of time, so playing, scrubbing and replaying all show the same thing.
 const wardrobe: EditorDesign = { ...createInitialDesign(), w: 100, h: 220, d: 60, n: 2, wt: [1, 1], doors: 'hinged',
   secs: [[{ k: 'drawer', h: 20 }, { k: 'drawer', h: 20 }, { k: 'shelf', h: 30 }, { k: 'shelf', h: 30 }], [{ k: 'long', h: 160 }]] };
-const designs = { wardrobe, plain: createInitialDesign(), base: createKitchenDesign('base'), drawers: createKitchenDesign('base', 'drawers') };
+const sloped: EditorDesign = { ...wardrobe, doors: 'none', shape: { template: 'sloped', top: [{ x: 0, y: 220 }, { x: 100, y: 160 }] } as EditorDesign['shape'] };
+const designs = { wardrobe, plain: createInitialDesign(), base: createKitchenDesign('base'), drawers: createKitchenDesign('base', 'drawers'), sloped };
 const make = (design: EditorDesign) => makePiece({ pieces: [{ id: 1, name: 'W', x: 0, y: 0, z: 0, angle: 0, design }] }, 1)!;
 const times = (duration: number) => Array.from({ length: 401 }, (_, i) => duration * i / 400);
 
@@ -79,7 +81,7 @@ test('every part waits lying flat on the floor in front of the piece, none on an
     const mp = make(design), staged = stagingLayout(mp, floor);
     staged.forEach((s, i) => {
       const b = mp.boards[i]!, flat = lyingFlat(b);
-      assert.ok(Math.abs(s.size[1] - Math.min(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)) < 1e-9, `${name}: ${b.name} lies on its face`);
+      assert.ok(Math.abs(s.size[1] - Math.min(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0, b.cut.thickness)) < 1e-9, `${name}: ${b.name} lies on its face`);
       assert.ok(s.size[0] >= s.size[2] - 1e-9, `${name}: ${b.name} lies with its length across`);
       assert.deepEqual(s.size, flat.size);
       assert.ok(Math.abs(s.at[1] - s.size[1] / 2 - floor) < 1e-9, `${name}: ${b.name} on the floor`);
@@ -136,4 +138,23 @@ test('a point of a board lying flat is where that board lies, turned as it is', 
     const lo = lyingPoint(b, s, [b.x0, b.y0, b.z0]), hi = lyingPoint(b, s, [b.x1, b.y1, b.z1]);
     [0, 1, 2].forEach(a => assert.ok(Math.abs(Math.abs(hi[a]! - lo[a]!) - s.size[a]!) < 1e-6, `${b.name}: lies within its own footprint`));
   });
+});
+
+test('a sloped top is screwed straight down into every upright under it, and lies flat levelled while it waits', () => {
+  const mp = make(sloped), top = mp.boards.findIndex(b => b.name === 'Top'), b = mp.boards[top]!, staged = stagingLayout(mp)[top]!;
+  const uprights = mp.boards.map((u, i) => ({ u, i })).filter(({ u }) => u.stock === 'carcass' && u.x1 - u.x0 < 2 && u.y1 > 100);
+  assert.equal(mp.steps.find(s => s.boards.includes(top))!.stage, 'top', 'it goes on in the top step');
+  for (const { u, i } of uprights) {
+    const screws = mp.fittings.map((f, k) => ({ f, k })).filter(({ f }) => f.boards.includes(top) && f.boards.includes(i));
+    assert.equal(screws.length, 3, `${u.name} at ${u.x0}: three screws down into it`);
+    for (const { f, k } of screws) {
+      const through = mp.holes.find(h => h.of === k && h.board === top)!, pilot = mp.holes.find(h => h.of === k && h.board === i)!;
+      assert.ok(f.at[0] > u.x0 && f.at[0] < u.x1, 'in the upright\'s thickness');
+      assert.deepEqual([through.axis, through.sign, pilot.axis, pilot.sign], [1, -1, 1, -1], 'straight down');
+      assert.ok(through.at[1] > pilot.at[1] && through.at[1] - pilot.at[1] < b.cut.thickness * 2, 'through the top onto the upright');
+    }
+  }
+  assert.deepEqual(lyingDir(staged, [Math.cos(tiltOf(b)), Math.sin(tiltOf(b)), 0]).map(v => Math.round(v * 1e6) / 1e6 + 0), [1, 0, 0], 'levelled');
+  assert.ok(Math.abs(staged.size[0] - b.cut.length) < 1e-9 && Math.abs(staged.size[1] - b.cut.thickness) < 1e-9, 'as long as its slope, as thick as it is');
+  assert.equal(mp.findings.filter(f => f.board === top).length, 0, 'its drilling checks out');
 });

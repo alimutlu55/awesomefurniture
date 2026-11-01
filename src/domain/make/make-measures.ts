@@ -27,9 +27,19 @@ export interface Measure {
 
 const EPS = .01;
 const extent = (b: Board) => ({ x: b.x1 - b.x0, y: b.y1 - b.y0, z: b.z1 - b.z0 });
-/** The axis a board is thinnest along: x for a side or partition, y for a shelf, top or base, z for a back or a front. */
+/** How far a board is turned from level about the depth (radians, up to the right; 0 for one set square): a top
+ * under a sloped ceiling, whose box is far thicker than the board itself. */
+export function tiltOf(b: Board): number {
+  const e = extent(b), o = b.outline;
+  if (!o || o.length < 2 || Math.min(e.x, e.y, e.z) <= b.cut.thickness + .05) return 0;
+  // Its outline's first side runs along the slope, from one end of its underside to the other.
+  return Math.atan2(o[1]!.y - o[0]!.y, o[1]!.x - o[0]!.x);
+}
+/** The axis a board is thinnest along: x for a side or partition, y for a shelf, top or base (a sloped top too), z for a
+ * back or a front. */
 export function thinAxis(b: Board): 'x' | 'y' | 'z' {
-  const e = extent(b);
+  const e = extent(b), tilt = tiltOf(b);
+  if (tilt) return Math.abs(Math.cos(tilt)) >= Math.abs(Math.sin(tilt)) ? 'y' : 'x';
   return e.x <= e.y && e.x <= e.z ? 'x' : e.y <= e.z ? 'y' : 'z';
 }
 const isFront = (b: Board) => b.stock === 'door' || b.stock === 'front';
@@ -103,6 +113,7 @@ export function pieceMeasures(mp: MakePiece): Measure[] {
  * height off the floor, an upright's distance from the left face; left out while the piece is apart). Rank 3. */
 export function partMeasures(part: MakePart, withPositions = true): Measure[] {
   const b = part.boards[0]!, e = extent(b), thin = thinAxis(b), G = 4, out: Measure[] = [];
+  if (tiltOf(b)) return slopeMeasures(b, withPositions);
   if (e.x > 2) out.push(measure(3, [b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [0, -G, 0]));
   if (e.y > 2) out.push(measure(3, [b.x0, b.y0, b.z1], [b.x0, b.y1, b.z1], [-G, 0, 0]));
   if (e.z > 2) out.push(measure(3, [b.x1, b.y0, b.z0], [b.x1, b.y0, b.z1], [G, 0, 0]));
@@ -116,6 +127,16 @@ export function partMeasures(part: MakePart, withPositions = true): Measure[] {
     if (thin === 'y' && board.y0 > .5) out.push({ ...measure(3, [b.x0, 0, board.z1], [b.x0, board.y0, board.z1], [-2 * G, 0, 0]), ordinate: true });
     if (thin === 'x' && board.x0 > .5) out.push({ ...measure(3, [0, b.y0, board.z1], [board.x0, b.y0, board.z1], [0, -2 * G, 0]), ordinate: true });
   }
+  return out;
+}
+
+/** A sloped top: its length along the slope under it, its depth, its thickness square to its face, and the height of
+ * its underside at each end. */
+function slopeMeasures(b: Board, withPositions: boolean): Measure[] {
+  const tilt = tiltOf(b), [p, q] = [b.outline![0]!, b.outline![1]!], c = Math.cos(tilt), s = Math.sin(tilt), t = b.cut.thickness, G = 4;
+  const out = [measure(3, [p.x, p.y, b.z1], [q.x, q.y, b.z1], [s * G, -c * G, 0]), measure(3, [q.x, q.y, b.z0], [q.x, q.y, b.z1], [G, 0, 0]),
+    measure(3, [q.x, q.y, b.z1], [q.x - s * t, q.y + c * t, b.z1], [c * G, s * G, 0])];
+  if (withPositions) for (const [end, side] of [[p, -1], [q, 1]] as const) out.push({ ...measure(3, [end.x, 0, b.z1], [end.x, end.y, b.z1], [side * 2 * G, 0, 0]), ordinate: true });
   return out;
 }
 
