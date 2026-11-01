@@ -50,6 +50,8 @@ export function createTouchCamera({ dom, camera, cameraState, lifetime, picking 
   /** A swipe begins: the view now turns around the surface in the middle of it. The camera stays where it is, so
    * nothing on screen moves; only the point it turns around comes to rest on what is seen there. */
   function settleOnSurface() {
+    // The assembly may be paused mid-flight: keep its focus instead of anchoring to the hidden room.
+    if (dom.$('#app').classList?.contains('assembly-studio-on')) return;
     const s = cameraState, d = { x: Math.cos(s.el) * Math.sin(s.az), y: Math.sin(s.el), z: Math.cos(s.el) * Math.cos(s.az) };
     const eye = { x: s.tgt.x + s.dist * d.x, y: s.tgt.y + s.dist * d.y, z: s.tgt.z + s.dist * d.z };
     const at = picking.surfaceAlong(eye, s.tgt, s.dist * 3);

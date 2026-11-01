@@ -4,7 +4,6 @@ import { STOCK } from '../../domain/make/make-cut-layout';
 import { JOINT_SYSTEMS, BACK_FIXINGS } from '../../domain/make/make-construction';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
-import type { MakePlayer } from './make-player';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -25,7 +24,7 @@ export const fittingIcon = (kind: FittingKind) => `<svg class="make-ico" viewBox
 /** A size as sold: millimetres when it is a bare number ("550 mm"), as written otherwise ("7 × 50", "110°"). */
 export const sold = (size?: string) => !size ? '' : /^\d+$/.test(size) ? size + ' mm' : size.replace(/^(\d[\d ×.]*)$/, '$1 mm');
 
-export const TABS = [['parts', 'Parts'], ['hardware', 'Hardware'], ['steps', 'Steps'], ['cutting', 'Cutting']] as const;
+export const TABS = [['parts', 'Parts'], ['hardware', 'Hardware'], ['cutting', 'Cutting']] as const;
 export type PanelTab = typeof TABS[number][0];
 export const tabsHtml = (tab: PanelTab) => `<div class="unit-seg make-tabs" role="group" aria-label="Show">${TABS
   .map(([key, label]) => `<button type="button" data-tab="${key}" aria-pressed="${tab === key}">${label}</button>`).join('')}</div>`;
@@ -47,8 +46,9 @@ export function hardwareTab(piece: MakePiece) {
   return seg('Joints', 'joints', JOINT_SYSTEMS, JOINT_LABELS, piece.construction.joints)
     + seg('Back', 'back', BACK_FIXINGS, BACK_LABELS, piece.construction.back)
     + `<div class="make-rows">${checks}</div>`
-    + `<div class="make-rows">${piece.buy.map(b => `<div class="make-row make-buy">${fittingIcon(b.kind)}<span class="make-name">${FITTING_NAMES[b.kind]}`
-      + `${b.size ? ` <small translate="no">${esc(sold(b.size))}</small>` : ''}</span><b>×${b.qty}</b></div>`).join('')}</div>`;
+    + `<div class="make-rows">${piece.buy.map(b => `<button type="button" class="make-row make-buy" data-hardware="${b.kind}" data-size="${esc(b.size ?? '')}" title="View assembly stages">`
+      + `${fittingIcon(b.kind)}<span class="make-name">${FITTING_NAMES[b.kind]}`
+      + `${b.size ? ` <small translate="no">${esc(sold(b.size))}</small>` : ''}</span><b>×${b.qty}</b></button>`).join('')}</div>`;
 }
 
 /** What each step does, as its chapter is called. */
@@ -56,48 +56,6 @@ export const STAGE_NAMES: Record<Stage, string> = {
   plinth: 'Plinth', carcass: 'Base and sides', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Inside', drawers: 'Drawers',
   fronts: 'Doors and fronts', wall: 'Fix to the wall',
 };
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const PLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M8 5l11 7-11 7z"/></svg>';
-const PAUSE = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
-const CAMERA = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h10v8H4zM14 11l6-3v8l-6-3"/></svg>';
-const REPLAY = '<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-5M5 4v4h4"/></svg>';
-
-/** The assembly as a film: the step showing and what holds it, play and the scrub bar, then every step as a chapter. */
-export function stepsTab(piece: MakePiece, player: MakePlayer) {
-  const chapters = piece.steps.map((s, k) => `<button type="button" class="make-row make-chapter" data-chapter="${k}"><span class="make-n">${s.n}</span>`
-    + `<span class="make-name">${STAGE_NAMES[s.stage]}</span><b translate="no">${clock(player.starts[k] ?? 0)}</b></button>`).join('');
-  return '<div class="make-player"><div class="make-caption"></div>'
-    + `<div class="make-transport"><button type="button" class="make-play" data-play aria-label="Play"></button>`
-    + `<input type="range" class="make-scrub" min="0" max="1000" step="1" value="0" aria-label="Assembly">`
-    + '<span class="make-time" translate="no"></span>'
-    + `<button type="button" class="make-follow" data-follow aria-pressed="true" aria-label="Follow the build" title="Follow the build">${CAMERA}</button></div>`
-    + '<div class="make-chips make-holds"></div>'
-    + '<div class="make-line make-steps"><button type="button" data-build="-1">Previous</button><button type="button" data-build="1">Next</button></div></div>'
-    + `<div class="make-rows make-chapters">${chapters}</div>`;
-}
-/** Brings the player's controls up to the film's time (every frame while it plays); the caption only when the step changes. */
-export function updatePlayer(root: ParentNode, piece: MakePiece, player: MakePlayer, follow: boolean) {
-  const body = root.querySelector<HTMLElement>('.make-player');
-  if (!body) return;
-  body.querySelector('[data-follow]')!.setAttribute('aria-pressed', String(follow));
-  const { step } = player.head, s = piece.steps[step]!, end = player.time >= player.duration - .01;
-  const play = body.querySelector<HTMLButtonElement>('[data-play]')!, mode = player.playing ? 'pause' : end ? 'replay' : 'play';
-  if (play.dataset.mode !== mode) {
-    play.dataset.mode = mode;
-    play.innerHTML = mode === 'pause' ? PAUSE : mode === 'replay' ? REPLAY : PLAY;
-    play.setAttribute('aria-label', mode === 'pause' ? 'Pause' : mode === 'replay' ? 'Replay' : 'Play');
-  }
-  const scrub = body.querySelector<HTMLInputElement>('.make-scrub')!;
-  if (root.ownerDocument?.activeElement !== scrub || player.playing) scrub.value = String(Math.round(player.time / (player.duration || 1) * 1000));
-  scrub.style.setProperty('--played', `${player.time / (player.duration || 1) * 100}%`);
-  body.querySelector('.make-time')!.textContent = `${clock(player.time)} / ${clock(player.duration)}`;
-  if (body.dataset.showing === String(step)) return;
-  body.dataset.showing = String(step);
-  body.querySelector('.make-caption')!.innerHTML = `<b>Step ${s.n} of ${piece.steps.length}</b><span>${STAGE_NAMES[s.stage]}</span>`;
-  body.querySelector('.make-holds')!.innerHTML = s.fittings.map(f => `<span class="make-chip" title="${FITTING_NAMES[f.kind]}">${fittingIcon(f.kind)}<span>×${f.qty}</span></span>`).join('');
-  root.querySelectorAll<HTMLElement>('.make-chapter').forEach(c => c.toggleAttribute('aria-current', c.dataset.chapter === String(step)));
-}
-
 /** Every stock sheet, its parts drawn on it to scale and numbered, how much of it is used; then the banding to buy. */
 export function cuttingTab(layout: CutLayout, material: (decorId: string) => string) {
   const W = 360, s = W / STOCK.length, H = STOCK.width * s, count = new Map<string, number>();

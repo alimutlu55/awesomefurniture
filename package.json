@@ -19,6 +19,7 @@
     "check:drawings": "node --import tsx scripts/check-professional-drawings.mjs",
     "check:ai-images": "node --import tsx scripts/check-ai-design-images.mjs",
     "check:decors": "node scripts/check-decor-catalog.mjs",
+    "check:assembly": "node scripts/check-assembly-studio.cjs",
     "check:mobile": "node scripts/check-mobile.cjs",
     "check:designs": "node scripts/check-design-workspace.cjs",
     "check:accounts": "node scripts/check-account-flows.mjs",

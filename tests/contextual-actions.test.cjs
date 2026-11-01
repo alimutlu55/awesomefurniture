@@ -8,8 +8,8 @@ for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['
 }
 test('Make holds the toolbar while it is open: Done first, then its own tools; View lists the views, looks, opening the doors and part numbers',()=>{
  const {makeViewActions}=require('../src/domain/wardrobe/contextual-actions.js');
- assert.deepEqual(contextualActions('make').map(([key])=>key),['make-done','make-apart','make-fronts','make-measures','make-view','make-parts','undo','redo']);
- assert.deepEqual(makeViewActions.map(([key])=>key),['view-iso','view-front','view-side','view-top','look-lines','look-material','look-xray','make-open','make-numbers']);
+ assert.deepEqual(contextualActions('make').map(([key])=>key),['make-done','make-assembly','make-fronts','make-measures','make-view','make-parts','undo','redo']);
+ assert.deepEqual(makeViewActions.map(([key])=>key),['view-iso','view-front','view-side','view-top','look-lines','look-material','look-xray','make-open','make-numbers','make-apart']);
 });
 test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.ok(contextualActions(kind).some(action=>action[0]==='add-item'&&action[1]==='Add item'));});
 test('every kind of furniture has Fronts and Sections in More alongside duplicate, reset and remove',()=>{

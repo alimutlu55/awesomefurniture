@@ -11,24 +11,27 @@ import type { MakeFilm } from './make-play-3d';
  * holds no view: Make draws the film and writes the controls.
  */
 export function createMakePlayer() {
-  let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false;
+  let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
-    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; },
+    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; },
     get timeline() { return tl; },
     get staged() { return staged; },
     get time() { return t; },
     get duration() { return tl?.duration ?? 0; },
     get playing() { return playing; },
+    get rate() { return rate; },
+    direction(next: 1 | -1) { rate = next; },
     get head() { return head(); },
     /** Each step's start, for its chapter. */
     get starts() { return tl ? tl.steps.map(s => s.start) : []; },
-    seek(to: number) { t = Math.max(0, Math.min(tl?.duration ?? 0, to)); },
+    seek(to: number) { if (Number.isFinite(to)) t = Math.max(0, Math.min(tl?.duration ?? 0, to)); },
     /** Plays or pauses; at the end, plays again from the start. */
     toggle() {
       if (!tl) return;
-      if (!playing && t >= tl.duration - .01) t = 0;
+      if (!playing && rate > 0 && t >= tl.duration - .01) t = 0;
+      if (!playing && rate < 0 && t <= .01) t = tl.duration;
       playing = !playing;
     },
     pause() { playing = false; },
@@ -38,8 +41,9 @@ export function createMakePlayer() {
     /** Moves the time on while playing; true when it moved. */
     advance(dt: number) {
       if (!playing || !tl) return false;
-      t = Math.min(tl.duration, t + dt);
-      if (t >= tl.duration) playing = false;
+      if (!Number.isFinite(dt) || dt < 0) return false;
+      t = Math.max(0, Math.min(tl.duration, t + dt * rate));
+      if ((rate > 0 && t >= tl.duration) || (rate < 0 && t <= 0)) playing = false;
       return true;
     },
     /** The parts the step showing puts in, by number. */

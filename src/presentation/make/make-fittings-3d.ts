@@ -29,6 +29,8 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const bar = new THREE.BoxGeometry(1, 1, 1), rod = new THREE.CylinderGeometry(1, 1, 1, 14);
   const holeMaterial = new THREE.MeshBasicMaterial({ color: INK, side: THREE.DoubleSide });
   const metal = new THREE.MeshLambertMaterial({ color: METAL, emissive: 0x3a3c40, emissiveIntensity: .4 });
+  const highlight = new THREE.MeshLambertMaterial({ color: 0x4976ad, emissive: 0x243b56, emissiveIntensity: .5 });
+  let links: readonly (readonly number[])[] = [];
   let holes: { mesh: THREE.Object3D; board: number; index: number }[] = [];
   let fittings: { mesh: THREE.Object3D; index: number; board: number | null; home: THREE.Vector3; from: THREE.Vector3; size: THREE.Vector3 }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
@@ -74,6 +76,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       // Coming in: growing into view where it waits at the end of its line (a handle in front, a leg below), easing home.
       const p = shownFittings ? shownFittings(f.index) : 1, seen = seenFittings?.(f.index) ?? 1;
       f.mesh.visible = p !== null;
+      if (f.mesh instanceof THREE.Mesh) f.mesh.material = focused && links[f.index]?.some(i => focused!.has(i)) ? highlight : metal;
       f.mesh.position.copy(f.home).addScaledVector(f.from, (1 - (p ?? 1)) ** 3 * WAIT);
       f.mesh.scale.copy(f.size).multiplyScalar(Math.max(.01, 1 - (1 - seen) ** 3));
     }
@@ -82,6 +85,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
   return {
     build(piece, meshOf, rest, root) {
       this.clear();
+      links = piece.fittings.map(f => f.boards);
       piece.holes.forEach((h, index) => {
         const host = meshOf(h.board);
         if (!host) return;
@@ -119,12 +123,12 @@ export function createMakeFittings(layer: number): FittingsLayer {
     focus(boards) { focused = boards; visible(); },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);
-      holes = []; fittings = [];
+      holes = []; fittings = []; links = []; focused = null;
     },
     dispose() {
       this.clear();
       for (const g of [ring, disc, bar, rod]) g.dispose();
-      holeMaterial.dispose(); metal.dispose();
+      holeMaterial.dispose(); metal.dispose(); highlight.dispose();
     },
   };
 }

@@ -16,7 +16,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 /** The camera layer Make draws on: while Make is open the camera sees only this layer, so the piece stands alone. */
 export const MAKE_LAYER = 3;
 export type MakeLook = 'lines' | 'material' | 'xray';
-type Resources = Pick<ReturnType<typeof createViewportResources>, 'M' | 'decorTexture'>;
+type Resources = Pick<ReturnType<typeof createViewportResources>, 'M' | 'decorTexture' | 'contact'>;
 
 const OPEN_ANGLE = 100 * Math.PI / 180, IDENTITY = new THREE.Quaternion(), INK = 0x1a1a1a, PAPER = 0xfbfbf8, SELECTED = 0xe3eaf5, XRAY = 0x3e6fc2, FADE = .14;
 /** Outlines as an assembly manual draws them: a steady width on screen however near the camera is (pixels). */
@@ -62,6 +62,10 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   const group = new THREE.Group();
   group.userData.make = true;
   scene.add(group);
+  // Reuse the editor's soft contact texture beneath the isolated furniture.
+  const contact = resources.contact.clone();
+  contact.material = resources.contact.material.clone();
+  contact.layers.set(MAKE_LAYER); contact.visible = false; scene.add(contact);
   const decorMaterials = new Map<string, THREE.Material>(), faded = new Map<THREE.Material, THREE.Material>();
   const lines = {
     // A drawing, as an assembly manual is drawn: boards the colour of the paper, unshaded, so only their ink outlines
@@ -100,14 +104,16 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   };
   /** Gives every board the materials for the look, the part picked and whether fronts are solid. */
   function paint() {
+    contact.visible = boards.length > 0 && look === 'material';
     for (const b of boards) {
       // In the film fronts go on solid, as they are fitted; otherwise they are solid or dashed as chosen.
-      const phantom = isFront(b.part) && !solidFronts && !film, mine = film ? film.now(b.index) : selected === b.part.n, dim = !film && selected !== null && !mine;
+      const phantom = isFront(b.part) && !solidFronts && !film, mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
       if (phantom) face = lines.hidden;
       else if (dim) face = fade(face);
       b.face.material = face;
       b.face.renderOrder = phantom || dim || look === 'xray' ? 1 : 0;
+      b.edges.visible = look !== 'material' || selected !== null;
       b.edges.material = phantom ? lines.phantom : dim ? lines.edgeFaded : mine ? lines.edgeSelected : look === 'xray' ? lines.edgeXray : lines.edge;
     }
   }
@@ -171,6 +177,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         outline.dispose();
         edges.computeLineDistances();
         for (const o of [face, edges]) { o.layers.set(MAKE_LAYER); o.userData.make = true; o.userData.n = part.n; }
+        face.castShadow = true; face.receiveShadow = true;
         group.add(face, edges);
         const motion = piece.motions[part.ids[k]!] ?? null;
         const pivot = motion?.kind === 'swing' ? new THREE.Vector3(motion.pivot[0] - piece.size.w / 2, 0, motion.pivot[1] - piece.size.d / 2) : null;
@@ -180,6 +187,9 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       const byIndex = new Map(boards.map(b => [b.index, b]));
       fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
       play.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
+      contact.position.set(pose.x, pose.y + .05, pose.z);
+      contact.scale.set(piece.size.w * 1.5, piece.size.d * 2, 1);
+      contact.rotation.z = -pose.angle * Math.PI / 180;
       group.position.set(pose.x, pose.y, pose.z);
       group.rotation.y = pose.angle * Math.PI / 180;
       group.updateMatrixWorld(true);
@@ -195,7 +205,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     setResolution(width: number, height: number) { for (const pen of pens) pen.resolution.set(width, height); },
     setSelected(n: number | null) {
       selected = n;
-      fittings.focus(n === null ? null : new Set(boards.filter(b => b.part.n === n).map(b => b.index)));
+      const picked = n === null ? null : new Set(boards.filter(b => b.part.n === n).map(b => b.index));
+      fittings.focus(picked); play.focus(picked);
       paint();
     },
     /** Shows the film of the assembly at one moment (null: the piece as it is). */
@@ -221,6 +232,13 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       }
       return box.applyMatrix4(group.matrixWorld);
     },
+    /** Bounds of the actual transformed meshes, including parts paused mid-flight. */
+    currentExtent(n: number | null = null) {
+      group.updateMatrixWorld(true);
+      const box = new THREE.Box3();
+      for (const b of boards) if (n === null || b.part.n === n) box.union(new THREE.Box3().setFromObject(b.face));
+      return box;
+    },
     /** Where a board is moved to at the current amount apart, in the piece's frame (centimetres). */
     offsetOf(board: Board): Vec3 {
       const b = boards.find(m => m.board === board);
@@ -232,14 +250,15 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** The part under a ray, nearest first, ignoring fronts drawn as outlines. */
     pick(raycaster: THREE.Raycaster): number | null {
       raycaster.layers.set(MAKE_LAYER);
-      const targets = boards.filter(b => b.face.visible && !(isFront(b.part) && !solidFronts)).map(b => b.face);
+      const targets = boards.filter(b => b.face.visible && !(isFront(b.part) && !solidFronts && !film)).map(b => b.face);
       const hit = raycaster.intersectObjects(targets, false)[0];
       return hit ? hit.object.userData.n as number : null;
     },
-    hide() { clear(); },
+    hide() { clear(); contact.visible = false; },
     dispose() {
       clear();
-      scene.remove(group);
+      scene.remove(group, contact);
+      contact.material.dispose();
       fittings.dispose(); play.dispose();
       for (const m of new Set<THREE.Material>([...Object.values(lines), ...decorMaterials.values(), ...faded.values()])) m.dispose();
     },

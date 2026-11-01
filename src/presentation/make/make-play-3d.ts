@@ -48,6 +48,9 @@ export function createMakePlay(layer: number) {
   const brass = new THREE.MeshLambertMaterial({ color: BRASS, emissive: 0x3a2c14, emissiveIntensity: .5 });
   const drill = new THREE.MeshLambertMaterial({ color: BIT, emissive: 0x15171a, emissiveIntensity: .5 });
   let fasteners: Fastener[] = [], bits: Bit[] = [];
+  let links: readonly (readonly number[])[] = [];
+  const highlight = new THREE.MeshLambertMaterial({ color: 0x4976ad, emissive: 0x243b56, emissiveIntensity: .5 });
+  const originals = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
 
   const tag = <T extends THREE.Object3D>(o: T) => { o.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; }); return o; };
   /** A solid of unit `geometry` scaled to `size`, its y along `axis`, centred at `at` in its parent. */
@@ -105,6 +108,7 @@ export function createMakePlay(layer: number) {
   return {
     build(piece: MakePiece, meshOf: (board: number) => THREE.Object3D | undefined, rest: (board: number) => THREE.Vector3, root: THREE.Object3D) {
       this.clear();
+      links = piece.fittings.map(f => f.boards);
       const frame = (p: readonly number[]) => new THREE.Vector3(p[0]! - piece.size.w / 2, p[1]!, p[2]! - piece.size.d / 2);
       piece.holes.forEach((h, hole) => {
         const host = meshOf(h.board);
@@ -125,6 +129,7 @@ export function createMakePlay(layer: number) {
         // It rides on the board it goes in through, so one fitted while that board lies on the floor goes in with it.
         const host = fastener.board === null ? undefined : meshOf(fastener.board);
         if (host) { fastener.home.sub(rest(fastener.board!)); host.add(fastener.group); } else root.add(fastener.group);
+        fastener.group.traverse(o => { if (o instanceof THREE.Mesh) originals.set(o, o.material); });
         fasteners.push(fastener);
       });
     },
@@ -153,14 +158,21 @@ export function createMakePlay(layer: number) {
         f.group.scale.setScalar(Math.max(.01, seen) * (1 + (VIS - 1) * (1 - e)));
       }
     },
+    /** Highlight the actual fasteners joining an inspected component, at their current timeline transforms. */
+    focus(boards: ReadonlySet<number> | null) {
+      for (const f of fasteners) {
+        const selected = boards && links[f.item]?.some(i => boards.has(i));
+        f.group.traverse(o => { if (o instanceof THREE.Mesh) o.material = selected ? highlight : originals.get(o)!; });
+      }
+    },
     clear() {
       for (const o of [...bits.map(b => b.mesh), ...fasteners.map(f => f.group)]) o.parent?.remove(o);
-      bits = []; fasteners = [];
+      bits = []; fasteners = []; originals.clear(); links = [];
     },
     dispose() {
       this.clear();
       for (const g of [rod, cone, box]) g.dispose();
-      steel.dispose(); brass.dispose(); drill.dispose();
+      steel.dispose(); brass.dispose(); drill.dispose(); highlight.dispose();
     },
   };
 }

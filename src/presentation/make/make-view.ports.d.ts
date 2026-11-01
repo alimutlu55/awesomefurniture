@@ -3,9 +3,9 @@ export interface MakeViewPorts {
   readonly dom: Pick<ReturnType<typeof import('../editor/editor-dom').createEditorDom>, '$' | 'document' | 'matchMedia' | 'window'>;
   readonly lifetime: Pick<ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup' | 'frame' | 'observe'>;
   /** The editor's own scene, camera and canvas: Make draws its boards there, on a layer of their own. */
-  readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'scene' | 'cam' | 'cv' | 'M' | 'decorTexture' | 'frameHooks' | 'R'>;
+  readonly resources: Pick<ReturnType<typeof import('../viewport/viewport-resources.js').createViewportResources>, 'scene' | 'cam' | 'cv' | 'M' | 'decorTexture' | 'frameHooks' | 'R' | 'contact'>;
   /** The editor's own camera framing. */
-  readonly camera: Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameWardrobe' | 'frameBox' | 'camNow' | 'fittedCamera' | 'cameraSample' | 'cameraTransition'>;
+  readonly camera: Pick<ReturnType<typeof import('../viewport/camera-controller.js').createCameraController>, 'frameWardrobe' | 'frameBox' | 'camNow' | 'fittedCamera' | 'cameraFitDistance' | 'camRelease' | 'cameraSample' | 'cameraTransition'>;
   /** The scene, read when Make opens: the active piece is the one taken apart. */
   scene(): import('../../application/projects/editor-scene').EditorScene;
   /** Closes the editor's own panels before Make opens its own. */

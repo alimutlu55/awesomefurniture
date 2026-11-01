@@ -2,7 +2,7 @@ import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePiece } from '../../domain/make/make-parts';
 import type { LengthText } from './make-marks';
 import type { MakePlayer } from './make-player';
-import { cuttingTab, hardwareTab, type PanelTab, stepsTab, tabsHtml } from './make-panel-tabs';
+import { cuttingTab, hardwareTab, type PanelTab, tabsHtml } from './make-panel-tabs';
 import { drillingSummary, partDrilling, partSheetSvg, partTileSvg } from './make-sheet';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -24,9 +24,10 @@ export interface PanelView {
 
 /** The piece as a whole, by tab: its parts, its hardware, how it goes together, how it is cut. */
 export function pieceTabs(view: PanelView) {
-  const body = view.tab === 'hardware' ? hardwareTab(view.piece) : view.tab === 'steps' ? stepsTab(view.piece, view.player)
+  const body = view.tab === 'hardware' ? hardwareTab(view.piece)
     : view.tab === 'cutting' ? cuttingTab(view.cut(), view.material) : partsList(view);
-  return tabsHtml(view.tab) + body;
+  return tabsHtml(view.tab) + '<button type="button" class="make-studio-shortcut" data-assembly><span class="make-studio-symbol">▷</span>'
+    + '<span><b>Assembly Studio</b><small>Watch and explore, step by step.</small></span><span>›</span></button>' + body;
 }
 
 /** The parts of the piece, one row each: its shape to scale, number, name, how many, and its size. */
@@ -43,7 +44,8 @@ export function partDetail({ piece, selected, band, length, material }: PanelVie
   if (!part) return '';
   const cut = cutWithBand(part, band), decor = material(part.decorId), banded = part.edges !== '—', drilling = partDrilling(piece, part);
   const holes = drillingSummary(drilling);
-  return `<div class="make-size" translate="no">${length(part.cut.length)} × ${length(part.cut.width)} × ${length(part.cut.thickness)}</div>`
+  return `<button type="button" class="make-studio-shortcut" data-assembly-part="${part.n}">View this assembly stage <span>→</span></button>`
+    + `<div class="make-size" translate="no">${length(part.cut.length)} × ${length(part.cut.width)} × ${length(part.cut.thickness)}</div>`
     + `<p class="make-sub">${part.boards.length > 1 ? `×${part.boards.length} · ` : ''}${esc(decor)}${banded && band ? ` · cut ${length(cut.length)} × ${length(cut.width)}` : ''}</p>`
     + partSheetSvg(part, length, decor, band, true, drilling)
     + (holes.length ? `<div class="make-chips" translate="no">${holes.map(h => `<span class="make-chip"><svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true">`

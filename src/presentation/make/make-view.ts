@@ -9,8 +9,9 @@ import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
 import { marksSvg, type Projector } from './make-marks';
 import { partDetail, pieceTabs } from './make-panel';
-import { type PanelTab, updatePlayer } from './make-panel-tabs';
+import { type PanelTab } from './make-panel-tabs';
 import { createMakePlayer } from './make-player';
+import { createStudioController } from './assembly-studio-controller';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
 import { cutListCsv, makePdf } from './make-export';
@@ -31,6 +32,7 @@ export function createMakeView(ports: MakeViewPorts) {
   type Target = Pick<EventTarget, 'addEventListener' | 'removeEventListener'>;
   const listen = lifetime.listen as (target: Target, event: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
   const app = dom.$('#app'), view = dom.$('#view');
+  const desktop = dom.matchMedia('(min-width:901px)'), reducedMotion = dom.matchMedia('(prefers-reduced-motion: reduce)');
   const make3d = createMake3d(resources, resources.scene);
   const overlay = doc.createElementNS(SVG, 'svg') as SVGSVGElement;
   overlay.setAttribute('class', 'make-overlay');
@@ -44,14 +46,18 @@ export function createMakeView(ports: MakeViewPorts) {
   panel.innerHTML = '<div class="ph"><b class="make-title">Parts</b><span class="pbtns"><button type="button" class="make-back" aria-label="All parts" title="All parts">‹</button>'
     + '<button type="button" class="make-close" aria-label="Close" title="Close">×</button></span></div><div class="make-body"></div>';
   app.append(panel);
-  mountMobileSheet({ document: doc, lifetime, panel, name: 'Parts', close: () => hidePanel(), bottom: true, scene: app, docked: dom.matchMedia('(min-width:901px)') });
+  mountMobileSheet({ document: doc, lifetime, panel, name: 'Parts', close: () => hidePanel(), bottom: true, scene: app, docked: desktop });
 
   const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0, openOn: false, open: 0,
     solidFronts: false, measures: true, numbers: false, selected: null as number | null, panel: 'closed' as 'closed' | 'list' | 'part', marks: '',
-    id: -1, tab: 'parts' as PanelTab, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null, filming: false,
+    id: -1, tab: 'parts' as PanelTab, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null, filming: false, studio: false, explore: false,
     // The film's camera: following the director's shots, and gliding back to them after the person has looked around.
     follow: true, shots: null as ((t: number) => Pose) | null, shotsFor: '', glide: null as { from: Pose; left: number } | null };
   const player = createMakePlayer();
+  const { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera: studioCamera } = createStudioController({
+    st, player, make3d, app, view, ports, reducedMotion, hidePanel, showPanel, filming, paper, showFilm, followFrom, length: cm => length(cm), material,
+  });
+  let editorPose: Pose | null = null;
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
   const length = (cm: number) => lengthText(cm);
   const raycaster = new THREE.Raycaster(), local = new THREE.Vector3();
@@ -75,16 +81,17 @@ export function createMakeView(ports: MakeViewPorts) {
    * when the view, the size or what is shown has changed. */
   function frame(camera: THREE.PerspectiveCamera, dt: number) {
     if (!st.piece) return;
-    const reduce = dom.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = reducedMotion.matches;
     const ease = (now: number, goal: number, rate: number) => reduce || Math.abs(goal - now) < .01 ? goal : now + (goal - now) * (1 - Math.exp(-dt * rate));
     if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
     if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
     if (st.filming) {
-      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}`;
-      if (size !== st.shotsFor) { plan(); st.shotsFor = size; }
-      if (st.glide) st.glide.left -= dt;
+      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}x${studio.root.querySelector<HTMLElement>('.as-bottom')!.offsetHeight}`;
+      if (size !== st.shotsFor) { plan(); st.shotsFor = size; if (st.follow) followFrom(ports.camera.camNow()); }
+      if (st.glide) st.glide.left -= reduce ? GLIDE : dt;
       if (player.advance(dt) || st.glide) showFilm();
       if (st.glide && st.glide.left <= 0) st.glide = null;
+      studio.update(st.piece, player, st.explore);
     }
     camera.updateMatrixWorld();
     const w = view.clientWidth, h = view.clientHeight;
@@ -106,10 +113,9 @@ export function createMakeView(ports: MakeViewPorts) {
     panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : pieceTabs(shown);
     filming();
   }
-  /** The Steps tab plays the assembly as a film: the piece assembled and opened, the camera backed off far enough to
-   * see every board come in; leaving it shows the piece as it is again. */
+  /** Studio presents the existing assembly film; leaving it restores the technical view. */
   function filming() {
-    const on = !!st.piece && st.panel === 'list' && st.tab === 'steps';
+    const on = !!st.piece && st.studio;
     if (on === st.filming) { if (on) showFilm(); return; }
     st.filming = on;
     if (on) {
@@ -130,12 +136,13 @@ export function createMakeView(ports: MakeViewPorts) {
   function showFilm() {
     if (!st.piece || !st.filming) return;
     make3d.setFilm(player.film());
+    resources.R.shadowMap.needsUpdate = true;
     st.building = player.building();
     if (st.follow && st.shots) {
       const pose = st.shots(player.time);
       ports.camera.cameraTransition(st.glide ? ports.camera.cameraSample(st.glide.from, pose, 1 - Math.max(0, st.glide.left) / GLIDE) : pose, 0);
     }
-    updatePlayer(panel, st.piece, player, st.follow);
+    studio.update(st.piece, player, st.explore);
   }
   /** The director's shots for the piece where it stands, fitted to the view as it is now: on a desktop, to the room
    * beside the docked panel, each shot moved into the middle of that room. */
@@ -148,6 +155,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const camera = {
       cameraSample: ports.camera.cameraSample,
       fittedCamera(az: number, el: number, padding: number, box: Parameters<typeof ports.camera.fittedCamera>[3]) {
+        if (st.studio && box) return studioCamera(az, el, padding, box);
         const pose = ports.camera.fittedCamera(az, el, padding * W / room, box), px = (W - room) / 2, perPx = 2 * pose.dist * tanV / H;
         return { ...pose, x: pose.x - Math.cos(az) * px * perPx, z: pose.z + Math.sin(az) * px * perPx };
       },
@@ -156,7 +164,7 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   /** How much of the view the panel covers at its left, docked beside it on a desktop (pixels). */
   function dockedLeft() {
-    const docked = dom.matchMedia('(min-width:901px)').matches && panel.classList.contains('show');
+    const docked = desktop.matches && panel.classList.contains('show');
     return docked ? Math.max(0, panel.getBoundingClientRect().right - view.getBoundingClientRect().left) : 0;
   }
   function followFrom(from: Pose) { st.follow = true; st.glide = { from: { ...from }, left: GLIDE }; }
@@ -173,6 +181,7 @@ export function createMakeView(ports: MakeViewPorts) {
     pressed();
   }
   function select(n: number | null) {
+    if (st.studio) { inspect(n); return; }
     st.selected = n;
     make3d.setSelected(n);
     if (n === null) hidePanel(); else showPanel('part');
@@ -218,6 +227,7 @@ export function createMakeView(ports: MakeViewPorts) {
   function open() {
     const { cabinet, piece } = pieceOf(ports.scene().activeWardrobe);
     if (!piece || !cabinet) { ports.toast('Select a wardrobe or cabinet to make'); return; }
+    editorPose = { ...ports.camera.camNow() };
     ports.closePanels();
     Object.assign(st, { piece, pose: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, apartOn: false, apart: 0, selected: null, marks: '',
       id: cabinet.id, tab: 'parts', cut: null, openOn: false, open: 0, filming: false });
@@ -236,20 +246,23 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   function close() {
     if (!st.piece) return;
+    if (st.studio) leaveStudio();
     hidePanel();
     resources.frameHooks.delete(frame);
     resources.cam.layers.set(0);
+    resources.R.shadowMap.needsUpdate = true;
     make3d.hide();
     paper(false);
     overlay.innerHTML = '';
     app.classList.remove('make-on');
     Object.assign(st, { piece: null, selected: null, marks: '', cut: null });
     ports.refreshToolbar();
-    ports.camera.frameWardrobe();
+    if (editorPose) ports.camera.cameraTransition(editorPose, 300);
   }
   /** A tool from the bottom toolbar or its View menu. */
   function act(key: string) {
     if (!st.piece) return;
+    if (key === 'make-assembly') { enterStudio(); return; }
     if (key === 'make-done') { close(); return; }
     if (key === 'make-apart') {
       st.apartOn = !st.apartOn;
@@ -270,6 +283,7 @@ export function createMakeView(ports: MakeViewPorts) {
   /** A tap on the canvas while Make is open: the part under it, or nothing. */
   function pick(e: { clientX: number; clientY: number }) {
     if (!st.piece) return;
+    if (st.studio && !st.explore) { studio.wake(); return; }
     const r = resources.cv.getBoundingClientRect();
     raycaster.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), resources.cam);
     select(make3d.pick(raycaster));
@@ -277,17 +291,23 @@ export function createMakeView(ports: MakeViewPorts) {
 
   listen(panel, 'click', e => {
     const t = e.target as Element, row = t.closest<HTMLElement>('[data-n]'), bandButton = t.closest<HTMLElement>('[data-band]'), stepBy = t.closest<HTMLElement>('[data-step]');
-    if (t.closest('.make-close')) hidePanel();
+    if (t.closest('[data-assembly]')) enterStudio();
+    else if (t.closest<HTMLElement>('[data-assembly-part]')) enterStudio(stageForPart(Number(t.closest<HTMLElement>('[data-assembly-part]')!.dataset.assemblyPart)));
+    else if (t.closest<HTMLElement>('[data-hardware]')) {
+      const row = t.closest<HTMLElement>('[data-hardware]')!;
+      const index = st.piece?.fittings.findIndex(f => f.kind === row.dataset.hardware && (f.size ?? '') === row.dataset.size) ?? -1;
+      const stages = st.piece?.steps.map((step, k) => ({ step, k })).filter(({ step }) => step.items.some(i => {
+        const f = st.piece!.fittings[i]!; return f.kind === row.dataset.hardware && (f.size ?? '') === row.dataset.size;
+      })) ?? [];
+      if (index >= 0) enterStudio(stages.find(({ k }) => k >= player.head.step)?.k ?? stages[0]?.k);
+    }
+    else if (t.closest('.make-close')) hidePanel();
     else if (t.closest('.make-back')) { st.selected = null; make3d.setSelected(null); showPanel('list'); }
     else if (row) select(Number(row.dataset.n));
     else if (bandButton) { band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
     else if (stepBy) step(Number(stepBy.dataset.step));
     else if (t.closest('[data-set]')) ports.openDrawings();
     else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); }
-    else if (t.closest('[data-play]')) { player.toggle(); showFilm(); }
-    else if (t.closest('[data-follow]')) { if (st.follow) st.follow = false; else followFrom(ports.camera.camNow()); showFilm(); }
-    else if (t.closest<HTMLElement>('[data-build]')) { player.step(Number(t.closest<HTMLElement>('[data-build]')!.dataset.build)); showFilm(); }
-    else if (t.closest<HTMLElement>('[data-chapter]')) { player.chapter(Number(t.closest<HTMLElement>('[data-chapter]')!.dataset.chapter)); showFilm(); }
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
     else if (t.closest<HTMLElement>('[data-save]')) void save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv');
   });
@@ -324,22 +344,24 @@ export function createMakeView(ports: MakeViewPorts) {
   lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),
     panel, { attributes: true, attributeFilter: ['class'] });
   // Looking around while the film plays: the camera is the person's until they ask the director back (Follow).
-  for (const type of ['pointerdown', 'wheel']) listen(resources.cv, type, () => { if (st.filming && st.follow) { st.follow = false; st.glide = null; showFilm(); } });
-  // Scrubbing: the film follows the bar, paused, while it is dragged.
-  listen(panel, 'input', e => {
-    const bar = (e.target as Element).closest<HTMLInputElement>('.make-scrub');
-    if (!bar) return;
-    player.pause(); player.seek(Number(bar.value) / 1000 * player.duration); showFilm();
-  });
+  for (const type of ['pointerdown', 'wheel']) listen(resources.cv, type, e => {
+    if (!st.studio) return;
+    studio.wake();
+    // Playback owns the camera. Explore uses the editor's proven orbit, pan and pinch handlers.
+    if (!st.explore) { e.preventDefault(); e.stopImmediatePropagation(); }
+  }, { capture: true, passive: false });
+  listen(dom.window, 'popstate', historyChanged, true);
+  listen(app.ownerDocument, 'visibilitychange', () => { if (app.ownerDocument.hidden && st.studio) { player.pause(); showFilm(); studio.wake(); } });
   // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
   listen(dom.window, 'keydown', e => {
     const k = e as KeyboardEvent;
-    if (!st.piece || (k.target as Element | null)?.closest?.('input,select,textarea')) return;
+    const target = k.composedPath()[0] as Element | undefined;
+    if (!st.piece || (target?.closest?.('input,select,textarea') && k.key !== 'Escape')) return;
     // The film: Space plays or pauses (a focused button keeps its own Space), the arrows go a step back or on.
-    if (st.filming && k.key === ' ' && !(k.target as Element | null)?.closest?.('button')) { player.toggle(); showFilm(); }
+    if (st.filming && k.key === ' ' && !target?.closest?.('button')) { studioAction('play'); }
     else if (st.filming && (k.key === 'ArrowRight' || k.key === 'ArrowLeft')) { player.step(k.key === 'ArrowRight' ? 1 : -1); showFilm(); }
     else if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
-    else if (k.key === 'Escape') { if (st.selected !== null) select(null); else close(); }
+    else if (k.key === 'Escape') { if (st.selected !== null) select(null); else if (st.studio) leaveStudio(); else close(); }
     else if ((k.key === 'ArrowRight' || k.key === 'ArrowLeft') && st.selected !== null) step(k.key === 'ArrowRight' ? 1 : -1);
     k.preventDefault();
     k.stopImmediatePropagation();
@@ -348,6 +370,6 @@ export function createMakeView(ports: MakeViewPorts) {
   listen(dom.$('#view-modes'), 'click', () => close(), true);
   lifetime.cleanup(onLengthUnitChange(() => { st.marks = ''; renderPanel(); }));
   lifetime.cleanup(onLanguageChange(() => { st.marks = ''; }));
-  lifetime.cleanup(() => { close(); make3d.dispose(); overlay.remove(); panel.remove(); });
+  lifetime.cleanup(() => { close(); make3d.dispose(); overlay.remove(); panel.remove(); studio.root.remove(); });
   return { open, close, act, pick, get active() { return !!st.piece; } };
 }

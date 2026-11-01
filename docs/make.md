@@ -20,39 +20,42 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   rank 3 the part picked. Where each of a part's boards sits is a running dimension: one line up from the floor (or
   across from the left face) with a tick at each board and its figure beside that tick. A label that would overlap another waits
   until the view turns; a measurement across the inside shows only while its plane faces the viewer.
-- **The toolbar holds Make's tools:** Done, Take apart (the boards move away from what they touch; the camera backs off
-  to keep them in view), Doors (solid, or dashed outlines), Sizes, View (3D, Front, Side, Top; Lines, Material, X-ray;
-  Open doors, which swings doors on their hinges and slides drawers out on their runners; part numbers), Parts.
+- **The toolbar holds Make's tools:** Done, Assembly (opens Assembly Studio in one tap), Doors (solid, or dashed outlines), Sizes, View (3D, Front, Side, Top; Lines, Material, X-ray;
+  Take apart (with automatic framing), Open doors, which swings doors on their hinges and slides drawers out on their runners; part numbers), Parts.
 - **A tap picks a part.** The rest fades, the measurements switch to it, and the editor's panel (a bottom sheet on a
   phone) shows its size, decor, cut size after edge banding (0, 0.4, 1 or 2 mm, remembered in the browser), its flat
   drawing with every hole (a ring on the face up, filled right through, dashed from the face under it, a tick in an
   edge), grooves, hole positions from the corner in millimetres, holes counted by size, and Previous / Next.
-- **Parts** opens the panel's four tabs:
+- **Parts** opens the panel's three tabs, with an Assembly Studio shortcut:
   - **Parts**: every part, numbered; save the drawings; the full (paid) drawing set.
   - **Hardware**: Joints (Screws, Cams, Dowels) and Back (Nailed, Grooved), saved with the design; the drilling check
     (holes running into each other, too near an edge, through the far face, meeting inside); everything to buy, counted.
-  - **Steps**: the assembly as a film, in the editor's own view. Every part starts laid flat on the floor in front of
-    the piece (nothing appears from nowhere); a directed camera opens on the parts, looks down on the drilling, stands
-    back as each board is lifted, stood up and carried in (one after another, the base before the sides, shelves from
-    the bottom up), then fixes them joint by joint, and ends going round the finished piece. Dragging or
-    zooming takes the camera; Follow gives it back. Each step (plinth; base and sides; partitions; top;
-    back; inside; drawers; doors and fronts; fixing to the wall) drills its holes one after another (a drill bit going
-    in and out, the hole left behind), puts in what goes in before the boards come together (a cam's bolt into the
-    face board, dowels into a board's end, hinge cups into the back of each door; into a board waiting on the floor, its
-    drilled face turned up, or one already standing), brings its boards in from where they wait (shelf pins and hinge
-    plates pushed in first), then fixes them **one joint at a time**
-    (`make-fixing.ts`): the fittings going in through one board from one side, split where they are far apart. For each
-    joint the camera comes close and looks across the way they go in (never down it), every fastener grows into view
-    at the end of a dashed line into its ringed hole, a callout counts what goes in ("×3", the screw, 7 × 50 mm), and
-    they go in one after another: screws turning, each cam pushed home and then turned half round onto its bolt,
-    nails driven. Every part in a callout is named (translated). The parts a step adds are
-    picked out and numbered over the view while they come in. Play / pause (Space), a scrub bar (the editor's
-    slider), the time, Previous / Next step (the arrows), and every step as a chapter with its start time. The view
-    turns and zooms while it plays; the player stays open.
+  - **Assembly Studio** is a shortcut above the tabs, replacing embedded Steps playback. A part's detail has a
+    direct stage link; each Hardware row opens its next relevant stage, using the same playhead.
   - **Cutting**: every stock sheet (2800 × 2070 mm, 10 mm trim, 4 mm kerf) per decor and thickness with its parts on
     it and how much is used, parts longer than a sheet, and the edge banding to buy; save the cut list (CSV).
 - **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, hardware and steps) or the
   cut list (CSV a panel saw or optimiser takes) is part of the paid drawing set: the same price and 24-hour pass.
+
+## Assembly Studio
+
+A dedicated full-screen presentation over the editor's **existing canvas and camera**, using the same boards,
+materials, hardware, timeline and director. The warm backdrop and contact shadow isolate the furniture; floating
+controls reserve only the space they need. Portrait, tablet, desktop and landscape layouts use the editor's camera
+fit calculation with measured control bounds. Chapter thumbnails project the actual cut outlines without a second
+WebGL renderer. No scene or design edits are made when entering or leaving Studio.
+
+- Play/pause, previous/next, reversible playback, and a continuous seek bar with chapter markers all read the same
+  deterministic timeline. Chapters come from the actual piece's nonempty assembly stages.
+- Explore pauses at the exact current time. Drag orbits, right-drag pans, two fingers pan and pinch. Tapping a part
+  highlights its boards and connecting hardware, frames its current transformed bounds, and shows its dimensions,
+  material and stage link. Playback resumes from the same time; the camera glides back to the director.
+- Guidance is an optional compact overlay: the current phase, installation guidance, required boards and real
+  hardware quantities. The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
+- Playback controls fade after four seconds without interaction. Tap the canvas or Show controls to reveal them.
+  Keyboard focus keeps controls visible. Space plays/pauses; arrows move between steps. Reduced motion starts paused.
+- Back, Escape, or the back arrow restores the previous camera, selected part, panel, look and editing controls.
+  Browser Forward reopens Studio. A hidden tab pauses the player. UI gestures never reach the 3D canvas.
 
 ## How the piece goes together (domain, centimetres; holes in millimetres)
 
@@ -90,7 +93,8 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 | Domain | `make/make-construction.ts`, `make/make-measures.ts` | Joint system and back fixing; ranked measurements, take apart |
 | Application | `commands/make-commands.ts` | `setConstruction`: one undo step, defaults never written down |
 | Presentation | `make/make-3d.ts`, `make-fittings-3d.ts` | Boards, holes and hardware on `MAKE_LAYER`; looks, selection, take apart, open, the film's boards |
-| Presentation | `make/make-play-3d.ts`, `make-player.ts` | Drill bits and fasteners moving in the film; the player (time, play, seek, chapters) |
+| Presentation | `make/make-play-3d.ts`, `make-player.ts` | Drill bits and fasteners; deterministic forward/reverse playback, seek and chapters |
+| Presentation | `make/assembly-studio.ts`, `assembly-studio-controller.ts`, `assembly-preview.ts` | Floating controls, guidance, lifecycle/state restoration, framing and chapter previews |
 | Presentation | `make/make-director.ts` | The film's shots, fitted with the editor's own framing and glided between, a function of time |
 | Domain | `make/make-staging.ts` | Where each part waits, lying flat on the floor in front of the piece |
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
@@ -103,7 +107,8 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 - **The film is a function of time.** `make-timeline.ts` says where everything is at any second, so play, pause,
   scrubbing and replay always agree; every hole names its fitting (`Hole.of`) so it is drilled before that goes in.
 
-- **Make is part of the editor.** No screen, bar, pill or panel of its own: the editor's toolbar, panels and camera.
+- **Make is part of the editor.** Its technical tools keep the editor toolbar and panels. Assembly Studio temporarily
+  replaces that chrome, while sharing the exact same canvas, camera, geometry and assembly engine.
 - **The camera is the editor's.** While Make is open the canvas drags nothing; drags turn and taps pick. The camera sees
   only `MAKE_LAYER` (the lights are added to it), so the room needs no hiding.
 - **What you see is the cutting list.** Make draws from `pieceBoards`, never from the editor's 3D renderer.
@@ -125,4 +130,11 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
 - Measurements over the view do not follow open doors (a front's sizes hide while it is open).
 
 Tests: `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`, `tests/architecture/make-timeline.test.ts`,
-`tests/contextual-actions.test.cjs`; in a browser, `scripts/check-make.cjs` (part of `npm run check:mobile`).
+`tests/architecture/assembly-studio.test.ts`, `tests/contextual-actions.test.cjs`; in a browser, `scripts/check-make.cjs` (part of `npm run check:mobile`).
+
+Assembly Studio browser checks: `npm run check:assembly` (Chromium) and
+`STUDIO_BROWSER=webkit node scripts/check-assembly-studio.cjs` (WebKit, including mobile viewport emulation).
+Set `MOBILE_TEST_URL` to the running development server (default port 5173 for the Studio script).
+These cover portrait, landscape and desktop, playback in both directions, seeking, chapters, guidance, Explore,
+Parts/Hardware entry points, browser back/forward, touch targets and restoration. Chromium also dispatches native
+two-finger touch input. Device Safari testing remains a separate physical-device check.

@@ -7,9 +7,9 @@ const { createStudio } = require('../src/domain/studio/studio-templates.ts');
 const { createTouchCamera } = require('../src/presentation/editor/touch-camera.ts');
 const { bindCanvasWheel } = require('../src/presentation/editor/bindings/canvas.js');
 
-function fixture(width, height, reducedMotion) {
+function fixture(width, height, reducedMotion, assembly = false) {
   const rect = { width, height, left: 0, top: 0, right: width, bottom: height };
-  const element = { getBoundingClientRect: () => rect, classList: { contains: () => false } };
+  const element = { getBoundingClientRect: () => rect, classList: { contains: name => assembly && name === 'assembly-studio-on' } };
   const dom = { width, $: () => element, document: { querySelector: () => null } };
   const scene = { wardrobes: [], studio: createStudio('wall') };
   const cameraState = createCameraState({ reducedMotion: { matches: reducedMotion } });
@@ -59,3 +59,14 @@ for (const [width, height] of [[2048, 1123], [390, 844]]) {
     });
   }
 }
+
+test('Assembly Studio keeps a close-up focus while zooming, without recentering on the hidden room', () => {
+ const f = fixture(390, 844, true, true);
+ f.cameraState.dist = 60; f.cameraState.tgt.set(12, 34, 56);
+ assert.equal(f.camera.cameraDistance(30), 30);
+ f.camera.zoomOutTo(90);
+ assert.deepEqual(f.cameraState.tgt.toArray(), [12,34,56]);
+ f.camera.cameraZoom(2);
+ assert.deepEqual(f.cameraState.tgt.toArray(), [12,34,56]);
+ assert.equal(f.cameraState.dist, 180);
+});

@@ -27,7 +27,8 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     };
     const cameraAngleDelta = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
     const cameraEase = t => t * t * t * (t * (t * 6 - 15) + 10);
-    const cameraDistance = d => Math.max(120, Math.min(15000, d));
+    const assemblyStudio = () => $('#app')?.classList?.contains('assembly-studio-on');
+    const cameraDistance = d => Math.max(assemblyStudio() ? 24 : 120, Math.min(15000, d));
     const cameraNearDistance = d => Math.max(1, Math.min(50, d * .005));
     const camNow = () => ({ az: cameraState.az, el: cameraState.el, dist: cameraState.dist, x: cameraState.tgt.x, z: cameraState.tgt.z, y: cameraState.tgt.y });
     function modelHalfWidthPx(g) {
@@ -128,9 +129,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const duration = Math.round(Math.max(280, Math.min(650, 280 + travel / Math.max(goal.dist, from.dist) * 300 + dr * 200 + turn * 70)));
         cameraTransition({ ...goal, arc: 0 }, duration);
     }
-    function cameraFitDistance(bounds, angle, elevation, aspect) {
+    function cameraFitDistance(bounds, angle, elevation, aspect, minimum = 120) {
         const tanV = Math.tan(35 * Math.PI / 360), tanH = tanV * aspect;
-        let distance = 120;
+        let distance = minimum;
         for (const x of [-bounds.w / 2, bounds.w / 2]) {
             for (const y of [-bounds.h / 2, bounds.h / 2]) {
                 for (const z of [-bounds.d / 2, bounds.d / 2]) {
@@ -325,7 +326,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function cameraZoomPoint(e) {
         resources.cam?.updateMatrixWorld(true);
         resources.scene?.updateMatrixWorld(true);
-        const hit = picking.cast(e, [...(renderState.allHits ?? []), ...(renderState.allItemHits ?? [])]);
+        const hit = picking.cast(e, assemblyStudio() ? [] : [...(renderState.allHits ?? []), ...(renderState.allItemHits ?? [])]);
         if (hit) return hit.point.clone();
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(resources.cam.getWorldDirection(new THREE.Vector3()), cameraState.tgt);
         return interactionState.ray.ray.intersectPlane(plane, new THREE.Vector3());
@@ -342,12 +343,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const anchor = pointer && factor < 1 ? cameraZoomPoint(pointer) : null;
         camRelease();
         // Zooming out heads for the middle of the studio (zoom-out.ts); zooming in with a pointer anchors under the cursor.
-        const all = factor > 1 && overview();
+        const all = factor > 1 && !assemblyStudio() && overview();
         cameraState.zoomAnchor = anchor;
         if (anchor) cameraState.panned = true;
         cameraState.zoomTarget = cameraDistance(base * factor);
         const out = all && zoomOutTarget(from, all, base, cameraState.zoomTarget);
-        cameraState.zoomFocus = anchor ? null : out ? new THREE.Vector3(out.x, out.y, out.z) : cameraFocusPoint();
+        cameraState.zoomFocus = anchor ? null : out ? new THREE.Vector3(out.x, out.y, out.z) : assemblyStudio() ? from : cameraFocusPoint();
         if (cameraState.reducedCameraMotion.matches) {
             cameraZoomDistance(cameraState.zoomTarget);
             if (cameraState.zoomFocus) { cameraState.tgt.copy(cameraState.zoomFocus); cameraState.tgtY = cameraState.tgt.y; }
@@ -358,6 +359,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     const overview = () => fittedCamera(cameraState.az, cameraState.el, 1.05, sceneBox());
     /** A pinch zooming out to `next`: the same distance range and scene centering as wheel/button zoom. */
     function zoomOutTo(next) {
+        if (assemblyStudio()) { cameraZoomDistance(cameraDistance(next), null); return; }
         const all = overview(), dist = cameraDistance(next), t = zoomOutTarget(cameraState.tgt, all, cameraState.dist, dist);
         cameraState.tgt.set(t.x, t.y, t.z); cameraState.tgtY = t.y; cameraState.dist = dist;
     }

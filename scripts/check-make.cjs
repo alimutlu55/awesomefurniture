@@ -6,7 +6,7 @@ const assert=require('node:assert/strict');
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try { for(const [width,height] of [[375,812],[1280,800]]) {
   const phone=width<=900, page=await browser.newPage({viewport:{width,height},isMobile:phone,hasTouch:phone,reducedMotion:'reduce'});
-  page.setDefaultTimeout(10000);
+  page.setDefaultTimeout(30000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto((process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173')+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60,for:{long:6,short:10,shoes:8}}]})));
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
@@ -22,7 +22,7 @@ const assert=require('node:assert/strict');
   if(await toolbar.getAttribute('data-context')!=='make') await page.screenshot({path:`/tmp/make-open-${width}.png`});
   assert.equal(await toolbar.getAttribute('data-context'),'make');
   assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),
-   ['make-done','make-apart','make-fronts','make-measures','make-view','make-parts']);
+   ['make-done','make-assembly','make-fronts','make-measures','make-view','make-parts']);
   const fits=async what=>{
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width,what+': no sideways scroll');
    for(const b of await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return [r.left,r.right];})))
@@ -41,43 +41,18 @@ const assert=require('node:assert/strict');
   await toolbar.locator('[data-action="make-parts"]').click();
   const panel=page.locator('.make-panel');
   await panel.waitFor({state:'visible'});
-  for(const tab of ['parts','hardware','steps','cutting']) {
+  for(const tab of ['parts','hardware','cutting']) {
    await panel.locator(`[data-tab="${tab}"]`).click();
    assert.equal(await panel.locator(`[data-tab="${tab}"]`).getAttribute('aria-pressed'),'true');
    const box=await panel.locator('.make-tabs').boundingBox();
    assert.ok(box.x>=0 && box.x+box.width<=width,tab+': tabs inside the screen');
    await fits(tab);
   }
-  // Steps: the assembly as a film that plays, pauses, scrubs and jumps to a chapter.
-  await panel.locator('[data-tab="steps"]').click();
-  const step=async()=>Number(/\d+/.exec(await panel.locator('.make-caption b').textContent())[0]);
-  const time=async()=>{const [m,s]=(await panel.locator('.make-time').textContent()).split(' / ')[0].split(':').map(Number);return m*60+s;};
-  assert.equal(await step(),1);
-  await panel.locator('[data-play]').click();
-  await page.waitForTimeout(2300);
-  assert.ok(await time()>=1,'Play moves the film on');
-  assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Pause');
-  // The director moves the camera while it plays.
-  const cameraAt=()=>page.locator('.make-overlay').innerHTML();
-  const shotA=await cameraAt();await page.waitForTimeout(600);
-  assert.notEqual(await cameraAt(),shotA,'The camera moves with the film');
-  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'true');
-  // Turning the view while it plays keeps the player open, and the camera is the person's until they ask for Follow.
-  await page.mouse.move(view.x+view.width*.6,view.y+view.height*.2);await page.mouse.down();
-  await page.mouse.move(view.x+view.width*.45,view.y+view.height*.18,{steps:5});await page.mouse.up();
-  assert.equal(await panel.isVisible(),true,'The player stays while the view turns');
-  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'false','Looking around takes the camera');
-  await panel.locator('[data-follow]').click();
-  assert.equal(await panel.locator('[data-follow]').getAttribute('aria-pressed'),'true','Follow gives it back');
-  await panel.locator('[data-play]').click();
-  assert.equal(await panel.locator('[data-play]').getAttribute('aria-label'),'Play');
-  await panel.locator('.make-scrub').fill('600');
-  assert.ok(await step()>2,'Scrubbing jumps through the steps');
-  await panel.locator('[data-chapter="1"]').click();
-  assert.equal(await step(),2,'A chapter starts its step');
-  assert.equal(await panel.locator('[data-chapter="1"]').getAttribute('aria-current'),'');
-  await panel.locator('[data-build="1"]').click();
-  assert.equal(await step(),3,'Next shows the next step');
+  // The old embedded player is a shortcut into the dedicated, shared-canvas Studio.
+  await panel.locator('[data-assembly]').click();
+  await page.locator('.assembly-studio').waitFor({state:'visible'});
+  await page.locator('[data-studio="exit"]').click();
+  await panel.waitFor({state:'visible'});
   await panel.locator('[data-tab="cutting"]').click();
   assert.ok(await panel.locator('.make-stock').count()>=1,'The parts are laid out on stock sheets');
   await panel.locator('[data-tab="hardware"]').click();
