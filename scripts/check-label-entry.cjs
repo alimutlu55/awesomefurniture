@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict');
 const {chromium,webkit}=require('playwright');
 const {selectFurniture}=require('./lib/select-furniture.cjs');
+const {openSize,sizeField}=require('./lib/size-field.cjs');
 const engine=process.env.LABEL_BROWSER==='webkit'?webkit:chromium;
 // Measurements on the model are read-only: a tap or a key on one opens no field and changes nothing. Exact
 // values are typed in Size, in fields large enough that a phone does not zoom, and one undo restores them.
@@ -27,9 +28,9 @@ const engine=process.env.LABEL_BROWSER==='webkit'?webkit:chromium;
    for(let n=0;n<3;n++){await el('c').focus();await page.keyboard.press('Escape');await page.waitForTimeout(200);}
    await selectFurniture(page,{touch});
   }
-  await el('toolbar').locator('[data-action="resize"]:visible').click();
+  await openSize(page);
   for(const key of ['w','d','h']){
-   const field=el(key);await field.waitFor({state:'visible'});
+   const field=sizeField(page,key);await field.waitFor({state:'visible'});
    assert.ok(Number(await field.evaluate(e=>getComputedStyle(e).fontSize.replace('px','')))>=16,'No small-input Safari auto zoom on the '+key+' field');
    await field.fill(String(before[key]+2));await field.press('Tab');await page.waitForTimeout(250);
    assert.equal((await size())[key],before[key]+2);

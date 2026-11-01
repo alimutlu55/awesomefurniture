@@ -1,6 +1,8 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
-// Depth reaches 15 cm through the Size panel (field and slider); the canvas measurement reads it and cannot change it.
+const {openSize,setSize}=require('./lib/size-field.cjs');
+// Depth reaches 15 cm through the Size panel's Depth field, and a smaller one is refused; the canvas measurement reads
+// it and cannot change it.
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try{for(const width of [375,1440]){
@@ -16,15 +18,14 @@ const {chromium}=require('playwright');
   await el('c').click();
   const badge=page.locator('.scrub-d:visible');await badge.waitFor();
   assert.equal(await badge.getAttribute('role'),'meter');assert.equal(await badge.getAttribute('aria-valuemin'),'15');
-  await el('toolbar').locator('[data-action="resize"]').click();await el('d').waitFor({state:'visible'});await el('d').blur();
-  assert.equal(await el('d').getAttribute('min'),'15');assert.equal(await el('d-range').getAttribute('min'),'15');
-  await el('d').fill('20');await el('d').press('Tab');await page.waitForTimeout(200);assert.equal(await depth(),20);
-  await el('d-range').evaluate(e=>{e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));e.value='15';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));});
-  await page.waitForTimeout(250);assert.equal(await depth(),15);
+  await openSize(page);
+  await setSize(page,'d',20);await page.waitForTimeout(200);assert.equal(await depth(),20);
+  await setSize(page,'d',15);await page.waitForTimeout(250);assert.equal(await depth(),15);
   assert.equal(await page.locator('.scrub-d').first().getAttribute('aria-valuenow'),'15','the canvas measurement follows the new depth');
   await el('c').focus();await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(200);assert.equal(await depth(),20);
-  await el('d').fill('14');await el('d').press('Tab');await page.waitForTimeout(200);assert.equal(await depth(),15);
+  // Out of range is refused, never quietly changed into another size (the Size drawing's rule).
+  await setSize(page,'d',15);await page.waitForTimeout(200);await setSize(page,'d',14);await page.waitForTimeout(200);assert.equal(await depth(),15,'a depth under 15 cm is refused');
   await page.screenshot({path:'/tmp/wardrobe-depth-'+width+'.png'});assert.deepEqual(errors,[]);
-  console.log(`PASS ${width}px: depth field and slider reach 15 cm, clamp lower values and preserve undo; the canvas measurement is read-only`);await page.close();
+  console.log(`PASS ${width}px: the depth field reaches 15 cm, refuses less and undoes; the canvas measurement is read-only`);await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

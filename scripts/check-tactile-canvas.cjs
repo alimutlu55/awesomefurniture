@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
+const {openSize,setSize}=require('./lib/size-field.cjs');
 const {selectFurniture}=require('./lib/select-furniture.cjs');
 const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
 (async()=>{
@@ -118,8 +119,8 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   const report=()=>page.evaluate(()=>window.furnidraw.describe()),el=id=>page.locator(`[data-editor-id="${id}"]`);
   await page.waitForTimeout(500);await selectFurniture(page,{touch:true});
   // Widening it past the walls in Size stops inside the studio.
-  await el('toolbar').locator('[data-action="resize"]:visible').click();await el('w').waitFor({state:'visible'});
-  await el('w').fill('240');await el('w').press('Tab');await page.waitForTimeout(300);const fitted=await report();
+  await openSize(page);
+  await setSize(page,'w',240);await page.waitForTimeout(300);const fitted=await report();
   assert.ok(fitted.wardrobes[0].width>=216 && fitted.wardrobes[0].width<=220,'Width stops inside the prepared studio: '+fitted.wardrobes[0].width);
   await page.screenshot({path:'/tmp/wardrobe-tactile-studio.png'});
   console.log('PASS studio: a width typed past the walls stops inside the studio');await page.close();

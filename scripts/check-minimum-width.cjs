@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { openSize, setSize } = require('./lib/size-field.cjs');
 const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
 
 (async () => {
@@ -24,30 +25,21 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await page.screenshot({ path: `/tmp/wardrobe-width-failure-${width}.png` });
     throw error;
    });
-   await resize.click();
-   await el('w').waitFor({ state: 'visible' });
-   await el('w').blur();
-   assert.equal(await el('w').getAttribute('min'), '20');
-   assert.equal(await el('w-range').getAttribute('min'), '20');
-   await el('w').fill('20'); await el('w').press('Tab');
+   await openSize(page);
+   await setSize(page, 'w', 20);
    await page.waitForFunction(() => window.furnidraw.describe().wardrobes[0].width === 20);
    await el('c').focus(); await page.keyboard.press('ControlOrMeta+z');
    await page.waitForFunction(() => window.furnidraw.describe().wardrobes[0].width === 200);
-   await el('w').fill('19'); await el('w').press('Tab');
-   await page.waitForFunction(() => window.furnidraw.describe().wardrobes[0].width === 20);
-   await el('w').fill('40'); await el('w').press('Tab');
-   await el('w-range').evaluate(range => {
-    range.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    range.value = '20'; range.dispatchEvent(new Event('input', { bubbles: true }));
-    range.dispatchEvent(new Event('change', { bubbles: true }));
-   });
-   assert.equal(await actualWidth(), 20);
-   await el('c').focus(); await page.keyboard.press('ControlOrMeta+z');
+   // Out of range is refused, never quietly changed into another size (the Size drawing's rule).
+   await setSize(page, 'w', 19); await page.waitForTimeout(250);
+   assert.equal(await actualWidth(), 200, 'a width under 20 cm is refused');
+   await setSize(page, 'w', 40);
    await page.waitForFunction(() => window.furnidraw.describe().wardrobes[0].width === 40);
-   await el('w').fill('20'); await el('w').press('Tab');
+   await el('c').focus(); await page.keyboard.press('ControlOrMeta+z');
+   await page.waitForFunction(() => window.furnidraw.describe().wardrobes[0].width === 200);
    await page.screenshot({ path: `/tmp/wardrobe-width-${width}.png` });
    assert.deepEqual(errors, []);
-   console.log(`PASS ${width}px: wardrobe fields and slider reach 20 cm, clamp lower values and preserve undo`);
+   console.log(`PASS ${width}px: the width field reaches 20 cm, refuses less and undoes`);
    await page.close();
   }
  } finally { await browser.close(); }

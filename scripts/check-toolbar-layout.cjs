@@ -40,8 +40,8 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   }
   if(width===375)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-mobile.png'});
   if(width===1440)await page.screenshot({path:'/tmp/wardrobe-empty-toolbar-desktop.png'});
-  // Studio: Walls, Ceiling, Fixtures, Undo, Redo.
-  await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(350);await check(5);
+  // Studio: Add (walls, ceiling and fixtures, a tab each), Undo, Redo.
+  await page.locator('[data-view-mode="studio"]').click();await page.waitForTimeout(350);await check(3);
   await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(3);
   // A new wardrobe is selected: Add, Interior, Size, Fronts, More, Undo, Redo (the same tools as a cabinet).
   await furniture.click();

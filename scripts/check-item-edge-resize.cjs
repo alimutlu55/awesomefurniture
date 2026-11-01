@@ -113,7 +113,8 @@ const near = (a, b, message) => assert.ok(Math.abs(a - b) < .001, `${message}: $
     await heightField.focus(); await page.waitForTimeout(80);
     assert.ok(await guides.isVisible(), 'the Size field uses the same line guides as the edge handle');
     assert.equal((await guides.textContent()).trim(), '', 'Size assistance also has no alignment text');
-    await heightField.press('Tab'); await page.waitForTimeout(80);
+    // Leaving the Size fields (Tab may only move to the next one, Item width, which shows its own guides).
+    await heightField.evaluate(e => e.blur()); await page.waitForTimeout(80);
     assert.equal(await guides.isVisible(), false, 'leaving the Size field clears guides');
     if (kind === 'wardrobe') {
      const alignedHeight = (await read()).items[1].h;

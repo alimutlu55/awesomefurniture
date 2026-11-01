@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
+const {openSize,setSize}=require('./lib/size-field.cjs');
 const {selectFurniture}=require('./lib/select-furniture.cjs');
 const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
 // One measurement component on the model for a wardrobe, a fitting, a fitting's gap and a Studio wall: each reads
@@ -26,7 +27,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await load({specVersion:1,wardrobes:[{width:200,height:230,depth:60}]});
   await selectFurniture(page,{touch});
   await reads(page.locator('.scrub-w:visible'),200,'Wardrobe width');
-  await el('toolbar').locator('[data-action="resize"]:visible').click();await el('w').fill('211.5');await el('w').press('Tab');await page.waitForTimeout(250);
+  await openSize(page);await setSize(page,'w',211.5);await page.waitForTimeout(250);
   assert.equal((await report()).wardrobes[0].width,211.5);await reads(page.locator('.scrub-w:visible'),211.5,'Wardrobe width after Size');
   await el('c').focus();await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(250);assert.equal((await report()).wardrobes[0].width,200);
   // Add and select a real fitting through the existing UI and scene hit testing.
