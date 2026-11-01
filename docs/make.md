@@ -70,6 +70,9 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
   dowels Ø8 × 12 / × 25. Plinths are screwed (Ø4, pilot Ø2.5 × 30). A board joined from both faces at one place moves
   the second joint's connectors 32 mm along, so they never meet inside it.
 - `backFixing`: nails every 15 cm into each board the back touches, or a groove in each.
+  A back larger than a stock sheet (`make/stock-sheet.ts`: 2800 × 2070 mm less 10 mm trim) is split over the
+  partition nearest the middle, again until each piece fits (`cabinetBoards`); the pieces meet on the partition's
+  centre line, so the partition carries the joint.
 - `frontHardware`: hinges by door height as the drawing set counts them (≤ 900 mm 2, ≤ 1600 3, ≤ 2000 4, else 5), only
   as high as the upright the door hangs from; cups Ø35 × 13 22.5 mm from the hinge edge, plates on the System 32 line
   (37 mm in) 32 mm apart; nothing drilled in glass. Handles 128 mm; runners on the uprights; four shelf pins under each

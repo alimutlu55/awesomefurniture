@@ -1,7 +1,8 @@
 import type { FaceWidth } from '../kitchen/corner-widths';
 import { installationSlab } from '../kitchen/installation-parts';
 import { kitchenFrontThickness } from '../kitchen/installation-parts';
-import { defaultMaterials } from '../materials/configured-materials';
+import { defaultMaterials, resolveMaterials } from '../materials/configured-materials';
+import { fitsStock } from '../make/stock-sheet';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
 import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
@@ -59,6 +60,25 @@ function upright(name: string, stock: BoardStock, design: EditorDesign, x0: numb
 }
 
 /**
+ * The back between the sides: one board, or, when that is larger than a stock sheet (D9), split over the partition
+ * nearest the middle of the span, and again, until each piece fits. The pieces meet on the partition's centre line, so
+ * each is nailed or grooved into it as into the sides. A span with no partition left to split over stays whole (the
+ * manufacturing check refuses it).
+ */
+function backBoards(design: EditorDesign, widths: readonly number[], lift: number): Board[] {
+  const m = resolveMaterials(design), decor = m.backingDecorId ?? m.carcassDecorId, seams: number[] = [];
+  widths.slice(0, -1).reduce((x, sw) => { seams.push(x + sw + PANEL / 2); return x + sw + PANEL; }, PANEL);
+  const back = (x0: number, x1: number) => upright('Back', 'back', design, x0, x1, lift, 0, BACK_PANEL, '—');
+  const pieces = (x0: number, x1: number): Board[] => {
+    const whole = back(x0, x1), inside = seams.filter(x => x > x0 + .5 && x < x1 - .5);
+    if (!inside.length || fitsStock(Math.round(whole.cut.length * 10), Math.round(whole.cut.width * 10), decor)) return [whole];
+    const middle = (x0 + x1) / 2, at = inside.reduce((a, b) => Math.abs(b - middle) < Math.abs(a - middle) ? b : a);
+    return [...pieces(x0, at), ...pieces(at, x1)];
+  };
+  return pieces(PANEL, design.w - PANEL);
+}
+
+/**
  * Every board of a piece as the 3D view builds it (frame-geometry.ts, fitting-renderer.ts, kitchen fronts): the top
  * boards over the sides, the sides standing under them, the base board between the sides from the back board's face
  * to the partition setback, the back between the sides, the plinth as a frame, the partitions, the boards of the
@@ -80,7 +100,8 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
   }
   out.push(upright('Side', 'carcass', design, 0, PANEL, sidesFrom, 0, d, 'L1'), upright('Side', 'carcass', design, w - PANEL, w, sidesFrom, 0, d, 'L1'));
   out.push(board('Base', 'carcass', { x0: PANEL, x1: w - PANEL, y0: lift, y1: lift + PANEL, z0: part.z0, z1: part.z1 }, 'L1', 'x'));
-  out.push(upright('Back', 'back', design, PANEL, w - PANEL, lift, 0, BACK_PANEL, '—'));
+  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), iy = lift + PANEL;
+  out.push(...backBoards(design, widths, lift));
   if (!kitchen && lift > 0) {
     // The plinth: a frame of a front and a back rail with two bearers between them, set back as the 3D plinth.
     const z0 = 2, z1 = d - 4, inner = { y0: 0, y1: lift };
@@ -89,7 +110,6 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
       board('Plinth bearer', 'plinth', { x0: PANEL, x1: 2 * PANEL, ...inner, z0: z0 + PANEL, z1: z1 - PANEL }, '—', 'z'),
       board('Plinth bearer', 'plinth', { x0: w - 2 * PANEL, x1: w - PANEL, ...inner, z0: z0 + PANEL, z1: z1 - PANEL }, '—', 'z'));
   }
-  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), iy = lift + PANEL;
   let bayL = PANEL;
   widths.forEach((sw, i) => {
     if (i < widths.length - 1) out.push(upright('Partition', 'carcass', design, bayL + sw, bayL + sw + PANEL, iy, part.z0, part.z1, 'L1'));

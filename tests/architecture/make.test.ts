@@ -193,3 +193,25 @@ test('Make moves the editor\'s own camera only through the editor\'s camera cont
   const view = readFileSync(`${dir}/make-view.ts`, 'utf8');
   for (const call of ['cameraTransition', 'cameraSample', 'fittedCamera', 'frameBox', 'frameWardrobe']) assert.match(view, new RegExp(`ports\\.camera\\.${call}\\b`), call);
 });
+
+test('a back larger than a stock sheet is split over the partition nearest the middle; each piece fits and is fixed to it', async () => {
+  const { STOCK } = await import('../../src/domain/make/make-cut-layout');
+  const { cutLayout } = await import('../../src/domain/make/make-cut-layout');
+  const wide: EditorDesign = { ...createInitialDesign(), w: 240, h: 230, n: 3, wt: [1, 1, 1] };
+  const usable = { l: STOCK.length - 2 * STOCK.trim, w: STOCK.width - 2 * STOCK.trim };
+  const backs = cabinetBoards(wide).filter(b => b.stock === 'back');
+  assert.equal(backs.length, 2, 'two back parts');
+  for (const b of backs) assert.ok(Math.round(b.cut.length * 10) <= usable.l && Math.round(b.cut.width * 10) <= usable.w, JSON.stringify(b.cut));
+  const partitions = cabinetBoards(wide).filter(b => b.name === 'Partition'), seam = backs[0]!.x1;
+  assert.equal(backs[1]!.x0, seam, 'the pieces meet');
+  assert.ok(partitions.some(p => p.x0 < seam && p.x1 > seam), 'over a partition');
+  assert.ok(Math.abs(backs[0]!.x0 - 1.8) < .01 && Math.abs(backs[1]!.x1 - 238.2) < .01, 'between the sides');
+  for (const back of ['nailed', 'grooved'] as const) {
+    const mp = piece({ ...wide, construction: { joints: 'confirmat', back } }), ids = mp.boards.flatMap((b, i) => b.stock === 'back' ? [i] : []);
+    const partition = mp.boards.findIndex(b => b.name === 'Partition' && b.x0 < seam && b.x1 > seam);
+    if (back === 'nailed') for (const id of ids) assert.ok(mp.fittings.some(f => f.kind === 'nail' && f.boards[0] === id && f.boards[1] === partition), 'each piece nailed to the partition');
+    else assert.equal(mp.grooves.filter(g => g.board === partition).length, 2, 'the partition is grooved for both pieces');
+  }
+  assert.deepEqual(cutLayout(piece(wide).parts).oversize, [], 'the cut layout places both backs');
+  assert.equal(cabinetBoards({ ...createInitialDesign(), w: 100 }).filter(b => b.stock === 'back').length, 1, 'a 100 cm wardrobe keeps one back');
+});
