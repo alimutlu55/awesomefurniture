@@ -59,23 +59,25 @@ function upright(name: string, stock: BoardStock, design: EditorDesign, x0: numb
   return board(name, stock, { x0, x1, y0, y1: top, z0, z1 }, edges, 'y', sloped ? { outline, note: 'cut to the top, see Inside' } : {});
 }
 
+/** The centre lines of the partitions between bays, from the left face. */
+function partitionLines(widths: readonly number[]): number[] {
+  const lines: number[] = [];
+  widths.slice(0, -1).reduce((x, sw) => { lines.push(x + sw + PANEL / 2); return x + sw + PANEL; }, PANEL);
+  return lines;
+}
+
 /**
- * The back between the sides: one board, or, when that is larger than a stock sheet (D9), split over the partition
- * nearest the middle of the span, and again, until each piece fits. The pieces meet on the partition's centre line, so
- * each is nailed or grooved into it as into the sides. A span with no partition left to split over stays whole (the
- * manufacturing check refuses it).
+ * A board across the piece from `x0` to `x1` (`make` builds it): one board, or, when that is larger than a stock sheet
+ * (D9), split over the partition nearest the middle of the span, and again, until each piece fits. The pieces meet on
+ * the partition's centre line, so the partition carries the joint: it stands on the base's, under the top's and in
+ * front of the back's, which is nailed or grooved into it as into the sides. A span with no partition left to split
+ * over stays whole (the manufacturing check refuses it).
  */
-function backBoards(design: EditorDesign, widths: readonly number[], lift: number): Board[] {
-  const m = resolveMaterials(design), decor = m.backingDecorId ?? m.carcassDecorId, seams: number[] = [];
-  widths.slice(0, -1).reduce((x, sw) => { seams.push(x + sw + PANEL / 2); return x + sw + PANEL; }, PANEL);
-  const back = (x0: number, x1: number) => upright('Back', 'back', design, x0, x1, lift, 0, BACK_PANEL, '—');
-  const pieces = (x0: number, x1: number): Board[] => {
-    const whole = back(x0, x1), inside = seams.filter(x => x > x0 + .5 && x < x1 - .5);
-    if (!inside.length || fitsStock(Math.round(whole.cut.length * 10), Math.round(whole.cut.width * 10), decor)) return [whole];
-    const middle = (x0 + x1) / 2, at = inside.reduce((a, b) => Math.abs(b - middle) < Math.abs(a - middle) ? b : a);
-    return [...pieces(x0, at), ...pieces(at, x1)];
-  };
-  return pieces(PANEL, design.w - PANEL);
+function overPartitions(x0: number, x1: number, lines: readonly number[], decor: string, make: (x0: number, x1: number) => Board): Board[] {
+  const whole = make(x0, x1), inside = lines.filter(x => x > x0 + .5 && x < x1 - .5);
+  if (!inside.length || fitsStock(Math.round(whole.cut.length * 10), Math.round(whole.cut.width * 10), decor)) return [whole];
+  const middle = (x0 + x1) / 2, at = inside.reduce((a, b) => Math.abs(b - middle) < Math.abs(a - middle) ? b : a);
+  return [...overPartitions(x0, at, lines, decor, make), ...overPartitions(at, x1, lines, decor, make)];
 }
 
 /**
@@ -91,24 +93,28 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
   const shelfThickness = design.materials ? PANEL : KITCHEN_SHELF.thickness;
   const { w, d } = design, kitchen = isKitchen(design), lift = plinthOf(design), out: Board[] = [];
   const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? plinthOf(design) : 0) : 0, part = partitionDepth(d), fit = fittingDepth(d);
+  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), iy = lift + PANEL;
+  const lines = partitionLines(widths), materials = resolveMaterials(design), carcass = materials.carcassDecorId;
   for (const b of shapeBoards(resolveShape(design))) {
     const sloped = Math.abs(b.points[0]!.y - b.points[1]!.y) > .05, run = Math.hypot(b.points[1]!.x - b.points[0]!.x, b.points[1]!.y - b.points[0]!.y);
     const x0 = Math.min(...b.points.map(p => p.x)), x1 = Math.max(...b.points.map(p => p.x)), y0 = Math.min(...b.points.map(p => p.y)), y1 = Math.max(...b.points.map(p => p.y));
     const name = b.kind === 'riser' ? 'Top riser' : 'Top';
-    out.push({ ...board(name, 'carcass', { x0, x1, y0, y1, z0: 0, z1: d }, 'L1', 'x', sloped ? { outline: b.points, note: 'sloped, ends cut to the angle' } : {}),
-      ...(sloped ? { cut: { length: run, width: d, thickness: PANEL } } : {}) });
+    if (sloped) out.push({ ...board(name, 'carcass', { x0, x1, y0, y1, z0: 0, z1: d }, 'L1', 'x', { outline: b.points, note: 'sloped, ends cut to the angle' }),
+      cut: { length: run, width: d, thickness: PANEL } });
+    else if (b.kind === 'riser') out.push(board(name, 'carcass', { x0, x1, y0, y1, z0: 0, z1: d }, 'L1', 'x'));
+    else out.push(...overPartitions(x0, x1, lines, carcass, (a, z) => board(name, 'carcass', { x0: a, x1: z, y0, y1, z0: 0, z1: d }, 'L1', 'x')));
   }
   out.push(upright('Side', 'carcass', design, 0, PANEL, sidesFrom, 0, d, 'L1'), upright('Side', 'carcass', design, w - PANEL, w, sidesFrom, 0, d, 'L1'));
-  out.push(board('Base', 'carcass', { x0: PANEL, x1: w - PANEL, y0: lift, y1: lift + PANEL, z0: part.z0, z1: part.z1 }, 'L1', 'x'));
-  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), iy = lift + PANEL;
-  out.push(...backBoards(design, widths, lift));
+  out.push(...overPartitions(PANEL, w - PANEL, lines, carcass, (x0, x1) => board('Base', 'carcass', { x0, x1, y0: lift, y1: lift + PANEL, z0: part.z0, z1: part.z1 }, 'L1', 'x')));
+  out.push(...overPartitions(PANEL, w - PANEL, lines, materials.backingDecorId ?? carcass, (x0, x1) => upright('Back', 'back', design, x0, x1, lift, 0, BACK_PANEL, '—')));
   if (!kitchen && lift > 0) {
-    // The plinth: a frame of a front and a back rail with two bearers between them, set back as the 3D plinth.
+    // The plinth: a frame of a front and a back rail with a bearer between them at each end and under each joint of
+    // rails split to fit the sheet, set back as the 3D plinth.
     const z0 = 2, z1 = d - 4, inner = { y0: 0, y1: lift };
-    out.push(board('Plinth rail', 'plinth', { x0: PANEL, x1: w - PANEL, ...inner, z0: z1 - PANEL, z1 }, 'L1', 'x'),
-      board('Plinth rail', 'plinth', { x0: PANEL, x1: w - PANEL, ...inner, z0, z1: z0 + PANEL }, '—', 'x'),
-      board('Plinth bearer', 'plinth', { x0: PANEL, x1: 2 * PANEL, ...inner, z0: z0 + PANEL, z1: z1 - PANEL }, '—', 'z'),
-      board('Plinth bearer', 'plinth', { x0: w - 2 * PANEL, x1: w - PANEL, ...inner, z0: z0 + PANEL, z1: z1 - PANEL }, '—', 'z'));
+    const front = overPartitions(PANEL, w - PANEL, lines, carcass, (x0, x1) => board('Plinth rail', 'plinth', { x0, x1, ...inner, z0: z1 - PANEL, z1 }, 'L1', 'x'));
+    const rear = overPartitions(PANEL, w - PANEL, lines, carcass, (x0, x1) => board('Plinth rail', 'plinth', { x0, x1, ...inner, z0, z1: z0 + PANEL }, '—', 'x'));
+    const bearer = (x0: number) => board('Plinth bearer', 'plinth', { x0, x1: x0 + PANEL, ...inner, z0: z0 + PANEL, z1: z1 - PANEL }, '—', 'z');
+    out.push(...front, ...rear, bearer(PANEL), ...front.slice(1).map(r => bearer(r.x0 - PANEL / 2)), bearer(w - 2 * PANEL));
   }
   let bayL = PANEL;
   widths.forEach((sw, i) => {

@@ -215,3 +215,22 @@ test('a back larger than a stock sheet is split over the partition nearest the m
   assert.deepEqual(cutLayout(piece(wide).parts).oversize, [], 'the cut layout places both backs');
   assert.equal(cabinetBoards({ ...createInitialDesign(), w: 100 }).filter(b => b.stock === 'back').length, 1, 'a 100 cm wardrobe keeps one back');
 });
+
+test('a top, base and plinth rails longer than a sheet are split over partitions too, with a bearer under each rail joint', () => {
+  const wide: EditorDesign = { ...createInitialDesign(), w: 320, h: 230, n: 4, wt: [1, 1, 1, 1] };
+  const boards = cabinetBoards(wide), named = (name: string) => boards.filter(b => b.name === name);
+  const fits = (b: { cut: { length: number } }) => Math.round(b.cut.length * 10) <= 2780;
+  for (const name of ['Top', 'Base', 'Back']) {
+    assert.equal(named(name).length, 2, name + ' in two');
+    assert.ok(named(name).every(fits), name + ' pieces fit the sheet');
+  }
+  assert.equal(named('Plinth rail').length, 4, 'front and rear rails in two');
+  const seam = named('Base')[0]!.x1, partition = named('Partition').find(p => p.x0 < seam && p.x1 > seam)!;
+  assert.ok(partition, 'the base joint is under a partition');
+  assert.ok(named('Plinth bearer').some(b => b.x0 < seam && b.x1 > seam), 'a bearer under the rail joint');
+  assert.equal(named('Plinth bearer').length, 3);
+  const mp = piece(wide), base = mp.boards.flatMap((b, i) => b.name === 'Base' ? [i] : []), at = mp.boards.findIndex(b => b.name === 'Partition' && b.x0 === partition.x0);
+  for (const id of base) assert.ok(mp.fittings.some(f => f.boards.includes(id) && f.boards.includes(at)), 'the partition is fixed to both base pieces');
+  const regular = cabinetBoards({ ...createInitialDesign(), w: 200, n: 2, wt: [1, 1] });
+  assert.deepEqual(['Top', 'Base', 'Back', 'Plinth rail', 'Plinth bearer'].map(n => regular.filter(b => b.name === n).length), [1, 1, 1, 2, 2], 'a 2 m wardrobe is unchanged');
+});
