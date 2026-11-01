@@ -16,6 +16,8 @@ export interface MarksState {
   readonly apart: number;
   readonly solidFronts: boolean;
   readonly selected: number | null;
+  /** In a build step: the parts it adds (only their numbers are written). */
+  readonly building?: ReadonlySet<number> | null | undefined;
 }
 
 type Box = [number, number, number, number];
@@ -77,9 +79,11 @@ function sizeLabels(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Vec
 }
 
 /** Part numbers beside the piece, in two columns at the screen's sides, each with a leader to its part. */
-function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Vec3, size: { w: number; h: number }, fs: number, selected: number | null) {
+function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Vec3, size: { w: number; h: number }, fs: number, selected: number | null,
+  only?: ReadonlySet<number>) {
   const anchors: { n: number; x: number; y: number; ty: number }[] = [];
   for (const part of piece.parts) {
+    if (only && !only.has(part.n)) continue;
     const b = part.boards[0]!, thin = thinAxis(b), at: Vec3 = thin === 'y' ? [(b.x0 + b.x1) / 2, b.y1, (b.z0 + b.z1) / 2] : [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.z1];
     const s = pr(add(at, offsetOf(b)));
     if (s) anchors.push({ n: part.n, x: s[0], y: s[1], ty: s[1] });
@@ -106,6 +110,8 @@ function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Ve
 export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, offsetOf: (b: Board) => Vec3, length: LengthText, size: { w: number; h: number }, fs = 13) {
   const placed: Box[] = [];
   let out = '';
+  // A build step: only the numbers of the parts it adds, the piece's own sizes would measure what is not there yet.
+  if (state.building) return numberMarks(pr, piece, offsetOf, size, fs, null, state.building);
   if (state.measures) {
     const part = state.selected === null ? null : piece.parts.find(p => p.n === state.selected) ?? null;
     if (part) out = measureMarks(pr, partMeasures(part, state.apart < .05), length, fs, () => offsetOf(part.boards[0]!), placed);

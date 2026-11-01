@@ -76,13 +76,18 @@ export function connectorStations(length: number): number[] {
  */
 export function jointFittings(boards: readonly Board[], joints: readonly Joint[], construction: Construction) {
   const holes: Hole[] = [], fittings: Fitting[] = [];
+  // A board joined from both faces at one place (shelves level either side of a partition): the second joint's
+  // connectors move one System 32 step along, so they never meet the first ones inside the board.
+  const clear = (board: number, p: Vec3, axis: Axis) => !holes.some(h => h.board === board && h.axis === axis
+    && Math.hypot(...([0, 1, 2] as Axis[]).filter(k => k !== axis).map(k => h.at[k] - p[k])) < 1.2);
   for (const j of joints) {
     const A = boards[j.face]!, B = boards[j.edge]!, tb = thin(B), run = ([0, 1, 2] as Axis[]).find(k => k !== j.axis && k !== tb)!;
     const r0 = Math.max(lo(A)[run], lo(B)[run]), r1 = Math.min(hi(A)[run], hi(B)[run]), across = (lo(B)[tb] + hi(B)[tb]) / 2;
     const plinth = A.stock === 'plinth' || B.stock === 'plinth', system = plinth ? 'screw' : construction.joints;
-    for (const s of connectorStations(r1 - r0)) {
+    for (const station of connectorStations(r1 - r0)) {
       const p = [0, 0, 0] as [number, number, number];
-      p[j.axis] = j.plane; p[tb] = across; p[run] = r0 + s;
+      p[j.axis] = j.plane; p[tb] = across; p[run] = r0 + station;
+      if (!clear(j.face, p, j.axis)) p[run] += station + 3.2 <= r1 - r0 - 2 ? 3.2 : -3.2;
       const outer = [...p] as [number, number, number];
       outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
       const into = j.side as 1 | -1, back = -j.side as 1 | -1;

@@ -6,6 +6,7 @@ import type { MakePart, MakePiece } from '../../domain/make/make-parts';
 import { boardBox, boardSeed, boardUVs } from '../viewport/board-geometry';
 import { createDecorMaterial } from '../viewport/cabinet-materials';
 import type { createViewportResources } from '../viewport/viewport-resources.js';
+import { createMakeFittings } from './make-fittings-3d';
 
 /** The camera layer Make draws on: while Make is open the camera sees only this layer, so the piece stands alone. */
 export const MAKE_LAYER = 3;
@@ -15,7 +16,7 @@ type Resources = Pick<ReturnType<typeof createViewportResources>, 'M' | 'decorTe
 const INK = 0x2b2a26, PAPER = 0xf3f0e9, SELECTED = 0xdfe7f5, XRAY = 0x3e6fc2, FADE = .14;
 const isFront = (p: MakePart) => p.stock === 'door' || p.stock === 'front';
 
-interface BoardMesh { part: MakePart; board: Board; face: THREE.Mesh; edges: THREE.LineSegments; rest: THREE.Vector3; apart: Vec3 }
+interface BoardMesh { part: MakePart; board: Board; index: number; face: THREE.Mesh; edges: THREE.LineSegments; rest: THREE.Vector3; apart: Vec3 }
 
 /** A board's solid in the piece group's frame (centred across and through the piece, up from the floor). */
 function boardGeometry(b: Board, size: MakePiece['size']) {
@@ -52,6 +53,9 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     phantom: new THREE.LineDashedMaterial({ color: INK, dashSize: 4, gapSize: 2, transparent: true, opacity: .6 }),
   };
   let boards: BoardMesh[] = [], look: MakeLook = 'lines', selected: number | null = null, solidFronts = false, amount = 0;
+  // A build step: the boards put in so far, and the ones this step adds (drawn as picked).
+  let step: { shown: ReadonlySet<number>; now: ReadonlySet<number> } | null = null;
+  const fittings = createMakeFittings(MAKE_LAYER);
 
   const decor = (id: string) => {
     let m = decorMaterials.get(id);
@@ -69,7 +73,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Gives every board the materials for the look, the part picked and whether fronts are solid. */
   function paint() {
     for (const b of boards) {
-      const phantom = isFront(b.part) && !solidFronts, mine = selected === b.part.n, dim = selected !== null && !mine;
+      const phantom = isFront(b.part) && !solidFronts, mine = step ? step.now.has(b.index) : selected === b.part.n, dim = !step && selected !== null && !mine;
+      b.face.visible = b.edges.visible = !step || step.shown.has(b.index);
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
       if (phantom) face = lines.hidden;
       else if (dim) face = fade(face);
@@ -85,6 +90,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     }
   }
   function clear() {
+    fittings.clear();
     for (const b of boards) { b.face.geometry.dispose(); b.edges.geometry.dispose(); }
     group.clear();
     boards = [];
@@ -95,24 +101,36 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** Builds the piece at its place in the room: `pose` is where the editor stands it. */
     show(piece: MakePiece, pose: { x: number; y: number; z: number; angle: number }) {
       clear();
-      selected = null; amount = 0;
-      const all = piece.parts.flatMap(p => p.boards), top = Math.max(...all.map(b => b.y1));
-      for (const part of piece.parts) for (const board of part.boards) {
+      selected = null; amount = 0; step = null;
+      const top = Math.max(...piece.boards.map(b => b.y1));
+      for (const part of piece.parts) part.boards.forEach((board, k) => {
         const { geometry, centre } = boardGeometry(board, piece.size);
         boardUVs(geometry, boardSeed(centre.x, centre.y, centre.z), getDecorDirection(part.decorId));
         const face = new THREE.Mesh(geometry, lines.face), edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), lines.edge);
         edges.computeLineDistances();
         for (const o of [face, edges]) { o.layers.set(MAKE_LAYER); o.userData.make = true; o.userData.n = part.n; }
         group.add(face, edges);
-        boards.push({ part, board, face, edges, rest: centre, apart: apartOffset(board, piece.size, top) });
-      }
+        boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top) });
+      });
+      const byIndex = new Map(boards.map(b => [b.index, b]));
+      fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
       group.position.set(pose.x, pose.y, pose.z);
       group.rotation.y = pose.angle * Math.PI / 180;
       group.updateMatrixWorld(true);
       place(); paint();
     },
     setLook(next: MakeLook) { look = next; paint(); },
-    setSelected(n: number | null) { selected = n; paint(); },
+    setSelected(n: number | null) {
+      selected = n;
+      fittings.focus(n === null ? null : new Set(boards.filter(b => b.part.n === n).map(b => b.index)));
+      paint();
+    },
+    /** Shows the piece as built up to a step: `shown` boards and `items` fittings so far, `now` the ones it adds. */
+    setStep(next: { shown: ReadonlySet<number>; now: ReadonlySet<number>; items: ReadonlySet<number> } | null) {
+      step = next;
+      fittings.only(next?.shown ?? null, next?.items ?? null);
+      paint();
+    },
     setSolidFronts(on: boolean) { solidFronts = on; paint(); },
     /** How far apart (0 assembled, 1 apart). */
     setApart(t: number) { amount = t; place(); },
@@ -132,7 +150,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** The part under a ray, nearest first, ignoring fronts drawn as outlines. */
     pick(raycaster: THREE.Raycaster): number | null {
       raycaster.layers.set(MAKE_LAYER);
-      const targets = boards.filter(b => !(isFront(b.part) && !solidFronts)).map(b => b.face);
+      const targets = boards.filter(b => b.face.visible && !(isFront(b.part) && !solidFronts)).map(b => b.face);
       const hit = raycaster.intersectObjects(targets, false)[0];
       return hit ? hit.object.userData.n as number : null;
     },
@@ -140,6 +158,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     dispose() {
       clear();
       scene.remove(group);
+      fittings.dispose();
       for (const m of new Set<THREE.Material>([...Object.values(lines), ...decorMaterials.values(), ...faded.values()])) m.dispose();
     },
   };

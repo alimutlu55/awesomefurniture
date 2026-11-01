@@ -46,10 +46,17 @@ export function drillingSignature(b: Board, holes: readonly Hole[]): string {
 const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 0), short: Number(/W(\d)/.exec(code)?.[1] ?? 0) });
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
-export interface Step { readonly n: number; readonly boards: readonly number[]; readonly fittings: readonly { kind: FittingKind; size?: string; qty: number }[] }
+export interface Step {
+  readonly n: number;
+  readonly boards: readonly number[];
+  readonly fittings: readonly { kind: FittingKind; size?: string; qty: number }[];
+  /** The fittings it adds, by their place in the piece's list. */
+  readonly items: readonly number[];
+}
 /**
  * The order a maker puts the piece together, from where each board is and what it is: the plinth; the base between the
- * outer sides; the partitions; the top; the back; everything inside (shelves, dividers, drawers); the doors and fronts.
+ * outer sides; the partitions; the top; the back; everything inside (shelves, dividers); the drawer boxes on their
+ * runners; the doors and fronts.
  * Hardware joins in the step that adds the later of the boards it holds; legs with the plinth, hinge plates with the doors,
  * wall fixings last.
  */
@@ -59,8 +66,9 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   const base = horizontals.length ? Math.min(...horizontals.map(b => b.y0)) : -1;
   const stepOf = (b: Board) => {
     if (b.stock === 'plinth') return 1;
-    if (b.stock === 'door' || b.stock === 'front') return 7;
-    if (b.note === 'drawer box' || b.note === 'adjustable') return 6;
+    if (b.stock === 'door' || b.stock === 'front') return 8;
+    if (b.note === 'drawer box') return 7;
+    if (b.note === 'adjustable') return 6;
     if (b.stock === 'back') return 5;
     const t = thinAxis(b);
     if (t === 'x' && b.y1 - b.y0 > h * .4) return b.x0 < .5 || b.x1 > w - .5 ? 2 : 3;
@@ -69,16 +77,18 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
     return 6;
   };
   const steps = boards.map(stepOf);
-  const fittingStep = (f: Fitting) => f.kind === 'leg' ? 1 : f.kind === 'bracket' || f.kind === 'hanger' ? 8
-    : f.kind === 'rail' || f.kind === 'support' ? 6 : f.kind === 'plate' ? 7 : Math.max(1, ...f.boards.map(i => steps[i]!));
+  const fittingStep = (f: Fitting) => f.kind === 'leg' ? 1 : f.kind === 'bracket' || f.kind === 'hanger' ? 9
+    : f.kind === 'rail' || f.kind === 'support' ? 6 : f.kind === 'plate' ? 8 : Math.max(1, ...f.boards.map(i => steps[i]!));
   const out: Step[] = [];
-  for (let s = 1; s <= 8; s++) {
-    const mine = boards.map((_, i) => i).filter(i => steps[i] === s), held = new Map<string, { kind: FittingKind; size?: string; qty: number }>();
-    for (const f of fittings) if (fittingStep(f) === s) {
+  for (let s = 1; s <= 9; s++) {
+    const mine = boards.map((_, i) => i).filter(i => steps[i] === s), held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
+    fittings.forEach((f, i) => {
+      if (fittingStep(f) !== s) return;
       const key = f.kind + (f.size ?? ''), line = held.get(key);
       if (line) line.qty++; else held.set(key, { kind: f.kind, ...(f.size ? { size: f.size } : {}), qty: 1 });
-    }
-    if (mine.length || held.size) out.push({ n: out.length + 1, boards: mine, fittings: [...held.values()] });
+      items.push(i);
+    });
+    if (mine.length || held.size) out.push({ n: out.length + 1, boards: mine, fittings: [...held.values()], items });
   }
   return out;
 }
@@ -113,7 +123,7 @@ export function drillingChecks(boards: readonly Board[], holes: readonly Hole[])
       const dist = Math.hypot(a.u - b.u, a.v - b.v), through = a.depth === 0 || b.depth === 0;
       if (a.face === b.face || through) {
         const gap = dist - (a.d + b.d) / 2;
-        if (gap < 2 && !(dist < .5 && a.kind === b.kind)) out.push({ board: i, kind: 'clash', a, b, gap: Math.round(gap * 10) / 10 });
+        if (gap < 2 && !(dist < .5 && a.kind === b.kind && a.face === b.face)) out.push({ board: i, kind: 'clash', a, b, gap: Math.round(gap * 10) / 10 });
       } else if (dist < (a.d + b.d) / 2 && a.depth + b.depth > T - 1) out.push({ board: i, kind: 'meet', a, b, gap: Math.round((T - a.depth - b.depth) * 10) / 10 });
     }
   });

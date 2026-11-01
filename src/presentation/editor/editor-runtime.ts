@@ -57,6 +57,7 @@ import { createShapeInspector } from './shape-inspector';
 import { createWardrobeSizeEditor } from './wardrobe-size-editor';
 import { mountExperience } from '../experience/experience';
 import { createMakeView } from '../make/make-view';
+import { createMakeCommands } from '../../application/commands/make-commands';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
@@ -204,7 +205,9 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         // Make: the selected piece taken down to its parts, in the editor's own view, toolbar and panel. Its full drawing set
         // is the paid one (bound below).
+        const makeCommands = createMakeCommands(() => model.scene, historyActions.checkpoint);
         const make = createMakeView({ dom, lifetime, resources, camera, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message),
+            setConstruction: (id, change) => makeCommands.setConstruction(id, change), pay: async () => !credits || await credits.charge('technical-drawings'),
             refreshToolbar: () => refreshContextualToolbar(dom.$('#toolbar')),
             closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray,

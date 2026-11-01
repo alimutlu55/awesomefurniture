@@ -59,3 +59,33 @@
 .mk-ps-cell.b{font-size:13px;font-weight:700}
 .mk-ps.compact .mk-ps-tx{font-size:16px}
 .mk-ps.compact .mk-ps-tx.big{font-size:19px}
+/* Holes and grooves on a flat part: rings on the face turned up, dashed on the face under it, ticks in an edge. */
+.mk-ps-hole{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.mk-ps-hole.through{fill:var(--ink)}
+.mk-ps-hole.under{fill:none;stroke-dasharray:2 1.5;stroke-opacity:.7}
+.mk-ps-hole-c{fill:var(--ink)}
+.mk-ps-hole-edge{stroke:var(--ink);stroke-width:1.6}
+.mk-ps-groove{fill:none;stroke:var(--ink);stroke-width:.8;stroke-dasharray:4 2}
+.mk-ps-ord{fill:var(--mute);font-size:9px;font-weight:500}
+.mk-ps-ord.end{text-anchor:end}
+.mk-ps.compact .mk-ps-ord{font-size:12px}
+
+/* The panel's tabs (the editor's segmented control, full width), hardware rows with line icons, checks and steps. */
+.make-tabs{display:flex;width:100%;margin:0 0 10px}
+.make-tabs button{flex:1;min-width:0;padding-inline:4px}
+.make-ico,.make-row svg.make-ico{width:22px;height:22px;flex:none;fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.make-ico circle.through{fill:var(--ink)}
+.make-row.make-buy,.make-row.make-check{grid-template-columns:22px minmax(0,1fr) auto;cursor:default}
+.make-row.make-buy:hover{background:transparent}
+.make-row.make-check{grid-template-columns:22px 22px minmax(0,1fr) auto}
+.make-row.make-check.bad{cursor:pointer}
+.make-mark{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:10px;font-size:12px;font-weight:700;background:var(--seg);color:var(--ink)}
+.make-check.bad .make-mark{background:var(--ink);color:var(--panel)}
+.make-check.ok .make-name{color:var(--mute)}
+.make-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.make-chip{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px 9px 2px 5px;border-radius:14px;background:var(--seg);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.make-chip .make-ico{width:18px;height:18px}
+.make-stock{display:block;width:100%;height:auto;margin:0 0 6px;border-radius:6px}
+.make-stock-sheet{fill:var(--seg);stroke:var(--line)}
+.make-stock-part{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
+.make-stock-n{fill:var(--ink);font-size:9px;font-weight:650;text-anchor:middle;font-variant-numeric:tabular-nums}

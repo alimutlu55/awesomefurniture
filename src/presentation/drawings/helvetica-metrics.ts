@@ -10,7 +10,7 @@ const BOLD = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 3
   975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556,
   333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584];
 /** Characters beyond ASCII the drawings use: their WinAnsi code and width (the same in both weights). */
-const EXTRA: Record<string, [number, number]> = { '×': [0xd7, 584], '–': [0x96, 556], '—': [0x97, 1000], '·': [0xb7, 278], '°': [0xb0, 400], '²': [0xb2, 333], '±': [0xb1, 584] };
+const EXTRA: Record<string, [number, number]> = { '×': [0xd7, 584], '–': [0x96, 556], '—': [0x97, 1000], '·': [0xb7, 278], '°': [0xb0, 400], '²': [0xb2, 333], '±': [0xb1, 584], 'Ø': [0xd8, 778] };
 
 /** A character's WinAnsi code and width; anything else becomes a question mark. */
 function glyph(ch: string, bold: boolean): [number, number] {

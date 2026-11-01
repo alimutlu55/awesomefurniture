@@ -16,4 +16,8 @@ export interface MakeViewPorts {
   openDrawings(): void;
   /** A short message over the editor. */
   toast(message: string): void;
+  /** Saves how a piece goes together with the design, as one undo step; false when nothing changed. */
+  setConstruction(id: number, change: Partial<import('../../domain/make/make-construction').Construction>): boolean;
+  /** Pays for saving the piece's drawings or cut list (the drawing set's price and pass); false when not paid. */
+  pay(): Promise<boolean>;
 }

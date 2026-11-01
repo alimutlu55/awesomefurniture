@@ -17,6 +17,8 @@ const wardrobe: EditorDesign = { ...createInitialDesign(), w: 100, h: 220, d: 60
 const designs: Record<string, EditorDesign> = {
   wardrobe, plain: createInitialDesign(), base: createKitchenDesign('base'), upper: createKitchenDesign('upper'), tall: createKitchenDesign('tall'),
   drawers: createKitchenDesign('base', 'drawers'),
+  // Fixed shelves level either side of the partition: joined to it from both faces at the same heights.
+  level: { ...wardrobe, secs: [[{ k: 'shelf', h: 40 }, { k: 'shelf', h: 40 }], [{ k: 'shelf', h: 40 }, { k: 'shelf', h: 40 }]] },
   sloped: { ...wardrobe, shape: { template: 'sloped', top: [{ x: 0, y: 220 }, { x: 100, y: 160 }] } as EditorDesign['shape'] },
 };
 const input = (design: EditorDesign, y = 0) => ({ pieces: [{ id: 7, name: 'W', x: 0, y, z: 0, angle: 0, design }] });
@@ -139,4 +141,74 @@ test('holes are marked on their board lying flat, inside it', () => {
       assert.ok(h.u >= -.1 && h.u <= b.cut.length * 10 + .1 && h.v >= -.1 && h.v <= b.cut.width * 10 + .1, `${b.name} ${h.kind} at ${h.u}, ${h.v}`);
     }
   });
+});
+
+// Saving: the choice is one undo step, written only when it differs from the defaults, and kept by a project round trip.
+import { createMakeCommands } from '../../src/application/commands/make-commands';
+import { sceneToProject, projectToScene } from '../../src/application/projects/editor-mapper';
+import { deserializeProject, serializeProject } from '../../src/infrastructure/serialization/project-codec';
+import { createProject } from '../../src/domain/project/project';
+import type { EditorScene } from '../../src/application/projects/editor-scene';
+import { createEditorState } from '../../src/application/projects/editor-state';
+
+test('the joint system and back fixing are one undo step each, saved with the project', () => {
+  const scene: EditorScene = { wardrobes: [{ id: 1, name: 'W', x: 0, y: 0, z: 0, angle: 0, state: { ...createEditorState(), ...structuredClone(wardrobe), wt: [1, 1, 1, 1, 1, 1], secs: [...structuredClone(wardrobe.secs), [], [], [], []] } }], activeWardrobe: 1, nextWardrobeId: 2 };
+  let checkpoints = 0;
+  const commands = createMakeCommands(() => scene, () => { checkpoints++; });
+  assert.equal(commands.setConstruction(1, { joints: 'confirmat' }), false, 'the default is no change');
+  assert.equal(commands.setConstruction(1, { joints: 'cam' }), true);
+  assert.equal(commands.setConstruction(1, { back: 'grooved' }), true);
+  assert.equal(checkpoints, 2);
+  assert.deepEqual(scene.wardrobes[0]!.state.construction, { joints: 'cam', back: 'grooved' });
+  assert.equal(commands.setConstruction(9, { joints: 'dowel' }), false, 'no such piece');
+  const restored = projectToScene(deserializeProject(serializeProject(sceneToProject(createProject('make', 'Make'), { ...scene, nextWardrobeId: 2 }))))!;
+  assert.deepEqual(restored.wardrobes[0]!.state.construction, { joints: 'cam', back: 'grooved' });
+  commands.setConstruction(1, { joints: 'confirmat', back: 'nailed' });
+  assert.equal(scene.wardrobes[0]!.state.construction, undefined, 'the defaults are not written down');
+});
+
+// The cut layout: every board on a stock sheet once, inside its trim, clear of every other by the saw kerf.
+import { cutLayout, STOCK } from '../../src/domain/make/make-cut-layout';
+
+test('the cut layout puts every board on a stock sheet once, inside the trim and a kerf apart, grain along the sheet', () => {
+  for (const [name, design] of Object.entries(designs)) {
+    const mp = make(design), layout = cutLayout(mp.parts);
+    const placed = layout.sheets.flatMap(s => s.parts.map(p => p.n)).concat(layout.oversize).sort((a, b) => a - b);
+    assert.deepEqual(placed, mp.parts.flatMap(p => p.boards.map(() => p.n)).sort((a, b) => a - b), `${name}: every board once`);
+    for (const sheet of layout.sheets) {
+      assert.ok(sheet.used > 0 && sheet.used < 1);
+      sheet.parts.forEach((a, i) => {
+        assert.ok(a.x >= STOCK.trim && a.y >= STOCK.trim && a.x + a.l <= STOCK.length - STOCK.trim && a.y + a.w <= STOCK.width - STOCK.trim, `${name}: part ${a.n} inside`);
+        const part = mp.parts.find(p => p.n === a.n)!;
+        assert.equal(a.l * a.w, Math.round(part.cut.length * 10) * Math.round(part.cut.width * 10), `${name}: part ${a.n} at its size`);
+        assert.equal(Math.round(part.cut.thickness * 10), sheet.thickness, `${name}: part ${a.n} on its own thickness`);
+        for (const b of sheet.parts.slice(i + 1)) {
+          const apart = a.x + a.l + STOCK.kerf <= b.x || b.x + b.l + STOCK.kerf <= a.x || a.y + a.w + STOCK.kerf <= b.y || b.y + b.w + STOCK.kerf <= a.y;
+          assert.ok(apart, `${name}: parts ${a.n} and ${b.n} a kerf apart`);
+        }
+      });
+    }
+    assert.ok(layout.band.every(b => b.metres > 0));
+  }
+  // A grained decor keeps its grain along the sheet; a plain one may turn; a part longer than the sheet is set aside.
+  const part = make(wardrobe).parts[0]!, wide = { length: 50, width: 120, thickness: 1.8 };
+  assert.equal(cutLayout([{ ...part, decorId: 'egger-h1318-st10', cut: wide }]).sheets[0]!.parts[0]!.turned, false);
+  assert.equal(cutLayout([{ ...part, decorId: 'egger-u702-st9', cut: wide }]).sheets[0]!.parts[0]!.turned, true);
+  assert.deepEqual(cutLayout([{ ...part, decorId: 'egger-h1318-st10', cut: { length: 300, width: 60, thickness: 1.8 } }]).oversize, [part.n]);
+});
+
+// Saving: the drawings as an A3 PDF, the cut list as CSV.
+import { cutListCsv, makePdf } from '../../src/presentation/make/make-export';
+
+test('the cut list has a line a part in millimetres and the drawings are one PDF of A3 pages', () => {
+  const mp = make(wardrobe), csv = cutListCsv(mp, () => 'Oak, natural', 1).trim().split('\r\n');
+  assert.equal(csv.length, mp.parts.length + 1);
+  assert.match(csv[0]!, /^Part,Name,Qty,Length mm,Width mm,Thickness mm,Material/);
+  const side = mp.parts.find(p => p.name === 'Side')!, row = csv.find(r => r.startsWith(side.n + ',Side,'))!;
+  assert.ok(row.includes(',"Oak, natural",'), 'a comma in a value is quoted');
+  assert.ok(row.includes(',' + String(Math.round(side.cut.length * 100) / 10) + ','));
+  const pdf = new TextDecoder().decode(makePdf(mp, { title: 'Wardrobe', material: () => 'Oak', band: 1, cut: cutLayout(mp.parts) }));
+  assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
+  const pages = Number(/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/.exec(pdf)![1]);
+  assert.equal(pages, Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1);
 });
