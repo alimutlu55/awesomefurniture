@@ -16,6 +16,8 @@ export interface MarksState {
   readonly apart: number;
   readonly solidFronts: boolean;
   readonly selected: number | null;
+  /** How far the doors and drawers are open (0 shut): an open front's sizes are not written. */
+  readonly open?: number | undefined;
   /** In a build step: the parts it adds (only their numbers are written). */
   readonly building?: ReadonlySet<number> | null | undefined;
 }
@@ -115,8 +117,8 @@ export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, off
   if (state.measures) {
     const part = state.selected === null ? null : piece.parts.find(p => p.n === state.selected) ?? null;
     if (part) out = measureMarks(pr, partMeasures(part, state.apart < .05), length, fs, () => offsetOf(part.boards[0]!), placed);
-    else if (state.apart < .05) out = measureMarks(pr, pieceMeasures(piece), length, fs, () => [0, 0, 0], placed);
-    else out = sizeLabels(pr, piece, offsetOf, length, fs, state.solidFronts, placed);
+    else if (state.apart < .05) out = measureMarks(pr, pieceMeasures(piece).filter(m => !(state.open && m.part !== undefined)), length, fs, () => [0, 0, 0], placed);
+    else out = sizeLabels(pr, piece, offsetOf, length, fs, state.solidFronts && !state.open, placed);
   }
   if (state.numbers) out += numberMarks(pr, piece, offsetOf, size, fs, state.selected);
   return out;

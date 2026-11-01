@@ -3,6 +3,7 @@ import type { Board } from '../../domain/drawings/cabinet-boards';
 import { getDecor } from '../../domain/materials/decor-catalog';
 import { apartOffset, type Vec3 } from '../../domain/make/make-measures';
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
+import type { Motion } from '../../domain/make/make-hardware';
 import { boardBox, boardSeed, boardUVs } from '../viewport/board-geometry';
 import { createDecorMaterial } from '../viewport/cabinet-materials';
 import type { createViewportResources } from '../viewport/viewport-resources.js';
@@ -13,10 +14,10 @@ export const MAKE_LAYER = 3;
 export type MakeLook = 'lines' | 'material' | 'xray';
 type Resources = Pick<ReturnType<typeof createViewportResources>, 'M' | 'decorTexture'>;
 
-const INK = 0x2b2a26, PAPER = 0xf3f0e9, SELECTED = 0xdfe7f5, XRAY = 0x3e6fc2, FADE = .14;
+const OPEN_ANGLE = 100 * Math.PI / 180, INK = 0x2b2a26, PAPER = 0xf3f0e9, SELECTED = 0xdfe7f5, XRAY = 0x3e6fc2, FADE = .14;
 const isFront = (p: MakePart) => p.stock === 'door' || p.stock === 'front';
 
-interface BoardMesh { part: MakePart; board: Board; index: number; face: THREE.Mesh; edges: THREE.LineSegments; rest: THREE.Vector3; apart: Vec3 }
+interface BoardMesh { part: MakePart; board: Board; index: number; face: THREE.Mesh; edges: THREE.LineSegments; rest: THREE.Vector3; apart: Vec3; motion: Motion | null; pivot: THREE.Vector3 | null }
 
 /** A board's solid in the piece group's frame (centred across and through the piece, up from the floor). */
 function boardGeometry(b: Board, size: MakePiece['size']) {
@@ -52,7 +53,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     edgeFaded: new THREE.LineBasicMaterial({ color: INK, transparent: true, opacity: FADE }),
     phantom: new THREE.LineDashedMaterial({ color: INK, dashSize: 4, gapSize: 2, transparent: true, opacity: .6 }),
   };
-  let boards: BoardMesh[] = [], look: MakeLook = 'lines', selected: number | null = null, solidFronts = false, amount = 0;
+  let boards: BoardMesh[] = [], look: MakeLook = 'lines', selected: number | null = null, solidFronts = false, amount = 0, open = 0;
   // A build step: the boards put in so far, and the ones this step adds (drawn as picked).
   let step: { shown: ReadonlySet<number>; now: ReadonlySet<number> } | null = null;
   const fittings = createMakeFittings(MAKE_LAYER);
@@ -83,10 +84,22 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       b.edges.material = phantom ? lines.phantom : dim ? lines.edgeFaded : mine ? lines.edgeSelected : look === 'xray' ? lines.edgeXray : lines.edge;
     }
   }
+  /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
+   * 100°), a drawer slides out on its runners. */
   function place() {
     for (const b of boards) {
-      b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
-      b.edges.position.copy(b.face.position);
+      const at = b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
+      let turn = 0;
+      if (b.motion?.kind === 'slide') at.z += b.motion.by * open;
+      else if (b.motion?.kind === 'swing' && b.pivot) {
+        turn = -b.motion.dir * open * OPEN_ANGLE;
+        const vx = b.rest.x - b.pivot.x, vz = b.rest.z - b.pivot.z, c = Math.cos(turn), s = Math.sin(turn);
+        at.x += b.pivot.x + vx * c + vz * s - b.rest.x;
+        at.z += b.pivot.z - vx * s + vz * c - b.rest.z;
+      }
+      b.face.rotation.y = turn;
+      b.edges.position.copy(at);
+      b.edges.rotation.y = turn;
     }
   }
   function clear() {
@@ -101,7 +114,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** Builds the piece at its place in the room: `pose` is where the editor stands it. */
     show(piece: MakePiece, pose: { x: number; y: number; z: number; angle: number }) {
       clear();
-      selected = null; amount = 0; step = null;
+      selected = null; amount = 0; open = 0; step = null;
       const top = Math.max(...piece.boards.map(b => b.y1));
       for (const part of piece.parts) part.boards.forEach((board, k) => {
         const { geometry, centre } = boardGeometry(board, piece.size);
@@ -110,7 +123,9 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         edges.computeLineDistances();
         for (const o of [face, edges]) { o.layers.set(MAKE_LAYER); o.userData.make = true; o.userData.n = part.n; }
         group.add(face, edges);
-        boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top) });
+        const motion = piece.motions[part.ids[k]!] ?? null;
+        const pivot = motion?.kind === 'swing' ? new THREE.Vector3(motion.pivot[0] - piece.size.w / 2, 0, motion.pivot[1] - piece.size.d / 2) : null;
+        boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top), motion, pivot });
       });
       const byIndex = new Map(boards.map(b => [b.index, b]));
       fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
@@ -134,6 +149,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     setSolidFronts(on: boolean) { solidFronts = on; paint(); },
     /** How far apart (0 assembled, 1 apart). */
     setApart(t: number) { amount = t; place(); },
+    /** How far open the doors and drawers are (0 shut, 1 open). */
+    setOpen(t: number) { open = t; place(); },
     /** The box every board fills at `t` apart (0 assembled, 1 apart), in world space: what the camera frames. */
     extent(t: number) {
       const box = new THREE.Box3(), one = new THREE.Box3();

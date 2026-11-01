@@ -43,7 +43,7 @@ export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remov
 export const itemMoreActions = [['stores', 'Stores']];
 /** Make's View menu: the camera squared on the piece, how its boards look, and part numbers beside it. */
 export const makeViewActions = [['view-iso', '3D'], ['view-front', 'Front'], ['view-side', 'Side'], ['view-top', 'Top'],
-    ['look-lines', 'Lines'], ['look-material', 'Material'], ['look-xray', 'X-ray'], ['make-numbers', 'Part numbers']];
+    ['look-lines', 'Lines'], ['look-material', 'Material'], ['look-xray', 'X-ray'], ['make-open', 'Open doors'], ['make-numbers', 'Part numbers']];
 /** Actions whose button opens fields in a popover instead of running a command. */
 export const fieldActions = [];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */

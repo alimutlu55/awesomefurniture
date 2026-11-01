@@ -212,3 +212,13 @@ test('the cut list has a line a part in millimetres and the drawings are one PDF
   const pages = Number(/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/.exec(pdf)![1]);
   assert.equal(pages, Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1);
 });
+
+test('glass doors hang on clamp hinges: nothing is drilled in them', async () => {
+  const { resolveMaterials } = await import('../../src/domain/materials/configured-materials');
+  const glassy = { ...wardrobe, materials: { ...resolveMaterials(wardrobe), frontDecorId: 'agc-glass-planibel-grey-float' } } as EditorDesign;
+  const mp = make(glassy), doors = mp.boards.map((b, i) => ({ b, i })).filter(({ b }) => b.name === 'Door');
+  assert.ok(doors.length > 0);
+  assert.ok(!mp.holes.some(h => doors.some(d => d.i === h.board)), 'no holes in the glass');
+  assert.equal(qty(mp, 'hinge'), listed(glassy, /hinge/i), 'still as many hinges');
+  assert.ok(mp.buy.some(b => b.kind === 'hinge' && b.size === 'glass'));
+});

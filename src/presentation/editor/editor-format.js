@@ -42,7 +42,8 @@ ICONP.make = "M3 10h7v11H3zM13 3h8v7h-8zM13 13h8v8h-8zM10 7l3-2";
 Object.assign(ICONP, { done: "M5 12.5l4.5 4.5L19 7.5", apart: "M9 9h6v6H9zM4 4l3 3M20 4l-3 3M4 20l3-3M20 20l-3-3", dims: "M3 12h18M3 8v8M21 8v8M6.5 10 3.5 12l3 2M17.5 10l3 2-3 2",
     parts: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z", front: "M5 4h14v16H5zM5 20h14", side: "M5 4h14v16H5zM19 4v16", top: "M5 4h14v16H5zM5 4h14",
     lines: "M4 4h16v16H4zM4 10h16M10 4v16", xray: "M4 4h3M10 4h4M17 4h3v3M20 10v4M20 17v3h-3M14 20h-4M7 20H4v-3M4 14v-4M4 7V4M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z",
-    numbers: "M16 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM13 11l-8 8" });
+    numbers: "M16 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM13 11l-8 8",
+    open: "M5 4h9v16H5zM14 4l5 2v12l-5 2M11 12h.01" });
 ICONP.divider = "M9 4v16M15 4v16";
 // The room: walls, doors, windows and archways, drawn in plan or elevation.
 ICONP["room-wall"] = "M3 9h18v6H3zM8 9v6M13 9v6M18 9v6";

@@ -5,6 +5,7 @@ import type { PlacedPiece } from '../drawings/room-pieces';
 import { isKitchen } from '../furniture/furniture';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
+import { getDecor } from '../materials/decor-catalog';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
@@ -76,6 +77,8 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
 export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]) {
   const { design } = piece, holes: Hole[] = [], fittings: Fitting[] = [], h = design.h, kitchen = isKitchen(design);
   const { fronts, inside } = piecefronts(design, cornerFaceWidths(piece, pieces)), handles = resolveMaterials(design).handleFinish !== 'handleless_tip_on';
+  // Glass and mirror doors hang on their own hinges, clamped to the glass: nothing is drilled in them.
+  const glass = (b: Board) => { try { return getDecor(b.decorId ?? resolveMaterials(design).frontDecorId).category === 'glass_mirror'; } catch { return false; } };
   boards.forEach((b, i) => {
     if (b.stock !== 'door' && b.stock !== 'front') return;
     const f = frontOf(fronts, b), [cx, cy] = centre(b);
@@ -85,9 +88,9 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       // Under a slope the upright it hangs from can end below the door's top: hinges go along what they share.
       const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
       for (const s of hingeStations(edgeTop - b.y0)) {
-        const y = b.y0 + s, cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0];
-        holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13 });
-        fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: '110°' });
+        const y = b.y0 + s, cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0], clamped = glass(b);
+        if (!clamped) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13 });
+        fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: clamped ? 'glass' : '110°' });
         if (!post) continue;
         const face = hinge === 'left' ? post.b.x1 : post.b.x0, sign = hinge === 'left' ? -1 : 1, z = post.b.z1 - SYSTEM_LINE;
         for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12 });
@@ -99,7 +102,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const door = f?.opens === 'side', free = f?.hinge === 'right' ? b.x0 + 4 : b.x1 - 4;
       const y = door ? (b.y0 >= 120 ? b.y0 + 8 : b.y1 <= 100 ? b.y1 - 8 : Math.min(b.y1 - 10, Math.max(b.y0 + 10, 100))) : b.y1 - b.y0 < 20 ? cy : b.y1 - 6;
       const points: Vec3[] = door ? [[free, y - 6.4, b.z1], [free, y + 6.4, b.z1]] : [[cx - 6.4, y, b.z1], [cx + 6.4, y, b.z1]];
-      for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: -1, d: 5, depth: 0 });
+      if (!glass(b)) for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: -1, d: 5, depth: 0 });
       fittings.push({ kind: 'handle', at: [door ? free : cx, y, b.z1], axis: 2, boards: [i], size: '128' });
     }
   });
@@ -140,4 +143,25 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - 3, 0], axis: 2, boards: [], size: 'pair' });
   if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) fittings.push({ kind: 'bracket', at: [x, design.h - 2, 0], axis: 2, boards: [] });
   return { holes, fittings };
+}
+
+/** How a board moves when the piece is opened: a door swings about its hinge edge (`pivot` x and z in the piece's
+ * frame; `dir` +1 turns it out to the right), a drawer front and its box slide out `by` centimetres. */
+export type Motion = { readonly kind: 'swing'; readonly pivot: readonly [number, number]; readonly dir: 1 | -1 } | { readonly kind: 'slide'; readonly by: number };
+export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]): (Motion | null)[] {
+  const { fronts } = piecefronts(piece.design, cornerFaceWidths(piece, pieces)), out: (Motion | null)[] = boards.map(() => null);
+  const pull = Math.round(drawerExtension(piece.design.d) * .7);
+  boards.forEach((b, i) => {
+    if (b.stock !== 'door' && b.stock !== 'front') return;
+    const f = frontOf(fronts, b);
+    if (f?.opens === 'side' && !f.label) {
+      const left = (f.hinge ?? 'left') === 'left';
+      out[i] = { kind: 'swing', pivot: [left ? b.x0 : b.x1, b.z0], dir: left ? 1 : -1 };
+    } else if (f?.opens === 'pull' || b.name === 'Drawer front') {
+      // The front and the box behind it: the box's boards stand within the front's width and height.
+      out[i] = { kind: 'slide', by: pull };
+      boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: pull }; });
+    }
+  });
+  return out;
 }

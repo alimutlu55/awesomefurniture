@@ -6,7 +6,7 @@ import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { assemblySteps, buyList, drillingChecks, drillingSignature, type BuyLine, type Finding, type Step } from './make-assembly';
 import { type Construction, constructionOf } from './make-construction';
-import { drawerBoxes, frontHardware } from './make-hardware';
+import { drawerBoxes, frontHardware, frontMotions, type Motion } from './make-hardware';
 import { backFixing, findJoints, type Fitting, type Groove, type Hole, jointFittings } from './make-joints';
 
 /**
@@ -42,6 +42,8 @@ export interface MakePiece {
   readonly steps: readonly Step[];
   readonly buy: readonly BuyLine[];
   readonly findings: readonly Finding[];
+  /** How each board moves when the piece is opened (doors swing, drawers slide); null: it stays. */
+  readonly motions: readonly (Motion | null)[];
 }
 
 /** The decor a board is cut from. */
@@ -87,7 +89,7 @@ export function makePiece(input: DrawingInput, id: number): MakePiece | null {
   const { w, h, d } = piece.design;
   return {
     piece, parts: makeParts(boards, piece.design, holes), size: { w, h, d }, boards, construction, holes, grooves: back.grooves, fittings,
-    steps: assemblySteps(boards, fittings), buy: buyList(fittings), findings: drillingChecks(boards, holes),
+    steps: assemblySteps(boards, fittings), buy: buyList(fittings), findings: drillingChecks(boards, holes), motions: frontMotions(piece, pieces, boards),
   };
 }
 

@@ -46,7 +46,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders'),
         'view-iso':icon('make'),'view-front':icon('front'),'view-side':icon('side'),'view-top':icon('top'),'look-lines':icon('lines'),'look-material':icon('material'),
-        'look-xray':icon('xray'),'make-numbers':icon('numbers')};
+        'look-xray':icon('xray'),'make-open':icon('open'),'make-numbers':icon('numbers')};
     const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),installation:fixtureMoreActions,
         item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */

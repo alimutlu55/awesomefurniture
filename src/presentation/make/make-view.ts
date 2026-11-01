@@ -43,7 +43,7 @@ export function createMakeView(ports: MakeViewPorts) {
   app.append(panel);
   mountMobileSheet({ document: doc, lifetime, panel, name: 'Parts', close: () => hidePanel(), bottom: true, scene: app, docked: dom.matchMedia('(min-width:901px)') });
 
-  const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0,
+  const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0, openOn: false, open: 0,
     solidFronts: false, measures: true, numbers: false, selected: null as number | null, panel: 'closed' as 'closed' | 'list' | 'part', marks: '',
     id: -1, tab: 'parts' as PanelTab, build: 0, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null };
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
@@ -69,20 +69,18 @@ export function createMakeView(ports: MakeViewPorts) {
    * when the view, the size or what is shown has changed. */
   function frame(camera: THREE.PerspectiveCamera, dt: number) {
     if (!st.piece) return;
-    const goal = st.apartOn ? 1 : 0;
-    if (st.apart !== goal) {
-      const reduce = dom.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      st.apart = reduce || Math.abs(goal - st.apart) < .01 ? goal : st.apart + (goal - st.apart) * (1 - Math.exp(-dt * 9));
-      make3d.setApart(st.apart);
-    }
+    const reduce = dom.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ease = (now: number, goal: number, rate: number) => reduce || Math.abs(goal - now) < .01 ? goal : now + (goal - now) * (1 - Math.exp(-dt * rate));
+    if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
+    if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
     camera.updateMatrixWorld();
     const w = view.clientWidth, h = view.clientHeight;
     const key = camera.matrixWorld.elements.map(v => v.toFixed(2)).join() + camera.projectionMatrix.elements.slice(8, 10).map(v => v.toFixed(4)).join()
-      + [w, h, st.apart.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100), [...st.building ?? []].join(':')].join();
+      + [w, h, st.apart.toFixed(3), st.open.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100), [...st.building ?? []].join(':')].join();
     if (key === st.marks) return;
     st.marks = key;
     overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    overlay.innerHTML = marksSvg(st.piece, st, projector(), b => make3d.offsetOf(b), length, { w, h });
+    overlay.innerHTML = marksSvg(st.piece, { ...st, open: st.open > .02 ? st.open : 0 }, projector(), b => make3d.offsetOf(b), length, { w, h });
   }
 
   function renderPanel() {
@@ -128,7 +126,7 @@ export function createMakeView(ports: MakeViewPorts) {
   /** Marks Make's toggles in the bottom toolbar as on or off. */
   function pressed() {
     const set = (key: string, on: boolean) => doc.querySelector(`[data-action="${key}"]`)?.setAttribute('aria-pressed', String(on));
-    set('make-apart', st.apartOn); set('make-fronts', st.solidFronts); set('make-measures', st.measures); set('make-parts', st.panel !== 'closed');
+    set('make-apart', st.apartOn); set('make-open', st.openOn); set('make-fronts', st.solidFronts); set('make-measures', st.measures); set('make-parts', st.panel !== 'closed');
   }
   /** Squares the editor's camera on the piece: from the front, the side or above; 3D is the editor's own framing. */
   function look(at: View) {
@@ -154,7 +152,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (!piece || !cabinet) { ports.toast('Select a wardrobe or cabinet to make'); return; }
     ports.closePanels();
     Object.assign(st, { piece, pose: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, apartOn: false, apart: 0, selected: null, marks: '',
-      id: cabinet.id, tab: 'parts', build: 0, cut: null });
+      id: cabinet.id, tab: 'parts', build: 0, cut: null, openOn: false, open: 0 });
     make3d.show(piece, st.pose);
     make3d.setLook(st.look);
     make3d.setSolidFronts(st.solidFronts);
@@ -191,6 +189,7 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (key === 'make-fronts') { st.solidFronts = !st.solidFronts; make3d.setSolidFronts(st.solidFronts); }
     else if (key === 'make-measures') st.measures = !st.measures;
     else if (key === 'make-numbers') st.numbers = !st.numbers;
+    else if (key === 'make-open') st.openOn = !st.openOn;
     else if (key === 'make-parts') { if (st.panel === 'closed') showPanel(st.selected === null ? 'list' : 'part'); else hidePanel(); }
     else if (key.startsWith('look-')) { st.look = key.slice(5) as MakeLook; make3d.setLook(st.look); }
     else if (key.startsWith('view-')) look(key.slice(5) as View);
@@ -232,7 +231,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const selected = st.selected !== null && piece.parts.some(p => p.n === st.selected) ? st.selected : null;
     Object.assign(st, { piece, cut: null, marks: '', build: Math.min(st.build, piece.steps.length - 1) });
     make3d.show(piece, st.pose);
-    make3d.setLook(st.look); make3d.setSolidFronts(st.solidFronts); make3d.setApart(st.apart); make3d.setSelected(selected);
+    make3d.setLook(st.look); make3d.setSolidFronts(st.solidFronts); make3d.setApart(st.apart); make3d.setOpen(st.open); make3d.setSelected(selected);
     st.selected = selected;
     renderPanel();
   }

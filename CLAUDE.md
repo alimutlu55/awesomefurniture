@@ -51,7 +51,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Toilets, basins and other fixtures (kinds, setups with their boxing, finishes) | One entry in `src/domain/studio/fixtures/fixture-kinds.ts`, its model in `fixture-views.ts` and card in `fixture-art.ts`. See [docs/studio-fixtures.md](docs/studio-fixtures.md) |
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Sign in, sign up, moving a guest's designs and credits into it | `src/presentation/account/`, `src/app/account-platform.ts`, `infrastructure/account/` (`guest-handover.ts`, merge endpoint), `account_merge` in `supabase/migrations/`. See [docs/accounts.md](docs/accounts.md) |
-| Make: one piece taken down to its parts (numbered parts, ranked measurements, part sheets, take apart) | `src/domain/make/` (data) and `src/presentation/make/` (SVG model, dock, sheets), opened by the `make` tool in `contextual-actions.js`. Draws from `pieceBoards`, never from the 3D renderer. See [docs/make.md](docs/make.md) |
+| Make: one piece taken down to its parts (parts, measurements, joints and drilling, hardware, drawer boxes, assembly steps, cut layout, saving) | `src/domain/make/` (data: `make-parts`, `make-joints`, `make-hardware`, `make-assembly`, `make-cut-layout`, `make-construction`) and `src/presentation/make/` (3D, marks, panel, PDF/CSV), opened by the `make` tool in `contextual-actions.js`; the joint choice is `application/commands/make-commands.ts`. Draws from `pieceBoards`, never from the 3D renderer. See [docs/make.md](docs/make.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | The welcome, assembly animation, moods (looks, time of day), fit reveal | `src/presentation/experience/` and `viewport/assembly-motion.ts`, `scene-looks.ts`, `daylight.ts`, `workshop-lens.ts`. Never saved in a project. See [docs/experience.md](docs/experience.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
@@ -111,8 +111,9 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `FITTI
   automated checks (docs/experience.md, Known limits).
 - Accounts: no real sign-up, email code or Google sign-in was run during development; Google stays hidden until it is
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
-- Make has no drilling, joints, hardware, cut layout or assembly steps yet, and draws doors closed as phantom outlines
-  (docs/make.md, Known limits).
+- Make: a top set at a slope is not drilled (joined by hand), the cut layout is strips only (no free nesting or
+  offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
+  template (docs/make.md, Known limits).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,

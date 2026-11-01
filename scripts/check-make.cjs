@@ -1,0 +1,83 @@
+// Make on a phone and a desktop: it opens in the editor's own toolbar and panel, the camera still turns, every tab
+// works and fits, the joint choice is one undo step, and Done gives the editor back.
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
+ try { for(const [width,height] of [[375,812],[1280,800]]) {
+  const phone=width<=900, page=await browser.newPage({viewport:{width,height},isMobile:phone,hasTouch:phone,reducedMotion:'reduce'});
+  page.setDefaultTimeout(10000);
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto((process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173')+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60,for:{long:6,short:10,shoes:8}}]})));
+  const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
+  await el('add-furniture-btn').waitFor();
+  await page.waitForTimeout(800);
+  const view=await el('view').boundingBox();
+  await page.mouse.click(view.x+view.width/2,view.y+view.height*.45);
+  await page.waitForTimeout(350);
+  if(await toolbar.getAttribute('data-context')!=='wardrobe') await page.screenshot({path:`/tmp/make-select-${width}.png`});
+  assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
+  await toolbar.locator('[data-action="make"]').click();
+  await page.waitForTimeout(400);
+  if(await toolbar.getAttribute('data-context')!=='make') await page.screenshot({path:`/tmp/make-open-${width}.png`});
+  assert.equal(await toolbar.getAttribute('data-context'),'make');
+  assert.deepEqual(await toolbar.locator('.contextual-actions [data-action]').evaluateAll(es=>es.map(e=>e.dataset.action)),
+   ['make-done','make-apart','make-fronts','make-measures','make-view','make-parts']);
+  const fits=async what=>{
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width,what+': no sideways scroll');
+   for(const b of await toolbar.locator('button.tb:visible').evaluateAll(es=>es.map(e=>{const r=e.getBoundingClientRect();return [r.left,r.right];})))
+    assert.ok(b[0]>=0 && b[1]<=width,what+': toolbar inside the screen');
+  };
+  await fits('Make');
+  assert.ok(await page.locator('.make-overlay .make-measure').count()>3,'Every measurement is on show');
+  // The camera is the editor's: a drag on the view turns it, and nothing in the design moves.
+  const before=await page.locator('.make-overlay').innerHTML();
+  await page.mouse.move(view.x+view.width*.6,view.y+view.height*.4);await page.mouse.down();
+  await page.mouse.move(view.x+view.width*.4,view.y+view.height*.35,{steps:6});await page.mouse.up();
+  await page.waitForTimeout(250);
+  assert.notEqual(await page.locator('.make-overlay').innerHTML(),before,'Dragging turns the view');
+  assert.equal(await toolbar.getAttribute('data-context'),'make');
+  // Parts, then each tab.
+  await toolbar.locator('[data-action="make-parts"]').click();
+  const panel=page.locator('.make-panel');
+  await panel.waitFor({state:'visible'});
+  for(const tab of ['parts','hardware','steps','cutting']) {
+   await panel.locator(`[data-tab="${tab}"]`).click();
+   assert.equal(await panel.locator(`[data-tab="${tab}"]`).getAttribute('aria-pressed'),'true');
+   const box=await panel.locator('.make-tabs').boundingBox();
+   assert.ok(box.x>=0 && box.x+box.width<=width,tab+': tabs inside the screen');
+   await fits(tab);
+  }
+  await panel.locator('[data-tab="steps"]').click();
+  const step=async()=>Number(/\d+/.exec(await panel.locator('.make-size').textContent())[0]);
+  assert.equal(await step(),1);
+  await panel.locator('[data-build="1"]').click();
+  assert.equal(await step(),2,'Next shows the next step');
+  await panel.locator('[data-tab="cutting"]').click();
+  assert.ok(await panel.locator('.make-stock').count()>=1,'The parts are laid out on stock sheets');
+  await panel.locator('[data-tab="hardware"]').click();
+  await panel.locator('[data-joints="cam"]').click();
+  assert.equal(await panel.locator('[data-joints="cam"]').getAttribute('aria-pressed'),'true');
+  await panel.locator('[data-tab="parts"]').click();
+  await panel.locator('.make-row').nth(1).click();
+  assert.ok(await panel.locator('.mk-ps-hole').count()>0,'A part shows its holes');
+  await page.screenshot({path:`/tmp/make-${width}.png`});
+  // Done gives the editor back, and the joint choice undoes in one step.
+  await page.keyboard.press('Escape');await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
+  await el('undo2').click();
+  await toolbar.locator('[data-action="make"]').click();
+  await toolbar.locator('[data-action="make-parts"]').click();
+  await panel.locator('[data-tab="hardware"]').click();
+  assert.equal(await panel.locator('[data-joints="confirmat"]').getAttribute('aria-pressed'),'true','Undo puts the joints back');
+  // The panel's × closes it (on a phone its sheet covers the toolbar), then Done.
+  await panel.locator('.make-close').click();
+  await page.waitForTimeout(350);
+  await toolbar.locator('[data-action="make-done"]').click();
+  assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
+  assert.deepEqual(errors,[]);
+  await page.close();
+ } } finally { await browser.close(); }
+ console.log('Make checks passed');
+})().catch(e=>{console.error(e);process.exit(1);});
