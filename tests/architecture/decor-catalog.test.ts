@@ -86,7 +86,7 @@ test('two-tone viewport uses separate SKU colors and roughness, and removes ward
   const pivots = renderCabinetDoors(design, geometry.widths(), group, box, () => new THREE.Group(), { M }, materials.front, materials.hardware);
   assert.ok(pivots.length);
   for (const pivot of pivots) {
-    assert.equal(pivot.children.length, 1, 'only the door panel, no bar pull');
+    assert.equal(pivot.children.filter(c => !c.userData.reveal).length, 1, 'only the door panel (and its reveal line), no bar pull');
     const panel = pivot.children[0] as THREE.Mesh<THREE.BoxGeometry>;
     assert.equal(panel.material, materials.front); assert.ok(Math.abs(panel.geometry.parameters.depth - 1.8) < .001);
   }
