@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, CLIPPED_ON, doorNudge, drillAt, drilled, FITTED_FIRST, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, CLIPPED_ON, doorNudge, drillAt, drilled, FITTED_FIRST, fittedAt, HANG_OUT, INTRO, OUTRO, playhead, seeThrough, stepStart } from '../../src/domain/make/make-timeline';
 import { lyingDir, lyingFlat, lyingPoint, stagingLayout } from '../../src/domain/make/make-staging';
 import { doorGaps, entryOf } from '../../src/domain/make/make-fixing';
 import { tiltOf } from '../../src/domain/make/make-measures';
@@ -207,4 +207,34 @@ test('the gaps a door is adjusted to are the reveal between the doors', () => {
   assert.ok(doors.length >= 2 && gaps.length >= 1);
   for (const g of gaps) assert.ok(g.length > 0 && g.length < 1, `a gap of ${g.length} cm is a reveal of a few millimetres`);
   assert.deepEqual(doorGaps(make({ ...wardrobe, doors: 'none' })), []);
+});
+
+test('the hinge plates are screwed to the side panel in their own turn, after the hinges go into the doors and before the doors come', () => {
+  const mp = make(wardrobe), tl = assemblyTimeline(mp), k = mp.steps.findIndex(s => s.stage === 'doors'), s = tl.steps[k]!;
+  const kinds = (f: typeof s.fixes[number]) => new Set(f.items.map(i => mp.fittings[i]!.kind));
+  const hinges = s.fixes.filter(f => kinds(f).has('hinge')), plates = s.fixes.filter(f => kinds(f).has('plate'));
+  assert.ok(hinges.length && plates.length, 'both are fixed, each in its own turn');
+  for (const f of plates) {
+    assert.deepEqual([...kinds(f)], ['plate'], 'plates alone');
+    assert.ok(f.before && !f.lying && f.at[1] <= s.place[0], 'before the doors come, into a board that stands');
+    assert.ok(tl.boardStep[f.board!]! < k && mp.boards[f.board!]!.stock !== 'door', 'through a side panel or partition already up');
+  }
+  assert.ok(Math.max(...hinges.map(f => f.at[1])) <= Math.min(...plates.map(f => f.at[0])), 'the hinges into the doors first');
+  assert.ok(!FITTED_FIRST.has('plate'), 'a plate is not just there: it is screwed on');
+  assert.equal(mp.fittings.filter(f => f.kind === 'plate').length, plates.reduce((n, f) => n + f.items.length, 0), 'every plate');
+});
+
+test('a door is hung by clipping its hinges onto the plates: held in front, seen through, then pushed home', () => {
+  const mp = make(wardrobe), tl = assemblyTimeline(mp), k = mp.steps.findIndex(s => s.stage === 'doors'), s = tl.steps[k]!, at = (t: number) => playhead(tl, t);
+  const door = mp.boards.findIndex(b => b.stock === 'door'), side = mp.boards.findIndex(b => b.stock !== 'door');
+  assert.ok(s.place[1] <= s.hang[0] && s.hang[1] > s.hang[0] && s.hang[1] <= s.fix[0], 'after the doors come, before their handles');
+  tl.steps.forEach((x, j) => j !== k && assert.equal(x.hang[1], x.hang[0], 'only doors are hung'));
+  const z = (t: number) => doorNudge(tl, at(t), door)[2];
+  assert.ok(Math.abs(z(s.hang[0]) - (HANG_OUT + CLIPPED_ON[2])) < 1e-9, 'held in front of its place, hinge arms short of the plates');
+  assert.ok(Math.abs(z(s.hang[1]) - CLIPPED_ON[2]) < 1e-9, 'home on its plates');
+  let last = Infinity;
+  for (const t of times(tl.duration).filter(t => t >= s.hang[0] && t <= s.hang[1])) { assert.ok(z(t) <= last + 1e-9, 'it only goes in'); last = z(t); }
+  assert.ok(seeThrough(tl, at((s.hang[0] + s.hang[1]) / 2), door), 'seen through while the arms go onto the plates');
+  assert.ok(!seeThrough(tl, at(s.hang[1]), door) && !seeThrough(tl, at(tl.duration), door), 'solid once clipped');
+  assert.ok(!seeThrough(tl, at((s.hang[0] + s.hang[1]) / 2), side), 'only the doors');
 });

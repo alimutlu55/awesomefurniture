@@ -5,8 +5,9 @@ import type { Measure, Vec3 } from './make-measures';
 /** How far from its hole a fastener waits (centimetres) before it goes in, along the dashed line it goes in by. */
 export const WAIT = 10;
 /** Hardware put in before the boards it joins come together, into a board lying on the floor or one already standing:
- * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down. */
-export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge']);
+ * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down,
+ * a hinge's plate onto the side panel the door will hang from. */
+export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge', 'plate']);
 
 /** Where a fitting goes in: the point it ends at (a screw's head at the hole's mouth), the way it travels (a unit
  * vector, into the board) and the board it goes in through (null for hardware standing on its own). */
