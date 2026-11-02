@@ -3,8 +3,9 @@ import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
- * button: it waits hidden among the defaults and the Auto design action presses it. */
-export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime, autoDesign }) {
+ * button: it waits hidden among the defaults and the Auto design action presses it. `state`, when given, says what a tool
+ * shows now (`label`, e.g. "Hinged left") and which of a menu's choices is the current one (`checked`). */
+export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime, autoDesign, state }) {
     const defaults = document.createElement('div');
     defaults.className = 'contextual-defaults';
     defaults.append(...root.childNodes);
@@ -106,6 +107,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             text.textContent = label;
             b.append(text);
             if (key === 'stores') b.disabled = !controls(key).length;
+            const checked = state?.checked?.(key);
+            if (checked !== undefined) { b.setAttribute('role', 'menuitemradio'); b.setAttribute('aria-checked', String(checked)); }
             b.onclick = () => key === 'stores' || fieldActions.includes(key) ? showControls(key, label, trigger) : key === 'auto' && autoDesign ? (close(), autoDesign.click()) : (close(), execute(key));
             return b;
         }));
@@ -114,9 +117,14 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         positionMenu(trigger);
         menu.querySelector('button')?.focus({preventScroll:true});
     }
+    /** Each tool's label as it stands now: its state's, else its own. */
+    const sync = () => row.querySelectorAll('button[data-action]').forEach(b => {
+        const text = b.querySelector('span'), now = state?.label?.(b.dataset.action) ?? b.dataset.label;
+        if (text && now && text.textContent !== now) { text.textContent = now; b.setAttribute('aria-label', now); }
+    });
     const render = () => {
         const selection = getSelection();
-        if (selection === context) return;
+        if (selection === context) { sync(); return; }
         context = selection;
         close();
         root.dataset.context = selection;
@@ -126,7 +134,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         // Nothing selected: the defaults (the furniture to choose, More) show instead of a row.
         row.replaceChildren(...(selection === 'none' ? [] : contextualActions(selection)).filter(([key]) => !['undo','redo'].includes(key)).map(([key,label,name]) => {
             const b = document.createElement('button');
-            b.type = 'button'; b.className = 'tb'; b.dataset.action = key;
+            b.type = 'button'; b.className = 'tb'; b.dataset.action = key; b.dataset.label = label;
             b.setAttribute('aria-label', name ?? label);
             if (name) b.title = name;
             b.innerHTML = icons[key] + '<span>' + label + '</span>';
@@ -136,6 +144,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
                 : fieldActions.includes(key) ? (menu.hidden || menuTrigger !== b ? showControls(key,label,b) : close()) : (close(),execute(key));
             return b;
         }));
+        sync();
     };
     lifetime.listen(app, 'pointerdown', e => { if (!menu.contains(e.target) && !row.contains(e.target)) close(); });
     lifetime.listen(app, 'keydown', e => {

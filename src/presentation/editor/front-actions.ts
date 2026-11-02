@@ -1,4 +1,5 @@
 import { leafKey, parseLeafKey } from '../../domain/wardrobe/front-styles';
+import { cabinetDoorLeaves } from '../../domain/wardrobe/door-layout';
 import { chosenLeaf, type createSelectionState } from './selection-state.js';
 import type { createEditorModel } from '../../application/projects/editor-model.js';
 import type { createDesignCommands } from '../../application/commands/design-commands';
@@ -64,4 +65,26 @@ export function leafControls(key: string, { selectionState, model, document }: P
     const box = document.createElement('div');
     box.innerHTML = doorFactsHtml(facts);
     return [box.firstElementChild as HTMLElement];
+}
+
+/**
+ * What the chosen leaf's tools show now (the toolbar's `state`): the side it hangs on ("Hinged left"), how many doors its
+ * opening has ("2 doors"), and that count checked in the Doors menu. Nothing when no leaf is chosen.
+ */
+export function leafToolState(ports: Pick<LeafActionPorts, 'selectionState' | 'model'> & { readonly widths: () => readonly number[] }) {
+    const leaf = () => {
+        const key = chosen(ports);
+        return key ? cabinetDoorLeaves(ports.model.activeCabinet().state, ports.widths()).find(l => leafKey(l.bay, l.row, l.leaf) === key) : undefined;
+    };
+    return {
+        label(key: string | undefined) {
+            if (key !== 'leaf-hinge' && key !== 'leaf-leaves') return undefined;
+            const l = leaf();
+            return !l ? undefined : key === 'leaf-hinge' ? (l.hinge === 'left' ? 'Hinged left' : 'Hinged right') : l.of === 1 ? '1 door' : l.of + ' doors';
+        },
+        checked(key: string) {
+            if (!key.startsWith('leaves-')) return undefined;
+            return leaf()?.of === Number(key.slice('leaves-'.length));
+        },
+    };
 }

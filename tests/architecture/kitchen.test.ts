@@ -226,7 +226,7 @@ test('door and handle side · wardrobe doorHang and kitchen item hinge control 2
   const pivots = renderCabinetDoors(wardrobe, [56.4], group, box as never, (() => new THREE.Mesh()) as never, { M: () => mat }, mat, mat);
   assert.equal(pivots.length, 1);
   assert.ok(pivots[0]!.position.x > 0, 'right-hung wardrobe door pivots on its right edge');
-  assert.equal(pivots[0]!.userData.t, 1.6, 'and swings open to the right');
+  assert.equal(pivots[0]!.userData.t, 110 * Math.PI / 180, 'and swings open to the right, to its 110° hinge\'s angle');
 
   // Kitchen cabinet and item-level hinge override:
   const base = { ...createKitchenDesign('base'), sel: 0, item: 0, divider: -1, space: null, open: false };

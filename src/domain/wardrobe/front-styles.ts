@@ -162,3 +162,12 @@ export function resolveFronts(design: { fronts?: DesignFronts | undefined; mater
   const style = fronts.style ?? (FRONT_STYLES as readonly FrontStyleDef[]).find(s => profile && s.materialProfile === profile)?.key as FrontStyle | undefined ?? DEFAULT_FRONT.style;
   return { style, overlay: fronts.overlay ?? frontStyle(style)!.overlays[0]! as FrontOverlay, reveal: fronts.reveal ?? DEFAULT_FRONT.revealMm as FrontRevealMm, leaves: fronts.leaves ?? {} };
 }
+
+/** The style a door leaf is made in: the cabinet's, when its decor (the leaf's own, else the fronts') is one that style is
+ * made in; else a slab. The 3D view, the hardware list and Make all ask this, so a handle-rail door has no handle anywhere. */
+export function madeStyle(design: { fronts?: DesignFronts | undefined; materials?: { frontProfile?: string | undefined; frontDecorId?: string | undefined } | undefined; doors?: string | undefined },
+  decorId?: string | undefined): FrontStyleDef {
+  const style = frontStyle(resolveFronts(design).style)!, id = decorId ?? design.materials?.frontDecorId;
+  const decor = id === undefined ? undefined : decorCatalog.find(d => d.id === id);
+  return design.doors !== 'glass' && decor && (style.decors as readonly string[]).includes(decor.category) ? style : frontStyle(DEFAULT_FRONT.style)!;
+}

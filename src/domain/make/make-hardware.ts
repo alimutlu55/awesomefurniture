@@ -5,6 +5,7 @@ import type { PlacedPiece } from '../drawings/room-pieces';
 import { isKitchen } from '../furniture/furniture';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
+import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
@@ -117,7 +118,9 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     }
     // A drawer's own front behind closed doors has a finger grip, not a handle (D4).
     const grip = !f && !!b.kind && innerFrontBehindDoor(design, { k: b.kind });
-    if (handles && !grip && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
+    // A handle-rail door is its own grip (madeStyle): no handle drilled.
+    const rail = f?.opens === 'side' && !!madeStyle({ ...design, materials: resolveMaterials(design) }, b.decorId).grip;
+    if (handles && !grip && !rail && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
       // The design's handle where handlePlacement puts it (as the 3D view draws it), with its screws: through the front, an
       // edge pull's from the back near the edge, none for a recessed or profile pull.
       const at = handlePlacement({ ...b, door: f?.opens === 'side', hinge: f?.hinge }, handle), back = at.back, z = back ? b.z0 : b.z1;

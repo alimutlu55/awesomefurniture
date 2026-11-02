@@ -3,10 +3,12 @@ import { materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISH
 import { designerPalettes } from '../../domain/materials/designer-palettes';
 import { HANDLES, resolveHandle, type HandleKind, type HandleSize } from '../../domain/wardrobe/handles';
 import { appendDecorBrowser } from './decor-browser';
+import { appendDoorStyle, syncDoorStyle } from './door-style-picker';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { createDesignCommands } from '../../application/commands/design-commands';
 
-type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setHandle' | 'setAccessoryFinish' | 'applyDesignerPalette'>;
+type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setHandle' | 'setAccessoryFinish' | 'applyDesignerPalette'
+  | 'setFrontStyle' | 'setFrontOverlay' | 'setFrontReveal'>;
 const finishLabels: Record<string, string> = { matte_black: 'Matte black', brushed_brass: 'Brushed brass',
   anodized_champagne: 'Anodized champagne', handleless_tip_on: 'Handleless · push-to-open', brushed_steel: 'Brushed steel' };
 
@@ -31,6 +33,8 @@ export function bindDecorPicker(root: HTMLElement, commands: Commands) {
   }
   const linked = root.querySelector<HTMLInputElement>('[data-decor-link]')!;
   linked.onchange = () => commands.setLinkedDecors(linked.checked);
+  // The doors' style, gap and overlay, before their handle.
+  appendDoorStyle(root, commands);
   // The handle: its kind and size (from the handle registry), then its finish, in the same fields as the finishes.
   const handleField = (label: string, name: string) => {
     const field = document.createElement('label'); field.className = 'decor-finish-field'; field.textContent = label;
@@ -85,4 +89,5 @@ export function syncDecorPicker(root: HTMLElement, design: EditorDesign) {
     size.closest<HTMLElement>('.decor-finish-field')!.hidden = current.kind.sizes.length === 0;
   }
   if (accessory) accessory.value = materials.internalAccessoryFinish;
+  syncDoorStyle(root, design);
 }

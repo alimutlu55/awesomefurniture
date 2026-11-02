@@ -43,8 +43,11 @@ const assert = require('node:assert/strict');
       assert.deepEqual(await toolbar.locator('.contextual-actions button').evaluateAll(es => es.map(e => e.dataset.action)), ['leaf-hinge', 'leaf-leaves', 'leaf-handle', 'leaf-facts']);
       const shut = await doors();
       // Hinge side: drawn at once, one undo step back to how it was.
+      const side = await toolbar.locator('[data-action="leaf-hinge"]').textContent();
+      assert.match(side, /^Hinged (left|right)$/, `${width}: the tool says which side the door hangs on`);
       await press(toolbar.locator('[data-action="leaf-hinge"]'));
       assert.ok(await changed(await doors(), shut), `${width}: the leaf hangs on its other side`);
+      assert.equal(await toolbar.locator('[data-action="leaf-hinge"]').textContent(), side.endsWith('left') ? 'Hinged right' : 'Hinged left', `${width}: and now says the other`);
       assert.equal(await app.getAttribute('data-leaf'), '0.0.1', `${width}: the leaf stays chosen`);
       if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/leaf-hinge-${width}x${height}.png` });
       await press(el('undo2'));
@@ -52,7 +55,8 @@ const assert = require('node:assert/strict');
       // Leaves: the opening as one leaf; the chosen right leaf is gone, so the one left is chosen. Undo splits it again.
       await press(toolbar.locator('[data-action="leaf-leaves"]'));
       const menu = page.locator('.contextual-popover[role="menu"]');
-      assert.deepEqual(await menu.locator('button').allTextContents(), ['1 leaf', '2 leaves']);
+      assert.deepEqual(await menu.locator('button').allTextContents(), ['1 door', '2 doors']);
+      assert.equal(await menu.locator('[aria-checked="true"]').textContent(), '2 doors', `${width}: the opening's count is checked`);
       if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/leaf-leaves-menu-${width}x${height}.png` });
       await press(menu.locator('[data-action="leaves-1"]'));
       assert.equal(await app.getAttribute('data-leaf'), '0.0.0', `${width}: the leaf left is chosen`);

@@ -5,6 +5,7 @@ import { getDecor } from '../materials/decor-catalog';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge, hingeFor, hingesFor } from '../wardrobe/hinges';
 import { handleLabel, resolveHandle } from '../wardrobe/handles';
+import { madeStyle } from '../wardrobe/front-styles';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
@@ -51,6 +52,8 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         add(p, kind.name, kind.cup ? kind.cup.d + ' mm cup' : 'compatible with frame/carrier; no cup drilling in glass', hingesFor(mm(doorHeight(f, boards))));
       }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
+      // A handle-rail door is its own grip: its profile, as long as the door is wide, in place of a handle.
+      if (f.opens === 'side' && !f.label && madeStyle({ ...d, materials: resolveMaterials(d) }, f.decorId).grip) { add(p, 'Handle rail profile', mm(f.x1 - f.x0) + ' mm long', 1); continue; }
       const handle = resolveHandle(resolveMaterials(d));
       if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
       else add(p, 'Handle', handleLabel(handle), 1);

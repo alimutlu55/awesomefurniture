@@ -2,7 +2,7 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { bindTactileCanvas } from './tactile-canvas';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
-import { leafAction, leafContext, leafControls, openAction } from './front-actions';
+import { leafAction, leafContext, leafControls, leafToolState, openAction } from './front-actions';
 import { createViewModes } from './view-modes';
 import { createStudio2DPlanner } from './studio-2d-planner';
 import { bindSceneReset } from './scene-reset';
@@ -293,7 +293,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             }
         },
     });
-    createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime, autoDesign:$('#launch-wizard'),
+    createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime, autoDesign:$('#launch-wizard'), state:leafToolState({ selectionState, model, widths: () => geometry.widths() }),
         // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();

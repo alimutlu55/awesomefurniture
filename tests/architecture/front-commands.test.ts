@@ -4,7 +4,7 @@ import { createEditorState } from '../../src/application/projects/editor-state';
 import { createDesignCommands } from '../../src/application/commands/design-commands';
 import { createWardrobeGeometry } from '../../src/domain/geometry/wardrobe-geometry.js';
 import { cabinetDoorLeaves } from '../../src/domain/wardrobe/door-layout';
-import { frontsProblems, leafKey } from '../../src/domain/wardrobe/front-styles';
+import { frontsProblems, leafKey, resolveFronts } from '../../src/domain/wardrobe/front-styles';
 import { projectToScene, sceneToProject } from '../../src/application/projects/editor-mapper';
 import { deserializeProject, serializeProject } from '../../src/infrastructure/serialization/project-codec';
 import { createProject } from '../../src/domain/project/project';
@@ -62,4 +62,24 @@ test('no doors, no leaf to change', () => {
   assert.equal(commands.flipLeafHinge('0.0.0'), false);
   assert.equal(commands.setOpeningLeaves('0.0.0', 2), false);
   assert.equal(state.fronts, undefined);
+});
+
+test('the cabinet\'s door style, gap and overlay: one undo step each, an overlay the style cannot hang falls back to its own', () => {
+  const state = { ...createEditorState(), doors: 'hinged' } as EditorState;
+  let steps = 0;
+  const commands = createDesignCommands(() => state, { checkpoint: () => { steps++; } });
+  assert.ok(commands.setFrontOverlay('half'));
+  assert.equal(resolveFronts(state).overlay, 'half');
+  assert.ok(commands.setFrontStyle('shaker'));
+  assert.deepEqual([resolveFronts(state).style, resolveFronts(state).overlay], ['shaker', 'full'], 'Shaker is not hung half overlay');
+  assert.equal(commands.setFrontOverlay('half'), false, 'nor can it be set so');
+  assert.ok(commands.setFrontReveal(4));
+  assert.equal(resolveFronts(state).reveal, 4);
+  assert.equal(commands.setFrontReveal(5 as never), false);
+  assert.equal(commands.setFrontStyle('nope' as never), false);
+  assert.equal(commands.setFrontStyle('shaker'), false, 'no change, no undo step');
+  assert.equal(steps, 3);
+  assert.deepEqual(frontsProblems(state.fronts!), []);
+  const loaded = projectToScene(deserializeProject(save(scene(state))))!.wardrobes[0]!.state;
+  assert.deepEqual(resolveFronts(loaded), resolveFronts(state), 'saved and loaded');
 });

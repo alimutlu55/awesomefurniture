@@ -1,5 +1,5 @@
 import { cabinetDoorLeaves } from '../../domain/wardrobe/door-layout';
-import { leafKey, MAX_LEAVES, type LeafSettings } from '../../domain/wardrobe/front-styles';
+import { frontStyle, isFrontReveal, leafKey, MAX_LEAVES, resolveFronts, type FrontOverlay, type FrontRevealMm, type FrontStyle, type LeafSettings } from '../../domain/wardrobe/front-styles';
 import type { EditorState } from '../projects/editor-scene';
 
 type Ports = {
@@ -39,5 +39,27 @@ export function createFrontCommands({ getDesign, widths, run }: Ports) {
         });
         return true;
     }
-    return { flipLeafHinge, setOpeningLeaves };
+    /** The cabinet's fronts as a whole, one undo step each; false when nothing changes or the value is not offered. */
+    const setFronts = (next: { style?: FrontStyle; overlay?: FrontOverlay; reveal?: FrontRevealMm }) => {
+        const now = resolveFronts(getDesign()), merged = { ...now, ...next };
+        if (merged.style === now.style && merged.overlay === now.overlay && merged.reveal === now.reveal) return false;
+        run(() => { const design = getDesign(); design.fronts = { ...design.fronts, style: merged.style, overlay: merged.overlay, reveal: merged.reveal }; });
+        return true;
+    };
+    /** The doors' style. A style hangs only its own overlays: an overlay it cannot take becomes its first. */
+    function setFrontStyle(style: FrontStyle) {
+        const def = frontStyle(style);
+        if (!def) return false;
+        const overlay = resolveFronts(getDesign()).overlay;
+        return setFronts({ style, overlay: (def.overlays as readonly FrontOverlay[]).includes(overlay) ? overlay : def.overlays[0] as FrontOverlay });
+    }
+    /** How the doors sit on the carcass, if the style can hang them so. */
+    function setFrontOverlay(overlay: FrontOverlay) {
+        return (frontStyle(resolveFronts(getDesign()).style)!.overlays as readonly string[]).includes(overlay) && setFronts({ overlay });
+    }
+    /** The gap round each door, one of the offered reveals. */
+    function setFrontReveal(reveal: FrontRevealMm) {
+        return isFrontReveal(reveal) && setFronts({ reveal });
+    }
+    return { flipLeafHinge, setOpeningLeaves, setFrontStyle, setFrontOverlay, setFrontReveal };
 }

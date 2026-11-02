@@ -1,3 +1,4 @@
+import { HINGES } from '../../src/domain/wardrobe/hinges';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Group, Mesh, BoxGeometry, MeshBasicMaterial } from 'three';
@@ -76,8 +77,11 @@ test('hinged and glass leaves render separately, with opposing hinges and workin
             assert.equal(pivots.length, doors === 'none' ? 0 : 2);
             if (doors === 'none') continue;
             assert.ok(pivots[0]!.position.x < 0 && pivots[1]!.position.x > 0);
-            close(pivots[0]!.rotation.y, open ? -1.6 : 0);
-            close(pivots[1]!.rotation.y, open ? 1.6 : 0);
+            // Open, each swings out to its own hinge's opening angle (HINGES), the left one left and the right one right.
+            const angles = HINGES.map(h => h.angle * Math.PI / 180);
+            assert.ok(pivots[0]!.userData.t < 0 && pivots[1]!.userData.t > 0 && pivots.every(p => angles.some(a => Math.abs(Math.abs(p.userData.t) - a) < 1e-9)));
+            close(pivots[0]!.rotation.y, open ? pivots[0]!.userData.t : 0);
+            close(pivots[1]!.rotation.y, open ? pivots[1]!.userData.t : 0);
             const left = pivots[0]!.children[0] as Mesh, right = pivots[1]!.children[0] as Mesh;
             left.geometry.computeBoundingBox(); right.geometry.computeBoundingBox();
             close(pivots[0]!.position.x + left.position.x + left.geometry.boundingBox!.max.x, -.1);
