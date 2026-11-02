@@ -2,7 +2,7 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { bindTactileCanvas } from './tactile-canvas';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
-import { leafAction, leafContext } from './leaf-actions';
+import { leafAction, leafContext } from './front-actions';
 import { createViewModes } from './view-modes';
 import { createStudio2DPlanner } from './studio-2d-planner';
 import { bindSceneReset } from './scene-reset';
