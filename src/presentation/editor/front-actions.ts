@@ -2,6 +2,8 @@ import { leafKey, parseLeafKey } from '../../domain/wardrobe/front-styles';
 import { chosenLeaf, type createSelectionState } from './selection-state.js';
 import type { createEditorModel } from '../../application/projects/editor-model.js';
 import type { createDesignCommands } from '../../application/commands/design-commands';
+import { doorFacts, doorFactsHtml } from './door-facts';
+import { drawingInputOf } from '../drawings/drawing-release';
 
 type Model = Pick<ReturnType<typeof createEditorModel>, 'scene' | 'activeCabinet'>;
 type SelectionState = ReturnType<typeof createSelectionState>;
@@ -52,4 +54,14 @@ export function openAction(key: string, { model, renderState }: { readonly model
     state.open = !shown;
     renderState.showOpen = shown ? null : state;
     return true;
+}
+
+/** The chosen leaf's facts (contextual-actions `leaf-facts`, P1-11): a small drawing and its numbers, for the toolbar's
+ * own popover. Nothing for any other key. */
+export function leafControls(key: string, { selectionState, model, document }: Pick<LeafActionPorts, 'selectionState' | 'model'> & { readonly document: Pick<Document, 'createElement'> }): HTMLElement[] {
+    const key0 = key === 'leaf-facts' ? chosen({ selectionState, model }) : null, facts = key0 ? doorFacts(drawingInputOf(model.scene), model.scene.activeWardrobe, key0) : null;
+    if (!facts) return [];
+    const box = document.createElement('div');
+    box.innerHTML = doorFactsHtml(facts);
+    return [box.firstElementChild as HTMLElement];
 }

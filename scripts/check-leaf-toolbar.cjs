@@ -40,7 +40,7 @@ const assert = require('node:assert/strict');
       await tap(.5, .4); await tap(.62);
       assert.equal(await app.getAttribute('data-leaf'), '0.0.1', `${width}: the right leaf is chosen`);
       assert.equal(await toolbar.getAttribute('data-context'), 'leaf', `${width}: the toolbar is the leaf's`);
-      assert.deepEqual(await toolbar.locator('.contextual-actions button').evaluateAll(es => es.map(e => e.dataset.action)), ['leaf-hinge', 'leaf-leaves', 'leaf-handle']);
+      assert.deepEqual(await toolbar.locator('.contextual-actions button').evaluateAll(es => es.map(e => e.dataset.action)), ['leaf-hinge', 'leaf-leaves', 'leaf-handle', 'leaf-facts']);
       const shut = await doors();
       // Hinge side: drawn at once, one undo step back to how it was.
       await press(toolbar.locator('[data-action="leaf-hinge"]'));

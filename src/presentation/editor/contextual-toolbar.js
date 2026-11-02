@@ -40,7 +40,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),
         'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make'),
         'make-done':icon('done'),'make-assembly':icon('apart'),'make-apart':icon('apart'),'make-fronts':icon('doors'),'make-measures':icon('dims'),'make-view':icon('view'),'make-parts':icon('parts'),
-        'leaf-hinge':icon('flip'),'leaf-leaves':icon('split'),'leaf-handle':icon('material')};
+        'leaf-hinge':icon('flip'),'leaf-leaves':icon('split'),'leaf-handle':icon('material'),'leaf-facts':icon('doors')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),fronts:icon('doors'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
