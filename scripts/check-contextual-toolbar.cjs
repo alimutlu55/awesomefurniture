@@ -136,7 +136,7 @@ const assert=require('node:assert/strict');
    assert.equal(await el('view-modes').isVisible(),true,'Leaving Shape restores mode switching');
    assert.equal(await el('topright').isVisible(),true,'Leaving Shape restores Storage and Menu');
    await toolbar.locator('.contextual-actions [data-action="more"]').click();
-   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Fronts','Sections','Duplicate','Reset','Remove']);
+   assert.deepEqual(await page.locator('.contextual-popover button').allTextContents(),['Fronts','Sections','Open doors','Duplicate','Reset','Remove']);
    await page.locator('.contextual-popover button').filter({hasText:'Sections'}).click();await page.waitForTimeout(320);
    assert.equal(await el('section-row').isVisible(),true);
    assert.equal(await el('w').isVisible(),false);
