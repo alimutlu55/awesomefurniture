@@ -21,6 +21,8 @@ export interface MakeFilm {
   fit(item: number): number | null;
   /** How far a fastener has come into view where it waits (0 to 1). */
   seen(item: number): number;
+  /** How far a door hangs out of true now, before it is adjusted (side, height, depth; cm). */
+  nudge?(board: number): import('../../domain/make/make-measures').Vec3;
 }
 
 const STEEL = 0x555b62, BRASS = 0x9a7434, BIT = 0x2b2e33;

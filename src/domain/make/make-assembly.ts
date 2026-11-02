@@ -50,7 +50,7 @@ const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
 /** What a step does, in the order a maker works. */
-export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawers', 'fronts', 'wall'] as const;
+export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawers', 'fronts', 'doors', 'wall'] as const;
 export type Stage = typeof STAGES[number];
 export interface Step {
   readonly n: number;
@@ -63,9 +63,9 @@ export interface Step {
 /**
  * The order a maker puts the piece together, from where each board is and what it is: the plinth; the base between the
  * outer sides; the partitions; the top; the back; everything inside (shelves, dividers); the drawer boxes on their
- * runners; the doors and fronts.
- * Hardware joins in the step that adds the later of the boards it holds; legs with the plinth, hinge plates with the doors,
- * wall fixings last.
+ * runners; the fronts (drawer and kitchen fronts); the doors, hung on their hinge plates and adjusted.
+ * Hardware joins in the step that adds the later of the boards it holds; legs with the plinth, a hinge plate with its
+ * door (the hinge before it in the list), wall fixings last.
  */
 export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[]): Step[] {
   const w = Math.max(...boards.map(b => b.x1)), h = Math.max(...boards.map(b => b.y1)), top = h;
@@ -73,7 +73,8 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   const base = horizontals.length ? Math.min(...horizontals.map(b => b.y0)) : -1;
   const stepOf = (b: Board) => {
     if (b.stock === 'plinth') return 1;
-    if (b.stock === 'door' || b.stock === 'front') return 8;
+    if (b.stock === 'door') return 9;
+    if (b.stock === 'front') return 8;
     if (b.note === 'drawer box') return 7;
     if (b.note === 'adjustable') return 6;
     if (b.stock === 'back') return 5;
@@ -84,13 +85,14 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
     return 6;
   };
   const steps = boards.map(stepOf);
-  const fittingStep = (f: Fitting) => f.kind === 'leg' ? 1 : f.kind === 'bracket' || f.kind === 'hanger' ? 9
-    : f.kind === 'rail' || f.kind === 'support' ? 6 : f.kind === 'plate' ? 8 : Math.max(1, ...f.boards.map(i => steps[i]!));
+  const fittingStep = (f: Fitting, i: number): number => f.kind === 'leg' ? 1 : f.kind === 'bracket' || f.kind === 'hanger' ? 10
+    : f.kind === 'rail' || f.kind === 'support' ? 6 : f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge' ? fittingStep(fittings[i - 1]!, i - 1)
+    : Math.max(1, ...f.boards.map(b => steps[b]!));
   const out: Step[] = [];
-  for (let s = 1; s <= 9; s++) {
+  for (let s = 1; s <= STAGES.length; s++) {
     const mine = boards.map((_, i) => i).filter(i => steps[i] === s), held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
     fittings.forEach((f, i) => {
-      if (fittingStep(f) !== s) return;
+      if (fittingStep(f, i) !== s) return;
       const key = f.kind + (f.size ?? ''), line = held.get(key);
       if (line) line.qty++; else held.set(key, { kind: f.kind, ...(f.size ? { size: f.size } : {}), qty: 1 });
       items.push(i);

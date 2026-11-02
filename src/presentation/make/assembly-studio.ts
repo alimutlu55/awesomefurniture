@@ -7,7 +7,7 @@ import { unitSuffix } from '../editor/length-unit-state';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior', drawers: 'Drawers', fronts: 'Doors & fronts', wall: 'Finishing' };
+const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior', drawers: 'Drawers', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const instructions: Record<Stage, string> = {
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
@@ -16,7 +16,8 @@ const instructions: Record<Stage, string> = {
   back: 'Square the cabinet, then fit the back using the selected back fixing.',
   inside: 'Fit the supports at matching heights, then position the shelves and interior components.',
   drawers: 'Assemble each drawer box, fit its runners and align the front.',
-  fronts: 'Fit the hinge plates and hinges, attach the fronts and check the clearances.',
+  fronts: 'Attach the fronts and check the clearances.',
+  doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
 const paths = {

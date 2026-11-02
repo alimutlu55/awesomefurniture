@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { arrivalAt, assemblyTimeline, drillAt, drilled, FITTED_FIRST, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, CLIPPED_ON, doorNudge, drillAt, drilled, FITTED_FIRST, fittedAt, INTRO, OUTRO, playhead, stepStart } from '../../src/domain/make/make-timeline';
 import { lyingDir, lyingFlat, lyingPoint, stagingLayout } from '../../src/domain/make/make-staging';
-import { entryOf } from '../../src/domain/make/make-fixing';
+import { doorGaps, entryOf } from '../../src/domain/make/make-fixing';
 import { tiltOf } from '../../src/domain/make/make-measures';
 import { JOINT_SYSTEMS } from '../../src/domain/make/make-construction';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
@@ -175,4 +175,36 @@ test('a cam joint is a bolt put into the face board before the other board goes 
     assert.ok(camIn > tl.steps[tl.itemStep[cam]!]!.place[1], 'the cam goes in once the board is on');
     assert.equal(arrivalAt(tl, playhead(tl, camIn), edge!), 1);
   }
+});
+
+test('the doors are hung in a chapter of their own and then adjusted: side, height and depth, set true in turn', () => {
+  const mp = make(wardrobe), tl = assemblyTimeline(mp), k = mp.steps.findIndex(s => s.stage === 'doors'), s = tl.steps[k]!;
+  assert.ok(k >= 0 && mp.steps.slice(k + 1).every(x => x.stage === 'wall'), 'the doors come last, before fixing to the wall');
+  assert.ok(s.adjust[1] > s.adjust[0] && s.fix[1] <= s.adjust[0] && s.adjust[1] < s.end, 'adjusted after the hinges are clipped, then held');
+  tl.steps.forEach((x, j) => j !== k && assert.equal(x.adjust[1], x.adjust[0], 'no other step adjusts'));
+  assert.equal(make({ ...wardrobe, doors: 'none' }).steps.filter(x => x.stage === 'doors').length, 0, 'no doors, no doors chapter');
+  const door = mp.boards.findIndex(b => b.stock === 'door'), at = (t: number) => playhead(tl, t);
+  assert.ok(door >= 0);
+  assert.deepEqual(doorNudge(tl, at(s.adjust[0] - .01), door), CLIPPED_ON, 'clipped on slightly out of true');
+  assert.equal(Math.hypot(...doorNudge(tl, at(s.adjust[1]), door)), 0, 'true once adjusted');
+  assert.equal(Math.hypot(...doorNudge(tl, at(tl.duration), door)), 0, 'true at the end');
+  assert.deepEqual([.1, .5, .9].map(f => adjustingNow(tl, at(s.adjust[0] + f * (s.adjust[1] - s.adjust[0])))), ['side', 'height', 'depth']);
+  assert.equal(adjustingNow(tl, at(s.fix[0])), null);
+  // A pure function of time: the same moment reached forwards or after scrubbing back from the end shows the same door.
+  const mid = s.adjust[0] + .4 * (s.adjust[1] - s.adjust[0]), forwards = doorNudge(tl, at(mid), door);
+  doorNudge(tl, at(tl.duration), door);
+  assert.deepEqual(doorNudge(tl, at(mid), door), forwards);
+  let last = Infinity;
+  for (const t of times(tl.duration).filter(t => t >= s.adjust[0] && t <= s.adjust[1])) {
+    const off = Math.hypot(...doorNudge(tl, at(t), door));
+    assert.ok(off <= last + 1e-9, 'a door only comes truer while it is adjusted');
+    last = off;
+  }
+});
+
+test('the gaps a door is adjusted to are the reveal between the doors', () => {
+  const mp = make(wardrobe), gaps = doorGaps(mp), doors = mp.boards.filter(b => b.stock === 'door');
+  assert.ok(doors.length >= 2 && gaps.length >= 1);
+  for (const g of gaps) assert.ok(g.length > 0 && g.length < 1, `a gap of ${g.length} cm is a reveal of a few millimetres`);
+  assert.deepEqual(doorGaps(make({ ...wardrobe, doors: 'none' })), []);
 });

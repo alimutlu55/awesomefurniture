@@ -115,8 +115,11 @@ test('assembly steps take every board once, the carcass before the inside and th
     assert.equal(mp.steps.reduce((s, st) => s + st.fittings.reduce((t, f) => t + f.qty, 0), 0), mp.fittings.length, `${name}: every fitting in a step`);
     const at = (pred: (b: MakePiece['boards'][number]) => boolean) => mp.steps.findIndex(s => s.boards.some(i => pred(mp.boards[i]!)));
     assert.ok(at(b => b.name === 'Side') < at(b => b.name === 'Top'), `${name}: sides before the top`);
+    // The fronts, then the doors in their own chapter: nothing else comes after them.
     const fronts = at(b => b.stock === 'door' || b.stock === 'front');
-    if (fronts >= 0) assert.ok(mp.steps.slice(fronts + 1).every(s => !s.boards.length), `${name}: fronts last`);
+    if (fronts >= 0) assert.ok(mp.steps.slice(fronts + 1).every(s => s.boards.every(i => mp.boards[i]!.stock === 'door')), `${name}: fronts, then doors, last`);
+    const doors = at(b => b.stock === 'door');
+    if (doors >= 0) assert.ok(mp.steps.slice(doors + 1).every(s => !s.boards.length), `${name}: doors last`);
   }
 });
 

@@ -1,6 +1,6 @@
 import type { FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
-import type { Vec3 } from './make-measures';
+import type { Measure, Vec3 } from './make-measures';
 
 /** How far from its hole a fastener waits (centimetres) before it goes in, along the dashed line it goes in by. */
 export const WAIT = 10;
@@ -73,6 +73,24 @@ function places(items: readonly number[], at: (i: number) => Vec3) {
     const merged = [i, ...near.flat()];
     for (const p of near) out.splice(out.indexOf(p), 1);
     out.push(merged);
+  }
+  return out;
+}
+
+/** The gaps a door is adjusted to, as measurements on the front: between neighbouring doors, and over a door with no
+ * neighbour, to the top of the piece. Centimetres; Make draws them while the doors chapter adjusts. */
+export function doorGaps(piece: MakePiece): Measure[] {
+  const doors = piece.boards.filter(b => b.stock === 'door'), top = Math.max(...piece.boards.map(b => b.y1)), out: Measure[] = [];
+  for (const a of doors) {
+    const next = doors.filter(b => b.x0 >= a.x1 - .01 && b.x0 - a.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0).sort((p, q) => p.x0 - q.x0)[0];
+    const z = Math.max(a.z1, next?.z1 ?? a.z1);
+    if (next) {
+      const y = (Math.max(a.y0, next.y0) + Math.min(a.y1, next.y1)) / 2;
+      out.push({ rank: 1, a: [a.x1, y, z], b: [next.x0, y, z], offset: [0, 6, 0], length: next.x0 - a.x1, face: [0, 0, 1] });
+    } else if (!doors.some(b => b.x1 <= a.x0 + .01 && a.x0 - b.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0) && top - a.y1 < 1) {
+      const x = (a.x0 + a.x1) / 2;
+      out.push({ rank: 1, a: [x, a.y1, z], b: [x, top, z], offset: [6, 0, 0], length: top - a.y1, face: [0, 0, 1] });
+    }
   }
   return out;
 }

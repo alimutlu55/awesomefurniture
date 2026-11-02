@@ -1,7 +1,7 @@
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
 import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
-import { thinAxis } from './make-measures';
+import { thinAxis, type Vec3 } from './make-measures';
 
 /**
  * The assembly as a film: each step drills its holes, brings its boards in, then fixes them, and holds a moment. What is
@@ -15,6 +15,10 @@ export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(['pin', 'plate']);
 /** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
 export const INTRO = 2.6, OUTRO = 4;
 const DRILL = 1.8, PLACE = 2.6, HOLD = .9;
+/** The doors chapter ends adjusting each door on its hinges: side, then height, then depth, a third each (seconds). */
+export const ADJUST = 3.6;
+/** How far a door hangs out of true when first clipped on, before it is adjusted: side, height, depth. Centimetres. */
+export const CLIPPED_ON: Vec3 = [.15, -.2, .1];
 /** A joint's fixing: its fasteners come into view at the ends of their lines while the camera comes in (SHOW), go in
  * one after another (longer for more, up to a few seconds), and are seen home (REST). */
 const SHOW = .8, REST = .45, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (n - 1));
@@ -26,6 +30,8 @@ export const HOLE_WINDOW = .35;
 export interface Fix extends FixGroup { readonly at: readonly [number, number]; readonly before: boolean; readonly lying: boolean }
 export interface StepTime {
   readonly start: number; readonly drill: readonly [number, number]; readonly place: readonly [number, number]; readonly fix: readonly [number, number]; readonly end: number;
+  /** The doors chapter's adjusting, after the fixing (zero length in any other step). */
+  readonly adjust: readonly [number, number];
   /** Its fixing, one joint after another. */
   readonly fixes: readonly Fix[];
 }
@@ -73,18 +79,20 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // Drilled, then what goes in before the boards come together (bolts, dowels, hinge cups), then the boards brought
     // in and fixed.
     const start = t, drill = [t, t += mine.length ? DRILL : 0] as const, before = fixing(true), place = [t, t += placing] as const;
-    const fixStart = t, fixes = [...before, ...fixing(false)];
-    steps.push({ start, drill, place, fix: [fixStart, t] as const, end: t += HOLD, fixes });
+    const fixStart = t, fixes = [...before, ...fixing(false)], fix = [fixStart, t] as const;
+    // The doors, hung on their plates, are set true: side, height and depth.
+    const adjust = [t, t += s.stage === 'doors' ? ADJUST : 0] as const;
+    steps.push({ start, drill, place, fix, adjust, end: t += HOLD, fixes });
   });
   return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, itemTime };
 }
 
 /** Where the film is at time `t`: the step (from 0) and how far through each of its phases. */
-export interface Playhead { readonly step: number; readonly drill: number; readonly place: number; readonly fix: number; readonly t: number }
+export interface Playhead { readonly step: number; readonly drill: number; readonly place: number; readonly fix: number; readonly adjust: number; readonly t: number }
 export function playhead(tl: Timeline, t: number): Playhead {
   const at = Math.max(0, Math.min(tl.duration, t)), k = Math.max(0, tl.steps.findIndex(s => at < s.end) === -1 ? tl.steps.length - 1 : tl.steps.findIndex(s => at < s.end));
   const s = tl.steps[k]!, part = (p: readonly [number, number]) => p[1] <= p[0] ? (at >= p[0] ? 1 : 0) : Math.max(0, Math.min(1, (at - p[0]) / (p[1] - p[0])));
-  return { step: k, drill: part(s.drill), place: part(s.place), fix: part(s.fix), t: at };
+  return { step: k, drill: part(s.drill), place: part(s.place), fix: part(s.fix), adjust: part(s.adjust), t: at };
 }
 /** Where a hole's drill is (0 above it, 1 back out), or null when it is not being drilled now. */
 export function drillAt(tl: Timeline, ph: Playhead, hole: number): number | null {
@@ -124,3 +132,17 @@ export function arrivalAt(tl: Timeline, ph: Playhead, board: number): number {
 }
 /** The start of step `k`, to jump to it. */
 export const stepStart = (tl: Timeline, k: number) => tl.steps[Math.max(0, Math.min(tl.steps.length - 1, k))]!.start;
+
+/** Which way a door is being adjusted now (one after another: side, height, depth), or null when none is. */
+export function adjustingNow(tl: Timeline, ph: Playhead): 'side' | 'height' | 'depth' | null {
+  const s = tl.steps[ph.step]!;
+  if (s.adjust[1] <= s.adjust[0] || ph.t < s.adjust[0] || ph.t >= s.adjust[1]) return null;
+  return (['side', 'height', 'depth'] as const)[Math.min(2, Math.floor(ph.adjust * 3))]!;
+}
+/** How far a door board stands out of true at this moment (side, height, depth, cm): clipped on slightly out
+ * (CLIPPED_ON), then each way set true in its turn while the doors chapter adjusts; true before it comes in and after. */
+export function doorNudge(tl: Timeline, ph: Playhead, board: number): Vec3 {
+  const s = tl.steps[ph.step]!;
+  if (tl.boardStep[board] !== ph.step || s.adjust[1] <= s.adjust[0]) return [0, 0, 0];
+  return CLIPPED_ON.map((v, axis) => v * (1 - unit(ph.adjust * 3 - axis))) as unknown as Vec3;
+}

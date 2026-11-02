@@ -56,7 +56,7 @@ export function hardwareTab(piece: MakePiece) {
 /** What each step does, as its chapter is called. */
 export const STAGE_NAMES: Record<Stage, string> = {
   plinth: 'Plinth', carcass: 'Base and sides', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Inside', drawers: 'Drawers',
-  fronts: 'Doors and fronts', wall: 'Fix to the wall',
+  fronts: 'Fronts', doors: 'Doors', wall: 'Fix to the wall',
 };
 /** Every stock sheet, its parts drawn on it to scale and numbered, how much of it is used; then the banding to buy. */
 export function cuttingTab(layout: CutLayout, material: (decorId: string) => string) {

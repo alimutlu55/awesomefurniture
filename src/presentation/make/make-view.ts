@@ -106,7 +106,8 @@ export function createMakeView(ports: MakeViewPorts) {
     if (key === st.marks) return;
     st.marks = key;
     overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    overlay.innerHTML = marksSvg(st.piece, { ...st, open: st.open > .02 ? st.open : 0, fixing: st.filming ? player.fixing() : null }, projector(), b => make3d.offsetOf(b), length, { w, h, left: dockedLeft() });
+    overlay.innerHTML = marksSvg(st.piece, { ...st, open: st.open > .02 ? st.open : 0, fixing: st.filming ? player.fixing() : null, adjusting: st.filming ? player.adjusting()?.gaps ?? null : null },
+      projector(), b => make3d.offsetOf(b), length, { w, h, left: dockedLeft() });
   }
 
   function renderPanel() {

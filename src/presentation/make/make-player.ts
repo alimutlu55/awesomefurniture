@@ -1,8 +1,8 @@
 import type { MakePiece } from '../../domain/make/make-parts';
-import { arrivalAt, assemblyTimeline, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
-import { entryOf, WAIT } from '../../domain/make/make-fixing';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
-import type { Vec3 } from '../../domain/make/make-measures';
+import type { Measure, Vec3 } from '../../domain/make/make-measures';
 import { lyingPoint, type Staged, stagingLayout } from '../../domain/make/make-staging';
 import type { MakeFilm } from './make-play-3d';
 
@@ -12,7 +12,7 @@ import type { MakeFilm } from './make-play-3d';
  */
 export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
-  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0, t: 0 };
+  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
     load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; },
@@ -65,7 +65,14 @@ export function createMakePlayer() {
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
         seen: item => seenAt(line, ph, item),
+        nudge: board => doorNudge(line, ph, board),
       };
+    },
+    /** While the doors chapter adjusts the doors: the gaps they are set to, as measurements, and which way now. */
+    adjusting(): { gaps: readonly Measure[]; way: 'side' | 'height' | 'depth' } | null {
+      if (!piece || !tl) return null;
+      const way = adjustingNow(tl, head());
+      return way ? { gaps: doorGaps(piece), way } : null;
     },
     /** The joint being fixed now: each fitting's dashed line in (from where it waits to its hole), how far it has come
      * into view and gone in, and what goes in, counted. */

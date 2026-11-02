@@ -25,6 +25,8 @@ export interface MarksState {
   readonly building?: ReadonlySet<number> | null | undefined;
   /** In a build step: the joint being fixed now. */
   readonly fixing?: Fixing | null | undefined;
+  /** In the doors chapter: the gaps the doors are being adjusted to. */
+  readonly adjusting?: readonly Measure[] | null | undefined;
 }
 
 type Box = [number, number, number, number];
@@ -69,6 +71,24 @@ export function measureMarks(pr: Projector, list: readonly Measure[], length: Le
     out += `<g class="make-measure r${m.rank}${m.ordinate ? ' ord' : ''}">` + line(PA, PB, 'make-dim') + (m.ordinate ? level(PA) + level(PB) : tick(PA) + tick(PB))
       + `<rect class="make-tag" x="${n1(box[0])}" y="${n1(box[1])}" width="${n1(tw)}" height="${n1(th)}" rx="${n1(th / 2)}"/>`
       + `<text class="make-tagt" font-size="${n1(size)}" x="${n1(cx)}" y="${n1(cy)}" text-anchor="middle" dominant-baseline="central">${label}</text></g>`;
+  }
+  return out;
+}
+
+/** Gaps too narrow to write a figure inside (a door's reveal): arrows come in to each side from outside, as drawings
+ * dimension a small gap, and the figure stands off it on a leader in the measurement's offset direction. */
+export function gapMarks(pr: Projector, list: readonly Measure[], length: LengthText, fs: number, placed: Box[] = []) {
+  let out = '';
+  for (const m of list) {
+    const len = Math.max(m.length, 1e-6), u = [0, 1, 2].map(i => (m.b[i]! - m.a[i]!) / len * 4) as unknown as Vec3, mid = m.a.map((v, i) => (v + m.b[i]!) / 2) as unknown as Vec3;
+    const pa = pr(m.a), pb = pr(m.b), qa = pr(add(m.a, u.map(v => -v) as unknown as Vec3)), qb = pr(add(m.b, u)), pm = pr(mid), tag = pr(add(mid, m.offset));
+    if (!pa || !pb || !qa || !qb || !pm || !tag) continue;
+    const label = length(m.length), tw = label.length * fs * .62 + fs * .8, th = fs * 1.45, box: Box = [tag[0] - tw / 2, tag[1] - th / 2, tag[0] + tw / 2, tag[1] + th / 2];
+    if (overlaps(box, placed)) continue;
+    placed.push(box);
+    out += '<g class="make-measure r1">' + line(qa, pa, 'make-dim') + line(qb, pb, 'make-dim') + line(pm, tag, 'make-ext')
+      + `<rect class="make-tag" x="${n1(box[0])}" y="${n1(box[1])}" width="${n1(tw)}" height="${n1(th)}" rx="${n1(th / 2)}"/>`
+      + `<text class="make-tagt" font-size="${n1(fs)}" x="${n1(tag[0])}" y="${n1(tag[1])}" text-anchor="middle" dominant-baseline="central">${label}</text></g>`;
   }
   return out;
 }
@@ -165,6 +185,7 @@ export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, off
   let out = '';
   // A build step: only the numbers of the parts it adds, the piece's own sizes would measure what is not there yet.
   // While a joint is fixed, only what goes into it.
+  if (state.building && state.adjusting?.length) return gapMarks(pr, state.adjusting, length, fs, placed);
   if (state.building) return state.fixing ? fixingMarks(pr, state.fixing, size, fs) : numberMarks(pr, piece, offsetOf, size, fs, null, state.building);
   if (state.measures) {
     const part = state.selected === null ? null : piece.parts.find(p => p.n === state.selected) ?? null;

@@ -65,6 +65,12 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       shot(fix.at[0] + span * .2, points, az, el, .95);
       shot(fix.at[1] - span * .08, points, az + turn * .3, el, .9);
     });
+    // Adjusting the doors: square on to their fronts, close enough to read the gaps.
+    if (s.adjust[1] > s.adjust[0]) {
+      const doors = step.boards.flatMap(placed);
+      shot(s.adjust[0] + .3, doors, facing, .12, .98);
+      shot(s.adjust[1] - .2, doors, facing + side * .08, .12, .95);
+    }
     // A breath: the piece so far.
     shot(s.end - .15, [...all.filter(i => tl.boardStep[i]! <= k).flatMap(placed)], facing + side * .45, .45, 1.1);
   });

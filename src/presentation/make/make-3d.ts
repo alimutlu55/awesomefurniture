@@ -147,6 +147,9 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       turned.copy(lying(st.lie, st.spin, st.tilt, st.flip)).slerp(IDENTITY, smooth(.08, .7, e));
       off.subVectors(b.centre, b.rest).applyQuaternion(turned);
       b.face.position.subVectors(centre, off);
+      // A door in place hangs a little out of true until it is adjusted.
+      const n = e >= 1 ? f.nudge?.(b.index) : undefined;
+      if (n) b.face.position.add(off.set(n[0], n[1], n[2]));
       b.face.quaternion.copy(turned);
       b.edges.position.copy(b.face.position);
       b.edges.quaternion.copy(turned);
