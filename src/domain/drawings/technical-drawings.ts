@@ -14,6 +14,7 @@ import { hardwareList } from './hardware-list';
 import { applianceDetailSheets } from './appliance-details';
 import { applianceReview, applianceSchedule } from './appliance-setout';
 import { constructionDetails } from './construction-details';
+import { doorSheets } from './door-sheet';
 import { materialSchedule } from './material-schedule';
 import { cornerDetails } from './corner-details';
 import { cornerJointFindings, installedCorners } from './corner-joints';
@@ -85,6 +86,8 @@ export function technicalDrawings(input: DrawingInput, options: DrawingOptions =
   for (const p of pieces.filter(q => !q.fixture)) {
     sheets.push({ number: sheets.length + 1, title: p.mark + '  ' + pieceName(p), legend: unitDetailLegend(p, pieces), views: unitDetailViews(p, pieces), pieces: [row(p, letters)], checks: about([p.mark]) });
   }
+  // Door sheets: each kind of door leaf with its hinge cups and handle holes, as Make drills them.
+  sheets.push(...doorSheets(input, pieces));
   sheets.push(...ventilationDetails(pieces));
   sheets.push(...cornerDetails(pieces));
   sheets.push(...applianceDetailSheets(studio, pieces).map((s, i) => ({ ...s, number: sheets.length + i + 1 })));
