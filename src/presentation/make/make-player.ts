@@ -1,6 +1,7 @@
+import { assemblyTargets } from './assembly-targets';
 import { drawerBoardOffset } from '../../domain/make/drawer-installation';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, seeThrough, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { Measure, Vec3 } from '../../domain/make/make-measures';
@@ -67,13 +68,6 @@ export function createMakePlayer() {
     film(): MakeFilm | null {
       if (!piece || !tl) return null;
       const line = tl, ph = head(), fittings = piece.fittings;
-      const stage = piece.steps[ph.step]!.stage, fixing = fixingNow(line, ph);
-      const internal = stage === 'drawer-runners' || !!fixing?.items.some(i => {
-        const f = fittings[i]!, entry = entryOf(piece!, i), b = entry?.board === null || entry?.board === undefined ? null : piece!.boards[entry.board];
-        if (f.purpose === 'drawer-front' || b?.note === 'drawer box') return true;
-        return b && entry && (b.name === 'Partition' || (b.name === 'Side'
-          && ((b.x0 < .5 && entry.dir[0] < 0) || (b.x1 > piece!.size.w - .5 && entry.dir[0] > 0))));
-      });
       return {
         arrive: board => arrivalAt(line, ph, board),
         stage: board => staged[board]!,
@@ -88,11 +82,7 @@ export function createMakePlayer() {
           const door = doorNudge(line, ph, board), drawer = drawerBoardOffset(piece!, line, ph, board);
           return [door[0] + drawer[0], door[1] + drawer[1], door[2] + drawer[2]];
         },
-        seeThrough: board => {
-          const b = piece!.boards[board]!;
-          return seeThrough(line, ph, board) || (internal && b.stock !== 'front' && b.stock !== 'door')
-            || (stage === 'drawer-test' && ['Side', 'Partition'].includes(b.name));
-        },
+        targets: assemblyTargets(piece, line, ph),
       };
     },
     /** While the doors chapter adjusts the doors: the gaps they are set to, as measurements, and which way now. */

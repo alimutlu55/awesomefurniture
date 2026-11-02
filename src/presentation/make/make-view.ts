@@ -98,7 +98,7 @@ export function createMakeView(ports: MakeViewPorts) {
       if (st.glide && st.glide.left <= 0) st.glide = null;
       studio.update(st.piece, player, st.explore);
     }
-    camera.updateMatrixWorld();
+    camera.updateMatrixWorld(); make3d.updateVisibility(camera);
     const w = view.clientWidth, h = view.clientHeight;
     make3d.setResolution(w, h);
     const key = camera.matrixWorld.elements.map(v => v.toFixed(2)).join() + camera.projectionMatrix.elements.slice(8, 10).map(v => v.toFixed(4)).join()

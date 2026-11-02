@@ -23,8 +23,8 @@ export interface MakeFilm {
   seen(item: number): number;
   /** How far a door hangs out of true now, before it is adjusted (side, height, depth; cm). */
   nudge?(board: number): import('../../domain/make/make-measures').Vec3;
-  /** A door drawn see-through while it is hung, so its hinge arms are seen going onto their plates. */
-  seeThrough?(board: number): boolean;
+  /** Hardware points the actual camera should see; only intervening boards become translucent. */
+  readonly targets?: readonly import('./assembly-visibility').AssemblyTarget[];
 }
 
 const STEEL = 0x555b62, BRASS = 0x9a7434, BIT = 0x2b2e33;
