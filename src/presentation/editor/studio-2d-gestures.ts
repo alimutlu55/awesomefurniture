@@ -1,7 +1,7 @@
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { nextId, wallLine } from '../../domain/studio/studio';
+import { cornerDegree, nextId, wallLine } from '../../domain/studio/studio';
 import { furthestValid, snapCorner } from './studio-drag';
-import { moveWall } from '../../domain/studio/studio-edit';
+import { extendFromCorner, moveWall } from '../../domain/studio/studio-edit';
 import { attachPlanPoint, snapPlanCorner } from './studio-2d-snap';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -35,6 +35,7 @@ export interface Studio2DGesturesPorts {
   readonly checkpoint: (snapshot: string) => void;
   readonly committed: () => void;
   readonly refresh: () => void;
+  readonly fitScene: () => void;
   readonly previewTranslation: (id: number, pose: { x: number; y: number; z: number }) => boolean;
   readonly settleCabinet: (id: number) => string | null | undefined;
   readonly studioProblem: (studio: Studio, carry?: import('../../application/commands/studio-commands').Carried) => string | null;
@@ -61,6 +62,27 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       framePending = false;
       ports.refresh();
     });
+  }
+
+  function extendWall(cornerId: string): boolean {
+    let addedWall = '';
+    cancelDrawing();
+    const added = ports.editStudio(studio => {
+      const c = studio.corners.find(c => c.id === cornerId);
+      const w = studio.walls.find(w => w.a === cornerId || w.b === cornerId);
+      const line = w && wallLine(studio, w);
+      if (!c || !w || !line || cornerDegree(studio, cornerId) !== 1) return null;
+      const sign = w.b === cornerId ? 1 : -1;
+      const next = extendFromCorner(studio, cornerId, c.x + line.ux * sign * 150, c.z + line.uz * sign * 150);
+      if (next) addedWall = next.walls.at(-1)!.id;
+      return next;
+    }, true);
+    if (added) {
+      ports.setSelection({ kind: 'wall', id: addedWall });
+      ports.committed();
+      ports.fitScene();
+    }
+    return added;
   }
 
   function onPointerDown(e: PointerEvent, target: Element): boolean {
@@ -93,6 +115,12 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     const { toScene } = createTransform(t);
     const rect = target.getBoundingClientRect();
     const scenePt = toScene(e.clientX - rect.left, e.clientY - rect.top);
+
+    const extend = (e.target as Element).closest('[data-extend-id]');
+    if (extend) {
+      extendWall(extend.getAttribute('data-extend-id')!);
+      return true;
+    }
 
     if (activeTool === 'wall') {
       const studio = ports.getStudio();
@@ -359,7 +387,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
 
   return {
     onPointerDown, onPointerMove, onPointerUp, onWheel,
-    setTool, getTool: () => activeTool, cancelDrawing,
+    extendWall, setTool, getTool: () => activeTool, cancelDrawing,
     getWallDrawState: () => wallDrawStart && wallDrawCurrent ? { start: wallDrawStart, current: wallDrawCurrent } : null,
     getWallActionTarget: () => wallActionTarget,
     clearWallActionTarget: () => { wallActionTarget = null; scheduleRefresh(); },

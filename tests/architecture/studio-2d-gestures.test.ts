@@ -27,7 +27,7 @@ function fixture(studio: Studio = createStudio('wall'), zoom = 1, furniture = fa
     getActiveWardrobe: () => model.scene.activeWardrobe, setActiveWardrobe: id => { model.scene.activeWardrobe = id; },
     getSelection: () => selection, setSelection: s => { selection = s; },
     editStudio: commands.editStudio, snapshot: () => model.snapshot(), restore: s => model.restore(s),
-    checkpoint: s => history.checkpoint(s), committed: () => { commits++; }, refresh: () => {},
+    checkpoint: s => history.checkpoint(s), committed: () => { commits++; }, refresh: () => {}, fitScene: () => {},
     previewTranslation: commands.previewTranslation, settleCabinet: commands.settleCabinet,
     studioProblem: commands.studioProblem,
     previewStudio: (s, carry) => { model.scene.studio = s; if (carry) commands.carryWardrobes(carry, s); },
@@ -195,4 +195,32 @@ test('rotated 2D furniture footprints and fronts match the collision geometry', 
       assert.ok(Math.abs(points[i]![1]! - (cabinet.z + sx! * cabinet.state.w / 2 * u.z + sz! * cabinet.state.d / 2 * v.z)) < 1e-6);
     }
   }
+});
+
+test('the plus handle adds a connected wall at a free end with one undo step', () => {
+  const f = fixture(createStudio('wall'), .4);
+  const before = f.model.snapshot();
+  f.gestures.onPointerDown(f.event(320, -6, 'data-extend-id', 'c2'), f.surface);
+  f.gestures.onPointerUp();
+  const room = f.model.scene.studio!;
+  assert.equal(room.walls.length, 2);
+  assert.equal(room.walls[1]!.a, 'c2');
+  assert.equal(room.corners.at(-1)!.x, 350);
+  assert.deepEqual(studioProblems(room), []);
+  assert.equal(f.history.undoCount, 1);
+  const after = f.model.snapshot();
+  f.history.undo(); assert.equal(f.model.snapshot(), before);
+  f.history.redo(); assert.equal(f.model.snapshot(), after);
+});
+
+test('add-wall handles only appear at open ends, and do not split existing walls', async () => {
+  const { renderHandles } = await import('../../src/presentation/editor/studio-2d-canvas');
+  const open = createStudio('wall');
+  assert.equal((renderHandles(open, null, .3).match(/data-extend-id=/g) ?? []).length, 2);
+  assert.ok(!renderHandles(open, null).includes('data-wall-split-id'));
+  const closed = createStudio('bedroom');
+  assert.equal((renderHandles(closed, null).match(/data-extend-id=/g) ?? []).length, 0);
+  const f = fixture(closed);
+  assert.equal(f.gestures.extendWall('c1'), false);
+  assert.equal(f.history.undoCount, 0);
 });

@@ -1,5 +1,5 @@
 import type { Studio } from '../../domain/studio/studio';
-import { wallLine } from '../../domain/studio/studio';
+import { cornerDegree, wallLine } from '../../domain/studio/studio';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { detectRooms, door2DPlan, wall2DPlan, window2DPlan, type Point2D } from '../../domain/studio/studio-plan';
 export type { Point2D };
@@ -153,7 +153,19 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
   return out.join('');
 }
 
-/** Corner nodes remain draggable; additions are offered at the tapped wall position. */
+/** Add-wall controls belong only to the free ends of wall chains. */
+export function wallExtensionHandles(studio: Studio, zoom: number) {
+  return studio.corners.flatMap(c => {
+    if (cornerDegree(studio, c.id) !== 1) return [];
+    const w = studio.walls.find(w => w.a === c.id || w.b === c.id)!;
+    const line = wallLine(studio, w);
+    if (!line) return [];
+    const sign = w.b === c.id ? 1 : -1;
+    return [{ cornerId: c.id, x: c.x + line.ux * sign * 48 / zoom, z: c.z + line.uz * sign * 48 / zoom }];
+  });
+}
+
+/** Corner nodes drag existing walls; plus handles add a new wall at an open end. */
 export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1): string {
   const out: string[] = [];
   for (const c of studio.corners) {
@@ -161,6 +173,14 @@ export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1
     out.push(`<g class="sp2d-corner-handle-group" data-corner-id="${c.id}">
       <circle cx="${c.x}" cy="${c.z}" r="${22 / zoom}" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
       <circle cx="${c.x}" cy="${c.z}" r="${(isCornerSel ? 9 : 7) * Math.min(1, zoom / .6) / zoom}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
+    </g>`);
+  }
+  for (const handle of wallExtensionHandles(studio, zoom)) {
+    out.push(`<g class="sp2d-handle-extend" data-extend-id="${handle.cornerId}" transform="translate(${handle.x},${handle.z})"
+      role="button" tabindex="0" aria-label="Add wall from open end">
+      <circle r="${22 / zoom}" fill="transparent" pointer-events="all"/>
+      <circle r="${13 / zoom}" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
+      <path d="M ${-5 / zoom} 0 H ${5 / zoom} M 0 ${-5 / zoom} V ${5 / zoom}" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
     </g>`);
   }
   return out.join('');

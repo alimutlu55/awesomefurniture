@@ -95,30 +95,12 @@
 .sp2d-scale-tick{stroke:#292524;stroke-width:1.5}
 .sp2d-scale-text{fill:#57534e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;font-weight:600;text-anchor:middle}
 
-/* Floating Toolbar */
-.sp2d-floating-toolbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;display:flex;
-  align-items:center;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(28,25,23,.08);border-radius:24px;padding:4px 8px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
-.sp2d-tool-group{display:flex;align-items:center;gap:2px}
-.sp2d-btn{height:34px;padding:0 12px;border:0;background:transparent;border-radius:17px;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;
-  color:#57534e;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
-.sp2d-btn .ic{width:16px;height:16px;stroke:#57534e;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.sp2d-btn:hover{background:rgba(28,25,23,.05);color:#1c1917}
-.sp2d-btn:hover .ic{stroke:#1c1917}
-.sp2d-btn.active{background:#1c1917;color:#ffffff}
-.sp2d-btn.active .ic{stroke:#ffffff}
-
-/* Bottom status bar */
 .studio-format-seg{position:absolute;top:calc(100% + 8px);left:0;display:inline-flex;align-items:center;background:var(--glass);border:1px solid #ffffff60;box-shadow:0 8px 30px #45392312;border-radius:26px;padding:3px}
 .studio-format-seg button{height:44px;min-width:44px;padding:0 10px;border-radius:22px;border:0;background:transparent;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;color:#57534e;cursor:pointer;transition:all .15s}
 .studio-format-seg button[aria-pressed="true"]{background:#ffffff;color:#1c1917;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 #app:not([data-view-mode="studio"]) .studio-format-seg{display:none!important}
 
-@media(max-width:768px){
-  .sp2d-floating-toolbar{top:128px;transform:translateX(-50%) scale(0.9)}
-}
 
 /* Labels scale down with the plan, avoid geometry, and never intercept touches. */
 .sp2d-plan-label{pointer-events:none}
@@ -128,3 +110,8 @@
 .sp2d-drawing-label .sp2d-dim-text{fill:#ffffff}
 
 .sp2d-dimension-leader{stroke:#78716c;stroke-width:.75;pointer-events:none}
+
+.sp2d-handle-extend{cursor:pointer;outline:none}
+.sp2d-extend-circle{fill:#0284c7;stroke:#ffffff;stroke-width:2}
+.sp2d-extend-plus{fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:round;pointer-events:none}
+.sp2d-handle-extend:hover .sp2d-extend-circle,.sp2d-handle-extend:focus-visible .sp2d-extend-circle{fill:#0369a1;stroke:#1c1917}

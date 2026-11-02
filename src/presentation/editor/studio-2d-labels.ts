@@ -2,7 +2,7 @@ import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { Studio } from '../../domain/studio/studio';
 import { detectRooms, door2DPlan, wall2DPlan } from '../../domain/studio/studio-plan';
 import type { RoomSelection } from '../viewport/studio-renderer';
-import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
+import { wallExtensionHandles, createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
 import { lengthWithUnit } from './length-unit-state';
 
 export interface LabelRect { x: number; y: number; width: number; height: number }
@@ -71,6 +71,10 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
     const p = toScreen(c);
     const radius = 12 * scale + 1;
     objects.push(rectPoints({ x: p.x - radius, y: p.z - radius, width: radius * 2, height: radius * 2 }));
+  }
+  if (studio) for (const handle of wallExtensionHandles(studio, transform.zoom)) {
+    const p = toScreen(handle);
+    objects.push(rectPoints({ x: p.x - 15, y: p.z - 15, width: 30, height: 30 }));
   }
   const occupied = [...exclusions];
   const labels: PlanLabel[] = [];

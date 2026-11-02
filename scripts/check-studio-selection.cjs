@@ -42,7 +42,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
         assert.equal(await page.locator('.sp2d-furniture-item.active').count(), 1);
         assert.equal(await page.locator('.sp2d-wall-poly.selected').count(), 0);
       }
-      await page.locator('[data-tool="wall"]').click();
+      await page.keyboard.press('w');
       await mode('furniture').click();
       await planner.waitFor({ state: 'hidden' });
       assert.equal(await app.getAttribute('data-studio-view'), '3d');
@@ -55,7 +55,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
       await planner.waitFor({ state: 'hidden' });
       await page.locator('[data-studio-format="2d"]').click();
       await planner.waitFor({ state: 'visible' });
-      assert.equal(await page.locator('[data-tool="select"]').getAttribute('class'), 'sp2d-btn active');
+      assert.equal(await page.locator('.sp2d-svg').evaluate(e => e.classList.contains('drawing-wall')), false);
       assert.equal(await page.locator('.sp2d-draw-line').count(), 0, 'No unfinished drawing survives mode changes');
       console.log('PASS ' + width + ': furniture-to-wall selection, wall settings, Studio-only 2D, clean re-entry');
       await page.close();

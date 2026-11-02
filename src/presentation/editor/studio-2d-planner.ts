@@ -54,18 +54,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       <g id="sp2d-overlays"></g>
       <g id="sp2d-text-labels"></g>
     </svg>
-    <div class="sp2d-floating-toolbar">
-      <div class="sp2d-tool-group" role="group" aria-label="Drafting tools">
-        <button type="button" class="sp2d-btn active" data-tool="select" title="Select & Move (V)">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M4 4l7 17 2.5-6.5L20 12z"/></svg>
-          <span>Select</span>
-        </button>
-        <button type="button" class="sp2d-btn" data-tool="wall" title="Draw Wall (W)">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M3 9h18v6H3zM8 9v6M13 9v6M18 9v6"/></svg>
-          <span>Draw wall</span>
-        </button>
-      </div>
-    </div>
     <div class="sp2d-action-pill" id="sp2d-action-pill" hidden></div>
   `;
 
@@ -108,6 +96,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       sceneCommands.followCeilings(false);
     },
     refresh: () => render(),
+    fitScene: () => fitScene(),
     getTransform: () => transform,
     setTransform: updater => { transform = updater(transform); },
     standingAgainst: wid => sceneCommands.standingAgainst(wid),
@@ -245,8 +234,8 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     }
 
     const viewport = svg.getBoundingClientRect();
-    const controls = [$('#view-modes'), $('#topright'), $('#toolbar'), $('#left'),
-      root.querySelector('.sp2d-floating-toolbar'), root.querySelector('.studio-format-seg'), pillEl,
+    const controls: (Element | null)[] = [$('#view-modes'), $('#topright'), $('#toolbar'), $('#left'),
+      pillEl,
       ...svg.querySelectorAll('.sp2d-compass,.sp2d-scale-bar')];
     // The format selector is a child of the editing tabs, outside the planner root.
     controls.push($('#view-modes').querySelector('.studio-format-seg'));
@@ -278,8 +267,14 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   });
   listen(svg, 'lostpointercapture', () => gestures.onPointerUp(undefined, true));
   listen(svg, 'wheel', (e: Event) => gestures.onWheel(e as WheelEvent, svg), { passive: false });
+  listen(svg, 'keydown', (e: Event) => {
+    const key = e as KeyboardEvent, handle = (e.target as Element).closest('[data-extend-id]');
+    if (!handle || (key.key !== 'Enter' && key.key !== ' ')) return;
+    key.preventDefault(); key.stopPropagation();
+    gestures.extendWall(handle.getAttribute('data-extend-id')!);
+  });
 
-  // Floating toolbar & action pill buttons
+  // Contextual Step and Point actions
   listen(root, 'click', (e: Event) => {
     const actBtn = (e.target as Element).closest<HTMLButtonElement>('[data-sp2d-act]');
     if (actBtn) {
@@ -303,14 +298,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       render();
       return;
     }
-    const btn = (e.target as Element).closest<HTMLButtonElement>('button');
-    if (!btn) return;
-    const tool = btn.dataset.tool;
-    if (tool === 'select' || tool === 'wall') {
-      root.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b === btn));
-      gestures.setTool(tool);
-      svg.classList.toggle('drawing-wall', tool === 'wall');
-    }
+
   });
 
   listen(window, 'blur', () => gestures.onPointerUp(undefined, true));
@@ -333,14 +321,9 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   listen(window, 'keydown', (e: Event) => {
     const ke = e as KeyboardEvent;
     if (selectionState.viewMode !== 'studio' || selectionState.studioView !== '2d') return;
-    if (ke.key === 'Escape') { gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); }
-    else if (ke.key === 'w' || ke.key === 'W') {
-      const wallBtn = root.querySelector<HTMLButtonElement>('[data-tool="wall"]');
-      wallBtn?.click();
-    } else if (ke.key === 'v' || ke.key === 'V') {
-      const selBtn = root.querySelector<HTMLButtonElement>('[data-tool="select"]');
-      selBtn?.click();
-    }
+    if (ke.key === 'Escape') { gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); svg.classList.remove('drawing-wall'); }
+    else if (ke.key === 'w' || ke.key === 'W') { gestures.setTool('wall'); svg.classList.add('drawing-wall'); }
+    else if (ke.key === 'v' || ke.key === 'V') { gestures.setTool('select'); svg.classList.remove('drawing-wall'); }
   });
 
   return {
@@ -365,7 +348,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       gestures.onPointerUp(undefined, true);
       gestures.cancelDrawing();
       svg.classList.remove('drawing-wall');
-      root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === 'select'));
       root.hidden = true;
     },
   };
