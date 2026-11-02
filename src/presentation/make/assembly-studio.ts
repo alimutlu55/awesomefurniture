@@ -20,6 +20,15 @@ const instructions: Record<Stage, string> = {
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
+/** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
+ * pressed into the doors, plates screwed to the side panel, each door clipped onto its plates, then adjusted. */
+const hanging = {
+  drill: 'Drill the 35 mm hinge cups in the back of each door, and the plate holes in the side panel on the 37 mm line.',
+  hinge: 'Press each hinge into its cup, arm towards the door\'s edge, and screw it down.',
+  plate: 'Screw a mounting plate to the inside of the side panel, on the 37 mm line, level with each hinge.',
+  hang: 'Hold the door just in front of the cabinet, slide each hinge arm onto its plate and press until it clicks.',
+  adjust: 'Turn the hinge screws, side, height and depth, until the gaps round the doors are even.',
+};
 const paths = {
   back: 'm14 5-7 7 7 7M7 12h14', play: 'm9 5 10 7-10 7z', pause: 'M8 5v14M16 5v14',
   prev: 'M6 5v14m13-14-10 7 10 7z', next: 'M18 5v14M5 5l10 7-10 7z',
@@ -113,13 +122,17 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
       text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${names[step.stage]}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
-      const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : 'complete';
+      const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
+        : player.adjusting() ? 'adjust' : 'complete';
       const hardware = fixing?.hardware ?? step.fittings;
       const key = `${step.n}:${phase}:${JSON.stringify(hardware)}`;
       if (key !== showing) {
         showing = key;
         const parts = piece.parts.filter(p => p.ids.some(id => step.boards.includes(id)));
-        const instruction = phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
+        const kinds = new Set(hardware.map(f => f.kind)), doors = step.stage === 'doors';
+        const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
+          : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
+          : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
         const hardwareHtml = hardware.map(f => `<span title="${esc(FITTING_NAMES[f.kind])}">${fittingIcon(f.kind)}<span>${FITTING_NAMES[f.kind]}`
           + `${f.size ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');
         const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`

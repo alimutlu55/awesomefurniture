@@ -1,5 +1,5 @@
 import type { MakePiece } from '../../domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, seeThrough, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { Measure, Vec3 } from '../../domain/make/make-measures';
@@ -12,7 +12,7 @@ import type { MakeFilm } from './make-play-3d';
  */
 export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
-  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, fix: 0, adjust: 0, t: 0 };
+  const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, hang: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
     load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; },
@@ -66,6 +66,7 @@ export function createMakePlayer() {
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
         seen: item => seenAt(line, ph, item),
         nudge: board => doorNudge(line, ph, board),
+        seeThrough: board => seeThrough(line, ph, board),
       };
     },
     /** While the doors chapter adjusts the doors: the gaps they are set to, as measurements, and which way now. */

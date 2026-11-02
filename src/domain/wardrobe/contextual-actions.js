@@ -3,7 +3,7 @@ import { MAX_LEAVES } from './front-styles';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
 /** Furniture tools act on the selected piece. Moving needs no tool: drag the furniture, item or divider. */
 /** @param {import('../furniture/furniture').FurnitureModule} module */
-const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ['add-item', 'Add item'], ['resize', 'Size'],
+const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ['add-item', 'Add'], ['resize', 'Size'],
     ['make', 'Make', 'Make: every part, measured'], ['more', 'More']];
 /** More: the piece's fronts and sections; Open doors swings its doors to their hinges' angle and pulls its drawers out, and
  * closes them again. */

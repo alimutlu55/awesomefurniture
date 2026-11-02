@@ -106,14 +106,15 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   function paint() {
     contact.visible = boards.length > 0 && look === 'material';
     for (const b of boards) {
-      // In the film fronts go on solid, as they are fitted; otherwise they are solid or dashed as chosen.
-      const phantom = isFront(b.part) && !solidFronts && !film, mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
+      // In the film fronts go on solid, as they are fitted (a door is seen through while it is hung, so its hinges are
+      // seen clipping onto their plates); otherwise they are solid or dashed as chosen.
+      const phantom = isFront(b.part) && !solidFronts && !film || !!film?.seeThrough?.(b.index), mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
       if (phantom) face = lines.hidden;
       else if (dim) face = fade(face);
       b.face.material = face;
       b.face.renderOrder = phantom || dim || look === 'xray' ? 1 : 0;
-      b.edges.visible = look !== 'material' || selected !== null;
+      b.edges.visible = look !== 'material' || selected !== null || phantom;
       b.edges.material = phantom ? lines.phantom : dim ? lines.edgeFaded : mine ? lines.edgeSelected : look === 'xray' ? lines.edgeXray : lines.edge;
     }
   }
@@ -147,9 +148,10 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       turned.copy(lying(st.lie, st.spin, st.tilt, st.flip)).slerp(IDENTITY, smooth(.08, .7, e));
       off.subVectors(b.centre, b.rest).applyQuaternion(turned);
       b.face.position.subVectors(centre, off);
-      // A door in place hangs a little out of true until it is adjusted.
-      const n = e >= 1 ? f.nudge?.(b.index) : undefined;
-      if (n) b.face.position.add(off.set(n[0], n[1], n[2]));
+      // A door comes in to just in front of its place, is pushed home onto its plates, and hangs a little out of true
+      // until it is adjusted.
+      const n = e > 0 ? f.nudge?.(b.index) : undefined;
+      if (n) b.face.position.add(off.set(n[0], n[1], n[2]).multiplyScalar(e));
       b.face.quaternion.copy(turned);
       b.edges.position.copy(b.face.position);
       b.edges.quaternion.copy(turned);
