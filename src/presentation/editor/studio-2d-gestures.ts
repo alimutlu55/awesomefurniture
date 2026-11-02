@@ -1,6 +1,8 @@
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { wallLine } from '../../domain/studio/studio';
-import { snapCorner } from './studio-drag';
+import { nextId, wallLine } from '../../domain/studio/studio';
+import { furthestValid, snapCorner } from './studio-drag';
+import { moveWall } from '../../domain/studio/studio-edit';
+import { attachPlanPoint, snapPlanCorner } from './studio-2d-snap';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
@@ -14,9 +16,11 @@ interface DragState {
   startScene: Point2D;
   startTransform: ViewportTransform;
   snapshot: string;
+  originalStudio?: Studio;
+  origin?: { x: number; y: number; z: number; angle: number };
   moved: boolean;
   guides: readonly { a: Point2D; b: Point2D; label: string }[];
-  at?: Point2D; carry?: import('../../application/commands/studio-commands').Carried;
+  carry?: import('../../application/commands/studio-commands').Carried;
   initialDist?: number; initialZoom?: number;
 }
 
@@ -26,13 +30,19 @@ export interface Studio2DGesturesPorts {
   readonly setActiveWardrobe: (id: number) => void;
   readonly getSelection: () => RoomSelection; readonly setSelection: (s: RoomSelection) => void;
   readonly editStudio: (fn: (s: Studio) => Studio | null, record?: boolean, quiet?: boolean) => boolean;
-  readonly checkpoint: () => void; readonly refresh: () => void;
+  readonly snapshot: () => string;
+  readonly restore: (snapshot: string) => void;
+  readonly checkpoint: (snapshot: string) => void;
+  readonly committed: () => void;
+  readonly refresh: () => void;
+  readonly previewTranslation: (id: number, pose: { x: number; y: number; z: number }) => boolean;
+  readonly settleCabinet: (id: number) => string | null | undefined;
+  readonly studioProblem: (studio: Studio, carry?: import('../../application/commands/studio-commands').Carried) => string | null;
+  readonly previewStudio: (studio: Studio, carry?: import('../../application/commands/studio-commands').Carried) => void;
   readonly openFields: (action: string, field: string) => void;
   readonly getTransform: () => ViewportTransform;
   readonly setTransform: (updater: (prev: ViewportTransform) => ViewportTransform) => void;
   readonly standingAgainst: (wallId: string) => import('../../application/commands/studio-commands').Carried;
-  readonly carryWardrobes: (carried: import('../../application/commands/studio-commands').Carried, next: Studio) => void;
-  readonly wallSnap: (cab: EditorCabinet, pose: { x: number; z: number; angle: number }) => { x: number; z: number; angle: number } | null;
 }
 
 export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
@@ -63,6 +73,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       const pts = Array.from(activePointers.values());
       const dist = Math.hypot(pts[1]!.x - pts[0]!.x, pts[1]!.y - pts[0]!.y);
       const mid = { x: (pts[0]!.x + pts[1]!.x) / 2, y: (pts[0]!.y + pts[1]!.y) / 2 };
+      finishDrag();
       drag = {
         kind: 'pinch',
         startScreen: mid,
@@ -85,12 +96,13 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     const scenePt = toScene(e.clientX - rect.left, e.clientY - rect.top);
 
     if (activeTool === 'wall') {
-      ports.checkpoint();
       const studio = ports.getStudio();
       let snappedPt = scenePt;
       if (studio) {
-        const snap = snapCorner(studio, 'temp', scenePt, { x: null, z: null, ray: null, join: null }, 18, true);
-        snappedPt = snap.at;
+        const nearby = studio.corners.map(c => ({ c, d: Math.hypot(c.x - scenePt.x, c.z - scenePt.z) }))
+          .filter(h => h.d <= 14 / t.zoom).sort((a, b) => a.d - b.d)[0]?.c;
+        const snap = snapCorner(studio, 'temp', scenePt, { x: null, z: null, ray: null, join: null }, 14 / t.zoom, true);
+        snappedPt = nearby ? { x: nearby.x, z: nearby.z } : snap.at;
       }
       if (!wallDrawStart) {
         wallDrawStart = snappedPt;
@@ -100,27 +112,16 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       }
       const p1 = wallDrawStart, p2 = snappedPt;
       if (Math.hypot(p2.x - p1.x, p2.z - p1.z) > 15 && studio) {
-        ports.editStudio(s => {
-          let s1 = s;
-          const hitCorner = (pt: Point2D) => s1.corners.find(c => Math.hypot(c.x - pt.x, c.z - pt.z) < 18);
-          let cA = hitCorner(p1), cB = hitCorner(p2);
-          if (!cA) {
-            const newId = 'c_' + Date.now().toString(36) + 'a';
-            s1 = { ...s1, corners: [...s1.corners, { id: newId, x: p1.x, z: p1.z }] };
-            cA = s1.corners.find(c => c.id === newId);
-          }
-          if (!cB) {
-            const newId = 'c_' + Date.now().toString(36) + 'b';
-            s1 = { ...s1, corners: [...s1.corners, { id: newId, x: p2.x, z: p2.z }] };
-            cB = s1.corners.find(c => c.id === newId);
-          }
-          if (!cA || !cB || cA.id === cB.id) return null;
-          const wid = 'w_' + Date.now().toString(36);
+        const added = ports.editStudio(s => {
+          const first = attachPlanPoint(s, p1, t.zoom);
+          const second = attachPlanPoint(first.room, p2, t.zoom);
+          const s1 = second.room, cA = first.corner, cB = second.corner;
+          if (cA.id === cB.id) return null;
+          const wid = nextId('w', s1.walls);
           const newWall: StudioWall = { id: wid, a: cA.id, b: cB.id, thickness: 12, height: 260 };
           return { ...s1, walls: [...s1.walls, newWall] };
         }, true);
-        wallDrawStart = p2;
-        wallDrawCurrent = p2;
+        if (added) { wallDrawStart = p2; wallDrawCurrent = p2; ports.committed(); }
       }
       scheduleRefresh();
       return true;
@@ -134,7 +135,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       if (connWall) ports.setSelection({ kind: 'wall', id: connWall.id });
       drag = {
         kind: 'corner', id: cornerId, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: JSON.stringify(studio),
+        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: studio,
         moved: false, guides: [],
       };
       return true;
@@ -146,7 +147,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       ports.setSelection({ kind: 'opening', id: oid });
       drag = {
         kind: 'opening', id: oid, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: JSON.stringify(ports.getStudio()!),
+        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
         moved: false, guides: [],
       };
       scheduleRefresh();
@@ -174,7 +175,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       ports.setSelection({ kind: 'wall', id: wid });
       drag = {
         kind: 'wall', id: wid, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: JSON.stringify(ports.getStudio()!),
+        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
         moved: false, guides: [], carry: ports.standingAgainst(wid),
       };
       scheduleRefresh();
@@ -184,10 +185,14 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     const furnEl = (e.target as Element).closest('[data-cabinet-id]');
     if (furnEl) {
       const cabId = Number(furnEl.getAttribute('data-cabinet-id')!);
+      const cabinet = ports.getWardrobes().find(c => c.id === cabId);
+      if (!cabinet) return false;
+      ports.setSelection(null);
       ports.setActiveWardrobe(cabId);
       drag = {
         kind: 'furniture', id: cabId, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: '', moved: false, guides: [],
+        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(),
+        origin: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, moved: false, guides: [],
       };
       scheduleRefresh();
       return true;
@@ -245,23 +250,30 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return;
     }
 
+    if (drag.kind === 'furniture') {
+      const cabId = Number(drag.id);
+      const cab = ports.getWardrobes().find(c => c.id === cabId);
+      if (!cab) return;
+      const origin = drag.origin!;
+      ports.previewTranslation(cabId, { x: origin.x + currentScene.x - drag.startScene.x,
+        y: origin.y, z: origin.z + currentScene.z - drag.startScene.z });
+      scheduleRefresh();
+      return;
+    }
+
     const studio = ports.getStudio();
     if (!studio) return;
 
     if (drag.kind === 'corner') {
       const cid = String(drag.id);
-      const raw = currentScene;
-      const snap = snapCorner(studio, cid, raw, { x: null, z: null, ray: null, join: null }, 12, true);
-      drag.guides = snap.guides;
-      drag.at = snap.at;
-      ports.editStudio(s => {
-        const c = s.corners.find(x => x.id === cid);
-        if (!c) return null;
-        return {
-          ...s,
-          corners: s.corners.map(x => x.id === cid ? { ...x, x: snap.at.x, z: snap.at.z } : x),
-        };
-      }, false, true);
+      const original = drag.originalStudio!;
+      const from = original.corners.find(c => c.id === cid);
+      if (!from) return;
+      const raw = { x: from.x + currentScene.x - drag.startScene.x, z: from.z + currentScene.z - drag.startScene.z };
+      const snap = snapPlanCorner(original, cid, raw, t.zoom);
+      const accepted = snap.room && !ports.studioProblem(snap.room);
+      if (accepted) ports.previewStudio(snap.room!);
+      drag.guides = accepted ? snap.guides : [];
       scheduleRefresh();
       return;
     }
@@ -270,27 +282,18 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       const wid = String(drag.id);
       const dxScene = currentScene.x - drag.startScene.x;
       const dzScene = currentScene.z - drag.startScene.z;
-      const initialStudio: Studio = JSON.parse(drag.snapshot);
+      const initialStudio = drag.originalStudio!;
       const targetWall = initialStudio.walls.find(x => x.id === wid);
       if (!targetWall) return;
       const line = wallLine(initialStudio, targetWall);
       if (!line) return;
       const proj = dxScene * line.nx + dzScene * line.nz;
-      const moveX = line.nx * proj, moveZ = line.nz * proj;
-      ports.editStudio(s => {
-        const next = {
-          ...s,
-          corners: s.corners.map(c => {
-            if (c.id === targetWall.a || c.id === targetWall.b) {
-              const baseC = initialStudio.corners.find(x => x.id === c.id)!;
-              return { ...c, x: baseC.x + moveX, z: baseC.z + moveZ };
-            }
-            return c;
-          }),
-        };
-        if (drag!.carry) ports.carryWardrobes(drag!.carry, next);
-        return next;
-      }, false, true);
+      const now = studio.walls.find(w => w.id === wid);
+      const currentLine = now && wallLine(studio, now);
+      const before = currentLine ? (currentLine.a.x - line.a.x) * line.nx + (currentLine.a.z - line.a.z) * line.nz : 0;
+      const result = furthestValid(f => moveWall(initialStudio, wid, before + (proj - before) * f),
+        s => !ports.studioProblem(s, drag!.carry));
+      if (result.room) ports.previewStudio(result.room, drag.carry);
       scheduleRefresh();
       return;
     }
@@ -310,32 +313,26 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       scheduleRefresh();
       return;
     }
-
-    if (drag.kind === 'furniture') {
-      const cabId = Number(drag.id);
-      const cab = ports.getWardrobes().find(c => c.id === cabId);
-      if (!cab) return;
-      const rawPose = { x: currentScene.x, z: currentScene.z, angle: cab.angle };
-      const snapped = ports.wallSnap(cab, rawPose) ?? rawPose;
-      cab.x = snapped.x;
-      cab.z = snapped.z;
-      cab.angle = snapped.angle;
-      scheduleRefresh();
-    }
   }
 
-  function onPointerUp(e?: PointerEvent): void {
+  function finishDrag(cancel = false) {
+    const finished = drag;
+    drag = null;
+    if (!finished || !finished.moved || !finished.snapshot) return;
+    if (cancel || (finished.kind === 'furniture' && ports.settleCabinet(Number(finished.id)))) {
+      ports.restore(finished.snapshot);
+    } else if (ports.snapshot() !== finished.snapshot) {
+      ports.checkpoint(finished.snapshot);
+    }
+    ports.committed();
+  }
+
+  function onPointerUp(e?: PointerEvent, cancel = false): void {
     if (e) activePointers.delete(e.pointerId);
     else activePointers.clear();
-
+    if (cancel) activePointers.clear();
     if (activePointers.size > 0) return;
-
-    if (drag) {
-      if (drag.moved && (drag.kind === 'corner' || drag.kind === 'wall' || drag.kind === 'opening')) {
-        ports.checkpoint();
-      }
-      drag = null;
-    }
+    finishDrag(cancel);
     scheduleRefresh();
   }
 

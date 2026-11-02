@@ -1,4 +1,3 @@
-import type { Studio } from '../../domain/studio/studio';
 import { STUDIO_LIMITS, studioBounds, wallLine } from '../../domain/studio/studio';
 import { splitWall } from '../../domain/studio/studio-edit';
 import { stepStudioWall } from '../../domain/studio/studio-plan';
@@ -10,12 +9,8 @@ import { createStudio2DGestures } from './studio-2d-gestures';
 export interface Studio2DPlannerPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: { scene: EditorScene; snapshot(): string; restore(s: string): void };
-  readonly sceneCommands: {
-    editStudio: (edit: (s: Studio) => Studio | null, record?: boolean, quiet?: boolean) => boolean;
-    standingAgainst: (wallId: string) => import('../../application/commands/studio-commands').Carried;
-    carryWardrobes: (carried: import('../../application/commands/studio-commands').Carried, next: Studio) => void;
-    wallSnap: (cab: import('../../application/projects/editor-scene').EditorCabinet, pose: { x: number; z: number; angle: number }) => { x: number; z: number; angle: number } | null;
-  };
+  readonly sceneCommands: Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>,
+    'editStudio' | 'standingAgainst' | 'carryWardrobes' | 'previewTranslation' | 'settleCabinet' | 'studioProblem' | 'followCeilings'>;
   readonly history: { checkpoint(snapshot: string): void };
   readonly selectionState: {
     viewMode?: 'studio' | 'furniture';
@@ -93,14 +88,23 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     getSelection: () => selectionState.room ?? null,
     setSelection: s => { selectionState.room = s; callbacks.selectionChanged(); },
     editStudio: (fn, rec, q) => sceneCommands.editStudio(fn, rec, q),
-    checkpoint: () => history.checkpoint(model.snapshot()),
+    snapshot: () => model.snapshot(),
+    restore: snapshot => model.restore(snapshot),
+    checkpoint: snapshot => history.checkpoint(snapshot),
+    committed: () => { sceneCommands.followCeilings(true); callbacks.selectionChanged(); },
+    previewTranslation: (id, pose) => sceneCommands.previewTranslation(id, pose),
+    settleCabinet: id => sceneCommands.settleCabinet(id),
+    studioProblem: (studio, carry) => sceneCommands.studioProblem(studio, carry),
+    previewStudio: (studio, carry) => {
+      model.scene.studio = studio;
+      if (carry) sceneCommands.carryWardrobes(carry, studio);
+      sceneCommands.followCeilings(false);
+    },
     refresh: () => render(),
     openFields: (a, f) => callbacks.openFields(a, f),
     getTransform: () => transform,
     setTransform: updater => { transform = updater(transform); },
     standingAgainst: wid => sceneCommands.standingAgainst(wid),
-    carryWardrobes: (c, s) => sceneCommands.carryWardrobes(c, s),
-    wallSnap: (cab, pose) => sceneCommands.wallSnap(cab, pose),
   });
 
   function updateSize() {
@@ -136,6 +140,9 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   let lastStudioSnapshot = '';
   let lastSelectionKey = '';
   let lastWardrobesSnapshot = '';
+  let lastHandleZoom = 0;
+  let lastHandlesStudio = '';
+  let lastHandlesSelection = '';
 
   function render() {
     updateSize();
@@ -170,7 +177,13 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       roomsGroup.innerHTML = studio ? renderRooms(studio) : '';
       wallsGroup.innerHTML = studio ? renderWalls(studio, sel) : '';
       openingsGroup.innerHTML = studio ? renderOpenings(studio, sel) : '';
-      handlesGroup.innerHTML = studio ? renderHandles(studio, sel) : '';
+    }
+
+    if (studioSnap !== lastHandlesStudio || selKey !== lastHandlesSelection || transform.zoom !== lastHandleZoom) {
+      lastHandlesStudio = studioSnap;
+      lastHandlesSelection = selKey;
+      lastHandleZoom = transform.zoom;
+      handlesGroup.innerHTML = studio ? renderHandles(studio, sel, transform.zoom) : '';
     }
 
     if (wardSnap !== lastWardrobesSnapshot) {
@@ -231,13 +244,17 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     }
   }
 
-  listen(svg, 'pointerdown', (e: Event) => gestures.onPointerDown(e as PointerEvent, svg));
+  listen(svg, 'pointerdown', (e: Event) => {
+    const pointer = e as PointerEvent;
+    if (gestures.onPointerDown(pointer, svg)) svg.setPointerCapture(pointer.pointerId);
+  });
   listen(svg, 'pointermove', (e: Event) => gestures.onPointerMove(e as PointerEvent, svg));
   listen(svg, 'pointerup', (e: Event) => gestures.onPointerUp(e as PointerEvent));
   listen(svg, 'pointercancel', (e: Event) => {
-    gestures.onPointerUp(e as PointerEvent);
+    gestures.onPointerUp(e as PointerEvent, true);
     gestures.clearWallActionTarget();
   });
+  listen(svg, 'lostpointercapture', () => gestures.onPointerUp(undefined, true));
   listen(svg, 'wheel', (e: Event) => gestures.onWheel(e as WheelEvent, svg), { passive: false });
 
   // Floating toolbar & action pill buttons
@@ -274,6 +291,8 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     }
   });
 
+  listen(window, 'blur', () => gestures.onPointerUp(undefined, true));
+
   listen(window, 'resize', () => {
     if (selectionState.studioView === '2d') {
       updateSize();
@@ -284,7 +303,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   listen(window, 'keydown', (e: Event) => {
     const ke = e as KeyboardEvent;
     if (selectionState.studioView !== '2d') return;
-    if (ke.key === 'Escape') gestures.cancelDrawing();
+    if (ke.key === 'Escape') { gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); }
     else if (ke.key === 'w' || ke.key === 'W') {
       const wallBtn = root.querySelector<HTMLButtonElement>('[data-tool="wall"]');
       wallBtn?.click();

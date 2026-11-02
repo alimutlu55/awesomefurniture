@@ -64,8 +64,8 @@
 /* Handles & Selection Targets */
 .sp2d-hit-target{cursor:pointer}
 .sp2d-handle-corner{fill:#ffffff;stroke:#292524;stroke-width:2.2;cursor:move;transition:all .15s}
-.sp2d-corner-handle-group:hover .sp2d-handle-corner{fill:#0284c7;stroke:#ffffff;r:9}
-.sp2d-handle-corner.selected{fill:#0284c7;stroke:#ffffff;stroke-width:2.5;r:9}
+.sp2d-corner-handle-group:hover .sp2d-handle-corner{fill:#0284c7;stroke:#ffffff}
+.sp2d-handle-corner.selected{fill:#0284c7;stroke:#ffffff;stroke-width:2.5}
 
 /* Step & Point Action Pill */
 .sp2d-action-pill{position:absolute;z-index:15;transform:translate(-50%,-50%);display:flex;gap:4px;padding:3px;

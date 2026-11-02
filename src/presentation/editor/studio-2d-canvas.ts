@@ -173,13 +173,13 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
 }
 
 /** Corner nodes remain draggable; additions are offered at the tapped wall position. */
-export function renderHandles(studio: Studio, selection: RoomSelection): string {
+export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1): string {
   const out: string[] = [];
   for (const c of studio.corners) {
     const isCornerSel = selection?.kind === 'wall' && (studio.walls.find(w => w.id === selection.id)?.a === c.id || studio.walls.find(w => w.id === selection.id)?.b === c.id);
     out.push(`<g class="sp2d-corner-handle-group" data-corner-id="${c.id}">
-      <circle cx="${c.x}" cy="${c.z}" r="22" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
-      <circle cx="${c.x}" cy="${c.z}" r="${isCornerSel ? 9 : 7}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
+      <circle cx="${c.x}" cy="${c.z}" r="${22 / zoom}" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
+      <circle cx="${c.x}" cy="${c.z}" r="${(isCornerSel ? 9 : 7) / zoom}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
     </g>`);
   }
   return out.join('');
