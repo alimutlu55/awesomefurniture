@@ -18,6 +18,7 @@ import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { newWallClash } from '../../domain/studio/wall-solids';
 import { generateDesignedLayouts } from '../../domain/planner/wardrobe-composer';
 import { POSSESSION_KEYS } from '../../domain/wardrobe/possessions';
+import { frontsProblems, savedFronts } from '../../domain/wardrobe/front-styles';
 import type { ShapeTemplateId } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 export type SpecBuild = { ok: true; project: ProjectDocument; report: SceneReport } | { ok: false; problems: SpecProblem[] };
@@ -92,6 +93,12 @@ export function buildFromSpec(spec: DesignSpec, id: string): SpecBuild {
       const geometry = createWardrobeGeometry(() => cabinet.state), best = generateDesignedLayouts(geometry.plannerConfig())[0];
       if (!best) return problems.push({ path: path + '.for', message: 'Auto design found no layout for this wardrobe. Make it larger or ask for less.' });
       createDesignCommands(() => cabinet.state).applyProposal(best as never);
+    }
+    if (w.fronts) {
+      const wrong = frontsProblems(w.fronts, cabinet.state.n);
+      if (wrong.length) return problems.push({ path: path + '.fronts', message: wrong[0]! });
+      const fronts = savedFronts(w.fronts);
+      if (fronts) cabinet.state.fronts = fronts;
     }
   });
   if (problems.length) return { ok: false, problems };

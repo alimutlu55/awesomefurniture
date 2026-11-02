@@ -4,6 +4,8 @@ import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
 import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import { SHAPE_TEMPLATES } from '../../domain/wardrobe/shape/shape-templates';
 import { POSSESSIONS, POSSESSION_KEYS } from '../../domain/wardrobe/possessions';
+import { frontsProblems } from '../../domain/wardrobe/front-styles';
+import { frontsSchema } from './fronts-schema';
 
 /**
  * The design spec's shape (domain/spec/design-spec.ts), checked at the edge: by the editor before building,
@@ -56,6 +58,9 @@ const wardrobe = z.strictObject({
   shape: z.enum(names(SHAPE_TEMPLATES)).describe('Its top: ' + described(SHAPE_TEMPLATES) + '. Under a ceiling that comes down, it follows the ceiling').optional(),
   for: needs.optional(),
   autoDesign: z.boolean().describe('Plan its fittings with Auto design (on by default when "for" is given)').optional(),
+  fronts: frontsSchema.optional(),
+}).superRefine((w, context) => {
+  if (w.fronts) for (const message of frontsProblems(w.fronts)) context.addIssue({ code: 'custom', path: ['fronts'], message });
 });
 
 export const designSpecSchema = z.strictObject({

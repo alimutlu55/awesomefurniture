@@ -58,6 +58,8 @@ export interface EditorDesign {
   w: number; h: number; d: number; n: number; wt: number[];
   secs: EditorItem[][]; dividers: EditorDivider[];
   fin: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage'; doors: 'none' | 'hinged' | 'glass';
+  /** Front style, overlay, reveal and per-opening settings (domain/wardrobe/front-styles); absent is slab, full overlay, 2 mm. */
+  fronts?: import('./front-styles').DesignFronts | undefined;
   /** Which side single-leaf doors hinge on across the cabinet; absent means outward (each leaf hinged nearer the cabinet's end, or left for a single kitchen door). */
   doorHang?: 'left' | 'right' | undefined;
   profile: EditorProfile; proposal: EditorLayout['proposal']; reachLine?: boolean | undefined;

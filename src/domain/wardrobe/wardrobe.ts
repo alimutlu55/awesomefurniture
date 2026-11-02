@@ -94,6 +94,8 @@ export interface Wardrobe {
   readonly rotation: number;
   readonly finish: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage';
   readonly doors: 'none' | 'solid' | 'glass';
+  /** Front style, overlay, reveal and per-opening settings; absent is the default (domain/wardrobe/front-styles). */
+  readonly fronts?: import('./front-styles').DesignFronts | undefined;
   readonly sections: readonly Section[];
   readonly preferences: WardrobePreferences;
   /** Built-in skeleton; absent for regular rectangular wardrobes (and older projects). */

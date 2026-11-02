@@ -62,6 +62,8 @@ export interface SpecWardrobe {
   readonly for?: Readonly<Record<string, number>> | undefined;
   /** Plan its fittings with Auto design; on by default when `for` is given. */
   readonly autoDesign?: boolean | undefined;
+  /** Its fronts: style, overlay, reveal and per-opening settings (FRONT_STYLES, FRONT_OVERLAYS, FRONT_REVEALS_MM). */
+  readonly fronts?: import('../wardrobe/front-styles').DesignFronts | undefined;
 }
 
 export interface DesignSpec {

@@ -10,6 +10,7 @@ import { createStudio } from '../../domain/studio/studio-templates';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { resolveMaterials } from '../../domain/materials/configured-materials';
 import { MODS, PANEL } from '../../domain/wardrobe/catalog.js';
+import { savedFronts } from '../../domain/wardrobe/front-styles';
 
 /** A fitting saved without a purpose takes its kind's starting purpose from the fittings registry. */
 const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
@@ -27,6 +28,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    doors:s.doors==='hinged'?'solid' as const:s.doors,
    ...(s.materials?{materials:structuredClone(s.materials)}:{}),
    ...(s.construction?{construction:{...s.construction}}:{}),
+   ...(savedFronts(s.fronts)?{fronts:savedFronts(s.fronts)!}:{}),
    ...(s.plinthHeight===undefined?{}:{plinthHeight:s.plinthHeight}), ...(s.cornerStrip===undefined?{}:{cornerStrip:s.cornerStrip}),
    ...(s.leftPanelThickness===undefined?{}:{leftPanelThickness:s.leftPanelThickness}),
    ...(s.rightPanelThickness===undefined?{}:{rightPanelThickness:s.rightPanelThickness}),
@@ -80,6 +82,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    secs,dividers,fin:w.finish,doors:w.doors==='solid'?'hinged':w.doors,
    ...(w.materials?{materials:structuredClone(resolveMaterials(w))}:{}),
    ...(w.construction?{construction:{...w.construction}}:{}),
+   ...(w.fronts?{fronts:structuredClone(w.fronts)}:{}),
    ...(w.plinthHeight===undefined?{}:{plinthHeight:w.plinthHeight}), ...(w.cornerStrip===undefined?{}:{cornerStrip:w.cornerStrip}),
    ...(w.leftPanelThickness===undefined?{}:{leftPanelThickness:w.leftPanelThickness}),
    ...(w.rightPanelThickness===undefined?{}:{rightPanelThickness:w.rightPanelThickness}),

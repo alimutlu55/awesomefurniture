@@ -75,3 +75,78 @@ export const isFrontReveal = (mm: unknown): mm is FrontRevealMm => (FRONT_REVEAL
 /** What a design has when it says nothing about its fronts: today's slab leaves, full overlay, 2 mm reveal. */
 export const DEFAULT_FRONT = Object.freeze({ style: 'slab', overlay: 'full', revealMm: 2 } as const satisfies {
   style: FrontStyle; overlay: FrontOverlay; revealMm: FrontRevealMm });
+
+/** The most leaves one door opening can be split into. */
+export const MAX_LEAVES = 4;
+
+/** What a person set on one door opening (`bay.row`) or on one leaf of it (`bay.row.leaf`). Absent fields follow the
+ * cabinet: leaves split automatically and hinge on the side nearer the wardrobe's end. */
+export interface LeafSettings {
+  /** How many leaves the opening is split into (only on an opening's key). */
+  readonly leaves?: number | undefined;
+  readonly hinge?: 'left' | 'right' | undefined;
+}
+
+/** A cabinet's fronts as saved. Every field is optional: absent is the default, and defaults are never written. */
+export interface DesignFronts {
+  readonly style?: FrontStyle | undefined;
+  readonly overlay?: FrontOverlay | undefined;
+  /** Millimetres. */
+  readonly reveal?: FrontRevealMm | undefined;
+  /** Keyed by `leafKey`: bay index from the left, door opening from the bottom, and optionally the leaf from the left. */
+  readonly leaves?: Readonly<Record<string, LeafSettings>> | undefined;
+}
+
+/** A stable key for a door opening (bay index from the left, row from the bottom) or one leaf of it. */
+export const leafKey = (bay: number, row: number, leaf?: number) => leaf === undefined ? `${bay}.${row}` : `${bay}.${row}.${leaf}`;
+const LEAF_KEY = /^(\d)\.(\d{1,2})(?:\.(\d))?$/;
+export const parseLeafKey = (key: string): { bay: number; row: number; leaf?: number } | undefined => {
+  const m = LEAF_KEY.exec(key);
+  return m ? { bay: Number(m[1]), row: Number(m[2]), ...(m[3] === undefined ? {} : { leaf: Number(m[3]) }) } : undefined;
+};
+
+/** What is wrong with saved fronts, each as a sentence naming the bad value and what is allowed. `bays` is the cabinet's
+ * bay count, when known. */
+export function frontsProblems(fronts: DesignFronts, bays?: number): string[] {
+  const problems: string[] = [], list = (keys: readonly (string | number)[]) => keys.join(', ');
+  const style = frontStyle(fronts.style ?? DEFAULT_FRONT.style);
+  if (!style) problems.push(`Unknown front style "${fronts.style}": use ${list(FRONT_STYLES.map(s => s.key))}.`);
+  if (fronts.overlay !== undefined && !frontOverlay(fronts.overlay)) problems.push(`Unknown front overlay "${fronts.overlay}": use ${list(FRONT_OVERLAYS.map(o => o.key))}.`);
+  else if (style && !style.overlays.includes(fronts.overlay ?? style.overlays[0]!)) problems.push(`A ${style.name.toLowerCase()} front cannot be hung ${fronts.overlay}: use ${list(style.overlays)}.`);
+  if (fronts.reveal !== undefined && !isFrontReveal(fronts.reveal)) problems.push(`A reveal of ${fronts.reveal} mm is not offered: use ${list(FRONT_REVEALS_MM)} mm.`);
+  for (const [key, leaf] of Object.entries(fronts.leaves ?? {})) {
+    const at = parseLeafKey(key);
+    if (!at) { problems.push(`"${key}" is not a door opening: write bay.row (0.0 is the bottom opening of the left bay), or bay.row.leaf.`); continue; }
+    if (bays !== undefined && at.bay >= bays) problems.push(`"${key}": the cabinet has no bay ${at.bay}; its bays are 0 to ${bays - 1}.`);
+    if (leaf.leaves !== undefined) {
+      if (at.leaf !== undefined) problems.push(`"${key}": set the number of leaves on the opening (${leafKey(at.bay, at.row)}), not on one leaf.`);
+      if (!Number.isInteger(leaf.leaves) || leaf.leaves < 1 || leaf.leaves > MAX_LEAVES) problems.push(`"${key}": an opening has 1 to ${MAX_LEAVES} leaves.`);
+    }
+    if (at.leaf !== undefined && at.leaf >= MAX_LEAVES) problems.push(`"${key}": an opening has at most ${MAX_LEAVES} leaves.`);
+  }
+  return problems;
+}
+
+/** The fronts as they are saved: defaults left out, and nothing at all when everything is the default. */
+export function savedFronts(fronts: DesignFronts | undefined): DesignFronts | undefined {
+  if (!fronts) return undefined;
+  const leaves = Object.fromEntries(Object.entries(fronts.leaves ?? {})
+    .map(([key, leaf]) => [key, Object.fromEntries(Object.entries(leaf).filter(([, v]) => v !== undefined))] as const)
+    .filter(([, leaf]) => Object.keys(leaf).length > 0).sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true })));
+  const style = fronts.style === undefined || fronts.style === DEFAULT_FRONT.style ? undefined : fronts.style;
+  const firstOverlay = frontStyle(style ?? DEFAULT_FRONT.style)?.overlays[0];
+  const saved = {
+    ...(style ? { style } : {}),
+    ...(fronts.overlay === undefined || fronts.overlay === firstOverlay ? {} : { overlay: fronts.overlay }),
+    ...(fronts.reveal === undefined || fronts.reveal === DEFAULT_FRONT.revealMm ? {} : { reveal: fronts.reveal }),
+    ...(Object.keys(leaves).length ? { leaves } : {}),
+  };
+  return Object.keys(saved).length ? saved : undefined;
+}
+
+/** A design's fronts with every default filled in. A design saved before styles keeps the style its materials name. */
+export function resolveFronts(design: { fronts?: DesignFronts | undefined; materials?: { frontProfile?: string | undefined } | undefined }) {
+  const fronts = design.fronts ?? {}, profile = design.materials?.frontProfile;
+  const style = fronts.style ?? (FRONT_STYLES as readonly FrontStyleDef[]).find(s => profile && s.materialProfile === profile)?.key as FrontStyle | undefined ?? DEFAULT_FRONT.style;
+  return { style, overlay: fronts.overlay ?? frontStyle(style)!.overlays[0]! as FrontOverlay, reveal: fronts.reveal ?? DEFAULT_FRONT.revealMm as FrontRevealMm, leaves: fronts.leaves ?? {} };
+}

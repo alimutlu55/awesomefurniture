@@ -12,6 +12,8 @@ import { BACK_FIXINGS, JOINT_SYSTEMS } from '../../domain/make/make-construction
 import type { Needs } from '../../domain/wardrobe/possessions';
 import type { ItemKind, StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
+import { frontsSchema } from './fronts-schema';
+import { frontsProblems } from '../../domain/wardrobe/front-styles';
 import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
 import type { StudioTemplateId } from '../../domain/studio/studio-templates';
 import { studioProblems } from '../../domain/studio/studio-validation';
@@ -95,6 +97,7 @@ const wardrobe = z.strictObject({
   ventilationWidth: finite.min(0).max(150).optional(), ventilationHeight: finite.min(0).max(30).optional(),
   frontThickness: finite.min(.1).max(5).optional(), worktopThickness: finite.min(.1).max(15).optional(),
   doors: z.enum(['none', 'solid', 'glass']),
+  fronts: frontsSchema.optional(),
   sections: z.array(section),
   shape: shape.optional(),
   // Furniture other than a wardrobe (domain/furniture). Absent in every older project.
@@ -115,6 +118,7 @@ const wardrobe = z.strictObject({
   const close = (a: number, b: number) => Math.abs(a-b)<.001;
   if ((cabinet.product === 'kitchen') !== (cabinet.unit !== undefined)) fail('A kitchen cabinet names its unit, and only a kitchen cabinet has one.');
   if (cabinet.materials?.worktopDecorId && cabinet.product !== 'kitchen') fail('Only kitchen furniture has a worktop decor.');
+  if (cabinet.fronts) for (const problem of frontsProblems(cabinet.fronts, cabinet.sections.length)) fail(problem);
   if (cabinet.editorLayout) {
     const n=cabinet.sections.length, weights=cabinet.editorLayout.weights;
     if(n<1 || n>6) fail('An editor wardrobe must have between one and six sections.');
