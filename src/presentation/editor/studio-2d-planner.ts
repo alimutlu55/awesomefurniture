@@ -21,7 +21,6 @@ export interface Studio2DPlannerPorts {
   };
   readonly callbacks: {
     onSwitch3D?: () => void;
-    openFields: (action: string, field: string) => void;
     selectionChanged: () => void;
     clearFurnitureFocus: () => void;
   };
@@ -109,7 +108,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       sceneCommands.followCeilings(false);
     },
     refresh: () => render(),
-    openFields: (a, f) => callbacks.openFields(a, f),
     getTransform: () => transform,
     setTransform: updater => { transform = updater(transform); },
     standingAgainst: wid => sceneCommands.standingAgainst(wid),
@@ -266,21 +264,15 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     if (textLabels.innerHTML !== markup) textLabels.innerHTML = markup;
   }
 
-  let editingDimension = false;
   listen(svg, 'pointerdown', (e: Event) => {
     const pointer = e as PointerEvent;
-    editingDimension = !!(e.target as Element).closest('[data-edit-wall]');
     if (gestures.onPointerDown(pointer, svg)) svg.setPointerCapture(pointer.pointerId);
   });
   listen(svg, 'pointermove', (e: Event) => gestures.onPointerMove(e as PointerEvent, svg));
   listen(svg, 'pointerup', (e: Event) => {
     gestures.onPointerUp(e as PointerEvent);
-    // Opening a dimension editor is not a background tap that dismisses the sheet.
-    if (editingDimension) e.stopPropagation();
-    editingDimension = false;
   });
   listen(svg, 'pointercancel', (e: Event) => {
-    editingDimension = false;
     gestures.onPointerUp(e as PointerEvent, true);
     gestures.clearWallActionTarget();
   });

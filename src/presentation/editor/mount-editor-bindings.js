@@ -274,7 +274,6 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     planner2D = createStudio2DPlanner({
         dom, model, sceneCommands, history, selectionState,
         callbacks: {
-            openFields: (_a, f) => room.editor.editMeasure({ a: { x: 0, y: 0, z: 0 }, b: { x: 0, y: 0, z: 0 }, text: '', edit: f }),
             clearFurnitureFocus: () => inspector.clearFocus(),
             selectionChanged: () => { inspector.update(true); rendering.redrawStudio(); },
         },

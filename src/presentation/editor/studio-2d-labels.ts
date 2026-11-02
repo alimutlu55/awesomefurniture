@@ -8,7 +8,7 @@ import { lengthWithUnit } from './length-unit-state';
 export interface LabelRect { x: number; y: number; width: number; height: number }
 export interface PlanLabel {
   id: string; kind: 'dimension' | 'guide' | 'room' | 'drawing'; text: string; detail?: string;
-  x: number; y: number; width: number; height: number; angle: number; box: LabelRect;
+  x: number; y: number; width: number; height: number; angle: number; scale: number; box: LabelRect;
   wallId?: string; anchor?: Point2D;
 }
 type Guide = { a: Point2D; b: Point2D; label: string };
@@ -44,6 +44,8 @@ export function polygonOverlapsRect(polygon: readonly Point2D[], rect: LabelRect
 /** Visible text has its own screen-space layer and never occupies geometry or another label's space. */
 export function layoutPlanLabels({ studio, wardrobes, transform, selection, exclusions = [], guides = [], drawing, measureText = text => text.length * 7.5 }: Options): PlanLabel[] {
   const { toScreen } = createTransform(transform);
+  const scale = Math.min(1, transform.zoom / .6);
+  const gap = 5 * scale;
   const objects: Point2D[][] = [];
   const addObject = (points: readonly Point2D[]) => objects.push(points.map(toScreen));
   const wallPlans = studio?.walls.flatMap(w => { const plan = wall2DPlan(studio, w); return plan ? [{ w, plan }] : []; }) ?? [];
@@ -67,29 +69,32 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
   }
   for (const c of studio?.corners ?? []) {
     const p = toScreen(c);
-    objects.push(rectPoints({ x: p.x - 11, y: p.z - 11, width: 22, height: 22 }));
+    const radius = 12 * scale + 1;
+    objects.push(rectPoints({ x: p.x - radius, y: p.z - radius, width: radius * 2, height: radius * 2 }));
   }
   const occupied = [...exclusions];
   const labels: PlanLabel[] = [];
   const fits = (box: LabelRect) => box.x >= 8 && box.y >= 8 && box.x + box.width <= transform.width - 8 && box.y + box.height <= transform.height - 8
-    && !occupied.some(r => rectanglesOverlap(pad(box, 5), r))
-    && !objects.some(p => polygonOverlapsRect(p, pad(box, 5)));
-  const place = (label: Omit<PlanLabel, 'x' | 'y' | 'box'>, candidates: Iterable<Point2D>, within?: (box: LabelRect) => boolean) => {
+    && !occupied.some(r => rectanglesOverlap(pad(box, gap), r))
+    && !objects.some(p => polygonOverlapsRect(p, pad(box, gap)));
+  const place = (label: Omit<PlanLabel, 'x' | 'y' | 'box' | 'scale'>, candidates: Iterable<Point2D & { anchor?: Point2D }>, within?: (box: LabelRect) => boolean) => {
+    label = { ...label, width: label.width * scale, height: label.height * scale };
     const radians = label.angle * Math.PI / 180;
     const width = Math.abs(Math.cos(radians)) * label.width + Math.abs(Math.sin(radians)) * label.height;
     const height = Math.abs(Math.sin(radians)) * label.width + Math.abs(Math.cos(radians)) * label.height;
     for (const p of candidates) {
       const box = { x: p.x - width / 2, y: p.z - height / 2, width, height };
       if (!fits(box) || within && !within(box)) continue;
-      labels.push({ ...label, x: p.x, y: p.z, box });
+      labels.push({ ...label, x: p.x, y: p.z, box, scale, ...(p.anchor ? { anchor: p.anchor } : {}) });
       occupied.push(box);
       return;
     }
     // Crowded/offscreen labels wait for more space or selection, rather than cover the plan.
   };
   function* around(p: Point2D, width: number): Generator<Point2D> {
-    for (const distance of [30, 54, 82, 116, 156, 204]) {
-      for (const [x, z] of [[0, -distance], [0, distance], [width / 2 + distance, 0], [-width / 2 - distance, 0], [distance, -distance], [-distance, distance]]) {
+    for (const base of [28, 44, 56]) {
+      const distance = base * scale;
+      for (const [x, z] of [[0, -distance], [0, distance], [width * scale / 2 + distance, 0], [-width * scale / 2 - distance, 0], [distance, -distance], [-distance, distance]]) {
         yield { x: p.x + x!, z: p.z + z! };
       }
     }
@@ -110,16 +115,20 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
     const a = toScreen(plan.faceFrom), b = toScreen(plan.faceTo), dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
     if (length < 1 || !rectanglesOverlap(pad(bounds([a, b]), 2), { x: 0, y: 0, width: transform.width, height: transform.height })) continue;
     const text = lengthWithUnit(plan.faceLength), width = Math.max(64, Math.ceil(measureText(text)) + 24);
+    const selected = selection?.kind === 'wall' && selection.id === w.id;
+    if (!selected && length < (width + 12) * scale) continue;
     let angle = Math.atan2(dz, dx) * 180 / Math.PI;
     if (angle > 90) angle -= 180;
     if (angle < -90) angle += 180;
     const centreFraction = Math.max(0, Math.min(1, ((transform.width / 2 - a.x) * dx + (transform.height / 2 - a.z) * dz) / length ** 2));
     const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
     const fractions = mid.x < 0 || mid.x > transform.width || mid.z < 0 || mid.z > transform.height ? [centreFraction, .5, .25, .75, .1, .9] : [.5, .35, .65, .2, .8, centreFraction];
-    function* candidates(): Generator<Point2D> {
-      for (const distance of [28, 52, 80, 112, 152, 200, 256]) {
+    function* candidates(): Generator<Point2D & { anchor: Point2D }> {
+      for (const base of [28, 44, 56]) {
+        const distance = base * scale;
         for (const fraction of fractions) for (const side of [1, -1]) {
-          yield { x: a.x + dx * fraction - dz / length * distance * side, z: a.z + dz * fraction + dx / length * distance * side };
+          const anchor = { x: a.x + dx * fraction, z: a.z + dz * fraction };
+          yield { x: anchor.x - dz / length * distance * side, z: anchor.z + dx / length * distance * side, anchor };
         }
       }
     }
@@ -142,13 +151,20 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
 }
 
 export function renderPlanLabels(labels: readonly PlanLabel[]): string {
-  return labels.map(label => {
-    const editable = label.wallId ? ` data-edit-wall="${escape(label.wallId)}" role="button" aria-label="Edit wall length: ${escape(label.text)}"` : '';
+  const leaders: string[] = [];
+  const badges = labels.map(label => {
+    if (label.kind === 'dimension' && label.anchor) {
+      const dx = label.anchor.x - label.x, dy = label.anchor.z - label.y;
+      const end = Math.min(label.box.width / 2 / Math.max(.001, Math.abs(dx)), label.box.height / 2 / Math.max(.001, Math.abs(dy)));
+      leaders.push(`<line class="sp2d-dimension-leader" x1="${label.anchor.x}" y1="${label.anchor.z}"
+        x2="${label.x + dx * end}" y2="${label.y + dy * end}"/>`);
+    }
     return `<g class="sp2d-plan-label sp2d-${label.kind}-label${label.wallId ? ' sp2d-dim-badge' : ''}"
-      data-label-kind="${label.kind}" data-label-id="${escape(label.id)}" transform="translate(${label.x},${label.y}) rotate(${label.angle})"${editable}>
-      <rect x="${-label.width / 2}" y="${-label.height / 2}" width="${label.width}" height="${label.height}" rx="6" class="sp2d-dim-bg"/>
-      <text x="0" y="${label.detail ? -4 : 4}" class="sp2d-dim-text">${escape(label.text)}</text>
-      ${label.detail ? `<text x="0" y="14" class="sp2d-room-area">${escape(label.detail)}</text>` : ''}
+      data-label-kind="${label.kind}" data-label-id="${escape(label.id)}" transform="translate(${label.x},${label.y}) rotate(${label.angle})">
+      <rect x="${-label.width / 2}" y="${-label.height / 2}" width="${label.width}" height="${label.height}" rx="${6 * label.scale}" class="sp2d-dim-bg"/>
+      <text x="0" y="${(label.detail ? -4 : 4) * label.scale}" class="sp2d-dim-text" style="font-size:${12 * label.scale}px">${escape(label.text)}</text>
+      ${label.detail ? `<text x="0" y="${14 * label.scale}" class="sp2d-room-area" style="font-size:${11 * label.scale}px">${escape(label.detail)}</text>` : ''}
     </g>`;
   }).join('');
+  return leaders.join('') + badges;
 }

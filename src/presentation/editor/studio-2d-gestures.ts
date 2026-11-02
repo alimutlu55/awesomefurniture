@@ -39,7 +39,6 @@ export interface Studio2DGesturesPorts {
   readonly settleCabinet: (id: number) => string | null | undefined;
   readonly studioProblem: (studio: Studio, carry?: import('../../application/commands/studio-commands').Carried) => string | null;
   readonly previewStudio: (studio: Studio, carry?: import('../../application/commands/studio-commands').Carried) => void;
-  readonly openFields: (action: string, field: string) => void;
   readonly getTransform: () => ViewportTransform;
   readonly setTransform: (updater: (prev: ViewportTransform) => ViewportTransform) => void;
   readonly standingAgainst: (wallId: string) => import('../../application/commands/studio-commands').Carried;
@@ -151,14 +150,6 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
         moved: false, guides: [],
       };
       scheduleRefresh();
-      return true;
-    }
-
-    const dimEl = (e.target as Element).closest('[data-edit-wall]');
-    if (dimEl) {
-      const wid = dimEl.getAttribute('data-edit-wall')!;
-      ports.setSelection({ kind: 'wall', id: wid });
-      ports.openFields('wall-size', 'length');
       return true;
     }
 

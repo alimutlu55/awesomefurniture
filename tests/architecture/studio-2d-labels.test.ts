@@ -19,7 +19,7 @@ for (const zoom of [.25, .55, 1.2, 2.5]) {
   test(`2D labels avoid walls, rotated furniture, controls and each other at zoom ${zoom}`, () => {
     const studio = stepStudioWall(createStudio('bedroom'), 'w3', 50, .55)!;
     const wardrobes = [cabinet(1, 0, 30, 0, 320), cabinet(2, -170, 165, 90, 230), cabinet(3, 110, 220, 35, 100)];
-    const transform = { width: 390, height: 760, panX: 0, panZ: 100, zoom };
+    const transform = { width: 390, height: 760, panX: 0, panZ: 60, zoom };
     const { toScreen } = createTransform(transform);
     const exclusions: LabelRect[] = [{ x: 0, y: 0, width: 390, height: 115 }, { x: 96, y: 128, width: 196, height: 44 }, { x: 50, y: 696, width: 290, height: 64 }];
     const guides = [{ a: { x: 0, z: 0 }, b: { x: 80, z: 80 }, label: 'Square' },
@@ -36,16 +36,21 @@ for (const zoom of [.25, .55, 1.2, 2.5]) {
       for (const other of labels.slice(i + 1)) assert.equal(rectanglesOverlap(label.box, other.box), false, `${label.id} clears ${other.id}`);
     }
     const hints = labels.filter(l => l.kind === 'guide');
-    assert.equal(hints.length, 1);
-    assert.equal(hints[0]!.text, 'Square · Aligned with corner', 'one message with no repeated text');
+    assert.ok(hints.length <= 1, 'never stacks hints when there is no nearby space');
+    if (hints.length) assert.equal(hints[0]!.text, 'Square · Aligned with corner', 'one message with no repeated text');
   });
 }
 
-test('dimension badges have a constant readable size at all zoom levels', () => {
+test('dimension badges shrink with the plan when zooming out and stop growing when zooming in', () => {
   const studio = createStudio('wall');
-  const values = [.25, 1, 2.5].map(zoom => layoutPlanLabels({ studio, wardrobes: [], transform: { width: 1440, height: 900, panX: 0, panZ: 0, zoom }, selection: null }).find(l => l.wallId === 'w1')!);
+  const values = [.15, .3, .6, 1, 2.5].map(zoom => layoutPlanLabels({ studio, wardrobes: [],
+    transform: { width: 1440, height: 900, panX: 0, panZ: 0, zoom }, selection: null }).find(l => l.wallId === 'w1')!);
   assert.ok(values.every(Boolean));
-  assert.ok(values.every(l => l.width === values[0]!.width && l.height === 26));
+  assert.equal(values[0]!.height, values[2]!.height / 4);
+  assert.equal(values[1]!.height, values[2]!.height / 2);
+  assert.equal(values[0]!.width, values[2]!.width / 4);
+  assert.equal(values[3]!.height, values[2]!.height);
+  assert.equal(values[4]!.width, values[2]!.width);
   assert.ok(values.every(l => l.text === values[0]!.text));
 });
 
@@ -57,7 +62,9 @@ test('crowded labels are omitted instead of covering the drawing; geometry conta
   assert.ok(!renderRooms(studio).includes('<text'));
   assert.ok(!renderWalls(studio, null).includes('<text'));
   const markup = renderPlanLabels(layoutPlanLabels({ studio, wardrobes: [], transform, selection: { kind: 'wall', id: 'w1' } }));
-  assert.ok(markup.includes('data-edit-wall="w1"'), 'dimensions still open the wall-length editor');
+  assert.ok(!markup.includes('data-edit-wall'), 'labels have no edit action');
+  assert.ok(!markup.includes('role="button"'), 'labels are not buttons');
+  assert.ok(markup.includes('sp2d-dimension-leader'), 'a short line identifies the measured wall');
 });
 
 test('polygon collision checks leave the empty corners of diagonal footprints usable', () => {
@@ -95,5 +102,20 @@ test('short wall segments beside a T-junction do not put labels under the crossi
   for (const [i, label] of labels.entries()) {
     for (const wall of studio.walls) assert.equal(polygonOverlapsRect(wall2DPlan(studio, wall)!.solid.map(toScreen), label.box), false);
     for (const other of labels.slice(i + 1)) assert.equal(rectanglesOverlap(label.box, other.box), false);
+  }
+});
+
+
+test('overview dimensions stay beside their walls instead of scattering across the screen', () => {
+  const studio = stepStudioWall(createStudio('bedroom'), 'w3', 50, .55)!;
+  for (const zoom of [.15, .2, .4, 1]) {
+    const labels = layoutPlanLabels({ studio, wardrobes: [], transform: { width: 390, height: 760, panX: 0, panZ: 160, zoom }, selection: null });
+    const dimensions = labels.filter(l => l.kind === 'dimension');
+    assert.ok(dimensions.length > 0);
+    for (const label of dimensions) {
+      assert.ok(label.anchor);
+      assert.ok(Math.hypot(label.x - label.anchor!.x, label.y - label.anchor!.z) <= 56 * label.scale + .01);
+    }
+    if (zoom <= .2) assert.ok(dimensions.length < studio.walls.length, 'small details wait for zooming in or selection');
   }
 });

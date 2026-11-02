@@ -27,7 +27,7 @@ function fixture(studio: Studio = createStudio('wall'), zoom = 1, furniture = fa
     getActiveWardrobe: () => model.scene.activeWardrobe, setActiveWardrobe: id => { model.scene.activeWardrobe = id; },
     getSelection: () => selection, setSelection: s => { selection = s; },
     editStudio: commands.editStudio, snapshot: () => model.snapshot(), restore: s => model.restore(s),
-    checkpoint: s => history.checkpoint(s), committed: () => { commits++; }, refresh: () => {}, openFields: () => {},
+    checkpoint: s => history.checkpoint(s), committed: () => { commits++; }, refresh: () => {},
     previewTranslation: commands.previewTranslation, settleCabinet: commands.settleCabinet,
     studioProblem: commands.studioProblem,
     previewStudio: (s, carry) => { model.scene.studio = s; if (carry) commands.carryWardrobes(carry, s); },

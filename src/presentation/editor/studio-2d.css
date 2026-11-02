@@ -31,9 +31,8 @@
 .sp2d-wall-face.selected{stroke:#38bdf8;stroke-width:1.5}
 
 /* Dimension Badges */
-.sp2d-dim-badge{cursor:pointer;filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
+.sp2d-dim-badge{cursor:default;filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
 .sp2d-dim-bg{fill:#ffffff;stroke:rgba(28,25,23,.12);stroke-width:1}
-.sp2d-dim-badge:hover .sp2d-dim-bg{stroke:#0284c7;fill:#f0f9ff}
 .sp2d-dim-text{fill:#1c1917;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;text-anchor:middle}
 
 /* Openings */
@@ -121,10 +120,11 @@
   .sp2d-floating-toolbar{top:128px;transform:translateX(-50%) scale(0.9)}
 }
 
-/* Labels stay readable at every zoom and are placed clear of the plan and controls. */
+/* Labels scale down with the plan, avoid geometry, and never intercept touches. */
 .sp2d-plan-label{pointer-events:none}
-.sp2d-plan-label.sp2d-dim-badge{pointer-events:auto}
 .sp2d-guide-label .sp2d-dim-bg{fill:#f0f9ff;stroke:#0284c7}
 .sp2d-guide-label .sp2d-dim-text{fill:#0369a1}
 .sp2d-drawing-label .sp2d-dim-bg{fill:#0284c7;stroke:#ffffff}
 .sp2d-drawing-label .sp2d-dim-text{fill:#ffffff}
+
+.sp2d-dimension-leader{stroke:#78716c;stroke-width:.75;pointer-events:none}
