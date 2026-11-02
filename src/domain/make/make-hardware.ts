@@ -12,6 +12,7 @@ import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
+import { completeDrawerHardware } from './drawer-installation';
 import type { Fitting, Hole } from './make-joints';
 import { thinAxis, type Vec3 } from './make-measures';
 
@@ -173,6 +174,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   }
   if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - 3, 0], axis: 2, boards: [], size: 'pair' });
   if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) fittings.push({ kind: 'bracket', at: [x, design.h - 2, 0], axis: 2, boards: [] });
+  completeDrawerHardware(boards, fittings, holes);
   return { holes, fittings };
 }
 

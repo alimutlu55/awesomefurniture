@@ -24,7 +24,10 @@ test('every hole is drilled for a fitting', () => {
     mp.holes.forEach(h => assert.ok(h.of !== undefined && mp.fittings[h.of], `${name} ${joints}: a ${h.kind} hole names its fitting`));
     for (const h of mp.holes.filter(x => x.kind === 'cup')) assert.equal(mp.fittings[h.of!]!.kind, 'hinge');
     for (const h of mp.holes.filter(x => x.kind === 'connector')) assert.equal(mp.fittings[h.of!]!.kind, 'confirmat');
-    for (const h of mp.holes.filter(x => x.kind === 'runner')) assert.equal(mp.fittings[h.of!]!.kind, 'runner');
+    for (const h of mp.holes.filter(x => x.kind === 'runner')) {
+      assert.equal(mp.fittings[h.of!]!.kind, 'screw');
+      assert.equal(mp.fittings[h.of!]!.purpose, 'runner-mount');
+    }
     for (const h of mp.holes.filter(x => x.kind === 'bolt')) assert.equal(mp.fittings[h.of!]!.kind, 'bolt');
     for (const h of mp.holes.filter(x => x.kind === 'cam')) assert.equal(mp.fittings[h.of!]!.kind, 'cam');
   }

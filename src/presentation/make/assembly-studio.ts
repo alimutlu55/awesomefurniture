@@ -7,7 +7,9 @@ import { unitSuffix } from '../editor/length-unit-state';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior', drawers: 'Drawers', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior',
+  'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
+  drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const instructions: Record<Stage, string> = {
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
@@ -15,8 +17,11 @@ const instructions: Record<Stage, string> = {
   top: 'Lower the top onto the uprights, align the edges and secure each connection.',
   back: 'Square the cabinet, then fit the back using the selected back fixing.',
   inside: 'Fit the supports at matching heights, then position the shelves and interior components.',
-  drawers: 'Assemble each drawer box, fit its runners and align the front.',
-  fronts: 'Attach the fronts and check the clearances.',
+  'drawer-boxes': 'Assemble each drawer box outside the cabinet. Join the ends between the sides, fit the bottom and check the box is square.',
+  'drawer-runners': 'Separate the removable inner members. Fix the outer rails level and parallel inside the cabinet; screw the inner members to the drawer sides. Use short mounting screws.',
+  drawers: 'Bring the assembled boxes to the cabinet. Align both drawer members with the cabinet rails, support the box level and push evenly until both sides engage.',
+  'drawer-test': 'Open and close each drawer. The outer rail stays fixed, the middle rail telescopes and the inner member travels with the box. Check smooth travel, equal gaps and secure engagement on both sides.',
+  fronts: 'Align the decorative drawer front, then fasten it from inside the box with short front-fixing screws. Keep the front square and the gaps even.',
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
@@ -53,6 +58,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       <div class="as-console">
         <div class="as-caption"><button type="button" data-studio="chapters" aria-expanded="false"><span class="as-eyebrow">ASSEMBLY</span><strong class="as-step-title"></strong></button>
           <span class="as-step-count"></span>${button('guide', 'Step guidance', 'info', 'aria-expanded="false"')}</div>
+        <p class="as-drawer-caption" role="status" hidden></p>
         <div class="as-track"><input type="range" class="as-scrub" min="0" max="1000" step="0.01" value="0" aria-label="Assembly timeline"><div class="as-markers" aria-hidden="true"></div></div>
         <div class="as-times" translate="no"><span class="as-time">0:00</span><span class="as-duration"></span></div>
         <div class="as-transport">${button('previous', 'Previous step', 'prev')}${button('reverse', 'Reverse playback', 'reverse', 'aria-pressed="false"')}
@@ -122,6 +128,14 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
       text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${names[step.stage]}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
+      const drawerCaption = q('.as-drawer-caption');
+      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers'].includes(step.stage);
+      const captions: Partial<Record<Stage, string>> = {
+        'drawer-boxes': 'Build and square the box outside the cabinet.',
+        'drawer-runners': 'Outer rail → cabinet · Inner rail → drawer box',
+        drawers: 'Align both rails. Push the supported box evenly into the cabinet.',
+      };
+      text('.as-drawer-caption', captions[step.stage] ?? '');
       const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
         : player.adjusting() ? 'adjust' : 'complete';
       const hardware = fixing?.hardware ?? step.fittings;
@@ -132,6 +146,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const kinds = new Set(hardware.map(f => f.kind)), doors = step.stage === 'doors';
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
+          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? instructions[step.stage]
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
         const hardwareHtml = hardware.map(f => `<span title="${esc(FITTING_NAMES[f.kind])}">${fittingIcon(f.kind)}<span>${FITTING_NAMES[f.kind]}`
           + `${f.size ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');

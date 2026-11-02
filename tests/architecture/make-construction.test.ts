@@ -132,7 +132,8 @@ test('the joint system and back fixing change what is drilled, never a board', (
   assert.equal(qty(cam, 'bolt'), qty(cam, 'cam'), 'a bolt for every cam');
   assert.ok(cam.holes.some(h => h.kind === 'cam' && h.d === 15));
   assert.equal(qty(dowel, 'dowel'), qty(confirmat, 'confirmat'));
-  assert.equal(qty(dowel, 'nail'), 0);
+  assert.ok(dowel.fittings.filter(f => f.kind === 'nail').every(f => dowel.boards[f.boards[0]!]!.note === 'drawer box'),
+    'a grooved cabinet back has no nails; surface-mounted drawer bottoms retain their own fixings');
   assert.ok(dowel.grooves.length >= 4, 'the back slides into the boards around it');
   assert.deepEqual(constructionOf({}), { joints: 'confirmat', back: 'nailed' });
   assert.deepEqual(constructionOf({ construction: { joints: 'nope' as never, back: 'grooved' } }), { joints: 'confirmat', back: 'grooved' });

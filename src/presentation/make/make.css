@@ -154,3 +154,5 @@
 /* Make's toolbar and panel buttons look pressed (the editor's pressed tint) from pointerdown until their work is done,
    at once: a background transition cannot run while that work holds the page. */
 #toolbar .tb.on:not(:disabled),.make-panel button.on:not(:disabled):not([aria-pressed="true"]){background:rgba(60,52,42,.12);transition:none}
+
+.as-drawer-caption{margin:6px 0 10px;color:var(--mute);font-size:12px;line-height:1.5;max-width:48em}

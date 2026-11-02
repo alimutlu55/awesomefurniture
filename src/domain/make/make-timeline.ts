@@ -74,7 +74,9 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     const order = [...s.boards].sort((a, b) => { const p = key(a), q = key(b), k = p.findIndex((v, i) => v !== q[i]); return k < 0 ? 0 : p[k]! - q[k]!; });
     order.forEach((b, j) => { boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; });
     // More boards take longer to bring in, each in its turn.
-    const placing = s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
+    const count = piece.fittings.filter(f => f.runner).length;
+    const placing = s.stage === 'drawers' ? 4 : s.stage === 'drawer-test' ? count * 6
+      : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
     const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;

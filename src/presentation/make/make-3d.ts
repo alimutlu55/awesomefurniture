@@ -7,6 +7,7 @@ import type { Motion } from '../../domain/make/make-hardware';
 import { boardBox, boardSeed, boardUVs } from '../viewport/board-geometry';
 import { createDecorMaterial } from '../viewport/cabinet-materials';
 import type { createViewportResources } from '../viewport/viewport-resources.js';
+import { createAssemblyVisibility } from './assembly-visibility';
 import { createMakeFittings } from './make-fittings-3d';
 import { createMakePlay, type MakeFilm } from './make-play-3d';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
@@ -87,7 +88,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   let boards: BoardMesh[] = [], look: MakeLook = 'lines', selected: number | null = null, solidFronts = false, amount = 0, open = 0;
   // The film of the assembly at one moment, or null when it is not playing.
   let film: MakeFilm | null = null;
-  const fittings = createMakeFittings(MAKE_LAYER), play = createMakePlay(MAKE_LAYER);
+  const fittings = createMakeFittings(MAKE_LAYER), play = createMakePlay(MAKE_LAYER), visibility = createAssemblyVisibility();
+  let blocked = new Set<number>();
 
   const decor = (id: string) => {
     let m = decorMaterials.get(id);
@@ -106,11 +108,13 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   function paint() {
     contact.visible = boards.length > 0 && look === 'material';
     for (const b of boards) {
-      // In the film fronts go on solid, as they are fitted (a door is seen through while it is hung, so its hinges are
-      // seen clipping onto their plates); otherwise they are solid or dashed as chosen.
-      const phantom = isFront(b.part) && !solidFronts && !film || !!film?.seeThrough?.(b.index), mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
+      // During the film only panels blocking the active hardware are translucent.
+      const cutaway = !!film && blocked.has(b.index);
+      const phantom = isFront(b.part) && !solidFronts && !film || cutaway;
+      const mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
-      if (phantom) face = lines.hidden;
+      if (cutaway) face = fade(face);
+      else if (phantom) face = lines.hidden;
       else if (dim) face = fade(face);
       b.face.material = face;
       b.face.renderOrder = phantom || dim || look === 'xray' ? 1 : 0;
@@ -121,7 +125,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
    * 100°), a drawer slides out on its runners. */
   function place() {
-    if (film) { carry(film); return; }
+    if (film) { carry(film); fittings.motion(); return; }
     for (const b of boards) {
       const at = b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
       let turn = 0;
@@ -136,6 +140,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       b.edges.position.copy(at);
       b.edges.quaternion.copy(b.face.quaternion);
     }
+    fittings.motion();
   }
   /** The film: each board lies flat where it waits until its step, then is lifted, stood up and carried into place
    * along an arc, turning as it goes, and set down. */
@@ -158,7 +163,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     }
   }
   function clear() {
-    fittings.clear(); play.clear();
+    fittings.clear(); play.clear(); visibility.clear(); blocked.clear();
     for (const b of boards) { b.face.geometry.dispose(); b.edges.geometry.dispose(); }
     group.clear();
     boards = [];
@@ -189,6 +194,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         const middle = new THREE.Vector3((board.x0 + board.x1) / 2 - piece.size.w / 2, (board.y0 + board.y1) / 2, (board.z0 + board.z1) / 2 - piece.size.d / 2);
         boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top), motion, pivot, centre: middle });
       });
+      visibility.build(boards);
       const byIndex = new Map(boards.map(b => [b.index, b]));
       fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
       play.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
@@ -221,9 +227,17 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     /** Shows the film of the assembly at one moment (null: the piece as it is). */
     setFilm(next: MakeFilm | null) {
       film = next;
+      if (!film) blocked.clear();
       fittings.only(next?.hole ?? null, next?.item ?? null, next?.seen);
       play.show(next);
       place(); paint();
+    },
+    /** Re-evaluate after the camera and board transforms, including paused orbiting and scrubbing. */
+    updateVisibility(camera: THREE.Camera) {
+      group.updateMatrixWorld(true);
+      const next = film?.targets?.length ? visibility.blocked(camera, film.targets, size) : new Set<number>();
+      if (next.size === blocked.size && [...next].every(i => blocked.has(i))) return;
+      blocked = next; paint();
     },
     setSolidFronts(on: boolean) { solidFronts = on; paint(); },
     /** How far apart (0 assembled, 1 apart). */
@@ -268,7 +282,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       clear();
       scene.remove(group, contact);
       contact.material.dispose();
-      fittings.dispose(); play.dispose();
+      fittings.dispose(); play.dispose(); visibility.dispose();
       for (const m of new Set<THREE.Material>([...Object.values(lines), ...decorMaterials.values(), ...faded.values()])) m.dispose();
     },
   };

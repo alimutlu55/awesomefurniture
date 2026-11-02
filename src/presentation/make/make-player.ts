@@ -1,5 +1,7 @@
+import { assemblyTargets } from './assembly-targets';
+import { drawerBoardOffset } from '../../domain/make/drawer-installation';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, seeThrough, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { Measure, Vec3 } from '../../domain/make/make-measures';
@@ -12,10 +14,11 @@ import type { MakeFilm } from './make-play-3d';
  */
 export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
+  let stopAt: number | null = null;
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, hang: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
-    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; },
+    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; stopAt = null; },
     get timeline() { return tl; },
     get staged() { return staged; },
     get time() { return t; },
@@ -26,15 +29,22 @@ export function createMakePlayer() {
     get head() { return head(); },
     /** Each step's start, for its chapter. */
     get starts() { return tl ? tl.steps.map(s => s.start) : []; },
-    seek(to: number) { if (Number.isFinite(to)) t = Math.max(0, Math.min(tl?.duration ?? 0, to)); },
+    seek(to: number) { stopAt = null; if (Number.isFinite(to)) t = Math.max(0, Math.min(tl?.duration ?? 0, to)); },
+    /** Demonstrates a mechanism to an exact endpoint, then pauses without continuing to another drawer. */
+    animateTo(to: number) {
+      if (!tl || !Number.isFinite(to)) return;
+      stopAt = Math.max(0, Math.min(tl.duration, to));
+      rate = stopAt >= t ? 1 : -1; playing = Math.abs(stopAt - t) > .001;
+    },
     /** Plays or pauses; at the end, plays again from the start. */
     toggle() {
       if (!tl) return;
+      stopAt = null;
       if (!playing && rate > 0 && t >= tl.duration - .01) t = 0;
       if (!playing && rate < 0 && t <= .01) t = tl.duration;
       playing = !playing;
     },
-    pause() { playing = false; },
+    pause() { playing = false; stopAt = null; },
     /** The start of the step `by` steps from the one showing. */
     step(by: number) { if (tl) { const k = head().step; t = stepStart(tl, by < 0 && t - tl.steps[k]!.start > .6 ? k : k + by); } },
     chapter(k: number) { if (tl) t = stepStart(tl, k); },
@@ -42,7 +52,10 @@ export function createMakePlayer() {
     advance(dt: number) {
       if (!playing || !tl) return false;
       if (!Number.isFinite(dt) || dt < 0) return false;
-      t = Math.max(0, Math.min(tl.duration, t + dt * rate));
+      const next = Math.max(0, Math.min(tl.duration, t + dt * rate));
+      if (stopAt !== null && (next - stopAt) * rate >= 0) {
+        t = stopAt; stopAt = null; playing = false;
+      } else t = next;
       if ((rate > 0 && t >= tl.duration) || (rate < 0 && t <= 0)) playing = false;
       return true;
     },
@@ -61,12 +74,15 @@ export function createMakePlayer() {
         now: board => line.boardStep[board] === ph.step,
         hole: index => drilled(line, ph, index),
         // Hardware drawn on the piece comes in as its joint is fixed; runners are on their drawer from the start.
-        item: index => fittings[index]!.kind === 'runner' ? 1 : fittedAt(line, ph, index, fittings[index]!.kind),
+        item: index => fittedAt(line, ph, index, fittings[index]!.kind),
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
         seen: item => seenAt(line, ph, item),
-        nudge: board => doorNudge(line, ph, board),
-        seeThrough: board => seeThrough(line, ph, board),
+        nudge: board => {
+          const door = doorNudge(line, ph, board), drawer = drawerBoardOffset(piece!, line, ph, board);
+          return [door[0] + drawer[0], door[1] + drawer[1], door[2] + drawer[2]];
+        },
+        targets: assemblyTargets(piece, line, ph),
       };
     },
     /** While the doors chapter adjusts the doors: the gaps they are set to, as measurements, and which way now. */
@@ -82,7 +98,12 @@ export function createMakePlayer() {
       const ph = head(), now = fixingNow(tl, ph), p = piece;
       if (!now) return null;
       // A joint fixed on a board lying on the floor is drawn where that board lies.
-      const board = now.board, where = (q: Vec3) => now.lying && board !== null ? lyingPoint(p.boards[board]!, staged[board]!, q) : q;
+      const board = now.board, where = (q: Vec3): Vec3 => {
+        if (now.lying && board !== null) return lyingPoint(p.boards[board]!, staged[board]!, q);
+        if (board === null) return q;
+        const off = drawerBoardOffset(p, tl!, ph, board);
+        return [q[0] + off[0], q[1] + off[1], q[2] + off[2]];
+      };
       const lines = now.items.flatMap(i => {
         const e = entryOf(p, i);
         if (!e) return [];
