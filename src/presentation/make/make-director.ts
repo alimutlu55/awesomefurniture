@@ -26,6 +26,11 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   const waiting = (i: number) => { const s = staged[i]!; return corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half); };
   const around = (p: readonly number[], r: number) => corners(p.map(v => v - r), p.map(v => v + r)).map(half);
   const all = piece.boards.map((_, i) => i), shots: { t: number; pose: Pose }[] = [];
+  // Looking at a hinge plate on a side panel's inner face: from the front, across into the piece towards that face.
+  const inside = (p: Vec3) => {
+    const v = half([w / 2, p[1], d / 2]).sub(half(p)).setY(0).normalize().multiplyScalar(1.1).add(new THREE.Vector3(Math.sin(facing), 0, Math.cos(facing)));
+    return Math.atan2(v.x, v.z);
+  };
   const shot = (t: number, points: THREE.Vector3[], az: number, el: number, padding: number) => {
     if (points.length) shots.push({ t, pose: camera.fittedCamera(az, el, padding, bounds(points)) });
   };
@@ -55,16 +60,32 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     s.fixes.forEach((fix, j) => {
       const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null), lying = fix.lying && fix.board !== null ? fix.board : null;
       const where = (p: Vec3): Vec3 => lying === null ? p : lyingPoint(piece.boards[lying]!, staged[lying]!, p), dir = lying === null ? fix.dir : lyingDir(staged[lying]!, fix.dir);
-      const points = entries.flatMap(e => [...around(where(e.at), 5), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 3)]);
+      // Hinge plates go on a side panel's inner face: seen from inside the piece, never through the panel, close on the
+      // middle one so a plate reads as the part it is.
+      const plates = fix.items.every(i => piece.fittings[i]!.kind === 'plate') && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
+      const points = plates && middle ? around(middle.at, 14)
+        : entries.flatMap(e => [...around(where(e.at), 5), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 3)]);
       // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
       // their line, turned towards the front.
       const out = new THREE.Vector3(...dir).negate(), up = Math.abs(out.y) > .7, turn = j % 2 ? .25 : -.25;
       const w = out.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), facing), way = Math.atan2(w.x, w.z), off = (a: number) => Math.abs(Math.atan2(Math.sin(a - facing), Math.cos(a - facing)));
-      const az = up ? facing + side * .3 + turn : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!, el = up ? (out.y > 0 ? .85 : .12) : .34;
+      const az = plates && middle ? inside(middle.at) : up ? facing + side * .3 + turn : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!, el = up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
       const span = fix.at[1] - fix.at[0];
       shot(fix.at[0] + span * .2, points, az, el, .95);
       shot(fix.at[1] - span * .08, points, az + turn * .3, el, .9);
     });
+    // Hanging the doors: close on one hinge and its plate (the middle one of the first door), from the front and across
+    // the way the plate went on, so the arm is seen going onto the plate as the door is pushed home.
+    if (s.hang[1] > s.hang[0]) {
+      const plates = step.items.filter(i => piece.fittings[i]!.kind === 'plate'), first = plates.filter(i => Math.abs(piece.fittings[i]!.at[0] - piece.fittings[plates[0]!]!.at[0]) < 5);
+      const plate = first.sort((a, b) => piece.fittings[a]!.at[1] - piece.fittings[b]!.at[1])[Math.floor(first.length / 2)];
+      const e = plate === undefined ? null : entryOf(piece, plate);
+      if (e) {
+        const points = [...around(e.at, 14), ...around([e.at[0], e.at[1], d + 6], 6)];
+        shot(s.hang[0] - .3, points, inside(e.at), .35, 1);
+        shot(s.hang[1] + .3, points, inside(e.at), .35, .95);
+      }
+    }
     // Adjusting the doors: square on to their fronts, close enough to read the gaps.
     if (s.adjust[1] > s.adjust[0]) {
       const doors = step.boards.flatMap(placed);

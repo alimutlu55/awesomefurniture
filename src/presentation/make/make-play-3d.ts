@@ -23,6 +23,8 @@ export interface MakeFilm {
   seen(item: number): number;
   /** How far a door hangs out of true now, before it is adjusted (side, height, depth; cm). */
   nudge?(board: number): import('../../domain/make/make-measures').Vec3;
+  /** A door drawn see-through while it is hung, so its hinge arms are seen going onto their plates. */
+  seeThrough?(board: number): boolean;
 }
 
 const STEEL = 0x555b62, BRASS = 0x9a7434, BIT = 0x2b2e33;
@@ -98,12 +100,17 @@ export function createMakePlay(layer: number) {
     if (f.kind === 'nail') return make(screw(2, .08, steel));
     if (f.kind === 'pin') return make(solid(rod, brass, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(.25, 1.6, .25)));
     if (f.kind === 'hinge') {
-      // The hinge's cup pressed into the door, its arm reaching back to the plate.
-      const g = new THREE.Group();
-      g.add(solid(rod, steel, new THREE.Vector3(0, .6, 0), new THREE.Vector3(1.75, 1.2, 1.75)), solid(box, steel, new THREE.Vector3(0, -.7, 0), new THREE.Vector3(1.6, 1.6, 4)));
+      // The hinge's cup pressed into the door, and its arm reaching from the cup to where its plate is on the side panel
+      // (made just after it), so the door hung shows which plate each hinge clips onto.
+      const g = new THREE.Group(), plate = piece.fittings[item + 1]?.kind === 'plate' ? piece.fittings[item + 1]! : null;
+      g.add(solid(rod, steel, new THREE.Vector3(0, .6, 0), new THREE.Vector3(1.75, 1.2, 1.75)));
+      const arm = plate ? new THREE.Vector3(plate.at[0] - f.at[0], plate.at[1] - f.at[1], plate.at[2] - f.at[2])
+        .applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Y, dir).invert()) : new THREE.Vector3(0, -4, 0);
+      g.add(solid(box, steel, arm.clone().multiplyScalar(.5), new THREE.Vector3(1.4, arm.length(), .9), arm.clone().normalize()));
       return make(g);
     }
-    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(1.2, .5, 4.8)));
+    // The plate on the panel over its two screws, a System 32 pitch apart: about 4 cm each way.
+    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.3, 0), new THREE.Vector3(4.2, .6, 4.2)));
     return null;
   }
 
