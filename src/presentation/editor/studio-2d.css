@@ -1,5 +1,6 @@
 /* 2D Space Planner for Studio Mode */
 .studio-2d-planner{position:absolute;inset:0;z-index:4;overflow:hidden;background:#fbfbf9;display:none;user-select:none;-webkit-user-select:none;touch-action:none}
+.studio-2d-planner[hidden],#app:not([data-view-mode="studio"]) .studio-2d-planner{display:none!important}
 #app[data-view-mode="studio"][data-studio-view="2d"] .studio-2d-planner{display:block}
 #app[data-view-mode="studio"][data-studio-view="2d"] #c{visibility:hidden}
 #app[data-view-mode="studio"][data-studio-view="2d"] #labels{visibility:hidden}
@@ -14,16 +15,6 @@
 .sp2d-grid-line-minor{stroke:rgba(28,25,23,.04);stroke-width:.5}
 .sp2d-axis-x{stroke:rgba(28,25,23,.22);stroke-width:1.5}
 .sp2d-axis-z{stroke:rgba(28,25,23,.22);stroke-width:1.5}
-
-/* Rulers */
-.sp2d-top-ruler-container{position:absolute;top:0;left:0;right:0;height:22px;z-index:6;pointer-events:none}
-.sp2d-left-ruler-container{position:absolute;top:0;left:0;bottom:0;width:22px;z-index:6;pointer-events:none}
-.sp2d-ruler-bg{fill:rgba(251,251,249,.92)}
-.sp2d-ruler-edge{stroke:rgba(28,25,23,.12);stroke-width:1}
-.sp2d-ruler-tick-major{stroke:rgba(28,25,23,.38);stroke-width:1}
-.sp2d-ruler-tick-minor{stroke:rgba(28,25,23,.20);stroke-width:.8}
-.sp2d-ruler-text{fill:#78716c;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;font-weight:500;text-anchor:middle}
-.sp2d-ruler-tracker{stroke:#0284c7;stroke-width:1.5;stroke-dasharray:2,2}
 
 /* Rooms */
 .sp2d-room-fill{fill:rgba(245,245,240,.65);stroke:none}
@@ -40,10 +31,9 @@
 .sp2d-wall-face.selected{stroke:#38bdf8;stroke-width:1.5}
 
 /* Dimension Badges */
-.sp2d-dim-badge{cursor:pointer;filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
+.sp2d-dim-badge{cursor:default;filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
 .sp2d-dim-bg{fill:#ffffff;stroke:rgba(28,25,23,.12);stroke-width:1}
-.sp2d-dim-badge:hover .sp2d-dim-bg{stroke:#0284c7;fill:#f0f9ff}
-.sp2d-dim-text{fill:#1c1917;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:10px;font-weight:600;text-anchor:middle}
+.sp2d-dim-text{fill:#1c1917;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;text-anchor:middle}
 
 /* Openings */
 .sp2d-door{cursor:pointer}
@@ -74,19 +64,8 @@
 /* Handles & Selection Targets */
 .sp2d-hit-target{cursor:pointer}
 .sp2d-handle-corner{fill:#ffffff;stroke:#292524;stroke-width:2.2;cursor:move;transition:all .15s}
-.sp2d-corner-handle-group:hover .sp2d-handle-corner{fill:#0284c7;stroke:#ffffff;r:9}
-.sp2d-handle-corner.selected{fill:#0284c7;stroke:#ffffff;stroke-width:2.5;r:9}
-
-.sp2d-handle-extend{cursor:pointer}
-.sp2d-extend-circle{fill:#0284c7;stroke:#ffffff;stroke-width:1.5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15));transition:all .15s}
-.sp2d-handle-extend:hover .sp2d-extend-circle{transform:scale(1.15);fill:#0369a1}
-.sp2d-extend-plus{stroke:#ffffff;stroke-width:2;stroke-linecap:round}
-
-.sp2d-handle-split{cursor:pointer}
-.sp2d-split-circle{fill:#ffffff;stroke:#78716c;stroke-width:1.5;transition:all .15s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.1))}
-.sp2d-handle-split:hover .sp2d-split-circle,.sp2d-split-circle.selected{fill:#0284c7;stroke:#ffffff}
-.sp2d-split-plus{stroke:#78716c;stroke-width:2;stroke-linecap:round}
-.sp2d-handle-split:hover .sp2d-split-plus,.sp2d-handle-split.selected .sp2d-split-plus{stroke:#ffffff}
+.sp2d-corner-handle-group:hover .sp2d-handle-corner{fill:#0284c7;stroke:#ffffff}
+.sp2d-handle-corner.selected{fill:#0284c7;stroke:#ffffff;stroke-width:2.5}
 
 /* Step & Point Action Pill */
 .sp2d-action-pill{position:absolute;z-index:15;transform:translate(-50%,-50%);display:flex;gap:4px;padding:3px;
@@ -95,7 +74,8 @@
 .sp2d-action-pill button{min-height:36px;padding:0 14px;border:0;border-radius:999px;background:transparent;
   color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;
   white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .15s}
-.sp2d-action-pill button:hover{background:rgba(255,255,255,.18)}
+.sp2d-action-pill button:disabled{opacity:.4;cursor:default}
+.sp2d-action-pill button:not(:disabled):hover{background:rgba(255,255,255,.18)}
 .sp2d-action-pill button:active{background:rgba(255,255,255,.28)}
 
 /* Drawing Wall & Alignment Guides */
@@ -115,33 +95,23 @@
 .sp2d-scale-tick{stroke:#292524;stroke-width:1.5}
 .sp2d-scale-text{fill:#57534e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;font-weight:600;text-anchor:middle}
 
-/* Floating Toolbar */
-.sp2d-floating-toolbar{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:10;display:flex;
-  align-items:center;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(28,25,23,.08);border-radius:24px;padding:4px 8px;box-shadow:0 4px 16px rgba(0,0,0,.08)}
-.sp2d-tool-group{display:flex;align-items:center;gap:2px}
-.sp2d-btn{height:34px;padding:0 12px;border:0;background:transparent;border-radius:17px;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;
-  color:#57534e;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
-.sp2d-btn .ic{width:16px;height:16px;stroke:#57534e;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.sp2d-btn:hover{background:rgba(28,25,23,.05);color:#1c1917}
-.sp2d-btn:hover .ic{stroke:#1c1917}
-.sp2d-btn.active{background:#1c1917;color:#ffffff}
-.sp2d-btn.active .ic{stroke:#ffffff}
-
-/* Bottom status bar */
-.sp2d-coords{position:absolute;bottom:20px;left:24px;z-index:5;background:rgba(255,255,255,.9);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(28,25,23,.08);
-  padding:6px 12px;border-radius:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:11px;font-weight:500;color:#78716c;font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(0,0,0,.04);pointer-events:none}
-
 .studio-format-seg{position:absolute;top:calc(100% + 8px);left:0;display:inline-flex;align-items:center;background:var(--glass);border:1px solid #ffffff60;box-shadow:0 8px 30px #45392312;border-radius:26px;padding:3px}
 .studio-format-seg button{height:44px;min-width:44px;padding:0 10px;border-radius:22px;border:0;background:transparent;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;color:#57534e;cursor:pointer;transition:all .15s}
 .studio-format-seg button[aria-pressed="true"]{background:#ffffff;color:#1c1917;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 #app:not([data-view-mode="studio"]) .studio-format-seg{display:none!important}
 
-@media(max-width:768px){
-  .sp2d-floating-toolbar{top:128px;transform:translateX(-50%) scale(0.9)}
-  .sp2d-coords{display:none}
-}
+
+/* Labels scale down with the plan, avoid geometry, and never intercept touches. */
+.sp2d-plan-label{pointer-events:none}
+.sp2d-guide-label .sp2d-dim-bg{fill:#f0f9ff;stroke:#0284c7}
+.sp2d-guide-label .sp2d-dim-text{fill:#0369a1}
+.sp2d-drawing-label .sp2d-dim-bg{fill:#0284c7;stroke:#ffffff}
+.sp2d-drawing-label .sp2d-dim-text{fill:#ffffff}
+
+.sp2d-dimension-leader{stroke:#78716c;stroke-width:.75;pointer-events:none}
+
+.sp2d-handle-extend{cursor:pointer;outline:none}
+.sp2d-extend-circle{fill:#0284c7;stroke:#ffffff;stroke-width:1.5}
+.sp2d-extend-plus{fill:none;stroke:#ffffff;stroke-width:1.5;stroke-linecap:round;pointer-events:none}
+.sp2d-handle-extend:hover .sp2d-extend-circle,.sp2d-handle-extend:focus-visible .sp2d-extend-circle{fill:#0369a1;stroke:#1c1917}

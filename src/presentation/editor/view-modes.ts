@@ -31,6 +31,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
     }
 
     const sync = () => {
+        if (selectionState.viewMode !== 'studio') selectionState.studioView = '3d';
         $('#app').dataset.viewMode = selectionState.viewMode;
         $('#app').dataset.studioView = selectionState.studioView || '3d';
         if (selectionState.viewMode === 'studio' && !$('#app').classList.contains('props-open')) {
@@ -49,6 +50,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
     };
 
     const setStudioFormat = (format: '2d' | '3d') => {
+        if (selectionState.viewMode !== 'studio') return;
         if (selectionState.studioView === format) return;
         selectionState.studioView = format;
         sync();
@@ -70,7 +72,8 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
         if (mode === 'studio' && selectionState.studioView === '2d') {
             onStudioFormatChange?.('2d');
         } else {
-            camera.frameScene();
+            if (onStudioFormatChange) onStudioFormatChange('3d');
+            else camera.frameScene();
         }
     };
 

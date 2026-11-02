@@ -3,7 +3,6 @@ import { cornerDegree, wallLine } from '../../domain/studio/studio';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { detectRooms, door2DPlan, wall2DPlan, window2DPlan, type Point2D } from '../../domain/studio/studio-plan';
 export type { Point2D };
-import { lengthText, unitSuffix } from './length-unit-state';
 import { openingNoun } from '../../domain/studio/wall-utilities';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
@@ -15,7 +14,6 @@ export interface ViewportTransform {
   readonly height: number;
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
 /** Converts scene coordinate (cm) to screen pixel in 2D viewport. */
 export function createTransform(t: ViewportTransform) {
@@ -44,23 +42,19 @@ export function buildDefsSvg(): string {
   `;
 }
 
-/** Renders enclosed room polygons with soft floor fill and area badge. */
+/** Room fill only; readable labels are laid out separately in screen space. */
 export function renderRooms(studio: Studio): string {
   const rooms = detectRooms(studio);
   const out: string[] = [];
   for (const r of rooms) {
     const pts = r.polygon.map(p => `${p.x},${p.z}`).join(' ');
     out.push(`<polygon points="${pts}" class="sp2d-room-fill"/>`);
-    out.push(`<g class="sp2d-room-badge" transform="translate(${r.centroid.x}, ${r.centroid.z})">
-      <rect x="-65" y="-22" width="130" height="44" rx="8" class="sp2d-badge-bg" vector-effect="non-scaling-stroke"/>
-      <text x="0" y="-4" class="sp2d-room-title">${esc(r.name)}</text>
-      <text x="0" y="14" class="sp2d-room-area">${r.areaM2.toFixed(1)} m²</text>
-    </g>`);
+
   }
   return out.join('');
 }
 
-/** Renders walls with solid thickness, mitres, and dimension lines. */
+/** Wall geometry only; dimensions live above the drawing in their own layer. */
 export function renderWalls(studio: Studio, selection: RoomSelection): string {
   const out: string[] = [];
   for (const w of studio.walls) {
@@ -71,22 +65,9 @@ export function renderWalls(studio: Studio, selection: RoomSelection): string {
     out.push(`<polygon points="${pts}" class="sp2d-wall-poly ${isSel ? 'selected' : ''}" data-wall-id="${w.id}" vector-effect="non-scaling-stroke"/>`);
 
     const pA = plan.faceFrom, pB = plan.faceTo;
-    out.push(`<line x1="${pA.x}" y1="${pA.z}" x2="${pB.x}" y2="${pB.z}" class="sp2d-wall-face ${isSel ? 'selected' : ''}" vector-effect="non-scaling-stroke"/>`);
+    out.push(`<line x1="${pA.x}" y1="${pA.z}" x2="${pB.x}" y2="${pB.z}" class="sp2d-wall-face ${isSel ? 'selected' : ''}" data-wall-id="${w.id}" vector-effect="non-scaling-stroke"/>`);
 
-    const mid = { x: (pA.x + pB.x) / 2, z: (pA.z + pB.z) / 2 };
-    const dx = pB.x - pA.x, dz = pB.z - pA.z, len = Math.hypot(dx, dz);
-    if (len > 30) {
-      const nx = len ? -dz / len : 0, nz = len ? dx / len : 0;
-      const off = 18;
-      const tx = mid.x + nx * off, tz = mid.z + nz * off;
-      const angle = (Math.atan2(dz, dx) * 180 / Math.PI + 360) % 180 - (Math.abs(dx) < Math.abs(dz) && dz < 0 ? 180 : 0);
-      const rot = Math.abs(angle) > 90 ? angle - 180 : angle;
-      const formatted = lengthText(plan.faceLength) + unitSuffix();
-      out.push(`<g class="sp2d-dim-badge" transform="translate(${tx}, ${tz}) rotate(${rot})" data-edit-wall="${w.id}">
-        <rect x="-35" y="-10" width="70" height="20" rx="4" class="sp2d-dim-bg" vector-effect="non-scaling-stroke"/>
-        <text x="0" y="4" class="sp2d-dim-text">${esc(formatted)}</text>
-      </g>`);
-    }
+
   }
   return out.join('');
 }
@@ -141,7 +122,7 @@ export function renderOpenings(studio: Studio, selection: RoomSelection): string
 }
 
 /** Renders furniture / wardrobe footprints with bay lines and front orientation. */
-export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: number): string {
+export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: number | null): string {
   const out: string[] = [];
   for (const c of wardrobes) {
     const isAct = c.id === activeId;
@@ -149,10 +130,10 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
     const cos = Math.cos(rad), sin = Math.sin(rad);
     const hw = c.state.w / 2, hd = c.state.d / 2;
     const corners: Point2D[] = [
-      { x: c.x - hw * cos - -hd * sin, z: c.z - hw * sin + -hd * cos },
-      { x: c.x + hw * cos - -hd * sin, z: c.z + hw * sin + -hd * cos },
-      { x: c.x + hw * cos - hd * sin, z: c.z + hw * sin + hd * cos },
-      { x: c.x - hw * cos - hd * sin, z: c.z - hw * sin + hd * cos },
+      { x: c.x - hw * cos - hd * sin, z: c.z + hw * sin - hd * cos },
+      { x: c.x + hw * cos - hd * sin, z: c.z - hw * sin - hd * cos },
+      { x: c.x + hw * cos + hd * sin, z: c.z - hw * sin + hd * cos },
+      { x: c.x - hw * cos + hd * sin, z: c.z + hw * sin + hd * cos },
     ];
     const pts = corners.map(p => `${p.x},${p.z}`).join(' ');
     const bays = Math.max(1, c.state.n || 1);
@@ -172,41 +153,34 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
   return out.join('');
 }
 
-/** Renders corner control nodes, wall extension "+" handles, and mid-wall split "+" handles. */
-export function renderHandles(studio: Studio, selection: RoomSelection): string {
+/** Add-wall controls belong only to the free ends of wall chains. */
+export function wallExtensionHandles(studio: Studio, zoom: number) {
+  return studio.corners.flatMap(c => {
+    if (cornerDegree(studio, c.id) !== 1) return [];
+    const w = studio.walls.find(w => w.a === c.id || w.b === c.id)!;
+    const line = wallLine(studio, w);
+    if (!line) return [];
+    const sign = w.b === c.id ? 1 : -1;
+    return [{ cornerId: c.id, x: c.x + line.ux * sign * 48 / zoom, z: c.z + line.uz * sign * 48 / zoom }];
+  });
+}
+
+/** Corner nodes drag existing walls; plus handles add a new wall at an open end. */
+export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1): string {
   const out: string[] = [];
   for (const c of studio.corners) {
-    const deg = cornerDegree(studio, c.id);
     const isCornerSel = selection?.kind === 'wall' && (studio.walls.find(w => w.id === selection.id)?.a === c.id || studio.walls.find(w => w.id === selection.id)?.b === c.id);
     out.push(`<g class="sp2d-corner-handle-group" data-corner-id="${c.id}">
-      <circle cx="${c.x}" cy="${c.z}" r="22" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
-      <circle cx="${c.x}" cy="${c.z}" r="${isCornerSel ? 9 : 7}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
+      <circle cx="${c.x}" cy="${c.z}" r="${22 / zoom}" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
+      <circle cx="${c.x}" cy="${c.z}" r="${(isCornerSel ? 9 : 7) * Math.min(1, zoom / .6) / zoom}" class="sp2d-handle-corner ${isCornerSel ? 'selected' : ''}" aria-label="Corner ${c.id}" vector-effect="non-scaling-stroke"/>
     </g>`);
-
-    if (deg === 1) {
-      const joined = studio.walls.find(w => w.a === c.id || w.b === c.id);
-      const line = joined && wallLine(studio, joined);
-      if (line) {
-        const sign = c.id === joined.b ? 1 : -1;
-        const ext = { x: c.x + line.ux * sign * 44, z: c.z + line.uz * sign * 44 };
-        out.push(`<g class="sp2d-handle-extend" data-extend-id="${c.id}" transform="translate(${ext.x}, ${ext.z})" title="Extend wall">
-          <circle cx="0" cy="0" r="26" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
-          <circle cx="0" cy="0" r="14" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
-          <path d="M -6 0 L 6 0 M 0 -6 L 0 6" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
-        </g>`);
-      }
-    }
   }
-
-  for (const w of studio.walls) {
-    const line = wallLine(studio, w);
-    if (!line || line.length < 50) continue;
-    const isWallSel = selection?.kind === 'wall' && selection.id === w.id;
-    const mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
-    out.push(`<g class="sp2d-handle-split ${isWallSel ? 'selected' : ''}" data-wall-split-id="${w.id}" transform="translate(${mid.x}, ${mid.z})" title="Add point (+ Point)">
-      <circle cx="0" cy="0" r="26" class="sp2d-hit-target" fill="transparent" pointer-events="all"/>
-      <circle cx="0" cy="0" r="12" class="sp2d-split-circle ${isWallSel ? 'selected' : ''}" vector-effect="non-scaling-stroke"/>
-      <path d="M -5 0 L 5 0 M 0 -5 L 0 5" class="sp2d-split-plus" vector-effect="non-scaling-stroke"/>
+  for (const handle of wallExtensionHandles(studio, zoom)) {
+    out.push(`<g class="sp2d-handle-extend" data-extend-id="${handle.cornerId}" transform="translate(${handle.x},${handle.z})"
+      role="button" tabindex="0" aria-label="Add wall from open end">
+      <circle r="${22 / zoom}" fill="transparent" pointer-events="all"/>
+      <circle r="${9 / zoom}" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
+      <path d="M ${-3.5 / zoom} 0 H ${3.5 / zoom} M 0 ${-3.5 / zoom} V ${3.5 / zoom}" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
     </g>`);
   }
   return out.join('');

@@ -1,4 +1,4 @@
-import { corner, cornerDegree, nextId, wall, wallExtent, wallFace, wallLine, type Studio, type StudioCorner, type StudioOpening, type StudioWall } from './studio';
+import { STUDIO_LIMITS, corner, cornerDegree, nextId, wall, wallExtent, wallFace, wallLine, type Studio, type StudioCorner, type StudioOpening, type StudioWall } from './studio';
 import { studioTemplate } from './studio-templates';
 
 export interface Point2D { readonly x: number; readonly z: number; }
@@ -227,9 +227,9 @@ export function stepStudioWall(studio: Studio, wallId: string, depth = 50, fract
   const line = w && wallLine(studio, w);
   if (!w || !line || line.length < 80) return null;
 
-  const f = Math.max(0.2, Math.min(0.8, fraction));
-  const d = line.length * f;
-  const stepRun = Math.min(80, Math.max(40, line.length - d - 20));
+  const d = line.length * fraction;
+  const min = STUDIO_LIMITS.minWallLength;
+  if (!Number.isFinite(d) || d < min || line.length - d < min) return null;
 
   const p1 = { x: Math.round(line.a.x + line.ux * d), z: Math.round(line.a.z + line.uz * d) };
   const p2 = { x: Math.round(p1.x + line.nx * depth), z: Math.round(p1.z + line.nz * depth) };
@@ -252,6 +252,8 @@ export function stepStudioWall(studio: Studio, wallId: string, depth = 50, fract
     return custom(studio, { corners, walls });
   }
 
+  if (line.length - d < 2 * min) return null;
+  const stepRun = Math.min(80, line.length - d - min);
   const p3 = { x: Math.round(p2.x + line.ux * stepRun), z: Math.round(p2.z + line.uz * stepRun) };
   const p4 = { x: Math.round(p1.x + line.ux * stepRun), z: Math.round(p1.z + line.uz * stepRun) };
 

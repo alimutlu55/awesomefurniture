@@ -44,3 +44,31 @@ test('switching spatial modes clears editing selection and frames the correct sc
     assert.deepEqual(calls.slice(4), ['close menus', 'close wizard', 'clear', 'update', 'room']);
     assert.deepEqual(buttons.map(b => b['aria-pressed']), ['true', 'false']);
 });
+
+test('2D belongs only to Studio and closes when switching to Furniture', () => {
+    const selectionState = createSelectionState(), formats = [], classes = new Set();
+    const app = { dataset: {}, classList: { add: c => classes.add(c), remove: c => classes.delete(c), contains: c => classes.has(c) } };
+    const modes = createViewModes({
+        dom: { $: id => ({ '#app': app, '#view-modes': { querySelectorAll: () => [] }, '#wizard': { hidden: true } })[id] },
+        selectionState, camera: { frameScene() {} }, inspector: { clearFocus() {}, update() {} },
+        shell: { closeDD() {} }, planner: { closeWizard() {} }, lifetime: { listen() {} },
+        onStudioFormatChange: format => formats.push(format),
+    });
+    modes.change('studio');
+    modes.setStudioFormat('2d');
+    assert.equal(app.dataset.studioView, '2d');
+    modes.change('furniture');
+    assert.equal(selectionState.studioView, '3d');
+    assert.equal(app.dataset.studioView, '3d');
+    assert.equal(formats.at(-1), '3d', 'tells the planner to close instead of merely reframing the camera');
+    const count = formats.length;
+    modes.setStudioFormat('2d');
+    assert.equal(formats.length, count, 'cannot activate hidden Studio tools from Furniture mode');
+    assert.equal(selectionState.studioView, '3d');
+    modes.change('studio');
+    assert.equal(selectionState.studioView, '3d', 'Studio returns in 3D until 2D is selected');
+    modes.setStudioFormat('2d');
+    selectionState.viewMode = 'furniture';
+    modes.sync();
+    assert.equal(app.dataset.studioView, '3d', 'other furniture-selection flows also clear the 2D format');
+});
