@@ -15,18 +15,18 @@ test('one 120 cm bay behind hinged doors is refused, with the split that clears 
   assert.equal(found.length, 1, JSON.stringify(found));
   const f = found[0]!;
   assert.equal(f.severity, 'critical');
-  assert.equal(f.measured, 1180);
+  assert.equal(f.measured, 1198);
   assert.equal(f.limit, 600);
-  assert.equal(f.fix, 'Split into 2 leaves of 590 mm');
+  assert.equal(f.fix, 'Split into 2 leaves of 599 mm');
   assert.equal(f.at?.mark, 'W1');
   assert.equal(typeof f.at?.board, 'number');
 });
 
-test('a 60 cm bay passes; two 989 mm doors on a 200 cm wardrobe do not', () => {
+test('a 60 cm bay passes; two 999 mm doors on a 200 cm wardrobe do not', () => {
   assert.deepEqual(leaves(alone(wardrobe({ w: 60, n: 1, doors: 'hinged' }))), []);
   const wide = leaves(alone(wardrobe({ w: 200, n: 2, wt: [1, 1], doors: 'hinged' })));
   assert.equal(wide.length, 2);
-  assert.deepEqual(wide.map(f => f.fix), ['Split into 2 leaves of 495 mm', 'Split into 2 leaves of 495 mm']);
+  assert.deepEqual(wide.map(f => f.fix), ['Split into 2 leaves of 499 mm', 'Split into 2 leaves of 499 mm']);
 });
 
 test('a leaf taller than 2400 mm is refused; no doors, no leaves', () => {

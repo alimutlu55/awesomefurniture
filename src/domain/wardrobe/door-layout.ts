@@ -24,7 +24,8 @@ export function doorHingeSide(area: Pick<DoorArea, 'x0' | 'x1'>, design: Pick<Ed
 
 /** Only structural boards that span a compartment divide its doors. Ordinary
  * fittings do not, and a free-standing partial divider cannot support a seam.
- * Clear bounds follow board faces; front bounds meet at board centre lines. */
+ * Clear bounds follow board faces; front bounds meet at board centre lines (partitions between bays included) and
+ * stop half a reveal inside the outer faces. */
 export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]): DoorArea[] {
     const pieces = ceilingPieces(resolveShape(design)), result: DoorArea[] = [];
     let origin = PANEL;
@@ -56,8 +57,10 @@ export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]
                 visit({ ...clear, y0: y + PANEL / 2 }, { ...front, y0: seam + .1 }, rest);
             }
         };
+        // A leaf covers the outer sides and half of each partition: neighbouring leaves meet on its centre line.
+        const left = section === 0 ? PANEL : PANEL / 2, right = section === widths.length - 1 ? PANEL : PANEL / 2;
         visit({ x0: 0, x1: width, y0: 0, y1: Infinity },
-            { x0: origin - PANEL + .1, x1: origin + width - .1, y0: PLINTH + .2, y1: Infinity }, boards);
+            { x0: origin - left + .1, x1: origin + width + right - .1, y0: PLINTH + .2, y1: Infinity }, boards);
         origin += width + PANEL;
     });
     return result;
