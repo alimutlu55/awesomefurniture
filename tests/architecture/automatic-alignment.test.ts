@@ -85,14 +85,14 @@ test('room height fields snap at 1 mm, ignore targets outside 1 mm, and skip blo
     near(run(79.9), 80); near(run(79.8), 79.8); near(run(79.9, false), 79.9);
 });
 
-test('profile pointer and typed edits catch at 1 mm at every zoom and do not pull from farther away', () => {
+test('profile pointer and typed edits catch at 10 mm at every zoom and do not pull from farther away', () => {
     const bounds = { minX: 0, maxX: 300, minY: 0, maxY: 260 }, room = { top: 260, from: 0, to: 300 };
     const points = [{ x: 20, y: 20 }, { x: 80, y: 20 }, { x: 80, y: 80 }, { x: 20, y: 80 }];
     for (const px of [.01, .1, 1, 10]) {
-        near(snapCorner(points, 2, { x: 90, y: 259.9 }, bounds, room, px, .1).at.y, 260);
-        near(snapCorner(points, 2, { x: 90, y: 259.8 }, bounds, room, px, .1).at.y, 259.8);
-        near(snapMove(points, -19.9, 0, bounds, room, px, .1).dx, -20);
+        near(snapCorner(points, 2, { x: 90, y: 259 }, bounds, room, px, .1).at.y, 260);
+        near(snapCorner(points, 2, { x: 90, y: 258.9 }, bounds, room, px, .1).at.y, 258.9);
+        near(snapMove(points, -19, 0, bounds, room, px, .1).dx, -20);
     }
     const edit = (v: number) => points.map(p => p.y === 80 ? { ...p, y: v } : p);
-    near(autoProfileValue(259.9, edit, bounds, room), 260); near(autoProfileValue(259.8, edit, bounds, room), 259.8);
+    near(autoProfileValue(259, edit, bounds, room), 260); near(autoProfileValue(258.9, edit, bounds, room), 258.9);
 });

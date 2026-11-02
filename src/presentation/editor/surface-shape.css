@@ -2,8 +2,6 @@
    screen width whatever the drawing's scale; dots and text are sized by the editor in the same way. */
 .surface-shape-hint{margin:-2px 0 10px;color:var(--mute);font-size:12px;line-height:16px}
 .surface-shape-reference-key{margin:7px 0 0;color:var(--mute);font-size:11px;line-height:16px}
-.surface-shape .surface-shape-auto-align{width:100%;min-height:44px;margin:10px 0;border-radius:12px}
-.surface-shape .surface-shape-auto-align[hidden]{display:none}
 /* Front and Side, on the drawing's top: which way the part is seen. Fit shows the whole drawing after zooming in. */
 .surface-shape-views{position:absolute;z-index:2;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:4px;pointer-events:none}
 .surface-shape .surface-shape-views button{pointer-events:auto;min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}

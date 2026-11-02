@@ -22,7 +22,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
         model.scene.studio = createStudio('bedroom');
         const ref = { kind: 'wall', id: 'w1' };
         const s = surfaceProfile(model.scene.studio, ref);
-        model.scene.studio = withSurfaceProfile(model.scene.studio, ref, s.points.map((p, i) => ({ ...p, y: i === 2 ? 238.7 : i === 3 ? 258.5 : p.y })));
+        model.scene.studio = withSurfaceProfile(model.scene.studio, ref, s.points.map((p, i) => ({ ...p, y: i === 2 ? 238.7 : i === 3 ? 250 : p.y })));
         const checkpoints = [], redo = [];
         const sceneCommands = createSceneCommands(() => model.scene, { checkpoint: () => checkpoints.push(model.snapshot()) });
         const editor = createSurfaceShapeEditor({ document, model, sceneCommands,
@@ -35,24 +35,32 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
         document.querySelector('#editor').append(editor.root); editor.open(ref);
         window.fixture = { model, editor, checkpoints, before: model.snapshot() };
       });
-      const align = page.getByRole('button', { name: 'Auto align', exact: true });
-      assert.ok(await align.isVisible());
-      const box = await align.boundingBox();
-      assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= width);
-      await align.click();
-      assert.ok(await align.isDisabled());
-      assert.deepEqual(await page.evaluate(() => window.fixture.editor.points().map(p => p.y)), [0, 0, 260, 260]);
+      assert.equal(await page.locator('[data-shape-act="auto-align"]').count(), 0, 'alignment needs no button');
+      const at = await page.locator('svg.surface-shape-svg').evaluate(svg => {
+        const corner = svg.querySelector('[data-corner="2"]');
+        const x = Number(corner.getAttribute('cx')), y = Number(corner.getAttribute('cy'));
+        const m = svg.getScreenCTM();
+        const start = new DOMPoint(x, y).matrixTransform(m);
+        const end = new DOMPoint(x, -259.2).matrixTransform(m);
+        return { start: {x:start.x,y:start.y}, end: {x:end.x,y:end.y} };
+      });
+      await page.mouse.move(at.start.x, at.start.y);
+      await page.mouse.down();
+      await page.mouse.move(at.end.x, at.end.y, { steps: 8 });
+      await page.mouse.up();
+      assert.equal(await page.evaluate(() => window.fixture.editor.points()[2].y), 260, 'corner snaps automatically at 10 mm');
       assert.equal(await page.evaluate(() => window.fixture.checkpoints.length), 1);
-      // Desktop hides the sheet's Undo button, so exercise the same click handler directly there.
       await page.locator('[data-shape-act="undo"]').evaluate(b => b.click());
       assert.equal(await page.evaluate(() => window.fixture.model.snapshot() === window.fixture.before), true);
-      assert.ok(await align.isEnabled());
-      await page.locator('[data-shape-act="redo"]').evaluate(b => b.click());
-      assert.ok(await align.isDisabled());
-      await page.getByRole('button', { name: 'Side', exact: true }).click();
-      assert.ok(await align.isVisible());
+      // Clear the corner selection, so Height edits the whole outline.
+      await page.locator('svg.surface-shape-svg').press('Escape');
+      const height = page.locator('[data-shape-field="height"]');
+      await height.fill('259'); await height.press('Enter');
+      assert.equal(await height.inputValue(), '260', 'typed height snaps at 10 mm');
+      await height.fill('258.9'); await height.press('Enter');
+      assert.equal(await height.inputValue(), '258.9', 'typed height releases beyond 10 mm');
       assert.deepEqual(errors, []);
-      console.log(`PASS ${width}px: auto align, single undo step, undo/redo and Side view`);
+      console.log(`PASS ${width}px: no button, automatic corner and typed size snapping, 10 mm release, undo`);
       await page.close();
     }
   } finally { await browser.close(); }

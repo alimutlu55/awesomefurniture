@@ -33,8 +33,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     + `<svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
-    + `<p class="surface-shape-reference-key" hidden>Dashed: adjoining walls · Aligns within 1 mm</p>`
-    + `<button type="button" class="surface-shape-auto-align" data-shape-act="auto-align" title="Align outer corners to room edges and adjoining wall heights" hidden>Auto align</button>`
+    + `<p class="surface-shape-reference-key" hidden>Dashed: adjoining walls · Aligns within 10 mm</p>`
     + `<div class="surface-shape-fields"></div><div class="surface-shape-actions"><button type="button" data-shape-act="undo" aria-label="Undo">Undo</button>`
     + `<button type="button" data-shape-act="redo" aria-label="Redo">Redo</button><button type="button" data-shape-act="flip">Flip</button>`
     + `<button type="button" data-shape-act="reset">Full wall</button></div>`;
@@ -78,9 +77,6 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     svg.innerHTML = drawingMarkup({ profile: s, points, pick: drag ? (drag.hit.kind === 'body' ? null : { kind: drag.hit.kind, index: drag.hit.kind === 'edge' ? drag.edge : drag.hit.index }) : pick,
       guides, px: scale(), problem: !!drag?.problem, box });
     $<HTMLElement>('.surface-shape-reference-key').hidden = !s.adjoining?.length;
-    const align = $<HTMLButtonElement>('[data-shape-act="auto-align"]');
-    align.hidden = !backend.autoAlign || s.ref.kind !== 'wall';
-    align.disabled = !!drag || !backend.autoAlign?.(s);
     renderViews(s);
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.hidden = !backend.reset?.(s);
     renderPill(points);
@@ -201,9 +197,6 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       callbacks.history(key);
     } else if (key === 'flip') {
       commit(flipProfile(points), null);
-    } else if (key === 'auto-align') {
-      const points = backend.autoAlign?.(s);
-      if (points && !commit(points, null)) callbacks.report('The wall cannot align here. Check for furniture or openings in the way.');
     } else if (key === 'reset') {
       const points = backend.reset?.(s);
       if (points) commit(points, null);
