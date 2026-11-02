@@ -6,7 +6,7 @@ import { cabinetDoorLeaves, leafGlass } from '../wardrobe/door-layout';
 import type { HingeKind } from '../wardrobe/hinges';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
+import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, kitchenHinge, shelfHeights } from '../kitchen/kitchen-fronts';
 import { isKitchen } from '../furniture/furniture';
 import { type FaceWidth } from '../kitchen/corner-widths';
 
@@ -84,11 +84,11 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
         const mech = cornerPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, blind, doorSide);
         if (faceWidths.some(s => s.strip)) {
           for (const s of faceWidths) fronts.push({ x0: Math.max(r.x0, s.from), x1: Math.min(r.x1, s.to), y0: r.y0, y1: r.y1,
-            opens: s.covered || s.strip ? 'fixed' : 'side', hinge: door.hinge, ...(s.strip ? { installation: true } : {}),
+            opens: s.covered || s.strip ? 'fixed' : 'side', hinge: door.hinge, hingeKind: kitchenHinge(it.k), ...(s.strip ? { installation: true } : {}),
             name: s.strip ? 'Corner installation strip' : s.covered ? 'Corner blind panel' : 'Corner pull-out door' });
         } else {
           fronts.push({ ...blind, y0: r.y0, y1: r.y1, opens: 'fixed', name: 'Corner blind panel' });
-          fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name: 'Corner pull-out door' });
+          fronts.push({ ...door, y0: r.y0, y1: r.y1, opens: 'side', name: 'Corner pull-out door', hingeKind: kitchenHinge(it.k) });
         }
         inside.push({ kind: 'box', x0: mech.post.x0, x1: mech.post.x1, y0: mech.post.y0, y1: mech.post.y1 });
         for (const t of mech.trays) {

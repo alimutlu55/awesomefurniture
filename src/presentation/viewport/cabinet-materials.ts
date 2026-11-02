@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { HANDLE_FINISH_DEFS } from '../../domain/wardrobe/handles';
+import { frontStyle, resolveFronts } from '../../domain/wardrobe/front-styles';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import { getDecor, type BoardDecorSKU } from '../../domain/materials/decor-catalog';
 import { resolveMaterials, type LegacyFinish } from '../../domain/materials/configured-materials';
@@ -42,13 +43,14 @@ export function createDecorMaterial(resources: Resources, sku: BoardDecorSKU) {
   return material;
 }
 
-export function createCabinetMaterials(resources: Resources, design: Pick<EditorDesign, 'fin' | 'materials' | 'frontThickness'> | LegacyFinish) {
+export function createCabinetMaterials(resources: Resources, design: Pick<EditorDesign, 'fin' | 'materials' | 'frontThickness'> & Partial<Pick<EditorDesign, 'fronts'>> | LegacyFinish) {
   const materials = resolveMaterials(typeof design === 'string' ? { fin: design } : design);
   const carcass = getDecor(materials.carcassDecorId), fronts = getDecor(materials.frontDecorId);
   const panel = createDecorMaterial(resources, carcass), door = createDecorMaterial(resources, fronts);
   const front = fronts.category === 'glass_mirror' ? createDecorMaterial(resources, carcass) : door;
   if (typeof design !== 'string' && design.frontThickness !== undefined) door.userData.panelThickness = front.userData.panelThickness = design.frontThickness;
-  door.userData.frontProfile = front.userData.frontProfile = materials.frontProfile ?? 'slab';
+  // The fronts' style (front-styles.ts), as the profile the front surface draws (a Shaker frame or a slab).
+  door.userData.frontProfile = front.userData.frontProfile = frontStyle(resolveFronts({ ...(typeof design === 'string' ? {} : design), materials }).style)?.materialProfile ?? 'slab';
   door.userData.frameColor = materials.handleFinish === 'anodized_champagne' ? '#c2b69c' : '#242426';
   const back = createDecorMaterial(resources, getDecor(materials.backingDecorId ?? carcass.id)), plinth = createDecorMaterial(resources, carcass);
   const drawer = createDecorMaterial(resources, getDecor(materials.drawerDecorId ?? carcass.id));

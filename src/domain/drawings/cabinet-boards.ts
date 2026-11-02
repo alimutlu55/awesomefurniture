@@ -11,7 +11,7 @@ import { doorFit, doorTop, frontInside, leafThickness } from '../wardrobe/door-l
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { fittingPanels } from '../geometry/shared-board-spans';
-import { FRONT_GAP, shelfHeights } from '../kitchen/kitchen-fronts';
+import { kitchenReveal, shelfHeights } from '../kitchen/kitchen-fronts';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { innerFrontBehindDoor, piecefronts } from './fronts';
@@ -155,7 +155,7 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
     // An appliance's own front and an open shelf's opening are not cut.
     if (f.own || f.opens === 'open') continue;
     if (kitchen) {
-      const gap = f.installation ? 0 : FRONT_GAP / 2;
+      const gap = f.installation ? 0 : kitchenReveal(design) / 2;
       out.push(board(f.name, 'front', { x0: f.x0 + gap, x1: f.x1 - gap, y0: f.y0 + gap, y1: f.y1 - gap, z0: d, z1: d + kitchenFrontThickness(design) }, 'L2 W2', 'y'));
       continue;
     }

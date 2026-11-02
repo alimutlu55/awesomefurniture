@@ -23,6 +23,7 @@ import type { createViewportResources } from './viewport-resources.js';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { BoxBuilder } from './frame-geometry';
 import { createKitchenFittingRenderer } from './kitchen-fitting-renderer';
+import { kitchenReveal } from '../../domain/kitchen/kitchen-fronts';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
 import type { FaceWidth } from '../../domain/kitchen/corner-widths';
@@ -63,7 +64,8 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
     const design = getRenderDesign(), kitchen = isKitchen(design)
         ? createKitchenFittingRenderer({ box, group, d, unit: design.unit, doorHang: design.doorHang, fridgeDoorSplit: design.fridgeSplit, faceWidths, cabinetWidth: design.w, cabinetHeight: design.h, plinthHeight: plinthOf(design),
             materials: { front: mf, inside: mp, drawer: md, door, hardware: mh, M: resources.M },
-            handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6 }) : null;
+            handleless: resolveMaterials(design).handleFinish === 'handleless_tip_on', shelfThickness: design.materials ? PANEL : 1.6,
+            handle: resolveHandle(resolveMaterials(design)), reveal: design.fronts?.reveal ? kitchenReveal(design) : undefined }) : null;
     if (kitchen) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(...kitchen.owned);
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use

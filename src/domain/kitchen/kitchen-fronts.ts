@@ -1,8 +1,19 @@
 import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
 import { PANEL } from '../wardrobe/catalog.js';
+import { autoLeafCount } from '../wardrobe/door-layout';
+import type { DesignFronts, FrontRevealMm } from '../wardrobe/front-styles';
+import type { HingeKind } from '../wardrobe/hinges';
 
-/** The gap between the fronts of two units standing side by side. Centimetres. */
-export const FRONT_GAP = .3;
+/** Kitchen fronts read the front registries (front-styles.ts, hinges.ts, handles.ts) as wardrobes do. Their reveal, the
+ * gap between fronts, is 3 mm unless the cabinet's fronts set another. */
+export const KITCHEN_REVEAL_MM: FrontRevealMm = 3;
+/** The gap between the fronts of two units standing side by side, by default. Centimetres. */
+export const FRONT_GAP = KITCHEN_REVEAL_MM / 10;
+/** A kitchen cabinet's front gap: its fronts' reveal, else KITCHEN_REVEAL_MM. Centimetres. */
+export const kitchenReveal = (design: { readonly fronts?: DesignFronts | undefined }) => (design.fronts?.reveal ?? KITCHEN_REVEAL_MM) / 10;
+/** The hinge a kitchen fitting's door hangs on when it has its own: a corner pull-out's door, beside the blind panel,
+ * takes the blind-corner hinge. Others are chosen as a wardrobe door's are (hingeFor). */
+export const kitchenHinge = (kind: string | undefined): HingeKind | undefined => kind === 'corner' ? 'corner' : undefined;
 
 /**
  * Where a kitchen fitting's front is: overlay fronts reach over the boards around them. A front at the unit's edge
@@ -20,12 +31,11 @@ export function kitchenFrontRect(unit: KitchenUnitKey | undefined, cx: number, y
   return { x0, x1, y0, y1 };
 }
 
-/** Above this width a hinged front is two leaves. Centimetres. */
-export const DOUBLE_DOOR_OVER = 62;
-/** Hinged leaves across x0..x1: one up to DOUBLE_DOOR_OVER wide, hinged on `hinge` ('left' by default, handle on the
- * opposite edge); two above it, hinged on the outer sides and meeting in the middle unless `explicit` is true. */
+/** Hinged leaves across x0..x1 by the one leaf rule (door-layout autoLeafCount, D1/D8): one leaf within the hinged leaf
+ * limit, hinged on `hinge` ('left' by default, handle on the opposite edge); a pair above it, hinged on the outer sides
+ * and meeting in the middle unless `explicit` is true. */
 export function hingedLeaves(x0: number, x1: number, hinge: 'left' | 'right' = 'left', explicit = false): { x0: number; x1: number; hinge: 'left' | 'right' }[] {
-  if (x1 - x0 <= DOUBLE_DOOR_OVER) return [{ x0, x1, hinge }];
+  if (autoLeafCount(x1 - x0, 0) === 1) return [{ x0, x1, hinge }];
   const mid = (x0 + x1) / 2;
   return explicit
     ? [{ x0, x1: mid, hinge }, { x0: mid, x1, hinge }]
