@@ -26,7 +26,7 @@ test('a selected wall offers Add, Size, Paint/Finish directly with Split and Rem
  assert.deepEqual(contextualActions('opening').map(([key])=>key),['opening-size','remove','undo','redo']);
  // A ceiling's drawing and dimensions share Size.
  assert.deepEqual(contextualActions('ceiling').map(([key])=>key),['ceiling-size','flip','remove','undo','redo']);
- assert.ok(fieldActions.every(key=>['studio','wall','opening','ceiling'].some(s=>contextualActions(s).some(([k])=>k===key))||wallMoreActions.some(([k])=>k===key)));
+ assert.ok(fieldActions.every(key=>['studio','wall','opening','ceiling','leaf'].some(s=>contextualActions(s).some(([k])=>k===key))||wallMoreActions.some(([k])=>k===key)));
 });
 
 test('every editable selection has exactly one Size entry and no separate Shape entry',()=>{
@@ -39,7 +39,8 @@ test('every editable selection has exactly one Size entry and no separate Shape 
 test('a chosen door leaf offers its hinge side, the leaves in its opening and the handle; Leaves lists one to MAX_LEAVES',()=>{
  const {leafCountActions}=require('../src/domain/wardrobe/contextual-actions.js');
  const {MAX_LEAVES}=require('../src/domain/wardrobe/front-styles');
- assert.deepEqual(contextualActions('leaf').map(([key])=>key),['leaf-hinge','leaf-leaves','leaf-handle','undo','redo']);
+ assert.deepEqual(contextualActions('leaf').map(([key])=>key),['leaf-hinge','leaf-leaves','leaf-handle','leaf-facts','undo','redo']);
+ assert.ok(fieldActions.includes('leaf-facts'),'Details opens the door\'s facts in the toolbar\'s own popover');
  assert.deepEqual(leafCountActions.map(([key])=>key),Array.from({length:MAX_LEAVES},(_,n)=>'leaves-'+(n+1)));
  assert.deepEqual(leafCountActions.map(([,label])=>label),['1 leaf','2 leaves']);
 });

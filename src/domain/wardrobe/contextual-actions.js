@@ -23,7 +23,8 @@ const actions = {
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
     // A chosen door leaf: the side it hangs on, how many leaves its opening has, and the handle (the design's one choice).
-    leaf: [['leaf-hinge', 'Hinge side', 'Hang on the other side'], ['leaf-leaves', 'Leaves', 'Leaves in this opening'], ['leaf-handle', 'Handle']],
+    leaf: [['leaf-hinge', 'Hinge side', 'Hang on the other side'], ['leaf-leaves', 'Leaves', 'Leaves in this opening'], ['leaf-handle', 'Handle'],
+        ['leaf-facts', 'Details', 'Door details']],
     // Size contains the wall's outline editor and dimension controls.
     wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
@@ -47,7 +48,7 @@ export const leafCountActions = Array.from({ length: MAX_LEAVES }, (_, n) => ['l
 export const makeViewActions = [['view-iso', '3D'], ['view-front', 'Front'], ['view-side', 'Side'], ['view-top', 'Top'],
     ['look-lines', 'Lines'], ['look-material', 'Material'], ['look-xray', 'X-ray'], ['make-open', 'Open doors'], ['make-numbers', 'Part numbers'], ['make-apart', 'Take apart']];
 /** Actions whose button opens fields in a popover instead of running a command. */
-export const fieldActions = [];
+export const fieldActions = ['leaf-facts'];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */
 export const furnitureContexts = FURNITURE.map(m => m.key);
 export function contextualActions(selection) {
