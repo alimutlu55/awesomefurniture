@@ -81,7 +81,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const plates = fix.items.every(i => piece.fittings[i]!.kind === 'plate'
         || (piece.fittings[i]!.purpose === 'runner-mount' && fix.board !== null && piece.boards[fix.board]!.note !== 'drawer box'))
         && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
-      const points = plates && middle ? around(where(middle.at), 14)
+      // A runner group can span several drawers and the full rail depth: frame all screws, not just the middle one.
+      const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate');
+      const points = hingePlate && middle ? around(where(middle.at), 14)
         : entries.flatMap(e => [...around(where(e.at), 5), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 3)]);
       // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
       // their line, turned towards the front.

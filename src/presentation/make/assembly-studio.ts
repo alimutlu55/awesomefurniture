@@ -135,7 +135,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': 'Outer rail → cabinet · Removable inner rail → drawer box',
+        'drawer-runners': 'Cutaway view · Outer rail → cabinet · Inner rail → drawer box',
         drawers: 'Align both rails. Push the supported box evenly into the cabinet.',
         'drawer-test': 'Outer rail stays fixed · Middle rail telescopes · Inner rail moves with the drawer',
       };

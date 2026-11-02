@@ -108,9 +108,12 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     for (const b of boards) {
       // In the film fronts go on solid, as they are fitted (a door is seen through while it is hung, so its hinges are
       // seen clipping onto their plates); otherwise they are solid or dashed as chosen.
-      const phantom = isFront(b.part) && !solidFronts && !film || !!film?.seeThrough?.(b.index), mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
+      const cutaway = !!film?.seeThrough?.(b.index);
+      const phantom = isFront(b.part) && !solidFronts && !film || cutaway;
+      const mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
-      if (phantom) face = lines.hidden;
+      if (cutaway) face = fade(face);
+      else if (phantom) face = lines.hidden;
       else if (dim) face = fade(face);
       b.face.material = face;
       b.face.renderOrder = phantom || dim || look === 'xray' ? 1 : 0;
