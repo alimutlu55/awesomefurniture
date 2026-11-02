@@ -1,5 +1,6 @@
 /* 2D Space Planner for Studio Mode */
 .studio-2d-planner{position:absolute;inset:0;z-index:4;overflow:hidden;background:#fbfbf9;display:none;user-select:none;-webkit-user-select:none;touch-action:none}
+.studio-2d-planner[hidden],#app:not([data-view-mode="studio"]) .studio-2d-planner{display:none!important}
 #app[data-view-mode="studio"][data-studio-view="2d"] .studio-2d-planner{display:block}
 #app[data-view-mode="studio"][data-studio-view="2d"] #c{visibility:hidden}
 #app[data-view-mode="studio"][data-studio-view="2d"] #labels{visibility:hidden}

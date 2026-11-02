@@ -122,7 +122,7 @@ export function renderOpenings(studio: Studio, selection: RoomSelection): string
 }
 
 /** Renders furniture / wardrobe footprints with bay lines and front orientation. */
-export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: number): string {
+export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: number | null): string {
   const out: string[] = [];
   for (const c of wardrobes) {
     const isAct = c.id === activeId;

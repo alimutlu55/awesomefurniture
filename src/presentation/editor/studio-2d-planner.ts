@@ -17,11 +17,13 @@ export interface Studio2DPlannerPorts {
     viewMode?: 'studio' | 'furniture';
     studioView?: '2d' | '3d';
     room?: RoomSelection;
+    focusOn?: boolean;
   };
   readonly callbacks: {
     onSwitch3D?: () => void;
     openFields: (action: string, field: string) => void;
     selectionChanged: () => void;
+    clearFurnitureFocus: () => void;
   };
   readonly listen: (target: EventTarget, type: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
   readonly observe: ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>['observe'];
@@ -90,9 +92,9 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     getStudio: () => model.scene.studio ?? null,
     getWardrobes: () => model.scene.wardrobes,
     getActiveWardrobe: () => model.scene.activeWardrobe,
-    setActiveWardrobe: id => { model.scene.activeWardrobe = id; callbacks.selectionChanged(); },
+    setActiveWardrobe: id => { model.scene.activeWardrobe = id; selectionState.focusOn = true; callbacks.selectionChanged(); },
     getSelection: () => selectionState.room ?? null,
-    setSelection: s => { selectionState.room = s; callbacks.selectionChanged(); },
+    setSelection: s => { callbacks.clearFurnitureFocus(); selectionState.room = s; callbacks.selectionChanged(); },
     editStudio: (fn, rec, q) => sceneCommands.editStudio(fn, rec, q),
     snapshot: () => model.snapshot(),
     restore: snapshot => model.restore(snapshot),
@@ -154,7 +156,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     updateSize();
     const studio = model.scene.studio;
     const sel = selectionState.room ?? null;
-    const actCab = model.scene.activeWardrobe;
+    const actCab = selectionState.focusOn && !sel ? model.scene.activeWardrobe : null;
 
     // Fast GPU transform update on world group
     const cx = transform.width / 2, cz = transform.height / 2;
@@ -324,13 +326,13 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   // Panels and toolbars can resize without a window resize (including animated mobile sheets).
   if (typeof ResizeObserver !== 'undefined') {
     const resize = new ResizeObserver(() => {
-      if (selectionState.studioView === '2d') render();
+      if (selectionState.viewMode === 'studio' && selectionState.studioView === '2d') render();
     });
     for (const target of [svg, $('#view-modes'), $('#topright'), $('#toolbar')]) observe(resize, target);
   }
 
   listen(window, 'resize', () => {
-    if (selectionState.studioView === '2d') {
+    if (selectionState.viewMode === 'studio' && selectionState.studioView === '2d') {
       updateSize();
       render();
     }
@@ -338,7 +340,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
 
   listen(window, 'keydown', (e: Event) => {
     const ke = e as KeyboardEvent;
-    if (selectionState.studioView !== '2d') return;
+    if (selectionState.viewMode !== 'studio' || selectionState.studioView !== '2d') return;
     if (ke.key === 'Escape') { gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); }
     else if (ke.key === 'w' || ke.key === 'W') {
       const wallBtn = root.querySelector<HTMLButtonElement>('[data-tool="wall"]');
@@ -364,11 +366,15 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       return transform.zoom;
     },
     show() {
-      root.style.display = 'block';
+      root.hidden = false;
       fitScene();
     },
     hide() {
-      root.style.display = 'none';
+      gestures.onPointerUp(undefined, true);
+      gestures.cancelDrawing();
+      svg.classList.remove('drawing-wall');
+      root.querySelectorAll<HTMLButtonElement>('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === 'select'));
+      root.hidden = true;
     },
   };
 }
