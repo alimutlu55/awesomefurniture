@@ -135,13 +135,13 @@
   padding:6px 12px;border-radius:16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:11px;font-weight:500;color:#78716c;font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(0,0,0,.04);pointer-events:none}
 
-.studio-format-seg{display:inline-flex;align-items:center;background:rgba(28,25,23,.06);border-radius:20px;padding:2px;margin-left:4px}
-.studio-format-seg button{height:32px;min-width:36px;padding:0 10px;border-radius:16px;border:0;background:transparent;
+.studio-format-seg{position:absolute;top:calc(100% + 8px);left:0;display:inline-flex;align-items:center;background:var(--glass);border:1px solid #ffffff60;box-shadow:0 8px 30px #45392312;border-radius:26px;padding:3px}
+.studio-format-seg button{height:44px;min-width:44px;padding:0 10px;border-radius:22px;border:0;background:transparent;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:600;color:#57534e;cursor:pointer;transition:all .15s}
 .studio-format-seg button[aria-pressed="true"]{background:#ffffff;color:#1c1917;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 #app:not([data-view-mode="studio"]) .studio-format-seg{display:none!important}
 
 @media(max-width:768px){
-  .sp2d-floating-toolbar{top:64px;transform:translateX(-50%) scale(0.9)}
+  .sp2d-floating-toolbar{top:128px;transform:translateX(-50%) scale(0.9)}
   .sp2d-coords{display:none}
 }

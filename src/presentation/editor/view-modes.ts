@@ -26,12 +26,7 @@ export function createViewModes({ dom, selectionState, camera, inspector, shell,
                 <button type="button" data-studio-format="2d" aria-pressed="false">2D</button>
                 <button type="button" data-studio-format="3d" aria-pressed="true">3D</button>
             `;
-            const studioBtn = switcher.querySelector('button[data-view-mode="studio"]');
-            if (studioBtn && studioBtn.nextSibling && switcher.insertBefore) {
-                switcher.insertBefore(formatSeg, studioBtn.nextSibling);
-            } else {
-                switcher.appendChild(formatSeg);
-            }
+            switcher.appendChild(formatSeg);
         }
     }
 
