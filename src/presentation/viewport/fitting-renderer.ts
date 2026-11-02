@@ -14,8 +14,8 @@ import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
 import { HANDBAG_COLOURS, type createHandbagRenderer } from './handbag-renderer';
 import type { createTrouserRenderer } from './trouser-renderer';
-import { handleMesh, handleOnEdge } from './hardware';
-import { resolveHandle } from '../../domain/wardrobe/handles';
+import { handleMesh } from './hardware';
+import { handlePlacement, resolveHandle } from '../../domain/wardrobe/handles';
 import { innerFrontBehindDoor } from '../../domain/drawings/fronts';
 import { GARMENT_COLOURS, SHOE_COLOURS, shoe, softBox } from './fabric';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
@@ -99,7 +99,8 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
             // Behind closed doors a drawer has a finger grip: a handle would reach through the door (D4).
             const handle = resolveHandle(resolveMaterials(design)), pull = innerFrontBehindDoor(getRenderDesign(), it) ? null : handleMesh(handle, sw - .4, mh, false);
             if (pull) {
-                pull.position.set(coreX, handleOnEdge(handle) ? front!.y1 : y + Math.min(coreH, hh) / 2, front!.centre + PANEL / 2);
+                const at = handlePlacement({ x0: cx - (sw - .4) / 2, x1: cx + (sw - .4) / 2, y0: front!.y0, y1: front!.y1, door: false }, handle);
+                pull.position.set(at.x, at.y, front!.centre + PANEL / 2);
                 group.add(pull);
             }
         }

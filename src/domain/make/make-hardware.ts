@@ -10,7 +10,7 @@ import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
-import { handleCentres, resolveHandle } from '../wardrobe/handles';
+import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import type { Fitting, Hole } from './make-joints';
 import { thinAxis, type Vec3 } from './make-measures';
 
@@ -91,7 +91,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   const glass = (b: Board) => { try { return getDecor(b.decorId ?? resolveMaterials(design).frontDecorId).category === 'glass_mirror'; } catch { return false; } };
   boards.forEach((b, i) => {
     if (b.stock !== 'door' && b.stock !== 'front') return;
-    const f = frontOf(fronts, b), [cx, cy] = centre(b);
+    const f = frontOf(fronts, b);
     if (f?.opens === 'side' && !f.label) {
       // Hinges along the hinge edge: a cup in the door's back, a plate on the upright it hangs from.
       const hinge = f.hinge ?? 'left', edgeX = hinge === 'left' ? b.x0 : b.x1, { left, right } = uprightsAround(boards, hinge === 'left' ? edgeX + 3 : edgeX - 3, b.y0 + 10, h);
@@ -117,16 +117,12 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     // A drawer's own front behind closed doors has a finger grip, not a handle (D4).
     const grip = !f && !!b.kind && innerFrontBehindDoor(design, { k: b.kind });
     if (handles && !grip && f?.opens !== 'fixed' && !f?.label && (f || b.name === 'Drawer front')) {
-      // The design's handle (handles.ts), its screws its centre-to-centre apart: upright beside a door's free edge, level
-      // across a drawer. Through the front; an edge pull's two from the back near the edge; a recessed or profile pull none.
-      const door = f?.opens === 'side', free = f?.hinge === 'right' ? b.x0 + 4 : b.x1 - 4, back = handle.kind.fixing === 'back';
-      const y = door ? (b.y0 >= 120 ? b.y0 + 8 : b.y1 <= 100 ? b.y1 - 8 : Math.min(b.y1 - 10, Math.max(b.y0 + 10, 100))) : b.y1 - b.y0 < 20 ? cy : b.y1 - 6;
-      const along = handleCentres(handle.kind, handle.size, door ? b.y1 - b.y0 : b.x1 - b.x0), hy = door && handle.size === 'full' ? cy : y;
-      const ex = door ? (f?.hinge === 'right' ? b.x0 + 1 : b.x1 - 1) : 0, z = back ? b.z0 : b.z1;
-      const points: Vec3[] = along.map(t => door ? [back ? ex : free, hy + t, z] : [cx + t, back ? b.y1 - 1 : y, z]);
-      if (!glass(b)) for (const at of points) holes.push({ board: i, kind: 'handle', at, axis: 2, sign: back ? 1 : -1, d: back ? 4 : 5, depth: back ? 10 : 0, of: fittings.length });
+      // The design's handle where handlePlacement puts it (as the 3D view draws it), with its screws: through the front, an
+      // edge pull's from the back near the edge, none for a recessed or profile pull.
+      const at = handlePlacement({ ...b, door: f?.opens === 'side', hinge: f?.hinge }, handle), back = at.back, z = back ? b.z0 : b.z1;
+      if (!glass(b)) for (const [x, y] of at.screws) holes.push({ board: i, kind: 'handle', at: [x, y, z], axis: 2, sign: back ? 1 : -1, d: back ? 4 : 5, depth: back ? 10 : 0, of: fittings.length });
       const size = handle.kind.key === 'bar' ? String(handle.size) : handle.kind.name + (handle.size === undefined ? '' : handle.size === 'full' ? ' full height' : ' ' + handle.size);
-      fittings.push({ kind: 'handle', at: [door ? free : cx, hy, b.z1], axis: 2, boards: [i], size });
+      fittings.push({ kind: 'handle', at: [at.x, at.y, b.z1], axis: 2, boards: [i], size });
     }
   });
   // Runners: a pair for every drawer box, screwed to the uprights on the System 32 line.

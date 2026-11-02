@@ -43,5 +43,3 @@ export function handleMesh(handle: ReturnType<typeof resolveHandle>, run: number
   group.traverse(o => { o.castShadow = true; });
   return group;
 }
-/** Whether a handle kind stands on the front's edge rather than in from it. */
-export const handleOnEdge = (handle: ReturnType<typeof resolveHandle>) => handle.kind.key === 'edge' || handle.kind.key === 'profile';

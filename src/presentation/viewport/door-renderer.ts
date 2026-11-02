@@ -4,8 +4,8 @@ import type { Material, Object3D } from 'three';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { BoxBuilder, PrismBuilder } from './frame-geometry';
 import { panelBuilder } from './frame-geometry';
-import { handleMesh, handleOnEdge } from './hardware';
-import { resolveHandle } from '../../domain/wardrobe/handles';
+import { handleMesh } from './hardware';
+import { handlePlacement, resolveHandle } from '../../domain/wardrobe/handles';
 import type { createViewportResources } from './viewport-resources.js';
 import { cabinetDoorLeaves, doorFit, doorThickness, doorTop } from '../../domain/wardrobe/door-layout';
 import { decorateFront } from './front-surface';
@@ -25,11 +25,11 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         const outline = [{ x: 0, y: base }, { x: w, y: base }, ...top.slice().reverse()].map(p => ({ x: left ? p.x : p.x - w, y: p.y }));
         build(outline, doorThickness(design), 0, material, pivot);
         decorateFront(outline, doorThickness(design), 0, material, pivot);
-        const edge = left ? w : 0, edgeTop = top[left ? top.length - 1 : 0]!.y, handleY = Math.min((base + edgeTop) / 2, base + 120);
-        // The design's handle by the free edge (an edge or profile pull on the edge itself), a full-height one centred.
-        const handle = resolveHandle(resolveMaterials(design)), pull = handleMesh(handle, edgeTop - base, hardware, true), inset = handleOnEdge(handle) ? 0 : 4;
+        // The design's handle where handlePlacement puts it (Make drills it there), in pivot space.
+        const edgeTop = top[left ? top.length - 1 : 0]!.y, handle = resolveHandle(resolveMaterials(design));
+        const pull = handleMesh(handle, edgeTop - base, hardware, true), at = handlePlacement({ x0: area.x0, x1: area.x1, y0: base, y1: edgeTop, door: true, hinge: area.hinge }, handle);
         if (pull) {
-            pull.position.set(left ? edge - inset : -w + inset, handle.size === 'full' ? (base + edgeTop) / 2 : handleY, doorThickness(design) / 2);
+            pull.position.set(at.x - (left ? area.x0 : area.x1), at.y, doorThickness(design) / 2);
             pivot.add(pull);
         }
         pivot.userData.t = left ? -1.6 : 1.6;

@@ -83,3 +83,32 @@ export function handleLabel(handle: ReturnType<typeof resolveHandle>): string {
   const size = handle.size === undefined ? '' : handle.size === 'full' ? ' full height' : ` ${handle.size} mm`;
   return handle.kind.name + size + ' · ' + handle.finish.replaceAll('_', ' ');
 }
+
+/** Whether a handle stands on the front's edge (an edge or profile pull) rather than in from it. */
+export const handleOnEdge = (kind: HandleDef) => kind.key === 'edge' || kind.key === 'profile';
+/** How far in from the free edge a handle's centre stands on a door. Cm. */
+const FROM_EDGE = 4;
+/** Door handles sit at this height from the floor where the leaf spans it, so the handles of a piece line up. Cm. */
+export const HANDLE_HEIGHT = 100;
+
+/**
+ * Where a front's handle is, and its screws: the one place the 3D view and Make read it from. A door's handle stands
+ * upright FROM_EDGE in from its free edge (an edge or profile pull on the edge), at HANDLE_HEIGHT where the leaf spans
+ * it, else near the leaf's end nearer that height, so the doors of a piece share one handle line; a full-height handle
+ * is centred. A drawer's lies level, centred across the front, 6 cm under its top (centred on a front under 20 cm; an
+ * edge pull on the top edge). Screws are through the front, or from the back 1 cm in from the edge for an edge pull.
+ * Coordinates are the front's own (any origin: the result is in the same frame). Centimetres.
+ */
+export function handlePlacement(front: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly door: boolean; readonly hinge?: 'left' | 'right' | undefined },
+  handle: { readonly kind: HandleDef; readonly size: HandleSize | undefined }) {
+  const { x0, x1, y0, y1, door } = front, onEdge = handleOnEdge(handle.kind), back = handle.kind.fixing === 'back';
+  const along = handleCentres(handle.kind, handle.size, door ? y1 - y0 : x1 - x0);
+  if (door) {
+    const right = front.hinge === 'right', inset = onEdge ? 0 : FROM_EDGE, x = right ? x0 + inset : x1 - inset;
+    const y = handle.size === 'full' ? (y0 + y1) / 2 : y0 >= HANDLE_HEIGHT + 20 ? y0 + 8 : y1 <= HANDLE_HEIGHT ? y1 - 8 : Math.min(y1 - 10, Math.max(y0 + 10, HANDLE_HEIGHT));
+    const sx = back ? (right ? x0 + 1 : x1 - 1) : x;
+    return { x, y, vertical: true, back, screws: along.map(t => [sx, y + t] as const) };
+  }
+  const x = (x0 + x1) / 2, y = onEdge ? y1 : y1 - y0 < 20 ? (y0 + y1) / 2 : y1 - 6;
+  return { x, y, vertical: false, back, screws: along.map(t => [x + t, back ? y1 - 1 : y] as const) };
+}
