@@ -19,6 +19,7 @@ import { newWallClash } from '../../domain/studio/wall-solids';
 import { generateDesignedLayouts } from '../../domain/planner/wardrobe-composer';
 import { POSSESSION_KEYS } from '../../domain/wardrobe/possessions';
 import { frontsProblems, savedFronts } from '../../domain/wardrobe/front-styles';
+import type { HandleFinish, HandleKind } from '../../domain/wardrobe/handles';
 import type { ShapeTemplateId } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 export type SpecBuild = { ok: true; project: ProjectDocument; report: SceneReport } | { ok: false; problems: SpecProblem[] };
@@ -94,6 +95,11 @@ export function buildFromSpec(spec: DesignSpec, id: string): SpecBuild {
       if (!best) return problems.push({ path: path + '.for', message: 'Auto design found no layout for this wardrobe. Make it larger or ask for less.' });
       createDesignCommands(() => cabinet.state).applyProposal(best as never);
     }
+    // Doors and handles with the editor's own commands, then the fronts' settings.
+    const design = createDesignCommands(() => cabinet.state);
+    if (w.doors) cabinet.state.doors = w.doors;
+    if (w.handle?.kind || w.handle?.size !== undefined) design.setHandle((w.handle.kind ?? 'bar') as HandleKind, w.handle.size);
+    if (w.handle?.finish) design.setHandleFinish(w.handle.finish as HandleFinish);
     if (w.fronts) {
       const wrong = frontsProblems(w.fronts, cabinet.state.n);
       if (wrong.length) return problems.push({ path: path + '.fronts', message: wrong[0]! });

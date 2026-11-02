@@ -6,6 +6,7 @@ import { SHAPE_TEMPLATES } from '../../domain/wardrobe/shape/shape-templates';
 import { POSSESSIONS, POSSESSION_KEYS } from '../../domain/wardrobe/possessions';
 import { frontsProblems } from '../../domain/wardrobe/front-styles';
 import { frontsSchema } from './fronts-schema';
+import { HANDLES, HANDLE_FINISH_DEFS, handleKind, handleSizeFits, type HandleKind } from '../../domain/wardrobe/handles';
 
 /**
  * The design spec's shape (domain/spec/design-spec.ts), checked at the edge: by the editor before building,
@@ -58,9 +59,18 @@ const wardrobe = z.strictObject({
   shape: z.enum(names(SHAPE_TEMPLATES)).describe('Its top: ' + described(SHAPE_TEMPLATES) + '. Under a ceiling that comes down, it follows the ceiling').optional(),
   for: needs.optional(),
   autoDesign: z.boolean().describe('Plan its fittings with Auto design (on by default when "for" is given)').optional(),
+  doors: z.enum(['none', 'hinged', 'glass']).describe('Its doors: "none" (open, the default), "hinged", or "glass"').optional(),
   fronts: frontsSchema.optional(),
+  handle: z.strictObject({
+    kind: z.enum(HANDLES.map(h => h.key) as [string, ...string[]]).describe('The handle: ' + HANDLES.map(h => `"${h.key}" (${h.name})`).join(', ')).optional(),
+    size: z.union([z.number().int().positive(), z.literal('full')]).describe('Centre-to-centre in mm, or "full" for a full-height handle').optional(),
+    finish: z.enum(HANDLE_FINISH_DEFS.map(f => f.key) as [string, ...string[]]).describe('Its finish: ' + HANDLE_FINISH_DEFS.map(f => `"${f.key}" (${f.name})`).join(', ')).optional(),
+  }).describe('Its handles; left out, a 128 mm bar').optional(),
 }).superRefine((w, context) => {
   if (w.fronts) for (const message of frontsProblems(w.fronts)) context.addIssue({ code: 'custom', path: ['fronts'], message });
+  const kind = (w.handle?.kind ?? 'bar') as HandleKind, sizes = handleKind(kind).sizes as readonly (number | 'full')[];
+  if (w.handle?.size !== undefined && !handleSizeFits(kind, w.handle.size)) context.addIssue({ code: 'custom', path: ['handle', 'size'],
+    message: sizes.length ? `A ${handleKind(kind).name.toLowerCase()} comes in ${sizes.map(s => s === 'full' ? 'full height' : s + ' mm').join(', ')}.` : `A ${handleKind(kind).name.toLowerCase()} has no size.` });
 });
 
 export const designSpecSchema = z.strictObject({

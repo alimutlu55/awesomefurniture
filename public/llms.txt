@@ -72,6 +72,25 @@ What wardrobes hold (`wardrobes[].for`, counts):
 - `small`: Underwear & socks
 - `handbags`: Handbags
 
+## Doors, fronts and handles (on a wardrobe)
+- `doors`: `"none"` (open, the default), `"hinged"` or `"glass"`.
+- `fronts.style`: `slab` (Slab; hung full or half or inset), `shaker` (Shaker; hung full or inset), `profiled` (Profiled edge; hung full or half), `rail` (Handle rail; hung full or half).
+- `fronts.overlay`: `full` (Full overlay), `half` (Half overlay), `inset` (Inset). `fronts.reveal`: the gap round each leaf, 2, 3, 4 mm.
+- `fronts.leaves`: settings per door opening, keyed `"bay.row"` (`"0.0"` is the bottom opening of the left bay), or per
+  leaf `"bay.row.leaf"`: `leaves` (up to 2; an opening wider than 60 cm gets 2 on its own), `hinge`
+  (`"left"` or `"right"`), `hingeKind` and `decor` (a front decor id, for a glass or mirror leaf among wood ones).
+- Hinges (`hingeKind`; chosen for each leaf when left out):
+  - `standard`: Concealed hinge, 110°. Most doors.
+  - `wide`: Concealed hinge, 155°. Door against a wall or a neighbour.
+  - `widest`: Concealed hinge, 170°. Door that must fold right back.
+  - `zero`: Zero-protrusion hinge, 155°. Pull-outs behind the door.
+  - `thick`: Thick-door hinge, 95°. Doors thicker than 25 mm.
+  - `glass`: Glass/mirror door hinge. Glass and mirror doors, clamped.
+  - `corner`: Blind-corner hinge, 95°. A door beside a blind corner.
+- `handle`: `kind` (`bar` Bar handle: 96, 128, 160, 192, 320; `knob` Knob; `edge` Edge pull: 96, 128, 160, 192, 320; `recessed` Recessed pull: 96, 128, 160, 192; `profile` Profile pull: full; `full` Full-height bar: full), `size` (centre-to-centre mm, or
+  `"full"`) and `finish` (`matte_black`, `brushed_brass`, `anodized_champagne`, `handleless_tip_on`). Left out: a 128 mm bar.
+- Hardware values follow common practice; check the maker's template.
+
 ## Example
 ```json
 {

@@ -62,8 +62,12 @@ export interface SpecWardrobe {
   readonly for?: Readonly<Record<string, number>> | undefined;
   /** Plan its fittings with Auto design; on by default when `for` is given. */
   readonly autoDesign?: boolean | undefined;
+  /** Its doors: none (open, the default), hinged, or glass. */
+  readonly doors?: 'none' | 'hinged' | 'glass' | undefined;
   /** Its fronts: style, overlay, reveal and per-opening settings (FRONT_STYLES, FRONT_OVERLAYS, FRONT_REVEALS_MM). */
   readonly fronts?: import('../wardrobe/front-styles').DesignFronts | undefined;
+  /** Its handles (HANDLES, HANDLE_FINISHES): kind, centre-to-centre size in mm (or "full"), finish. */
+  readonly handle?: { readonly kind?: string | undefined; readonly size?: number | 'full' | undefined; readonly finish?: string | undefined } | undefined;
 }
 
 export interface DesignSpec {

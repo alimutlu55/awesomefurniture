@@ -28,8 +28,18 @@ reports back what it built. No clicking, no coordinates.
 - `ceilings`: what comes down along a wall (`shape`), optionally with its own `points` and `depth`.
 - `wardrobes`: `against` a wall, `fill` its free stretch (default without a `width`) or stand at `from`;
   `width`, `height`, `depth`, `shape`; `for` what it should hold, planned by Auto design.
+- A wardrobe's `doors` (`none`, the default, `hinged`, `glass`), its `fronts` and its `handle`:
+  - `fronts.style`, `fronts.overlay`, `fronts.reveal` (mm): how the fronts are made and hung (`FRONT_STYLES`,
+    `FRONT_OVERLAYS`, `FRONT_REVEALS_MM`). Defaults (slab, full overlay, 2 mm) are never written.
+  - `fronts.leaves`: per door opening `"bay.row"` (bays from 0 on the left, rows from 0 at the bottom) or per leaf
+    `"bay.row.leaf"`: `leaves` (1 or 2; wider than the hinged-leaf limit gets 2 automatically), `hinge` side,
+    `hingeKind` (`HINGES`; chosen by situation when left out) and `decor` (a glass or mirror leaf among wood ones).
+  - `handle`: `kind` and `size` (`HANDLES`, centre-to-centre mm or `"full"`) and `finish` (`HANDLE_FINISHES`); left out
+    a 128 mm bar. A size the kind does not come in is refused with the sizes it does.
+  The same fields are saved with the cabinet (`fronts` on the cabinet, the handle in its materials).
 - Allowed names come from the registries (`STUDIO_TEMPLATES`, `CEILING_SHAPES`, `SHAPE_TEMPLATES`,
-  `POSSESSIONS`). Add an entry there and the spec, its schema and the tests follow.
+  `POSSESSIONS`, `FRONT_STYLES`, `HINGES`, `HANDLES`). Add an entry there and the spec, its schema, the agent guide
+  (`npm run agents:guide` rewrites `public/llms.txt`) and the tests follow.
 
 ## The report
 

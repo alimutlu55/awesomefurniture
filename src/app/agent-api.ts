@@ -8,6 +8,10 @@ import { STUDIO_TEMPLATES } from '../domain/studio/studio-templates';
 import { CEILING_SHAPES } from '../domain/studio/studio-ceiling';
 import { SHAPE_TEMPLATES } from '../domain/wardrobe/shape/shape-templates';
 import { POSSESSIONS } from '../domain/wardrobe/possessions';
+import { FRONT_OVERLAYS, FRONT_REVEALS_MM, FRONT_STYLES, MAX_LEAVES } from '../domain/wardrobe/front-styles';
+import { HINGES, HINGE_SOURCE } from '../domain/wardrobe/hinges';
+import { HANDLES, HANDLE_FINISH_DEFS } from '../domain/wardrobe/handles';
+import { DOOR_LIMITS } from '../domain/wardrobe/door-layout';
 
 /**
  * The editor's welcome for AI agents. A browser agent can read the guide (`help()`, also /llms.txt), call
@@ -97,6 +101,19 @@ ${list(SHAPE_TEMPLATES)}
 
 What wardrobes hold (\`wardrobes[].for\`, counts):
 ${POSSESSIONS.map(p => `- \`${p.key}\`: ${p.label}`).join('\n')}
+
+## Doors, fronts and handles (on a wardrobe)
+- \`doors\`: \`"none"\` (open, the default), \`"hinged"\` or \`"glass"\`.
+- \`fronts.style\`: ${FRONT_STYLES.map(s => `\`${s.key}\` (${s.name}; hung ${s.overlays.join(' or ')})`).join(', ')}.
+- \`fronts.overlay\`: ${FRONT_OVERLAYS.map(o => `\`${o.key}\` (${o.name})`).join(', ')}. \`fronts.reveal\`: the gap round each leaf, ${FRONT_REVEALS_MM.join(', ')} mm.
+- \`fronts.leaves\`: settings per door opening, keyed \`"bay.row"\` (\`"0.0"\` is the bottom opening of the left bay), or per
+  leaf \`"bay.row.leaf"\`: \`leaves\` (up to ${MAX_LEAVES}; an opening wider than ${DOOR_LIMITS.width} cm gets ${MAX_LEAVES} on its own), \`hinge\`
+  (\`"left"\` or \`"right"\`), \`hingeKind\` and \`decor\` (a front decor id, for a glass or mirror leaf among wood ones).
+- Hinges (\`hingeKind\`; chosen for each leaf when left out):
+${HINGES.map(h => `  - \`${h.key}\`: ${h.name}. ${h.use}.`).join('\n')}
+- \`handle\`: \`kind\` (${HANDLES.map(h => `\`${h.key}\` ${h.name}${h.sizes.length ? ': ' + (h.sizes as readonly (number | string)[]).join(', ') : ''}`).join('; ')}), \`size\` (centre-to-centre mm, or
+  \`"full"\`) and \`finish\` (${HANDLE_FINISH_DEFS.map(f => `\`${f.key}\``).join(', ')}). Left out: a 128 mm bar.
+- Hardware values follow ${HINGE_SOURCE}.
 
 ## Example
 \`\`\`json
