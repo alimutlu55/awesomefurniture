@@ -1,4 +1,5 @@
 import type { MakePiece } from '../../domain/make/make-parts';
+import { drawerBoardOffset } from '../../domain/make/drawer-installation';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import { drillAt, fittedAt, fixingNow, seeThrough, type Playhead, type Timeline } from '../../domain/make/make-timeline';
 import type { Vec3 } from '../../domain/make/make-measures';
@@ -30,7 +31,10 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
     const runners = piece.fittings.filter(f => f.runner), phase = tl.steps[ph.step]!.place;
     const fraction = Math.max(0, Math.min(.999, (ph.t - phase[0]) / (phase[1] - phase[0])));
     const runner = runners[Math.floor(fraction * runners.length)];
-    runner?.runner?.moving.forEach((id, k) => {
+    // A completed/closed drawer is the finished product, not an internal mechanism demonstration.
+    // The chapter can remain selected after its motion ends (including the film's final frame).
+    const moving = runner?.runner?.moving ?? [], first = moving[0];
+    if (first !== undefined && drawerBoardOffset(piece, tl, ph, first)[2] > .05) moving.forEach((id, k) => {
       const b = piece.boards[id]!;
       for (const z of [b.z0 + 5, b.z1 - 5]) targets.push({ board: id, at: [k === 0 ? b.x0 - .2 : b.x1 + .2, b.y0 + 3.2, z] });
     });
