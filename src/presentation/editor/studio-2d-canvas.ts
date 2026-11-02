@@ -179,8 +179,8 @@ export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1
     out.push(`<g class="sp2d-handle-extend" data-extend-id="${handle.cornerId}" transform="translate(${handle.x},${handle.z})"
       role="button" tabindex="0" aria-label="Add wall from open end">
       <circle r="${22 / zoom}" fill="transparent" pointer-events="all"/>
-      <circle r="${13 / zoom}" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
-      <path d="M ${-5 / zoom} 0 H ${5 / zoom} M 0 ${-5 / zoom} V ${5 / zoom}" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
+      <circle r="${9 / zoom}" class="sp2d-extend-circle" vector-effect="non-scaling-stroke"/>
+      <path d="M ${-3.5 / zoom} 0 H ${3.5 / zoom} M 0 ${-3.5 / zoom} V ${3.5 / zoom}" class="sp2d-extend-plus" vector-effect="non-scaling-stroke"/>
     </g>`);
   }
   return out.join('');
