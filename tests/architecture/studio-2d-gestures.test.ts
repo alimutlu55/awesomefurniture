@@ -8,7 +8,8 @@ import { createStudio } from '../../src/domain/studio/studio-templates';
 import { cornerDegree, type Studio } from '../../src/domain/studio/studio';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { createStudio2DGestures } from '../../src/presentation/editor/studio-2d-gestures';
-import { createTransform } from '../../src/presentation/editor/studio-2d-canvas';
+import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry.js';
+import { renderFurniture, createTransform } from '../../src/presentation/editor/studio-2d-canvas';
 import type { RoomSelection } from '../../src/presentation/viewport/studio-renderer';
 
 globalThis.requestAnimationFrame = cb => { cb(0); return 0; };
@@ -176,4 +177,21 @@ test('moving a wall carries its cabinet and restores both on Undo and Redo', () 
   assert.equal(f.history.undoCount, 1);
   f.history.undo(); assert.equal(f.model.snapshot(), before);
   f.history.redo(); assert.equal(f.model.snapshot(), after);
+});
+
+
+test('rotated 2D furniture footprints and fronts match the collision geometry', () => {
+  const f = fixture(createStudio('bedroom'), 1, true);
+  const cabinet = f.model.scene.wardrobes[0]!;
+  const collision = createCabinetGeometry(() => [cabinet]);
+  for (const angle of [30, 90, 135, 270]) {
+    cabinet.angle = angle;
+    const markup = renderFurniture([cabinet], cabinet.id);
+    const points = markup.match(/<polygon points="([^"]+)"/)![1]!.split(' ').map(p => p.split(',').map(Number));
+    const [u, v] = collision.cabinetAxes(cabinet);
+    for (const [i, [sx, sz]] of [[-1, -1], [1, -1], [1, 1], [-1, 1]].entries()) {
+      assert.ok(Math.abs(points[i]![0]! - (cabinet.x + sx! * cabinet.state.w / 2 * u.x + sz! * cabinet.state.d / 2 * v.x)) < 1e-6);
+      assert.ok(Math.abs(points[i]![1]! - (cabinet.z + sx! * cabinet.state.w / 2 * u.z + sz! * cabinet.state.d / 2 * v.z)) < 1e-6);
+    }
+  }
 });

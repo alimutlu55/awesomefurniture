@@ -149,10 +149,10 @@ export function renderFurniture(wardrobes: readonly EditorCabinet[], activeId: n
     const cos = Math.cos(rad), sin = Math.sin(rad);
     const hw = c.state.w / 2, hd = c.state.d / 2;
     const corners: Point2D[] = [
-      { x: c.x - hw * cos - -hd * sin, z: c.z - hw * sin + -hd * cos },
-      { x: c.x + hw * cos - -hd * sin, z: c.z + hw * sin + -hd * cos },
-      { x: c.x + hw * cos - hd * sin, z: c.z + hw * sin + hd * cos },
-      { x: c.x - hw * cos - hd * sin, z: c.z - hw * sin + hd * cos },
+      { x: c.x - hw * cos - hd * sin, z: c.z + hw * sin - hd * cos },
+      { x: c.x + hw * cos - hd * sin, z: c.z - hw * sin - hd * cos },
+      { x: c.x + hw * cos + hd * sin, z: c.z - hw * sin + hd * cos },
+      { x: c.x - hw * cos + hd * sin, z: c.z + hw * sin + hd * cos },
     ];
     const pts = corners.map(p => `${p.x},${p.z}`).join(' ');
     const bays = Math.max(1, c.state.n || 1);
