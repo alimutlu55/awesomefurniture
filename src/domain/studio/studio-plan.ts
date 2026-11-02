@@ -1,5 +1,6 @@
 import { STUDIO_LIMITS, corner, cornerDegree, nextId, wall, wallExtent, wallFace, wallLine, type Studio, type StudioCorner, type StudioOpening, type StudioWall } from './studio';
 import { studioTemplate } from './studio-templates';
+import { boundedRoomPolygons } from './room-polygons';
 
 export interface Point2D { readonly x: number; readonly z: number; }
 
@@ -131,52 +132,10 @@ export function window2DPlan(studio: Studio, o: StudioOpening): Window2DPlan | n
   };
 }
 
-/** Identifies room cycles from walls and calculates floor area in square meters. */
+/** Calculates one area label per enclosed face of the wall graph, excluding the exterior perimeter. */
 export function detectRooms(studio: Studio): readonly DetectedRoom[] {
-  if (studio.walls.length < 3) return [];
-  const adjacency = new Map<string, string[]>();
-  for (const c of studio.corners) adjacency.set(c.id, []);
-  for (const w of studio.walls) {
-    adjacency.get(w.a)?.push(w.b);
-    adjacency.get(w.b)?.push(w.a);
-  }
-  const cycles: string[][] = [];
-  const visited = new Set<string>();
-
-  function findCycle(curr: string, start: string, path: string[]) {
-    if (path.length >= 3 && curr === start) {
-      cycles.push([...path]);
-      return;
-    }
-    if (path.includes(curr)) return;
-    const nextPath = [...path, curr];
-    for (const neighbor of adjacency.get(curr) ?? []) {
-      if (neighbor === start && path.length >= 3) {
-        findCycle(neighbor, start, nextPath);
-      } else if (!nextPath.includes(neighbor) && !visited.has(neighbor)) {
-        findCycle(neighbor, start, nextPath);
-      }
-    }
-  }
-
-  for (const c of studio.corners) {
-    if ((adjacency.get(c.id)?.length ?? 0) >= 2) {
-      findCycle(c.id, c.id, []);
-      visited.add(c.id);
-    }
-  }
-
   const rooms: DetectedRoom[] = [];
-  const seenPolyKeys = new Set<string>();
-
-  for (const cycle of cycles) {
-    const key = [...cycle].sort().join(':');
-    if (seenPolyKeys.has(key)) continue;
-    seenPolyKeys.add(key);
-
-    const pts = cycle.map(id => corner(studio, id)).filter((p): p is import('./studio').StudioCorner => p !== undefined);
-    if (pts.length < 3) continue;
-
+  for (const pts of boundedRoomPolygons(studio)) {
     let signedArea = 0;
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i]!, q = pts[(i + 1) % pts.length]!;
