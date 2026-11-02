@@ -24,6 +24,15 @@ export function createSelectionState() {
         shapeEditing: false,
         /** The selected wall or opening of the room, when a room part is selected instead of a wardrobe.
          * @type {import('../viewport/studio-renderer').RoomSelection} */
-        room: null
+        room: null,
+        /** The door leaf chosen by a tap on it ('bay.row.leaf'), with its wardrobe and bay. Not saved, not an undo step;
+         * read it through chosenLeaf. @type {{ wardrobe: number, bay: number, key: string } | null} */
+        leaf: null
     };
+}
+/** The chosen door leaf's key while it stays chosen: its wardrobe is the one given and is focused, and its bay is
+ * selected (deep) with no fitting or board inside it. Anything else chosen since lets it go. */
+export function chosenLeaf(selectionState, wardrobe, state) {
+    const leaf = selectionState.leaf;
+    return leaf && selectionState.focusOn && selectionState.deep && leaf.wardrobe === wardrobe && state.sel === leaf.bay && !(state.item >= 0) && !(state.divider >= 0) ? leaf.key : null;
 }

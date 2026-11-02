@@ -1,5 +1,5 @@
 import { resolveMaterials } from '../../domain/materials/configured-materials';
-import { Group } from 'three';
+import { Group, MeshBasicMaterial } from 'three';
 import type { Material, Object3D } from 'three';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { BoxBuilder, PrismBuilder } from './frame-geometry';
@@ -9,13 +9,18 @@ import { handlePlacement, resolveHandle } from '../../domain/wardrobe/handles';
 import { createDecorMaterial } from './cabinet-materials';
 import { getDecor } from '../../domain/materials/decor-catalog';
 import { cabinetDoorLeaves, doorFit, doorTop, leafThickness } from '../../domain/wardrobe/door-layout';
+import { leafKey } from '../../domain/wardrobe/front-styles';
 import { decorateFront } from './front-surface';
-/** Doors follow structural compartments and the wardrobe's outer profile. */
-export function renderCabinetDoors(design: EditorState, widths: readonly number[], group: Object3D, box: BoxBuilder, prism: PrismBuilder, resources: Parameters<typeof createDecorMaterial>[0], panel: Material, hardware: Material): Group[] {
+import { chosenLeaf, type createSelectionState } from '../editor/selection-state.js';
+/** Doors follow structural compartments and the wardrobe's outer profile. Each leaf's pivot names it (`leaf`:
+ * bay.row.leaf, `bay`) so a tap can choose it; the chosen leaf (selection-state chosenLeaf) of the `picked` wardrobe wears the selection look a
+ * chosen fitting has. */
+export function renderCabinetDoors(design: EditorState, widths: readonly number[], group: Object3D, box: BoxBuilder, prism: PrismBuilder, resources: Parameters<typeof createDecorMaterial>[0], panel: Material, hardware: Material,
+    picked?: { selection: ReturnType<typeof createSelectionState>; wardrobe: number | undefined }): Group[] {
     const pivots: Group[] = [];
     if (design.doors === 'none')
         return pivots;
-    const build = panelBuilder(box, prism), fit = doorFit(design);
+    const build = panelBuilder(box, prism), fit = doorFit(design), chosen = picked ? chosenLeaf(picked.selection, picked.wardrobe, design) : null;
     const material = design.doors === 'glass' && !panel.userData.glassStyle ? resources.M('#a9d4f0', { transparent: true, opacity: .28, roughness: .1 }) : panel;
     // A leaf in its own decor (a glass or mirror leaf among wood ones): one material per decor, owned by the group.
     const own = new Map<string, Material>();
@@ -35,6 +40,16 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         const t = leafThickness(design, area), face = leafMaterial(area.decorId);
         build(outline, t, 0, face, pivot);
         decorateFront(outline, t, 0, face, pivot);
+        pivot.userData.leaf = leafKey(area.bay, area.row, area.leaf);
+        pivot.userData.bay = area.bay;
+        if (pivot.userData.leaf === chosen) {
+            // The chosen fitting's look (cabinet-layout-renderer), laid over the door's face so it swings with it.
+            const look = new MeshBasicMaterial({ color: 0xfff3d9, transparent: true, opacity: .22, depthWrite: false });
+            ((group.userData.ownedMaterials ??= []) as Material[]).push(look);
+            const glow = build(outline, .15, t / 2 + .1, look, pivot);
+            glow.castShadow = glow.receiveShadow = false;
+            glow.renderOrder = 9;
+        }
         // The design's handle where handlePlacement puts it (Make drills it there), in pivot space.
         const edgeTop = top[left ? top.length - 1 : 0]!.y, handle = resolveHandle(resolveMaterials(design));
         const pull = handleMesh(handle, edgeTop - base, hardware, true), at = handlePlacement({ x0: area.x0, x1: area.x1, y0: base, y1: edgeTop, door: true, hinge: area.hinge }, handle);

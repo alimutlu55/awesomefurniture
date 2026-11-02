@@ -61,6 +61,16 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         while (g && !renderState.wardrobeGroups.includes(g)) g = g.parent;
         return g?.userData.wardrobe;
     }
+    /** The door leaf under the pointer, nearest first, with the wardrobe it hangs on and the bay it closes, or undefined. */
+    function leafAt(e) {
+        const r = getRect();
+        interactionState.ray.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -(e.clientY - r.top) / r.height * 2 + 1 }, resources.cam);
+        let p = interactionState.ray.intersectObjects(renderState.pivots, true).find(h => onShow(h.object))?.object;
+        while (p && p.userData.leaf === undefined) p = p.parent;
+        let g = p;
+        while (g && !renderState.wardrobeGroups.includes(g)) g = g.parent;
+        return p && g ? { wardrobe: g.userData.wardrobe, bay: p.userData.bay, key: p.userData.leaf } : undefined;
+    }
     /** The first surface on show (a wall, the floor, furniture) on the line from `origin` through `toward`, no further
      * than `far` centimetres, or null. Hit boxes and hidden parts are seen through. */
     function surfaceAlong(origin, toward, far) {
@@ -75,5 +85,5 @@ export function createScenePicking({ dom, interactionState, renderState, resourc
         const r = getRect(), q = p.clone().project(resources.cam);
         return { x: (q.x * .5 + .5) * r.width, y: (-q.y * .5 + .5) * r.height };
     }
-    return { frontPoint, cast, hitAt, groundPoint, screenPoint, surfaceAlong, pieceAt };
+    return { frontPoint, cast, hitAt, groundPoint, screenPoint, surfaceAlong, pieceAt, leafAt };
 }

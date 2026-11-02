@@ -158,3 +158,17 @@ test('a recessed physical roof divider remains selectable and draggable',()=>{
  c.handlers.pointerdown({button:0,pointerType:'touch',pointerId:1,clientX:100,clientY:100});
  assert.equal(grabbed,true);
 });
+test('a tap on a shut door of the chosen wardrobe chooses that leaf and the bay it closes; open doors are reached through',()=>{
+ const {context:c,run}=fixture();
+ c.focusOn=true;c.S={w:200,sel:0,item:-1,divider:-1,doors:'hinged',open:false};c.leaf=null;
+ c.leafAt=()=>({wardrobe:1,bay:1,key:'1.0.1'});
+ run('pick({})');
+ assert.deepEqual(c.leaf,{wardrobe:1,bay:1,key:'1.0.1'});
+ assert.equal(c.S.sel,1);assert.equal(c.S.item,-1,'not the fitting behind the door');
+ c.leafAt=()=>({wardrobe:2,bay:0,key:'0.0.0'});
+ run('pick({})');assert.equal(c.leaf,null,'a door of a wardrobe that is not chosen is not chosen');
+ c.leafAt=()=>({wardrobe:1,bay:1,key:'1.0.1'});c.S.open=true;
+ run('pick({})');assert.equal(c.leaf,null,'with the doors open the tap reaches inside');
+ c.S.open=false;run('pick({})');c.hit=null;c.leafAt=()=>undefined;
+ run('pick({})');assert.equal(c.leaf,null,'a tap elsewhere lets the leaf go');
+});

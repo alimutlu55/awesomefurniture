@@ -1,4 +1,5 @@
 import { MODS } from '../../../domain/wardrobe/catalog.js';
+import { chosenLeaf } from '../selection-state.js';
 /** Escape and other global keys.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./keyboard.ports').BindEscapeKeyPorts} ports */
@@ -20,6 +21,11 @@ export function bindEscapeKey({ dom, interactions, inspector, planner, shell, in
             else if ($('#app').classList.contains('props-open')) {
                 $('#left-close').click();
                 return;
+            }
+            else if (chosenLeaf(selectionState, model.scene.activeWardrobe, model.activeCabinet().state)) {
+                // A chosen door leaf lets go first, back to the bay it closes.
+                selectionState.leaf = null;
+                inspector.update();
             }
             else if (model.activeCabinet().state.item >= 0 || model.activeCabinet().state.divider >= 0) {
                 inspector.goUp('section');

@@ -19,8 +19,23 @@ export function createSceneSelection({ dom, picking, renderState, inspector, sel
         const h = studioMode ? null : picking.cast(e, renderState.allHits);
         const part = selectionState.viewMode === 'furniture' ? null : roomHit(e, h);
         if (part && room.pick(part)) return;
-        // A click anywhere else leaves the room part it had selected.
+        // A click anywhere else leaves the room part it had selected, and the door leaf.
         selectionState.room = null;
+        selectionState.leaf = null;
+        // A shut door of the chosen piece chooses that leaf, and the bay it closes (its fittings are reached with the
+        // doors open, as they are moved).
+        const state = !studioMode && selectionState.focusOn ? model.activeCabinet().state : null;
+        const door = state && state.doors !== 'none' && !state.open ? picking.leafAt(e) : undefined;
+        if (door && door.wardrobe === model.scene.activeWardrobe) {
+            camera.camRelease();
+            emptyTap = null;
+            inspector.hidePop();
+            Object.assign(state, { sel: door.bay, item: -1, divider: -1, space: null });
+            selectionState.leaf = door;
+            selectionState.deep = selectionState.pillOn = true;
+            inspector.update();
+            return;
+        }
         // A tap on a wardrobe's frame (its sides, top or plinth) chooses it, or keeps it chosen, instead of letting go.
         const frame = !h && !studioMode ? picking.pieceAt(e) : undefined;
         // Selection must cancel a pending fit before panels or selection bounds

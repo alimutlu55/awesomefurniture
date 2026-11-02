@@ -18,7 +18,7 @@ export function sceneGeometryFingerprint(scene, selectionState, interactionState
                 s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip,
                 s.leftPanelThickness, s.rightPanelThickness, s.endPanelThickness, s.endPanelSides,
                 s.fridgeSplit, s.frontThickness, s.worktopThickness, s.ventilationWidth, s.ventilationHeight, s.doors, s.open, s.doorHang, s.unit, s.product,
-                isAct ? [focus, shape, dims, move, selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space] : null,
+                isAct ? [focus, shape, dims, move, selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space, selectionState?.leaf?.key] : null,
                 s.dividers,
                 s.secs
             ];
@@ -36,7 +36,7 @@ export function wardrobeDesignFingerprint(w, activeId, selectionState, interacti
             selectionState?.shapeEditing ?? false,
             selectionState?.showDimensions ?? false,
             interactionState?.moveMode ? 'm' : '',
-            selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space
+            selectionState?.deep, selectionState?.pillOn, s.sel, s.item, s.divider, s.space, selectionState?.leaf?.key
         ] : null,
         s.w, s.h, s.d, s.n, s.wt,
         s.shape, s.fin, s.materials, s.plinthHeight, s.cornerStrip,

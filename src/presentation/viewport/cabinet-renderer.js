@@ -28,6 +28,7 @@ import { createKitchenRunRenderer } from './kitchen-run-renderer';
 import { deconflictLabels } from './label-deconflict';
 import { createCabinetBuildCache, sceneGeometryFingerprint, wardrobeDesignFingerprint, createCvRectCache, createLabelDimMeasurer } from './cabinet-build-cache.js';
 import { createLabelLayout } from './label-layout.js';
+import { chosenLeaf } from '../editor/selection-state.js';
 import { cornerCabinetWidths } from '../../domain/kitchen/corner-widths';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./cabinet-renderer.ports').CreateCabinetRendererPorts} ports */
@@ -346,6 +347,9 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
         renderState.renderActive = true;
         renderState.moveIcons = [];
         dom.$('#app').toggleAttribute('data-no-wardrobe', !model.scene.wardrobes.length);
+        // The chosen door leaf, named on the editor (bay.row.leaf) for checks and the leaf's own tools.
+        const leaf = model.scene.wardrobes.length ? chosenLeaf(selectionState, model.scene.activeWardrobe, model.activeCabinet().state) : null;
+        if (leaf) dom.$('#app').dataset.leaf = leaf; else delete dom.$('#app').dataset.leaf;
         if (selectionState.focusOn && model.scene.wardrobes.length && !selectionState.shapeEditing && !inspector.inside()) {
             addRotationIndicator(); addWardrobeActions(); addWardrobeMoveHandles(); kitchenArray?.place();
         }
