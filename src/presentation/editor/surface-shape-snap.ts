@@ -92,17 +92,21 @@ export function snapMove(points: readonly ProfileVertex[], dx: number, dy: numbe
 /** Read-only guides for whole-profile movement and typed shape fields, using the current applied profile. */
 export function profileSmartGuides(points: readonly Vec[], bounds: ProfileBounds, room: RoomLevels, px: number): ShapeGuide[] {
   const { xs, ys } = levels(bounds, room.top, room.from, room.to, room.points), guides: ShapeGuide[] = [];
+  const from = Math.min(room.from, ...room.points?.map(p => p.x) ?? []), to = Math.max(room.to, ...room.points?.map(p => p.x) ?? []);
   for (const axis of ['x', 'y'] as const) {
-    let best: { target: number; distance: number } | null = null;
-    for (const p of points) for (const target of axis === 'x' ? xs : ys) {
-      const distance = Math.abs(p[axis] - target);
-      if (distance <= SHAPE_PX.snap * px && (!best || distance < best.distance)) best = { target, distance };
+    const matches = new Map<number, number>();
+    for (const p of points) {
+      let best: { target: number; distance: number } | null = null;
+      for (const target of axis === 'x' ? xs : ys) {
+        const distance = Math.abs(p[axis] - target);
+        if (distance <= SHAPE_PX.snap * px && (!best || distance < best.distance)) best = { target, distance };
+      }
+      if (best) matches.set(best.target, Math.min(matches.get(best.target) ?? Infinity, best.distance));
     }
-    if (!best) continue;
-    const v = best.target;
-    guides.push(axis === 'x'
-      ? { a: { x: v, y: bounds.minY }, b: { x: v, y: room.top }, label: 'Aligned with boundary / neighbour', delta: best.distance }
-      : { a: { x: room.from, y: v }, b: { x: room.to, y: v }, label: 'Aligned with room level / neighbour', delta: best.distance });
+    // A stationary floor corner must not hide a second alignment at the edited top edge.
+    for (const [v, distance] of matches) guides.push(axis === 'x'
+      ? { a: { x: v, y: bounds.minY }, b: { x: v, y: room.top }, label: 'Aligned with boundary / neighbour', delta: distance }
+      : { a: { x: from, y: v }, b: { x: to, y: v }, label: 'Aligned with room level / neighbour', delta: distance });
   }
   return guides;
 }

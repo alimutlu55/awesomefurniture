@@ -1,6 +1,7 @@
 /* The Shape editor: a wall or ceiling shape face on, in the room panel (a sheet on phones). Strokes keep their
    screen width whatever the drawing's scale; dots and text are sized by the editor in the same way. */
 .surface-shape-hint{margin:-2px 0 10px;color:var(--mute);font-size:12px;line-height:16px}
+.surface-shape-reference-key{margin:7px 0 0;color:var(--mute);font-size:11px;line-height:16px}
 /* Front and Side, on the drawing's top: which way the part is seen. Fit shows the whole drawing after zooming in. */
 .surface-shape-views{position:absolute;z-index:2;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:4px;pointer-events:none}
 .surface-shape .surface-shape-views button{pointer-events:auto;min-height:32px;padding:0 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
@@ -12,6 +13,7 @@
 .surface-shape-svg{display:block;width:100%;max-height:48vh;touch-action:none;outline:none;border-radius:14px}
 .surface-shape-svg:focus-visible{box-shadow:0 0 0 2px var(--acc)}
 .surface-shape-svg .shape-wall{fill:var(--panel)}
+.surface-shape-svg .shape-adjoining{fill:none;stroke:var(--mute);stroke-width:1.25;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;opacity:.75;pointer-events:none}
 .surface-shape-svg .shape-opening{fill:none;stroke:var(--mute);stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke;opacity:.7}
 .surface-shape-svg .shape-floor{stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke;opacity:.55}
 .surface-shape-svg .shape-ceiling{stroke:var(--mute);stroke-width:1;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}

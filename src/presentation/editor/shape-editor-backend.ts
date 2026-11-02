@@ -7,6 +7,7 @@ import { neighbourPoints } from './studio-align';
 import { shapeFields, type ShapeField } from './surface-shape-fields';
 import type { ShapePick } from './surface-shape-drawing';
 import type { SurfaceShapeEditorPorts } from './surface-shape-editor.ports';
+import { adjoiningWallReferences } from './adjoining-wall-references';
 
 /** Geometry and commands behind the shared Size drawing. The pointer, zoom and field UI have one owner. */
 export interface ShapeEditorBackend {
@@ -28,7 +29,10 @@ export interface ShapeEditorBackend {
 
 export function createSurfaceShapeBackend({ model, sceneCommands, callbacks }: Pick<SurfaceShapeEditorPorts, 'model' | 'sceneCommands' | 'callbacks'>): ShapeEditorBackend {
   return {
-    read: (ref, view) => model.scene.studio ? surfaceProfile(model.scene.studio, ref, view) : null,
+    read: (ref, view) => {
+      const room = model.scene.studio, s = room && surfaceProfile(room, ref, view);
+      return room && s ? { ...s, adjoining: adjoiningWallReferences(room, s) } : null;
+    },
     write: (ref, points, view, record = true, quiet = false) => sceneCommands.editStudio(r => withSurfaceProfile(r, ref, points, view), record, quiet),
     primary: ref => model.scene.studio ? primaryView(model.scene.studio, ref) : 'front',
     neighbours: s => model.scene.studio ? neighbourPoints(model.scene.studio, s, model.scene.wardrobes.map(f =>

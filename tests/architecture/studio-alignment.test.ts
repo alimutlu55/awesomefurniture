@@ -55,7 +55,8 @@ test('a shape drawn on a wall offers the corners of the other shapes on that wal
   const wall = room.walls[0]!.id;
   room = addCeiling(room, wall, 'box')!;
   const first = room.ceilings!.at(-1)!;
-  assert.equal(neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: first.id })!, []).length, room.openings.filter(o => o.wall === wall).length * 4, 'alone: only the wall\'s openings');
+  const alone = neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: first.id })!, []);
+  assert.ok(alone.every(p => p.y === 0 || p.y === room.walls[0]!.height), 'alone: adjoining wall floor and top, without the shape\'s own underside');
   room = addCeiling(room, wall, 'box')!;
   const second = room.ceilings!.at(-1)!, points = neighbourPoints(room, surfaceProfile(room, { kind: 'ceiling', id: second.id })!, []);
   for (const v of surfaceProfile(room, { kind: 'ceiling', id: first.id })!.points) assert.ok(points.some(p => Math.abs(p.x - v.x) < .1 && Math.abs(p.y - v.y) < .1), 'the other shape\'s corner');

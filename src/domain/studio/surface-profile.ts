@@ -18,6 +18,8 @@ export interface SurfaceRef { readonly kind: SurfaceKind; readonly id: string }
  * from the wall's face: into the room for a shape, negative into the wall for the wall's own cross-section). */
 export type SurfaceView = 'front' | 'side';
 export interface SurfaceProfile {
+  /** Read-only adjoining wall outlines in this drawing's coordinates. */
+  readonly adjoining?: readonly { readonly id: string; readonly points: readonly { readonly x: number; readonly y: number }[] }[];
   readonly ref: SurfaceRef;
   readonly points: ProfileVertex[];
   readonly bounds: ProfileBounds;

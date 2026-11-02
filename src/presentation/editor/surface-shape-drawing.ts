@@ -9,7 +9,8 @@ export interface ShapeGuide extends GuideLine<Vec> { readonly delta?: number }
 
 /** The drawing's frame in centimetres, y up: the wall (or the room in section) with a margin for labels. */
 export function drawingBox(profile: SurfaceProfile, points: readonly Vec[]) {
-  const xs = [profile.context.from, profile.context.to, ...points.map(p => p.x)], ys = [0, profile.context.top, ...points.map(p => p.y)];
+  const references = profile.adjoining?.flatMap(w => [...w.points]) ?? [];
+  const xs = [profile.context.from, profile.context.to, ...points.map(p => p.x), ...references.map(p => p.x)], ys = [0, profile.context.top, ...points.map(p => p.y), ...references.map(p => p.y)];
   // More room above the ceiling, where most shapes hang and their edge tools go.
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = Math.max(...ys), pad = Math.max(x1 - x0, y1) * .07 + 6, above = pad * 2.4;
   // A narrow part (a wall's cross-section) gets room either side, so the drawing fills the panel's width.
@@ -31,6 +32,7 @@ export function drawingMarkup({ profile, points, pick, guides, px, problem, box 
   // The wall face (or, in section, the room beside the wall), its floor and its ceiling.
   if (profile.view === 'front') out.push(`<rect class="shape-wall" x="${n(c.from)}" y="${n(-c.top)}" width="${n(c.to - c.from)}" height="${n(c.top)}"/>`);
   else out.push(`<rect class="shape-wall" x="${n(-profile.wall.thickness)}" y="${n(-c.top)}" width="${n(profile.wall.thickness)}" height="${n(c.top)}"/>`);
+  for (const wall of profile.adjoining ?? []) out.push(`<path class="shape-adjoining" d="M${wall.points.map(P).join('L')}Z"/>`);
   for (const o of profile.openings) out.push(`<rect class="shape-opening" x="${n(o.x0)}" y="${n(-o.y1)}" width="${n(o.x1 - o.x0)}" height="${n(o.y1 - o.y0)}"/>`);
   const left = profile.view === 'front' ? c.from : -profile.wall.thickness;
   out.push(`<path class="shape-floor" d="M${n(left - 4 * px * 8)} 0H${n(c.to + 4 * px * 8)}"/>`);

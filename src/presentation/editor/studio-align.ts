@@ -7,6 +7,7 @@ import type { Align, AlignTarget } from '../../domain/geometry/alignment';
 import type { Guide } from './studio-drag';
 import { surfaceProfile, type SurfaceProfile } from '../../domain/studio/surface-profile';
 import type { Vec } from '../../domain/geometry/profile-polygon';
+import { adjoiningWallReferences } from './adjoining-wall-references';
 
 /** What an opening or a ceiling shape lines up with while it is dragged: the other openings on its wall, the
  * other shapes in the room. Plain lists of candidates for `resolveAlignment` (`alignTo`) and the guide each
@@ -125,7 +126,7 @@ export function liftTargets(c: StudioCeiling, heights: readonly Align[]): AlignT
  * drawing: the corners of the other shapes on the wall, the doors and windows, and the wardrobes standing
  * against it (their width and height from the front; their depth and height from the side). */
 export function neighbourPoints(room: Studio, s: SurfaceProfile, standing: readonly Standing[]): Vec[] {
-  const out: Vec[] = [], line = wallLine(room, s.wall);
+  const out: Vec[] = (s.adjoining ?? adjoiningWallReferences(room, s)).flatMap(w => [...w.points]), line = wallLine(room, s.wall);
   for (const o of room.ceilings ?? []) {
     if (o.wall !== s.wall.id || (s.ref.kind === 'ceiling' && o.id === s.ref.id)) continue;
     const p = surfaceProfile(room, { kind: 'ceiling', id: o.id }, s.view);
