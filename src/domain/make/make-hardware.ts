@@ -176,9 +176,12 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
 /** How a board moves when the piece is opened: a door swings about its hinge edge (`pivot` x and z in the piece's
  * frame; `dir` +1 turns it out to the right), a drawer front and its box slide out `by` centimetres. */
 export type Motion = { readonly kind: 'swing'; readonly pivot: readonly [number, number]; readonly dir: 1 | -1 } | { readonly kind: 'slide'; readonly by: number };
+/** How far a drawer is pulled out to be seen open: 70% of its runners' extension, for a piece `depth` deep. Cm. */
+export const drawerPull = (depth: number) => Math.round(drawerExtension(depth) * .7);
+
 export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]): (Motion | null)[] {
   const { fronts } = piecefronts(piece.design, cornerFaceWidths(piece, pieces)), out: (Motion | null)[] = boards.map(() => null);
-  const pull = Math.round(drawerExtension(piece.design.d) * .7);
+  const pull = drawerPull(piece.design.d);
   boards.forEach((b, i) => {
     if (b.stock !== 'door' && b.stock !== 'front') return;
     const f = frontOf(fronts, b);

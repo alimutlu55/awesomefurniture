@@ -2,7 +2,7 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { bindTactileCanvas } from './tactile-canvas';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
-import { leafAction, leafContext } from './front-actions';
+import { leafAction, leafContext, openAction } from './front-actions';
 import { createViewModes } from './view-modes';
 import { createStudio2DPlanner } from './studio-2d-planner';
 import { bindSceneReset } from './scene-reset';
@@ -384,7 +384,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 else if (state.item >= 0) inspector.itemAction('del');
                 else $('#remove-wardrobe').click();
             } else if (key === 'reset') $('#reset-all').click();
-            else if (!leafAction(key, { selectionState, model, commands, openControls, $ })) openControls(key);
+            else if (!leafAction(key, { selectionState, model, commands, openControls, $ }) && !openAction(key, { model, renderState })) openControls(key);
         }
     });
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';

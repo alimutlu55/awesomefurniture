@@ -48,7 +48,12 @@ export function createFrameRenderer({ dom, clock = performance, lifetime, render
                 interactionState.drag.settling = false;
             }
         }
-        renderState.pivots.forEach(p => p.rotation.y += ((p.userData.state.open ? p.userData.t : 0) - p.rotation.y) * kk(8));
+        // Doors swing to their hinges' angle when their piece is open; drawers slide out only while it is shown open.
+        renderState.pivots.forEach(p => {
+            const state = p.userData.state;
+            if (p.userData.slide === undefined) p.rotation.y += ((state.open ? p.userData.t : 0) - p.rotation.y) * kk(8);
+            else p.position.z += (p.userData.rest + (state.open && renderState.showOpen === state ? p.userData.slide : 0) - p.position.z) * kk(8);
+        });
         stepGarmentSway(renderState.garments, dt, _n / 1000, matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false);
         // Surfaces still loading sweep their light; with reduced motion it stands still.
         if (!matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) tickLoadingShimmer(_n);

@@ -8,16 +8,27 @@ import { handleMesh } from './hardware';
 import { handlePlacement, resolveHandle } from '../../domain/wardrobe/handles';
 import { createDecorMaterial } from './cabinet-materials';
 import { getDecor } from '../../domain/materials/decor-catalog';
-import { cabinetDoorLeaves, doorFit, doorTop, leafThickness } from '../../domain/wardrobe/door-layout';
+import { cabinetDoorLeaves, doorFit, doorTop, leafGlass, leafThickness } from '../../domain/wardrobe/door-layout';
+import { hinge, hingeFor } from '../../domain/wardrobe/hinges';
+import { hasTrait } from '../../domain/wardrobe/fittings';
+import { drawerPull } from '../../domain/make/make-hardware';
 import { leafKey } from '../../domain/wardrobe/front-styles';
 import { decorateFront } from './front-surface';
 import { chosenLeaf, type createSelectionState } from '../editor/selection-state.js';
 /** Doors follow structural compartments and the wardrobe's outer profile. Each leaf's pivot names it (`leaf`:
  * bay.row.leaf, `bay`) so a tap can choose it; the chosen leaf (selection-state chosenLeaf) of the `picked` wardrobe wears the selection look a
- * chosen fitting has. */
+ * chosen fitting has. Opened, a leaf swings to its hinge's angle (`userData.t`, radians); the pull-out fittings among
+ * `items` (drawers) are returned with them, to slide out by Make's drawer pull (`userData.slide`, cm) when the piece is
+ * shown open. */
 export function renderCabinetDoors(design: EditorState, widths: readonly number[], group: Object3D, box: BoxBuilder, prism: PrismBuilder, resources: Parameters<typeof createDecorMaterial>[0], panel: Material, hardware: Material,
-    picked?: { selection: ReturnType<typeof createSelectionState>; wardrobe: number | undefined }): Group[] {
-    const pivots: Group[] = [];
+    picked?: { selection: ReturnType<typeof createSelectionState>; wardrobe: number | undefined },
+    items: readonly { readonly it: { readonly k: string }; readonly group: Object3D }[] = []): Object3D[] {
+    const pivots: Object3D[] = [];
+    for (const { group: drawer } of items.filter(x => hasTrait(x.it.k, 'pullout'))) {
+        drawer.userData.slide = drawerPull(design.d);
+        drawer.userData.rest = drawer.position.z;
+        pivots.push(drawer);
+    }
     if (design.doors === 'none')
         return pivots;
     const build = panelBuilder(box, prism), fit = doorFit(design), chosen = picked ? chosenLeaf(picked.selection, picked.wardrobe, design) : null;
@@ -57,7 +68,7 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
             pull.position.set(at.x - (left ? area.x0 : area.x1), at.y, t / 2);
             pivot.add(pull);
         }
-        pivot.userData.t = left ? -1.6 : 1.6;
+        pivot.userData.t = (left ? -1 : 1) * hinge(hingeFor(area, design, leafGlass(design, area))).angle * Math.PI / 180;
         pivot.rotation.y = design.open ? pivot.userData.t : 0;
         group.add(pivot);
         pivots.push(pivot);

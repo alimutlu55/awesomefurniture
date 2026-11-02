@@ -25,6 +25,9 @@ export function createRenderState() {
         moveIcons: [],
         itemEdgeHandles: [],
         lastFrameTime: null,
-        garments: []
+        garments: [],
+        /** The cabinet state of the piece shown open (Open doors): its drawers slide out too. Not saved.
+         * @type {object | null} */
+        showOpen: null
     };
 }

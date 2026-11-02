@@ -12,8 +12,8 @@ test('Make holds the toolbar while it is open: Done first, then its own tools; V
  assert.deepEqual(makeViewActions.map(([key])=>key),['view-iso','view-front','view-side','view-top','look-lines','look-material','look-xray','make-open','make-numbers','make-apart']);
 });
 test('selected furniture offers Add item directly',()=>{for(const kind of ['wardrobe','kitchen'])assert.ok(contextualActions(kind).some(action=>action[0]==='add-item'&&action[1]==='Add item'));});
-test('every kind of furniture has Fronts and Sections in More alongside duplicate, reset and remove',()=>{
- for(const more of Object.values(furnitureMoreActions))assert.deepEqual(more.map(([key])=>key),['fronts','sections','duplicate','reset','remove']);
+test('every kind of furniture has Fronts, Sections and Open doors in More alongside duplicate, reset and remove',()=>{
+ for(const more of Object.values(furnitureMoreActions))assert.deepEqual(more.map(([key])=>key),['fronts','sections','open-doors','duplicate','reset','remove']);
  assert.deepEqual(wardrobeMoreActions,furnitureMoreActions.wardrobe);
 });
 test('no toolbar offers Move: furniture, an item or a divider is dragged where it goes',()=>{for(const s of ['wardrobe','kitchen','item','divider'])assert.ok(!contextualActions(s).some(([key])=>key==='move'),s);});

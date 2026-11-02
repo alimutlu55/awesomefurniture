@@ -5,7 +5,10 @@ import { MAX_LEAVES } from './front-styles';
 /** @param {import('../furniture/furniture').FurnitureModule} module */
 const toolsOf = module => [...(module.autoDesign ? [['auto', 'Auto design']] : []), ['add-item', 'Add item'], ['resize', 'Size'],
     ['make', 'Make', 'Make: every part, measured'], ['more', 'More']];
-const menusOf = () => ({ more: [['fronts', 'Fronts'], ['sections', 'Sections'], ['duplicate', 'Duplicate'], ['reset', 'Reset'], ['remove', 'Remove']] });
+/** More: the piece's fronts and sections; Open doors swings its doors to their hinges' angle and pulls its drawers out, and
+ * closes them again. */
+const menusOf = () => ({ more: [['fronts', 'Fronts'], ['sections', 'Sections'], ['open-doors', 'Open doors'], ['duplicate', 'Duplicate'], ['reset', 'Reset'],
+    ['remove', 'Remove']] });
 const actions = {
     // Nothing selected in Furniture: Add opens one sheet with a tab per kind of furniture; a piece is selected by tapping it.
     none: [['add', 'Add'], ['more', 'More']],

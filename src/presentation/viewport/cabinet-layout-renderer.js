@@ -381,7 +381,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
             sceneMeasurementBadge(reachLabel, { kind: 'reach' }, 'Max reach height', reach, 'vertical', 100, 250);
             renderState.labs[renderState.labs.length - 1].reachFrom = new V(-w / 2 - 5, ry, d / 2 + 5);
         }
-        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, materials.door, mh, { selection: selectionState, wardrobe: renderState.renderCabinet?.id });
+        renderState.pivots = renderCabinetDoors(getRenderDesign(), ws, renderState.Gr, box, prism, resources, materials.door, mh, { selection: selectionState, wardrobe: renderState.renderCabinet?.id }, renderState.itemGroups);
         placeShapeHandles();
         renderState.Gr.updateMatrixWorld(true);
     }

@@ -41,3 +41,15 @@ export function leafAction(key: string, ports: LeafActionPorts): boolean {
     }
     return true;
 }
+
+/**
+ * Shows the chosen piece open (contextual-actions `open-doors`): its doors swing to their hinges' angle and its drawers
+ * slide out, as Make opens a piece; pressed again, it closes them. Not an undo step. False for any other key.
+ */
+export function openAction(key: string, { model, renderState }: { readonly model: Model; readonly renderState: { showOpen: object | null } }): boolean {
+    if (key !== 'open-doors' || !model.scene.wardrobes.length) return false;
+    const state = model.activeCabinet().state, shown = !!state.open && renderState.showOpen === state;
+    state.open = !shown;
+    renderState.showOpen = shown ? null : state;
+    return true;
+}
