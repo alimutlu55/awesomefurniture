@@ -188,7 +188,8 @@ test('rotated 2D furniture footprints and fronts match the collision geometry', 
     cabinet.angle = angle;
     const markup = renderFurniture([cabinet], cabinet.id);
     const points = markup.match(/<polygon points="([^"]+)"/)![1]!.split(' ').map(p => p.split(',').map(Number));
-    const [u, v] = collision.cabinetAxes(cabinet);
+    const axes = collision.cabinetAxes(cabinet);
+    const u = axes[0]!, v = axes[1]!;
     for (const [i, [sx, sz]] of [[-1, -1], [1, -1], [1, 1], [-1, 1]].entries()) {
       assert.ok(Math.abs(points[i]![0]! - (cabinet.x + sx! * cabinet.state.w / 2 * u.x + sz! * cabinet.state.d / 2 * v.x)) < 1e-6);
       assert.ok(Math.abs(points[i]![1]! - (cabinet.z + sx! * cabinet.state.w / 2 * u.z + sz! * cabinet.state.d / 2 * v.z)) < 1e-6);
