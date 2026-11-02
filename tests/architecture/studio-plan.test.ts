@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStudio } from '../../src/domain/studio/studio-templates';
+import { wallLine } from '../../src/domain/studio/studio';
 import { detectRooms, door2DPlan, removeStudioCorner, stepStudioWall, wall2DPlan, window2DPlan } from '../../src/domain/studio/studio-plan';
 
 test('detectRooms calculates area and centroid for built-in bedroom', () => {
@@ -59,4 +60,25 @@ test('stepStudioWall and removeStudioCorner modify room topology cleanly', () =>
   const merged = removeStudioCorner(stepped, addedCorner.id);
   assert.ok(merged, 'removing corner succeeds');
   assert.equal(merged.corners.length, stepped.corners.length - 1);
+});
+
+test('steps start at the chosen position, including outside the middle 20–80% of a wall', () => {
+  const studio = createStudio('wall');
+  const wall = studio.walls[0]!;
+  const line = wallLine(studio, wall)!;
+  for (const fraction of [0.1, 0.35, 0.9]) {
+    const stepped = stepStudioWall(studio, wall.id, 50, fraction);
+    assert.ok(stepped);
+    const start = stepped.corners[studio.corners.length]!;
+    assert.equal(start.x, Math.round(line.a.x + line.ux * line.length * fraction));
+    assert.equal(start.z, Math.round(line.a.z + line.uz * line.length * fraction));
+  }
+});
+
+test('steps reject positions too close to an endpoint instead of moving the chosen position', () => {
+  const studio = createStudio('wall');
+  const wall = studio.walls[0]!;
+  for (const fraction of [0, 0.01, 0.99, 1, NaN, Infinity]) {
+    assert.equal(stepStudioWall(studio, wall.id, 50, fraction), null);
+  }
 });

@@ -1,11 +1,10 @@
 import type { Studio } from '../../domain/studio/studio';
-import { studioBounds, wallLine } from '../../domain/studio/studio';
+import { STUDIO_LIMITS, studioBounds, wallLine } from '../../domain/studio/studio';
 import { splitWall } from '../../domain/studio/studio-edit';
 import { stepStudioWall } from '../../domain/studio/studio-plan';
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { buildDefsSvg, createTransform, renderFurniture, renderHandles, renderOpenings, renderOverlays, renderRooms, renderWalls, type ViewportTransform } from './studio-2d-canvas';
-import { renderLeftRuler, renderTopRuler } from './studio-2d-rulers';
 import { createStudio2DGestures } from './studio-2d-gestures';
 
 export interface Studio2DPlannerPorts {
@@ -42,8 +41,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   root.setAttribute('aria-label', '2D Space Planner');
 
   root.innerHTML = `
-    <div class="sp2d-top-ruler-container" id="sp2d-top-ruler"></div>
-    <div class="sp2d-left-ruler-container" id="sp2d-left-ruler"></div>
     <svg id="sp2d-svg" class="sp2d-svg" tabindex="0">
       <defs id="sp2d-defs">${buildDefsSvg()}</defs>
       <rect id="sp2d-grid-rect" width="100%" height="100%" fill="url(#sp2d-pat-major)"/>
@@ -71,14 +68,10 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       </div>
     </div>
     <div class="sp2d-action-pill" id="sp2d-action-pill" hidden></div>
-    <div class="sp2d-coords" id="sp2d-coords">X: 0 cm · Z: 0 cm</div>
   `;
 
   $('#view').appendChild(root);
   const svg = root.querySelector<SVGSVGElement>('#sp2d-svg')!;
-  const topRulerEl = root.querySelector<HTMLElement>('#sp2d-top-ruler')!;
-  const leftRulerEl = root.querySelector<HTMLElement>('#sp2d-left-ruler')!;
-  const coordsEl = root.querySelector<HTMLElement>('#sp2d-coords')!;
   const pillEl = root.querySelector<HTMLElement>('#sp2d-action-pill')!;
 
   const worldGroup = svg.querySelector<SVGGElement>('#sp2d-world')!;
@@ -144,7 +137,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   let lastSelectionKey = '';
   let lastWardrobesSnapshot = '';
 
-  function render(cursorSceneX?: number, cursorSceneZ?: number) {
+  function render() {
     updateSize();
     const studio = model.scene.studio;
     const sel = selectionState.room ?? null;
@@ -163,8 +156,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
 
     // Update screen overlays (Compass & Scale bar)
     overlaysGroup.innerHTML = renderOverlays(transform);
-    topRulerEl.innerHTML = renderTopRuler(transform, cursorSceneX);
-    leftRulerEl.innerHTML = renderLeftRuler(transform, cursorSceneZ);
     const ze = dom.document?.getElementById('zoom-val') ?? root.ownerDocument?.getElementById('zoom-val');
     if (ze) ze.textContent = `${Math.round(transform.zoom * 100)}%`;
 
@@ -215,19 +206,21 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       drawPreviewGroup.innerHTML = '';
     }
 
-    // Step & Point contextual action pill on selected wall
-    if (sel?.kind === 'wall' && studio) {
+    // Offer additions at the tapped position, rather than a fixed midpoint.
+    const actionTarget = gestures.getWallActionTarget();
+    if (sel?.kind === 'wall' && studio && actionTarget?.wallId === sel.id) {
       const w = studio.walls.find(x => x.id === sel.id);
       const line = w && wallLine(studio, w);
       if (line) {
         const { toScreen } = createTransform(transform);
-        const mid = { x: (line.a.x + line.b.x) / 2, z: (line.a.z + line.b.z) / 2 };
-        const scr = toScreen(mid);
+        const scr = toScreen({ x: line.a.x + line.ux * actionTarget.at, z: line.a.z + line.uz * actionTarget.at });
+        const canInsert = actionTarget.at >= STUDIO_LIMITS.minWallLength && line.length - actionTarget.at >= STUDIO_LIMITS.minWallLength;
+        const canStep = canInsert && stepStudioWall(studio, w.id, 50, actionTarget.at / line.length) !== null;
         pillEl.innerHTML = `
-          <button type="button" data-sp2d-act="step" data-wall-id="${w.id}">+ Step</button>
-          <button type="button" data-sp2d-act="point" data-wall-id="${w.id}">+ Point</button>
+          <button type="button" data-sp2d-act="step" ${!canStep ? 'disabled' : ''}>+ Step</button>
+          <button type="button" data-sp2d-act="point" ${!canInsert ? 'disabled' : ''}>+ Point</button>
         `;
-        pillEl.style.left = `${Math.max(70, Math.min(transform.width - 70, scr.x))}px`;
+        pillEl.style.left = `${Math.max(90, Math.min(transform.width - 90, scr.x))}px`;
         pillEl.style.top = `${Math.max(65, Math.min(transform.height - 35, scr.z - 36))}px`;
         pillEl.hidden = false;
       } else {
@@ -239,16 +232,12 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   }
 
   listen(svg, 'pointerdown', (e: Event) => gestures.onPointerDown(e as PointerEvent, svg));
-  listen(svg, 'pointermove', (e: Event) => {
-    const pe = e as PointerEvent;
-    gestures.onPointerMove(pe, svg);
-    const rect = svg.getBoundingClientRect();
-    const { toScene } = createTransform(transform);
-    const pt = toScene(pe.clientX - rect.left, pe.clientY - rect.top);
-    coordsEl.textContent = `X: ${Math.round(pt.x)} cm · Z: ${Math.round(pt.z)} cm`;
-  });
+  listen(svg, 'pointermove', (e: Event) => gestures.onPointerMove(e as PointerEvent, svg));
   listen(svg, 'pointerup', (e: Event) => gestures.onPointerUp(e as PointerEvent));
-  listen(svg, 'pointercancel', (e: Event) => gestures.onPointerUp(e as PointerEvent));
+  listen(svg, 'pointercancel', (e: Event) => {
+    gestures.onPointerUp(e as PointerEvent);
+    gestures.clearWallActionTarget();
+  });
   listen(svg, 'wheel', (e: Event) => gestures.onWheel(e as WheelEvent, svg), { passive: false });
 
   // Floating toolbar & action pill buttons
@@ -256,19 +245,24 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     const actBtn = (e.target as Element).closest<HTMLButtonElement>('[data-sp2d-act]');
     if (actBtn) {
       const act = actBtn.dataset.sp2dAct;
-      const wid = actBtn.dataset.wallId ?? (selectionState.room?.kind === 'wall' ? selectionState.room.id : null);
-      if (act === 'step' && wid) {
-        history.checkpoint(model.snapshot());
-        sceneCommands.editStudio(s => stepStudioWall(s, wid), true);
-        render();
-        return;
+      const target = gestures.getWallActionTarget();
+      if (!target || actBtn.disabled) return;
+      const { wallId, at } = target;
+      const changed = sceneCommands.editStudio(s => {
+        const w = s.walls.find(w => w.id === wallId);
+        const line = w && wallLine(s, w);
+        if (!line) return null;
+        if (act === 'step') return stepStudioWall(s, wallId, 50, at / line.length);
+        if (act === 'point') return splitWall(s, wallId, at);
+        return null;
+      }, true);
+      if (changed) {
+        gestures.clearWallActionTarget();
+        if (act === 'step') selectionState.room = null;
+        callbacks.selectionChanged();
       }
-      if (act === 'point' && wid) {
-        history.checkpoint(model.snapshot());
-        sceneCommands.editStudio(s => splitWall(s, wid), true);
-        render();
-        return;
-      }
+      render();
+      return;
     }
     const btn = (e.target as Element).closest<HTMLButtonElement>('button');
     if (!btn) return;

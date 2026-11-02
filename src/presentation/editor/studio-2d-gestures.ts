@@ -1,6 +1,5 @@
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { wallLine } from '../../domain/studio/studio';
-import { extendFromCorner, splitWall } from '../../domain/studio/studio-edit';
 import { snapCorner } from './studio-drag';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -38,6 +37,7 @@ export interface Studio2DGesturesPorts {
 
 export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
   let activeTool: ToolMode = 'select';
+  let wallActionTarget: { wallId: string; at: number } | null = null;
   let drag: DragState | null = null;
   let wallDrawStart: Point2D | null = null;
   let wallDrawCurrent: Point2D | null = null;
@@ -55,6 +55,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
   }
 
   function onPointerDown(e: PointerEvent, target: Element): boolean {
+    wallActionTarget = null;
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     // Handle 2-finger pinch on mobile touch screens
@@ -139,32 +140,6 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return true;
     }
 
-    const splitEl = (e.target as Element).closest('[data-wall-split-id]');
-    if (splitEl) {
-      const wid = splitEl.getAttribute('data-wall-split-id')!;
-      ports.checkpoint();
-      ports.editStudio(s => splitWall(s, wid), true);
-      ports.setSelection({ kind: 'wall', id: wid });
-      scheduleRefresh();
-      return true;
-    }
-
-    const extendEl = (e.target as Element).closest('[data-extend-id]');
-    if (extendEl) {
-      const cid = extendEl.getAttribute('data-extend-id')!;
-      ports.checkpoint();
-      ports.editStudio(s => {
-        const c = s.corners.find(x => x.id === cid);
-        const w = s.walls.find(x => x.a === cid || x.b === cid);
-        const line = w && wallLine(s, w);
-        if (!c || !line) return null;
-        const sign = cid === w.b ? 1 : -1;
-        return extendFromCorner(s, cid, c.x + line.ux * sign * 150, c.z + line.uz * sign * 150);
-      }, true);
-      scheduleRefresh();
-      return true;
-    }
-
     const openingEl = (e.target as Element).closest('[data-opening-id]');
     if (openingEl) {
       const oid = openingEl.getAttribute('data-opening-id')!;
@@ -189,6 +164,13 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     const wallEl = (e.target as Element).closest('[data-wall-id]');
     if (wallEl) {
       const wid = wallEl.getAttribute('data-wall-id')!;
+      const studio = ports.getStudio();
+      const wall = studio?.walls.find(w => w.id === wid);
+      const line = studio && wall && wallLine(studio, wall);
+      if (line) {
+        wallActionTarget = { wallId: wid, at: Math.max(0, Math.min(line.length,
+          (scenePt.x - line.a.x) * line.ux + (scenePt.z - line.a.z) * line.uz)) };
+      }
       ports.setSelection({ kind: 'wall', id: wid });
       drag = {
         kind: 'wall', id: wid, startScreen: { x: e.clientX, y: e.clientY },
@@ -251,6 +233,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     const dxPx = e.clientX - drag.startScreen.x, dyPx = e.clientY - drag.startScreen.y;
     if (Math.hypot(dxPx, dyPx) > 3) drag.moved = true;
     if (!drag.moved) return;
+    wallActionTarget = null;
 
     if (drag.kind === 'pan') {
       ports.setTransform(prev => ({
@@ -374,6 +357,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
 
   function setTool(tool: ToolMode) {
     activeTool = tool;
+    wallActionTarget = null;
     wallDrawStart = null;
     wallDrawCurrent = null;
     scheduleRefresh();
@@ -389,6 +373,8 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     onPointerDown, onPointerMove, onPointerUp, onWheel,
     setTool, getTool: () => activeTool, cancelDrawing,
     getWallDrawState: () => wallDrawStart && wallDrawCurrent ? { start: wallDrawStart, current: wallDrawCurrent } : null,
+    getWallActionTarget: () => wallActionTarget,
+    clearWallActionTarget: () => { wallActionTarget = null; scheduleRefresh(); },
     getGuides: () => drag?.guides ?? [],
   };
 }
