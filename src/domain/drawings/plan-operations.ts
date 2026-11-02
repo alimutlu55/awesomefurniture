@@ -4,18 +4,34 @@ import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { isKitchen } from '../furniture/furniture';
 import { type Item, type P, line } from './drawing';
-import { piecefronts } from './fronts';
+import { piecefronts, type Front } from './fronts';
+import { hinge, hingeFor } from '../wardrobe/hinges';
+import { getDecor } from '../materials/decor-catalog';
+import { resolveMaterials } from '../materials/configured-materials';
 import { local } from './plan-symbols';
 import { topAt } from './piece-front';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
 
-/** A quarter circle, sampled every 5 degrees; the same polyline reaches SVG and vector PDF. */
-export function quarterArc(at: (s: number, t: number) => P, hinge: number, front: number, radius: number, sign: 1 | -1): P[] {
-  return Array.from({ length: 19 }, (_, i) => {
-    const a = i * Math.PI / 36;
+/** An arc from the closed position to `degrees` open, sampled every 5 degrees (and at its end); the same polyline reaches
+ * SVG and vector PDF. Past 90 degrees it swings back behind the hinge. */
+export function swingArc(at: (s: number, t: number) => P, hinge: number, front: number, radius: number, sign: 1 | -1, degrees: number): P[] {
+  const steps = [...Array.from({ length: Math.floor(degrees / 5) + 1 }, (_, i) => i * 5), ...(degrees % 5 ? [degrees] : [])];
+  return steps.map(deg => {
+    const a = deg * Math.PI / 180;
     return at(hinge + sign * radius * Math.cos(a), front + radius * Math.sin(a));
   });
+}
+/** A quarter circle (a room door's swing). */
+export const quarterArc = (at: (s: number, t: number) => P, hinge: number, front: number, radius: number, sign: 1 | -1) => swingArc(at, hinge, front, radius, sign, 90);
+
+/** A hinged front's swing in plan: from its hinge edge, as far as its hinge opens (hingeFor), in drawing millimetres. */
+export function leafSwing(p: PlacedPiece, f: Front) {
+  const d = p.design, at = (s: number, t: number) => local(p, s - d.w / 2, t + d.d / 2), right = f.hinge === 'right', hingeX = right ? f.x1 : f.x0;
+  // An appliance's door opens on the appliance's own hinges: drawn square.
+  const glass = f.glass ?? getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', angle = f.label ? 90 : hinge(hingeFor(f, d, glass, p.sides)).angle;
+  const arc = swingArc(at, hingeX, 0, f.x1 - f.x0, right ? -1 : 1, angle), pivot = at(hingeX, 0);
+  return { pivot, arc, angle, points: [pivot, ...arc] as readonly P[] };
 }
 
 /** An opening's swept footprint in drawing millimetres, used for both drawing and clash checks. */
@@ -26,11 +42,10 @@ export function pieceOperations(p: PlacedPiece, pieces: readonly PlacedPiece[] =
   const d = p.design, at = (s: number, t: number) => local(p, s - d.w / 2, t + d.d / 2);
   const out: Operation[] = [], seen = new Set<string>();
   let bottom = p.y, top = p.y + d.h, visible = true;
-  const side = (x0: number, x1: number, hingeRight: boolean) => {
-    const hinge = hingeRight ? x1 : x0, radius = x1 - x0;
-    const arc = quarterArc(at, hinge, 0, radius, hingeRight ? -1 : 1), pivot = at(hinge, 0);
-    out.push({ points: [pivot, ...arc], bottom, top,
-      items: visible ? [line(pivot, arc.at(-1)!, 'swing'), { kind: 'line', stroke: 'swing', points: arc }] : [] });
+  // A hinged front swings as far as its hinge opens: past square for a 110° hinge, back flat for a 170° one.
+  const side = (f: Front) => {
+    const { pivot, arc, points } = leafSwing(p, f);
+    out.push({ points, bottom, top, items: visible ? [line(pivot, arc.at(-1)!, 'swing'), { kind: 'line', stroke: 'swing', points: arc }] : [] });
   };
   const extend = (x0: number, x1: number, reach: number) => {
     if (reach <= 0) return;
@@ -42,7 +57,7 @@ export function pieceOperations(p: PlacedPiece, pieces: readonly PlacedPiece[] =
     visible = !seen.has(key);
     seen.add(key);
     bottom = p.y + f.y0; top = p.y + Math.min(f.y1, Math.max(topAt(d, f.x0), topAt(d, f.x1)));
-    if (f.opens === 'side') side(f.x0, f.x1, f.hinge === 'right');
+    if (f.opens === 'side') side(f);
     else if (f.opens === 'pull') extend(f.x0, f.x1, drawerExtension(d.d));
     else if (f.opens === 'down') extend(f.x0, f.x1, f.y1 - f.y0);
   }

@@ -10,7 +10,7 @@ import { wallGeometry, type PlacedPiece } from './room-pieces';
 
 /** A design-review reference, in mm; this is not a building-code certification. */
 export const AISLE_REFERENCE = 900;
-interface Obstacle { key: string; group: string; points: readonly P[]; owners: readonly number[]; bottom: number; top: number; facing?: { x: number; z: number }; circulation?: boolean }
+export interface Obstacle { key: string; group: string; points: readonly P[]; owners: readonly number[]; bottom: number; top: number; facing?: { x: number; z: number }; circulation?: boolean }
 interface Clearance { piece: PlacedPiece; target: Obstacle; from: P; to: P; distance: number }
 const footprint = (p: Pick<PlacedPiece, 'x' | 'z' | 'angle'>, w: number, d: number) =>
   [local(p, -w / 2, -d / 2), local(p, w / 2, -d / 2), local(p, w / 2, d / 2), local(p, -w / 2, d / 2)];
@@ -21,7 +21,7 @@ const group = (p: PlacedPiece) => {
 
 /** Solid floor obstructions: furniture, actual worktop overhangs, wall solids and radiator projections.
  * Floor-level doors/archways are gaps. Window walls still obstruct walking underneath their sills. */
-function obstacles(studio: Studio | undefined, pieces: readonly PlacedPiece[]): Obstacle[] {
+export function obstacles(studio: Studio | undefined, pieces: readonly PlacedPiece[]): Obstacle[] {
   const out: Obstacle[] = pieces.filter(p => !p.fixture).map(p => ({ key: 'piece:' + p.id, group: group(p), owners: [p.id],
     points: footprint(p, p.design.w, p.design.d), bottom: p.y, top: p.y + p.design.h, facing: unitAxes(p.angle).v, circulation: p.y < .5 }));
   for (const span of kitchenSpans(pieces.map(p => ({ ...p, state: p.design })))) {
@@ -90,7 +90,7 @@ function clearance(p: PlacedPiece, solids: readonly Obstacle[]): Clearance | und
 }
 
 /** Convex swept sectors and rectangles; a touch at the closed face is not a collision. */
-function intersects(a: readonly P[], b: readonly P[]): boolean {
+export function intersects(a: readonly P[], b: readonly P[]): boolean {
   for (const polygon of [a, b]) for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i]!, q = polygon[(i + 1) % polygon.length]!, n = { x: q.y - p.y, y: p.x - q.x };
     const length = Math.hypot(n.x, n.y);

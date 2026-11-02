@@ -5,6 +5,7 @@ import { shelfSpan } from './shelf-span';
 import { hangingDepth } from './hanging-depth';
 import { stockSize } from './stock-size';
 import { frontClash } from './front-clash';
+import { swing } from './swing';
 
 /**
  * Engineering rules: what a piece must meet to be built, beyond the model being sound. Each rule reads the placed
@@ -20,4 +21,5 @@ export const RULES: readonly Rule[] = [
   hangingDepth,
   stockSize,
   frontClash,
+  swing,
 ];
