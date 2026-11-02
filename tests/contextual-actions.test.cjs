@@ -36,3 +36,10 @@ test('every editable selection has exactly one Size entry and no separate Shape 
   assert.ok(!actions.some(([,label])=>label==='Shape'),selection);
  }
 });
+test('a chosen door leaf offers its hinge side, the leaves in its opening and the handle; Leaves lists one to MAX_LEAVES',()=>{
+ const {leafCountActions}=require('../src/domain/wardrobe/contextual-actions.js');
+ const {MAX_LEAVES}=require('../src/domain/wardrobe/front-styles');
+ assert.deepEqual(contextualActions('leaf').map(([key])=>key),['leaf-hinge','leaf-leaves','leaf-handle','undo','redo']);
+ assert.deepEqual(leafCountActions.map(([key])=>key),Array.from({length:MAX_LEAVES},(_,n)=>'leaves-'+(n+1)));
+ assert.deepEqual(leafCountActions.map(([,label])=>label),['1 leaf','2 leaves']);
+});

@@ -1,5 +1,5 @@
 import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fixtureMoreActions, fieldActions,
-    makeViewActions } from '../../domain/wardrobe/contextual-actions.js';
+    makeViewActions, leafCountActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
@@ -39,7 +39,8 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),
         'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make'),
-        'make-done':icon('done'),'make-assembly':icon('apart'),'make-apart':icon('apart'),'make-fronts':icon('doors'),'make-measures':icon('dims'),'make-view':icon('view'),'make-parts':icon('parts')};
+        'make-done':icon('done'),'make-assembly':icon('apart'),'make-apart':icon('apart'),'make-fronts':icon('doors'),'make-measures':icon('dims'),'make-view':icon('view'),'make-parts':icon('parts'),
+        'leaf-hinge':icon('flip'),'leaf-leaves':icon('split'),'leaf-handle':icon('material')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),fronts:icon('doors'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
         stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
@@ -51,8 +52,9 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
-        : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : key === 'make-view' ? makeViewActions : undefined;
-    const opensMenu = key => key === 'more' || key === 'interior' || key === 'replace' || key === 'make-view';
+        : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : key === 'make-view' ? makeViewActions
+        : key === 'leaf-leaves' ? leafCountActions : undefined;
+    const opensMenu = key => key === 'more' || key === 'interior' || key === 'replace' || key === 'make-view' || key === 'leaf-leaves';
     function positionMenu(trigger) {
         menuTrigger = trigger;
         const bounds = app.getBoundingClientRect(), anchor = trigger.getBoundingClientRect();

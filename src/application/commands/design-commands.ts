@@ -4,6 +4,7 @@ import { createSizingCommands } from './sizing-commands';
 import { createItemCommands } from './item-commands';
 import { createLayoutCommands } from './layout-commands';
 import { createAppearanceCommands } from './appearance-commands';
+import { createFrontCommands } from './front-commands';
 import { createCommandWorkflow } from './command-workflow';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { EditorState } from '../projects/editor-scene';
@@ -32,6 +33,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const items = createItemCommands({ getDesign, effects, rules, run, callbacks: { addShelfBoard: dividers.addShelfBoard } });
     const layouts = createLayoutCommands({ getDesign, effects, rules });
     const appearance = createAppearanceCommands({ getDesign, effects, run });
+    const fronts = createFrontCommands({ getDesign, widths: () => rules.widths(), run });
     const shaped = () => !isRegularShape(getDesign().shape);
     /** Outer height a bay planner should assume: the lowest clear point across the bay. */
     const bayHeight = (i: number) => Math.floor(rules.ceilingIn(i, 0, rules.widths()[i]!) + plinthOf(getDesign()) + 2 * PANEL);
@@ -68,5 +70,5 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     // afterward could compact or remove the very fittings the command preserves.
     const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
     return { run, ...dividers, ...dividerAlign, setDividerClearance, ...sizing, ...items, addMod, editItem,
-        ...layouts, applyProposal, autofill, changeSections, ...appearance };
+        ...layouts, applyProposal, autofill, changeSections, ...appearance, ...fronts };
 }

@@ -616,5 +616,12 @@
   "Full height": "Pleine hauteur",
   "Handle finish": "Finition de la poignée",
   "Attach the fronts and check the clearances.": "Posez les façades et vérifiez les jeux.",
-  "Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.": "Fixez les embases de charnière sur la ligne de 37 mm, clipsez chaque porte, puis réglez-la : latéral, hauteur et profondeur, pour un jeu régulier."
+  "Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.": "Fixez les embases de charnière sur la ligne de 37 mm, clipsez chaque porte, puis réglez-la : latéral, hauteur et profondeur, pour un jeu régulier.",
+  "Hinge side": "Côté charnière",
+  "Hang on the other side": "Ferrer de l’autre côté",
+  "Leaves": "Vantaux",
+  "Leaves in this opening": "Vantaux dans cette ouverture",
+  "1 leaf": "1 vantail",
+  "2 leaves": "2 vantaux",
+  "leaf editing actions": "Actions de modification du vantail"
 }
