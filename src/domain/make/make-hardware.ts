@@ -9,14 +9,14 @@ import { getDecor } from '../materials/decor-catalog';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
-import { hingeStations } from '../wardrobe/hinges';
+import { hinge as hingeOf, hingeStations } from '../wardrobe/hinges';
 import type { Fitting, Hole } from './make-joints';
 import { thinAxis, type Vec3 } from './make-measures';
 
 /** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
 export const SYSTEM_LINE = 3.7;
-/** Cup centre 22.5 mm from the door's hinge edge (a 5 mm boring distance); plate holes 32 mm apart. */
-const CUP = 2.25, PLATE_PITCH = 3.2, RUNNER_CLEARANCE = 1.25;
+/** A drawer box stands this far in from each upright, for its runners. Cm. */
+const RUNNER_CLEARANCE = 1.25;
 /** One System 32 step: runner slots and shelf pin rows are this far apart. A runner screw hole, mm. */
 const PITCH = 3.2, RUNNER_SCREW = { d: 5, depth: 12 } as const;
 
@@ -96,17 +96,20 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const hinge = f.hinge ?? 'left', edgeX = hinge === 'left' ? b.x0 : b.x1, { left, right } = uprightsAround(boards, hinge === 'left' ? edgeX + 3 : edgeX - 3, b.y0 + 10, h);
       // Under a slope the upright it hangs from can end below the door's top: hinges go along what they share.
       const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
-      const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - SYSTEM_LINE : 0;
+      // The hinge kind set for the leaf, else a glass door's clamp hinge (nothing drilled in the glass), else the standard
+      // one: its cup in the door and its plate's two screws on the upright, a pitch apart on its System 32 line.
+      const kind = hingeOf(f.hingeKind ?? (glass(b) ? 'glass' : undefined)), { plate } = kind, pitch = plate.pitch / 10;
+      const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - plate.line / 10 : 0;
       // A partition with doors hinged on both faces (a pair either side of it): a plate whose screws would meet the other
       // face's, or a connector, inside the board steps one System 32 pitch along it.
-      const clear = (y: number) => !post || [-PLATE_PITCH / 2, PLATE_PITCH / 2].every(dy => !inTheWay([...drilled, ...holes], post, [face, y + dy, z], sign, { d: 5, depth: 12 }));
+      const clear = (y: number) => !post || [-pitch / 2, pitch / 2].every(dy => !inTheWay([...drilled, ...holes], post, [face, y + dy, z], sign, plate.screw));
       for (const s of hingeStations(edgeTop - b.y0)) {
         const y = b.y0 + s + ([0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH].find(dy => clear(b.y0 + s + dy)) ?? 0);
-        const cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0], clamped = glass(b);
-        if (!clamped) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13, of: fittings.length });
-        fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: clamped ? 'glass' : '110°' });
+        const inset = (kind.cup?.fromEdge ?? 22.5) / 10, cup: Vec3 = [edgeX + (hinge === 'left' ? inset : -inset), y, b.z0];
+        if (kind.cup) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: kind.cup.d, depth: kind.cup.depth, of: fittings.length });
+        fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: kind.size });
         if (!post) continue;
-        for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12, of: fittings.length });
+        for (const dy of [-pitch / 2, pitch / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, ...plate.screw, of: fittings.length });
         fittings.push({ kind: 'plate', at: [face, y, z], axis: 0, boards: [post.i] });
       }
     }

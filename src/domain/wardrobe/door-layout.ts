@@ -4,6 +4,7 @@ import { PANEL, PLINTH } from './catalog.js';
 import { DOOR, fittingDepth } from './carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
 import { MAX_LEAVES, frontOverlay, leafKey, resolveFronts } from './front-styles';
+import type { HingeKind } from './hinges';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
 export const DOOR_LIMITS = { width: 60, height: 240 } as const;
@@ -51,7 +52,7 @@ export interface DoorArea { x0: number; x1: number; y0: number; y1: number }
 /** A door opening: its bay (from the left) and row (its place in the bay, from the bottom, then from the left). */
 export interface DoorOpening extends DoorArea { bay: number; row: number }
 /** One leaf hung in an opening: which of how many it is (from the left), and the side it hinges on. */
-export interface DoorLeaf extends DoorOpening { leaf: number; of: number; hinge: 'left' | 'right' }
+export interface DoorLeaf extends DoorOpening { leaf: number; of: number; hinge: 'left' | 'right'; hingeKind?: HingeKind | undefined }
 export type DoorHang = 'auto' | 'left' | 'right';
 
 /** Which side a wardrobe door leaf hinges on: the cabinet's chosen hang ('left' puts the handle on the right;
@@ -130,7 +131,8 @@ export function cabinetDoorLeaves(design: EditorDesign, widths: readonly number[
             const x0 = opening.x0 + leaf * (each + fit.reveal), x1 = leaf === of - 1 ? opening.x1 : x0 + each;
             const set = settings[leafKey(opening.bay, opening.row, leaf)]?.hinge ?? (of === 1 ? settings[key]?.hinge : undefined);
             const hinge = set ?? (of === 1 ? doorHingeSide(opening, design) : leaf < of / 2 ? 'left' : 'right');
-            return { ...opening, x0, x1, leaf, of, hinge };
+            const hingeKind = settings[leafKey(opening.bay, opening.row, leaf)]?.hingeKind ?? settings[key]?.hingeKind;
+            return { ...opening, x0, x1, leaf, of, hinge, ...(hingeKind ? { hingeKind } : {}) };
         });
     });
 }

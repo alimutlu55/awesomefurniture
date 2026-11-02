@@ -3,6 +3,7 @@ import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
 import { cabinetDoorLeaves } from '../wardrobe/door-layout';
+import type { HingeKind } from '../wardrobe/hinges';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
@@ -22,6 +23,8 @@ export interface Front extends Box {
   readonly installation?: boolean | undefined;
   /** A wardrobe door: how many leaves hang side by side in its opening. */
   readonly of?: number | undefined;
+  /** The hinge set for it (HINGES); absent: a glass door's clamp hinge, else the standard one. */
+  readonly hingeKind?: HingeKind | undefined;
 }
 /** What is inside, behind the fronts: fittings and boards, rails, and a cupboard's shelves. */
 export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
@@ -110,7 +113,7 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
   });
   // Wardrobe doors: each opening's leaves (cabinetDoorLeaves), single leaves hinged nearer the wardrobe's end unless set.
   const covered = !kitchen && design.doors !== 'none';
-  if (covered) for (const a of cabinetDoorLeaves(design, widths)) fronts.push({ x0: a.x0, x1: a.x1, y0: a.y0, y1: a.y1, opens: 'side', hinge: a.hinge, name: 'Door', of: a.of });
+  if (covered) for (const a of cabinetDoorLeaves(design, widths)) fronts.push({ x0: a.x0, x1: a.x1, y0: a.y0, y1: a.y1, opens: 'side', hinge: a.hinge, name: 'Door', of: a.of, ...(a.hingeKind ? { hingeKind: a.hingeKind } : {}) });
   const installed = !kitchen || !faceWidths.some(s => s.strip || s.covered) ? fronts : fronts.flatMap(f => {
     if (f.installation) return [];
     return faceWidths.filter(s => !s.strip).flatMap(s => {

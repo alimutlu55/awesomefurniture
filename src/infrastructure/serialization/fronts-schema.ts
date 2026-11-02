@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FRONT_OVERLAYS, FRONT_REVEALS_MM, FRONT_STYLES, type DesignFronts } from '../../domain/wardrobe/front-styles';
+import { HINGES } from '../../domain/wardrobe/hinges';
 
 /**
  * A cabinet's fronts, as saved in a project and written in a design spec. The allowed values come from the front
@@ -12,6 +13,8 @@ const oneOf = (what: string, keys: readonly (string | number)[]) =>
 const leaf = z.strictObject({
   leaves: z.number().int().min(1).describe('How many leaves this opening is split into').optional(),
   hinge: z.enum(['left', 'right']).describe('The side the leaf hinges on').optional(),
+  hingeKind: z.enum(HINGES.map(h => h.key) as [string, ...string[]], oneOf('hinge', HINGES.map(h => h.key)))
+    .describe('The hinge it hangs on: ' + HINGES.map(h => `"${h.key}" (${h.name}: ${h.use.toLowerCase()})`).join(', ')).optional(),
 });
 
 export const frontsSchema = z.strictObject({

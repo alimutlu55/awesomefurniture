@@ -11,6 +11,7 @@
  * Sizes on fronts are small, so they are whole millimetres here (`…Mm`); door geometry works in centimetres.
  */
 import type { DecorCategory } from '../materials/decor-types';
+import { HINGE_KINDS, type HingeKind } from './hinges';
 
 /** How a leaf sits on the carcass: what share of the side board's front edge it covers, and whether it sits inside the
  * carcass faces instead of in front of them. */
@@ -85,6 +86,8 @@ export interface LeafSettings {
   /** How many leaves the opening is split into (only on an opening's key). */
   readonly leaves?: number | undefined;
   readonly hinge?: 'left' | 'right' | undefined;
+  /** The hinge it hangs on (HINGES); absent: chosen for it. */
+  readonly hingeKind?: HingeKind | undefined;
 }
 
 /** A cabinet's fronts as saved. Every field is optional: absent is the default, and defaults are never written. */
@@ -123,6 +126,7 @@ export function frontsProblems(fronts: DesignFronts, bays?: number): string[] {
       if (!Number.isInteger(leaf.leaves) || leaf.leaves < 1 || leaf.leaves > MAX_LEAVES) problems.push(`"${key}": an opening has 1 to ${MAX_LEAVES} leaves.`);
     }
     if (at.leaf !== undefined && at.leaf >= MAX_LEAVES) problems.push(`"${key}": an opening has at most ${MAX_LEAVES} leaves.`);
+    if (leaf.hingeKind !== undefined && !HINGE_KINDS.includes(leaf.hingeKind)) problems.push(`"${key}": unknown hinge "${leaf.hingeKind}": use ${list(HINGE_KINDS)}.`);
   }
   return problems;
 }
