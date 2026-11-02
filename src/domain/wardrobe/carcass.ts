@@ -56,6 +56,10 @@ export const interiorDepth = (d: number) => d - BACK_PANEL;
 /** Outer cabinet depth that gives a fitting this usable depth (the inverse of fittingDepth). */
 export const depthForFitting = (usable: number) => usable + BACK_PANEL + FITTING_SETBACK;
 
+/** A wardrobe door leaf: its thickness, how far its middle stands in front of the carcass, and the gap left under the
+ * wardrobe's top. Centimetres. */
+export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
+
 /** A hanging rail: its centre sits RAIL_DROP below the top of the fitting's clear space, so hanger hooks
  * clear the board above; garments hang from RAIL_RADIUS below the centre. */
 export const RAIL_DROP = 6;

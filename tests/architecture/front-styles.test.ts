@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_FRONT, FRONT_OVERLAYS, FRONT_REVEALS_MM, FRONT_STYLES, frontOverlay, frontStyle, isFrontReveal,
   type FrontOverlayDef, type FrontStyleDef } from '../../src/domain/wardrobe/front-styles';
-import { DOOR, cabinetDoorAreas } from '../../src/domain/wardrobe/door-layout';
+import { cabinetDoorAreas } from '../../src/domain/wardrobe/door-layout';
+import { DOOR } from '../../src/domain/wardrobe/carcass';
 import { PLINTH } from '../../src/domain/wardrobe/catalog.js';
 import { MATERIAL_FAMILIES } from '../../src/domain/materials/decor-types';
 import { decorCatalog as DECORS } from '../../src/domain/materials/decor-catalog';

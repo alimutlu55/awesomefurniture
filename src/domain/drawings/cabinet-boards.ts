@@ -5,9 +5,9 @@ import { defaultMaterials, resolveMaterials } from '../materials/configured-mate
 import { fitsStock } from '../make/stock-sheet';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
-import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
+import { BACK_PANEL, DOOR, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, outerPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
-import { DOOR, doorThickness } from '../wardrobe/door-layout';
+import { doorThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { fittingPanels } from '../geometry/shared-board-spans';

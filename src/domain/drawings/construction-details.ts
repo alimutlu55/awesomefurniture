@@ -6,7 +6,7 @@ import { worktopThickness } from '../materials/configured-materials';
 import { doorThickness } from '../wardrobe/door-layout';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
 import { BACK_PANEL, FITTING_SETBACK, PARTITION_SETBACK } from '../wardrobe/carcass';
-import { DOOR } from '../wardrobe/door-layout';
+import { DOOR } from '../wardrobe/carcass';
 import { FRONT_GAP } from '../kitchen/kitchen-fronts';
 import { KITCHEN_PLINTH_SETBACK, WORKTOP } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';

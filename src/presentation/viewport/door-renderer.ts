@@ -6,7 +6,8 @@ import type { BoxBuilder, PrismBuilder } from './frame-geometry';
 import { panelBuilder } from './frame-geometry';
 import { barPull } from './hardware';
 import type { createViewportResources } from './viewport-resources.js';
-import { cabinetDoorAreas, DOOR, doorHingeSide, doorThickness } from '../../domain/wardrobe/door-layout';
+import { cabinetDoorAreas, doorHingeSide, doorThickness } from '../../domain/wardrobe/door-layout';
+import { DOOR } from '../../domain/wardrobe/carcass';
 import { outerPolyline, resolveShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { decorateFront } from './front-surface';
 /** Doors follow structural compartments and the wardrobe's outer profile. */
