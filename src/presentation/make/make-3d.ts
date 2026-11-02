@@ -203,6 +203,10 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     },
     /** The view's size in pixels: outlines keep their width on screen. */
     setResolution(width: number, height: number) { for (const pen of pens) pen.resolution.set(width, height); },
+    /** Rings these holes, by their place in the piece's hole list (null: none). */
+    ring(holes: readonly number[] | null) { fittings.ring(holes ? new Set(holes) : null); },
+    /** The room the ringed holes take in world space, `margin` cm round them; null when none is ringed. */
+    ringExtent(margin: number) { group.updateMatrixWorld(true); return fittings.ringExtent(margin); },
     setSelected(n: number | null) {
       selected = n;
       const picked = n === null ? null : new Set(boards.filter(b => b.part.n === n).map(b => b.index));

@@ -31,7 +31,8 @@ export const tabsHtml = (tab: PanelTab) => `<div class="unit-seg make-tabs" role
 
 const JOINT_LABELS: Record<typeof JOINT_SYSTEMS[number], string> = { confirmat: 'Screws', cam: 'Cams', dowel: 'Dowels' };
 const BACK_LABELS: Record<typeof BACK_FIXINGS[number], string> = { nailed: 'Nailed', grooved: 'Grooved' };
-const FINDINGS = { clash: 'Holes run into each other', edge: 'Hole near the edge', breakout: 'Hole through the face', meet: 'Holes meet inside' } as const;
+/** What is wrong with the drilling, as a short label. */
+const FINDINGS = { clash: 'Holes overlap', edge: 'Near the edge', breakout: 'Through the face', meet: 'Holes meet' } as const;
 
 /** How it goes together (joints, back), whether the drilling checks out, and everything to buy, counted. */
 export function hardwareTab(piece: MakePiece) {
@@ -40,8 +41,9 @@ export function hardwareTab(piece: MakePiece) {
       .map(v => `<button type="button" data-${key}="${v}" aria-pressed="${now === v}">${labels[v]}</button>`).join('')}</span></div>`;
   const partOf = (board: number) => piece.parts.find(p => p.ids.includes(board))!;
   const checks = piece.findings.length
-    ? piece.findings.slice(0, 6).map(f => { const p = partOf(f.board); return `<button type="button" class="make-row make-check bad" data-n="${p.n}">`
-      + `<span class="make-mark" aria-hidden="true">!</span><span class="make-n">${p.n}</span><span class="make-name">${FINDINGS[f.kind]}</span><b>${f.gap} mm</b></button>`; }).join('')
+    ? piece.findings.slice(0, 6).map((f, k) => { const p = partOf(f.board); return `<button type="button" class="make-row make-check bad" data-n="${p.n}" data-finding="${k}">`
+      + `<span class="make-mark" aria-hidden="true">!</span><span class="make-n">${p.n}</span><span class="make-name" translate="no">${esc(p.name)}</span>`
+      + `<b><span>${FINDINGS[f.kind]}</span> · ${Math.abs(f.gap)} mm</b></button>`; }).join('')
     : '<div class="make-row make-check ok"><span class="make-mark" aria-hidden="true">✓</span><span></span><span class="make-name">Drilling checked</span><b></b></div>';
   return seg('Joints', 'joints', JOINT_SYSTEMS, JOINT_LABELS, piece.construction.joints)
     + seg('Back', 'back', BACK_FIXINGS, BACK_LABELS, piece.construction.back)

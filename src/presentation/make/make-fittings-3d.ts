@@ -20,6 +20,10 @@ export interface FittingsLayer {
   only(hole: ((index: number) => boolean) | null, fitting: ((index: number) => number | null) | null, seen?: (index: number) => number): void;
   /** Hides the holes of every board but this part's (null: every board's holes show). */
   focus(boards: ReadonlySet<number> | null): void;
+  /** Rings these holes, by their place in the piece's hole list: a halo round each, seen through the boards (null: none). */
+  ring(holes: ReadonlySet<number> | null): void;
+  /** The room the ringed holes take, in world space, with `margin` cm round them; null when none is ringed. */
+  ringExtent(margin: number): THREE.Box3 | null;
   clear(): void;
   dispose(): void;
 }
@@ -30,15 +34,18 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const holeMaterial = new THREE.MeshBasicMaterial({ color: INK, side: THREE.DoubleSide });
   const metal = new THREE.MeshLambertMaterial({ color: METAL, emissive: 0x3a3c40, emissiveIntensity: .4 });
   const highlight = new THREE.MeshLambertMaterial({ color: 0x4976ad, emissive: 0x243b56, emissiveIntensity: .5 });
+  // A ringed hole: a halo 12 mm out from its edge, drawn over the boards so it shows wherever the hole is.
+  const halo = new THREE.TorusGeometry(1, .2, 8, 40).rotateX(Math.PI / 2), HALO = 1.2;
+  const ringed = new THREE.MeshBasicMaterial({ color: 0x4976ad, depthTest: false, transparent: true });
   let links: readonly (readonly number[])[] = [];
-  let holes: { mesh: THREE.Object3D; board: number; index: number }[] = [];
+  let holes: { mesh: THREE.Mesh; board: number; index: number; size: THREE.Vector3; geometry: THREE.BufferGeometry }[] = [];
   let fittings: { mesh: THREE.Object3D; index: number; board: number | null; home: THREE.Vector3; from: THREE.Vector3; size: THREE.Vector3 }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
     : kind === 'runner' ? new THREE.Vector3() : new THREE.Vector3(0, 0, 1);
   let shown: ((index: number) => boolean) | null = null, shownFittings: ((index: number) => number | null) | null = null, focused: ReadonlySet<number> | null = null;
-  let seenFittings: ((index: number) => number) | null = null;
+  let seenFittings: ((index: number) => number) | null = null, rung: ReadonlySet<number> | null = null;
 
-  const tag = (o: THREE.Object3D) => { o.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; }); return o; };
+  const tag = <T extends THREE.Object3D>(o: T): T => { o.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; }); return o; };
   /** A mesh of `geometry` (unit size) scaled to `size`, its y axis along `axis`, centred at `at`. */
   function solid(geometry: THREE.BufferGeometry, material: THREE.Material, at: THREE.Vector3, size: THREE.Vector3, axis = Y) {
     const m = new THREE.Mesh(geometry, material);
@@ -71,7 +78,14 @@ export function createMakeFittings(layer: number): FittingsLayer {
     return null;
   }
   function visible() {
-    for (const h of holes) h.mesh.visible = (!shown || shown(h.index)) && (!focused || focused.has(h.board));
+    for (const h of holes) {
+      const on = !!rung?.has(h.index);
+      h.mesh.visible = (!shown || shown(h.index)) && (!focused || focused.has(h.board));
+      h.mesh.material = on ? ringed : holeMaterial;
+      h.mesh.geometry = on ? halo : h.geometry;
+      h.mesh.renderOrder = on ? 10 : 0;
+      if (on) h.mesh.scale.setScalar(h.size.x + HALO); else h.mesh.scale.copy(h.size);
+    }
     for (const f of fittings) {
       // Coming in: growing into view where it waits at the end of its line (a handle in front, a leg below), easing home.
       const p = shownFittings ? shownFittings(f.index) : 1, seen = seenFittings?.(f.index) ?? 1;
@@ -92,7 +106,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
         const mesh = holeMesh(piece, h);
         mesh.position.sub(rest(h.board));
         host.add(mesh);
-        holes.push({ mesh, board: h.board, index });
+        holes.push({ mesh, board: h.board, index, size: mesh.scale.clone(), geometry: mesh.geometry });
       });
       piece.fittings.forEach((f, index) => {
         if (f.kind === 'runner') {
@@ -121,14 +135,22 @@ export function createMakeFittings(layer: number): FittingsLayer {
     },
     only(boards, items, seen) { shown = boards; shownFittings = items; seenFittings = seen ?? null; visible(); },
     focus(boards) { focused = boards; visible(); },
+    ring(next) { rung = next; visible(); },
+    ringExtent(margin) {
+      const on = holes.filter(h => rung?.has(h.index));
+      if (!on.length) return null;
+      const box = new THREE.Box3();
+      for (const h of on) box.expandByPoint(h.mesh.getWorldPosition(new THREE.Vector3()));
+      return box.expandByScalar(margin);
+    },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);
-      holes = []; fittings = []; links = []; focused = null;
+      holes = []; fittings = []; links = []; focused = null; rung = null;
     },
     dispose() {
       this.clear();
-      for (const g of [ring, disc, bar, rod]) g.dispose();
-      holeMaterial.dispose(); metal.dispose(); highlight.dispose();
+      for (const g of [ring, disc, bar, rod, halo]) g.dispose();
+      holeMaterial.dispose(); metal.dispose(); highlight.dispose(); ringed.dispose();
     },
   };
 }

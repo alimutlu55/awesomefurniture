@@ -137,4 +137,11 @@ export function drillingChecks(boards: readonly Board[], holes: readonly Hole[])
   return out;
 }
 
+/** The holes a finding is about, by their place in the piece's hole list: the one, or the two that meet. */
+export function findingHoles(boards: readonly Board[], holes: readonly Hole[], f: Finding): number[] {
+  const mine = holes.flatMap((h, i) => h.board === f.board ? [i] : []), flat = flatHoles(boards[f.board]!, mine.map(i => holes[i]!));
+  const same = (p: FlatHole, q: FlatHole | undefined) => !!q && p.u === q.u && p.v === q.v && p.face === q.face && p.kind === q.kind;
+  return mine.filter((_, k) => same(flat[k]!, f.a) || same(flat[k]!, f.b));
+}
+
 export { hi, lo };

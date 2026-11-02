@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { getDecor } from '../../domain/materials/decor-catalog';
 import { cutLayout, type CutLayout } from '../../domain/make/make-cut-layout';
 import { makePiece, type MakePiece } from '../../domain/make/make-parts';
+import { findingHoles } from '../../domain/make/make-assembly';
 import { lengthText, onLengthUnitChange } from '../editor/length-unit-state';
 import { onLanguageChange } from '../i18n/language';
 import { mountMobileSheet } from '../editor/mobile-sheet.js';
@@ -18,6 +19,10 @@ import { cutListCsv, makePdf } from './make-export';
 import { saveFile } from '../components/save-file';
 
 const GLIDE = .9, BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
+/** How far round from the front the camera turns to face a hole in a side face: most of a quarter turn (radians). */
+const FACE_TURN = 1.2;
+/** How much of the part shows round a finding's holes when it is framed: centimetres either way. */
+const RING_ROOM = 20;
 const material = (id: string) => { try { return getDecor(id).name; } catch { return ''; } };
 type View = 'iso' | 'front' | 'side' | 'top';
 
@@ -182,10 +187,23 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   function select(n: number | null) {
     if (st.studio) { inspect(n); return; }
+    make3d.ring(null);
     st.selected = n;
     make3d.setSelected(n);
     if (n === null) hidePanel(); else showPanel('part');
     pressed();
+  }
+  /** A drilling finding: its part picked, the holes it is about ringed, and framed close round them from their side. */
+  function showFinding(k: number) {
+    const piece = st.piece, f = piece?.findings[k], part = f && piece.parts.find(p => p.ids.includes(f.board));
+    if (!piece || !f || !part) return;
+    select(part.n);
+    const rings = findingHoles(piece.boards, piece.holes, f), hole = piece.holes[rings[0] ?? -1];
+    make3d.ring(rings);
+    const box = make3d.ringExtent(RING_ROOM) ?? make3d.currentExtent(part.n), centre = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()), now = ports.camera.camNow();
+    // A hole in a side face is seen from that side, half turned; one in a top face from above; one in the front as it is.
+    const turn = st.pose.angle * Math.PI / 180, az = hole?.axis === 0 ? turn + FACE_TURN * hole.sign : now.az, el = hole?.axis === 1 ? 1 : now.el;
+    ports.camera.frameBox({ x: centre.x, z: centre.z, w: size.x, d: size.z, h: size.y, y: centre.y }, az, el, 1.3);
   }
   function step(by: number) {
     if (!st.piece) return;
@@ -303,6 +321,7 @@ export function createMakeView(ports: MakeViewPorts) {
     }
     else if (t.closest('.make-close')) hidePanel();
     else if (t.closest('.make-back')) { st.selected = null; make3d.setSelected(null); showPanel('list'); }
+    else if (t.closest<HTMLElement>('[data-finding]')) showFinding(Number(t.closest<HTMLElement>('[data-finding]')!.dataset.finding));
     else if (row) select(Number(row.dataset.n));
     else if (bandButton) { band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
     else if (stepBy) step(Number(stepBy.dataset.step));

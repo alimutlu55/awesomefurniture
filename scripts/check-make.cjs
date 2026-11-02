@@ -2,13 +2,28 @@
 // works and fits, the joint choice is one undo step, and Done gives the editor back.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
+const {execFileSync}=require('node:child_process');
+const BASE=process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
+// A hand-made design the drilling check finds fault with (a runner screw over a connector on a partition), sent to the
+// editor as a share link built by the app's own code.
+const findingLink=()=>execFileSync(process.execPath,['--import','tsx','--input-type=module','-e',`
+ import { buildFromSpec } from './src/application/spec/build-from-spec.ts';
+ import { projectToScene } from './src/application/projects/editor-mapper.ts';
+ import { designLink } from './src/app/design-link.ts';
+ const built = buildFromSpec({ specVersion: 1, wardrobes: [{ width: 126, height: 230, depth: 60, autoDesign: false }] }, 'drilling');
+ const scene = projectToScene(built.project), w = scene.wardrobes[0];
+ Object.assign(w.state, { n: 3, wt: [1, 1, 1, 1, 1, 1], doors: 'hinged', secs: [
+  [{ k: 'folded', h: 20 }, { k: 'folded', h: 31 }, { k: 'sdrawer', h: 28 }],
+  [{ k: 'sdrawer', h: 15 }, { k: 'drawer', h: 27 }, { k: 'drawer', h: 16 }],
+  [{ k: 'shelf', h: 13 }, { k: 'shelf', h: 27 }, { k: 'sdrawer', h: 29 }], [], [], []] });
+ process.stdout.write(await designLink(scene, ${JSON.stringify(BASE+'/editor.html')}));`],{encoding:'utf8'});
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try { for(const [width,height] of [[375,812],[1280,800]]) {
   const phone=width<=900, page=await browser.newPage({viewport:{width,height},isMobile:phone,hasTouch:phone,reducedMotion:'reduce'});
   page.setDefaultTimeout(30000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto((process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173')+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60,for:{long:6,short:10,shoes:8}}]})));
+  await page.goto(BASE+'/#spec='+encodeURIComponent(JSON.stringify({specVersion:1,wardrobes:[{width:200,height:230,depth:60,for:{long:6,short:10,shoes:8}}]})));
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
   await el('add-furniture-btn').waitFor();
   await page.waitForTimeout(800);
@@ -76,6 +91,31 @@ const assert=require('node:assert/strict');
   await page.waitForTimeout(350);
   await toolbar.locator('[data-action="make-done"]').click();
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
+  // A drilling finding names its part and the problem; tapping it picks that part.
+  await page.goto(findingLink());
+  await el('add-furniture-btn').waitFor();
+  await page.waitForTimeout(1200);
+  const linkView=await el('view').boundingBox();
+  for(const [fx,fy] of [[.5,.45],[.5,.55],[.4,.5],[.5,.35]]) {
+   if(await toolbar.getAttribute('data-context')==='wardrobe') break;
+   // A fitting picked through the doors goes back up to its wardrobe.
+   if(await toolbar.getAttribute('data-context')==='item') { await page.keyboard.press('Escape'); await page.waitForTimeout(250); continue; }
+   await page.mouse.click(linkView.x+linkView.width*fx,linkView.y+linkView.height*fy); await page.waitForTimeout(350);
+  }
+  if(await toolbar.getAttribute('data-context')!=='wardrobe') await page.screenshot({path:`/tmp/make-finding-select-${width}.png`});
+  assert.equal(await toolbar.getAttribute('data-context'),'wardrobe','The shared wardrobe is selected');
+  await toolbar.locator('[data-action="make"]').click();
+  await toolbar.locator('[data-action="make-parts"]').click();
+  await panel.locator('[data-tab="hardware"]').click();
+  const finding=panel.locator('.make-check.bad').first();
+  await finding.waitFor();
+  const n=await finding.getAttribute('data-n'), row=(await finding.innerText()).replace(/\s+/g,' ').trim();
+  assert.match(row,new RegExp('^!? ?'+n+' [A-Z][a-z]+( [a-z]+)* [A-Z][a-z]+( [a-z]+)* · \\d+(\\.\\d)? mm$'),'The row names the part and the problem: '+row);
+  assert.doesNotMatch(row,/−|-\d/,'No minus sign: '+row);
+  await finding.click();
+  await page.waitForTimeout(700);
+  assert.match(await panel.locator('.make-title').innerText(),new RegExp('^'+n+' · '),'Tapping the finding picks its part');
+  await page.screenshot({path:`${process.env.SHOTS||'/tmp'}/make-finding-${width}.png`});
   assert.deepEqual(errors,[]);
   await page.close();
  } } finally { await browser.close(); }
