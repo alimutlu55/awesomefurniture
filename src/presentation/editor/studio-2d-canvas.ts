@@ -161,7 +161,7 @@ export function wallExtensionHandles(studio: Studio, zoom: number) {
     const line = wallLine(studio, w);
     if (!line) return [];
     const sign = w.b === c.id ? 1 : -1;
-    return [{ cornerId: c.id, x: c.x + line.ux * sign * 48 / zoom, z: c.z + line.uz * sign * 48 / zoom }];
+    return [{ cornerId: c.id, x: c.x + line.ux * sign * 26 / zoom, z: c.z + line.uz * sign * 26 / zoom }];
   });
 }
 
