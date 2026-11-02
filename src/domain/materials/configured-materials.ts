@@ -1,13 +1,17 @@
 import { getDecor, type TargetZone } from './decor-catalog';
 
-export const HANDLE_FINISHES = ['matte_black', 'brushed_brass', 'anodized_champagne', 'handleless_tip_on'] as const;
-export type HandleFinish = typeof HANDLE_FINISHES[number];
+import { HANDLE_FINISHES, type HandleFinish, type HandleKind, type HandleSize } from '../wardrobe/handles';
+// Handle finishes, kinds and sizes are the handle registry's (domain/wardrobe/handles.ts).
+export { HANDLE_FINISHES, type HandleFinish };
 export const ACCESSORY_FINISHES = ['matte_black', 'brushed_steel', 'anodized_champagne'] as const;
 export type AccessoryFinish = typeof ACCESSORY_FINISHES[number];
 export interface ConfiguredMaterialsState {
   carcassDecorId: string;
   frontDecorId: string;
   handleFinish: HandleFinish;
+  /** The handle's kind and size (handles.ts); absent: a 128 mm bar, as every design saved before handles had a kind. */
+  handleKind?: HandleKind | undefined;
+  handleSize?: HandleSize | undefined;
   internalAccessoryFinish: AccessoryFinish;
   worktopDecorId?: string | undefined;
   backingDecorId?: string | undefined;

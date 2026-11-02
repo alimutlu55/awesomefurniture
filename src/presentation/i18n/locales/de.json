@@ -605,5 +605,14 @@
   "Pause": "Pause",
   "Replay": "Erneut abspielen",
   "Assembly": "Montage",
-  "Follow the build": "Dem Aufbau folgen"
+  "Follow the build": "Dem Aufbau folgen",
+  "Handle size": "Griffgröße",
+  "Bar handle": "Stangengriff",
+  "Knob": "Knopf",
+  "Edge pull": "Kantengriff",
+  "Recessed pull": "Griffmulde",
+  "Profile pull": "Griffprofil",
+  "Full-height bar": "Durchgehender Stangengriff",
+  "Full height": "Volle Höhe",
+  "Handle finish": "Griffoberfläche"
 }

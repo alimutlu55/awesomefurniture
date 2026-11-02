@@ -605,5 +605,14 @@
   "Pause": "Pausa",
   "Replay": "Repetir",
   "Assembly": "Montaje",
-  "Follow the build": "Seguir el montaje"
+  "Follow the build": "Seguir el montaje",
+  "Handle size": "Tamaño del tirador",
+  "Bar handle": "Tirador de barra",
+  "Knob": "Pomo",
+  "Edge pull": "Tirador de canto",
+  "Recessed pull": "Tirador embutido",
+  "Profile pull": "Perfil tirador",
+  "Full-height bar": "Barra de altura completa",
+  "Full height": "Altura completa",
+  "Handle finish": "Acabado del tirador"
 }

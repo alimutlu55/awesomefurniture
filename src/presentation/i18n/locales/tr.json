@@ -605,5 +605,14 @@
   "Pause": "Duraklat",
   "Replay": "Yeniden oynat",
   "Assembly": "Montaj",
-  "Follow the build": "Montajı takip et"
+  "Follow the build": "Montajı takip et",
+  "Handle size": "Kulp ölçüsü",
+  "Bar handle": "Çubuk kulp",
+  "Knob": "Düğme kulp",
+  "Edge pull": "Kenar kulp",
+  "Recessed pull": "Gömme kulp",
+  "Profile pull": "Profil kulp",
+  "Full-height bar": "Boy kulp",
+  "Full height": "Tam boy",
+  "Handle finish": "Kulp yüzeyi"
 }

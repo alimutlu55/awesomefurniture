@@ -1,6 +1,7 @@
 import { assertDecorZone, defaultMaterials, materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
 import { getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
 import { designerPalettes } from '../../domain/materials/designer-palettes';
+import { DEFAULT_HANDLE, HANDLE_KINDS, handleKind, handleSizeFits, type HandleKind, type HandleSize } from '../../domain/wardrobe/handles';
 import type { EditorState } from '../projects/editor-scene';
 import type { EditorProfile } from '../../domain/wardrobe/editor-design';
 type Ports = {
@@ -72,6 +73,16 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         if (!HANDLE_FINISHES.includes(finish)) return;
         run(() => { getDesign().materials = { ...resolveMaterials(getDesign()), handleFinish: finish }; });
     }
+    /** The handle's kind and size: a size the kind does not come in becomes 128 mm where it comes in that, else its first;
+     * the 128 mm bar every design starts with is not written down. One undo step. */
+    function setHandle(kind: HandleKind, size?: HandleSize) {
+        if (!HANDLE_KINDS.includes(kind)) return false;
+        const sizes = handleKind(kind).sizes as readonly HandleSize[], next = handleSizeFits(kind, size) ? size : sizes.includes(DEFAULT_HANDLE.size) ? DEFAULT_HANDLE.size : sizes[0];
+        const { handleKind: _kind, handleSize: _size, ...rest } = resolveMaterials(getDesign());
+        const plain = kind === DEFAULT_HANDLE.kind && next === DEFAULT_HANDLE.size;
+        run(() => { getDesign().materials = { ...rest, ...(plain ? {} : { handleKind: kind, ...(next === undefined ? {} : { handleSize: next }) }) }; });
+        return true;
+    }
     function setAccessoryFinish(finish: AccessoryFinish) {
         if (!ACCESSORY_FINISHES.includes(finish)) return;
         run(() => { getDesign().materials = { ...resolveMaterials(getDesign()), internalAccessoryFinish: finish }; });
@@ -98,5 +109,5 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         getDesign().reachLine = enabled;
         effects.changed(true);
     }
-    return { setDecor, setLinkedDecors, applyDesignerPalette, setHandleFinish, setAccessoryFinish, setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
+    return { setDecor, setLinkedDecors, applyDesignerPalette, setHandleFinish, setHandle, setAccessoryFinish, setWardrobeReach, setPreferences, setFinish, setDoors, setDoorHang, setReachLine };
 }

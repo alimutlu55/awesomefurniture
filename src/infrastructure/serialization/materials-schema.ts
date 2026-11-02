@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { decorCatalog, type TargetZone } from '../../domain/materials/decor-catalog';
 import { HANDLE_FINISHES, ACCESSORY_FINISHES } from '../../domain/materials/configured-materials';
+import { HANDLE_KINDS, handleSizeFits, type HandleKind } from '../../domain/wardrobe/handles';
 
 const decorId = (zone: TargetZone) => z.string().refine(
   id => decorCatalog.some(sku => sku.id === id && sku.allowedZones.includes(zone)), `Unknown or incompatible ${zone} board SKU`);
@@ -11,4 +12,7 @@ export const materialsSchema = z.strictObject({
   worktopDecorId: decorId('worktop').optional(), linkedDecors: z.boolean().optional(),
   backingDecorId: decorId('backing').optional(), drawerDecorId: decorId('drawers').optional(), backsplashDecorId: decorId('backsplash').optional(),
   frontProfile: z.enum(['slab', 'micro_shaker']).optional(), integratedLed: z.boolean().optional(),
-}).refine(m => !m.linkedDecors || m.carcassDecorId === m.frontDecorId, 'Linked board selections must match');
+  handleKind: z.enum(HANDLE_KINDS as unknown as [HandleKind, ...HandleKind[]]).optional(),
+  handleSize: z.union([z.number().int().positive(), z.literal('full')]).optional(),
+}).refine(m => !m.linkedDecors || m.carcassDecorId === m.frontDecorId, 'Linked board selections must match')
+  .refine(m => m.handleKind === undefined ? m.handleSize === undefined : handleSizeFits(m.handleKind, m.handleSize), 'The handle does not come in that size');

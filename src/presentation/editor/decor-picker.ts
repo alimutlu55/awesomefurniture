@@ -1,11 +1,12 @@
 import { decorBadge, getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
 import { materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES } from '../../domain/materials/configured-materials';
 import { designerPalettes } from '../../domain/materials/designer-palettes';
+import { HANDLES, resolveHandle, type HandleKind, type HandleSize } from '../../domain/wardrobe/handles';
 import { appendDecorBrowser } from './decor-browser';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { createDesignCommands } from '../../application/commands/design-commands';
 
-type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setAccessoryFinish' | 'applyDesignerPalette'>;
+type Commands = Pick<ReturnType<typeof createDesignCommands>, 'setDecor' | 'setLinkedDecors' | 'setHandleFinish' | 'setHandle' | 'setAccessoryFinish' | 'applyDesignerPalette'>;
 const finishLabels: Record<string, string> = { matte_black: 'Matte black', brushed_brass: 'Brushed brass',
   anodized_champagne: 'Anodized champagne', handleless_tip_on: 'Handleless · push-to-open', brushed_steel: 'Brushed steel' };
 
@@ -30,7 +31,19 @@ export function bindDecorPicker(root: HTMLElement, commands: Commands) {
   }
   const linked = root.querySelector<HTMLInputElement>('[data-decor-link]')!;
   linked.onchange = () => commands.setLinkedDecors(linked.checked);
-  for (const [key, label, values] of [['handle', 'Handles / pulls', HANDLE_FINISHES], ['accessory', 'Internal accessories', ACCESSORY_FINISHES]] as const) {
+  // The handle: its kind and size (from the handle registry), then its finish, in the same fields as the finishes.
+  const handleField = (label: string, name: string) => {
+    const field = document.createElement('label'); field.className = 'decor-finish-field'; field.textContent = label;
+    const select = document.createElement('select'); select.dataset.handle = name; select.setAttribute('aria-label', label);
+    field.appendChild(select); root.appendChild(field);
+    return select;
+  };
+  const kind = handleField('Handle', 'kind'), size = handleField('Handle size', 'size');
+  for (const h of HANDLES) { const option = document.createElement('option'); option.value = h.key; option.textContent = h.name; kind.appendChild(option); }
+  const sizeOf = (value: string): HandleSize => value === 'full' ? 'full' : Number(value);
+  kind.onchange = () => commands.setHandle(kind.value as HandleKind, sizeOf(size.value));
+  size.onchange = () => commands.setHandle(kind.value as HandleKind, sizeOf(size.value));
+  for (const [key, label, values] of [['handle', 'Handle finish', HANDLE_FINISHES], ['accessory', 'Internal accessories', ACCESSORY_FINISHES]] as const) {
     const field = document.createElement('label'); field.className = 'decor-finish-field'; field.textContent = label;
     const select = document.createElement('select'); select.dataset.materialFinish = key; select.setAttribute('aria-label', label);
     for (const value of values) { const option = document.createElement('option'); option.value = value; option.textContent = finishLabels[value]!; select.appendChild(option); }
@@ -61,5 +74,15 @@ export function syncDecorPicker(root: HTMLElement, design: EditorDesign) {
   const handle = root.querySelector<HTMLSelectElement>('[data-material-finish="handle"]');
   const accessory = root.querySelector<HTMLSelectElement>('[data-material-finish="accessory"]');
   if (handle) handle.value = materials.handleFinish;
+  const current = resolveHandle(materials), kind = root.querySelector<HTMLSelectElement>('[data-handle="kind"]'), size = root.querySelector<HTMLSelectElement>('[data-handle="size"]');
+  if (kind) { kind.value = current.kind.key; kind.disabled = current.none; }
+  if (size) {
+    // Only the sizes this kind comes in; a knob has none, so the field hides.
+    size.replaceChildren(...(current.kind.sizes as readonly HandleSize[]).map(s => {
+      const option = root.ownerDocument.createElement('option'); option.value = String(s); option.textContent = s === 'full' ? 'Full height' : s + ' mm'; return option;
+    }));
+    size.value = String(current.size ?? ''); size.disabled = current.none;
+    size.closest<HTMLElement>('.decor-finish-field')!.hidden = current.kind.sizes.length === 0;
+  }
   if (accessory) accessory.value = materials.internalAccessoryFinish;
 }

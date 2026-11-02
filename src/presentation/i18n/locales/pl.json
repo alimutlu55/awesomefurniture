@@ -605,5 +605,14 @@
   "Pause": "Pauza",
   "Replay": "Odtwórz ponownie",
   "Assembly": "Montaż",
-  "Follow the build": "Śledź montaż"
+  "Follow the build": "Śledź montaż",
+  "Handle size": "Rozmiar uchwytu",
+  "Bar handle": "Uchwyt relingowy",
+  "Knob": "Gałka",
+  "Edge pull": "Uchwyt krawędziowy",
+  "Recessed pull": "Uchwyt wpuszczany",
+  "Profile pull": "Uchwyt profilowy",
+  "Full-height bar": "Uchwyt na całą wysokość",
+  "Full height": "Pełna wysokość",
+  "Handle finish": "Wykończenie uchwytu"
 }

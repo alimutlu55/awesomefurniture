@@ -4,7 +4,8 @@ import type { Material, Object3D } from 'three';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { BoxBuilder, PrismBuilder } from './frame-geometry';
 import { panelBuilder } from './frame-geometry';
-import { barPull } from './hardware';
+import { handleMesh, handleOnEdge } from './hardware';
+import { resolveHandle } from '../../domain/wardrobe/handles';
 import type { createViewportResources } from './viewport-resources.js';
 import { cabinetDoorLeaves, doorFit, doorThickness, doorTop } from '../../domain/wardrobe/door-layout';
 import { decorateFront } from './front-surface';
@@ -25,9 +26,10 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         build(outline, doorThickness(design), 0, material, pivot);
         decorateFront(outline, doorThickness(design), 0, material, pivot);
         const edge = left ? w : 0, edgeTop = top[left ? top.length - 1 : 0]!.y, handleY = Math.min((base + edgeTop) / 2, base + 120);
-        if (resolveMaterials(design).handleFinish !== 'handleless_tip_on') {
-            const pull = barPull(Math.min(24, Math.max(4, edgeTop - base - 8)), hardware, true);
-            pull.position.set(left ? edge - 4 : -w + 4, handleY, doorThickness(design) / 2);
+        // The design's handle by the free edge (an edge or profile pull on the edge itself), a full-height one centred.
+        const handle = resolveHandle(resolveMaterials(design)), pull = handleMesh(handle, edgeTop - base, hardware, true), inset = handleOnEdge(handle) ? 0 : 4;
+        if (pull) {
+            pull.position.set(left ? edge - inset : -w + inset, handle.size === 'full' ? (base + edgeTop) / 2 : handleY, doorThickness(design) / 2);
             pivot.add(pull);
         }
         pivot.userData.t = left ? -1.6 : 1.6;

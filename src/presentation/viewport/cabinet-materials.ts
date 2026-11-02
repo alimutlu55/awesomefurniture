@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HANDLE_FINISH_DEFS } from '../../domain/wardrobe/handles';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import { getDecor, type BoardDecorSKU } from '../../domain/materials/decor-catalog';
 import { resolveMaterials, type LegacyFinish } from '../../domain/materials/configured-materials';
@@ -51,7 +52,7 @@ export function createCabinetMaterials(resources: Resources, design: Pick<Editor
   door.userData.frameColor = materials.handleFinish === 'anodized_champagne' ? '#c2b69c' : '#242426';
   const back = createDecorMaterial(resources, getDecor(materials.backingDecorId ?? carcass.id)), plinth = createDecorMaterial(resources, carcass);
   const drawer = createDecorMaterial(resources, getDecor(materials.drawerDecorId ?? carcass.id));
-  const hardwareColor = { matte_black: '#242426', brushed_brass: '#b99a57', anodized_champagne: '#c2b69c', handleless_tip_on: '#242426' }[materials.handleFinish];
+  const hardwareColor = HANDLE_FINISH_DEFS.find(f => f.key === materials.handleFinish)!.colour;
   const hardware = resources.M(hardwareColor,
     { metalness: materials.handleFinish === 'matte_black' ? .35 : .8, roughness: materials.handleFinish === 'matte_black' ? .75 : .4 });
   const accessoryColor = { matte_black: '#242426', brushed_steel: '#b9bdc2', anodized_champagne: '#c2b69c' }[materials.internalAccessoryFinish];

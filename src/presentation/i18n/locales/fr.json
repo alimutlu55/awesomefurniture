@@ -605,5 +605,14 @@
   "Pause": "Pause",
   "Replay": "Revoir",
   "Assembly": "Montage",
-  "Follow the build": "Suivre le montage"
+  "Follow the build": "Suivre le montage",
+  "Handle size": "Taille de la poignée",
+  "Bar handle": "Poignée barre",
+  "Knob": "Bouton",
+  "Edge pull": "Poignée de chant",
+  "Recessed pull": "Poignée encastrée",
+  "Profile pull": "Profil poignée",
+  "Full-height bar": "Barre pleine hauteur",
+  "Full height": "Pleine hauteur",
+  "Handle finish": "Finition de la poignée"
 }

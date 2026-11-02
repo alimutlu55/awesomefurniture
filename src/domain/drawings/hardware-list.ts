@@ -4,6 +4,7 @@ import { resolveMaterials } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge, hingeFor, hingesFor } from '../wardrobe/hinges';
+import { handleLabel, resolveHandle } from '../wardrobe/handles';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
@@ -50,9 +51,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         add(p, kind.name, kind.cup ? kind.cup.d + ' mm cup' : 'compatible with frame/carrier; no cup drilling in glass', hingesFor(mm(doorHeight(f, boards))));
       }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
-      const hardware = resolveMaterials(d).handleFinish;
-      if (hardware === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
-      else add(p, 'Handle', hardware.replaceAll('_', ' '), 1);
+      const handle = resolveHandle(resolveMaterials(d));
+      if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
+      else add(p, 'Handle', handleLabel(handle), 1);
     }
     // Fittings: what each is built with, sized to its place.
     const editing = { ...d, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing);
@@ -61,9 +62,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       const it = d.secs[i]![j]!;
       // A drawer's own front takes a handle, unless it is behind closed doors (a finger grip, D4).
       if (!kitchen && fitting(it.k)?.innerFront && !innerFrontBehindDoor(d, it)) {
-        const finish = resolveMaterials(d).handleFinish;
-        if (finish === 'handleless_tip_on') add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
-        else add(p, 'Handle', finish.replaceAll('_', ' '), 1);
+        const handle = resolveHandle(resolveMaterials(d));
+        if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
+        else add(p, 'Handle', handleLabel(handle), 1);
       }
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {
         if (h === 'runners') add(p, 'Drawer runners, full extension, pair', runner + ' mm', 1);

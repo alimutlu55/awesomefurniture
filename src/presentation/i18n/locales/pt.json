@@ -605,5 +605,14 @@
   "Pause": "Pausa",
   "Replay": "Repetir",
   "Assembly": "Montagem",
-  "Follow the build": "Seguir a montagem"
+  "Follow the build": "Seguir a montagem",
+  "Handle size": "Tamanho do puxador",
+  "Bar handle": "Puxador de barra",
+  "Knob": "Botão",
+  "Edge pull": "Puxador de borda",
+  "Recessed pull": "Puxador embutido",
+  "Profile pull": "Perfil puxador",
+  "Full-height bar": "Barra de altura total",
+  "Full height": "Altura total",
+  "Handle finish": "Acabamento do puxador"
 }
