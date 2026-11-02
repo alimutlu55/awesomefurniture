@@ -112,17 +112,6 @@ export function createStudioController(host: Host) {
       if (action === 'reverse') { player.direction(player.rate === -1 ? 1 : -1); if (!player.playing) player.toggle(); }
       else player.toggle();
     }
-    if (action === 'drawer-open' || action === 'drawer-close') {
-      player.pause();
-      const k = st.piece.steps.findIndex(s => s.stage === 'drawer-test'), span = player.timeline?.steps[k]?.place;
-      const count = st.piece.fittings.filter(f => f.runner).length;
-      if (span && count) {
-        const duration = (span[1] - span[0]) / count;
-        const drawer = Math.max(0, Math.min(count - 1, Math.floor((player.time - span[0]) / duration)));
-        const target = span[0] + duration * (drawer + (action === 'drawer-open' ? .45 : .97));
-        if (reducedMotion.matches) player.seek(target); else player.animateTo(target);
-      }
-    }
     if (action === 'pause') player.pause();
     if (action === 'seek') { player.pause(); player.seek(value * player.duration); }
     if (action === 'chapter') { explore(false); player.chapter(value); }

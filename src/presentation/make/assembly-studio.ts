@@ -59,8 +59,6 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         <div class="as-caption"><button type="button" data-studio="chapters" aria-expanded="false"><span class="as-eyebrow">ASSEMBLY</span><strong class="as-step-title"></strong></button>
           <span class="as-step-count"></span>${button('guide', 'Step guidance', 'info', 'aria-expanded="false"')}</div>
         <p class="as-drawer-caption" role="status" hidden></p>
-        <div class="as-drawer-controls" hidden><button type="button" data-studio="drawer-open">Open drawer</button>
-          <button type="button" data-studio="drawer-close">Close drawer</button></div>
         <div class="as-track"><input type="range" class="as-scrub" min="0" max="1000" step="0.01" value="0" aria-label="Assembly timeline"><div class="as-markers" aria-hidden="true"></div></div>
         <div class="as-times" translate="no"><span class="as-time">0:00</span><span class="as-duration"></span></div>
         <div class="as-transport">${button('previous', 'Previous step', 'prev')}${button('reverse', 'Reverse playback', 'reverse', 'aria-pressed="false"')}
@@ -130,14 +128,12 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
       text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${names[step.stage]}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
-      q('.as-drawer-controls').hidden = step.stage !== 'drawer-test';
       const drawerCaption = q('.as-drawer-caption');
-      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage);
+      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
         'drawer-runners': 'Outer rail → cabinet · Inner rail → drawer box',
         drawers: 'Align both rails. Push the supported box evenly into the cabinet.',
-        'drawer-test': 'Outer rail stays fixed · Middle rail telescopes · Inner rail moves with the drawer',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
       const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
