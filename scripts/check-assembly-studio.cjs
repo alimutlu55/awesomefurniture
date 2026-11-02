@@ -1,6 +1,32 @@
 // Real browser regression: one canvas, seekable playback, gestures, navigation and editor restoration.
 const { chromium, webkit } = require('playwright');
 const assert = require('node:assert/strict');
+// WCAG contrast of the studio's ink seen at `alpha` over its lightest surface (the panel colour): faded controls keep 3:1.
+const lum = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const over = (fg, bg, alpha) => '#' + [1, 3, 5].map(i => Math.round(parseInt(fg.slice(i, i + 2), 16) * alpha + parseInt(bg.slice(i, i + 2), 16) * (1 - alpha)).toString(16).padStart(2, '0')).join('');
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+const INK = '#25231f', SURFACE = '#fbf8f2';
+/** Where the piece is on screen: the box round the drawing's ink, with the editor's controls and Make's measurements
+ * hidden for the shot (their labels move about; the piece is what must stay put). */
+async function pieceBounds(page) {
+  const hidden = page.locator('[data-editor-id="toolbar"], .fl, .make-overlay, .make-panel');
+  await hidden.evaluateAll(es => es.forEach(e => { e.dataset.shot = e.style.visibility; e.style.visibility = 'hidden'; }));
+  await page.waitForTimeout(100);
+  const png = (await page.screenshot()).toString('base64');
+  await hidden.evaluateAll(es => es.forEach(e => { e.style.visibility = e.dataset.shot; delete e.dataset.shot; }));
+  return page.evaluate(async data => {
+    const img = new Image(); img.src = 'data:image/png;base64,' + data; await img.decode();
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, c.width, c.height).data, r = devicePixelRatio || 1;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+      const i = (y * c.width + x) * 4;
+      if (px[i] * .3 + px[i + 1] * .59 + px[i + 2] * .11 < 150) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    }
+    return [x0 / r, y0 / r, x1 / r, y1 / r];
+  }, png);
+}
 (async () => {
  const engine = process.env.STUDIO_BROWSER === 'webkit' ? webkit : chromium;
  const browser = await engine.launch({ headless: true, ...(process.env.CHROME_PATH && engine === chromium ? { executablePath: process.env.CHROME_PATH } : {}) });
@@ -72,9 +98,12 @@ const assert = require('node:assert/strict');
    await action('reverse').click(); // back to forward
    await page.mouse.click(width*.5,height*.35); // removes button focus, reveals on canvas tap
    await page.waitForTimeout(4800);
-   await studio.locator('.as-wake').waitFor({state:'visible'});
-   assert.equal(await studio.evaluate(e=>e.classList.contains('as-quiet')),true,'playback controls auto-hide');
-   await action('wake').click(); await action('play').click();
+   assert.equal(await studio.evaluate(e=>e.classList.contains('as-quiet')),true,'playback controls fade');
+   await page.waitForTimeout(450);
+   const faded = Number(await studio.locator('.as-bottom').evaluate(e=>getComputedStyle(e).opacity));
+   assert.ok(contrast(over(INK, SURFACE, faded), SURFACE) >= 3, 'faded controls keep 3:1 contrast: opacity ' + faded);
+   assert.equal(await studio.locator('.as-bottom').evaluate(e=>getComputedStyle(e).visibility),'visible','faded controls stay on screen');
+   await action('play').click();
   }
   await page.goBack(); await studio.waitFor({state:'hidden'});
   assert.equal(await toolbar.getAttribute('data-context'),'make');
@@ -94,6 +123,31 @@ const assert = require('node:assert/strict');
   await action('exit').click();await panel.waitFor({state:'visible'});await page.waitForTimeout(200);
   assert.equal(await panel.locator('[data-assembly-part]').count(),1,'returns to the selected part');
   await panel.locator('.make-close').click();await page.waitForTimeout(350);
+  // A button held down shows it is pressed before the click lands.
+  const holdShowsPressed = async (button, what) => {
+   await button.scrollIntoViewIfNeeded();
+   const box = await button.boundingBox();
+   await page.mouse.move(box.x+box.width/2, box.y+box.height/2); await page.waitForTimeout(150);
+   const rest = await button.evaluate(e=>getComputedStyle(e).backgroundColor);
+   await page.mouse.down(); await page.waitForTimeout(32);
+   const held = await button.evaluate(e=>getComputedStyle(e).backgroundColor);
+   await page.mouse.up(); await page.waitForTimeout(400);
+   assert.notEqual(held, rest, what + ' looks pressed while held');
+  };
+  await holdShowsPressed(toolbar.locator('[data-action="make-parts"]'), 'a toolbar button');
+  await panel.waitFor({state:'visible'});
+  await holdShowsPressed(panel.locator('.make-back:visible, [data-tab="cutting"]').first(), 'a panel button');
+  await panel.locator('.make-close').click(); await page.waitForTimeout(350);
+  // Escape gives Make back framed as it was before Studio opened.
+  await page.waitForTimeout(500);
+  const framed = await pieceBounds(page);
+  await toolbar.locator('[data-action="make-assembly"]').click(); await studio.waitFor({state:'visible'}); await page.waitForTimeout(800);
+  // While the film plays and its camera glides between shots.
+  if (await action('play').getAttribute('data-playing') !== 'true') await action('play').click();
+  await page.waitForTimeout(900);
+  await page.keyboard.press('Escape'); await studio.waitFor({state:'hidden'}); await page.waitForTimeout(900);
+  const back = await pieceBounds(page);
+  for (let k = 0; k < 4; k++) assert.ok(Math.abs(back[k] - framed[k]) <= (k % 2 ? height : width) * .02, 'the piece is framed as before Studio: ' + framed.map(Math.round) + ' → ' + back.map(Math.round));
   await toolbar.locator('[data-action="make-done"]').click();
   assert.equal(await toolbar.getAttribute('data-context'),'wardrobe');
   assert.deepEqual(await page.evaluate(()=>window.furnidraw.describe()), designBefore, 'Studio never changes the design');

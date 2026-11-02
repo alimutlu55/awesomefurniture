@@ -65,7 +65,6 @@ export function createStudioController(host: Host) {
     studio.root.hidden = true; app.classList.remove('assembly-studio-on');
     for (const [el, inert] of inertBefore) el.inert = inert;
     inertBefore.clear();
-    filming();
     if (saved) {
       const restore = saved; saved = null;
       Object.assign(st, { look: restore.look, measures: restore.measures, numbers: restore.numbers, selected: restore.selected,
@@ -78,6 +77,8 @@ export function createStudioController(host: Host) {
         restore.panel === 'part' ? '[data-assembly-part]' : restore.panel === 'list' ? '[data-assembly]' : '[data-action="make-assembly"]');
       focus?.focus({ preventScroll: true });
     }
+    // After Make's toggles are back as they were, so the toolbar shows them pressed again (Sizes, Doors).
+    filming();
     if (back && history.state?.[historyKey]) { historyPending = true; history.back(); }
   }
   function explore(on: boolean) {
@@ -112,7 +113,6 @@ export function createStudioController(host: Host) {
       else player.toggle();
     }
     if (action === 'pause') player.pause();
-    if (action === 'wake') studio.root.querySelector<HTMLButtonElement>('[data-studio="play"]')?.focus({ preventScroll: true });
     if (action === 'seek') { player.pause(); player.seek(value * player.duration); }
     if (action === 'chapter') { explore(false); player.chapter(value); }
     if (action === 'previous' || action === 'next') { player.pause(); player.step(action === 'previous' ? -1 : 1); }

@@ -49,7 +49,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
           ${button('play', 'Play', 'play', 'class="as-play"')}${button('next', 'Next step', 'next')}
           <button type="button" class="as-explore" data-studio="mode" aria-pressed="false">${icon('explore')}<span>Explore</span></button></div>
       </div>
-    </div><button type="button" class="as-wake" data-studio="wake" aria-label="Show playback controls">${icon('chapters')}<span>Show controls</span></button>`;
+    </div>`;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
   const text = (selector: string, value: string) => { const el = q(selector); if (el.textContent !== value) el.textContent = value; };
   let showing = '', selection = '', chapters = false, guide = false, touched = 0;
@@ -73,9 +73,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
     else { if (action === 'part' && guide) toggle('guide'); if (action === 'chapter') { chapters = true; toggle('chapters'); } act(action, Number(target.dataset.value)); }
   });
   root.addEventListener('input', e => { if (e.target === q('.as-scrub')) { wake(); act('seek', Number((e.target as HTMLInputElement).value) / 1000); } });
-  const interact = (e: Event) => { if (!(e.target as Element).closest('.as-wake')) wake(); };
-  root.addEventListener('pointerdown', interact);
-  root.addEventListener('focusin', interact);
+  root.addEventListener('pointerdown', wake);
+  root.addEventListener('focusin', wake);
   return {
     root, wake,
     load(piece: MakePiece, player: MakePlayer) {
@@ -95,7 +94,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const step = piece.steps[player.head.step]; if (!step) return;
       const paused = !player.playing;
       const active = (root.getRootNode() as ShadowRoot).activeElement;
-      const keep = active && root.contains(active) && active.matches(':focus-visible') && !active.closest('.as-wake');
+      const keep = active && root.contains(active) && active.matches(':focus-visible');
       root.classList.toggle('as-quiet', now() - touched > 4000 && !paused && !explore && !chapters && !guide && !keep);
       root.classList.toggle('as-exploring', explore);
       text('.as-mode-label', explore ? 'EXPLORE' : paused ? 'PAUSED' : player.rate < 0 ? 'REVERSE' : 'PLAYBACK');

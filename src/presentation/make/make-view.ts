@@ -369,6 +369,10 @@ export function createMakeView(ports: MakeViewPorts) {
     // Playback owns the camera. Explore uses the editor's proven orbit, pan and pinch handlers.
     if (!st.explore) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, { capture: true, passive: false });
+  // A button is pressed from the moment it is touched, and stays so while the work its click starts runs.
+  const held = (e: Event) => st.piece ? (e.target as Element).closest<HTMLElement>('[data-editor-id="toolbar"] .tb, .make-panel button') : null;
+  listen(app, 'pointerdown', e => held(e)?.classList.add('on'), true);
+  for (const type of ['click', 'pointercancel']) listen(app, type, e => { const b = held(e); if (b) lifetime.frame(() => b.classList.remove('on')); }, true);
   listen(dom.window, 'popstate', historyChanged, true);
   listen(app.ownerDocument, 'visibilitychange', () => { if (app.ownerDocument.hidden && st.studio) { player.pause(); showFilm(); studio.wake(); } });
   // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.

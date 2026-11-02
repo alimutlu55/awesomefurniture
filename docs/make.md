@@ -52,7 +52,7 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
   material and stage link. Playback resumes from the same time; the camera glides back to the director.
 - Guidance is an optional compact overlay: the current phase, installation guidance, required boards and real
   hardware quantities. The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
-- Playback controls fade after four seconds without interaction. Tap the canvas or Show controls to reveal them.
+- Playback controls fade to 60% after four seconds without interaction, still readable (3:1 on the lightest backdrop) and in reach; any tap brings them back.
   Keyboard focus keeps controls visible. Space plays/pauses; arrows move between steps. Reduced motion starts paused.
 - Back, Escape, or the back arrow restores the previous camera, selected part, panel, look and editing controls.
   Browser Forward reopens Studio. A hidden tab pauses the player. UI gestures never reach the 3D canvas.
