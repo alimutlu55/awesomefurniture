@@ -50,7 +50,7 @@ const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
 /** What a step does, in the order a maker works. */
-export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawers', 'fronts', 'doors', 'wall'] as const;
+export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'drawer-test', 'doors', 'wall'] as const;
 export type Stage = typeof STAGES[number];
 export interface Step {
   readonly n: number;
@@ -71,33 +71,41 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   const w = Math.max(...boards.map(b => b.x1)), h = Math.max(...boards.map(b => b.y1)), top = h;
   const horizontals = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.note !== 'drawer box');
   const base = horizontals.length ? Math.min(...horizontals.map(b => b.y0)) : -1;
-  const stepOf = (b: Board) => {
-    if (b.stock === 'plinth') return 1;
-    if (b.stock === 'door') return 9;
-    if (b.stock === 'front') return 8;
-    if (b.note === 'drawer box') return 7;
-    if (b.note === 'adjustable') return 6;
-    if (b.stock === 'back') return 5;
+  const stepOf = (b: Board): Stage => {
+    if (b.stock === 'plinth') return 'plinth';
+    if (b.stock === 'door') return 'doors';
+    if (b.stock === 'front') return 'fronts';
+    if (b.note === 'drawer box') return 'drawer-boxes';
+    if (b.note === 'adjustable') return 'inside';
+    if (b.stock === 'back') return 'back';
     const t = thinAxis(b);
-    if (t === 'x' && b.y1 - b.y0 > h * .4) return b.x0 < .5 || b.x1 > w - .5 ? 2 : 3;
-    if (t === 'y' && b.y1 >= top - .05) return 4;
-    if (t === 'y' && Math.abs(b.y0 - base) < .05) return 2;
-    return 6;
+    if (t === 'x' && b.y1 - b.y0 > h * .4) return b.x0 < .5 || b.x1 > w - .5 ? 'carcass' : 'partitions';
+    if (t === 'y' && b.y1 >= top - .05) return 'top';
+    if (t === 'y' && Math.abs(b.y0 - base) < .05) return 'carcass';
+    return 'inside';
   };
   const steps = boards.map(stepOf);
-  const fittingStep = (f: Fitting, i: number): number => f.kind === 'leg' ? 1 : f.kind === 'bracket' || f.kind === 'hanger' ? 10
-    : f.kind === 'rail' || f.kind === 'support' ? 6 : f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge' ? fittingStep(fittings[i - 1]!, i - 1)
-    : Math.max(1, ...f.boards.map(b => steps[b]!));
-  const out: Step[] = [];
-  for (let s = 1; s <= STAGES.length; s++) {
-    const mine = boards.map((_, i) => i).filter(i => steps[i] === s), held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
+  const fittingStep = (f: Fitting, i: number): Stage => {
+    if (f.kind === 'leg') return 'plinth';
+    if (f.kind === 'bracket' || f.kind === 'hanger') return 'wall';
+    if (f.kind === 'rail' || f.kind === 'support') return 'inside';
+    if (f.kind === 'runner' || f.purpose === 'runner-mount') return 'drawer-runners';
+    if (f.purpose === 'drawer-front') return 'fronts';
+    if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
+    return STAGES[Math.max(0, ...f.boards.map(b => STAGES.indexOf(steps[b]!)))]!;
+  };
+  const out: Step[] = [], hasDrawers = fittings.some(f => f.runner);
+  for (const stage of STAGES) {
+    const mine = boards.map((_, i) => i).filter(i => steps[i] === stage);
+    const held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
     fittings.forEach((f, i) => {
-      if (fittingStep(f, i) !== s) return;
+      if (fittingStep(f, i) !== stage) return;
       const key = f.kind + (f.size ?? ''), line = held.get(key);
       if (line) line.qty++; else held.set(key, { kind: f.kind, ...(f.size ? { size: f.size } : {}), qty: 1 });
       items.push(i);
     });
-    if (mine.length || held.size) out.push({ n: out.length + 1, stage: STAGES[s - 1]!, boards: mine, fittings: [...held.values()], items });
+    if (mine.length || held.size || (hasDrawers && (stage === 'drawers' || stage === 'drawer-test')))
+      out.push({ n: out.length + 1, stage, boards: mine, fittings: [...held.values()], items });
   }
   return out;
 }

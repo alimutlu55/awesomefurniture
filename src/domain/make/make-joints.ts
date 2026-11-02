@@ -26,6 +26,10 @@ export interface Hole {
 export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
   | 'bracket';
 export interface Fitting {
+  /** Installation purpose separates drawer hardware from structural cabinet connections. */
+  readonly purpose?: 'runner-mount' | 'drawer-front';
+  /** One purchased runner pair, with both stationary and moving attachment boards. */
+  readonly runner?: { readonly moving: readonly number[]; readonly fixed: readonly number[] };
   readonly kind: FittingKind;
   readonly at: Vec3;
   readonly axis: Axis;
@@ -165,13 +169,14 @@ export function backFixing(boards: readonly Board[], construction: Construction)
       if (!touching) return;
       const pick = (f: (p: number, q: number) => number, a: Axis) => f(f === Math.max ? lo(back)[a] : hi(back)[a], f === Math.max ? lo(b)[a] : hi(b)[a]);
       const glo: Vec3 = [pick(Math.max, 0), pick(Math.max, 1), pick(Math.max, 2)], ghi: Vec3 = [pick(Math.min, 0), pick(Math.min, 1), pick(Math.min, 2)];
-      if (construction.back === 'grooved') { grooves.push({ board: i, lo: glo, hi: ghi }); return; }
-      const run = ([0, 1] as Axis[]).reduce((m, a) => ghi[a] - glo[a] > ghi[m] - glo[m] ? a : m, 0 as Axis);
+      if (construction.back === 'grooved' && back.note !== 'drawer box') { grooves.push({ board: i, lo: glo, hi: ghi }); return; }
+      const axis: Axis = back.note === 'drawer box' ? 1 : 2;
+      const run = ([0, 1, 2] as Axis[]).filter(a => a !== axis).reduce((m, a) => ghi[a] - glo[a] > ghi[m] - glo[m] ? a : m, 0 as Axis);
       const length = ghi[run] - glo[run];
       for (let s = 7.5; s < length; s += 15) {
-        const at = [(glo[0] + ghi[0]) / 2, (glo[1] + ghi[1]) / 2, back.z0] as [number, number, number];
-        at[run] = glo[run] + s;
-        fittings.push({ kind: 'nail', at, axis: 2, boards: [k, i], size: '1.6 × 20' });
+        const at = [(glo[0] + ghi[0]) / 2, (glo[1] + ghi[1]) / 2, (glo[2] + ghi[2]) / 2] as [number, number, number];
+        at[axis] = lo(back)[axis]; at[run] = glo[run] + s;
+        fittings.push({ kind: 'nail', at, axis, boards: [k, i], size: '1.6 × 20' });
       }
     });
   });

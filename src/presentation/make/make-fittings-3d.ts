@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Fitting, Hole } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { WAIT } from '../../domain/make/make-fixing';
+import { drawerRunnerMeshes } from './drawer-runner-3d';
 
 /**
  * What is drilled and bought, drawn in Make's 3D: every hole as a dark ring at its mouth, and the hardware a maker can
@@ -24,6 +25,7 @@ export interface FittingsLayer {
   ring(holes: ReadonlySet<number> | null): void;
   /** The room the ringed holes take, in world space, with `margin` cm round them; null when none is ringed. */
   ringExtent(margin: number): THREE.Box3 | null;
+  motion(): void;
   clear(): void;
   dispose(): void;
 }
@@ -38,6 +40,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const halo = new THREE.TorusGeometry(1, .2, 8, 40).rotateX(Math.PI / 2), HALO = 1.2;
   const ringed = new THREE.MeshBasicMaterial({ color: 0x4976ad, depthTest: false, transparent: true });
   let links: readonly (readonly number[])[] = [];
+  let slides: { mesh: THREE.Object3D; moving: THREE.Object3D; rest: number; home: number; max: number; ratio: number }[] = [];
   let holes: { mesh: THREE.Mesh; board: number; index: number; size: THREE.Vector3; geometry: THREE.BufferGeometry }[] = [];
   let fittings: { mesh: THREE.Object3D; index: number; board: number | null; home: THREE.Vector3; from: THREE.Vector3; size: THREE.Vector3 }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
@@ -110,17 +113,15 @@ export function createMakeFittings(layer: number): FittingsLayer {
       });
       piece.fittings.forEach((f, index) => {
         if (f.kind === 'runner') {
-          // A pair: one on the outer face of each side of the box, as long as the runner, riding on that side.
-          const left = f.boards[0]!, box = piece.boards[left]!, len = Number(f.size) / 10;
-          const right = piece.boards.map((b, i) => ({ b, i })).filter(({ b }) => b.name === 'Box side' && b.x0 > box.x0 && Math.abs(b.y0 - box.y0) < .01 && Math.abs(b.z0 - box.z0) < .01)
-            .sort((p, q) => p.b.x0 - q.b.x0)[0]?.i;
-          for (const i of right === undefined ? [left] : [left, right]) {
-            const b = piece.boards[i]!, host = meshOf(i), x = i === left ? b.x0 - .62 : b.x1 + .62;
+          for (const rail of drawerRunnerMeshes(piece, f, bar, metal)) {
+            const i = rail.board, host = meshOf(i), mesh = tag(rail.mesh);
             if (!host) continue;
-            const mesh = solid(bar, metal, frame(piece, [x, b.y0 + 3.2, b.z1 - len / 2]), new THREE.Vector3(1.25, 3.5, len));
             mesh.position.sub(rest(i));
             host.add(mesh);
             fittings.push({ mesh, index, board: i, home: mesh.position.clone(), from: fromFor('runner'), size: mesh.scale.clone() });
+            const moving = rail.moving === undefined ? undefined : meshOf(rail.moving);
+            if (moving && rail.moving !== undefined) slides.push({ mesh, moving, rest: rest(rail.moving).z,
+              home: mesh.position.z, ratio: rail.ratio ?? 0, max: Number(f.size) / 10 * .7 });
           }
           return;
         }
@@ -134,6 +135,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
       visible();
     },
     only(boards, items, seen) { shown = boards; shownFittings = items; seenFittings = seen ?? null; visible(); },
+    motion() {
+      for (const rail of slides) rail.mesh.position.z = rail.home + Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest)) * rail.ratio;
+    },
     focus(boards) { focused = boards; visible(); },
     ring(next) { rung = next; visible(); },
     ringExtent(margin) {
@@ -145,7 +149,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);
-      holes = []; fittings = []; links = []; focused = null; rung = null;
+      holes = []; fittings = []; slides = []; links = []; focused = null; rung = null;
     },
     dispose() {
       this.clear();

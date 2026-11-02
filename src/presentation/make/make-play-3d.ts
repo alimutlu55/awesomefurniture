@@ -81,7 +81,7 @@ export function createMakePlay(layer: number) {
       return { group: tag(group), item, home, dir, spin, board: e.board };
     };
     // Turned in through the face board's hole: its head ends flush with the face.
-    if (f.kind === 'confirmat' || f.kind === 'screw') return make(screw(f.kind === 'screw' ? 4 : 5, f.kind === 'screw' ? .2 : .32, steel), 8 * Math.PI);
+    if (f.kind === 'confirmat' || f.kind === 'screw') return make(screw(f.kind === 'screw' ? Number(f.size?.split('×')[1]?.trim()) / 10 || 4 : 5, f.kind === 'screw' ? .2 : .32, steel), 8 * Math.PI);
     if (f.kind === 'bolt') {
       // Its thread turned 11 mm into the face board, its shank and head standing 34 mm out for the cam to grip.
       const g = new THREE.Group();

@@ -23,14 +23,14 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
   const f = piece.fittings[item]!, mine = piece.holes.filter(h => h.of === item), first = f.boards[0] ?? null;
   const through = (h: Hole | undefined, at: Vec3 = h?.at ?? f.at): Entry | null => h ? { at, dir: along(h), board: h.board } : null;
   // The back is nailed from behind, into whichever board it covers: through the board furthest back.
-  const back = () => [...f.boards].sort((a, b) => piece.boards[a]!.z0 - piece.boards[b]!.z0)[0] ?? null;
+  const back = () => f.boards[0] ?? null;
   switch (f.kind) {
-    case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw'));
+    case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
     case 'bolt': return through(mine.find(h => h.kind === 'bolt'));
     case 'dowel': return through(mine.find(h => h.depth === 25) ?? mine[0], f.at);
     case 'pin': return through(mine[2] ?? mine[0], f.at);
-    case 'nail': return { at: f.at, dir: [0, 0, 1], board: back() };
+    case 'nail': return { at: f.at, dir: unit(f.axis, 1), board: back() };
     case 'hinge': return { at: f.at, dir: [0, 0, 1], board: first };
     case 'plate': return { at: f.at, dir: unit(0, mine[0]?.sign ?? 1), board: first };
     case 'handle': return { at: f.at, dir: [0, 0, -1], board: first };
