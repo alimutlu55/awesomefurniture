@@ -8,6 +8,7 @@ import { shapeFields, type ShapeField } from './surface-shape-fields';
 import type { ShapePick } from './surface-shape-drawing';
 import type { SurfaceShapeEditorPorts } from './surface-shape-editor.ports';
 import { adjoiningWallReferences } from './adjoining-wall-references';
+import { autoAlignWallProfile } from './surface-shape-auto-align';
 
 /** Geometry and commands behind the shared Size drawing. The pointer, zoom and field UI have one owner. */
 export interface ShapeEditorBackend {
@@ -25,6 +26,7 @@ export interface ShapeEditorBackend {
   settle(): void;
   reset?(profile: SurfaceProfile): ProfileVertex[] | null;
   resetLabel?(profile: SurfaceProfile): string;
+  autoAlign?(profile: SurfaceProfile): ProfileVertex[] | null;
 }
 
 export function createSurfaceShapeBackend({ model, sceneCommands, callbacks }: Pick<SurfaceShapeEditorPorts, 'model' | 'sceneCommands' | 'callbacks'>): ShapeEditorBackend {
@@ -55,5 +57,6 @@ export function createSurfaceShapeBackend({ model, sceneCommands, callbacks }: P
       { x: s.bounds.minX, y: 0 }, { x: s.bounds.maxX, y: 0 }, { x: s.bounds.maxX, y: s.wall.height }, { x: s.bounds.minX, y: s.wall.height },
     ] : null,
     resetLabel: s => s.primary ? 'Full wall' : 'Plain side',
+    autoAlign: s => s.ref.kind === 'wall' ? autoAlignWallProfile(s) : null,
   };
 }
