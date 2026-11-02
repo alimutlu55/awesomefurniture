@@ -11,6 +11,7 @@
  * Sizes on fronts are small, so they are whole millimetres here (`…Mm`); door geometry works in centimetres.
  */
 import type { DecorCategory } from '../materials/decor-types';
+import { decorCatalog } from '../materials/decor-catalog';
 import { HINGE_KINDS, type HingeKind } from './hinges';
 
 /** How a leaf sits on the carcass: what share of the side board's front edge it covers, and whether it sits inside the
@@ -88,6 +89,8 @@ export interface LeafSettings {
   readonly hinge?: 'left' | 'right' | undefined;
   /** The hinge it hangs on (HINGES); absent: chosen for it. */
   readonly hingeKind?: HingeKind | undefined;
+  /** Its own front decor (a glass or mirror leaf among wood ones); absent: the cabinet's front decor. */
+  readonly decor?: string | undefined;
 }
 
 /** A cabinet's fronts as saved. Every field is optional: absent is the default, and defaults are never written. */
@@ -127,6 +130,11 @@ export function frontsProblems(fronts: DesignFronts, bays?: number): string[] {
     }
     if (at.leaf !== undefined && at.leaf >= MAX_LEAVES) problems.push(`"${key}": an opening has at most ${MAX_LEAVES} leaves.`);
     if (leaf.hingeKind !== undefined && !HINGE_KINDS.includes(leaf.hingeKind)) problems.push(`"${key}": unknown hinge "${leaf.hingeKind}": use ${list(HINGE_KINDS)}.`);
+    if (leaf.decor !== undefined) {
+      const decor = decorCatalog.find(d => d.id === leaf.decor);
+      if (!decor || !decor.allowedZones.includes('fronts')) problems.push(`"${key}": "${leaf.decor}" is not a front decor.`);
+      else if (style && !(style.decors as readonly string[]).includes(decor.category)) problems.push(`"${key}": a ${style.name.toLowerCase()} front cannot be made in ${decor.name}.`);
+    }
   }
   return problems;
 }

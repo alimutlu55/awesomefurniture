@@ -47,7 +47,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
       if (f.opens === 'side' && !f.label) {
-        const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', kind = hinge(hingeFor(f, d, glass, p.sides));
+        const glass = f.glass ?? getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', kind = hinge(hingeFor(f, d, glass, p.sides));
         add(p, kind.name, kind.cup ? kind.cup.d + ' mm cup' : 'compatible with frame/carrier; no cup drilling in glass', hingesFor(mm(doorHeight(f, boards))));
       }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);

@@ -1,4 +1,5 @@
 import { getDecor } from '../materials/decor-catalog';
+import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
 import { DOOR, fittingDepth } from './carcass';
@@ -8,6 +9,17 @@ import type { HingeKind } from './hinges';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
 export const DOOR_LIMITS = { width: 60, height: 240 } as const;
+
+/** A leaf's front decor: its own (set per leaf), else the cabinet's. */
+export const leafDecorId = (design: Pick<EditorDesign, 'materials'>, leaf: { readonly decorId?: string | undefined }) =>
+  leaf.decorId ?? resolveMaterials(design).frontDecorId;
+/** A glass or mirror leaf: one in a glass decor, or every leaf of a cabinet whose doors are glass. Nothing is drilled in
+ * it; it hangs on clamp hinges. */
+export const leafGlass = (design: Pick<EditorDesign, 'materials' | 'doors'>, leaf: { readonly decorId?: string | undefined }) =>
+  design.doors === 'glass' || getDecor(leafDecorId(design, leaf)).category === 'glass_mirror';
+/** A leaf's thickness: its own decor's, else the cabinet's doors'. Cm. */
+export const leafThickness = (design: Pick<EditorDesign, 'materials' | 'doors'>, leaf: { readonly decorId?: string | undefined }) =>
+  leaf.decorId ? getDecor(leaf.decorId).thicknessMm / 10 : doorThickness(design);
 
 export const doorThickness = (design: Pick<EditorDesign, 'materials' | 'doors'>) =>
   design.materials && (design.doors !== 'glass' || getDecor(design.materials.frontDecorId).category === 'glass_mirror') ? getDecor(design.materials.frontDecorId).thicknessMm / 10 : DOOR.thickness;
@@ -52,7 +64,7 @@ export interface DoorArea { x0: number; x1: number; y0: number; y1: number }
 /** A door opening: its bay (from the left) and row (its place in the bay, from the bottom, then from the left). */
 export interface DoorOpening extends DoorArea { bay: number; row: number }
 /** One leaf hung in an opening: which of how many it is (from the left), and the side it hinges on. */
-export interface DoorLeaf extends DoorOpening { leaf: number; of: number; hinge: 'left' | 'right'; hingeKind?: HingeKind | undefined }
+export interface DoorLeaf extends DoorOpening { leaf: number; of: number; hinge: 'left' | 'right'; hingeKind?: HingeKind | undefined; decorId?: string | undefined }
 export type DoorHang = 'auto' | 'left' | 'right';
 
 /** Which side a wardrobe door leaf hinges on: the cabinet's chosen hang ('left' puts the handle on the right;
@@ -131,8 +143,8 @@ export function cabinetDoorLeaves(design: EditorDesign, widths: readonly number[
             const x0 = opening.x0 + leaf * (each + fit.reveal), x1 = leaf === of - 1 ? opening.x1 : x0 + each;
             const set = settings[leafKey(opening.bay, opening.row, leaf)]?.hinge ?? (of === 1 ? settings[key]?.hinge : undefined);
             const hinge = set ?? (of === 1 ? doorHingeSide(opening, design) : leaf < of / 2 ? 'left' : 'right');
-            const hingeKind = settings[leafKey(opening.bay, opening.row, leaf)]?.hingeKind ?? settings[key]?.hingeKind;
-            return { ...opening, x0, x1, leaf, of, hinge, ...(hingeKind ? { hingeKind } : {}) };
+            const own = settings[leafKey(opening.bay, opening.row, leaf)], hingeKind = own?.hingeKind ?? settings[key]?.hingeKind, decorId = own?.decor ?? settings[key]?.decor;
+            return { ...opening, x0, x1, leaf, of, hinge, ...(hingeKind ? { hingeKind } : {}), ...(decorId ? { decorId } : {}) };
         });
     });
 }

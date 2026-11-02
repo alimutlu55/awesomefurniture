@@ -2,7 +2,7 @@ import type { EditorDesign, EditorItem } from '../wardrobe/editor-design';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
-import { cabinetDoorLeaves } from '../wardrobe/door-layout';
+import { cabinetDoorLeaves, leafGlass } from '../wardrobe/door-layout';
 import type { HingeKind } from '../wardrobe/hinges';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
@@ -27,6 +27,10 @@ export interface Front extends Box {
   readonly hingeKind?: HingeKind | undefined;
   /** A wardrobe door: the bay it closes. */
   readonly bay?: number | undefined;
+  /** A wardrobe door: its own decor, when it has one (front-styles LeafSettings.decor). */
+  readonly decorId?: string | undefined;
+  /** A wardrobe door of glass or mirror (leafGlass): clamp hinges, nothing drilled. */
+  readonly glass?: boolean | undefined;
 }
 /** What is inside, behind the fronts: fittings and boards, rails, and a cupboard's shelves. */
 export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
@@ -116,8 +120,8 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
   // Wardrobe doors: each opening's leaves (cabinetDoorLeaves), single leaves hinged nearer the wardrobe's end unless set.
   const covered = !kitchen && design.doors !== 'none';
   if (covered) for (const a of cabinetDoorLeaves(design, widths)) {
-    const set = a.hingeKind ? { hingeKind: a.hingeKind } : {};
-    fronts.push({ x0: a.x0, x1: a.x1, y0: a.y0, y1: a.y1, opens: 'side', hinge: a.hinge, name: 'Door', of: a.of, bay: a.bay, ...set });
+    const set = { ...(a.hingeKind ? { hingeKind: a.hingeKind } : {}), ...(a.decorId ? { decorId: a.decorId } : {}) };
+    fronts.push({ x0: a.x0, x1: a.x1, y0: a.y0, y1: a.y1, opens: 'side', hinge: a.hinge, name: 'Door', of: a.of, bay: a.bay, glass: leafGlass(design, a), ...set });
   }
   const installed = !kitchen || !faceWidths.some(s => s.strip || s.covered) ? fronts : fronts.flatMap(f => {
     if (f.installation) return [];

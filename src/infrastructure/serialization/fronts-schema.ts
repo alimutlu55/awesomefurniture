@@ -15,6 +15,7 @@ const leaf = z.strictObject({
   hinge: z.enum(['left', 'right']).describe('The side the leaf hinges on').optional(),
   hingeKind: z.enum(HINGES.map(h => h.key) as [string, ...string[]], oneOf('hinge', HINGES.map(h => h.key)))
     .describe('The hinge it hangs on: ' + HINGES.map(h => `"${h.key}" (${h.name}: ${h.use.toLowerCase()})`).join(', ')).optional(),
+  decor: z.string().describe('Its own front decor id (a glass or mirror leaf among wood ones); left out, the cabinet\'s front decor').optional(),
 });
 
 export const frontsSchema = z.strictObject({

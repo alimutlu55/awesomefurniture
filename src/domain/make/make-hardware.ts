@@ -88,7 +88,8 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   const { design } = piece, holes: Hole[] = [], fittings: Fitting[] = [], h = design.h, kitchen = isKitchen(design);
   const { fronts, inside } = piecefronts(design, cornerFaceWidths(piece, pieces)), handle = resolveHandle(resolveMaterials(design)), handles = !handle.none;
   // Glass and mirror doors hang on their own hinges, clamped to the glass: nothing is drilled in them.
-  const glass = (b: Board) => { try { return getDecor(b.decorId ?? resolveMaterials(design).frontDecorId).category === 'glass_mirror'; } catch { return false; } };
+  // A wardrobe door says whether it is glass (leafGlass); another front by its decor.
+  const glass = (b: Board) => { try { return frontOf(fronts, b)?.glass ?? getDecor(b.decorId ?? resolveMaterials(design).frontDecorId).category === 'glass_mirror'; } catch { return false; } };
   boards.forEach((b, i) => {
     if (b.stock !== 'door' && b.stock !== 'front') return;
     const f = frontOf(fronts, b);

@@ -7,7 +7,7 @@ import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
 import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
-import { doorFit, doorThickness, doorTop, frontInside } from '../wardrobe/door-layout';
+import { doorFit, doorTop, frontInside, leafThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { fittingPanels } from '../geometry/shared-board-spans';
@@ -162,8 +162,10 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
     // A door leaf stops one reveal under the top (doorTop, as door-renderer.ts draws it); under a slope it is cut to it.
     const top = doorTop(design, f.x0, f.x1).map(p => Math.min(p.y, f.y1)), z = d + doorFit(design).standoff;
     const sloped = Math.max(...top) - Math.min(...top) > .05;
-    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top), z0: z - doorThickness(design) / 2, z1: z + doorThickness(design) / 2 }, 'L2 W2', 'y',
-      sloped ? { note: 'top cut to the slope, see Front' } : {}));
+    // A leaf in its own decor (a glass or mirror leaf among wood ones) is cut from it, at its thickness.
+    const t = leafThickness(design, f), own = f.decorId ? { decorId: f.decorId } : {};
+    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top), z0: z - t / 2, z1: z + t / 2 }, 'L2 W2', 'y',
+      { ...own, ...(sloped ? { note: 'top cut to the slope, see Front' } : {}) }));
   }
   return out;
 }
