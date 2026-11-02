@@ -1,14 +1,49 @@
 import { getDecor } from '../materials/decor-catalog';
 import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
-import { DOOR } from './carcass';
-import { ceilingMin, ceilingPieces, resolveShape } from './shape/wardrobe-shape';
+import { DOOR, fittingDepth } from './carcass';
+import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
+import { frontOverlay, resolveFronts } from './front-styles';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
 export const DOOR_LIMITS = { width: 60, height: 240 } as const;
 
 export const doorThickness = (design: Pick<EditorDesign, 'materials' | 'doors'>) =>
   design.materials && (design.doors !== 'glass' || getDecor(design.materials.frontDecorId).category === 'glass_mirror') ? getDecor(design.materials.frontDecorId).thicknessMm / 10 : DOOR.thickness;
+
+/** How a cabinet's door leaves sit on it, from its fronts' overlay and reveal (front-styles.ts). Centimetres. */
+export interface DoorFit {
+    /** The gap between neighbouring leaves, and between a leaf and the plinth or the top. */
+    readonly reveal: number;
+    /** Leaves sit between the carcass faces, their faces flush with its front edges. */
+    readonly inset: boolean;
+    /** How much of an outer board's front edge shows beside a leaf: none under a full overlay, half a board under half. */
+    readonly showing: number;
+    /** How far a leaf's middle stands in front of the carcass's front edges (behind them when negative). */
+    readonly standoff: number;
+    /** Depth the closed leaves take from inside the carcass: shelves, fittings and drawer fronts stop this much further
+     * back. Only inset leaves take any. */
+    readonly inside: number;
+}
+export function doorFit(design: Pick<EditorDesign, 'materials' | 'doors' | 'fronts' | 'product'>): DoorFit {
+    const fronts = resolveFronts(design), overlay = frontOverlay(fronts.overlay)!, t = doorThickness(design);
+    const inset = overlay.inset && design.doors !== 'none' && design.product !== 'kitchen';
+    return { reveal: fronts.reveal / 10, inset, showing: inset ? PANEL : PANEL * (1 - overlay.cover),
+        standoff: inset ? -t / 2 : DOOR.standoff, inside: inset ? t : 0 };
+}
+/** Depth a design's closed doors take from inside its carcass (see DoorFit.inside). */
+export const frontInside = (design: Pick<EditorDesign, 'materials' | 'doors' | 'fronts' | 'product'>) => doorFit(design).inside;
+/** The depth shelves and fittings may use in a design: behind the carcass front, and behind inset doors. */
+export const fittingDepthOf = (design: Pick<EditorDesign, 'd' | 'materials' | 'doors' | 'fronts' | 'product'>) => fittingDepth(design.d, frontInside(design));
+
+/** A door leaf's top edge between x0 and x1 (from the left outer face), left to right: one reveal under the outer top
+ * plus any board an overlay leaves showing, or for an inset leaf one reveal under the top boards' underside. It follows a
+ * sloped or stepped top. */
+export function doorTop(design: EditorDesign, x0: number, x1: number): { x: number; y: number }[] {
+    const fit = doorFit(design), shape = resolveShape(design);
+    return fit.inset ? ceilingPolyline(ceilingPieces(shape), x0, x1).map(p => ({ x: p.x, y: p.y - fit.reveal }))
+        : outerPolyline(shape, x0, x1).map(p => ({ x: p.x, y: p.y - fit.showing - fit.reveal }));
+}
 
 /** Front coordinates, measured from the left outer face and the floor.
  * An infinite cap means the leaf follows the outer roof profile. */
@@ -27,7 +62,11 @@ export function doorHingeSide(area: Pick<DoorArea, 'x0' | 'x1'>, design: Pick<Ed
  * Clear bounds follow board faces; front bounds meet at board centre lines (partitions between bays included) and
  * stop half a reveal inside the outer faces. */
 export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]): DoorArea[] {
-    const pieces = ceilingPieces(resolveShape(design)), result: DoorArea[] = [];
+    const pieces = ceilingPieces(resolveShape(design)), result: DoorArea[] = [], fit = doorFit(design);
+    // Where a leaf edge stands from a board: inside an outer face by what the overlay leaves showing and half a reveal
+    // (a whole reveal from an inset leaf to the board); either side of a board between two leaves by half a reveal from
+    // its centre line (a whole reveal from its face when inset).
+    const outer = fit.showing + (fit.inset ? fit.reveal : fit.reveal / 2), seam = fit.inset ? PANEL / 2 + fit.reveal : fit.reveal / 2;
     let origin = PANEL;
     widths.forEach((width, section) => {
         const boards = design.dividers.filter(d => d.i === section);
@@ -48,19 +87,18 @@ export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]
             if (index < 0) { result.push(front); return; }
             const board = remaining[index]!, rest = remaining.filter((_, i) => i !== index);
             if (board.orientation === 'vertical') {
-                const x = board.x!, seam = origin + x;
-                visit({ ...clear, x1: x - PANEL / 2 }, { ...front, x1: seam - .1 }, rest);
-                visit({ ...clear, x0: x + PANEL / 2 }, { ...front, x0: seam + .1 }, rest);
+                const x = board.x!, at = origin + x;
+                visit({ ...clear, x1: x - PANEL / 2 }, { ...front, x1: at - seam }, rest);
+                visit({ ...clear, x0: x + PANEL / 2 }, { ...front, x0: at + seam }, rest);
             } else {
-                const y = board.y!, seam = PLINTH + PANEL + y;
-                visit({ ...clear, y1: y - PANEL / 2 }, { ...front, y1: seam - .1 }, rest);
-                visit({ ...clear, y0: y + PANEL / 2 }, { ...front, y0: seam + .1 }, rest);
+                const y = board.y!, at = PLINTH + PANEL + y;
+                visit({ ...clear, y1: y - PANEL / 2 }, { ...front, y1: at - seam }, rest);
+                visit({ ...clear, y0: y + PANEL / 2 }, { ...front, y0: at + seam }, rest);
             }
         };
-        // A leaf covers the outer sides and half of each partition: neighbouring leaves meet on its centre line.
-        const left = section === 0 ? PANEL : PANEL / 2, right = section === widths.length - 1 ? PANEL : PANEL / 2;
-        visit({ x0: 0, x1: width, y0: 0, y1: Infinity },
-            { x0: origin - left + .1, x1: origin + width + right - .1, y0: PLINTH + .2, y1: Infinity }, boards);
+        // A leaf covers the outer sides (as its overlay says) and half of each partition: neighbours meet on its centre line.
+        const x0 = section === 0 ? outer : origin - PANEL / 2 + seam, x1 = section === widths.length - 1 ? origin + width + PANEL - outer : origin + width + PANEL / 2 - seam;
+        visit({ x0: 0, x1: width, y0: 0, y1: Infinity }, { x0, x1, y0: PLINTH + fit.showing + fit.reveal, y1: Infinity }, boards);
         origin += width + PANEL;
     });
     return result;

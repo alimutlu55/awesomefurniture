@@ -11,6 +11,7 @@ import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { fittingDepth, interiorFloorOf, partitionDepth, plinthOf } from '../../domain/wardrobe/carcass';
+import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { fittingPanels } from '../../domain/geometry/shared-board-spans';
@@ -79,7 +80,6 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                 renderState.Gr.add(line);
             }
             // While a point is dragged, its own panels show live length and angle; otherwise every panel shows.
-
             for (const q of shapeInspector.dragging() ? shapeInspector.dragMeasures() : shapeInspector.focusMeasures(true)) {
                 const a = new THREE.Vector3(q.a.x, q.a.y, z), b = new THREE.Vector3(q.b.x, q.b.y, z);
                 const el = label(a.clone().add(b).multiplyScalar(.5), q.text, 'lbl dim space-ruler item-dimension shape-measure');
@@ -130,7 +130,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);
         shadow.userData.floorShadow = true;
         renderState.Gr.add(shadow);
-        const { w, h, d, n } = getRenderDesign(), fd = fittingDepth(d), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
+        const { w, h, d, n } = getRenderDesign(), fd = fittingDepthOf(getRenderDesign()), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         const mf = materials.front, ma = materials.accessory;
         addCabinetLighting(getRenderDesign(), renderState.Gr);
         renderState.Gr.userData.ownedMaterials = materials.owned;

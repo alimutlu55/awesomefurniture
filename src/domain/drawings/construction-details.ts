@@ -3,10 +3,10 @@ import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
 import { kitchenFrontThickness } from '../kitchen/installation-parts';
 import { plinthOf } from '../wardrobe/carcass';
 import { worktopThickness } from '../materials/configured-materials';
-import { doorThickness } from '../wardrobe/door-layout';
+import { type DoorFit, doorFit, doorThickness } from '../wardrobe/door-layout';
+import { frontOverlay, resolveFronts } from '../wardrobe/front-styles';
 import { PANEL, PLINTH } from '../wardrobe/catalog.js';
 import { BACK_PANEL, FITTING_SETBACK, PARTITION_SETBACK } from '../wardrobe/carcass';
-import { DOOR } from '../wardrobe/carcass';
 import { FRONT_GAP } from '../kitchen/kitchen-fronts';
 import { KITCHEN_PLINTH_SETBACK, WORKTOP } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
@@ -53,15 +53,19 @@ function worktopEdge(thickness: number = WORKTOP.thickness, frontThickness = PAN
     dims(front, top + wt, 'across', [front, front + ft, front + over], 1), dims(from, top - T, 'up', [top - T, top, top + wt], 1)];
 }
 
-/** D4, a section through a wardrobe's front: a shelf stopping short of the carcass front, the partition a little less,
- * the door standing just in front of the carcass. */
-function shelfAndDoor(thickness: number = DOOR.thickness): Item[] {
-  const front = 0, y = 0, from = -120, door = h(DOOR.standoff - thickness / 2), dt = h(thickness);
-  return [rect(from, y - 120, front, y + 120, 'thin'), cut(from, y - T / 2, front - h(FITTING_SETBACK), y + T / 2),
+/** D4, a wardrobe's front as its overlay hangs it. Left, a section: a shelf stopping short of the carcass front (and of
+ * an inset door), the partition a little less, the door in front of the carcass or flush inside it. Right, seen from
+ * above at a side: how much of the side board the door covers, and the reveal. */
+function shelfAndDoor(thickness: number, fit: DoorFit): Item[] {
+  const front = 0, y = 0, from = -120, dt = h(thickness), door = fit.inset ? -dt : h(fit.standoff - thickness / 2), shelf = front - h(FITTING_SETBACK + fit.inside);
+  const side = 160, depth = 80, edge = side + h(fit.showing + (fit.inset ? fit.reveal : fit.reveal / 2)), leaf = side + 120;
+  return [rect(from, y - 120, front, y + 120, 'thin'), cut(from, y - T / 2, shelf, y + T / 2),
     line({ x: front - h(PARTITION_SETBACK), y: y - 120 }, { x: front - h(PARTITION_SETBACK), y: y + 120 }, 'hidden'),
     cut(front + door, y - 120, front + door + dt, y + 120),
-    dims(front - h(FITTING_SETBACK), y + 120, 'across', [front - h(FITTING_SETBACK), front - h(PARTITION_SETBACK), front, front + door, front + door + dt], 1),
-    note({ x: from + 40, y: y + T }, 'Shelf', 'start')];
+    dims(shelf, y + 120, 'across', [shelf, front - h(PARTITION_SETBACK), front, front + door, front + door + dt], 1),
+    note({ x: from + 40, y: y + T }, 'Shelf', 'start'),
+    cut(side, -depth, side + T, 0), rect(side + T, -depth, leaf, 0, 'thin'), cut(edge, door, leaf, door + dt),
+    dims(side, door + dt, 'across', [side, edge, side + T], 1), note({ x: side + T / 2, y: -depth / 2 }, 'Side')];
 }
 
 /** D5, seen from above at the back corner: the back board between the sides, the base and shelves stopping at its face. */
@@ -96,8 +100,13 @@ export function constructionDetails(pieces: readonly PlacedPiece[]): View[][] {
   }
 
   const cabinet: View[] = [];
-  if (wardrobe) for (const thickness of new Set(cabinets.filter(p => !isKitchen(p.design)).map(p => doorThickness(p.design))))
-    cabinet.push({ title: 'D4 Shelf and door · ' + h(thickness) + 'mm', items: shelfAndDoor(thickness) });
+  // One D4 for each door thickness, overlay and reveal the wardrobes use.
+  const hung = new Map(cabinets.filter(p => !isKitchen(p.design)).map(p => {
+    const thickness = doorThickness(p.design), fronts = resolveFronts(p.design);
+    return [[thickness, fronts.overlay, fronts.reveal].join(), { thickness, fit: doorFit(p.design), overlay: frontOverlay(fronts.overlay)!.name, reveal: fronts.reveal }] as const;
+  }));
+  if (wardrobe) for (const { thickness, fit, overlay, reveal } of hung.values())
+    cabinet.push({ title: 'D4 Shelf and door · ' + h(thickness) + 'mm · ' + overlay + ', ' + reveal + ' mm reveal', items: shelfAndDoor(thickness, fit) });
   if (cabinets.length) cabinet.push({ title: 'D5 Back panel', items: backPanel() });
   for (const p of corners) cabinet.push({ title: 'D6 Corner mechanism ' + p.mark,
     items: unitDetailViews(p, pieces).find(v => v.title === 'Section A–A')!.items });

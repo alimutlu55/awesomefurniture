@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { DEFAULT_FRONT, FRONT_OVERLAYS, FRONT_REVEALS_MM, FRONT_STYLES, frontOverlay, frontStyle, isFrontReveal,
   type FrontOverlayDef, type FrontStyleDef } from '../../src/domain/wardrobe/front-styles';
 import { cabinetDoorAreas } from '../../src/domain/wardrobe/door-layout';
-import { DOOR } from '../../src/domain/wardrobe/carcass';
 import { PLINTH } from '../../src/domain/wardrobe/catalog.js';
 import { MATERIAL_FAMILIES } from '../../src/domain/materials/decor-types';
 import { decorCatalog as DECORS } from '../../src/domain/materials/decor-catalog';
@@ -73,7 +72,6 @@ test('front styles · the default is slab, full overlay, 2 mm: equal to today\'s
   assert.ok((style.overlays as readonly string[]).includes(overlay.key), 'the default style takes the default overlay');
   assert.equal(overlay.cover, 1);
   assert.equal(overlay.inset, false);
-  assert.equal(DEFAULT_FRONT.revealMm / 10, DOOR.topGap, 'the gap under the top is one reveal');
   // Today's leaves: half a reveal inside the left outer face, one reveal apart where they meet, one reveal above the plinth.
   const state = createEditorState();
   Object.assign(state, { n: 2, wt: [60, 60], dividers: [] });

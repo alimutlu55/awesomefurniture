@@ -2,7 +2,7 @@ import { sceneMeasurementBadge } from './scene-measurement-badge';
 import { tags } from './storage-tags.js';
 import { syncResizeFields } from './resize-fields.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth } from '../../domain/wardrobe/carcass';
+import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, capWord, esc, unitSuffix } from './editor-format.js';
 /** @param {Pick<import('./inspector-presenter.ports').CreateInspectorPresenterPorts, 'dom' | 'geometry' | 'shell' | 'commands' | 'rendering' | 'model' | 'history'> & { callbacks: Pick<ReturnType<typeof import('./inspector-presenter.js').createInspectorPresenter>, 'histUI' | 'hidePop' | 'divWord'> }} ports */
 export function createMeasurementInspector({ dom, geometry, model, callbacks }) {
@@ -60,7 +60,7 @@ export function createMeasurementInspector({ dom, geometry, model, callbacks }) 
                         ( /** @type {HTMLInputElement} */(input)).value = String(k ? m.after : m.before);
                     }
                 });
-                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + unitSuffix()], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + unitSuffix()], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + unitSuffix()], ['Y · bottom → top from floor', f(geometry.interiorFloor() + m.y0) + ' → ' + f(geometry.interiorFloor() + m.y1) + unitSuffix()], ['Z · back → front', f(fittingDepth(model.activeCabinet().state.d).z0) + ' → ' + f(fittingDepth(model.activeCabinet().state.d).z1) + unitSuffix()]];
+                const rows = [['Size · width × height × depth', f(m.width) + ' × ' + f(m.height) + ' × ' + f(m.depth) + unitSuffix()], [hor ? 'Free below / above' : 'Free left / right', f(m.before) + ' / ' + f(m.after) + unitSuffix()], ['X · left → right edge', f(bayL + m.x0) + ' → ' + f(bayL + m.x1) + unitSuffix()], ['Y · bottom → top from floor', f(geometry.interiorFloor() + m.y0) + ' → ' + f(geometry.interiorFloor() + m.y1) + unitSuffix()], ['Z · back → front', f(fittingDepthOf(model.activeCabinet().state).z0) + ' → ' + f(fittingDepthOf(model.activeCabinet().state).z1) + unitSuffix()]];
                 const cut = geometry.boardFit(d.i, geometry.dividerRect(d), d.orientation);
                 if (cut?.cut) {
                     rows.splice(1, 0, ['Cut to the top', hor ? 'angled · ' + f(cut.length) + unitSuffix() + ' whole board' : 'angled top']);

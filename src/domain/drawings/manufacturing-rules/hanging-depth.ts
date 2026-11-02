@@ -1,4 +1,5 @@
-import { depthForFitting, fittingDepth, MIN_HANGING_DEPTH } from '../../wardrobe/carcass';
+import { depthForFitting, MIN_HANGING_DEPTH } from '../../wardrobe/carcass';
+import { fittingDepthOf, frontInside } from '../../wardrobe/door-layout';
 import { hasTrait } from '../../wardrobe/fittings';
 import { isKitchen } from '../../furniture/furniture';
 import { mm } from '../drawing';
@@ -14,12 +15,12 @@ export const hangingDepth: Rule = (_input, pieces) => {
   const out: ManufacturingFinding[] = [];
   for (const p of pieces) {
     if (p.fixture || isKitchen(p.design)) continue;
-    const measured = mm(fittingDepth(p.design.d).depth), limit = mm(MIN_HANGING_DEPTH);
+    const measured = mm(fittingDepthOf(p.design).depth), limit = mm(MIN_HANGING_DEPTH);
     if (measured >= limit) continue;
     const doors = p.design.doors !== 'none';
     p.design.secs.slice(0, p.design.n).forEach((items, bay) => items.forEach((it, j) => {
       if (!hasTrait(it.k, 'hanging') || it.front) return;
-      const fix = hasTrait(it.k, 'fixedRail') ? 'Use a front-facing rail' : 'Make it ' + Math.ceil(depthForFitting(MIN_HANGING_DEPTH)) + ' cm deep';
+      const fix = hasTrait(it.k, 'fixedRail') ? 'Use a front-facing rail' : 'Make it ' + Math.ceil(depthForFitting(MIN_HANGING_DEPTH) + frontInside(p.design)) + ' cm deep';
       out.push({ id: 'hanging-depth:' + p.mark + ':' + bay + ':' + j, severity: doors ? 'critical' : 'warning', area: 'assembly', marks: [p.mark],
         message: p.mark + ' section ' + (bay + 1) + ': hangers need ' + limit + ' mm, the fitting depth is ' + measured + ' mm',
         rule: 'A side-facing rail needs ' + limit + ' mm of clear depth', limit, measured, fix, at: { mark: p.mark } });

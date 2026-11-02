@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth } from '../../domain/wardrobe/carcass';
+import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'renderState' | 'resources' | 'interactionState'>
@@ -149,7 +149,7 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
             return;
         }
         const left = -getRenderDesign().w / 2 + PANEL + ws.slice(0, i).reduce((a, b) => a + b + PANEL, 0), bw = ws[i];
-        const zf = fittingDepth(getRenderDesign().d).z1 - getRenderDesign().d / 2, f = measureNumber;
+        const zf = fittingDepthOf(getRenderDesign()).z1 - getRenderDesign().d / 2, f = measureNumber;
         const x0 = left + q.x0, x1 = left + q.x1, midY = (q.y0 + q.y1) / 2;
         const lab = (key, x, y, text, cls = 'lbl dim clearance preview') => {
             keep.add(key);
@@ -198,7 +198,7 @@ export function createMovementOverlays({ dom, geometry, callbacks, renderState, 
         ruler('width', vA, vB, 'W ' + f(q.w) + unitSuffix());
         vA.set(x1, q.y0, zf); vB.set(x1, q.y1, zf);
         ruler('height', vA, vB, 'H ' + f(it.h) + unitSuffix());
-        const fd = fittingDepth(getRenderDesign().d), back = -getRenderDesign().d / 2;
+        const fd = fittingDepthOf(getRenderDesign()), back = -getRenderDesign().d / 2;
         vA.set(x0, q.y0, back + fd.z0); vB.set(x0, q.y0, back + fd.z1);
         ruler('depth', vA, vB, 'D ' + f(fd.depth) + unitSuffix());
     }

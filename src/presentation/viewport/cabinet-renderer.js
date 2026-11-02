@@ -17,7 +17,7 @@ import { createFrameRenderer } from './frame-renderer.js';
 import { createMovementOverlays } from './movement-overlays.js';
 import { createDimensionRenderer } from './dimension-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth } from '../../domain/wardrobe/carcass';
+import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
@@ -177,7 +177,7 @@ export function createCabinetRenderer({ dom, camera, interactions, inspector, sh
     }
     /** @returns {[import('three').Vector3,import('three').Vector3,number][]} */
     function dividerClearancePoints(index, baseX) {
-        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = fittingDepth(renderDesign.d).z1 - renderDesign.d / 2;
+        const m = geometry.dividerMeasurements(index), V = THREE.Vector3, front = fittingDepthOf(renderDesign).z1 - renderDesign.d / 2;
         const midX = baseX + (m.x0 + m.x1) / 2, midY = geometry.interiorFloor() + (m.y0 + m.y1) / 2;
         return m.hor ? [[new V(midX, geometry.interiorFloor() + m.low, front), new V(midX, geometry.interiorFloor() + m.y0, front), m.before],
             [new V(midX, geometry.interiorFloor() + m.y1, front), new V(midX, geometry.interiorFloor() + m.high, front), m.after]]

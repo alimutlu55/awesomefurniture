@@ -38,17 +38,18 @@ export function boardDepth(d: number, setback: number) {
   const z0 = BACK_PANEL, z1 = d - setback;
   return { z0, z1, depth: z1 - z0, centre: (z0 + z1) / 2 - d / 2 };
 }
-/** Shelves, fitting boards and the space a fitting may use. */
-export const fittingDepth = (d: number) => boardDepth(d, FITTING_SETBACK);
+/** Shelves, fitting boards and the space a fitting may use. `inside` is depth the closed doors take from inside the
+ * carcass (inset doors: door-layout.ts frontInside). */
+export const fittingDepth = (d: number, inside = 0) => boardDepth(d, FITTING_SETBACK + inside);
 /** A drawer's own front inside the carcass (behind any doors): PANEL thick, its face INNER_FRONT_GAP behind the front
  * edge, and 5 mm short of its space top and bottom, so stacked drawers show a 1 cm line between them. The board over or
  * under a drawer stops 1 mm behind that front, which closes over its edge: the deeper shelf line would run into it. */
 export const INNER_FRONT_GAP = .3;
-export function innerFront(d: number, y0: number, h: number) {
-  const z1 = d - INNER_FRONT_GAP, z0 = z1 - PANEL;
+export function innerFront(d: number, y0: number, h: number, inside = 0) {
+  const z1 = d - INNER_FRONT_GAP - inside, z0 = z1 - PANEL;
   return { y0: y0 + .5, y1: y0 + h - .5, z0, z1, centre: (z0 + z1) / 2 - d / 2 };
 }
-export const besideInnerFrontDepth = (d: number) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1);
+export const besideInnerFrontDepth = (d: number, inside = 0) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1 + inside);
 /** Partitions between bays and the base board. */
 export const partitionDepth = (d: number) => boardDepth(d, PARTITION_SETBACK);
 /** Clear depth inside the carcass, from the back board to the front edge. */
@@ -56,9 +57,10 @@ export const interiorDepth = (d: number) => d - BACK_PANEL;
 /** Outer cabinet depth that gives a fitting this usable depth (the inverse of fittingDepth). */
 export const depthForFitting = (usable: number) => usable + BACK_PANEL + FITTING_SETBACK;
 
-/** A wardrobe door leaf: its thickness, how far its middle stands in front of the carcass, and the gap left under the
- * wardrobe's top. Centimetres. */
-export const DOOR = { thickness: 1.6, standoff: 1.2, topGap: .2 } as const;
+/** A wardrobe door leaf hung over the carcass: its thickness when no decor says otherwise, and how far its middle stands
+ * in front of the carcass's front edges. The gaps round it are its fronts' reveal (front-styles.ts, door-layout.ts).
+ * Centimetres. */
+export const DOOR = { thickness: 1.6, standoff: 1.2 } as const;
 
 /** A hanging rail: its centre sits RAIL_DROP below the top of the fitting's clear space, so hanger hooks
  * clear the board above; garments hang from RAIL_RADIUS below the centre. */

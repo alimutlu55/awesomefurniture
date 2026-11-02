@@ -1,7 +1,8 @@
 import { installationKind } from '../kitchen/kitchen-units';
 import { worktopThickness } from '../materials/configured-materials';
 import { PANEL } from '../wardrobe/catalog.js';
-import { BACK_PANEL, fittingDepth, plinthOf } from '../wardrobe/carcass';
+import { BACK_PANEL, plinthOf } from '../wardrobe/carcass';
+import { fittingDepthOf } from '../wardrobe/door-layout';
 import { resolveShape } from '../wardrobe/shape/wardrobe-shape';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { KITCHEN_PLINTH_SETBACK, WORKTOP, kitchenUnit } from '../kitchen/kitchen-units';
@@ -159,7 +160,7 @@ function sectionView(p: PlacedPiece, boards: readonly Board[], pieces: readonly 
   for (const b of cutThrough) { const [y0, y1] = heightsAt(b, cx); out.push(rect(mm(b.z0), mm(y0), mm(b.z1), mm(y1), 'cut', 'hatch')); }
   const { inside, cornerPullouts } = piecefronts(d, cornerFaceWidths(p, pieces)), sectionCorners = cornerPullouts.filter(c => c.bayIndex === 0);
   for (const r of inside.filter(q => q.kind === 'rail' && q.x0 <= cx && q.x1 >= cx)) {
-    const z = (fittingDepth(d.d).z0 + fittingDepth(d.d).z1) / 2;
+    const z = (fittingDepthOf(d).z0 + fittingDepthOf(d).z1) / 2;
     out.push(rect(mm(z - 1.2), mm(r.y0 - 1.2), mm(z + 1.2), mm(r.y0 + 1.2), 'outline'));
   }
   for (const c of sectionCorners) {
@@ -179,7 +180,7 @@ function sectionView(p: PlacedPiece, boards: readonly Board[], pieces: readonly 
   const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null, front = Math.max(d.d, ...cutThrough.map(b => b.z1));
   // Depth: the back board, where shelves or swing-out trays sit, the carcass front, the fronts' face.
   const trayDepths = sectionCorners.flatMap(c => [c.trays[0]!.base.z0, c.trays[0]!.base.z1]);
-  const depths = [0, BACK_PANEL, ...(kitchen ? trayDepths : [fittingDepth(d.d).z1]), d.d, front];
+  const depths = [0, BACK_PANEL, ...(kitchen ? trayDepths : [fittingDepthOf(d).z1]), d.d, front];
   if (unit?.worktop) {
     out.push(rect(0, mm(d.h), mm(d.d + WORKTOP.overhang), mm(d.h + worktopThickness(d)), 'cut', 'hatch'));
     depths.push(d.d + WORKTOP.overhang);
@@ -207,7 +208,7 @@ export function unitDetailLegend(p: PlacedPiece, pieces: readonly PlacedPiece[] 
   const thick = [...new Set(boards.filter(b => b.stock === 'carcass' || b.stock === 'shelf').map(b => mm(b.cut.thickness)))].sort((a, b) => b - a);
   const fronts = boards.filter(b => b.stock === 'front' || b.stock === 'door');
   const joints = fronts.length ? [...new Set([...frontSpans(fronts.map(b => [b.x0, b.x1] as const), 0, d.w).joints, ...frontSpans(fronts.map(b => [b.y0, b.y1] as const), 0, top).joints])].sort((a, b) => a - b) : [];
-  const back = mm(BACK_PANEL), shelf = mm(fittingDepth(d.d).z1 - BACK_PANEL), setback = mm(d.d - fittingDepth(d.d).z1);
+  const back = mm(BACK_PANEL), shelf = mm(fittingDepthOf(d).z1 - BACK_PANEL), setback = mm(d.d - fittingDepthOf(d).z1);
   const stated = 'All dimensions in mm · boards ' + (thick.join(' / ') || '—') + ' mm thick, not repeated in the strings';
   const joined = joints.length ? ' · joints between fronts ' + joints.join(' / ') + ' mm, not dimensioned' : '';
   const installation = cornerWidthStops(p, pieces).length > 2
