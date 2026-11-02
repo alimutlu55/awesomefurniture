@@ -278,6 +278,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             selectionChanged: () => { inspector.update(true); rendering.redrawStudio(); },
         },
         listen: lifetime.listen,
+        observe: lifetime.observe,
     });
     const viewModes = createViewModes({
         dom, selectionState, camera, inspector, shell, planner, lifetime,

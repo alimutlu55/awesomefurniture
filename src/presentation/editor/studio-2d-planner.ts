@@ -5,6 +5,7 @@ import type { EditorScene } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { buildDefsSvg, createTransform, renderFurniture, renderHandles, renderOpenings, renderOverlays, renderRooms, renderWalls, type ViewportTransform } from './studio-2d-canvas';
 import { createStudio2DGestures } from './studio-2d-gestures';
+import { layoutPlanLabels, renderPlanLabels, type LabelRect } from './studio-2d-labels';
 
 export interface Studio2DPlannerPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
@@ -23,9 +24,10 @@ export interface Studio2DPlannerPorts {
     selectionChanged: () => void;
   };
   readonly listen: (target: EventTarget, type: string, handler: (e: Event) => void, options?: boolean | AddEventListenerOptions) => void;
+  readonly observe: ReturnType<typeof import('../viewport/editor-lifetime.js').createEditorLifetime>['observe'];
 }
 
-export function createStudio2DPlanner({ dom, model, sceneCommands, history, selectionState, callbacks, listen }: Studio2DPlannerPorts) {
+export function createStudio2DPlanner({ dom, model, sceneCommands, history, selectionState, callbacks, listen, observe }: Studio2DPlannerPorts) {
   const { $, document } = dom;
   let transform: ViewportTransform = { panX: 0, panZ: 0, zoom: 0.9, width: 800, height: 600 };
 
@@ -49,6 +51,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
         <g id="sp2d-draw-preview"></g>
       </g>
       <g id="sp2d-overlays"></g>
+      <g id="sp2d-text-labels"></g>
     </svg>
     <div class="sp2d-floating-toolbar">
       <div class="sp2d-tool-group" role="group" aria-label="Drafting tools">
@@ -78,6 +81,9 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const guidesGroup = svg.querySelector<SVGGElement>('#sp2d-guides')!;
   const drawPreviewGroup = svg.querySelector<SVGGElement>('#sp2d-draw-preview')!;
   const overlaysGroup = svg.querySelector<SVGGElement>('#sp2d-overlays')!;
+  const textLabels = svg.querySelector<SVGGElement>('#sp2d-text-labels')!;
+  const textMeasure = document.createElement('canvas').getContext('2d');
+  if (textMeasure) textMeasure.font = '600 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   const patMajor = svg.querySelector<SVGPatternElement>('#sp2d-pat-major')!;
 
   const gestures = createStudio2DGestures({
@@ -196,7 +202,6 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     if (guides.length) {
       guidesGroup.innerHTML = guides.map(g => `
         <line x1="${g.a.x}" y1="${g.a.z}" x2="${g.b.x}" y2="${g.b.z}" class="sp2d-guide-line" vector-effect="non-scaling-stroke"/>
-        <text x="${g.b.x + 8}" y="${g.b.z - 8}" class="sp2d-guide-label">${g.label}</text>
       `).join('');
     } else {
       guidesGroup.innerHTML = '';
@@ -206,14 +211,10 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     const drawState = gestures.getWallDrawState();
     if (drawState) {
       const s1 = drawState.start, s2 = drawState.current;
-      const distCm = Math.round(Math.hypot(s2.x - s1.x, s2.z - s1.z));
-      const mid = { x: (s1.x + s2.x) / 2, z: (s1.z + s2.z) / 2 };
       drawPreviewGroup.innerHTML = `
         <line x1="${s1.x}" y1="${s1.z}" x2="${s2.x}" y2="${s2.z}" class="sp2d-draw-line" vector-effect="non-scaling-stroke"/>
         <circle cx="${s1.x}" cy="${s1.z}" r="5" class="sp2d-draw-node" vector-effect="non-scaling-stroke"/>
         <circle cx="${s2.x}" cy="${s2.z}" r="5" class="sp2d-draw-node" vector-effect="non-scaling-stroke"/>
-        <rect x="${mid.x - 30}" y="${mid.z - 12}" width="60" height="24" rx="4" class="sp2d-draw-tag-bg" vector-effect="non-scaling-stroke"/>
-        <text x="${mid.x}" y="${mid.z + 4}" class="sp2d-draw-tag-text">${distCm} cm</text>
       `;
     } else {
       drawPreviewGroup.innerHTML = '';
@@ -242,15 +243,42 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     } else {
       pillEl.hidden = true;
     }
+
+    const viewport = svg.getBoundingClientRect();
+    const controls = [$('#view-modes'), $('#topright'), $('#toolbar'), $('#left'),
+      root.querySelector('.sp2d-floating-toolbar'), root.querySelector('.studio-format-seg'), pillEl,
+      ...svg.querySelectorAll('.sp2d-compass,.sp2d-scale-bar')];
+    // The format selector is a child of the editing tabs, outside the planner root.
+    controls.push($('#view-modes').querySelector('.studio-format-seg'));
+    const exclusions: LabelRect[] = controls.flatMap(control => {
+      if (!control) return [];
+      const style = root.ownerDocument.defaultView?.getComputedStyle(control);
+      if (style?.display === 'none' || style?.visibility === 'hidden' || style?.opacity === '0') return [];
+      const r = control.getBoundingClientRect();
+      return r.width && r.height ? [{ x: r.left - viewport.left, y: r.top - viewport.top, width: r.width, height: r.height }] : [];
+    });
+    const markup = renderPlanLabels(layoutPlanLabels({ studio: studio ?? null, wardrobes: model.scene.wardrobes,
+      transform, selection: sel, guides, drawing: drawState, exclusions,
+      ...(textMeasure ? { measureText: (text: string) => textMeasure.measureText(text).width } : {}),
+    }));
+    if (textLabels.innerHTML !== markup) textLabels.innerHTML = markup;
   }
 
+  let editingDimension = false;
   listen(svg, 'pointerdown', (e: Event) => {
     const pointer = e as PointerEvent;
+    editingDimension = !!(e.target as Element).closest('[data-edit-wall]');
     if (gestures.onPointerDown(pointer, svg)) svg.setPointerCapture(pointer.pointerId);
   });
   listen(svg, 'pointermove', (e: Event) => gestures.onPointerMove(e as PointerEvent, svg));
-  listen(svg, 'pointerup', (e: Event) => gestures.onPointerUp(e as PointerEvent));
+  listen(svg, 'pointerup', (e: Event) => {
+    gestures.onPointerUp(e as PointerEvent);
+    // Opening a dimension editor is not a background tap that dismisses the sheet.
+    if (editingDimension) e.stopPropagation();
+    editingDimension = false;
+  });
   listen(svg, 'pointercancel', (e: Event) => {
+    editingDimension = false;
     gestures.onPointerUp(e as PointerEvent, true);
     gestures.clearWallActionTarget();
   });
@@ -292,6 +320,14 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   });
 
   listen(window, 'blur', () => gestures.onPointerUp(undefined, true));
+
+  // Panels and toolbars can resize without a window resize (including animated mobile sheets).
+  if (typeof ResizeObserver !== 'undefined') {
+    const resize = new ResizeObserver(() => {
+      if (selectionState.studioView === '2d') render();
+    });
+    for (const target of [svg, $('#view-modes'), $('#topright'), $('#toolbar')]) observe(resize, target);
+  }
 
   listen(window, 'resize', () => {
     if (selectionState.studioView === '2d') {

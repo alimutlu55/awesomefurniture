@@ -3,7 +3,6 @@ import { wallLine } from '../../domain/studio/studio';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { detectRooms, door2DPlan, wall2DPlan, window2DPlan, type Point2D } from '../../domain/studio/studio-plan';
 export type { Point2D };
-import { lengthText, unitSuffix } from './length-unit-state';
 import { openingNoun } from '../../domain/studio/wall-utilities';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
@@ -15,7 +14,6 @@ export interface ViewportTransform {
   readonly height: number;
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
 /** Converts scene coordinate (cm) to screen pixel in 2D viewport. */
 export function createTransform(t: ViewportTransform) {
@@ -44,23 +42,19 @@ export function buildDefsSvg(): string {
   `;
 }
 
-/** Renders enclosed room polygons with soft floor fill and area badge. */
+/** Room fill only; readable labels are laid out separately in screen space. */
 export function renderRooms(studio: Studio): string {
   const rooms = detectRooms(studio);
   const out: string[] = [];
   for (const r of rooms) {
     const pts = r.polygon.map(p => `${p.x},${p.z}`).join(' ');
     out.push(`<polygon points="${pts}" class="sp2d-room-fill"/>`);
-    out.push(`<g class="sp2d-room-badge" transform="translate(${r.centroid.x}, ${r.centroid.z})">
-      <rect x="-65" y="-22" width="130" height="44" rx="8" class="sp2d-badge-bg" vector-effect="non-scaling-stroke"/>
-      <text x="0" y="-4" class="sp2d-room-title">${esc(r.name)}</text>
-      <text x="0" y="14" class="sp2d-room-area">${r.areaM2.toFixed(1)} m²</text>
-    </g>`);
+
   }
   return out.join('');
 }
 
-/** Renders walls with solid thickness, mitres, and dimension lines. */
+/** Wall geometry only; dimensions live above the drawing in their own layer. */
 export function renderWalls(studio: Studio, selection: RoomSelection): string {
   const out: string[] = [];
   for (const w of studio.walls) {
@@ -73,20 +67,7 @@ export function renderWalls(studio: Studio, selection: RoomSelection): string {
     const pA = plan.faceFrom, pB = plan.faceTo;
     out.push(`<line x1="${pA.x}" y1="${pA.z}" x2="${pB.x}" y2="${pB.z}" class="sp2d-wall-face ${isSel ? 'selected' : ''}" data-wall-id="${w.id}" vector-effect="non-scaling-stroke"/>`);
 
-    const mid = { x: (pA.x + pB.x) / 2, z: (pA.z + pB.z) / 2 };
-    const dx = pB.x - pA.x, dz = pB.z - pA.z, len = Math.hypot(dx, dz);
-    if (len > 30) {
-      const nx = len ? -dz / len : 0, nz = len ? dx / len : 0;
-      const off = 18;
-      const tx = mid.x + nx * off, tz = mid.z + nz * off;
-      const angle = (Math.atan2(dz, dx) * 180 / Math.PI + 360) % 180 - (Math.abs(dx) < Math.abs(dz) && dz < 0 ? 180 : 0);
-      const rot = Math.abs(angle) > 90 ? angle - 180 : angle;
-      const formatted = lengthText(plan.faceLength) + unitSuffix();
-      out.push(`<g class="sp2d-dim-badge" transform="translate(${tx}, ${tz}) rotate(${rot})" data-edit-wall="${w.id}">
-        <rect x="-35" y="-10" width="70" height="20" rx="4" class="sp2d-dim-bg" vector-effect="non-scaling-stroke"/>
-        <text x="0" y="4" class="sp2d-dim-text">${esc(formatted)}</text>
-      </g>`);
-    }
+
   }
   return out.join('');
 }
