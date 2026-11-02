@@ -3,7 +3,7 @@ import { automaticInstallationParts } from '../kitchen/automatic-installation';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import type { Studio, StudioWall } from '../studio/studio';
 import { wallFace, wallLine } from '../studio/studio';
-import { wallAgainst } from '../studio/scene-gaps';
+import { gapsAround, wallAgainst } from '../studio/scene-gaps';
 import { furnitureModule, isKitchen } from '../furniture/furniture';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 
@@ -29,6 +29,8 @@ export interface PlacedPiece extends DrawingPiece {
   readonly hung: boolean;
   /** A sink or hob standing on a worktop, or a shelf: not a cabinet. */
   readonly fixture: 'sink' | 'hob' | 'shelf' | undefined;
+  /** Room beside its left and right sides (as you face it) to the nearest wall or other piece; Infinity: none near. */
+  readonly sides: { readonly left: number; readonly right: number };
 }
 
 /** A wall as the drawings read it: its line, room face and openings. */
@@ -50,7 +52,7 @@ export function placePieces({ studio, pieces }: DrawingInput): PlacedPiece[] {
     const fixture = isKitchen(p.design) ? kitchenUnit(p.design.unit).fixture : undefined;
     const hung = p.y > .5 && fixture !== 'sink' && fixture !== 'hob';
     return { ...p, wall: against?.id ?? null, lo: (against?.t ?? 0) - p.design.w / 2, hi: (against?.t ?? 0) + p.design.w / 2,
-      off: Math.max(0, against?.dist ?? 0), hung, fixture, mark: '' };
+      off: Math.max(0, against?.dist ?? 0), hung, fixture, mark: '', sides: { left: Infinity, right: Infinity } };
   });
   // An attached pane uses its owner's wall datum even when it extends beyond the wall end.
   // Keeping that real negative/overrun coordinate makes a missing installation allowance visible.
@@ -62,6 +64,12 @@ export function placePieces({ studio, pieces }: DrawingInput): PlacedPiece[] {
       p.wall = wall!.id; p.lo = t - p.design.w / 2; p.hi = t + p.design.w / 2;
       p.off = Math.max(0, (p.x - g.face.from.x) * g.line.nx + (p.z - g.face.from.z) * g.line.nz - p.design.d / 2);
     }
+  }
+  // What stands beside each piece: a wall or another piece (its own attached panels are part of it).
+  const boxes = placed.map(p => ({ id: p.id, x: p.x, z: p.z, y: p.y, angle: p.angle, w: p.design.w, d: p.design.d, h: p.design.h, owner: p.attachedTo ?? p.id }));
+  for (const p of placed) {
+    const own = p.attachedTo ?? p.id, gaps = gapsAround(boxes.find(b => b.id === p.id)!, boxes.filter(b => b.owner !== own), studio, ['left', 'right']);
+    p.sides = { left: gaps.find(g => g.side === 'left')?.distance ?? Infinity, right: gaps.find(g => g.side === 'right')?.distance ?? Infinity };
   }
   const order = (p: typeof placed[number]) => p.wall === null ? walls.length : walls.findIndex(w => w.id === p.wall);
   placed.sort((a, b) => order(a) - order(b) || a.lo - b.lo || Number(a.hung) - Number(b.hung));

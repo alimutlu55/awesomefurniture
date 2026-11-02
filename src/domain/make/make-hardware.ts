@@ -9,7 +9,7 @@ import { getDecor } from '../materials/decor-catalog';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
-import { hinge as hingeOf, hingeStations } from '../wardrobe/hinges';
+import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import type { Fitting, Hole } from './make-joints';
 import { thinAxis, type Vec3 } from './make-measures';
 
@@ -96,9 +96,9 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const hinge = f.hinge ?? 'left', edgeX = hinge === 'left' ? b.x0 : b.x1, { left, right } = uprightsAround(boards, hinge === 'left' ? edgeX + 3 : edgeX - 3, b.y0 + 10, h);
       // Under a slope the upright it hangs from can end below the door's top: hinges go along what they share.
       const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
-      // The hinge kind set for the leaf, else a glass door's clamp hinge (nothing drilled in the glass), else the standard
-      // one: its cup in the door and its plate's two screws on the upright, a pitch apart on its System 32 line.
-      const kind = hingeOf(f.hingeKind ?? (glass(b) ? 'glass' : undefined)), { plate } = kind, pitch = plate.pitch / 10;
+      // The leaf's hinge (hingeFor: set, glass clamp, zero-protrusion, wide by a wall, else standard): its cup in the door
+      // (none in glass) and its plate's two screws on the upright, a pitch apart on its System 32 line.
+      const kind = hingeOf(hingeFor(f, design, glass(b), piece.sides)), { plate } = kind, pitch = plate.pitch / 10;
       const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - plate.line / 10 : 0;
       // A partition with doors hinged on both faces (a pair either side of it): a plate whose screws would meet the other
       // face's, or a connector, inside the board steps one System 32 pitch along it.

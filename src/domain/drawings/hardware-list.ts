@@ -3,7 +3,7 @@ import { plinthOf } from '../wardrobe/carcass';
 import { resolveMaterials } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
 import { drawerExtension } from '../wardrobe/drawer-runners';
-import { hinge, hingesFor } from '../wardrobe/hinges';
+import { hinge, hingeFor, hingesFor } from '../wardrobe/hinges';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
@@ -46,7 +46,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
       if (f.opens === 'side' && !f.label) {
-        const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', kind = hinge(f.hingeKind ?? (glass ? 'glass' : undefined));
+        const glass = getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', kind = hinge(hingeFor(f, d, glass, p.sides));
         add(p, kind.name, kind.cup ? kind.cup.d + ' mm cup' : 'compatible with frame/carrier; no cup drilling in glass', hingesFor(mm(doorHeight(f, boards))));
       }
       if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);

@@ -9,6 +9,8 @@
  *
  * TO ADD A HINGE KIND: append one entry and run `npm test`; tests/architecture/hinges.test.ts walks it everywhere.
  */
+import { hasTrait } from './fittings';
+import type { EditorDesign } from './editor-design';
 
 /** Where hinge values come from, shown wherever a person reads them. */
 export const HINGE_SOURCE = 'common practice; check the maker\'s template';
@@ -53,6 +55,26 @@ export type HingeKind = typeof HINGES[number]['key'];
 export const HINGE_KINDS = HINGES.map(h => h.key) as readonly HingeKind[];
 export const DEFAULT_HINGE: HingeKind = 'standard';
 export const hinge = (key: string | undefined): HingeDef => (HINGES as readonly HingeDef[]).find(h => h.key === key) ?? HINGES[0];
+
+/** Room beside a cabinet's left and right sides (as you face it) to the nearest wall or other piece. Centimetres. */
+export interface SideRoom { readonly left: number; readonly right: number }
+/** A door hinged at a cabinet's end with less room than this beside it opens wider, so it clears the wall or piece. Cm. */
+export const TIGHT_SIDE = 10;
+
+/**
+ * The hinge a door leaf hangs on: the kind set for it; a glass door's clamp hinge; a zero-protrusion hinge when its bay
+ * holds something that pulls out (drawers and pull-outs must slide past the open door); a 155° hinge when it hinges at
+ * the cabinet's end with less than TIGHT_SIDE beside it; else the standard 110°. `leaf.bay` is a wardrobe door's bay.
+ */
+export function hingeFor(leaf: { readonly hingeKind?: string | undefined; readonly hinge?: 'left' | 'right' | undefined; readonly bay?: number | undefined; readonly x0: number; readonly x1: number },
+  design: Pick<EditorDesign, 'w' | 'secs'>, glass: boolean, room?: SideRoom): HingeKind {
+  if (leaf.hingeKind && HINGE_KINDS.includes(leaf.hingeKind as HingeKind)) return leaf.hingeKind as HingeKind;
+  if (glass) return 'glass';
+  if (leaf.bay !== undefined && design.secs[leaf.bay]?.some(it => hasTrait(it.k, 'pullout'))) return 'zero';
+  const side = leaf.hinge ?? 'left', atEnd = side === 'left' ? leaf.x0 < 2 : leaf.x1 > design.w - 2;
+  if (room && atEnd && room[side] < TIGHT_SIDE) return 'wide';
+  return DEFAULT_HINGE;
+}
 
 /** Concealed hinges by a door's height (mm), as common practice advises: up to 900 mm two, to 1600 three, to 2000 four,
  * above five. */
