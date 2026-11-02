@@ -1,5 +1,5 @@
 import { resolveMaterials } from '../../domain/materials/configured-materials';
-import { Group, MeshBasicMaterial } from 'three';
+import { BufferGeometry, Group, LineBasicMaterial, LineLoop, MeshBasicMaterial, Vector3 } from 'three';
 import type { Material, Object3D } from 'three';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { BoxBuilder, PrismBuilder } from './frame-geometry';
@@ -30,6 +30,11 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         if (!m) { m = createDecorMaterial(resources, getDecor(id)); own.set(id, m); ((group.userData.ownedMaterials ??= []) as Material[]).push(m); }
         return m;
     };
+    // The reveal round each leaf as it reads: the leaf's banded front edge in shadow. A line is a pixel wide at any
+    // distance, so the gap between leaves (2 to 4 mm, under a pixel at the default framing) shows as an unbroken dark
+    // line by day and by night instead of flickering in and out between pixels.
+    const reveal = new LineBasicMaterial({ color: 0x0c0907, transparent: true, opacity: .8 });
+    ((group.userData.ownedMaterials ??= []) as Material[]).push(reveal);
     cabinetDoorLeaves(design, widths).forEach(area => {
         const w = area.x1 - area.x0, left = area.hinge === 'left', pivot = new Group();
         const ax = area.x0, top = doorTop(design, ax, area.x1).map(p => ({ x: p.x - ax, y: Math.min(p.y, area.y1) }));
@@ -40,6 +45,9 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         const t = leafThickness(design, area), face = leafMaterial(area.decorId);
         build(outline, t, 0, face, pivot);
         decorateFront(outline, t, 0, face, pivot);
+        const edge = new LineLoop(new BufferGeometry().setFromPoints(outline.map(p => new Vector3(p.x, p.y, t / 2 + .02))), reveal);
+        edge.userData.reveal = true;
+        pivot.add(edge);
         pivot.userData.leaf = leafKey(area.bay, area.row, area.leaf);
         pivot.userData.bay = area.bay;
         if (pivot.userData.leaf === chosen) {
