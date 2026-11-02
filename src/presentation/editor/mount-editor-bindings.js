@@ -2,6 +2,7 @@ import { takeMobilePanel } from './mobile-panel-owner.js';
 import { bindTactileCanvas } from './tactile-canvas';
 import { animateMobileSheetClose } from './mobile-sheet-motion.js';
 import { createContextualToolbar } from './contextual-toolbar.js';
+import { leafAction, leafContext } from './leaf-actions';
 import { createViewModes } from './view-modes';
 import { createStudio2DPlanner } from './studio-2d-planner';
 import { bindSceneReset } from './scene-reset';
@@ -305,7 +306,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
             if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'room-fixture' : selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
-            return state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : installationKind(state) ? 'installation' : isFixture(state) ? 'fixture' : furnitureKind(state);
+            return leafContext(selectionState, model) ?? (state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : installationKind(state) ? 'installation' : isFixture(state) ? 'fixture' : furnitureKind(state));
         },
         replacements: () => { const state = model.activeCabinet().state, module = furnitureModule(state);
             return Object.entries(MODS).filter(([key]) => key !== 'void' && module.allows(key, state)).map(([key,value]) => ['t-' + key,value.n]); },
@@ -383,7 +384,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 else if (state.item >= 0) inspector.itemAction('del');
                 else $('#remove-wardrobe').click();
             } else if (key === 'reset') $('#reset-all').click();
-            else openControls(key);
+            else if (!leafAction(key, { selectionState, model, commands, openControls, $ })) openControls(key);
         }
     });
     $('#menu-btn').innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></svg>';

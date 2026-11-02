@@ -1,4 +1,5 @@
 import { FURNITURE } from '../furniture/furniture';
+import { MAX_LEAVES } from './front-styles';
 /** Selection-specific editing commands, independent of DOM and viewport layout. */
 /** Furniture tools act on the selected piece. Moving needs no tool: drag the furniture, item or divider. */
 /** @param {import('../furniture/furniture').FurnitureModule} module */
@@ -21,6 +22,8 @@ const actions = {
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
+    // A chosen door leaf: the side it hangs on, how many leaves its opening has, and the handle (the design's one choice).
+    leaf: [['leaf-hinge', 'Hinge side', 'Hang on the other side'], ['leaf-leaves', 'Leaves', 'Leaves in this opening'], ['leaf-handle', 'Handle']],
     // Size contains the wall's outline editor and dimension controls.
     wall: [['new', 'Add', 'Add to wall'], ['wall-size', 'Size'], ['wall-paint', 'Paint / Finish'], ['more', 'More']],
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
@@ -38,6 +41,8 @@ export const studioMoreActions = [];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
 export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
 export const itemMoreActions = [['stores', 'Stores']];
+/** A chosen leaf's Leaves menu: its opening split into one leaf up to MAX_LEAVES. */
+export const leafCountActions = Array.from({ length: MAX_LEAVES }, (_, n) => ['leaves-' + (n + 1), n ? n + 1 + ' leaves' : '1 leaf']);
 /** Make's View menu: the camera squared on the piece, how its boards look, and part numbers beside it. */
 export const makeViewActions = [['view-iso', '3D'], ['view-front', 'Front'], ['view-side', 'Side'], ['view-top', 'Top'],
     ['look-lines', 'Lines'], ['look-material', 'Material'], ['look-xray', 'X-ray'], ['make-open', 'Open doors'], ['make-numbers', 'Part numbers'], ['make-apart', 'Take apart']];
