@@ -84,7 +84,7 @@ export function makePiece(input: DrawingInput, id: number): MakePiece | null {
   const cut = pieceBoards(piece, pieces);
   if (!cut.length) return null;
   const boards = [...cut, ...drawerBoxes(piece, cut)], construction = constructionOf(piece.design);
-  const joints = jointFittings(boards, findJoints(boards), construction), back = backFixing(boards, construction), hardware = frontHardware(piece, pieces, boards);
+  const joints = jointFittings(boards, findJoints(boards), construction), back = backFixing(boards, construction), hardware = frontHardware(piece, pieces, boards, joints.holes);
   // Hardware's holes name its fittings from 0: they follow the joints' and the back's in the one list.
   const shift = joints.fittings.length + back.fittings.length;
   const holes = [...joints.holes, ...hardware.holes.map(h => h.of === undefined ? h : { ...h, of: h.of + shift })];

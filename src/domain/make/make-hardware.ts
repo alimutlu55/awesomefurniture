@@ -28,14 +28,15 @@ const CUP = 2.25, PLATE_PITCH = 3.2, RUNNER_CLEARANCE = 1.25;
 const PITCH = 3.2, RUNNER_SCREW = { d: 5, depth: 12 } as const;
 
 /** Whether a hole drilled into an upright's face at `at` (going in along x, `sign` the way it faces out) is in another
- * hole's way: one on the same face less than 2 mm from it (a hinge plate's), or one from the other face that it would
- * meet, their circles overlapping and together deeper than the board less 1 mm. */
+ * hole's way: one on the same face less than 2 mm from it (a hinge plate's), one right through the board (a connector's,
+ * on both faces), or one from the other face that it would meet, their circles overlapping and together deeper than
+ * the board less 1 mm. */
 function inTheWay(holes: readonly Hole[], post: { b: Board; i: number }, at: Vec3, sign: 1 | -1, hole: { d: number; depth: number }) {
   const thick = (post.b.x1 - post.b.x0) * 10;
   return holes.some(h => {
     if (h.board !== post.i || h.axis !== 0) return false;
     const reach = Math.hypot(h.at[1] - at[1], h.at[2] - at[2]) * 10 - (h.d + hole.d) / 2;
-    return h.sign === sign ? reach < 2 : h.depth > 0 && reach < 0 && h.depth + hole.depth > thick - 1;
+    return h.sign === sign || h.depth === 0 ? reach < 2 : h.depth > 0 && reach < 0 && h.depth + hole.depth > thick - 1;
   });
 }
 
@@ -87,8 +88,9 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
   return out;
 }
 
-/** Hinges, runners, shelf pins and handles, with the holes each needs, and the rails, legs, hangers and wall brackets. */
-export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]) {
+/** Hinges, runners, shelf pins and handles, with the holes each needs, and the rails, legs, hangers and wall brackets.
+ * `drilled`: the holes the joints already have, which runner screws keep clear of. */
+export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[], drilled: readonly Hole[] = []) {
   const { design } = piece, holes: Hole[] = [], fittings: Fitting[] = [], h = design.h, kitchen = isKitchen(design);
   const { fronts, inside } = piecefronts(design, cornerFaceWidths(piece, pieces)), handles = resolveMaterials(design).handleFinish !== 'handleless_tip_on';
   // Glass and mirror doors hang on their own hinges, clamped to the glass: nothing is drilled in them.
@@ -136,7 +138,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
       // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
       // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else one forward.
-      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay(holes, post, [face, y, z], sign, RUNNER_SCREW);
+      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay([...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
       const slots = [0, 1, 2, 3].map(k => z - k * PITCH).filter(s => s >= post.b.z0 + 2);
       holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z + PITCH], axis: 0, sign, ...RUNNER_SCREW, of });
     }

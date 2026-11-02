@@ -4,18 +4,17 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const {execFileSync}=require('node:child_process');
 const BASE=process.env.MOBILE_TEST_URL || 'http://127.0.0.1:5173';
-// A hand-made design the drilling check finds fault with (a runner screw over a connector on a partition), sent to the
-// editor as a share link built by the app's own code.
+// A hand-made design the drilling check finds fault with (a drawer's runner screwed to a short divider, 0.5 mm off its
+// top edge), sent to the editor as a share link built by the app's own code.
 const findingLink=()=>execFileSync(process.execPath,['--import','tsx','--input-type=module','-e',`
  import { buildFromSpec } from './src/application/spec/build-from-spec.ts';
  import { projectToScene } from './src/application/projects/editor-mapper.ts';
  import { designLink } from './src/app/design-link.ts';
- const built = buildFromSpec({ specVersion: 1, wardrobes: [{ width: 126, height: 230, depth: 60, autoDesign: false }] }, 'drilling');
+ const built = buildFromSpec({ specVersion: 1, wardrobes: [{ width: 154, height: 230, depth: 56, autoDesign: false }] }, 'drilling');
  const scene = projectToScene(built.project), w = scene.wardrobes[0];
- Object.assign(w.state, { n: 3, wt: [1, 1, 1, 1, 1, 1], doors: 'hinged', secs: [
-  [{ k: 'folded', h: 20 }, { k: 'folded', h: 31 }, { k: 'sdrawer', h: 28 }],
-  [{ k: 'sdrawer', h: 15 }, { k: 'drawer', h: 27 }, { k: 'drawer', h: 16 }],
-  [{ k: 'shelf', h: 13 }, { k: 'shelf', h: 27 }, { k: 'sdrawer', h: 29 }], [], [], []] });
+ Object.assign(w.state, { n: 2, wt: [1, 1, 1, 1, 1, 1], doors: 'none', construction: { joints: 'dowel', back: 'grooved' },
+  dividers: [{ i: 0, orientation: 'vertical', x: 59, y0: 0, y1: 60 }], secs: [
+  [{ k: 'shoe', h: 14 }, { k: 'basket', h: 40 }, { k: 'drawer', h: 12 }], [{ k: 'folded', h: 30 }, { k: 'shelf', h: 40 }, { k: 'long', h: 13 }], [], [], [], []] });
  process.stdout.write(await designLink(scene, ${JSON.stringify(BASE+'/editor.html')}));`],{encoding:'utf8'});
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});

@@ -272,3 +272,12 @@ test('every welcome space opens in Make with no drilling finding', () => {
     assert.deepEqual(drillingFindings(hinged), [], name + ', hinged doors');
   }
 });
+
+test('a runner screw never lands on a shelf connector, in hand-made layouts too', () => {
+  // Shelves joined by connectors through a partition, and drawers on runners screwed to the same partition.
+  const design: EditorDesign = { ...createInitialDesign(), w: 126, n: 3, wt: [1, 1, 1, 1, 1, 1], doors: 'hinged', secs: [
+    [{ k: 'folded', h: 20 }, { k: 'folded', h: 31 }, { k: 'sdrawer', h: 28 }],
+    [{ k: 'sdrawer', h: 15 }, { k: 'drawer', h: 27 }, { k: 'drawer', h: 16 }],
+    [{ k: 'shelf', h: 13 }, { k: 'shelf', h: 27 }, { k: 'sdrawer', h: 29 }], [], [], []] };
+  assert.deepEqual(piece(design).findings.map(f => f.kind + ' ' + f.gap), []);
+});
