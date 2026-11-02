@@ -42,9 +42,24 @@ test('adjoining wall height aligns corners, edges, whole shapes and typed sizes 
   const { room, s } = fixture(), levels = { ...s.context, points: neighbourPoints(room, s, []) };
   const points = s.points.map(p => ({ ...p, y: p.y ? 220 : 0 }));
   assert.equal(snapCorner(points, 2, { x: points[2]!.x, y: 229.95 }, s.bounds, levels, 1, .1).at.y, 230);
-  assert.equal(snapCorner(points, 2, { x: points[2]!.x, y: 229.8 }, s.bounds, levels, 1, .1).at.y, 229.8);
+  assert.equal(snapCorner(points, 2, { x: points[2]!.x, y: 229 }, s.bounds, levels, 1, .1).at.y, 230);
+  assert.equal(snapCorner(points, 2, { x: points[2]!.x, y: 228.9 }, s.bounds, levels, 1, .1).at.y, 228.9);
   assert.ok(Math.abs(snapSlide(points, 2, 9.95, s.bounds, levels, 1, .1).d - 10) < 1e-6);
   assert.equal(snapMove(points, 0, 9.95, s.bounds, levels, 1, .1).dy, 10);
   assert.equal(autoProfileValue(229.95, v => applyShapeField(s, points, null, 'height', v), s.bounds, levels), 230);
   assert.ok(profileSmartGuides(points.map(p => ({ ...p, y: p.y ? 230 : 0 })), s.bounds, levels, 1).some(g => g.a.y === 230 && g.b.y === 230));
+});
+
+
+test('10 mm size snapping catches from either side and releases beyond the threshold at every zoom', () => {
+  const { room, s } = fixture(), levels = { ...s.context, points: neighbourPoints(room, s, []) };
+  const points = s.points.map(p => ({ ...p, y: p.y ? 220 : 0 }));
+  for (const px of [.01, .1, 1, 10]) for (const delta of [-1, -.5, .5, 1, -1.1, 1.1]) {
+    const caught = Math.abs(delta) <= 1, target = 230 + delta;
+    const expected = caught ? 230 : target;
+    assert.ok(Math.abs(snapCorner(points, 2, { x: points[2]!.x, y: target }, s.bounds, levels, px, .1).at.y - expected) < 1e-6);
+    assert.ok(Math.abs(snapSlide(points, 2, 10 + delta, s.bounds, levels, px, .1).d - (caught ? 10 : 10 + delta)) < 1e-6);
+    assert.ok(Math.abs(snapMove(points, 0, 10 + delta, s.bounds, levels, px, .1).dy - (caught ? 10 : 10 + delta)) < 1e-6);
+    assert.ok(Math.abs(autoProfileValue(target, v => applyShapeField(s, points, null, 'height', v), s.bounds, levels) - expected) < 1e-6);
+  }
 });
