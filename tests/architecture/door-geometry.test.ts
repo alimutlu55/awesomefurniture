@@ -93,14 +93,15 @@ function leafSizes(state: ReturnType<typeof doors>['state']) {
 test('reveal and overlay sizes agree in fronts, the cutting list and Make', () => {
   for (const fronts of [undefined, { reveal: 3 }, { overlay: 'half' }, { overlay: 'inset', reveal: 4 }] as (DesignFronts | undefined)[]) {
     const { state } = twoBays(fronts), sizes = leafSizes(state), what = JSON.stringify(fronts ?? 'default');
-    assert.equal(sizes.fronts.length, 2, what);
+    assert.equal(sizes.fronts.length, 4, what + ': a pair in each bay');
     assert.deepEqual(sizes.cut, sizes.fronts, what + ': cut boards');
     const widths = (rows: number[][]) => rows.map(r => Math.min(...r)).sort();
     assert.deepEqual(widths(sizes.list), [...sizes.fronts].sort(), what + ': cutting list');
     assert.deepEqual(widths(sizes.make), [...sizes.fronts].sort(), what + ': Make');
   }
   const inset = leafSizes(twoBays({ overlay: 'inset', reveal: 3 }).state);
-  assert.deepEqual(inset.fronts, [Math.round((bay - .6) * 10), Math.round((bay - .6) * 10)], 'inset leaves are the bay less a reveal each side');
+  const pair = Math.round((bay - .6 - .3) / 2 * 10);
+  assert.deepEqual(inset.fronts, [pair, pair, pair, pair], 'inset pairs share the bay less a reveal each side and one between');
 });
 
 test('inset doors close: no shelf, fitting board or drawer front reaches the door', () => {

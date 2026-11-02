@@ -2,7 +2,7 @@ import type { EditorDesign, EditorItem } from '../wardrobe/editor-design';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { interiorFloorOf, RAIL_DROP } from '../wardrobe/carcass';
-import { cabinetDoorAreas, doorHingeSide } from '../wardrobe/door-layout';
+import { cabinetDoorLeaves } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, shelfHeights } from '../kitchen/kitchen-fronts';
@@ -20,6 +20,8 @@ export interface Front extends Box {
   /** The appliance's own front (an oven): nothing is cut for it. */
   readonly own?: boolean | undefined;
   readonly installation?: boolean | undefined;
+  /** A wardrobe door: how many leaves hang side by side in its opening. */
+  readonly of?: number | undefined;
 }
 /** What is inside, behind the fronts: fittings and boards, rails, and a cupboard's shelves. */
 export interface Inside extends Box { readonly kind: 'box' | 'rail' | 'shelf' }
@@ -106,9 +108,9 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
     }
     bayL += sw + PANEL;
   });
-  // Wardrobe doors: each leaf hinged on the side nearer the wardrobe's end unless doorHang overrides it.
+  // Wardrobe doors: each opening's leaves (cabinetDoorLeaves), single leaves hinged nearer the wardrobe's end unless set.
   const covered = !kitchen && design.doors !== 'none';
-  if (covered) for (const a of cabinetDoorAreas(design, widths)) fronts.push({ ...a, opens: 'side', hinge: doorHingeSide(a, design), name: 'Door' });
+  if (covered) for (const a of cabinetDoorLeaves(design, widths)) fronts.push({ x0: a.x0, x1: a.x1, y0: a.y0, y1: a.y1, opens: 'side', hinge: a.hinge, name: 'Door', of: a.of });
   const installed = !kitchen || !faceWidths.some(s => s.strip || s.covered) ? fronts : fronts.flatMap(f => {
     if (f.installation) return [];
     return faceWidths.filter(s => !s.strip).flatMap(s => {

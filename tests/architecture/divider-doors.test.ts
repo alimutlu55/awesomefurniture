@@ -64,6 +64,7 @@ test('roof-clamped dividers still split doors under slopes and rear ceiling cons
 test('hinged and glass leaves render separately, with opposing hinges and working open state', () => {
     const s = design(), widths = sectionWidths(s), material = new MeshBasicMaterial();
     s.dividers = [{ i: 0, orientation: 'vertical', x: widths[0]! / 2, y0: 0, y1: 300 }];
+    s.fronts = { leaves: { '0.0': { leaves: 1 }, '0.1': { leaves: 1 } } };
     const box = (w: number, h: number, d: number, x: number, y: number, z: number, m: MeshBasicMaterial, g?: Group) => {
         const mesh = new Mesh(new BoxGeometry(w, h, d), m); mesh.position.set(x, y, z); g?.add(mesh); return mesh;
     };

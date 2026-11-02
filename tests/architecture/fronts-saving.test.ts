@@ -76,7 +76,7 @@ test('fronts · unknown values are refused with a clear error', () => {
   assert.match(bad({ style: 'shaker', overlay: 'half' }), /shaker front cannot be hung half: use full, inset/);
   assert.match(bad({ leaves: { '4.0': { leaves: 2 } } }), /no bay 4/);
   assert.match(bad({ leaves: { left: {} } }), /"left" is not a door opening/);
-  assert.match(bad({ leaves: { '0.0': { leaves: 9 } } }), /1 to 4 leaves/);
+  assert.match(bad({ leaves: { '0.0': { leaves: 9 } } }), /1 to 2 leaves/);
   assert.match(bad({ leaves: { '0.0.1': { leaves: 2 } } }), /on the opening \(0\.0\)/);
   assert.match(bad({ colour: 'red' }), /colour/);
 });

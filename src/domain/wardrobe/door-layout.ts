@@ -3,7 +3,7 @@ import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
 import { DOOR, fittingDepth } from './carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
-import { frontOverlay, resolveFronts } from './front-styles';
+import { MAX_LEAVES, frontOverlay, leafKey, resolveFronts } from './front-styles';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
 export const DOOR_LIMITS = { width: 60, height: 240 } as const;
@@ -48,6 +48,10 @@ export function doorTop(design: EditorDesign, x0: number, x1: number): { x: numb
 /** Front coordinates, measured from the left outer face and the floor.
  * An infinite cap means the leaf follows the outer roof profile. */
 export interface DoorArea { x0: number; x1: number; y0: number; y1: number }
+/** A door opening: its bay (from the left) and row (its place in the bay, from the bottom, then from the left). */
+export interface DoorOpening extends DoorArea { bay: number; row: number }
+/** One leaf hung in an opening: which of how many it is (from the left), and the side it hinges on. */
+export interface DoorLeaf extends DoorOpening { leaf: number; of: number; hinge: 'left' | 'right' }
 export type DoorHang = 'auto' | 'left' | 'right';
 
 /** Which side a wardrobe door leaf hinges on: the cabinet's chosen hang ('left' puts the handle on the right;
@@ -61,15 +65,15 @@ export function doorHingeSide(area: Pick<DoorArea, 'x0' | 'x1'>, design: Pick<Ed
  * fittings do not, and a free-standing partial divider cannot support a seam.
  * Clear bounds follow board faces; front bounds meet at board centre lines (partitions between bays included) and
  * stop half a reveal inside the outer faces. */
-export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]): DoorArea[] {
-    const pieces = ceilingPieces(resolveShape(design)), result: DoorArea[] = [], fit = doorFit(design);
+export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]): DoorOpening[] {
+    const pieces = ceilingPieces(resolveShape(design)), result: DoorOpening[] = [], fit = doorFit(design);
     // Where a leaf edge stands from a board: inside an outer face by what the overlay leaves showing and half a reveal
     // (a whole reveal from an inset leaf to the board); either side of a board between two leaves by half a reveal from
     // its centre line (a whole reveal from its face when inset).
     const outer = fit.showing + (fit.inset ? fit.reveal : fit.reveal / 2), seam = fit.inset ? PANEL / 2 + fit.reveal : fit.reveal / 2;
     let origin = PANEL;
     widths.forEach((width, section) => {
-        const boards = design.dividers.filter(d => d.i === section);
+        const boards = design.dividers.filter(d => d.i === section), bay: DoorArea[] = [];
         type Clear = { x0: number; x1: number; y0: number; y1: number };
         const visit = (clear: Clear, front: DoorArea, remaining: typeof boards): void => {
             const index = remaining.findIndex(d => {
@@ -84,7 +88,7 @@ export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]
                 return d.x - PANEL / 2 > clear.x0 + .02 && d.x + PANEL / 2 < clear.x1 - .02
                     && d.y0 <= clear.y0 + .02 && (d.want ?? d.y1) >= Math.min(clear.y1, roof) - .02;
             });
-            if (index < 0) { result.push(front); return; }
+            if (index < 0) { bay.push(front); return; }
             const board = remaining[index]!, rest = remaining.filter((_, i) => i !== index);
             if (board.orientation === 'vertical') {
                 const x = board.x!, at = origin + x;
@@ -99,7 +103,34 @@ export function cabinetDoorAreas(design: EditorDesign, widths: readonly number[]
         // A leaf covers the outer sides (as its overlay says) and half of each partition: neighbours meet on its centre line.
         const x0 = section === 0 ? outer : origin - PANEL / 2 + seam, x1 = section === widths.length - 1 ? origin + width + PANEL - outer : origin + width + PANEL / 2 - seam;
         visit({ x0: 0, x1: width, y0: 0, y1: Infinity }, { x0, x1, y0: PLINTH + fit.showing + fit.reveal, y1: Infinity }, boards);
+        bay.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0).forEach((area, row) => result.push({ ...area, bay: section, row }));
         origin += width + PANEL;
     });
     return result;
+}
+
+/** How many leaves an opening `width` wide gets (D8): the fewest equal leaves, a reveal apart, each within DOOR_LIMITS,
+ * and at most MAX_LEAVES so every leaf hinges on a board (a wider opening needs a partition: the leaf-size rule says so).
+ * Centimetres. */
+export function autoLeafCount(width: number, reveal: number): number {
+    let n = 1;
+    while (n < MAX_LEAVES && (width - (n - 1) * reveal) / n > DOOR_LIMITS.width + 1e-9) n++;
+    return n;
+}
+
+/** The leaves hung in a cabinet's door openings: each opening split into its leaf count (set per opening in its fronts,
+ * else automatic), equal leaves a reveal apart. A single leaf hinges as set, or as the cabinet hangs its doors
+ * (doorHingeSide); a pair hinges outward and meets in the middle, so the handles meet there too. */
+export function cabinetDoorLeaves(design: EditorDesign, widths: readonly number[]): DoorLeaf[] {
+    const fit = doorFit(design), { leaves: settings } = resolveFronts(design);
+    return cabinetDoorAreas(design, widths).flatMap(opening => {
+        const key = leafKey(opening.bay, opening.row), width = opening.x1 - opening.x0;
+        const of = settings[key]?.leaves ?? autoLeafCount(width, fit.reveal), each = (width - (of - 1) * fit.reveal) / of;
+        return Array.from({ length: of }, (_, leaf): DoorLeaf => {
+            const x0 = opening.x0 + leaf * (each + fit.reveal), x1 = leaf === of - 1 ? opening.x1 : x0 + each;
+            const set = settings[leafKey(opening.bay, opening.row, leaf)]?.hinge ?? (of === 1 ? settings[key]?.hinge : undefined);
+            const hinge = set ?? (of === 1 ? doorHingeSide(opening, design) : leaf < of / 2 ? 'left' : 'right');
+            return { ...opening, x0, x1, leaf, of, hinge };
+        });
+    });
 }

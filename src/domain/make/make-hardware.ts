@@ -103,12 +103,16 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const hinge = f.hinge ?? 'left', edgeX = hinge === 'left' ? b.x0 : b.x1, { left, right } = uprightsAround(boards, hinge === 'left' ? edgeX + 3 : edgeX - 3, b.y0 + 10, h);
       // Under a slope the upright it hangs from can end below the door's top: hinges go along what they share.
       const post = hinge === 'left' ? left : right, edgeTop = Math.min(b.y1, post?.b.y1 ?? b.y1);
+      const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - SYSTEM_LINE : 0;
+      // A partition with doors hinged on both faces (a pair either side of it): a plate whose screws would meet the other
+      // face's, or a connector, inside the board steps one System 32 pitch along it.
+      const clear = (y: number) => !post || [-PLATE_PITCH / 2, PLATE_PITCH / 2].every(dy => !inTheWay([...drilled, ...holes], post, [face, y + dy, z], sign, { d: 5, depth: 12 }));
       for (const s of hingeStations(edgeTop - b.y0)) {
-        const y = b.y0 + s, cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0], clamped = glass(b);
+        const y = b.y0 + s + ([0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH].find(dy => clear(b.y0 + s + dy)) ?? 0);
+        const cup: Vec3 = [edgeX + (hinge === 'left' ? CUP : -CUP), y, b.z0], clamped = glass(b);
         if (!clamped) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: 35, depth: 13, of: fittings.length });
         fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: clamped ? 'glass' : '110°' });
         if (!post) continue;
-        const face = hinge === 'left' ? post.b.x1 : post.b.x0, sign = hinge === 'left' ? -1 : 1, z = post.b.z1 - SYSTEM_LINE;
         for (const dy of [-PLATE_PITCH / 2, PLATE_PITCH / 2]) holes.push({ board: post.i, kind: 'plate', at: [face, y + dy, z], axis: 0, sign, d: 5, depth: 12, of: fittings.length });
         fittings.push({ kind: 'plate', at: [face, y, z], axis: 0, boards: [post.i] });
       }

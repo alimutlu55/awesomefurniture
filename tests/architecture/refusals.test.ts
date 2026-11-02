@@ -17,15 +17,18 @@ const bays = (...secs: EditorItem[][]) => [...secs, ...Array.from({ length: 6 - 
 const shelves = (n: number, h = 30): EditorItem[] => Array.from({ length: n }, () => ({ k: 'shelf', h }));
 const long: EditorItem = { k: 'long', h: 160 }, short: EditorItem = { k: 'short', h: 100 }, lift: EditorItem = { k: 'lift', h: 100 };
 const drawers: EditorItem[] = [{ k: 'drawer', h: 20 }, { k: 'drawer', h: 20 }];
+/** One leaf set on the bottom opening of each listed bay, where the automatic layout would hang two. */
+const oneLeaf = (...bayIndexes: number[]): Partial<EditorDesign> => ({ fronts: { leaves: Object.fromEntries(bayIndexes.map(b => [b + '.0', { leaves: 1 }])) } });
 
 const BAD: [string, Partial<EditorDesign>, string[]][] = [
   // Wide and tall hinged leaves (D1).
-  ['one empty 120 cm bay behind hinged doors', { w: 120, n: 1, doors: 'hinged' }, ['leaf-width']],
-  ['two 989 mm doors on an empty 200 cm wardrobe', { w: 200, n: 2, wt: [1, 1], doors: 'hinged' }, ['leaf-width']],
-  ['a 70 cm bay behind glass doors', { w: 70, n: 1, doors: 'glass' }, ['leaf-width']],
-  ['three 78 cm bays behind hinged doors', { w: 240, n: 3, wt: [1, 1, 1], doors: 'hinged' }, ['leaf-width']],
+  ['one leaf set across an empty 120 cm bay', { w: 120, n: 1, doors: 'hinged', ...oneLeaf(0) }, ['leaf-width']],
+  ['two 999 mm leaves set on an empty 200 cm wardrobe', { w: 200, n: 2, wt: [1, 1], doors: 'hinged', ...oneLeaf(0, 1) }, ['leaf-width']],
+  ['one glass leaf set across a 70 cm bay', { w: 70, n: 1, doors: 'glass', ...oneLeaf(0) }, ['leaf-width']],
+  ['three 78 cm leaves set on three bays', { w: 240, n: 3, wt: [1, 1, 1], doors: 'hinged', ...oneLeaf(0, 1, 2) }, ['leaf-width']],
+  ['a 150 cm bay: two leaves are still too wide', { w: 150, n: 1, doors: 'hinged' }, ['leaf-width']],
   ['a 270 cm tall single leaf', { w: 60, h: 270, n: 1, doors: 'hinged' }, ['leaf-height']],
-  ['a 270 cm tall 100 cm bay: wide and tall', { w: 100, h: 270, n: 1, doors: 'hinged', secs: bays(shelves(2, 50)) }, ['leaf-height', 'leaf-width', 'shelf-span']],
+  ['a 270 cm tall 100 cm bay: wide and tall', { w: 100, h: 270, n: 1, doors: 'hinged', secs: bays(shelves(2, 50)), ...oneLeaf(0) }, ['leaf-height', 'leaf-width', 'shelf-span']],
   // Long shelves (D2).
   ['a 124 cm bay of three shelves', { w: 124, n: 1, secs: bays(shelves(3)) }, ['shelf-span']],
   ['a 100 cm bay with one shelf', { w: 100, n: 1, secs: bays(shelves(1)) }, ['shelf-span']],
@@ -41,9 +44,9 @@ const BAD: [string, Partial<EditorDesign>, string[]][] = [
   ['a 290 cm wardrobe with no partition', { w: 290, n: 1 }, ['stock-size']],
   ['a 260 cm wide frame with shelves and no partition', { w: 260, h: 220, n: 1, secs: bays(shelves(2)) }, ['shelf-span', 'stock-size']],
   // Combinations.
-  ['wide leaves over shallow hanging', { w: 80, d: 45, n: 1, doors: 'hinged', secs: bays([long]) }, ['hanging-depth', 'leaf-width']],
+  ['wide leaves over shallow hanging', { w: 80, d: 45, n: 1, doors: 'hinged', secs: bays([long]), ...oneLeaf(0) }, ['hanging-depth', 'leaf-width']],
   ['wide leaves over long shelves', { w: 124, n: 1, doors: 'hinged', secs: bays(shelves(3)) }, ['leaf-width', 'shelf-span']],
-  ['shallow hanging beside long shelves', { w: 160, d: 45, n: 2, wt: [40, 116.4], doors: 'hinged', secs: bays([long], shelves(3)) }, ['hanging-depth', 'leaf-width', 'shelf-span']],
+  ['shallow hanging beside long shelves', { w: 160, d: 45, n: 2, wt: [40, 116.4], doors: 'hinged', secs: bays([long], shelves(3)), ...oneLeaf(1) }, ['hanging-depth', 'leaf-width', 'shelf-span']],
   ['oversize, wide, tall and shallow at once', { w: 250, h: 270, d: 45, n: 1, doors: 'hinged', secs: bays([long]) }, ['hanging-depth', 'leaf-height', 'leaf-width', 'shelf-span', 'stock-size']],
 ];
 

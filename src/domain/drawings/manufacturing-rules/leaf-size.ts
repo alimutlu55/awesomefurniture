@@ -1,4 +1,5 @@
 import { DOOR_LIMITS } from '../../wardrobe/door-layout';
+import { MAX_LEAVES } from '../../wardrobe/front-styles';
 import { mm } from '../drawing';
 import { piecefronts, isFrontBoard } from '../fronts';
 import { cornerFaceWidths } from '../corner-widths';
@@ -28,7 +29,8 @@ export const leafSize: Rule = (_input, pieces) => {
         const { n, each } = split(measured, limit);
         out.push({ id: 'leaf-' + side + ':' + p.mark + ':' + board, severity: 'critical', area: 'assembly', marks: [p.mark],
           message: p.mark + ' ' + b.name + ' is ' + measured + ' mm' + word, rule: 'A hinged leaf is at most ' + limit + ' mm' + word,
-          limit, measured, fix: 'Split into ' + n + ' leaves of ' + each + ' mm' + (side === 'height' ? ' high' : ''), at: { mark: p.mark, board } });
+          // An opening hangs at most MAX_LEAVES leaves side by side, each on a board: a wider one needs a partition.
+          limit, measured, fix: side === 'width' && n * (f.of ?? 1) > MAX_LEAVES ? 'Add a partition' : 'Split into ' + n + ' leaves of ' + each + ' mm' + (side === 'height' ? ' high' : ''), at: { mark: p.mark, board } });
       }
     }
   }

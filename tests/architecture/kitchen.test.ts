@@ -213,7 +213,7 @@ test('door and handle side · wardrobe doorHang and kitchen item hinge control 2
   const { renderCabinetDoors } = await import('../../src/presentation/viewport/door-renderer');
   const THREE = await import('three');
   const wardrobe = createEditorState();
-  wardrobe.w = 100; wardrobe.n = 1; wardrobe.doors = 'hinged';
+  wardrobe.w = 60; wardrobe.n = 1; wardrobe.doors = 'hinged';
   const wCmd = createDesignCommands(() => wardrobe);
   assert.equal(piecefronts(wardrobe).fronts[0]!.hinge, 'left', 'single wardrobe door defaults to left hinge');
   wCmd.setDoorHang('right');
@@ -223,7 +223,7 @@ test('door and handle side · wardrobe doorHang and kitchen item hinge control 2
   const box = (w: number, h: number, d: number, x: number, y: number, z: number, m: unknown, parent: { add(o: unknown): void } = group) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m as THREE.Material); mesh.position.set(x, y, z); parent.add(mesh); return mesh;
   };
-  const pivots = renderCabinetDoors(wardrobe, [96.4], group, box as never, (() => new THREE.Mesh()) as never, { M: () => mat }, mat, mat);
+  const pivots = renderCabinetDoors(wardrobe, [56.4], group, box as never, (() => new THREE.Mesh()) as never, { M: () => mat }, mat, mat);
   assert.equal(pivots.length, 1);
   assert.ok(pivots[0]!.position.x > 0, 'right-hung wardrobe door pivots on its right edge');
   assert.equal(pivots[0]!.userData.t, 1.6, 'and swings open to the right');

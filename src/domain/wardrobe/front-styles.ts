@@ -76,8 +76,8 @@ export const isFrontReveal = (mm: unknown): mm is FrontRevealMm => (FRONT_REVEAL
 export const DEFAULT_FRONT = Object.freeze({ style: 'slab', overlay: 'full', revealMm: 2 } as const satisfies {
   style: FrontStyle; overlay: FrontOverlay; revealMm: FrontRevealMm });
 
-/** The most leaves one door opening can be split into. */
-export const MAX_LEAVES = 4;
+/** The most leaves one door opening can be split into: one hinged on each side, so every leaf hangs on a board. */
+export const MAX_LEAVES = 2;
 
 /** What a person set on one door opening (`bay.row`) or on one leaf of it (`bay.row.leaf`). Absent fields follow the
  * cabinet: leaves split automatically and hinge on the side nearer the wardrobe's end. */

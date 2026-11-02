@@ -6,7 +6,7 @@ import type { BoxBuilder, PrismBuilder } from './frame-geometry';
 import { panelBuilder } from './frame-geometry';
 import { barPull } from './hardware';
 import type { createViewportResources } from './viewport-resources.js';
-import { cabinetDoorAreas, doorFit, doorHingeSide, doorThickness, doorTop } from '../../domain/wardrobe/door-layout';
+import { cabinetDoorLeaves, doorFit, doorThickness, doorTop } from '../../domain/wardrobe/door-layout';
 import { decorateFront } from './front-surface';
 /** Doors follow structural compartments and the wardrobe's outer profile. */
 export function renderCabinetDoors(design: EditorState, widths: readonly number[], group: Object3D, box: BoxBuilder, prism: PrismBuilder, resources: Pick<ReturnType<typeof createViewportResources>, 'M'>, panel: Material, hardware: Material): Group[] {
@@ -15,8 +15,8 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         return pivots;
     const build = panelBuilder(box, prism), fit = doorFit(design);
     const material = design.doors === 'glass' && !panel.userData.glassStyle ? resources.M('#a9d4f0', { transparent: true, opacity: .28, roughness: .1 }) : panel;
-    cabinetDoorAreas(design, widths).forEach(area => {
-        const w = area.x1 - area.x0, left = doorHingeSide(area, design) === 'left', pivot = new Group();
+    cabinetDoorLeaves(design, widths).forEach(area => {
+        const w = area.x1 - area.x0, left = area.hinge === 'left', pivot = new Group();
         const ax = area.x0, top = doorTop(design, ax, area.x1).map(p => ({ x: p.x - ax, y: Math.min(p.y, area.y1) }));
         const hingeX = (left ? area.x0 : area.x1) - design.w / 2, base = area.y0;
         pivot.position.set(hingeX, 0, design.d / 2 + fit.standoff);
