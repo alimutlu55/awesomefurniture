@@ -9,17 +9,10 @@ import { getDecor } from '../materials/decor-catalog';
 import { plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension } from '../wardrobe/drawer-runners';
+import { hingeStations } from '../wardrobe/hinges';
 import type { Fitting, Hole } from './make-joints';
 import { thinAxis, type Vec3 } from './make-measures';
 
-/** Concealed hinges by a door's height, as the drawing set's hardware list counts them: up to 900 mm two, to 1600 three,
- * to 2000 four, above five. Millimetres. */
-export const hingesFor = (heightMm: number) => heightMm <= 900 ? 2 : heightMm <= 1600 ? 3 : heightMm <= 2000 ? 4 : 5;
-/** Hinge centres along a door `length` cm tall: 10 cm from each end and evenly between. */
-export function hingeStations(length: number): number[] {
-  const n = hingesFor(Math.round(length * 10));
-  return Array.from({ length: n }, (_, k) => 10 + (length - 20) * k / (n - 1));
-}
 /** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
 export const SYSTEM_LINE = 3.7;
 /** Cup centre 22.5 mm from the door's hinge edge (a 5 mm boring distance); plate holes 32 mm apart. */

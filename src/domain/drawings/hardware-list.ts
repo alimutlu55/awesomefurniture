@@ -3,6 +3,7 @@ import { plinthOf } from '../wardrobe/carcass';
 import { resolveMaterials } from '../materials/configured-materials';
 import { getDecor } from '../materials/decor-catalog';
 import { drawerExtension } from '../wardrobe/drawer-runners';
+import { hingesFor } from '../wardrobe/hinges';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
@@ -14,8 +15,6 @@ import { pieceBoards } from './unit-detail';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
 
-/** Concealed hinges by a door's height (mm), as hardware makers advise: up to 900 two, to 1600 three, to 2000 four. */
-const hingesFor = (height: number) => height <= 900 ? 2 : height <= 1600 ? 3 : height <= 2000 ? 4 : 5;
 /** A wall shelf's brackets: one at each end, one more every 800 mm. */
 const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / 800);
 
