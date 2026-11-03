@@ -228,6 +228,29 @@ What a carpenter reads while something moves or is resized, and nothing else on 
 - While any of these shows, the label layer is marked (`#labels[data-assist]`, `[data-room-drag]`) and
   every other handle, "+" and tag hides (`studio.css`).
 
+## 2D Studio plan
+
+Studio › 2D uses architectural dimension lines with diagonal end ticks, extension lines and text halos.
+Wall dimensions try the room side, then the outside, checking both the text and the measured line against
+geometry. Selected walls show opening segment chains; selected openings show the two end gaps and their
+width × height. Crowded text is omitted, and text shrinks with the overview.
+
+Selected wardrobes and kitchen units show the four floor clearances from the shared `gapsAround` rule.
+Fixtures now have selectable footprints and use that same rule. The selected furniture's rotate handle
+turns in 5° steps, snapping to quarter turns within 5°; Shift turns freely and R adds 90°. A completed turn
+settles through the scene command and takes one undo checkpoint. Escape, pointer cancellation, lost capture,
+blur and leaving 2D restore an unfinished turn's starting pose.
+
+The built-in `bedroom` id is retained, with picker name Rectangle and plan label Room. L-shaped is another
+registry entry, also labelled Room. Choosing a built-in with walls already present adds a room one metre
+beside them, trying right, front, left and back through `studioProblem`. All copied identities and wall
+attachments are remapped in `domain/studio/studio-rooms.ts`; the combined studio is custom. No room still
+clears the studio. A newly added enclosed room fits into the 2D view automatically.
+
+Geometry and interaction helpers are in `studio-2d-dimensions.ts`, `studio-2d-fixtures.ts` and
+`studio-2d-rotate.ts`. `scripts/check-studio-plan-improvements.cjs` verifies the real editor on desktop
+and at 375 px; screenshots and reproduction details are in [verification/studio-2d/README.md](verification/studio-2d/README.md).
+
 ## What is left
 
 - Corner and opening fields have no keyboard-free precise X/Z entry (corners move by dragging or arrow keys).

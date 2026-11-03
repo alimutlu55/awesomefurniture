@@ -161,7 +161,7 @@ export function detectRooms(studio: Studio): readonly DetectedRoom[] {
       cz = pts.reduce((sum, p) => sum + p.z, 0) / pts.length;
     }
 
-    const tName = studio.template !== 'custom' ? studioTemplate(studio.template)?.name : undefined;
+    const tName = studio.template !== 'custom' ? (studioTemplate(studio.template)?.label ?? studioTemplate(studio.template)?.name) : undefined;
     const name = tName ?? 'Room';
     rooms.push({
       name,

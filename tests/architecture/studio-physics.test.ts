@@ -32,7 +32,7 @@ test('a built-in studio goes behind the wardrobes, with their back against its w
   assert.equal((b.x0 + b.x1) / 2, 0, 'centred on the wardrobe');
   assert.deepEqual(s.overlapping(), []);
   assert.equal(s.checkpoints(), 1, 'one undo step');
-  assert.match(s.messages.at(-1)!, /Bedroom/);
+  assert.match(s.messages.at(-1)!, /Rectangle/);
 });
 
 test('dragging a wardrobe stops flush at a wall, in every direction', () => {

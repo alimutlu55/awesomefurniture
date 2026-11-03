@@ -1,3 +1,4 @@
+import { dimensionSvg, fixtureBoxes, selectedDimensions } from './studio-2d-dimensions';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { Studio } from '../../domain/studio/studio';
 import { detectRooms, door2DPlan, wall2DPlan } from '../../domain/studio/studio-plan';
@@ -9,12 +10,12 @@ export interface LabelRect { x: number; y: number; width: number; height: number
 export interface PlanLabel {
   id: string; kind: 'dimension' | 'guide' | 'room' | 'drawing'; text: string; detail?: string;
   x: number; y: number; width: number; height: number; angle: number; scale: number; box: LabelRect;
-  wallId?: string; anchor?: Point2D;
+  wallId?: string; anchor?: Point2D; dimension?: { a: Point2D; b: Point2D }; accent?: boolean;
 }
 type Guide = { a: Point2D; b: Point2D; label: string };
 interface Options {
   studio: Studio | null; wardrobes: readonly EditorCabinet[]; transform: ViewportTransform;
-  selection: RoomSelection; exclusions?: readonly LabelRect[]; guides?: readonly Guide[];
+  selection: RoomSelection; activeCabinet?: number | null; exclusions?: readonly LabelRect[]; guides?: readonly Guide[];
   drawing?: { start: Point2D; current: Point2D } | null;
   measureText?: (text: string) => number;
 }
@@ -42,7 +43,7 @@ export function polygonOverlapsRect(polygon: readonly Point2D[], rect: LabelRect
 }
 
 /** Visible text has its own screen-space layer and never occupies geometry or another label's space. */
-export function layoutPlanLabels({ studio, wardrobes, transform, selection, exclusions = [], guides = [], drawing, measureText = text => text.length * 7.5 }: Options): PlanLabel[] {
+export function layoutPlanLabels({ studio, wardrobes, transform, selection, activeCabinet = null, exclusions = [], guides = [], drawing, measureText = text => text.length * 7.5 }: Options): PlanLabel[] {
   const { toScreen } = createTransform(transform);
   const scale = Math.min(1, transform.zoom / .6);
   const gap = 5 * scale;
@@ -60,7 +61,7 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
       return { x: door.hingePoint.x + Math.cos(angle) * door.radius, z: door.hingePoint.z + Math.sin(angle) * door.radius };
     })]);
   }
-  for (const c of wardrobes) {
+  for (const c of [...wardrobes, ...fixtureBoxes(studio).map(b => ({ ...b, state: b }))]) {
     const a = c.angle * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
     addObject([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, z]) => ({
       x: c.x + x! * c.state.w / 2 * co + z! * c.state.d / 2 * si,
@@ -89,6 +90,17 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
     for (const p of candidates) {
       const box = { x: p.x - width / 2, y: p.z - height / 2, width, height };
       if (!fits(box) || within && !within(box)) continue;
+      if (label.wallId && label.dimension) {
+        const { a, b } = label.dimension, dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+        const ux = dx / length, uz = dz / length, offset = (p.x - a.x) * -uz + (p.z - a.z) * ux;
+        const crosses = objects.some(poly => {
+          const along = poly.map(v => (v.x - a.x) * ux + (v.z - a.z) * uz);
+          const normal = poly.map(v => (v.x - a.x) * -uz + (v.z - a.z) * ux);
+          return Math.max(...along) > 1 && Math.min(...along) < length - 1
+            && Math.min(...normal) < offset - .5 && Math.max(...normal) > offset + .5;
+        });
+        if (crosses) continue;
+      }
       labels.push({ ...label, x: p.x, y: p.z, box, scale, ...(p.anchor ? { anchor: p.anchor } : {}) });
       occupied.push(box);
       return;
@@ -114,6 +126,19 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
     const width = Math.max(64, Math.ceil(measureText(text)) + 24);
     place({ id: 'drawing', kind: 'drawing', text, width, height: 26, angle: 0, anchor }, around(anchor, width));
   }
+  for (const d of selectedDimensions(studio, wardrobes, selection, activeCabinet)) {
+    const a = toScreen(d.a), b = toScreen(d.b), dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+    if (len < 1) continue;
+    let angle = Math.atan2(dz, dx) * 180 / Math.PI;
+    if (angle > 90) angle -= 180;
+    if (angle < -90) angle += 180;
+    const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+    const candidates = [d.offset, -d.offset, 44, -44, 56, -56].map(offset => ({
+      x: mid.x - dz / len * offset * scale, z: mid.z + dx / len * offset * scale, anchor: mid,
+    }));
+    place({ id: d.id, kind: 'dimension', text: d.text, width: measureText(d.text) + 12, height: 20,
+      angle, dimension: { a, b }, accent: !!d.accent }, candidates);
+  }
   wallPlans.sort((a, b) => Number(selection?.kind === 'wall' && selection.id === b.w.id) - Number(selection?.kind === 'wall' && selection.id === a.w.id) || b.plan.faceLength - a.plan.faceLength);
   for (const { w, plan } of wallPlans) {
     const a = toScreen(plan.faceFrom), b = toScreen(plan.faceTo), dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
@@ -136,7 +161,7 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
         }
       }
     }
-    place({ id: w.id, kind: 'dimension', text, width, height: 26, angle, wallId: w.id, anchor: mid }, candidates());
+    place({ id: w.id, kind: 'dimension', text, width, height: 26, angle, wallId: w.id, anchor: mid, dimension: { a, b } }, candidates());
   }
   if (studio) for (const room of detectRooms(studio)) {
     const text = room.name, detail = `${room.areaM2.toFixed(1)} m²`, width = Math.max(100, Math.ceil(measureText(text)) + 24);
@@ -157,15 +182,14 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, excl
 export function renderPlanLabels(labels: readonly PlanLabel[]): string {
   const leaders: string[] = [];
   const badges = labels.map(label => {
-    if (label.kind === 'dimension' && label.anchor) {
-      const dx = label.anchor.x - label.x, dy = label.anchor.z - label.y;
-      const end = Math.min(label.box.width / 2 / Math.max(.001, Math.abs(dx)), label.box.height / 2 / Math.max(.001, Math.abs(dy)));
-      leaders.push(`<line class="sp2d-dimension-leader" x1="${label.anchor.x}" y1="${label.anchor.z}"
-        x2="${label.x + dx * end}" y2="${label.y + dy * end}"/>`);
+    if (label.dimension) {
+      const { a, b } = label.dimension, dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
+      const offset = ((label.x - a.x) * -dz + (label.y - a.z) * dx) / length;
+      leaders.push(dimensionSvg(a, b, offset, label.accent));
     }
-    return `<g class="sp2d-plan-label sp2d-${label.kind}-label${label.wallId ? ' sp2d-dim-badge' : ''}"
+    return `<g class="sp2d-plan-label sp2d-${label.kind}-label${label.accent ? ' sp2d-accent' : ''}"
       data-label-kind="${label.kind}" data-label-id="${escape(label.id)}" transform="translate(${label.x},${label.y}) rotate(${label.angle})">
-      <rect x="${-label.width / 2}" y="${-label.height / 2}" width="${label.width}" height="${label.height}" rx="${6 * label.scale}" class="sp2d-dim-bg"/>
+      ${label.kind === 'dimension' ? '' : `<rect x="${-label.width / 2}" y="${-label.height / 2}" width="${label.width}" height="${label.height}" rx="${6 * label.scale}" class="sp2d-dim-bg"/>`}
       <text x="0" y="${(label.detail ? -4 : 4) * label.scale}" class="sp2d-dim-text" style="font-size:${12 * label.scale}px">${escape(label.text)}</text>
       ${label.detail ? `<text x="0" y="${14 * label.scale}" class="sp2d-room-area" style="font-size:${11 * label.scale}px">${escape(label.detail)}</text>` : ''}
     </g>`;

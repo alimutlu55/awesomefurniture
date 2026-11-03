@@ -11,7 +11,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 interface StudioPanelPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: Pick<ReturnType<typeof import('../../application/projects/editor-model.js').createEditorModel>, 'scene'>;
-  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'placeStudio' | 'addStudioWall' | 'addStudioOpening'>>;
+  readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'addStudioRoom' | 'addStudioWall' | 'addStudioOpening'>>;
   readonly getSelection: () => RoomSelection;
   readonly callbacks: {
     /** A built-in room was placed (or removed): show it whole. */
@@ -44,8 +44,8 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
     });
     // Without a room, "No room" is what you have: it goes last, after the rooms to choose from.
     const rooms = (room() ? choices : [...choices.filter(c => c.id !== 'none'), ...choices.filter(c => c.id === 'none')]).map(c => {
-      const on = c.id === current;
-      const name = esc(c.id === 'none' ? c.name : c.name + ' room'), title = esc(c.name + ' · ' + c.description);
+      const on = c.id === 'none' && c.id === current;
+      const name = esc(c.id === 'none' ? c.name : c.name + ' room'), title = esc(c.id === 'none' ? c.description : 'Add ' + c.name + (room() ? ' beside your rooms' : ' room') + ' · ' + c.description);
       return `<button type="button" class="room-product room-choice${on ? ' on' : ''}" data-studio="${c.id}" aria-pressed="${on}"${extra('room')} title="${title}">${art(c)}<span>${name}</span></button>`;
     });
     // Without a room, show room plans before individual parts.
@@ -75,7 +75,7 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
       if (button.dataset.addFixture) { callbacks.chooseFixture(button.dataset.addFixture); return; }
       const studio = button.dataset.studio, part = button.dataset.addRoom;
       if (studio) {
-        if (studio !== active() && sceneCommands.placeStudio(studio as never)) callbacks.placed();
+        if (sceneCommands.addStudioRoom(studio as never)) callbacks.placed();
         else callbacks.refresh();
         return;
       }

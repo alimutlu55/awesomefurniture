@@ -43,6 +43,7 @@ Built-in rooms (`room.template`):
 - `corner`: Two walls meeting in a corner
 - `alcove`: A recess in the wall, 220 cm wide and 65 cm deep
 - `bedroom`: A 4 × 3.5 m room with a door and a window
+- `l-shaped`: An L-shaped room with a door and a window
 - `under-stairs`: A 3.8 × 1.15 m space under a staircase with a landing
 - `walk-in`: A 2.2 × 2.4 m dressing room with a door
 

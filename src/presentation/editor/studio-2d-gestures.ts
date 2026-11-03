@@ -6,9 +6,7 @@ import { attachPlanPoint, snapPlanCorner } from './studio-2d-snap';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
-
 export type ToolMode = 'select' | 'wall';
-
 interface DragState {
   kind: 'pan' | 'corner' | 'wall' | 'opening' | 'furniture' | 'pinch';
   id?: string | number;
@@ -23,7 +21,6 @@ interface DragState {
   carry?: import('../../application/commands/studio-commands').Carried;
   initialDist?: number; initialZoom?: number;
 }
-
 export interface Studio2DGesturesPorts {
   readonly getStudio: () => Studio | null;
   readonly getWardrobes: () => readonly EditorCabinet[]; readonly getActiveWardrobe: () => number;
@@ -201,6 +198,11 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return true;
     }
 
+    const fixtureEl = (e.target as Element).closest('[data-fixture-id]');
+    if (fixtureEl) {
+      ports.setSelection({ kind: 'fixture', id: fixtureEl.getAttribute('data-fixture-id')! });
+      scheduleRefresh(); return true;
+    }
     const furnEl = (e.target as Element).closest('[data-cabinet-id]');
     if (furnEl) {
       const cabId = Number(furnEl.getAttribute('data-cabinet-id')!);

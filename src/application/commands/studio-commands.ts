@@ -1,3 +1,4 @@
+import { addRoomBeside } from '../../domain/studio/studio-rooms';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import { createStudio, studioTemplate } from '../../domain/studio/studio-templates';
@@ -66,6 +67,19 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     scene.studio = room;
     for (const cabinet of scene.wardrobes) Object.assign(cabinet, poses.get(cabinet.id) ?? {});
     report(studioTemplate(id)!.name + (poses.size ? ` · ${poses.size === 1 ? 'a wardrobe was' : poses.size + ' wardrobes were'} moved out of the wall` : ''));
+    return true;
+  }
+
+  /** Adds another room without changing the existing room or furniture. */
+  function addStudioRoom(id: StudioTemplateId | 'none') {
+    const room = getScene().studio;
+    if (id === 'none' || !room?.walls.length) return placeStudio(id);
+    if (id === 'custom' || !studioTemplate(id)) return false;
+    const result = addRoomBeside(room, createStudio(id), studioProblem);
+    if (!result.studio) { report(result.reason!); return false; }
+    checkpoint();
+    getScene().studio = result.studio;
+    report(studioTemplate(id)!.name + ' added beside your rooms.');
     return true;
   }
 
@@ -248,6 +262,6 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;
   }
 
-  return { placeStudio, editStudio, resizeWallLength, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
+  return { placeStudio, addStudioRoom, editStudio, resizeWallLength, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
     ...createFixtureCommands(getScene, { checkpoint, report }) };
 }
