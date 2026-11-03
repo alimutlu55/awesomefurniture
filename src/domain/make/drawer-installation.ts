@@ -54,11 +54,9 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
     const length = Number(runner?.size) / 10 || motion.by / .7;
     if (ph.t < s.end) return [0, 0, (length + 8) * (1 - ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0])))];
   }
-  if (b.name === 'Cargo front' && piece.steps[ph.step]?.stage === 'cargo-baskets') {
-    const s = tl.steps[ph.step]!, openingEnd = s.place[0] + (s.place[1] - s.place[0]) * .2;
-    const open = ease((ph.t - s.place[0]) / Math.max(.001, openingEnd - s.place[0]));
-    const close = ph.t > s.place[1] ? ease((ph.t - s.place[1]) / (s.end - s.place[1])) : 0;
-    return [0, 0, motion.by * open * (1 - close)];
+  if (b.name === 'Cargo front' && install >= 0 && ph.t < tl.steps[install]!.end) {
+    const s=tl.steps[install]!,length=Number(drawerRunnerForBoard(piece,board)?.size)/10;
+    return [0,0,(length+10)*(1-ease((ph.t-s.place[0])/Math.max(.001,s.place[1]-s.place[0])))];
   }
   if (piece.steps[ph.step]?.stage === 'fronts') {
     const s = tl.steps[ph.step]!;

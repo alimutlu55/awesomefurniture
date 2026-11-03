@@ -1,4 +1,3 @@
-import { cargoFramePlacement } from '../../domain/make/cargo-installation';
 import { cargoRunnerMeshes } from './cargo-runners-3d';
 import * as THREE from 'three';
 import type { Fitting, Hole } from '../../domain/make/make-joints';
@@ -55,7 +54,6 @@ export function createMakeFittings(layer: number): FittingsLayer {
     size: THREE.Vector3;
     staged?: { pos: THREE.Vector3; rot: THREE.Quaternion } | undefined;
     hook?: { pivot: THREE.Vector3 };
-    insert?: number;
     placement?: THREE.Vector3;
   }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
@@ -95,7 +93,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       const parts = f.size.split(':'), tiers = Number(parts[1]) || 2, style = parts[2] === 'solid' ? 'solid' : 'wire';
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
-      const geo = cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
+      const geo = f.cargo ?? cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const cFrame = frame(piece, [
         f.at[0],
         (geo.frame.uprights[0]!.y0 + geo.frame.uprights[0]!.y1) / 2,
@@ -120,7 +118,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
       const tiers = Number(piece.fittings.find(f=>f.kind==='support' && f.size?.startsWith('cargo frame:'))?.size?.split(':')[1]) || (h >= 100 ? 4 : 2);
-      const geo = cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
+      const geo = f.cargo ?? cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const bkt = geo.baskets.find(bk => Math.abs(bk.base.y0 - f.at[1]) < 2) ?? geo.baskets[0];
       if (!bkt) return null;
       const bw = bkt.base.x1 - bkt.base.x0, bd = bkt.base.z1 - bkt.base.z0, bz = (bkt.base.z0 + bkt.base.z1) / 2;
@@ -146,8 +144,13 @@ export function createMakeFittings(layer: number): FittingsLayer {
       g.position.copy(at);
       // Mounting plate flush against the back of the front door: 5.6cm x 2.4cm x 0.35cm
       g.add(solid(bar, metal, new THREE.Vector3(0, 0, -.18), new THREE.Vector3(5.6, 2.4, .35)));
-      // Receiver socket block that encloses the frame tongue: 2.8cm x 2.2cm x 2.4cm
-      g.add(solid(bar, metal, new THREE.Vector3(0, 0, -1.4), new THREE.Vector3(2.8, 2.2, 2.4)));
+      // Open receiver: 46 × 22 mm aperture accepts the 44 × 20 mm tongue.
+      const receiver = new THREE.Group(); receiver.position.z = -1.4;
+      for (const side of [-1, 1]) {
+        receiver.add(solid(bar, metal, new THREE.Vector3(side * 2.65, 0, 0), new THREE.Vector3(.7, 2.8, 2.4)));
+        receiver.add(solid(bar, metal, new THREE.Vector3(0, side * 1.25, 0), new THREE.Vector3(4.6, .3, 2.4)));
+      }
+      g.add(receiver);
       // Side clamping / locking screw bolt head
       g.add(solid(disc, metal, new THREE.Vector3(1.5, 0, -1.4), new THREE.Vector3(.7, .3, .7), AXES[0]!));
       // Top height-adjustment bolt
@@ -181,11 +184,6 @@ export function createMakeFittings(layer: number): FittingsLayer {
           f.mesh.position.lerpVectors(f.staged.pos, f.home, progress);
           f.mesh.position.y += 20 * Math.sin(Math.PI * progress);
           f.mesh.quaternion.copy(f.staged.rot).slerp(new THREE.Quaternion(), progress);
-          if (f.insert) {
-            const pose = cargoFramePlacement(f.staged.pos.toArray(), f.home.toArray(), u, f.insert);
-            f.mesh.position.fromArray(pose.at);
-            f.mesh.quaternion.copy(f.staged.rot).slerp(new THREE.Quaternion(), pose.align);
-          }
           if (f.hook) {
             // Rest the front edge first, then lower the rear hooks into their seats.
             const angle = .22 * (1 - Math.max(0, (u - .8) / .2));
@@ -300,11 +298,10 @@ export function createMakeFittings(layer: number): FittingsLayer {
           const hook = f.kind === 'rail' && f.size?.includes('cargo basket')
             ? {pivot:new THREE.Vector3(0,bounds.min.y-mesh.position.y,bounds.max.z-mesh.position.z)} : undefined;
           fittings.push({ mesh, index, board: null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone(),
-            staged, ...(hook ? {hook} : {}), ...(f.kind === 'support' && isCargoChassis ? {insert:piece.size.d+8} : {}) });
+            staged, ...(hook ? {hook} : {}) });
           if ((isCargoChassis || isCargoBracket) && frontIdx >= 0) {
             const moving = meshOf(frontIdx);
             if (moving) {
-              const runner = piece.fittings.find(r => r.runner);
               slides.push({
                 mesh,
                 moving,
@@ -312,7 +309,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
                 rest: rest(frontIdx).z,
                 home: mesh.position.z,
                 ratio: 1,
-                max: Number(runner?.size ?? 450) / 10 * .7,
+                max: Infinity,
               });
             }
           }

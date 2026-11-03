@@ -1,3 +1,4 @@
+import type { CargoPullout } from '../kitchen/cargo-pullout';
 import { boardPolygon, clipPolygon, type Point } from './back-construction';
 import type { Board } from '../drawings/cabinet-boards';
 import type { Construction } from './make-construction';
@@ -27,6 +28,7 @@ export interface Hole {
 export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
   | 'bracket';
 export interface Fitting {
+  readonly cargo?: CargoPullout;
   /** Installation purpose separates drawer hardware from structural cabinet connections. */
   readonly purpose?: 'runner-mount' | 'drawer-front';
   /** One purchased runner pair, with both stationary and moving attachment boards. */

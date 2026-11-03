@@ -9,14 +9,15 @@ const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior',
   'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
-  'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+  'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const cargoNames: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Mount cargo runners',
-  drawers: 'Engage cargo frame',
+  drawers: 'Insert loaded cargo mechanism',
   fronts: 'Attach cargo door',
   'drawer-test': 'Test cargo travel',
 };
 const instructions: Record<Stage, string> = {
+  'cargo-frame': 'Stand and support the frame outside the cabinet. Keep the rear hooks accessible for fitting the baskets.',
   'cargo-baskets': 'Rest each basket’s front edge on its support, then lower the rear hooks into the frame. Check every hook is seated.',
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
@@ -34,7 +35,7 @@ const instructions: Record<Stage, string> = {
 };
 const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Fit the runner and guide at the mounting faces of the selected mechanism. Keep them aligned and use its supplied fixing template.',
-  drawers: 'Align the frame with the extended runner carrier and upper guide where fitted. Seat and lock the frame, then push it smoothly home.',
+  drawers: 'Support the loaded frame, align it with the runner carrier and guide, then slide it into the cabinet and lock it in place.',
   fronts: 'Fit the adjustable front brackets to the pre-drilled pilot holes on the door back with 4×16 mm screws. Hook the door to the chassis frame and align.',
   'drawer-test': 'Pull the cargo unit out to test travel. Check smooth telescoping extension, soft-close dampening, and even reveals around the door front.',
 };
@@ -155,7 +156,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
         'drawer-runners': isCargo ? 'System 32 line (37 mm setback) → carcass upright with 4×12 mm screws.' : 'Outer rail → cabinet · Inner rail → drawer box',
-        drawers: isCargo ? 'Align, seat and lock the frame on the runner carrier before pushing it home.' : 'Align both rails. Push the supported box evenly into the cabinet.',
+        drawers: isCargo ? 'Slide the loaded frame straight onto the runner carrier and secure its lock.' : 'Align both rails. Push the supported box evenly into the cabinet.',
         fronts: isCargo ? 'Attach 3D adjustable door brackets to door back with 4×16 mm screws, then couple to chassis frame.' : 'Align decorative front, then fasten from inside with front-fixing screws.',
         'drawer-test': isCargo ? 'Pull cargo unit to test full-extension telescoping travel and soft-close mechanism.' : 'Open and close each drawer to check smooth telescoping travel.',
       };

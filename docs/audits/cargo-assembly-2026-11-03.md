@@ -24,3 +24,11 @@ Browser reproduction: `node scripts/check-cargo-assembly.mjs` with Vite on port 
 Limits: generic schematic hardware and fastener dimensions; no product-specific drilling certification, physical installation trial or load validation. The reference is a tall pantry mechanism; base cargo variants use the corresponding modeled mount and may have different manufacturer procedures.
 
 Final code verification: `npm run check` passed with 2,243 tests, including five new rendered-motion regressions; boundaries, architecture, editor/production typechecks, build and SEO passed. No golden fixtures were re-recorded. `git diff --check` passed.
+
+## Correction after reported disconnected door
+
+The earlier verification was insufficient. It proved continuity and parenting but not attachment. The user supplied a screenshot showing the resulting gap.
+
+Two independent defects were reproduced: the cargo door used the generic drawer's 390 mm demonstration travel, while the 500 mm cargo runner limited the frame to 350 mm (40 mm separation). Also, Make reconstructed the mechanism using the front's y=81.5 mm rather than the actual opening y=98 mm, putting bracket centres 16.5 mm apart. Fittings now carry the construction's cargo geometry, and the door uses the cargo runner's 350 mm travel. The rendered receiver/tongue intersection is tested in both closed and open positions for base and tall units.
+
+The revised animation preassembles the mechanism: prepare frame outside → seat baskets on tier bridges outside → slide the loaded assembly 600 mm along the runner axis into the cabinet → attach door → test travel. All basket rear edges remain at least 50 mm ahead of the cabinet opening during loading. Each basket has front/rear bridges at its underside datum. This supersedes the earlier basket-after-door chapter order and related test expectation. The prior branded reference's sequence was not an adequate demonstration of the modeled generic mechanism.

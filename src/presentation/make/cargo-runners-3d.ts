@@ -8,7 +8,7 @@ export function cargoRunnerMeshes(piece:MakePiece,f:Fitting,geometry:THREE.Buffe
  const front=piece.boards[f.runner!.moving[0]!]!, cx=(front.x0+front.x1)/2;
  const config=piece.fittings.find(q=>q.size?.startsWith('cargo frame:'))?.size?.split(':');
  const mount=config?.[3]==='left'?'left':config?.[3]==='right'?'right':'bottom';
- const geo=cargoPulloutGeometry(cx,front.y0,front.x1-front.x0,front.y1-front.y0,piece.size.d,{mount});
+ const geo=f.cargo ?? cargoPulloutGeometry(cx,front.y0,front.x1-front.x0,front.y1-front.y0,piece.size.d,{mount});
  return f.runner!.fixed.flatMap((board,k)=>{
   const host=piece.boards[board]!, upper=host.name==='Top', bounds=upper?geo.runners.top!:geo.runners.bottom;
   const x=mount!=='bottom' && !upper ? (mount==='left'?host.x1+.5:host.x0-.5) : cx;

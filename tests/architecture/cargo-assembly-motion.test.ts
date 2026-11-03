@@ -23,7 +23,7 @@ for(const unit of ['base','tall'] as const) test(`${unit} cargo: waiting mechani
 });
 
 import { cargoFittedAt } from '../../src/domain/make/cargo-installation';
-for(const [unit,preset] of [['base','cargo'],['tall','cargo-tall']] as const) test(`${unit}: frame insertion is continuous and baskets follow the door`,()=>{
+for(const [unit,preset] of [['base','cargo'],['tall','cargo-tall']] as const) test(`${unit}: frame insertion is continuous and baskets are fitted before cabinet insertion`,()=>{
  const piece=makePiece({pieces:[{id:1,name:'Cargo',x:0,y:0,z:0,angle:0,design:createKitchenDesign(unit,preset)}]},1)!;
  const tl=assemblyTimeline(piece),frame=piece.fittings.findIndex(f=>f.size?.startsWith('cargo frame:'));
  const step=tl.steps[tl.itemStep[frame]!]!;
@@ -49,21 +49,18 @@ for(const [unit,preset] of [['base','cargo'],['tall','cargo-tall']] as const) te
  assert.ok(hosts[front]!.children.filter(m=>m instanceof THREE.Group && m.children.length===4).length===piece.fittings.filter(f=>f.size==='cargo front bracket').length,'brackets travel on the door mesh');
  const baskets=piece.fittings.map((f,i)=>f.size?.startsWith('cargo basket:')?i:-1).filter(i=>i>=0);
  assert.ok(baskets.length>=2);
- for(const i of baskets)assert.ok(tl.itemStep[i]!>piece.steps.findIndex(s=>s.stage==='fronts'));
+ for(const i of baskets)assert.ok(tl.itemStep[i]!<piece.steps.findIndex(s=>s.stage==='drawers'));
  const runner=piece.fittings.find(f=>f.runner)!;
  for(const id of runner.runner!.fixed)assert.ok(['Base','Top'].includes(piece.boards[id]!.name),'bottom mount and upper guide use horizontal stock');
  layer.dispose();
 });
 
-import { cargoFramePlacement } from '../../src/domain/make/cargo-installation';
-test('aligned chassis enters only along the runner axis',()=>{
- const start=[-100,25,200],home=[0,40,0];
- for(const p of [.6,.7,.8,.9,1]) {
-  const pose=cargoFramePlacement(start,home,p,60);
-  assert.ok(Math.abs(pose.at[0]!)<1e-9);
-  assert.ok(Math.abs(pose.at[1]!-40)<1e-9);
-  assert.equal(pose.align,1);
- }
- assert.deepEqual(cargoFramePlacement(start,home,0,60).at,start);
- assert.ok(cargoFramePlacement(start,home,1,60).at.every((v,i)=>Math.abs(v-home[i]!)<1e-9));
+test('loaded chassis inserts from 600 mm ahead to home only along the runner axis',()=>{
+ const piece=makePiece({pieces:[{id:1,name:'Cargo',x:0,y:0,z:0,angle:0,design:createKitchenDesign('base','cargo')}]},1)!;
+ const tl=assemblyTimeline(piece),s=tl.steps[piece.steps.findIndex(s=>s.stage==='drawers')]!;
+ const front=piece.boards.findIndex(b=>b.name==='Cargo front');
+ const start=drawerBoardOffset(piece,tl,playhead(tl,s.place[0]),front);
+ const mid=drawerBoardOffset(piece,tl,playhead(tl,(s.place[0]+s.place[1])/2),front);
+ const end=drawerBoardOffset(piece,tl,playhead(tl,s.place[1]),front);
+ assert.deepEqual(start,[0,0,60]);assert.deepEqual(mid,[0,0,30]);assert.deepEqual(end,[0,0,0]);
 });

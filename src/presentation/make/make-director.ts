@@ -1,4 +1,4 @@
-import { cargoFittedAt, cargoFramePlacement } from '../../domain/make/cargo-installation';
+import { cargoFittedAt } from '../../domain/make/cargo-installation';
 import * as THREE from 'three';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { hardwareStagingLayout, lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
@@ -62,7 +62,7 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test') {
       const isCargoStage = piece.fittings.some(f => f.size?.includes('cargo'))
-        && (step.stage === 'drawer-runners' || step.stage === 'drawers' || step.stage === 'fronts' || step.stage === 'cargo-baskets');
+        && (step.stage === 'drawer-runners' || step.stage === 'drawers' || step.stage === 'fronts' || step.stage === 'cargo-baskets' || step.stage === 'cargo-frame');
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
         const points = [...step.boards, ...before].flatMap(i => placed(i, time));
@@ -76,7 +76,8 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
               const ease = p * p * (3 - 2 * p), f = piece.fittings[item]!;
               let centre = st.at.map((v, axis) => v + (f.at[axis]! - v) * ease);
               centre[1]! += 20 * Math.sin(Math.PI * ease);
-              if (f.kind === 'support') centre = cargoFramePlacement(st.at, f.at, p, piece.size.d + 8).at;
+              const front = f.boards[0];
+              if (front !== undefined) centre[2]! += drawerBoardOffset(piece, tl, playhead(tl, time), front)[2] * ease;
               points.push(...around(centre, Math.max(piece.size.h / 2, piece.size.d / 2)));
             }
           }

@@ -145,7 +145,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     const base = boards.findIndex(q=>q.name==='Base'), top = boards.findIndex(q=>q.name==='Top');
     const lower = sideMounted ? (cargo.mount==='right' ? right : left)?.i ?? -1 : base;
     const fixed = [lower, ...(cargo.isTall && top>=0 ? [top] : [])].filter(i=>i>=0);
-    fittings.push({kind:'runner',at:[cx,cargo.runners.bottom.y0,(cargo.runners.bottom.z0+cargo.runners.bottom.z1)/2],axis:sideMounted ? 0 : 1,
+    fittings.push({kind:'runner',cargo,at:[cx,cargo.runners.bottom.y0,(cargo.runners.bottom.z0+cargo.runners.bottom.z1)/2],axis:sideMounted ? 0 : 1,
       boards:[i,...fixed],size:String(runner),runner:{moving:fixed.map(()=>i),fixed}});
     for(const host of fixed) {
       const q=boards[host]!, upper=host===top;
@@ -164,6 +164,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       at: [cx, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2],
       axis: 2,
       boards: [i],
+      cargo,
       size: `cargo frame:${cargo.tiers}:${cargo.basketStyle}:${cargo.mount}`,
     });
 
@@ -175,6 +176,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
         at: [cx, bkt.base.y0, bz],
         axis: 2,
         boards: [i],
+        cargo,
         size: `cargo basket:${cargo.basketStyle}`,
       });
     }
@@ -257,7 +259,8 @@ export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[],
     } else if (f?.opens === 'pull' || b.name === 'Drawer front') {
       // The front and the box behind it: the box's boards stand within the front's width and height.
       const side = boards.find(x=>x.name==='Box side' && x.x0>=b.x0-1 && x.x1<=b.x1+1 && x.y0>=b.y0-1 && x.y1<=b.y1+1);
-      const travel = side ? Math.round((side.z1-side.z0)*.7) : pull;
+      const cargoRunner = boards[i]!.name === 'Cargo front' ? cargoPulloutGeometry((b.x0+b.x1)/2,b.y0,b.x1-b.x0,b.y1-b.y0,piece.design.d).runners.length : undefined;
+      const travel = cargoRunner !== undefined ? cargoRunner * .7 : side ? Math.round((side.z1-side.z0)*.7) : pull;
       out[i] = { kind: 'slide', by: travel };
       boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: travel }; });
     }

@@ -144,7 +144,7 @@ export function cargoPulloutGeometry(
     // Front bracket connector lugs extending forward to lock directly into front door brackets
     for (const by of bracketHeights) {
       crossbars.push(
-        { x0: cx - 3.5, x1: cx + 3.5, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: d - .5 }
+        { x0: cx - 2.2, x1: cx + 2.2, y0: by - 1, y1: by + 1, z0: z1 - 3.2, z1: d - .5 }
       );
     }
   } else {
@@ -227,6 +227,12 @@ export function cargoPulloutGeometry(
       },
       railHeight,
     });
+  }
+
+  // Each basket rests on front/rear tier bridges connected to the chassis posts.
+  // Their top faces are the basket underside datum, not a floating rail at another height.
+  for (const basket of baskets) for (const z of [z0 + 2, z1 - 2]) {
+    crossbars.push({x0:cx-basketW/2,x1:cx+basketW/2,y0:basket.base.y0-.6,y1:basket.base.y0,z0:z-.6,z1:z+.6});
   }
 
   // Front Fixing Brackets

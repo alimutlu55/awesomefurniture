@@ -76,7 +76,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
     const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
-    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' ? 6 : s.stage === 'drawer-test' ? count * 6
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' || s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).

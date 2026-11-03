@@ -120,8 +120,10 @@ test('cargo assembly · stages follow drawer-runners -> drawers -> fronts -> dra
   assert.ok(drawersIdx < frontsIdx, 'frame before front attachment');
   assert.ok(frontsIdx < testIdx, 'front before travel test');
 
-  // Verify chassis fitting is held in drawers stage
-  const drawersStep = piece.steps.find(s => s.stage === 'drawers')!;
+  // Chassis is prepared outside before baskets and cabinet insertion
+  const drawersStep = piece.steps.find(s => s.stage === 'cargo-frame')!;
+  assert.ok(stages.indexOf('cargo-frame') < stages.indexOf('cargo-baskets'));
+  assert.ok(stages.indexOf('cargo-baskets') < drawersIdx);
   assert.ok(drawersStep.fittings.some(f => f.kind === 'support' && f.size?.includes('cargo')));
 
   // Verify timeline and travel test animation

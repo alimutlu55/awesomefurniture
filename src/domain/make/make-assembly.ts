@@ -62,7 +62,7 @@ const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
 /** What a step does, in the order a maker works. */
-export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'cargo-baskets', 'drawer-test', 'doors', 'wall'] as const;
+export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawer-boxes', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts', 'drawer-test', 'doors', 'wall'] as const;
 export type Stage = typeof STAGES[number];
 export interface Step {
   readonly n: number;
@@ -100,7 +100,7 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   const fittingStep = (f: Fitting, i: number): Stage => {
     if (f.kind === 'leg') return 'plinth';
     if (f.kind === 'bracket' || f.kind === 'hanger') return f.size?.includes('cargo') ? 'fronts' : 'wall';
-    if (f.kind === 'rail' || f.kind === 'support') return f.size?.includes('cargo') ? (f.kind === 'rail' ? 'cargo-baskets' : 'drawers') : 'inside';
+    if (f.kind === 'rail' || f.kind === 'support') return f.size?.includes('cargo') ? (f.kind === 'rail' ? 'cargo-baskets' : 'cargo-frame') : 'inside';
     if (f.kind === 'runner' || f.purpose === 'runner-mount') return 'drawer-runners';
     if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing' || f.size?.includes('cargo')) return 'fronts';
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
