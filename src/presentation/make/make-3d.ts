@@ -194,7 +194,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         const middle = new THREE.Vector3((board.x0 + board.x1) / 2 - piece.size.w / 2, (board.y0 + board.y1) / 2, (board.z0 + board.z1) / 2 - piece.size.d / 2);
         boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top), motion, pivot, centre: middle });
       });
-      visibility.build(boards);
+      visibility.build(boards.map(b => ({ index: b.index, face: b.face, rest: b.rest, stock: b.board.stock })));
       const byIndex = new Map(boards.map(b => [b.index, b]));
       fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
       play.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);

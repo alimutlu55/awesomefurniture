@@ -1,8 +1,7 @@
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
-import type { FittingKind } from '../../domain/make/make-joints';
 import type { MakePlayer } from './make-player';
-import { FITTING_NAMES, fittingIcon, sold } from './make-panel-tabs';
+import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import { chapterPreview } from './assembly-preview';
 import { unitSuffix } from '../editor/length-unit-state';
 
@@ -13,7 +12,7 @@ const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure
   drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const cargoNames: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Mount cargo runners',
-  drawers: 'Engage cargo chassis',
+  drawers: 'Install cargo frame & baskets',
   fronts: 'Attach cargo door',
   'drawer-test': 'Test cargo travel',
 };
@@ -33,8 +32,8 @@ const instructions: Record<Stage, string> = {
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
 const cargoInstructions: Partial<Record<Stage, string>> = {
-  'drawer-runners': 'Fix the full-extension runners to the carcass upright along the System 32 line (37 mm setback) with 4×12 mm screws.',
-  drawers: 'Bring the metal cargo chassis to the cabinet. Align both runner members with the cabinet rails and push evenly until the chassis locks on.',
+  'drawer-runners': 'Fix the full-extension telescopic runners to the cabinet upright along the System 32 line (37 mm setback) with 4×12 mm screws.',
+  drawers: 'Slide the vertical steel cargo frame onto the runners until it clicks into the locking clips. Hook each storage basket onto the frame notches at the desired tier heights.',
   fronts: 'Fit the adjustable front brackets to the pre-drilled pilot holes on the door back with 4×16 mm screws. Hook the door to the chassis frame and align.',
   'drawer-test': 'Pull the cargo unit out to test travel. Check smooth telescoping extension, soft-close dampening, and even reveals around the door front.',
 };
@@ -116,8 +115,13 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
       q('.as-chapter-list').innerHTML = piece.steps.map((step, k) => {
         const preview = chapterPreview(piece, k);
+        const itemNames = step.fittings.map(f => hardwareDisplay(f).name);
+        const extra = itemNames.length > 2 ? ` +${itemNames.length - 2}` : '';
+        const itemPill = itemNames.length
+          ? `<span class="as-chapter-items" style="display:block;font-size:10.5px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(itemNames.slice(0, 2).join(', '))}${extra}</span>`
+          : '';
         return `<button type="button" class="as-chapter" data-studio="chapter" data-value="${k}"><span class="as-preview">${preview}</span>
-          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${stageName(step.stage, isCargo)}</b></button>`;
+          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${stageName(step.stage, isCargo)}</b>${itemPill}</button>`;
       }).join('');
       wake();
     },
@@ -146,11 +150,13 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${title}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
       const drawerCaption = q('.as-drawer-caption');
-      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers'].includes(step.stage);
+      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'drawer-test'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': isCargo ? 'System 32 line → carcass upright' : 'Outer rail → cabinet · Inner rail → drawer box',
-        drawers: isCargo ? 'Align chassis with rails. Push evenly until the chassis engages.' : 'Align both rails. Push the supported box evenly into the cabinet.',
+        'drawer-runners': isCargo ? 'System 32 line (37 mm setback) → carcass upright with 4×12 mm screws.' : 'Outer rail → cabinet · Inner rail → drawer box',
+        drawers: isCargo ? 'Slide steel chassis frame onto runner rails, then clip storage baskets onto uprights.' : 'Align both rails. Push the supported box evenly into the cabinet.',
+        fronts: isCargo ? 'Attach 3D adjustable door brackets to door back with 4×16 mm screws, then couple to chassis frame.' : 'Align decorative front, then fasten from inside with front-fixing screws.',
+        'drawer-test': isCargo ? 'Pull cargo unit to test full-extension telescoping travel and soft-close mechanism.' : 'Open and close each drawer to check smooth telescoping travel.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
       const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
@@ -166,12 +172,11 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
           : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
           : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? instructions[step.stage]
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
-        const hardwareLabel = (f: { kind: FittingKind; size?: string }) =>
-          f.size?.includes('cargo front bracket') ? 'Cargo front bracket'
-          : f.size?.includes('cargo pull-out') ? 'Cargo pull-out chassis'
-          : FITTING_NAMES[f.kind];
-        const hardwareHtml = hardware.map(f => `<span title="${esc(hardwareLabel(f))}">${fittingIcon(f.kind)}<span>${hardwareLabel(f)}`
-          + `${f.size && !f.size.includes('cargo') ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');
+        const hardwareHtml = hardware.map(f => {
+          const disp = hardwareDisplay(f);
+          return `<span title="${esc(disp.name)}">${fittingIcon(f.kind)}<span>${esc(disp.name)}`
+            + `${disp.size ? ` · ${esc(disp.size)}` : ''}<b> ×${f.qty}</b></span></span>`;
+        }).join('');
         const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
         q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`

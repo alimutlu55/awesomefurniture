@@ -75,32 +75,54 @@ export function createMakeFittings(layer: number): FittingsLayer {
       for (const s of [-6.4, 6.4]) g.add(solid(rod, metal, at.clone().addScaledVector(along, s).add(new THREE.Vector3(0, 0, 1.5)), new THREE.Vector3(.4, 3, .4), AXES[2]));
       return tag(g);
     }
-    if (f.kind === 'rail') return solid(rod, metal, at, new THREE.Vector3(1.25, size, 1.25), AXES[0]);
+    if (f.kind === 'rail' && !f.size?.includes('cargo')) return solid(rod, metal, at, new THREE.Vector3(1.25, size, 1.25), AXES[0]);
     if (f.kind === 'leg') return solid(rod, metal, at.clone().setY(at.y + size / 2), new THREE.Vector3(2.2, size, 2.2));
-    if (f.kind === 'support' && f.size?.includes('cargo')) {
+    if (f.kind === 'support' && (f.size?.includes('cargo frame') || f.size?.includes('cargo pull-out'))) {
       const parts = f.size.split(':'), tiers = Number(parts[1]) || 2, style = parts[2] === 'solid' ? 'solid' : 'wire';
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
       const geo = cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const g = new THREE.Group();
+      // Upright steel tubes
       for (const u of geo.frame.uprights) {
         g.add(solid(bar, metal, frame(piece, [(u.x0 + u.x1) / 2, (u.y0 + u.y1) / 2, (u.z0 + u.z1) / 2]), new THREE.Vector3(u.x1 - u.x0, u.y1 - u.y0, u.z1 - u.z0)));
       }
+      // Structural crossbars and runner carrier plate
       for (const c of geo.frame.crossbars) {
         g.add(solid(bar, metal, frame(piece, [(c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, (c.z0 + c.z1) / 2]), new THREE.Vector3(c.x1 - c.x0, c.y1 - c.y0, c.z1 - c.z0)));
       }
-      for (const bkt of geo.baskets) {
-        const bw = bkt.base.x1 - bkt.base.x0, bd = bkt.base.z1 - bkt.base.z0, bz = (bkt.base.z0 + bkt.base.z1) / 2;
-        g.add(solid(bar, metal, frame(piece, [(bkt.base.x0 + bkt.base.x1) / 2, (bkt.base.y0 + bkt.base.y1) / 2, bz]), new THREE.Vector3(bw, bkt.base.y1 - bkt.base.y0, bd)));
-        const rw = bkt.rail.x1 - bkt.rail.x0, rd = bkt.rail.z1 - bkt.rail.z0, ry = bkt.rail.y1;
-        g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz + bd / 2]), new THREE.Vector3(rw, .3, .3)));
-        g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz - bd / 2]), new THREE.Vector3(rw, .3, .3)));
-        g.add(solid(bar, metal, frame(piece, [f.at[0] - rw / 2, ry, bz]), new THREE.Vector3(.3, .3, rd)));
-        g.add(solid(bar, metal, frame(piece, [f.at[0] + rw / 2, ry, bz]), new THREE.Vector3(.3, .3, rd)));
+      return tag(g);
+    }
+    if (f.kind === 'rail' && f.size?.includes('cargo basket')) {
+      const parts = f.size.split(':'), style = parts[1] === 'solid' ? 'solid' : 'wire';
+      const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
+      const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
+      const tiers = h >= 100 ? 4 : 2;
+      const geo = cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
+      const bkt = geo.baskets.find(bk => Math.abs(bk.base.y0 - f.at[1]) < 2) ?? geo.baskets[0];
+      if (!bkt) return null;
+      const g = new THREE.Group();
+      const bw = bkt.base.x1 - bkt.base.x0, bd = bkt.base.z1 - bkt.base.z0, bz = (bkt.base.z0 + bkt.base.z1) / 2;
+      // Basket base plate (wire mesh or solid Arena panel)
+      g.add(solid(bar, metal, frame(piece, [(bkt.base.x0 + bkt.base.x1) / 2, (bkt.base.y0 + bkt.base.y1) / 2, bz]), new THREE.Vector3(bw, bkt.base.y1 - bkt.base.y0, bd)));
+      // Safety perimeter railing
+      const rw = bkt.rail.x1 - bkt.rail.x0, rd = bkt.rail.z1 - bkt.rail.z0, ry = bkt.rail.y1;
+      g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz + bd / 2]), new THREE.Vector3(rw, .3, .3)));
+      g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz - bd / 2]), new THREE.Vector3(rw, .3, .3)));
+      g.add(solid(bar, metal, frame(piece, [f.at[0] - rw / 2, ry, bz]), new THREE.Vector3(.3, .3, rd)));
+      g.add(solid(bar, metal, frame(piece, [f.at[0] + rw / 2, ry, bz]), new THREE.Vector3(.3, .3, rd)));
+      // Frame clip-on hooks
+      for (const s of [-rw / 2 + .4, rw / 2 - .4]) {
+        g.add(solid(bar, metal, frame(piece, [f.at[0] + s, (bkt.base.y0 + ry) / 2, bz]), new THREE.Vector3(.4, ry - bkt.base.y0, .6)));
       }
       return tag(g);
     }
-    if ((f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo')) return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(6, 1.8, 1.2));
+    if ((f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo')) {
+      const g = new THREE.Group();
+      g.add(solid(bar, metal, at.clone().setZ(at.z - .2), new THREE.Vector3(5, 1.8, .4)));
+      g.add(solid(bar, metal, at.clone().setZ(at.z - 1.2), new THREE.Vector3(1.2, 1.4, 2)));
+      return tag(g);
+    }
     if (f.kind === 'hanger' || f.kind === 'bracket') return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(f.kind === 'hanger' ? 6 : 4, 4, 1));
     if (f.kind === 'support') return solid(disc, metal, at, new THREE.Vector3(2, .4, 2), AXES[0]);
     return null;
@@ -121,6 +143,15 @@ export function createMakeFittings(layer: number): FittingsLayer {
       if (f.mesh instanceof THREE.Mesh) f.mesh.material = focused && links[f.index]?.some(i => focused!.has(i)) ? highlight : metal;
       f.mesh.position.copy(f.home).addScaledVector(f.from, (1 - (p ?? 1)) ** 3 * WAIT);
       f.mesh.scale.copy(f.size).multiplyScalar(Math.max(.01, 1 - (1 - seen) ** 3));
+    }
+    applyMotion();
+  }
+
+  function applyMotion() {
+    for (const rail of slides) {
+      const inStaging = Math.abs(rail.moving.quaternion.w - 1) > 0.05 || rail.moving.position.y < 5;
+      const delta = inStaging ? 0 : Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest));
+      rail.mesh.position.z = rail.home + delta * rail.ratio;
     }
   }
 
@@ -152,9 +183,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
         }
         const mesh = fittingMesh(piece, f);
         if (!mesh) return;
-        // Handles and cargo brackets ride on their front; cargo chassis and other fittings stay with the piece.
+        // Handles and cargo brackets ride on their front; cargo chassis and baskets stay with the piece.
         const isCargoBracket = (f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo');
-        const isCargoChassis = f.kind === 'support' && f.size?.includes('cargo');
+        const isCargoChassis = (f.kind === 'support' || f.kind === 'rail') && f.size?.includes('cargo');
         const board = (f.kind === 'handle' || isCargoBracket) ? f.boards[0] ?? null : null, host = board === null ? undefined : meshOf(board);
         if (host && board !== null) { mesh.position.sub(rest(board)); host.add(mesh); } else root.add(mesh);
         fittings.push({ mesh, index, board: host ? board : null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone() });
@@ -177,13 +208,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       visible();
     },
     only(boards, items, seen) { shown = boards; shownFittings = items; seenFittings = seen ?? null; visible(); },
-    motion() {
-      for (const rail of slides) {
-        const inStaging = Math.abs(rail.moving.quaternion.w - 1) > 0.05 || rail.moving.position.y < 5;
-        const delta = inStaging ? 0 : Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest));
-        rail.mesh.position.z = rail.home + delta * rail.ratio;
-      }
-    },
+    motion() { applyMotion(); },
     focus(boards) { focused = boards; visible(); },
     ring(next) { rung = next; visible(); },
     ringExtent(margin) {

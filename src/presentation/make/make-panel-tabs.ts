@@ -24,6 +24,24 @@ export const fittingIcon = (kind: FittingKind) => `<svg class="make-ico" viewBox
 /** A size as sold: millimetres when it is a bare number ("550 mm"), as written otherwise ("7 × 50", "110°"). */
 export const sold = (size?: string) => !size ? '' : /^\d+$/.test(size) ? size + ' mm' : size.replace(/^(\d[\d ×.]*)$/, '$1 mm');
 
+/** Formats hardware items into readable titles and dimensions for buy lists, tables, and chips. */
+export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name: string; size: string } {
+  if (b.size?.includes('cargo frame') || (b.kind === 'support' && b.size?.includes('cargo'))) {
+    return { name: 'Cargo pull-out frame', size: 'vertical steel chassis' };
+  }
+  if (b.size?.includes('cargo basket')) {
+    const style = b.size.includes('solid') ? 'solid Arena' : 'wire';
+    return { name: `Cargo ${style} basket`, size: 'clip-on storage basket' };
+  }
+  if ((b.kind === 'bracket' || b.kind === 'plate') && b.size?.includes('cargo')) {
+    return { name: 'Cargo front bracket', size: '3D adjustable door mount' };
+  }
+  if (b.kind === 'runner' && b.size) {
+    return { name: 'Full-extension runners', size: `${b.size} mm soft-close pair` };
+  }
+  return { name: FITTING_NAMES[b.kind] ?? b.kind, size: sold(b.size) };
+}
+
 export const TABS = [['parts', 'Parts'], ['hardware', 'Hardware'], ['cutting', 'Cutting']] as const;
 export type PanelTab = typeof TABS[number][0];
 export const tabsHtml = (tab: PanelTab) => `<div class="unit-seg make-tabs" role="group" aria-label="Show">${TABS
@@ -48,9 +66,12 @@ export function hardwareTab(piece: MakePiece) {
   return seg('Joints', 'joints', JOINT_SYSTEMS, JOINT_LABELS, piece.construction.joints)
     + seg('Back', 'back', BACK_FIXINGS, BACK_LABELS, piece.construction.back)
     + `<div class="make-rows">${checks}</div>`
-    + `<div class="make-rows">${piece.buy.map(b => `<button type="button" class="make-row make-buy" data-hardware="${b.kind}" data-size="${esc(b.size ?? '')}" title="View assembly stages">`
-      + `${fittingIcon(b.kind)}<span class="make-name">${FITTING_NAMES[b.kind]}`
-      + `${b.size ? ` <small translate="no">${esc(sold(b.size))}</small>` : ''}</span><b>×${b.qty}</b></button>`).join('')}</div>`;
+    + `<div class="make-rows">${piece.buy.map(b => {
+      const disp = hardwareDisplay(b);
+      return `<button type="button" class="make-row make-buy" data-hardware="${b.kind}" data-size="${esc(b.size ?? '')}" title="View assembly stages">`
+        + `${fittingIcon(b.kind)}<span class="make-name">${esc(disp.name)}`
+        + `${disp.size ? ` <small translate="no">${esc(disp.size)}</small>` : ''}</span><b>×${b.qty}</b></button>`;
+    }).join('')}</div>`;
 }
 
 /** What each step does, as its chapter is called. */

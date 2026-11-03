@@ -37,7 +37,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
     // Legs are stood on the floor first and the base set down on them.
     case 'leg': return { at: f.at, dir: [0, 1, 0], board: null };
     case 'hanger': case 'bracket': return { at: f.at, dir: [0, 0, 1], board: null };
-    case 'rail': case 'support': return { at: f.at, dir: [0, 0, -1], board: null };
+    case 'rail': case 'support': return f.size?.includes('cargo') ? null : { at: f.at, dir: [0, 0, -1], board: null };
     case 'runner': return null;
   }
 }

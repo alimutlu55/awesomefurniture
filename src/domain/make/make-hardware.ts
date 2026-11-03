@@ -171,8 +171,20 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       at: [cx, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2],
       axis: 2,
       boards: [i],
-      size: `cargo pull-out chassis:${cargo.tiers}:${cargo.basketStyle}:${cargo.mount}`,
+      size: `cargo frame:${cargo.tiers}:${cargo.basketStyle}:${cargo.mount}`,
     });
+
+    for (let k = 0; k < cargo.baskets.length; k++) {
+      const bkt = cargo.baskets[k]!;
+      const bz = (bkt.base.z0 + bkt.base.z1) / 2;
+      fittings.push({
+        kind: 'rail',
+        at: [cx, bkt.base.y0, bz],
+        axis: 2,
+        boards: [i],
+        size: `cargo basket:${cargo.basketStyle}`,
+      });
+    }
 
     for (const br of cargo.brackets) {
       fittings.push({ kind: 'plate', at: [cx, br.y, b.z0], axis: 2, boards: [i], size: 'cargo front bracket' });

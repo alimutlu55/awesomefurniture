@@ -67,12 +67,23 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       pin:'Shelf support',hinge:'Hinge',plate:'Mounting plate',runner:'Drawer runners, full extension, pair',handle:'Handle',rail:'Hanging rail, oval',
       support:'Rail end support',leg:'Adjustable leg',hanger:'Cabinet hanger, adjustable',bracket:'Wall fixing bracket' };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
-      if (line.kind === 'support' && line.size?.includes('cargo')) continue;
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;
       const size = line.kind === 'handle' ? handleLabel(resolveHandle(resolveMaterials(d)))
         : def ? def.cup ? def.cup.d+' mm cup' : 'compatible with frame/carrier; no cup drilling in glass' : line.kind==='runner' ? line.size+' mm' : line.size ?? '';
-      const name = (line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo') ? 'Cargo front fixing bracket' : (def?.name ?? names[line.kind]);
-      add(p, name, (line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo') ? 'adjustable door mount' : size, line.qty);
+      let name = def?.name ?? names[line.kind];
+      let itemSize = size;
+      if (line.size?.includes('cargo frame') || (line.kind === 'support' && line.size?.includes('cargo'))) {
+        name = 'Cargo pull-out frame';
+        itemSize = 'vertical steel chassis';
+      } else if (line.size?.includes('cargo basket')) {
+        const style = line.size.includes('solid') ? 'solid Arena' : 'wire';
+        name = `Cargo storage basket, ${style}`;
+        itemSize = 'clip-on basket';
+      } else if ((line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo')) {
+        name = 'Cargo front fixing bracket';
+        itemSize = '3D adjustable door mount';
+      }
+      add(p, name, itemSize, line.qty);
     }
   }
   const body = lines.map(l => [l.item, l.size, String(l.qty), l.marks.join(', ')]);

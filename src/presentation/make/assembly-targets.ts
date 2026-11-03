@@ -36,8 +36,30 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
     const moving = runner?.runner?.moving ?? [], first = moving[0];
     if (first !== undefined && drawerBoardOffset(piece, tl, ph, first)[2] > .05) moving.forEach((id, k) => {
       const b = piece.boards[id]!;
+      if (b.stock === 'front') return;
       for (const z of [b.z0 + 5, b.z1 - 5]) targets.push({ board: id, at: [k === 0 ? b.x0 - .2 : b.x1 + .2, b.y0 + 3.2, z] });
     });
+  }
+  // For cargo pull-out units: while runners, chassis, baskets, or travel test are active,
+  // ensure any intervening carcass side panel between camera and interior mechanism becomes cutaway!
+  const currentStage = piece.steps[ph.step]?.stage;
+  const isCargoStep = currentStage === 'drawer-runners' || currentStage === 'drawers' || currentStage === 'fronts' || currentStage === 'drawer-test';
+  const hasCargo = piece.fittings.some(f => f.size?.includes('cargo'));
+  if (isCargoStep && hasCargo) {
+    const sideBoards = piece.boards
+      .map((b, i) => ({ b, i }))
+      .filter(({ b }) => b.stock === 'carcass' && b.x1 - b.x0 < 4 && b.y1 - b.y0 > 40);
+    const midY = piece.size.h / 2, midZ = piece.size.d / 2;
+    for (const { b, i } of sideBoards) {
+      const innerX = b.x0 < piece.size.w / 2 ? b.x1 + 1 : b.x0 - 1;
+      targets.push(
+        { board: i, at: [innerX, midY, midZ] },
+        { board: i, at: [innerX, midY * 0.4, midZ] },
+        { board: i, at: [innerX, midY * 1.5, midZ] },
+        { board: i, at: [innerX, midY, piece.size.d * 0.25] },
+        { board: i, at: [innerX, midY, piece.size.d * 0.75] }
+      );
+    }
   }
   return targets;
 }

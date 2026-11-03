@@ -107,44 +107,47 @@ export function cargoPulloutGeometry(
   const frameBottom = y + 2.5;
 
   if (isTall) {
-    // Tall larder pull-out: central rectangular steel ladder frame
+    // Tall larder pull-out: central rectangular steel ladder frame with longitudinal top/bottom guide rails
     const postW = 2.2;
     for (const side of [-1, 1]) {
       const px = cx + side * 2.8;
-      uprights.push({
-        x0: px - postW / 2,
-        x1: px + postW / 2,
-        y0: frameBottom,
-        y1: frameTop,
-        z0: z0 + 1,
-        z1: z0 + 3.2,
-      });
+      // Front and rear upright posts
+      uprights.push(
+        { x0: px - postW / 2, x1: px + postW / 2, y0: frameBottom, y1: frameTop, z0: z0 + 1, z1: z0 + 3.2 },
+        { x0: px - postW / 2, x1: px + postW / 2, y0: frameBottom, y1: frameTop, z0: z1 - 3.2, z1: z1 - 1 }
+      );
     }
+    // Longitudinal chassis rails connecting front and rear along depth
+    crossbars.push(
+      { x0: cx - 4, x1: cx + 4, y0: frameBottom, y1: frameBottom + 2.4, z0: z0 + 1, z1: z1 - 1 },
+      { x0: cx - 4, x1: cx + 4, y0: frameTop - 2.4, y1: frameTop, z0: z0 + 1, z1: z1 - 1 }
+    );
     // Crossbars at bottom, middle and top
-    for (const cy_ of [frameBottom + 2, y + hh * 0.5, frameTop - 2]) {
-      crossbars.push({
-        x0: cx - 4,
-        x1: cx + 4,
-        y0: cy_ - 1,
-        y1: cy_ + 1,
-        z0: z0 + 1,
-        z1: z0 + 3.2,
-      });
+    for (const cy_ of [frameBottom + 2, y + hh * 0.38, y + hh * 0.68, frameTop - 2]) {
+      crossbars.push(
+        { x0: cx - 4, x1: cx + 4, y0: cy_ - 1, y1: cy_ + 1, z0: z0 + 1, z1: z0 + 3.2 },
+        { x0: cx - 4, x1: cx + 4, y0: cy_ - 1, y1: cy_ + 1, z0: z1 - 3.2, z1: z1 - 1 }
+      );
     }
   } else {
-    // Base cargo pull-out: vertical side/center upright ladder frame
+    // Base cargo pull-out: vertical upright chassis spanning full depth to door brackets
     const postX = mount === 'left' ? cx - sw / 2 + 2.5 : mount === 'right' ? cx + sw / 2 - 2.5 : cx;
-    uprights.push({
-      x0: postX - 1.2,
-      x1: postX + 1.2,
-      y0: frameBottom,
-      y1: frameTop,
-      z0: z0 + 1,
-      z1: z0 + 3.2,
-    });
+    uprights.push(
+      // Rear upright post
+      { x0: postX - 1.2, x1: postX + 1.2, y0: frameBottom, y1: frameTop, z0: z0 + 1, z1: z0 + 3 },
+      // Front upright post coupled to door brackets
+      { x0: postX - 1.2, x1: postX + 1.2, y0: frameBottom, y1: frameTop, z0: z1 - 2.8, z1: z1 - 0.8 }
+    );
+    // Longitudinal top and bottom structural chassis rails spanning full cabinet depth
     crossbars.push(
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameBottom, y1: frameBottom + 1.8, z0: z0 + 1, z1: z0 + 3 },
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameTop - 1.8, y1: frameTop, z0: z0 + 1, z1: z0 + 3 }
+      { x0: postX - 1.4, x1: postX + 1.4, y0: frameBottom, y1: frameBottom + 2.2, z0: z0 + 1, z1: z1 - 0.8 },
+      { x0: postX - 1.2, x1: postX + 1.2, y0: frameTop - 2, y1: frameTop, z0: z0 + 1, z1: z1 - 0.8 },
+      // Front mounting crossbars to front door fixing brackets
+      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameBottom + 1, y1: frameBottom + 2.8, z0: z1 - 2.8, z1: z1 - 0.8 },
+      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameTop - 2.8, y1: frameTop - 1, z0: z1 - 2.8, z1: z1 - 0.8 },
+      // Rear crossbars
+      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameBottom + 1, y1: frameBottom + 2.8, z0: z0 + 1, z1: z0 + 3 },
+      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameTop - 2.8, y1: frameTop - 1, z0: z0 + 1, z1: z0 + 3 }
     );
   }
 

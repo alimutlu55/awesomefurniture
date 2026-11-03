@@ -58,11 +58,17 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test') {
+      const isCargoStage = piece.fittings.some(f => f.size?.includes('cargo'))
+        && (step.stage === 'drawer-runners' || step.stage === 'drawers' || step.stage === 'fronts');
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
         const points = [...step.boards, ...before].flatMap(i => placed(i, time));
         if (fraction === .25) points.push(...step.boards.flatMap(waiting));
-        shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.04 : 1.1);
+        if (isCargoStage) {
+          shot(time, points, facing + side * .52, .36, 1.08);
+        } else {
+          shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.04 : 1.1);
+        }
       }
     }
 
@@ -124,13 +130,16 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
           points.push(...corners([b.x0 - 2, b.y0 - 3, b.z0], [b.x1 + 2, b.y1 + 3, b.z1]).map(half));
         }
         // Leave a short glide between drawers, outside their moving interval.
-        shot(start + duration * .03, points, facing + .65, .48, 1.12);
-        shot(start + duration * .97, points, facing + .65, .48, 1.12);
+        const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
+        const azAngle = isCargo ? facing + .48 : facing + .65;
+        shot(start + duration * .03, points, azAngle, .36, 1.15);
+        shot(start + duration * .97, points, azAngle, .36, 1.15);
       });
     } else {
       // A breath: the piece so far, at this moment rather than at the chapter's start.
       const time = s.end - .15;
-      shot(time, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, time)), facing + side * .45, .45, 1.1);
+      const isCargo = piece.fittings.some(f => f.size?.includes('cargo')) && ['drawer-runners', 'drawers', 'fronts'].includes(step.stage);
+      shot(time, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, time)), facing + side * (isCargo ? .52 : .45), isCargo ? .36 : .45, 1.1);
     }
   });
   // The finished piece, turning slowly.
