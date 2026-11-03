@@ -1,6 +1,6 @@
 import { boreMaterial } from './bore-material';
 import type { Board } from '../drawings/cabinet-boards';
-import { resolveAssemblyStages } from '../hardware/hardware-registry';
+import { hardware, resolveAssemblyStages } from '../hardware/hardware-registry';
 import type { AssemblyStage } from '../hardware/hardware-types';
 import { type Axis, type Fitting, type FittingKind, type Hole, type HoleKind, hi, lo } from './make-joints';
 import { thinAxis, tiltOf } from './make-measures';
@@ -100,13 +100,17 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   };
   const steps = boards.map(stepOf);
   const fittingStep = (f: Fitting, i: number): Stage => {
-    if (f.kind === 'leg') return 'plinth';
-    if (f.kind === 'bracket' || f.kind === 'hanger') return f.size?.includes('cargo') ? 'fronts' : 'wall';
-    if (f.kind === 'rail' || f.kind === 'support') return f.size?.includes('cargo') ? (f.kind === 'rail' ? 'cargo-baskets' : 'cargo-frame') : 'inside';
     if (f.purpose === 'cargo-lock') return 'drawers';
-    if (f.kind === 'runner' || f.purpose === 'runner-mount') return 'drawer-runners';
-    if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing' || f.size?.includes('cargo')) return 'fronts';
+    if (f.purpose === 'runner-mount') return 'drawer-runners';
+    if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing') return 'fronts';
+    if (f.size?.includes('cargo')) {
+      return f.kind === 'rail' ? 'cargo-baskets' : f.kind === 'support' ? 'cargo-frame' : 'fronts';
+    }
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
+    const hw = hardware(f.kind);
+    if (hw && !hw.assembly.fittedFirst && !['connector', 'fixing', 'hinge', 'handle'].includes(hw.category)) {
+      return hw.assembly.stage;
+    }
     return STAGES[Math.max(0, ...f.boards.map(b => STAGES.indexOf(steps[b]!)))]!;
   };
   const out: Step[] = [], hasDrawers = fittings.some(f => f.runner || f.kind === 'runner');

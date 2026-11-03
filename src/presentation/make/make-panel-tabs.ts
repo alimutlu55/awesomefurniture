@@ -1,3 +1,4 @@
+import { CARGO_MECHANISM_ENTRY, hardware } from '../../domain/hardware/hardware-registry';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { STOCK } from '../../domain/make/make-cut-layout';
@@ -27,7 +28,8 @@ export const sold = (size?: string) => !size ? '' : /^\d+$/.test(size) ? size + 
 /** Formats hardware items into readable titles and dimensions for buy lists, tables, and chips. */
 export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name: string; size: string } {
   if (b.size?.includes('cargo frame') || (b.kind === 'support' && b.size?.includes('cargo'))) {
-    return { name: 'Cargo pull-out frame', size: 'steel chassis + 4 slide brackets (2–3 pręt)' };
+    const v = CARGO_MECHANISM_ENTRY.variants?.find(x => x.key === 'frame');
+    return { name: v?.name ?? 'Cargo pull-out frame', size: 'steel chassis + 4 slide brackets (2–3 pręt)' };
   }
   if (b.size?.includes('cargo basket')) {
     const style = b.size.includes('solid') ? 'solid Arena' : 'wire';
@@ -37,12 +39,13 @@ export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name
     return { name: 'Cargo front bracket', size: '103.5×36.5 mm 3D + GTV move' };
   }
   if (b.kind === 'screw' && b.size === 'M4 × 6') {
-    return { name: 'Slide locking screw', size: 'M4 × 6 mm machine screw' };
+    const v = CARGO_MECHANISM_ENTRY.variants?.find(x => x.key === 'slide-lock');
+    return { name: v?.name ?? 'Slide locking screw', size: 'M4 × 6 mm machine screw' };
   }
   if (b.kind === 'runner' && b.size) {
     return { name: 'Full-extension runners', size: `${b.size} mm soft-close pair` };
   }
-  return { name: FITTING_NAMES[b.kind] ?? b.kind, size: sold(b.size) };
+  return { name: FITTING_NAMES[b.kind] ?? hardware(b.kind)?.display.listLine.label ?? b.kind, size: sold(b.size) };
 }
 
 export const TABS = [['parts', 'Parts'], ['hardware', 'Hardware'], ['cutting', 'Cutting']] as const;

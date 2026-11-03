@@ -1,3 +1,4 @@
+import { assemblyStageSpec } from '../../domain/hardware/hardware-registry';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
 import type { MakePlayer } from './make-player';
@@ -35,6 +36,7 @@ const instructions: Record<Stage, string> = {
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
+const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
 const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
   'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
@@ -192,8 +194,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
           : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
-          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? instructions[step.stage]
-          : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
+          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? stageInstruction(step.stage)
+          : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : stageInstruction(step.stage);
         const hardwareHtml = hardware.map(f => {
           const disp = hardwareDisplay(f);
           return `<span title="${esc(disp.name)}">${fittingIcon(f.kind)}<span>${esc(disp.name)}`
