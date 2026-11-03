@@ -11,14 +11,16 @@ const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure
   'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
   'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const cargoNames: Partial<Record<Stage, string>> = {
-  'drawer-runners': 'Mount cargo runners',
-  drawers: 'Insert loaded cargo mechanism',
-  fronts: 'Attach cargo door',
-  'drawer-test': 'Test cargo travel',
+  'drawer-runners': 'Mount cargo slides (374 mm spacing)',
+  'cargo-frame': 'Prepare cargo frame & slide brackets',
+  'cargo-baskets': 'Hook on baskets & Separatory dividers',
+  drawers: 'Insert & lock cargo mechanism (M4×6)',
+  fronts: 'Mount, couple & 3D-adjust cargo front',
+  'drawer-test': 'Test 430–450 mm extension & soft-close',
 };
 const instructions: Record<Stage, string> = {
-  'cargo-frame': 'Stand and support the frame outside the cabinet. Keep the rear hooks accessible for fitting the baskets.',
-  'cargo-baskets': 'Rest each basket’s front edge on its support, then lower the rear hooks into the frame. Check every hook is seated.',
+  'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto basket wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
+  'cargo-baskets': 'Rest each wire basket (Kosz 150/200, max load 15 kg) on its front support, lower the rear hooks onto the frame, and clip the 2 transverse wire dividers (Separatory) downward onto the basket gallery rails.',
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
   partitions: 'Align each partition with the base. Secure the joints while keeping the panels upright.',
@@ -34,10 +36,16 @@ const instructions: Record<Stage, string> = {
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
 const cargoInstructions: Partial<Record<Stage, string>> = {
-  'drawer-runners': 'Fit the runner and guide at the mounting faces of the selected mechanism. Keep them aligned and use its supplied fixing template.',
-  drawers: 'Support the loaded frame, align it with the runner carrier and guide, then slide it into the cabinet and lock it in place.',
-  fronts: 'Fit the adjustable front brackets to the pre-drilled pilot holes on the door back with 4×16 mm screws. Hook the door to the chassis frame and align.',
-  'drawer-test': 'Pull the cargo unit out to test travel. Check smooth telescoping extension, soft-close dampening, and even reveals around the door front.',
+  'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
+  'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
+  'cargo-baskets': 'Seat each wire basket (Kosz 150/200, max load 15 kg) onto the frame crossbars, then clip the 2 transverse wire dividers (Separatory) downward onto the upper basket gallery rails.',
+  drawers: 'Slide the loaded cargo basket frame onto the lower and upper cabinet slides (374 mm spacing) until the rear hooks engage, '
+    + 'then drive 4 × M4×6 machine screws downward through the 4 slide brackets to lock the frame.',
+  fronts: 'Screw the 2 front fittings (Mocowania frontu 103.5×36.5 mm, covers removed) to the door back with 4×14 mm screws '
+    + '(78 mm horizontal spacing, 374 mm vertical spacing, lower fitting *142 mm from bottom). Couple the door to the frame, '
+    + 'perform 3-axis 3D adjustment (Height ⇅, Side ⇄, Depth ⇕), and snap on the 2 "GTV move" protective covers.',
+  'drawer-test': 'Pull the cargo unit out to full extension (430 mm travel on L=450 mm slides). Verify smooth telescoping travel, '
+    + 'M4×6 bracket lock, Separator divider retention, even 3D-adjusted door reveals, and SLOW soft-close return.',
 };
 const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
 /** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
@@ -151,18 +159,30 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
       text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${title}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
+      const fixing = player.fixing(), adjusting = player.adjusting();
+      const phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
+        : adjusting ? 'adjust' : 'complete';
       const drawerCaption = q('.as-drawer-caption');
-      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'drawer-test'].includes(step.stage);
+      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts', 'drawer-test'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': isCargo ? 'System 32 line (37 mm setback) → carcass upright with 4×12 mm screws.' : 'Outer rail → cabinet · Inner rail → drawer box',
-        drawers: isCargo ? 'Slide the loaded frame straight onto the runner carrier and secure its lock.' : 'Align both rails. Push the supported box evenly into the cabinet.',
-        fronts: isCargo ? 'Attach 3D adjustable door brackets to door back with 4×16 mm screws, then couple to chassis frame.' : 'Align decorative front, then fasten from inside with front-fixing screws.',
-        'drawer-test': isCargo ? 'Pull cargo unit to test full-extension telescoping travel and soft-close mechanism.' : 'Open and close each drawer to check smooth telescoping travel.',
+        'drawer-runners': isCargo ? 'Lower slide at min 50 mm · Upper slide +374 mm above · 45 mm front setback (4×14 mm screws).' : 'Outer rail → cabinet · Inner rail → drawer box',
+        'cargo-frame': 'Stand steel chassis outside cabinet · Clip 4 slide brackets onto wires 2–3 and 16–17 (192 mm span).',
+        'cargo-baskets': 'Hook wire baskets (Kosz 150/200, max 15 kg) onto frame · Clip 2 transverse Separatory dividers onto rails.',
+        drawers: isCargo
+          ? (phase === 'fix'
+            ? 'Lock all 4 basket slide brackets (2–3 & 16–17 pręt) to slides from above with 4 × M4×6 machine screws.'
+            : 'Slide loaded cargo frame onto lower & upper slides (374 mm spacing), then lock with 4 × M4×6 screws.')
+          : 'Align both rails. Push the supported box evenly into the cabinet.',
+        fronts: isCargo
+          ? (phase === 'adjust'
+            ? `3D Front Adjustment (REGULACJA): tune ${adjusting?.way === 'height' ? 'Height ⇅ (top screw)' : adjusting?.way === 'side' ? 'Side ⇄ (lateral screws)' : 'Depth ⇕ (clamping screws)'} · Snap on "GTV move" covers.`
+            : phase === 'place' ? 'Couple front fittings onto cargo frame upright tongues · Lock & snap on "GTV move" protective covers.'
+            : 'Screw 2 front fittings (103.5×36.5 mm, 78 mm screw pattern, 374 mm vertical spacing, *142 mm from floor) with 4×14 mm screws.')
+          : 'Align decorative front, then fasten from inside with front-fixing screws.',
+        'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer to check smooth telescoping travel.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
-      const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
-        : player.adjusting() ? 'adjust' : 'complete';
       const hardware = fixing?.hardware ?? step.fittings;
       const key = `${step.n}:${phase}:${JSON.stringify(hardware)}`;
       if (key !== showing) {

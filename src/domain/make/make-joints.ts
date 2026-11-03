@@ -29,8 +29,8 @@ export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'na
   | 'bracket';
 export interface Fitting {
   readonly cargo?: CargoPullout;
-  /** Installation purpose separates drawer hardware from structural cabinet connections. */
-  readonly purpose?: 'runner-mount' | 'drawer-front';
+  /** Installation purpose separates drawer and cargo hardware from structural cabinet connections. */
+  readonly purpose?: 'runner-mount' | 'drawer-front' | 'cargo-lock';
   /** One purchased runner pair, with both stationary and moving attachment boards. */
   readonly runner?: { readonly moving: readonly number[]; readonly fixed: readonly number[] };
   readonly kind: FittingKind;

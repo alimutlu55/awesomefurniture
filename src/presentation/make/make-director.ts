@@ -44,10 +44,35 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   const hwStaged = hardwareStagingLayout(piece, staged, floor);
   const hwWaiting = [...hwStaged.values()].flatMap(s => corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half));
   const everything = [...all.flatMap(waiting), ...hwWaiting, ...site];
+  const cargoFrameFitting = piece.fittings.find(f => f.size?.startsWith('cargo frame:'));
+  const hasCargo = piece.fittings.some(f => f.size?.includes('cargo'));
+  const cargoMount = cargoFrameFitting?.size?.split(':')[3] ?? 'bottom';
+  const cargoSide = cargoMount === 'left' ? -1 : 1;
+  // Envelope of any staged/installed cargo frame & baskets at `time` so external assembly steps never clip off-screen.
+  const cargoPointsAt = (time: number, upToStep: number) => {
+    if (!hasCargo) return [];
+    const ph = playhead(tl, time), pts: THREE.Vector3[] = [];
+    piece.fittings.forEach((f, item) => {
+      if (tl.itemStep[item]! > upToStep) return;
+      if (!f.size?.includes('cargo frame') && !f.size?.includes('cargo basket')) return;
+      const st = hwStaged.get(item), p = cargoFittedAt(piece, tl, ph, item);
+      if (!st || p === null) return;
+      const ease = p * p * (3 - 2 * p);
+      const centre = st.at.map((v, axis) => v + (f.at[axis]! - v) * ease);
+      centre[1]! += 20 * Math.sin(Math.PI * ease);
+      const front = f.boards[0];
+      if (front !== undefined) centre[2]! += drawerBoardOffset(piece, tl, ph, front)[2] * ease;
+      const rx = Math.max(10, piece.size.w * .4), ry = f.size?.includes('cargo frame') ? piece.size.h * .42 : 12, rz = Math.max(20, piece.size.d * .42);
+      pts.push(...corners([centre[0]! - rx, Math.max(floor, centre[1]! - ry), centre[2]! - rz], [centre[0]! + rx, centre[1]! + ry, centre[2]! + rz]).map(half));
+    });
+    return pts;
+  };
   shot(0, everything, facing + .7, .7, .95);
   shot(INTRO * .85, everything, facing + .45, .62, .8);
   tl.steps.forEach((s, k) => {
-    const side = k % 2 ? 1 : -1, step = piece.steps[k]!, before = all.filter(i => tl.boardStep[i]! < k);
+    const step = piece.steps[k]!, before = all.filter(i => tl.boardStep[i]! < k);
+    const isCargoStage = hasCargo && ['drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts'].includes(step.stage);
+    const side = isCargoStage ? cargoSide : (k % 2 ? 1 : -1);
     const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k);
     // Drilling: from above, on the boards waiting and the holes in what already stands.
     if (s.drill[1] > s.drill[0]) {
@@ -61,27 +86,13 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test') {
-      const isCargoStage = piece.fittings.some(f => f.size?.includes('cargo'))
-        && (step.stage === 'drawer-runners' || step.stage === 'drawers' || step.stage === 'fronts' || step.stage === 'cargo-baskets' || step.stage === 'cargo-frame');
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
         const points = [...step.boards, ...before].flatMap(i => placed(i, time));
         if (fraction === .25) points.push(...step.boards.flatMap(waiting));
         if (isCargoStage) {
-          // Mechanisms are not boards: include their waiting envelope throughout insertion.
-          for (const item of step.items) {
-            const st = hwStaged.get(item);
-            const p = cargoFittedAt(piece, tl, playhead(tl, time), item);
-            if (st && p !== null) {
-              const ease = p * p * (3 - 2 * p), f = piece.fittings[item]!;
-              let centre = st.at.map((v, axis) => v + (f.at[axis]! - v) * ease);
-              centre[1]! += 20 * Math.sin(Math.PI * ease);
-              const front = f.boards[0];
-              if (front !== undefined) centre[2]! += drawerBoardOffset(piece, tl, playhead(tl, time), front)[2] * ease;
-              points.push(...around(centre, Math.max(piece.size.h / 2, piece.size.d / 2)));
-            }
-          }
-          shot(time, points, facing + side * .52, .36, 1.08);
+          points.push(...cargoPointsAt(time, k));
+          shot(time, points, facing + cargoSide * .48, .36, 1.14);
         } else {
           shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.04 : 1.1);
         }
@@ -104,17 +115,18 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         || (piece.fittings[i]!.purpose === 'runner-mount' && fix.board !== null && piece.boards[fix.board]!.note !== 'drawer box'))
         && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
       // A runner group can span several drawers and the full rail depth: frame all screws, not just the middle one.
-      const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate');
+      const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate' && !piece.fittings[i]!.size?.includes('cargo'));
+      const padRadius = isCargoStage ? 10 : 5;
       const points = hingePlate && middle ? around(where(middle.at), 14)
-        : entries.flatMap(e => [...around(where(e.at), 5), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 3)]);
+        : entries.flatMap(e => [...around(where(e.at), padRadius), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 4)]);
       // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
       // their line, turned towards the front.
       const out = new THREE.Vector3(...dir).negate(), up = Math.abs(out.y) > .7, turn = j % 2 ? .25 : -.25;
       const w = out.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), facing), way = Math.atan2(w.x, w.z), off = (a: number) => Math.abs(Math.atan2(Math.sin(a - facing), Math.cos(a - facing)));
       const az = plates && middle ? inside(where(middle.at)) : up ? facing + side * .3 + turn : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!, el = up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
-      const span = fix.at[1] - fix.at[0];
-      shot(fix.at[0] + span * .2, points, az, el, .95);
-      shot(fix.at[1] - span * .08, points, az + turn * .3, el, .9);
+      const span = fix.at[1] - fix.at[0], fixPad = isCargoStage ? 1.08 : .95;
+      shot(fix.at[0] + span * .2, points, az, el, fixPad);
+      shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);
     });
     // Hanging the doors: close on one hinge and its plate (the middle one of the first door), from the front and across
     // the way the plate went on, so the arm is seen going onto the plate as the door is pushed home.
@@ -146,16 +158,18 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
           points.push(...corners([b.x0 - 2, b.y0 - 3, b.z0], [b.x1 + 2, b.y1 + 3, b.z1]).map(half));
         }
         // Leave a short glide between drawers, outside their moving interval.
-        const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
-        const azAngle = isCargo ? facing + .48 : facing + .65;
+        const azAngle = hasCargo ? facing + cargoSide * .48 : facing + .65;
         shot(start + duration * .03, points, azAngle, .36, 1.15);
         shot(start + duration * .97, points, azAngle, .36, 1.15);
       });
     } else {
-      // A breath: the piece so far, at this moment rather than at the chapter's start.
+      // A breath: the piece so far, at this moment rather than at the chapter's start (including any staged/installed cargo mechanism).
       const time = s.end - .15;
-      const isCargo = piece.fittings.some(f => f.size?.includes('cargo')) && ['drawer-runners', 'drawers', 'fronts'].includes(step.stage);
-      shot(time, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, time)), facing + side * (isCargo ? .52 : .45), isCargo ? .36 : .45, 1.1);
+      const breathPoints = [
+        ...all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, time)),
+        ...cargoPointsAt(time, k),
+      ];
+      shot(time, breathPoints, facing + side * (isCargoStage ? .48 : .45), isCargoStage ? .36 : .45, isCargoStage ? 1.14 : 1.1);
     }
   });
   // The finished piece, turning slowly.

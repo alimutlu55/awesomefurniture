@@ -110,7 +110,8 @@ export function createMakePlay(layer: number) {
       return make(g);
     }
     // The plate on the panel over its two screws, a System 32 pitch apart: about 4 cm each way.
-    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.3, 0), new THREE.Vector3(4.2, .6, 4.2)));
+    // Cargo front brackets have their own 3D fitting mesh in make-fittings-3d.ts.
+    if (f.kind === 'plate' && !f.size?.includes('cargo')) return make(solid(box, steel, new THREE.Vector3(0, -.3, 0), new THREE.Vector3(4.2, .6, 4.2)));
     return null;
   }
 

@@ -24,4 +24,11 @@ export function updateCargoUI(popover: HTMLElement, item: EditorItem): void {
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
   });
+
+  const activeMount = item.cargoMount ?? 'left';
+  icargo.querySelectorAll<HTMLButtonElement>('[data-cargo-mount]').forEach(b => {
+    const on = b.getAttribute('data-cargo-mount') === activeMount;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
 }

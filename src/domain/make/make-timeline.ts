@@ -97,8 +97,9 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // The doors, in front of their places, are pushed home onto their plates.
     const hang = [t, t += s.stage === 'doors' ? HANG : 0] as const;
     const fixStart = t, fixes = [...before, ...fixing(false)], fix = [fixStart, t] as const;
-    // The doors, hung on their plates, are set true: side, height and depth.
-    const adjust = [t, t += s.stage === 'doors' ? ADJUST : 0] as const;
+    // The doors (and 3D-adjustable cargo fronts, GTV Manual Page 6 REGULACJA) are set true: side, height and depth.
+    const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => piece.boards[i]?.name === 'Cargo front');
+    const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
     steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });
   return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, itemTime };
@@ -162,8 +163,10 @@ export function adjustingNow(tl: Timeline, ph: Playhead): 'side' | 'height' | 'd
 export function doorNudge(tl: Timeline, ph: Playhead, board: number): Vec3 {
   const s = tl.steps[ph.step]!;
   if (tl.boardStep[board] !== ph.step || s.adjust[1] <= s.adjust[0]) return [0, 0, 0];
-  const out = HANG_OUT * (1 - ph.hang * ph.hang * (3 - 2 * ph.hang));
-  return CLIPPED_ON.map((v, axis) => v * (1 - unit(ph.adjust * 3 - axis)) + (axis === 2 ? out : 0)) as unknown as Vec3;
+  const hasHang = s.hang[1] > s.hang[0];
+  const out = hasHang ? HANG_OUT * (1 - ph.hang * ph.hang * (3 - 2 * ph.hang)) : 0;
+  const engaged = hasHang ? 1 : unit((ph.t - s.fix[1]) / .4);
+  return CLIPPED_ON.map((v, axis) => v * engaged * (1 - unit(ph.adjust * 3 - axis)) + (axis === 2 ? out : 0)) as unknown as Vec3;
 }
 /** Whether a door is drawn see-through: while it comes in and is hung, so its hinge arms are seen going onto the plates. */
 export function seeThrough(tl: Timeline, ph: Playhead, board: number): boolean {

@@ -2,7 +2,7 @@ import type { Board } from '../../domain/drawings/cabinet-boards';
 import { type Measure, partMeasures, pieceMeasures, thinAxis, type Vec3 } from '../../domain/make/make-measures';
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
 import { translate } from '../i18n/language';
-import { FITTING_NAMES, fittingIcon, sold } from './make-panel-tabs';
+import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import type { Fixing } from './make-player';
 
 /** A length (centimetres) as the person reads it, in their unit. */
@@ -123,6 +123,8 @@ function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Ve
     if (s) anchors.push({ n: part.n, x: s[0], y: s[1], ty: s[1] });
   }
   const mid = size.w / 2, r = fs * .95, gap = r * 2.4, margin = 24 + r;
+  const minX = anchors.length ? Math.min(...anchors.map(a => a.x)) : mid;
+  const maxX = anchors.length ? Math.max(...anchors.map(a => a.x)) : mid;
   let out = '';
   for (const left of [true, false]) {
     const column = anchors.filter(a => (a.x < mid) === left).sort((a, b) => a.y - b.y);
@@ -131,7 +133,8 @@ function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Ve
     let limit = size.h - 110;
     for (const a of [...column].reverse()) { a.ty = Math.min(a.ty, limit); limit = a.ty - gap; }
     for (const a of column) {
-      const tx = left ? margin : size.w - margin, edge = left ? tx + r : tx - r;
+      const tx = left ? Math.max(margin, Math.min(a.x - 42, minX - 48)) : Math.min(size.w - margin, Math.max(a.x + 42, maxX + 48));
+      const edge = left ? tx + r : tx - r;
       out += `<g class="make-num${selected === a.n ? ' sel' : ''}"><polyline class="make-lead" points="${n1(a.x)},${n1(a.y)} ${n1(edge)},${n1(a.ty)}"/>`
         + `<circle class="make-numc" cx="${n1(tx)}" cy="${n1(a.ty)}" r="${n1(r)}"/>`
         + `<text class="make-numt" font-size="${n1(fs * .85)}" x="${n1(tx)}" y="${n1(a.ty)}" text-anchor="middle" dominant-baseline="central">${a.n}</text></g>`;
@@ -157,15 +160,34 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
   }
   if (!tails.length || !fixing.hardware.length) return out;
   // The callout stands clear of the joint, beside it where the view has room, with a leader to the nearest fastener.
-  const rows = fixing.hardware.map(h => ({ ...h, name: esc(translate(FITTING_NAMES[h.kind])), label: `×${h.qty}`, small: esc(sold(h.size)) })), row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
-  const bw = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52)), bh = pad * 2 + rows.length * row - fs * .4;
+  const rows = fixing.hardware.map(h => {
+    const disp = hardwareDisplay(h);
+    return { ...h, name: esc(translate(disp.name)), label: `×${h.qty}`, small: esc(disp.size) };
+  });
+  const row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
+  const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
+  const rawW = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52));
+  const bw = Math.min(Math.max(140, right - left), rawW), bh = pad * 2 + rows.length * row - fs * .4;
   const xs = [...tails, ...heads].map(p => p[0]), ys = [...tails, ...heads].map(p => p[1]), gap = 28;
   const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as const, mx = (box[0] + box[2]) / 2, my = (box[1] + box[3]) / 2;
-  const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
-  const spots = [[box[2] + gap + bw / 2, my], [box[0] - gap - bw / 2, my], [mx, box[1] - gap - bh / 2], [mx, box[3] + gap + bh / 2]] as const;
+  const clampX = (x: number) => Math.max(left + bw / 2, Math.min(right - bw / 2, x));
+  const clampY = (y: number) => Math.max(top + bh / 2, Math.min(bottom - bh / 2, y));
+  const spots = [
+    [box[2] + gap + bw / 2, clampY(my)],
+    [box[0] - gap - bw / 2, clampY(my)],
+    [clampX(mx), box[1] - gap - bh / 2],
+    [clampX(mx), box[3] + gap + bh / 2],
+  ] as const;
   const fits = (c: readonly [number, number]) => c[0] - bw / 2 >= left && c[0] + bw / 2 <= right && c[1] - bh / 2 >= top && c[1] + bh / 2 <= bottom;
-  const spot = spots.find(fits) ?? spots[0];
-  const cx = Math.max(left + bw / 2, Math.min(right - bw / 2, spot[0])), cy = Math.max(top + bh / 2, Math.min(bottom - bh / 2, spot[1]));
+  // On narrow mobile screens where horizontal spots would clamp over the hardware, prefer above or below the joint.
+  const clearance = (c: readonly [number, number]) => {
+    const cx0 = clampX(c[0]) - bw / 2, cy0 = clampY(c[1]) - bh / 2, cx1 = cx0 + bw, cy1 = cy0 + bh;
+    const ox = Math.max(0, Math.min(cx1, box[2] + 10) - Math.max(cx0, box[0] - 10));
+    const oy = Math.max(0, Math.min(cy1, box[3] + 10) - Math.max(cy0, box[1] - 10));
+    return -(ox * oy);
+  };
+  const spot = spots.find(fits) ?? [...spots].sort((a, b) => clearance(b) - clearance(a))[0]!;
+  const cx = clampX(spot[0]), cy = clampY(spot[1]);
   const near = tails.reduce((m, p) => Math.hypot(p[0] - cx, p[1] - cy) < Math.hypot(m[0] - cx, m[1] - cy) ? p : m);
   const x0 = cx - bw / 2, y0 = cy - bh / 2, ex = Math.max(x0, Math.min(x0 + bw, near[0])), ey = Math.max(y0, Math.min(y0 + bh, near[1]));
   out += `<g class="make-callout" style="opacity:${n1(seen)}"><line class="make-lead" x1="${n1(near[0])}" y1="${n1(near[1])}" x2="${n1(ex)}" y2="${n1(ey)}"/>`

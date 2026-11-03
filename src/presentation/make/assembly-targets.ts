@@ -43,7 +43,8 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
   // For cargo pull-out units: while runners, chassis, baskets, or travel test are active,
   // ensure any intervening carcass side panel between camera and interior mechanism becomes cutaway!
   const currentStage = piece.steps[ph.step]?.stage;
-  const isCargoStep = currentStage === 'drawer-runners' || currentStage === 'drawers' || currentStage === 'fronts' || currentStage === 'drawer-test';
+  const isCargoStep = currentStage === 'drawer-runners' || currentStage === 'cargo-frame' || currentStage === 'cargo-baskets'
+    || currentStage === 'drawers' || currentStage === 'fronts' || currentStage === 'drawer-test';
   const hasCargo = piece.fittings.some(f => f.size?.includes('cargo'));
   if (isCargoStep && hasCargo) {
     const sideBoards = piece.boards

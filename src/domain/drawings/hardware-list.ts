@@ -74,14 +74,17 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       let itemSize = size;
       if (line.size?.includes('cargo frame') || (line.kind === 'support' && line.size?.includes('cargo'))) {
         name = 'Cargo pull-out frame';
-        itemSize = 'vertical steel chassis';
+        itemSize = 'vertical steel chassis + 4 slide brackets (2–3 pręt)';
       } else if (line.size?.includes('cargo basket')) {
         const style = line.size.includes('solid') ? 'solid Arena' : 'wire';
         name = `Cargo storage basket, ${style}`;
-        itemSize = 'clip-on basket';
+        itemSize = 'clip-on basket + wire separator (Separatory)';
       } else if ((line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo')) {
         name = 'Cargo front fixing bracket';
-        itemSize = '3D adjustable door mount';
+        itemSize = '103.5 × 36.5 mm 3D mount + GTV move cover';
+      } else if (line.kind === 'screw' && line.size === 'M4 × 6') {
+        name = 'Cargo slide locking screw';
+        itemSize = 'M4 × 6 mm machine screw';
       }
       add(p, name, itemSize, line.qty);
     }

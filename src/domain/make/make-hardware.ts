@@ -133,7 +133,8 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       fittings.push({ kind: 'handle', at: [at.x, at.y, b.z1], axis: 2, boards: [i], size });
     }
   });
-  // Cargo pull-out hardware: runners, front fixing brackets, screws, and pilot holes in the door.
+  // Cargo pull-out hardware: GTV Cargo Movix 150/200 runners (374 mm vertical spacing), 4 slide brackets + M4×6 locking screws,
+  // 2 3D-adjustable front fittings (78 mm screw pattern, 374 mm vertical spacing, "GTV move" covers), 4×14 screws, and pilot holes.
   boards.forEach((b, i) => {
     if (b.name !== 'Cargo front') return;
     const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
@@ -142,20 +143,37 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       ?? cargoPulloutGeometry(cx, b.y0, b.x1 - b.x0, b.y1 - b.y0, design.d);
     const runner = cargo.runners.length * 10;
     const sideMounted = cargo.mount !== 'bottom';
-    const base = boards.findIndex(q=>q.name==='Base'), top = boards.findIndex(q=>q.name==='Top');
-    const lower = sideMounted ? (cargo.mount==='right' ? right : left)?.i ?? -1 : base;
-    const fixed = [lower, ...(cargo.isTall && top>=0 ? [top] : [])].filter(i=>i>=0);
-    fittings.push({kind:'runner',cargo,at:[cx,cargo.runners.bottom.y0,(cargo.runners.bottom.z0+cargo.runners.bottom.z1)/2],axis:sideMounted ? 0 : 1,
-      boards:[i,...fixed],size:String(runner),runner:{moving:fixed.map(()=>i),fixed}});
-    for(const host of fixed) {
-      const q=boards[host]!, upper=host===top;
+    const base = boards.findIndex(q => q.name === 'Base'), top = boards.findIndex(q => q.name === 'Top');
+    const lower = sideMounted ? (cargo.mount === 'right' ? right : left)?.i ?? -1 : base;
+    const fixed = [lower, ...(cargo.isTall && top >= 0 ? [top] : [])].filter(idx => idx >= 0);
+    fittings.push({
+      kind: 'runner',
+      cargo,
+      at: [cx, cargo.runners.bottom.y0, (cargo.runners.bottom.z0 + cargo.runners.bottom.z1) / 2],
+      axis: sideMounted ? 0 : 1,
+      boards: [i, ...fixed],
+      size: String(runner),
+      runner: { moving: fixed.map(() => i), fixed },
+    });
+    for (const host of fixed) {
+      const q = boards[host]!, upper = host === top;
       const axis = sideMounted && !upper ? 0 as const : 1 as const;
-      const sign = axis===0 ? (cargo.mount==='right' ? 1 as const : -1 as const) : upper ? 1 as const : -1 as const;
-      for(const distance of [5,runner/10-5]) {
-        const at:Vec3=[axis===0 ? sign<0 ? q.x1 : q.x0 : cx,axis===1 ? upper ? q.y0 : q.y1 : cargo.runners.bottom.y0+1.5,cargo.runners.bottom.z1-distance];
-        const of=fittings.length;
-        fittings.push({kind:'screw',at,axis,boards:[host],size:'4 × 12',purpose:'runner-mount'});
-        holes.push({board:host,kind:'runner',at,axis,sign,d:2.5,depth:12,of});
+      const sign = axis === 0 ? (cargo.mount === 'right' ? 1 as const : -1 as const) : upper ? 1 as const : -1 as const;
+      // Side-mounted Cargo Movix uses both lower slide (min 50 mm) and upper slide (+374 mm) on the carcass side wall.
+      const slideLevels = sideMounted && !upper && cargo.runners.top
+        ? [(cargo.runners.bottom.y0 + cargo.runners.bottom.y1) / 2, (cargo.runners.top.y0 + cargo.runners.top.y1) / 2]
+        : [cargo.runners.bottom.y0 + 1.5];
+      for (const slideY of slideLevels) {
+        for (const distance of [4.5, runner / 10 - 5]) {
+          const at: Vec3 = [
+            axis === 0 ? (sign < 0 ? q.x1 : q.x0) : cx,
+            axis === 1 ? (upper ? q.y0 : q.y1) : slideY,
+            cargo.runners.bottom.z1 - distance,
+          ];
+          const of = fittings.length;
+          fittings.push({ kind: 'screw', at, axis, boards: [host], size: '4 × 14', purpose: 'runner-mount' });
+          holes.push({ board: host, kind: 'runner', at, axis, sign, d: 2.5, depth: 12, of });
+        }
       }
     }
 
@@ -181,11 +199,24 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       });
     }
 
+    // 4 × M4 × 6 machine screws locking the 4 basket slide brackets (2–3 pręt & 16–17 pręt) to the slides (Manual Page 4 Step 3).
+    for (const sb of cargo.slideBrackets) {
+      fittings.push({
+        kind: 'screw',
+        at: sb.screwAt,
+        axis: 1,
+        boards: [i],
+        size: 'M4 × 6',
+        purpose: 'cargo-lock',
+      });
+    }
+
+    // 2 × 3D-adjustable front fittings (Mocowania frontu 103.5 × 36.5 mm, 78 mm screw spacing) + 4 × 4×14 screws (Manual Page 5 Step 4).
     for (const br of cargo.brackets) {
       fittings.push({ kind: 'plate', at: [cx, br.y, b.z0], axis: 2, boards: [i], size: 'cargo front bracket' });
       for (const s of br.screws) {
         const screwOf = fittings.length;
-        fittings.push({ kind: 'screw', at: [s[0], s[1], b.z0], axis: 2, boards: [i], size: '4 × 16', purpose: 'drawer-front' });
+        fittings.push({ kind: 'screw', at: [s[0], s[1], b.z0], axis: 2, boards: [i], size: '4 × 14', purpose: 'drawer-front' });
         holes.push({ board: i, kind: 'pilot', at: [s[0], s[1], b.z0], axis: 2, sign: 1, d: 2.5, depth: 10, of: screwOf });
       }
     }

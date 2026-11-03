@@ -66,7 +66,8 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
       return [0, 0, motion.by * opening];
     }
     if (ph.t <= s.fix[1]) return [0, 0, motion.by];
-    const closing = ease((ph.t - s.fix[1]) / Math.max(.001, s.end - s.fix[1]));
+    const closeSpan = s.adjust[1] > s.adjust[0] ? Math.min(1.2, (s.end - s.fix[1]) * .35) : s.end - s.fix[1];
+    const closing = ease((ph.t - s.fix[1]) / Math.max(.001, closeSpan));
     return [0, 0, motion.by * (1 - closing)];
   }
   if (test < 0 || ph.step !== test) return [0, 0, 0];

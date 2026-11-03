@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { assemblyTimeline } from '../../src/domain/make/make-timeline';
+import { assemblyTimeline, adjustingNow, doorNudge, playhead } from '../../src/domain/make/make-timeline';
 import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
-import { cargoPulloutGeometry, cargoTierCount, cargoBasketWidth } from '../../src/domain/kitchen/cargo-pullout';
+import { CARGO_MOVIX_SPECS, cargoPulloutGeometry, cargoTierCount, cargoBasketWidth } from '../../src/domain/kitchen/cargo-pullout';
 import { stagingLayout, hardwareStagingLayout } from '../../src/domain/make/make-staging';
 import { piecefronts } from '../../src/domain/drawings/fronts';
 import { placePieces } from '../../src/domain/drawings/room-pieces';
@@ -26,17 +26,26 @@ test('cargo tiers and dimensions · standard defaults and narrow 150mm module', 
   assert.equal(cargoTierCount(160), 4);
   assert.equal(cargoTierCount(200), 5);
 
-  // Narrow 150mm cabinet (clear bay ~11.4cm) has a 100mm basket width (Image 5 standard)
+  // Narrow 150mm cabinet (clear bay ~11.4cm) has a 100mm basket width (GTV Movix 150 standard)
   assert.equal(cargoBasketWidth(11.4), 10);
+  // Narrow 200mm cabinet (clear bay ~16.4cm) has a 150mm basket width (GTV Movix 200 standard, Page 2)
+  assert.equal(cargoBasketWidth(16.4), 15);
   // Standard 300mm cabinet (clear bay ~26.4cm) has a ~22.4cm basket width
   assert.equal(cargoBasketWidth(26.4), 22.4);
 
-  // Base cargo geometry
+  // Base cargo geometry (GTV Cargo Movix specs)
   const baseGeo = cargoPulloutGeometry(15, 9.8, 26.4, 74, 55);
   assert.equal(baseGeo.tiers, 2);
   assert.equal(baseGeo.baskets.length, 2);
+  assert.equal(baseGeo.separators.length, 2, '2 Separatory wire dividers for 2-tier cargo');
+  assert.equal(baseGeo.slideBrackets.length, 4, '4 clip-on slide brackets (2-3 pręt & 16-17 pręt on lower & upper slides)');
+  assert.equal(baseGeo.maxLoadKg, 15, '15 kg rated load per GTV Movix manual Page 1');
   assert.equal(baseGeo.isTall, false);
   assert.equal(baseGeo.brackets.length, 2, 'base cargo has 2 front fixing brackets');
+  assert.ok(baseGeo.runners.top !== undefined, 'base cargo has upper slide 374 mm above lower slide');
+  const lowerSlideMidY = (baseGeo.runners.bottom.y0 + baseGeo.runners.bottom.y1) / 2;
+  const upperSlideMidY = (baseGeo.runners.top!.y0 + baseGeo.runners.top!.y1) / 2;
+  assert.ok(Math.abs((upperSlideMidY - lowerSlideMidY) - CARGO_MOVIX_SPECS.slideVerticalSpacing) < 1e-6, 'slides are spaced 374 mm apart vertically');
   assert.ok(baseGeo.runners.length >= 45, 'runners match depth');
 
   // Tall cargo geometry
@@ -314,10 +323,50 @@ test('cargo chassis & bracket alignment · zero gap and exact co-location', () =
     const maxCrossbarZ1 = Math.max(...matchingCrossbars.map(c => c.z1));
     assert.ok(maxCrossbarZ1 >= geo.runners.bottom.z1, 'frame horizontal arm reaches the bracket');
 
-    // Screws are centered within bracket plate
+    // Screws are centered at exact 78 mm (±3.9 cm) spacing within the 103.5 mm (±5.175 cm) GTV Movix bracket plate
+    assert.equal(br.width, 10.35);
+    assert.equal(br.height, 3.65);
+    assert.equal(br.cover, 'GTV move');
+    assert.ok(Math.abs((br.screws[1]![0] - br.screws[0]![0]) - 7.8) < 1e-6, '78 mm horizontal screw spacing on Mocowania frontu');
     for (const s of br.screws) {
-      assert.ok(Math.abs(s[0] - 15) <= 2.5, 'bracket screws are within bracket plate width');
+      assert.ok(Math.abs(s[0] - 15) <= br.width / 2, 'bracket screws are within 103.5 mm bracket plate width');
     }
   }
+  // Vertical spacing between lower and upper front fixing brackets is 374 mm (37.4 cm), lower at *142 mm (14.2 cm)
+  assert.ok(Math.abs((geo.brackets[0]!.y - 9.8) - 14.2) < 1e-6, 'lower front bracket at *142 mm from bottom');
+  assert.ok(Math.abs((geo.brackets[1]!.y - geo.brackets[0]!.y) - 37.4) < 1e-6, '374 mm vertical spacing between front brackets');
+
+  // Slide brackets on 2–3 pręt and 16–17 pręt are spaced 192 mm (19.2 cm) apart horizontally and 374 mm (37.4 cm) vertically
+  const bottomFront = geo.slideBrackets.find(sb => sb.level === 'bottom' && sb.position === 'front')!;
+  const bottomRear = geo.slideBrackets.find(sb => sb.level === 'bottom' && sb.position === 'rear')!;
+  const topFront = geo.slideBrackets.find(sb => sb.level === 'top' && sb.position === 'front')!;
+  assert.equal(bottomFront.wire, '2-3');
+  assert.equal(bottomRear.wire, '16-17');
+  assert.ok(Math.abs((bottomFront.screwAt[2] - bottomRear.screwAt[2]) - 19.2) < 1e-6, '192 mm span between front and rear slide brackets');
+  assert.ok(Math.abs((topFront.screwAt[1] - bottomFront.screwAt[1]) - 37.4) < 1e-6, '374 mm vertical spacing between lower and upper slide brackets');
+});
+
+test('cargo GTV Movix manual · M4×6 slide locking screws in drawers step and 3-axis 3D front adjustment in fronts step', () => {
+  const baseDesign = createKitchenDesign('base', 'cargo');
+  const piece = make(baseDesign);
+  const tl = assemblyTimeline(piece);
+
+  // Verify 4 × M4 × 6 machine screws lock the basket slide brackets in the drawers step (Manual Page 4 Step 3)
+  const drawersIdx = piece.steps.findIndex(s => s.stage === 'drawers');
+  const drawersStep = piece.steps[drawersIdx]!;
+  const m4Screws = piece.fittings.filter(f => f.kind === 'screw' && f.size === 'M4 × 6' && f.purpose === 'cargo-lock');
+  assert.equal(m4Screws.length, 4, '4 × M4 × 6 slide locking screws generated');
+  assert.ok(drawersStep.fittings.some(f => f.kind === 'screw' && f.size === 'M4 × 6' && f.qty === 4), 'drawers step installs 4 × M4 × 6 locking screws');
+
+  // Verify 3-axis 3D front adjustment (REGULACJA: side ⇄, height ⇅, depth ⇕) in fronts step (Manual Page 6)
+  const frontsIdx = piece.steps.findIndex(s => s.stage === 'fronts');
+  const frontsTime = tl.steps[frontsIdx]!;
+  assert.ok(frontsTime.adjust[1] > frontsTime.adjust[0], 'fronts step includes 3D adjustment window for Cargo front');
+  const axes = [0.15, 0.5, 0.85].map(f =>
+    adjustingNow(tl, playhead(tl, frontsTime.adjust[0] + f * (frontsTime.adjust[1] - frontsTime.adjust[0])))
+  );
+  assert.deepEqual(axes, ['side', 'height', 'depth'], 'adjusts all 3 axes (side, height, depth) per Manual Page 6');
+  const frontBoard = piece.boards.findIndex(b => b.name === 'Cargo front');
+  assert.deepEqual(doorNudge(tl, playhead(tl, frontsTime.adjust[1]), frontBoard), [0, 0, 0], 'Cargo front is true after 3D adjustment');
 });
 

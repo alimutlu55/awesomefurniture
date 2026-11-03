@@ -204,9 +204,13 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
           for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
             box(.25, b.railHeight, .25, cx + sx * (rw / 2 - .15), b.y + b.railHeight / 2, bz + sz * (bd / 2 - .15), steel);
           }
+          // Clip-on transverse wire separator (6. Separatory, Manual Pages 1 & 7)
+          const sepZ = (b.separator.z0 + b.separator.z1) / 2 - d / 2;
+          box(rw, .25, .25, cx, b.separator.y1 - .15, sepZ, steel);
+          box(rw - .6, .2, .2, cx, b.separator.y0 + .6, sepZ, steel);
         }
         for (const brk of geo.brackets) {
-          box(Math.min(6, geo.basketW * .5), 1.6, 1.2, cx, brk.y, face - (materials.front.userData.panelThickness ?? PANEL) / 2 - .6, steel);
+          box(Math.min(brk.width, sw - 1), brk.height, 1.2, cx, brk.y, face - (materials.front.userData.panelThickness ?? PANEL) / 2 - .6, steel);
         }
         break;
       }

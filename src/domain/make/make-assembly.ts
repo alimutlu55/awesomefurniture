@@ -101,6 +101,7 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
     if (f.kind === 'leg') return 'plinth';
     if (f.kind === 'bracket' || f.kind === 'hanger') return f.size?.includes('cargo') ? 'fronts' : 'wall';
     if (f.kind === 'rail' || f.kind === 'support') return f.size?.includes('cargo') ? (f.kind === 'rail' ? 'cargo-baskets' : 'cargo-frame') : 'inside';
+    if (f.purpose === 'cargo-lock') return 'drawers';
     if (f.kind === 'runner' || f.purpose === 'runner-mount') return 'drawer-runners';
     if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing' || f.size?.includes('cargo')) return 'fronts';
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);

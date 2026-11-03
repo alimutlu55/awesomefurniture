@@ -27,14 +27,17 @@ export const sold = (size?: string) => !size ? '' : /^\d+$/.test(size) ? size + 
 /** Formats hardware items into readable titles and dimensions for buy lists, tables, and chips. */
 export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name: string; size: string } {
   if (b.size?.includes('cargo frame') || (b.kind === 'support' && b.size?.includes('cargo'))) {
-    return { name: 'Cargo pull-out frame', size: 'vertical steel chassis' };
+    return { name: 'Cargo pull-out frame', size: 'steel chassis + 4 slide brackets (2–3 pręt)' };
   }
   if (b.size?.includes('cargo basket')) {
     const style = b.size.includes('solid') ? 'solid Arena' : 'wire';
-    return { name: `Cargo ${style} basket`, size: 'clip-on storage basket' };
+    return { name: `Cargo ${style} basket`, size: 'clip-on basket + Separator divider' };
   }
   if ((b.kind === 'bracket' || b.kind === 'plate') && b.size?.includes('cargo')) {
-    return { name: 'Cargo front bracket', size: '3D adjustable door mount' };
+    return { name: 'Cargo front bracket', size: '103.5×36.5 mm 3D + GTV move' };
+  }
+  if (b.kind === 'screw' && b.size === 'M4 × 6') {
+    return { name: 'Slide locking screw', size: 'M4 × 6 mm machine screw' };
   }
   if (b.kind === 'runner' && b.size) {
     return { name: 'Full-extension runners', size: `${b.size} mm soft-close pair` };

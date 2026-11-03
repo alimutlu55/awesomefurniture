@@ -43,6 +43,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const halo = new THREE.TorusGeometry(1, .2, 8, 40).rotateX(Math.PI / 2), HALO = 1.2;
   const ringed = new THREE.MeshBasicMaterial({ color: 0x4976ad, depthTest: false, transparent: true });
   let links: readonly (readonly number[])[] = [];
+  let frontStepItems: number[] = [];
   let slides: { mesh: THREE.Object3D; moving: THREE.Object3D; movingBoard?: number; rest: number; home: number; max: number; ratio: number }[] = [];
   let holes: { mesh: THREE.Mesh; board: number; index: number; size: THREE.Vector3; geometry: THREE.BufferGeometry }[] = [];
   let fittings: {
@@ -117,22 +118,44 @@ export function createMakeFittings(layer: number): FittingsLayer {
       const parts = f.size.split(':'), style = parts[1] === 'solid' ? 'solid' : 'wire';
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
-      const tiers = Number(piece.fittings.find(f=>f.kind==='support' && f.size?.startsWith('cargo frame:'))?.size?.split(':')[1]) || (h >= 100 ? 4 : 2);
+      const tiers = Number(piece.fittings.find(q => q.kind === 'support' && q.size?.startsWith('cargo frame:'))?.size?.split(':')[1]) || (h >= 100 ? 4 : 2);
       const geo = f.cargo ?? cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const bkt = geo.baskets.find(bk => Math.abs(bk.base.y0 - f.at[1]) < 2) ?? geo.baskets[0];
       if (!bkt) return null;
       const bw = bkt.base.x1 - bkt.base.x0, bd = bkt.base.z1 - bkt.base.z0, bz = (bkt.base.z0 + bkt.base.z1) / 2;
-      const rw = bkt.rail.x1 - bkt.rail.x0, rd = bkt.rail.z1 - bkt.rail.z0, ry = bkt.rail.y1;
+      const rw = bkt.rail.x1 - bkt.rail.x0, rd = bkt.rail.z1 - bkt.rail.z0, ry = bkt.rail.y1, midRailY = bkt.base.y0 + (ry - bkt.base.y0) * .45;
       const cBasket = frame(piece, [f.at[0], (bkt.base.y0 + ry) / 2, bz]);
       const g = new THREE.Group();
       g.position.copy(cBasket);
-      // Basket base plate (wire mesh or solid Arena panel)
-      g.add(solid(bar, metal, frame(piece, [(bkt.base.x0 + bkt.base.x1) / 2, (bkt.base.y0 + bkt.base.y1) / 2, bz]).sub(cBasket), new THREE.Vector3(bw, bkt.base.y1 - bkt.base.y0, bd)));
-      // Safety perimeter railing
-      g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz + bd / 2]).sub(cBasket), new THREE.Vector3(rw, .3, .3)));
-      g.add(solid(bar, metal, frame(piece, [f.at[0], ry, bz - bd / 2]).sub(cBasket), new THREE.Vector3(rw, .3, .3)));
-      g.add(solid(bar, metal, frame(piece, [f.at[0] - rw / 2, ry, bz]).sub(cBasket), new THREE.Vector3(.3, .3, rd)));
-      g.add(solid(bar, metal, frame(piece, [f.at[0] + rw / 2, ry, bz]).sub(cBasket), new THREE.Vector3(.3, .3, rd)));
+      if (style === 'solid') {
+        g.add(solid(bar, metal, frame(piece, [(bkt.base.x0 + bkt.base.x1) / 2, (bkt.base.y0 + bkt.base.y1) / 2, bz]).sub(cBasket), new THREE.Vector3(bw, bkt.base.y1 - bkt.base.y0, bd)));
+      } else {
+        // Wire basket (1. Kosz 150/200): longitudinal bottom wires + cross-wires at 2–3 pręt and 16–17 pręt (192 mm span)
+        const wireCount = Math.max(5, Math.round(bw / 1.8));
+        for (let wIdx = 0; wIdx < wireCount; wIdx++) {
+          const wx = bkt.base.x0 + .4 + (bw - .8) * (wIdx / Math.max(1, wireCount - 1));
+          g.add(solid(bar, metal, frame(piece, [wx, bkt.base.y0 + .2, bz]).sub(cBasket), new THREE.Vector3(.22, .22, bd)));
+        }
+        for (const wz of [bkt.base.z1 - 3.0, bkt.base.z1 - 4.6, bz, bkt.base.z1 - 23.8, bkt.base.z0 + 2.5]) {
+          if (wz > bkt.base.z0 && wz < bkt.base.z1) {
+            g.add(solid(bar, metal, frame(piece, [f.at[0], bkt.base.y0 + .1, wz]).sub(cBasket), new THREE.Vector3(bw, .26, .26)));
+          }
+        }
+      }
+      // Double perimeter safety gallery railing (upper + lower wire rings)
+      for (const railY of [ry, midRailY]) {
+        g.add(solid(bar, metal, frame(piece, [f.at[0], railY, bz + bd / 2]).sub(cBasket), new THREE.Vector3(rw, .3, .3)));
+        g.add(solid(bar, metal, frame(piece, [f.at[0], railY, bz - bd / 2]).sub(cBasket), new THREE.Vector3(rw, .3, .3)));
+        g.add(solid(bar, metal, frame(piece, [f.at[0] - rw / 2, railY, bz]).sub(cBasket), new THREE.Vector3(.3, .3, rd)));
+        g.add(solid(bar, metal, frame(piece, [f.at[0] + rw / 2, railY, bz]).sub(cBasket), new THREE.Vector3(.3, .3, rd)));
+      }
+      // Clip-on transverse wire divider (6. Separatory, Manual Pages 1 & 7)
+      const sep = bkt.separator, sepZ = (sep.z0 + sep.z1) / 2;
+      g.add(solid(bar, metal, frame(piece, [f.at[0], sep.y1 - .15, sepZ]).sub(cBasket), new THREE.Vector3(rw, .28, .28)));
+      g.add(solid(bar, metal, frame(piece, [f.at[0], sep.y0 + .6, sepZ]).sub(cBasket), new THREE.Vector3(rw - .6, .24, .24)));
+      for (const sx of [-rw / 2 + .15, rw / 2 - .15]) {
+        g.add(solid(bar, metal, frame(piece, [f.at[0] + sx, (sep.y0 + sep.y1) / 2, sepZ]).sub(cBasket), new THREE.Vector3(.28, sep.y1 - sep.y0, .45)));
+      }
       // Frame clip-on hooks
       for (const s of [-rw / 2 + .4, rw / 2 - .4]) {
         g.add(solid(bar, metal, frame(piece, [f.at[0] + s, (bkt.base.y0 + ry) / 2, bz]).sub(cBasket), new THREE.Vector3(.4, ry - bkt.base.y0, .6)));
@@ -142,18 +165,25 @@ export function createMakeFittings(layer: number): FittingsLayer {
     if ((f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo')) {
       const g = new THREE.Group();
       g.position.copy(at);
-      // Mounting plate flush against the back of the front door: 5.6cm x 2.4cm x 0.35cm
-      g.add(solid(bar, metal, new THREE.Vector3(0, 0, -.18), new THREE.Vector3(5.6, 2.4, .35)));
-      // Open receiver: 46 × 22 mm aperture accepts the 44 × 20 mm tongue.
+      // Child 0: GTV Movix Mocowania frontu mounting plate (103.5 × 36.5 mm, 78 mm screw hole centres = ±3.9 cm)
+      const basePlate = new THREE.Group();
+      basePlate.add(solid(bar, metal, new THREE.Vector3(0, 0, -.18), new THREE.Vector3(10.35, 3.65, .35)));
+      for (const sx of [-3.9, 3.9]) {
+        basePlate.add(solid(ring, metal, new THREE.Vector3(sx, 0, -.36), new THREE.Vector3(.45, .12, .45), AXES[2]!));
+      }
+      g.add(basePlate);
+      // Child 1: Open U-channel receiver (46 × 22 mm aperture accepts 44 × 20 mm frame tongue) + "GTV move" snap-on protective cover
       const receiver = new THREE.Group(); receiver.position.z = -1.4;
       for (const side of [-1, 1]) {
         receiver.add(solid(bar, metal, new THREE.Vector3(side * 2.65, 0, 0), new THREE.Vector3(.7, 2.8, 2.4)));
         receiver.add(solid(bar, metal, new THREE.Vector3(0, side * 1.25, 0), new THREE.Vector3(4.6, .3, 2.4)));
       }
+      // Snap-on "GTV move" protective cover cap (Manual Page 1 Item 2 & Page 7 top diagram)
+      receiver.add(solid(bar, metal, new THREE.Vector3(0, 0, -.95), new THREE.Vector3(5.2, 3.1, .22)));
       g.add(receiver);
-      // Side clamping / locking screw bolt head
+      // Child 2: 3D lateral (⇄) & depth/tilt (⇕) adjustment and locking screws (Manual Page 6 diagrams 2 & 3)
       g.add(solid(disc, metal, new THREE.Vector3(1.5, 0, -1.4), new THREE.Vector3(.7, .3, .7), AXES[0]!));
-      // Top height-adjustment bolt
+      // Child 3: 3D vertical height (⇅) adjustment top screw (Manual Page 6 diagram 1)
       g.add(solid(disc, metal, new THREE.Vector3(0, 1.2, -1.4), new THREE.Vector3(.7, .3, .7), Y));
       return tag(g);
     }
@@ -212,12 +242,16 @@ export function createMakeFittings(layer: number): FittingsLayer {
   }
 
   function applyMotion(nudge?: (board: number) => readonly [number, number, number]) {
+    // Cabinet runner channels stay closed until the fronts / travel-test chapters engage them.
+    const frontsStarted = !shownFittings || frontStepItems.length === 0 || frontStepItems.some(idx => shownFittings!(idx) !== null);
     for (const rail of slides) {
       const fitting = fittings.find(f => f.mesh === rail.mesh);
       const progress = shownFittings && fitting ? shownFittings(fitting.index) : 1;
       if (progress === null) continue;
       let delta = 0;
-      if (nudge && rail.movingBoard !== undefined) {
+      if (rail.max < Infinity && !frontsStarted) {
+        delta = 0;
+      } else if (nudge && rail.movingBoard !== undefined) {
         delta = Math.max(0, Math.min(rail.max, nudge(rail.movingBoard)[2]));
       } else {
         const inStaging = Math.abs(rail.moving.quaternion.w - 1) > 0.05 || rail.moving.position.y < 5;
@@ -233,6 +267,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
     build(piece, meshOf, rest, root) {
       this.clear();
       links = piece.fittings.map(f => f.boards);
+      frontStepItems = piece.fittings
+        .map((f, idx) => (f.purpose === 'drawer-front' || f.size === 'cargo front bracket' ? idx : -1))
+        .filter(idx => idx >= 0);
       piece.holes.forEach((h, index) => {
         const host = meshOf(h.board);
         if (!host) return;
@@ -334,7 +371,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);
-      holes = []; fittings = []; slides = []; links = []; focused = null; rung = null;
+      holes = []; fittings = []; slides = []; links = []; frontStepItems = []; focused = null; rung = null;
     },
     dispose() {
       this.clear();
