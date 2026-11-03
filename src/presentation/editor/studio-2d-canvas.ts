@@ -4,7 +4,7 @@ import { cornerDegree, wallLine } from '../../domain/studio/studio';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { detectRooms, door2DPlan, wall2DPlan, window2DPlan, type Point2D } from '../../domain/studio/studio-plan';
 export type { Point2D };
-import { openingNoun } from '../../domain/studio/wall-utilities';
+import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 export interface ViewportTransform {
@@ -77,6 +77,7 @@ export function renderWalls(studio: Studio, selection: RoomSelection): string {
 export function renderOpenings(studio: Studio, selection: RoomSelection): string {
   const out: string[] = [];
   for (const o of studio.openings) {
+    if (isWallUtility(o.kind)) continue;
     const isSel = selection?.kind === 'opening' && selection.id === o.id;
     if (o.kind === 'door') {
       const dp = door2DPlan(studio, o);

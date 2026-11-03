@@ -1,3 +1,4 @@
+import { studioWallItems, wallItemSegments } from '../../domain/studio/studio-wall-items';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { wallFace, wallLine, type Studio } from '../../domain/studio/studio';
 import { fixtureObstacles } from '../../domain/studio/fixtures/fixture-place';
@@ -6,7 +7,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import type { Point2D } from './studio-2d-canvas';
 import { lengthWithUnit } from './length-unit-state';
 
-export interface PlanDimension { id: string; a: Point2D; b: Point2D; text: string; accent?: boolean; offset: number }
+export interface PlanDimension { id: string; a: Point2D; b: Point2D; text: string; accent?: boolean; offset: number; side?: 'left' | 'right'; priority?: number }
 export const cabinetBox = (c: EditorCabinet): PlacedBox => ({ id: c.id, x: c.x, z: c.z, y: c.y, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h });
 
 /** Fixture identities use a separate negative range for the shared measuring rule's numeric ids. */
@@ -16,30 +17,33 @@ export function fixtureBoxes(studio: Studio | null): PlacedBox[] {
 
 export function selectedDimensions(studio: Studio | null, wardrobes: readonly EditorCabinet[], selection: RoomSelection, active: number | null): PlanDimension[] {
   const out: PlanDimension[] = [];
-  const opening = selection?.kind === 'opening' ? studio?.openings.find(o => o.id === selection.id) : undefined;
-  const wall = studio?.walls.find(w => w.id === (opening?.wall ?? (selection?.kind === 'wall' ? selection.id : null)));
+  const boxes = wardrobes.map(cabinetBox), fixtures = fixtureBoxes(studio);
+  const items = studio ? studioWallItems(studio, boxes) : [];
+  const selectedItem = items.find(item => selection ? item.kind === selection.kind && item.id === selection.id : item.kind === 'furniture' && item.id === active);
+  const wall = studio?.walls.find(w => w.id === (selectedItem?.wall ?? (selection?.kind === 'wall' ? selection.id : null)));
   if (studio && wall) {
     const face = wallFace(studio, wall), line = wallLine(studio, wall);
     if (face && line) {
-      const holes = studio.openings.filter(o => o.wall === wall.id && (!opening || o.id === opening.id));
-      const edges = [face.start, ...holes.flatMap(o => [o.offset - o.width / 2, o.offset + o.width / 2]), face.end]
-        .filter(t => t >= face.start && t <= face.end).sort((a, b) => a - b);
+      const segments = wallItemSegments(studio, wall.id, items, selectedItem);
       const at = (t: number) => ({ x: face.from.x + line.ux * (t - face.start), z: face.from.z + line.uz * (t - face.start) });
-      for (let i = 1; holes.length && i < edges.length; i++) {
-        const a = edges[i - 1]!, b = edges[i]!;
-        if (b - a < .1) continue;
-        const hole = holes.find(o => Math.abs(o.offset - (a + b) / 2) < .1 && Math.abs(o.width - (b - a)) < .1);
-        out.push({ id: `chain-${wall.id}-${i}`, a: at(a), b: at(b), offset: 28,
-          text: hole && opening ? `${lengthWithUnit(hole.width)} × ${lengthWithUnit(hole.height)}` : lengthWithUnit(b - a), accent: !!hole });
+      for (const [i, segment] of segments.entries()) {
+        const { from, to, item } = segment;
+        const own = selectedItem && item === selectedItem;
+        const text = own ? `${lengthWithUnit(item.width)} × ${lengthWithUnit(item.kind === 'opening' ? item.height : item.depth ?? item.height)}` : lengthWithUnit(to - from);
+        out.push({ id: `chain-${wall.id}-${i + 1}`, a: at(from), b: at(to), offset: 28, text, accent: !!(own || !selectedItem && item), priority: own ? 0 : 1,
+          ...(segment.side ? { side: segment.side } : {}) });
       }
     }
   }
-  const fixtures = fixtureBoxes(studio), boxes = wardrobes.map(cabinetBox);
   const box = selection?.kind === 'fixture' ? fixtures[(studio?.fixtures ?? []).findIndex(f => f.id === selection.id)]
     : !selection ? boxes.find(c => c.id === active) : undefined;
   if (box) for (const g of gapsAround(box, [...boxes, ...fixtures], studio ?? undefined, ['left', 'right', 'back', 'front'])) {
     if (g.distance < .1) continue;
-    out.push({ id: `clearance-${g.side}`, a: g.from, b: g.to, offset: 0, text: lengthWithUnit(g.distance), accent: true });
+    if (g.side === 'left' || g.side === 'right') {
+      const at = out.findIndex(d => d.side === g.side && !d.accent && Math.abs(Math.hypot(d.b.x - d.a.x, d.b.z - d.a.z) - g.distance) < .1);
+      if (at >= 0) out.splice(at, 1);
+    }
+    out.push({ id: `clearance-${g.side}`, a: g.from, b: g.to, offset: 0, text: lengthWithUnit(g.distance), accent: true, priority: 2 });
   }
   return out;
 }

@@ -1,3 +1,4 @@
+import { utilityMarkers } from './studio-2d-utilities';
 import { dimensionSvg, fixtureBoxes, selectedDimensions } from './studio-2d-dimensions';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { Studio } from '../../domain/studio/studio';
@@ -68,6 +69,11 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, acti
       z: c.z - x! * c.state.w / 2 * si + z! * c.state.d / 2 * co,
     })));
   }
+  for (const marker of utilityMarkers(studio, transform.zoom)) {
+    const r = marker.radius;
+    addObject([{ x: marker.x - r, z: marker.z - r }, { x: marker.x + r, z: marker.z - r },
+      { x: marker.x + r, z: marker.z + r }, { x: marker.x - r, z: marker.z + r }]);
+  }
   for (const c of studio?.corners ?? []) {
     const p = toScreen(c);
     const radius = 12 * scale + 1;
@@ -126,19 +132,22 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, acti
     const width = Math.max(64, Math.ceil(measureText(text)) + 24);
     place({ id: 'drawing', kind: 'drawing', text, width, height: 26, angle: 0, anchor }, around(anchor, width));
   }
-  for (const d of selectedDimensions(studio, wardrobes, selection, activeCabinet)) {
-    const a = toScreen(d.a), b = toScreen(d.b), dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
-    if (len < 1) continue;
-    let angle = Math.atan2(dz, dx) * 180 / Math.PI;
-    if (angle > 90) angle -= 180;
-    if (angle < -90) angle += 180;
-    const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
-    const candidates = [d.offset, -d.offset, 44, -44, 56, -56].map(offset => ({
-      x: mid.x - dz / len * offset * scale, z: mid.z + dx / len * offset * scale, anchor: mid,
-    }));
-    place({ id: d.id, kind: 'dimension', text: d.text, width: measureText(d.text) + 12, height: 20,
-      angle, dimension: { a, b }, accent: !!d.accent }, candidates);
+  function placeSelectedDimensions() {
+    for (const d of selectedDimensions(studio, wardrobes, selection, activeCabinet).sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2))) {
+      const a = toScreen(d.a), b = toScreen(d.b), dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+      if (len < 1) continue;
+      let angle = Math.atan2(dz, dx) * 180 / Math.PI;
+      if (angle > 90) angle -= 180;
+      if (angle < -90) angle += 180;
+      const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+      const candidates = [d.offset, -d.offset, 44, -44, 56, -56, 80, -80, 104, -104].map(offset => ({
+        x: mid.x - dz / len * offset * scale, z: mid.z + dx / len * offset * scale, anchor: mid,
+      }));
+      place({ id: d.id, kind: 'dimension', text: d.text, width: measureText(d.text) + 12, height: 20,
+        angle, dimension: { a, b }, accent: !!d.accent }, candidates);
+    }
   }
+  if (selection?.kind !== 'wall') placeSelectedDimensions();
   wallPlans.sort((a, b) => Number(selection?.kind === 'wall' && selection.id === b.w.id) - Number(selection?.kind === 'wall' && selection.id === a.w.id) || b.plan.faceLength - a.plan.faceLength);
   for (const { w, plan } of wallPlans) {
     const a = toScreen(plan.faceFrom), b = toScreen(plan.faceTo), dx = b.x - a.x, dz = b.z - a.z, length = Math.hypot(dx, dz);
@@ -162,6 +171,7 @@ export function layoutPlanLabels({ studio, wardrobes, transform, selection, acti
       }
     }
     place({ id: w.id, kind: 'dimension', text, width, height: 26, angle, wallId: w.id, anchor: mid, dimension: { a, b } }, candidates());
+    if (selected) placeSelectedDimensions();
   }
   if (studio) for (const room of detectRooms(studio)) {
     const text = room.name, detail = `${room.areaM2.toFixed(1)} m²`, width = Math.max(100, Math.ceil(measureText(text)) + 24);

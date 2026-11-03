@@ -134,3 +134,6 @@
 .sp2d-rotate .sp2d-angle,.sp2d-rotate .sp2d-angle-halo{font-size:12px;font-weight:600}
 
 .sp2d-scale-bar,.sp2d-compass{pointer-events:none}
+
+.sp2d-utility-leader{stroke:#0284c7;stroke-width:1;pointer-events:none}
+.sp2d-utility-anchor{fill:#0284c7;pointer-events:none}

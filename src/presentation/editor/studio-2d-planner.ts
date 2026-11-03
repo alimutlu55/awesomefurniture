@@ -1,3 +1,4 @@
+import { renderUtilities } from './studio-2d-utilities';
 import { overlayInsets } from './studio-2d-overlays';
 import { renderFixtures } from './studio-2d-fixtures';
 import { createPlanRotation, rotationHandle } from './studio-2d-rotate';
@@ -45,7 +46,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
         <g id="sp2d-rooms"></g>
         <g id="sp2d-walls"></g>
         <g id="sp2d-openings"></g>
-        <g id="sp2d-fixtures"></g><g id="sp2d-furniture"></g>
+        <g id="sp2d-fixtures"></g><g id="sp2d-furniture"></g><g id="sp2d-utilities"></g>
         <g id="sp2d-handles"></g>
         <g id="sp2d-guides"></g>
         <g id="sp2d-draw-preview"></g>
@@ -64,6 +65,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const openingsGroup = svg.querySelector<SVGGElement>('#sp2d-openings')!;
   const fixturesGroup = svg.querySelector<SVGGElement>('#sp2d-fixtures')!;
   const rotationGroup = svg.querySelector<SVGGElement>('#sp2d-rotation')!;
+  const utilitiesGroup = svg.querySelector<SVGGElement>('#sp2d-utilities')!;
   const furnGroup = svg.querySelector<SVGGElement>('#sp2d-furniture')!;
   const handlesGroup = svg.querySelector<SVGGElement>('#sp2d-handles')!;
   const guidesGroup = svg.querySelector<SVGGElement>('#sp2d-guides')!;
@@ -185,6 +187,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       lastWardrobesSnapshot = wardSnap;
       furnGroup.innerHTML = renderFurniture(model.scene.wardrobes, actCab);
     }
+    utilitiesGroup.innerHTML = renderUtilities(studio ?? null, sel, transform.zoom);
     const piece = activePiece();
     rotationGroup.innerHTML = piece ? rotationHandle(piece, transform, rotation.active()) : '';
     // Dynamic guides during drag
