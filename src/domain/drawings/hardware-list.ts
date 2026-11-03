@@ -1,5 +1,5 @@
 import { makePlacedPiece } from '../make/make-parts';
-import { HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
+import { HANDLE_ENTRY, HINGE_ENTRY, PLATE_ENTRY, PUSH_TO_OPEN_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
 import type { FittingKind } from '../make/make-joints';
 import { ventilationGrille } from '../kitchen/ventilation';
@@ -46,7 +46,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       // A handle-rail door is its own grip: its profile, as long as the door is wide, in place of a handle.
       if (f.opens === 'side' && !f.label && madeStyle({ ...d, materials: resolveMaterials(d) }, f.decorId).grip) { add(p, 'Handle rail profile', mm(f.x1 - f.x0) + ' mm long', 1); continue; }
       const handle = resolveHandle(resolveMaterials(d));
-      if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
+      if (handle.none) add(p, PUSH_TO_OPEN_ENTRY.display.listLine.label, PUSH_TO_OPEN_ENTRY.display.listLine.defaultSpec, 1);
 
     }
     // Fittings: what each is built with, sized to its place.
@@ -56,8 +56,8 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       // A drawer's own front takes a handle, unless it is behind closed doors (a finger grip, D4).
       if (!kitchen && fitting(it.k)?.innerFront && !innerFrontBehindDoor(d, it)) {
         const handle = resolveHandle(resolveMaterials(d));
-        if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
-  
+        if (handle.none) add(p, PUSH_TO_OPEN_ENTRY.display.listLine.label, PUSH_TO_OPEN_ENTRY.display.listLine.defaultSpec, 1);
+
       }
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {
         if (h === 'runners' || h === 'rail' || h === 'shelfSupports') continue;
@@ -68,7 +68,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail',
       pin: 'Shelf support', hinge: HINGE_ENTRY.display.listLine.label, plate: PLATE_ENTRY.display.listLine.label,
       runner: `${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,
-      handle: 'Handle', rail: 'Hanging rail, oval', support: 'Rail end support',
+      handle: HANDLE_ENTRY.display.listLine.label, rail: 'Hanging rail, oval', support: 'Rail end support',
       leg: 'Adjustable leg', hanger: 'Cabinet hanger, adjustable', bracket: 'Wall fixing bracket',
     };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {

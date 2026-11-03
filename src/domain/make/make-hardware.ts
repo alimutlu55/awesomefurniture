@@ -7,7 +7,7 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
-import { RUNNER_ENTRY } from '../hardware/hardware-registry';
+import { HANDLE_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
 import { backFaceOf, plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension, RUNNER_CLEARANCE, RUNNER_REAR_GAP, runnerForSpace } from '../wardrobe/drawer-runners';
@@ -22,6 +22,8 @@ import { cargoPulloutGeometry } from '../kitchen/cargo-pullout';
 export const SYSTEM_LINE = (RUNNER_ENTRY.rules.systemLineMm ?? 37) / 10;
 /** One System 32 step: runner slots and shelf pin rows are this far apart. A runner screw hole, mm. */
 const PITCH = (RUNNER_ENTRY.rules.pitchMm ?? 32) / 10;
+const HANDLE_THROUGH_HOLE = HANDLE_ENTRY.drilling[0]!;
+const HANDLE_BACK_HOLE = HANDLE_ENTRY.drilling[1]!;
 const RUNNER_HOLE = RUNNER_ENTRY.drilling[0]!;
 const RUNNER_SCREW = { d: RUNNER_HOLE.dMm, depth: RUNNER_HOLE.depthMm } as const;
 
@@ -131,7 +133,8 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       // The design's handle where handlePlacement puts it (as the 3D view draws it), with its screws: through the front, an
       // edge pull's from the back near the edge, none for a recessed or profile pull.
       const at = handlePlacement({ ...b, door: f?.opens === 'side', hinge: f?.hinge }, handle), back = at.back, z = back ? b.z0 : b.z1;
-      if (!glass(b)) for (const [x, y] of at.screws) holes.push({ board: i, kind: 'handle', at: [x, y, z], axis: 2, sign: back ? 1 : -1, d: back ? 4 : 5, depth: back ? 10 : 0, of: fittings.length });
+      const holeSpec = back ? HANDLE_BACK_HOLE : HANDLE_THROUGH_HOLE;
+      if (!glass(b)) for (const [x, y] of at.screws) holes.push({ board: i, kind: 'handle', at: [x, y, z], axis: 2, sign: back ? 1 : -1, d: holeSpec.dMm, depth: holeSpec.depthMm, of: fittings.length });
       const size = handle.kind.key === 'bar' ? String(handle.size) : handle.kind.name + (handle.size === undefined ? '' : handle.size === 'full' ? ' full height' : ' ' + handle.size);
       fittings.push({ kind: 'handle', at: [at.x, at.y, b.z1], axis: 2, boards: [i], size });
     }

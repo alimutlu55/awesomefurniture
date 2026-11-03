@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
-import type { resolveHandle } from '../../domain/wardrobe/handles';
+import { HANDLE_ENTRY, HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
+import { HANDLES, handleKind, type HandleSize, type resolveHandle } from '../../domain/wardrobe/handles';
 import type { Fitting } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
 
@@ -59,19 +59,40 @@ export function mountingPlateMesh(box: THREE.BufferGeometry, material: THREE.Mat
  * Centred on the origin with the posts' feet at z = 0, so it is placed on the front's face. Horizontal for
  * drawers, vertical for doors. Centimetres. */
 export function barPull(length: number, material: THREE.Material, vertical = false) {
-  const group = new THREE.Group(), stand = 2.4, inset = Math.min(1.6, length / 4);
-  const bar = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, length, 14), material);
+  const barPrim = HANDLE_ENTRY.display.model3d.primitives[0]!;
+  const postPrim = HANDLE_ENTRY.display.model3d.primitives[1]!;
+  const group = new THREE.Group(), stand = (barPrim.offsetMm?.[2] ?? 24) / 10, inset = Math.min(1.6, length / 4);
+  const barR = barPrim.sizeMm[0] / 20, postR = postPrim.sizeMm[0] / 20;
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(barR, barR, length, 14), material);
   if (!vertical) bar.rotation.z = Math.PI / 2;
   bar.position.z = stand;
   group.add(bar);
   for (const side of [-1, 1]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, stand, 8), material), along = side * (length / 2 - inset);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(postR, postR, stand, 8), material), along = side * (length / 2 - inset);
     post.rotation.x = Math.PI / 2;
     post.position.set(vertical ? 0 : along, vertical ? along : 0, stand / 2);
     group.add(post);
   }
   group.traverse(o => { o.castShadow = true; });
   return group;
+}
+
+/**
+ * Builds the 3D handle mesh for a Make fitting `f` (`f.kind === 'handle'`) using the shared `handleMesh` builder,
+ * so Editor 3D and Make 3D render the exact same handle geometry for every handle kind and size.
+ */
+export function makeFittingHandleMesh(piece: MakePiece, f: Fitting, at: THREE.Vector3, material: THREE.Material): THREE.Group {
+  const board = f.boards[0] !== undefined ? piece.boards[f.boards[0]] : undefined;
+  const door = board ? board.stock === 'door' : piece.holes.some(h => h.kind === 'handle' && Math.abs(h.at[0] - f.at[0]) < .01 && Math.abs(h.at[1] - f.at[1]) > 1);
+  const run = board ? (door ? board.y1 - board.y0 : board.x1 - board.x0) : 60;
+  const raw = f.size ?? '128';
+  const matched = HANDLES.find(h => raw.startsWith(h.name));
+  const kind = matched ?? handleKind('bar');
+  const numMatch = /(\d+)$/.exec(raw);
+  const size: HandleSize | undefined = raw.includes('full height') ? 'full' : numMatch ? Number(numMatch[1]) : (kind.sizes[0] as HandleSize | undefined);
+  const mesh = handleMesh({ kind, size, finish: 'brushed_brass', none: false }, run, material, door) ?? new THREE.Group();
+  mesh.position.copy(at);
+  return mesh;
 }
 
 /** The design's handle as the 3D view draws it, centred on the origin on a front's face (z = 0 is the face), upright for

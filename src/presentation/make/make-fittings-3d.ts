@@ -6,6 +6,7 @@ import { WAIT } from '../../domain/make/make-fixing';
 import { drawerRunnerMeshes } from './drawer-runner-3d';
 import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
 import { hardwareStagingLayout, stagingLayout } from '../../domain/make/make-staging';
+import { makeFittingHandleMesh } from '../viewport/hardware';
 
 /**
  * What is drilled and bought, drawn in Make's 3D: every hole as a dark ring at its mouth, and the hardware a maker can
@@ -81,12 +82,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
   function fittingMesh(piece: MakePiece, f: Fitting): THREE.Object3D | null {
     const at = frame(piece, f.at), size = Number(f.size) / 10;
     if (f.kind === 'handle') {
-      // A bar 128 mm between centres standing 30 mm proud of the front, upright on a door, level on a drawer.
-      const door = piece.holes.some(h => h.kind === 'handle' && Math.abs(h.at[0] - f.at[0]) < .01 && Math.abs(h.at[1] - f.at[1]) > 1);
-      const g = new THREE.Group(), along = door ? Y : AXES[0]!;
-      g.add(solid(rod, metal, at.clone().add(new THREE.Vector3(0, 0, 3)), new THREE.Vector3(.6, 16, .6), along));
-      for (const s of [-6.4, 6.4]) g.add(solid(rod, metal, at.clone().addScaledVector(along, s).add(new THREE.Vector3(0, 0, 1.5)), new THREE.Vector3(.4, 3, .4), AXES[2]));
-      return tag(g);
+      return tag(makeFittingHandleMesh(piece, f, at, metal));
     }
     if (f.kind === 'rail' && !f.size?.includes('cargo')) return solid(rod, metal, at, new THREE.Vector3(1.25, size, 1.25), AXES[0]);
     if (f.kind === 'leg') return solid(rod, metal, at.clone().setY(at.y + size / 2), new THREE.Vector3(2.2, size, 2.2));
