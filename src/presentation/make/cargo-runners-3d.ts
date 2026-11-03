@@ -1,7 +1,12 @@
 import * as THREE from 'three';
+import { CARGO_MECHANISM_ENTRY } from '../../domain/hardware/hardware-registry';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Fitting } from '../../domain/make/make-joints';
 import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
+
+const CARGO_MEMBER_RATIOS = CARGO_MECHANISM_ENTRY.motion?.kind === 'telescope'
+  ? CARGO_MECHANISM_ENTRY.motion.members.map(m => m.ratio)
+  : [0, .5, 1];
 
 /** Carrier and upper/lower slides share the GTV Cargo Movix geometry (374 mm vertical slide spacing); the cabinet channels stay fixed. */
 export function cargoRunnerMeshes(piece: MakePiece, f: Fitting, geometry: THREE.BufferGeometry, metal: THREE.Material) {
@@ -21,7 +26,7 @@ export function cargoRunnerMeshes(piece: MakePiece, f: Fitting, geometry: THREE.
     return slideLevels.flatMap(({ bounds, isUpper }) => {
       const x = mount !== 'bottom' && !upperHost ? (mount === 'left' ? host.x1 + .5 : host.x0 - .5) : cx;
       const y = upperHost ? host.y0 - 1.5 : mount === 'bottom' && !isUpper ? host.y1 + 1.5 : (bounds.y0 + bounds.y1) / 2;
-      return [0, .5, 1].map(ratio => {
+      return CARGO_MEMBER_RATIOS.map(ratio => {
         const mesh = new THREE.Group();
         mesh.position.set(x - piece.size.w / 2, y, (bounds.z0 + bounds.z1) / 2 - piece.size.d / 2);
         const bar = new THREE.Mesh(geometry, metal);

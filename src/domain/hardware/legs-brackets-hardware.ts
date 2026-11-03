@@ -33,8 +33,7 @@ export const LEG_ENTRY: HardwareEntry = {
   assembly: {
     stage: 'plinth',
     requires: [],
-    phase: 'before-place',
-    fittedFirst: true,
+    phase: 'after-place',
     approachFrom: [0, -1, 0],
     instructions: {
       title: 'Fit and level the adjustable legs',

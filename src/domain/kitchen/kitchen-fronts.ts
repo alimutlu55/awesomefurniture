@@ -1,3 +1,4 @@
+import { CORNER_MECHANISM_ENTRY, HINGE_ENTRY } from '../hardware/hardware-registry';
 import { kitchenUnit, type KitchenUnitKey } from './kitchen-units';
 import { PANEL } from '../wardrobe/catalog.js';
 import { autoLeafCount } from '../wardrobe/door-layout';
@@ -6,7 +7,7 @@ import type { HingeKind } from '../wardrobe/hinges';
 
 /** Kitchen fronts read the front registries (front-styles.ts, hinges.ts, handles.ts) as wardrobes do. Their reveal, the
  * gap between fronts, is 3 mm unless the cabinet's fronts set another. */
-export const KITCHEN_REVEAL_MM: FrontRevealMm = 3;
+export const KITCHEN_REVEAL_MM = (HINGE_ENTRY.rules.clearanceMm.reveal ?? 3) as FrontRevealMm;
 /** The gap between the fronts of two units standing side by side, by default. Centimetres. */
 export const FRONT_GAP = KITCHEN_REVEAL_MM / 10;
 /** A kitchen cabinet's front gap: its fronts' reveal, else KITCHEN_REVEAL_MM. Centimetres. */
@@ -64,9 +65,13 @@ export function cornerFrontSplit(x0: number, x1: number, hinge: 'left' | 'right'
 /** High-precision geometry of a blind-corner pull-out mechanism: its vertical pivot post on the blind side and two
  * swing-out kidney trays with their bases and steel gallery rails. Centimetres, in the caller's X/Y frame and 0..d depth. */
 export function cornerPulloutGeometry(cx: number, y: number, sw: number, hh: number, d: number, blind: { x0: number; x1: number }, doorSide: 'left' | 'right' = 'left') {
-  const postX = (blind.x0 + blind.x1) / 2 + (doorSide === 'right' ? 6 : -6), postH = Math.max(8, hh - 4);
+  const postOffset = (CORNER_MECHANISM_ENTRY.rules.clearanceMm.side ?? 60) / 10;
+  const topDrop = (CORNER_MECHANISM_ENTRY.rules.clearanceMm.topDrop ?? 40) / 10;
+  const postSize = (CORNER_MECHANISM_ENTRY.display.model3d.primitives[0]?.sizeMm[0] ?? 22) / 10;
+  const halfPost = postSize / 2;
+  const postX = (blind.x0 + blind.x1) / 2 + (doorSide === 'right' ? postOffset : -postOffset), postH = Math.max(8, hh - topDrop);
   const trayW = Math.max(16, sw * .68), trayD = Math.max(16, d - 12), z0 = (d - trayD) / 2, z1 = (d + trayD) / 2;
-  const post = { x: postX, x0: postX - 1.1, x1: postX + 1.1, y0: y + (hh - postH) / 2, y1: y + (hh + postH) / 2, z0: d / 2 - 1.1, z1: d / 2 + 1.1, size: 2.2, h: postH };
+  const post = { x: postX, x0: postX - halfPost, x1: postX + halfPost, y0: y + (hh - postH) / 2, y1: y + (hh + postH) / 2, z0: d / 2 - halfPost, z1: d / 2 + halfPost, size: postSize, h: postH };
   const trays = [y + hh * .28, y + hh * .66].map(ty => ({
     y: ty,
     base: { x0: cx - trayW / 2, x1: cx + trayW / 2, y0: ty - .7, y1: ty + .7, z0, z1 },

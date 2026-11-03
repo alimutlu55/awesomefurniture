@@ -1,8 +1,10 @@
 import { makePlacedPiece } from '../make/make-parts';
 import {
+  APPLIANCE_KIT_ENTRY,
   BOLT_ENTRY,
   CABINET_HANGER_ENTRY,
   CAM_ENTRY,
+  CARGO_MECHANISM_ENTRY,
   CONFIRMAT_ENTRY,
   DOWEL_ENTRY,
   HANDLE_ENTRY,
@@ -17,6 +19,7 @@ import {
   SCREW_ENTRY,
   SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
+  VENT_GRILLE_ENTRY,
   WALL_BRACKET_ENTRY,
 } from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
@@ -58,11 +61,11 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     if (p.fixture === 'shelf') { add(p, SHELF_BRACKET_ENTRY.display.listLine.label, 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
     if (p.fixture || installationKind(d)) continue;
     const vent = ventilationGrille(d);
-    if (vent) add(p, 'Ventilation grille', mm(vent.width) + ' × ' + mm(vent.height) + ' overall; confirm cut-out/free area', 1);
+    if (vent) add(p, VENT_GRILLE_ENTRY.display.listLine.label, mm(vent.width) + ' × ' + mm(vent.height) + ' overall; ' + VENT_GRILLE_ENTRY.display.listLine.defaultSpec, 1);
     const kitchen = isKitchen(d);
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
-      if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
+      if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, APPLIANCE_KIT_ENTRY.display.listLine.label, APPLIANCE_KIT_ENTRY.display.listLine.defaultSpec, 1);
       // A handle-rail door is its own grip: its profile, as long as the door is wide, in place of a handle.
       if (f.opens === 'side' && !f.label && madeStyle({ ...d, materials: resolveMaterials(d) }, f.decorId).grip) { add(p, 'Handle rail profile', mm(f.x1 - f.x0) + ' mm long', 1); continue; }
       const handle = resolveHandle(resolveMaterials(d));
@@ -108,19 +111,23 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         : def ? def.cup ? def.cup.d+' mm cup' : 'compatible with frame/carrier; no cup drilling in glass' : line.kind==='runner' ? line.size+' mm' : line.size ?? '';
       let name = def?.name ?? names[line.kind];
       let itemSize = size;
+      const cargoVariant = (key: string) => CARGO_MECHANISM_ENTRY.variants?.find(v => v.key === key);
       if (line.size?.includes('cargo frame') || (line.kind === 'support' && line.size?.includes('cargo'))) {
-        name = 'Cargo pull-out frame';
-        itemSize = 'vertical steel chassis + 4 slide brackets (2–3 pręt)';
+        const v = cargoVariant('frame')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
       } else if (line.size?.includes('cargo basket')) {
-        const style = line.size.includes('solid') ? 'solid Arena' : 'wire';
-        name = `Cargo storage basket, ${style}`;
-        itemSize = 'clip-on basket + wire separator (Separatory)';
+        const v = cargoVariant(line.size.includes('solid') ? 'solid-basket' : 'wire-basket')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
       } else if ((line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo')) {
-        name = 'Cargo front fixing bracket';
-        itemSize = '103.5 × 36.5 mm 3D mount + GTV move cover';
+        const v = cargoVariant('front-bracket')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
       } else if (line.kind === 'screw' && line.size === 'M4 × 6') {
-        name = 'Cargo slide locking screw';
-        itemSize = 'M4 × 6 mm machine screw';
+        const v = cargoVariant('locking-screw')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
       }
       add(p, name, itemSize, line.qty);
     }

@@ -9,6 +9,7 @@ import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
 import { hardwareStagingLayout, stagingLayout } from '../../domain/make/make-staging';
 import {
   cabinetLegMesh,
+  cargoFrontBracketMesh,
   makeFittingHandleMesh,
   railEndSupportMesh,
   railTubeMesh,
@@ -168,29 +169,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       return tag(g);
     }
     if ((f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo')) {
-      const g = new THREE.Group();
-      g.position.copy(at);
-      // Child 0: GTV Movix Mocowania frontu mounting plate (103.5 × 36.5 mm, 78 mm screw hole centres = ±3.9 cm)
-      const basePlate = new THREE.Group();
-      basePlate.add(solid(bar, metal, new THREE.Vector3(0, 0, -.18), new THREE.Vector3(10.35, 3.65, .35)));
-      for (const sx of [-3.9, 3.9]) {
-        basePlate.add(solid(ring, metal, new THREE.Vector3(sx, 0, -.36), new THREE.Vector3(.45, .12, .45), AXES[2]!));
-      }
-      g.add(basePlate);
-      // Child 1: Open U-channel receiver (46 × 22 mm aperture accepts 44 × 20 mm frame tongue) + "GTV move" snap-on protective cover
-      const receiver = new THREE.Group(); receiver.position.z = -1.4;
-      for (const side of [-1, 1]) {
-        receiver.add(solid(bar, metal, new THREE.Vector3(side * 2.65, 0, 0), new THREE.Vector3(.7, 2.8, 2.4)));
-        receiver.add(solid(bar, metal, new THREE.Vector3(0, side * 1.25, 0), new THREE.Vector3(4.6, .3, 2.4)));
-      }
-      // Snap-on "GTV move" protective cover cap (Manual Page 1 Item 2 & Page 7 top diagram)
-      receiver.add(solid(bar, metal, new THREE.Vector3(0, 0, -.95), new THREE.Vector3(5.2, 3.1, .22)));
-      g.add(receiver);
-      // Child 2: 3D lateral (⇄) & depth/tilt (⇕) adjustment and locking screws (Manual Page 6 diagrams 2 & 3)
-      g.add(solid(disc, metal, new THREE.Vector3(1.5, 0, -1.4), new THREE.Vector3(.7, .3, .7), AXES[0]!));
-      // Child 3: 3D vertical height (⇅) adjustment top screw (Manual Page 6 diagram 1)
-      g.add(solid(disc, metal, new THREE.Vector3(0, 1.2, -1.4), new THREE.Vector3(.7, .3, .7), Y));
-      return tag(g);
+      return tag(cargoFrontBracketMesh(at, bar, ring, disc, metal));
     }
     if (f.kind === 'hanger' || f.kind === 'bracket') return tag(wallBracketOrHangerMesh(f.kind, at, bar, metal));
     if (f.kind === 'support') return tag(railEndSupportMesh(at, disc, metal));

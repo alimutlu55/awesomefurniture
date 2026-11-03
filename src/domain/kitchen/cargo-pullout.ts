@@ -1,3 +1,5 @@
+import { CARGO_MECHANISM_ENTRY } from '../hardware/hardware-registry';
+
 export interface Box3D {
   readonly x0: number;
   readonly x1: number;
@@ -7,29 +9,32 @@ export interface Box3D {
   readonly z1: number;
 }
 
-/** Official GTV Cargo Movix 150 / 200 Side-Mount manual specifications (centimetres unless noted). */
+const CARGO_BRACKET_PRIM = CARGO_MECHANISM_ENTRY.display.model3d.primitives[0]!;
+const CARGO_BRACKET_DRILL = CARGO_MECHANISM_ENTRY.drilling[1]!;
+
+/** Official GTV Cargo Movix 150 / 200 Side-Mount manual specifications (centimetres unless noted), derived from `CARGO_MECHANISM_ENTRY`. */
 export const CARGO_MOVIX_SPECS = {
   /** Vertical spacing between lower and upper slides: 374 mm (Manual Pages 2 & 3). */
-  slideVerticalSpacing: 37.4,
+  slideVerticalSpacing: (CARGO_MECHANISM_ENTRY.rules.pitchMm ?? 374) / 10,
   /** Lower slide minimum distance from cabinet interior bottom: *min 50 mm undermount / *35 mm ball-bearing (Page 2). */
-  lowerSlideOffset: 5.0,
+  lowerSlideOffset: (CARGO_MECHANISM_ENTRY.rules.clearanceMm.bottomGap ?? 50) / 10,
   /** First slide screw hole setback from cabinet front edge: 45 mm undermount / 36 mm ball-bearing (Page 2). */
-  slideFrontSetback: 4.5,
+  slideFrontSetback: (CARGO_MECHANISM_ENTRY.rules.systemLineMm ?? 45) / 10,
   /** Span between front (2–3 pręt) and rear (16–17 pręt) slide brackets: 192 mm (Pages 2 & 3). */
-  slideBracketSpan: 19.2,
+  slideBracketSpan: (CARGO_MECHANISM_ENTRY.rules.maxSpacingMm ?? 192) / 10,
   /** Lower front fixing bracket height from bottom: *142 mm undermount / *106 mm ball-bearing (Page 2). */
-  lowerFrontBracketOffset: 14.2,
+  lowerFrontBracketOffset: (CARGO_MECHANISM_ENTRY.rules.edgeInsetMm ?? 142) / 10,
   /** Vertical spacing between lower and upper front fixing brackets: 374 mm (Page 2). */
-  frontBracketSpacing: 37.4,
+  frontBracketSpacing: (CARGO_MECHANISM_ENTRY.rules.pitchMm ?? 374) / 10,
   /** Horizontal screw spacing on Mocowania frontu: 78 mm = ±3.9 cm (Pages 2 & 3). */
-  frontBracketScrewSpacing: 7.8,
+  frontBracketScrewSpacing: (CARGO_BRACKET_DRILL.pitchMm ?? 78) / 10,
   /** Front fixing bracket body dimensions: 103.5 × 36.5 mm (Page 3). */
-  frontBracketWidth: 10.35,
-  frontBracketHeight: 3.65,
+  frontBracketWidth: CARGO_BRACKET_PRIM.sizeMm[0] / 10,
+  frontBracketHeight: CARGO_BRACKET_PRIM.sizeMm[1] / 10,
   /** Maximum rated cargo load: 15 kg (Page 1). */
-  maxLoadKg: 15,
+  maxLoadKg: CARGO_MECHANISM_ENTRY.variants?.[0]?.loadKg ?? 15,
   /** Nominal slide length 450 mm / full extension travel 430 mm (Pages 1 & 7). */
-  nominalSlideMm: 450,
+  nominalSlideMm: CARGO_MECHANISM_ENTRY.sizesMm[0] ?? 450,
   extensionTravelMm: 430,
 } as const;
 

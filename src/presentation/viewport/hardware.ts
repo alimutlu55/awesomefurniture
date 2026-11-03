@@ -3,6 +3,7 @@ import {
   BOLT_ENTRY,
   CABINET_HANGER_ENTRY,
   CAM_ENTRY,
+  CARGO_MECHANISM_ENTRY,
   CONFIRMAT_ENTRY,
   DOWEL_ENTRY,
   HANDLE_ENTRY,
@@ -23,6 +24,7 @@ import type { MakePiece } from '../../domain/make/make-parts';
 
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 function orientedSolid(geometry: THREE.BufferGeometry, material: THREE.Material, at: THREE.Vector3, size: THREE.Vector3, axis = Y_AXIS) {
   const m = new THREE.Mesh(geometry, material);
@@ -210,6 +212,47 @@ export function wallBracketOrHangerMesh(
     at.clone().setZ(at.z + offZ),
     new THREE.Vector3(prim.sizeMm[0] / 10, prim.sizeMm[1] / 10, prim.sizeMm[2] / 10),
   );
+}
+
+/**
+ * 3D-adjustable cargo front fixing bracket mesh (base plate, screw bosses at ±39 mm, U-channel receiver,
+ * protective cover, and lateral/vertical/depth adjustment screws), driven by `CARGO_MECHANISM_ENTRY`.
+ */
+export function cargoFrontBracketMesh(
+  at: THREE.Vector3,
+  bar: THREE.BufferGeometry,
+  ring: THREE.BufferGeometry,
+  disc: THREE.BufferGeometry,
+  material: THREE.Material,
+): THREE.Group {
+  const platePrim = CARGO_MECHANISM_ENTRY.display.model3d.primitives[0]!;
+  const screwPitchCm = (CARGO_MECHANISM_ENTRY.drilling[1]?.pitchMm ?? 78) / 20;
+  const g = new THREE.Group();
+  g.position.copy(at);
+  const basePlate = new THREE.Group();
+  basePlate.add(
+    orientedSolid(
+      bar,
+      material,
+      new THREE.Vector3(0, 0, (platePrim.offsetMm?.[2] ?? -1.8) / 10),
+      new THREE.Vector3(platePrim.sizeMm[0] / 10, platePrim.sizeMm[1] / 10, platePrim.sizeMm[2] / 10),
+    ),
+  );
+  for (const sx of [-screwPitchCm, screwPitchCm]) {
+    basePlate.add(orientedSolid(ring, material, new THREE.Vector3(sx, 0, -.36), new THREE.Vector3(.45, .12, .45), Z_AXIS));
+  }
+  g.add(basePlate);
+  const receiver = new THREE.Group();
+  receiver.position.z = -1.4;
+  for (const side of [-1, 1]) {
+    receiver.add(orientedSolid(bar, material, new THREE.Vector3(side * 2.65, 0, 0), new THREE.Vector3(.7, 2.8, 2.4)));
+    receiver.add(orientedSolid(bar, material, new THREE.Vector3(0, side * 1.25, 0), new THREE.Vector3(4.6, .3, 2.4)));
+  }
+  receiver.add(orientedSolid(bar, material, new THREE.Vector3(0, 0, -.95), new THREE.Vector3(5.2, 3.1, .22)));
+  g.add(receiver);
+  g.add(orientedSolid(disc, material, new THREE.Vector3(1.5, 0, -1.4), new THREE.Vector3(.7, .3, .7), X_AXIS));
+  g.add(orientedSolid(disc, material, new THREE.Vector3(0, 1.2, -1.4), new THREE.Vector3(.7, .3, .7), Y_AXIS));
+  return g;
 }
 
 /** A bar pull as fitted to wardrobe fronts: a round bar on two short posts that stand it off the front.

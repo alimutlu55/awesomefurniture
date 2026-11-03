@@ -18,6 +18,9 @@ import { ZONE_PRIORITY as Z } from './zone-style';
 import type { ZoneStyle } from './zone-style';
 import type { Purpose } from './purposes';
 import {
+  CARGO_MECHANISM_ENTRY,
+  CORNER_MECHANISM_ENTRY,
+  LIFT_FITTING_ENTRY,
   PULL_DOWN_RAIL_ENTRY,
   RAIL_ENTRY,
   RUNNER_ENTRY,
@@ -57,10 +60,10 @@ export const FITTING_HARDWARE = Object.freeze({
   pullDownRail: PULL_DOWN_RAIL_ENTRY.display.listLine.label,
   trouserRack: TROUSER_RACK_ENTRY.display.listLine.label,
   basket: WIRE_BASKET_ENTRY.display.listLine.label,
-  liftFitting: 'Lift-up flap fitting, one set',
+  liftFitting: `${LIFT_FITTING_ENTRY.display.listLine.label}, one ${LIFT_FITTING_ENTRY.display.listLine.unit}`,
   shelfSupports: `${SHELF_PIN_ENTRY.display.listLine.label}s, four to a shelf`,
-  cornerMechanism: 'Corner pull-out mechanism, two swing trays',
-  cargoMechanism: 'Cargo pull-out system with baskets, frame, runners and door brackets',
+  cornerMechanism: CORNER_MECHANISM_ENTRY.display.listLine.label,
+  cargoMechanism: CARGO_MECHANISM_ENTRY.display.listLine.label,
 });
 export type FittingHardware = keyof typeof FITTING_HARDWARE;
 
