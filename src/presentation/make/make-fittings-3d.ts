@@ -192,11 +192,15 @@ export function createMakeFittings(layer: number): FittingsLayer {
     applyMotion();
   }
 
+  let lastNudge: ((board: number) => readonly [number, number, number]) | undefined;
+
   function applyMotion(nudge?: (board: number) => readonly [number, number, number]) {
+    if (nudge) lastNudge = nudge;
+    const fn = nudge ?? lastNudge;
     for (const rail of slides) {
       let delta = 0;
-      if (nudge && rail.movingBoard !== undefined) {
-        delta = Math.max(0, Math.min(rail.max, nudge(rail.movingBoard)[2]));
+      if (fn && rail.movingBoard !== undefined) {
+        delta = Math.max(0, Math.min(rail.max, fn(rail.movingBoard)[2]));
       } else {
         const inStaging = Math.abs(rail.moving.quaternion.w - 1) > 0.05 || rail.moving.position.y < 5;
         delta = inStaging ? 0 : Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest));
@@ -293,7 +297,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     },
     clear() {
       for (const o of [...holes.map(h => h.mesh), ...fittings.map(f => f.mesh)]) o.parent?.remove(o);
-      holes = []; fittings = []; slides = []; links = []; focused = null; rung = null;
+      holes = []; fittings = []; slides = []; links = []; focused = null; rung = null; lastNudge = undefined;
     },
     dispose() {
       this.clear();

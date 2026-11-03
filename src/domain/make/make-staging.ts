@@ -14,7 +14,7 @@ export interface Staged {
   readonly at: Vec3; readonly lie: 'x' | 'z' | null; readonly spin: boolean; readonly size: Vec3; readonly tilt: number; readonly flip: boolean;
 }
 
-const GAP = 8, FRONT = 30;
+const GAP = 8, FRONT = 45;
 
 /** A board's size lying flat: [across the room, thickness, front to back], and how it is turned to lie so. */
 export function lyingFlat(b: Board, flip = false) {

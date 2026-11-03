@@ -1,4 +1,4 @@
-import type { FittingKind, Hole } from './make-joints';
+import type { Fitting, FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Measure, Vec3 } from './make-measures';
 
@@ -8,6 +8,11 @@ export const WAIT = 10;
  * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down,
  * a hinge's plate onto the side panel the door will hang from. */
 export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge', 'plate']);
+
+export function isFittedBefore(f: Fitting): boolean {
+  if (f.size?.includes('cargo')) return false;
+  return FITTED_BEFORE.has(f.kind);
+}
 
 /** Where a fitting goes in: the point it ends at (a screw's head at the hole's mouth), the way it travels (a unit
  * vector, into the board) and the board it goes in through (null for hardware standing on its own). */
@@ -32,11 +37,11 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
     case 'pin': return through(mine[2] ?? mine[0], f.at);
     case 'nail': return { at: f.at, dir: unit(f.axis, 1), board: back() };
     case 'hinge': return { at: f.at, dir: [0, 0, 1], board: first };
-    case 'plate': return { at: f.at, dir: unit(0, mine[0]?.sign ?? 1), board: first };
+    case 'plate': return f.size?.includes('cargo') ? { at: f.at, dir: [0, 0, 1], board: first } : { at: f.at, dir: unit(0, mine[0]?.sign ?? 1), board: first };
     case 'handle': return { at: f.at, dir: [0, 0, -1], board: first };
     // Legs are stood on the floor first and the base set down on them.
     case 'leg': return { at: f.at, dir: [0, 1, 0], board: null };
-    case 'hanger': case 'bracket': return { at: f.at, dir: [0, 0, 1], board: null };
+    case 'hanger': case 'bracket': return { at: f.at, dir: [0, 0, 1], board: f.size?.includes('cargo') ? first : null };
     case 'rail': case 'support': return f.size?.includes('cargo') ? null : { at: f.at, dir: [0, 0, -1], board: null };
     case 'runner': return null;
   }

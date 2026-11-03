@@ -144,7 +144,7 @@ export function cargoPulloutGeometry(
     // Front bracket connector lugs extending forward to lock directly into front door brackets
     for (const by of bracketHeights) {
       crossbars.push(
-        { x0: cx - 3.5, x1: cx + 3.5, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: z1 + 0.5 }
+        { x0: cx - 3.5, x1: cx + 3.5, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: d }
       );
     }
   } else {
@@ -172,7 +172,7 @@ export function cargoPulloutGeometry(
         // Lateral bridge from postX to door bracket center cx
         { x0: minX, x1: maxX, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: z1 - 1.2 },
         // Front tongue sliding directly into the door bracket receiver block
-        { x0: cx - 2.2, x1: cx + 2.2, y0: by - 1.0, y1: by + 1.0, z0: z1 - 2.5, z1: z1 + 0.5 }
+        { x0: cx - 2.2, x1: cx + 2.2, y0: by - 1.0, y1: by + 1.0, z0: z1 - 2.5, z1: d }
       );
     }
   }
