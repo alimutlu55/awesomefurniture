@@ -1,12 +1,18 @@
 import { makePlacedPiece } from '../make/make-parts';
 import {
+  BOLT_ENTRY,
+  CAM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  NAIL_ENTRY,
   PLATE_ENTRY,
   PUSH_TO_OPEN_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
   RUNNER_ENTRY,
+  SCREW_ENTRY,
   SHELF_PIN_ENTRY,
 } from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
@@ -74,11 +80,22 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       }
     }));
     const names: Record<FittingKind, string> = {
-      confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail',
-      pin: SHELF_PIN_ENTRY.display.listLine.label, hinge: HINGE_ENTRY.display.listLine.label, plate: PLATE_ENTRY.display.listLine.label,
+      confirmat: CONFIRMAT_ENTRY.display.listLine.label,
+      cam: CAM_ENTRY.display.listLine.label,
+      bolt: BOLT_ENTRY.display.listLine.label,
+      dowel: DOWEL_ENTRY.display.listLine.label,
+      screw: SCREW_ENTRY.display.listLine.label,
+      nail: NAIL_ENTRY.display.listLine.label,
+      pin: SHELF_PIN_ENTRY.display.listLine.label,
+      hinge: HINGE_ENTRY.display.listLine.label,
+      plate: PLATE_ENTRY.display.listLine.label,
       runner: `${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,
-      handle: HANDLE_ENTRY.display.listLine.label, rail: RAIL_ENTRY.display.listLine.label, support: RAIL_SUPPORT_ENTRY.display.listLine.label,
-      leg: 'Adjustable leg', hanger: 'Cabinet hanger, adjustable', bracket: 'Wall fixing bracket',
+      handle: HANDLE_ENTRY.display.listLine.label,
+      rail: RAIL_ENTRY.display.listLine.label,
+      support: RAIL_SUPPORT_ENTRY.display.listLine.label,
+      leg: 'Adjustable leg',
+      hanger: 'Cabinet hanger, adjustable',
+      bracket: 'Wall fixing bracket',
     };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;

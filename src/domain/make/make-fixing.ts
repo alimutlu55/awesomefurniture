@@ -1,13 +1,18 @@
+import { DOWEL_ENTRY, HARDWARE } from '../hardware/hardware-registry';
 import type { FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Measure, Vec3 } from './make-measures';
 
 /** How far from its hole a fastener waits (centimetres) before it goes in, along the dashed line it goes in by. */
 export const WAIT = 10;
+const DOWEL_EDGE_DEPTH = DOWEL_ENTRY.drilling[1]!.depthMm;
 /** Hardware put in before the boards it joins come together, into a board lying on the floor or one already standing:
- * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down,
- * a hinge's plate onto the side panel the door will hang from. */
-export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge', 'plate']);
+ * declared by `assembly.phase` (`before-place` or `lying-before-place` without `fittedFirst`) in the hardware registry. */
+export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(
+  HARDWARE.filter(h => !h.assembly.fittedFirst && (h.assembly.phase === 'before-place' || h.assembly.phase === 'lying-before-place')).map(
+    h => h.key as FittingKind,
+  ),
+);
 
 /** Where a fitting goes in: the point it ends at (a screw's head at the hole's mouth), the way it travels (a unit
  * vector, into the board) and the board it goes in through (null for hardware standing on its own). */
@@ -30,7 +35,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
       return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner' || h.kind === 'pilot'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
     case 'bolt': return through(mine.find(h => h.kind === 'bolt'));
-    case 'dowel': return through(mine.find(h => h.depth === 25) ?? mine[0], f.at);
+    case 'dowel': return through(mine.find(h => h.depth === DOWEL_EDGE_DEPTH) ?? mine[0], f.at);
     case 'pin': return through(mine[2] ?? mine[0], f.at);
     case 'nail': return { at: f.at, dir: unit(f.axis, 1), board: back() };
     case 'hinge': return { at: f.at, dir: [0, 0, 1], board: first };

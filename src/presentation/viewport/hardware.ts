@@ -1,11 +1,17 @@
 import * as THREE from 'three';
 import {
+  BOLT_ENTRY,
+  CAM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  NAIL_ENTRY,
   PLATE_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
   RUNNER_ENTRY,
+  SCREW_ENTRY,
   SHELF_PIN_ENTRY,
 } from '../../domain/hardware/hardware-registry';
 import { HANDLES, handleKind, type HandleSize, type resolveHandle } from '../../domain/wardrobe/handles';
@@ -99,6 +105,78 @@ export function shelfPinMesh(rod: THREE.BufferGeometry, material: THREE.Material
     new THREE.Vector3(off[0] / 10, off[1] / 10, off[2] / 10),
     new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20),
   );
+}
+
+/**
+ * Screw, confirmat connector, or back pin nail 3D mesh lying along +y from its head at the origin,
+ * driven by `CONFIRMAT_ENTRY`, `SCREW_ENTRY`, or `NAIL_ENTRY` in the domain hardware registry.
+ */
+export function screwFastenerMesh(
+  kind: 'confirmat' | 'screw' | 'nail',
+  sizeLabel: string | undefined,
+  rod: THREE.BufferGeometry,
+  cone: THREE.BufferGeometry,
+  material: THREE.Material,
+): THREE.Group {
+  const entry = kind === 'confirmat' ? CONFIRMAT_ENTRY : kind === 'nail' ? NAIL_ENTRY : SCREW_ENTRY;
+  const shankPrim = entry.display.model3d.primitives[0]!;
+  const r = shankPrim.sizeMm[0] / 20;
+  const defaultLenCm = shankPrim.sizeMm[1] / 10;
+  const length = kind === 'screw' ? Number(sizeLabel?.split('×')[1]?.trim()) / 10 || defaultLenCm : defaultLenCm;
+  const g = new THREE.Group();
+  g.add(
+    orientedSolid(rod, material, new THREE.Vector3(0, -.08, 0), new THREE.Vector3(r * 2.2, .16, r * 2.2)),
+    orientedSolid(rod, material, new THREE.Vector3(0, length / 2, 0), new THREE.Vector3(r, length, r)),
+    orientedSolid(cone, material, new THREE.Vector3(0, length + r, 0), new THREE.Vector3(r, r * 2, r)),
+  );
+  return g;
+}
+
+/**
+ * 34 mm cam dowel bolt 3D mesh, driven by `BOLT_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function camBoltMesh(rod: THREE.BufferGeometry, box: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+  const [thread, neck, head, slot] = BOLT_ENTRY.display.model3d.primitives;
+  const g = new THREE.Group();
+  if (thread && neck && head && slot) {
+    g.add(
+      orientedSolid(rod, material, new THREE.Vector3(0, (thread.offsetMm?.[1] ?? 5.5) / 10, 0), new THREE.Vector3(thread.sizeMm[0] / 20, thread.sizeMm[1] / 10, thread.sizeMm[2] / 20)),
+      orientedSolid(rod, material, new THREE.Vector3(0, (neck.offsetMm?.[1] ?? -16) / 10, 0), new THREE.Vector3(neck.sizeMm[0] / 20, neck.sizeMm[1] / 10, neck.sizeMm[2] / 20)),
+      orientedSolid(rod, material, new THREE.Vector3(0, (head.offsetMm?.[1] ?? -33) / 10, 0), new THREE.Vector3(head.sizeMm[0] / 20, head.sizeMm[1] / 10, head.sizeMm[2] / 20)),
+      orientedSolid(box, material, new THREE.Vector3(0, (slot.offsetMm?.[1] ?? .2) / 10, 0), new THREE.Vector3(slot.sizeMm[0] / 10, slot.sizeMm[1] / 10, slot.sizeMm[2] / 10)),
+    );
+  }
+  return g;
+}
+
+/**
+ * Ø15 mm eccentric cam lock housing 3D mesh, driven by `CAM_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function camHousingMesh(
+  rod: THREE.BufferGeometry,
+  box: THREE.BufferGeometry,
+  cone: THREE.BufferGeometry,
+  brass: THREE.Material,
+  steel: THREE.Material,
+): THREE.Group {
+  const [body, slot, arrow] = CAM_ENTRY.display.model3d.primitives;
+  const g = new THREE.Group();
+  if (body && slot && arrow) {
+    g.add(
+      orientedSolid(rod, brass, new THREE.Vector3(0, (body.offsetMm?.[1] ?? 6.2) / 10, 0), new THREE.Vector3(body.sizeMm[0] / 20, body.sizeMm[1] / 10, body.sizeMm[2] / 20)),
+      orientedSolid(box, steel, new THREE.Vector3(0, (slot.offsetMm?.[1] ?? -.1) / 10, 0), new THREE.Vector3(slot.sizeMm[0] / 10, slot.sizeMm[1] / 10, slot.sizeMm[2] / 10)),
+      orientedSolid(cone, steel, new THREE.Vector3((arrow.offsetMm?.[0] ?? 5) / 10, (arrow.offsetMm?.[1] ?? -.1) / 10, 0), new THREE.Vector3(arrow.sizeMm[0] / 20, arrow.sizeMm[1] / 10, arrow.sizeMm[2] / 20)),
+    );
+  }
+  return g;
+}
+
+/**
+ * Fluted hardwood dowel pin 3D mesh, driven by `DOWEL_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = DOWEL_ENTRY.display.model3d.primitives[0]!;
+  return orientedSolid(rod, material, new THREE.Vector3(0, 0, 0), new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20));
 }
 
 /** A bar pull as fitted to wardrobe fronts: a round bar on two short posts that stand it off the front.

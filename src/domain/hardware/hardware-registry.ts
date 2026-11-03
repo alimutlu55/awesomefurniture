@@ -1,3 +1,11 @@
+import {
+  BOLT_ENTRY,
+  CAM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
+  NAIL_ENTRY,
+  SCREW_ENTRY,
+} from './connectors-hardware';
 import { HANDLE_ENTRY, PUSH_TO_OPEN_ENTRY } from './handles-hardware';
 import type {
   AssemblyStage,
@@ -16,13 +24,19 @@ import {
 } from './rails-supports-hardware';
 
 export {
+  BOLT_ENTRY,
+  CAM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  NAIL_ENTRY,
   PLATE_ENTRY,
   PULL_DOWN_RAIL_ENTRY,
   PUSH_TO_OPEN_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
+  SCREW_ENTRY,
   SHELF_PIN_ENTRY,
   TROUSER_RACK_ENTRY,
   WIRE_BASKET_ENTRY,
@@ -295,6 +309,12 @@ export const HARDWARE: readonly HardwareEntry[] = [
   PULL_DOWN_RAIL_ENTRY,
   TROUSER_RACK_ENTRY,
   WIRE_BASKET_ENTRY,
+  CONFIRMAT_ENTRY,
+  CAM_ENTRY,
+  BOLT_ENTRY,
+  DOWEL_ENTRY,
+  SCREW_ENTRY,
+  NAIL_ENTRY,
 ];
 
 const BY_KEY = new Map<string, HardwareEntry>(HARDWARE.map(h => [h.key, h]));

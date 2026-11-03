@@ -1,4 +1,12 @@
 import type { CargoPullout } from '../kitchen/cargo-pullout';
+import {
+  BOLT_ENTRY,
+  CAM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
+  NAIL_ENTRY,
+  SCREW_ENTRY,
+} from '../hardware/hardware-registry';
 import { boardPolygon, clipPolygon, type Point } from './back-construction';
 import type { Board } from '../drawings/cabinet-boards';
 import type { Construction } from './make-construction';
@@ -71,11 +79,25 @@ export function findJoints(boards: readonly Board[]): Joint[] {
   return out;
 }
 
+const CONFIRMAT_FACE = CONFIRMAT_ENTRY.drilling[0]!, CONFIRMAT_EDGE = CONFIRMAT_ENTRY.drilling[1]!;
+const SCREW_FACE = SCREW_ENTRY.drilling[0]!, SCREW_EDGE = SCREW_ENTRY.drilling[1]!;
+const DOWEL_FACE = DOWEL_ENTRY.drilling[0]!, DOWEL_EDGE = DOWEL_ENTRY.drilling[1]!;
+const SHORT_DOWEL_FACE = DOWEL_ENTRY.drilling[2]!, SHORT_DOWEL_EDGE = DOWEL_ENTRY.drilling[3]!;
+const BOLT_HOLE = BOLT_ENTRY.drilling[0]!;
+const CAM_HOLE = CAM_ENTRY.drilling[0]!, CAM_EDGE = CAM_ENTRY.drilling[1]!;
+const CONNECTOR_MIN_DUAL_CM = (CONFIRMAT_ENTRY.rules.clearanceMm.endCutShort ?? 120) / 10;
+const CONNECTOR_INSET_CM = (CONFIRMAT_ENTRY.rules.edgeInsetMm ?? 50) / 10;
+const CONNECTOR_SPACING_CM = (CONFIRMAT_ENTRY.rules.maxSpacingMm ?? 300) / 10;
+const CONNECTOR_PITCH_CM = (CONFIRMAT_ENTRY.rules.pitchMm ?? 32) / 10;
+const CAM_LINE_CM = (CAM_ENTRY.rules.systemLineMm ?? 34) / 10;
+const NAIL_SPACING_CM = (NAIL_ENTRY.rules.maxSpacingMm ?? 150) / 10;
+const NAIL_SIZE = NAIL_ENTRY.display.listLine.defaultSpec;
+
 /** Where connectors go along a joint `length` long: 5 cm in from each end, and between them no more than 30 cm apart
  * (a short joint takes one in its middle). Centimetres from the joint's start. */
 export function connectorStations(length: number): number[] {
-  if (length < 12) return [length / 2];
-  const margin = Math.min(5, length / 4), span = length - 2 * margin, gaps = Math.max(1, Math.ceil(span / 30));
+  if (length < CONNECTOR_MIN_DUAL_CM) return [length / 2];
+  const margin = Math.min(CONNECTOR_INSET_CM, length / 4), span = length - 2 * margin, gaps = Math.max(1, Math.ceil(span / CONNECTOR_SPACING_CM));
   return Array.from({ length: gaps + 1 }, (_, k) => margin + span * k / gaps);
 }
 
@@ -97,7 +119,7 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
     for (const station of connectorStations(r1 - r0)) {
       const p = [0, 0, 0] as [number, number, number];
       p[j.axis] = j.plane; p[tb] = across; p[run] = r0 + station;
-      if (!clear(j.face, p, j.axis)) p[run] += station + 3.2 <= r1 - r0 - 2 ? 3.2 : -3.2;
+      if (!clear(j.face, p, j.axis)) p[run] += station + CONNECTOR_PITCH_CM <= r1 - r0 - 2 ? CONNECTOR_PITCH_CM : -CONNECTOR_PITCH_CM;
       const outer = [...p] as [number, number, number];
       outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
       const into = j.side as 1 | -1, back = -j.side as 1 | -1;
@@ -110,23 +132,29 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
         p[1] = Math.min(across, roof - .4);
       }
       if (system === 'confirmat' || system === 'screw') {
-        holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: system === 'screw' ? 4 : 7, depth: 0, of: fittings.length },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: system === 'screw' ? 2.5 : 5, depth: system === 'screw' ? 30 : 45, of: fittings.length });
-        fittings.push({ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size: system === 'screw' ? '4 × 40' : '7 × 50' });
+        const faceHole = system === 'screw' ? SCREW_FACE : CONFIRMAT_FACE;
+        const edgeHole = system === 'screw' ? SCREW_EDGE : CONFIRMAT_EDGE;
+        const size = system === 'screw' ? SCREW_ENTRY.display.listLine.defaultSpec : CONFIRMAT_ENTRY.display.listLine.defaultSpec;
+        holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: faceHole.dMm, depth: faceHole.depthMm, of: fittings.length },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: fittings.length });
+        fittings.push({ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size });
       } else if (system === 'dowel') {
-        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: shortDowel ? 6 : 8, depth: shortDowel ? 10 : 12, of: fittings.length },
-          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: shortDowel ? 6 : 8, depth: shortDowel ? 22 : 25, of: fittings.length });
-        fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size: shortDowel ? '6 × 30' : '8 × 35' });
+        const faceHole = shortDowel ? SHORT_DOWEL_FACE : DOWEL_FACE;
+        const edgeHole = shortDowel ? SHORT_DOWEL_EDGE : DOWEL_EDGE;
+        const size = shortDowel ? (DOWEL_ENTRY.variants?.[1]?.sizeLabel ?? '6 × 30') : DOWEL_ENTRY.display.listLine.defaultSpec;
+        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: faceHole.dMm, depth: faceHole.depthMm, of: fittings.length },
+          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: fittings.length });
+        fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size });
       } else {
         // The bolt is screwed into the face board; the edge board goes on over it (its head in a pilot hole 34 mm into
         // the board's end), and the cam, set in the edge board's inner face 34 mm from the joint, is turned to grip it.
         const cam = [...p] as [number, number, number], bolt = fittings.length;
-        cam[j.axis] = j.plane + j.side * 3.4; cam[tb] = hi(B)[tb];
-        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: 5, depth: 11, of: bolt },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: 8, depth: 34, of: bolt + 1 },
-          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: 15, depth: 12.5, of: bolt + 1 });
-        fittings.push({ kind: 'bolt', at: p, axis: j.axis, boards: [j.face, j.edge], size: '34' },
-          { kind: 'cam', at: cam, axis: tb, boards: [j.face, j.edge], size: '15 mm' });
+        cam[j.axis] = j.plane + j.side * CAM_LINE_CM; cam[tb] = hi(B)[tb];
+        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: BOLT_HOLE.dMm, depth: BOLT_HOLE.depthMm, of: bolt },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: CAM_EDGE.dMm, depth: CAM_EDGE.depthMm, of: bolt + 1 },
+          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: CAM_HOLE.dMm, depth: CAM_HOLE.depthMm, of: bolt + 1 });
+        fittings.push({ kind: 'bolt', at: p, axis: j.axis, boards: [j.face, j.edge], size: BOLT_ENTRY.display.listLine.defaultSpec },
+          { kind: 'cam', at: cam, axis: tb, boards: [j.face, j.edge], size: CAM_ENTRY.display.listLine.defaultSpec });
       }
     }
   }
@@ -160,9 +188,9 @@ function slopeFittings(boards: readonly Board[], holes: Hole[], fittings: Fittin
       if (Math.abs(end - under) > .3) return;
       for (const station of connectorStations(r1 - r0)) {
         const z = r0 + station, at: Vec3 = [x, under, z];
-        holes.push({ board: t, kind: 'connector', at: [x, over, z], axis: 1, sign: -1, d: 7, depth: 0, of: fittings.length },
-          { board: u, kind: 'pilot', at, axis: 1, sign: -1, d: 5, depth: 45, of: fittings.length });
-        fittings.push({ kind: 'confirmat', at, axis: 1, boards: [t, u], size: '7 × 50' });
+        holes.push({ board: t, kind: 'connector', at: [x, over, z], axis: 1, sign: -1, d: CONFIRMAT_FACE.dMm, depth: CONFIRMAT_FACE.depthMm, of: fittings.length },
+          { board: u, kind: 'pilot', at, axis: 1, sign: -1, d: CONFIRMAT_EDGE.dMm, depth: CONFIRMAT_EDGE.depthMm, of: fittings.length });
+        fittings.push({ kind: 'confirmat', at, axis: 1, boards: [t, u], size: CONFIRMAT_ENTRY.display.listLine.defaultSpec });
       }
     });
   });
@@ -185,7 +213,7 @@ export function backFixing(boards: readonly Board[], construction: Construction)
         if (z1-z0>1e-9) grooves.push({board:i,lo:[x0,y0,z0],hi:[x1,y1,z1],outline:polygon,kind:construction.back==='grooved'?'groove':'rebate'});
         if (construction.back === 'grooved' || Math.abs(b.z0-back.z1)>1e-9 && z1-z0<=0 || b.z1-back.z1<1.4) return;
         const run = x1-x0 > y1-y0 ? 'x' : 'y', other=run==='x'?'y':'x', low=run==='x'?x0:y0, high=run==='x'?x1:y1;
-        const count=Math.max(1,Math.ceil((high-low)/15));
+        const count=Math.max(1,Math.ceil((high-low)/NAIL_SPACING_CM));
         for(let n=0;n<count;n++) {
           const atRun=low+(high-low)*(n+.5)/count, values:number[]=[];
           polygon.forEach((p,j)=>{const q=polygon[(j+1)%polygon.length]!;
@@ -193,7 +221,7 @@ export function backFixing(boards: readonly Board[], construction: Construction)
               values.push(p[other]+(q[other]-p[other])*(atRun-p[run])/(q[run]-p[run]));
           });
           const mid=(Math.min(...values)+Math.max(...values))/2;
-          fittings.push({kind:'nail',at:[run==='x'?atRun:mid,run==='y'?atRun:mid,back.z0],axis:2,boards:[k,i],size:'1.6 × 20'});
+          fittings.push({kind:'nail',at:[run==='x'?atRun:mid,run==='y'?atRun:mid,back.z0],axis:2,boards:[k,i],size:NAIL_SIZE});
         }
       });
       return;
@@ -209,10 +237,10 @@ export function backFixing(boards: readonly Board[], construction: Construction)
       const axis: Axis = back.note === 'drawer box' ? 1 : 2;
       const run = ([0, 1, 2] as Axis[]).filter(a => a !== axis).reduce((m, a) => ghi[a] - glo[a] > ghi[m] - glo[m] ? a : m, 0 as Axis);
       const length = ghi[run] - glo[run];
-      for (let s = 7.5; s < length; s += 15) {
+      for (let s = NAIL_SPACING_CM / 2; s < length; s += NAIL_SPACING_CM) {
         const at = [(glo[0] + ghi[0]) / 2, (glo[1] + ghi[1]) / 2, (glo[2] + ghi[2]) / 2] as [number, number, number];
         at[axis] = lo(back)[axis]; at[run] = glo[run] + s;
-        fittings.push({ kind: 'nail', at, axis, boards: [k, i], size: '1.6 × 20' });
+        fittings.push({ kind: 'nail', at, axis, boards: [k, i], size: NAIL_SIZE });
       }
     });
   });
