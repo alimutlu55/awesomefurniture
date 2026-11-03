@@ -128,3 +128,25 @@ test('deleting the last wall clears its floor and supports rendering a new first
     assert.equal(renderer.pickables().length, 0);
     assert.doesNotThrow(() => renderer.sync(wall)); assert.ok(renderer.pickables().length > 0);
 });
+
+test('collinear wall splits do not render vertical contact shadows at the split seam', t => {
+    const { roomRenderFixture } = require('./helpers/room-render-fixture.cjs');
+    roomRenderFixture(t, { wardrobes: 0 });
+    const { createStudioRenderer } = require('../src/presentation/viewport/studio-renderer.ts');
+    const scene = new THREE.Scene(), renderer = createStudioRenderer(scene);
+    t.after(() => renderer.dispose());
+    const bedroom = createStudio('bedroom');
+    const split = splitWall(bedroom, 'w1', 200);
+    renderer.sync(split);
+    const verticalShadows = [];
+    scene.traverse(o => {
+        if (o.isMesh && o.material?.transparent && o.material?.map) {
+            const pos = o.geometry.attributes.position;
+            if (pos && Math.abs(pos.getX(0) - pos.getX(1)) < 0.1 && Math.abs(pos.getY(1) - pos.getY(0)) > 10) {
+                verticalShadows.push(o);
+            }
+        }
+    });
+    // 4 room corners = 8 vertical shadow quads. Collinear split adds 0.
+    assert.equal(verticalShadows.length, 8);
+});

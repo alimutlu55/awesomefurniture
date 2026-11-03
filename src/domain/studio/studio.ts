@@ -159,10 +159,41 @@ export function wallLine(studio: Studio, w: StudioWall) {
 /** How many walls meet at a corner. */
 export const cornerDegree = (studio: Studio, id: string) => studio.walls.filter(w => w.a === id || w.b === id).length;
 
+/** Whether the wall turns at this corner (meets an angled wall or junction), rather than continuing straight. */
+export function isTurningCorner(studio: Studio, w: StudioWall, cornerId: string): boolean {
+  if (w.a !== cornerId && w.b !== cornerId) return false;
+  const others = studio.walls.filter(o => o !== w && (o.a === cornerId || o.b === cornerId));
+  if (others.length === 0) return false;
+  if (others.length > 1) return true;
+  const other = others[0]!, l1 = wallLine(studio, w), l2 = wallLine(studio, other);
+  if (!l1 || !l2) return false;
+  const u1x = w.b === cornerId ? l1.ux : -l1.ux, u1z = w.b === cornerId ? l1.uz : -l1.uz;
+  const u2x = other.a === cornerId ? l2.ux : -l2.ux, u2z = other.a === cornerId ? l2.uz : -l2.uz;
+  const cross = u1x * u2z - u1z * u2x, dot = u1x * u2x + u1z * u2z;
+  return !(Math.abs(cross) < 0.05 && dot > 0.9);
+}
+
+/** Whether the wall meets another wall at an inside corner (concave room corner) where ambient light is occluded. */
+export function isInsideCorner(studio: Studio, w: StudioWall, cornerId: string): boolean {
+  if (w.a !== cornerId && w.b !== cornerId) return false;
+  const others = studio.walls.filter(o => o !== w && (o.a === cornerId || o.b === cornerId));
+  if (others.length === 0) return false;
+  if (others.length > 1) return true;
+  const other = others[0]!, l1 = wallLine(studio, w), l2 = wallLine(studio, other);
+  if (!l1 || !l2) return false;
+  const u1x = w.b === cornerId ? l1.ux : -l1.ux, u1z = w.b === cornerId ? l1.uz : -l1.uz;
+  const u2x = other.a === cornerId ? l2.ux : -l2.ux, u2z = other.a === cornerId ? l2.uz : -l2.uz;
+  const cross = u1x * u2z - u1z * u2x;
+  return w.b === cornerId ? cross > 0.05 : cross < -0.05;
+}
+
 /** Where the wall's solid starts and ends along its line, measured from corner `a`. A wall that meets
  * another at a corner reaches half its thickness past it, so the two fill the corner between them. */
 export function wallExtent(studio: Studio, w: StudioWall, length: number) {
-  return { start: cornerDegree(studio, w.a) > 1 ? -w.thickness / 2 : 0, end: length + (cornerDegree(studio, w.b) > 1 ? w.thickness / 2 : 0) };
+  return {
+    start: isTurningCorner(studio, w, w.a) ? -w.thickness / 2 : 0,
+    end: length + (isTurningCorner(studio, w, w.b) ? w.thickness / 2 : 0),
+  };
 }
 
 /** A wall as a solid box, in the form the collision rules use: centre, angle (degrees, like a
