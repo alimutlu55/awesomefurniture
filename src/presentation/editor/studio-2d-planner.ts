@@ -1,3 +1,4 @@
+import { overlayInsets } from './studio-2d-overlays';
 import { renderFixtures } from './studio-2d-fixtures';
 import { createPlanRotation, rotationHandle } from './studio-2d-rotate';
 import { STUDIO_LIMITS, studioBounds, wallLine } from '../../domain/studio/studio';
@@ -159,7 +160,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       patMajor.setAttribute('patternTransform', `translate(${offsetX}, ${offsetZ}) scale(${transform.zoom})`);
     }
     // Update screen overlays (Compass & Scale bar)
-    overlaysGroup.innerHTML = renderOverlays(transform);
+    overlaysGroup.innerHTML = renderOverlays(transform, overlayInsets(svg.getBoundingClientRect(), $('#toolbar').getBoundingClientRect(), $('#topright').getBoundingClientRect()));
     const ze = dom.document?.getElementById('zoom-val') ?? root.ownerDocument?.getElementById('zoom-val');
     if (ze) ze.textContent = `${Math.round(transform.zoom * 100)}%`;
     // Only rebuild geometry DOM when studio, selection, or wardrobes change
@@ -316,7 +317,13 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       ke.preventDefault(); ke.stopImmediatePropagation(); rotation.quarterTurn();
     }
     else if (ke.key === 'Escape') {
-      if (rotation.active()) { ke.preventDefault(); ke.stopImmediatePropagation(); rotation.finish(true); return; } gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); svg.classList.remove('drawing-wall'); }
+      if (rotation.active()) { ke.preventDefault(); ke.stopImmediatePropagation(); rotation.finish(true); return; }
+      const editing = gestures.isEditing();
+      gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); svg.classList.remove('drawing-wall');
+      if (editing) { ke.preventDefault(); ke.stopImmediatePropagation(); }
+      else if (selectionState.room) { selectionState.room = null; callbacks.selectionChanged(); }
+      render();
+    }
     else if (ke.key === 'w' || ke.key === 'W') { gestures.setTool('wall'); svg.classList.add('drawing-wall'); }
     else if (ke.key === 'v' || ke.key === 'V') { gestures.setTool('select'); svg.classList.remove('drawing-wall'); }
   }, true);

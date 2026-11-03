@@ -93,7 +93,7 @@
 .sp2d-compass-label{fill:#dc2626;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:10px;font-weight:700;text-anchor:middle}
 .sp2d-scale-line{stroke:#292524;stroke-width:1.5}
 .sp2d-scale-tick{stroke:#292524;stroke-width:1.5}
-.sp2d-scale-text{fill:#57534e;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:9px;font-weight:600;text-anchor:middle}
+.sp2d-scale-text{fill:#292524;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:11px;font-weight:600;text-anchor:middle}
 
 .studio-format-seg{position:absolute;top:calc(100% + 8px);left:0;display:inline-flex;align-items:center;background:var(--glass);border:1px solid #ffffff60;box-shadow:0 8px 30px #45392312;border-radius:26px;padding:3px}
 .studio-format-seg button{height:44px;min-width:44px;padding:0 10px;border-radius:22px;border:0;background:transparent;
@@ -117,7 +117,11 @@
 .sp2d-handle-extend:hover .sp2d-extend-circle,.sp2d-handle-extend:focus-visible .sp2d-extend-circle{fill:#0369a1;stroke:#1c1917}
 
 .sp2d-dimension-line{stroke:#57534e;stroke-width:.8;fill:none;pointer-events:none}
-.sp2d-dimension-label .sp2d-dim-text,.sp2d-angle{paint-order:stroke;stroke:#fbfbf9;stroke-width:5px;stroke-linejoin:round}
+.sp2d-dimension-label .sp2d-dim-text{stroke:none}
+.sp2d-text-halo{fill:none;stroke:#fbfbf9;stroke-linejoin:round;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-weight:600;text-anchor:middle;pointer-events:none}
+.sp2d-angle{stroke:none}
+.sp2d-angle-halo{fill:none;stroke:#fbfbf9;stroke-width:4px;stroke-linejoin:round}
 .sp2d-dimension-line.sp2d-accent{stroke:#0284c7}
 .sp2d-accent .sp2d-dim-text{fill:#0369a1}
 .sp2d-fixture{cursor:pointer;fill:#fff;stroke:#78716c;stroke-width:1.2}
@@ -127,4 +131,6 @@
 .sp2d-rotate-disc{fill:#fff;stroke:#0284c7;stroke-width:1.5}
 .sp2d-rotate:focus-visible .sp2d-rotate-disc{stroke:#1c1917;stroke-width:3}
 .sp2d-rotate text{font-size:19px;pointer-events:none}
-.sp2d-rotate .sp2d-angle{font-size:12px;font-weight:600}
+.sp2d-rotate .sp2d-angle,.sp2d-rotate .sp2d-angle-halo{font-size:12px;font-weight:600}
+
+.sp2d-scale-bar,.sp2d-compass{pointer-events:none}

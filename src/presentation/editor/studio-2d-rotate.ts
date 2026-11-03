@@ -18,7 +18,8 @@ export function rotationHandle(c: EditorCabinet, t: ViewportTransform, turning =
     <circle cx="${p.x}" cy="${p.z}" r="22" fill="transparent" pointer-events="all"/>
     <circle cx="${p.x}" cy="${p.z}" r="12" class="sp2d-rotate-disc"/>
     <text x="${p.x}" y="${p.z + 5}" text-anchor="middle">↻</text>
-    ${turning ? `<text x="${p.x}" y="${p.z - 20}" text-anchor="middle" class="sp2d-angle">${Math.round(c.angle)}°</text>` : ''}
+    ${turning ? `<text aria-hidden="true" x="${p.x}" y="${p.z - 20}" text-anchor="middle" class="sp2d-angle-halo">${Math.round(c.angle)}°</text>
+      <text x="${p.x}" y="${p.z - 20}" text-anchor="middle" class="sp2d-angle">${Math.round(c.angle)}°</text>` : ''}
   </g>`;
 }
 export function createPlanRotation(ports: RotationPorts) {

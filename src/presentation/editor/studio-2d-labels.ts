@@ -190,6 +190,8 @@ export function renderPlanLabels(labels: readonly PlanLabel[]): string {
     return `<g class="sp2d-plan-label sp2d-${label.kind}-label${label.accent ? ' sp2d-accent' : ''}"
       data-label-kind="${label.kind}" data-label-id="${escape(label.id)}" transform="translate(${label.x},${label.y}) rotate(${label.angle})">
       ${label.kind === 'dimension' ? '' : `<rect x="${-label.width / 2}" y="${-label.height / 2}" width="${label.width}" height="${label.height}" rx="${6 * label.scale}" class="sp2d-dim-bg"/>`}
+      ${label.kind === 'dimension' ? `<text aria-hidden="true" x="0" y="${4 * label.scale}" class="sp2d-text-halo"
+        style="font-size:${12 * label.scale}px;stroke-width:${4 * label.scale}px">${escape(label.text)}</text>` : ''}
       <text x="0" y="${(label.detail ? -4 : 4) * label.scale}" class="sp2d-dim-text" style="font-size:${12 * label.scale}px">${escape(label.text)}</text>
       ${label.detail ? `<text x="0" y="${14 * label.scale}" class="sp2d-room-area" style="font-size:${11 * label.scale}px">${escape(label.detail)}</text>` : ''}
     </g>`;

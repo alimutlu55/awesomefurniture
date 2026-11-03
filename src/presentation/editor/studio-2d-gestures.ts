@@ -1,3 +1,4 @@
+import { pickWallAsset, slideWallAsset } from './studio-2d-assets';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { cornerDegree, nextId, wallLine } from '../../domain/studio/studio';
 import { furthestValid, snapCorner } from './studio-drag';
@@ -8,7 +9,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
 export type ToolMode = 'select' | 'wall';
 interface DragState {
-  kind: 'pan' | 'corner' | 'wall' | 'opening' | 'furniture' | 'pinch';
+  kind: 'pan' | 'corner' | 'wall' | 'opening' | 'fixture' | 'furniture' | 'pinch';
   id?: string | number;
   startScreen: { x: number; y: number };
   startScene: Point2D;
@@ -151,6 +152,17 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return true;
     }
 
+    const asset = pickWallAsset(ports.getStudio(), scenePt, t.zoom, e.target as Element);
+    if (asset) {
+      ports.setSelection(asset);
+      drag = {
+        kind: asset.kind, id: asset.id, startScreen: { x: e.clientX, y: e.clientY },
+        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
+        moved: false, guides: [],
+      };
+      scheduleRefresh(); return true;
+    }
+
     const cornerEl = (e.target as Element).closest('[data-corner-id]');
     if (cornerEl) {
       const cornerId = cornerEl.getAttribute('data-corner-id')!;
@@ -162,19 +174,6 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
         startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: studio,
         moved: false, guides: [],
       };
-      return true;
-    }
-
-    const openingEl = (e.target as Element).closest('[data-opening-id]');
-    if (openingEl) {
-      const oid = openingEl.getAttribute('data-opening-id')!;
-      ports.setSelection({ kind: 'opening', id: oid });
-      drag = {
-        kind: 'opening', id: oid, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
-        moved: false, guides: [],
-      };
-      scheduleRefresh();
       return true;
     }
 
@@ -198,11 +197,6 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return true;
     }
 
-    const fixtureEl = (e.target as Element).closest('[data-fixture-id]');
-    if (fixtureEl) {
-      ports.setSelection({ kind: 'fixture', id: fixtureEl.getAttribute('data-fixture-id')! });
-      scheduleRefresh(); return true;
-    }
     const furnEl = (e.target as Element).closest('[data-cabinet-id]');
     if (furnEl) {
       const cabId = Number(furnEl.getAttribute('data-cabinet-id')!);
@@ -319,20 +313,10 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return;
     }
 
-    if (drag.kind === 'opening') {
-      const oid = String(drag.id);
-      const targetOpening = studio.openings.find(x => x.id === oid);
-      const targetWall = targetOpening && studio.walls.find(x => x.id === targetOpening.wall);
-      const line = targetWall && wallLine(studio, targetWall);
-      if (!line || !targetOpening) return;
-      const relX = currentScene.x - line.a.x, relZ = currentScene.z - line.a.z;
-      const nextOffset = Math.max(targetOpening.width / 2 + 5, Math.min(line.length - targetOpening.width / 2 - 5, relX * line.ux + relZ * line.uz));
-      ports.editStudio(s => ({
-        ...s,
-        openings: s.openings.map(o => o.id === oid ? { ...o, offset: Math.round(nextOffset) } : o),
-      }), false, true);
+    if (drag.kind === 'opening' || drag.kind === 'fixture') {
+      const asset = { kind: drag.kind, id: String(drag.id) };
+      ports.editStudio(s => slideWallAsset(s, drag!.originalStudio!, asset, drag!.startScene, currentScene), false, true);
       scheduleRefresh();
-      return;
     }
   }
 
@@ -389,6 +373,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
 
   return {
     onPointerDown, onPointerMove, onPointerUp, onWheel,
+    isEditing: () => !!drag && drag.kind !== 'pan' && drag.kind !== 'pinch',
     extendWall, setTool, getTool: () => activeTool, cancelDrawing,
     getWallDrawState: () => wallDrawStart && wallDrawCurrent ? { start: wallDrawStart, current: wallDrawCurrent } : null,
     getWallActionTarget: () => wallActionTarget,

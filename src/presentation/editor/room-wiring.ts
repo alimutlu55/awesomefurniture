@@ -26,7 +26,7 @@ interface RoomWiringPorts {
         cast(e: PointerEvent, objects: THREE.Object3D[]): THREE.Intersection | undefined;
     };
     readonly selectionState: StudioEditorPorts['selectionState'] & {
-        viewMode?: 'studio' | 'furniture'; pendingStudioAction?: string | null;
+        viewMode?: 'studio' | 'furniture'; studioView?: '2d' | '3d'; pendingStudioAction?: string | null;
     };
     /** Late-bound editor parts: called only after the editor is mounted. */
     readonly late: {
@@ -153,6 +153,8 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (!editor.selection() || k.metaKey || k.ctrlKey || k.altKey) return;
         // Typing, and keys inside the toolbar's popover (Escape closes it first), are not for the room.
         if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest?.('.contextual-popover,.surface-shape'))) return;
+        // The plan owns Escape while a pointer edit is active, including cancellation of its preview.
+        if (k.key === 'Escape' && selectionState.viewMode === 'studio' && selectionState.studioView === '2d') return;
         if (k.key === 'Escape') editor.select(null);
         else if (k.key === 'Delete' || k.key === 'Backspace') editor.act('remove');
         else if (onFixture() && (k.key === 'ArrowLeft' || k.key === 'ArrowRight')) fixtures.nudge((k.key === 'ArrowRight' ? 1 : -1) * (k.shiftKey ? 10 : 1));

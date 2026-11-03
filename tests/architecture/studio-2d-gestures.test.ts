@@ -5,7 +5,7 @@ import { createEditorState } from '../../src/application/projects/editor-state';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
 import { createSceneHistory } from '../../src/application/history/scene-history';
 import { createStudio } from '../../src/domain/studio/studio-templates';
-import { cornerDegree, type Studio } from '../../src/domain/studio/studio';
+import { cornerDegree, wallLine, type Studio } from '../../src/domain/studio/studio';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { createStudio2DGestures } from '../../src/presentation/editor/studio-2d-gestures';
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry.js';
@@ -223,4 +223,31 @@ test('add-wall handles only appear at open ends, and do not split existing walls
   const f = fixture(closed);
   assert.equal(f.gestures.extendWall('c1'), false);
   assert.equal(f.history.undoCount, 0);
+});
+
+test('a near-miss on a window slides it without moving its wall and records one undo step', () => {
+  const f = fixture(createStudio('bedroom'), .35), studio = f.model.scene.studio!;
+  const window = studio.openings.find(o => o.kind === 'window')!, line = wallLine(studio, studio.walls.find(w => w.id === window.wall)!)!;
+  const at = { x: line.a.x + line.ux * window.offset + line.nx * (6 + 18 / .35),
+    z: line.a.z + line.uz * window.offset + line.nz * (6 + 18 / .35) };
+  const before = f.model.snapshot();
+  f.drag([at.x, at.z], [at.x + line.ux * 30, at.z + line.uz * 30], '', '');
+  assert.equal(f.model.scene.studio!.openings.find(o => o.id === window.id)!.offset, window.offset + 30);
+  assert.deepEqual(f.model.scene.studio!.corners, studio.corners);
+  assert.equal(f.history.undoCount, 1); f.history.undo(); assert.equal(f.model.snapshot(), before);
+});
+
+test('fixtures slide on the plan in one undo step and pointer cancellation restores the whole scene', async () => {
+  const { addFixture } = await import('../../src/domain/studio/fixtures/fixture-edit');
+  const { FIXTURES } = await import('../../src/domain/studio/fixtures/fixture-kinds');
+  const { rectangleStudio } = await import('../../src/domain/studio/studio-templates');
+  const studio = addFixture(rectangleStudio(600, 500), 'w1', FIXTURES[0]!.key, 200)!;
+  const id = studio.fixtures![0]!.id, f = fixture(studio, .35), before = f.model.snapshot();
+  f.drag([0, 30], [40, 50], 'data-fixture-id', id);
+  assert.equal(f.model.scene.studio!.fixtures![0]!.offset, 240);
+  assert.equal(f.history.undoCount, 1); f.history.undo(); assert.equal(f.model.snapshot(), before);
+  f.gestures.onPointerDown(f.event(0, 30, 'data-fixture-id', id), f.surface);
+  f.gestures.onPointerMove(f.event(50, 30), f.surface);
+  f.gestures.onPointerUp(undefined, true);
+  assert.equal(f.model.snapshot(), before); assert.equal(f.history.undoCount, 0);
 });
