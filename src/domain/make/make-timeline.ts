@@ -75,12 +75,17 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     order.forEach((b, j) => { boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; });
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
-    const placing = s.stage === 'drawers' ? 4 : s.stage === 'drawer-test' ? count * 6
+    const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
     const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
-    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || FITTED_BEFORE.has(piece.fittings[i]!.kind) !== before)
+    const fittedBefore = (i: number) => {
+      const f = piece.fittings[i]!;
+      return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!]!.name === 'Cargo front';
+    };
+    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || fittedBefore(i) !== before)
       .sort((a, b) => before ? lies(a, before) - lies(b, before) : 0).map(g => {
       const n = g.items.length, travel = travelFor(n), own = n > 1 ? Math.min(1, travel * .55) : travel, from = t + SHOW;
       g.items.forEach((i, j) => { const go = from + (n > 1 ? (travel - own) * j / (n - 1) : 0); itemTime[i] = [t, go, go + own]; });

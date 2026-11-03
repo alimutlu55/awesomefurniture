@@ -137,32 +137,25 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   boards.forEach((b, i) => {
     if (b.name !== 'Cargo front') return;
     const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
-    const post = left ?? right;
     const { cargoPullouts } = piecefronts(design, cornerFaceWidths(piece, pieces));
     const cargo = cargoPullouts.find(c => Math.abs(c.cx - cx) < 1 && Math.abs(c.y0 - b.y0) < 5)
       ?? cargoPulloutGeometry(cx, b.y0, b.x1 - b.x0, b.y1 - b.y0, design.d);
     const runner = cargo.runners.length * 10;
-    const face = post && post === left ? post.b.x1 : post ? post.b.x0 : 0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
-
-    fittings.push({
-      kind: 'runner',
-      at: [face, y, (b.z0 + b.z1) / 2],
-      axis: 0,
-      boards: post ? [i, post.i] : [i],
-      size: String(runner),
-      runner: { moving: cargo.isTall ? [i, i] : [i], fixed: post ? (cargo.isTall ? [post.i, post.i] : [post.i]) : [] },
-    });
-    if (post) {
-      for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
-        const z = post.b.z1 - SYSTEM_LINE - back;
-        const screwIdx = fittings.length;
-        fittings.push({ kind: 'screw', at: [face, y, z], axis: 0, boards: [post.i], size: '4 × 12', purpose: 'runner-mount' });
-        holes.push({ board: post.i, kind: 'runner', at: [face, y, z], axis: 0, sign, ...RUNNER_SCREW, of: screwIdx });
-        if (cargo.isTall) {
-          const topY = b.y1 - 3.2, topScrewIdx = fittings.length;
-          fittings.push({ kind: 'screw', at: [face, topY, z], axis: 0, boards: [post.i], size: '4 × 12', purpose: 'runner-mount' });
-          holes.push({ board: post.i, kind: 'runner', at: [face, topY, z], axis: 0, sign, ...RUNNER_SCREW, of: topScrewIdx });
-        }
+    const sideMounted = cargo.mount !== 'bottom';
+    const base = boards.findIndex(q=>q.name==='Base'), top = boards.findIndex(q=>q.name==='Top');
+    const lower = sideMounted ? (cargo.mount==='right' ? right : left)?.i ?? -1 : base;
+    const fixed = [lower, ...(cargo.isTall && top>=0 ? [top] : [])].filter(i=>i>=0);
+    fittings.push({kind:'runner',at:[cx,cargo.runners.bottom.y0,(cargo.runners.bottom.z0+cargo.runners.bottom.z1)/2],axis:sideMounted ? 0 : 1,
+      boards:[i,...fixed],size:String(runner),runner:{moving:fixed.map(()=>i),fixed}});
+    for(const host of fixed) {
+      const q=boards[host]!, upper=host===top;
+      const axis = sideMounted && !upper ? 0 as const : 1 as const;
+      const sign = axis===0 ? (cargo.mount==='right' ? 1 as const : -1 as const) : upper ? 1 as const : -1 as const;
+      for(const distance of [5,runner/10-5]) {
+        const at:Vec3=[axis===0 ? sign<0 ? q.x1 : q.x0 : cx,axis===1 ? upper ? q.y0 : q.y1 : cargo.runners.bottom.y0+1.5,cargo.runners.bottom.z1-distance];
+        const of=fittings.length;
+        fittings.push({kind:'screw',at,axis,boards:[host],size:'4 × 12',purpose:'runner-mount'});
+        holes.push({board:host,kind:'runner',at,axis,sign,d:2.5,depth:12,of});
       }
     }
 

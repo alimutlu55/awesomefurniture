@@ -32,7 +32,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
     case 'pin': return through(mine[2] ?? mine[0], f.at);
     case 'nail': return { at: f.at, dir: unit(f.axis, 1), board: back() };
     case 'hinge': return { at: f.at, dir: [0, 0, 1], board: first };
-    case 'plate': return { at: f.at, dir: unit(0, mine[0]?.sign ?? 1), board: first };
+    case 'plate': return { at: f.at, dir: f.size?.includes('cargo') ? [0, 0, 1] : unit(0, mine[0]?.sign ?? 1), board: first };
     case 'handle': return { at: f.at, dir: [0, 0, -1], board: first };
     // Legs are stood on the floor first and the base set down on them.
     case 'leg': return { at: f.at, dir: [0, 1, 0], board: null };

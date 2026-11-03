@@ -1,3 +1,4 @@
+import { cargoFittedAt } from '../../domain/make/cargo-installation';
 import { assemblyTargets } from './assembly-targets';
 import { drawerBoardOffset } from '../../domain/make/drawer-installation';
 import type { MakePiece } from '../../domain/make/make-parts';
@@ -74,7 +75,7 @@ export function createMakePlayer() {
         now: board => line.boardStep[board] === ph.step,
         hole: index => drilled(line, ph, index),
         // Hardware drawn on the piece comes in as its joint is fixed; runners are on their drawer from the start.
-        item: index => fittedAt(line, ph, index, fittings[index]!.kind),
+        item: index => cargoFittedAt(piece!, line, ph, index),
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
         seen: item => seenAt(line, ph, item),

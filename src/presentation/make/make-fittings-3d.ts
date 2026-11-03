@@ -1,3 +1,5 @@
+import { cargoFramePlacement } from '../../domain/make/cargo-installation';
+import { cargoRunnerMeshes } from './cargo-runners-3d';
 import * as THREE from 'three';
 import type { Fitting, Hole } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
@@ -52,6 +54,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
     from: THREE.Vector3;
     size: THREE.Vector3;
     staged?: { pos: THREE.Vector3; rot: THREE.Quaternion } | undefined;
+    hook?: { pivot: THREE.Vector3 };
+    insert?: number;
+    placement?: THREE.Vector3;
   }[] = [];
   const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
     : kind === 'runner' ? new THREE.Vector3() : new THREE.Vector3(0, 0, 1);
@@ -114,7 +119,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       const parts = f.size.split(':'), style = parts[1] === 'solid' ? 'solid' : 'wire';
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
-      const tiers = h >= 100 ? 4 : 2;
+      const tiers = Number(piece.fittings.find(f=>f.kind==='support' && f.size?.startsWith('cargo frame:'))?.size?.split(':')[1]) || (h >= 100 ? 4 : 2);
       const geo = cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const bkt = geo.baskets.find(bk => Math.abs(bk.base.y0 - f.at[1]) < 2) ?? geo.baskets[0];
       if (!bkt) return null;
@@ -165,7 +170,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     for (const f of fittings) {
       const p = shownFittings ? shownFittings(f.index) : 1, seen = seenFittings?.(f.index) ?? 1;
       if (f.staged) {
-        f.mesh.visible = true;
+        f.mesh.visible = p !== null;
         if (p === null) {
           f.mesh.position.copy(f.staged.pos);
           f.mesh.quaternion.copy(f.staged.rot);
@@ -176,6 +181,21 @@ export function createMakeFittings(layer: number): FittingsLayer {
           f.mesh.position.lerpVectors(f.staged.pos, f.home, progress);
           f.mesh.position.y += 20 * Math.sin(Math.PI * progress);
           f.mesh.quaternion.copy(f.staged.rot).slerp(new THREE.Quaternion(), progress);
+          if (f.insert) {
+            const pose = cargoFramePlacement(f.staged.pos.toArray(), f.home.toArray(), u, f.insert);
+            f.mesh.position.fromArray(pose.at);
+            f.mesh.quaternion.copy(f.staged.rot).slerp(new THREE.Quaternion(), pose.align);
+          }
+          if (f.hook) {
+            // Rest the front edge first, then lower the rear hooks into their seats.
+            const angle = .22 * (1 - Math.max(0, (u - .8) / .2));
+            const turn = new THREE.Quaternion().setFromAxisAngle(AXES[0]!, angle);
+            const seat = f.home.clone().add(f.hook.pivot).sub(f.hook.pivot.clone().applyQuaternion(turn));
+            const approach = Math.min(1, u / .8), ease = approach * approach * (3 - 2 * approach);
+            f.mesh.position.lerpVectors(f.staged.pos, seat, ease);
+            f.mesh.position.y += 20 * Math.sin(Math.PI * ease);
+            f.mesh.quaternion.copy(f.staged.rot).slerp(turn, ease);
+          }
           f.mesh.scale.copy(f.size);
         } else {
           f.mesh.position.copy(f.home);
@@ -188,12 +208,16 @@ export function createMakeFittings(layer: number): FittingsLayer {
         f.mesh.position.copy(f.home).addScaledVector(f.from, (1 - (p ?? 1)) ** 3 * WAIT);
         f.mesh.scale.copy(f.size).multiplyScalar(Math.max(.01, 1 - (1 - seen) ** 3));
       }
+      f.placement = f.mesh.position.clone();
     }
     applyMotion();
   }
 
   function applyMotion(nudge?: (board: number) => readonly [number, number, number]) {
     for (const rail of slides) {
+      const fitting = fittings.find(f => f.mesh === rail.mesh);
+      const progress = shownFittings && fitting ? shownFittings(fitting.index) : 1;
+      if (progress === null) continue;
       let delta = 0;
       if (nudge && rail.movingBoard !== undefined) {
         delta = Math.max(0, Math.min(rail.max, nudge(rail.movingBoard)[2]));
@@ -201,7 +225,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
         const inStaging = Math.abs(rail.moving.quaternion.w - 1) > 0.05 || rail.moving.position.y < 5;
         delta = inStaging ? 0 : Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest));
       }
-      rail.mesh.position.z = rail.home + delta * rail.ratio;
+      const p = fitting?.hook ? Math.min(1, progress / .8) : progress;
+      const weight = p * p * (3 - 2 * p);
+      rail.mesh.position.z = (fitting?.placement?.z ?? rail.home) + delta * rail.ratio * weight;
     }
   }
 
@@ -228,7 +254,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
         } : undefined;
 
         if (f.kind === 'runner') {
-          for (const rail of drawerRunnerMeshes(piece, f, bar, metal)) {
+          for (const rail of (piece.boards[f.runner?.moving[0] ?? -1]?.name === 'Cargo front' ? cargoRunnerMeshes : drawerRunnerMeshes)(piece, f, bar, metal)) {
             const i = rail.board, host = meshOf(i), mesh = tag(rail.mesh);
             if (!host) continue;
             if (staged) {
@@ -249,14 +275,32 @@ export function createMakeFittings(layer: number): FittingsLayer {
         }
         const mesh = fittingMesh(piece, f);
         if (!mesh) return;
+        if (staged) {
+          // Align the rotated geometry's actual centre to its floor staging slot.
+          const bounds = new THREE.Box3().setFromObject(mesh);
+          const centre = bounds.getCenter(new THREE.Vector3()).sub(mesh.position).applyQuaternion(staged.rot);
+          const size = bounds.getSize(new THREE.Vector3());
+          const height = Math.abs(staged.rot.x) > .5 ? size.z : size.y;
+          staged.pos.y = height / 2 - centre.y;
+          staged.pos.x -= centre.x; staged.pos.z -= centre.z;
+        }
 
         const isCargoBracket = (f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo');
         const isCargoChassis = (f.kind === 'support' || f.kind === 'rail') && f.size?.includes('cargo');
         const frontIdx = piece.boards.findIndex(q => q.name === 'Cargo front' || q.stock === 'front');
 
-        if (staged || isCargoBracket || isCargoChassis) {
+        const cargoDoorFixing = isCargoBracket || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!] ?.name === 'Cargo front';
+        if (cargoDoorFixing) {
+          const board = f.boards[0]!, host = meshOf(board);
+          if (host) {mesh.position.sub(rest(board));host.add(mesh);}
+          fittings.push({mesh,index,board,home:mesh.position.clone(),from:new THREE.Vector3(0,0,-1),size:mesh.scale.clone()});
+        } else if (staged || isCargoChassis) {
           root.add(mesh);
-          fittings.push({ mesh, index, board: null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone(), staged });
+          const bounds = new THREE.Box3().setFromObject(mesh);
+          const hook = f.kind === 'rail' && f.size?.includes('cargo basket')
+            ? {pivot:new THREE.Vector3(0,bounds.min.y-mesh.position.y,bounds.max.z-mesh.position.z)} : undefined;
+          fittings.push({ mesh, index, board: null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone(),
+            staged, ...(hook ? {hook} : {}), ...(f.kind === 'support' && isCargoChassis ? {insert:piece.size.d+8} : {}) });
           if ((isCargoChassis || isCargoBracket) && frontIdx >= 0) {
             const moving = meshOf(frontIdx);
             if (moving) {
