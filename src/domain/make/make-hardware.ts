@@ -7,7 +7,7 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
-import { HANDLE_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
+import { HANDLE_ENTRY, RAIL_ENTRY, RUNNER_ENTRY, SHELF_PIN_ENTRY } from '../hardware/hardware-registry';
 import { backFaceOf, plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension, RUNNER_CLEARANCE, RUNNER_REAR_GAP, runnerForSpace } from '../wardrobe/drawer-runners';
@@ -248,21 +248,24 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     }
   });
   // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down.
+  const pinHole = SHELF_PIN_ENTRY.drilling[0]!;
+  const pinStationsCm = (pinHole.stationsMm ?? [-64, -32, 0, 32, 64]).map(mm => mm / 10);
   boards.forEach((b, i) => {
     if (b.note !== 'adjustable') return;
     const { left, right } = uprightsAround(boards, (b.x0 + b.x1) / 2, b.y0, h);
     for (const [post, face, sign] of [[left, left?.b.x1, -1], [right, right?.b.x0, 1]] as const) {
       if (!post || face === undefined) continue;
       for (const z of [b.z0 + SYSTEM_LINE, b.z1 - SYSTEM_LINE]) {
-        for (let k = -2; k <= 2; k++) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + 3.2 * k, z], axis: 0, sign, d: 5, depth: 10, of: fittings.length });
+        for (const dy of pinStationsCm) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + dy, z], axis: 0, sign, d: pinHole.dMm, depth: pinHole.depthMm, of: fittings.length });
         fittings.push({ kind: 'pin', at: [face, b.y0, z], axis: 0, boards: [i, post.i] });
       }
     }
   });
   // Hanging rails with an end support at each side, cut 4 mm shorter than the bay.
+  const railCutShortMm = RAIL_ENTRY.rules.clearanceMm.endCutShort ?? 4;
   for (const r of inside.filter(x => x.kind === 'rail')) {
     const y = r.y0, at: Vec3 = [(r.x0 + r.x1) / 2, y, design.d / 2];
-    fittings.push({ kind: 'rail', at, axis: 0, boards: [], size: String(Math.round((r.x1 - r.x0) * 10) - 4) });
+    fittings.push({ kind: 'rail', at, axis: 0, boards: [], size: String(Math.round((r.x1 - r.x0) * 10) - railCutShortMm) });
     fittings.push({ kind: 'support', at: [r.x0, y, design.d / 2], axis: 0, boards: [] }, { kind: 'support', at: [r.x1, y, design.d / 2], axis: 0, boards: [] });
   }
   // Standing, hanging and fixing: legs under a kitchen floor unit, hangers on a wall unit, brackets on tall pieces.

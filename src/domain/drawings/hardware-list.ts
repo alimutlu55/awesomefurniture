@@ -1,5 +1,14 @@
 import { makePlacedPiece } from '../make/make-parts';
-import { HANDLE_ENTRY, HINGE_ENTRY, PLATE_ENTRY, PUSH_TO_OPEN_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
+import {
+  HANDLE_ENTRY,
+  HINGE_ENTRY,
+  PLATE_ENTRY,
+  PUSH_TO_OPEN_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  RUNNER_ENTRY,
+  SHELF_PIN_ENTRY,
+} from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
 import type { FittingKind } from '../make/make-joints';
 import { ventilationGrille } from '../kitchen/ventilation';
@@ -66,9 +75,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
     }));
     const names: Record<FittingKind, string> = {
       confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail',
-      pin: 'Shelf support', hinge: HINGE_ENTRY.display.listLine.label, plate: PLATE_ENTRY.display.listLine.label,
+      pin: SHELF_PIN_ENTRY.display.listLine.label, hinge: HINGE_ENTRY.display.listLine.label, plate: PLATE_ENTRY.display.listLine.label,
       runner: `${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,
-      handle: HANDLE_ENTRY.display.listLine.label, rail: 'Hanging rail, oval', support: 'Rail end support',
+      handle: HANDLE_ENTRY.display.listLine.label, rail: RAIL_ENTRY.display.listLine.label, support: RAIL_SUPPORT_ENTRY.display.listLine.label,
       leg: 'Adjustable leg', hanger: 'Cabinet hanger, adjustable', bracket: 'Wall fixing bracket',
     };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {

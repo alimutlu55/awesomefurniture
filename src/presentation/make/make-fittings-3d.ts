@@ -6,7 +6,7 @@ import { WAIT } from '../../domain/make/make-fixing';
 import { drawerRunnerMeshes } from './drawer-runner-3d';
 import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
 import { hardwareStagingLayout, stagingLayout } from '../../domain/make/make-staging';
-import { makeFittingHandleMesh } from '../viewport/hardware';
+import { makeFittingHandleMesh, railEndSupportMesh, railTubeMesh } from '../viewport/hardware';
 
 /**
  * What is drilled and bought, drawn in Make's 3D: every hole as a dark ring at its mouth, and the hardware a maker can
@@ -84,7 +84,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     if (f.kind === 'handle') {
       return tag(makeFittingHandleMesh(piece, f, at, metal));
     }
-    if (f.kind === 'rail' && !f.size?.includes('cargo')) return solid(rod, metal, at, new THREE.Vector3(1.25, size, 1.25), AXES[0]);
+    if (f.kind === 'rail' && !f.size?.includes('cargo')) return tag(railTubeMesh(at, size, rod, metal));
     if (f.kind === 'leg') return solid(rod, metal, at.clone().setY(at.y + size / 2), new THREE.Vector3(2.2, size, 2.2));
     if (f.kind === 'support' && (f.size?.includes('cargo frame') || f.size?.includes('cargo pull-out'))) {
       const parts = f.size.split(':'), tiers = Number(parts[1]) || 2, style = parts[2] === 'solid' ? 'solid' : 'wire';
@@ -184,7 +184,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       return tag(g);
     }
     if (f.kind === 'hanger' || f.kind === 'bracket') return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(f.kind === 'hanger' ? 6 : 4, 4, 1));
-    if (f.kind === 'support') return solid(disc, metal, at, new THREE.Vector3(2, .4, 2), AXES[0]);
+    if (f.kind === 'support') return tag(railEndSupportMesh(at, disc, metal));
     return null;
   }
   function visible() {

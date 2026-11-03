@@ -6,8 +6,27 @@ import type {
   HardwareEntry,
 } from './hardware-types';
 import { HINGE_ENTRY, PLATE_ENTRY } from './hinges-hardware';
+import {
+  PULL_DOWN_RAIL_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  SHELF_PIN_ENTRY,
+  TROUSER_RACK_ENTRY,
+  WIRE_BASKET_ENTRY,
+} from './rails-supports-hardware';
 
-export { HANDLE_ENTRY, HINGE_ENTRY, PLATE_ENTRY, PUSH_TO_OPEN_ENTRY };
+export {
+  HANDLE_ENTRY,
+  HINGE_ENTRY,
+  PLATE_ENTRY,
+  PULL_DOWN_RAIL_ENTRY,
+  PUSH_TO_OPEN_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  SHELF_PIN_ENTRY,
+  TROUSER_RACK_ENTRY,
+  WIRE_BASKET_ENTRY,
+};
 
 /**
  * Dependency graph of assembly stages.
@@ -270,6 +289,12 @@ export const HARDWARE: readonly HardwareEntry[] = [
   PLATE_ENTRY,
   HANDLE_ENTRY,
   PUSH_TO_OPEN_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  SHELF_PIN_ENTRY,
+  PULL_DOWN_RAIL_ENTRY,
+  TROUSER_RACK_ENTRY,
+  WIRE_BASKET_ENTRY,
 ];
 
 const BY_KEY = new Map<string, HardwareEntry>(HARDWARE.map(h => [h.key, h]));

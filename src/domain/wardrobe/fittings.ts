@@ -17,7 +17,14 @@
 import { ZONE_PRIORITY as Z } from './zone-style';
 import type { ZoneStyle } from './zone-style';
 import type { Purpose } from './purposes';
-import { RUNNER_ENTRY } from '../hardware/hardware-registry';
+import {
+  PULL_DOWN_RAIL_ENTRY,
+  RAIL_ENTRY,
+  RUNNER_ENTRY,
+  SHELF_PIN_ENTRY,
+  TROUSER_RACK_ENTRY,
+  WIRE_BASKET_ENTRY,
+} from '../hardware/hardware-registry';
 
 import type { KitchenUnitKey } from '../kitchen/kitchen-units';
 
@@ -46,12 +53,12 @@ export type FrontOpening = 'side' | 'up' | 'down' | 'pull' | 'fixed';
  * length the fitting's width; shelf supports go four to each of a cupboard's shelves. */
 export const FITTING_HARDWARE = Object.freeze({
   runners: `${RUNNER_ENTRY.display.listLine.label}, one ${RUNNER_ENTRY.display.listLine.unit}`,
-  rail: 'Hanging rail with two end supports',
-  pullDownRail: 'Pull-down rail mechanism',
-  trouserRack: 'Trouser pull-out rack',
-  basket: 'Pull-out wire basket on runners',
+  rail: `${RAIL_ENTRY.name.replace(', oval', '')} with two end supports`,
+  pullDownRail: PULL_DOWN_RAIL_ENTRY.display.listLine.label,
+  trouserRack: TROUSER_RACK_ENTRY.display.listLine.label,
+  basket: WIRE_BASKET_ENTRY.display.listLine.label,
   liftFitting: 'Lift-up flap fitting, one set',
-  shelfSupports: 'Shelf supports, four to a shelf',
+  shelfSupports: `${SHELF_PIN_ENTRY.display.listLine.label}s, four to a shelf`,
   cornerMechanism: 'Corner pull-out mechanism, two swing trays',
   cargoMechanism: 'Cargo pull-out system with baskets, frame, runners and door brackets',
 });

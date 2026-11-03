@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Fitting } from '../../domain/make/make-joints';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { hingeCupAndArmMesh, mountingPlateMesh } from '../viewport/hardware';
+import { hingeCupAndArmMesh, mountingPlateMesh, shelfPinMesh } from '../viewport/hardware';
 
 /** The film of the assembly at one moment: where each board is, which holes and fittings show, what is moving. */
 export interface MakeFilm {
@@ -99,7 +99,7 @@ export function createMakePlay(layer: number) {
     }
     if (f.kind === 'dowel') return make(solid(rod, brass, new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, 3.5, .4)));
     if (f.kind === 'nail') return make(screw(2, .08, steel));
-    if (f.kind === 'pin') return make(solid(rod, brass, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(.25, 1.6, .25)));
+    if (f.kind === 'pin') return make(shelfPinMesh(rod, brass));
     if (f.kind === 'hinge') {
       // The hinge's cup pressed into the door, and its arm reaching from the cup to where its plate is on the side panel
       // (made just after it), so the door hung shows which plate each hinge clips onto.

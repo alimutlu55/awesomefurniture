@@ -1,4 +1,4 @@
-import { HINGE_ENTRY } from '../hardware/hinges-hardware';
+import { HARDWARE, HINGE_ENTRY } from '../hardware/hardware-registry';
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
 import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
@@ -10,8 +10,10 @@ import { thinAxis, type Vec3 } from './make-measures';
  * Seconds; every progress runs 0 to 1.
  */
 
-/** Hardware fitted between drilling and bringing the boards in: shelf pins and hinge plates go on the uprights first. */
-export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(['pin']);
+/** Hardware fitted between drilling and bringing the boards in: declared by `assembly.fittedFirst` in the hardware registry. */
+export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(
+  HARDWARE.filter(h => h.assembly.fittedFirst).map(h => h.key as FittingKind),
+);
 
 /** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
 export const INTRO = 2.6, OUTRO = 4;

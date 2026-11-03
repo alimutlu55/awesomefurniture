@@ -1,5 +1,6 @@
 import { constructionOf, type Construction } from '../make/make-construction';
 import { HINGE_ENTRY } from '../hardware/hinges-hardware';
+import { RAIL_ENTRY, SHELF_PIN_ENTRY } from '../hardware/rails-supports-hardware';
 import { PANEL, PLINTH } from './catalog.js';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 
@@ -17,9 +18,12 @@ export const BACK_REAR_LIP = .6;
 export const backFaceOf = (design: { construction?: Partial<Construction> | undefined }) => BACK_PANEL + (constructionOf(design).back === 'grooved' ? BACK_REAR_LIP : 0);
 export const PARTITION_SETBACK = .5;
 export const FITTING_SETBACK = 1.4;
+const RAW_SHELF_SPAN = typeof SHELF_PIN_ENTRY.rules.maxSpanMm === 'object' ? SHELF_PIN_ENTRY.rules.maxSpanMm : { 18: 800, 25: 1000 };
 /** The longest clear span between supports a shelf carries without bowing (decision D2), by board thickness: millimetres
  * of thickness to centimetres of span. */
-export const SHELF_SPAN: Readonly<Record<number, number>> = { 18: 80, 25: 100 };
+export const SHELF_SPAN: Readonly<Record<number, number>> = Object.fromEntries(
+  Object.entries(RAW_SHELF_SPAN).map(([thickMm, spanMm]) => [Number(thickMm), spanMm / 10]),
+);
 /** The span for a board `thickness` centimetres thick: the thickest listed board it is at least as thick as, or the
  * thinnest listed one. Centimetres. */
 export function shelfSpanFor(thickness: number): number {
@@ -27,7 +31,7 @@ export function shelfSpanFor(thickness: number): number {
   return SHELF_SPAN[[...listed].reverse().find(t => t <= mm) ?? listed[0]!]!;
 }
 /** The clear fitting depth a side-facing hanging rail needs for clothes on hangers (decision D3). Centimetres. */
-export const MIN_HANGING_DEPTH = 53;
+export const MIN_HANGING_DEPTH = (RAIL_ENTRY.rules.minCarcassDepthMm ?? 530) / 10;
 /** Height of the base board's top face: where the clear interior starts. */
 export const INTERIOR_FLOOR = PLINTH + PANEL;
 /** The plinth under a carcass: 8 cm, except for a unit that hangs on a wall (a kitchen wall unit), whose bottom board is
@@ -74,5 +78,5 @@ export const DOOR = {
 
 /** A hanging rail: its centre sits RAIL_DROP below the top of the fitting's clear space, so hanger hooks
  * clear the board above; garments hang from RAIL_RADIUS below the centre. */
-export const RAIL_DROP = 6;
-export const RAIL_RADIUS = 1.2;
+export const RAIL_DROP = (RAIL_ENTRY.rules.clearanceMm.topDrop ?? 60) / 10;
+export const RAIL_RADIUS = (RAIL_ENTRY.rules.clearanceMm.side ?? 12) / 10;

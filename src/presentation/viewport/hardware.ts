@@ -1,9 +1,18 @@
 import * as THREE from 'three';
-import { HANDLE_ENTRY, HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
+import {
+  HANDLE_ENTRY,
+  HINGE_ENTRY,
+  PLATE_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  RUNNER_ENTRY,
+  SHELF_PIN_ENTRY,
+} from '../../domain/hardware/hardware-registry';
 import { HANDLES, handleKind, type HandleSize, type resolveHandle } from '../../domain/wardrobe/handles';
 import type { Fitting } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
 
+const X_AXIS = new THREE.Vector3(1, 0, 0);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 function orientedSolid(geometry: THREE.BufferGeometry, material: THREE.Material, at: THREE.Vector3, size: THREE.Vector3, axis = Y_AXIS) {
@@ -52,6 +61,43 @@ export function mountingPlateMesh(box: THREE.BufferGeometry, material: THREE.Mat
     material,
     new THREE.Vector3(off[0] / 10, off[1] / 10, off[2] / 10),
     new THREE.Vector3(prim.sizeMm[0] / 10, prim.sizeMm[1] / 10, prim.sizeMm[2] / 10),
+  );
+}
+
+/**
+ * Hanging rail 3D tube mesh, driven by `RAIL_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function railTubeMesh(at: THREE.Vector3, lengthCm: number, rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = RAIL_ENTRY.display.model3d.primitives[0]!;
+  const radiusCm = prim.sizeMm[0] / 20;
+  return orientedSolid(rod, material, at, new THREE.Vector3(radiusCm, lengthCm, radiusCm), X_AXIS);
+}
+
+/**
+ * Rail end support flange 3D mesh, driven by `RAIL_SUPPORT_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function railEndSupportMesh(at: THREE.Vector3, disc: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = RAIL_SUPPORT_ENTRY.display.model3d.primitives[0]!;
+  return orientedSolid(
+    disc,
+    material,
+    at,
+    new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20),
+    X_AXIS,
+  );
+}
+
+/**
+ * System 32 Ø5 × 16 mm plug-in shelf support pin 3D mesh, driven by `SHELF_PIN_ENTRY.display.model3d`.
+ */
+export function shelfPinMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = SHELF_PIN_ENTRY.display.model3d.primitives[0]!;
+  const off = prim.offsetMm ?? [0, -2.5, 0];
+  return orientedSolid(
+    rod,
+    material,
+    new THREE.Vector3(off[0] / 10, off[1] / 10, off[2] / 10),
+    new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20),
   );
 }
 
