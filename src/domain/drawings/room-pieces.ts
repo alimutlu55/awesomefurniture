@@ -3,6 +3,7 @@ import { automaticInstallationParts } from '../kitchen/automatic-installation';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import type { Studio, StudioWall } from '../studio/studio';
 import { wallFace, wallLine } from '../studio/studio';
+import { continuousStudio } from '../studio/continuous-studio';
 import { gapsAround, wallAgainst } from '../studio/scene-gaps';
 import { furnitureModule, isKitchen } from '../furniture/furniture';
 import { kitchenUnit } from '../kitchen/kitchen-units';
@@ -43,6 +44,7 @@ export function wallGeometry(studio: Studio, w: StudioWall) {
 /** Every piece placed and marked. Marks use persisted cabinet ids (W1, K2…) and remain stable as furniture moves.
  * The list runs wall by wall, left to right, then pieces standing free. */
 export function placePieces({ studio, pieces }: DrawingInput): PlacedPiece[] {
+  studio = continuousStudio(studio);
   pieces = expandedEndPanels(pieces.map(p => ({ ...p, state: p.design }))).map(p => ({ ...p, design: p.state }));
   const walls = studio?.walls ?? [];
   const panels = automaticInstallationParts(pieces.map(p => ({ ...p, state: p.design })));

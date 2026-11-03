@@ -1,3 +1,4 @@
+import { continuousStudio } from '../studio/continuous-studio';
 import { ventilationDetails } from './ventilation-details';
 import { serviceDrawings } from './service-drawings';
 import { DRAWING_PRESETS, type DrawingOptions } from './view-policy';
@@ -35,7 +36,8 @@ function row(p: PlacedPiece, letters: ReadonlyMap<string, string>): PieceRow {
  * on the plan where it is seen from), then a front elevation of each piece standing free. Millimetres throughout.
  */
 export function technicalDrawings(input: DrawingInput, options: DrawingOptions = {}): Sheet[] {
-  const pieces = placePieces(input), studio = input.studio, letters = new Map<string, string>();
+  const studio = continuousStudio(input.studio);
+  const pieces = placePieces({ studio, pieces: input.pieces }), letters = new Map<string, string>();
   for (const w of studio?.walls ?? []) {
     if (wallGeometry(studio!, w)) {
       letters.set(w.id, String.fromCharCode(65 + letters.size));
