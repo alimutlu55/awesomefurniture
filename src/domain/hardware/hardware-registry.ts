@@ -4,6 +4,9 @@ import type {
   HardwareCategory,
   HardwareEntry,
 } from './hardware-types';
+import { HINGE_ENTRY, PLATE_ENTRY } from './hinges-hardware';
+
+export { HINGE_ENTRY, PLATE_ENTRY };
 
 /**
  * Dependency graph of assembly stages.
@@ -262,6 +265,8 @@ export const RUNNER_ENTRY: HardwareEntry = {
  */
 export const HARDWARE: readonly HardwareEntry[] = [
   RUNNER_ENTRY,
+  HINGE_ENTRY,
+  PLATE_ENTRY,
 ];
 
 const BY_KEY = new Map<string, HardwareEntry>(HARDWARE.map(h => [h.key, h]));

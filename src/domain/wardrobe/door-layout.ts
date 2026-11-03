@@ -2,13 +2,17 @@ import { getDecor } from '../materials/decor-catalog';
 import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
+import { HINGE_ENTRY } from '../hardware/hinges-hardware';
 import { DOOR, fittingDepth, backFaceOf } from './carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
 import { MAX_LEAVES, frontOverlay, leafKey, resolveFronts } from './front-styles';
 import type { HingeKind } from './hinges';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
-export const DOOR_LIMITS = { width: 60, height: 240 } as const;
+export const DOOR_LIMITS = {
+  width: (HINGE_ENTRY.rules.maxLeafMm?.width ?? 600) / 10,
+  height: (HINGE_ENTRY.rules.maxLeafMm?.height ?? 2400) / 10,
+} as const;
 
 /** A leaf's front decor: its own (set per leaf), else the cabinet's. */
 export const leafDecorId = (design: Pick<EditorDesign, 'materials'>, leaf: { readonly decorId?: string | undefined }) =>

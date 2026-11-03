@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Fitting } from '../../domain/make/make-joints';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
+import { hingeCupAndArmMesh, mountingPlateMesh } from '../viewport/hardware';
 
 /** The film of the assembly at one moment: where each board is, which holes and fittings show, what is moving. */
 export interface MakeFilm {
@@ -102,16 +103,12 @@ export function createMakePlay(layer: number) {
     if (f.kind === 'hinge') {
       // The hinge's cup pressed into the door, and its arm reaching from the cup to where its plate is on the side panel
       // (made just after it), so the door hung shows which plate each hinge clips onto.
-      const g = new THREE.Group(), plate = piece.fittings[item + 1]?.kind === 'plate' ? piece.fittings[item + 1]! : null;
-      g.add(solid(rod, steel, new THREE.Vector3(0, .6, 0), new THREE.Vector3(1.75, 1.2, 1.75)));
-      const arm = plate ? new THREE.Vector3(plate.at[0] - f.at[0], plate.at[1] - f.at[1], plate.at[2] - f.at[2])
-        .applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Y, dir).invert()) : new THREE.Vector3(0, -4, 0);
-      g.add(solid(box, steel, arm.clone().multiplyScalar(.5), new THREE.Vector3(1.4, arm.length(), .9), arm.clone().normalize()));
-      return make(g);
+      const plate = piece.fittings[item + 1]?.kind === 'plate' ? piece.fittings[item + 1]! : null;
+      return make(hingeCupAndArmMesh(f, plate, dir, rod, box, steel));
     }
     // The plate on the panel over its two screws, a System 32 pitch apart: about 4 cm each way.
     // Cargo front brackets have their own 3D fitting mesh in make-fittings-3d.ts.
-    if (f.kind === 'plate' && !f.size?.includes('cargo')) return make(solid(box, steel, new THREE.Vector3(0, -.3, 0), new THREE.Vector3(4.2, .6, 4.2)));
+    if (f.kind === 'plate' && !f.size?.includes('cargo')) return make(mountingPlateMesh(box, steel));
     return null;
   }
 

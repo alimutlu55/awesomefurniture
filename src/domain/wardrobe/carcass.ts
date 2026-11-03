@@ -1,4 +1,5 @@
 import { constructionOf, type Construction } from '../make/make-construction';
+import { HINGE_ENTRY } from '../hardware/hinges-hardware';
 import { PANEL, PLINTH } from './catalog.js';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 
@@ -66,7 +67,10 @@ export const depthForFitting = (usable: number) => usable + BACK_PANEL + FITTING
 /** A wardrobe door leaf hung over the carcass: its thickness when no decor says otherwise, and how far its middle stands
  * in front of the carcass's front edges. The gaps round it are its fronts' reveal (front-styles.ts, door-layout.ts).
  * Centimetres. */
-export const DOOR = { thickness: 1.6, standoff: 1.2 } as const;
+export const DOOR = {
+  thickness: (HINGE_ENTRY.rules.boardThicknessMm.min ?? 16) / 10,
+  standoff: (HINGE_ENTRY.rules.clearanceMm.standoff ?? 12) / 10,
+} as const;
 
 /** A hanging rail: its centre sits RAIL_DROP below the top of the fitting's clear space, so hanger hooks
  * clear the board above; garments hang from RAIL_RADIUS below the centre. */

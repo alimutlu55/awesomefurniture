@@ -1,8 +1,59 @@
 import * as THREE from 'three';
-import { RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
+import { HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
 import type { resolveHandle } from '../../domain/wardrobe/handles';
 import type { Fitting } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
+
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+
+function orientedSolid(geometry: THREE.BufferGeometry, material: THREE.Material, at: THREE.Vector3, size: THREE.Vector3, axis = Y_AXIS) {
+  const m = new THREE.Mesh(geometry, material);
+  m.scale.copy(size);
+  m.quaternion.setFromUnitVectors(Y_AXIS, axis);
+  m.position.copy(at);
+  return m;
+}
+
+/**
+ * Concealed hinge 3D mesh (35 mm cup pressed into the door leaf + arm reaching to the mounting plate),
+ * driven by `HINGE_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function hingeCupAndArmMesh(
+  f: Fitting,
+  plate: Fitting | null,
+  dir: THREE.Vector3,
+  rod: THREE.BufferGeometry,
+  box: THREE.BufferGeometry,
+  material: THREE.Material,
+): THREE.Group {
+  const cupPrim = HINGE_ENTRY.display.model3d.primitives[0]!;
+  const armPrim = HINGE_ENTRY.display.model3d.primitives[1]!;
+  const cupRadiusCm = cupPrim.sizeMm[0] / 20;
+  const cupDepthCm = cupPrim.sizeMm[1] / 10;
+  const g = new THREE.Group();
+  g.add(orientedSolid(rod, material, new THREE.Vector3(0, cupDepthCm / 2, 0), new THREE.Vector3(cupRadiusCm, cupDepthCm, cupRadiusCm)));
+  const arm = plate
+    ? new THREE.Vector3(plate.at[0] - f.at[0], plate.at[1] - f.at[1], plate.at[2] - f.at[2]).applyQuaternion(
+        new THREE.Quaternion().setFromUnitVectors(Y_AXIS, dir).invert(),
+      )
+    : new THREE.Vector3(0, -armPrim.sizeMm[1] / 10, 0);
+  g.add(orientedSolid(box, material, arm.clone().multiplyScalar(.5), new THREE.Vector3(armPrim.sizeMm[0] / 10, arm.length(), armPrim.sizeMm[2] / 10), arm.clone().normalize()));
+  return g;
+}
+
+/**
+ * System 32 cruciform mounting plate 3D mesh, driven by `PLATE_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function mountingPlateMesh(box: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = PLATE_ENTRY.display.model3d.primitives[0]!;
+  const off = prim.offsetMm ?? [0, -3, 0];
+  return orientedSolid(
+    box,
+    material,
+    new THREE.Vector3(off[0] / 10, off[1] / 10, off[2] / 10),
+    new THREE.Vector3(prim.sizeMm[0] / 10, prim.sizeMm[1] / 10, prim.sizeMm[2] / 10),
+  );
+}
 
 /** A bar pull as fitted to wardrobe fronts: a round bar on two short posts that stand it off the front.
  * Centred on the origin with the posts' feet at z = 0, so it is placed on the front's face. Horizontal for

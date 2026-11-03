@@ -1,5 +1,5 @@
 import { makePlacedPiece } from '../make/make-parts';
-import { RUNNER_ENTRY } from '../hardware/hardware-registry';
+import { HINGE_ENTRY, PLATE_ENTRY, RUNNER_ENTRY } from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
 import type { FittingKind } from '../make/make-joints';
 import { ventilationGrille } from '../kitchen/ventilation';
@@ -64,9 +64,13 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
         else add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
       }
     }));
-    const names: Record<FittingKind,string> = { confirmat:'Connector screw',cam:'Cam connector',bolt:'Cam bolt',dowel:'Dowel',screw:'Screw',nail:'Nail',
-      pin:'Shelf support',hinge:'Hinge',plate:'Mounting plate',runner:`${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,handle:'Handle',rail:'Hanging rail, oval',
-      support:'Rail end support',leg:'Adjustable leg',hanger:'Cabinet hanger, adjustable',bracket:'Wall fixing bracket' };
+    const names: Record<FittingKind, string> = {
+      confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail',
+      pin: 'Shelf support', hinge: HINGE_ENTRY.display.listLine.label, plate: PLATE_ENTRY.display.listLine.label,
+      runner: `${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,
+      handle: 'Handle', rail: 'Hanging rail, oval', support: 'Rail end support',
+      leg: 'Adjustable leg', hanger: 'Cabinet hanger, adjustable', bracket: 'Wall fixing bracket',
+    };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;
       const size = line.kind === 'handle' ? handleLabel(resolveHandle(resolveMaterials(d)))

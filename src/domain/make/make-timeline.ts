@@ -1,3 +1,4 @@
+import { HINGE_ENTRY } from '../hardware/hinges-hardware';
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
 import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
@@ -151,11 +152,12 @@ export function arrivalAt(tl: Timeline, ph: Playhead, board: number): number {
 /** The start of step `k`, to jump to it. */
 export const stepStart = (tl: Timeline, k: number) => tl.steps[Math.max(0, Math.min(tl.steps.length - 1, k))]!.start;
 
+const ADJUST_AXES = HINGE_ENTRY.assembly.adjustAxes ?? (['side', 'height', 'depth'] as const);
 /** Which way a door is being adjusted now (one after another: side, height, depth), or null when none is. */
 export function adjustingNow(tl: Timeline, ph: Playhead): 'side' | 'height' | 'depth' | null {
   const s = tl.steps[ph.step]!;
   if (s.adjust[1] <= s.adjust[0] || ph.t < s.adjust[0] || ph.t >= s.adjust[1]) return null;
-  return (['side', 'height', 'depth'] as const)[Math.min(2, Math.floor(ph.adjust * 3))]!;
+  return ADJUST_AXES[Math.min(ADJUST_AXES.length - 1, Math.floor(ph.adjust * ADJUST_AXES.length))]!;
 }
 /** How far a door board stands from where it hangs true at this moment (side, height, depth, cm): held HANG_OUT in front
  * until it is pushed home onto its plates, clipped on slightly out (CLIPPED_ON), then each way set true in its turn
