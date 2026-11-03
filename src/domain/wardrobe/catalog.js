@@ -1,3 +1,4 @@
+import { LEG_ENTRY } from '../hardware/hardware-registry';
 import { SHELF_POSSESSIONS } from './possessions';
 import { FITTINGS, MENU_KINDS, fitting } from './fittings';
 import { PURPOSES } from './purposes';
@@ -13,4 +14,4 @@ export const itemName = it => { const f = fitting(it.k); return it.front ? (f?.f
 export const FIN = { Oak: ['#b99a75', 1], White: ['#eeeeea', .9], Walnut: ['#6b4a33', 1.3], Graphite: ['#3a3d42', 1.1], Sage: ['#8fa68c', 1] };
 export const r1 = x => Math.round(x * 10) / 10;
 export const ADD_ORDER = MENU_KINDS;
-export const PANEL = 1.8, PLINTH = 8;
+export const PANEL = 1.8, PLINTH = (LEG_ENTRY.rules.clearanceMm.bottomGap ?? 80) / 10;

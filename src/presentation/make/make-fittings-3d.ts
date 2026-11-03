@@ -4,9 +4,16 @@ import type { Fitting, Hole } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { WAIT } from '../../domain/make/make-fixing';
 import { drawerRunnerMeshes } from './drawer-runner-3d';
+import { hardware } from '../../domain/hardware/hardware-registry';
 import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
 import { hardwareStagingLayout, stagingLayout } from '../../domain/make/make-staging';
-import { makeFittingHandleMesh, railEndSupportMesh, railTubeMesh } from '../viewport/hardware';
+import {
+  cabinetLegMesh,
+  makeFittingHandleMesh,
+  railEndSupportMesh,
+  railTubeMesh,
+  wallBracketOrHangerMesh,
+} from '../viewport/hardware';
 
 /**
  * What is drilled and bought, drawn in Make's 3D: every hole as a dark ring at its mouth, and the hardware a maker can
@@ -58,8 +65,10 @@ export function createMakeFittings(layer: number): FittingsLayer {
     hook?: { pivot: THREE.Vector3 };
     placement?: THREE.Vector3;
   }[] = [];
-  const fromFor = (kind: string) => kind === 'leg' ? new THREE.Vector3(0, -1, 0) : kind === 'hanger' || kind === 'bracket' ? new THREE.Vector3(0, 0, -1)
-    : kind === 'runner' ? new THREE.Vector3() : new THREE.Vector3(0, 0, 1);
+  const fromFor = (kind: string) => {
+    const dir = hardware(kind)?.assembly.approachFrom;
+    return dir ? new THREE.Vector3(dir[0], dir[1], dir[2]) : new THREE.Vector3(0, 0, 1);
+  };
   let shown: ((index: number) => boolean) | null = null, shownFittings: ((index: number) => number | null) | null = null, focused: ReadonlySet<number> | null = null;
   let seenFittings: ((index: number) => number) | null = null, rung: ReadonlySet<number> | null = null;
 
@@ -85,7 +94,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       return tag(makeFittingHandleMesh(piece, f, at, metal));
     }
     if (f.kind === 'rail' && !f.size?.includes('cargo')) return tag(railTubeMesh(at, size, rod, metal));
-    if (f.kind === 'leg') return solid(rod, metal, at.clone().setY(at.y + size / 2), new THREE.Vector3(2.2, size, 2.2));
+    if (f.kind === 'leg') return tag(cabinetLegMesh(at, size, rod, metal));
     if (f.kind === 'support' && (f.size?.includes('cargo frame') || f.size?.includes('cargo pull-out'))) {
       const parts = f.size.split(':'), tiers = Number(parts[1]) || 2, style = parts[2] === 'solid' ? 'solid' : 'wire';
       const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
@@ -183,7 +192,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
       g.add(solid(disc, metal, new THREE.Vector3(0, 1.2, -1.4), new THREE.Vector3(.7, .3, .7), Y));
       return tag(g);
     }
-    if (f.kind === 'hanger' || f.kind === 'bracket') return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(f.kind === 'hanger' ? 6 : 4, 4, 1));
+    if (f.kind === 'hanger' || f.kind === 'bracket') return tag(wallBracketOrHangerMesh(f.kind, at, bar, metal));
     if (f.kind === 'support') return tag(railEndSupportMesh(at, disc, metal));
     return null;
   }

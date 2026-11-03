@@ -7,7 +7,15 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
-import { HANDLE_ENTRY, RAIL_ENTRY, RUNNER_ENTRY, SHELF_PIN_ENTRY } from '../hardware/hardware-registry';
+import {
+  CABINET_HANGER_ENTRY,
+  HANDLE_ENTRY,
+  LEG_ENTRY,
+  RAIL_ENTRY,
+  RUNNER_ENTRY,
+  SHELF_PIN_ENTRY,
+  WALL_BRACKET_ENTRY,
+} from '../hardware/hardware-registry';
 import { backFaceOf, plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
 import { drawerExtension, RUNNER_CLEARANCE, RUNNER_REAR_GAP, runnerForSpace } from '../wardrobe/drawer-runners';
@@ -270,11 +278,14 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   }
   // Standing, hanging and fixing: legs under a kitchen floor unit, hangers on a wall unit, brackets on tall pieces.
   const unit = kitchen ? kitchenUnit(design.unit) : null, base = boards.findIndex(b => b.name === 'Base');
-  if (unit?.plinth && plinthOf(design) > 0) for (const [x, z] of [[5, 5], [design.w - 5, 5], [5, design.d - 5], [design.w - 5, design.d - 5]] as const) {
+  const legInset = (LEG_ENTRY.rules.edgeInsetMm ?? 50) / 10;
+  if (unit?.plinth && plinthOf(design) > 0) for (const [x, z] of [[legInset, legInset], [design.w - legInset, legInset], [legInset, design.d - legInset], [design.w - legInset, design.d - legInset]] as const) {
     fittings.push({ kind: 'leg', at: [x, 0, z], axis: 1, boards: base >= 0 ? [base] : [], size: String(Math.round(plinthOf(design) * 10)) });
   }
-  if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - 3, 0], axis: 2, boards: [], size: 'pair' });
-  if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) {
+  const hangerDrop = (CABINET_HANGER_ENTRY.rules.clearanceMm.topDrop ?? 30) / 10;
+  if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - hangerDrop, 0], axis: 2, boards: [], size: CABINET_HANGER_ENTRY.display.listLine.defaultSpec });
+  const bracketInset = (WALL_BRACKET_ENTRY.rules.edgeInsetMm ?? 100) / 10;
+  if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [bracketInset, design.w - bracketInset]) {
     const roof = boards.findIndex(b => b.name === 'Top' && b.x0 <= x && b.x1 >= x);
     if (roof >= 0) fittings.push({ kind: 'bracket', at: [x, heightsAt(boards[roof]!, x)[0], 0], axis: 2, boards: [roof] });
   }

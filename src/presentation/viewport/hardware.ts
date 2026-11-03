@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import {
   BOLT_ENTRY,
+  CABINET_HANGER_ENTRY,
   CAM_ENTRY,
   CONFIRMAT_ENTRY,
   DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  LEG_ENTRY,
   NAIL_ENTRY,
   PLATE_ENTRY,
   RAIL_ENTRY,
@@ -13,6 +15,7 @@ import {
   RUNNER_ENTRY,
   SCREW_ENTRY,
   SHELF_PIN_ENTRY,
+  WALL_BRACKET_ENTRY,
 } from '../../domain/hardware/hardware-registry';
 import { HANDLES, handleKind, type HandleSize, type resolveHandle } from '../../domain/wardrobe/handles';
 import type { Fitting } from '../../domain/make/make-joints';
@@ -177,6 +180,36 @@ export function camHousingMesh(
 export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
   const prim = DOWEL_ENTRY.display.model3d.primitives[0]!;
   return orientedSolid(rod, material, new THREE.Vector3(0, 0, 0), new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20));
+}
+
+/**
+ * Adjustable kitchen/cabinet plinth leg 3D mesh, driven by `LEG_ENTRY.display.model3d` in the domain hardware registry.
+ */
+export function cabinetLegMesh(at: THREE.Vector3, heightCm: number, rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+  const prim = LEG_ENTRY.display.model3d.primitives[0]!;
+  const r = prim.sizeMm[0] / 20;
+  return orientedSolid(rod, material, at.clone().setY(at.y + heightCm / 2), new THREE.Vector3(r, heightCm, r));
+}
+
+/**
+ * Adjustable wall cabinet hanger or anti-tip wall fixing bracket 3D mesh,
+ * driven by `CABINET_HANGER_ENTRY` or `WALL_BRACKET_ENTRY` in the domain hardware registry.
+ */
+export function wallBracketOrHangerMesh(
+  kind: 'hanger' | 'bracket',
+  at: THREE.Vector3,
+  bar: THREE.BufferGeometry,
+  material: THREE.Material,
+): THREE.Mesh {
+  const entry = kind === 'hanger' ? CABINET_HANGER_ENTRY : WALL_BRACKET_ENTRY;
+  const prim = entry.display.model3d.primitives[0]!;
+  const offZ = (prim.offsetMm?.[2] ?? -5) / 10;
+  return orientedSolid(
+    bar,
+    material,
+    at.clone().setZ(at.z + offZ),
+    new THREE.Vector3(prim.sizeMm[0] / 10, prim.sizeMm[1] / 10, prim.sizeMm[2] / 10),
+  );
 }
 
 /** A bar pull as fitted to wardrobe fronts: a round bar on two short posts that stand it off the front.

@@ -15,6 +15,13 @@ import type {
 } from './hardware-types';
 import { HINGE_ENTRY, PLATE_ENTRY } from './hinges-hardware';
 import {
+  CABINET_HANGER_ENTRY,
+  LEG_ENTRY,
+  PLINTH_CLIP_ENTRY,
+  SHELF_BRACKET_ENTRY,
+  WALL_BRACKET_ENTRY,
+} from './legs-brackets-hardware';
+import {
   PULL_DOWN_RAIL_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
@@ -25,20 +32,25 @@ import {
 
 export {
   BOLT_ENTRY,
+  CABINET_HANGER_ENTRY,
   CAM_ENTRY,
   CONFIRMAT_ENTRY,
   DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  LEG_ENTRY,
   NAIL_ENTRY,
   PLATE_ENTRY,
+  PLINTH_CLIP_ENTRY,
   PULL_DOWN_RAIL_ENTRY,
   PUSH_TO_OPEN_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
   SCREW_ENTRY,
+  SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
   TROUSER_RACK_ENTRY,
+  WALL_BRACKET_ENTRY,
   WIRE_BASKET_ENTRY,
 };
 
@@ -315,6 +327,11 @@ export const HARDWARE: readonly HardwareEntry[] = [
   DOWEL_ENTRY,
   SCREW_ENTRY,
   NAIL_ENTRY,
+  LEG_ENTRY,
+  PLINTH_CLIP_ENTRY,
+  CABINET_HANGER_ENTRY,
+  WALL_BRACKET_ENTRY,
+  SHELF_BRACKET_ENTRY,
 ];
 
 const BY_KEY = new Map<string, HardwareEntry>(HARDWARE.map(h => [h.key, h]));

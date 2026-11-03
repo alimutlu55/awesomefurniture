@@ -1,11 +1,13 @@
 import { makePlacedPiece } from '../make/make-parts';
 import {
   BOLT_ENTRY,
+  CABINET_HANGER_ENTRY,
   CAM_ENTRY,
   CONFIRMAT_ENTRY,
   DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
+  LEG_ENTRY,
   NAIL_ENTRY,
   PLATE_ENTRY,
   PUSH_TO_OPEN_ENTRY,
@@ -13,7 +15,9 @@ import {
   RAIL_SUPPORT_ENTRY,
   RUNNER_ENTRY,
   SCREW_ENTRY,
+  SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
+  WALL_BRACKET_ENTRY,
 } from '../hardware/hardware-registry';
 import { HINGES } from '../wardrobe/hinges';
 import type { FittingKind } from '../make/make-joints';
@@ -30,8 +34,9 @@ import { innerFrontBehindDoor, piecefronts } from './fronts';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
 
+const BRACKET_MAX_SPACING = SHELF_BRACKET_ENTRY.rules.maxSpacingMm ?? 800;
 /** A wall shelf's brackets: one at each end, one more every 800 mm. */
-const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / 800);
+const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / BRACKET_MAX_SPACING);
 
 interface Line { item: string; size: string; qty: number; marks: string[] }
 
@@ -50,7 +55,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
   };
   for (const p of pieces) {
     const d = p.design;
-    if (p.fixture === 'shelf') { add(p, 'Shelf bracket', 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
+    if (p.fixture === 'shelf') { add(p, SHELF_BRACKET_ENTRY.display.listLine.label, 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
     if (p.fixture || installationKind(d)) continue;
     const vent = ventilationGrille(d);
     if (vent) add(p, 'Ventilation grille', mm(vent.width) + ' × ' + mm(vent.height) + ' overall; confirm cut-out/free area', 1);
@@ -93,9 +98,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       handle: HANDLE_ENTRY.display.listLine.label,
       rail: RAIL_ENTRY.display.listLine.label,
       support: RAIL_SUPPORT_ENTRY.display.listLine.label,
-      leg: 'Adjustable leg',
-      hanger: 'Cabinet hanger, adjustable',
-      bracket: 'Wall fixing bracket',
+      leg: LEG_ENTRY.display.listLine.label,
+      hanger: CABINET_HANGER_ENTRY.display.listLine.label,
+      bracket: WALL_BRACKET_ENTRY.display.listLine.label,
     };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;

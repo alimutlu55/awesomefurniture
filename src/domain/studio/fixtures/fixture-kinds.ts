@@ -11,7 +11,7 @@
 export interface FixtureSize { readonly width: number; readonly depth: number; readonly height: number }
 type Range = readonly [number, number];
 
-/** A kind's variant: its default size and its limits. */
+/** A kind's variant: its default size and its limits, and the hardware entries from the domain registry that hold it. */
 export interface FixtureType {
   readonly id: string;
   readonly name: string;
@@ -22,6 +22,8 @@ export interface FixtureType {
   readonly extent: (size: FixtureSize) => { readonly bottom: number; readonly top: number };
   /** Has a cabinet under it, with fronts to finish. */
   readonly cabinet?: boolean;
+  /** Keys of the hardware entries in `src/domain/hardware/hardware-registry.ts` that mount or support this fixture. */
+  readonly hardware: readonly ('hanger' | 'bracket')[];
 }
 
 /** What stands behind a fixture: nothing (the wall, or a frame inside it), or a boxing of this height. */
@@ -102,11 +104,11 @@ export const FIXTURES = [
     icon: 'M7 3h6v7H7zM5 12h12a5 5 0 0 1-5 5h-1l1 4H8l1-4a5 5 0 0 1-4-5zM10 6h.01',
     types: [
       { id: 'wall-hung', name: 'Wall-hung', note: 'Hung on a frame in the wall or a boxing', size: { width: 36, depth: 53, height: 42 },
-        limits: TOILET_LIMITS, extent: s => ({ bottom: s.height - 33, top: s.height + 2 }) },
+        limits: TOILET_LIMITS, extent: s => ({ bottom: s.height - 33, top: s.height + 2 }), hardware: ['bracket'] },
       { id: 'back-to-wall', name: 'Back to wall', note: 'Stands on the floor, cistern hidden behind it', size: { width: 36, depth: 54, height: 42 },
-        limits: TOILET_LIMITS, extent: s => ({ bottom: 0, top: s.height + 2 }) },
+        limits: TOILET_LIMITS, extent: s => ({ bottom: 0, top: s.height + 2 }), hardware: ['bracket'] },
       { id: 'close-coupled', name: 'Visible cistern', note: 'Stands on the floor, its cistern on the bowl', size: { width: 37, depth: 66, height: 42 },
-        limits: TOILET_LIMITS, extent: s => ({ bottom: 0, top: s.height + 38 }) },
+        limits: TOILET_LIMITS, extent: s => ({ bottom: 0, top: s.height + 38 }), hardware: ['bracket'] },
     ],
     setups: [
       { id: 'visible', name: 'Visible cistern', note: 'On the floor, no boxing', type: 'close-coupled', boxing: 'none' },
@@ -124,13 +126,13 @@ export const FIXTURES = [
     icon: 'M3 9h18l-2 5a4 4 0 0 1-4 3H9a4 4 0 0 1-4-3zM12 9V5h4M12 17v4',
     types: [
       { id: 'wall-hung', name: 'Wall-hung', note: 'Fixed to the wall', size: { width: 60, depth: 46, height: 85 },
-        limits: { width: [35, 120], depth: [25, 60], height: [70, 100] }, extent: s => ({ bottom: s.height - 18, top: s.height }) },
+        limits: { width: [35, 120], depth: [25, 60], height: [70, 100] }, extent: s => ({ bottom: s.height - 18, top: s.height }), hardware: ['bracket'] },
       { id: 'pedestal', name: 'Pedestal', note: 'On a column to the floor', size: { width: 56, depth: 45, height: 85 },
-        limits: { width: [40, 80], depth: [30, 60], height: [75, 95] }, extent: s => ({ bottom: 0, top: s.height }) },
+        limits: { width: [40, 80], depth: [30, 60], height: [75, 95] }, extent: s => ({ bottom: 0, top: s.height }), hardware: ['bracket'] },
       { id: 'vanity', name: 'Vanity unit', note: 'Basin set into a floating cabinet', size: { width: 80, depth: 46, height: 85 },
-        limits: { width: [45, 180], depth: [35, 60], height: [75, 100] }, extent: s => ({ bottom: s.height - 52, top: s.height }), cabinet: true },
+        limits: { width: [45, 180], depth: [35, 60], height: [75, 100] }, extent: s => ({ bottom: s.height - 52, top: s.height }), cabinet: true, hardware: ['hanger'] },
       { id: 'countertop', name: 'Countertop', note: 'A bowl on a floating worktop', size: { width: 90, depth: 46, height: 92 },
-        limits: { width: [50, 180], depth: [35, 60], height: [80, 105] }, extent: s => ({ bottom: s.height - 62, top: s.height }), cabinet: true },
+        limits: { width: [50, 180], depth: [35, 60], height: [80, 105] }, extent: s => ({ bottom: s.height - 62, top: s.height }), cabinet: true, hardware: ['hanger'] },
     ],
     height: { label: 'Rim height', hint: 'Top of the basin' },
     use: 70, side: 20, finishes: ['ceramic', 'metal', 'front'], tap: true,
