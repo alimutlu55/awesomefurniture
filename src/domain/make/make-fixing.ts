@@ -25,7 +25,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
   // The back is nailed from behind, into whichever board it covers: through the board furthest back.
   const back = () => f.boards[0] ?? null;
   switch (f.kind) {
-    case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner'));
+    case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner' || h.kind === 'pilot'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
     case 'bolt': return through(mine.find(h => h.kind === 'bolt'));
     case 'dowel': return through(mine.find(h => h.depth === 25) ?? mine[0], f.at);

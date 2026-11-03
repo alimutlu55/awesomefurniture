@@ -1,5 +1,6 @@
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
+import type { FittingKind } from '../../domain/make/make-joints';
 import type { MakePlayer } from './make-player';
 import { FITTING_NAMES, fittingIcon, sold } from './make-panel-tabs';
 import { chapterPreview } from './assembly-preview';
@@ -10,6 +11,12 @@ const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).
 const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior',
   'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
   drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+const cargoNames: Partial<Record<Stage, string>> = {
+  'drawer-runners': 'Mount cargo runners',
+  drawers: 'Engage cargo chassis',
+  fronts: 'Attach cargo door',
+  'drawer-test': 'Test cargo travel',
+};
 const instructions: Record<Stage, string> = {
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
@@ -25,6 +32,13 @@ const instructions: Record<Stage, string> = {
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
+const cargoInstructions: Partial<Record<Stage, string>> = {
+  'drawer-runners': 'Fix the full-extension runners to the carcass upright along the System 32 line (37 mm setback) with 4×12 mm screws.',
+  drawers: 'Bring the metal cargo chassis to the cabinet. Align both runner members with the cabinet rails and push evenly until the chassis locks on.',
+  fronts: 'Fit the adjustable front brackets to the pre-drilled pilot holes on the door back with 4×16 mm screws. Hook the door to the chassis frame and align.',
+  'drawer-test': 'Pull the cargo unit out to test travel. Check smooth telescoping extension, soft-close dampening, and even reveals around the door front.',
+};
+const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
 /** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
  * pressed into the doors, plates screwed to the side panel, each door clipped onto its plates, then adjusted. */
 const hanging = {
@@ -99,10 +113,11 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       root.querySelectorAll('[aria-expanded]').forEach(e => e.setAttribute('aria-expanded', 'false'));
       q('.as-duration').textContent = time(player.duration);
       q('.as-markers').innerHTML = player.starts.map(t => `<i style="left:${t / player.duration * 100}%"></i>`).join('');
+      const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
       q('.as-chapter-list').innerHTML = piece.steps.map((step, k) => {
         const preview = chapterPreview(piece, k);
         return `<button type="button" class="as-chapter" data-studio="chapter" data-value="${k}"><span class="as-preview">${preview}</span>
-          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${names[step.stage]}</b></button>`;
+          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${stageName(step.stage, isCargo)}</b></button>`;
       }).join('');
       wake();
     },
@@ -118,22 +133,24 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       q('[data-studio="mode"]').setAttribute('aria-pressed', String(explore));
       text('[data-studio="mode"] span', explore ? 'Playback' : 'Explore');
       q('[data-studio="reverse"]').setAttribute('aria-pressed', String(player.rate < 0));
+      const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
+      const title = stageName(step.stage, isCargo);
       const play = q('[data-studio="play"]');
       if (play.dataset.playing !== String(player.playing)) { play.dataset.playing = String(player.playing); play.innerHTML = icon(paused ? 'play' : 'pause');
         play.setAttribute('aria-label', paused ? 'Play' : 'Pause'); play.title = paused ? 'Play' : 'Pause'; }
       q<HTMLInputElement>('.as-scrub').value = String(player.time / (player.duration || 1) * 1000);
-      q('.as-scrub').setAttribute('aria-valuetext', `${time(player.time)} of ${time(player.duration)}, ${names[step.stage]}`);
+      q('.as-scrub').setAttribute('aria-valuetext', `${time(player.time)} of ${time(player.duration)}, ${title}`);
       q('.as-track').style.setProperty('--played', `${player.time / (player.duration || 1) * 100}%`);
       text('.as-time', time(player.time));
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
-      text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${names[step.stage]}`);
+      text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${title}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
       const drawerCaption = q('.as-drawer-caption');
       drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': 'Outer rail → cabinet · Inner rail → drawer box',
-        drawers: 'Align both rails. Push the supported box evenly into the cabinet.',
+        'drawer-runners': isCargo ? 'System 32 line → carcass upright' : 'Outer rail → cabinet · Inner rail → drawer box',
+        drawers: isCargo ? 'Align chassis with rails. Push evenly until the chassis engages.' : 'Align both rails. Push the supported box evenly into the cabinet.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
       const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
@@ -146,13 +163,18 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const kinds = new Set(hardware.map(f => f.kind)), doors = step.stage === 'doors';
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
+          : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
           : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? instructions[step.stage]
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
-        const hardwareHtml = hardware.map(f => `<span title="${esc(FITTING_NAMES[f.kind])}">${fittingIcon(f.kind)}<span>${FITTING_NAMES[f.kind]}`
-          + `${f.size ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');
+        const hardwareLabel = (f: { kind: FittingKind; size?: string }) =>
+          f.size?.includes('cargo front bracket') ? 'Cargo front bracket'
+          : f.size?.includes('cargo pull-out') ? 'Cargo pull-out chassis'
+          : FITTING_NAMES[f.kind];
+        const hardwareHtml = hardware.map(f => `<span title="${esc(hardwareLabel(f))}">${fittingIcon(f.kind)}<span>${hardwareLabel(f)}`
+          + `${f.size && !f.size.includes('cargo') ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');
         const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
-        q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${names[step.stage]}</b>`
+        q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`
           + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>`
           + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`;
       }

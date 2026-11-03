@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
+import { assemblyTimeline } from '../../src/domain/make/make-timeline';
+import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
 import { cargoPulloutGeometry, cargoTierCount, cargoBasketWidth } from '../../src/domain/kitchen/cargo-pullout';
 import { piecefronts } from '../../src/domain/drawings/fronts';
 import { placePieces } from '../../src/domain/drawings/room-pieces';
@@ -116,6 +118,21 @@ test('cargo assembly · stages follow drawer-runners -> drawers -> fronts -> dra
   assert.ok(runnerIdx < drawersIdx, 'runners before frame engagement');
   assert.ok(drawersIdx < frontsIdx, 'frame before front attachment');
   assert.ok(frontsIdx < testIdx, 'front before travel test');
+
+  // Verify chassis fitting is held in drawers stage
+  const drawersStep = piece.steps.find(s => s.stage === 'drawers')!;
+  assert.ok(drawersStep.fittings.some(f => f.kind === 'support' && f.size?.includes('cargo')));
+
+  // Verify timeline and travel test animation
+  const tl = assemblyTimeline(piece);
+  assert.ok(tl.duration > 20, 'timeline duration is positive');
+  const testStepTime = tl.steps[testIdx]!;
+  assert.ok(testStepTime.end > testStepTime.start, 'drawer-test has duration');
+
+  const frontIndex = piece.boards.findIndex(b => b.name === 'Cargo front');
+  const testMid = (testStepTime.place[0] + testStepTime.place[1]) / 2;
+  const offset = drawerBoardOffset(piece, tl, { step: testIdx, t: testMid } as any, frontIndex);
+  assert.ok(offset[2] >= 20, 'cargo slides forward during drawer-test');
 });
 
 test('cargo motions · slides out together with the front door', () => {

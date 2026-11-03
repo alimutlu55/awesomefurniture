@@ -144,18 +144,35 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     const runner = cargo.runners.length * 10;
     const face = post && post === left ? post.b.x1 : post ? post.b.x0 : 0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
 
-    const runnerFittingIdx = fittings.length;
-    fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: post ? [i, post.i] : [i], size: String(runner) });
+    fittings.push({
+      kind: 'runner',
+      at: [face, y, (b.z0 + b.z1) / 2],
+      axis: 0,
+      boards: post ? [i, post.i] : [i],
+      size: String(runner),
+      runner: { moving: cargo.isTall ? [i, i] : [i], fixed: post ? (cargo.isTall ? [post.i, post.i] : [post.i]) : [] },
+    });
     if (post) {
       for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
         const z = post.b.z1 - SYSTEM_LINE - back;
-        holes.push({ board: post.i, kind: 'runner', at: [face, y, z], axis: 0, sign, ...RUNNER_SCREW, of: runnerFittingIdx });
+        const screwIdx = fittings.length;
+        fittings.push({ kind: 'screw', at: [face, y, z], axis: 0, boards: [post.i], size: '4 × 12', purpose: 'runner-mount' });
+        holes.push({ board: post.i, kind: 'runner', at: [face, y, z], axis: 0, sign, ...RUNNER_SCREW, of: screwIdx });
         if (cargo.isTall) {
-          const topY = b.y1 - 3.2;
-          holes.push({ board: post.i, kind: 'runner', at: [face, topY, z], axis: 0, sign, ...RUNNER_SCREW, of: runnerFittingIdx });
+          const topY = b.y1 - 3.2, topScrewIdx = fittings.length;
+          fittings.push({ kind: 'screw', at: [face, topY, z], axis: 0, boards: [post.i], size: '4 × 12', purpose: 'runner-mount' });
+          holes.push({ board: post.i, kind: 'runner', at: [face, topY, z], axis: 0, sign, ...RUNNER_SCREW, of: topScrewIdx });
         }
       }
     }
+
+    fittings.push({
+      kind: 'support',
+      at: [cx, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2],
+      axis: 2,
+      boards: [i],
+      size: `cargo pull-out chassis:${cargo.tiers}:${cargo.basketStyle}:${cargo.mount}`,
+    });
 
     for (const br of cargo.brackets) {
       fittings.push({ kind: 'plate', at: [cx, br.y, b.z0], axis: 2, boards: [i], size: 'cargo front bracket' });

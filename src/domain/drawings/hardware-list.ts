@@ -67,6 +67,7 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       pin:'Shelf support',hinge:'Hinge',plate:'Mounting plate',runner:'Drawer runners, full extension, pair',handle:'Handle',rail:'Hanging rail, oval',
       support:'Rail end support',leg:'Adjustable leg',hanger:'Cabinet hanger, adjustable',bracket:'Wall fixing bracket' };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
+      if (line.kind === 'support' && line.size?.includes('cargo')) continue;
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;
       const size = line.kind === 'handle' ? handleLabel(resolveHandle(resolveMaterials(d)))
         : def ? def.cup ? def.cup.d+' mm cup' : 'compatible with frame/carrier; no cup drilling in glass' : line.kind==='runner' ? line.size+' mm' : line.size ?? '';

@@ -11,7 +11,8 @@ export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry:
   for (let k = 0; k < fitting.runner.moving.length; k++) {
     const moving = fitting.runner.moving[k]!, fixed = fitting.runner.fixed[k]!, side = piece.boards[moving]!, post = piece.boards[fixed];
     if (!post) continue;
-    const sign = k === 0 ? 1 : -1, face = k === 0 ? post.x1 : post.x0, y = side.y0 + 3.2, z = side.z1 - length / 2;
+    const leftSide = post.x1 <= piece.size.w / 2 + 1;
+    const sign = leftSide ? 1 : -1, face = leftSide ? post.x1 : post.x0, y = side.y0 + 3.2, z = post.z1 - length / 2;
     const channel = (x: number, height: number, len: number) => {
       const group = new THREE.Group(); group.position.copy(frame(x, y, z));
       const bar = (dx: number, dy: number, sx: number, sy: number, sz: number, dz = 0) => {
@@ -29,7 +30,19 @@ export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry:
       middle.bar(sign * .22, row * 1.1, .26, .26, .5, pos * length);
     // The visible release lever belongs to the removable drawer member.
     inner.bar(sign * .15, 0, .25, .6, 3.5, length * .36);
-    result.push({ mesh: outer.group, board: fixed }, { mesh: middle.group, board: fixed, moving, ratio: .5 }, { mesh: inner.group, board: moving });
+    if (side.name === 'Cargo front') {
+      result.push(
+        { mesh: outer.group, board: fixed },
+        { mesh: middle.group, board: fixed, moving, ratio: .5 },
+        { mesh: inner.group, board: fixed, moving, ratio: 1 },
+      );
+    } else {
+      result.push(
+        { mesh: outer.group, board: fixed },
+        { mesh: middle.group, board: fixed, moving, ratio: .5 },
+        { mesh: inner.group, board: moving },
+      );
+    }
   }
   return result;
 }

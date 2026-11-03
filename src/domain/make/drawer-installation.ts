@@ -72,7 +72,8 @@ export function drawerRunnerForBoard(piece: MakePiece, board: number): Fitting |
   const b = piece.boards[board]!;
   return piece.fittings.find(f => {
     if (!f.runner) return false;
-    const left = piece.boards[f.runner.moving[0]!]!, right = piece.boards[f.runner.moving[1]!]!;
+    if (f.runner.moving.includes(board)) return true;
+    const left = piece.boards[f.runner.moving[0]!]!, right = piece.boards[f.runner.moving[1]!] ?? left;
     return b.note === 'drawer box'
       ? b.x0 >= left.x0 - .01 && b.x1 <= right.x1 + .01 && b.y0 >= left.y0 - .61 && b.y1 <= left.y1 + .01
       : b.stock === 'front' && b.x0 <= left.x0 && b.x1 >= right.x1 && b.y0 <= left.y0 && b.y1 >= left.y1;
