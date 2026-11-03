@@ -192,7 +192,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
             cargo.runners.bottom.z1 - distance,
           ];
           const of = fittings.length;
-          fittings.push({ kind: 'screw', at, axis, boards: [host], size: cargoSlideFix.size, purpose: cargoSlideFix.purpose });
+          fittings.push({ kind: 'screw', at, axis, boards: [host], size: cargoSlideFix.size, purpose: cargoSlideFix.purpose ?? 'runner-mount' });
           holes.push({ board: host, kind: 'runner', at, axis, sign, d: cargoSlideDrill.dMm, depth: cargoSlideDrill.depthMm, of });
         }
       }
@@ -228,7 +228,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
         axis: 1,
         boards: [i],
         size: cargoLockFix.size,
-        purpose: cargoLockFix.purpose,
+        purpose: cargoLockFix.purpose ?? 'cargo-lock',
       });
     }
 
@@ -237,7 +237,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       fittings.push({ kind: 'plate', at: [cx, br.y, b.z0], axis: 2, boards: [i], size: 'cargo front bracket' });
       for (const s of br.screws) {
         const screwOf = fittings.length;
-        fittings.push({ kind: 'screw', at: [s[0], s[1], b.z0], axis: 2, boards: [i], size: cargoFrontFix.size, purpose: cargoFrontFix.purpose });
+        fittings.push({ kind: 'screw', at: [s[0], s[1], b.z0], axis: 2, boards: [i], size: cargoFrontFix.size, purpose: cargoFrontFix.purpose ?? 'drawer-front' });
         holes.push({ board: i, kind: 'pilot', at: [s[0], s[1], b.z0], axis: 2, sign: 1, d: cargoFrontDrill.dMm, depth: cargoFrontDrill.depthMm, of: screwOf });
       }
     }

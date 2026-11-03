@@ -239,3 +239,70 @@ export const PLATE_ENTRY: HardwareEntry = {
   },
   source: HINGE_ENTRY.source,
 };
+
+/**
+ * Twin/triple-track top-running and bottom-rolling sliding wardrobe door gear with soft-close dampers.
+ */
+export const SLIDING_TRACK_ENTRY: HardwareEntry = {
+  key: 'slidingTrack',
+  category: 'track',
+  name: 'Sliding door track set',
+  unit: 'set',
+  mountsOn: ['top', 'base', 'door'],
+  sizesMm: [1200, 1500, 1800, 2000, 2400, 3000],
+  defaultVariant: 'double-track',
+  variants: [
+    { key: 'double-track', name: '2-track sliding door gear + soft-close', sizeLabel: '2-track (up to 50 kg/leaf)', loadKg: 50, sizesMm: [1200, 1500, 1800, 2000, 2400, 3000] },
+    { key: 'triple-track', name: '3-track sliding door gear + soft-close', sizeLabel: '3-track (3-leaf wardrobe)', loadKg: 50, sizesMm: [1800, 2400, 3000] },
+  ],
+  rules: {
+    clearanceMm: { frontSetback: 82, topDrop: 44, bottomGap: 18, reveal: 3, standoff: 41 },
+    boardThicknessMm: { min: 16, max: 25, standard: [18, 19] },
+    minCarcassDepthMm: 550,
+    maxLeafMm: { width: 1200, height: 2600 },
+    maxSpanMm: 3000,
+    edgeInsetMm: 50,
+    maxSpacingMm: 400,
+    costEur: 95,
+  },
+  drilling: [
+    { reference: 'front-edge', lineMm: 41, pitchMm: 350, face: 'inside', kind: 'pilot', dMm: 2.5, depthMm: 12 },
+  ],
+  fixings: [
+    { target: 'top', fromFace: 'inside', fastenerKind: 'screw', size: '4 × 16', qtyPerUnit: 6, pilotHole: { kind: 'pilot', dMm: 2.5, depthMm: 12 } },
+    { target: 'base', fromFace: 'inside', fastenerKind: 'screw', size: '4 × 16', qtyPerUnit: 6, pilotHole: { kind: 'pilot', dMm: 2.5, depthMm: 12 } },
+    { target: 'door', fromFace: 'back', fastenerKind: 'screw', size: '4 × 16', qtyPerUnit: 8, pilotHole: { kind: 'pilot', dMm: 2.5, depthMm: 12 } },
+  ],
+  motion: {
+    kind: 'slide',
+    axis: 'x',
+    travelRatio: 0.5,
+  },
+  assembly: {
+    stage: 'doors',
+    requires: ['top', 'carcass', 'inside', 'drawer-test'],
+    phase: 'before-place',
+    adjustAxes: ['height', 'side'],
+    approachFrom: [0, -1, 0],
+    instructions: {
+      title: 'Fix the sliding-door tracks and hang the leaves',
+      summary: 'Screw the twin upper running track under the top and the lower guide channel onto the base, hook the door rollers in, and level the leaves.',
+      drill: 'Pre-drill Ø2.5 × 12 mm pilot holes along the 41 mm track centreline under the top and on the base.',
+      place: 'Tilt each door leaf into the upper running track and drop its bottom guide rollers into the lower channel.',
+      fix: 'Turn the lower roller height screws until each leaf runs plumb against the side stile and latches into the soft-close damper.',
+    },
+  },
+  display: {
+    model3d: {
+      family: 'sliding-track',
+      primitives: [
+        { shape: 'channel', sizeMm: [1800, 44, 82], offsetMm: [0, -22, 0], axis: 'x', lod: 'all' },
+        { shape: 'channel', sizeMm: [1800, 12, 62], offsetMm: [0, 6, 0], axis: 'x', lod: 'all' },
+      ],
+      approachVector: [0, -1, 0],
+    },
+    drawingMark: { symbol: 'track-line', strokeDash: [8, 3], label: 'Sliding track' },
+    listLine: { label: 'Sliding door track set', unit: 'set', defaultSpec: '2-track aluminium profile + rollers, soft-close' },
+  },
+  source: 'Twin-track wardrobe sliding door gear (82 mm 2-track depth, 44 mm head track height, 1200–3000 mm cut-to-length aluminium profiles, max 1200 × 2600 mm leaf up to 50 kg) — EN 1527 / generic millwork practice.',
+};

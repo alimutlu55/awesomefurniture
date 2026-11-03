@@ -13,7 +13,7 @@ import type {
   HardwareCategory,
   HardwareEntry,
 } from './hardware-types';
-import { HINGE_ENTRY, PLATE_ENTRY } from './hinges-hardware';
+import { HINGE_ENTRY, PLATE_ENTRY, SLIDING_TRACK_ENTRY } from './hinges-hardware';
 import {
   APPLIANCE_KIT_ENTRY,
   CABINET_LED_ENTRY,
@@ -62,6 +62,7 @@ export {
   SCREW_ENTRY,
   SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
+  SLIDING_TRACK_ENTRY,
   TROUSER_RACK_ENTRY,
   VENT_GRILLE_ENTRY,
   WALL_BRACKET_ENTRY,
@@ -203,7 +204,7 @@ export const RUNNER_ENTRY: HardwareEntry = {
   category: 'runner',
   name: 'Drawer runners',
   unit: 'pair',
-  mountsOn: ['side', 'partition', 'drawer-box'],
+  mountsOn: ['side', 'partition', 'drawer-box', 'front'],
   sizesMm: [250, 270, 300, 350, 400, 450, 500, 550, 600],
   rules: {
     clearanceMm: {
@@ -327,6 +328,7 @@ export const HARDWARE: readonly HardwareEntry[] = [
   RUNNER_ENTRY,
   HINGE_ENTRY,
   PLATE_ENTRY,
+  SLIDING_TRACK_ENTRY,
   HANDLE_ENTRY,
   PUSH_TO_OPEN_ENTRY,
   RAIL_ENTRY,

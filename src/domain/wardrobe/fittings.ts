@@ -65,6 +65,17 @@ export const FITTING_HARDWARE = Object.freeze({
   cornerMechanism: CORNER_MECHANISM_ENTRY.display.listLine.label,
   cargoMechanism: CARGO_MECHANISM_ENTRY.display.listLine.label,
 });
+export const FITTING_HARDWARE_KEYS = Object.freeze({
+  runners: RUNNER_ENTRY.key,
+  rail: RAIL_ENTRY.key,
+  pullDownRail: PULL_DOWN_RAIL_ENTRY.key,
+  trouserRack: TROUSER_RACK_ENTRY.key,
+  basket: WIRE_BASKET_ENTRY.key,
+  liftFitting: LIFT_FITTING_ENTRY.key,
+  shelfSupports: SHELF_PIN_ENTRY.key,
+  cornerMechanism: CORNER_MECHANISM_ENTRY.key,
+  cargoMechanism: CARGO_MECHANISM_ENTRY.key,
+});
 export type FittingHardware = keyof typeof FITTING_HARDWARE;
 
 export interface FittingDef {

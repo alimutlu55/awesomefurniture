@@ -1,38 +1,46 @@
 import * as THREE from 'three';
 import {
-  BOLT_ENTRY,
-  CABINET_HANGER_ENTRY,
-  CAM_ENTRY,
-  CARGO_MECHANISM_ENTRY,
-  CONFIRMAT_ENTRY,
-  DOWEL_ENTRY,
   HANDLE_ENTRY,
   HINGE_ENTRY,
-  LEG_ENTRY,
-  NAIL_ENTRY,
   PLATE_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
   RUNNER_ENTRY,
-  SCREW_ENTRY,
   SHELF_PIN_ENTRY,
-  WALL_BRACKET_ENTRY,
 } from '../../domain/hardware/hardware-registry';
+import type { HardwareEntry } from '../../domain/hardware/hardware-types';
 import { HANDLES, handleKind, type HandleSize, type resolveHandle } from '../../domain/wardrobe/handles';
 import type { Fitting } from '../../domain/make/make-joints';
 import type { MakePiece } from '../../domain/make/make-parts';
+import {
+  buildEntryPrimitivesGroup,
+  cabinetLegMesh,
+  camBoltMesh,
+  camHousingMesh,
+  cargoFrontBracketMesh,
+  dowelMesh,
+  liftStayMesh,
+  orientedSolid,
+  screwFastenerMesh,
+  slidingTrackMesh,
+  wallBracketOrHangerMesh,
+  type HardwareModelLod,
+} from './hardware-models';
+
+export {
+  cabinetLegMesh,
+  camBoltMesh,
+  camHousingMesh,
+  cargoFrontBracketMesh,
+  dowelMesh,
+  liftStayMesh,
+  screwFastenerMesh,
+  slidingTrackMesh,
+  wallBracketOrHangerMesh,
+};
 
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
-const Z_AXIS = new THREE.Vector3(0, 0, 1);
-
-function orientedSolid(geometry: THREE.BufferGeometry, material: THREE.Material, at: THREE.Vector3, size: THREE.Vector3, axis = Y_AXIS) {
-  const m = new THREE.Mesh(geometry, material);
-  m.scale.copy(size);
-  m.quaternion.setFromUnitVectors(Y_AXIS, axis);
-  m.position.copy(at);
-  return m;
-}
 
 /**
  * Concealed hinge 3D mesh (35 mm cup pressed into the door leaf + arm reaching to the mounting plate),
@@ -110,149 +118,6 @@ export function shelfPinMesh(rod: THREE.BufferGeometry, material: THREE.Material
     new THREE.Vector3(off[0] / 10, off[1] / 10, off[2] / 10),
     new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20),
   );
-}
-
-/**
- * Screw, confirmat connector, or back pin nail 3D mesh lying along +y from its head at the origin,
- * driven by `CONFIRMAT_ENTRY`, `SCREW_ENTRY`, or `NAIL_ENTRY` in the domain hardware registry.
- */
-export function screwFastenerMesh(
-  kind: 'confirmat' | 'screw' | 'nail',
-  sizeLabel: string | undefined,
-  rod: THREE.BufferGeometry,
-  cone: THREE.BufferGeometry,
-  material: THREE.Material,
-): THREE.Group {
-  const entry = kind === 'confirmat' ? CONFIRMAT_ENTRY : kind === 'nail' ? NAIL_ENTRY : SCREW_ENTRY;
-  const shankPrim = entry.display.model3d.primitives[0]!;
-  const r = shankPrim.sizeMm[0] / 20;
-  const defaultLenCm = shankPrim.sizeMm[1] / 10;
-  const length = kind === 'screw' ? Number(sizeLabel?.split('×')[1]?.trim()) / 10 || defaultLenCm : defaultLenCm;
-  const g = new THREE.Group();
-  g.add(
-    orientedSolid(rod, material, new THREE.Vector3(0, -.08, 0), new THREE.Vector3(r * 2.2, .16, r * 2.2)),
-    orientedSolid(rod, material, new THREE.Vector3(0, length / 2, 0), new THREE.Vector3(r, length, r)),
-    orientedSolid(cone, material, new THREE.Vector3(0, length + r, 0), new THREE.Vector3(r, r * 2, r)),
-  );
-  return g;
-}
-
-/**
- * 34 mm cam dowel bolt 3D mesh, driven by `BOLT_ENTRY.display.model3d` in the domain hardware registry.
- */
-export function camBoltMesh(rod: THREE.BufferGeometry, box: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
-  const [thread, neck, head, slot] = BOLT_ENTRY.display.model3d.primitives;
-  const g = new THREE.Group();
-  if (thread && neck && head && slot) {
-    g.add(
-      orientedSolid(rod, material, new THREE.Vector3(0, (thread.offsetMm?.[1] ?? 5.5) / 10, 0), new THREE.Vector3(thread.sizeMm[0] / 20, thread.sizeMm[1] / 10, thread.sizeMm[2] / 20)),
-      orientedSolid(rod, material, new THREE.Vector3(0, (neck.offsetMm?.[1] ?? -16) / 10, 0), new THREE.Vector3(neck.sizeMm[0] / 20, neck.sizeMm[1] / 10, neck.sizeMm[2] / 20)),
-      orientedSolid(rod, material, new THREE.Vector3(0, (head.offsetMm?.[1] ?? -33) / 10, 0), new THREE.Vector3(head.sizeMm[0] / 20, head.sizeMm[1] / 10, head.sizeMm[2] / 20)),
-      orientedSolid(box, material, new THREE.Vector3(0, (slot.offsetMm?.[1] ?? .2) / 10, 0), new THREE.Vector3(slot.sizeMm[0] / 10, slot.sizeMm[1] / 10, slot.sizeMm[2] / 10)),
-    );
-  }
-  return g;
-}
-
-/**
- * Ø15 mm eccentric cam lock housing 3D mesh, driven by `CAM_ENTRY.display.model3d` in the domain hardware registry.
- */
-export function camHousingMesh(
-  rod: THREE.BufferGeometry,
-  box: THREE.BufferGeometry,
-  cone: THREE.BufferGeometry,
-  brass: THREE.Material,
-  steel: THREE.Material,
-): THREE.Group {
-  const [body, slot, arrow] = CAM_ENTRY.display.model3d.primitives;
-  const g = new THREE.Group();
-  if (body && slot && arrow) {
-    g.add(
-      orientedSolid(rod, brass, new THREE.Vector3(0, (body.offsetMm?.[1] ?? 6.2) / 10, 0), new THREE.Vector3(body.sizeMm[0] / 20, body.sizeMm[1] / 10, body.sizeMm[2] / 20)),
-      orientedSolid(box, steel, new THREE.Vector3(0, (slot.offsetMm?.[1] ?? -.1) / 10, 0), new THREE.Vector3(slot.sizeMm[0] / 10, slot.sizeMm[1] / 10, slot.sizeMm[2] / 10)),
-      orientedSolid(cone, steel, new THREE.Vector3((arrow.offsetMm?.[0] ?? 5) / 10, (arrow.offsetMm?.[1] ?? -.1) / 10, 0), new THREE.Vector3(arrow.sizeMm[0] / 20, arrow.sizeMm[1] / 10, arrow.sizeMm[2] / 20)),
-    );
-  }
-  return g;
-}
-
-/**
- * Fluted hardwood dowel pin 3D mesh, driven by `DOWEL_ENTRY.display.model3d` in the domain hardware registry.
- */
-export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
-  const prim = DOWEL_ENTRY.display.model3d.primitives[0]!;
-  return orientedSolid(rod, material, new THREE.Vector3(0, 0, 0), new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20));
-}
-
-/**
- * Adjustable kitchen/cabinet plinth leg 3D mesh, driven by `LEG_ENTRY.display.model3d` in the domain hardware registry.
- */
-export function cabinetLegMesh(at: THREE.Vector3, heightCm: number, rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
-  const prim = LEG_ENTRY.display.model3d.primitives[0]!;
-  const r = prim.sizeMm[0] / 20;
-  return orientedSolid(rod, material, at.clone().setY(at.y + heightCm / 2), new THREE.Vector3(r, heightCm, r));
-}
-
-/**
- * Adjustable wall cabinet hanger or anti-tip wall fixing bracket 3D mesh,
- * driven by `CABINET_HANGER_ENTRY` or `WALL_BRACKET_ENTRY` in the domain hardware registry.
- */
-export function wallBracketOrHangerMesh(
-  kind: 'hanger' | 'bracket',
-  at: THREE.Vector3,
-  bar: THREE.BufferGeometry,
-  material: THREE.Material,
-): THREE.Mesh {
-  const entry = kind === 'hanger' ? CABINET_HANGER_ENTRY : WALL_BRACKET_ENTRY;
-  const prim = entry.display.model3d.primitives[0]!;
-  const offZ = (prim.offsetMm?.[2] ?? -5) / 10;
-  return orientedSolid(
-    bar,
-    material,
-    at.clone().setZ(at.z + offZ),
-    new THREE.Vector3(prim.sizeMm[0] / 10, prim.sizeMm[1] / 10, prim.sizeMm[2] / 10),
-  );
-}
-
-/**
- * 3D-adjustable cargo front fixing bracket mesh (base plate, screw bosses at ±39 mm, U-channel receiver,
- * protective cover, and lateral/vertical/depth adjustment screws), driven by `CARGO_MECHANISM_ENTRY`.
- */
-export function cargoFrontBracketMesh(
-  at: THREE.Vector3,
-  bar: THREE.BufferGeometry,
-  ring: THREE.BufferGeometry,
-  disc: THREE.BufferGeometry,
-  material: THREE.Material,
-): THREE.Group {
-  const platePrim = CARGO_MECHANISM_ENTRY.display.model3d.primitives[0]!;
-  const screwPitchCm = (CARGO_MECHANISM_ENTRY.drilling[1]?.pitchMm ?? 78) / 20;
-  const g = new THREE.Group();
-  g.position.copy(at);
-  const basePlate = new THREE.Group();
-  basePlate.add(
-    orientedSolid(
-      bar,
-      material,
-      new THREE.Vector3(0, 0, (platePrim.offsetMm?.[2] ?? -1.8) / 10),
-      new THREE.Vector3(platePrim.sizeMm[0] / 10, platePrim.sizeMm[1] / 10, platePrim.sizeMm[2] / 10),
-    ),
-  );
-  for (const sx of [-screwPitchCm, screwPitchCm]) {
-    basePlate.add(orientedSolid(ring, material, new THREE.Vector3(sx, 0, -.36), new THREE.Vector3(.45, .12, .45), Z_AXIS));
-  }
-  g.add(basePlate);
-  const receiver = new THREE.Group();
-  receiver.position.z = -1.4;
-  for (const side of [-1, 1]) {
-    receiver.add(orientedSolid(bar, material, new THREE.Vector3(side * 2.65, 0, 0), new THREE.Vector3(.7, 2.8, 2.4)));
-    receiver.add(orientedSolid(bar, material, new THREE.Vector3(0, side * 1.25, 0), new THREE.Vector3(4.6, .3, 2.4)));
-  }
-  receiver.add(orientedSolid(bar, material, new THREE.Vector3(0, 0, -.95), new THREE.Vector3(5.2, 3.1, .22)));
-  g.add(receiver);
-  g.add(orientedSolid(disc, material, new THREE.Vector3(1.5, 0, -1.4), new THREE.Vector3(.7, .3, .7), X_AXIS));
-  g.add(orientedSolid(disc, material, new THREE.Vector3(0, 1.2, -1.4), new THREE.Vector3(.7, .3, .7), Y_AXIS));
-  return g;
 }
 
 /** A bar pull as fitted to wardrobe fronts: a round bar on two short posts that stand it off the front.
@@ -376,4 +241,75 @@ export function telescopicRunnerChannelMeshes(
     }
   }
   return result;
+}
+
+/**
+ * Builds the 3D representation for any `HardwareEntry` in `HARDWARE` at the requested level of detail
+ * (`'editor'`, `'make'`, or `'studio'`).
+ */
+export function hardwareModel3d(
+  entry: HardwareEntry,
+  lod: HardwareModelLod = 'editor',
+  material: THREE.Material = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: .65, roughness: .35 }),
+): THREE.Group {
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const rod = new THREE.CylinderGeometry(1, 1, 1, 16);
+  const cone = new THREE.ConeGeometry(1, 1, 12);
+  const ring = new THREE.TorusGeometry(1, .32, 10, 20);
+  const { family } = entry.display.model3d;
+  if (family === 'hinge-cup') {
+    const f: Fitting = { kind: 'hinge', boards: [0], at: [0, 0, 0], axis: 2 };
+    return hingeCupAndArmMesh(f, null, new THREE.Vector3(0, 0, -1), rod, box, material);
+  }
+  if (family === 'mounting-plate') {
+    const g = new THREE.Group();
+    g.add(mountingPlateMesh(box, material));
+    return g;
+  }
+  if (family === 'handle') {
+    if (entry.key === 'handle') return barPull((entry.sizesMm[1] ?? 128) / 10 + 3.2, material, true);
+    return buildEntryPrimitivesGroup(entry, lod, box, rod, cone, material);
+  }
+  if (family === 'rail-tube') {
+    const g = new THREE.Group();
+    g.add(railTubeMesh(new THREE.Vector3(), (entry.sizesMm[0] ?? 600) / 10, rod, material));
+    return g;
+  }
+  if (family === 'rail-support') {
+    const g = new THREE.Group();
+    g.add(railEndSupportMesh(new THREE.Vector3(), rod, material));
+    return g;
+  }
+  if (family === 'shelf-pin') {
+    const g = new THREE.Group();
+    g.add(shelfPinMesh(rod, material));
+    return g;
+  }
+  if (family === 'fastener') {
+    if (entry.key === 'bolt') return camBoltMesh(rod, box, material);
+    if (entry.key === 'cam') return camHousingMesh(rod, box, cone, material, material);
+    if (entry.key === 'dowel') {
+      const g = new THREE.Group();
+      g.add(dowelMesh(rod, material));
+      return g;
+    }
+    if (entry.key === 'confirmat' || entry.key === 'screw' || entry.key === 'nail') {
+      return screwFastenerMesh(entry.key, entry.display.listLine.defaultSpec, rod, cone, material);
+    }
+    return buildEntryPrimitivesGroup(entry, lod, box, rod, cone, material);
+  }
+  if (family === 'cabinet-leg') {
+    const g = new THREE.Group();
+    g.add(cabinetLegMesh(new THREE.Vector3(), (entry.sizesMm[0] ?? 100) / 10, rod, material));
+    return g;
+  }
+  if (family === 'wall-bracket') {
+    const g = new THREE.Group();
+    g.add(wallBracketOrHangerMesh(entry.key === 'hanger' ? 'hanger' : 'bracket', new THREE.Vector3(), box, material));
+    return g;
+  }
+  if (family === 'cargo-pullout') return cargoFrontBracketMesh(new THREE.Vector3(), box, ring, rod, material);
+  if (family === 'sliding-track') return slidingTrackMesh((entry.sizesMm[0] ?? 1800) / 10, box, material);
+  if (family === 'lift-stay') return liftStayMesh(box, rod, material);
+  return buildEntryPrimitivesGroup(entry, lod, box, rod, cone, material);
 }
