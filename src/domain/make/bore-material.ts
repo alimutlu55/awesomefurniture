@@ -19,6 +19,10 @@ export function boreMaterial(b:Board,h:Hole): {kind:'edge'|'breakout';gap:number
  const radius=h.d/20;
  const outside=Math.min(...h.at.map((v,a)=>Math.min(v-min[a]!,max[a]!-v)),clearance(b,h.at[0],h.at[1]));
  if(outside < -1e-9) out.push({kind:'edge',gap:outside*10});
+ if(h.axis!==2) {
+  const gap=Math.min(...h.at.flatMap((v,a)=>a===h.axis ? [] : [v-min[a]!-radius,max[a]!-v-radius]));
+  if(gap < -1e-9 && outside>=-1e-9) out.push({kind:'edge',gap:Number((gap*10).toPrecision(12))});
+ }
  if(h.axis===2) {
   const gap=clearance(b,h.at[0],h.at[1])-radius;
   if(gap < -1e-9 && outside>=-1e-9) out.push({kind:'edge',gap:gap*10});

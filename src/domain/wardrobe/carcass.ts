@@ -7,9 +7,10 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
  * Height: the plinth (PLINTH) carries the base board (PANEL); the clear interior starts on the base
  * board at PLINTH + PANEL and ends under the top boards (their vertical thickness grows with the slope,
  * see shapeBoards). Width: two side panels and one PANEL-thick partition between bays (sectionWidths).
- * Depth, back to front: the back board (BACK_PANEL) sits between the sides; partitions and the base
- * board run from its face to PARTITION_SETBACK behind the front edge; shelves and fittings stop
- * FITTING_SETBACK behind it, so a door closes clear of them. No board runs into another. */
+ * Depth, back to front: the 6 mm back engages explicit rebates or grooves in surrounding stock.
+ * Grooves have a 6 mm rear lip. The base reaches the rear and stops PARTITION_SETBACK behind the
+ * front; shelves start at backFaceOf and stop FITTING_SETBACK behind the front, plus door intrusion.
+ * Intentional back/stock intersections are removed by recorded machining. */
 export const BACK_PANEL = .6;
 export const BACK_REAR_LIP = .6;
 export const backFaceOf = (design: { construction?: Partial<Construction> | undefined }) => BACK_PANEL + (constructionOf(design).back === 'grooved' ? BACK_REAR_LIP : 0);

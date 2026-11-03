@@ -52,8 +52,7 @@ test('hinges, runners, rails, shelf pins and handles are counted as the drawing 
   for (const [name, design] of Object.entries(designs)) {
     const y = name === 'upper' ? 142 : 0, mp = make(design, y);
     // Under a slope a door's hinges go only as high as the upright it hangs from.
-    if (name === 'sloped') assert.ok(qty(mp, 'hinge') <= listed(design, /hinge/i, y), `${name}: hinges`);
-    else assert.equal(qty(mp, 'hinge'), listed(design, /hinge/i, y), `${name}: hinges`);
+    assert.equal(qty(mp, 'hinge'), listed(design, /hinge/i, y), `${name}: hinges`);
     assert.equal(qty(mp, 'plate'), qty(mp, 'hinge'), `${name}: a plate for every hinge`);
     assert.equal(qty(mp, 'runner'), listed(design, /^Drawer runners/, y), `${name}: runner pairs`);
     assert.equal(qty(mp, 'rail'), listed(design, /^Hanging rail/, y), `${name}: rails`);

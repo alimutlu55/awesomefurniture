@@ -4,7 +4,7 @@
 
 1. Width closes: outer width = two sides + bay clear widths + intervening partitions. The 18 mm boards occupy their allocated intervals exactly.
 2. Height closes: floor = plinth + 18 mm base; interior ends at the actual underside of the roof. Wall units have zero plinth. Rail centre is 60 mm below its fitting top.
-3. Depth closes: 6 mm back + usable depth + front setback = outer depth. Partition setback is 5 mm; fitting setback is 14 mm plus inset-door intrusion.
+3. Depth closes: rear lip + 6 mm back + usable depth + front setback = outer depth. Partition setback is 5 mm; fitting setback is 14 mm plus inset-door intrusion.
 4. Boards have positive dimensions; rectangular cut dimensions equal their physical extents. Shaped boards retain the actual polygon, including door tops.
 5. Doors respect the specified reveal and roof profile; drawer boxes have 12.5 mm runner clearance on each side and remain behind their fronts.
 6. Shared boards occur once. Parts cover every board once; only geometrically and operationally identical boards share a part number. Blind drilling depth is part of identity.
@@ -17,9 +17,9 @@ These are required properties, not a claim that every property has been verified
 
 ## Result
 
-**Not yet a build-ready construction model.** This change fixes eight demonstrated defects and adds executable coverage, but the back attachment model and several other machining/presentation paths remain incomplete. Passing the application checks is not certification that this furniture can be manufactured from the current exports.
+**Construction audit with fixes; not a complete fabrication certification.** The continuation resolves the back engagement, complete cutting inventory, modeled hardware schedule, sub-tenth machining identity, runner-depth and banded-packing defects identified in the first pass. The remaining limits below are still material: compound depth shapes, full solid/bore verification, manufacturer templates and complete presentation parity.
 
-Branch: `fix/construction-precision-audit`. Work started 2 November; final validation continued 3 November.
+Work started on `fix/construction-precision-audit` on 2 November. The repository subsequently incorporated that work and other assembly/cargo changes; final continuation uses `fix/construction-audit-followup` on 3 November.
 
 ## Reproduced defects and changes
 
@@ -32,44 +32,61 @@ Branch: `fix/construction-precision-audit`. Work started 2 November; final valid
 | Sloped upright did not meet the top exactly | Pilot mouth 1384.3114590204848 mm; material ended at 1384.3112340204848 mm: 0.000225 mm gap | `ceilingPolyline` sampled an interval beside x instead of evaluating the one-sided limit at x. It now evaluates the limit exactly. Extracted to `ceiling-polyline.ts` to respect the architecture file-size guard. |
 | Shaped part sheets omitted drilling and used different axes | First sloped door has seven modeled bores, including Ø35 × 13 mm cups at u=100, v=22.5 mm; the sheet returned zero bores | `partDrilling` discarded all drilling for shaped fronts/backs. It now keeps it. Domain `flatOutline` aligns SVG and PDF polygons with the drilling length/width axes. Shaped sheets retain their original face instead of flipping the bores without flipping the polygon. |
 | Under-stairs handle hole missed material | Bore centre y=1025.4305555555557 mm where the door ended at y=1016.7083333333334 mm: 8.7222222222223 mm outside | `handlePlacement` used maximum door height. It now accepts the physical outline and evaluates roof height at the screw line; Make, editor door rendering, and door facts supply that outline. |
-
 | Wall brackets floated above shaped roofs | Under-stairs left bracket: expected roof underside 774.8052662052542 mm, actual 2280 mm (1505.194733794746 mm too high); regular roof expected 2282 mm, actual 2280 mm | `frontHardware` used `design.h - 2` and no board reference. Brackets now sit on the local roof underside and reference that roof board. This fixes placement, not the still-unspecified bracket screw template. |
 
 The initial regression run failed 10 of 40 tests. Subsequent hole, sheet, shape and wall-bracket sweeps independently exposed the additional failures before their fixes. The existing cut-layout test was changed from asserting **rounded area** to asserting **both actual side lengths**; this strengthens the physical contract. No expected size was rounded to make a regression pass. Tolerances of 1e-8 mm in geometric assertions admit floating-point arithmetic noise only.
 
-## Rule-by-rule coverage
+## Continuation defects and corrections
 
-| Rule | Evidence | Scope and remaining uncertainty |
+| Defect | Expected versus previous actual | Source and correction |
 |---|---|---|
-| Bay widths plus boards equal outside width | New matrix plus existing `millwork-precision.test.ts` width/count/weight sweep | All registered kitchen units/presets, six applied golden wardrobes, all six shape templates open and hinged. Multi-piece kitchen panel sharing retains existing tests; no new exhaustive installation sweep. |
-| Interior floor and depth deductions | Matrix asserts base underside at plinth, top at plinth +18 mm, back face at 6 mm, front setback 5 mm; fitting depth D−20 mm, partition depth D−11 mm | Includes zero-plinth wall units. Rail constant checked at 60 mm; actual rail positions/clear openings covered by existing millwork tests, not independently measured for every fitting. |
-| Positive boards and matching cutting extents | Matrix checks every board; non-polygon boards have all three cutting extents checked | Polygon roof and door tests added. No complete solid intersection test for every pair, rear-depth roof shape, bevel or mitre. |
-| Exact roof contact | Golden sloped hole/material regression and exact polyline limits | Ordinary slopes and all template hole mouths checked. Compound front-to-back slopes are not certified. |
-| Front fit and drawer clearance | Exact sloped door roof values; existing drawer-box tests assert 12.5 mm runners and no carcass overlap for wardrobe/kitchen drawers | Not every door style/hinge/runner/size combination. No manufacturer-specific drilling certification. |
-| Board/part/assembly accounting | Matrix checks all board IDs once in parts and assembly, all fitting quantities, all hardware board references | References/counts plus a roof-contact assertion for each wall bracket; this does not prove every fitting has physically sufficient anchorage. |
-| Joint systems | Matrix evaluates all three systems and asserts unchanged board geometry and valid hole references; existing construction tests verify drilling findings and connections | Hole-mouth material sweep uses the default system. No exhaustive cylindrical bore intersections across all systems. |
-| Hole positions | Matrix verifies each default-system hole mouth against board bounds and polygon height | It does **not** prove the full bore diameter/path, edge-bore depth, angled-bore path, countersink, or intended cam/pilot intersection. Existing `drillingChecks` is primarily a flat-face check. |
-| Cut packing | Matrix verifies exact dimensions, thickness, every board once, trim and pairwise kerf; existing tests check grain and oversize | Layout still packs finished board sizes, while CSV separately deducts selected edge banding. Shaped stock blanks/edge machining need a fuller contract. |
-| Back board attachment | Direct inspection and numerical probe below | **Failed physical rule; unresolved.** |
-| Presentation is a projection of construction | Shaped SVG/PDF share domain flat outline; sheet bores checked against domain holes; existing Make PDF/CSV tests pass; desktop/mobile smoke checks | **Not fully satisfied.** Technical drawings, hardware list, editor renderers and formatting still contain independent derivations. |
+| Back had no engagement | 1000 × 2200 × 600 cabinet: previous top groove 964 × 0 × 6 mm; side grooves 0 × 2102 × 6 mm; base intersection 964 × 18 × 0 mm. All have zero volume. | `back-construction.ts` establishes an explicit nominal 6 mm engagement. Back is now 976 × 2096 × 6 mm, x=12..988 and y=92..2188 mm. Top machining is 976 × 6 × 6 mm. Nailed rebate occupies z=0..6; captured groove z=6..12 with a 6 mm rear lip. These are application construction choices, not a manufacturer specification. |
+| Base did not support back engagement | Base stock previously began at z=6 mm (589 mm depth); required stock begins at z=0 (595 mm depth), with the overlapping back volume machined away | `cabinetBoards` applies explicit machining polygons. Physical overlap tests subtract only the recorded removed volume, not an arbitrary exemption for back boards. Grooved partitions reach the rear to capture split-back seams. |
+| Technical list omitted drawer boxes and merged rounded sizes | A drawer needs five box boards in addition to its front; technical cutting rows contained none of these. Fractional sizes such as 241.5 mm became 242 mm | `cutting-list.ts` consumes `makePlacedPiece.parts`, including box boards and machining identities. Row quantities, dimensions and total board count are checked against the construction. |
+| Hardware quantities had independent derivations | Modeled connectors/nails were missing from the technical list; sloped hinge test permitted inequality | Modeled hardware now comes from `makePlacedPiece.buy`. Sloped hinges must be exactly equal. Supplementary proprietary kits remain separately specified. |
+| Sub-tenth drill coordinates merged | Holes at 100.01 and 100.04 mm need distinct machining, previously both rounded to 100.0 mm | Full-precision flat coordinates and drilling signatures replace the 0.1 mm grid; operation depth, position and back machining participate in part identity. Decimal normalization removes binary noise only. |
+| Different grooves merged | Same stock with z=0..6 and z=6..12 mm removed volumes must be different parts | `makeParts` includes localized machining geometry. Handed rebated side panels are now separate parts. |
+| Blind edge depth was not checked | A 501 mm blind hole in a 500 mm board must report 1 mm breakout | `bore-material.ts` validates named-board bounds, blind endpoints and front-elevation polygon material. A Ø35 cup inside the bounding rectangle but crossing a slope is rejected. |
+| Edge-bore diameter was not checked | Ø8 centred 1 mm from a face leaves −3 mm material; the old check accepted it | Transverse radius bounds now report an edge finding of −3 mm. Duplicate findings from the existing flat-face check are suppressed without suppressing the defect. |
+| Connector mouths missed sloped material | Welcome attic example: connector mouth roughly 4.67 mm above the outer upright; split plinth connector centre on its boundary let Ø4 extend 2 mm outside | Joint axes use the actual shared interval. Where a sloped upright lacks a through face, the modeled connection uses an inside Ø6 × 30 mm dowel with 10/22 mm drilling and a lower axis. This is a generic joint choice, not a structural certification. |
+| Runner too long behind inner front | 380 mm grooved wardrobe selected 350 mm runner despite inadequate available depth; longest supported fit is 300 mm | `runnerForSpace` receives actual space behind the front minus the rear clearance. Hardware and drawer travel use the resulting box depth. |
+| Cut layout ignored selected banding | 500 × 400 mm finished panel, 1 mm on four edges: required blank 498 × 398 mm; layout packed 500 × 400 | Packing and CSV use `cutWithBand`; changing banding invalidates cached packing. |
+| Export omitted machining volumes | Model contained 6 mm grooves, CSV contained only hole counts | CSV now appends `Local machining mm`: domain-produced local XYZ outline, extrusion range, drill mouth/axis/sign/diameter/depth and removed polygon volumes. Coordinates use the assembled axes from the board's minimum XYZ corner. This is an interchange record, not a CNC toolpath. |
 
-## Known construction defects and unverified work
+## Rule-by-rule status
 
-1. **Back fixing is not a valid machining model.** For an empty 1000 × 2200 × 600 mm wardrobe with one bay and a grooved back, `backFixing` returns groove extents of **964 × 0 × 6 mm** (top), **0 × 2102 × 6 mm** (each side), and **964 × 18 × 0 mm** (base). Required: positive material engagement and a matching back size; actual engagement is zero. The function intersects touching boxes; it does not model a rebate/groove cut or extend the back into it. The nailed option likewise needs a verified overlap/rebate and fastener path. No arbitrary engagement depth was invented in this patch. The existing test that construction choices never change boards is insufficient for this rule.
-2. **Technical cutting list differs from Make.** `pieceBoards` contains the cabinet/front boards; `makePiece` adds drawer-box boards separately. `cutting-list.ts` calls `pieceBoards`, rounds to whole-mm labels and groups on those labels. The technical list therefore is not the complete Make manufacturing bill. It has not been migrated here.
-3. **Hardware is not one authoritative schedule.** `hardware-list.ts` recalculates quantities independently. Its existing sloped-hinge test even permits inequality against Make. Shelf brackets, proprietary corner/cargo systems, lift mechanisms, push-to-open devices, wall fixings and appliance kits need a complete purchased-hardware/attachment contract.
-4. **Machining identity is not finished.** Depth and cutting-size grouping are fixed, but flat drilling coordinates are still quantized to 0.1 mm by `flatHoles`; groove identity is not part of `makeParts`. Sub-tenth-mm drill differences and different grooves on otherwise identical boards are not proved distinct.
-5. **No fabrication trial.** No boards were cut or assembled, no manufacturer templates validated, no structural/load checks performed. The generic runner/hinge/handle assumptions should not be described as a verified branded system.
-6. **Presentation rounding remains.** Make CSV/PDF format dimensions to tenths of a millimetre; technical drawings use whole-mm formatting. Exact irrational slope lengths and some fractionally distributed sizes therefore do not all appear identically across views. Editor scene geometry has not been fully replaced by construction boards.
-7. **Browser coverage is visual smoke coverage.** Regular and under-stairs wardrobes were opened in Make and Assembly Studio at 1280 × 900 and 375 × 812. Checks assert no JavaScript page errors and no horizontal overflow. This does not validate every displayed label, downloaded PDF page, CSV field, door operation or kitchen configuration.
+| Rule | Audited evidence | Remaining limit |
+|---|---|---|
+| Bays and boards close to outside width | 49 registry/golden cases plus existing width/weight/count precision sweeps | Multi-piece sharing keeps its existing suites; no exhaustive real installation survey. |
+| Thickness, floor, setbacks, rail drop | 18 mm carcass; floor plinth +18; 5 mm base setback; 60 mm rail drop; explicit 6/12 mm back-face variants | Actual rail screw templates and load rating unspecified. |
+| Boards meet, stock sizes reconcile | Rectangular extents, explicit back removed volumes, existing board-overlap tests and exact slope contact | Not a general solid intersection proof for compound shapes, bevels or mitres. |
+| Doors/drawers fit | Exact slope polygons, existing reveals/12.5 mm runner-clearance tests, 380 mm depth regression | Not every front style and hardware product; unsupported shallow drawers can lack a box. |
+| Back attachment | Literal 976 × 2096 × 6 back and four positive-volume operations; nailed and grooved variants | No allowance for board thickness tolerance, moisture or glue fit; nominal geometry only. |
+| Board/part/hardware accounting | Every board once in parts/steps; modeled hardware schedule shared; drawer-box cut rows included | Supplemental kits, some rails/supports, legs and hangers lack complete attachment geometry. |
+| Drilling lands on material | 49 cases × 2 backs × 3 systems = 294 combinations; named-board mouth, face-polygon radius, transverse box radius and blind endpoint checks | Not complete swept-cylinder checking through concavities, grooves or angled surfaces; intended cam/pilot intersections not certified. |
+| Cut layout | Exact size, thickness, trim, kerf, grain, once-only accounting, edge-band deduction | Strip packing, no optimal nesting; shaped edge banding and machine toolpaths not provided. |
+| Presentation equals construction | Complete cutting and modeled hardware schedules; domain flat outlines/bores; CSV operations; ordinary editor carcass consumes construction boards | Compound-depth editor path and some technical drawing derivations remain independent. PDF groove marks remain schematic rectangles, without complete operation instructions. |
+
+## Tests and changed expectations
+
+The audit contains 200 original matrix/regression tests and 309 continuation tests (294 material combinations plus 15 targeted regressions). Six applied golden wardrobe files participate without being rewritten. Initial failure logs and targeted red/green logs document test-first changes. The final full check also runs the repository's newer drawer/cargo tests.
+
+Existing explicit cutting-list expectations were corrected for physical changes: back width 2376 instead of 2364 mm; a 2000 mm wardrobe back is 1976 mm wide; base depth 595 instead of 589 mm; handed rebated sides form separate rows; drawer boxes add rows/pages. PDF page assertions now use the actual table-pagination function. These are not golden re-recordings. The sloped-hinge assertion was strengthened from an inequality to equality. No golden fixture or architecture baseline was re-recorded by this audit.
+
+## Known limits and unverified work
+
+- Compound front-to-back roof profiles (`shape.back`) do not have a complete manufacturable solid/stock representation. A new release regression uses a 100 mm rear/front difference: `validateForManufacture` now reports a critical `compound-roof` finding (allowed difference 0 mm). The editor retains a separate path for these, and Make preview/CSV still exists; the technical manufacturing release is blocked.
+- Hole checks are stronger but not a full cylinder-versus-machined-solid solver. No complete collision verification for all bore directions, countersinks, angled entries or cam hardware.
+- Hardware dimensions are generic. No manufacturer drilling templates, structural/load analysis, wall anchorage design or physical cut-and-assemble trial was verified.
+- Nominal grooves/back panels have no production fit tolerance. A workshop must specify machining allowance and assembly method. Captured backs also need assembly-order review.
+- A very shallow or narrow drawer may be omitted by `drawerBoxes`; the model does not yet expose a complete failure-to-build contract for every unsupported fitting.
+- Full presentation parity remains unfinished: technical annotation rounding, compound editor geometry, and complete PDF machining instructions. The CSV's new local coordinates are authoritative projections but are not CNC instructions and refer to finished-stock datums, not automatically offset banded blanks.
+- Browser checks are smoke and visual checks, not measurements of every label. No exhaustive kitchen/front interaction sweep or rendered PDF-page review was completed in this continuation.
 
 ## Verification and artifacts
 
-- `tests/architecture/construction-audit.test.ts`: 200 passing tests, registry-driven construction, hole-mouth, inventory, packing, and targeted regression tests. Uses all six applied golden fixtures without rewriting them.
-- Existing manufacturing, shared-board, drawer, hinge, golden and export suites remain in `npm run check`.
-- **No golden fixture re-recorded.** No baseline ratchet raised.
-- Browser reproduction: `node scripts/check-construction-audit.cjs`; `AUDIT_SHAPE=under-stairs node scripts/check-construction-audit.cjs`. Default server is `http://127.0.0.1:5174`; override using `MOBILE_TEST_URL`.
-- Screenshots in `artifacts/construction-audit/`: regular and under-stairs, Make and Assembly Studio, desktop and 375 px.
-- Final check result recorded after completion below.
+Reproduction: `npm run check`; `node scripts/check-construction-audit.cjs`; `AUDIT_SHAPE=under-stairs node scripts/check-construction-audit.cjs`. Browser server defaults to `http://127.0.0.1:5174` (`MOBILE_TEST_URL` overrides it). Screenshots cover regular and under-stairs Make and Assembly Studio at 1280 × 900 and 375 × 812 in `artifacts/construction-audit/`.
 
-Final validation: `npm run check` exited 0 on 3 November. Boundaries, architecture, editor typecheck, **1,916 tests (all passing)**, production typecheck/build, and SEO audit passed. Build emitted its existing chunk-size/configuration warnings. The new audit file contributes **200 tests**. `git diff --check` passed. No goldens or baseline hashes changed.
+Browser refresh on 3 November passed regular and under-stairs Make/Assembly at both widths with no page errors or horizontal overflow. Screenshots were visually inspected for the regular desktop assembly, regular mobile Make, and under-stairs mobile assembly. The regular mobile check was corrected to use touch input and a stable selection point; no old screenshot is being presented as a new run.
+
+Final validation on 3 November: `npm run check` exited 0; all **2,238 tests passed**, as did boundaries, architecture, editor/production typechecks, production build and SEO audit. Existing Vite configuration/chunk-size warnings remain. `git diff --check` passed. No golden fixtures were re-recorded. The complete check log is `artifacts/construction-audit/final-check.txt`.

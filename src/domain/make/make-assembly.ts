@@ -144,8 +144,8 @@ export function drillingChecks(boards: readonly Board[], holes: readonly Hole[])
     holes.filter(h=>h.board===i).forEach((h,k)=>{for(const f of boreMaterial(board,h)) out.push({board:i,a:mine[k]!,...f});});
     for (const h of mine.filter(onFace)) {
       const edge = Math.min(h.u, L - h.u, h.v, W - h.v) - h.d / 2;
-      if (edge < 3 && h.kind !== 'connector' && h.kind !== 'screw') out.push({ board: i, kind: 'edge', a: h, gap: Math.round(edge * 10) / 10 });
-      if (h.depth > 0 && h.depth > T - 2.5) out.push({ board: i, kind: 'breakout', a: h, gap: Math.round((T - h.depth) * 10) / 10 });
+      if (edge < 3 && h.kind !== 'connector' && h.kind !== 'screw' && !out.some(f => f.board === i && f.a === h && f.kind === 'edge')) out.push({ board: i, kind: 'edge', a: h, gap: Math.round(edge * 10) / 10 });
+      if (h.depth > 0 && h.depth > T - 2.5 && !out.some(f => f.board === i && f.a === h && f.kind === 'breakout')) out.push({ board: i, kind: 'breakout', a: h, gap: Math.round((T - h.depth) * 10) / 10 });
     }
     for (let p = 0; p < mine.length; p++) for (let q = p + 1; q < mine.length; q++) {
       const a = mine[p]!, b = mine[q]!;

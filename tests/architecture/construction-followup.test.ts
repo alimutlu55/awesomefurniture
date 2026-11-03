@@ -102,3 +102,17 @@ test('machining export preserves local millimetre volumes and full drill axes',(
  assert.ok(csv.includes('Local machining mm'));
  assert.ok(csv.includes(JSON.stringify(ops).replace(/"/g,'""')));
 });
+
+test('an 8 mm edge bore centred 1 mm from the face breaks out by 3 mm',()=>{
+ const findings=boreMaterial(board,{board:0,kind:'dowel',at:[0,.1,10],axis:0,sign:1,d:8,depth:25});
+ assert.deepEqual(findings,[{kind:'edge',gap:-3}]);
+});
+
+import { validateForManufacture } from '../../src/domain/drawings/manufacturing-validation';
+test('a 100 mm front-to-back roof difference cannot be released as complete construction',()=>{
+ const d={...design,shape:{template:'custom' as const,top:[{x:0,y:220},{x:100,y:220}],back:[210,210]}};
+ const v=validateForManufacture(input(d as typeof design));
+ assert.equal(v.ready,false);
+ const f=v.findings.find(f=>f.id.startsWith('compound-roof:'))!;
+ assert.equal(f.severity,'critical');assert.equal(f.measured,100);assert.equal(f.limit,0);
+});

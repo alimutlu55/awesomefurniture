@@ -110,6 +110,11 @@ function assemblyFindings(pieces: readonly PlacedPiece[]): ManufacturingFinding[
   for (const p of pieces) {
     if (p.fixture) continue;
     const boards = pieceBoards(p, pieces), { w, h } = p.design;
+    const shape = p.design.shape;
+    const rearDifference = Math.max(0, ...(shape?.back ?? []).map((y, i) => Math.abs(y - (shape?.top[i]?.y ?? y)) * 10));
+    if (rearDifference > 1e-8) out.push({ id: 'compound-roof:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
+      message: p.mark + ': front-to-back roof variation has no complete stock and machining model',
+      rule: 'Every roof surface must be represented by the construction before manufacture', limit: 0, measured: rearDifference });
     boards.forEach((b, i) => {
       const { length, width, thickness } = b.cut;
       if (!finite(length, width, thickness, b.x0, b.x1, b.y0, b.y1) || length < .1 || width < .1 || thickness < .1)
