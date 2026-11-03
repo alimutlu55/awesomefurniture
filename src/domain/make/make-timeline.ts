@@ -1,6 +1,6 @@
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
-import { FITTED_BEFORE, isFittedBefore, fixGroups, type FixGroup } from './make-fixing';
+import { isFittedBefore, fixGroups, type FixGroup } from './make-fixing';
 import { thinAxis, type Vec3 } from './make-measures';
 
 /**
