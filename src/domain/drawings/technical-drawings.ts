@@ -20,7 +20,7 @@ import { cornerDetails } from './corner-details';
 import { cornerJointFindings, installedCorners } from './corner-joints';
 
 /** How far in front of the furniture an elevation's mark stands on the plan. Centimetres. */
-const MARK_OUT = 45;
+const MARK_OUT = 75;
 
 /** A piece's row in a sheet's list: mark, what it is, width × height × depth, and where it stands. */
 function row(p: PlacedPiece, letters: ReadonlyMap<string, string>): PieceRow {

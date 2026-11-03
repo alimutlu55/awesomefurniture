@@ -67,12 +67,13 @@ function segmentsIntersect(a: Pt, b: Pt, c: Pt, d: Pt): boolean {
 export function annotationLayout(geometry: readonly Mark[], taken: Box[], area: Box, offsets: AnnotationOffsets = {}) {
   const segments = geometrySegments(geometry);
   const borderSegments = geometrySegments(geometry.filter(m => m.kind === 'shape' && (m.pen === 'cut' || m.pen === 'outline')));
+  const cutSegments = geometrySegments(geometry.filter(m => m.kind === 'shape' && m.pen === 'cut'));
   const anchors: Anchor[] = [], warnings: string[] = [];
   const place = (key: string, marks: readonly Mark[], source: Pt): Mark[] => {
     const isTag = key.includes('/tag:'), base = bounds(marks), saved = offsets[key], candidates: Pt[] = saved ? [saved] : [];
     candidates.push({ x: 0, y: 0 });
     for (const radius of [3, 5, 8, 11, 14, 17, 20, 24, 30, 38, 48, 60])
-      for (const [x, y] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-.2, -1], [.2, -1], [-.2, 1], [.2, 1], [-.4, -1], [.4, -1], [-.4, 1], [.4, 1], [-1, -.5], [1, -.5], [-1, .5], [1, .5], [-1, -1], [1, -1], [-1, 1], [1, 1]])
+      for (const [x, y] of [[0, 1], [1, 0], [-1, 0], [0, -1], [-.2, 1], [.2, 1], [-.4, 1], [.4, 1], [-1, .5], [1, .5], [-.2, -1], [.2, -1], [-.4, -1], [.4, -1], [-1, -.5], [1, -.5], [-1, 1], [1, 1], [-1, -1], [1, -1]])
         candidates.push({ x: x! * radius, y: y! * radius });
     // If the preferred neighbourhood is full, use empty paper in stable rows, nearest candidates first.
     const bank: Pt[] = [];
@@ -82,6 +83,7 @@ export function annotationLayout(geometry: readonly Mark[], taken: Box[], area: 
     for (const offset of candidates) {
       const b = { x0: base.x0 + offset.x, x1: base.x1 + offset.x, y0: base.y0 + offset.y, y1: base.y1 + offset.y };
       const centre = { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 }, dist = Math.hypot(offset.x, offset.y), moved = dist > .2;
+      if (isTag && cutSegments.some(([p1, p2]) => segmentsIntersect(source, centre, p1, p2))) continue;
       const inCabinet = isTag && !saved && dist <= 22 && !borderSegments.some(([p1, p2]) => segmentsIntersect(source, centre, p1, p2));
       const activeSegments = inCabinet ? borderSegments : segments;
       if (!inside(b, area) || taken.some(t => intersectsBox(b, t)) || activeSegments.some(([a, c]) => segmentHits(a, c, b))) continue;

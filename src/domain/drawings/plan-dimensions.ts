@@ -5,7 +5,7 @@ import { cornerDegree } from '../studio/studio';
 import { type Dimensions, type Item, mm, stops } from './drawing';
 import { type PlacedPiece, wallGeometry } from './room-pieces';
 import { plan } from './plan-symbols';
-import { cornerWidthStops, installationWidthStops } from './corner-widths';
+import { cornerFaceWidths, cornerWidthStops, installationWidthStops } from './corner-widths';
 import { unitAxes } from '../kitchen/kitchen-runs';
 import { kitchenUnit, WORKTOP, installationKind } from '../kitchen/kitchen-units';
 import { cornerChainLabels } from './corner-setout';
@@ -20,11 +20,15 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
     const { line: l, face } = g, mine = visible.filter(p => p.wall === wall.id);
     const floor = upper ? [] : mine.filter(p => !p.hung && !p.fixture);
     const split = (p: PlacedPiece) => installationWidthStops(p, context).map(s => p.lo + s);
-    const chain = (values: readonly number[], row: number, depth = 0, side: 1 | -1 = 1, from = face.start, to = face.end): Dimensions => ({
-      kind: 'dims', origin: plan(face.from.x + l.nx * depth, face.from.z + l.nz * depth),
-      dir: { x: l.ux, y: -l.uz }, side, clear: side === 1 ? mm(wall.thickness) : 0, row,
-      stops: stops([mm(from - face.start), mm(to - face.start), ...values.map(t => mm(t - face.start))]),
-    });
+    const chain = (values: readonly number[], row: number, depth = 0, side: 1 | -1 = 1, from = face.start, to = face.end, quiet?: number[]): Dimensions => {
+      const clamped = values.map(t => Math.max(from, Math.min(to, t)));
+      return {
+        kind: 'dims', origin: plan(face.from.x + l.nx * depth, face.from.z + l.nz * depth),
+        dir: { x: l.ux, y: -l.uz }, side, clear: side === 1 ? mm(wall.thickness) : 0, row,
+        stops: stops([mm(from - face.start), mm(to - face.start), ...clamped.map(t => mm(t - face.start))]),
+        ...(quiet?.length ? { quiet } : {}),
+      };
+    };
     if (floor.length) {
       const deepest = Math.max(...floor.map(p => p.off + p.design.d));
       const left = Math.min(...floor.flatMap(split)), right = Math.max(...floor.flatMap(split));
@@ -46,18 +50,39 @@ export function planDimensions(studio: Studio, visible: readonly PlacedPiece[], 
       const values = overview ? [left, right,
         ...floor.filter(p => cornerWidthStops(p, context).length > 2).flatMap(split)] : [...floor.flatMap(split), ...midReturns];
       const top = floor.some(p => p.design.product === 'kitchen' && !installationKind(p.design) && kitchenUnit(p.design.unit).worktop) ? deepest + WORKTOP.overhang : deepest;
-      out.push(cornerChainLabels(chain(values, 0, top, -1, startReturn, endReturn), wall.id, context,
+      const frontChain = chain(values, 0, top, -1, startReturn, endReturn);
+      const quietIndices: number[] = [];
+      for (const p of floor) {
+        for (const w of cornerFaceWidths(p, context)) {
+          if (w.covered) {
+            const p0 = mm(p.lo + w.from - face.start), p1 = mm(p.lo + w.to - face.start);
+            const a = Math.min(p0, p1), b = Math.max(p0, p1);
+            const k = frontChain.stops.findIndex((s, i) => s === a && frontChain.stops[i + 1] === b);
+            if (k >= 0) quietIndices.push(k);
+          }
+        }
+      }
+      const quietChain = quietIndices.length ? { ...frontChain, quiet: [...new Set([...(frontChain.quiet ?? []), ...quietIndices])] } : frontChain;
+      out.push(cornerChainLabels(quietChain, wall.id, context,
         (x, z) => (x - face.from.x) * l.ux + (z - face.from.z) * l.uz));
       if (!overview) {
         // Put depth setting-out at an open run end, clear of the intersecting corner dimension chains.
         const startDegree = cornerDegree(studio, wall.a), endDegree = cornerDegree(studio, wall.b);
         const atRight = startDegree !== endDegree ? endDegree < startDegree : face.end - right > left - face.start;
-        const t = (atRight ? right : left) - face.start;
         const endPiece = [...floor].filter(p => !installationKind(p.design)).sort((a, b) => atRight ? b.hi - a.hi : a.lo - b.lo)[0] ?? floor[0]!;
-        const endDepth = endPiece.off + endPiece.design.d;
-        const endTop = endPiece.design.product === 'kitchen' && !installationKind(endPiece.design) && kitchenUnit(endPiece.design.unit).worktop ? endDepth + WORKTOP.overhang : endDepth;
-        out.push({ kind: 'dims', origin: plan(face.from.x + l.ux * t, face.from.z + l.uz * t),
-          dir: { x: l.nx, y: -l.nz }, side: atRight ? 1 : -1, clear: 0, row: 0, stops: stops([0, mm(endPiece.off), mm(endDepth), mm(endTop)]) });
+        const cornerId = atRight ? wall.b : wall.a;
+        const nextWall = studio.walls.find(w => w.id !== wall.id && (w.a === cornerId || w.b === cornerId));
+        const nextG = nextWall ? wallGeometry(studio, nextWall) : null;
+        const collinear = nextG ? (Math.abs(l.ux * nextG.line.uz - l.uz * nextG.line.ux) < 0.05 && (l.nx * nextG.line.nx + l.nz * nextG.line.nz) > 0.9) : false;
+        const nextFloor = nextWall ? context.filter(q => q.wall === nextWall.id && !q.hung && !q.fixture) : [];
+        const continues = collinear && nextFloor.some(q => Math.hypot(q.x - endPiece.x, q.z - endPiece.z) <= (q.design.w + endPiece.design.w) / 2 + 30);
+        if (!continues) {
+          const t = (atRight ? right : left) - face.start;
+          const endDepth = endPiece.off + endPiece.design.d;
+          const endTop = endPiece.design.product === 'kitchen' && !installationKind(endPiece.design) && kitchenUnit(endPiece.design.unit).worktop ? endDepth + WORKTOP.overhang : endDepth;
+          out.push({ kind: 'dims', origin: plan(face.from.x + l.ux * t, face.from.z + l.uz * t),
+            dir: { x: l.nx, y: -l.nz }, side: atRight ? 1 : -1, clear: 0, row: 0, stops: stops([0, mm(endPiece.off), mm(endDepth), mm(endTop)]) });
+        }
       }
     }
     const hung = (upper ? visible : context).filter(p => p.wall === wall.id && (p.hung || installationKind(p.design))
