@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
+import { backFaceOf, besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
 import { frontInside } from '../../domain/wardrobe/door-layout';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
@@ -80,7 +80,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         if (override) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(P, D);
         // A drawer's own front, and the boards over and under it stopping behind that front (carcass.ts).
         const inside = frontInside(getRenderDesign()), front = fitting(k)?.innerFront ? innerFront(d, y, hh, inside) : null;
-        const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d, inside) : fittingDepth(d, inside);
+        const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fittingDepth(d, inside, backFaceOf(design));
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;
         const clears = (x0: number, x1: number, top: number) => !cut || top <= cut.clearAt(x0, x1) + .01;

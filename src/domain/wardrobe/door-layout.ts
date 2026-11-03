@@ -2,7 +2,7 @@ import { getDecor } from '../materials/decor-catalog';
 import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
-import { DOOR, fittingDepth } from './carcass';
+import { DOOR, fittingDepth, backFaceOf } from './carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
 import { MAX_LEAVES, frontOverlay, leafKey, resolveFronts } from './front-styles';
 import type { HingeKind } from './hinges';
@@ -47,7 +47,7 @@ export function doorFit(design: Pick<EditorDesign, 'materials' | 'doors' | 'fron
 /** Depth a design's closed doors take from inside its carcass (see DoorFit.inside). */
 export const frontInside = (design: Pick<EditorDesign, 'materials' | 'doors' | 'fronts' | 'product'>) => doorFit(design).inside;
 /** The depth shelves and fittings may use in a design: behind the carcass front, and behind inset doors. */
-export const fittingDepthOf = (design: Pick<EditorDesign, 'd' | 'materials' | 'doors' | 'fronts' | 'product'>) => fittingDepth(design.d, frontInside(design));
+export const fittingDepthOf = (design: Pick<EditorDesign, 'd' | 'materials' | 'doors' | 'fronts' | 'product' | 'construction'>) => fittingDepth(design.d, frontInside(design), backFaceOf(design));
 
 /** A door leaf's top edge between x0 and x1 (from the left outer face), left to right: one reveal under the outer top
  * plus any board an overlay leaves showing, or for an inset leaf one reveal under the top boards' underside. It follows a

@@ -1,3 +1,4 @@
+import { cabinetBoards } from '../../domain/drawings/cabinet-boards';
 import { rearShape } from '../../domain/wardrobe/shape/depth-shape';
 import type { EditorDesign } from '../../domain/wardrobe/editor-design';
 import type { Material, Object3D } from 'three';
@@ -39,12 +40,21 @@ export function boardUnderTop(design: Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' 
 
 /** `sidesFrom`: where the sides start (a kitchen unit's sides stand on the run's plinth); `plinth`: whether the
  * cabinet draws its own plinth (a kitchen run draws one along all its units). Wardrobes use the defaults. */
-export function renderCabinetFrame(design: Pick<EditorDesign, 'w' | 'h' | 'd' | 'n' | 'wt' | 'shape'>, box: BoxBuilder, prism: PrismBuilder, materials: {
+export function renderCabinetFrame(design: EditorDesign, box: BoxBuilder, prism: PrismBuilder, materials: {
     panel: Material;
     back: Material;
     plinth: Material;
 }, { sidesFrom = 0, plinth = true, base: lift = PLINTH }: { sidesFrom?: number; plinth?: boolean; base?: number } = {}): void {
     const { w, d } = design, panel = panelBuilder(box, prism), shape = resolveShape(design);
+    if (!shape.back) {
+        const frame = cabinetBoards(design).filter(b => ['Top','Top riser','Side','Base','Back'].includes(b.name) || plinth && b.stock === 'plinth');
+        for (const b of frame) {
+            const material = b.stock === 'back' ? materials.back : b.stock === 'plinth' ? materials.plinth : materials.panel;
+            if (b.outline) panel(b.outline.map(p=>({x:p.x-w/2,y:p.y})), b.z1-b.z0, (b.z0+b.z1-d)/2, material);
+            else box(b.x1-b.x0,b.y1-b.y0,b.z1-b.z0,(b.x0+b.x1-w)/2,(b.y0+b.y1)/2,(b.z0+b.z1-d)/2,material);
+        }
+        return;
+    }
     const back = rearShape(shape), tops = shapeBoards(shape), rearTops = shapeBoards(back);
     tops.forEach((board, i) => {
         const points = board.points.map(p => ({ x: p.x - w / 2, y: p.y }));

@@ -5,7 +5,7 @@ import { kitchenSpans, unitAxes } from '../kitchen/kitchen-runs';
 import { KITCHEN_PLINTH_SETBACK } from '../kitchen/kitchen-units';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
 import type { Board, BoardStock } from './cabinet-boards';
-import { pieceBoards } from './unit-detail';
+import { makePlacedPiece } from '../make/make-parts';
 import type { PlacedPiece } from './room-pieces';
 
 /** A kitchen run's plinth board thickness. Centimetres. */
@@ -29,18 +29,17 @@ function material(b: Pick<Board, 'stock' | 'cut' | 'decorId'>, design: EditorDes
 /** A piece's boards as rows, identical boards counted together. */
 function rows(p: PlacedPiece, pieces: readonly PlacedPiece[]): Row[] {
   const out: Row[] = [];
-  for (const b of pieceBoards(p, pieces)) {
-    const row = { mark: p.mark, part: b.name, qty: 1, length: mm(b.cut.length), width: mm(b.cut.width), thick: mm(b.cut.thickness),
-      material: material(b, p.design), edges: b.edges, note: b.note ?? '' };
-    const same = out.find(r => r.part === row.part && r.length === row.length && r.width === row.width && r.thick === row.thick && r.material === row.material && r.edges === row.edges && r.note === row.note);
-    if (same) same.qty++; else out.push(row);
+  for (const part of makePlacedPiece(p, pieces)?.parts ?? []) {
+    const b = part.boards[0]!;
+    out.push({ mark: p.mark, part: b.name, qty: part.boards.length, length: b.cut.length * 10, width: b.cut.width * 10, thick: b.cut.thickness * 10,
+      material: material(b, p.design), edges: b.edges, note: b.note ?? '' });
   }
   return out;
 }
 
 /**
  * The cutting list: every board of every piece, as the workshop cuts it, piece by piece in mark order, then each kitchen
- * run's worktop and plinth. Length runs with the grain; sizes are finished sizes in whole millimetres. Under it, the
+ * run's worktop and plinth. Length runs with the grain; sizes are exact finished sizes in millimetres. Under it, the
  * area of each material. A list longer than a sheet runs on to the next.
  */
 export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
@@ -72,7 +71,7 @@ export function cuttingList(pieces: readonly PlacedPiece[]): Table[] {
     'Length runs with the grain. Finished sizes in mm: deduct edge banding before cutting. Edges: L = long edge, W = short edge (L1 = one long edge).',
     'Areas: ' + [...area].map(([m, a]) => m + ' ' + a.toFixed(2) + ' m²').join(' · '),
   ];
-  const body = all.map(r => [r.mark, r.part, String(r.qty), String(r.length), String(r.width), String(r.thick), r.material, r.edges, r.note]);
+  const body = all.map(r => [r.mark, r.part, String(r.qty), String(Number(r.length.toPrecision(12))), String(Number(r.width.toPrecision(12))), String(Number(r.thick.toPrecision(12))), r.material, r.edges, r.note]);
   const pages: Table[] = [];
   for (let k = 0; k < Math.max(1, body.length); k += ROWS_PER_SHEET) {
     const last = k + ROWS_PER_SHEET >= body.length;

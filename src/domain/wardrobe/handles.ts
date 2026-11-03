@@ -99,9 +99,20 @@ export const HANDLE_HEIGHT = 100;
  * edge pull on the top edge). Screws are through the front, or from the back 1 cm in from the edge for an edge pull.
  * Coordinates are the front's own (any origin: the result is in the same frame). Centimetres.
  */
-export function handlePlacement(front: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly door: boolean; readonly hinge?: 'left' | 'right' | undefined },
+export function handlePlacement(front: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly door: boolean;
+  readonly hinge?: 'left' | 'right' | undefined; readonly outline?: readonly { x: number; y: number }[] | undefined },
   handle: { readonly kind: HandleDef; readonly size: HandleSize | undefined }) {
-  const { x0, x1, y0, y1, door } = front, onEdge = handleOnEdge(handle.kind), back = handle.kind.fixing === 'back';
+  const { x0, x1, y0, door } = front, onEdge = handleOnEdge(handle.kind), back = handle.kind.fixing === 'back';
+  let y1 = front.y1;
+  if (door && front.outline) {
+    const inset = back ? 1 : onEdge ? 0 : FROM_EDGE, x = front.hinge === 'right' ? x0 + inset : x1 - inset;
+    const heights = front.outline.flatMap((p, i, points) => {
+      const q = points[(i + 1) % points.length]!;
+      return p.x !== q.x && x >= Math.min(p.x, q.x) && x <= Math.max(p.x, q.x)
+        ? [p.y + (q.y - p.y) * (x - p.x) / (q.x - p.x)] : [];
+    });
+    if (heights.length) y1 = Math.min(y1, Math.max(...heights));
+  }
   const along = handleCentres(handle.kind, handle.size, door ? y1 - y0 : x1 - x0);
   if (door) {
     const right = front.hinge === 'right', inset = onEdge ? 0 : FROM_EDGE, x = right ? x0 + inset : x1 - inset;

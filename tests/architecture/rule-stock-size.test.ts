@@ -16,7 +16,7 @@ test('a 240 × 230 cm wardrobe with nothing to split its back over is refused on
   const f = found[0]!;
   assert.equal(f.severity, 'critical');
   assert.match(f.message, /Back/);
-  assert.equal(f.measured, 2364, 'its width across the grain');
+  assert.equal(f.measured, 2376, 'its width across the grain');
   assert.equal(f.limit, STOCK.width - 2 * STOCK.trim);
   assert.equal(f.fix, 'Split this part');
   assert.equal(f.at?.mark, 'W1');

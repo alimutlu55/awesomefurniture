@@ -1,6 +1,7 @@
+import { boardPolygon, clipPolygon, type Point } from './back-construction';
 import type { Board } from '../drawings/cabinet-boards';
 import type { Construction } from './make-construction';
-import { thinAxis, tiltOf, type Vec3 } from './make-measures';
+import { heightsAt, thinAxis, tiltOf, type Vec3 } from './make-measures';
 
 /**
  * How the boards of a piece hold together: every place one board's edge meets another board's face, and what joins
@@ -40,7 +41,7 @@ export interface Fitting {
 /** Where one board's edge meets another's face. */
 export interface Joint { readonly face: number; readonly edge: number; readonly axis: Axis; readonly plane: number; readonly side: 1 | -1 }
 /** A groove cut in a board for the back to slide into: the rectangle on its face, in the piece's frame. */
-export interface Groove { readonly board: number; readonly lo: Vec3; readonly hi: Vec3 }
+export interface Groove { readonly board: number; readonly lo: Vec3; readonly hi: Vec3; readonly outline?: readonly Point[]; readonly kind?: 'rebate' | 'groove' }
 
 const EPS = .05, AX = { x: 0, y: 1, z: 2 } as const;
 export const lo = (b: Board): Vec3 => [b.x0, b.y0, b.z0];
@@ -89,8 +90,8 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
     && Math.hypot(...([0, 1, 2] as Axis[]).filter(k => k !== axis).map(k => h.at[k] - p[k])) < 1.2);
   for (const j of joints) {
     const A = boards[j.face]!, B = boards[j.edge]!, tb = thin(B), run = ([0, 1, 2] as Axis[]).find(k => k !== j.axis && k !== tb)!;
-    const r0 = Math.max(lo(A)[run], lo(B)[run]), r1 = Math.min(hi(A)[run], hi(B)[run]), across = (lo(B)[tb] + hi(B)[tb]) / 2;
-    const plinth = A.stock === 'plinth' || B.stock === 'plinth', system = plinth ? 'screw' : construction.joints;
+    const r0 = Math.max(lo(A)[run], lo(B)[run]), r1 = Math.min(hi(A)[run], hi(B)[run]), across = (Math.max(lo(A)[tb], lo(B)[tb]) + Math.min(hi(A)[tb], hi(B)[tb])) / 2;
+    const plinth = A.stock === 'plinth' || B.stock === 'plinth', chosen = plinth ? 'screw' : construction.joints;
     for (const station of connectorStations(r1 - r0)) {
       const p = [0, 0, 0] as [number, number, number];
       p[j.axis] = j.plane; p[tb] = across; p[run] = r0 + station;
@@ -98,14 +99,22 @@ export function jointFittings(boards: readonly Board[], joints: readonly Joint[]
       const outer = [...p] as [number, number, number];
       outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
       const into = j.side as 1 | -1, back = -j.side as 1 | -1;
+      let system = chosen, shortDowel = false;
+      // A shelf just under a rising roof may meet the inner face above the outer face.
+      // Use a short blind dowel from inside, with its axis lower in the shelf; never drill through air.
+      if (j.axis === 0 && tb === 1 && A.outline && outer[1] + .35 > heightsAt(A, outer[0])[1]) {
+        system = 'dowel'; shortDowel = true;
+        const endX = j.plane - j.side, roof = Math.min(heightsAt(A,j.plane)[1],heightsAt(A,endX)[1]);
+        p[1] = Math.min(across, roof - .4);
+      }
       if (system === 'confirmat' || system === 'screw') {
         holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: system === 'screw' ? 4 : 7, depth: 0, of: fittings.length },
           { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: system === 'screw' ? 2.5 : 5, depth: system === 'screw' ? 30 : 45, of: fittings.length });
         fittings.push({ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size: system === 'screw' ? '4 × 40' : '7 × 50' });
       } else if (system === 'dowel') {
-        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: 8, depth: 12, of: fittings.length },
-          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: 8, depth: 25, of: fittings.length });
-        fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size: '8 × 35' });
+        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: shortDowel ? 6 : 8, depth: shortDowel ? 10 : 12, of: fittings.length },
+          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: shortDowel ? 6 : 8, depth: shortDowel ? 22 : 25, of: fittings.length });
+        fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size: shortDowel ? '6 × 30' : '8 × 35' });
       } else {
         // The bolt is screwed into the face board; the edge board goes on over it (its head in a pilot hole 34 mm into
         // the board's end), and the cam, set in the edge board's inner face 34 mm from the joint, is turned to grip it.
@@ -162,6 +171,31 @@ export function backFixing(boards: readonly Board[], construction: Construction)
   const fittings: Fitting[] = [], grooves: Groove[] = [];
   boards.forEach((back, k) => {
     if (back.stock !== 'back') return;
+    if (back.note !== 'drawer box') {
+      boards.forEach((b,i) => {
+        if (b.stock !== 'carcass' || b.note === 'drawer box' || i === k) return;
+        const polygon = clipPolygon(boardPolygon(back), boardPolygon(b));
+        const area = Math.abs(polygon.reduce((s,p,j) => { const q=polygon[(j+1)%polygon.length]!; return s+p.x*q.y-q.x*p.y; },0))/2;
+        if (area < 1e-9) return;
+        const x0=Math.min(...polygon.map(p=>p.x)),x1=Math.max(...polygon.map(p=>p.x));
+        const y0=Math.min(...polygon.map(p=>p.y)),y1=Math.max(...polygon.map(p=>p.y));
+        const z0=Math.max(back.z0,b.z0),z1=Math.min(back.z1,b.z1);
+        if (z1-z0>1e-9) grooves.push({board:i,lo:[x0,y0,z0],hi:[x1,y1,z1],outline:polygon,kind:construction.back==='grooved'?'groove':'rebate'});
+        if (construction.back === 'grooved' || Math.abs(b.z0-back.z1)>1e-9 && z1-z0<=0 || b.z1-back.z1<1.4) return;
+        const run = x1-x0 > y1-y0 ? 'x' : 'y', other=run==='x'?'y':'x', low=run==='x'?x0:y0, high=run==='x'?x1:y1;
+        const count=Math.max(1,Math.ceil((high-low)/15));
+        for(let n=0;n<count;n++) {
+          const atRun=low+(high-low)*(n+.5)/count, values:number[]=[];
+          polygon.forEach((p,j)=>{const q=polygon[(j+1)%polygon.length]!;
+            if(p[run]!==q[run] && atRun>=Math.min(p[run],q[run]) && atRun<=Math.max(p[run],q[run]))
+              values.push(p[other]+(q[other]-p[other])*(atRun-p[run])/(q[run]-p[run]));
+          });
+          const mid=(Math.min(...values)+Math.max(...values))/2;
+          fittings.push({kind:'nail',at:[run==='x'?atRun:mid,run==='y'?atRun:mid,back.z0],axis:2,boards:[k,i],size:'1.6 × 20'});
+        }
+      });
+      return;
+    }
     boards.forEach((b, i) => {
       if (i === k || !isPanel(b) || b.stock === 'plinth') return;
       // A board the back stands against, beside or on: their boxes touch.

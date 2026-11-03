@@ -348,6 +348,12 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
                 else it.hinge = edit.hinge;
                 effects.milestone('tune');
             }
+            if (edit.tiers !== undefined || edit.basketStyle !== undefined || edit.cargoMount !== undefined) {
+                if (edit.tiers !== undefined) it.tiers = edit.tiers;
+                if (edit.basketStyle !== undefined) it.basketStyle = edit.basketStyle;
+                if (edit.cargoMount !== undefined) it.cargoMount = edit.cargoMount;
+                effects.milestone('tune');
+            }
         });
         return accepted;
     }

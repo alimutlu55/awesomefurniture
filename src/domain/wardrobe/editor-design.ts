@@ -8,6 +8,7 @@ export interface EditorItem {
   id?: string | undefined;
   k: ItemKind; h: number; f?: 'Oak' | 'White' | 'Walnut' | 'Graphite' | 'Sage' | null | undefined; purpose?: StoragePurpose | undefined;
   w?: number | undefined; x?: number | undefined; y?: number | undefined; ax?: 'l' | 'c' | 'r' | undefined; front?: boolean | undefined; boxes?: number | undefined;
+  tiers?: number | undefined; basketStyle?: 'wire' | 'solid' | undefined; cargoMount?: 'left' | 'right' | 'bottom' | undefined;
   /** Which side a side-hung door or upright pull hinges on ('left' puts the handle on the right; 'right' on the left). */
   hinge?: 'left' | 'right' | undefined;
 }

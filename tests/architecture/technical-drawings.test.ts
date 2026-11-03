@@ -1,3 +1,4 @@
+import { paginateDrawingSheets } from '../../src/presentation/drawings/table-marks';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { technicalDrawings as createDrawings } from '../../src/domain/drawings/technical-drawings';
@@ -28,7 +29,7 @@ const dims = (items: readonly Item[]) => items.filter((i): i is Dimensions => i.
 test('a plan, then an elevation of each wall with furniture, then each piece standing free', () => {
   const free = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   assert.deepEqual(technicalDrawings({ studio: room(), pieces: [...kitchen(), free] }).map(s => s.title), ['Plan', 'Elevation A', 'Front elevation W9',
-    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'K1 appliance allocations', 'Appliance schedule', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule', 'Review issues']);
+    'K1  Tall cabinet', 'K2  Base cabinet', 'K3  Wall cabinet', 'W9  Wardrobe 1', 'K1 appliance allocations', 'Appliance schedule', 'Construction details 1 of 2', 'Construction details 2 of 2', 'Cutting list 1 of 2', 'Cutting list 2 of 2', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule', 'Review issues']);
   assert.deepEqual(technicalDrawings({ pieces: [free] }).map(s => s.title), ['Plan', 'Front elevation W9', 'W9  Wardrobe 1', 'Construction details', 'Cutting list', 'Hardware list', 'Furniture schedule', 'Material & Hardware Schedule'],
     'no room: the piece on its own');
 });
@@ -130,8 +131,8 @@ test('the PDF is one A3 landscape page per sheet, a valid file made from the she
   const sheets = technicalDrawings({ studio: room(), pieces: kitchen() });
   const pdf = new TextDecoder().decode(drawingsPdf(sheets, { project: 'Kitchen (test)', date: '19.10.2026', total: sheets.length }));
   assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
-  assert.equal(pdf.match(/\/Type \/Page /g)?.length, sheets.length, 'a page for every sheet');
-  assert.equal(pdf.match(/\/MediaBox \[0 0 1190\.551 841\.89\]/g)?.length, sheets.length, 'every page A3 landscape: 420 × 297 mm');
+  assert.equal(pdf.match(/\/Type \/Page /g)?.length, paginateDrawingSheets(sheets).length, 'a page for every paginated sheet');
+  assert.equal(pdf.match(/\/MediaBox \[0 0 1190\.551 841\.89\]/g)?.length, paginateDrawingSheets(sheets).length, 'every page A3 landscape: 420 × 297 mm');
   // The cross-reference table points at every object exactly.
   const xref = Number(pdf.slice(pdf.lastIndexOf('startxref') + 9).trim().split('\n')[0]);
   const offsets = pdf.slice(xref).split('\n').slice(3).filter(l => / 00000 n $/.test(l)).map(l => Number(l.slice(0, 10)));
@@ -154,18 +155,30 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
   const k2 = rowsOf('Cutting list').filter(r => r[0] === 'K2' && r[1] !== 'Worktop' && r[1] !== 'Plinth').map(r => r.slice(1, 8).join(' '));
   assert.deepEqual(k2, [
     'Top 1 600 580 18 Board 18 · Egger W1100 ST9 L1',
-    'Side 2 762 580 18 Board 18 · Egger W1100 ST9 L1',
-    'Base 1 564 569 18 Board 18 · Egger W1100 ST9 L1',
-    'Back 1 762 564 6 Back panel 6 —',
+    'Side 1 762 580 18 Board 18 · Egger W1100 ST9 L1',
+    'Side 1 762 580 18 Board 18 · Egger W1100 ST9 L1',
+    'Base 1 564 575 18 Board 18 · Egger W1100 ST9 L1',
+    'Back 1 756 576 6 Back panel 6 —',
     'Pan drawer front 1 294 597 18 Front 18 · Egger W1100 ST9 L2 W2',
     'Pan drawer front 1 276 597 18 Front 18 · Egger W1100 ST9 L2 W2',
     'Drawer front 1 201 597 18 Front 18 · Egger W1100 ST9 L2 W2',
+    'Box side 2 550 241.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 241.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 241.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box bottom 3 539 550 6 Back panel 6 —',
+    'Box side 2 550 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 2 550 148.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 148.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box end 1 503 148.5 18 Board 18 · Egger W1100 ST9 L1',
+
   ]);
   const run = rowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
   assert.deepEqual(run, ['K2 Worktop 1 600 600 40', 'K1 Plinth 1 600 80 18', 'K2 Plinth 1 600 80 18'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
   const wardrobe = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   const w1 = technicalDrawings({ pieces: [wardrobe] }).find(s => s.title === 'Cutting list')!.table!.rows.map(r => r.slice(1, 6).join(' '));
-  assert.deepEqual(w1, ['Top 1 2000 600 18', 'Side 2 2282 600 18', 'Base 1 1964 589 18', 'Back 1 2202 1964 6', 'Plinth rail 1 1964 80 18', 'Plinth rail 1 1964 80 18', 'Plinth bearer 2 504 80 18'],
+  assert.deepEqual(w1, ['Top 1 2000 600 18', 'Side 1 2282 600 18', 'Side 1 2282 600 18', 'Base 1 1964 595 18', 'Back 1 2196 1976 6', 'Plinth rail 1 1964 80 18', 'Plinth rail 1 1964 80 18', 'Plinth bearer 2 504 80 18'],
     'a plain wardrobe: top over the sides, base and back between them, a plinth frame of two rails and two bearers');
 });
 
@@ -225,7 +238,7 @@ test('corner pull-out component is drawn with high precision across plan, elevat
 
   // 5. Cutting list & Hardware list: blind panel + pull-out door (no fake wooden shelves), and corner pull-out mechanism.
   const cutParts = cutting!.table!.rows.filter(r => r[0] === 'K1' || r[1] === 'Worktop').map(r => r[1]);
-  assert.deepEqual(cutParts, ['Top', 'Side', 'Base', 'Back', 'Corner blind panel', 'Corner pull-out door', 'Worktop', 'Plinth']);
+  assert.deepEqual(cutParts, ['Top', 'Side', 'Side', 'Base', 'Back', 'Corner blind panel', 'Corner pull-out door', 'Worktop', 'Plinth']);
   const hwItems = hardware!.table!.rows.map(r => r[0]);
   assert.ok(hwItems.includes('Corner pull-out mechanism, two swing trays'), 'hardware list includes the corner pull-out mechanism');
   assert.ok(!hwItems.includes('Shelf support'), 'no adjustable wooden shelf pins for a corner pull-out unit');

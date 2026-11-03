@@ -26,10 +26,11 @@ test('every board of the piece is in exactly one numbered part, numbered 1, 2, 3
   for (const p of mp.parts) for (const b of p.boards) assert.deepEqual(mm(b.cut), mm(p.cut), `part ${p.n} groups boards of one size`);
 });
 
-test('identical boards are one part counted together; the two sides of a plain wardrobe are one part of two', () => {
+test('a plain wardrobe has handed sides because their back rebates are on opposite faces', () => {
   const sides = piece(createInitialDesign()).parts.filter(p => p.name === 'Side');
-  assert.equal(sides.length, 1);
-  assert.equal(sides[0]!.boards.length, 2);
+  assert.equal(sides.length, 2);
+  assert.deepEqual(sides.map(p=>p.boards.length), [1,1]);
+  assert.ok(sides.every(p=>p.boards[0]!.machining?.length));
 });
 
 test('each part says which decor it is cut from', () => {
@@ -207,7 +208,7 @@ test('a back larger than a stock sheet is split over the partition nearest the m
   const partitions = cabinetBoards(wide).filter(b => b.name === 'Partition'), seam = backs[0]!.x1;
   assert.equal(backs[1]!.x0, seam, 'the pieces meet');
   assert.ok(partitions.some(p => p.x0 < seam && p.x1 > seam), 'over a partition');
-  assert.ok(Math.abs(backs[0]!.x0 - 1.8) < .01 && Math.abs(backs[1]!.x1 - 238.2) < .01, 'between the sides');
+  assert.ok(Math.abs(backs[0]!.x0 - 1.2) < .01 && Math.abs(backs[1]!.x1 - 238.8) < .01, '6 mm engagement into each side rebate');
   for (const back of ['nailed', 'grooved'] as const) {
     const mp = piece({ ...wide, construction: { joints: 'confirmat', back } }), ids = mp.boards.flatMap((b, i) => b.stock === 'back' ? [i] : []);
     const partition = mp.boards.findIndex(b => b.name === 'Partition' && b.x0 < seam && b.x1 > seam);

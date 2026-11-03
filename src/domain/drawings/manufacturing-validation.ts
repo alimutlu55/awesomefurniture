@@ -1,3 +1,4 @@
+import { makePlacedPiece } from '../make/make-parts';
 import { installationSolid, localSolid } from '../kitchen/installation-parts';
 import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
 import { studioObstacles } from '../studio/studio-obstacles';
@@ -152,7 +153,7 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
   for (const p of pieces) {
     if (p.fixture === 'sink' || p.fixture === 'hob') continue;
     const model = new Map<string, number>();
-    for (const b of pieceBoards(p, pieces)) model.set(b.name, (model.get(b.name) ?? 0) + 1);
+    for (const b of makePlacedPiece(p, pieces)?.boards ?? []) model.set(b.name, (model.get(b.name) ?? 0) + 1);
     for (const [part, boards] of model) {
       const count = listed.get(key(p.mark, part)) ?? 0;
       if (count !== boards) out.push({ id: 'list:' + p.mark + ':' + part, severity: 'critical', area: 'export', marks: [p.mark],

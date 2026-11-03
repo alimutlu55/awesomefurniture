@@ -10,7 +10,7 @@ import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardro
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth, interiorFloorOf, partitionDepth, plinthOf } from '../../domain/wardrobe/carcass';
+import { fittingDepth, interiorFloorOf, partitionDepthOf, plinthOf } from '../../domain/wardrobe/carcass';
 import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
@@ -130,7 +130,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
         shadow.position.y = .12 - (renderState.renderCabinet.y || 0);
         shadow.userData.floorShadow = true;
         renderState.Gr.add(shadow);
-        const { w, h, d, n } = getRenderDesign(), fd = fittingDepthOf(getRenderDesign()), pd = partitionDepth(d), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
+        const { w, h, d, n } = getRenderDesign(), fd = fittingDepthOf(getRenderDesign()), pd = partitionDepthOf(getRenderDesign()), materials = createCabinetMaterials(resources, getRenderDesign()), { panel: mp, back: md, hardware: mh } = materials, ws = geometry.widths(), iy = interiorFloorOf(getRenderDesign()), V = THREE.Vector3, panel = panelBuilder(box, prism), shaped = !isRegularShape(getRenderDesign().shape);
         const mf = materials.front, ma = materials.accessory;
         addCabinetLighting(getRenderDesign(), renderState.Gr);
         renderState.Gr.userData.ownedMaterials = materials.owned;

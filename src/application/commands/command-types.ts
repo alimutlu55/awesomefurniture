@@ -8,6 +8,9 @@ export interface ItemEdit {
     finish?: EditorItem['f'];
     purpose?: StoragePurpose;
     hinge?: 'left' | 'right' | null;
+    tiers?: number;
+    basketStyle?: 'wire' | 'solid';
+    cargoMount?: 'left' | 'right' | 'bottom';
 }
 export interface ItemMovePlan {
     valid: boolean;

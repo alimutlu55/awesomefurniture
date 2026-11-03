@@ -44,6 +44,12 @@ export function clashes(boards: readonly Board[]): string[] {
     if (deep <= .05) return;
     const q = common(outline(a), outline(b));
     if (q.length < 3 || Math.abs(signedArea(q)) < .05) return;
+    // Stock envelopes may overlap only where the entire intersection is explicitly machined away.
+    const removed = [...(a.machining ?? []), ...(b.machining ?? [])].reduce((sum,m) => {
+      const dz=Math.max(0,Math.min(a.z1,b.z1,m.z1)-Math.max(a.z0,b.z0,m.z0));
+      return sum+Math.abs(signedArea(common(q,[...m.outline])))*dz;
+    },0);
+    if (Math.abs(signedArea(q))*deep-removed < 1e-9) return;
     const xs = q.map(p => p.x), ys = q.map(p => p.y), wide = Math.max(...xs) - Math.min(...xs), high = Math.max(...ys) - Math.min(...ys);
     if (wide > .05 && high > .05) out.push(`${a.name} and ${b.name} by ${wide.toFixed(1)} × ${high.toFixed(1)} × ${deep.toFixed(1)} cm at x ${Math.min(...xs).toFixed(1)}, y ${Math.min(...ys).toFixed(1)}`);
   }));

@@ -7,5 +7,6 @@ coverage/
 !.env.example
 *.tsbuildinfo
 .wrangler/
+.claude/
 .dev.vars*
 !.dev.vars.example

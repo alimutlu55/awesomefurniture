@@ -7,14 +7,15 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
-import { plinthOf } from '../wardrobe/carcass';
+import { backFaceOf, plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
-import { drawerExtension } from '../wardrobe/drawer-runners';
+import { drawerExtension, runnerForSpace } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import { completeDrawerHardware } from './drawer-installation';
 import type { Fitting, Hole } from './make-joints';
-import { thinAxis, type Vec3 } from './make-measures';
+import { heightsAt, thinAxis, type Vec3 } from './make-measures';
+import { cargoPulloutGeometry } from '../kitchen/cargo-pullout';
 
 /** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
 export const SYSTEM_LINE = 3.7;
@@ -60,16 +61,18 @@ function box(name: string, stock: Board['stock'], x0: number, x1: number, y0: nu
  * the boards under and over it.
  */
 export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board[] {
-  const { design } = piece, out: Board[] = [], length = drawerExtension(design.d), h = design.h;
+  const { design } = piece, out: Board[] = [], h = design.h;
   const m = resolveMaterials(design), decor = m.drawerDecorId ?? m.carcassDecorId, bottomDecor = m.backingDecorId ?? decor;
   const fronts = piecefronts(design).fronts;
   for (const f of boards) {
     const opening = frontOf(fronts, f)?.opens;
-    if (!(f.name === 'Drawer front' || (f.stock === 'front' && opening === 'pull'))) continue;
+    if (!(f.name === 'Drawer front' || (f.stock === 'front' && opening === 'pull' && !f.name.startsWith('Cargo') && !f.name.startsWith('Pantry')))) continue;
     const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
     if (!left || !right) continue;
     const x0 = left.b.x1 + RUNNER_CLEARANCE, x1 = right.b.x0 - RUNNER_CLEARANCE;
-    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - .2, z0 = Math.max(z1 - length, left.b.z0);
+    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - .2, length = runnerForSpace(z1 - backFaceOf(design) - 1);
+    if (length === undefined) continue;
+    const z0 = z1 - length;
     // Between the boards under and over it: the base or a shelf below, the top or a shelf above.
     const across = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.x0 < x1 && b.x1 > x0);
     const floor = Math.max(f.y0, left.b.y0, ...across.filter(b => b.y1 <= cy).map(b => b.y1));
@@ -130,10 +133,43 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       fittings.push({ kind: 'handle', at: [at.x, at.y, b.z1], axis: 2, boards: [i], size });
     }
   });
+  // Cargo pull-out hardware: runners, front fixing brackets, screws, and pilot holes in the door.
+  boards.forEach((b, i) => {
+    if (b.name !== 'Cargo front') return;
+    const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
+    const post = left ?? right;
+    const { cargoPullouts } = piecefronts(design, cornerFaceWidths(piece, pieces));
+    const cargo = cargoPullouts.find(c => Math.abs(c.cx - cx) < 1 && Math.abs(c.y0 - b.y0) < 5)
+      ?? cargoPulloutGeometry(cx, b.y0, b.x1 - b.x0, b.y1 - b.y0, design.d);
+    const runner = cargo.runners.length * 10;
+    const face = post && post === left ? post.b.x1 : post ? post.b.x0 : 0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
+
+    const runnerFittingIdx = fittings.length;
+    fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: post ? [i, post.i] : [i], size: String(runner) });
+    if (post) {
+      for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
+        const z = post.b.z1 - SYSTEM_LINE - back;
+        holes.push({ board: post.i, kind: 'runner', at: [face, y, z], axis: 0, sign, ...RUNNER_SCREW, of: runnerFittingIdx });
+        if (cargo.isTall) {
+          const topY = b.y1 - 3.2;
+          holes.push({ board: post.i, kind: 'runner', at: [face, topY, z], axis: 0, sign, ...RUNNER_SCREW, of: runnerFittingIdx });
+        }
+      }
+    }
+
+    for (const br of cargo.brackets) {
+      fittings.push({ kind: 'plate', at: [cx, br.y, b.z0], axis: 2, boards: [i], size: 'cargo front bracket' });
+      for (const s of br.screws) {
+        const screwOf = fittings.length;
+        fittings.push({ kind: 'screw', at: [s[0], s[1], b.z0], axis: 2, boards: [i], size: '4 × 16', purpose: 'drawer-front' });
+        holes.push({ board: i, kind: 'pilot', at: [s[0], s[1], b.z0], axis: 2, sign: 1, d: 2.5, depth: 10, of: screwOf });
+      }
+    }
+  });
   // Runners: a pair for every drawer box, screwed to the uprights on the System 32 line.
-  const runner = Math.round(drawerExtension(design.d) * 10);
   boards.forEach((b, i) => {
     if (b.name !== 'Box side') return;
+    const runner = Number(((b.z1-b.z0)*10).toPrecision(12));
     const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
     if (!left || !right) return;
     const post = b.x0 - left.b.x1 < right.b.x0 - b.x1 ? left : right;
@@ -173,7 +209,10 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     fittings.push({ kind: 'leg', at: [x, 0, z], axis: 1, boards: base >= 0 ? [base] : [], size: String(Math.round(plinthOf(design) * 10)) });
   }
   if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - 3, 0], axis: 2, boards: [], size: 'pair' });
-  if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) fittings.push({ kind: 'bracket', at: [x, design.h - 2, 0], axis: 2, boards: [] });
+  if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [10, design.w - 10]) {
+    const roof = boards.findIndex(b => b.name === 'Top' && b.x0 <= x && b.x1 >= x);
+    if (roof >= 0) fittings.push({ kind: 'bracket', at: [x, heightsAt(boards[roof]!, x)[0], 0], axis: 2, boards: [roof] });
+  }
   completeDrawerHardware(boards, fittings, holes);
   return { holes, fittings };
 }
@@ -195,8 +234,10 @@ export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[],
       out[i] = { kind: 'swing', pivot: [left ? b.x0 : b.x1, b.z0], dir: left ? 1 : -1 };
     } else if (f?.opens === 'pull' || b.name === 'Drawer front') {
       // The front and the box behind it: the box's boards stand within the front's width and height.
-      out[i] = { kind: 'slide', by: pull };
-      boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: pull }; });
+      const side = boards.find(x=>x.name==='Box side' && x.x0>=b.x0-1 && x.x1<=b.x1+1 && x.y0>=b.y0-1 && x.y1<=b.y1+1);
+      const travel = side ? Math.round((side.z1-side.z0)*.7) : pull;
+      out[i] = { kind: 'slide', by: travel };
+      boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: travel }; });
     }
   });
   return out;

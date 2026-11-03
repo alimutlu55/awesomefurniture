@@ -36,6 +36,7 @@ export const FITTING_TRAITS = Object.freeze({
   filler: 'A fixed filler or corner cover panel with no interior storage.',
   appliance: 'A fixture or appliance (sink, hob, oven, fridge): a duplicated cabinet gets plain storage in its place.',
   worktop: 'Sits in the worktop above its cabinet (sink, hob).',
+  cargoPullout: 'A pull-out wire or solid basket cargo unit on runners with front fixing brackets.',
 });
 export type FittingTrait = keyof typeof FITTING_TRAITS;
 
@@ -51,6 +52,7 @@ export const FITTING_HARDWARE = Object.freeze({
   liftFitting: 'Lift-up flap fitting, one set',
   shelfSupports: 'Shelf supports, four to a shelf',
   cornerMechanism: 'Corner pull-out mechanism, two swing trays',
+  cargoMechanism: 'Cargo pull-out system with baskets, frame, runners and door brackets',
 });
 export type FittingHardware = keyof typeof FITTING_HARDWARE;
 
@@ -189,7 +191,7 @@ export const FITTINGS = [
     kitchen: { units: ['upper'], score: 34, why: 'Extractor over the hob' } },
   { key: 'cargo', name: 'Cargo pull-out', code: 'Z', height: 74, min: 50, max: 200, minWidth: 10, minDepth: 40, price: 210, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 22, group: 'storage' }, zone: { ...KITCHEN, label: 'Cargo' },
-    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front'],
+    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', hardware: ['runners', 'cargoMechanism'], traits: ['pullout', 'front', 'cargoPullout'],
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },
   { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },

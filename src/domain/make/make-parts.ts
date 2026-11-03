@@ -1,5 +1,4 @@
 import type { Board, BoardStock } from '../drawings/cabinet-boards';
-import { mm } from '../drawings/drawing';
 import { type DrawingInput, type PlacedPiece, placePieces } from '../drawings/room-pieces';
 import { pieceBoards } from '../drawings/unit-detail';
 import { resolveMaterials } from '../materials/configured-materials';
@@ -55,12 +54,18 @@ export function decorOf(b: Board, design: EditorDesign): string {
   return m.carcassDecorId;
 }
 
-/** What makes two boards the same part: name, stock, cutting size to the millimetre, banding, decor, the shape of a
+/** What makes two boards the same part: name, stock, exact cutting size, banding, decor, the shape of a
  * sloped outline (taken from its own corner, so a left and a right side under a slope stay apart), and its drilling. */
+// Collapse binary arithmetic noise only (about 1e-10 mm at furniture scale); never quantize to a manufacturing grid.
+const identityNumber = (n: number) => Number(n.toPrecision(12));
+
 function sameness(b: Board, decor: string, drilling: string): string {
   const x = b.outline ? Math.min(...b.outline.map(p => p.x)) : 0, y = b.outline ? Math.min(...b.outline.map(p => p.y)) : 0;
-  const outline = b.outline ? b.outline.map(p => mm(p.x - x) + ',' + mm(p.y - y)).join(' ') : '';
-  return [b.name, b.stock, mm(b.cut.length), mm(b.cut.width), mm(b.cut.thickness), b.edges, decor, outline, drilling].join('|');
+  const outline = b.outline ? b.outline.map(p => identityNumber(p.x - x) + ',' + identityNumber(p.y - y)).join(' ') : '';
+  const machining = b.machining?.map(m => ({ ...m, z0: identityNumber(m.z0-b.z0), z1: identityNumber(m.z1-b.z0),
+    outline: m.outline.map(p => ({x:identityNumber(p.x-b.x0),y:identityNumber(p.y-b.y0)})) }));
+  return [b.name, b.stock, identityNumber(b.cut.length), identityNumber(b.cut.width), identityNumber(b.cut.thickness),
+    b.edges, decor, outline, drilling, JSON.stringify(machining)].join('|');
 }
 
 /** The boards of a piece as numbered parts. Numbers follow the order the boards are built in (`cabinetBoards`); boards
@@ -81,6 +86,10 @@ export function makeParts(boards: readonly Board[], design: EditorDesign, holes:
 export function makePiece(input: DrawingInput, id: number): MakePiece | null {
   const pieces = placePieces(input), piece = pieces.find(p => p.id === id);
   if (!piece) return null;
+  return makePlacedPiece(piece, pieces);
+}
+
+export function makePlacedPiece(piece: PlacedPiece, pieces: readonly PlacedPiece[] = [piece]): MakePiece | null {
   const cut = pieceBoards(piece, pieces);
   if (!cut.length) return null;
   const boards = [...cut, ...drawerBoxes(piece, cut)], construction = constructionOf(piece.design);
@@ -105,6 +114,6 @@ export function bandedEdges(code: string): { long: number; short: number } {
 /** The size to cut a part so that, with `bandMm` of edge banding on its banded edges, it finishes at its size. Banding on
  * a long edge makes the board wider, on a short edge longer. Centimetres. */
 export function cutWithBand(part: Pick<MakePart, 'cut' | 'edges'>, bandMm: number): Board['cut'] {
-  const e = bandedEdges(part.edges), t = bandMm / 10, exact = (cm: number) => Math.round(cm * 1000) / 1000;
+  const e = bandedEdges(part.edges), t = bandMm / 10, exact = (cm: number) => Number(cm.toPrecision(14));
   return { length: exact(part.cut.length - e.short * t), width: exact(part.cut.width - e.long * t), thickness: part.cut.thickness };
 }

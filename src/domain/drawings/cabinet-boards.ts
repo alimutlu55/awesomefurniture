@@ -1,3 +1,4 @@
+import { backBoards } from '../make/back-construction';
 import type { FaceWidth } from '../kitchen/corner-widths';
 import { installationSlab } from '../kitchen/installation-parts';
 import { kitchenFrontThickness } from '../kitchen/installation-parts';
@@ -5,7 +6,7 @@ import { defaultMaterials, resolveMaterials } from '../materials/configured-mate
 import { fitsStock } from '../make/stock-sheet';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { PANEL } from '../wardrobe/catalog.js';
-import { BACK_PANEL, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
+import { BACK_PANEL, backFaceOf, besideInnerFrontDepth, fittingDepth, innerFront, partitionDepth, plinthOf } from '../wardrobe/carcass';
 import { ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../wardrobe/shape/wardrobe-shape';
 import { doorFit, doorTop, frontInside, leafThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
@@ -35,6 +36,8 @@ export interface Board {
   readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly z0: number; readonly z1: number;
   readonly outline?: readonly P[] | undefined;
   readonly cut: { readonly length: number; readonly width: number; readonly thickness: number };
+  /** Material removed from the stock envelope, in board/world-local coordinates. */
+  readonly machining?: readonly { readonly outline: readonly P[]; readonly z0: number; readonly z1: number; readonly kind: 'rebate' | 'groove' }[];
   readonly edges: string;
   readonly note?: string | undefined;
   /** The fitting whose own front it is (a drawer front inside a wardrobe). */
@@ -94,7 +97,7 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
   if (slab) return [slab];
   const shelfThickness = design.materials ? PANEL : KITCHEN_SHELF.thickness;
   const { w, d } = design, kitchen = isKitchen(design), lift = plinthOf(design), out: Board[] = [];
-  const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? plinthOf(design) : 0) : 0, part = partitionDepth(d), inside = frontInside(design), fit = fittingDepth(d, inside);
+  const sidesFrom = kitchen ? (kitchenUnit(design.unit).plinth ? plinthOf(design) : 0) : 0, part = partitionDepth(d), inside = frontInside(design), fit = fittingDepth(d, inside, backFaceOf(design));
   const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths(), iy = lift + PANEL;
   const lines = partitionLines(widths), materials = resolveMaterials(design), carcass = materials.carcassDecorId;
   for (const b of shapeBoards(resolveShape(design))) {
@@ -136,7 +139,7 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
       panels.forEach((p, j) => {
         const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, pos.y0, it.h, inside) : null;
         // The boards over and under a drawer stop behind its front (carcass.ts).
-        const deck = front ? besideInnerFrontDepth(d, inside) : fit;
+        const deck = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fit;
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'x'));
         if (front) {
           const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: front.y0, y1: front.y1, z0: front.z0, z1: front.z1 };
@@ -160,12 +163,12 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
       continue;
     }
     // A door leaf stops one reveal under the top (doorTop, as door-renderer.ts draws it); under a slope it is cut to it.
-    const top = doorTop(design, f.x0, f.x1).map(p => Math.min(p.y, f.y1)), z = d + doorFit(design).standoff;
-    const sloped = Math.max(...top) - Math.min(...top) > .05;
+    const top = doorTop(design, f.x0, f.x1).map(p => ({ x: p.x, y: Math.min(p.y, f.y1) })), z = d + doorFit(design).standoff;
+    const sloped = Math.max(...top.map(p => p.y)) - Math.min(...top.map(p => p.y)) > .05;
     // A leaf in its own decor (a glass or mirror leaf among wood ones) is cut from it, at its thickness.
     const t = leafThickness(design, f), own = f.decorId ? { decorId: f.decorId } : {};
-    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top), z0: z - t / 2, z1: z + t / 2 }, 'L2 W2', 'y',
-      { ...own, ...(sloped ? { note: 'top cut to the slope, see Front' } : {}) }));
+    out.push(board('Door', 'door', { x0: f.x0, x1: f.x1, y0: f.y0, y1: Math.max(...top.map(p => p.y)), z0: z - t / 2, z1: z + t / 2 }, 'L2 W2', 'y',
+      { ...own, ...(sloped ? { outline: [{ x: f.x0, y: f.y0 }, { x: f.x1, y: f.y0 }, ...top.slice().reverse()], note: 'top cut to the slope, see Front' } : {}) }));
   }
-  return out;
+  return backBoards(out, design);
 }

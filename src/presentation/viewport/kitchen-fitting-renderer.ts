@@ -3,6 +3,7 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, itemHingeSide, kitchenFrontRect } from '../../domain/kitchen/kitchen-fronts';
+import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
 import { createFrontParts } from './furniture-parts';
 import type { BoxBuilder } from './frame-geometry';
 import { frontCoveredByReturn, type FaceWidth } from '../../domain/kitchen/corner-widths';
@@ -165,12 +166,50 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
         } else { panel(x0, x1, y0, y1); pull(hh, pullX, y1 - 16, true); }
         break;
       }
-      case 'cargo':
+      case 'cargo': {
         // A slim pull-out is opened from its top edge: a bar across the middle of the front, near the top.
         panel(x0, x1, y0, y1);
         pull(x1 - x0, frontCentre, y1 - 5);
-        shelves(cx - sw / 2, cx + sw / 2, y, y + hh);
+        const geo = cargoPulloutGeometry(cx, y, sw, hh, d, {
+          tiers: it.tiers,
+          basketStyle: it.basketStyle,
+          mount: it.cargoMount,
+          isTall: hh >= 100,
+        });
+        for (const u of geo.frame.uprights) {
+          box(u.x1 - u.x0, u.y1 - u.y0, u.z1 - u.z0, (u.x0 + u.x1) / 2, (u.y0 + u.y1) / 2, (u.z0 + u.z1) / 2 - d / 2, steel);
+        }
+        for (const c of geo.frame.crossbars) {
+          box(c.x1 - c.x0, c.y1 - c.y0, c.z1 - c.z0, (c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, (c.z0 + c.z1) / 2 - d / 2, steel);
+        }
+        const br = geo.runners.bottom;
+        box(br.x1 - br.x0, br.y1 - br.y0, br.z1 - br.z0, (br.x0 + br.x1) / 2, (br.y0 + br.y1) / 2, (br.z0 + br.z1) / 2 - d / 2, steel);
+        if (geo.runners.top) {
+          const tr = geo.runners.top;
+          box(tr.x1 - tr.x0, tr.y1 - tr.y0, tr.z1 - tr.z0, (tr.x0 + tr.x1) / 2, (tr.y0 + tr.y1) / 2, (tr.z0 + tr.z1) / 2 - d / 2, steel);
+        }
+        for (const b of geo.baskets) {
+          const bw = b.base.x1 - b.base.x0, bd = b.base.z1 - b.base.z0, bz = (b.base.z0 + b.base.z1) / 2 - d / 2;
+          const baseMat = geo.basketStyle === 'solid' ? materials.inside : steel;
+          box(bw, b.base.y1 - b.base.y0, bd, (b.base.x0 + b.base.x1) / 2, (b.base.y0 + b.base.y1) / 2, bz, baseMat);
+          const rw = b.rail.x1 - b.rail.x0, rd = b.rail.z1 - b.rail.z0, ry = b.rail.y1;
+          box(rw, .3, .3, cx, ry, bz + bd / 2, steel);
+          box(rw, .3, .3, cx, ry, bz - bd / 2, steel);
+          box(.3, .3, rd, cx - rw / 2, ry, bz, steel);
+          box(.3, .3, rd, cx + rw / 2, ry, bz, steel);
+          box(rw, .2, .2, cx, b.y + 1.8, bz + bd / 2, steel);
+          box(rw, .2, .2, cx, b.y + 1.8, bz - bd / 2, steel);
+          box(.2, .2, rd, cx - rw / 2, b.y + 1.8, bz, steel);
+          box(.2, .2, rd, cx + rw / 2, b.y + 1.8, bz, steel);
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+            box(.25, b.railHeight, .25, cx + sx * (rw / 2 - .15), b.y + b.railHeight / 2, bz + sz * (bd / 2 - .15), steel);
+          }
+        }
+        for (const brk of geo.brackets) {
+          box(Math.min(6, geo.basketW * .5), 1.6, 1.2, cx, brk.y, face - (materials.front.userData.panelThickness ?? PANEL) / 2 - .6, steel);
+        }
         break;
+      }
       case 'pantry':
         panel(x0, x1, y0, y1);
         pull(Math.min(60, hh * .35), pullX, mid, true);

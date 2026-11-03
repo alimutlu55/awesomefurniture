@@ -1,18 +1,11 @@
-import { flatFrame, flatHoles, type FlatHole } from '../../domain/make/make-assembly';
+import { flatFrame, flatHoles, flatOutline, type FlatHole } from '../../domain/make/make-assembly';
 import { bandedEdges, cutWithBand, type MakePart, type MakePiece } from '../../domain/make/make-parts';
-import { thinAxis } from '../../domain/make/make-measures';
 import type { LengthText } from './make-marks';
 
 /** A part's face as it lies flat, in centimetres: length across, width up. A back or front cut to a slope keeps its
  * outline (seen from the front); every other board is its cutting rectangle. */
 function faceOutline(part: MakePart): { x: number; y: number }[] {
-  const b = part.boards[0]!;
-  if (b.outline && thinAxis(b) === 'z') {
-    const x0 = Math.min(...b.outline.map(p => p.x)), y0 = Math.min(...b.outline.map(p => p.y));
-    return b.outline.map(p => ({ x: p.x - x0, y: p.y - y0 }));
-  }
-  const { length, width } = part.cut;
-  return [{ x: 0, y: 0 }, { x: length, y: 0 }, { x: length, y: width }, { x: 0, y: width }];
+  return flatOutline(part.boards[0]!);
 }
 const n2 = (v: number) => v.toFixed(2);
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -31,12 +24,11 @@ function bandedSides(part: MakePart, pts: readonly { x: number; y: number }[]) {
 export interface SheetDrilling { readonly holes: readonly FlatHole[]; readonly grooves: readonly { u0: number; u1: number; v0: number; v1: number }[] }
 export function partDrilling(piece: MakePiece, part: MakePart): SheetDrilling {
   const b = part.boards[0]!, i = part.ids[0]!;
-  if (b.outline && thinAxis(b) === 'z') return { holes: [], grooves: [] };
   const flat = flatHoles(b, piece.holes.filter(h => h.board === i)), L = b.cut.length * 10;
   const blind = (face: string) => flat.filter(h => h.face === face && h.depth > 0).length;
   // Turned over end for end, so the long front edge stays at the bottom of the drawing.
-  const over = blind('-') > blind('+'), swap = { '+': '-', '-': '+', u0: 'u1', u1: 'u0', v0: 'v0', v1: 'v1' } as const;
-  const holes = over ? flat.map(h => ({ ...h, u: Math.round((L - h.u) * 10) / 10, face: swap[h.face] })) : flat;
+  const over = !b.outline && blind('-') > blind('+'), swap = { '+': '-', '-': '+', u0: 'u1', u1: 'u0', v0: 'v0', v1: 'v1' } as const;
+  const holes = over ? flat.map(h => ({ ...h, u: Number((L-h.u).toPrecision(12)), face: swap[h.face] })) : flat;
   const { along, across } = flatFrame(b), lo = [b.x0, b.y0, b.z0], len = b.cut.length;
   const grooves = piece.grooves.filter(g => g.board === i).map(g => {
     const u0 = g.lo[along] - lo[along]!, u1 = g.hi[along] - lo[along]!;

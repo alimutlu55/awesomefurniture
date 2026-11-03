@@ -95,7 +95,7 @@ export function renderCabinetDoors(design: EditorState, widths: readonly number[
         }
         // The design's handle where handlePlacement puts it (Make drills it there), in pivot space.
         const edgeTop = top[left ? top.length - 1 : 0]!.y, handle = resolveHandle(resolveMaterials(design));
-        const pull = handleMesh(handle, edgeTop - base, hardware, true), at = handlePlacement({ x0: area.x0, x1: area.x1, y0: base, y1: edgeTop, door: true, hinge: area.hinge }, handle);
+        const pull = handleMesh(handle, edgeTop - base, hardware, true), at = handlePlacement({ x0: area.x0, x1: area.x1, y0: base, y1: Math.max(...top.map(p => p.y)), outline: [{ x: area.x0, y: base }, { x: area.x1, y: base }, ...top.slice().reverse().map(p => ({ x: p.x + ax, y: p.y }))], door: true, hinge: area.hinge }, handle);
         // A handle-rail door is its own grip: no handle.
         if (pull && !(shaped && style.grip)) {
             pull.position.set(at.x - (left ? area.x0 : area.x1), at.y, t / 2);

@@ -77,6 +77,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     if (f.kind === 'rail') return solid(rod, metal, at, new THREE.Vector3(1.25, size, 1.25), AXES[0]);
     if (f.kind === 'support') return solid(disc, metal, at, new THREE.Vector3(2, .4, 2), AXES[0]);
     if (f.kind === 'leg') return solid(rod, metal, at.clone().setY(at.y + size / 2), new THREE.Vector3(2.2, size, 2.2));
+    if (f.kind === 'bracket' && f.size?.includes('cargo')) return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(6, 1.8, 1.2));
     if (f.kind === 'hanger' || f.kind === 'bracket') return solid(bar, metal, at.clone().setZ(at.z - .5), new THREE.Vector3(f.kind === 'hanger' ? 6 : 4, 4, 1));
     return null;
   }
@@ -127,8 +128,8 @@ export function createMakeFittings(layer: number): FittingsLayer {
         }
         const mesh = fittingMesh(piece, f);
         if (!mesh) return;
-        // Handles ride on their front; the rest stay with the piece.
-        const board = f.kind === 'handle' ? f.boards[0] ?? null : null, host = board === null ? undefined : meshOf(board);
+        // Handles and cargo brackets ride on their front; the rest stay with the piece.
+        const board = (f.kind === 'handle' || (f.kind === 'bracket' && f.size?.includes('cargo'))) ? f.boards[0] ?? null : null, host = board === null ? undefined : meshOf(board);
         if (host && board !== null) { mesh.position.sub(rest(board)); host.add(mesh); } else root.add(mesh);
         fittings.push({ mesh, index, board: host ? board : null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone() });
       });
