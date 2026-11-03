@@ -17,6 +17,7 @@
 import { ZONE_PRIORITY as Z } from './zone-style';
 import type { ZoneStyle } from './zone-style';
 import type { Purpose } from './purposes';
+import { RUNNER_ENTRY } from '../hardware/hardware-registry';
 
 import type { KitchenUnitKey } from '../kitchen/kitchen-units';
 
@@ -44,7 +45,7 @@ export type FrontOpening = 'side' | 'up' | 'down' | 'pull' | 'fixed';
 /** Hardware a fitting is built with, for the hardware list. Runner length follows the cabinet's depth, a rail's
  * length the fitting's width; shelf supports go four to each of a cupboard's shelves. */
 export const FITTING_HARDWARE = Object.freeze({
-  runners: 'Drawer runners, one pair',
+  runners: `${RUNNER_ENTRY.display.listLine.label}, one ${RUNNER_ENTRY.display.listLine.unit}`,
   rail: 'Hanging rail with two end supports',
   pullDownRail: 'Pull-down rail mechanism',
   trouserRack: 'Trouser pull-out rack',

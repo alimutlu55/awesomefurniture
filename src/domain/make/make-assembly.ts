@@ -1,5 +1,7 @@
 import { boreMaterial } from './bore-material';
 import type { Board } from '../drawings/cabinet-boards';
+import { resolveAssemblyStages } from '../hardware/hardware-registry';
+import type { AssemblyStage } from '../hardware/hardware-types';
 import { type Axis, type Fitting, type FittingKind, type Hole, type HoleKind, hi, lo } from './make-joints';
 import { thinAxis, tiltOf } from './make-measures';
 
@@ -61,9 +63,9 @@ export function drillingSignature(b: Board, holes: readonly Hole[]): string {
 const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 0), short: Number(/W(\d)/.exec(code)?.[1] ?? 0) });
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
-/** What a step does, in the order a maker works. */
-export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawer-boxes', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts', 'drawer-test', 'doors', 'wall'] as const;
-export type Stage = typeof STAGES[number];
+/** What a step does, in the order resolved from each stage's prerequisites in the hardware registry. */
+export const STAGES: readonly AssemblyStage[] = resolveAssemblyStages();
+export type Stage = AssemblyStage;
 export interface Step {
   readonly n: number;
   readonly stage: Stage;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
+import { drawerExtension, RUNNER_CLEARANCE } from '../../domain/wardrobe/drawer-runners';
 import { handleMesh } from './hardware';
 import { resolveHandle } from '../../domain/wardrobe/handles';
 import { hingedLeaves, shelfHeights } from '../../domain/kitchen/kitchen-fronts';
@@ -62,8 +63,12 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   const shelves = (x0: number, x1: number, y0: number, y1: number) => {
     for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, shelfThickness, depth - 6, (x0 + x1) / 2, y, -1, inside);
   };
-  /** The box of a drawer behind its front. */
-  const drawerBox = (cx: number, y: number, w: number, h: number) => box(Math.max(4, w - 4), Math.max(4, h - 4), depth - 6, cx, y + h / 2, -1, drawer);
+  /** The box of a drawer behind its front, with its side-mounted telescopic runners. */
+  const drawerBox = (cx: number, y: number, w: number, h: number) => {
+    const boxW = Math.max(4, w - 2 * RUNNER_CLEARANCE - 1.5), boxD = Math.min(depth - 6, drawerExtension(depth));
+    box(boxW, Math.max(4, h - 4), boxD, cx, y + h / 2, -1, drawer);
+    for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, cx + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -1, metal);
+  };
   return { panel, doors, shelves, drawerBox, pull };
 }
 

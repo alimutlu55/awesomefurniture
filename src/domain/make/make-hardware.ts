@@ -7,9 +7,10 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
 import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
+import { RUNNER_ENTRY } from '../hardware/hardware-registry';
 import { backFaceOf, plinthOf } from '../wardrobe/carcass';
 import { PANEL } from '../wardrobe/catalog.js';
-import { drawerExtension, runnerForSpace } from '../wardrobe/drawer-runners';
+import { drawerExtension, RUNNER_CLEARANCE, RUNNER_REAR_GAP, runnerForSpace } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import { completeDrawerHardware } from './drawer-installation';
@@ -18,11 +19,11 @@ import { heightsAt, thinAxis, type Vec3 } from './make-measures';
 import { cargoPulloutGeometry } from '../kitchen/cargo-pullout';
 
 /** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
-export const SYSTEM_LINE = 3.7;
-/** A drawer box stands this far in from each upright, for its runners. Cm. */
-const RUNNER_CLEARANCE = 1.25;
+export const SYSTEM_LINE = (RUNNER_ENTRY.rules.systemLineMm ?? 37) / 10;
 /** One System 32 step: runner slots and shelf pin rows are this far apart. A runner screw hole, mm. */
-const PITCH = 3.2, RUNNER_SCREW = { d: 5, depth: 12 } as const;
+const PITCH = (RUNNER_ENTRY.rules.pitchMm ?? 32) / 10;
+const RUNNER_HOLE = RUNNER_ENTRY.drilling[0]!;
+const RUNNER_SCREW = { d: RUNNER_HOLE.dMm, depth: RUNNER_HOLE.depthMm } as const;
 
 /** Whether a hole drilled into an upright's face at `at` (going in along x, `sign` the way it faces out) is in another
  * hole's way: one on the same face less than 2 mm from it (a hinge plate's), one right through the board (a connector's,
@@ -70,14 +71,16 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
     const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
     if (!left || !right) continue;
     const x0 = left.b.x1 + RUNNER_CLEARANCE, x1 = right.b.x0 - RUNNER_CLEARANCE;
-    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - .2, length = runnerForSpace(z1 - backFaceOf(design) - 1);
+    const standoff = (RUNNER_ENTRY.rules.clearanceMm.standoff ?? 2) / 10;
+    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - standoff, length = runnerForSpace(z1 - backFaceOf(design) - RUNNER_REAR_GAP);
     if (length === undefined) continue;
     const z0 = z1 - length;
     // Between the boards under and over it: the base or a shelf below, the top or a shelf above.
     const across = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.x0 < x1 && b.x1 > x0);
     const floor = Math.max(f.y0, left.b.y0, ...across.filter(b => b.y1 <= cy).map(b => b.y1));
     const ceiling = Math.min(f.y1, left.b.y1, ...across.filter(b => b.y0 >= cy).map(b => b.y0));
-    const y0 = floor + 1.5, yb = y0 + .6, tall = Math.min(25, f.y1 - f.y0 - 4, ceiling - yb - 1.5);
+    const bottomGap = (RUNNER_ENTRY.rules.clearanceMm.bottomGap ?? 15) / 10, topDrop = (RUNNER_ENTRY.rules.clearanceMm.topDrop ?? 40) / 10;
+    const y0 = floor + bottomGap, yb = y0 + .6, tall = Math.min(25, f.y1 - f.y0 - topDrop, ceiling - yb - bottomGap);
     if (x1 - x0 < 4 * PANEL || z1 - z0 < 10 || tall < 6) continue;
     out.push(box('Box side', 'carcass', x0, x0 + PANEL, yb, yb + tall, z0, z1, 2, 'L1', decor), box('Box side', 'carcass', x1 - PANEL, x1, yb, yb + tall, z0, z1, 2, 'L1', decor),
       box('Box end', 'carcass', x0 + PANEL, x1 - PANEL, yb, yb + tall, z1 - PANEL, z1, 0, 'L1', decor),
@@ -232,7 +235,8 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     // One fitting is the pair: the left side adds it, the right side's holes are for it too.
     if (post === left) fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: [i, post.i], size: String(runner) });
     const of = fittings.map((f, k) => f.kind === 'runner' && Math.abs(f.at[1] - y) < .01 ? k : -1).reduce((m, k) => Math.max(m, k), -1);
-    for (const back of [0, 22.4, ...(runner >= 500 ? [44.8] : [])]) {
+    const stationsCm = (RUNNER_HOLE.stationsMm ?? [0, 224, 448]).map(mm => mm / 10);
+    for (const back of [stationsCm[0]!, stationsCm[1]!, ...(runner >= 500 ? [stationsCm[2]!] : [])]) {
       // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
       // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else one forward.
       const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay([...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
@@ -275,8 +279,9 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
 /** How a board moves when the piece is opened: a door swings about its hinge edge (`pivot` x and z in the piece's
  * frame; `dir` +1 turns it out to the right), a drawer front and its box slide out `by` centimetres. */
 export type Motion = { readonly kind: 'swing'; readonly pivot: readonly [number, number]; readonly dir: 1 | -1 } | { readonly kind: 'slide'; readonly by: number };
+const OPEN_PULL_RATIO = RUNNER_ENTRY.motion?.kind === 'telescope' ? RUNNER_ENTRY.motion.openPullRatio : .7;
 /** How far a drawer is pulled out to be seen open: 70% of its runners' extension, for a piece `depth` deep. Cm. */
-export const drawerPull = (depth: number) => Math.round(drawerExtension(depth) * .7);
+export const drawerPull = (depth: number) => Math.round(drawerExtension(depth) * OPEN_PULL_RATIO);
 
 export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[], boards: readonly Board[]): (Motion | null)[] {
   const { fronts } = piecefronts(piece.design, cornerFaceWidths(piece, pieces)), out: (Motion | null)[] = boards.map(() => null);
@@ -291,7 +296,7 @@ export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[],
       // The front and the box behind it: the box's boards stand within the front's width and height.
       const side = boards.find(x=>x.name==='Box side' && x.x0>=b.x0-1 && x.x1<=b.x1+1 && x.y0>=b.y0-1 && x.y1<=b.y1+1);
       const cargoRunner = boards[i]!.name === 'Cargo front' ? cargoPulloutGeometry((b.x0+b.x1)/2,b.y0,b.x1-b.x0,b.y1-b.y0,piece.design.d).runners.length : undefined;
-      const travel = cargoRunner !== undefined ? cargoRunner * .7 : side ? Math.round((side.z1-side.z0)*.7) : pull;
+      const travel = cargoRunner !== undefined ? cargoRunner * OPEN_PULL_RATIO : side ? Math.round((side.z1-side.z0)*OPEN_PULL_RATIO) : pull;
       out[i] = { kind: 'slide', by: travel };
       boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: travel }; });
     }
