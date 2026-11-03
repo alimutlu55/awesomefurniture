@@ -2,13 +2,17 @@ import { getDecor } from '../materials/decor-catalog';
 import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from './editor-design';
 import { PANEL, PLINTH } from './catalog.js';
-import { DOOR, fittingDepth } from './carcass';
+import { HINGE_ENTRY } from '../hardware/hinges-hardware';
+import { DOOR, fittingDepth, backFaceOf } from './carcass';
 import { ceilingMin, ceilingPieces, ceilingPolyline, outerPolyline, resolveShape } from './shape/wardrobe-shape';
 import { MAX_LEAVES, frontOverlay, leafKey, resolveFronts } from './front-styles';
 import type { HingeKind } from './hinges';
 
 /** The largest hinged door leaf that hangs true on its hinges (decision D1): wider or taller leaves sag. Centimetres. */
-export const DOOR_LIMITS = { width: 60, height: 240 } as const;
+export const DOOR_LIMITS = {
+  width: (HINGE_ENTRY.rules.maxLeafMm?.width ?? 600) / 10,
+  height: (HINGE_ENTRY.rules.maxLeafMm?.height ?? 2400) / 10,
+} as const;
 
 /** A leaf's front decor: its own (set per leaf), else the cabinet's. */
 export const leafDecorId = (design: Pick<EditorDesign, 'materials'>, leaf: { readonly decorId?: string | undefined }) =>
@@ -47,7 +51,7 @@ export function doorFit(design: Pick<EditorDesign, 'materials' | 'doors' | 'fron
 /** Depth a design's closed doors take from inside its carcass (see DoorFit.inside). */
 export const frontInside = (design: Pick<EditorDesign, 'materials' | 'doors' | 'fronts' | 'product'>) => doorFit(design).inside;
 /** The depth shelves and fittings may use in a design: behind the carcass front, and behind inset doors. */
-export const fittingDepthOf = (design: Pick<EditorDesign, 'd' | 'materials' | 'doors' | 'fronts' | 'product'>) => fittingDepth(design.d, frontInside(design));
+export const fittingDepthOf = (design: Pick<EditorDesign, 'd' | 'materials' | 'doors' | 'fronts' | 'product' | 'construction'>) => fittingDepth(design.d, frontInside(design), backFaceOf(design));
 
 /** A door leaf's top edge between x0 and x1 (from the left outer face), left to right: one reveal under the outer top
  * plus any board an overlay leaves showing, or for an inset leaf one reveal under the top boards' underside. It follows a

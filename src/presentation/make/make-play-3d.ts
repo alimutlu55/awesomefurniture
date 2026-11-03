@@ -2,6 +2,15 @@ import * as THREE from 'three';
 import type { Fitting } from '../../domain/make/make-joints';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
+import {
+  camBoltMesh,
+  camHousingMesh,
+  dowelMesh,
+  hingeCupAndArmMesh,
+  mountingPlateMesh,
+  screwFastenerMesh,
+  shelfPinMesh,
+} from '../viewport/hardware';
 
 /** The film of the assembly at one moment: where each board is, which holes and fittings show, what is moving. */
 export interface MakeFilm {
@@ -63,15 +72,6 @@ export function createMakePlay(layer: number) {
     m.scale.copy(size); m.quaternion.setFromUnitVectors(Y, axis); m.position.copy(at);
     return m;
   }
-  /** A screw lying along +y from its head at the origin: head, shank and thread, `length` long. */
-  function screw(length: number, r: number, material: THREE.Material) {
-    const g = new THREE.Group();
-    g.add(solid(rod, material, new THREE.Vector3(0, -.08, 0), new THREE.Vector3(r * 2.2, .16, r * 2.2)),
-      solid(rod, material, new THREE.Vector3(0, length / 2, 0), new THREE.Vector3(r, length, r)),
-      solid(cone, material, new THREE.Vector3(0, length + r, 0), new THREE.Vector3(r, r * 2, r)));
-    return g;
-  }
-
   function fastenerOf(piece: MakePiece, f: Fitting, item: number): Fastener | null {
     const e = entryOf(piece, item);
     if (!e) return null;
@@ -81,36 +81,21 @@ export function createMakePlay(layer: number) {
       return { group: tag(group), item, home, dir, spin, board: e.board };
     };
     // Turned in through the face board's hole: its head ends flush with the face.
-    if (f.kind === 'confirmat' || f.kind === 'screw') return make(screw(f.kind === 'screw' ? Number(f.size?.split('×')[1]?.trim()) / 10 || 4 : 5, f.kind === 'screw' ? .2 : .32, steel), 8 * Math.PI);
-    if (f.kind === 'bolt') {
-      // Its thread turned 11 mm into the face board, its shank and head standing 34 mm out for the cam to grip.
-      const g = new THREE.Group();
-      g.add(solid(rod, steel, new THREE.Vector3(0, .55, 0), new THREE.Vector3(.25, 1.1, .25)), solid(rod, steel, new THREE.Vector3(0, -1.6, 0), new THREE.Vector3(.18, 3.2, .18)),
-        solid(rod, steel, new THREE.Vector3(0, -3.3, 0), new THREE.Vector3(.36, .3, .36)), solid(box, steel, new THREE.Vector3(0, .02, 0), new THREE.Vector3(.5, .06, .1)));
-      return make(g, 6 * Math.PI);
-    }
-    if (f.kind === 'cam') {
-      // The cam pushed into its hole, its slot and arrow to the face, then turned half round to grip the bolt's head.
-      const g = new THREE.Group();
-      g.add(solid(rod, brass, new THREE.Vector3(0, .62, 0), new THREE.Vector3(.72, 1.2, .72)), solid(box, steel, new THREE.Vector3(0, -.01, 0), new THREE.Vector3(1.1, .08, .2)),
-        solid(cone, steel, new THREE.Vector3(.5, -.01, 0), new THREE.Vector3(.22, .08, .22)));
-      return { ...make(g, Math.PI), turnLast: true };
-    }
-    if (f.kind === 'dowel') return make(solid(rod, brass, new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, 3.5, .4)));
-    if (f.kind === 'nail') return make(screw(2, .08, steel));
-    if (f.kind === 'pin') return make(solid(rod, brass, new THREE.Vector3(0, -.25, 0), new THREE.Vector3(.25, 1.6, .25)));
+    if (f.kind === 'confirmat' || f.kind === 'screw') return make(screwFastenerMesh(f.kind, f.size, rod, cone, steel), 8 * Math.PI);
+    if (f.kind === 'bolt') return make(camBoltMesh(rod, box, steel), 6 * Math.PI);
+    if (f.kind === 'cam') return { ...make(camHousingMesh(rod, box, cone, brass, steel), Math.PI), turnLast: true };
+    if (f.kind === 'dowel') return make(dowelMesh(rod, brass));
+    if (f.kind === 'nail') return make(screwFastenerMesh('nail', f.size, rod, cone, steel));
+    if (f.kind === 'pin') return make(shelfPinMesh(rod, brass));
     if (f.kind === 'hinge') {
       // The hinge's cup pressed into the door, and its arm reaching from the cup to where its plate is on the side panel
       // (made just after it), so the door hung shows which plate each hinge clips onto.
-      const g = new THREE.Group(), plate = piece.fittings[item + 1]?.kind === 'plate' ? piece.fittings[item + 1]! : null;
-      g.add(solid(rod, steel, new THREE.Vector3(0, .6, 0), new THREE.Vector3(1.75, 1.2, 1.75)));
-      const arm = plate ? new THREE.Vector3(plate.at[0] - f.at[0], plate.at[1] - f.at[1], plate.at[2] - f.at[2])
-        .applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Y, dir).invert()) : new THREE.Vector3(0, -4, 0);
-      g.add(solid(box, steel, arm.clone().multiplyScalar(.5), new THREE.Vector3(1.4, arm.length(), .9), arm.clone().normalize()));
-      return make(g);
+      const plate = piece.fittings[item + 1]?.kind === 'plate' ? piece.fittings[item + 1]! : null;
+      return make(hingeCupAndArmMesh(f, plate, dir, rod, box, steel));
     }
     // The plate on the panel over its two screws, a System 32 pitch apart: about 4 cm each way.
-    if (f.kind === 'plate') return make(solid(box, steel, new THREE.Vector3(0, -.3, 0), new THREE.Vector3(4.2, .6, 4.2)));
+    // Cargo front brackets have their own 3D fitting mesh in make-fittings-3d.ts.
+    if (f.kind === 'plate' && !f.size?.includes('cargo')) return make(mountingPlateMesh(box, steel));
     return null;
   }
 

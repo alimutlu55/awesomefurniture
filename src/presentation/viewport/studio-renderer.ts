@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { twoViewGeometry } from './two-view-geometry';
-import { cornerDegree, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
+import { cornerDegree, isInsideCorner, studioBounds, wallExtent, wallFace, wallLine } from '../../domain/studio/studio';
 import type { Studio, StudioOpening, StudioWall } from '../../domain/studio/studio';
 import { contactShade, disposeMaps, roomOutline, planks } from './studio-surfaces';
 import { createCeilingViews } from './studio-ceilings';
@@ -177,8 +177,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     body.add(shadeQuad([fs, 0, z], [fe, 0, z], [fe, 28, z], [fs, 28, z]));
     // Where the wall meets the ceiling: a faint shade, seen only while the wall stands.
     details.add(shadeQuad([fs, w.height, z], [fe, w.height, z], [fe, w.height - 22, z], [fs, w.height - 22, z]));
-    if (cornerDegree(studio, w.a) > 1) body.add(shadeQuad([fs, 0, z], [fs, w.height, z], [fs + 28, w.height, z], [fs + 28, 0, z]));
-    if (cornerDegree(studio, w.b) > 1) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
+    if (isInsideCorner(studio, w, w.a)) body.add(shadeQuad([fs, 0, z], [fs, w.height, z], [fs + 28, w.height, z], [fs + 28, 0, z]));
+    if (isInsideCorner(studio, w, w.b)) body.add(shadeQuad([fe, 0, z], [fe, w.height, z], [fe - 28, w.height, z], [fe - 28, 0, z]));
     const frameM = material(LOOK.frame);
     for (const o of openings) {
       if (isWallUtility(o.kind)) {

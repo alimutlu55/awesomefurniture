@@ -44,7 +44,7 @@ export function doorFacts(input: DrawingInput, wardrobe: number, key: string): D
   const boards = pieceBoards(p, pieces), index = boards.findIndex(b => (b.stock === 'door' || b.stock === 'front') && isFrontBoard(front, b)), board = boards[index];
   const height = (board ? board.y1 : front.y1) - front.y0, materials = resolveMaterials(d);
   const kind = hinge(hingeFor(front, d, front.glass ?? leafGlass(d, leaf), p.sides)), handle = resolveHandle(materials), made = madeStyle({ ...d, materials }, leaf.decorId);
-  const place = handlePlacement({ x0: front.x0, x1: front.x1, y0: front.y0, y1: front.y0 + height, door: true, hinge: front.hinge }, handle);
+  const place = handlePlacement({ x0: front.x0, x1: front.x1, y0: front.y0, y1: front.y0 + height, outline: board?.outline, door: true, hinge: front.hinge }, handle);
   const findings = RULES.flatMap(rule => rule(input, pieces)).filter(f => f.at?.mark === p.mark && f.at.board === index);
   const worst = findings.find(f => f.severity === 'critical') ?? findings[0];
   return {

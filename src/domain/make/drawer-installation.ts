@@ -1,8 +1,14 @@
 import type { Board } from '../drawings/cabinet-boards';
+import { RUNNER_ENTRY } from '../hardware/hardware-registry';
 import type { Fitting, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Vec3 } from './make-measures';
 import type { Playhead, Timeline } from './make-timeline';
+
+const CABINET_MOUNT_FIXING = RUNNER_ENTRY.fixings.find(f => f.target === 'side')!;
+const BOX_MOUNT_FIXING = RUNNER_ENTRY.fixings.find(f => f.target === 'drawer-box')!;
+const FRONT_FIXING = RUNNER_ENTRY.fixings.find(f => f.target === 'front')!;
+const BOX_HOLE_PATTERN = RUNNER_ENTRY.drilling[1]!;
 
 /** Generic side-mounted telescopic runners; positions belong to this modeled system, not a branded drilling template. */
 export function completeDrawerHardware(boards: readonly Board[], fittings: Fitting[], holes: Hole[]) {
@@ -17,15 +23,16 @@ export function completeDrawerHardware(boards: readonly Board[], fittings: Fitti
     // Rail fixing screws enter from inside the cabinet, never through the cabinet's exterior.
     for (const h of cabinetHoles) {
       const of = fittings.length;
-      fittings.push({ kind: 'screw', at: h.at, axis: 0, boards: [h.board], size: '4 × 12', purpose: 'runner-mount' });
-      holes[holes.indexOf(h)] = { ...h, d: 2.5, of };
+      fittings.push({ kind: 'screw', at: h.at, axis: 0, boards: [h.board], size: CABINET_MOUNT_FIXING.size, purpose: CABINET_MOUNT_FIXING.purpose ?? 'runner-mount' });
+      holes[holes.indexOf(h)] = { ...h, d: CABINET_MOUNT_FIXING.pilotHole?.dMm ?? 2.5, of };
     }
+    const edgeInsetCm = BOX_HOLE_PATTERN.lineMm / 10;
     for (const id of moving) {
       const side = boards[id]!, sign = id === left ? 1 : -1;
-      for (const distance of [5, Math.max(8, side.z1 - side.z0 - 5)]) {
+      for (const distance of [edgeInsetCm, Math.max(8, side.z1 - side.z0 - edgeInsetCm)]) {
         const at: Vec3 = [id === left ? side.x0 : side.x1, side.y0 + 3.2, side.z1 - distance], of = fittings.length;
-        fittings.push({ kind: 'screw', at, axis: 0, boards: [id], size: '4 × 12', purpose: 'runner-mount' });
-        holes.push({ board: id, kind: 'runner', at, axis: 0, sign, d: 2.5, depth: 12, of });
+        fittings.push({ kind: 'screw', at, axis: 0, boards: [id], size: BOX_MOUNT_FIXING.size, purpose: BOX_MOUNT_FIXING.purpose ?? 'runner-mount' });
+        holes.push({ board: id, kind: 'runner', at, axis: 0, sign, d: BOX_HOLE_PATTERN.dMm, depth: BOX_HOLE_PATTERN.depthMm, of });
       }
     }
     const front = boards.findIndex(q => q.stock === 'front' && q.x0 <= b.x0 && q.x1 >= boards[right]!.x1 && q.y0 < b.y0 && q.y1 > b.y1);
@@ -35,9 +42,9 @@ export function completeDrawerHardware(boards: readonly Board[], fittings: Fitti
     const e = boards[end]!, f = boards[front]!;
     for (const x of [e.x0 + (e.x1 - e.x0) * .2, e.x0 + (e.x1 - e.x0) * .8]) {
       const at: Vec3 = [x, (e.y0 + e.y1) / 2, e.z0], of = fittings.length;
-      fittings.push({ kind: 'screw', at, axis: 2, boards: [end, front], size: '4 × 30', purpose: 'drawer-front' });
+      fittings.push({ kind: 'screw', at, axis: 2, boards: [end, front], size: FRONT_FIXING.size, purpose: FRONT_FIXING.purpose ?? 'drawer-front' });
       holes.push({ board: end, kind: 'screw', at, axis: 2, sign: 1, d: 4, depth: 0, of },
-        { board: front, kind: 'pilot', at: [x, at[1], f.z0], axis: 2, sign: 1, d: 2.5, depth: 12, of });
+        { board: front, kind: 'pilot', at: [x, at[1], f.z0], axis: 2, sign: 1, d: FRONT_FIXING.pilotHole?.dMm ?? 2.5, depth: FRONT_FIXING.pilotHole?.depthMm ?? 12, of });
     }
   }
 }
@@ -54,10 +61,21 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
     const length = Number(runner?.size) / 10 || motion.by / .7;
     if (ph.t < s.end) return [0, 0, (length + 8) * (1 - ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0])))];
   }
+  if (b.name === 'Cargo front' && install >= 0 && ph.t < tl.steps[install]!.end) {
+    const s=tl.steps[install]!,length=Number(drawerRunnerForBoard(piece,board)?.size)/10;
+    return [0,0,(length+10)*(1-ease((ph.t-s.place[0])/Math.max(.001,s.place[1]-s.place[0])))];
+  }
   if (piece.steps[ph.step]?.stage === 'fronts') {
-    const s = tl.steps[ph.step]!, opening = ease((ph.t - s.drill[0]) / Math.max(.001, s.drill[1] - s.drill[0]));
-    const closing = ease((ph.t - s.fix[1]) / Math.max(.001, s.end - s.fix[1]));
-    return [0, 0, motion.by * opening * (1 - closing)];
+    const s = tl.steps[ph.step]!;
+    if (ph.t < s.place[0]) return [0, 0, 0];
+    if (ph.t < s.place[1]) {
+      const opening = ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0]));
+      return [0, 0, motion.by * opening];
+    }
+    if (ph.t <= s.fix[1]) return [0, 0, motion.by];
+    const closeSpan = s.adjust[1] > s.adjust[0] ? Math.min(1.2, (s.end - s.fix[1]) * .35) : s.end - s.fix[1];
+    const closing = ease((ph.t - s.fix[1]) / Math.max(.001, closeSpan));
+    return [0, 0, motion.by * (1 - closing)];
   }
   if (test < 0 || ph.step !== test) return [0, 0, 0];
   const s = tl.steps[test]!, runners = piece.fittings.filter(f => f.runner), own = runners.indexOf(drawerRunnerForBoard(piece, board)!);
@@ -72,7 +90,8 @@ export function drawerRunnerForBoard(piece: MakePiece, board: number): Fitting |
   const b = piece.boards[board]!;
   return piece.fittings.find(f => {
     if (!f.runner) return false;
-    const left = piece.boards[f.runner.moving[0]!]!, right = piece.boards[f.runner.moving[1]!]!;
+    if (f.runner.moving.includes(board)) return true;
+    const left = piece.boards[f.runner.moving[0]!]!, right = piece.boards[f.runner.moving[1]!] ?? left;
     return b.note === 'drawer box'
       ? b.x0 >= left.x0 - .01 && b.x1 <= right.x1 + .01 && b.y0 >= left.y0 - .61 && b.y1 <= left.y1 + .01
       : b.stock === 'front' && b.x0 <= left.x0 && b.x1 >= right.x1 && b.y0 <= left.y0 && b.y1 >= left.y1;

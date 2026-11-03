@@ -34,6 +34,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 
 | Change | Place |
 |---|---|
+| New piece of furniture hardware (runners, hinges, handles, rails, pins, connectors, legs, plinth clips, brackets, sliding tracks, kitchen mechanisms) | One entry in `src/domain/hardware/` and `HARDWARE` in `src/domain/hardware/hardware-registry.ts`; shared 3D builders in `src/presentation/viewport/hardware.ts`. See [docs/adding-hardware.md](docs/adding-hardware.md) |
 | New fitting kind, purpose, or a rule shared by several kinds (trait) | One entry in `src/domain/wardrobe/fittings.ts` / `purposes.ts`. See [docs/adding-a-fitting.md](docs/adding-a-fitting.md) |
 | Something that differs between wardrobes and kitchen cabinets (limits, allowed fittings, toolbar, duplicate) | The furniture module: `src/domain/furniture/`, `wardrobe/wardrobe-module.ts`, `kitchen/kitchen-module.ts`. See [docs/furniture.md](docs/furniture.md) |
 | Kitchen units, presets, runs (worktop, plinth), pull-to-array | `src/domain/kitchen/`, `application/commands/kitchen-commands.ts`, `presentation/editor/kitchen-*.ts`. See [docs/furniture.md](docs/furniture.md) |
@@ -56,8 +57,8 @@ Details: [docs/architecture.md](docs/architecture.md).
 | The welcome, assembly animation, moods (looks, time of day), fit reveal | `src/presentation/experience/` and `viewport/assembly-motion.ts`, `scene-looks.ts`, `daylight.ts`, `workshop-lens.ts`. Never saved in a project. See [docs/experience.md](docs/experience.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
-Never copy registry contents (kind names, possession keys, purpose labels, furniture kinds, kitchen
-units, fixture kinds, credit prices) into another file. Ask the registry: `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
+Never copy registry contents (hardware keys, kind names, possession keys, purpose labels, furniture kinds, kitchen
+units, fixture kinds, credit prices) into another file. Ask the registry: `HARDWARE` / `hardware(key)`, `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
 `PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`, `CREDIT_FEATURES` / `CREDIT_PACKS`.
 
 ## Guards that must stay green
@@ -65,7 +66,7 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `FITTI
 - **Golden tests** (`tests/architecture/golden.test.ts`) lock Auto design proposals, layout,
   cost, stats and Add item output for six wardrobes. A refactor must not change them. For an
   intended change, re-record and explain the change in the commit.
-- **Registry tests** (`fittings.test.ts`, `possessions.test.ts`) walk every entry through every
+- **Registry tests** (`hardware.test.ts`, `fittings.test.ts`, `possessions.test.ts`) walk every entry through every
   place that uses it. A new entry that is missing something fails with the step named.
 - **Baseline hashes** (`tests/fixtures/editor-baseline.json`) lock `wardrobe-planner.js`,
   `editor.html` and `editor.css`. When you change one of those files on purpose, refresh the hash

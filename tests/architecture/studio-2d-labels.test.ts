@@ -41,7 +41,7 @@ for (const zoom of [.25, .55, 1.2, 2.5]) {
   });
 }
 
-test('dimension badges shrink with the plan when zooming out and stop growing when zooming in', () => {
+test('dimension text shrinks with the plan when zooming out and stop growing when zooming in', () => {
   const studio = createStudio('wall');
   const values = [.15, .3, .6, 1, 2.5].map(zoom => layoutPlanLabels({ studio, wardrobes: [],
     transform: { width: 1440, height: 900, panX: 0, panZ: 0, zoom }, selection: null }).find(l => l.wallId === 'w1')!);
@@ -64,7 +64,7 @@ test('crowded labels are omitted instead of covering the drawing; geometry conta
   const markup = renderPlanLabels(layoutPlanLabels({ studio, wardrobes: [], transform, selection: { kind: 'wall', id: 'w1' } }));
   assert.ok(!markup.includes('data-edit-wall'), 'labels have no edit action');
   assert.ok(!markup.includes('role="button"'), 'labels are not buttons');
-  assert.ok(markup.includes('sp2d-dimension-leader'), 'a short line identifies the measured wall');
+  assert.ok(markup.includes('sp2d-dimension-line'), 'dimension lines identify the measured wall');
 });
 
 test('polygon collision checks leave the empty corners of diagonal footprints usable', () => {

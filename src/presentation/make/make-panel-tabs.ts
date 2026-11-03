@@ -1,3 +1,4 @@
+import { CARGO_MECHANISM_ENTRY, hardware } from '../../domain/hardware/hardware-registry';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { STOCK } from '../../domain/make/make-cut-layout';
@@ -24,6 +25,29 @@ export const fittingIcon = (kind: FittingKind) => `<svg class="make-ico" viewBox
 /** A size as sold: millimetres when it is a bare number ("550 mm"), as written otherwise ("7 × 50", "110°"). */
 export const sold = (size?: string) => !size ? '' : /^\d+$/.test(size) ? size + ' mm' : size.replace(/^(\d[\d ×.]*)$/, '$1 mm');
 
+/** Formats hardware items into readable titles and dimensions for buy lists, tables, and chips. */
+export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name: string; size: string } {
+  if (b.size?.includes('cargo frame') || (b.kind === 'support' && b.size?.includes('cargo'))) {
+    const v = CARGO_MECHANISM_ENTRY.variants?.find(x => x.key === 'frame');
+    return { name: v?.name ?? 'Cargo pull-out frame', size: 'steel chassis + 4 slide brackets (2–3 pręt)' };
+  }
+  if (b.size?.includes('cargo basket')) {
+    const style = b.size.includes('solid') ? 'solid Arena' : 'wire';
+    return { name: `Cargo ${style} basket`, size: 'clip-on basket + Separator divider' };
+  }
+  if ((b.kind === 'bracket' || b.kind === 'plate') && b.size?.includes('cargo')) {
+    return { name: 'Cargo front bracket', size: '103.5×36.5 mm 3D + GTV move' };
+  }
+  if (b.kind === 'screw' && b.size === 'M4 × 6') {
+    const v = CARGO_MECHANISM_ENTRY.variants?.find(x => x.key === 'slide-lock');
+    return { name: v?.name ?? 'Slide locking screw', size: 'M4 × 6 mm machine screw' };
+  }
+  if (b.kind === 'runner' && b.size) {
+    return { name: 'Full-extension runners', size: `${b.size} mm soft-close pair` };
+  }
+  return { name: FITTING_NAMES[b.kind] ?? hardware(b.kind)?.display.listLine.label ?? b.kind, size: sold(b.size) };
+}
+
 export const TABS = [['parts', 'Parts'], ['hardware', 'Hardware'], ['cutting', 'Cutting']] as const;
 export type PanelTab = typeof TABS[number][0];
 export const tabsHtml = (tab: PanelTab) => `<div class="unit-seg make-tabs" role="group" aria-label="Show">${TABS
@@ -48,15 +72,18 @@ export function hardwareTab(piece: MakePiece) {
   return seg('Joints', 'joints', JOINT_SYSTEMS, JOINT_LABELS, piece.construction.joints)
     + seg('Back', 'back', BACK_FIXINGS, BACK_LABELS, piece.construction.back)
     + `<div class="make-rows">${checks}</div>`
-    + `<div class="make-rows">${piece.buy.map(b => `<button type="button" class="make-row make-buy" data-hardware="${b.kind}" data-size="${esc(b.size ?? '')}" title="View assembly stages">`
-      + `${fittingIcon(b.kind)}<span class="make-name">${FITTING_NAMES[b.kind]}`
-      + `${b.size ? ` <small translate="no">${esc(sold(b.size))}</small>` : ''}</span><b>×${b.qty}</b></button>`).join('')}</div>`;
+    + `<div class="make-rows">${piece.buy.map(b => {
+      const disp = hardwareDisplay(b);
+      return `<button type="button" class="make-row make-buy" data-hardware="${b.kind}" data-size="${esc(b.size ?? '')}" title="View assembly stages">`
+        + `${fittingIcon(b.kind)}<span class="make-name">${esc(disp.name)}`
+        + `${disp.size ? ` <small translate="no">${esc(disp.size)}</small>` : ''}</span><b>×${b.qty}</b></button>`;
+    }).join('')}</div>`;
 }
 
 /** What each step does, as its chapter is called. */
 export const STAGE_NAMES: Record<Stage, string> = {
   plinth: 'Plinth', carcass: 'Base and sides', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Inside',
-  'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount runners', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel',
+  'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount runners', 'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel',
   fronts: 'Fronts', doors: 'Doors', wall: 'Fix to the wall',
 };
 /** Every stock sheet, its parts drawn on it to scale and numbered, how much of it is used; then the banding to buy. */

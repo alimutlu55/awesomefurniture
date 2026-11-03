@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { STUDIO_TEMPLATES, createStudio } from '../../src/domain/studio/studio-templates';
-import { STUDIO_DEFAULTS, studioBounds, wallBox, wallLine, type Studio } from '../../src/domain/studio/studio';
+import {
+  STUDIO_DEFAULTS, isInsideCorner, isTurningCorner, studioBounds, wallBox, wallExtent, wallLine, type Studio,
+} from '../../src/domain/studio/studio';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import {
   addOpening, addWall, extendFromCorner, moveCorner, moveOpening, moveWall, removeOpening, removeWall,
@@ -131,4 +133,27 @@ test('moving a wall leaves doors and windows where they are in the room', () => 
   assert.equal(short.openings[0]!.offset, 45, '40 cm along would put its edge off the wall; 45 keeps the 5 cm margin');
   assert.deepEqual(studioProblems(short), ['This window is wider than its wall. Make it narrower or the wall longer.'], 'the door fits; the 120 cm window on the opposite 112 cm wall does not');
   assert.match(studioProblems(moveWall(studio, 'w1', 280)!).join(), /wider than its wall/, 'an 82 cm wall cannot hold the 80 cm door');
+});
+
+test('collinear wall splits and extensions do not add turning extents or inside corner shading', () => {
+  const bedroom = createStudio('bedroom');
+  const split = splitWall(bedroom, 'w1', 200)!;
+  const w1 = split.walls.find(w => w.id === 'w1')!;
+  const w5 = split.walls.find(w => w.id === 'w5')!;
+  const midCorner = w1.b;
+
+  assert.equal(isTurningCorner(split, w1, w1.a), true, 'outer corner w1.a turns');
+  assert.equal(isTurningCorner(split, w1, midCorner), false, 'shared seam w1.b is collinear');
+  assert.equal(isTurningCorner(split, w5, midCorner), false, 'shared seam w5.a is collinear');
+  assert.equal(isTurningCorner(split, w5, w5.b), true, 'outer corner w5.b turns');
+
+  assert.equal(isInsideCorner(split, w1, w1.a), true, 'room corner w1.a has contact shade');
+  assert.equal(isInsideCorner(split, w1, midCorner), false, 'collinear seam w1.b has NO contact shade');
+  assert.equal(isInsideCorner(split, w5, midCorner), false, 'collinear seam w5.a has NO contact shade');
+  assert.equal(isInsideCorner(split, w5, w5.b), true, 'room corner w5.b has contact shade');
+
+  const ext1 = wallExtent(split, w1, 200);
+  const ext5 = wallExtent(split, w5, 200);
+  assert.equal(ext1.end, 200, 'w1 ends exactly at 200 at collinear joint without extending into w5');
+  assert.equal(ext5.start, 0, 'w5 starts exactly at 0 at collinear joint without extending into w1');
 });

@@ -125,7 +125,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
    * 100°), a drawer slides out on its runners. */
   function place() {
-    if (film) { carry(film); fittings.motion(); return; }
+    if (film) { carry(film); fittings.motion(film.nudge); return; }
     for (const b of boards) {
       const at = b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
       let turn = 0;
@@ -194,7 +194,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         const middle = new THREE.Vector3((board.x0 + board.x1) / 2 - piece.size.w / 2, (board.y0 + board.y1) / 2, (board.z0 + board.z1) / 2 - piece.size.d / 2);
         boards.push({ part, board, index: part.ids[k]!, face, edges, rest: centre, apart: apartOffset(board, piece.size, top), motion, pivot, centre: middle });
       });
-      visibility.build(boards);
+      visibility.build(boards.map(b => ({ index: b.index, face: b.face, rest: b.rest, stock: b.board.stock })));
       const byIndex = new Map(boards.map(b => [b.index, b]));
       fittings.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);
       play.build(piece, i => byIndex.get(i)?.face, i => byIndex.get(i)?.rest ?? new THREE.Vector3(), group);

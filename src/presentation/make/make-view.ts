@@ -115,7 +115,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const part = st.piece.parts.find(p => p.n === st.selected), showPart = st.panel === 'part' && !!part;
     panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : 'Parts';
     panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart;
-    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts) };
+    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts, undefined, band) };
     panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : pieceTabs(shown);
     filming();
   }
@@ -324,7 +324,7 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (t.closest('.make-back')) { st.selected = null; make3d.setSelected(null); showPanel('list'); }
     else if (t.closest<HTMLElement>('[data-finding]')) showFinding(Number(t.closest<HTMLElement>('[data-finding]')!.dataset.finding));
     else if (row) select(Number(row.dataset.n));
-    else if (bandButton) { band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
+    else if (bandButton) { st.cut = null; band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
     else if (stepBy) step(Number(stepBy.dataset.step));
     else if (t.closest('[data-set]')) ports.openDrawings();
     else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); }
@@ -356,7 +356,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (!piece || !await ports.pay() || st.piece !== piece) return;
     const title = ports.scene().wardrobes.find(c => c.id === st.id)?.name || 'Piece', name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
     const blob = kind === 'pdf'
-      ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts) }).buffer as ArrayBuffer], { type: 'application/pdf' })
+      ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts, undefined, band) }).buffer as ArrayBuffer], { type: 'application/pdf' })
       : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
     await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
   }

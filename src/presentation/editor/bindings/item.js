@@ -59,7 +59,16 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
     if (align?.insertAdjacentHTML && !$('#pop3')?.querySelector?.('#ihinge')) {
         align.insertAdjacentHTML('afterend', '<div class="pr door-hang" id="ihinge" role="group" aria-label="Door handle and hinge side" hidden><span>Handle side</span><div class="door-hang-seg">'
             + '<button type="button" data-hinge="right" title="Handle on the left · hinges on the right">Left</button>'
-            + '<button type="button" data-hinge="left" title="Handle on the right · hinges on the left">Right</button></div></div>');
+            + '<button type="button" data-hinge="left" title="Handle on the right · hinges on the left">Right</button></div></div>'
+            + '<div class="pr cargo-custom" id="icargo" role="group" aria-label="Cargo customization" hidden>'
+            + '<div class="cargo-row" id="icargo-tiers" style="display:flex;align-items:center;justify-content:space-between;margin:8px 0"><span>Tiers</span><div class="door-hang-seg" id="icargo-tiers-btns"></div></div>'
+            + '<div class="cargo-row" id="icargo-style" style="display:flex;align-items:center;justify-content:space-between;margin:8px 0"><span>Baskets</span><div class="door-hang-seg">'
+            + '<button type="button" data-basket-style="wire" title="Classic chrome wire baskets with Separatory dividers">Wire</button>'
+            + '<button type="button" data-basket-style="solid" title="Solid base with metal gallery railing">Solid</button></div></div>'
+            + '<div class="cargo-row" id="icargo-mount" style="display:flex;align-items:center;justify-content:space-between;margin:8px 0"><span>Mount</span><div class="door-hang-seg">'
+            + '<button type="button" data-cargo-mount="left" title="Side-mount slides on left panel (374 mm spacing)">Left</button>'
+            + '<button type="button" data-cargo-mount="right" title="Side-mount slides on right panel (374 mm spacing)">Right</button>'
+            + '<button type="button" data-cargo-mount="bottom" title="Bottom-mounted slides">Bottom</button></div></div></div>');
     }
     lifetime.listen($('#pop3'), 'click', e => {
         const b = e.target.closest(dom.selector('button'));
@@ -78,6 +87,15 @@ export function bindItemPanel({ dom, interactions, inspector, selectionState, ge
         }
         else if (d.hinge === 'left' || d.hinge === 'right') {
             commands.editItem(i, j, { hinge: d.hinge });
+        }
+        else if (d.tiers !== undefined) {
+            commands.editItem(i, j, { tiers: Number(d.tiers) });
+        }
+        else if (d.basketStyle === 'wire' || d.basketStyle === 'solid') {
+            commands.editItem(i, j, { basketStyle: d.basketStyle });
+        }
+        else if (d.cargoMount === 'left' || d.cargoMount === 'right' || d.cargoMount === 'bottom') {
+            commands.editItem(i, j, { cargoMount: d.cargoMount });
         }
         else if (d.t) {
             commands.editItem(i, j, { kind: d.t });

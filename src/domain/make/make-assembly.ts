@@ -1,4 +1,7 @@
+import { boreMaterial } from './bore-material';
 import type { Board } from '../drawings/cabinet-boards';
+import { hardware, resolveAssemblyStages } from '../hardware/hardware-registry';
+import type { AssemblyStage } from '../hardware/hardware-types';
 import { type Axis, type Fitting, type FittingKind, type Hole, type HoleKind, hi, lo } from './make-joints';
 import { thinAxis, tiltOf } from './make-measures';
 
@@ -13,14 +16,25 @@ export function flatFrame(b: Board): { along: Axis; across: Axis; thin: Axis } {
   const along = others.reduce((m, a) => Math.abs(e[a]! - b.cut.length) < Math.abs(e[m]! - b.cut.length) ? a : m, others[0]!);
   return { along, across: others.find(a => a !== along)!, thin };
 }
-/** Millimetres to the tenth, settled first so arithmetic noise never splits a half (35.2499… and 35.2500… are one place). */
-const tenths = (mm: number) => Math.round(Math.round(mm * 1e5) / 1e4) / 10;
+/** The cut face in the same length/width axes used for drilling, centimetres. */
+export function flatOutline(b: Board): { x: number; y: number }[] {
+  if (b.outline && thinAxis(b) === 'z') {
+    const { along, across } = flatFrame(b), origin = lo(b);
+    return b.outline.map(p => {
+      const at = [p.x, p.y, b.z0];
+      return { x: at[along]! - origin[along], y: at[across]! - origin[across] };
+    });
+  }
+  return [{ x: 0, y: 0 }, { x: b.cut.length, y: 0 }, { x: b.cut.length, y: b.cut.width }, { x: 0, y: b.cut.width }];
+}
+
 /** A board's holes as marked on it lying flat. */
 export function flatHoles(b: Board, holes: readonly Hole[]): FlatHole[] {
   const { along, across, thin } = flatFrame(b), tilt = tiltOf(b), slope = tilt ? b.cut.length / (hi(b)[along] - lo(b)[along]) : 1;
   return holes.map(h => {
     // On a sloped top a hole's place along the board is measured along the slope.
-    const u = tenths((h.at[along] - lo(b)[along]) * slope * 10), v = tenths((h.at[across] - lo(b)[across]) * 10);
+    const settle = (v: number) => Number(v.toPrecision(12));
+    const u = settle((h.at[along] - lo(b)[along]) * slope * 10), v = settle((h.at[across] - lo(b)[across]) * 10);
     const face = h.axis === thin ? (h.sign < 0 ? '+' : '-') : h.axis === along ? (h.sign > 0 ? 'u0' : 'u1') : (h.sign > 0 ? 'v0' : 'v1');
     return { kind: h.kind, u, v, d: h.d, depth: h.depth, face };
   });
@@ -31,7 +45,7 @@ export function flatHoles(b: Board, holes: readonly Hole[]): FlatHole[] {
  * that would move a banded edge (one long edge banded, say) is not allowed, so a handed carcass side stays handed.
  */
 export function drillingSignature(b: Board, holes: readonly Hole[]): string {
-  const flat = flatHoles(b, holes), L = Math.round(b.cut.length * 100) / 10, W = Math.round(b.cut.width * 100) / 10, band = bandCounts(b.edges);
+  const flat = flatHoles(b, holes), L = b.cut.length * 10, W = b.cut.width * 10, band = bandCounts(b.edges);
   const swap: Record<FlatHole['face'], FlatHole['face']> = { '+': '-', '-': '+', u0: 'u1', u1: 'u0', v0: 'v1', v1: 'v0' };
   // Turns: end for end (u and v flip, same face up), over along its length (v flips), over across it (u flips).
   const turns = [[false, false, false], [true, true, false], [false, true, true], [true, false, true]] as const;
@@ -41,17 +55,17 @@ export function drillingSignature(b: Board, holes: readonly Hole[]): string {
     if (over && (face === '+' || face === '-')) face = swap[face];
     if (flipU && (face === 'u0' || face === 'u1')) face = swap[face];
     if (flipV && (face === 'v0' || face === 'v1')) face = swap[face];
-    const u = Math.round((flipU ? L - h.u : h.u) * 10) / 10, v = Math.round((flipV ? W - h.v : h.v) * 10) / 10;
-    return `${h.kind}${h.depth === 0 && (face === '+' || face === '-') ? '±' : face}${h.d}@${u},${v}`;
+    const u = Number((flipU ? L - h.u : h.u).toPrecision(12)), v = Number((flipV ? W - h.v : h.v).toPrecision(12));
+    return `${h.kind}${h.depth === 0 && (face === '+' || face === '-') ? '±' : face}${h.d}/${h.depth}@${u},${v}`;
   }).sort().join(' ');
   return turns.filter(([u, v]) => keep(u, v)).map(([u, v, over]) => sign(u, v, over)).sort()[0]!;
 }
 const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 0), short: Number(/W(\d)/.exec(code)?.[1] ?? 0) });
 
 /** One step of putting the piece together: the boards it adds and the hardware that holds them. */
-/** What a step does, in the order a maker works. */
-export const STAGES = ['plinth', 'carcass', 'partitions', 'top', 'back', 'inside', 'drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'drawer-test', 'doors', 'wall'] as const;
-export type Stage = typeof STAGES[number];
+/** What a step does, in the order resolved from each stage's prerequisites in the hardware registry. */
+export const STAGES: readonly AssemblyStage[] = resolveAssemblyStages();
+export type Stage = AssemblyStage;
 export interface Step {
   readonly n: number;
   readonly stage: Stage;
@@ -86,15 +100,20 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   };
   const steps = boards.map(stepOf);
   const fittingStep = (f: Fitting, i: number): Stage => {
-    if (f.kind === 'leg') return 'plinth';
-    if (f.kind === 'bracket' || f.kind === 'hanger') return 'wall';
-    if (f.kind === 'rail' || f.kind === 'support') return 'inside';
-    if (f.kind === 'runner' || f.purpose === 'runner-mount') return 'drawer-runners';
-    if (f.purpose === 'drawer-front') return 'fronts';
+    if (f.purpose === 'cargo-lock') return 'drawers';
+    if (f.purpose === 'runner-mount') return 'drawer-runners';
+    if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing') return 'fronts';
+    if (f.size?.includes('cargo')) {
+      return f.kind === 'rail' ? 'cargo-baskets' : f.kind === 'support' ? 'cargo-frame' : 'fronts';
+    }
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
+    const hw = hardware(f.kind);
+    if (hw && !hw.assembly.fittedFirst && !['connector', 'fixing', 'hinge', 'handle'].includes(hw.category)) {
+      return hw.assembly.stage;
+    }
     return STAGES[Math.max(0, ...f.boards.map(b => STAGES.indexOf(steps[b]!)))]!;
   };
-  const out: Step[] = [], hasDrawers = fittings.some(f => f.runner);
+  const out: Step[] = [], hasDrawers = fittings.some(f => f.runner || f.kind === 'runner');
   for (const stage of STAGES) {
     const mine = boards.map((_, i) => i).filter(i => steps[i] === stage);
     const held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
@@ -129,10 +148,11 @@ export function drillingChecks(boards: readonly Board[], holes: readonly Hole[])
   boards.forEach((board, i) => {
     const mine = flatHoles(board, holes.filter(h => h.board === i)), L = board.cut.length * 10, W = board.cut.width * 10, T = board.cut.thickness * 10;
     const onFace = (h: FlatHole) => h.face === '+' || h.face === '-';
+    holes.filter(h=>h.board===i).forEach((h,k)=>{for(const f of boreMaterial(board,h)) out.push({board:i,a:mine[k]!,...f});});
     for (const h of mine.filter(onFace)) {
       const edge = Math.min(h.u, L - h.u, h.v, W - h.v) - h.d / 2;
-      if (edge < 3 && h.kind !== 'connector' && h.kind !== 'screw') out.push({ board: i, kind: 'edge', a: h, gap: Math.round(edge * 10) / 10 });
-      if (h.depth > 0 && h.depth > T - 2.5) out.push({ board: i, kind: 'breakout', a: h, gap: Math.round((T - h.depth) * 10) / 10 });
+      if (edge < 3 && h.kind !== 'connector' && h.kind !== 'screw' && !out.some(f => f.board === i && f.a === h && f.kind === 'edge')) out.push({ board: i, kind: 'edge', a: h, gap: Math.round(edge * 10) / 10 });
+      if (h.depth > 0 && h.depth > T - 2.5 && !out.some(f => f.board === i && f.a === h && f.kind === 'breakout')) out.push({ board: i, kind: 'breakout', a: h, gap: Math.round((T - h.depth) * 10) / 10 });
     }
     for (let p = 0; p < mine.length; p++) for (let q = p + 1; q < mine.length; q++) {
       const a = mine[p]!, b = mine[q]!;

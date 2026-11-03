@@ -1,28 +1,47 @@
+import { makePlacedPiece } from '../make/make-parts';
+import {
+  APPLIANCE_KIT_ENTRY,
+  BOLT_ENTRY,
+  CABINET_HANGER_ENTRY,
+  CAM_ENTRY,
+  CARGO_MECHANISM_ENTRY,
+  CONFIRMAT_ENTRY,
+  DOWEL_ENTRY,
+  HANDLE_ENTRY,
+  HINGE_ENTRY,
+  LEG_ENTRY,
+  NAIL_ENTRY,
+  PLATE_ENTRY,
+  PUSH_TO_OPEN_ENTRY,
+  RAIL_ENTRY,
+  RAIL_SUPPORT_ENTRY,
+  RUNNER_ENTRY,
+  SCREW_ENTRY,
+  SHELF_BRACKET_ENTRY,
+  SHELF_PIN_ENTRY,
+  VENT_GRILLE_ENTRY,
+  WALL_BRACKET_ENTRY,
+} from '../hardware/hardware-registry';
+import { HINGES } from '../wardrobe/hinges';
+import type { FittingKind } from '../make/make-joints';
 import { ventilationGrille } from '../kitchen/ventilation';
-import { plinthOf } from '../wardrobe/carcass';
 import { resolveMaterials } from '../materials/configured-materials';
-import { getDecor } from '../materials/decor-catalog';
-import { drawerExtension } from '../wardrobe/drawer-runners';
-import { hinge, hingeFor, hingesFor } from '../wardrobe/hinges';
 import { handleLabel, resolveHandle } from '../wardrobe/handles';
 import { madeStyle } from '../wardrobe/front-styles';
 import { fitting, FITTING_HARDWARE, type FittingHardware } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { kitchenUnit, installationKind } from '../kitchen/kitchen-units';
+import { installationKind } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
 import { mm, ROWS_PER_SHEET, type Table } from './drawing';
-import { innerFrontBehindDoor, isFrontBoard, piecefronts, type Front } from './fronts';
-import type { Board } from './cabinet-boards';
-import { pieceBoards } from './unit-detail';
+import { innerFrontBehindDoor, piecefronts } from './fronts';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
 
+const BRACKET_MAX_SPACING = SHELF_BRACKET_ENTRY.rules.maxSpacingMm ?? 800;
 /** A wall shelf's brackets: one at each end, one more every 800 mm. */
-const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / 800);
+const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / BRACKET_MAX_SPACING);
 
 interface Line { item: string; size: string; qty: number; marks: string[] }
-/** A door's height: its cut board's (a door up to a sloped or flat top is cut to it), else the front's own. */
-const doorHeight = (f: Front, boards: readonly Board[]) => { const b = boards.find(x => (x.stock === 'door' || x.stock === 'front') && isFrontBoard(f, x)); return (b ? b.y1 : f.y1) - f.y0; };
 
 /**
  * The hardware list: every hinge, runner, rail, fitting and handle the pieces need, added up across the job, with the
@@ -39,52 +58,83 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
   };
   for (const p of pieces) {
     const d = p.design;
-    if (p.fixture === 'shelf') { add(p, 'Shelf bracket', 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
+    if (p.fixture === 'shelf') { add(p, SHELF_BRACKET_ENTRY.display.listLine.label, 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
     if (p.fixture || installationKind(d)) continue;
     const vent = ventilationGrille(d);
-    if (vent) add(p, 'Ventilation grille', mm(vent.width) + ' × ' + mm(vent.height) + ' overall; confirm cut-out/free area', 1);
-    const kitchen = isKitchen(d), unit = kitchen ? kitchenUnit(d.unit) : null;
-    const boards = pieceBoards(p, pieces);
+    if (vent) add(p, VENT_GRILLE_ENTRY.display.listLine.label, mm(vent.width) + ' × ' + mm(vent.height) + ' overall; ' + VENT_GRILLE_ENTRY.display.listLine.defaultSpec, 1);
+    const kitchen = isKitchen(d);
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
-      if (f.opens === 'side' && !f.label) {
-        const glass = f.glass ?? getDecor(resolveMaterials(d).frontDecorId).category === 'glass_mirror', kind = hinge(hingeFor(f, d, glass, p.sides));
-        add(p, kind.name, kind.cup ? kind.cup.d + ' mm cup' : 'compatible with frame/carrier; no cup drilling in glass', hingesFor(mm(doorHeight(f, boards))));
-      }
-      if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, 'Appliance door fixing kit', 'with the appliance', 1);
+      if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, APPLIANCE_KIT_ENTRY.display.listLine.label, APPLIANCE_KIT_ENTRY.display.listLine.defaultSpec, 1);
       // A handle-rail door is its own grip: its profile, as long as the door is wide, in place of a handle.
       if (f.opens === 'side' && !f.label && madeStyle({ ...d, materials: resolveMaterials(d) }, f.decorId).grip) { add(p, 'Handle rail profile', mm(f.x1 - f.x0) + ' mm long', 1); continue; }
       const handle = resolveHandle(resolveMaterials(d));
-      if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
-      else add(p, 'Handle', handleLabel(handle), 1);
+      if (handle.none) add(p, PUSH_TO_OPEN_ENTRY.display.listLine.label, PUSH_TO_OPEN_ENTRY.display.listLine.defaultSpec, 1);
+
     }
     // Fittings: what each is built with, sized to its place.
     const editing = { ...d, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing);
-    const runner = mm(drawerExtension(d.d));
     geometry.widths().forEach((_, i) => geometry.computeLayout(i).forEach((pos, j) => {
       const it = d.secs[i]![j]!;
       // A drawer's own front takes a handle, unless it is behind closed doors (a finger grip, D4).
       if (!kitchen && fitting(it.k)?.innerFront && !innerFrontBehindDoor(d, it)) {
         const handle = resolveHandle(resolveMaterials(d));
-        if (handle.none) add(p, 'Push-to-open mechanism', 'compatible with hinge/runner; 2mm shadow gaps', 1);
-        else add(p, 'Handle', handleLabel(handle), 1);
+        if (handle.none) add(p, PUSH_TO_OPEN_ENTRY.display.listLine.label, PUSH_TO_OPEN_ENTRY.display.listLine.defaultSpec, 1);
+
       }
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {
-        if (h === 'runners') add(p, 'Drawer runners, full extension, pair', runner + ' mm', 1);
-        else if (h === 'rail') { add(p, 'Hanging rail, oval', mm(pos.w) - 4 + ' mm long', 1); add(p, 'Rail end support', 'oval rail', 2); }
-        else if (h === 'shelfSupports') continue;
+        if (h === 'runners' || h === 'rail' || h === 'shelfSupports') continue;
         else add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
       }
     }));
-    const shelves = boards.filter(b => b.note === 'adjustable').length;
-    add(p, 'Shelf support', '5 mm pin', 4 * shelves);
-    if (unit?.plinth && plinthOf(d) > 0) add(p, 'Adjustable leg', 'for ' + mm(plinthOf(d)) + ' plinth', 4);
-    if (p.hung) add(p, 'Cabinet hanger, adjustable', 'pair', 1);
-    if (!kitchen || (unit && !unit.worktop && unit.plinth)) add(p, 'Wall fixing bracket', 'anti-tip', 2);
+    const names: Record<FittingKind, string> = {
+      confirmat: CONFIRMAT_ENTRY.display.listLine.label,
+      cam: CAM_ENTRY.display.listLine.label,
+      bolt: BOLT_ENTRY.display.listLine.label,
+      dowel: DOWEL_ENTRY.display.listLine.label,
+      screw: SCREW_ENTRY.display.listLine.label,
+      nail: NAIL_ENTRY.display.listLine.label,
+      pin: SHELF_PIN_ENTRY.display.listLine.label,
+      hinge: HINGE_ENTRY.display.listLine.label,
+      plate: PLATE_ENTRY.display.listLine.label,
+      runner: `${RUNNER_ENTRY.display.listLine.label}, full extension, ${RUNNER_ENTRY.display.listLine.unit}`,
+      handle: HANDLE_ENTRY.display.listLine.label,
+      rail: RAIL_ENTRY.display.listLine.label,
+      support: RAIL_SUPPORT_ENTRY.display.listLine.label,
+      leg: LEG_ENTRY.display.listLine.label,
+      hanger: CABINET_HANGER_ENTRY.display.listLine.label,
+      bracket: WALL_BRACKET_ENTRY.display.listLine.label,
+    };
+    for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
+      const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;
+      const size = line.kind === 'handle' ? handleLabel(resolveHandle(resolveMaterials(d)))
+        : def ? def.cup ? def.cup.d+' mm cup' : 'compatible with frame/carrier; no cup drilling in glass' : line.kind==='runner' ? line.size+' mm' : line.size ?? '';
+      let name = def?.name ?? names[line.kind];
+      let itemSize = size;
+      const cargoVariant = (key: string) => CARGO_MECHANISM_ENTRY.variants?.find(v => v.key === key);
+      if (line.size?.includes('cargo frame') || (line.kind === 'support' && line.size?.includes('cargo'))) {
+        const v = cargoVariant('frame')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
+      } else if (line.size?.includes('cargo basket')) {
+        const v = cargoVariant(line.size.includes('solid') ? 'solid-basket' : 'wire-basket')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
+      } else if ((line.kind === 'bracket' || line.kind === 'plate') && line.size?.includes('cargo')) {
+        const v = cargoVariant('front-bracket')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
+      } else if (line.kind === 'screw' && line.size === 'M4 × 6') {
+        const v = cargoVariant('locking-screw')!;
+        name = v.name;
+        itemSize = v.sizeLabel;
+      }
+      add(p, name, itemSize, line.qty);
+    }
   }
   const body = lines.map(l => [l.item, l.size, String(l.qty), l.marks.join(', ')]);
   const notes = ['Quantities follow common practice (hinges by door height: up to 900 mm two, 1600 mm three, 2000 mm four, above five). Check against your hardware maker\'s guide.',
-    'Runner length is the longest standard length that fits the clear depth less 10 mm. Screws, connectors and edge banding are not listed.'];
+    'Modeled fittings, screws and connectors come from the construction schedule. Proprietary kits require the manufacturer template; edge banding is listed separately.'];
   const pages: Table[] = [];
   for (let k = 0; k < Math.max(1, body.length); k += ROWS_PER_SHEET) {
     pages.push({ columns: ['Item', 'Size', 'Qty', 'For'], rows: body.slice(k, k + ROWS_PER_SHEET), numeric: [2], notes: k + ROWS_PER_SHEET >= body.length ? notes : ['Continued on the next sheet.'] });

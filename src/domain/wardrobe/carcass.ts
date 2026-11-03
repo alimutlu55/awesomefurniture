@@ -1,3 +1,6 @@
+import { constructionOf, type Construction } from '../make/make-construction';
+import { HINGE_ENTRY } from '../hardware/hinges-hardware';
+import { RAIL_ENTRY, SHELF_PIN_ENTRY } from '../hardware/rails-supports-hardware';
 import { PANEL, PLINTH } from './catalog.js';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 
@@ -6,15 +9,21 @@ import { kitchenUnit } from '../kitchen/kitchen-units';
  * Height: the plinth (PLINTH) carries the base board (PANEL); the clear interior starts on the base
  * board at PLINTH + PANEL and ends under the top boards (their vertical thickness grows with the slope,
  * see shapeBoards). Width: two side panels and one PANEL-thick partition between bays (sectionWidths).
- * Depth, back to front: the back board (BACK_PANEL) sits between the sides; partitions and the base
- * board run from its face to PARTITION_SETBACK behind the front edge; shelves and fittings stop
- * FITTING_SETBACK behind it, so a door closes clear of them. No board runs into another. */
+ * Depth, back to front: the 6 mm back engages explicit rebates or grooves in surrounding stock.
+ * Grooves have a 6 mm rear lip. The base reaches the rear and stops PARTITION_SETBACK behind the
+ * front; shelves start at backFaceOf and stop FITTING_SETBACK behind the front, plus door intrusion.
+ * Intentional back/stock intersections are removed by recorded machining. */
 export const BACK_PANEL = .6;
+export const BACK_REAR_LIP = .6;
+export const backFaceOf = (design: { construction?: Partial<Construction> | undefined }) => BACK_PANEL + (constructionOf(design).back === 'grooved' ? BACK_REAR_LIP : 0);
 export const PARTITION_SETBACK = .5;
 export const FITTING_SETBACK = 1.4;
+const RAW_SHELF_SPAN = typeof SHELF_PIN_ENTRY.rules.maxSpanMm === 'object' ? SHELF_PIN_ENTRY.rules.maxSpanMm : { 18: 800, 25: 1000 };
 /** The longest clear span between supports a shelf carries without bowing (decision D2), by board thickness: millimetres
  * of thickness to centimetres of span. */
-export const SHELF_SPAN: Readonly<Record<number, number>> = { 18: 80, 25: 100 };
+export const SHELF_SPAN: Readonly<Record<number, number>> = Object.fromEntries(
+  Object.entries(RAW_SHELF_SPAN).map(([thickMm, spanMm]) => [Number(thickMm), spanMm / 10]),
+);
 /** The span for a board `thickness` centimetres thick: the thickest listed board it is at least as thick as, or the
  * thinnest listed one. Centimetres. */
 export function shelfSpanFor(thickness: number): number {
@@ -22,7 +31,7 @@ export function shelfSpanFor(thickness: number): number {
   return SHELF_SPAN[[...listed].reverse().find(t => t <= mm) ?? listed[0]!]!;
 }
 /** The clear fitting depth a side-facing hanging rail needs for clothes on hangers (decision D3). Centimetres. */
-export const MIN_HANGING_DEPTH = 53;
+export const MIN_HANGING_DEPTH = (RAIL_ENTRY.rules.minCarcassDepthMm ?? 530) / 10;
 /** Height of the base board's top face: where the clear interior starts. */
 export const INTERIOR_FLOOR = PLINTH + PANEL;
 /** The plinth under a carcass: 8 cm, except for a unit that hangs on a wall (a kitchen wall unit), whose bottom board is
@@ -34,13 +43,13 @@ export const interiorFloorOf = (design: { product?: string | undefined; unit?: s
 
 /** A board running from the back board's face to `setback` behind the front edge of a cabinet `d` deep.
  * `z0`/`z1` are measured from the back (z = 0); `centre` is cabinet-centred, as the renderer places boards. */
-export function boardDepth(d: number, setback: number) {
-  const z0 = BACK_PANEL, z1 = d - setback;
+export function boardDepth(d: number, setback: number, rearFace = BACK_PANEL) {
+  const z0 = rearFace, z1 = d - setback;
   return { z0, z1, depth: z1 - z0, centre: (z0 + z1) / 2 - d / 2 };
 }
 /** Shelves, fitting boards and the space a fitting may use. `inside` is depth the closed doors take from inside the
  * carcass (inset doors: door-layout.ts frontInside). */
-export const fittingDepth = (d: number, inside = 0) => boardDepth(d, FITTING_SETBACK + inside);
+export const fittingDepth = (d: number, inside = 0, rearFace = BACK_PANEL) => boardDepth(d, FITTING_SETBACK + inside, rearFace);
 /** A drawer's own front inside the carcass (behind any doors): PANEL thick, its face INNER_FRONT_GAP behind the front
  * edge, and 5 mm short of its space top and bottom, so stacked drawers show a 1 cm line between them. The board over or
  * under a drawer stops 1 mm behind that front, which closes over its edge: the deeper shelf line would run into it. */
@@ -49,8 +58,10 @@ export function innerFront(d: number, y0: number, h: number, inside = 0) {
   const z1 = d - INNER_FRONT_GAP - inside, z0 = z1 - PANEL;
   return { y0: y0 + .5, y1: y0 + h - .5, z0, z1, centre: (z0 + z1) / 2 - d / 2 };
 }
-export const besideInnerFrontDepth = (d: number, inside = 0) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1 + inside);
+export const besideInnerFrontDepth = (d: number, inside = 0, rearFace = BACK_PANEL) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1 + inside, rearFace);
 /** Partitions between bays and the base board. */
+export const partitionDepthOf = (design: { d: number; construction?: Partial<Construction> | undefined }) =>
+  boardDepth(design.d, PARTITION_SETBACK, constructionOf(design).back === 'grooved' ? 0 : BACK_PANEL);
 export const partitionDepth = (d: number) => boardDepth(d, PARTITION_SETBACK);
 /** Clear depth inside the carcass, from the back board to the front edge. */
 export const interiorDepth = (d: number) => d - BACK_PANEL;
@@ -60,9 +71,12 @@ export const depthForFitting = (usable: number) => usable + BACK_PANEL + FITTING
 /** A wardrobe door leaf hung over the carcass: its thickness when no decor says otherwise, and how far its middle stands
  * in front of the carcass's front edges. The gaps round it are its fronts' reveal (front-styles.ts, door-layout.ts).
  * Centimetres. */
-export const DOOR = { thickness: 1.6, standoff: 1.2 } as const;
+export const DOOR = {
+  thickness: (HINGE_ENTRY.rules.boardThicknessMm.min ?? 16) / 10,
+  standoff: (HINGE_ENTRY.rules.clearanceMm.standoff ?? 12) / 10,
+} as const;
 
 /** A hanging rail: its centre sits RAIL_DROP below the top of the fitting's clear space, so hanger hooks
  * clear the board above; garments hang from RAIL_RADIUS below the centre. */
-export const RAIL_DROP = 6;
-export const RAIL_RADIUS = 1.2;
+export const RAIL_DROP = (RAIL_ENTRY.rules.clearanceMm.topDrop ?? 60) / 10;
+export const RAIL_RADIUS = (RAIL_ENTRY.rules.clearanceMm.side ?? 12) / 10;

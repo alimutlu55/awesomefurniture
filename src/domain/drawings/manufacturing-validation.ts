@@ -1,3 +1,4 @@
+import { makePlacedPiece } from '../make/make-parts';
 import { installationSolid, localSolid } from '../kitchen/installation-parts';
 import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
 import { studioObstacles } from '../studio/studio-obstacles';
@@ -109,6 +110,11 @@ function assemblyFindings(pieces: readonly PlacedPiece[]): ManufacturingFinding[
   for (const p of pieces) {
     if (p.fixture) continue;
     const boards = pieceBoards(p, pieces), { w, h } = p.design;
+    const shape = p.design.shape;
+    const rearDifference = Math.max(0, ...(shape?.back ?? []).map((y, i) => Math.abs(y - (shape?.top[i]?.y ?? y)) * 10));
+    if (rearDifference > 1e-8) out.push({ id: 'compound-roof:' + p.mark, severity: 'critical', area: 'assembly', marks: [p.mark],
+      message: p.mark + ': front-to-back roof variation has no complete stock and machining model',
+      rule: 'Every roof surface must be represented by the construction before manufacture', limit: 0, measured: rearDifference });
     boards.forEach((b, i) => {
       const { length, width, thickness } = b.cut;
       if (!finite(length, width, thickness, b.x0, b.x1, b.y0, b.y1) || length < .1 || width < .1 || thickness < .1)
@@ -152,7 +158,7 @@ export function listFindings(pieces: readonly PlacedPiece[], list: readonly Tabl
   for (const p of pieces) {
     if (p.fixture === 'sink' || p.fixture === 'hob') continue;
     const model = new Map<string, number>();
-    for (const b of pieceBoards(p, pieces)) model.set(b.name, (model.get(b.name) ?? 0) + 1);
+    for (const b of makePlacedPiece(p, pieces)?.boards ?? []) model.set(b.name, (model.get(b.name) ?? 0) + 1);
     for (const [part, boards] of model) {
       const count = listed.get(key(p.mark, part)) ?? 0;
       if (count !== boards) out.push({ id: 'list:' + p.mark + ':' + part, severity: 'critical', area: 'export', marks: [p.mark],

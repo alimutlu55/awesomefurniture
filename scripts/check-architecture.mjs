@@ -7,7 +7,9 @@
 //      Give the kinds a trait in src/domain/wardrobe/fittings.ts and ask hasTrait(k, trait).
 //   4. No hand-written list of possessions, e.g. ['short','long','pants'].
 //      Use POSSESSION_KEYS / POSSESSIONS from src/domain/wardrobe/possessions.ts.
-//   5. The domain layer has no HTML or UI copy markup. Build markup in src/presentation.
+//   5. No hand-written list of hardware kinds, e.g. ['confirmat','cam','dowel','hinge'].includes(k).
+//      Use HARDWARE, hardware(key), or hardwareByCategory(category) from src/domain/hardware/hardware-registry.ts.
+//   6. The domain layer has no HTML or UI copy markup. Build markup in src/presentation.
 //
 // Older code that predates a rule is listed in scripts/architecture-baseline.json with its current
 // count. A listed file may never get worse; when you improve it, lower or remove its entry. Never
@@ -19,7 +21,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 const MAX_LINES = 400, MAX_LINE = 240;
-const ROOT = 'src', REGISTRY_FILES = new Set(['src/domain/wardrobe/fittings.ts', 'src/domain/wardrobe/possessions.ts', 'src/domain/wardrobe/purposes.ts']);
+const ROOT = 'src', REGISTRY_FILES = new Set(['src/domain/wardrobe/fittings.ts', 'src/domain/wardrobe/possessions.ts', 'src/domain/wardrobe/purposes.ts', 'src/domain/make/make-construction.ts']);
 const baseline = JSON.parse(readFileSync('scripts/architecture-baseline.json', 'utf8'));
 const report = process.argv.includes('--report');
 
@@ -29,13 +31,17 @@ const files = (function walk(dir) {
 
 const kinds = [...readFileSync('src/domain/wardrobe/fittings.ts', 'utf8').matchAll(/^ {2}\{ key: '([a-z]+)'/gm)].map(m => m[1]);
 const possessions = [...readFileSync('src/domain/wardrobe/possessions.ts', 'utf8').matchAll(/key: '([a-z]+)', label:/g)].map(m => m[1]);
-if (kinds.length < 5 || possessions.length < 5) throw new Error('Could not read the registries; update the patterns in check-architecture.mjs.');
+const hardwareKeys = readdirSync('src/domain/hardware')
+  .filter(f => f.endsWith('.ts'))
+  .flatMap(f => [...readFileSync(join('src/domain/hardware', f), 'utf8').matchAll(/^ {2}key: '([a-zA-Z]+)'/gm)].map(m => m[1]));
+if (kinds.length < 5 || possessions.length < 5 || hardwareKeys.length < 15) throw new Error('Could not read the registries; update the patterns in check-architecture.mjs.');
 
 const RULES = {
   fileLines: { what: `files longer than ${MAX_LINES} lines`, fix: 'Split the file by concern.' },
   longLines: { what: `lines longer than ${MAX_LINE} characters`, fix: 'Break the line up and name its parts.' },
   kindLists: { what: 'hand-written lists of fitting kinds', fix: 'Give the kinds a trait in src/domain/wardrobe/fittings.ts and use hasTrait(kind, trait).' },
   possessionLists: { what: 'hand-written lists of possessions', fix: 'Use POSSESSION_KEYS or POSSESSIONS from src/domain/wardrobe/possessions.ts.' },
+  hardwareLists: { what: 'hand-written lists of hardware kinds', fix: 'Use HARDWARE, hardware(key), or hardwareByCategory(category) from src/domain/hardware/hardware-registry.ts.' },
   domainMarkup: { what: 'HTML markup in the domain layer', fix: 'Build markup in src/presentation; the domain returns data.' },
 };
 
@@ -45,14 +51,16 @@ function measure(file) {
   if (lines.length > MAX_LINES) add('fileLines', lines.length, `${lines.length} lines`);
   lines.forEach((l, i) => { if (l.length > MAX_LINE) add('longLines', i + 1, `${l.length} characters`); });
   const at = index => text.slice(0, index).split('\n').length;
-  if (!REGISTRY_FILES.has(file)) {
-    for (const m of text.matchAll(/\[(\s*'[a-z]+'\s*(?:,\s*'[a-z]+'\s*)+)\]\.includes\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)) {
-      const items = [...m[1].matchAll(/'([a-z]+)'/g)].map(x => x[1]);
+  if (!REGISTRY_FILES.has(file) && !file.startsWith('src/domain/hardware/')) {
+    for (const m of text.matchAll(/\[(\s*'[a-zA-Z]+'\s*(?:,\s*'[a-zA-Z]+'\s*)+)\]\.includes\(([^()]*(?:\([^()]*\))?[^()]*)\)/g)) {
+      const items = [...m[1].matchAll(/'([a-zA-Z]+)'/g)].map(x => x[1]);
       if (items.length >= 2 && items.every(i => kinds.includes(i)) && /(^|\.)k!?$|kind$|^k$/.test(m[2].trim())) add('kindLists', at(m.index), `[${items}]`);
+      if (items.length >= 2 && items.every(i => hardwareKeys.includes(i))) add('hardwareLists', at(m.index), `[${items}]`);
     }
-    for (const m of text.matchAll(/\[(\s*'[a-z]+'\s*(?:,\s*'[a-z]+'\s*){2,})\]/g)) {
-      const items = [...m[1].matchAll(/'([a-z]+)'/g)].map(x => x[1]);
+    for (const m of text.matchAll(/\[(\s*'[a-zA-Z]+'\s*(?:,\s*'[a-zA-Z]+'\s*){2,})\]/g)) {
+      const items = [...m[1].matchAll(/'([a-zA-Z]+)'/g)].map(x => x[1]);
       if (items.filter(i => possessions.includes(i)).length >= 4 && items.every(i => possessions.includes(i))) add('possessionLists', at(m.index), `[${items}]`);
+      if (items.length >= 3 && items.every(i => hardwareKeys.includes(i))) add('hardwareLists', at(m.index), `[${items}]`);
     }
   }
   if (file.startsWith('src/domain/')) for (const m of text.matchAll(/['"`][^'"`\n]*<(?:b|i|svg|span|div|small|strong|br)\b[^'"`\n]*['"`]/g)) add('domainMarkup', at(m.index), m[0].slice(0, 60));

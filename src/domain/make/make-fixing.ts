@@ -1,13 +1,18 @@
+import { DOWEL_ENTRY, HARDWARE } from '../hardware/hardware-registry';
 import type { FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Measure, Vec3 } from './make-measures';
 
 /** How far from its hole a fastener waits (centimetres) before it goes in, along the dashed line it goes in by. */
 export const WAIT = 10;
+const DOWEL_EDGE_DEPTH = DOWEL_ENTRY.drilling[1]!.depthMm;
 /** Hardware put in before the boards it joins come together, into a board lying on the floor or one already standing:
- * a cam's bolt into the face board, dowels into a board's end, a hinge's cup into the back of its door laid face down,
- * a hinge's plate onto the side panel the door will hang from. */
-export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(['bolt', 'dowel', 'hinge', 'plate']);
+ * declared by `assembly.phase` (`before-place` or `lying-before-place` without `fittedFirst`) in the hardware registry. */
+export const FITTED_BEFORE: ReadonlySet<FittingKind> = new Set(
+  HARDWARE.filter(h => !h.assembly.fittedFirst && (h.assembly.phase === 'before-place' || h.assembly.phase === 'lying-before-place')).map(
+    h => h.key as FittingKind,
+  ),
+);
 
 /** Where a fitting goes in: the point it ends at (a screw's head at the hole's mouth), the way it travels (a unit
  * vector, into the board) and the board it goes in through (null for hardware standing on its own). */
@@ -25,19 +30,21 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
   // The back is nailed from behind, into whichever board it covers: through the board furthest back.
   const back = () => f.boards[0] ?? null;
   switch (f.kind) {
-    case 'confirmat': case 'screw': return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner'));
+    case 'confirmat': case 'screw':
+      if (f.purpose === 'cargo-lock') return { at: f.at, dir: [0, -1, 0], board: null };
+      return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner' || h.kind === 'pilot'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
     case 'bolt': return through(mine.find(h => h.kind === 'bolt'));
-    case 'dowel': return through(mine.find(h => h.depth === 25) ?? mine[0], f.at);
+    case 'dowel': return through(mine.find(h => h.depth === DOWEL_EDGE_DEPTH) ?? mine[0], f.at);
     case 'pin': return through(mine[2] ?? mine[0], f.at);
     case 'nail': return { at: f.at, dir: unit(f.axis, 1), board: back() };
     case 'hinge': return { at: f.at, dir: [0, 0, 1], board: first };
-    case 'plate': return { at: f.at, dir: unit(0, mine[0]?.sign ?? 1), board: first };
+    case 'plate': return { at: f.at, dir: f.size?.includes('cargo') ? [0, 0, 1] : unit(0, mine[0]?.sign ?? 1), board: first };
     case 'handle': return { at: f.at, dir: [0, 0, -1], board: first };
     // Legs are stood on the floor first and the base set down on them.
     case 'leg': return { at: f.at, dir: [0, 1, 0], board: null };
     case 'hanger': case 'bracket': return { at: f.at, dir: [0, 0, 1], board: null };
-    case 'rail': case 'support': return { at: f.at, dir: [0, 0, -1], board: null };
+    case 'rail': case 'support': return f.size?.includes('cargo') ? null : { at: f.at, dir: [0, 0, -1], board: null };
     case 'runner': return null;
   }
 }
@@ -78,19 +85,30 @@ function places(items: readonly number[], at: (i: number) => Vec3) {
   return out;
 }
 
-/** The gaps a door is adjusted to, as measurements on the front: between neighbouring doors, and over a door with no
- * neighbour, to the top of the piece. Centimetres; Make draws them while the doors chapter adjusts. */
+/** The gaps a door or 3D-adjusted cargo front is set to, as measurements on the front: between neighbouring doors, and over a
+ * door or cargo front with no neighbour, to the top of the piece. Centimetres; Make draws them while adjusting. */
 export function doorGaps(piece: MakePiece): Measure[] {
-  const doors = piece.boards.filter(b => b.stock === 'door'), top = Math.max(...piece.boards.map(b => b.y1)), out: Measure[] = [];
+  const doors = piece.boards.filter(b => b.stock === 'door' || b.name === 'Cargo front');
+  const top = Math.max(...piece.boards.map(b => b.y1)), out: Measure[] = [];
   for (const a of doors) {
     const next = doors.filter(b => b.x0 >= a.x1 - .01 && b.x0 - a.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0).sort((p, q) => p.x0 - q.x0)[0];
     const z = Math.max(a.z1, next?.z1 ?? a.z1);
     if (next) {
       const y = (Math.max(a.y0, next.y0) + Math.min(a.y1, next.y1)) / 2;
       out.push({ rank: 1, a: [a.x1, y, z], b: [next.x0, y, z], offset: [0, 6, 0], length: next.x0 - a.x1, face: [0, 0, 1] });
-    } else if (!doors.some(b => b.x1 <= a.x0 + .01 && a.x0 - b.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0) && top - a.y1 < 1) {
+    } else if (!doors.some(b => b.x1 <= a.x0 + .01 && a.x0 - b.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0) && top - a.y1 < 1 && top - a.y1 > 0.02) {
       const x = (a.x0 + a.x1) / 2;
       out.push({ rank: 1, a: [x, a.y1, z], b: [x, top, z], offset: [6, 0, 0], length: top - a.y1, face: [0, 0, 1] });
+    }
+    if (a.name === 'Cargo front') {
+      const yMid = (a.y0 + a.y1) / 2;
+      if (a.x0 > 0.02 && a.x0 < 1) {
+        out.push({ rank: 1, a: [0, yMid, z], b: [a.x0, yMid, z], offset: [0, 6, 0], length: a.x0, face: [0, 0, 1] });
+      }
+      if (top - a.y1 >= 0.02 && top - a.y1 < 3 && !out.some(m => Math.abs(m.a[1] - a.y1) < 0.1)) {
+        const x = (a.x0 + a.x1) / 2;
+        out.push({ rank: 1, a: [x, a.y1, z], b: [x, top, z], offset: [6, 0, 0], length: top - a.y1, face: [0, 0, 1] });
+      }
     }
   }
   return out;

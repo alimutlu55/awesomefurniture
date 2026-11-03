@@ -52,8 +52,7 @@ test('hinges, runners, rails, shelf pins and handles are counted as the drawing 
   for (const [name, design] of Object.entries(designs)) {
     const y = name === 'upper' ? 142 : 0, mp = make(design, y);
     // Under a slope a door's hinges go only as high as the upright it hangs from.
-    if (name === 'sloped') assert.ok(qty(mp, 'hinge') <= listed(design, /hinge/i, y), `${name}: hinges`);
-    else assert.equal(qty(mp, 'hinge'), listed(design, /hinge/i, y), `${name}: hinges`);
+    assert.equal(qty(mp, 'hinge'), listed(design, /hinge/i, y), `${name}: hinges`);
     assert.equal(qty(mp, 'plate'), qty(mp, 'hinge'), `${name}: a plate for every hinge`);
     assert.equal(qty(mp, 'runner'), listed(design, /^Drawer runners/, y), `${name}: runner pairs`);
     assert.equal(qty(mp, 'rail'), listed(design, /^Hanging rail/, y), `${name}: rails`);
@@ -185,7 +184,8 @@ test('the cut layout puts every board on a stock sheet once, inside the trim and
       sheet.parts.forEach((a, i) => {
         assert.ok(a.x >= STOCK.trim && a.y >= STOCK.trim && a.x + a.l <= STOCK.length - STOCK.trim && a.y + a.w <= STOCK.width - STOCK.trim, `${name}: part ${a.n} inside`);
         const part = mp.parts.find(p => p.n === a.n)!;
-        assert.equal(a.l * a.w, Math.round(part.cut.length * 10) * Math.round(part.cut.width * 10), `${name}: part ${a.n} at its size`);
+        assert.ok(Math.abs(a.l - (a.turned ? part.cut.width : part.cut.length) * 10) < 1e-8, `${name}: exact length of part ${a.n}`);
+        assert.ok(Math.abs(a.w - (a.turned ? part.cut.length : part.cut.width) * 10) < 1e-8, `${name}: exact width of part ${a.n}`);
         assert.equal(Math.round(part.cut.thickness * 10), sheet.thickness, `${name}: part ${a.n} on its own thickness`);
         for (const b of sheet.parts.slice(i + 1)) {
           const apart = a.x + a.l + STOCK.kerf <= b.x || b.x + b.l + STOCK.kerf <= a.x || a.y + a.w + STOCK.kerf <= b.y || b.y + b.w + STOCK.kerf <= a.y;

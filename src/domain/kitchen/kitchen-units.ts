@@ -1,3 +1,5 @@
+import { LEG_ENTRY } from '../hardware/hardware-registry';
+
 /**
  * Kitchen units: the modular boxes a kitchen is built from. Base units stand on the floor under a
  * shared worktop and plinth; wall units hang above the worktop; tall units stand from floor to top.
@@ -60,7 +62,7 @@ export const kitchenUnit = (key: string | undefined): KitchenUnitDef =>
 
 /** Worktop thickness, its overhang at the front, and the plinth's setback from the front. */
 export const WORKTOP = { thickness: 4, overhang: 2 } as const;
-export const KITCHEN_PLINTH_SETBACK = 6;
+export const KITCHEN_PLINTH_SETBACK = (LEG_ENTRY.rules.clearanceMm.frontSetback ?? 60) / 10;
 
 export const installationKind = (design: { product?: string | undefined; unit?: string | undefined }) =>
   design.product === 'kitchen' ? kitchenUnit(design.unit).installation : undefined;

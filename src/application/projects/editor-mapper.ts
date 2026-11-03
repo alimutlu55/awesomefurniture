@@ -14,6 +14,19 @@ import { savedFronts } from '../../domain/wardrobe/front-styles';
 
 /** A fitting saved without a purpose takes its kind's starting purpose from the fittings registry. */
 const purposeOf = (k: EditorItem['k']): StoragePurpose => MODS[k].purpose;
+const toCanonical = (it: EditorItem, pos: { w: number; x0: number; y0: number }, id: string) => ({
+  id, kind: it.k, purpose: it.purpose ?? purposeOf(it.k), width: pos.w, height: it.h,
+  x: pos.x0, y: pos.y0, frontFacing: it.front ?? false, boxes: it.boxes ?? null,
+  tiers: it.tiers ?? null, basketStyle: it.basketStyle ?? null, cargoMount: it.cargoMount ?? null,
+  editorItem: structuredClone(it),
+});
+const fromCanonical = (it: any) => it.editorItem ? structuredClone(it.editorItem) : ({
+  k: it.kind, h: it.height, w: it.width, x: it.x, y: it.y, purpose: it.purpose, front: it.frontFacing,
+  ...(it.boxes === null ? {} : { boxes: it.boxes }),
+  ...(it.tiers ? { tiers: it.tiers } : {}),
+  ...(it.basketStyle ? { basketStyle: it.basketStyle } : {}),
+  ...(it.cargoMount ? { cargoMount: it.cargoMount } : {}),
+});
 
 export function sceneToProject(project: ProjectDocument, scene: EditorScene): ProjectDocument {
  const {studio: _previousStudio,maxReach: _previousReach,...base}=project;
@@ -45,7 +58,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    sections:widths.map((width,i)=>{
     const positions=WardrobePlanner.layoutSection(s.secs[i]!,width);
     return {id:`${prefix}/section/${i}`,width,
-     items:s.secs[i]!.map((it,j)=>({id:it.id??`${prefix}/section/${i}/item/${j}`,kind:it.k,purpose:it.purpose??purposeOf(it.k),width:positions[j]!.w,height:it.h,x:positions[j]!.x0,y:positions[j]!.y0,frontFacing:it.front??false,boxes:it.boxes??null,editorItem:structuredClone(it)})),
+     items:s.secs[i]!.map((it,j)=>toCanonical(it,positions[j]!,it.id??`${prefix}/section/${i}/item/${j}`)),
      dividers:s.dividers.filter(d=>d.i===i).map((d,j)=>({
       id:d.id??`${prefix}/section/${i}/divider/${j}`,orientation:d.orientation,
       x:d.orientation==='horizontal'?d.x0!:d.x!-PANEL/2,
@@ -73,7 +86,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
  const wardrobes=project.wardrobes.map((w,index)=>{
   const layout=w.editorLayout;
   const {budget: _budget,...profile}=w.preferences;
-  const secs=w.sections.map(s=>s.items.map(it=>it.editorItem?structuredClone(it.editorItem):({k:it.kind,h:it.height,w:it.width,x:it.x,y:it.y,purpose:it.purpose,front:it.frontFacing,...(it.boxes===null?{}:{boxes:it.boxes})})));
+  const secs=w.sections.map(s=>s.items.map(fromCanonical));
   while(secs.length<6)secs.push([]);
   const dividers:EditorDivider[]=w.sections.flatMap((s,i)=>s.dividers.map(d=>d.editorDivider?structuredClone(d.editorDivider):d.orientation==='horizontal'?{i,orientation:d.orientation,x0:d.x,x1:d.x+d.length,y:d.y+d.thickness/2}:{i,orientation:d.orientation,x:d.x+d.thickness/2,y0:d.y,y1:d.y+d.length}));
   const state:EditorState={

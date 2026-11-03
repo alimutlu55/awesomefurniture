@@ -8,7 +8,8 @@ import * as THREE from 'three';
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
+import { backFaceOf, besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
+import { drawerExtension, RUNNER_CLEARANCE } from '../../domain/wardrobe/drawer-runners';
 import { frontInside } from '../../domain/wardrobe/door-layout';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
@@ -80,7 +81,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         if (override) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(P, D);
         // A drawer's own front, and the boards over and under it stopping behind that front (carcass.ts).
         const inside = frontInside(getRenderDesign()), front = fitting(k)?.innerFront ? innerFront(d, y, hh, inside) : null;
-        const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d, inside) : fittingDepth(d, inside);
+        const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fittingDepth(d, inside, backFaceOf(design));
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;
         const clears = (x0: number, x1: number, top: number) => !cut || top <= cut.clearAt(x0, x1) + .01;
@@ -97,7 +98,9 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         if (k === 'drawer' || k === 'sdrawer') {
             // An angled front over a rectangular drawer box that runs on standard slides.
             slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf);
-            box(Math.max(4, coreW - 3), Math.max(4, coreH - 6), d - 8, coreX, y + coreH / 2 - 1, -2, D);
+            const boxW = Math.max(4, coreW - 2 * RUNNER_CLEARANCE - .5), boxD = Math.min(d - 8, drawerExtension(d));
+            box(boxW, Math.max(4, coreH - 6), boxD, coreX, y + coreH / 2 - 1, -2, D);
+            for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, coreX + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -2, mh);
             // Behind closed doors a drawer has a finger grip: a handle would reach through the door (D4).
             const handle = resolveHandle(resolveMaterials(design)), pull = innerFrontBehindDoor(getRenderDesign(), it) ? null : handleMesh(handle, sw - .4, mh, false);
             if (pull) {

@@ -1,7 +1,8 @@
+import { assemblyStageSpec } from '../../domain/hardware/hardware-registry';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
 import type { MakePlayer } from './make-player';
-import { FITTING_NAMES, fittingIcon, sold } from './make-panel-tabs';
+import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import { chapterPreview } from './assembly-preview';
 import { unitSuffix } from '../editor/length-unit-state';
 
@@ -9,8 +10,18 @@ const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;
 const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior',
   'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
-  drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+  'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+const cargoNames: Partial<Record<Stage, string>> = {
+  'drawer-runners': 'Mount cargo slides (374 mm spacing)',
+  'cargo-frame': 'Prepare cargo frame & slide brackets',
+  'cargo-baskets': 'Hook on baskets & Separatory dividers',
+  drawers: 'Insert & lock cargo mechanism (M4×6)',
+  fronts: 'Mount, couple & 3D-adjust cargo front',
+  'drawer-test': 'Test 430–450 mm extension & soft-close',
+};
 const instructions: Record<Stage, string> = {
+  'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto basket wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
+  'cargo-baskets': 'Rest each wire basket (Kosz 150/200, max load 15 kg) on its front support, lower the rear hooks onto the frame, and clip the 2 transverse wire dividers (Separatory) downward onto the basket gallery rails.',
   plinth: 'Join the plinth and base supports. Keep the frame square and level.',
   carcass: 'Position the base, then bring the side panels into place. Align the prepared holes before securing the joints.',
   partitions: 'Align each partition with the base. Secure the joints while keeping the panels upright.',
@@ -25,6 +36,20 @@ const instructions: Record<Stage, string> = {
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
+const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
+const cargoInstructions: Partial<Record<Stage, string>> = {
+  'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
+  'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
+  'cargo-baskets': 'Seat each wire basket (Kosz 150/200, max load 15 kg) onto the frame crossbars, then clip the 2 transverse wire dividers (Separatory) downward onto the upper basket gallery rails.',
+  drawers: 'Slide the loaded cargo basket frame onto the lower and upper cabinet slides (374 mm spacing) until the rear hooks engage, '
+    + 'then drive 4 × M4×6 machine screws downward through the 4 slide brackets to lock the frame.',
+  fronts: 'Screw the 2 front fittings (Mocowania frontu 103.5×36.5 mm, covers removed) to the door back with 4×14 mm screws '
+    + '(78 mm horizontal spacing, 374 mm vertical spacing, lower fitting *142 mm from bottom). Couple the door to the frame, '
+    + 'perform 3-axis 3D adjustment (Height ⇅, Side ⇄, Depth ⇕), and snap on the 2 "GTV move" protective covers.',
+  'drawer-test': 'Pull the cargo unit out to full extension (430 mm travel on L=450 mm slides). Verify smooth telescoping travel, '
+    + 'M4×6 bracket lock, Separator divider retention, even 3D-adjusted door reveals, and SLOW soft-close return.',
+};
+const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
 /** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
  * pressed into the doors, plates screwed to the side panel, each door clipped onto its plates, then adjusted. */
 const hanging = {
@@ -99,10 +124,16 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       root.querySelectorAll('[aria-expanded]').forEach(e => e.setAttribute('aria-expanded', 'false'));
       q('.as-duration').textContent = time(player.duration);
       q('.as-markers').innerHTML = player.starts.map(t => `<i style="left:${t / player.duration * 100}%"></i>`).join('');
+      const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
       q('.as-chapter-list').innerHTML = piece.steps.map((step, k) => {
         const preview = chapterPreview(piece, k);
+        const itemNames = step.fittings.map(f => hardwareDisplay(f).name);
+        const extra = itemNames.length > 2 ? ` +${itemNames.length - 2}` : '';
+        const itemPill = itemNames.length
+          ? `<span class="as-chapter-items" style="display:block;font-size:10.5px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(itemNames.slice(0, 2).join(', '))}${extra}</span>`
+          : '';
         return `<button type="button" class="as-chapter" data-studio="chapter" data-value="${k}"><span class="as-preview">${preview}</span>
-          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${names[step.stage]}</b></button>`;
+          <small>${String(k + 1).padStart(2, '0')} · ${time(player.starts[k] ?? 0)}</small><b>${stageName(step.stage, isCargo)}</b>${itemPill}</button>`;
       }).join('');
       wake();
     },
@@ -118,26 +149,42 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       q('[data-studio="mode"]').setAttribute('aria-pressed', String(explore));
       text('[data-studio="mode"] span', explore ? 'Playback' : 'Explore');
       q('[data-studio="reverse"]').setAttribute('aria-pressed', String(player.rate < 0));
+      const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
+      const title = stageName(step.stage, isCargo);
       const play = q('[data-studio="play"]');
       if (play.dataset.playing !== String(player.playing)) { play.dataset.playing = String(player.playing); play.innerHTML = icon(paused ? 'play' : 'pause');
         play.setAttribute('aria-label', paused ? 'Play' : 'Pause'); play.title = paused ? 'Play' : 'Pause'; }
       q<HTMLInputElement>('.as-scrub').value = String(player.time / (player.duration || 1) * 1000);
-      q('.as-scrub').setAttribute('aria-valuetext', `${time(player.time)} of ${time(player.duration)}, ${names[step.stage]}`);
+      q('.as-scrub').setAttribute('aria-valuetext', `${time(player.time)} of ${time(player.duration)}, ${title}`);
       q('.as-track').style.setProperty('--played', `${player.time / (player.duration || 1) * 100}%`);
       text('.as-time', time(player.time));
       text('.as-step-count', `${player.head.step + 1} / ${piece.steps.length}`);
-      text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${names[step.stage]}`);
+      text('.as-step-title', `${String(player.head.step + 1).padStart(2, '0')}. ${title}`);
       root.querySelectorAll<HTMLElement>('.as-chapter').forEach(el => el.setAttribute('aria-current', String(Number(el.dataset.value) === player.head.step)));
+      const fixing = player.fixing(), adjusting = player.adjusting();
+      const phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
+        : adjusting ? 'adjust' : 'complete';
       const drawerCaption = q('.as-drawer-caption');
-      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'drawers'].includes(step.stage);
+      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts', 'drawer-test'].includes(step.stage);
       const captions: Partial<Record<Stage, string>> = {
         'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': 'Outer rail → cabinet · Inner rail → drawer box',
-        drawers: 'Align both rails. Push the supported box evenly into the cabinet.',
+        'drawer-runners': isCargo ? 'Lower slide at min 50 mm · Upper slide +374 mm above · 45 mm front setback (4×14 mm screws).' : 'Outer rail → cabinet · Inner rail → drawer box',
+        'cargo-frame': 'Stand steel chassis outside cabinet · Clip 4 slide brackets onto wires 2–3 and 16–17 (192 mm span).',
+        'cargo-baskets': 'Hook wire baskets (Kosz 150/200, max 15 kg) onto frame · Clip 2 transverse Separatory dividers onto rails.',
+        drawers: isCargo
+          ? (phase === 'fix'
+            ? 'Lock all 4 basket slide brackets (2–3 & 16–17 pręt) to slides from above with 4 × M4×6 machine screws.'
+            : 'Slide loaded cargo frame onto lower & upper slides (374 mm spacing), then lock with 4 × M4×6 screws.')
+          : 'Align both rails. Push the supported box evenly into the cabinet.',
+        fronts: isCargo
+          ? (phase === 'adjust'
+            ? `3D Front Adjustment (REGULACJA): tune ${adjusting?.way === 'height' ? 'Height ⇅ (top screw)' : adjusting?.way === 'side' ? 'Side ⇄ (lateral screws)' : 'Depth ⇕ (clamping screws)'} · Snap on "GTV move" covers.`
+            : phase === 'place' ? 'Couple front fittings onto cargo frame upright tongues · Lock & snap on "GTV move" protective covers.'
+            : 'Screw 2 front fittings (103.5×36.5 mm, 78 mm screw pattern, 374 mm vertical spacing, *142 mm from floor) with 4×14 mm screws.')
+          : 'Align decorative front, then fasten from inside with front-fixing screws.',
+        'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer to check smooth telescoping travel.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
-      const fixing = player.fixing(), phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
-        : player.adjusting() ? 'adjust' : 'complete';
       const hardware = fixing?.hardware ?? step.fittings;
       const key = `${step.n}:${phase}:${JSON.stringify(hardware)}`;
       if (key !== showing) {
@@ -146,13 +193,17 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const kinds = new Set(hardware.map(f => f.kind)), doors = step.stage === 'doors';
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
-          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? instructions[step.stage]
-          : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : instructions[step.stage];
-        const hardwareHtml = hardware.map(f => `<span title="${esc(FITTING_NAMES[f.kind])}">${fittingIcon(f.kind)}<span>${FITTING_NAMES[f.kind]}`
-          + `${f.size ? ` · ${esc(sold(f.size))}` : ''}<b> ×${f.qty}</b></span></span>`).join('');
+          : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
+          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? stageInstruction(step.stage)
+          : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : stageInstruction(step.stage);
+        const hardwareHtml = hardware.map(f => {
+          const disp = hardwareDisplay(f);
+          return `<span title="${esc(disp.name)}">${fittingIcon(f.kind)}<span>${esc(disp.name)}`
+            + `${disp.size ? ` · ${esc(disp.size)}` : ''}<b> ×${f.qty}</b></span></span>`;
+        }).join('');
         const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
-        q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${names[step.stage]}</b>`
+        q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`
           + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>`
           + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`;
       }

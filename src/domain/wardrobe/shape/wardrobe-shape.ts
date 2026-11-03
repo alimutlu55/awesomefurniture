@@ -1,3 +1,5 @@
+import { valueAt } from './ceiling-polyline';
+export { ceilingPolyline } from './ceiling-polyline';
 import { installationKind } from '../../kitchen/kitchen-units';
 import { PANEL, PLINTH } from '../catalog.js';
 import { rearShape, withRear } from './depth-shape';
@@ -151,7 +153,7 @@ export function ceilingPieces(shape: WardrobeShape): CeilingPiece[] {
   });
 }
 
-const valueAt = (p: CeilingPiece, x: number) => p.x1 - p.x0 < EPS ? Math.min(p.y0, p.y1) : p.y0 + (p.y1 - p.y0) * (x - p.x0) / (p.x1 - p.x0);
+
 const overlaps = (p: CeilingPiece, x0: number, x1: number) => x1 - x0 < EPS ? p.x0 <= x0 + EPS && p.x1 >= x0 - EPS : p.x1 > x0 + EPS && p.x0 < x1 - EPS;
 
 /** Lowest underside over a span (exact for linear pieces). */
@@ -175,19 +177,6 @@ export function ceilingMax(pieces: readonly CeilingPiece[], x0: number, x1: numb
     }
   }
   return high;
-}
-
-/** Underside traced left to right, including vertical jumps at steps. */
-export function ceilingPolyline(pieces: readonly CeilingPiece[], x0: number, x1: number): { x: number; y: number }[] {
-  const xs = [...new Set([x0, x1, ...pieces.flatMap(p => [p.x0, p.x1]).filter(x => x > x0 + EPS && x < x1 - EPS)])].sort((a, b) => a - b);
-  const left = (x: number) => ceilingMin(pieces, Math.max(x0, x - 1e-4), x), right = (x: number) => ceilingMin(pieces, x, Math.min(x1, x + 1e-4));
-  const out: { x: number; y: number }[] = [];
-  xs.forEach((x, i) => {
-    const l = i === 0 ? right(x) : left(x), r = i === xs.length - 1 ? left(x) : right(x);
-    out.push({ x, y: l });
-    if (Math.abs(r - l) > 1e-4) out.push({ x, y: r });
-  });
-  return out;
 }
 
 /** Parts of [x0,x1] where the clear height reaches yTop. Exact: breakpoints and

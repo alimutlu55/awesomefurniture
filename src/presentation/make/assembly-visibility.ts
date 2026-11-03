@@ -3,7 +3,7 @@ import type { Vec3 } from '../../domain/make/make-measures';
 
 /** A point on the hardware being demonstrated, before its host board's assembly transform. */
 export interface AssemblyTarget { readonly board: number; readonly at: Vec3 }
-export interface VisibilityBoard { readonly index: number; readonly face: THREE.Mesh; readonly rest: THREE.Vector3 }
+export interface VisibilityBoard { readonly index: number; readonly face: THREE.Mesh; readonly rest: THREE.Vector3; readonly stock?: string }
 
 /** Test the opaque geometry, regardless of its current cutaway material. Otherwise each frame would
  * alternate between seeing a blocker and seeing through the blocker it just made transparent. */
@@ -32,8 +32,12 @@ export function createAssemblyVisibility() {
         const distance = direction.subVectors(point, eye).length();
         if (distance < .1) continue;
         ray.set(eye, direction.normalize()); ray.near = 0; ray.far = distance - .08;
-        // Every panel before the target must be revealed, but panels behind it stay solid.
-        for (const hit of ray.intersectObjects(proxies, false)) blocked.add(hit.object.userData.board as number);
+        // Every panel before the target must be revealed, but panels behind it stay solid. Fronts stay solid.
+        for (const hit of ray.intersectObjects(proxies, false)) {
+          const bIdx = hit.object.userData.board as number;
+          if (byId.get(bIdx)?.stock === 'front') continue;
+          blocked.add(bIdx);
+        }
       }
       return blocked;
     },

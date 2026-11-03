@@ -40,6 +40,7 @@ const editorItem = z.strictObject({
   h: nonnegative, purpose: purposeEnum.optional(),
   w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
   front: z.boolean().optional(), boxes: count.optional(), hinge: z.enum(['left', 'right']).optional(),
+  tiers: count.optional(), basketStyle: z.enum(['wire', 'solid']).optional(), cargoMount: z.enum(['left', 'right', 'bottom']).optional(),
 });
 const area = z.strictObject({x0:nonnegative,x1:positive,y0:nonnegative,y1:positive});
 const editorDivider = z.strictObject({
@@ -72,6 +73,9 @@ const item = z.strictObject({
   y: nonnegative,
   frontFacing: z.boolean(),
   boxes: count.nullable(),
+  tiers: count.nullable().optional(),
+  basketStyle: z.enum(['wire', 'solid']).nullable().optional(),
+  cargoMount: z.enum(['left', 'right', 'bottom']).nullable().optional(),
 });
 const divider = z.strictObject({
   editorDivider: editorDivider.optional(),
@@ -141,7 +145,7 @@ const wardrobe = z.strictObject({
       const hint=it.editorItem;
       if(!hint)return;
       const position=positions[j]!;
-      if((hint.id!==undefined&&hint.id!==it.id) || hint.k!==it.kind || hint.h!==it.height || (hint.purpose!==undefined&&hint.purpose!==it.purpose) || (hint.front??false)!==it.frontFacing || (hint.boxes??null)!==it.boxes || !close(position.w,it.width) || !close(position.x0,it.x) || !close(position.y0,it.y)) fail('Item layout intent disagrees with the canonical item.');
+      if((hint.id!==undefined&&hint.id!==it.id) || hint.k!==it.kind || hint.h!==it.height || (hint.purpose!==undefined&&hint.purpose!==it.purpose) || (hint.front??false)!==it.frontFacing || (hint.boxes??null)!==it.boxes || (hint.tiers??null)!==(it.tiers??null) || (hint.basketStyle??null)!==(it.basketStyle??null) || (hint.cargoMount??null)!==(it.cargoMount??null) || !close(position.w,it.width) || !close(position.x0,it.x) || !close(position.y0,it.y)) fail('Item layout intent disagrees with the canonical item.');
     });
     section.dividers.forEach(d=>{
       const hint=d.editorDivider;

@@ -17,6 +17,7 @@ import { measureNumber, capWord, esc, icon, ICONP, RANKS, unitSuffix } from './e
 import { scoreLayout } from '../../domain/planner/layout-score';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { shapeTemplates, templateArt } from './shape-art';
+import { updateCargoUI } from './cargo-presenter';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./inspector-presenter.ports').CreateInspectorPresenterPorts} ports */
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields }) {
@@ -425,10 +426,10 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
             ihinge.hidden = !hasTrait(it.k, 'sideHandle');
             ihinge.querySelectorAll('[data-hinge]').forEach(b => {
                 const on = b.getAttribute('data-hinge') === side;
-                b.classList.toggle('on', on);
-                b.setAttribute('aria-pressed', String(on));
+                b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
             });
         }
+        updateCargoUI(p, it);
         $('#itype').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === it.k));
         $('#ifin').querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.f || null) === (it.f || null)));
         syncResizeFields(p);

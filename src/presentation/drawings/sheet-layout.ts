@@ -7,7 +7,7 @@ export const TITLE = { w: 170, h: 34 } as const;
 /** Dimension strings: the first stands this far off what it measures, each further row this much further out. */
 export const DIM = { first: 6, row: 7, text: 2.5, gap: 1.5 } as const;
 /** Scales a carpenter's rule reads (1:n), largest drawing first. */
-const SCALES = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500] as const;
+const SCALES = [1, 2, 5, 10, 15, 20, 25, 30, 35, 40, 50, 75, 100, 200, 500] as const;
 /** Height of one row of the list of pieces. */
 export const LIST_ROW = 4.6;
 /** Length of an arrow on paper. */

@@ -32,6 +32,7 @@ const opening = (id: string, wall: string, kind: 'door' | 'window', offset: numb
 export interface StudioTemplate {
   readonly id: string;
   readonly name: string;
+  readonly label?: string;
   readonly description: string;
   readonly build: () => Omit<Studio, 'template'>;
 }
@@ -53,8 +54,13 @@ export const STUDIO_TEMPLATES = [
     },
   },
   {
-    id: 'bedroom', name: 'Bedroom', description: 'A 4 × 3.5 m room with a door and a window',
+    id: 'bedroom', name: 'Rectangle', label: 'Room', description: 'A 4 × 3.5 m room with a door and a window',
     build: () => ({ ...chain(room(400, 350), true), openings: [opening('o1', 'w2', 'door', 290), opening('o2', 'w4', 'window', 180)] }),
+  },
+  {
+    id: 'l-shaped', name: 'L-shaped', label: 'Room', description: 'An L-shaped room with a door and a window',
+    build: () => ({ ...chain([[-256, -6], [256, -6], [256, 244], [56, 244], [56, 444], [-256, 444]], true),
+      openings: [opening('o1', 'w2', 'door', 165), opening('o2', 'w6', 'window', 220)] }),
   },
   {
     // A corridor under a turning staircase (the user's photos): full height at the door, a landing

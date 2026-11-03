@@ -14,10 +14,10 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
       await page.locator('[data-studio-format="2d"]').click();
       const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const read = () => page.locator('.sp2d-svg').evaluate(svg => {
-        const text = svg.querySelector('.sp2d-dim-badge .sp2d-dim-text');
+        const text = svg.querySelector('.sp2d-dimension-label .sp2d-dim-text');
         return { font: Number.parseFloat(getComputedStyle(text).fontSize), zoom: svg.querySelector('[id$="sp2d-world"]').getScreenCTM().a };
       });
-      await page.locator('.sp2d-dim-badge').first().waitFor();
+      await page.locator('.sp2d-dimension-label').first().waitFor();
       await page.mouse.move(width / 2, 440);
       let previous = await read();
       for (let n = 0; n < 6; n++) {
@@ -32,17 +32,15 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
       assert.equal(await page.locator('[data-edit-wall]').count(), 0, 'No label edit actions remain');
       assert.equal(await labels.locator('[role="button"]').count(), 0);
       assert.ok(await labels.evaluateAll(es => es.every(e => getComputedStyle(e).pointerEvents === 'none')));
-      const label = await page.locator('.sp2d-dim-badge').first().boundingBox();
+      const label = await page.locator('.sp2d-dimension-label').first().boundingBox();
       await page.mouse.click(label.x + label.width / 2, label.y + label.height / 2); await frame();
       assert.equal(await page.locator('[data-editor-id="left"]').isVisible(), false, 'Label tap does not open settings');
-      assert.ok(await page.locator('.sp2d-dimension-leader').evaluateAll(es => es.every(e => {
-        const d = Math.hypot(Number(e.getAttribute('x2')) - Number(e.getAttribute('x1')), Number(e.getAttribute('y2')) - Number(e.getAttribute('y1')));
-        return d <= 56;
-      })), 'Dimensions stay close to the measured walls');
+      assert.ok(await page.locator('.sp2d-dimension-line line').count() > 0, 'Architectural dimension lines are visible');
+      assert.equal(await page.locator('.sp2d-dimension-label rect').count(), 0, 'Dimension text has no badge background');
       await page.screenshot({ path: '/tmp/studio-overview-labels-' + width + '.png' });
       for (let n = 0; n < 12; n++) { await page.mouse.wheel(0, -120); await frame(); }
       assert.ok((await read()).font <= 12.01, 'Zooming in cannot make labels oversized');
-      console.log('PASS ' + width + ': proportional overview labels, maximum text size, nearby leaders, no click actions');
+      console.log('PASS ' + width + ': proportional overview labels, maximum text size, dimension lines, no click actions');
       await page.close();
     }
   } finally { await browser.close(); }

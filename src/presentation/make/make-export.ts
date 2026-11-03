@@ -1,3 +1,5 @@
+import { partOperations } from '../../domain/make/part-operations';
+import { flatOutline } from '../../domain/make/make-assembly';
 import { type CutLayout, STOCK } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePart, type MakePiece } from '../../domain/make/make-parts';
 import { thinAxis } from '../../domain/make/make-measures';
@@ -19,15 +21,15 @@ export interface ExportInfo {
   readonly cut: CutLayout;
 }
 
-const mm = (cm: number) => String(Math.round(cm * 100) / 10);
+const mm = (cm: number) => String(Number((cm*10).toPrecision(12)));
 const csvCell = (v: string | number) => /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v);
 
 /** The cut list: one line a part, sizes in millimetres; the cut size has the edge banding taken off. */
 export function cutListCsv(piece: MakePiece, material: (decorId: string) => string, bandMm: number): string {
-  const head = ['Part', 'Name', 'Qty', 'Length mm', 'Width mm', 'Thickness mm', 'Material', 'Edge banding', 'Cut length mm', 'Cut width mm', 'Grain', 'Holes'];
+  const head = ['Part', 'Name', 'Qty', 'Length mm', 'Width mm', 'Thickness mm', 'Material', 'Edge banding', 'Cut length mm', 'Cut width mm', 'Grain', 'Holes', 'Local machining mm'];
   const rows = piece.parts.map(p => {
     const cut = cutWithBand(p, bandMm), holes = drillingSummary(partDrilling(piece, p)).reduce((s, h) => s + h.qty, 0);
-    return [p.n, p.name, p.boards.length, mm(p.cut.length), mm(p.cut.width), mm(p.cut.thickness), material(p.decorId), p.edges, mm(cut.length), mm(cut.width), 'length', holes];
+    return [p.n, p.name, p.boards.length, mm(p.cut.length), mm(p.cut.width), mm(p.cut.thickness), material(p.decorId), p.edges, mm(cut.length), mm(cut.width), 'length', holes, JSON.stringify(partOperations(piece, p))];
   });
   return [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
@@ -53,8 +55,7 @@ function partCell(piece: MakePiece, part: MakePart, info: ExportInfo, x0: number
   const s = Math.min((cw - 22) / L, (ch - 34) / W), fx = x0 + 14, fy = y0 + 20 + W * s, X = (u: number) => fx + u * s, Y = (v: number) => fy - v * s;
   const b = part.boards[0]!, outlined = b.outline && thinAxis(b) === 'z';
   if (outlined) {
-    const ox = Math.min(...b.outline!.map(p => p.x)), oy = Math.min(...b.outline!.map(p => p.y));
-    out.push(shape(b.outline!.map(p => P(X(p.x - ox), Y(p.y - oy))), 'outline', true, 'white'));
+    out.push(shape(flatOutline(b).map(p => P(X(p.x), Y(p.y))), 'outline', true, 'white'));
   } else out.push(box(X(0), Y(W), X(L), Y(0), 'outline', 'white'));
   // Banding: the front long edge (bottom) first, then the far one, then the ends.
   const long = Number(/L(\d)/.exec(part.edges)?.[1] ?? 0), short = Number(/W(\d)/.exec(part.edges)?.[1] ?? 0);

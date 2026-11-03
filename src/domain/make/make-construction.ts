@@ -1,6 +1,6 @@
 /**
- * How a piece is put together, chosen per piece in Make and saved with the design. None of it changes the piece's
- * size or its boards' sizes: it changes how the boards are joined, how the back is held, and what is drilled.
+ * How a piece is put together, chosen per piece in Make and saved with the design. Outside size stays fixed;
+ * back joinery changes the back position, internal board depths and machining.
  */
 export const JOINT_SYSTEMS = ['confirmat', 'cam', 'dowel'] as const;
 export type JointSystem = typeof JOINT_SYSTEMS[number];

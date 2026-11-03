@@ -82,11 +82,11 @@ test('inset leaves sit inside the carcass faces, flush with its front, and the i
 /** Door leaves as each consumer has them: piecefronts, the cut boards and the cutting list (mm), and Make's parts. */
 function leafSizes(state: ReturnType<typeof doors>['state']) {
   const input = { pieces: [{ id: 1, name: 'W', x: 0, y: 0, z: 0, angle: 0, design: state }] }, pieces = placePieces(input);
-  const fronts = piecefronts(state).fronts.filter(f => f.name === 'Door').map(f => Math.round((f.x1 - f.x0) * 10));
+  const fronts = piecefronts(state).fronts.filter(f => f.name === 'Door').map(f => Number(((f.x1 - f.x0) * 10).toPrecision(12)));
   const boards = pieceBoards(pieces[0]!, pieces).filter(b => b.stock === 'door');
-  const cut = boards.map(b => Math.round((b.x1 - b.x0) * 10));
+  const cut = boards.map(b => Number(((b.x1 - b.x0) * 10).toPrecision(12)));
   const list = cuttingList(pieces).flatMap(t => t.rows).filter(r => r[1] === 'Door').flatMap(r => Array(Number(r[2])).fill([Number(r[3]), Number(r[4])]));
-  const make = makePiece(input, 1)!.parts.filter(p => p.stock === 'door').flatMap(p => p.boards.map(() => [Math.round(p.cut.length * 10), Math.round(p.cut.width * 10)]));
+  const make = makePiece(input, 1)!.parts.filter(p => p.stock === 'door').flatMap(p => p.boards.map(() => [Number((p.cut.length * 10).toPrecision(12)), Number((p.cut.width * 10).toPrecision(12))]));
   return { fronts, cut, list, make, boards };
 }
 
@@ -100,7 +100,7 @@ test('reveal and overlay sizes agree in fronts, the cutting list and Make', () =
     assert.deepEqual(widths(sizes.make), [...sizes.fronts].sort(), what + ': Make');
   }
   const inset = leafSizes(twoBays({ overlay: 'inset', reveal: 3 }).state);
-  const pair = Math.round((bay - .6 - .3) / 2 * 10);
+  const pair = Number(((bay - .6 - .3) / 2 * 10).toPrecision(12));
   assert.deepEqual(inset.fronts, [pair, pair, pair, pair], 'inset pairs share the bay less a reveal each side and one between');
 });
 

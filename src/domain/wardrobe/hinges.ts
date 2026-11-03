@@ -1,19 +1,16 @@
 /**
  * Hinges: every kind of concealed hinge a door leaf can hang on, and the one rule for how many a leaf takes and where.
  *
- * THIS IS THE ONLY PLACE THAT DEFINES A HINGE KIND OR COUNTS HINGES. The hardware list, Make (cups, plates, the buy
- * list) and the drawings ask it; never copy its kinds or sizes into another file.
- *
- * Values are generic common practice (decision D5), not a maker's catalogue: System 32, 35 mm cups 22.5 mm from the
- * door's edge, plates on the 37 mm line. Wherever a person reads them they are labelled HINGE_SOURCE.
- *
- * TO ADD A HINGE KIND: append one entry and run `npm test`; tests/architecture/hinges.test.ts walks it everywhere.
+ * Declared in the domain hardware registry (`HINGE_ENTRY`, `PLATE_ENTRY` in `src/domain/hardware/hinges-hardware.ts`).
+ * The hardware list, Make (cups, plates, the buy list) and the drawings ask it; never copy its kinds or sizes into
+ * another file.
  */
+import { HINGE_ENTRY, PLATE_ENTRY } from '../hardware/hinges-hardware';
 import { hasTrait } from './fittings';
 import type { EditorDesign } from './editor-design';
 
 /** Where hinge values come from, shown wherever a person reads them. */
-export const HINGE_SOURCE = 'common practice; check the maker\'s template';
+export const HINGE_SOURCE = HINGE_ENTRY.source;
 
 /** The cup bored in the back of the door: diameter and depth (mm), and its centre's distance from the hinge edge. */
 export interface HingeCup { readonly d: number; readonly depth: number; readonly fromEdge: number }
@@ -34,32 +31,39 @@ export interface HingeDef {
   readonly plate: HingePlate;
   /** A soft-close version is made. */
   readonly softClose: boolean;
-  /** The door weight one hinge carries, kg (common practice: the count by height below keeps an 18 mm board door within
-   * it). */
+  /** The door weight one hinge carries, kg. */
   readonly loadKg: number;
 }
 
-const CUP: HingeCup = { d: 35, depth: 13, fromEdge: 22.5 };
-const PLATE: HingePlate = { pitch: 32, line: 37, screw: { d: 5, depth: 12 } };
+const PLATE_HOLE = PLATE_ENTRY.drilling[0]!;
+const PLATE: HingePlate = {
+  pitch: PLATE_HOLE.pitchMm ?? 32,
+  line: PLATE_HOLE.lineMm,
+  screw: { d: PLATE_HOLE.dMm, depth: PLATE_HOLE.depthMm },
+};
 
-export const HINGES = [
-  { key: 'standard', name: 'Concealed hinge, 110°', size: '110°', angle: 110, use: 'Most doors', cup: CUP, plate: PLATE, softClose: true, loadKg: 4 },
-  { key: 'wide', name: 'Concealed hinge, 155°', size: '155°', angle: 155, use: 'Door against a wall or a neighbour', cup: CUP, plate: PLATE, softClose: true, loadKg: 4 },
-  { key: 'widest', name: 'Concealed hinge, 170°', size: '170°', angle: 170, use: 'Door that must fold right back', cup: CUP, plate: PLATE, softClose: true, loadKg: 4 },
-  { key: 'zero', name: 'Zero-protrusion hinge, 155°', size: '155° zero protrusion', angle: 155, use: 'Pull-outs behind the door', cup: CUP, plate: PLATE, softClose: true, loadKg: 4 },
-  { key: 'thick', name: 'Thick-door hinge, 95°', size: '95° thick door', angle: 95, use: 'Doors thicker than 25 mm', cup: { d: 35, depth: 15, fromEdge: 22.5 }, plate: PLATE, softClose: true, loadKg: 5 },
-  { key: 'glass', name: 'Glass/mirror door hinge', size: 'glass', angle: 95, use: 'Glass and mirror doors, clamped', cup: null, plate: PLATE, softClose: false, loadKg: 3 },
-  { key: 'corner', name: 'Blind-corner hinge, 95°', size: '95° blind corner', angle: 95, use: 'A door beside a blind corner', cup: CUP, plate: PLATE, softClose: true, loadKg: 4 },
-] as const satisfies readonly HingeDef[];
-export type HingeKind = typeof HINGES[number]['key'];
+export type HingeKind = 'standard' | 'wide' | 'widest' | 'zero' | 'thick' | 'glass' | 'corner';
+
+export const HINGES: readonly (HingeDef & { readonly key: HingeKind })[] = (HINGE_ENTRY.variants ?? []).map(v => ({
+  key: v.key as HingeKind,
+  name: v.name,
+  size: v.sizeLabel,
+  angle: v.angleDeg ?? 110,
+  use: v.use ?? '',
+  cup: v.cup ?? null,
+  plate: PLATE,
+  softClose: v.key !== 'glass',
+  loadKg: v.loadKg ?? 4,
+}));
+
 export const HINGE_KINDS = HINGES.map(h => h.key) as readonly HingeKind[];
-export const DEFAULT_HINGE: HingeKind = 'standard';
-export const hinge = (key: string | undefined): HingeDef => (HINGES as readonly HingeDef[]).find(h => h.key === key) ?? HINGES[0];
+export const DEFAULT_HINGE: HingeKind = (HINGE_ENTRY.defaultVariant ?? 'standard') as HingeKind;
+export const hinge = (key: string | undefined): HingeDef => HINGES.find(h => h.key === key) ?? HINGES[0]!;
 
 /** Room beside a cabinet's left and right sides (as you face it) to the nearest wall or other piece. Centimetres. */
 export interface SideRoom { readonly left: number; readonly right: number }
 /** A door hinged at a cabinet's end with less room than this beside it opens wider, so it clears the wall or piece. Cm. */
-export const TIGHT_SIDE = 10;
+export const TIGHT_SIDE = (HINGE_ENTRY.rules.clearanceMm.side ?? 100) / 10;
 
 /**
  * The hinge a door leaf hangs on: the kind set for it; a glass door's clamp hinge; a zero-protrusion hinge when its bay
@@ -69,18 +73,22 @@ export const TIGHT_SIDE = 10;
 export function hingeFor(leaf: { readonly hingeKind?: string | undefined; readonly hinge?: 'left' | 'right' | undefined; readonly bay?: number | undefined; readonly x0: number; readonly x1: number },
   design: Pick<EditorDesign, 'w' | 'secs'>, glass: boolean, room?: SideRoom): HingeKind {
   if (leaf.hingeKind && HINGE_KINDS.includes(leaf.hingeKind as HingeKind)) return leaf.hingeKind as HingeKind;
-  if (glass) return 'glass';
+  if (glass) return (HINGE_ENTRY.rules.exclusions?.find(e => e.material === 'glass')?.fallbackVariant ?? 'glass') as HingeKind;
   if (leaf.bay !== undefined && design.secs[leaf.bay]?.some(it => hasTrait(it.k, 'pullout'))) return 'zero';
   const side = leaf.hinge ?? 'left', atEnd = side === 'left' ? leaf.x0 < 2 : leaf.x1 > design.w - 2;
   if (room && atEnd && room[side] < TIGHT_SIDE) return 'wide';
   return DEFAULT_HINGE;
 }
 
+const THRESHOLDS = HINGE_ENTRY.rules.quantityByHeightMm ?? [[900, 2], [1600, 3], [2000, 4], [Infinity, 5]];
+const EDGE_INSET_CM = (HINGE_ENTRY.rules.edgeInsetMm ?? 100) / 10;
+
 /** Concealed hinges by a door's height (mm), as common practice advises: up to 900 mm two, to 1600 three, to 2000 four,
  * above five. */
-export const hingesFor = (heightMm: number) => heightMm <= 900 ? 2 : heightMm <= 1600 ? 3 : heightMm <= 2000 ? 4 : 5;
+export const hingesFor = (heightMm: number) => (THRESHOLDS.find(([max]) => heightMm <= max) ?? THRESHOLDS.at(-1)!)[1];
+
 /** Hinge centres along a door `length` cm tall: 10 cm from each end and evenly between. */
 export function hingeStations(length: number): number[] {
   const n = hingesFor(Math.round(length * 10));
-  return Array.from({ length: n }, (_, k) => 10 + (length - 20) * k / (n - 1));
+  return Array.from({ length: n }, (_, k) => EDGE_INSET_CM + (length - 2 * EDGE_INSET_CM) * k / (n - 1));
 }

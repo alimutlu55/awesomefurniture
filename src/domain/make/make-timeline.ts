@@ -1,3 +1,4 @@
+import { HARDWARE, HINGE_ENTRY } from '../hardware/hardware-registry';
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
 import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
@@ -9,8 +10,10 @@ import { thinAxis, type Vec3 } from './make-measures';
  * Seconds; every progress runs 0 to 1.
  */
 
-/** Hardware fitted between drilling and bringing the boards in: shelf pins and hinge plates go on the uprights first. */
-export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(['pin']);
+/** Hardware fitted between drilling and bringing the boards in: declared by `assembly.fittedFirst` in the hardware registry. */
+export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(
+  HARDWARE.filter(h => h.assembly.fittedFirst).map(h => h.key as FittingKind),
+);
 
 /** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
 export const INTRO = 2.6, OUTRO = 4;
@@ -75,12 +78,17 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     order.forEach((b, j) => { boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; });
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
-    const placing = s.stage === 'drawers' ? 4 : s.stage === 'drawer-test' ? count * 6
+    const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' || s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
     const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
-    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || FITTED_BEFORE.has(piece.fittings[i]!.kind) !== before)
+    const fittedBefore = (i: number) => {
+      const f = piece.fittings[i]!;
+      return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!]!.name === 'Cargo front';
+    };
+    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || fittedBefore(i) !== before)
       .sort((a, b) => before ? lies(a, before) - lies(b, before) : 0).map(g => {
       const n = g.items.length, travel = travelFor(n), own = n > 1 ? Math.min(1, travel * .55) : travel, from = t + SHOW;
       g.items.forEach((i, j) => { const go = from + (n > 1 ? (travel - own) * j / (n - 1) : 0); itemTime[i] = [t, go, go + own]; });
@@ -92,8 +100,9 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // The doors, in front of their places, are pushed home onto their plates.
     const hang = [t, t += s.stage === 'doors' ? HANG : 0] as const;
     const fixStart = t, fixes = [...before, ...fixing(false)], fix = [fixStart, t] as const;
-    // The doors, hung on their plates, are set true: side, height and depth.
-    const adjust = [t, t += s.stage === 'doors' ? ADJUST : 0] as const;
+    // The doors (and 3D-adjustable cargo fronts, GTV Manual Page 6 REGULACJA) are set true: side, height and depth.
+    const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => piece.boards[i]?.name === 'Cargo front');
+    const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
     steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });
   return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, itemTime };
@@ -145,11 +154,12 @@ export function arrivalAt(tl: Timeline, ph: Playhead, board: number): number {
 /** The start of step `k`, to jump to it. */
 export const stepStart = (tl: Timeline, k: number) => tl.steps[Math.max(0, Math.min(tl.steps.length - 1, k))]!.start;
 
+const ADJUST_AXES = HINGE_ENTRY.assembly.adjustAxes ?? (['side', 'height', 'depth'] as const);
 /** Which way a door is being adjusted now (one after another: side, height, depth), or null when none is. */
 export function adjustingNow(tl: Timeline, ph: Playhead): 'side' | 'height' | 'depth' | null {
   const s = tl.steps[ph.step]!;
   if (s.adjust[1] <= s.adjust[0] || ph.t < s.adjust[0] || ph.t >= s.adjust[1]) return null;
-  return (['side', 'height', 'depth'] as const)[Math.min(2, Math.floor(ph.adjust * 3))]!;
+  return ADJUST_AXES[Math.min(ADJUST_AXES.length - 1, Math.floor(ph.adjust * ADJUST_AXES.length))]!;
 }
 /** How far a door board stands from where it hangs true at this moment (side, height, depth, cm): held HANG_OUT in front
  * until it is pushed home onto its plates, clipped on slightly out (CLIPPED_ON), then each way set true in its turn
@@ -157,8 +167,10 @@ export function adjustingNow(tl: Timeline, ph: Playhead): 'side' | 'height' | 'd
 export function doorNudge(tl: Timeline, ph: Playhead, board: number): Vec3 {
   const s = tl.steps[ph.step]!;
   if (tl.boardStep[board] !== ph.step || s.adjust[1] <= s.adjust[0]) return [0, 0, 0];
-  const out = HANG_OUT * (1 - ph.hang * ph.hang * (3 - 2 * ph.hang));
-  return CLIPPED_ON.map((v, axis) => v * (1 - unit(ph.adjust * 3 - axis)) + (axis === 2 ? out : 0)) as unknown as Vec3;
+  const hasHang = s.hang[1] > s.hang[0];
+  const out = hasHang ? HANG_OUT * (1 - ph.hang * ph.hang * (3 - 2 * ph.hang)) : 0;
+  const engaged = hasHang ? 1 : unit((ph.t - s.fix[1]) / .4);
+  return CLIPPED_ON.map((v, axis) => v * engaged * (1 - unit(ph.adjust * 3 - axis)) + (axis === 2 ? out : 0)) as unknown as Vec3;
 }
 /** Whether a door is drawn see-through: while it comes in and is hung, so its hinge arms are seen going onto the plates. */
 export function seeThrough(tl: Timeline, ph: Playhead, board: number): boolean {

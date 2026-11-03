@@ -7,6 +7,7 @@ import type { HingeKind } from '../wardrobe/hinges';
 import { fitting, hasTrait, type FrontOpening } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { cornerDoorSide, cornerFrontSplit, cornerPulloutGeometry, fridgeSplit, hingedLeaves, itemHingeSide, kitchenFrontRect, kitchenHinge, shelfHeights } from '../kitchen/kitchen-fronts';
+import { cargoPulloutGeometry, type CargoPullout } from '../kitchen/cargo-pullout';
 import { isKitchen } from '../furniture/furniture';
 import { type FaceWidth } from '../kitchen/corner-widths';
 
@@ -45,6 +46,23 @@ export type CornerPullout = ReturnType<typeof cornerPulloutGeometry> & {
   readonly blind: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number };
   readonly door: { readonly x0: number; readonly x1: number; readonly y0: number; readonly y1: number; readonly hinge: 'left' | 'right' };
 };
+/** A cargo pull-out system inside a kitchen bay: its vertical frame, wire or solid baskets, runners and front brackets. */
+export type CargoPulloutDetail = CargoPullout & {
+  readonly bayIndex: number;
+  readonly cx: number;
+  readonly y0: number;
+  readonly sw: number;
+  readonly hh: number;
+};
+
+export interface PiecefrontsResult {
+  readonly fronts: Front[];
+  readonly inside: Inside[];
+  readonly covered: boolean;
+  readonly cornerPullouts: CornerPullout[];
+  readonly cargoPullouts: CargoPulloutDetail[];
+  readonly invalidFridgeSplit?: boolean;
+}
 
 /**
  * A piece's fronts and what is behind them, centimetres from its left face and its bottom. A wardrobe with doors:
@@ -52,10 +70,10 @@ export type CornerPullout = ReturnType<typeof cornerPulloutGeometry> & {
  * wardrobe: those fittings, nothing over them. A kitchen unit: each fitting's own front where it is built (overlay
  * fronts), a wide door as two leaves, a tall fridge as fridge over freezer, with the cupboards' shelves behind.
  */
-export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): { fronts: Front[]; inside: Inside[]; covered: boolean; cornerPullouts: CornerPullout[]; invalidFridgeSplit?: boolean } {
+export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth[] = []): PiecefrontsResult {
   // The rules read a design being edited; nothing is selected in a drawing.
   const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), widths = geometry.widths();
-  const fronts: Front[] = [], inside: Inside[] = [], cornerPullouts: CornerPullout[] = [], kitchen = isKitchen(design);
+  const fronts: Front[] = [], inside: Inside[] = [], cornerPullouts: CornerPullout[] = [], cargoPullouts: CargoPulloutDetail[] = [], kitchen = isKitchen(design);
   let invalidFridgeSplit = false;
   let bayL = PANEL;
   widths.forEach((sw, i) => {
@@ -96,6 +114,16 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
           inside.push({ kind: 'shelf', x0: t.base.x0, x1: t.base.x1, y0: t.base.y1, y1: t.base.y1 });
         }
         cornerPullouts.push({ ...mech, bayIndex: i, cx, y0: pos.y0, sw: pos.w, hh: it.h, doorSide, blind: { ...blind, y0: r.y0, y1: r.y1 }, door: { ...door, y0: r.y0, y1: r.y1 } });
+      } else if (it.k === 'cargo') {
+        const mech = cargoPulloutGeometry(cx, pos.y0, pos.w, it.h, design.d, {
+          tiers: it.tiers,
+          basketStyle: it.basketStyle,
+          mount: it.cargoMount,
+          isTall: it.h >= 100,
+        });
+        cargoPullouts.push({ ...mech, bayIndex: i, cx, y0: pos.y0, sw: pos.w, hh: it.h });
+        fronts.push({ ...r, opens, label, name, own });
+        inside.push({ kind: 'box', x0: cx - mech.basketW / 2, x1: cx + mech.basketW / 2, y0: pos.y0, y1: pos.y0 + it.h });
       } else if (opens === 'side') {
         const split = fridgeSplit(r.y0, r.y1, it.h, it.k === 'fridge' ? design.fridgeSplit : undefined), rows = split === null ? [[r.y0, r.y1]] : [[r.y0, split], [split, r.y1]];
         const spans = faceWidths.some(s => s.strip || s.covered) ? faceWidths.filter(s => !s.strip) : [{ from: r.x0, to: r.x1, covered: false }];
@@ -132,7 +160,7 @@ export function piecefronts(design: EditorDesign, faceWidths: readonly FaceWidth
   });
   if (kitchen) for (const s of faceWidths.filter(s => s.strip)) installed.push({ x0: s.from, x1: s.to,
     y0: plinthOf(design), y1: design.h, opens: 'fixed', installation: true, name: 'Corner installation strip' });
-  return { fronts: installed, inside, covered, cornerPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
+  return { fronts: installed, inside, covered, cornerPullouts, cargoPullouts, ...(invalidFridgeSplit ? { invalidFridgeSplit: true } : {}) };
 }
 
 /** Whether a fitting's own inner front (a drawer's, inside a wardrobe) stands behind the wardrobe's closed doors. Then it

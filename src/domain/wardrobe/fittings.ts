@@ -17,6 +17,17 @@
 import { ZONE_PRIORITY as Z } from './zone-style';
 import type { ZoneStyle } from './zone-style';
 import type { Purpose } from './purposes';
+import {
+  CARGO_MECHANISM_ENTRY,
+  CORNER_MECHANISM_ENTRY,
+  LIFT_FITTING_ENTRY,
+  PULL_DOWN_RAIL_ENTRY,
+  RAIL_ENTRY,
+  RUNNER_ENTRY,
+  SHELF_PIN_ENTRY,
+  TROUSER_RACK_ENTRY,
+  WIRE_BASKET_ENTRY,
+} from '../hardware/hardware-registry';
 
 import type { KitchenUnitKey } from '../kitchen/kitchen-units';
 
@@ -36,6 +47,7 @@ export const FITTING_TRAITS = Object.freeze({
   filler: 'A fixed filler or corner cover panel with no interior storage.',
   appliance: 'A fixture or appliance (sink, hob, oven, fridge): a duplicated cabinet gets plain storage in its place.',
   worktop: 'Sits in the worktop above its cabinet (sink, hob).',
+  cargoPullout: 'A pull-out wire or solid basket cargo unit on runners with front fixing brackets.',
 });
 export type FittingTrait = keyof typeof FITTING_TRAITS;
 
@@ -43,14 +55,26 @@ export type FrontOpening = 'side' | 'up' | 'down' | 'pull' | 'fixed';
 /** Hardware a fitting is built with, for the hardware list. Runner length follows the cabinet's depth, a rail's
  * length the fitting's width; shelf supports go four to each of a cupboard's shelves. */
 export const FITTING_HARDWARE = Object.freeze({
-  runners: 'Drawer runners, one pair',
-  rail: 'Hanging rail with two end supports',
-  pullDownRail: 'Pull-down rail mechanism',
-  trouserRack: 'Trouser pull-out rack',
-  basket: 'Pull-out wire basket on runners',
-  liftFitting: 'Lift-up flap fitting, one set',
-  shelfSupports: 'Shelf supports, four to a shelf',
-  cornerMechanism: 'Corner pull-out mechanism, two swing trays',
+  runners: `${RUNNER_ENTRY.display.listLine.label}, one ${RUNNER_ENTRY.display.listLine.unit}`,
+  rail: `${RAIL_ENTRY.name.replace(', oval', '')} with two end supports`,
+  pullDownRail: PULL_DOWN_RAIL_ENTRY.display.listLine.label,
+  trouserRack: TROUSER_RACK_ENTRY.display.listLine.label,
+  basket: WIRE_BASKET_ENTRY.display.listLine.label,
+  liftFitting: `${LIFT_FITTING_ENTRY.display.listLine.label}, one ${LIFT_FITTING_ENTRY.display.listLine.unit}`,
+  shelfSupports: `${SHELF_PIN_ENTRY.display.listLine.label}s, four to a shelf`,
+  cornerMechanism: CORNER_MECHANISM_ENTRY.display.listLine.label,
+  cargoMechanism: CARGO_MECHANISM_ENTRY.display.listLine.label,
+});
+export const FITTING_HARDWARE_KEYS = Object.freeze({
+  runners: RUNNER_ENTRY.key,
+  rail: RAIL_ENTRY.key,
+  pullDownRail: PULL_DOWN_RAIL_ENTRY.key,
+  trouserRack: TROUSER_RACK_ENTRY.key,
+  basket: WIRE_BASKET_ENTRY.key,
+  liftFitting: LIFT_FITTING_ENTRY.key,
+  shelfSupports: SHELF_PIN_ENTRY.key,
+  cornerMechanism: CORNER_MECHANISM_ENTRY.key,
+  cargoMechanism: CARGO_MECHANISM_ENTRY.key,
 });
 export type FittingHardware = keyof typeof FITTING_HARDWARE;
 
@@ -189,7 +213,7 @@ export const FITTINGS = [
     kitchen: { units: ['upper'], score: 34, why: 'Extractor over the hob' } },
   { key: 'cargo', name: 'Cargo pull-out', code: 'Z', height: 74, min: 50, max: 200, minWidth: 10, minDepth: 40, price: 210, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 22, group: 'storage' }, zone: { ...KITCHEN, label: 'Cargo' },
-    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front'],
+    icon: 'M8 3h8v18H8zM8 8h8M8 13h8M8 18h8M12 3v18', opens: 'pull', hardware: ['runners', 'cargoMechanism'], traits: ['pullout', 'front', 'cargoPullout'],
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },
   { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },

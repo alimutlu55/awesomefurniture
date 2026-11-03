@@ -1,9 +1,10 @@
+import { planScale } from './studio-2d-overlays';
 import type { Studio } from '../../domain/studio/studio';
 import { cornerDegree, wallLine } from '../../domain/studio/studio';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { detectRooms, door2DPlan, wall2DPlan, window2DPlan, type Point2D } from '../../domain/studio/studio-plan';
 export type { Point2D };
-import { openingNoun } from '../../domain/studio/wall-utilities';
+import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
 export interface ViewportTransform {
@@ -76,6 +77,7 @@ export function renderWalls(studio: Studio, selection: RoomSelection): string {
 export function renderOpenings(studio: Studio, selection: RoomSelection): string {
   const out: string[] = [];
   for (const o of studio.openings) {
+    if (isWallUtility(o.kind)) continue;
     const isSel = selection?.kind === 'opening' && selection.id === o.id;
     if (o.kind === 'door') {
       const dp = door2DPlan(studio, o);
@@ -187,23 +189,22 @@ export function renderHandles(studio: Studio, selection: RoomSelection, zoom = 1
 }
 
 /** Renders the architectural scale bar and north compass arrow in screen space. */
-export function renderOverlays(t: ViewportTransform): string {
-  const compass = `<g class="sp2d-compass" transform="translate(${t.width - 45}, 45)">
+export function renderOverlays(t: ViewportTransform, insets: { bottom?: number; top?: number } = {}): string {
+  const compass = `<g class="sp2d-compass" transform="translate(${t.width - 30}, ${Math.max(45, insets.top ?? 0)})">
     <circle cx="0" cy="0" r="18" class="sp2d-compass-ring"/>
     <polygon points="0,-14 5,2 0,-1 -5,2" class="sp2d-compass-arrow-n"/>
     <polygon points="0,14 5,-2 0,1 -5,-2" class="sp2d-compass-arrow-s"/>
     <text x="0" y="-18" class="sp2d-compass-label">N</text>
   </g>`;
-  const barMeters = 2;
-  const barPx = Math.round(barMeters * 100 * t.zoom);
-  const scaleBar = `<g class="sp2d-scale-bar" transform="translate(40, ${t.height - 35})">
-    <line x1="0" y1="0" x2="${barPx}" y2="0" class="sp2d-scale-line"/>
+  const scale = planScale(t.zoom, t.width);
+  const y = Math.max(40, Math.min(t.height - 24, insets.bottom ?? t.height - 35));
+  const scaleBar = `<g class="sp2d-scale-bar" transform="translate(20, ${y})">
+    <line x1="0" y1="0" x2="${scale.pixels}" y2="0" class="sp2d-scale-line"/>
     <line x1="0" y1="-5" x2="0" y2="5" class="sp2d-scale-tick"/>
-    <line x1="${barPx / 2}" y1="-4" x2="${barPx / 2}" y2="4" class="sp2d-scale-tick"/>
-    <line x1="${barPx}" y1="-5" x2="${barPx}" y2="5" class="sp2d-scale-tick"/>
-    <text x="0" y="-8" class="sp2d-scale-text">0</text>
-    <text x="${barPx / 2}" y="-8" class="sp2d-scale-text">1m</text>
-    <text x="${barPx}" y="-8" class="sp2d-scale-text">2m</text>
+    <line x1="${scale.pixels}" y1="-5" x2="${scale.pixels}" y2="5" class="sp2d-scale-tick"/>
+    <text x="0" y="-10" class="sp2d-scale-text">0</text>
+    <text x="${scale.pixels}" y="-10" class="sp2d-scale-text">${scale.label}</text>
   </g>`;
   return `${compass}${scaleBar}`;
 }
+

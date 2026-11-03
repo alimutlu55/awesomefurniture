@@ -1,4 +1,4 @@
-import { bandedEdges, type MakePart } from './make-parts';
+import { cutWithBand, bandedEdges, type MakePart } from './make-parts';
 import { hasGrain, STOCK } from './stock-sheet';
 
 /**
@@ -24,13 +24,13 @@ interface Piece { n: number; l: number; w: number; grain: boolean }
 interface Strip { y: number; h: number; x: number }
 interface Open { decorId: string; thickness: number; strips: Strip[]; parts: Placed[]; y: number }
 
-export function cutLayout(parts: readonly MakePart[], stock = STOCK): CutLayout {
+export function cutLayout(parts: readonly MakePart[], stock = STOCK, bandMm = 0): CutLayout {
   const L = stock.length - 2 * stock.trim, W = stock.width - 2 * stock.trim, k = stock.kerf, sheets: Open[] = [], oversize: number[] = [];
   const groups = new Map<string, { decorId: string; thickness: number; pieces: Piece[] }>();
   for (const p of parts) {
-    const thickness = Math.round(p.cut.thickness * 10), key = p.decorId + '|' + thickness, g = groups.get(key) ?? { decorId: p.decorId, thickness, pieces: [] };
-    const grain = hasGrain(p.decorId);
-    for (let i = 0; i < p.boards.length; i++) g.pieces.push({ n: p.n, l: Math.round(p.cut.length * 10), w: Math.round(p.cut.width * 10), grain });
+    const thickness = Number((p.cut.thickness * 10).toPrecision(12)), key = p.decorId + '|' + thickness, g = groups.get(key) ?? { decorId: p.decorId, thickness, pieces: [] };
+    const grain = hasGrain(p.decorId), cut = cutWithBand(p, bandMm);
+    for (let i = 0; i < p.boards.length; i++) g.pieces.push({ n: p.n, l: cut.length * 10, w: cut.width * 10, grain });
     groups.set(key, g);
   }
   for (const g of groups.values()) {

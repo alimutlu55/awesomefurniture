@@ -108,7 +108,7 @@ function frontView(p: PlacedPiece, boards: readonly Board[], pieces: readonly Pl
 function insideView(p: PlacedPiece, boards: readonly Board[], pieces: readonly PlacedPiece[]): Item[] {
   const d = p.design, out: Item[] = [], carcass = boards.filter(b => b.stock !== 'front' && b.stock !== 'door' && b.stock !== 'back' && !(b.stock === 'plinth' && b.z1 < d.d - 5));
   for (const b of carcass) out.push(b.outline ? { kind: 'line', stroke: 'outline', closed: true, points: b.outline.map(q => at(q.x, q.y)) } : rect(mm(b.x0), mm(b.y0), mm(b.x1), mm(b.y1), 'outline'));
-  const { fronts, inside, cornerPullouts } = piecefronts(d, cornerFaceWidths(p, pieces));
+  const { fronts, inside, cornerPullouts, cargoPullouts } = piecefronts(d, cornerFaceWidths(p, pieces));
   for (const r of inside.filter(q => q.kind === 'rail')) out.push(line(at(r.x0 + 2, r.y0), at(r.x1 - 2, r.y0), 'centre'));
   for (const c of cornerPullouts) {
     out.push(
@@ -125,6 +125,19 @@ function insideView(p: PlacedPiece, boards: readonly Board[], pieces: readonly P
         { kind: 'arrow', at: at((c.door.x0 + c.door.x1) / 2, (t.base.y1 + t.rail.y1) / 2), dir: { x: c.doorSide === 'right' ? 1 : -1, y: 0 } },
       );
     }
+  }
+  for (const cg of cargoPullouts) {
+    for (const u of cg.frame.uprights) out.push(rect(mm(u.x0), mm(u.y0), mm(u.x1), mm(u.y1), 'outline'));
+    out.push(rect(mm(cg.runners.bottom.x0), mm(cg.runners.bottom.y0), mm(cg.runners.bottom.x1), mm(cg.runners.bottom.y1), 'thin'));
+    if (cg.runners.top) out.push(rect(mm(cg.runners.top.x0), mm(cg.runners.top.y0), mm(cg.runners.top.x1), mm(cg.runners.top.y1), 'thin'));
+    for (const b of cg.baskets) {
+      out.push(
+        rect(mm(b.base.x0), mm(b.base.y0), mm(b.base.x1), mm(b.base.y1), 'outline'),
+        rect(mm(b.rail.x0), mm(b.rail.y0), mm(b.rail.x1), mm(b.rail.y1), 'thin'),
+      );
+    }
+    for (const br of cg.brackets) out.push(rect(mm(cg.cx - 2), mm(br.y - 0.8), mm(cg.cx + 2), mm(br.y + 0.8), 'thin'));
+    out.push({ kind: 'arrow', at: at(cg.cx, cg.y0 + cg.hh / 2), dir: { x: 0, y: 1 } });
   }
   if (isKitchen(d)) for (const f of fronts) out.push(rect(mm(f.x0), mm(f.y0), mm(f.x1), mm(f.y1), 'hidden'), { ...note(at((f.x0 + f.x1) / 2, (f.y0 + f.y1) / 2), f.name.replace(/ (door|front)$/, '')), small: true });
   const geometry = createWardrobeGeometry(() => ({ ...d, sel: 0, item: -1, divider: -1, space: null })), widths = geometry.widths(), lift = plinthOf(d), iy = lift + PANEL;

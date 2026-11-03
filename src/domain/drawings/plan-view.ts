@@ -79,6 +79,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
   const preset = options.preset ?? 'installation', upper = options.upperPlan ?? false, operations = preset === 'clearances';
   const visible = pieces.filter(p => planPieceShown(p, upper));
   const out: Item[] = studio ? [...walls(studio, visible, operations), ...(upper ? [] : fixturePlan(studio))] : [];
+  const cabinetTags: Item[] = [], fixtureTags: Item[] = [];
   const poses = pieces.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, angle: p.angle, state: p.design }));
   for (const s of kitchenSpans(poses)) {
     if (!upper && s.kind === 'worktop') out.push({ kind: 'line', stroke: 'outline', closed: true, points: footprint(s.x, s.z, s.angle, s.length, s.depth) });
@@ -104,9 +105,9 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
       const { v: f } = unitAxes(p.angle), reach = p.design.d / 2 + 8;
       out.push(line(plan(p.x - f.x * reach, p.z - f.z * reach), plan(p.x + f.x * reach, p.z + f.z * reach), 'centre'));
     }
-    // A wall unit's mark sits towards the wall, so it never covers the mark of the unit under it.
-    const { v } = unitAxes(p.angle), back = p.hung ? -p.design.d / 4 : p.fixture ? 0 : p.design.d * .3;
-    if (p.id > 0) out.push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
+    // A wall unit's mark sits towards the wall only when floor and wall units share one combined plan.
+    const { v } = unitAxes(p.angle), back = options.upperPlan === false && p.hung ? -p.design.d / 4 : 0;
+    if (p.id > 0) (p.fixture ? fixtureTags : cabinetTags).push({ kind: 'tag', at: plan(p.x + v.x * back, p.z + v.z * back), text: p.mark });
     if (p.fixture === 'shelf') out.push(note(plan(p.x + v.x * (p.design.d / 2 + 15), p.z + v.z * (p.design.d / 2 + 15)), pieceName(p)));
     // Appliance setting-out callouts have their own detail sheets; keep the cabinet plan clear.
     if (!studio && !operations) out.push(...appliancePlanNote(studio, p, pieces));
@@ -130,6 +131,7 @@ export function planView(studio: Studio | undefined, pieces: readonly PlacedPiec
       if (widths.length > 2) out.push({ kind: 'dims', origin: d!, dir: dir({ x: b!.x - a!.x, y: b!.y - a!.y }), side: 1, clear: 0, row: 0, stops: stops(widths.map(mm)) });
     }
   }
+  out.push(...cabinetTags, ...fixtureTags);
   if (studio) out.push(...planDimensions(studio, visible, pieces, preset === 'layout' || operations, upper));
   if (!upper && !operations) out.push(...cornerPlanSetout(pieces));
   if (operations) out.push(...planClearances(studio, pieces, options.clearanceProfile).items);

@@ -9,8 +9,8 @@ test('detectRooms calculates area and centroid for built-in bedroom', () => {
   const rooms = detectRooms(bedroom);
   assert.ok(rooms.length >= 1, 'detects at least one room cycle');
   const r = rooms[0]!;
-  assert.equal(r.name, 'Bedroom');
-  // Bedroom is 4.0 × 3.5 m room ~ 14.9 m2
+  assert.equal(r.name, 'Room');
+  // Room is 4.0 × 3.5 m room ~ 14.9 m2
   assert.ok(r.areaM2 >= 13 && r.areaM2 <= 16, `area should be ~14-15 m2, was ${r.areaM2}`);
   assert.ok(Number.isFinite(r.centroid.x));
   assert.ok(Number.isFinite(r.centroid.z));
