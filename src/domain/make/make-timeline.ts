@@ -1,6 +1,6 @@
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
-import { isFittedBefore, fixGroups, type FixGroup } from './make-fixing';
+import { FITTED_BEFORE, fixGroups, type FixGroup } from './make-fixing';
 import { thinAxis, type Vec3 } from './make-measures';
 
 /**
@@ -80,7 +80,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
     const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
-    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || isFittedBefore(piece.fittings[i]!) !== before)
+    const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || FITTED_BEFORE.has(piece.fittings[i]!.kind) !== before)
       .sort((a, b) => before ? lies(a, before) - lies(b, before) : 0).map(g => {
       const n = g.items.length, travel = travelFor(n), own = n > 1 ? Math.min(1, travel * .55) : travel, from = t + SHOW;
       g.items.forEach((i, j) => { const go = from + (n > 1 ? (travel - own) * j / (n - 1) : 0); itemTime[i] = [t, go, go + own]; });

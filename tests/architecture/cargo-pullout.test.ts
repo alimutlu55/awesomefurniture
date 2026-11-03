@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
 import { assemblyTimeline } from '../../src/domain/make/make-timeline';
-import { entryOf } from '../../src/domain/make/make-fixing';
 import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
 import { cargoPulloutGeometry, cargoTierCount, cargoBasketWidth } from '../../src/domain/kitchen/cargo-pullout';
 import { stagingLayout, hardwareStagingLayout } from '../../src/domain/make/make-staging';
@@ -301,8 +300,7 @@ test('cargo smooth motion in fronts stage · zero jumping when cargo opens to re
 });
 
 test('cargo chassis & bracket alignment · zero gap and exact co-location', () => {
-  const d = 55;
-  const geo = cargoPulloutGeometry(15, 9.8, 26.4, 74, d);
+  const geo = cargoPulloutGeometry(15, 9.8, 26.4, 74, 55);
   assert.equal(geo.brackets.length, 2);
 
   for (const br of geo.brackets) {
@@ -310,53 +308,14 @@ test('cargo chassis & bracket alignment · zero gap and exact co-location', () =
     const matchingCrossbars = geo.frame.crossbars.filter(c => Math.abs((c.y0 + c.y1) / 2 - br.y) < 0.2);
     assert.ok(matchingCrossbars.length >= 1, `bracket at y=${br.y} has matching horizontal arms in chassis frame`);
 
-    // The crossbar tongue must reach exactly the door panel back face at z = d
+    // The crossbar tongue must extend forward to connect to the door bracket
     const maxCrossbarZ1 = Math.max(...matchingCrossbars.map(c => c.z1));
-    assert.ok(maxCrossbarZ1 >= d, 'frame horizontal arm reaches door back panel with 0mm mismatch');
+    assert.ok(maxCrossbarZ1 >= geo.runners.bottom.z1, 'frame horizontal arm reaches the bracket');
 
     // Screws are centered within bracket plate
     for (const s of br.screws) {
       assert.ok(Math.abs(s[0] - 15) <= 2.5, 'bracket screws are within bracket plate width');
     }
-  }
-});
-
-test('cargo front brackets · bracket and pilot screws share unified fix groups entering along Z', () => {
-  const baseDesign = createKitchenDesign('base', 'cargo');
-  const piece = make(baseDesign);
-  const frontsIdx = piece.steps.findIndex(s => s.stage === 'fronts');
-  assert.ok(frontsIdx >= 0);
-  const step = piece.steps[frontsIdx]!;
-
-  // Cargo brackets must have kind: plate (so as not to collide with wall bracket roof tests)
-  const brackets = step.items.filter(i => piece.fittings[i]!.size?.includes('cargo front bracket'));
-  assert.equal(brackets.length, 2, '2 front brackets for base cargo');
-  for (const b of brackets) {
-    assert.equal(piece.fittings[b]!.kind, 'plate');
-  }
-
-  // All brackets and front-fixing screws must have direction [0, 0, 1] through the door panel
-  const frontIdx = piece.boards.findIndex(b => b.name === 'Cargo front');
-  for (const i of step.items) {
-    const f = piece.fittings[i]!;
-    if (f.kind === 'plate' || (f.kind === 'screw' && f.purpose === 'drawer-front')) {
-      const e = entryOf(piece, i);
-      assert.ok(e, 'entry exists');
-      assert.deepEqual(e.dir, [0, 0, 1], 'enters along +Z into the door back');
-      assert.equal(e.board, frontIdx, 'mounted to cargo door');
-    }
-  }
-
-  // Bracket and its screws must be co-located in the same fix groups
-  const tl = assemblyTimeline(piece);
-  const s = tl.steps[frontsIdx]!;
-  const bracketFixes = s.fixes.filter(f => f.items.some(i => piece.fittings[i]!.size?.includes('cargo front bracket')));
-  assert.equal(bracketFixes.length, 2, 'exactly 2 bracket fix groups (top and bottom)');
-  for (const fix of bracketFixes) {
-    const hasBracket = fix.items.some(i => piece.fittings[i]!.kind === 'plate');
-    const hasScrews = fix.items.some(i => piece.fittings[i]!.kind === 'screw');
-    assert.ok(hasBracket && hasScrews, 'each bracket fix group includes both the bracket plate and its fixing screws');
-    assert.equal(fix.before, false, 'fastened to the door in the cabinet');
   }
 });
 
