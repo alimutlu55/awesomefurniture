@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
+import { hardwareStagingLayout, lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
 import { drawerBoardOffset, drawerRunnerForBoard } from '../../domain/make/drawer-installation';
 import { INTRO, OUTRO, playhead, type Timeline } from '../../domain/make/make-timeline';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
@@ -40,7 +40,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   };
   // Opening: every part laid out in front of where the piece will stand (its footprint on the floor), easing in.
   const floor = Math.min(...staged.map(s => s.at[1] - s.size[1] / 2)), site = corners([0, floor, 0], [w, floor + 1, d]).map(half);
-  const everything = [...all.flatMap(waiting), ...site];
+  const hwStaged = hardwareStagingLayout(piece, staged, floor);
+  const hwWaiting = [...hwStaged.values()].flatMap(s => corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half));
+  const everything = [...all.flatMap(waiting), ...hwWaiting, ...site];
   shot(0, everything, facing + .7, .7, .95);
   shot(INTRO * .85, everything, facing + .45, .62, .8);
   tl.steps.forEach((s, k) => {

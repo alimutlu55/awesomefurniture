@@ -125,7 +125,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
    * 100°), a drawer slides out on its runners. */
   function place() {
-    if (film) { carry(film); fittings.motion(); return; }
+    if (film) { carry(film); fittings.motion(film.nudge); return; }
     for (const b of boards) {
       const at = b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
       let turn = 0;

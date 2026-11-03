@@ -100,6 +100,19 @@ export function cargoPulloutGeometry(
   const z0 = z1 - basketD;
   const runnerZ0 = z1 - length;
 
+  // Front Fixing Bracket Heights
+  const bracketCount = cargoBracketCount(hh);
+  const bracketHeights: number[] = [];
+  if (isTall) {
+    if (bracketCount === 4) {
+      bracketHeights.push(y + 8, y + hh * 0.38, y + hh * 0.68, y + hh - 8);
+    } else {
+      bracketHeights.push(y + 8, y + hh * 0.5, y + hh - 8);
+    }
+  } else {
+    bracketHeights.push(y + 5.5, y + hh - 6.5);
+  }
+
   // Frame construction
   const uprights: Box3D[] = [];
   const crossbars: Box3D[] = [];
@@ -122,33 +135,46 @@ export function cargoPulloutGeometry(
       { x0: cx - 4, x1: cx + 4, y0: frameBottom, y1: frameBottom + 2.4, z0: z0 + 1, z1: z1 - 1 },
       { x0: cx - 4, x1: cx + 4, y0: frameTop - 2.4, y1: frameTop, z0: z0 + 1, z1: z1 - 1 }
     );
-    // Crossbars at bottom, middle and top
+    // Rear crossbars at tiers
     for (const cy_ of [frameBottom + 2, y + hh * 0.38, y + hh * 0.68, frameTop - 2]) {
       crossbars.push(
-        { x0: cx - 4, x1: cx + 4, y0: cy_ - 1, y1: cy_ + 1, z0: z0 + 1, z1: z0 + 3.2 },
-        { x0: cx - 4, x1: cx + 4, y0: cy_ - 1, y1: cy_ + 1, z0: z1 - 3.2, z1: z1 - 1 }
+        { x0: cx - 4, x1: cx + 4, y0: cy_ - 1, y1: cy_ + 1, z0: z0 + 1, z1: z0 + 3.2 }
+      );
+    }
+    // Front bracket connector lugs extending forward to lock directly into front door brackets
+    for (const by of bracketHeights) {
+      crossbars.push(
+        { x0: cx - 3.5, x1: cx + 3.5, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: z1 + 0.5 }
       );
     }
   } else {
-    // Base cargo pull-out: vertical upright chassis spanning full depth to door brackets
+    // Base cargo pull-out: rigid steel chassis spanning full depth with direct bracket coupling arms
     const postX = mount === 'left' ? cx - sw / 2 + 2.5 : mount === 'right' ? cx + sw / 2 - 2.5 : cx;
     uprights.push(
       // Rear upright post
       { x0: postX - 1.2, x1: postX + 1.2, y0: frameBottom, y1: frameTop, z0: z0 + 1, z1: z0 + 3 },
-      // Front upright post coupled to door brackets
-      { x0: postX - 1.2, x1: postX + 1.2, y0: frameBottom, y1: frameTop, z0: z1 - 2.8, z1: z1 - 0.8 }
+      // Front upright post
+      { x0: postX - 1.2, x1: postX + 1.2, y0: frameBottom, y1: frameTop, z0: z1 - 3.2, z1: z1 - 1.2 }
     );
     // Longitudinal top and bottom structural chassis rails spanning full cabinet depth
     crossbars.push(
       { x0: postX - 1.4, x1: postX + 1.4, y0: frameBottom, y1: frameBottom + 2.2, z0: z0 + 1, z1: z1 - 0.8 },
       { x0: postX - 1.2, x1: postX + 1.2, y0: frameTop - 2, y1: frameTop, z0: z0 + 1, z1: z1 - 0.8 },
-      // Front mounting crossbars to front door fixing brackets
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameBottom + 1, y1: frameBottom + 2.8, z0: z1 - 2.8, z1: z1 - 0.8 },
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameTop - 2.8, y1: frameTop - 1, z0: z1 - 2.8, z1: z1 - 0.8 },
-      // Rear crossbars
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameBottom + 1, y1: frameBottom + 2.8, z0: z0 + 1, z1: z0 + 3 },
-      { x0: cx - basketW / 2, x1: cx + basketW / 2, y0: frameTop - 2.8, y1: frameTop - 1, z0: z0 + 1, z1: z0 + 3 }
+      // Rear basket support crossbars
+      { x0: Math.min(postX, cx - basketW / 2), x1: Math.max(postX, cx + basketW / 2), y0: frameBottom + 1, y1: frameBottom + 2.8, z0: z0 + 1, z1: z0 + 3 },
+      { x0: Math.min(postX, cx - basketW / 2), x1: Math.max(postX, cx + basketW / 2), y0: frameTop - 2.8, y1: frameTop - 1, z0: z0 + 1, z1: z0 + 3 }
     );
+    // Front horizontal connector arms extending from the chassis upright directly into the door brackets!
+    for (const by of bracketHeights) {
+      const minX = Math.min(postX, cx - 2.5);
+      const maxX = Math.max(postX, cx + 2.5);
+      crossbars.push(
+        // Lateral bridge from postX to door bracket center cx
+        { x0: minX, x1: maxX, y0: by - 1.1, y1: by + 1.1, z0: z1 - 3.2, z1: z1 - 1.2 },
+        // Front tongue sliding directly into the door bracket receiver block
+        { x0: cx - 2.2, x1: cx + 2.2, y0: by - 1.0, y1: by + 1.0, z0: z1 - 2.5, z1: z1 + 0.5 }
+      );
+    }
   }
 
   // Runners
@@ -204,19 +230,7 @@ export function cargoPulloutGeometry(
   }
 
   // Front Fixing Brackets
-  const bracketCount = cargoBracketCount(hh);
-  const bracketHeights: number[] = [];
-  if (isTall) {
-    if (bracketCount === 4) {
-      bracketHeights.push(y + 8, y + hh * 0.38, y + hh * 0.68, y + hh - 10);
-    } else {
-      bracketHeights.push(y + 8, y + hh * 0.5, y + hh - 10);
-    }
-  } else {
-    bracketHeights.push(y + 6, y + hh - 8);
-  }
-
-  const screwOffset = Math.min(3.5, basketW * 0.3);
+  const screwOffset = 2.0;
   const brackets: CargoBracket[] = bracketHeights.map(by => ({
     y: by,
     at: [cx, by, d] as const,

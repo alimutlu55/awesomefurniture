@@ -55,9 +55,15 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
     if (ph.t < s.end) return [0, 0, (length + 8) * (1 - ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0])))];
   }
   if (piece.steps[ph.step]?.stage === 'fronts') {
-    const s = tl.steps[ph.step]!, opening = ease((ph.t - s.drill[0]) / Math.max(.001, s.drill[1] - s.drill[0]));
+    const s = tl.steps[ph.step]!;
+    if (ph.t < s.place[0]) return [0, 0, 0];
+    if (ph.t < s.place[1]) {
+      const opening = ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0]));
+      return [0, 0, motion.by * opening];
+    }
+    if (ph.t <= s.fix[1]) return [0, 0, motion.by];
     const closing = ease((ph.t - s.fix[1]) / Math.max(.001, s.end - s.fix[1]));
-    return [0, 0, motion.by * opening * (1 - closing)];
+    return [0, 0, motion.by * (1 - closing)];
   }
   if (test < 0 || ph.step !== test) return [0, 0, 0];
   const s = tl.steps[test]!, runners = piece.fittings.filter(f => f.runner), own = runners.indexOf(drawerRunnerForBoard(piece, board)!);

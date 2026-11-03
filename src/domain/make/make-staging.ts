@@ -53,6 +53,40 @@ export function stagingLayout(piece: MakePiece, floor = 0): Staged[] {
   return out;
 }
 
+/** Floor staging positions for major hardware mechanisms (runners, cargo chassis, baskets, brackets). */
+export function hardwareStagingLayout(piece: MakePiece, stagedBoards: readonly Staged[], floor = 0): Map<number, Staged> {
+  const map = new Map<number, Staged>();
+  const cargoFittings = piece.fittings
+    .map((f, i) => ({ f, i }))
+    .filter(({ f }) => f.kind === 'runner'
+      || (f.size?.includes('cargo') && (f.kind === 'support' || f.kind === 'rail' || f.kind === 'bracket' || f.kind === 'plate')));
+  if (!cargoFittings.length) return map;
+
+  const maxZ = stagedBoards.length ? Math.max(...stagedBoards.map(s => s.at[2] + s.size[2] / 2)) : piece.size.d + FRONT;
+  const minX = stagedBoards.length ? Math.min(...stagedBoards.map(s => s.at[0] - s.size[0] / 2)) : 0;
+  let x = minX, z = maxZ + GAP * 1.5;
+
+  for (const { f, i } of cargoFittings) {
+    let size: Vec3 = [15, 3, 50];
+    if (f.kind === 'runner') size = [12, 4, Number(f.size) / 10 || 50];
+    else if (f.kind === 'support' && f.size?.includes('cargo frame')) size = [20, 4, piece.size.d - 6];
+    else if (f.kind === 'rail' && f.size?.includes('cargo basket')) size = [22, 10, piece.size.d - 10];
+    else if ((f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo')) size = [8, 4, 8];
+
+    const [w, t, d] = size;
+    map.set(i, {
+      at: [x + w / 2, floor + t / 2, z + d / 2],
+      lie: null,
+      spin: false,
+      size,
+      tilt: 0,
+      flip: false,
+    });
+    x += w + GAP;
+  }
+  return map;
+}
+
 /** A direction of a board as it stands built, turned as the board lies flat: levelled, then a quarter turn about x
  * takes y to z and z down, one about z takes x up (the other way round when flipped; a flipped flat board is turned
  * over), and the spin about y takes z to x. */

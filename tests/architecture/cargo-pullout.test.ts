@@ -5,6 +5,7 @@ import { makePiece } from '../../src/domain/make/make-parts';
 import { assemblyTimeline } from '../../src/domain/make/make-timeline';
 import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
 import { cargoPulloutGeometry, cargoTierCount, cargoBasketWidth } from '../../src/domain/kitchen/cargo-pullout';
+import { stagingLayout, hardwareStagingLayout } from '../../src/domain/make/make-staging';
 import { piecefronts } from '../../src/domain/drawings/fronts';
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import { hardwareList } from '../../src/domain/drawings/hardware-list';
@@ -226,5 +227,95 @@ test('cargo commands · editItem updates cargo tiers, basketStyle, and cargoMoun
   // Edit mounting to left
   commands.editItem(0, 0, { cargoMount: 'left' });
   assert.equal(design.secs[0]![0]!.cargoMount, 'left');
+});
+
+test('cargo staging · all cargo materials (runners, frame, baskets, brackets) are staged on the floor in initial chapter', () => {
+  const baseDesign = createKitchenDesign('base', 'cargo');
+  const piece = make(baseDesign);
+  const stagedBoards = stagingLayout(piece, 0);
+  const stagedHw = hardwareStagingLayout(piece, stagedBoards, 0);
+
+  // Check that hardware items exist in the staging layout
+  assert.ok(stagedHw.size >= 4, 'hardware staging includes runners, chassis frame, baskets, and brackets');
+
+  // Verify runners staged on the floor
+  const runnerIdx = piece.fittings.findIndex(f => f.kind === 'runner');
+  assert.ok(runnerIdx >= 0 && stagedHw.has(runnerIdx));
+  const runnerStaged = stagedHw.get(runnerIdx)!;
+  assert.ok(runnerStaged.at[1] >= 0 && runnerStaged.at[1] <= 10, 'runners rest on the floor');
+  assert.ok(runnerStaged.at[2] >= piece.size.d + 30, 'runners are in the staging area in front of the cabinet');
+
+  // Verify chassis frame staged on the floor
+  const frameIdx = piece.fittings.findIndex(f => f.kind === 'support' && f.size?.includes('cargo frame'));
+  assert.ok(frameIdx >= 0 && stagedHw.has(frameIdx));
+  const frameStaged = stagedHw.get(frameIdx)!;
+  assert.ok(frameStaged.at[1] >= 0 && frameStaged.at[1] <= 10, 'cargo frame rests on the floor');
+
+  // Verify baskets staged on the floor
+  const basketIdx = piece.fittings.findIndex(f => f.kind === 'rail' && f.size?.includes('cargo basket'));
+  assert.ok(basketIdx >= 0 && stagedHw.has(basketIdx));
+  const basketStaged = stagedHw.get(basketIdx)!;
+  assert.ok(basketStaged.at[1] >= 0 && basketStaged.at[1] <= 15, 'cargo baskets rest on the floor');
+
+  // Verify brackets staged on the floor
+  const bracketIdx = piece.fittings.findIndex(f => (f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo'));
+  assert.ok(bracketIdx >= 0 && stagedHw.has(bracketIdx));
+});
+
+test('cargo smooth motion in fronts stage · zero jumping when cargo opens to receive door', () => {
+  const baseDesign = createKitchenDesign('base', 'cargo');
+  const piece = make(baseDesign);
+  const tl = assemblyTimeline(piece);
+  const frontsIdx = piece.steps.findIndex(s => s.stage === 'fronts');
+  assert.ok(frontsIdx >= 0, 'fronts step exists');
+  const s = tl.steps[frontsIdx]!;
+  const frontIdx = piece.boards.findIndex(b => b.name === 'Cargo front');
+  assert.ok(frontIdx >= 0);
+
+  // Before place[0]: offset must be exactly 0 (door lying on floor, chassis closed)
+  const tBefore = s.place[0] - 0.2;
+  const offBefore = drawerBoardOffset(piece, tl, { step: frontsIdx, t: tBefore } as any, frontIdx);
+  assert.equal(offBefore[2], 0, 'cargo does not open before door placement starts (no jumping)');
+
+  // During place phase: offset must be continuous and strictly increasing from 0 to motion.by
+  let prevZ = 0;
+  for (let step = 1; step <= 5; step++) {
+    const tPlace = s.place[0] + (s.place[1] - s.place[0]) * (step / 5);
+    const offPlace = drawerBoardOffset(piece, tl, { step: frontsIdx, t: tPlace } as any, frontIdx);
+    assert.ok(offPlace[2] >= prevZ, 'offset increases monotonically during placing');
+    // Ensure smooth gradient, no huge delta
+    assert.ok(offPlace[2] - prevZ <= 15, 'no discontinuous jump during placing');
+    prevZ = offPlace[2];
+  }
+
+  // During fix phase: offset must stay fully extended
+  const tFixMid = (s.fix[0] + s.fix[1]) / 2;
+  const offFix = drawerBoardOffset(piece, tl, { step: frontsIdx, t: tFixMid } as any, frontIdx);
+  assert.ok(offFix[2] >= 30, 'cargo is fully extended while brackets are fastened to frame');
+
+  // After fix[1]: offset must smoothly close back to 0
+  const tEnd = s.end - 0.05;
+  const offEnd = drawerBoardOffset(piece, tl, { step: frontsIdx, t: tEnd } as any, frontIdx);
+  assert.ok(offEnd[2] <= 5, 'cargo smoothly returns home after fixing');
+});
+
+test('cargo chassis & bracket alignment · zero gap and exact co-location', () => {
+  const geo = cargoPulloutGeometry(15, 9.8, 26.4, 74, 55);
+  assert.equal(geo.brackets.length, 2);
+
+  for (const br of geo.brackets) {
+    // Height of bracket must match horizontal arms in the frame
+    const matchingCrossbars = geo.frame.crossbars.filter(c => Math.abs((c.y0 + c.y1) / 2 - br.y) < 0.2);
+    assert.ok(matchingCrossbars.length >= 1, `bracket at y=${br.y} has matching horizontal arms in chassis frame`);
+
+    // The crossbar tongue must extend forward to connect to the door bracket
+    const maxCrossbarZ1 = Math.max(...matchingCrossbars.map(c => c.z1));
+    assert.ok(maxCrossbarZ1 >= geo.runners.bottom.z1, 'frame horizontal arm reaches the bracket');
+
+    // Screws are centered within bracket plate
+    for (const s of br.screws) {
+      assert.ok(Math.abs(s[0] - 15) <= 2.5, 'bracket screws are within bracket plate width');
+    }
+  }
 });
 
