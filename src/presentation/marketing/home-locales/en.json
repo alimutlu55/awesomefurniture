@@ -2,8 +2,8 @@
   "workflow": "Workflow",
   "features": [
     {
-      "t": "Set the room once. Switch 2D to 3D in a click.",
-      "p": "Draw walls, set dimensions and mark constraints. Your floor plan and 3D space stay perfectly in sync.",
+      "t": "2D & 3D Room Planning",
+      "p": "Start with the room your furniture needs to fit. Draw walls, enter dimensions and place doors and windows before adding storage. Switch between the floor plan and 3D view to check the arrangement from several angles. Keep room measurements and furniture in one project so you can review access, proportions and the space around each cabinet as the design develops.",
       "b": [
         "2D/3D Sync",
         "Exact dimensions",
@@ -11,8 +11,8 @@
       ]
     },
     {
-      "t": "Furniture that resizes to the millimetre.",
-      "p": "Design wardrobes, cabinetry and modular pieces with real material swatches. Change a width and every panel follows.",
+      "t": "3D Wardrobe & Closet Design Software",
+      "p": "Use FurniDraw as closet design software for built-in storage or a fitted wardrobe. Adjust width, height and depth, then arrange rails, shelves, drawers and doors around your belongings. Explore panel materials and front finishes in 3D. Parametric sizing updates the furniture as dimensions change, helping you compare alternatives before choosing a layout to discuss with your furniture maker.",
       "b": [
         "Parametric",
         "mm precision",
@@ -20,8 +20,8 @@
       ]
     },
     {
-      "t": "Tell us what you store. Get the furniture.",
-      "p": "List shoes, shirts, coats and boxes. The engine proposes an optimised layout and interior to hold them all.",
+      "t": "Automatic Closet Storage Layouts",
+      "p": "Count the shirts, long garments, folded clothes and shoes you want to store. The automatic layout tool proposes a wardrobe interior from that storage list. Try the interactive example above, then open the studio to refine the design. Review hanging heights, shelf spacing and drawer positions against your own reach and daily routine instead of relying on clothing quantities alone.",
       "b": [
         "Auto-Layout",
         "Storage lists",
@@ -29,8 +29,8 @@
       ]
     },
     {
-      "t": "Open it up. Configure every part.",
-      "p": "Choose shelves, drawers, doors and hardware, then review how the parts fit before anything is cut.",
+      "t": "Cabinet Parts & Cutting List Generator",
+      "p": "Choose the internal fittings and review the panels, doors and hardware that make up your cabinet. The cabinet cutting list generator provides finished component dimensions and quantities for discussion with your workshop. Group parts by material and check each item against the design. Your maker still needs to confirm edge-banding deductions, joints and machining details; drilling plans are not included.",
       "b": [
         "Assembly",
         "Hardware",
@@ -38,8 +38,8 @@
       ]
     },
     {
-      "t": "Technical drawings in one click.",
-      "p": "Clean plans, elevations and dimension annotations your carpenter or contractor can build from.",
+      "t": "Dimensioned Furniture Drawings",
+      "p": "Generate dimensioned plans, elevations and cabinet sections from the furniture design. Use the drawings, parts lists and hardware schedules to explain your choices to a carpenter or cabinet maker. Revisit the 3D model when a dimension or fitting changes, then review the updated documentation. Confirm site measurements and production details with the person making or installing the furniture before ordering boards.",
       "b": [
         "CAD-Ready Schematics",
         "Elevations",
@@ -47,8 +47,8 @@
       ]
     },
     {
-      "t": "See your kitchen as a finished room.",
-      "p": "Drag the handle to compare the studio model with the render. Follow the wood grain, white cabinets and countertop from one view to the other.",
+      "t": "Kitchen Design Examples & AI Renders",
+      "p": "Plan modular base, wall and tall kitchen cabinets in the same browser studio. Explore dimensions, fronts, worktops and the surrounding room, then compare the example below in its 3D and AI-rendered views. AI images help communicate materials and atmosphere; dimensioned drawings describe the planned furniture. Check appliance specifications, services and installation clearances with your kitchen maker as you refine the layout.",
       "b": [
         "AI Render",
         "Finish-aware",
@@ -57,8 +57,8 @@
     }
   ],
   "start": "Start",
-  "headline": "Sketch it. Engineer it. Ship the drawings.",
-  "intro": "One 3D studio takes you from a 2D room sketch to parametric furniture, contractor-ready technical drawings and photoreal AI renders.",
+  "headline": "Online 2D/3D Furniture Design Software — From Room Layout to Cut List",
+  "intro": "Design fitted wardrobes, closets and kitchen cabinets in 3D. Refine your layout, then generate dimensioned drawings and cabinet cutting lists. Free to start in your browser.",
   "launch": "Launch the studio",
   "seeWorkflow": "See the workflow",
   "study": "THE INTERACTIVE STUDY",
@@ -96,5 +96,16 @@
     "Folded clothes",
     "Pairs of shoes"
   ],
-  "featuresLabel": "Features"
+  "featuresLabel": "Features",
+  "guidesLabel": "Guides",
+  "aboutLabel": "About",
+  "pricingLabel": "Pricing",
+  "contactLabel": "Contact",
+  "guidesTitle": "Wardrobe & kitchen design guides",
+  "faqTitle": "Wardrobe & kitchen design questions",
+  "kitchenModelAlt": "Kitchen design example: wood and white cabinets in the 3D studio",
+  "kitchenRenderAlt": "AI visualization of the same kitchen design with wood fronts and a white countertop",
+  "privacyLabel": "Privacy Policy",
+  "termsLabel": "Terms of Service",
+  "aiAssistants": "For AI assistants"
 }

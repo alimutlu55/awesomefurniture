@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { assemblyParts, assemblyPose, assemblyTimeline } from './assembly-model';
+import { assemblyParts, assemblyPose, assemblyTimeline, type AssemblyPart } from './assembly-model';
 import { assemblyMaterials, panelGeometry } from './assembly-materials';
 import { drawingEdges, assemblyDimensions } from './assembly-drawing';
 import type { StudyState } from './study';
 
 export interface AssemblyScene {
-  update(state: StudyState, progress: number): void;
+  update(state: StudyState, progress: number, planned?: AssemblyPart[]): void;
   reset(): void;
   dispose(): void;
 }
@@ -59,9 +59,9 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
       }
     }
   };
-  function rebuild() {
+  function rebuild(planned?: AssemblyPart[]) {
     for (const geometry of geometries) geometry.dispose(); geometries.clear(); object.clear();
-    parts = assemblyParts(width, shape as StudyState['shape']);
+    parts = planned ?? assemblyParts(width, shape as StudyState['shape']);
     timeline = assemblyTimeline(parts);
     for (const part of parts) {
       const group = new THREE.Group();
@@ -147,11 +147,11 @@ export function createAssemblyScene(host: HTMLElement, label: string, unavailabl
   canvas.addEventListener('keydown', keydown);
   host.append(canvas); resize.observe(host); intersection.observe(host);
   return {
-    update(next, value) {
+    update(next, value, planned) {
       if (disposed) return;
       state = next;
-      const rebuilt = width !== state.width || shape !== state.shape;
-      if (rebuilt) { width = state.width; shape = state.shape; rebuild(); }
+      const rebuilt = (planned && parts !== planned) || width !== state.width || shape !== state.shape;
+      if (rebuilt) { width = state.width; shape = state.shape; rebuild(planned); }
       progress = Math.max(0, Math.min(1, value));
       request();
     },

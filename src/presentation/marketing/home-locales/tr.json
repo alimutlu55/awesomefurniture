@@ -2,7 +2,7 @@
   "workflow": "Nasıl çalışır",
   "features": [
     {
-      "t": "Odanı çiz. İstersen 3D olarak gör.",
+      "t": "2D ve 3D Oda Planlama",
       "p": "Duvarları çiz, kapı ve pencereleri yerleştir, ölçüleri gir. Odanın planını ve 3D görünümünü birlikte gör.",
       "b": [
         "Oda planı ve 3D görünüm",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Mobilyanın ölçülerini istediğin gibi ayarla.",
+      "t": "3D Gardırop Tasarım Programı",
       "p": "Dolabının genişliğini, yüksekliğini ve derinliğini değiştir. Raflar ve diğer parçalar yeni ölçülere göre ayarlansın. Malzemesini de sen seç.",
       "b": [
         "Özel ölçü",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "Eşyalarını say. Dolabını ona göre planla.",
+      "t": "Otomatik Gardırop İç Düzeni",
       "p": "Kaç gömleğin, palton ve ayakkabın olduğunu yaz. Raflar ve askılıklar eşyalarına göre yerleşsin.",
       "b": [
         "Otomatik yerleşim",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "Rafından kulpuna, her ayrıntıyı sen seç.",
+      "t": "Dolap Parçaları ve Kesim Listeleri",
       "p": "Raf, çekmece, kapak ve kulpları seç. Daha kesime başlamadan dolabının nasıl bir araya geldiğini gör.",
       "b": [
         "Montaj",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Ölçülü çizimleri tek tıkla al.",
+      "t": "Ölçülü Mobilya Çizimleri",
       "p": "Dolabının ölçülerini gösteren çizimleri hazırla. Kendin yaparken kullan ya da doğrudan ustana ver.",
       "b": [
         "Ölçülü çizimler",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "Mutfağının bitmiş halini gör.",
+      "t": "Mutfak Örnekleri ve Yapay Zekâ Görselleri",
       "p": "Çubuğu sağa sola kaydır, çizimle bitmiş halini karşılaştır. Dolapların, ahşabın ve tezgâhın nasıl görüneceğine bak.",
       "b": [
         "Yapay zekâyla gör",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Başla",
-  "headline": "Odanı çiz. Mobilyanı tasarla. Çizimleri ustana ver.",
+  "headline": "Online Gardırop ve Mutfak Dolabı Tasarım Programı",
   "intro": "Odanı çiz, mobilyanın ölçülerini ayarla. Ustan için ölçülü çizimler hazırla, nasıl görüneceğini yapay zekâyla gör. Hepsi tek bir yerde.",
   "launch": "Tasarlamaya başla",
   "seeWorkflow": "Nasıl çalıştığını gör",
@@ -96,5 +96,16 @@
     "Katlanmış kıyafet",
     "Ayakkabı (çift)"
   ],
-  "featuresLabel": "Özellikler"
+  "featuresLabel": "Özellikler",
+  "guidesLabel": "Rehberler",
+  "aboutLabel": "Hakkında",
+  "pricingLabel": "Fiyatlar",
+  "contactLabel": "İletişim",
+  "guidesTitle": "Gardırop ve mutfak tasarım rehberleri",
+  "faqTitle": "Gardırop ve mutfak tasarımı hakkında sorular",
+  "kitchenModelAlt": "3D stüdyoda ahşap kapaklı ve beyaz dolaplı mutfak tasarımı",
+  "kitchenRenderAlt": "Aynı mutfak tasarımının ahşap kapaklar ve beyaz tezgâhla yapay zekâ görselleştirmesi",
+  "privacyLabel": "Gizlilik Politikası",
+  "termsLabel": "Kullanım Koşulları",
+  "aiAssistants": "Yapay zekâ asistanları için"
 }

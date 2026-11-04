@@ -42,12 +42,15 @@ export function createWardrobeSizeBackend({ model, sceneCommands, history, rebui
       return fields;
     },
     field(key, value) {
-      if (key !== 'depth') return undefined;
-      return atomic(true, () => {
-        const c = model.activeCabinet();
-        if (Math.abs(c.state.d - value) < .001) return true;
-        return sceneCommands.setCabinetSize('d', value, false) && Math.abs(c.state.d - value) < .001;
-      });
+      if (key === 'depth' || (key === 'width' && resolveShape(model.activeCabinet().state).top.length === 2)) {
+        const axis = key === 'width' ? 'w' : 'd';
+        return atomic(true, () => {
+          const c = model.activeCabinet();
+          if (Math.abs(c.state[axis] - value) < .001) return true;
+          return sceneCommands.setCabinetSize(axis, value, false) && Math.abs(c.state[axis] - value) < .001;
+        });
+      }
+      return undefined;
     },
     write(ref, points, view = 'front', record = true, quiet = false) {
       problem = null;

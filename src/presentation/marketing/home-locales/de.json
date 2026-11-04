@@ -2,7 +2,7 @@
   "workflow": "So geht’s",
   "features": [
     {
-      "t": "Raum zeichnen. Zwischen Plan und 3D wechseln.",
+      "t": "Raumplanung in 2D und 3D",
       "p": "Zeichnen Sie die Wände, setzen Sie Türen und Fenster ein und geben Sie die Maße an. Plan und 3D-Ansicht ändern sich gemeinsam.",
       "b": [
         "Plan und 3D",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Möbel genau auf Ihr Maß.",
+      "t": "Kleiderschränke in 3D planen",
       "p": "Passen Sie Breite, Höhe und Tiefe an. Die Platten ändern sich mit. Wählen Sie dazu das passende Material.",
       "b": [
         "Größe anpassen",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "Ihre Sachen bestimmen den Schrank.",
+      "t": "Automatische Schrankaufteilung",
       "p": "Geben Sie an, wie viele Hemden, Mäntel, Schuhe und Kisten Sie haben. Wir schlagen eine passende Aufteilung vor.",
       "b": [
         "Automatische Aufteilung",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "Vom Regal bis zum Griff: Sie entscheiden.",
+      "t": "Schrankteile und Zuschnittlisten",
       "p": "Wählen Sie Regalböden, Schubladen, Türen und Zubehör. Sehen Sie vor dem Zuschnitt, wie die Teile zusammenpassen.",
       "b": [
         "Zusammenbau",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Baupläne mit einem Klick.",
+      "t": "Bemaßte Möbelzeichnungen",
       "p": "Erstellen Sie übersichtliche Zeichnungen mit allen wichtigen Maßen. Für den eigenen Bau oder für Ihre Tischlerei.",
       "b": [
         "Zeichnungen mit Maßen",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "So kann Ihre fertige Küche aussehen.",
+      "t": "Küchenbeispiele und KI-Visualisierungen",
       "p": "Schieben Sie den Regler und vergleichen Sie die Planung mit dem fertigen Bild. Sehen Sie sich Holz, Schränke und Arbeitsplatte an.",
       "b": [
         "KI-Bilder",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Start",
-  "headline": "Raum zeichnen. Möbel planen. Baupläne mitnehmen.",
+  "headline": "Kleiderschränke & Küchen online in 3D planen",
   "intro": "Zeichnen Sie Ihren Raum, passen Sie Ihre Möbel an und erstellen Sie Pläne für die Tischlerei. KI-Bilder zeigen Ihnen, wie alles fertig aussehen kann. Alles an einem Ort.",
   "launch": "Studio starten",
   "seeWorkflow": "Ablauf ansehen",
@@ -96,5 +96,16 @@
     "Gefaltete Kleidung",
     "Schuhpaare"
   ],
-  "featuresLabel": "Funktionen"
+  "featuresLabel": "Funktionen",
+  "guidesLabel": "Ratgeber",
+  "aboutLabel": "Über uns",
+  "pricingLabel": "Preise",
+  "contactLabel": "Kontakt",
+  "guidesTitle": "Ratgeber für Schrank- und Küchenplanung",
+  "faqTitle": "Fragen zur Schrank- und Küchenplanung",
+  "kitchenModelAlt": "Küchenentwurf mit Holzfronten und weißen Schränken im 3D-Studio",
+  "kitchenRenderAlt": "KI-Visualisierung desselben Küchenentwurfs mit Holzfronten und weißer Arbeitsplatte",
+  "privacyLabel": "Datenschutz",
+  "termsLabel": "AGB",
+  "aiAssistants": "Für KI-Assistenten"
 }

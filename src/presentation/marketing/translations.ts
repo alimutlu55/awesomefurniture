@@ -2,7 +2,7 @@ import { english, type MarketingCopy } from './copy';
 
 const german: MarketingCopy = {
   lang: 'de', name: 'Deutsch', title: 'FurniDraw — Möbel online planen: Schränke & Küchen',
-  description: "Gestalten. Konstruieren. Bauen. Planen Sie Raum und Möbel in einem 3D-Studio und erstellen Sie bemaßte Zeichnungen und Teilelisten mit FurniDraw.",
+  description: "Planen Sie Einbauschränke und Küchenschränke online in 3D. Erstellen Sie bemaßte Zeichnungen und Zuschnittlisten. Kostenlos starten, ohne Konto.",
   nav: ['Das Erlebnis', 'Die Details', 'Planungswissen'], start: 'Studio öffnen', eyebrow: "IHRE MÖBEL. VON DER IDEE BIS ZUM BAU.",
   headline: ["Gestalten.", "Konstruieren.", "Bauen."],
   intro: "Sehen Sie, was in Ihren Raum passt, arbeiten Sie die Konstruktion aus und erstellen Sie klare Pläne für den Bau. Alles in einem 3D-Studio.",
@@ -49,7 +49,7 @@ const german: MarketingCopy = {
 
 const french: MarketingCopy = {
   lang: 'fr', name: 'Français', title: 'FurniDraw — Concevez vos meubles et placards en ligne',
-  description: "Imaginez. Concevez. Fabriquez. Planifiez votre pièce et vos meubles dans un studio 3D, puis créez des plans cotés et des listes de pièces avec FurniDraw.",
+  description: "Concevez placards sur mesure et meubles de cuisine en 3D. Créez plans cotés et listes de découpe. Commencez gratuitement, sans compte.",
   nav: ['L’expérience', 'Les détails', 'Carnet de conception'], start: 'Ouvrir le studio', eyebrow: "VOS MEUBLES. DE L’IDÉE À LA FABRICATION.",
   headline: ["Imaginez.", "Concevez.", "Fabriquez."],
   intro: "Voyez ce qui convient à votre espace, précisez l’assemblage et créez des plans clairs pour la fabrication. Tout cela dans un seul studio 3D.",
@@ -96,7 +96,7 @@ const french: MarketingCopy = {
 
 const spanish: MarketingCopy = {
   lang: 'es', name: 'Español', title: 'FurniDraw — Diseña muebles y armarios online en 3D',
-  description: "Diseña. Detalla. Construye. Planifica tu habitación y tus muebles en un estudio 3D y crea planos acotados y listas de piezas con FurniDraw.",
+  description: "Diseña armarios a medida y muebles de cocina en 3D. Genera planos acotados y listas de corte. Empieza gratis, sin crear una cuenta.",
   nav: ['La experiencia', 'Los detalles', 'Cuaderno de diseño'], start: 'Abrir el estudio', eyebrow: "TUS MUEBLES. DE LA IDEA A LA CONSTRUCCIÓN.",
   headline: ["Diseña.", "Detalla.", "Construye."],
   intro: "Descubre qué encaja en tu espacio, define cómo se ensambla y crea planos claros para construirlo. Todo en un estudio 3D.",
@@ -142,7 +142,7 @@ const spanish: MarketingCopy = {
 
 const polish: MarketingCopy = {
   lang: 'pl', name: 'Polski', title: 'FurniDraw — Projektowanie mebli i szaf online w 3D',
-  description: "Zaprojektuj. Dopracuj. Zbuduj. Zaplanuj pokój i meble w jednym studiu 3D, a potem przygotuj zwymiarowane rysunki i listy części z FurniDraw.",
+  description: "Projektuj szafy na wymiar i szafki kuchenne online w 3D. Twórz zwymiarowane rysunki i listy cięcia. Zacznij bezpłatnie, bez zakładania konta.",
   nav: ['Jak to działa', 'Detale', 'Poradnik'], start: 'Otwórz studio', eyebrow: "TWOJE MEBLE. OD POMYSŁU DO WYKONANIA.",
   headline: ["Zaprojektuj.", "Dopracuj.", "Zbuduj."],
   intro: "Zobacz, co pasuje do Twojej przestrzeni, dopracuj konstrukcję i przygotuj czytelne plany do wykonania mebli. Wszystko w jednym studiu 3D.",
@@ -178,7 +178,9 @@ const polish: MarketingCopy = {
     ['Czy potrzebuję konta lub instalacji?', 'Możesz zacząć w nowoczesnej przeglądarce bez konta i instalowania programu. Szkice pozostają w przeglądarce; funkcje konta i chmury znajdziesz w studiu.'],
     ['Czy mogę wypróbować FurniDraw bezpłatnie?', 'Możesz zacząć projektować bez kupowania kredytów. Obrazy AI i rysunki korzystają z systemu kredytów w studiu. Tam sprawdzisz aktualne ceny i bezpłatne użycia.'],
     ['Czy mogę wykonać mebel na podstawie rysunków?', 'Omów zwymiarowane rysunki ze stolarzem. Przed wykonaniem sprawdź pomiary, materiały, luzy i okucia. Listy cięcia podają wymiary gotowe; nie zawierają planów wierceń.'],
-    ['Czy mogę korzystać z FurniDraw w moim kraju?', 'FurniDraw działa w przeglądarce. Wprowadzenie jest dostępne w kilku językach. Podgląd obsługuje centymetry i cale; pełne studio używa obecnie języka angielskiego i centymetrów.'],
+    ['Czy mogę korzystać z FurniDraw w moim kraju?', 'FurniDraw działa w przeglądarce i jest dostępne na całym świecie. '
+      + 'Wprowadzenie jest dostępne w kilku językach. Podgląd oraz pełne studio obsługują siedem języków interfejsu oraz '
+      + 'pomiary w centymetrach, milimetrach lub calach.'],
   ],
   closing: ["Zaprojektuj. Dopracuj.", "Zbuduj."], language: 'Język',
   editorLanguage: 'Studio w 7 językach · wybór jednostek', skip: 'Przejdź do treści', units: 'Jednostki',
@@ -186,7 +188,7 @@ const polish: MarketingCopy = {
 
 const portuguese: MarketingCopy = {
   lang: 'pt', name: 'Português', title: 'FurniDraw — Projete móveis e armários online em 3D',
-  description: "Projete. Detalhe. Construa. Planeje o ambiente e os móveis em um estúdio 3D e crie desenhos cotados e listas de peças com FurniDraw.",
+  description: "Projete armários sob medida e móveis de cozinha em 3D. Gere desenhos cotados e listas de corte. Comece grátis, sem criar uma conta.",
   nav: ['A experiência', 'Os detalhes', 'Caderno de projeto'], start: 'Abrir o estúdio', eyebrow: "SEUS MÓVEIS. DA IDEIA À CONSTRUÇÃO.",
   headline: ["Projete.", "Detalhe.", "Construa."],
   intro: "Veja o que cabe no seu espaço, defina como as peças se encaixam e crie planos claros para construir. Tudo em um estúdio 3D.",

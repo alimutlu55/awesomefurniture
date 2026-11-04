@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   if(built?.project) editor?.replaceDesign(built.project);
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;},initialLink:openLink,checkout});
+ const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;(window as unknown as {__furnidrawEditor?: typeof value}).__furnidrawEditor=value;},initialLink:openLink,checkout});
  startup.remove();
  await workspace.start();
  window.addEventListener('hashchange',openLink);

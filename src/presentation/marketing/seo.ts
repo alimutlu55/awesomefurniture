@@ -11,29 +11,103 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
   const path = guide ? `/${guide.slug}/` : homePath(copy.lang), url = siteOrigin + path;
   const title = guide?.title ?? copy.title, description = guide?.description ?? copy.description;
   const graph: object[] = [
-    { '@type': 'Organization', '@id': `${siteOrigin}/#organization`, name: 'FurniDraw', url: siteOrigin,
-      logo: { '@type': 'ImageObject', url: `${siteOrigin}/assets/furnidraw-mark.png`, width: 512, height: 512 } },
-    { '@type': 'WebSite', '@id': `${siteOrigin}/#website`, name: 'FurniDraw', alternateName: 'furnidraw.com', url: siteOrigin + '/',
-      inLanguage: languages.map(c => c.lang), publisher: { '@id': `${siteOrigin}/#organization` } },
-    { '@type': 'WebPage', '@id': url, url, name: title, description, inLanguage: copy.lang,
-      isPartOf: { '@id': `${siteOrigin}/#website` }, about: { '@id': `${siteOrigin}/#app` },
-      ...(guide ? { breadcrumb: { '@id': url + '#breadcrumb' } } : {}) },
-    { '@type': 'WebApplication', '@id': `${siteOrigin}/#app`, name: 'FurniDraw', url: `${siteOrigin}/editor/`,
-      applicationCategory: 'DesignApplication', operatingSystem: 'Web browser',
+    {
+      '@type': 'Organization',
+      '@id': `${siteOrigin}/#organization`,
+      name: 'FurniDraw',
+      legalName: 'FurniDraw Engineering Ltd',
+      url: siteOrigin,
+      logo: { '@type': 'ImageObject', url: `${siteOrigin}/assets/furnidraw-mark.png`, width: 512, height: 512 },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'support@furnidraw.com',
+        contactType: 'customer service',
+        availableLanguage: languages.map(c => c.lang),
+      },
+      sameAs: ['https://x.com/furnidraw', 'https://github.com/furnidraw'],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteOrigin}/#website`,
+      name: 'FurniDraw',
+      alternateName: 'furnidraw.com',
+      url: siteOrigin + '/',
+      inLanguage: languages.map(c => c.lang),
+      publisher: { '@id': `${siteOrigin}/#organization` },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': url,
+      url,
+      name: title,
+      description,
+      inLanguage: copy.lang,
+      isPartOf: { '@id': `${siteOrigin}/#website` },
+      about: { '@id': `${siteOrigin}/#app` },
+      ...(guide ? { breadcrumb: { '@id': url + '#breadcrumb' } } : {}),
+    },
+    {
+      '@type': 'WebApplication',
+      '@id': `${siteOrigin}/#app`,
+      name: 'FurniDraw',
+      url: `${siteOrigin}/editor/`,
+      applicationCategory: 'DesignApplication',
+      operatingSystem: 'Web browser',
       browserRequirements: 'Modern browser with JavaScript and WebGL enabled',
-      description: 'Browser-based 3D design software for custom furniture, fitted wardrobes and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
-      inLanguage: languages.map(c => c.lang), offers: { '@type': 'Offer', name: 'Browser design workspace', price: 0, priceCurrency: 'USD',
-        url: `${siteOrigin}/editor/`, description: 'Begin designing without buying credits. AI images and drawing exports use the in-app credit system.' },
-      featureList: ['3D furniture design', 'Online furniture designer', 'Furniture making software', 'Fitted wardrobes', 'Modular kitchen cabinets',
-        'AI design images', 'Dimensioned technical drawings', 'Cutting lists and parts schedules'], publisher: { '@id': `${siteOrigin}/#organization` } },
+      description: 'Browser-based 3D design software for custom furniture, fitted wardrobes '
+        + 'and modular kitchen cabinets, with AI visualisations and dimensioned technical drawings.',
+      inLanguage: languages.map(c => c.lang),
+      offers: {
+        '@type': 'Offer',
+        name: 'Browser design workspace',
+        price: 0,
+        priceCurrency: 'USD',
+        url: `${siteOrigin}/editor/`,
+        description: 'Begin designing without buying credits. AI images and drawing exports use the in-app credit system.',
+      },
+      featureList: [
+        '2D/3D room planner',
+        '3D furniture configurator',
+        'Online wardrobe designer',
+        'Kitchen cabinet design software',
+        'Cabinet cut list generator',
+        'Sloped ceiling wardrobe designer',
+        'Walk-in closet planner',
+        'Dimensioned technical drawings',
+        'AI realistic renders',
+      ],
+      publisher: { '@id': `${siteOrigin}/#organization` },
+    },
   ];
-  if (guide) graph.push({ '@type': 'BreadcrumbList', '@id': url + '#breadcrumb', itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
-    { '@type': 'ListItem', position: 2, name: guide.label, item: url },
-  ] });
+
+  if (guide) {
+    graph.push({
+      '@type': 'BreadcrumbList',
+      '@id': url + '#breadcrumb',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
+        { '@type': 'ListItem', position: 2, name: guide.label, item: url },
+      ],
+    });
+  }
+
+  const faqs = guide?.faqs ?? (!guide ? copy.faqs : undefined);
+  if (faqs && faqs.length > 0) {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': `${url}#faq`,
+      mainEntity: faqs.map(([q, a]) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    });
+  }
+
   const alternates = guide ? '' : languages.map(c =>
     `<link rel="alternate" hreflang="${c.lang}" href="${siteOrigin + homePath(c.lang)}">`).join('\n')
     + `\n<link rel="alternate" hreflang="x-default" href="${siteOrigin}/">`;
+
   return `<title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}">
     <meta name="robots" content="${indexable ? 'index,follow,max-image-preview:large' : 'noindex,follow'}">

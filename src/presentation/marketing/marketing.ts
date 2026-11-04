@@ -25,6 +25,7 @@ const reconcileFilms = () => {
   films.forEach(video => {
     const isVisible = (visibility.get(video) || 0) >= 0.15;
     if (isVisible && video.paused) {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
       void video.play().catch(() => {});
     } else if (!isVisible && !video.paused) {
       video.pause();
@@ -39,7 +40,6 @@ const observer = new IntersectionObserver(entries => {
 
 films.forEach(video => {
   observer.observe(video);
-  if (!video.src && video.dataset.src) video.src = video.dataset.src;
 });
 
 reduceMotion.addEventListener('change', event => {
@@ -49,7 +49,14 @@ reduceMotion.addEventListener('change', event => {
 document.addEventListener('visibilitychange', reconcileFilms);
 
 const preview = document.querySelector<HTMLElement>('.wardrobe-preview');
-if (preview) void import('./clothes-preview').then(({ mountPreview }) => mountPreview(preview));
+if (preview) {
+  const previewObserver = new IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return;
+    previewObserver.disconnect();
+    void import('./clothes-preview').then(({ mountPreview }) => mountPreview(preview));
+  });
+  previewObserver.observe(preview);
+}
 
 document.querySelectorAll<HTMLInputElement>('.kitchen-comparison input').forEach(input => {
   input.addEventListener('input', () => input.parentElement!.style.setProperty('--reveal', input.value + '%'));

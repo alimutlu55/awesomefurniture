@@ -4,14 +4,16 @@ import type { Plugin } from 'vite';
 import { english } from '../src/presentation/marketing/copy';
 import { languages, homePath } from '../src/presentation/marketing/translations';
 import { guides } from '../src/presentation/marketing/guides';
+import { informationPages } from '../src/presentation/marketing/information-pages';
 import { homeBody, guideBody } from '../src/presentation/marketing/page';
 import { seoHead, siteOrigin, escapeHtml } from '../src/presentation/marketing/seo';
 import { agentGuide } from '../src/app/agent-api';
 
-export const publicPaths = () => [...languages.map(c => homePath(c.lang)), ...guides.map(g => `/${g.slug}/`)];
+const contentPages = [...guides, ...informationPages];
+export const publicPaths = () => [...languages.map(c => homePath(c.lang)), ...contentPages.map(g => `/${g.slug}/`)];
 export const isIndexableBuild = (branch = process.env.WORKERS_CI_BRANCH) => !branch || branch === 'main';
 export function renderMarketing(template: string, path: string, indexable = true): string {
-  const guide = guides.find(g => `/${g.slug}/` === path);
+  const guide = contentPages.find(g => `/${g.slug}/` === path);
   const copy = languages.find(c => homePath(c.lang) === path) ?? english;
   return template.replace(/<html lang="[^"]+"/, `<html lang="${copy.lang}"`)
     .replace(/<!--fd:head:start-->[\s\S]*?<!--fd:head:end-->/,

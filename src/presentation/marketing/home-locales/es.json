@@ -2,7 +2,7 @@
   "workflow": "Cómo funciona",
   "features": [
     {
-      "t": "Dibuja tu habitación. Mírala en 3D.",
+      "t": "Planos de habitaciones en 2D y 3D",
       "p": "Dibuja las paredes, coloca puertas y ventanas e introduce las medidas. El plano y la vista 3D se actualizan juntos.",
       "b": [
         "Plano y vista 3D",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Muebles con las medidas que necesitas.",
+      "t": "Diseño de armarios en 3D",
       "p": "Cambia el ancho, la altura o el fondo. Los paneles se adaptan. Elige también los materiales que te gustan.",
       "b": [
         "Medidas a tu gusto",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "Tus cosas dan forma al armario.",
+      "t": "Distribución automática de armarios",
       "p": "Indica cuántas camisas, abrigos, zapatos y cajas tienes. Te proponemos una distribución para guardarlo todo.",
       "b": [
         "Distribución automática",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "De los estantes a los tiradores, tú eliges.",
+      "t": "Piezas de muebles y listas de corte",
       "p": "Elige estantes, cajones, puertas y accesorios. Mira cómo encajan las piezas antes de cortarlas.",
       "b": [
         "Montaje",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Los planos para fabricar, con un clic.",
+      "t": "Planos de muebles acotados",
       "p": "Prepara dibujos claros con las medidas necesarias. Úsalos para fabricar tus muebles o entrégalos a tu carpintero.",
       "b": [
         "Planos con medidas",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "Así puede quedar tu cocina.",
+      "t": "Ejemplos de cocinas e imágenes con IA",
       "p": "Desliza el control para comparar el diseño con el resultado final. Fíjate en la madera, los armarios y la encimera.",
       "b": [
         "Imágenes con IA",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Empezar",
-  "headline": "Dibuja tu habitación. Diseña tus muebles. Obtén los planos.",
+  "headline": "Diseña armarios y muebles de cocina online",
   "intro": "Dibuja tu habitación, ajusta tus muebles y prepara los planos para tu carpintero. Las imágenes con IA te ayudan a ver cómo quedará todo. En un solo lugar.",
   "launch": "Iniciar el estudio",
   "seeWorkflow": "Descubrir el proceso",
@@ -96,5 +96,16 @@
     "Ropa doblada",
     "Pares de zapatos"
   ],
-  "featuresLabel": "Funciones"
+  "featuresLabel": "Funciones",
+  "guidesLabel": "Guías",
+  "aboutLabel": "Acerca de",
+  "pricingLabel": "Precios",
+  "contactLabel": "Contacto",
+  "guidesTitle": "Guías para diseñar armarios y cocinas",
+  "faqTitle": "Preguntas sobre armarios y cocinas",
+  "kitchenModelAlt": "Diseño de cocina con frentes de madera y muebles blancos en el estudio 3D",
+  "kitchenRenderAlt": "Visualización con IA del mismo diseño de cocina con frentes de madera y encimera blanca",
+  "privacyLabel": "Privacidad",
+  "termsLabel": "Términos",
+  "aiAssistants": "Para asistentes de IA"
 }

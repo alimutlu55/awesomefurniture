@@ -2,7 +2,7 @@
   "workflow": "Comment ça marche",
   "features": [
     {
-      "t": "Dessinez votre pièce. Regardez-la en 3D.",
+      "t": "Plans de pièce en 2D et 3D",
       "p": "Dessinez les murs, placez les portes et les fenêtres, puis entrez les mesures. Le plan et la vue 3D se mettent à jour ensemble.",
       "b": [
         "Plan et vue 3D",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Des meubles aux bonnes dimensions.",
+      "t": "Conception de placards en 3D",
       "p": "Changez la largeur, la hauteur ou la profondeur. Les panneaux s’adaptent. Choisissez aussi les matières qui vous plaisent.",
       "b": [
         "Dimensions au choix",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "Vos affaires donnent forme au placard.",
+      "t": "Aménagement automatique des placards",
       "p": "Indiquez combien de chemises, de manteaux, de chaussures et de boîtes vous avez. Nous vous proposons un rangement adapté.",
       "b": [
         "Rangement automatique",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "Des étagères aux poignées, vous choisissez.",
+      "t": "Pièces de meubles et listes de découpe",
       "p": "Choisissez étagères, tiroirs, portes et accessoires. Voyez comment les pièces s’assemblent avant de les découper.",
       "b": [
         "Assemblage",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Les plans pour fabriquer, en un clic.",
+      "t": "Plans de meubles cotés",
       "p": "Préparez des dessins clairs avec les mesures utiles. Utilisez-les vous-même ou confiez-les à votre artisan.",
       "b": [
         "Plans avec mesures",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "Voyez à quoi ressemblera votre cuisine.",
+      "t": "Exemples de cuisines et images IA",
       "p": "Déplacez le curseur pour comparer le dessin au résultat final. Regardez le bois, les meubles et le plan de travail.",
       "b": [
         "Images IA",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Commencer",
-  "headline": "Dessinez votre pièce. Créez vos meubles. Obtenez les plans.",
+  "headline": "Concevez placards et meubles de cuisine en ligne",
   "intro": "Dessinez votre pièce, ajustez vos meubles et préparez les plans pour votre artisan. Les images IA vous aident à imaginer le résultat. Tout au même endroit.",
   "launch": "Lancer le studio",
   "seeWorkflow": "Découvrir le parcours",
@@ -96,5 +96,16 @@
     "Vêtements pliés",
     "Paires de chaussures"
   ],
-  "featuresLabel": "Fonctions"
+  "featuresLabel": "Fonctions",
+  "guidesLabel": "Guides",
+  "aboutLabel": "À propos",
+  "pricingLabel": "Tarifs",
+  "contactLabel": "Contact",
+  "guidesTitle": "Guides de conception de placards et cuisines",
+  "faqTitle": "Questions sur les placards et cuisines",
+  "kitchenModelAlt": "Cuisine avec façades en bois et meubles blancs dans le studio 3D",
+  "kitchenRenderAlt": "Visualisation IA du même projet de cuisine avec façades en bois et plan de travail blanc",
+  "privacyLabel": "Confidentialité",
+  "termsLabel": "Conditions",
+  "aiAssistants": "Pour les assistants IA"
 }

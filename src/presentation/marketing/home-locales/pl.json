@@ -2,7 +2,7 @@
   "workflow": "Jak to działa",
   "features": [
     {
-      "t": "Narysuj pokój. Obejrzyj go w 3D.",
+      "t": "Planowanie pomieszczeń w 2D i 3D",
       "p": "Narysuj ściany, dodaj drzwi i okna, a potem wpisz wymiary. Plan i widok 3D zmieniają się razem.",
       "b": [
         "Plan i widok 3D",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Meble dokładnie na Twój wymiar.",
+      "t": "Projektowanie szaf w 3D",
       "p": "Zmień szerokość, wysokość lub głębokość. Płyty dopasują się do nowych wymiarów. Wybierz też materiał, który Ci się podoba.",
       "b": [
         "Własne wymiary",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "Twoje rzeczy podpowiedzą, jak urządzić szafę.",
+      "t": "Automatyczny układ wnętrza szafy",
       "p": "Wpisz, ile masz koszul, płaszczy, butów i pudełek. Zaproponujemy układ, w którym się zmieszczą.",
       "b": [
         "Automatyczny układ",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "Od półek po uchwyty — Ty wybierasz.",
+      "t": "Elementy szafek i listy cięcia",
       "p": "Wybierz półki, szuflady, drzwi i dodatki. Zobacz, jak elementy do siebie pasują, zanim zaczniesz je ciąć.",
       "b": [
         "Montaż",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Rysunki dla stolarza jednym kliknięciem.",
+      "t": "Zwymiarowane rysunki mebli",
       "p": "Przygotuj czytelne rysunki z potrzebnymi wymiarami. Wykorzystaj je przy budowie mebla lub przekaż stolarzowi.",
       "b": [
         "Rysunki z wymiarami",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "Zobacz, jak może wyglądać gotowa kuchnia.",
+      "t": "Przykłady kuchni i wizualizacje AI",
       "p": "Przesuń suwak i porównaj projekt z gotowym wnętrzem. Przyjrzyj się drewnu, szafkom i blatowi.",
       "b": [
         "Obrazy AI",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Zacznij",
-  "headline": "Narysuj pokój. Zaprojektuj meble. Pobierz rysunki.",
+  "headline": "Projektuj szafy i szafki kuchenne online w 3D",
   "intro": "Narysuj pokój, dopasuj meble i przygotuj rysunki dla stolarza. Obrazy AI pomogą Ci zobaczyć, jak wszystko będzie wyglądać. Wszystko w jednym miejscu.",
   "launch": "Uruchom studio",
   "seeWorkflow": "Poznaj proces",
@@ -96,5 +96,16 @@
     "Złożone ubrania",
     "Pary butów"
   ],
-  "featuresLabel": "Funkcje"
+  "featuresLabel": "Funkcje",
+  "guidesLabel": "Poradniki",
+  "aboutLabel": "O nas",
+  "pricingLabel": "Cennik",
+  "contactLabel": "Kontakt",
+  "guidesTitle": "Poradniki projektowania szaf i kuchni",
+  "faqTitle": "Pytania o projektowanie szaf i kuchni",
+  "kitchenModelAlt": "Projekt kuchni z drewnianymi frontami i białymi szafkami w studiu 3D",
+  "kitchenRenderAlt": "Wizualizacja AI tego samego projektu kuchni z drewnianymi frontami i białym blatem",
+  "privacyLabel": "Polityka prywatności",
+  "termsLabel": "Regulamin",
+  "aiAssistants": "Dla asystentów AI"
 }

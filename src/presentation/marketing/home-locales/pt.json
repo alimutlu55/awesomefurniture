@@ -2,7 +2,7 @@
   "workflow": "Como funciona",
   "features": [
     {
-      "t": "Desenhe a divisão. Veja-a em 3D.",
+      "t": "Plantas de ambientes em 2D e 3D",
       "p": "Desenhe as paredes, coloque portas e janelas e introduza as medidas. A planta e a vista 3D mudam em conjunto.",
       "b": [
         "Planta e vista 3D",
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "t": "Móveis com as medidas de que precisa.",
+      "t": "Projeto de armários em 3D",
       "p": "Altere a largura, a altura ou a profundidade. Os painéis acompanham as novas medidas. Escolha também os materiais.",
       "b": [
         "Medidas à sua escolha",
@@ -20,7 +20,7 @@
       ]
     },
     {
-      "t": "As suas coisas dão forma ao roupeiro.",
+      "t": "Distribuição automática de armários",
       "p": "Diga quantas camisas, casacos, sapatos e caixas tem. Sugerimos uma arrumação onde tudo caiba.",
       "b": [
         "Arrumação automática",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "t": "Das prateleiras aos puxadores, é você que escolhe.",
+      "t": "Peças de móveis e listas de corte",
       "p": "Escolha prateleiras, gavetas, portas e acessórios. Veja como as peças encaixam antes de as cortar.",
       "b": [
         "Montagem",
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "t": "Desenhos para fabricar, com um clique.",
+      "t": "Desenhos de móveis cotados",
       "p": "Prepare desenhos claros com as medidas necessárias. Use-os para construir os móveis ou entregue-os ao marceneiro.",
       "b": [
         "Desenhos com medidas",
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "t": "Veja como pode ficar a sua cozinha.",
+      "t": "Exemplos de cozinhas e imagens de IA",
       "p": "Deslize o controlo para comparar o desenho com o resultado final. Veja a madeira, os armários e a bancada.",
       "b": [
         "Imagens com IA",
@@ -57,7 +57,7 @@
     }
   ],
   "start": "Começar",
-  "headline": "Desenhe a sua divisão. Crie os seus móveis. Obtenha os desenhos.",
+  "headline": "Projete armários e móveis de cozinha online em 3D",
   "intro": "Desenhe a sua divisão, ajuste os móveis e prepare os desenhos para o marceneiro. As imagens com IA ajudam a ver como tudo vai ficar. Tudo num só lugar.",
   "launch": "Iniciar o estúdio",
   "seeWorkflow": "Conhecer o processo",
@@ -96,5 +96,16 @@
     "Roupa dobrada",
     "Pares de sapatos"
   ],
-  "featuresLabel": "Funcionalidades"
+  "featuresLabel": "Funcionalidades",
+  "guidesLabel": "Guias",
+  "aboutLabel": "Sobre",
+  "pricingLabel": "Preços",
+  "contactLabel": "Contato",
+  "guidesTitle": "Guias para projetar armários e cozinhas",
+  "faqTitle": "Perguntas sobre armários e cozinhas",
+  "kitchenModelAlt": "Projeto de cozinha com frentes de madeira e armários brancos no estúdio 3D",
+  "kitchenRenderAlt": "Visualização com IA do mesmo projeto de cozinha com frentes de madeira e bancada branca",
+  "privacyLabel": "Privacidade",
+  "termsLabel": "Termos de serviço",
+  "aiAssistants": "Para assistentes de IA"
 }

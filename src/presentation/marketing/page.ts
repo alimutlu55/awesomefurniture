@@ -1,5 +1,6 @@
 import type { MarketingCopy } from './copy';
 import { guides, type Guide } from './guides';
+import { informationPages } from './information-pages';
 import { homePath, languages } from './translations';
 import { escapeHtml as e } from './seo';
 import { studySvg } from './study';
@@ -24,8 +25,8 @@ export function stageHtml(slug: string, lang = 'en'): string {
   const h = homeCopy(lang);
   const fallback = `<div class="fb">${stageSvg(slug)}</div>`;
   if (slug === 'render') return `<div class="kitchen-comparison">
-    <img src="/assets/kitchen/render.jpg" alt="${e(h.features[5]!.t)} — ${e(h.render)}" width="1600" height="1000" loading="lazy">
-    <img class="model-layer" src="/assets/kitchen/model.jpg" alt="${e(h.features[5]!.t)} — ${e(h.model)}" width="1600" height="1000" loading="lazy">
+    <img src="/assets/kitchen/render.jpg" alt="${e(h.kitchenRenderAlt)}" width="1600" height="1000" loading="lazy">
+    <img class="model-layer" src="/assets/kitchen/model.jpg" alt="${e(h.kitchenModelAlt)}" width="1600" height="1000" loading="lazy">
     <span class="compare-line" aria-hidden="true"><b>‹ ›</b></span>
     <span class="compare-tag model-tag">${e(h.model)}</span><span class="compare-tag render-tag">${e(h.render)}</span>
     <input type="range" min="0" max="100" value="50" aria-label="${e(h.compare)}">
@@ -33,7 +34,7 @@ export function stageHtml(slug: string, lang = 'en'): string {
   const index = FEATURES.findIndex(feature => feature.s === slug);
   const label = h.features[index]?.t || stageLabels[slug] || stageLabels.hero!;
   return fallback
-    + `<video muted loop playsinline autoplay preload="auto" poster="/assets/video/${slug}.jpg" src="/assets/video/${slug}.mp4" data-src="/assets/video/${slug}.mp4" aria-label="${e(label)}"></video>`;
+    + `<video muted loop playsinline preload="none" poster="/assets/video/${slug}.jpg" data-src="/assets/video/${slug}.mp4" aria-label="${e(label)}"></video>`;
 }
 
 interface FeaturePillar {
@@ -108,12 +109,37 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
   </div>`;
 }
 
+function kitchenStudy(c: MarketingCopy): string {
+  return `<div class="fitting-room" data-nosnippet data-shape="regular" data-view="model">`
+    + `<div class="assembly-stage"><div class="kitchen-comparison" style="margin:0;width:100%;">`
+    + `<img src="/assets/kitchen/render.jpg" alt="Realistic kitchen cabinet design render" width="1600" height="1000" loading="lazy">`
+    + `<img class="model-layer" src="/assets/kitchen/model.jpg" alt="Modular kitchen cabinet 3D model" width="1600" height="1000" loading="lazy">`
+    + `<span class="compare-line" aria-hidden="true"><b>‹ ›</b></span>`
+    + `<span class="compare-tag model-tag">3D CAD Model</span><span class="compare-tag render-tag">AI Visualisation</span>`
+    + `<input type="range" min="0" max="100" value="50" aria-label="Percentage of 3D kitchen view revealed">`
+    + `</div></div>`
+    + `<div class="study-bottomline" style="margin-top:14px;">`
+    + `<div class="kitchen-badges" style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;">`
+    + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Base Units (60/80/100 cm)</span>`
+    + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Wall Units (72/90 cm)</span>`
+    + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Tall Pantry Housing</span>`
+    + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Continuous Worktop &amp; Plinth</span>`
+    + `</div></div>`
+    + `<div class="study-handoff" style="margin-top:14px;"><a id="study-start" class="text-link" href="/editor/?lang=${c.lang}">Open kitchen planner in 3D ${arrow}</a>`
+    + `<p>Plan modular base, wall, and tall kitchen units directly in your browser with real-time 3D dimensions.</p></div>`
+    + `</div>`;
+}
+
 function footerHtml(c: MarketingCopy): string {
-  const guideLinks = guides.map(g => `<a href="/${g.slug}/">${e(g.label)}</a>`).join(' ');
+  const h = homeCopy(c.lang);
+  const guideLinks = `<a href="${homePath(c.lang)}#guides">${e(h.guidesLabel)}</a>`;
   const langLinks = languages.map(l =>
     `<a href="${homePath(l.lang)}" lang="${l.lang}" hreflang="${l.lang}">${e(l.name)}</a>`).join(' ');
   return `<footer><div class="wrap"><span>© 2026 FurniDraw.</span>`
-    + `<span>${guideLinks}<a href="/llms.txt">For AI assistants</a></span></div>`
+    + `<span class="footer-links">${guideLinks}<a href="/about/" hreflang="en">${e(h.aboutLabel)}</a>`
+    + `<a href="/pricing/" hreflang="en">${e(h.pricingLabel)}</a><a href="/contact/" hreflang="en">${e(h.contactLabel)}</a>`
+    + `<a href="/privacy/" hreflang="en">${e(h.privacyLabel)}</a><a href="/terms/" hreflang="en">${e(h.termsLabel)}</a>`
+    + `<a href="/llms.txt">${e(h.aiAssistants || 'For AI assistants')}</a></span></div>`
     + `<div class="wrap" style="margin-top:12px;font-size:13px;opacity:0.8">`
     + `<span>${e(c.language)}</span><span>${langLinks}</span></div></footer>`;
 }
@@ -144,20 +170,21 @@ export function homeBody(c: MarketingCopy): string {
       + `</div></section>`;
   }).join('');
 
-  return `<header><div class="wrap nav"><a class="logo" href="#top">FurniDraw<i>.</i></a>`
-    + `<nav><a class="l" href="#workflow">${e(h.workflow)}</a><a class="l" href="#f1">${e(h.featuresLabel)}</a><a class="l" href="#start">${e(h.start)}</a>`
+  return `<a class="skip-link" href="#top">${e(c.skip)}</a><header><div class="wrap nav"><a class="logo" href="#top">FurniDraw<i>.</i></a>`
+    + `<nav aria-label="FurniDraw"><a class="l" href="#workflow">${e(h.workflow)}</a><a class="l" href="#f1">${e(h.featuresLabel)}</a><a class="guides-nav" href="#guides">${e(h.guidesLabel)}</a>`
     + `${languageMenu(c)}<a class="btn sm" href="/editor/?lang=${c.lang}">${e(c.start)} ↗</a></nav></div></header>`
     + `<main id="top">`
     + `<section class="hero"><div class="wrap">`
     + `<div class="eyebrow">${e(c.eyebrow)}</div>`
     + `<h1>${e(h.headline)}</h1>`
+    + `<p class="hero-tagline">${e(c.headline.join(' '))}</p>`
     + `<p class="sub">${e(h.intro)}</p>`
     + `<div class="cta"><a class="btn" href="/editor/?lang=${c.lang}">${e(h.launch)} ↗</a>`
     + `<a class="btn ghost" href="#workflow">${e(h.seeWorkflow)}</a></div>`
     + `<p class="note">${e(c.note)}</p>`
-    + `<section class="wardrobe-preview" data-invalid="${e(h.invalid)}" aria-labelledby="preview-title">
+    + `<section class="wardrobe-preview" data-nosnippet data-invalid="${e(h.invalid)}" aria-labelledby="preview-title">
       <div class="preview-heading"><span>${e(h.study)}</span><span>01 / ${e(h.wardrobe)}</span></div>
-      <div class="preview-stage"><div class="preview-host" inert></div>
+      <div class="preview-stage"><div class="preview-host" inert><div class="preview-fallback">${studySvg({ width: 240, shape: 'regular', finish: 'chalk', inches: false }, c.lang)}</div></div>
         <div class="preview-stage-label"><span class="preview-live-dot" aria-hidden="true"></span>${e(h.live)}</div>
         <div class="preview-caption"><span>${e(h.caption)}</span><span>${e(h.plate)}</span></div>
       </div>
@@ -169,13 +196,18 @@ export function homeBody(c: MarketingCopy): string {
         ${wardrobeCount('folded',h.counts[2]!,30,200,'03',h)}${wardrobeCount('shoes',h.counts[3]!,8,80,'04',h)}
         <div class="preview-summary"><span>${e(h.summary)}</span><span><output class="preview-total">66</output> ${e(h.pieces)}</span></div>
         <button type="button" class="btn" id="preview-open" disabled><span>${e(h.continue)}</span><span aria-hidden="true">↗</span></button>
-        <p class="preview-status" role="status">${e(h.loading)}</p>
+        <p class="preview-status" role="status" data-nosnippet>${e(h.loading)}</p>
       </div>
       <div class="preview-footer"><span>${e(h.footer)}</span><span>${e(h.footerHint)}</span></div>
       </section>`
     + `<div class="strip" id="workflow">${workflowHtml}</div>`
     + `</div></section>`
     + `<div id="features">${featuresHtml}</div>`
+    + `<section class="resources wrap" id="guides" aria-labelledby="guides-title">`
+    + `<h2 id="guides-title">${e(h.guidesTitle)}</h2><p>${e(c.resourceIntro)}</p>`
+    + `<div class="guide-cards">${guides.map(g => `<a href="/${g.slug}/" hreflang="en"><h3 lang="en">${e(g.label)}</h3><p lang="en">${e(g.description)}</p><span>${e(c.resourceLink)} ${arrow}</span></a>`).join('')}</div></section>`
+    + `<section class="faq wrap" aria-labelledby="faq-title"><h2 id="faq-title">${e(h.faqTitle)}</h2>`
+    + `${c.faqs.map(([question, answer]) => `<details><summary>${e(question)}</summary><p>${e(answer)}</p></details>`).join('')}</section>`
     + `<section class="final" id="start"><div class="wrap">`
     + `<div class="eyebrow">${e(h.ready)}</div>`
     + `<h2>${e(h.closing)}</h2>`
@@ -183,23 +215,26 @@ export function homeBody(c: MarketingCopy): string {
     + `<p class="note">${e(c.editorLanguage)}</p>`
     + `</div></section>`
     + `<div class="fitting-room" data-nosnippet style="display:none"><span class="sr-only">${c.headline.join(' ')}</span></div>`
-    + `</main><footer><div class="wrap"><span>© 2026 FurniDraw.</span>`
-    + `<span><a href="/wardrobe-designer/">Wardrobe designer</a> <a href="/cabinet-design-software/">Cabinet software</a> <a href="/llms.txt">For AI assistants</a></span></div></footer>`;
+    + `</main>${footerHtml(c)}`;
 }
 
 export function guideBody(c: MarketingCopy, guide: Guide): string {
-  return `<header><div class="wrap nav"><a class="logo" href="/">FurniDraw<i>.</i></a>`
-    + `<nav><a class="l" href="/">Home</a><a class="l" href="#fitting-room">Studio</a>${languageMenu(c)}`
+  const informational = informationPages.some(page => page.slug === guide.slug);
+  return `<a class="skip-link" href="#main">${e(c.skip)}</a><header><div class="wrap nav"><a class="logo" href="/">FurniDraw<i>.</i></a>`
+    + `<nav aria-label="FurniDraw"><a class="l" href="/">Home</a><a class="guides-nav" href="/#guides">Guides</a>${languageMenu(c)}`
     + `<a class="btn sm" href="/editor/?lang=${c.lang}">Open the studio ↗</a></nav></div></header>`
     + `<main id="main" class="guide-page wrap">`
     + `<section class="guide-hero"><nav class="breadcrumb" aria-label="Breadcrumb">`
     + `<a href="/">FurniDraw</a><span aria-hidden="true"> / </span><span aria-current="page">${e(guide.label)}</span></nav>`
     + `<div class="eyebrow">${e(guide.eyebrow)}</div><h1>${e(guide.heading).replace('\n', '<br>')}</h1><p class="sub">${e(guide.intro)}</p>`
-    + `<a class="btn" href="${guide.slug === 'cabinet-design-software' ? `/editor/?lang=${c.lang}` : '#fitting-room'}">${e(c.explore)} ${arrow}</a></section>`
-    + `<div class="guide-content"><article class="guide-article">${guide.sections.map(s =>
+    + `<a class="btn" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></section>`
+    + `<div class="guide-content${informational ? ' information-content' : ''}"><article class="guide-article">${guide.sections.map(s =>
       `<section><h2>${e(s.title)}</h2><p>${e(s.body)}</p>${s.list ? `<ul>${s.list.map(t => `<li>${e(t)}</li>`).join('')}</ul>` : ''}</section>`).join('')}`
-    + `<a class="text-link" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></article>`
-    + `<aside id="fitting-room" aria-label="${e(c.study)}">${fittingRoom(c, guide.shape)}</aside></div>`
+    + (guide.faqs && guide.faqs.length ? `<section class="guide-faq"><h2>Frequently Asked Questions</h2>`
+      + `${guide.faqs.map(([q, a]) => `<details><summary>${e(q)}</summary><p>${e(a)}</p></details>`).join('')}</section>` : '')
+    + `<a class="text-link" href="mailto:support@furnidraw.com">Contact support@furnidraw.com ${arrow}</a></article>`
+    + `${informational ? '<div class="fitting-room" data-nosnippet style="display:none"></div>'
+      : `<aside id="fitting-room" aria-label="${e(c.study)}">${guide.slug === 'cabinet-design-software' ? kitchenStudy(c) : fittingRoom(c, guide.shape)}</aside>`}</div>`
     + `<section class="related"><div class="eyebrow">KEEP EXPLORING</div><div class="related-links">${guides.filter(g => g.slug !== guide.slug).map(g =>
       `<a href="/${g.slug}/">${e(g.label)} ${arrow}</a>`).join('')}</div></section>`
     + `</main>${footerHtml(c)}`;
