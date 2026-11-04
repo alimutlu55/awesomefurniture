@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { design, wardrobe, room } from './design.mjs';
+import { design, wardrobe, room, kitchenDesignHash } from './design.mjs';
 const output = process.env.CAPTURE_DIR || '/tmp/furnidraw-landing-frames';
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch();
@@ -39,6 +39,15 @@ for (const stage of wanted.length ? wanted : ['walls', 'dimensions', 'studio', '
                 mountEditor({ root: document.querySelector('main'), initialScene: projectToScene(built.project) });
             }, spec);
         }
+        else if (stage === 'joinery') {
+            await p.goto(base + '#' + kitchenDesignHash, { waitUntil: 'domcontentloaded' });
+            await p.waitForTimeout(2000);
+            await p.evaluate(() => {
+                const style = document.createElement('style');
+                style.textContent = '.mobile-feedback { display: none !important; }';
+                document.querySelector('#editor-root')?.shadowRoot?.appendChild(style);
+            });
+        }
         else
             await p.goto(base + '#spec=' + encodeURIComponent(JSON.stringify(spec)), { waitUntil: 'domcontentloaded' });
         await btn('Studio').waitFor({ timeout: 90000 });
@@ -46,12 +55,12 @@ for (const stage of wanted.length ? wanted : ['walls', 'dimensions', 'studio', '
     }
     async function select() {
         const v = await el('view').boundingBox();
-        for (const [x, y] of [[.5, .45], [.55, .37], [.5, .37]]) {
+        for (const [x, y] of [[.55, .45], [.5, .45], [.55, .37], [.5, .37]]) {
             await p.mouse.click(v.x + v.width * x, v.y + v.height * y);
             if (await action('resize').isVisible())
                 return;
         }
-        throw Error('Wardrobe selection failed');
+        throw Error('Cabinet selection failed');
     }
     try {
         if (stage === 'dimensions') {
@@ -179,23 +188,34 @@ for (const stage of wanted.length ? wanted : ['walls', 'dimensions', 'studio', '
                 await shot('layout');
             }
             if (stage === 'joinery') {
-                for (const [kind, group] of [['shelf', 'shelves'], ['drawer', 'drawers']]) {
+                for (const [kind, group] of [['pan', 'drawers'], ['cutlery', 'drawers']]) {
                     await action('add-item').click();
                     const category = p.locator('[data-category="' + group + '"]:visible').first();
                     if (await category.isVisible())
                         await category.click();
-                    await shot('choose-' + kind);
+                    await shot(kind === 'pan' ? 'choose-shelf' : 'choose-drawer');
                     await p.locator('[data-m="' + kind + '"]:visible:not([aria-disabled="true"])').first().click({ timeout: 8000 });
-                    await shot('added-' + kind);
+                    await shot(kind === 'pan' ? 'added-shelf' : 'added-drawer');
                     if (!await action('add-item').isVisible())
                         await select();
                 }
                 await action('more').click();
                 await action('fronts').click();
-                await p.locator('[data-d="hinged"]:visible').first().click();
+                const hinged = p.locator('[data-d="hinged"]:visible').first();
+                if (await hinged.isVisible())
+                    await hinged.click();
                 await shot('hinged');
-                await p.locator('[data-handle="kind"]:visible').selectOption('knob');
+                const handle = p.locator('[data-handle="kind"]:visible');
+                if (await handle.isVisible())
+                    await handle.selectOption('knob');
                 await shot('handle');
+                const closeBtn = p.getByRole('button', { name: /close/i }).filter({ visible: true }).first();
+                if (await closeBtn.isVisible()) {
+                    await closeBtn.click();
+                    await p.waitForTimeout(400);
+                }
+                if (!await action('make').isVisible())
+                    await select();
                 await action('make').click();
                 await action('make-parts').click();
                 await p.locator('.make-panel [data-tab="cutting"]').click();

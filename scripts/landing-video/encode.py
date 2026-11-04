@@ -31,9 +31,9 @@ films = {
         beat(0,'empty',cursor=(.31,.895)),beat(1.45,'storage',.26,.22,1.40,(.16,.22)),
         beat(2.8,'storage-filled',.26,.22,1.4),beat(4.05,'proposals'),beat(5.68,'layout')]),
     'make': (9.8, 7.75, [
-        beat(0,'choose-shelf',cursor=(.092,.456)),beat(1.25,'added-shelf'),
-        beat(2.22,'choose-drawer',cursor=(.092,.456)),beat(3.22,'added-drawer'),
-        beat(4.35,'hinged'),beat(5.65,'handle'),beat(7.1,'joinery-cut',.32,.48,1.12)]),
+        beat(0,'choose-shelf',cursor=(.223,.411)),beat(1.25,'added-shelf'),
+        beat(2.22,'choose-drawer',cursor=(.090,.411)),beat(3.22,'added-drawer'),
+        beat(4.35,'hinged'),beat(5.65,'handle'),beat(7.1,'joinery-cut')]),
     'drawings': (9.3, 3.6, [
         beat(0,'menu',.65,.42,1,(.83,.42)),beat(1.35,'drawing-plan'),beat(2.65,'elevation'),
         beat(4.15,'elevation-detail',.53,.50,1.2),beat(6.7,'drawing-list')]),
