@@ -35,6 +35,7 @@ import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
 import studio2DStylesheet from './studio-2d.css?raw';
 import makeStylesheet from '../make/make.css?raw';
+import backdropStylesheet from './studio-backdrop.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
     initialScene?: EditorScene | undefined;
@@ -46,15 +47,18 @@ export interface MountEditorOptions {
     /** Given, the menu offers signing in and creating an account (src/app/account-platform.ts). */
     account?: AccountPlatform | undefined;
     cameraPerspective?: 'front' | 'scene' | undefined;
+    /** Scene keeps the photographic backdrop for embedded product previews. */
+    backdrop?: 'paper' | 'scene' | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, cameraPerspective }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, cameraPerspective, backdrop = 'paper' }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
     const shadow = root.shadowRoot ?? root.attachShadow({ mode: 'open' });
+    root.dataset.backdrop = backdrop;
     root.dataset.theme ??= root.ownerDocument.documentElement.dataset.theme ?? 'light';
     const style = root.ownerDocument.createElement('style');
     const controlIds = new Set([...markup.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]!).concat(['item-bar', 'item-type-menu', 'ctx-menu', 'studio-2d-planner']));
@@ -62,7 +66,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         shapeStylesheet, studioStylesheet, studio2DStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, smartGuideStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
         creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet, languageStylesheet,
-        makeStylesheet].join('\n'), controlIds);
+        makeStylesheet, backdropStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);
