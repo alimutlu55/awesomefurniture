@@ -5,6 +5,8 @@ import { escapeHtml as e } from './seo';
 import { studySvg } from './study';
 import { assemblyCopy } from './assembly-copy';
 import { stageSvg } from './stage-art';
+import { homeCopy, type HomeCopy } from './home-copy';
+import { languageMenu } from './language-menu';
 
 const arrow = '<span aria-hidden="true">↗</span>';
 
@@ -18,18 +20,20 @@ const stageLabels: Record<string, string> = {
   render: 'Choosing an AI image style',
 };
 
-export function stageHtml(slug: string): string {
+export function stageHtml(slug: string, lang = 'en'): string {
+  const h = homeCopy(lang);
   const fallback = `<div class="fb">${stageSvg(slug)}</div>`;
   if (slug === 'render') return `<div class="kitchen-comparison">
-    <img src="/assets/kitchen/render.jpg" alt="Photoreal rendering of the kitchen" width="1600" height="1000" loading="lazy">
-    <img class="model-layer" src="/assets/kitchen/model.jpg" alt="Kitchen in the 3D studio" width="1600" height="1000" loading="lazy">
+    <img src="/assets/kitchen/render.jpg" alt="${e(h.features[5]!.t)} — ${e(h.render)}" width="1600" height="1000" loading="lazy">
+    <img class="model-layer" src="/assets/kitchen/model.jpg" alt="${e(h.features[5]!.t)} — ${e(h.model)}" width="1600" height="1000" loading="lazy">
     <span class="compare-line" aria-hidden="true"><b>‹ ›</b></span>
-    <span class="compare-tag model-tag">3D view</span><span class="compare-tag render-tag">Render</span>
-    <input type="range" min="0" max="100" value="50" aria-label="Percentage of 3D kitchen view revealed">
+    <span class="compare-tag model-tag">${e(h.model)}</span><span class="compare-tag render-tag">${e(h.render)}</span>
+    <input type="range" min="0" max="100" value="50" aria-label="${e(h.compare)}">
   </div>`;
-  const label = stageLabels[slug] || stageLabels.hero;
+  const index = FEATURES.findIndex(feature => feature.s === slug);
+  const label = h.features[index]?.t || stageLabels[slug] || stageLabels.hero!;
   return fallback
-    + `<video muted loop playsinline autoplay preload="auto" poster="/assets/video/${slug}.jpg" src="/assets/video/${slug}.mp4" data-src="/assets/video/${slug}.mp4" aria-label="${label}"></video>`;
+    + `<video muted loop playsinline autoplay preload="auto" poster="/assets/video/${slug}.jpg" src="/assets/video/${slug}.mp4" data-src="/assets/video/${slug}.mp4" aria-label="${e(label)}"></video>`;
 }
 
 interface FeaturePillar {
@@ -114,67 +118,69 @@ function footerHtml(c: MarketingCopy): string {
     + `<span>${e(c.language)}</span><span>${langLinks}</span></div></footer>`;
 }
 
-function wardrobeCount(key: string, label: string, value: number, max: number, number: string) {
-  return `<div class="wardrobe-count"><label for="count-${key}"><span class="count-index" aria-hidden="true">${number}</span>${label}</label><div class="count-stepper">
-    <button type="button" data-delta="-1" aria-label="Decrease ${label}">−</button>
+function wardrobeCount(key: string, label: string, value: number, max: number, number: string, h: HomeCopy) {
+  return `<div class="wardrobe-count"><label for="count-${key}"><span class="count-index" aria-hidden="true">${number}</span>${e(label)}</label><div class="count-stepper">
+    <button type="button" data-delta="-1" aria-label="${e(h.decrease)} ${e(label)}">−</button>
     <input id="count-${key}" type="number" inputmode="numeric" name="${key}" min="0" max="${max}" value="${value}" required>
-    <button type="button" data-delta="1" aria-label="Increase ${label}">+</button></div></div>`;
+    <button type="button" data-delta="1" aria-label="${e(h.increase)} ${e(label)}">+</button></div></div>`;
 }
 
 export function homeBody(c: MarketingCopy): string {
-  const workflowHtml = FEATURES.map((f, i) => {
+  const h = homeCopy(c.lang);
+  const features = FEATURES.map((feature, i) => ({ ...feature, ...h.features[i] }));
+  const workflowHtml = features.map((f, i) => {
     const num = '0' + (i + 1);
-    const shortTitle = f.t.split(/[.]|,/)[0];
-    return `<a href="#f${i + 1}"><span>${num}</span>${shortTitle}</a>`;
+    const shortTitle = f.t.split(/[.]|,/)[0]!;
+    return `<a href="#f${i + 1}"><span>${num}</span>${e(shortTitle)}</a>`;
   }).join('');
 
-  const featuresHtml = FEATURES.map((f, i) => {
+  const featuresHtml = features.map((f, i) => {
     const num = '0' + (i + 1);
     return `<section class="feat" id="f${i + 1}"><div class="wrap row">`
       + `<div class="copy"><div class="num">${num} / 06</div>`
-      + `<h2>${f.t}</h2><p>${f.p}</p>`
-      + `<div class="badges">${f.b.map(badge => `<span>${badge}</span>`).join('')}</div></div>`
-      + `<div class="feature-media"><div class="stage" data-slug="${f.s}">${stageHtml(f.s)}</div></div>`
+      + `<h2>${e(f.t)}</h2><p>${e(f.p)}</p>`
+      + `<div class="badges">${f.b.map(badge => `<span>${e(badge)}</span>`).join('')}</div></div>`
+      + `<div class="feature-media"><div class="stage" data-slug="${f.s}">${stageHtml(f.s, c.lang)}</div></div>`
       + `</div></section>`;
   }).join('');
 
   return `<header><div class="wrap nav"><a class="logo" href="#top">FurniDraw<i>.</i></a>`
-    + `<nav><a class="l" href="#workflow">Workflow</a><a class="l" href="#f1">Features</a><a class="l" href="#start">Start</a>`
-    + `<a class="btn sm" href="/editor/?lang=${c.lang}">Open the studio ↗</a></nav></div></header>`
+    + `<nav><a class="l" href="#workflow">${e(h.workflow)}</a><a class="l" href="#f1">${e(h.featuresLabel)}</a><a class="l" href="#start">${e(h.start)}</a>`
+    + `${languageMenu(c)}<a class="btn sm" href="/editor/?lang=${c.lang}">${e(c.start)} ↗</a></nav></div></header>`
     + `<main id="top">`
     + `<section class="hero"><div class="wrap">`
     + `<div class="eyebrow">${e(c.eyebrow)}</div>`
-    + `<h1>Sketch it. Engineer it. Ship the drawings.</h1>`
-    + `<p class="sub">One 3D studio takes you from a 2D room sketch to parametric furniture, contractor-ready technical drawings and photoreal AI renders.</p>`
-    + `<div class="cta"><a class="btn" href="/editor/?lang=${c.lang}">Launch the studio ↗</a>`
-    + `<a class="btn ghost" href="#workflow">See the workflow</a></div>`
-    + `<p class="note">Runs in your browser. No account needed to begin.</p>`
-    + `<section class="wardrobe-preview" aria-labelledby="preview-title">
-      <div class="preview-heading"><span>THE INTERACTIVE STUDY</span><span>01 / WARDROBE</span></div>
+    + `<h1>${e(h.headline)}</h1>`
+    + `<p class="sub">${e(h.intro)}</p>`
+    + `<div class="cta"><a class="btn" href="/editor/?lang=${c.lang}">${e(h.launch)} ↗</a>`
+    + `<a class="btn ghost" href="#workflow">${e(h.seeWorkflow)}</a></div>`
+    + `<p class="note">${e(c.note)}</p>`
+    + `<section class="wardrobe-preview" data-invalid="${e(h.invalid)}" aria-labelledby="preview-title">
+      <div class="preview-heading"><span>${e(h.study)}</span><span>01 / ${e(h.wardrobe)}</span></div>
       <div class="preview-stage"><div class="preview-host" inert></div>
-        <div class="preview-stage-label"><span class="preview-live-dot" aria-hidden="true"></span>LIVE COMPOSITION</div>
-        <div class="preview-caption"><span>Designed around your everyday.</span><span>FURNIDRAW / STUDY 01</span></div>
+        <div class="preview-stage-label"><span class="preview-live-dot" aria-hidden="true"></span>${e(h.live)}</div>
+        <div class="preview-caption"><span>${e(h.caption)}</span><span>${e(h.plate)}</span></div>
       </div>
-      <div class="preview-controls"><div class="preview-kicker">A PLACE FOR EVERYTHING</div>
-        <h2 id="preview-title">Your wardrobe.<br><em>Considered.</em></h2>
-        <p class="preview-intro">Start with what you own. Watch a wardrobe take shape around it.</p>
-        <div class="preview-inventory"><span>YOUR STORAGE LIST</span><span>QUANTITY</span></div>
-        ${wardrobeCount('short','Shirts & jackets',24,150,'01')}${wardrobeCount('long','Coats & dresses',4,80,'02')}
-        ${wardrobeCount('folded','Folded clothes',30,200,'03')}${wardrobeCount('shoes','Pairs of shoes',8,80,'04')}
-        <div class="preview-summary"><span>A little order. A lot of possibility.</span><span><output class="preview-total">66</output> pieces</span></div>
-        <button type="button" class="btn" id="preview-open" disabled><span>Make it yours in the studio</span><span aria-hidden="true">↗</span></button>
-        <p class="preview-status" role="status">Preparing your layout…</p>
+      <div class="preview-controls"><div class="preview-kicker">${e(h.kicker)}</div>
+        <h2 id="preview-title">${e(h.title)}<br><em>${e(h.emphasis)}</em></h2>
+        <p class="preview-intro">${e(h.previewIntro)}</p>
+        <div class="preview-inventory"><span>${e(h.inventory)}</span><span>${e(h.quantity)}</span></div>
+        ${wardrobeCount('short',h.counts[0]!,24,150,'01',h)}${wardrobeCount('long',h.counts[1]!,4,80,'02',h)}
+        ${wardrobeCount('folded',h.counts[2]!,30,200,'03',h)}${wardrobeCount('shoes',h.counts[3]!,8,80,'04',h)}
+        <div class="preview-summary"><span>${e(h.summary)}</span><span><output class="preview-total">66</output> ${e(h.pieces)}</span></div>
+        <button type="button" class="btn" id="preview-open" disabled><span>${e(h.continue)}</span><span aria-hidden="true">↗</span></button>
+        <p class="preview-status" role="status">${e(h.loading)}</p>
       </div>
-      <div class="preview-footer"><span>YOUR EVERYDAY, BEAUTIFULLY ARRANGED.</span><span>Adjust the quantities. See the space respond.</span></div>
+      <div class="preview-footer"><span>${e(h.footer)}</span><span>${e(h.footerHint)}</span></div>
       </section>`
     + `<div class="strip" id="workflow">${workflowHtml}</div>`
     + `</div></section>`
     + `<div id="features">${featuresHtml}</div>`
     + `<section class="final" id="start"><div class="wrap">`
-    + `<div class="eyebrow">Ready when you are</div>`
-    + `<h2>Open the studio and start with your room.</h2>`
-    + `<div class="cta"><a class="btn" href="/editor/?lang=${c.lang}">Launch the studio ↗</a></div>`
-    + `<p class="note">Studio in 7 languages · cm, mm or inches</p>`
+    + `<div class="eyebrow">${e(h.ready)}</div>`
+    + `<h2>${e(h.closing)}</h2>`
+    + `<div class="cta"><a class="btn" href="/editor/?lang=${c.lang}">${e(h.launch)} ↗</a></div>`
+    + `<p class="note">${e(c.editorLanguage)}</p>`
     + `</div></section>`
     + `<div class="fitting-room" data-nosnippet style="display:none"><span class="sr-only">${c.headline.join(' ')}</span></div>`
     + `</main><footer><div class="wrap"><span>© 2026 FurniDraw.</span>`
@@ -183,7 +189,7 @@ export function homeBody(c: MarketingCopy): string {
 
 export function guideBody(c: MarketingCopy, guide: Guide): string {
   return `<header><div class="wrap nav"><a class="logo" href="/">FurniDraw<i>.</i></a>`
-    + `<nav><a class="l" href="/">Home</a><a class="l" href="#fitting-room">Studio</a>`
+    + `<nav><a class="l" href="/">Home</a><a class="l" href="#fitting-room">Studio</a>${languageMenu(c)}`
     + `<a class="btn sm" href="/editor/?lang=${c.lang}">Open the studio ↗</a></nav></div></header>`
     + `<main id="main" class="guide-page wrap">`
     + `<section class="guide-hero"><nav class="breadcrumb" aria-label="Breadcrumb">`

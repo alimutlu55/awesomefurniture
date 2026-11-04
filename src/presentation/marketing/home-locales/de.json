@@ -1,0 +1,100 @@
+{
+  "workflow": "Ablauf",
+  "features": [
+    {
+      "t": "Raum einmal planen. Zwischen 2D und 3D wechseln.",
+      "p": "Zeichnen Sie Wände, legen Sie Maße fest und erfassen Sie Begrenzungen. Grundriss und 3D-Raum bleiben synchron.",
+      "b": [
+        "2D/3D synchron",
+        "Exakte Maße",
+        "Raumbegrenzungen"
+      ]
+    },
+    {
+      "t": "Möbel, die sich millimetergenau anpassen.",
+      "p": "Gestalten Sie Schränke und modulare Möbel mit echten Materialmustern. Ändern Sie eine Breite, und jede Platte passt sich an.",
+      "b": [
+        "Parametrisch",
+        "mm-Präzision",
+        "Echte Materialien"
+      ]
+    },
+    {
+      "t": "Sagen Sie, was Sie aufbewahren. Der Entwurf folgt.",
+      "p": "Listen Sie Schuhe, Hemden, Mäntel und Kisten auf. Die Planung schlägt eine passende Aufteilung und Innenausstattung vor.",
+      "b": [
+        "Automatische Planung",
+        "Stauraumlisten",
+        "Optimierter Innenraum"
+      ]
+    },
+    {
+      "t": "Öffnen. Jedes Teil konfigurieren.",
+      "p": "Wählen Sie Böden, Schubladen, Türen und Beschläge. Prüfen Sie das Zusammenspiel der Teile, bevor etwas zugeschnitten wird.",
+      "b": [
+        "Montage",
+        "Beschläge",
+        "Zuschnittlisten"
+      ]
+    },
+    {
+      "t": "Technische Zeichnungen mit einem Klick.",
+      "p": "Klare Grundrisse, Ansichten und Bemaßungen, mit denen Ihre Tischlerei den Entwurf umsetzen kann.",
+      "b": [
+        "Technische Pläne",
+        "Ansichten",
+        "Bemaßungen"
+      ]
+    },
+    {
+      "t": "Sehen Sie Ihre Küche als fertigen Raum.",
+      "p": "Ziehen Sie den Griff, um Studiomodell und Rendering zu vergleichen. Verfolgen Sie Holzmaserung, weiße Schränke und Arbeitsplatte in beiden Ansichten.",
+      "b": [
+        "KI-Rendering",
+        "Materialtreu",
+        "Zum Teilen"
+      ]
+    }
+  ],
+  "start": "Start",
+  "headline": "Skizzieren. Konstruieren. Baupläne erstellen.",
+  "intro": "Von der 2D-Raumskizze zu parametrischen Möbeln, bemaßten Bauplänen und fotorealistischen KI-Bildern. Alles in einem 3D-Studio.",
+  "launch": "Studio starten",
+  "seeWorkflow": "Ablauf ansehen",
+  "study": "DIE INTERAKTIVE STUDIE",
+  "wardrobe": "KLEIDERSCHRANK",
+  "live": "LIVE-ENTWURF",
+  "caption": "Für Ihren Alltag entworfen.",
+  "plate": "FURNIDRAW / STUDIE 01",
+  "kicker": "ALLES HAT SEINEN PLATZ",
+  "title": "Ihr Kleiderschrank.",
+  "emphasis": "Durchdacht.",
+  "previewIntro": "Beginnen Sie mit dem, was Sie besitzen. Der Schrank passt sich Ihren Bedürfnissen an.",
+  "inventory": "IHRE STAURAUMLISTE",
+  "quantity": "ANZAHL",
+  "summary": "Ein wenig Ordnung. Viele Möglichkeiten.",
+  "pieces": "Artikel",
+  "continue": "Im Studio selbst gestalten",
+  "loading": "Ihr Entwurf wird vorbereitet…",
+  "invalid": "Geben Sie für jede Kategorie eine gültige Anzahl ein.",
+  "footer": "IHR ALLTAG. SCHÖN GEORDNET.",
+  "footerHint": "Passen Sie die Anzahl an. Der Stauraum folgt.",
+  "ready": "Bereit, wenn Sie es sind",
+  "closing": "Öffnen Sie das Studio und beginnen Sie mit Ihrem Raum.",
+  "decrease": "Verringern:",
+  "increase": "Erhöhen:",
+  "light": "Hell",
+  "dark": "Dunkel",
+  "switchLight": "Zum hellen Modus wechseln",
+  "switchDark": "Zum dunklen Modus wechseln",
+  "compare": "Sichtbarer Anteil der 3D-Küchenansicht",
+  "model": "3D-Ansicht",
+  "render": "Rendering",
+  "counts": [
+    "Hemden & Jacken",
+    "Mäntel & Kleider",
+    "Gefaltete Kleidung",
+    "Schuhpaare"
+  ],
+  "featuresLabel": "Funktionen"
+}

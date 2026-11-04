@@ -1,0 +1,100 @@
+{
+  "workflow": "Workflow",
+  "features": [
+    {
+      "t": "Set the room once. Switch 2D to 3D in a click.",
+      "p": "Draw walls, set dimensions and mark constraints. Your floor plan and 3D space stay perfectly in sync.",
+      "b": [
+        "2D/3D Sync",
+        "Exact dimensions",
+        "Room constraints"
+      ]
+    },
+    {
+      "t": "Furniture that resizes to the millimetre.",
+      "p": "Design wardrobes, cabinetry and modular pieces with real material swatches. Change a width and every panel follows.",
+      "b": [
+        "Parametric",
+        "mm precision",
+        "Real materials"
+      ]
+    },
+    {
+      "t": "Tell us what you store. Get the furniture.",
+      "p": "List shoes, shirts, coats and boxes. The engine proposes an optimised layout and interior to hold them all.",
+      "b": [
+        "Auto-Layout",
+        "Storage lists",
+        "Optimised interior"
+      ]
+    },
+    {
+      "t": "Open it up. Configure every part.",
+      "p": "Choose shelves, drawers, doors and hardware, then review how the parts fit before anything is cut.",
+      "b": [
+        "Assembly",
+        "Hardware",
+        "Cut lists"
+      ]
+    },
+    {
+      "t": "Technical drawings in one click.",
+      "p": "Clean plans, elevations and dimension annotations your carpenter or contractor can build from.",
+      "b": [
+        "CAD-Ready Schematics",
+        "Elevations",
+        "Annotated"
+      ]
+    },
+    {
+      "t": "See your kitchen as a finished room.",
+      "p": "Drag the handle to compare the studio model with the render. Follow the wood grain, white cabinets and countertop from one view to the other.",
+      "b": [
+        "AI Render",
+        "Finish-aware",
+        "Share-ready"
+      ]
+    }
+  ],
+  "start": "Start",
+  "headline": "Sketch it. Engineer it. Ship the drawings.",
+  "intro": "One 3D studio takes you from a 2D room sketch to parametric furniture, contractor-ready technical drawings and photoreal AI renders.",
+  "launch": "Launch the studio",
+  "seeWorkflow": "See the workflow",
+  "study": "THE INTERACTIVE STUDY",
+  "wardrobe": "WARDROBE",
+  "live": "LIVE COMPOSITION",
+  "caption": "Designed around your everyday.",
+  "plate": "FURNIDRAW / STUDY 01",
+  "kicker": "A PLACE FOR EVERYTHING",
+  "title": "Your wardrobe.",
+  "emphasis": "Considered.",
+  "previewIntro": "Start with what you own. Watch a wardrobe take shape around it.",
+  "inventory": "YOUR STORAGE LIST",
+  "quantity": "QUANTITY",
+  "summary": "A little order. A lot of possibility.",
+  "pieces": "items",
+  "continue": "Make it yours in the studio",
+  "loading": "Preparing your layout…",
+  "invalid": "Enter a valid count for each category.",
+  "footer": "YOUR EVERYDAY, BEAUTIFULLY ARRANGED.",
+  "footerHint": "Adjust the quantities. See the space respond.",
+  "ready": "Ready when you are",
+  "closing": "Open the studio and start with your room.",
+  "decrease": "Decrease",
+  "increase": "Increase",
+  "light": "Light",
+  "dark": "Dark",
+  "switchLight": "Switch to light mode",
+  "switchDark": "Switch to dark mode",
+  "compare": "Percentage of 3D kitchen view revealed",
+  "model": "3D view",
+  "render": "Render",
+  "counts": [
+    "Shirts & jackets",
+    "Coats & dresses",
+    "Folded clothes",
+    "Pairs of shoes"
+  ],
+  "featuresLabel": "Features"
+}

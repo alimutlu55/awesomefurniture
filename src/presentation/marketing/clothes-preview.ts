@@ -31,7 +31,7 @@ export function mountPreview(root: HTMLElement) {
       open.disabled = false;
     } catch {
       if (id !== revision) return;
-      status.textContent = 'Enter a valid count for each category.';
+      status.textContent = root.dataset.invalid || 'Enter a valid count for each category.';
       status.hidden = false;
     }
   }

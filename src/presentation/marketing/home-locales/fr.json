@@ -1,0 +1,100 @@
+{
+  "workflow": "Parcours",
+  "features": [
+    {
+      "t": "Dessinez la pièce. Passez de la 2D à la 3D.",
+      "p": "Tracez les murs, définissez les dimensions et les contraintes. Le plan et l’espace 3D restent synchronisés.",
+      "b": [
+        "2D/3D synchronisées",
+        "Dimensions exactes",
+        "Contraintes de la pièce"
+      ]
+    },
+    {
+      "t": "Des meubles ajustés au millimètre.",
+      "p": "Concevez placards et meubles modulaires avec de vrais échantillons de matières. Modifiez une largeur : chaque panneau suit.",
+      "b": [
+        "Paramétrique",
+        "Précision au mm",
+        "Matières réelles"
+      ]
+    },
+    {
+      "t": "Dites ce que vous rangez. Le meuble prend forme.",
+      "p": "Listez chaussures, chemises, manteaux et boîtes. Le moteur propose un agencement intérieur adapté à vos besoins.",
+      "b": [
+        "Agencement automatique",
+        "Listes de rangement",
+        "Intérieur optimisé"
+      ]
+    },
+    {
+      "t": "Ouvrez-le. Configurez chaque pièce.",
+      "p": "Choisissez étagères, tiroirs, portes et quincaillerie, puis vérifiez leur assemblage avant toute découpe.",
+      "b": [
+        "Assemblage",
+        "Quincaillerie",
+        "Listes de découpe"
+      ]
+    },
+    {
+      "t": "Des plans techniques en un clic.",
+      "p": "Plans, élévations et cotations clairs pour permettre à votre artisan de réaliser votre meuble.",
+      "b": [
+        "Plans techniques",
+        "Élévations",
+        "Cotations"
+      ]
+    },
+    {
+      "t": "Découvrez votre cuisine dans une pièce finie.",
+      "p": "Faites glisser la poignée pour comparer le modèle du studio au rendu. Suivez le fil du bois, les meubles blancs et le plan de travail.",
+      "b": [
+        "Rendu IA",
+        "Matières respectées",
+        "Prêt à partager"
+      ]
+    }
+  ],
+  "start": "Commencer",
+  "headline": "Esquissez. Concevez. Créez les plans.",
+  "intro": "Du croquis 2D aux meubles paramétriques, aux plans techniques pour votre artisan et aux images IA photoréalistes. Un seul studio 3D.",
+  "launch": "Lancer le studio",
+  "seeWorkflow": "Découvrir le parcours",
+  "study": "L’ÉTUDE INTERACTIVE",
+  "wardrobe": "PLACARD",
+  "live": "COMPOSITION EN DIRECT",
+  "caption": "Pensé pour votre quotidien.",
+  "plate": "FURNIDRAW / ÉTUDE 01",
+  "kicker": "UNE PLACE POUR CHAQUE CHOSE",
+  "title": "Votre placard.",
+  "emphasis": "Bien pensé.",
+  "previewIntro": "Partez de ce que vous possédez. Regardez votre placard prendre forme autour de vos besoins.",
+  "inventory": "VOTRE LISTE DE RANGEMENT",
+  "quantity": "QUANTITÉ",
+  "summary": "Un peu d’ordre. Beaucoup de possibilités.",
+  "pieces": "articles",
+  "continue": "Personnaliser dans le studio",
+  "loading": "Préparation de votre agencement…",
+  "invalid": "Saisissez une quantité valide pour chaque catégorie.",
+  "footer": "VOTRE QUOTIDIEN, HARMONIEUSEMENT RANGÉ.",
+  "footerHint": "Ajustez les quantités. L’espace s’adapte.",
+  "ready": "Quand vous le souhaitez",
+  "closing": "Ouvrez le studio et commencez par votre pièce.",
+  "decrease": "Diminuer :",
+  "increase": "Augmenter :",
+  "light": "Clair",
+  "dark": "Sombre",
+  "switchLight": "Passer au mode clair",
+  "switchDark": "Passer au mode sombre",
+  "compare": "Pourcentage de la vue 3D de la cuisine révélé",
+  "model": "Vue 3D",
+  "render": "Rendu",
+  "counts": [
+    "Chemises et vestes",
+    "Manteaux et robes",
+    "Vêtements pliés",
+    "Paires de chaussures"
+  ],
+  "featuresLabel": "Fonctions"
+}

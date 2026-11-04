@@ -1,8 +1,10 @@
 import './marketing.css';
 import { editorEntry } from './entry-route';
 import { mountThemeToggle } from './theme-toggle';
+import { mountLanguagePicker } from './language-picker';
 
 mountThemeToggle();
+mountLanguagePicker();
 
 // Shared links and checkout returns must reach the editor with their payload intact.
 const destination = editorEntry(location.href);

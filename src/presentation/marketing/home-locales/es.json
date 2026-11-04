@@ -1,0 +1,100 @@
+{
+  "workflow": "Proceso",
+  "features": [
+    {
+      "t": "Dibuja la habitación. Cambia de 2D a 3D.",
+      "p": "Traza paredes, define medidas y marca limitaciones. El plano y el espacio 3D permanecen sincronizados.",
+      "b": [
+        "2D/3D sincronizados",
+        "Medidas exactas",
+        "Límites del espacio"
+      ]
+    },
+    {
+      "t": "Muebles que se ajustan al milímetro.",
+      "p": "Diseña armarios y muebles modulares con muestras de materiales reales. Cambia un ancho y cada panel se adapta.",
+      "b": [
+        "Paramétrico",
+        "Precisión en mm",
+        "Materiales reales"
+      ]
+    },
+    {
+      "t": "Dinos qué guardas. El mueble toma forma.",
+      "p": "Enumera zapatos, camisas, abrigos y cajas. El motor propone una distribución interior adaptada a tus necesidades.",
+      "b": [
+        "Distribución automática",
+        "Listas de almacenaje",
+        "Interior optimizado"
+      ]
+    },
+    {
+      "t": "Ábrelo. Configura cada pieza.",
+      "p": "Elige estantes, cajones, puertas y herrajes. Revisa cómo encajan las piezas antes de cortar.",
+      "b": [
+        "Montaje",
+        "Herrajes",
+        "Listas de corte"
+      ]
+    },
+    {
+      "t": "Planos técnicos con un clic.",
+      "p": "Plantas, alzados y cotas claras para que tu carpintero pueda llevar el diseño a la realidad.",
+      "b": [
+        "Planos técnicos",
+        "Alzados",
+        "Cotas"
+      ]
+    },
+    {
+      "t": "Mira tu cocina como un espacio terminado.",
+      "p": "Arrastra el control para comparar el modelo del estudio con el render. Sigue la veta de la madera, los muebles blancos y la encimera.",
+      "b": [
+        "Render con IA",
+        "Acabados fieles",
+        "Listo para compartir"
+      ]
+    }
+  ],
+  "start": "Empezar",
+  "headline": "Esboza. Diseña. Crea los planos.",
+  "intro": "Del boceto 2D a muebles paramétricos, planos técnicos para tu carpintero e imágenes fotorrealistas con IA. Todo en un estudio 3D.",
+  "launch": "Iniciar el estudio",
+  "seeWorkflow": "Descubrir el proceso",
+  "study": "EL ESTUDIO INTERACTIVO",
+  "wardrobe": "ARMARIO",
+  "live": "COMPOSICIÓN EN VIVO",
+  "caption": "Diseñado para tu día a día.",
+  "plate": "FURNIDRAW / ESTUDIO 01",
+  "kicker": "UN LUGAR PARA CADA COSA",
+  "title": "Tu armario.",
+  "emphasis": "Bien pensado.",
+  "previewIntro": "Empieza por lo que tienes. Mira cómo tu armario toma forma alrededor de tus necesidades.",
+  "inventory": "TU LISTA DE ALMACENAMIENTO",
+  "quantity": "CANTIDAD",
+  "summary": "Un poco de orden. Muchas posibilidades.",
+  "pieces": "artículos",
+  "continue": "Personalizar en el estudio",
+  "loading": "Preparando tu distribución…",
+  "invalid": "Introduce una cantidad válida para cada categoría.",
+  "footer": "TU DÍA A DÍA, EN ARMONÍA.",
+  "footerHint": "Ajusta las cantidades. El espacio se adapta.",
+  "ready": "Cuando tú quieras",
+  "closing": "Abre el estudio y empieza por tu habitación.",
+  "decrease": "Reducir:",
+  "increase": "Aumentar:",
+  "light": "Claro",
+  "dark": "Oscuro",
+  "switchLight": "Cambiar a modo claro",
+  "switchDark": "Cambiar a modo oscuro",
+  "compare": "Porcentaje visible de la vista 3D de la cocina",
+  "model": "Vista 3D",
+  "render": "Render",
+  "counts": [
+    "Camisas y chaquetas",
+    "Abrigos y vestidos",
+    "Ropa doblada",
+    "Pares de zapatos"
+  ],
+  "featuresLabel": "Funciones"
+}

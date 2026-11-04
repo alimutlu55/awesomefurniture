@@ -1,0 +1,100 @@
+{
+  "workflow": "Processo",
+  "features": [
+    {
+      "t": "Desenhe a divisão. Alterne entre 2D e 3D.",
+      "p": "Desenhe paredes, defina medidas e assinale os limites. A planta e o espaço 3D mantêm-se sincronizados.",
+      "b": [
+        "2D/3D sincronizados",
+        "Medidas exatas",
+        "Limites do espaço"
+      ]
+    },
+    {
+      "t": "Móveis ajustados ao milímetro.",
+      "p": "Desenhe roupeiros e móveis modulares com amostras de materiais reais. Altere uma largura e cada painel acompanha.",
+      "b": [
+        "Paramétrico",
+        "Precisão em mm",
+        "Materiais reais"
+      ]
+    },
+    {
+      "t": "Diga o que guarda. Veja o móvel ganhar forma.",
+      "p": "Liste sapatos, camisas, casacos e caixas. O sistema propõe uma disposição interior adaptada às suas necessidades.",
+      "b": [
+        "Disposição automática",
+        "Listas de arrumação",
+        "Interior otimizado"
+      ]
+    },
+    {
+      "t": "Abra. Configure cada peça.",
+      "p": "Escolha prateleiras, gavetas, portas e ferragens. Veja como as peças encaixam antes de qualquer corte.",
+      "b": [
+        "Montagem",
+        "Ferragens",
+        "Listas de corte"
+      ]
+    },
+    {
+      "t": "Desenhos técnicos com um clique.",
+      "p": "Plantas, alçados e cotas claros para que o marceneiro possa executar o seu projeto.",
+      "b": [
+        "Planos técnicos",
+        "Alçados",
+        "Cotas"
+      ]
+    },
+    {
+      "t": "Veja a cozinha numa divisão acabada.",
+      "p": "Arraste o controlo para comparar o modelo do estúdio com a renderização. Siga o veio da madeira, os armários brancos e a bancada.",
+      "b": [
+        "Renderização IA",
+        "Acabamentos fiéis",
+        "Pronto a partilhar"
+      ]
+    }
+  ],
+  "start": "Começar",
+  "headline": "Esboce. Projete. Crie os desenhos.",
+  "intro": "Do esboço 2D a móveis paramétricos, desenhos técnicos para o marceneiro e imagens fotorrealistas com IA. Tudo num estúdio 3D.",
+  "launch": "Iniciar o estúdio",
+  "seeWorkflow": "Conhecer o processo",
+  "study": "O ESTUDO INTERATIVO",
+  "wardrobe": "ROUPEIRO",
+  "live": "COMPOSIÇÃO EM TEMPO REAL",
+  "caption": "Pensado para o seu dia a dia.",
+  "plate": "FURNIDRAW / ESTUDO 01",
+  "kicker": "UM LUGAR PARA CADA COISA",
+  "title": "O seu roupeiro.",
+  "emphasis": "Bem pensado.",
+  "previewIntro": "Comece pelo que tem. Veja o roupeiro ganhar forma em torno das suas necessidades.",
+  "inventory": "A SUA LISTA DE ARRUMAÇÃO",
+  "quantity": "QUANTIDADE",
+  "summary": "Um pouco de ordem. Muitas possibilidades.",
+  "pieces": "artigos",
+  "continue": "Personalizar no estúdio",
+  "loading": "A preparar a disposição…",
+  "invalid": "Introduza uma quantidade válida para cada categoria.",
+  "footer": "O SEU DIA A DIA, EM HARMONIA.",
+  "footerHint": "Ajuste as quantidades. O espaço adapta-se.",
+  "ready": "Quando quiser",
+  "closing": "Abra o estúdio e comece pela sua divisão.",
+  "decrease": "Diminuir:",
+  "increase": "Aumentar:",
+  "light": "Claro",
+  "dark": "Escuro",
+  "switchLight": "Mudar para o modo claro",
+  "switchDark": "Mudar para o modo escuro",
+  "compare": "Percentagem visível da vista 3D da cozinha",
+  "model": "Vista 3D",
+  "render": "Renderização",
+  "counts": [
+    "Camisas e casacos",
+    "Casacos e vestidos",
+    "Roupa dobrada",
+    "Pares de sapatos"
+  ],
+  "featuresLabel": "Funcionalidades"
+}
