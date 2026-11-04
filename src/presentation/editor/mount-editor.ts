@@ -45,11 +45,12 @@ export interface MountEditorOptions {
     credits?: CreditsPlatform | undefined;
     /** Given, the menu offers signing in and creating an account (src/app/account-platform.ts). */
     account?: AccountPlatform | undefined;
+    cameraPerspective?: 'front' | 'scene' | undefined;
 }
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack, credits, account }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, cameraPerspective }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -74,7 +75,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     });
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom, shareLink, credits, account);
+        editor = startEditor(initialScene, dom, shareLink, credits, account, cameraPerspective);
         if (onBack) {
             dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
             const back = dom.$('#designs-back');
@@ -86,12 +87,15 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         let disposed = false;
         return {
             snapshot: mountedEditor.snapshot,
+            playAssembly: mountedEditor.playAssembly,
             viewport: mountedEditor.viewport,
             /** For the agent API (src/app/agent-api.ts): load a whole design, read the current one, tell the person. */
             replaceDesign: mountedEditor.replaceDesign,
             scene: mountedEditor.scene,
             notify: mountedEditor.notify,
             preview: mountedEditor.preview,
+            frameFront: mountedEditor.frameFront,
+            frameSymmetric: mountedEditor.frameSymmetric,
             dispose() {
                 if (disposed)
                     return;

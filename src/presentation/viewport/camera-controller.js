@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
 import { studioBounds } from '../../domain/studio/studio';
 import { zoomOutTarget } from './zoom-out';
+import { selectionFocusBox as calculateFocusBox, cameraAnchoredTarget, modelHalfWidthPx as calculateModelHalfWidth, measurePanelRight, PANEL_GAP } from './camera-focus';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./camera-controller.ports').CreateCameraControllerPorts} ports */
 export function createCameraController({ dom, clock = performance, inspector, picking, cameraState, interactionState, renderState, geometry, cabinetGeometry, resources, model, viewport }) {
@@ -11,6 +12,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     /** A box being framed (the whole room): fitted again when the view changes size, as a sheet closes. */
     let boxFraming = null;
     let wardrobeFraming = false;
+    let frontFraming = false;
     let mobileSelectionFraming = false;
     let lastViewWidth = 0, lastViewHeight = 0;
     /** @param {{ instant?: boolean; az?: number; el?: number; padding?: number }} options */
@@ -32,34 +34,16 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     const cameraNearDistance = d => Math.max(1, Math.min(50, d * .005));
     const camNow = () => ({ az: cameraState.az, el: cameraState.el, dist: cameraState.dist, x: cameraState.tgt.x, z: cameraState.tgt.z, y: cameraState.tgt.y });
     function modelHalfWidthPx(g) {
-        const { angle, box } = selectionFocusBox(), r = $('#view').getBoundingClientRect(), a = (g?.az ?? cameraState.az) - angle, e = g?.el ?? cameraState.el, d = g?.dist ?? cameraState.dist, tanH = Math.tan(35 * Math.PI / 360) * r.width / r.height;
-        let frac = 0;
-        for (const x of [-box.w / 2, box.w / 2]) {
-            for (const y of [-box.h / 2, box.h / 2]) {
-                for (const z of [-box.d / 2, box.d / 2]) {
-                    const depth = x * Math.cos(e) * Math.sin(a) + y * Math.sin(e) + z * Math.cos(e) * Math.cos(a), horizontal = x * Math.cos(a) - z * Math.sin(a), range = Math.max(1, d - depth);
-                    frac = Math.max(frac, Math.abs(horizontal) / (range * tanH));
-                }
-            }
-        }
-        return Math.min(1, frac) * r.width / 2;
+        const { angle, box } = selectionFocusBox(), r = $('#view').getBoundingClientRect();
+        return calculateModelHalfWidth(box, angle, g?.az ?? cameraState.az, g?.el ?? cameraState.el, g?.dist ?? cameraState.dist, r.width, r.height);
     }
-    /** Where the desktop panel ends, from the view's left edge: it floats over the canvas. 340 when it cannot be measured. */
-    function panelRight() {
-        try {
-            const panel = $('#left')?.getBoundingClientRect?.(), view = $('#view').getBoundingClientRect();
-            const right = panel && panel.width > 0 ? panel.right - (view.left ?? 0) : NaN;
-            return $('#app').classList.contains('props-open') && Number.isFinite(right) ? Math.max(0, right) : 340;
-        } catch { return 340; }
-    }
-    /** Clear of the panel by this much, so a handle on the model's edge (shape corners, about 26 px) is never under it. */
-    const PANEL_GAP = 36;
     // Desktop inspector gently offsets the camera so the model is centered in the remaining view.
     function baseShift(g) {
         if (cameraState.initialCameraFraming || dom.width <= 900) return 0;
+        if (boxFraming && boxFraming.az === 0 && Math.abs(boxFraming.el - .03) < .01) return 0;
         const hasLeft = $('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show');
         if (!hasLeft) return 0;
-        const left = panelRight(), fallback = left / 2;
+        const left = measurePanelRight($), fallback = left / 2;
         try {
             const W = $('#view').getBoundingClientRect().width, half = modelHalfWidthPx(g), gap = PANEL_GAP, lo = left + gap - (W / 2 - half), hi = W - gap - (W / 2 + half);
             if (!Number.isFinite(half) || half <= 0) return fallback;
@@ -85,7 +69,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function availableRoom() {
         const r = $('#view').getBoundingClientRect(), desktop = dom.width > 900;
         const hasLeft = desktop && ($('#app').classList.contains('props-open') || document.querySelector('#pop2.show') || document.querySelector('#pop3.show') || document.querySelector('#pop4.show'));
-        return { w: Math.max(160, r.width - (hasLeft ? panelRight() + 2 * PANEL_GAP : 28)), h: Math.max(140, r.height - (desktop ? 140 : 115)) };
+        return { w: Math.max(160, r.width - (hasLeft ? measurePanelRight($) + 2 * PANEL_GAP : 28)), h: Math.max(140, r.height - (desktop ? 140 : 115)) };
     }
     /** @param {import('./camera-types').CameraPose} from
      * @param {import('./camera-types').CameraPose} to
@@ -147,23 +131,7 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         const room = availableRoom(), r = $('#view').getBoundingClientRect(), scale = r.height / room.h;
         return { az: angle, el: elevation, x: bounds.x, y: bounds.y ?? bounds.h / 2, z: bounds.z, dist: cameraFitDistance(bounds, angle, elevation, room.w / room.h) * scale * padding };
     }
-    function selectionFocusBox() {
-        const w = model.activeCabinet(), angle = w.angle * Math.PI / 180;
-        let box = { x: 0, y: model.activeCabinet().state.h / 2, w: model.activeCabinet().state.w, h: model.activeCabinet().state.h, d: model.activeCabinet().state.d };
-        const g = model.activeCabinet().state.item >= 0 ? geometry.itemGeom(model.activeCabinet().state.sel, model.activeCabinet().state.item) : null;
-        if (g) {
-            box = { x: (g.x0 + g.x1) / 2 - model.activeCabinet().state.w / 2, y: (g.y0 + g.y1) / 2, w: g.w + 18, h: g.h + 18, d: model.activeCabinet().state.d };
-        }
-        else if (model.activeCabinet().state.divider >= 0) {
-            const d = model.activeCabinet().state.dividers[model.activeCabinet().state.divider], r = geometry.dividerRect(d), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, d.i).reduce((a, b) => a + b + PANEL, 0);
-            box = { x: base + (r.x0 + r.x1) / 2, y: geometry.interiorFloor() + (r.y0 + r.y1) / 2, w: Math.max(50, r.x1 - r.x0 + 24), h: Math.max(50, r.y1 - r.y0 + 24), d: model.activeCabinet().state.d };
-        }
-        else if (inspector.inside()) {
-            const r = geometry.sectionSpaceMeasurements(model.activeCabinet().state.sel), base = -model.activeCabinet().state.w / 2 + PANEL + geometry.widths().slice(0, model.activeCabinet().state.sel).reduce((a, b) => a + b + PANEL, 0);
-            box = { x: base + (r.x0 + r.x1) / 2, y: (r.y0 + r.y1) / 2, w: r.w + 18, h: r.h + 18, d: model.activeCabinet().state.d };
-        }
-        return { w, angle, box };
-    }
+    const selectionFocusBox = () => calculateFocusBox({ model, inspector, geometry });
     /** Pans the view by screen pixels, so the scene follows the fingers or pointer: across the screen, and
      * vertically either up and down (from eye level) or along the floor away and towards you (from above),
      * blended by elevation. The target stays over the room (or near the wardrobes), so the view cannot be lost. */
@@ -285,6 +253,38 @@ export function createCameraController({ dom, clock = performance, inspector, pi
         else if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
         else cameraTransition(goal, resizing ? 240 : 700);
     }
+    /** Frame the active wardrobe from the front. @param {{ resizing?: boolean; instant?: boolean }} options */
+    function frameFront(options = {}) {
+        const { resizing = false, instant = false } = options;
+        if (!model.scene.wardrobes.length) { frameScene({ instant }); return; }
+        const goal = camFront();
+        if (!resizing) camRelease();
+        frontFraming = true;
+        cameraState.vsT = 0;
+        cameraState.vzT = 1;
+        if (instant) {
+            cameraState.fitDist = goal.dist;
+            cameraState.vs = 0;
+            cameraState.vz = 1;
+            cameraTransition(goal, 0);
+        }
+        else if (resizing && cameraState.camGoal) Object.assign(cameraState.camGoal, goal);
+        else cameraTransition(goal, resizing ? 240 : 700);
+    }
+    /** Frames the room symmetrically from the front near eye level. @param {{ instant?: boolean }} options */
+    function frameSymmetric(options = {}) {
+        const { instant = false } = options;
+        const facing = (model.activeCabinet()?.angle ?? 0) * Math.PI / 180;
+        camRelease();
+        frontFraming = false;
+        cameraState.vsT = 0;
+        cameraState.vzT = 1;
+        if (instant) {
+            cameraState.vs = 0;
+            cameraState.vz = 1;
+        }
+        frameBox(sceneBox(), facing, .03, 1.15, false, instant);
+    }
     function moveViewOff() {
         if (!cameraState.camHome) return;
         const home = cameraState.camHome;
@@ -313,15 +313,12 @@ export function createCameraController({ dom, clock = performance, inspector, pi
     function camRelease(clearOfPanel = false) {
         mobileInspectorFraming = false;
         wardrobeFraming = false;
+        frontFraming = false;
         boxFraming = null;
         cameraState.camGoal = cameraState.camHome = cameraState.camRestore = cameraState.zoomTarget = cameraState.zoomAnchor = cameraState.zoomFocus = null;
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = clearOfPanel && dom.width > 900 ? baseShift() : cameraState.vs;
         cameraState.vzT = cameraState.vz;
-    }
-    function cameraAnchoredTarget(target, anchor, ratio) {
-        if (!anchor) return { x: target.x, y: target.y, z: target.z };
-        return { x: anchor.x + (target.x - anchor.x) * ratio, y: anchor.y + (target.y - anchor.y) * ratio, z: anchor.z + (target.z - anchor.z) * ratio };
     }
     function cameraZoomPoint(e) {
         resources.cam?.updateMatrixWorld(true);
@@ -392,8 +389,9 @@ export function createCameraController({ dom, clock = performance, inspector, pi
             inspector.layoutPop(p);
         }
         if (mobileInspectorFraming && changed && r.width > 0 && r.height > 0 && !document.documentElement.hasAttribute('data-keyboard-open')) frameMobileInspector(mobileSelectionFraming, true);
+        else if (frontFraming && changed && r.width > 0 && r.height > 0) frameFront({ resizing: true });
         else if (wardrobeFraming && changed && r.width > 0 && r.height > 0) frameWardrobe({ resizing: true });
         else if (boxFraming && changed && r.width > 0 && r.height > 0) frameBox(boxFraming.bounds, boxFraming.az, boxFraming.el, boxFraming.padding, true);
     }
-    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, frameWardrobe, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, zoomOutTo, cameraTick, resize, fit, sceneBox };
+    return { cameraAngleDelta, cameraEase, cameraDistance, cameraNearDistance, camNow, modelHalfWidthPx, baseShift, applyView, availableRoom, cameraSample, cameraApply, cameraTransition, cameraFlyTo, cameraFitDistance, fittedCamera, selectionFocusBox, cameraFocusPoint, focusSelection, camFront, frameMobileInspector, frameBox, frameScene, frameWardrobe, frameFront, frameSymmetric, panBy, moveViewOn, moveOverview, moveViewOff, camRelease, cameraAnchoredTarget, cameraZoomPoint, cameraZoomDistance, cameraZoom, zoomOutTo, cameraTick, resize, fit, sceneBox };
 }

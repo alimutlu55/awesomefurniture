@@ -61,7 +61,7 @@ import { createMakeCommands } from '../../application/commands/make-commands';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
-    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform) {
+    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform, cameraPerspective?: 'front' | 'scene') {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -243,7 +243,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         rendering.theme();
 
         // Keep the default Wardrobe dock, with the wider framing used by an empty-canvas tap.
-        camera.frameScene({ instant: true });
+        if (cameraPerspective === 'front') camera.frameFront({ instant: true });
+        else camera.frameScene({ instant: true });
         camera.resize();
         inspector.update(true);
         checkInstallation();
@@ -274,16 +275,19 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             if (!keepPanel) { inspector.hidePop(); inspector.clearFocus(); }
             inspector.update(true);
             inspector.histUI();
-            camera.frameScene();
+            if (cameraPerspective === 'front') camera.frameFront();
+            else camera.frameScene();
         }
         return {
             // While the welcome previews a space, the design saved and reported is still the one it opened over.
-            snapshot: model.snapshot, viewport, replaceDesign, scene: () => experience.persisted() ?? model.scene,
+            snapshot: model.snapshot, viewport, replaceDesign, playAssembly: experience.playAssembly, scene: () => experience.persisted() ?? model.scene,
             notify: (message: string) => shell.toast(message, undefined, 12000),
             preview: () => experience.neutral(() => capturePreview(
                 resources.R, resources.scene, resources.cam, dom.host.ownerDocument,
                 camera.sceneBox(), camera.cameraFitDistance, (model.activeCabinet().angle ?? 0) * Math.PI / 180,
             )),
+            frameFront: camera.frameFront,
+            frameSymmetric: camera.frameSymmetric,
             dispose: () => viewport.dispose(),
         };
     }

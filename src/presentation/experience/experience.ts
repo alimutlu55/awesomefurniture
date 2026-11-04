@@ -223,6 +223,7 @@ export function mountExperience(ports: ExperiencePorts) {
 
   let kept: { snapshot: string; scene: EditorScene } | null = null;
   return {
+    playAssembly: play,
     welcome: () => { reveal.hide(); welcome.open(); },
     /** The design as it was before the welcome, while the welcome previews spaces over it: what is saved. */
     persisted(): EditorScene | null {

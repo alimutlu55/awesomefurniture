@@ -39,8 +39,8 @@ export interface MarketingCopy {
 
 export const english: MarketingCopy = {
   lang: 'en', name: 'English',
-  title: 'FurniDraw — Online Furniture Designer for Wardrobes & Kitchens',
-  description: "Design it. Engineer it. Build it. Plan your room and furniture in one 3D studio, then create dimensioned drawings and parts lists with FurniDraw.",
+  title: 'FurniDraw — From 2D sketch to technical drawings and AI renders',
+  description: "Plan your room, design parametric furniture, generate technical drawings and AI renders in one 3D studio.",
   nav: ['The experience', 'The details', 'Field notes'], start: 'Open the studio',
   eyebrow: "YOUR FURNITURE. FROM IDEA TO BUILD.",
   headline: ["Design it.", "Engineer it.", "Build it."],
