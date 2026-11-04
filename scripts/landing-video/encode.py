@@ -28,11 +28,11 @@ films = {
         beat(0,'size',cursor=(.075,.81)),beat(1.7,'width-300',cursor=(.075,.81)),
         beat(3.5,'width-240',cursor=(.075,.81)),beat(4.9,'white'),beat(6.85,'oak')]),
     'autolayout': (8.8, 6.7, [
-        beat(0,'empty',.54,.47,1.2,(.31,.895)),beat(1.45,'storage',.26,.22,1.40,(.16,.22)),
-        beat(2.8,'storage-filled',.26,.22,1.4),beat(4.05,'proposals'),beat(5.68,'layout',.53,.44,1.3)]),
+        beat(0,'empty',cursor=(.31,.895)),beat(1.45,'storage',.26,.22,1.40,(.16,.22)),
+        beat(2.8,'storage-filled',.26,.22,1.4),beat(4.05,'proposals'),beat(5.68,'layout')]),
     'make': (9.8, 7.75, [
-        beat(0,'choose-shelf',.34,.46,1.18,(.07,.40)),beat(1.25,'added-shelf',.34,.46,1.18),
-        beat(2.22,'choose-drawer',.34,.46,1.18,(.07,.4)),beat(3.22,'added-drawer',.34,.46,1.18),
+        beat(0,'choose-shelf',cursor=(.092,.456)),beat(1.25,'added-shelf'),
+        beat(2.22,'choose-drawer',cursor=(.092,.456)),beat(3.22,'added-drawer'),
         beat(4.35,'hinged'),beat(5.65,'handle'),beat(7.1,'joinery-cut',.32,.48,1.12)]),
     'drawings': (9.3, 3.6, [
         beat(0,'menu',.65,.42,1,(.83,.42)),beat(1.35,'drawing-plan'),beat(2.65,'elevation'),
