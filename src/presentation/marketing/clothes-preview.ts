@@ -20,7 +20,7 @@ export function mountPreview(root: HTMLElement) {
       if (!result?.ok) throw Error();
       if (editor) editor.replaceDesign(result.project);
       else {
-        editor = mountEditor({ root: host, initialScene: projectToScene(result.project), cameraPerspective: 'front' });
+        editor = mountEditor({ root: host, initialScene: projectToScene(result.project), cameraPerspective: 'front', backdrop: 'scene' });
         const style = document.createElement('style');
         style.textContent = '[data-editor-id="app"] > :not([data-editor-id="view"]), [data-editor-id="view"] > :not(canvas){display:none!important}';
         host.shadowRoot!.append(style);

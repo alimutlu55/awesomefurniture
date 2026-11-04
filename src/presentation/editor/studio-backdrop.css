@@ -1,0 +1,24 @@
+/* Drafting paper sits behind the canvas, so models and measuring tools stay clear. */
+:host([data-backdrop="paper"]) {
+  --studio-paper: #f3f0e8;
+  --studio-rule: rgba(87, 69, 43, .035);
+  --studio-backdrop: linear-gradient(var(--studio-rule) 1px, transparent 1px) center top / 96px 96px,
+    linear-gradient(90deg, var(--studio-rule) 1px, transparent 1px) center top / 96px 96px,
+    var(--studio-paper);
+  --mobile-scene-background: var(--studio-backdrop);
+}
+:host([data-backdrop="paper"][data-theme="dark"]),
+:host([data-backdrop="paper"][data-time="night"]) {
+  --studio-paper: #16140f;
+  --studio-rule: rgba(221, 207, 179, .035);
+}
+:host([data-backdrop="paper"][data-look="workshop"]) {
+  --studio-paper: #123259;
+  --studio-rule: rgba(190, 222, 255, .06);
+}
+:host([data-backdrop="paper"]) #view,
+:host([data-backdrop="paper"][data-look][data-time]) #view {
+  background: var(--studio-backdrop);
+}
+/* The floor-plan view already has a grid that follows its scale and camera. */
+:host([data-backdrop="paper"]) .studio-2d-planner { background-color: #f3f0e8; }
