@@ -1,100 +1,100 @@
 {
-  "workflow": "İş akışı",
+  "workflow": "Nasıl çalışır",
   "features": [
     {
-      "t": "Odayı bir kez planlayın. 2D ve 3D arasında geçin.",
-      "p": "Duvarları çizin, ölçüleri belirleyin ve kısıtları işaretleyin. Kat planınız ve 3D alanınız eş zamanlı kalır.",
+      "t": "Odanı çiz. İstersen 3D olarak gör.",
+      "p": "Duvarları çiz, kapı ve pencereleri yerleştir, ölçüleri gir. Odanın planını ve 3D görünümünü birlikte gör.",
       "b": [
-        "2D/3D eş zamanlı",
-        "Kesin ölçüler",
-        "Oda kısıtları"
+        "Oda planı ve 3D görünüm",
+        "Net ölçüler",
+        "Kapı ve pencereler"
       ]
     },
     {
-      "t": "Milimetresine kadar uyarlanan mobilyalar.",
-      "p": "Gerçek malzeme örnekleriyle gardırop, dolap ve modüler mobilyalar tasarlayın. Genişliği değiştirin, her panel uyum sağlasın.",
+      "t": "Mobilyanın ölçülerini istediğin gibi ayarla.",
+      "p": "Dolabının genişliğini, yüksekliğini ve derinliğini değiştir. Raflar ve diğer parçalar yeni ölçülere göre ayarlansın. Malzemesini de sen seç.",
       "b": [
-        "Parametrik",
-        "mm hassasiyeti",
-        "Gerçek malzemeler"
+        "Özel ölçü",
+        "Milimetrik ayar",
+        "Malzeme seçimi"
       ]
     },
     {
-      "t": "Neleri sakladığınızı söyleyin. Mobilyanız şekillensin.",
-      "p": "Ayakkabı, gömlek, palto ve kutularınızı listeleyin. Sistem hepsine uygun bir yerleşim ve iç düzen önerir.",
+      "t": "Eşyalarını say. Dolabını ona göre planla.",
+      "p": "Kaç gömleğin, palton ve ayakkabın olduğunu yaz. Raflar ve askılıklar eşyalarına göre yerleşsin.",
       "b": [
         "Otomatik yerleşim",
-        "Eşya listeleri",
-        "Verimli iç düzen"
+        "Eşya listesi",
+        "İhtiyacına göre raflar"
       ]
     },
     {
-      "t": "İçini açın. Her parçayı yapılandırın.",
-      "p": "Rafları, çekmeceleri, kapakları ve donanımları seçin. Kesime geçmeden önce parçaların nasıl birleştiğini inceleyin.",
+      "t": "Rafından kulpuna, her ayrıntıyı sen seç.",
+      "p": "Raf, çekmece, kapak ve kulpları seç. Daha kesime başlamadan dolabının nasıl bir araya geldiğini gör.",
       "b": [
         "Montaj",
-        "Donanımlar",
-        "Kesim listeleri"
+        "Kulp ve menteşeler",
+        "Kesim listesi"
       ]
     },
     {
-      "t": "Tek tıkla teknik çizimler.",
-      "p": "Ustanızın uygulayabileceği net planlar, görünüşler ve ölçülendirmeler oluşturun.",
+      "t": "Ölçülü çizimleri tek tıkla al.",
+      "p": "Dolabının ölçülerini gösteren çizimleri hazırla. Kendin yaparken kullan ya da doğrudan ustana ver.",
       "b": [
-        "Teknik planlar",
-        "Görünüşler",
-        "Ölçülendirme"
+        "Ölçülü çizimler",
+        "Farklı açılardan görünüm",
+        "Ustana hazır plan"
       ]
     },
     {
-      "t": "Mutfağınızı tamamlanmış bir mekânda görün.",
-      "p": "Stüdyo modeli ile görselleştirmeyi karşılaştırmak için kontrolü sürükleyin. Ahşap damarlarını, beyaz dolapları ve tezgâhı iki görünümde takip edin.",
+      "t": "Mutfağının bitmiş halini gör.",
+      "p": "Çubuğu sağa sola kaydır, çizimle bitmiş halini karşılaştır. Dolapların, ahşabın ve tezgâhın nasıl görüneceğine bak.",
       "b": [
-        "Yapay zekâ görseli",
-        "Malzemeye uyumlu",
-        "Paylaşıma hazır"
+        "Yapay zekâyla gör",
+        "Seçtiğin malzemelerle",
+        "Kolayca paylaş"
       ]
     }
   ],
   "start": "Başla",
-  "headline": "Eskiz çiz. Tasarla. Teknik çizimleri hazırla.",
-  "intro": "2D oda eskizinden parametrik mobilyalara, ustanız için teknik çizimlere ve fotogerçekçi yapay zekâ görsellerine. Hepsi tek bir 3D stüdyoda.",
-  "launch": "Stüdyoyu başlat",
-  "seeWorkflow": "İş akışını keşfet",
-  "study": "İNTERAKTİF TASARIM ÇALIŞMASI",
-  "wardrobe": "GARDIROP",
-  "live": "CANLI KOMPOZİSYON",
-  "caption": "Günlük yaşamınız için tasarlandı.",
-  "plate": "FURNIDRAW / ÇALIŞMA 01",
+  "headline": "Odanı çiz. Mobilyanı tasarla. Çizimleri ustana ver.",
+  "intro": "Odanı çiz, mobilyanın ölçülerini ayarla. Ustan için ölçülü çizimler hazırla, nasıl görüneceğini yapay zekâyla gör. Hepsi tek bir yerde.",
+  "launch": "Tasarlamaya başla",
+  "seeWorkflow": "Nasıl çalıştığını gör",
+  "study": "DOLABINI DENE",
+  "wardrobe": "DOLAP",
+  "live": "CANLI ÖNİZLEME",
+  "caption": "Günlük hayatına yer aç.",
+  "plate": "FURNIDRAW / DOLAP 01",
   "kicker": "HER ŞEYİN BİR YERİ VAR",
-  "title": "Gardırobunuz.",
-  "emphasis": "Özenle tasarlandı.",
-  "previewIntro": "Sahip olduklarınızla başlayın. Gardırobunuzun ihtiyaçlarınıza göre şekillenmesini izleyin.",
-  "inventory": "EŞYA LİSTENİZ",
+  "title": "Dolabın.",
+  "emphasis": "Tam sana göre.",
+  "previewIntro": "Kaç gömleğin, ceketin ve ayakkabın var? Sayıları değiştir, dolabının nasıl şekillendiğini gör.",
+  "inventory": "EŞYALARIN",
   "quantity": "ADET",
-  "summary": "Biraz düzen. Birçok olasılık.",
-  "pieces": "öğe",
-  "continue": "Stüdyoda kişiselleştir",
-  "loading": "Yerleşiminiz hazırlanıyor…",
-  "invalid": "Her kategori için geçerli bir adet girin.",
-  "footer": "GÜNLÜK YAŞAMINIZ, ZARİF BİR DÜZENDE.",
-  "footerHint": "Adetleri değiştirin. Alanın uyumunu görün.",
-  "ready": "Siz hazır olduğunuzda",
-  "closing": "Stüdyoyu açın ve odanızla başlayın.",
+  "summary": "Eşyalarına göre bir dolap.",
+  "pieces": "eşya",
+  "continue": "Tasarlamaya devam et",
+  "loading": "Dolabın hazırlanıyor…",
+  "invalid": "Her eşya için geçerli bir sayı gir.",
+  "footer": "HER EŞYANA YER AÇ.",
+  "footerHint": "Sayıları değiştir, dolabın sana uysun.",
+  "ready": "Hazırsan başlayalım",
+  "closing": "Odanı çizerek başla. Gerisini birlikte planlayalım.",
   "decrease": "Azalt:",
   "increase": "Artır:",
   "light": "Açık",
   "dark": "Koyu",
   "switchLight": "Açık temaya geç",
   "switchDark": "Koyu temaya geç",
-  "compare": "Mutfağın 3D görünümünün görünen yüzdesi",
-  "model": "3D görünüm",
-  "render": "Görselleştirme",
+  "compare": "Mutfağın çizimini ve bitmiş halini karşılaştır",
+  "model": "3D çizim",
+  "render": "Bitmiş hali",
   "counts": [
-    "Gömlek ve ceketler",
-    "Palto ve elbiseler",
-    "Katlanmış giysiler",
-    "Çift ayakkabı"
+    "Gömlek ve ceket",
+    "Palto ve elbise",
+    "Katlanmış kıyafet",
+    "Ayakkabı (çift)"
   ],
   "featuresLabel": "Özellikler"
 }

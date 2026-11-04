@@ -237,7 +237,7 @@ const turkish: MarketingCopy = {
   nav: ['Deneyim', 'Detaylar', 'Tasarım notları'], start: 'Stüdyoyu aç', eyebrow: "MOBİLYANIZ. FİKİRDEN ÜRETİME.",
   headline: ["Tasarla.", "Detaylandır.", "Üret."],
   intro: "Alanınıza neyin uyduğunu görün, parçaların nasıl birleşeceğini planlayın ve üretim için net planlar hazırlayın. Hepsi tek bir 3D stüdyoda.",
-  explore: 'Kendinize göre tasarlayın', note: 'Tarayıcınızda tasarlayın. Başlamak için hesap gerekmez.',
+  explore: 'Kendinize göre tasarlayın', note: 'Program kurmadan, hesap açmadan başla.',
   study: 'TASARIM ODASI / ÇALIŞMA 001', views: ['Malzeme', 'Çizim'], shapes: ['Gardırop', 'Niş', 'Merdiven altı'], width: 'Genişlik',
   finishes: ['Doğal meşe', 'Füme meşe', 'Tebeşir beyazı'], finish: 'Malzeme çalışması', dimensionCta: 'Bu ölçülerle başlayın',
   illustration: 'Etkileşimli bir görsel çalışma. Ölçüleriniz stüdyoya aktarılır; iç düzeni ve yüzeyleri orada seçersiniz.',
@@ -274,7 +274,7 @@ const turkish: MarketingCopy = {
     ['FurniDraw ülkemde kullanılabilir mi?', 'FurniDraw tarayıcıda çalışır. Bu tanıtım birkaç dilde sunulur. Önizlemede santimetre veya inç seçebilirsiniz; stüdyo yedi dil ile santimetre, milimetre ve inç ölçülerini destekler.'],
   ],
   closing: ["Tasarla. Detaylandır.", "Üret."], language: 'Dil',
-  editorLanguage: '7 dilde stüdyo · esnek birimler', skip: 'İçeriğe geç', units: 'Birimler',
+  editorLanguage: '7 dil seçeneği · cm, mm veya inç', skip: 'İçeriğe geç', units: 'Birimler',
 };
 
 export const languages: readonly MarketingCopy[] = [english, german, french, spanish, polish, portuguese, turkish];
