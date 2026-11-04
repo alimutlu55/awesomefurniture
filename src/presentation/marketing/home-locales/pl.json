@@ -1,84 +1,84 @@
 {
-  "workflow": "Proces",
+  "workflow": "Jak to działa",
   "features": [
     {
-      "t": "Zaplanuj pomieszczenie. Przełączaj 2D i 3D.",
-      "p": "Narysuj ściany, podaj wymiary i zaznacz ograniczenia. Rzut i przestrzeń 3D pozostają zsynchronizowane.",
+      "t": "Narysuj pokój. Obejrzyj go w 3D.",
+      "p": "Narysuj ściany, dodaj drzwi i okna, a potem wpisz wymiary. Plan i widok 3D zmieniają się razem.",
       "b": [
-        "Synchronizacja 2D/3D",
+        "Plan i widok 3D",
         "Dokładne wymiary",
-        "Ograniczenia pomieszczenia"
+        "Drzwi i okna"
       ]
     },
     {
-      "t": "Meble dopasowane co do milimetra.",
-      "p": "Projektuj szafy i meble modułowe z rzeczywistymi próbkami materiałów. Zmień szerokość, a każda płyta się dopasuje.",
+      "t": "Meble dokładnie na Twój wymiar.",
+      "p": "Zmień szerokość, wysokość lub głębokość. Płyty dopasują się do nowych wymiarów. Wybierz też materiał, który Ci się podoba.",
       "b": [
-        "Parametryczne",
-        "Dokładność w mm",
-        "Rzeczywiste materiały"
+        "Własne wymiary",
+        "Co do milimetra",
+        "Wybór materiałów"
       ]
     },
     {
-      "t": "Powiedz, co przechowujesz. Zobacz swój mebel.",
-      "p": "Wymień buty, koszule, płaszcze i pudełka. System zaproponuje układ i wyposażenie wnętrza dopasowane do Twoich rzeczy.",
+      "t": "Twoje rzeczy podpowiedzą, jak urządzić szafę.",
+      "p": "Wpisz, ile masz koszul, płaszczy, butów i pudełek. Zaproponujemy układ, w którym się zmieszczą.",
       "b": [
-        "Układ automatyczny",
-        "Listy rzeczy",
-        "Optymalne wnętrze"
+        "Automatyczny układ",
+        "Twoje rzeczy",
+        "Dopasowane półki"
       ]
     },
     {
-      "t": "Otwórz. Dostosuj każdy element.",
-      "p": "Wybierz półki, szuflady, drzwi i okucia. Sprawdź, jak elementy do siebie pasują, zanim rozpocznie się cięcie.",
+      "t": "Od półek po uchwyty — Ty wybierasz.",
+      "p": "Wybierz półki, szuflady, drzwi i dodatki. Zobacz, jak elementy do siebie pasują, zanim zaczniesz je ciąć.",
       "b": [
         "Montaż",
-        "Okucia",
-        "Listy cięcia"
+        "Uchwyty i zawiasy",
+        "Lista elementów do cięcia"
       ]
     },
     {
-      "t": "Rysunki techniczne jednym kliknięciem.",
-      "p": "Czytelne rzuty, widoki i wymiary, na podstawie których stolarz może wykonać Twój projekt.",
+      "t": "Rysunki dla stolarza jednym kliknięciem.",
+      "p": "Przygotuj czytelne rysunki z potrzebnymi wymiarami. Wykorzystaj je przy budowie mebla lub przekaż stolarzowi.",
       "b": [
-        "Plany techniczne",
-        "Widoki",
-        "Wymiarowanie"
+        "Rysunki z wymiarami",
+        "Różne widoki",
+        "Dla stolarza"
       ]
     },
     {
-      "t": "Zobacz kuchnię w gotowym wnętrzu.",
-      "p": "Przeciągnij uchwyt, aby porównać model ze studia z wizualizacją. Porównaj usłojenie drewna, białe szafki i blat.",
+      "t": "Zobacz, jak może wyglądać gotowa kuchnia.",
+      "p": "Przesuń suwak i porównaj projekt z gotowym wnętrzem. Przyjrzyj się drewnu, szafkom i blatowi.",
       "b": [
-        "Wizualizacja AI",
-        "Zgodność materiałów",
-        "Gotowe do udostępnienia"
+        "Obrazy AI",
+        "Twoje materiały",
+        "Łatwe udostępnianie"
       ]
     }
   ],
   "start": "Zacznij",
-  "headline": "Naszkicuj. Zaprojektuj. Przygotuj rysunki.",
-  "intro": "Od szkicu pomieszczenia 2D do mebli parametrycznych, rysunków technicznych dla wykonawcy i fotorealistycznych obrazów AI. W jednym studiu 3D.",
+  "headline": "Narysuj pokój. Zaprojektuj meble. Pobierz rysunki.",
+  "intro": "Narysuj pokój, dopasuj meble i przygotuj rysunki dla stolarza. Obrazy AI pomogą Ci zobaczyć, jak wszystko będzie wyglądać. Wszystko w jednym miejscu.",
   "launch": "Uruchom studio",
   "seeWorkflow": "Poznaj proces",
-  "study": "INTERAKTYWNE STUDIUM",
+  "study": "WYPRÓBUJ SAMODZIELNIE",
   "wardrobe": "SZAFA",
-  "live": "KOMPOZYCJA NA ŻYWO",
+  "live": "PODGLĄD NA ŻYWO",
   "caption": "Z myślą o Twojej codzienności.",
-  "plate": "FURNIDRAW / STUDIUM 01",
+  "plate": "FURNIDRAW / SZAFA 01",
   "kicker": "MIEJSCE NA WSZYSTKO",
   "title": "Twoja szafa.",
   "emphasis": "Przemyślana.",
-  "previewIntro": "Zacznij od tego, co masz. Zobacz, jak szafa dopasowuje się do Twoich potrzeb.",
-  "inventory": "TWOJA LISTA RZECZY",
+  "previewIntro": "Ile masz koszul, płaszczy i butów? Zmień liczby i zobacz, jak szafa dopasowuje się do Twoich rzeczy.",
+  "inventory": "TWOJE RZECZY",
   "quantity": "LICZBA",
-  "summary": "Trochę porządku. Wiele możliwości.",
+  "summary": "Miejsce na Twoje rzeczy.",
   "pieces": "pozycji",
   "continue": "Dostosuj w studiu",
-  "loading": "Przygotowujemy Twój układ…",
+  "loading": "Przygotowujemy Twoją szafę…",
   "invalid": "Podaj prawidłową liczbę w każdej kategorii.",
-  "footer": "CODZIENNOŚĆ W DOBRYM PORZĄDKU.",
-  "footerHint": "Zmień liczby. Zobacz, jak zmienia się przestrzeń.",
+  "footer": "TWOJE RZECZY NA SWOIM MIEJSCU.",
+  "footerHint": "Zmień liczby. Szafa się dopasuje.",
   "ready": "Gdy tylko zechcesz",
   "closing": "Otwórz studio i zacznij od swojego pomieszczenia.",
   "decrease": "Zmniejsz:",
@@ -87,9 +87,9 @@
   "dark": "Ciemny",
   "switchLight": "Włącz jasny motyw",
   "switchDark": "Włącz ciemny motyw",
-  "compare": "Widoczny procent widoku kuchni 3D",
+  "compare": "Porównaj projekt kuchni z gotowym wnętrzem",
   "model": "Widok 3D",
-  "render": "Wizualizacja",
+  "render": "Gotowe wnętrze",
   "counts": [
     "Koszule i marynarki",
     "Płaszcze i sukienki",
