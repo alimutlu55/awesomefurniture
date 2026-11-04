@@ -6,7 +6,7 @@ export function languageMenu(c: MarketingCopy): string {
   return `<details class="site-language"><summary aria-label="${e(c.language)}: ${e(c.name)}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
       <circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>
-    </svg><span>${e(c.lang.toUpperCase())}</span><span class="language-caret" aria-hidden="true">⌄</span>
+    </svg><span>${e(c.lang.toUpperCase())}</span>
     </summary><nav class="site-language-options" aria-label="${e(c.language)}">
       <span class="site-language-heading">${e(c.language)}</span>
       ${languages.map(l => `<a href="${homePath(l.lang)}" lang="${l.lang}" hreflang="${l.lang}" data-site-language="${l.lang}"
