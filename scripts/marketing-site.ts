@@ -43,6 +43,21 @@ export function marketingSite(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const path = new URL(request.url ?? '/', 'http://local.test').pathname;
+        if (path === '/robots.txt') {
+          response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+          response.end(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${siteOrigin}/sitemap.xml\n`);
+          return;
+        }
+        if (path === '/sitemap.xml') {
+          response.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+          response.end(sitemap());
+          return;
+        }
+        if (path === '/cabinet-design-software' || path === '/cabinet-design-software/') {
+          response.writeHead(301, { Location: '/kitchen-cabinet-design-software/' });
+          response.end();
+          return;
+        }
         if (path === '/llms.txt') {
           response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); response.end(agentGuide()); return;
         }
@@ -76,6 +91,12 @@ export function marketingSite(): Plugin {
         // /editor/ is the canonical editor address; retain /editor.html for old bookmarks.
         await mkdir(resolve(output, 'editor'), { recursive: true });
         await writeFile(resolve(output, 'editor/index.html'), await readFile(resolve(output, 'editor.html'), 'utf8'));
+        // Fallback static redirect for renamed /cabinet-design-software/
+        await mkdir(resolve(output, 'cabinet-design-software'), { recursive: true });
+        await writeFile(resolve(output, 'cabinet-design-software/index.html'),
+          `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/kitchen-cabinet-design-software/">`
+          + `<link rel="canonical" href="${siteOrigin}/kitchen-cabinet-design-software/"></head>`
+          + `<body><a href="/kitchen-cabinet-design-software/">Redirecting...</a></body></html>`);
         await writeFile(resolve(output, 'sitemap.xml'), sitemap());
         await writeFile(resolve(output, 'llms.txt'), agentGuide());
         await writeFile(resolve(output, 'robots.txt'), isIndexableBuild()

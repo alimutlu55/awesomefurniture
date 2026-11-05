@@ -40,16 +40,16 @@ export interface MarketingCopy {
 export const english: MarketingCopy = {
   lang: 'en',
   name: 'English',
-  title: 'Online Furniture Design Software & 3D Configurator | FurniDraw',
-  description: 'Free-to-try online 2D/3D furniture design software and parametric configurator. '
-    + 'Plan rooms, custom wardrobes, and kitchen cabinets with cut lists in your browser.',
+  title: 'Online Furniture Design Software — 3D Planner and Cut Lists',
+  description: 'Design fitted wardrobes and kitchen cabinets in 3D in your browser, free to start. '
+    + 'Get dimensioned drawings and cut lists to hand to your joiner.',
   nav: ['Workflow', 'Features', 'Guides'],
   start: 'Open the studio',
   eyebrow: 'YOUR FURNITURE. FROM IDEA TO BUILD.',
   headline: ['Design it.', 'Engineer it.', 'Build it.'],
   intro: 'See what fits your space, work out how it goes together, and create clear plans to build from—all in one 3D studio.',
   explore: 'Make it yours',
-  note: 'Design in your browser. No account needed to begin.',
+  note: 'Free to design in your browser. No account needed. Pay only when exporting cut lists & drawings.',
   study: 'THE FITTING ROOM / STUDY 001',
   views: ['Material', 'Drawing'],
   shapes: ['Wardrobe', 'Alcove', 'Under stairs'],

@@ -8,9 +8,9 @@ export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/measure-for-a-fitted-wardrobe',
     label: 'How to measure for a fitted wardrobe',
-    title: 'How to Measure for a Fitted Wardrobe — Practical Checklist | FurniDraw',
+    title: 'How to Measure for a Fitted Wardrobe: 4-Step Checklist',
     description: 'Measure width, height, depth and obstructions for a fitted wardrobe. '
-      + 'A practical step-by-step checklist to prepare accurate site measurements before building.',
+      + 'A practical 4-step checklist to prepare accurate site measurements.',
     eyebrow: 'MEASURING CHECKLIST & SITE SURVEY GUIDE',
     heading: 'How to measure for a fitted wardrobe.\nA practical step-by-step checklist.',
     intro: 'Record clear widths, heights, depths and obstructions before planning a fitted wardrobe. '
@@ -22,13 +22,13 @@ export const guideArticles: readonly Guide[] = [
         body: 'Measure the width across floor level, at the midpoint (120 cm), and near the ceiling. '
           + 'Measure the height on the left, in the center, and on the right side. Check depth at multiple positions. '
           + 'Plastered walls, timber floors, and ceilings are never perfectly plumb or level. Record the smallest '
-          + 'dimension as your maximum cabinet envelope, and note whether new carpets or floorboards will be installed.',
+          + 'dimension as your maximum cabinet envelope before designing in our [free online wardrobe designer](/wardrobe-designer/).',
       },
       {
         title: '02. Draw and measure what the tape cannot explain.',
         body: 'Sketch all obstructions: baseboards (skirting), coving, radiators, electrical sockets, light switches, '
           + 'access hatches, and pipes. Note the swing direction and handle clearance of bedroom doors and windows. '
-          + 'For sloping ceilings, measure knee-wall heights and rake angles at 50 cm intervals along the wall.',
+          + 'For sloping ceilings or recesses, reference our [alcove wardrobe designer](/alcove-wardrobe-designer/) templates.',
         list: [
           'Width at 3 heights; height at 3 positions; depth at left, middle, and right.',
           'Position and dimensions of electrical outlets, switches, radiators, and pipes.',
@@ -40,21 +40,22 @@ export const guideArticles: readonly Guide[] = [
         body: 'Enter your room measurements into FurniDraw in your preferred units: the studio supports centimetres, '
           + 'millimetres, and inches (1 inch = 2.54 cm). Use the 3D model to test clearances and bay widths. '
           + 'Always allow a 25–40 mm scribing fillet along the sides and top to allow your joiner to fit the wardrobe '
-          + 'flush against irregular walls.',
+          + 'flush against irregular walls. Check our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) for internal sizing.',
       },
       {
         title: '04. Professional cabinetmaker review.',
         body: 'Reviewed by FurniDraw Cabinet Engineering Team. Before ordering sheet goods or cutting boards, have your '
-          + 'joiner or carpenter verify critical site measurements against the exported dimensioned drawings.',
+          + 'joiner or carpenter verify critical site measurements against the exported dimensioned drawings. '
+          + 'Transparent [pricing](/pricing/) lets you plan 100% free and pay only when generating CAD export packages.',
       },
     ],
   },
   {
     slug: 'guides/standard-wardrobe-dimensions',
     label: 'Standard wardrobe dimensions guide',
-    title: 'Standard Wardrobe Dimensions Guide — Depths, Rails & Shelves | FurniDraw',
-    description: 'Complete guide to standard wardrobe dimensions: depth requirements, '
-      + 'hanging rail heights for shirts vs coats, drawer clearances, and shoe shelf spacing.',
+    title: 'Standard Wardrobe Dimensions: Depth, Rail and Shelf Heights',
+    description: 'Standard wardrobe dimensions: depth requirements, '
+      + 'hanging rail heights for shirts vs coats, drawer clearances, and shelf deflection limits.',
     eyebrow: 'STORAGE ERGONOMICS & DIMENSIONS GUIDE',
     heading: 'Standard wardrobe dimensions guide.\nDepths, hanging rails & shelves.',
     intro: 'Plan your wardrobe layout around standard ergonomic dimensions. '
@@ -65,13 +66,14 @@ export const guideArticles: readonly Guide[] = [
         title: 'Carcass depth requirements: reach-in vs walk-in.',
         body: 'Standard adult hangers are 420–450 mm wide. Adding coat sleeve bulk requires a minimum internal carcass depth '
           + 'of 550 mm for hinged door wardrobes and 580–600 mm for sliding door wardrobes to prevent sleeves from catching. '
-          + 'Open walk-in closet shelving requires only 350–400 mm depth for folded clothing.',
+          + 'Open [walk-in closet planner](/walk-in-closet-planner/) shelving requires only 350–400 mm depth for folded clothing.',
       },
       {
         title: 'Hanging rail vertical drops: short vs long hanging.',
         body: 'Do not allocate excessive height to short hanging: shirts, jackets, suits, and folded trousers require '
           + '1000–1050 mm clear height below the rail. Full-length evening dresses, long overcoats, and jumpsuits require '
-          + '1500–1650 mm. In high-ceiling rooms (240 cm+), stacking two short hanging rails doubles your storage capacity.',
+          + '1500–1650 mm. In high-ceiling rooms (240 cm+), stacking two short hanging rails doubles your storage capacity '
+          + 'in our [online wardrobe designer](/wardrobe-designer/).',
         list: [
           'Short hanging (shirts, jackets, blazers): 1000–1050 mm clear vertical space.',
           'Long hanging (overcoats, maxi dresses): 1500–1650 mm clear vertical space.',
@@ -94,9 +96,9 @@ export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/cabinet-hinge-types-guide',
     label: 'Concealed cabinet hinges guide',
-    title: 'Concealed Cabinet Hinges Guide — 110° vs 155° Zero Protrusion | FurniDraw',
-    description: 'Comprehensive guide to concealed cabinet hinges: full overlay, '
-      + 'half overlay, inset, 110° standard, 155° zero-protrusion for internal drawers, and clearances.',
+    title: 'Concealed Cabinet Hinges: 110° vs 155° Zero Protrusion',
+    description: 'Guide to concealed cabinet hinges: full overlay, '
+      + 'half overlay, inset, and 155° zero-protrusion hinges required for internal drawers.',
     eyebrow: 'CABINET HARDWARE & HINGE ENGINEERING',
     heading: 'Concealed cabinet hinges guide.\n110° vs 155° zero-protrusion & inset.',
     intro: 'Understand European concealed cup hinges for custom cabinetry. '
@@ -113,7 +115,9 @@ export const guideArticles: readonly Guide[] = [
         title: 'Opening angles: 110° standard vs 155° zero-protrusion.',
         body: 'Standard 110° hinges swing the door open wide enough for everyday access, but the door leaf still protrudes '
           + 'into the bay opening by 25–35 mm. If the cabinet contains internal pull-out drawers or wire baskets, the drawer fronts '
-          + 'will crash into the open door. A 155° zero-protrusion hinge swings the door completely clear of the carcass edge.',
+          + 'will crash into the open door. A 155° zero-protrusion hinge swings the door completely clear of the carcass edge. '
+          + 'Our [online wardrobe designer](/wardrobe-designer/) and [kitchen cabinet design software](/kitchen-cabinet-design-software/) '
+          + 'enforce these clearances automatically.',
         list: [
           '110° Standard hinges: suitable for standard shelves and hanging rail sections.',
           '155° Zero-protrusion hinges: mandatory for bays with internal pull-out drawers or trays.',
@@ -124,7 +128,7 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Hinge drilling patterns: 35 mm cup & System 32 spacing.',
         body: 'Concealed hinges require a standard 35 mm diameter cup hole drilled 11.5–12.5 mm deep into the rear of the door leaf. '
-          + 'The edge distance (boring distance) is typically 3–5 mm from the door edge. Mounting plates fasten to the carcass '
+          + 'The edge distance is typically 3–5 mm from the door edge. Mounting plates fasten to the carcass '
           + 'at the standard 37 mm setback line using System 32 hole spacing.',
       },
       {
@@ -137,9 +141,9 @@ export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/closet-vs-wardrobe',
     label: 'Closet vs. wardrobe: planning your storage',
-    title: 'Closet vs. Wardrobe Planning — Custom Storage Layout Guide | FurniDraw',
-    description: 'Compare closet and wardrobe layouts, measure the available space and '
-      + 'plan hanging rails, shelves and drawers around the clothes you need to store.',
+    title: 'Closet vs Wardrobe Planning: Custom Built-In Storage Guide',
+    description: 'Compare closet and wardrobe layouts, measure space, and '
+      + 'plan hanging rails, shelves, and drawers around what you store.',
     eyebrow: 'STORAGE PLANNING & TERMINOLOGY GUIDE',
     heading: 'Closet or wardrobe?\nPlan around what you store.',
     intro: 'Whether you call it a closet or a wardrobe, start with your available space and '
@@ -155,8 +159,8 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Build an inventory of your clothing.',
         body: 'Separate short hanging items from long coats, folded clothes, and shoes. Account for everyday items '
-          + 'versus seasonal luggage. In FurniDraw, enter your exact counts into the automatic storage layout tool '
-          + 'to receive an instant parametric proposal tailored to your storage volume.',
+          + 'versus seasonal luggage. In our [free online wardrobe designer](/wardrobe-designer/), enter your exact counts into '
+          + 'the automatic storage layout tool to receive an instant parametric proposal tailored to your storage volume.',
         list: [
           'Group shirts, jackets, and blouses separately from long overcoats and dresses.',
           'Designate accessible drawer storage for undergarments and accessories.',
@@ -171,16 +175,17 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Prepare workshop documentation for your maker.',
         body: 'Generate dimensioned elevations, cutting lists, and hardware schedules. Share the plans with your joiner '
-          + 'to confirm site fitting tolerances, materials, and edge banding before fabrication starts.',
+          + 'to confirm site fitting tolerances, materials, and edge banding before fabrication starts. '
+          + 'Our transparent [pricing](/pricing/) allows free 3D design and credits only when exporting.',
       },
     ],
   },
   {
     slug: 'guides/kitchen-layout-planning',
     label: 'How to plan a kitchen cabinet layout',
-    title: 'Kitchen Layout Planning Guide — Base, Wall & Tall Units | FurniDraw',
-    description: 'Plan a kitchen cabinet layout around room measurements, appliances and access. '
-      + 'Review base, wall and tall units in 3D before discussing installation.',
+    title: 'Kitchen Layout Planning Guide — Base, Wall & Tall Units',
+    description: 'Plan a kitchen cabinet layout around room measurements, appliances, and access. '
+      + 'Review base, wall, and tall units in 3D before building.',
     eyebrow: 'KITCHEN ERGONOMICS & LAYOUT GUIDE',
     heading: 'Plan your kitchen layout.\nStart with the room.',
     intro: 'Prepare a room sketch, appliance information and storage requirements before arranging kitchen units. '
@@ -190,8 +195,8 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Record the room perimeter and existing utility services.',
         body: 'Measure each wall and note the exact locations of water supply lines, waste drainage, gas inlets, '
-          + 'electrical circuits, and cooker hood ventilation extraction ducts. Confirm service relocation feasibility '
-          + 'with your plumber and electrician before finalizing unit positions.',
+          + 'electrical circuits, and cooker hood ventilation extraction ducts. Use our [2D & 3D room planner](/2d-3d-room-planner/) '
+          + 'to model walls and service points accurately.',
       },
       {
         title: 'Gather appliance specifications before sizing cabinetry.',
@@ -206,9 +211,9 @@ export const guideArticles: readonly Guide[] = [
       },
       {
         title: 'Arrange base, wall and tall cabinets logically.',
-        body: 'Organize the kitchen around the classic work triangle: food storage (fridge), prep/cleaning (sink), '
-          + 'and cooking (hob/oven). Place base drawers near prep areas, heavy pan pull-outs under the hob, and '
-          + 'tall pantry units on the outer ends of runs to avoid breaking continuous worktop spans.',
+        body: 'Organize the kitchen around the classic work triangle: food storage, prep/cleaning, '
+          + 'and cooking. In our [kitchen cabinet design software](/kitchen-cabinet-design-software/), place base drawers near prep areas, '
+          + 'heavy pan pull-outs under the hob, and tall pantry units on the outer ends of runs.',
       },
       {
         title: 'Review the layout with your installer before ordering.',
@@ -220,9 +225,9 @@ export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/read-a-cabinet-cutting-list',
     label: 'How to read a cabinet cutting list',
-    title: 'How to Read a Cabinet Cutting List — Workshop Guide | FurniDraw',
-    description: 'Understand cabinet cutting list dimensions, quantities and materials. '
-      + 'Check finished part sizes, edge-banding deductions and workshop details before cutting.',
+    title: 'How to Read a Cabinet Cutting List: Workshop Guide',
+    description: 'Understand cabinet cutting list dimensions, quantities, and materials. '
+      + 'Check finished part sizes and edge-banding allowances before cutting.',
     eyebrow: 'WORKSHOP DOCUMENTATION & CUT LISTS',
     heading: 'Read a cabinet cutting list.\nCheck every part before cutting.',
     intro: 'A cutting list translates a 3D furniture design into panel parts for cutting. '
@@ -233,12 +238,12 @@ export const guideArticles: readonly Guide[] = [
         title: 'Match each line item to a component in the drawing.',
         body: 'Begin by referencing the cabinet elevation and cross-section drawings to identify each part: side gables, '
           + 'bottom decks, top stretchers, adjustable shelves, partitions, back panels, and door leaves. Check both part '
-          + 'quantities and dimensions carefully.',
+          + 'quantities and dimensions carefully using our [cabinet cut list generator](/cabinet-cut-list-generator/).',
       },
       {
         title: 'Check units, material specification and board thickness.',
         body: 'Confirm measurement units (millimetres are standard in cabinetmaking workshops). Group parts by board material '
-          + 'and thickness (e.g. 18 mm melamine-faced chipboard for carcasses, 8 mm MDF for backs). Check grain orientation flags '
+          + 'and thickness (e.g. 18 mm MFC for carcasses, 8 mm MDF for backs). Check grain orientation flags '
           + 'for veneered or woodgrain decors.',
         list: [
           'Verify current drawing revision number matches the cutting list revision.',
@@ -255,10 +260,56 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Review the complete build before releasing to the workshop.',
         body: 'Re-verify site measurements before cutting panels. Ensure assembly joinery (System 32 confirmat screws, '
-          + 'cam-and-dowel fasteners, or pocket screws) and hinge plate positions align with the parts schedule.',
+          + 'cam-and-dowel fasteners, or pocket screws) and hinge plate positions align with the parts schedule '
+          + 'in our [furniture making software](/furniture-making-software/).',
       },
     ],
   },
 ];
 
-export const guides: readonly Guide[] = [...productPages, ...nichePages, ...guideArticles];
+export const guidesHub: Guide = {
+  slug: 'guides',
+  label: 'Guides',
+  title: 'Furniture Design & Cabinetry Guides | FurniDraw',
+  description: 'Practical woodworking, measuring, and cabinetry planning guides. '
+    + 'Learn standard dimensions, hinge clearances, and cut list reading.',
+  eyebrow: 'CABINETRY KNOWLEDGE & WORKSHOP GUIDES',
+  heading: 'Furniture design & joinery guides.\nMeasure, plan & build with precision.',
+  intro: 'Explore practical engineering guides, measurement checklists, and joinery standards '
+    + 'written by cabinetmakers and CAD engineers for fitted furniture projects.',
+  shape: 'regular',
+  sections: [
+    {
+      title: 'Planning and measuring built-in furniture.',
+      body: 'Successful custom cabinetry starts on site with accurate dimensions. Learn how to record clear room dimensions, '
+        + 'handle out-of-plumb walls, and account for skirting boards and cornice details before designing in our '
+        + '[free online wardrobe designer](/wardrobe-designer/). Consult our checklist on '
+        + '[how to measure for a fitted wardrobe](/guides/measure-for-a-fitted-wardrobe/).',
+    },
+    {
+      title: 'Ergonomic standards for custom storage.',
+      body: 'Ensure your fitted wardrobes and closets are comfortable to use every day. Reference our '
+        + '[standard wardrobe dimensions guide](/guides/standard-wardrobe-dimensions/) for hanging rail drops, drawer depths, '
+        + 'and shelf spacing tailored to your clothing collection.',
+    },
+    {
+      title: 'Hardware engineering and hinge clearances.',
+      body: 'Understand concealed European cup hinges, mounting plate setbacks, and opening angles. Learn when to specify '
+        + '[155° zero-protrusion hinges](/guides/cabinet-hinge-types-guide/) to protect internal drawer fronts from colliding with open doors.',
+    },
+    {
+      title: 'Kitchen layouts and appliance ergonomics.',
+      body: 'Organize modular base, wall, and tall units around the classic kitchen work triangle. Follow our '
+        + '[kitchen layout planning guide](/guides/kitchen-layout-planning/) and design runs with continuous worktops and plinths '
+        + 'using our [kitchen cabinet design software](/kitchen-cabinet-design-software/).',
+    },
+    {
+      title: 'From 3D model to workshop cutting list.',
+      body: 'Translate 3D parametric models into accurate panel cutting schedules. Understand finished part sizes, '
+        + 'grain orientation flags, and edge-banding deductions using our [guide on how to read a cutting list](/guides/read-a-cabinet-cutting-list/) '
+        + 'and [cabinet cut list generator](/cabinet-cut-list-generator/).',
+    },
+  ],
+};
+
+export const guides: readonly Guide[] = [...productPages, ...nichePages, guidesHub, ...guideArticles];

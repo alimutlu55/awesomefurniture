@@ -5,9 +5,9 @@ export const productPages: readonly Guide[] = [
   {
     slug: 'wardrobe-designer',
     label: 'Online wardrobe designer',
-    title: 'Free Online Wardrobe Designer & 3D Closet Planner | FurniDraw',
-    description: 'Free online 3D wardrobe designer and custom closet planner. '
-      + 'Design fitted storage, shelving, drawers, and hanging rails with workshop cut lists in your browser.',
+    title: 'Free Online Wardrobe Designer — 3D Fitted Closet Planner',
+    description: 'Design fitted wardrobes and closets in 3D in your browser, free to start. '
+      + 'Get dimensioned drawings and cut lists to hand to your joiner.',
     eyebrow: 'FITTED WARDROBE PLANNING & 3D CLOSET CONFIGURATOR',
     heading: 'Free online wardrobe designer.\nCustom fitted storage in 3D.',
     intro: 'Design custom built-in wardrobes and walk-in closets to the exact millimetre. '
@@ -19,15 +19,15 @@ export const productPages: readonly Guide[] = [
         body: 'FurniDraw lets you design wall-to-wall and floor-to-ceiling fitted wardrobes that adapt '
           + 'to your exact room dimensions. Unlike generic room planners that place rigid pre-made blocks, '
           + 'our engine builds parametric joinery using standard 18 mm carcass boards, 8 mm recessed backs, '
-          + 'and customizable plinths (toe kicks). Whether planning a modern reach-in closet or a luxury '
-          + 'dressing room, every internal bay resizes dynamically while maintaining structural integrity.',
+          + 'and customizable plinths. Review our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) '
+          + 'for depths, hanging heights, and shelf spacing guidelines.',
       },
       {
         title: 'Auto-design built-in storage by garment & shoe count.',
         body: 'Tell the planner what you need to store: count your shirts, jackets, long coats, folded sweaters, '
           + 'and shoe pairs. FurniDraw’s automatic layout algorithm proposes an optimized interior configuration '
-          + 'with appropriate hanging drops (1050 mm for short hanging, 1600 mm for long coats), ergonomic shelf '
-          + 'spacing, and drawer stacks placed within easy reach. You can fine-tune every divider, rail, and shelf.',
+          + 'with appropriate hanging drops (1050 mm for short hanging, 1600 mm for long coats). Use our '
+          + '[guide on measuring for a fitted wardrobe](/guides/measure-for-a-fitted-wardrobe/) to record clear site dimensions.',
         list: [
           'Automatic bay splitting based on clothing inventory and user reach.',
           'Dedicated vertical zones for shirts, dresses, folded knitwear, and shoes.',
@@ -36,15 +36,25 @@ export const productPages: readonly Guide[] = [
       },
       {
         title: 'Door front styles, carcass finishes & hardware clearances.',
-        body: 'Explore Slab, Shaker, Profiled, and Rail door fronts with realistic wood decors, matt laminates, '
-          + 'and textured finishes. The software enforces concealed hinge rules: 110° standard hinges for regular bays '
-          + 'and 155° zero-protrusion hinges where internal pull-out drawers require unobstructed clearance to slide past open doors.',
+        body: 'Explore Slab, Shaker, Profiled, and Rail door fronts with realistic wood decors and matt laminates. '
+          + 'The software enforces hardware clearance rules: 110° standard hinges for regular bays and '
+          + '[155° zero-protrusion hinges](/guides/cabinet-hinge-types-guide/) where internal pull-out drawers '
+          + 'require unobstructed clearance to slide past open doors.',
       },
       {
         title: 'Accurate dimensioned elevations, sections & workshop cutting lists.',
         body: 'Export comprehensive CAD-ready technical drawings including front elevations, sectional views, '
           + 'panel cutting schedules, and hardware lists. Hand these clear documentation sets directly to your '
-          + 'carpenter or local joiner, or use them to build your custom wardrobe with precision.',
+          + 'carpenter or local joiner. Design 100% free in your browser; our transparent [pricing](/pricing/) '
+          + 'applies only when exporting drawings or AI renders.',
+      },
+      {
+        title: 'Worked example: 2400 mm alcove wardrobe specification.',
+        body: 'For a 2400 mm wide bedroom alcove with a 2400 mm ceiling, FurniDraw divides the space into three equal '
+          + '780 mm bays (with 30 mm scribing fillers on each side). Bay 1 provides double hanging rails (2× 1050 mm drops) '
+          + 'for 40 shirts and jackets. Bay 2 features a 3-drawer chest with soft-close runners and four adjustable knitwear shelves. '
+          + 'Bay 3 provides full-length coat hanging (1600 mm drop) with luggage storage above. The exported cutting list details '
+          + '28 finished panels in 18 mm Natural Oak MFC with 1 mm ABS edge banding.',
       },
     ],
     faqs: [
@@ -68,14 +78,23 @@ export const productPages: readonly Guide[] = [
         'Yes. The exported documentation provides dimensioned elevations, cabinet sections, hardware schedules, '
           + 'and finished component cutting lists formatted specifically for professional cabinetmakers.',
       ],
+      [
+        'How does FurniDraw handle uneven walls and ceilings?',
+        'You can configure perimeter scribing fillets (typically 25–40 mm wide) on the left, right, and top edges. '
+          + 'Your joiner cuts these fillers on-site to match wall irregularities and skirting boards.',
+      ],
+      [
+        'Do I need to download or install any software?',
+        'No. FurniDraw operates entirely inside your web browser on desktop, laptop, or tablet with WebGL support.',
+      ],
     ],
   },
   {
-    slug: 'cabinet-design-software',
+    slug: 'kitchen-cabinet-design-software',
     label: 'Kitchen cabinet design software',
-    title: 'Kitchen Cabinet Design Software — 3D Online Planner | FurniDraw',
-    description: 'Plan modular kitchen cabinets in 3D with FurniDraw. '
-      + 'Configure base, wall, and tall units, continuous worktops, plinths, and export dimensioned drawings and cut lists.',
+    title: 'Kitchen Cabinet Design Software: Free 3D Planner | FurniDraw',
+    description: 'Plan modular kitchen cabinets in 3D in your browser. '
+      + 'Configure base, wall, and tall units with worktops, plinths, and workshop cut lists.',
     eyebrow: 'MODULAR KITCHEN CABINET PLANNING & 3D CAD',
     heading: 'Kitchen cabinet design software.\nPlan base, wall & tall units in 3D.',
     intro: 'Plan modular base, wall and tall kitchen cabinets in your browser. '
@@ -84,15 +103,15 @@ export const productPages: readonly Guide[] = [
     sections: [
       {
         title: '2D and 3D kitchen room layout planner.',
-        body: 'Start by drawing your kitchen perimeter, placing windows, doors, and marking fixed plumbing, gas, '
-          + 'and electrical connection points. FurniDraw keeps your 2D layout and 3D interactive model synchronized '
-          + 'so you can verify walkway clearances, work triangle efficiency, and ergonomic access around every unit.',
+        body: 'Start by drawing your kitchen perimeter, placing doors and windows, and marking plumbing and electrical connections. '
+          + 'Use our [free 2D/3D room planner](/2d-3d-room-planner/) to keep floor plans and 3D views synchronized so you can verify '
+          + 'walkway clearances, work triangle efficiency, and appliance access.',
       },
       {
         title: 'Configure modular base, wall & tall cabinets.',
         body: 'Build kitchen runs using standard modular cabinet carcasses: 600 mm, 800 mm, and 1000 mm base units; '
-          + 'tall pantry and appliance housings; and 720 mm or 900 mm overhead wall units. Carcasses share a continuous '
-          + 'worktop with user-defined overhangs and a flush or recessed plinth (toe kick) for a seamless fitted look.',
+          + 'tall pantry and appliance housings; and 720 mm or 900 mm overhead wall units. Carcasses share continuous '
+          + 'worktops and recessed plinths. Read our [kitchen layout planning guide](/guides/kitchen-layout-planning/) for ergonomics.',
         list: [
           'Modular base units with adjustable drawers, shelving, and pull-out organizers.',
           'Tall pantry units with internal drawer towers and appliance service recesses.',
@@ -108,8 +127,8 @@ export const productPages: readonly Guide[] = [
       {
         title: 'Export dimensioned cabinet drawings & workshop cut lists.',
         body: 'Generate full kitchen elevations, top-down installation plans, and parts schedules detailing finished '
-          + 'panel sizes for carcasses, shelves, and doors. Review the plans with your cabinetmaker or kitchen fitter '
-          + 'to verify cut-outs, service voids, and installation tolerances before ordering materials.',
+          + 'panel sizes for carcasses, shelves, and doors. Design free in your browser; check our [pricing](/pricing/) '
+          + 'for export credits when handing plans to your cabinetmaker or kitchen fitter.',
       },
     ],
     faqs: [
@@ -133,14 +152,23 @@ export const productPages: readonly Guide[] = [
         'Yes. You can adjust cabinet widths, depths, and heights parametrically to suit custom alcoves, narrow runs, '
           + 'or non-standard appliance specifications.',
       ],
+      [
+        'Does the software verify corner cabinet clearances?',
+        'Yes. FurniDraw enforces corner setback rules to ensure base drawers and hinged doors clear adjacent handles.',
+      ],
+      [
+        'Are drilling plans for CNC machines included?',
+        'Exported drawings provide standard System 32 hole references and 37 mm setbacks for workshop line-boring machines. '
+          + 'Raw CNC G-code and CAM machine files are not included.',
+      ],
     ],
   },
   {
     slug: 'furniture-making-software',
     label: 'Furniture design & making software',
-    title: 'Furniture Making Software — 3D CAD & Cut List Generator | FurniDraw',
-    description: 'Online furniture making software for custom cabinetry and wardrobes. '
-      + 'Generate 3D parametric models, dimensioned shop drawings, and workshop-ready cut lists.',
+    title: 'Furniture Making Software: 3D CAD and Cut Lists | FurniDraw',
+    description: 'Online furniture making software for custom wardrobes and cabinets. '
+      + 'Parametric 3D CAD, dimensioned shop drawings, and parts cut lists.',
     eyebrow: 'FURNITURE MAKING & WORKSHOP DOCUMENTATION',
     heading: 'Furniture making software.\nFrom 3D CAD to workshop cut lists.',
     intro: 'Design custom built-in furniture to the exact millimetre. '
@@ -166,15 +194,15 @@ export const productPages: readonly Guide[] = [
       },
       {
         title: 'Workshop-ready drawings, cutting lists & hardware schedules.',
-        body: 'Generate full documentation packets with one click. Cutting lists categorize components by board material '
-          + 'and thickness (e.g. 18 mm MFC carcass, 8 mm backing board, 22 mm solid worktops). Hardware schedules list '
-          + 'every concealed hinge, drawer runner, shelf pin, and plinth leg required for the build.',
+        body: 'Generate full documentation packets with one click using our [cabinet cut list generator](/cabinet-cut-list-generator/). '
+          + 'Cutting lists categorize components by board material and thickness (e.g. 18 mm MFC carcass, 8 mm backing board). '
+          + 'Consult our guide on [how to read a cabinet cutting list](/guides/read-a-cabinet-cutting-list/) before cutting.',
       },
       {
         title: 'Joinery rules, scribing allowances & panel assembly.',
         body: 'Incorporate realistic scribing allowances and infill fillets for out-of-plumb walls and uneven floors. '
           + 'Carcass panels adhere to professional assembly standards (System 32 hole spacing and 37 mm hinge lines), '
-          + 'providing an accurate foundation for CNC machining or traditional table-saw cutting.',
+          + 'providing an accurate foundation for manual line boring and workshop fabrication.',
       },
     ],
     faqs: [
@@ -202,9 +230,9 @@ export const productPages: readonly Guide[] = [
   {
     slug: 'under-stairs-wardrobe',
     label: 'Under stairs wardrobe designer',
-    title: 'Under Stairs Wardrobe Designer — 3D Sloped Storage | FurniDraw',
-    description: 'Design custom under-stairs wardrobes and hallway storage in 3D. '
-      + 'Plan angled units, pull-out drawers, and shoe racks with precise dimensioned plans.',
+    title: 'Under Stairs Wardrobe Designer — 3D Storage | FurniDraw',
+    description: 'Design custom under-stairs wardrobes and storage in 3D. '
+      + 'Plan raked carcasses, pull-out shoe drawers, and sloped hanging rails with cut lists.',
     eyebrow: 'SHAPED STORAGE & UNDER-STAIRS PLANNING',
     heading: 'Under-stairs wardrobe designer.\nPlan shaped storage in 3D.',
     intro: 'Maximize awkward space beneath your staircase. '
@@ -215,12 +243,12 @@ export const productPages: readonly Guide[] = [
         title: 'Design fitted wardrobes for sloped and awkward staircase angles.',
         body: 'The triangular void beneath staircases is one of the most valuable yet difficult spaces to furnish. '
           + 'FurniDraw eliminates guesswork by allowing you to define staircase pitch, landing breaks, and vertical risers. '
-          + 'The 3D model shapes each cabinet bay to follow the rake of the stringer with precision.',
+          + 'Pair with our [sloped ceiling wardrobe designer](/sloped-ceiling-wardrobe-designer/) for attic and roof eaves.',
       },
       {
         title: 'Zone storage for shoes, pull-out drawers & angled hanging rails.',
         body: 'Divide the angled staircase envelope into high-efficiency storage zones: full-extension pull-out drawer '
-          + 'towers at the lower end for shoes and bags, and tall bays near the top for coats, jackets, and vacuum cleaners. '
+          + 'towers at the lower end for shoes and bags, and tall bays near the top for coats and jackets. '
           + 'Our planner calculates clear opening widths and prevents drawer runners from binding against staircase stringers.',
         list: [
           'Parametric ceiling slope following the exact staircase angle and landing profile.',
@@ -265,9 +293,9 @@ export const productPages: readonly Guide[] = [
   {
     slug: '3d-furniture-configurator',
     label: '3D furniture configurator',
-    title: '3D Furniture Configurator Online — Wardrobes & Cabinets | FurniDraw',
+    title: 'Online Wardrobe & Cabinet Configurator in 3D | FurniDraw',
     description: 'Free online 3D furniture configurator. '
-      + 'Customise wardrobes, alcove cupboards, and kitchen cabinets to the millimetre. Generate instant cut lists and 3D views.',
+      + 'Customise wardrobes and cabinets to the millimetre with real-time parametric CAD and cut lists.',
     eyebrow: '3D FURNITURE CONFIGURATOR & PARAMETRIC DESIGN',
     heading: '3D furniture configurator online.\nCustom wardrobes & cabinetry.',
     intro: 'Configure custom wardrobes, closets, and modular cabinetry with real-time 3D parametric controls. '
@@ -277,15 +305,15 @@ export const productPages: readonly Guide[] = [
       {
         title: 'Parametric 3D furniture configuration in real time.',
         body: 'FurniDraw delivers an interactive 3D configurator designed specifically for bespoke cabinetry. '
-          + 'Unlike static 3D visualizers, every slider and input field is connected to real-time engineering rules. '
+          + 'Unlike static 3D visualizers, every slider and input field connects to real engineering rules. '
           + 'Adjust overall width, height, or carcass depth, and watch bays, internal partitions, shelves, and doors '
-          + 'recalculate proportionally to preserve structural standards and hardware clearances.',
+          + 'recalculate proportionally. Try our [free online wardrobe designer](/wardrobe-designer/) to explore built-in layouts.',
       },
       {
         title: 'Customise dimensions, front styles & finishes to the millimetre.',
         body: 'Choose from multiple door front styles including flat Slab, classic Shaker, Profiled shaker, and Rail designs. '
-          + 'Apply realistic woodgrain decors (natural oak, smoked oak, chalk white) with grain orientation awareness. '
-          + 'Configure plinth heights, top scribe infills, and end panels to match your room interior perfectly.',
+          + 'Apply realistic woodgrain decors with grain orientation awareness. Configure plinth heights, top scribe infills, '
+          + 'and end panels to match your room interior perfectly.',
         list: [
           'Instant 3D rendering with realistic lighting, shadows, and material textures.',
           'Full control over internal bay divisions, shelf spacing, and drawer stack counts.',
@@ -301,7 +329,8 @@ export const productPages: readonly Guide[] = [
       {
         title: 'Export workshop-ready drawings, cutting lists & assembly steps.',
         body: 'Turn your 3D configuration into actionable workshop data. Export 2D dimensional elevations, cross-sections, '
-          + 'part-by-part cutting lists, and step-by-step 3D assembly guides that make building or ordering custom furniture straightforward.',
+          + 'part-by-part cutting lists, and step-by-step 3D assembly guides that make building or ordering custom furniture '
+          + 'straightforward. Also check out our [kitchen cabinet design software](/kitchen-cabinet-design-software/).',
       },
     ],
     faqs: [
@@ -322,6 +351,14 @@ export const productPages: readonly Guide[] = [
       [
         'Can I view the furniture model in realistic materials?',
         'Yes. You can switch between technical CAD drawing view and material study view to inspect wood grains and finishes.',
+      ],
+      [
+        'Can I configure modular kitchen units as well as wardrobes?',
+        'Yes. FurniDraw supports modular base cabinets, wall cupboards, tall pantry towers, and fitted wardrobes.',
+      ],
+      [
+        'Is any software download or account required?',
+        'No. FurniDraw operates completely in your web browser with local draft saving and instant 3D rendering.',
       ],
     ],
   },

@@ -5,9 +5,9 @@ export const nichePages: readonly Guide[] = [
   {
     slug: '2d-3d-room-planner',
     label: '2D & 3D room planner',
-    title: '2D & 3D Room Planner — Plan Fitted Furniture & Layouts | FurniDraw',
+    title: '2D/3D Room Planner — Layouts & Cabinetry | FurniDraw',
     description: 'Free online 2D and 3D room planner. '
-      + 'Draw floor plans, add doors, windows, and sloped ceilings, and fit custom wardrobes and cabinetry seamlessly.',
+      + 'Draw floor plans, add doors and sloped ceilings, and fit custom wardrobes and cabinetry seamlessly.',
     eyebrow: '2D/3D ROOM PLANNER & ARCHITECTURAL LAYOUT',
     heading: '2D & 3D room planner.\nPlan fitted furniture in your space.',
     intro: 'Draw walls, define room dimensions, place doors and windows, and design custom-fitted furniture in one synchronized 2D/3D workspace.',
@@ -17,7 +17,8 @@ export const nichePages: readonly Guide[] = [
         title: 'Interactive 2D floor plan with real-time 3D synchronisation.',
         body: 'Start with the room perimeter. FurniDraw lets you input wall lengths, wall angles, and partition offsets. '
           + 'Switch instantly between top-down 2D floor plans for exact dimensioning and interactive 3D navigation to inspect '
-          + 'room proportions, sightlines, and ceiling clearance around every cabinet.',
+          + 'room proportions, sightlines, and ceiling clearance around custom joinery created in our '
+          + '[free online wardrobe designer](/wardrobe-designer/).',
       },
       {
         title: 'Model walls, obstructions, chimney breasts & sloped ceilings.',
@@ -32,9 +33,9 @@ export const nichePages: readonly Guide[] = [
       },
       {
         title: 'Fit parametric cabinets directly into awkward room layouts.',
-        body: 'Place wardrobes or kitchen runs against walls and watch them snap to structural boundaries. '
-          + 'Resize cabinets to fill alcoves wall-to-wall with automated scribing allowances. Test how wardrobes look '
-          + 'under dormer windows or adjacent to bedroom doors before committing to carpentry work.',
+        body: 'Place wardrobes or modular cabinetry against walls and watch them snap to structural boundaries. '
+          + 'Resize cabinets to fill alcoves wall-to-wall with automated scribing allowances. You can also plan '
+          + '[kitchen cabinet design software](/kitchen-cabinet-design-software/) runs with continuous worktops and plinths.',
       },
       {
         title: 'Test door swings, clearances & walkway tolerances in 3D.',
@@ -64,9 +65,9 @@ export const nichePages: readonly Guide[] = [
   {
     slug: 'sloped-ceiling-wardrobe-designer',
     label: 'Sloped ceiling wardrobe designer',
-    title: 'Sloped Ceiling Wardrobe Designer — 3D Attic Storage | FurniDraw',
-    description: 'Design custom wardrobes for sloped ceilings, attic rooms, and loft conversions in 3D. '
-      + 'Configure angled doors, hanging rails, and precise cut lists.',
+    title: 'Sloped Ceiling Wardrobe Designer — 3D Attic | FurniDraw',
+    description: 'Design custom wardrobes for sloped ceilings and lofts in 3D. '
+      + 'Configure angled doors, hanging drops, and dimensioned workshop cutting lists.',
     eyebrow: 'SLOPED CEILING & ATTIC WARDROBE DESIGNER',
     heading: 'Sloped ceiling wardrobe designer.\nCustom loft & attic storage.',
     intro: 'Turn awkward loft angles into beautiful storage. '
@@ -75,9 +76,9 @@ export const nichePages: readonly Guide[] = [
     sections: [
       {
         title: 'Design fitted wardrobes for angled walls and roof slopes.',
-        body: 'Attic conversions and mansard roofs present unique challenges for off-the-shelf wardrobes like IKEA PAX. '
-          + 'FurniDraw’s sloped ceiling designer lets you set knee-wall (purline) heights, total ceiling height, and the exact roof pitch angle. '
-          + 'The carcass tops and side gables rake automatically to follow your ceiling contour.',
+        body: 'Attic conversions and mansard roofs present unique challenges for off-the-shelf wardrobes. '
+          + 'FurniDraw’s sloped ceiling designer lets you set knee-wall heights, total ceiling height, and the exact roof pitch angle. '
+          + 'Similar to our [under-stairs wardrobe designer](/under-stairs-wardrobe/), carcass tops and side gables rake automatically.',
       },
       {
         title: 'Parametric geometry: following rake angles to the exact degree.',
@@ -98,7 +99,7 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Workshop-ready angled elevations & raked cutting lists.',
         body: 'Fabricating angled furniture requires accurate workshop data. Export dimensioned elevations displaying top panel angles, '
-          + 'finished panel heights at high and low points, and hardware locations for raked door hinges.',
+          + 'finished panel heights, and hardware locations using our [cabinet cut list generator](/cabinet-cut-list-generator/).',
       },
     ],
     faqs: [
@@ -124,9 +125,9 @@ export const nichePages: readonly Guide[] = [
   {
     slug: 'walk-in-closet-planner',
     label: 'Walk-in closet planner',
-    title: 'Walk-In Closet Planner — 3D Custom Dressing Room Design | FurniDraw',
-    description: 'Plan custom walk-in closets and luxury dressing rooms in 3D. '
-      + 'Organise hanging sections, shoe walls, drawers, and islands with dimensioned drawings.',
+    title: 'Walk-In Closet Planner — 3D Dressing Rooms | FurniDraw',
+    description: 'Plan custom walk-in closets and dressing rooms in 3D. '
+      + 'Design hanging bays, shoe walls, drawers, and islands with dimensioned drawings.',
     eyebrow: 'WALK-IN CLOSET PLANNER & DRESSING ROOM CAD',
     heading: 'Walk-in closet planner.\nDesign custom dressing rooms in 3D.',
     intro: 'Transform spare rooms and dressing areas into luxury walk-in closets. '
@@ -142,8 +143,8 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Calculate storage capacity from your actual garment inventory.',
         body: 'Input your complete wardrobe inventory: shirts, suits, long evening gowns, folded jeans, handbags, and shoes. '
-          + 'The planner optimizes vertical space by stacking double hanging rails (requiring ~2100 mm total height) and allocating '
-          + 'dedicated illuminated shoe displays with angled or flat shelves.',
+          + 'The planner optimizes vertical space based on our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) '
+          + 'by stacking double hanging rails (~2100 mm total height) and allocating dedicated illuminated shoe displays.',
         list: [
           'Efficient corner integration with corner hanging rails or continuous shelving.',
           'Integrated drawer towers with velvet-lined accessory organizers and jewelry trays.',
@@ -158,7 +159,7 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Generate accurate material schedules & dimensioned elevations.',
         body: 'Export comprehensive room elevations for every wall of your dressing room. Review carcass dimensions, shelf heights, '
-          + 'and hardware placements with your interior designer, contractor, or custom closet manufacturer before fabrication.',
+          + 'and hardware placements with your interior designer or joiner. Flexible [pricing](/pricing/) applies only when exporting drawings.',
       },
     ],
     faqs: [
@@ -184,9 +185,9 @@ export const nichePages: readonly Guide[] = [
   {
     slug: 'alcove-wardrobe-designer',
     label: 'Alcove wardrobe designer',
-    title: 'Alcove Wardrobe Designer — Built-In Chimney Breast Storage | FurniDraw',
-    description: 'Design custom alcove wardrobes and chimney breast cabinets in 3D. '
-      + 'Calculate scribing fillets, ceiling boxing, and floor out-of-square allowances.',
+    title: 'Alcove Wardrobe Designer — Built-In Storage | FurniDraw',
+    description: 'Design custom alcove wardrobes and chimney breast units in 3D. '
+      + 'Calculate scribing fillets, ceiling boxing, plinths, and cut lists.',
     eyebrow: 'ALCOVE WARDROBES & CHIMNEY BREAST CUPBOARDS',
     heading: 'Alcove wardrobe designer.\nBuilt-in chimney breast storage.',
     intro: 'Turn bedroom chimney breast alcoves into seamless built-in storage. '
@@ -196,8 +197,8 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Measure and design fitted wardrobes for recesses and alcoves.',
         body: 'Period homes frequently feature chimney breasts flanked by recessed alcoves. Because alcove walls are rarely straight '
-          + 'or square, standard freestanding wardrobes leave unsightly gaps and accumulate dust. FurniDraw builds bespoke alcove '
-          + 'carcasses that maximize the recess width and depth while incorporating perimeter scribing infills.',
+          + 'or square, standard freestanding wardrobes leave unsightly gaps. Follow our checklist on '
+          + '[how to measure for a fitted wardrobe](/guides/measure-for-a-fitted-wardrobe/) to record widths at multiple heights.',
       },
       {
         title: 'Scribing allowances, infill strips & plinth (toe kick) integration.',
@@ -218,8 +219,8 @@ export const nichePages: readonly Guide[] = [
       },
       {
         title: 'Workshop elevations & cut lists with fitting tolerances.',
-        body: 'Export millimetre-accurate cutting lists and front elevations. Share the documentation with your joiner to ensure '
-          + 'all panels, internal partitions, and face frames are cut to fit your alcove measurements exactly.',
+        body: 'Export millimetre-accurate cutting lists and front elevations from our [online wardrobe designer](/wardrobe-designer/). '
+          + 'Share the documentation with your joiner to ensure all panels, partitions, and face frames are cut to fit your alcove exactly.',
       },
     ],
     faqs: [
@@ -246,9 +247,9 @@ export const nichePages: readonly Guide[] = [
   {
     slug: 'cabinet-cut-list-generator',
     label: 'Cabinet cut list generator',
-    title: 'Cabinet Cut List Generator — 3D Parts & Panel Schedules | FurniDraw',
-    description: 'Generate accurate cabinet cutting lists, panel schedules, and hardware lists from 3D designs. '
-      + 'Free online cut list tool for carpenters and DIYers.',
+    title: 'Cabinet Cut List Generator — 3D Panel Schedules | FurniDraw',
+    description: 'Generate accurate cabinet cutting lists and panel schedules from 3D designs. '
+      + 'Finished dimensions, board thicknesses, and hardware counts.',
     eyebrow: 'CABINET CUT LIST GENERATOR & WORKSHOP PLANS',
     heading: 'Cabinet cut list generator.\n3D parts & workshop schedules.',
     intro: 'Transform 3D cabinet designs into accurate workshop cutting lists. '
@@ -259,7 +260,7 @@ export const nichePages: readonly Guide[] = [
         title: 'Convert 3D cabinet designs into accurate workshop cut lists.',
         body: 'Manual cut-list calculations are prone to arithmetic errors, resulting in wasted sheet goods and costly rework. '
           + 'FurniDraw’s cut list generator automatically derives component sizes directly from your 3D parametric model. '
-          + 'Every side gable, bottom panel, top rail, shelf, back board, and door leaf is computed to the exact millimetre.',
+          + 'Review our guide on [how to read a cabinet cutting list](/guides/read-a-cabinet-cutting-list/) for machining allowances.',
       },
       {
         title: 'Track carcass panels, shelves, partitions, fronts & backing boards.',
@@ -281,7 +282,7 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Export dimensioned CAD drawings & hardware schedules.',
         body: 'Alongside the cut list, download dimensioned workshop elevations, cabinet cross-sections, and a comprehensive '
-          + 'hardware schedule listing all hinge mechanisms, drawer runners, shelf support studs, and connecting bolts.',
+          + 'hardware schedule. Transparent [pricing](/pricing/) lets you design completely free and pay only when exporting documentation.',
       },
     ],
     faqs: [

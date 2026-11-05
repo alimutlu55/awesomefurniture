@@ -1,7 +1,8 @@
 const ACCENT = '#a8642a';
 
 function heroSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" role="img" aria-label="Fitted wardrobe system technical elevation">'
+    + '<title>Fitted wardrobe elevation</title>'
     + '<path d="M35 15h170M35 10v10m170-10v10" stroke="' + ACCENT + '" stroke-width="1.2"/>'
     + '<text x="120" y="12" font-size="8" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">2400 mm</text>'
     + '<rect x="35" y="24" width="170" height="106" rx="2"/>'
@@ -14,12 +15,13 @@ function heroSvg(): string {
     + '<path d="M170 63h14M170 89h14M170 115h14" stroke-width="2" stroke-linecap="round"/>'
     + '<path d="M213 24v106M209 24h8M209 130h8" stroke="' + ACCENT + '" stroke-width="1.2"/>'
     + '<text x="221" y="80" font-size="7.5" fill="' + ACCENT + '" stroke="none" transform="rotate(90 221 80)" text-anchor="middle">2600 mm</text>'
-    + '<text x="40" y="142" font-size="7" fill="' + ACCENT + '" stroke="none" font-weight="600">FD—01 · FITTED WARDROBE SYSTEM</text>'
+    + '<text x="40" y="142" font-size="7" fill="' + ACCENT + '" stroke="none" font-weight="600">FD—01 · 2400 × 2600 mm</text>'
     + '</svg>';
 }
 
 function studioSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" role="img" aria-label="Room plan and layout">'
+    + '<title>Room floor plan</title>'
     + '<path d="M40 18h150M40 13v10m150-10v10" stroke="' + ACCENT + '" stroke-width="1.2"/>'
     + '<text x="115" y="14" font-size="8" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">4000 mm</text>'
     + '<rect x="40" y="26" width="150" height="100" stroke-width="3"/>'
@@ -28,8 +30,8 @@ function studioSvg(): string {
     + '<path d="M140 126h30v-4" stroke-width="1.6"/>'
     + '<path d="M140 126a30 30 0 0 1 30-30" stroke-dasharray="3 3" opacity=".6"/>'
     + '<path d="M170 96v30" opacity=".7"/>'
-    + '<text x="115" y="70" font-size="10" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">ROOM</text>'
-    + '<text x="115" y="84" font-size="8" fill="' + ACCENT + '" stroke="none" text-anchor="middle">14.0 m² · 4.00 × 3.50 m</text>'
+    + '<text x="115" y="70" font-size="10" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">14.0 m²</text>'
+    + '<text x="115" y="84" font-size="8" fill="' + ACCENT + '" stroke="none" text-anchor="middle">4.00 × 3.50 m</text>'
     + '<path d="M22 26v100M17 26h10M17 126h10" stroke="' + ACCENT + '" stroke-width="1.2"/>'
     + '<text x="14" y="78" font-size="7.5" fill="' + ACCENT + '" stroke="none" transform="rotate(-90 14 78)" text-anchor="middle">3500 mm</text>'
     + '<g transform="translate(162,34)" stroke-width="1.2">'
@@ -39,7 +41,8 @@ function studioSvg(): string {
 }
 
 function parametricSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" role="img" aria-label="Parametric cabinet divisions">'
+    + '<title>Parametric cabinet sizing</title>'
     + '<rect x="35" y="28" width="170" height="98" rx="2"/>'
     + '<path d="M85 28v98M145 28v98" stroke-width="1.4"/>'
     + '<path d="M35 18h50M35 14v8m50-8v8" stroke="' + ACCENT + '" stroke-width="1.1"/>'
@@ -54,33 +57,35 @@ function parametricSvg(): string {
     + '<path d="M213 28v98M209 28h8M209 126h8" stroke="' + ACCENT + '" stroke-width="1.1"/>'
     + '<text x="221" y="80" font-size="7.5" fill="' + ACCENT + '" stroke="none" transform="rotate(90 221 80)" text-anchor="middle">H: 2300 mm</text>'
     + '<rect x="35" y="132" width="70" height="13" rx="3" stroke="' + ACCENT + '" fill="var(--bg,#f7f6f2)"/>'
-    + '<text x="70" y="141" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">PARAMETRIC SWATCH</text>'
+    + '<text x="70" y="141" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">18 mm · MFC</text>'
     + '</svg>';
 }
 
 function autolayoutSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.4" role="img" aria-label="Storage inventory and automatic layout">'
+    + '<title>Storage inventory layout</title>'
     + '<rect x="30" y="22" width="180" height="106" rx="2"/>'
     + '<path d="M90 22v106M150 22v106"/>'
     + '<rect x="34" y="26" width="52" height="20" rx="1.5" stroke="' + ACCENT + '" stroke-dasharray="2 2"/>'
-    + '<text x="60" y="39" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle">BOXES · 4 pcs</text>'
+    + '<text x="60" y="39" font-size="7" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">4×</text>'
     + '<path d="M38 52h44M38 56l10-6 10 6M48 52v4M58 52v4" opacity=".6"/>'
     + '<path d="M42 62v42M52 62v42M62 62v42M72 62v42" opacity=".35"/>'
-    + '<text x="60" y="118" font-size="6.5" fill="currentColor" stroke="none" text-anchor="middle">SHIRTS · 24 pcs</text>'
+    + '<text x="60" y="118" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">24×</text>'
     + '<path d="M94 26h52M94 50h52M94 74h52M94 98h52" opacity=".6"/>'
-    + '<text x="120" y="42" font-size="6.5" fill="currentColor" stroke="none" text-anchor="middle">KNITWEAR · 20</text>'
-    + '<text x="120" y="66" font-size="6.5" fill="currentColor" stroke="none" text-anchor="middle">TROUSERS · 12</text>'
-    + '<text x="120" y="90" font-size="6.5" fill="currentColor" stroke="none" text-anchor="middle">UNDERWEAR · 30</text>'
-    + '<text x="120" y="116" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle">ACCESSORIES</text>'
+    + '<text x="120" y="42" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">20×</text>'
+    + '<text x="120" y="66" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">12×</text>'
+    + '<text x="120" y="90" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">30×</text>'
+    + '<text x="120" y="116" font-size="7" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">8×</text>'
     + '<path d="M154 38l44-8M154 62l44-8M154 86l44-8M154 110l44-8" stroke="' + ACCENT + '" opacity=".7"/>'
-    + '<text x="176" y="122" font-size="6.5" fill="currentColor" stroke="none" text-anchor="middle">SHOES · 12 PAIRS</text>'
+    + '<text x="176" y="122" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" font-weight="600">12×</text>'
     + '<rect x="135" y="132" width="75" height="13" rx="3" fill="' + ACCENT + '"/>'
-    + '<text x="172" y="141" font-size="6.5" fill="#fff" stroke="none" text-anchor="middle" font-weight="700">SOLVER: 99.4% FIT</text>'
+    + '<text x="172" y="141" font-size="7" fill="#fff" stroke="none" text-anchor="middle" font-weight="700">99.4%</text>'
     + '</svg>';
 }
 
 function makeSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" role="img" aria-label="Exploded assembly view">'
+    + '<title>Assembly studio exploded CAD</title>'
     + '<g transform="translate(10,-5)">'
     + '<path d="M60 115l90-18 35 15-90 18z" stroke-width="1.6"/>'
     + '<circle cx="68" cy="116" r="5" stroke="' + ACCENT + '" fill="var(--bg,#f7f6f2)"/>'
@@ -97,12 +102,13 @@ function makeSvg(): string {
     + '<text x="120" y="51" font-size="6" fill="#fff" stroke="none" text-anchor="middle" font-weight="700">4</text>'
     + '<path d="M95 70l45-9 17 8-45 9z" stroke-dasharray="2 2" opacity=".6"/>'
     + '</g>'
-    + '<text x="35" y="142" font-size="7" fill="' + ACCENT + '" stroke="none" font-weight="600">ASSEMBLY STUDIO · EXPLODED KINEMATICS</text>'
+    + '<text x="35" y="142" font-size="7" fill="' + ACCENT + '" stroke="none" font-weight="600">1:20 · EXPLODED CAD</text>'
     + '</svg>';
 }
 
 function drawingsSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" role="img" aria-label="Technical drawing and elevation">'
+    + '<title>Technical drawings and elevations</title>'
     + '<rect x="25" y="15" width="190" height="118" stroke-width="1.8"/>'
     + '<rect x="29" y="19" width="182" height="110" stroke-width="0.8" opacity=".7"/>'
     + '<g transform="translate(42,28)">'
@@ -119,12 +125,13 @@ function drawingsSvg(): string {
     + '<path d="M145 107h62M145 116h62" stroke-width="0.7"/>'
     + '<text x="148" y="104" font-size="5" fill="currentColor" stroke="none" font-weight="700">FURNIDRAW DWG</text>'
     + '<text x="148" y="113" font-size="5" fill="' + ACCENT + '" stroke="none">DIN A3 · SCALE 1:20</text>'
-    + '<text x="148" y="122" font-size="4.5" fill="currentColor" stroke="none">MILLIMETRE ACCURACY</text>'
+    + '<text x="148" y="122" font-size="4.5" fill="currentColor" stroke="none">±0.5 mm</text>'
     + '</svg>';
 }
 
 function renderSvg(): string {
-  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">'
+  return '<svg viewBox="0 0 240 150" fill="none" stroke="currentColor" stroke-width="1.3" role="img" aria-label="3D raytraced visualization">'
+    + '<title>3D room visualization</title>'
     + '<g transform="translate(10,5)">'
     + '<path d="M30 15h160v105H30z" stroke-width="1"/>'
     + '<path d="M30 15l45 25m115-25l-45 25M30 120l45-20m115 20l-45-20" stroke-dasharray="3 3" opacity=".4"/>'
@@ -136,7 +143,7 @@ function renderSvg(): string {
     + '</g>'
     + '<g transform="translate(145,124)">'
     + '<rect x="0" y="0" width="70" height="14" rx="3" stroke="' + ACCENT + '" fill="var(--bg,#f7f6f2)"/>'
-    + '<text x="35" y="10" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">PHOTO-REAL RAYTRACING</text>'
+    + '<text x="35" y="10" font-size="6.5" fill="' + ACCENT + '" stroke="none" text-anchor="middle" font-weight="600">4K · RAYTRACE</text>'
     + '</g></svg>';
 }
 

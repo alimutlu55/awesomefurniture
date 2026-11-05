@@ -15,9 +15,10 @@ no country or browser-language redirect. The studio interface supports the same 
 The English search pages are:
 
 - `/wardrobe-designer/`
-- `/cabinet-design-software/`
+- `/kitchen-cabinet-design-software/`
 - `/furniture-making-software/`
 - `/under-stairs-wardrobe/`
+- `/guides/`
 - `/guides/measure-for-a-fitted-wardrobe/`
 
 These are specific, distinct explanations of supported workflows and limitations. Do not add

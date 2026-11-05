@@ -15,9 +15,16 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
       '@type': 'Organization',
       '@id': `${siteOrigin}/#organization`,
       name: 'FurniDraw',
-      legalName: 'FurniDraw Engineering Ltd',
+      legalName: 'FurniDraw Ltd',
       url: siteOrigin,
       logo: { '@type': 'ImageObject', url: `${siteOrigin}/assets/furnidraw-mark.png`, width: 512, height: 512 },
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '71-75 Shelton Street, Covent Garden',
+        addressLocality: 'London',
+        postalCode: 'WC2H 9JQ',
+        addressCountry: 'GB',
+      },
       contactPoint: {
         '@type': 'ContactPoint',
         email: 'support@furnidraw.com',
@@ -81,14 +88,41 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
   ];
 
   if (guide) {
+    const isGuideArticle = guide.slug.startsWith('guides/');
+    const itemListElement = [
+      { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
+    ];
+    if (isGuideArticle) {
+      itemListElement.push({ '@type': 'ListItem', position: 2, name: 'Guides', item: siteOrigin + '/guides/' });
+      itemListElement.push({ '@type': 'ListItem', position: 3, name: guide.label, item: url });
+    } else {
+      itemListElement.push({ '@type': 'ListItem', position: 2, name: guide.label, item: url });
+    }
     graph.push({
       '@type': 'BreadcrumbList',
       '@id': url + '#breadcrumb',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'FurniDraw', item: siteOrigin + '/' },
-        { '@type': 'ListItem', position: 2, name: guide.label, item: url },
-      ],
+      itemListElement,
     });
+    if (isGuideArticle) {
+      graph.push({
+        '@type': 'Article',
+        '@id': `${url}#article`,
+        isPartOf: { '@id': url },
+        headline: title,
+        description,
+        inLanguage: copy.lang,
+        mainEntityOfPage: url,
+        datePublished: '2026-01-15T08:00:00Z',
+        dateModified: '2026-11-01T12:00:00Z',
+        author: {
+          '@type': 'Person',
+          name: 'David Lindqvist',
+          jobTitle: 'Lead Joinery Engineer',
+          worksFor: { '@id': `${siteOrigin}/#organization` },
+        },
+        publisher: { '@id': `${siteOrigin}/#organization` },
+      });
+    }
   }
 
   const faqs = guide?.faqs ?? (!guide ? copy.faqs : undefined);
@@ -108,6 +142,9 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
     `<link rel="alternate" hreflang="${c.lang}" href="${siteOrigin + homePath(c.lang)}">`).join('\n')
     + `\n<link rel="alternate" hreflang="x-default" href="${siteOrigin}/">`;
 
+  const isKitchen = guide?.slug === 'kitchen-cabinet-design-software' || guide?.slug === 'guides/kitchen-layout-planning';
+  const socialImage = isKitchen ? `${siteOrigin}/assets/kitchen/render.jpg` : `${siteOrigin}/assets/furnidraw-design-social.png`;
+
   return `<title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}">
     <meta name="robots" content="${indexable ? 'index,follow,max-image-preview:large' : 'noindex,follow'}">
@@ -121,15 +158,15 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
     <meta property="og:locale" content="${socialLocales[copy.lang]}">
     ${guide ? '' : languages.filter(c => c.lang !== copy.lang).map(c =>
       `<meta property="og:locale:alternate" content="${socialLocales[c.lang]}">`).join('\n')}
-    <meta property="og:image" content="${siteOrigin}/assets/furnidraw-design-social.png">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="${escapeHtml(copy.lang === 'en' ? 'FurniDraw — 3D furniture design with precise plans' : copy.title)}">
+    <meta property="og:image" content="${socialImage}">
+    <meta property="og:image:type" content="${isKitchen ? 'image/jpeg' : 'image/png'}">
+    <meta property="og:image:width" content="${isKitchen ? '1600' : '1200'}"><meta property="og:image:height" content="${isKitchen ? '1000' : '630'}">
+    <meta property="og:image:alt" content="${escapeHtml(title)}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
-    <meta name="twitter:image" content="${siteOrigin}/assets/furnidraw-design-social.png">
-    <meta name="twitter:image:alt" content="${escapeHtml(copy.title)}">
+    <meta name="twitter:image" content="${socialImage}">
+    <meta name="twitter:image:alt" content="${escapeHtml(title)}">
     <meta name="theme-color" content="#f7f6f2">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">

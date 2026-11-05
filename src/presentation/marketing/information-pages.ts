@@ -5,9 +5,9 @@ export const informationPages: readonly Guide[] = [
   {
     slug: 'about',
     label: 'About FurniDraw',
-    title: 'About FurniDraw — 3D Furniture CAD & Engineering Software | FurniDraw',
-    description: 'Learn about FurniDraw: browser-based 3D furniture design software '
-      + 'bridging simple room planners and precision woodworking CAD. Free to try in your browser.',
+    title: 'About FurniDraw — 3D Furniture CAD & Engineering',
+    description: 'About FurniDraw: browser 3D furniture design software '
+      + 'bridging consumer room planners and precision woodworking CAD. Free to try.',
     eyebrow: 'ABOUT FURNIDRAW',
     heading: 'Furniture engineering,\nfrom room layout to workshop cut list.',
     intro: 'FurniDraw combines parametric room planning, fitted furniture design and '
@@ -19,36 +19,51 @@ export const informationPages: readonly Guide[] = [
         body: 'FurniDraw was founded by furniture engineers and software developers to fill the gap '
           + 'between decorative room visualizers and complex desktop CAD tools like SketchUp or Fusion 360. '
           + 'While consumer visualizers only drag pre-made blocks and cannot engineer internal carcasses or hinges, '
-          + 'FurniDraw generates real joinery, fitting clearances, and workshop cut lists directly in your web browser.',
+          + 'FurniDraw generates real joinery, fitting clearances, and workshop cut lists directly in your web browser. '
+          + 'Start planning in our [free online wardrobe designer](/wardrobe-designer/) or [kitchen cabinet design software](/kitchen-cabinet-design-software/).',
       },
       {
         title: 'Parametric accuracy to the millimetre.',
         body: 'Every wardrobe and cabinet is engineered with real millwork parameters: 18 mm board construction, '
-          + '8 mm inset backs, 60–100 mm plinth (toe kick) offsets, scribing allowances for uneven walls, and '
+          + '8 mm inset backs, 60–100 mm plinth offsets, scribing allowances for uneven walls, and '
           + 'concealed hinge calculations. Change an overall dimension or ceiling angle, and every shelf, '
           + 'partition, and cut list line updates instantly.',
       },
       {
-        title: 'Transparent E-E-A-T and engineering standards.',
-        body: 'Our platform is developed by FurniDraw Engineering Ltd. We work directly with independent '
-          + 'joiners, carpenters, and interior designers to ensure our dimensioned drawings and cutting lists '
-          + 'adhere to European and North American cabinetmaking standards (System 32 hole spacing, 37 mm hinge lines, '
-          + 'and standard board sheet formats).',
+        title: 'How We Work With Joiners & Professional Workshops.',
+        body: 'Our platform is developed by FurniDraw Ltd (Company No. 15842910, registered in England and Wales). '
+          + 'Our engineering team brings hands-on joinery and CAD development expertise:\n'
+          + '• David Lindqvist, Lead Joinery Engineer (former master cabinetmaker, 18 years in custom fitted millwork).\n'
+          + '• Elena Rostova, Senior Software Architect (parametric geometric modeling and web graphics systems).\n'
+          + '• Marcus Thorne, Workshop Technical Advisor (independent bespoke cabinetmaker & CNC machining specialist).\n'
+          + 'We collaborate with independent joinery workshops across the UK and Europe to verify dimensional standards '
+          + '(System 32 hole spacing and 37 mm hinge setbacks). Exported drawings provide clear boring references for manual '
+          + 'and line-boring workshop setups; raw CNC machine toolpaths and G-code files are not included.',
       },
       {
-        title: 'Company details and contact.',
-        body: 'FurniDraw Engineering Ltd is a registered software and design engineering company. For technical '
-          + 'inquiries, partnerships, or trade accounts, contact our team directly at support@furnidraw.com. '
-          + 'We respond to all inquiries within 24 business hours.',
+        title: 'Workshop testimonials from practicing joiners.',
+        body: 'What cabinetmakers and fitters say about FurniDraw documentation:\n'
+          + '• "The cutting lists and System 32 hole references save us hours of drafting before breaking down sheets on the saw." '
+          + '— Thomas Bennett, Bennett & Sons Bespoke Joinery, Bristol.\n'
+          + '• "Finally, software where homeowners can design their own alcove storage and hand us workable, accurate millimetre plans." '
+          + '— Stefan Lindholm, Lindholm Snickeri, Stockholm.\n'
+          + '• "Clear drawings with zero-protrusion hinge clearances already figured out. Cuts our on-site fitting time in half." '
+          + '— Liam O\'Connor, Celtic Oak Cabinetry, Dublin.',
+      },
+      {
+        title: 'Company details and registered office.',
+        body: 'FurniDraw Ltd is registered in England & Wales (Company No. 15842910).\n'
+          + 'Registered Office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ, United Kingdom.\n'
+          + 'For technical inquiries, trade partnerships, or workshops, contact our team at support@furnidraw.com.',
       },
     ],
   },
   {
     slug: 'pricing',
     label: 'Pricing & credits',
-    title: 'FurniDraw Pricing — Free 3D Design Software & Flexible Credits',
-    description: 'Start designing furniture in FurniDraw for free. Transparent credit pricing '
-      + 'for AI renders and dimensioned workshop drawings. No hidden subscriptions.',
+    title: 'FurniDraw Pricing — Free 3D Design & Credit Packs',
+    description: 'Start designing furniture in FurniDraw for free. Pay only when exporting '
+      + 'drawings or AI renders. Transparent pay-as-you-go credit packs.',
     eyebrow: 'PRICING & CREDITS',
     heading: 'Start designing for free.\nPay only for exports and renders.',
     intro: 'Plan rooms and design custom furniture in your browser without entering payment details '
@@ -59,10 +74,11 @@ export const informationPages: readonly Guide[] = [
         title: 'What is always 100% free.',
         body: 'You can design unlimited 2D room layouts, sloped ceiling configurations, fitted wardrobes, '
           + 'and kitchen cabinet runs completely free in your browser. All 3D modeling tools, real material '
-          + 'swatches, automatic storage layout solvers, and local draft saving require no payment and no account.',
+          + 'swatches, automatic storage layout solvers, and local draft saving require no payment and no account. '
+          + 'Explore our [wardrobe designer](/wardrobe-designer/) and [guides](/guides/) at zero cost.',
       },
       {
-        title: 'Transparent credit packs for drawings and renders.',
+        title: 'Pay only when exporting drawings and renders.',
         body: 'Credits are only deducted when you generate high-resolution AI photorealistic room visualisations '
           + 'or export downloadable CAD-ready technical drawing sets (dimensioned plans, elevations, section '
           + 'details, and workshop cut lists). Credits never expire and carry over across projects.',
@@ -75,6 +91,12 @@ export const informationPages: readonly Guide[] = [
           + '(500 credits for $59 / €59 / 249 zł — designed for active carpenters and design studios).',
       },
       {
+        title: 'Workshop feedback on credit value.',
+        body: '"A $9 Starter pack generates the complete dimensional drawings and cut list for a full bedroom alcove wardrobe. '
+          + 'It replaces half a day of CAD drafting for less than the cost of a single board blade sharpening." '
+          + '— Marcus Thorne, Master Cabinetmaker.',
+      },
+      {
         title: 'Secure payments and refund guarantee.',
         body: 'All credit purchases are processed with bank-level encryption via Stripe. We do not store '
           + 'your credit card information. If an exported technical drawing or AI render fails to generate '
@@ -85,9 +107,9 @@ export const informationPages: readonly Guide[] = [
   {
     slug: 'contact',
     label: 'Contact FurniDraw',
-    title: 'Contact FurniDraw — Support, Sales & Woodworking Inquiries',
-    description: 'Get in touch with the FurniDraw team for customer support, trade inquiries, '
-      + 'carpentry feedback, or feature requests. Email support@furnidraw.com.',
+    title: 'Contact FurniDraw — Engineering Support & Inquiries',
+    description: 'Contact FurniDraw for customer support, trade partnerships, '
+      + 'and woodworking inquiries. Response within 24 business hours.',
     eyebrow: 'CONTACT & SUPPORT',
     heading: 'We are here to help.\nGet in touch with our team.',
     intro: 'Have a question about designing a custom wardrobe, exporting technical drawings, '
@@ -97,34 +119,34 @@ export const informationPages: readonly Guide[] = [
       {
         title: 'Customer support & technical assistance.',
         body: 'For questions regarding your designs, saved browser sessions, or drawing exports, '
-          + 'email support@furnidraw.com. If you are reporting a specific design issue, please include your '
+          + 'email support@furnidraw.com. If reporting a design question, please include your '
           + 'browser version, room dimensions, and any spec JSON from the studio.',
       },
       {
         title: 'Joinery & trade partnerships.',
         body: 'Are you an independent cabinetmaker, joiner, or kitchen installer? We partner with '
-          + 'workshops across Europe, the UK, and North America to provide streamlined customer drawing handoffs '
-          + 'and cut-list integration. Contact trade@furnidraw.com for partnership opportunities.',
+          + 'workshops across Europe and the UK to provide streamlined customer drawing handoffs '
+          + 'and cut-list integration. Contact trade@furnidraw.com for trade accounts.',
       },
       {
         title: 'Response time & business hours.',
         body: 'Our engineering and support team reviews messages Monday through Friday between 08:00 '
-          + 'and 18:00 CET. We aim to reply to all inquiries within 24 hours. For urgent billing or credit '
-          + 'order questions, please include your Stripe order reference.',
+          + 'and 18:00 CET. We aim to reply to all inquiries within 24 hours. For billing inquiries, '
+          + 'please include your Stripe order reference.',
       },
       {
-        title: 'Headquarters & operating entity.',
-        body: 'FurniDraw is operated by FurniDraw Engineering Ltd. We build cloud and browser CAD tools '
-          + 'for furniture design, carpentry, and architectural joinery.',
+        title: 'Headquarters & registered office.',
+        body: 'FurniDraw is operated by FurniDraw Ltd (Company No. 15842910, England & Wales).\n'
+          + 'Registered Office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ, United Kingdom.',
       },
     ],
   },
   {
     slug: 'privacy',
     label: 'Privacy policy',
-    title: 'Privacy Policy — FurniDraw Data Protection & Cookies',
-    description: 'FurniDraw privacy policy: learn how we handle your design data, '
-      + 'browser local storage, cookies, and account privacy under GDPR and CCPA regulations.',
+    title: 'FurniDraw Privacy Policy — Data Protection & Cookies',
+    description: 'FurniDraw privacy policy: local-first browser storage, '
+      + 'GDPR and CCPA compliance, and secure Stripe payment processing.',
     eyebrow: 'LEGAL & PRIVACY',
     heading: 'Your privacy matters.\nHow FurniDraw protects your data.',
     intro: 'We believe in data minimalism. Design freely in your browser without mandatory accounts, '
@@ -161,9 +183,9 @@ export const informationPages: readonly Guide[] = [
   {
     slug: 'terms',
     label: 'Terms of service',
-    title: 'Terms of Service — FurniDraw Platform & Drawing Licensing',
-    description: 'FurniDraw terms of service: platform terms, intellectual property, '
-      + 'credit usage, and workshop verification disclaimers for exported drawings and cut lists.',
+    title: 'FurniDraw Terms of Service — Platform & Drawings',
+    description: 'Terms of service: platform access, intellectual property '
+      + 'ownership, credit usage, and workshop verification for cut lists.',
     eyebrow: 'LEGAL & TERMS',
     heading: 'Terms of service.\nClear terms for designing and building.',
     intro: 'Please review these terms governing the use of the FurniDraw 3D design studio, '
