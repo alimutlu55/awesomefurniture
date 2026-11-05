@@ -33,7 +33,7 @@ films = {
     'make': (9.8, 7.75, [
         beat(0,'choose-shelf',cursor=(.223,.411)),beat(1.25,'added-shelf'),
         beat(2.22,'choose-drawer',cursor=(.090,.411)),beat(3.22,'added-drawer'),
-        beat(4.35,'hinged'),beat(5.65,'handle'),beat(7.1,'joinery-cut')]),
+        beat(4.35,'hinged',cursor=(.157,.912)),beat(5.65,'handle',cursor=(.46,.90)),beat(7.1,'joinery-cut')]),
     'drawings': (9.3, 3.6, [
         beat(0,'menu',.65,.42,1,(.83,.42)),beat(1.35,'drawing-plan'),beat(2.65,'elevation'),
         beat(4.15,'elevation-detail',.53,.50,1.2),beat(6.7,'drawing-list')]),

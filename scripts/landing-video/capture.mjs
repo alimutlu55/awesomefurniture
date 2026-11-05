@@ -201,10 +201,13 @@ for (const stage of wanted.length ? wanted : ['walls', 'dimensions', 'studio', '
                 }
                 await action('more').click();
                 await action('fronts').click();
-                const hinged = p.locator('[data-d="hinged"]:visible').first();
-                if (await hinged.isVisible())
-                    await hinged.click();
+                await p.waitForTimeout(600);
                 await shot('hinged');
+                const oakSwatch = p.locator('[data-decor-zone="carcass"]:visible, button:visible').filter({ hasText: /Natural Wild Oak/i }).first();
+                if (await oakSwatch.isVisible()) {
+                    await oakSwatch.click();
+                    await p.waitForTimeout(800);
+                }
                 const handle = p.locator('[data-handle="kind"]:visible');
                 if (await handle.isVisible())
                     await handle.selectOption('knob');
