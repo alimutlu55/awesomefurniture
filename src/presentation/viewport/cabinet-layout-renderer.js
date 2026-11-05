@@ -201,6 +201,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
             /** Flat or extruded outline of a fitting as cut by the top (highlight and picking). */
             const cutShape = (x0, x1, y0, y1) => geometry.cutOutline(i, x0, x1, y0, y1).map(poly => poly.map(p => ({ x: p.x + x, y: p.y })));
             getRenderDesign().secs[i].forEach((it, j) => {
+                if (!it || it.k === 'void') return;
                 const hh = it.h, isel = sel && getRenderDesign().item === j, pos = lay[j] || { y0: iy, w: WardrobePlanner.itemWidth(it, sw), off: undefined };
                 const iwd = pos.w, iy0 = pos.y0, ix = cx - sw / 2 + (pos.off !== undefined ? pos.off : (sw - iwd) / 2) + iwd / 2, start = renderState.Gr.children.length;
                 const localX = ix - x - iwd / 2;
@@ -211,6 +212,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);
                 renderState.itemGroups.push({ it, i, j, group, x: ix, y: iy0 });
+                if (!parts.length && !cut) return;
                 // A cut fitting is picked and highlighted by its real, angled outline.
                 const outline = cut ? cutShape(pos.x0, pos.x1, iy0, iy0 + hh)[0] : null;
                 let im;

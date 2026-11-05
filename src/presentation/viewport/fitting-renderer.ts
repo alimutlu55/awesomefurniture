@@ -152,17 +152,20 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
                 }
             }
             else if (k === 'seasonal' || ['seasonal', 'linen', 'luggage'].includes(it.purpose ?? '')) {
-                const size=storageBoxSize(getRenderDesign().profile);
-                const count=it.boxes??packStorageBoxes(sw,d,0,size).capacity;
-                const packing=packStorageBoxes(sw,d,count,size);
-                for(const position of packing.positions){
-                    const bx=cx+position.x,bz=position.z;
-                    const rise=riseAt(sw/2+position.x-size.width/2,sw/2+position.x+size.width/2);
-                    if(size.height>hh-PANEL-rise+.01)continue;
-                    if(!clears(bx-size.width/2,bx+size.width/2,y+rise+size.height))continue;
+                const baseSize = storageBoxSize(getRenderDesign().profile);
+                const boxW = Math.min(baseSize.width, Math.max(14, sw - 4));
+                const size = { ...baseSize, width: boxW };
+                const count = it.boxes ?? Math.max(1, packStorageBoxes(sw, d, 0, size).capacity);
+                const packing = packStorageBoxes(sw, d, count, size);
+                const positions = packing.positions.length ? packing.positions : [{ x: 0, z: 0 }];
+                for (const position of positions) {
+                    const bx = cx + position.x, bz = position.z;
+                    const rise = riseAt(sw / 2 + position.x - size.width / 2, sw / 2 + position.x + size.width / 2);
+                    const fitH = Math.min(size.height, Math.max(12, hh - PANEL - rise - 1));
+                    if (!clears(bx - size.width / 2, bx + size.width / 2, y + rise + fitH)) continue;
                     // A linen storage box with a cut-out handle in its front.
-                    box(size.width,size.height,size.depth,bx,y+rise+size.height/2,bz,cloth('#b7aa91'));
-                    box(Math.min(9,size.width-4),2.4,.3,bx,y+rise+size.height*.7,bz+size.depth/2+.2,resources.M('#4f463b'));
+                    box(size.width, fitH, size.depth, bx, y + rise + fitH / 2, bz, cloth('#b7aa91'));
+                    box(Math.min(9, size.width - 4), 2.4, .3, bx, y + rise + fitH * .7, bz + size.depth / 2 + .2, resources.M('#4f463b'));
                 }
             }
             else if (k === 'basket') {
