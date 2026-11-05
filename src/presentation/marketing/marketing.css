@@ -699,7 +699,9 @@ footer .wrap > span { min-width: 0; }
 .guide-article section + section { margin-top: 40px; }
 .guide-article h2 { font-size: clamp(26px, 3vw, 34px); }
 .guide-article p, .guide-article li { color: var(--muted); }
-.guide-content aside { min-width: 0; }
+.guide-content aside { position: relative; min-width: 0; }
+.guide-content .fitting-room { position: relative; width: 100%; }
+.guide-content .kitchen-stage { position: relative; width: 100%; aspect-ratio: 16/10; overflow: hidden; border-radius: 12px; background: var(--soft, #eaece5); }
 .related { padding-top: 64px; }
 .related-links { display: flex; flex-wrap: wrap; gap: 14px 24px; margin-top: 20px; }
 @media (max-width: 860px) {

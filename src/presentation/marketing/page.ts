@@ -117,7 +117,7 @@ function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stai
 
 function kitchenStudy(c: MarketingCopy): string {
   return `<div class="fitting-room" data-nosnippet data-shape="regular" data-view="model">`
-    + `<div class="assembly-stage"><div class="kitchen-comparison" style="margin:0;width:100%;">`
+    + `<div class="assembly-stage kitchen-stage" style="position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;border-radius:12px;background:var(--soft,#eaece5);"><div class="kitchen-comparison" style="margin:0;width:100%;">`
     + `<picture><source srcset="/assets/kitchen/render.webp" type="image/webp">`
     + `<img src="/assets/kitchen/render.jpg" alt="Realistic kitchen cabinet design render" width="1600" height="1000" loading="lazy"></picture>`
     + `<picture class="model-layer"><source srcset="/assets/kitchen/model.webp" type="image/webp">`
