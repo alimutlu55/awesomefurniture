@@ -2,6 +2,14 @@ import { PANEL } from '../wardrobe/catalog.js';
 import { hasTrait } from '../wardrobe/fittings';
 
 export interface BoardRect {x0:number;x1:number;y0:number;y1:number}
+
+/** Supporting surfaces from section dividers: horizontal shelves, plus the top face of upright dividers. */
+export function sectionDividerBoards(dividers: readonly { orientation?: 'horizontal' | 'vertical'; x0: number; x1: number; y0: number; y1: number }[], offset = 0): BoardRect[] {
+ return dividers.map(q => q.orientation === 'vertical'
+  ? { x0: q.x0, x1: q.x1, y0: q.y1 + offset - PANEL, y1: q.y1 + offset }
+  : { x0: q.x0, x1: q.x1, y0: q.y0 + offset, y1: q.y1 + offset });
+}
+
 /** Clear-width portions of a fitting's top board that need their own panel.
  * Frame ceilings and explicit shelves own shared boundaries. Centimetres. */
 /** A ceiling is a flat height or, under a shaped top, the highest underside over a span. */
@@ -19,7 +27,7 @@ export function fittingBoardSpans(top:Pick<BoardRect,'x0'|'x1'> & {y1:number},ce
    return pieces;
   });
  }
- return spans;
+ return spans.filter(span=>span.x1-span.x0>PANEL+.01);
 }
 
 /** Top boards own touching boundaries before bottom boards. Hanging rails need

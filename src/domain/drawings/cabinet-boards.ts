@@ -11,7 +11,7 @@ import { ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../wa
 import { doorFit, doorTop, frontInside, leafThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { fittingPanels } from '../geometry/shared-board-spans';
+import { fittingPanels, sectionDividerBoards } from '../geometry/shared-board-spans';
 import { kitchenReveal, shelfHeights } from '../kitchen/kitchen-fronts';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
@@ -134,7 +134,7 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
         }
       });
     } else {
-      const shared = geometry.sectionDividers(i).filter(q => q.orientation === 'horizontal').map(q => { const r = geometry.dividerRect(q); return { ...r, y0: r.y0 + iy, y1: r.y1 + iy }; });
+      const shared = sectionDividerBoards(geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), iy);
       const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared);
       panels.forEach((p, j) => {
         const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, pos.y0, it.h, inside) : null;

@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {fittingBoardSpans,fittingPanels}=require('../src/domain/geometry/shared-board-spans.ts');
+const {fittingBoardSpans,fittingPanels,sectionDividerBoards}=require('../src/domain/geometry/shared-board-spans.ts');
 test('ceilings and explicit shelves own shared fitting boundaries',()=>{
  const top={x0:0,x1:60,y1:100};
  assert.deepEqual(fittingBoardSpans(top,100,[]),[]);
@@ -120,4 +120,13 @@ test('board schedule shares the same rule as the viewport',()=>{
   {w:63.6,h:230,d:60},[{i:0,orientation:'horizontal',x0:0,x1:60,y:100.9}]);
  assert.equal(boards.filter(b=>b.source==='fitting').length,0);
  assert.equal(boards.filter(b=>b.source==='divider').length,1);
+});
+test('a fitting spanning across a vertical divider does not generate a panel-thickness sliver board',()=>{
+ const shared=sectionDividerBoards([{x0:29.1,x1:30.9,y0:0,y1:100,orientation:'vertical'}],0);
+ const lowerLeft={k:'shelf',x0:0,x1:29.1,y0:0,y1:100};
+ const lowerRight={k:'shelf',x0:30.9,x1:60,y0:0,y1:100};
+ const upper={k:'shelf',x0:0,x1:60,y0:100,y1:140};
+ const panels=fittingPanels([lowerLeft,lowerRight,upper],0,200,shared);
+ assert.equal(panels[2].bottom.length,0,'upper fitting rests on lower tops and vertical divider without a sliver board');
+ assert.ok(panels[2].support.every(s=>s.rise<0.01),'no false rise generated from vertical divider boundary');
 });

@@ -1,7 +1,7 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
 import { hasTrait } from '../../wardrobe/fittings';
 import { interiorFloorOf, RAIL_DROP } from '../../wardrobe/carcass';
-import { fittingPanels } from '../shared-board-spans';
+import { fittingPanels, sectionDividerBoards } from '../shared-board-spans';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
@@ -85,10 +85,7 @@ export function createClearanceRules(ctx, deps) {
     function netOpening(i, j) {
         const sec = getDesign().secs[i], layout = computeLayout(i), q = layout[j];
         if (!sec?.[j] || !q || !hasTrait(sec[j].k, 'openShelf')) return null;
-        const shared = sectionDividers(i).filter(d => d.orientation === 'horizontal').map(d => {
-            const r = dividerRect(d);
-            return { ...r, y0: floor() + r.y0, y1: floor() + r.y1 };
-        });
+        const shared = sectionDividerBoards(sectionDividers(i).map(d => ({ ...dividerRect(d), orientation: d.orientation })), floor());
         const panels = fittingPanels(layout.map((q, index) => ({ ...q, k: sec[index].k })), floor(), (x0, x1) => floor() + ceilingTop(i, x0, x1), shared)[j];
         const top = panels.top.length ? T : 0, rise = Math.max(0, ...panels.support.map(s => s.rise));
         return { y0: q.y0 + rise, y1: q.y1 - top, h: round(Math.max(0, q.y1 - top - q.y0 - rise)), pitch: sec[j].h };

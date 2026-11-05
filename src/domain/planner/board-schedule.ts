@@ -3,7 +3,7 @@ import type { EditorDivider } from '../wardrobe/editor-design';
 import { WardrobePlanner } from './wardrobe-planner.js';
 import { number,selectionContext,SELECTION_RULES as R } from './selection-config';
 import { boardRect } from './selection-spaces';
-import { fittingPanels } from '../geometry/shared-board-spans';
+import { fittingPanels, sectionDividerBoards } from '../geometry/shared-board-spans';
 export interface PlanBoard {source:'frame'|'divider'|'fitting';position:{x:number;y:number;z:number};size:{w:number;h:number;d:number};reason:string}
 /** A preview board schedule in existing centimetres; no new editor item kinds. */
 export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConfig,dividers:readonly EditorDivider[]):PlanBoard[] {
@@ -15,9 +15,9 @@ export function boardSchedule(sections:readonly PlannerSection[],cfg:PlannerConf
  let offset=t;
  sections.forEach((s,bay)=>{
   const positions=WardrobePlanner.layoutSection(s.items,s.width);
-  const explicit=dividers.filter(q=>q.i===bay&&q.orientation==='horizontal').map(q=>{
-   const r=boardRect(q);return {x0:r.x/10,x1:(r.x+r.w)/10,y0:r.y/10,y1:(r.y+r.h)/10};
-  });
+  const explicit=sectionDividerBoards(dividers.filter(q=>q.i===bay).map(q=>{
+   const r=boardRect(q);return {x0:r.x/10,x1:(r.x+r.w)/10,y0:r.y/10,y1:(r.y+r.h)/10,orientation:q.orientation};
+  }));
   fittingPanels(positions.map((q,index)=>({...q,k:s.items[index]!.k})),0,c.height/10,explicit).forEach(panels=>{
    for(const edge of ['top','bottom'] as const)for(const span of panels[edge])add('fitting',offset+(span.x0+span.x1)/2,(span.y0+span.y1)/2+R.base/10,span.x1-span.x0,t,edge==='top'?'Top board spans this fitting’s clear space':'Bottom board supports this fitting’s contents');
   });

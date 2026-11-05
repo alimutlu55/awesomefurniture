@@ -14,7 +14,7 @@ import { fittingDepth, interiorFloorOf, partitionDepthOf, plinthOf } from '../..
 import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
-import { fittingPanels } from '../../domain/geometry/shared-board-spans';
+import { fittingPanels, sectionDividerBoards } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
@@ -180,10 +180,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
             renderState.Gr.add(ho);
             renderState.outs[i] = ho;
             const lay = geometry.computeLayout(i);
-            const sharedBoards = geometry.sectionDividers(i).filter(q=>q.orientation==='horizontal').map(q=>{
-                const r=geometry.dividerRect(q);
-                return {...r,y0:r.y0+iy,y1:r.y1+iy};
-            });
+            const sharedBoards = sectionDividerBoards(geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), iy);
             const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: getRenderDesign().secs[i][j].k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
             /** Boxes cut to the top: front outline clipped, depth kept. Cabinet-centred x. */
             const slabIn = (bx, w0, h0, dep, cx0, cy0, z, m, g) => {
