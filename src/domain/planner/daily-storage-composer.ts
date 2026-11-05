@@ -71,8 +71,5 @@ export function refineDailyStorage(sections: readonly PlannerSection[], cfg: Pla
         if (next === best) break;
         best = next; bestValue = nextValue;
     }
-    best.forEach(section => {
-        section.items = section.items.map(it => it.k === 'void' ? { ...it, k: 'shelf' as const, purpose: 'accessories' as const } : it);
-    });
     return best;
 }
