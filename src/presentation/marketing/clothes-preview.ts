@@ -59,8 +59,5 @@ export function mountPreview(root: HTMLElement) {
       location.assign(url.href);
     }
   });
-  const observer = new IntersectionObserver(entries => {
-    if (entries.some(entry=>entry.isIntersecting)) { observer.disconnect(); void build(++revision); }
-  });
-  observer.observe(root);
+  void build(++revision);
 }

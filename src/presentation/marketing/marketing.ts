@@ -54,7 +54,7 @@ if (preview) {
     if (!entries.some(entry => entry.isIntersecting)) return;
     previewObserver.disconnect();
     void import('./clothes-preview').then(({ mountPreview }) => mountPreview(preview));
-  });
+  }, { rootMargin: '200px 0px' });
   previewObserver.observe(preview);
 }
 

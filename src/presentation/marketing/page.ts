@@ -183,11 +183,7 @@ export function homeBody(c: MarketingCopy): string {
     + `<a class="btn ghost" href="#workflow">${e(h.seeWorkflow)}</a></div>`
     + `<p class="note">${e(c.note)}</p>`
     + `<section class="wardrobe-preview" data-nosnippet data-invalid="${e(h.invalid)}" aria-labelledby="preview-title">
-      <div class="preview-heading"><span>${e(h.study)}</span><span>01 / ${e(h.wardrobe)}</span></div>
-      <div class="preview-stage"><div class="preview-host" inert><div class="preview-fallback">${studySvg({ width: 240, shape: 'regular', finish: 'chalk', inches: false }, c.lang)}</div></div>
-        <div class="preview-stage-label"><span class="preview-live-dot" aria-hidden="true"></span>${e(h.live)}</div>
-        <div class="preview-caption"><span>${e(h.caption)}</span><span>${e(h.plate)}</span></div>
-      </div>
+      <div class="preview-stage"><div class="preview-host" inert></div></div>
       <div class="preview-controls"><div class="preview-kicker">${e(h.kicker)}</div>
         <h2 id="preview-title">${e(h.title)}<br><em>${e(h.emphasis)}</em></h2>
         <p class="preview-intro">${e(h.previewIntro)}</p>
