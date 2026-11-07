@@ -35,6 +35,7 @@ import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
 import studio2DStylesheet from './studio-2d.css?raw';
 import makeStylesheet from '../make/make.css?raw';
+import insightStylesheet from '../insight/insight.css?raw';
 import backdropStylesheet from './studio-backdrop.css?raw';
 export interface MountEditorOptions {
     root: HTMLElement;
@@ -66,7 +67,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
         shapeStylesheet, studioStylesheet, studio2DStylesheet, fixturesStylesheet, surfaceShapeStylesheet, toolbarLayoutStylesheet, furnitureStylesheet, focusedEditingStylesheet, tactileStylesheet,
         measurementStylesheet, smartGuideStylesheet, drawingsStylesheet, designImageStylesheet, designImageLoadingStylesheet,
         creditsStylesheet, accountStylesheet, decorStylesheet, experienceStylesheet, welcomeStylesheet, loadingStylesheet, languageStylesheet,
-        makeStylesheet, backdropStylesheet].join('\n'), controlIds);
+        makeStylesheet, backdropStylesheet, insightStylesheet].join('\n'), controlIds);
     style.textContent = ':host{display:block;position:relative;container-type:size;overflow:hidden;height:100%;width:100%}\n' + styles;
     shadow.innerHTML = markup;
     shadow.prepend(style);

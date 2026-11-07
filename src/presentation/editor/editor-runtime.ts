@@ -34,6 +34,9 @@ import { createEditorLifetime } from '../viewport/editor-lifetime.js';
 import { createEditorModel } from '../../application/projects/editor-model.js';
 import { createSceneHistory } from '../../application/history/scene-history.js';
 import { createDesignCommands } from '../../application/commands/design-commands.js';
+import { createEngineService } from '../../application/engine/engine-service';
+import { applyFix } from '../../application/engine/engine-fixes';
+import { bindInsightPanel, currencyForLanguage } from '../insight/insight-panel';
 import { createSceneCommands } from '../../application/commands/scene-commands.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
@@ -222,6 +225,13 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             toast: message => shell.toast(message), closeMenu: () => shell.closeDD(),
             signIn: () => account?.open({ reason: 'credits' }) }) : null;
         const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
+        // Insight: the engine's design check, prices, passport and change history; fixes go through the editor's commands.
+        let currency = currencyForLanguage(dom.host.ownerDocument.documentElement.lang || navigator.language);
+        const engine = createEngineService({ currency: () => currency });
+        bindInsightPanel({ dom, lifetime, scene: () => model.scene, engine, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message),
+            currency, setCurrency: next => { currency = next; },
+            fix: action => applyFix(action, { scene: () => model.scene, select: id => { model.scene.activeWardrobe = id; inspector.update(false); },
+                splitSelectedBay: () => commands.splitBay(), setConstruction: (id, change) => makeCommands.setConstruction(id, change) }) });
         bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
