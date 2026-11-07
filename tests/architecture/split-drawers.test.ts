@@ -65,3 +65,25 @@ test('drilling and placing a drawer chapter stay close: never the whole floor of
     }
   }
 });
+
+// A 2 m bay without doors: four drawers on the left and a trouser pull-out beside them, nothing between the two.
+const column = () => makePiece({ pieces: [{ id: 1, name: 'Column', x: 0, y: 0, z: 0, angle: 0, design: {
+  ...createInitialDesign(), w: 200, h: 210, d: 60, n: 1, wt: [200], doors: 'none', dividers: [],
+  secs: [[...[0, 1, 2, 3].map(() => ({ k: 'drawer', h: 21, w: 103, ax: 'l' })), { k: 'pants', h: 70, w: 93, ax: 'r', y: 0 }]],
+} as never }] }, 1)!;
+
+test('a drawer stack with open space beside it gets its own side, and its drawers run between that and the cabinet side', () => {
+  const piece = column(), fronts = piece.boards.filter(b => b.name === 'Drawer front'), right = Math.max(...fronts.map(f => f.x1));
+  const sides = piece.boards.filter(b => b.name === 'Divider');
+  assert.equal(sides.length, 1, 'one side for the stack');
+  const side = sides[0]!;
+  assert.ok(side.x1 <= right + .25 && side.x0 >= right - 3, 'at the stack\'s open edge, behind its fronts');
+  assert.equal(piece.drawers.length, 4);
+  for (const d of piece.drawers) {
+    assert.equal(d.applied, null, 'a wardrobe drawer\'s own front is its box front');
+    for (const part of [d.back, d.bottom, ...d.sides]) assert.ok(piece.boards[part]!.x1 <= side.x0 + .01, 'the box stays inside the stack');
+  }
+  for (const runner of piece.fittings.filter(f => f.runner)) assert.deepEqual(runner.runner!.fixed.map(i => piece.boards[i]!.name), ['Side', 'Divider']);
+  // The boards between the drawers stop at the side; nothing of the stack reaches into the trouser pull-out.
+  for (const b of piece.boards.filter(b => b.name === 'Shelf' && b.y0 > side.y0 && b.y1 < side.y1)) assert.ok(b.x1 <= side.x0 + .01 || b.x0 >= side.x1 - .01, `shelf at ${b.y0} crosses the side`);
+});

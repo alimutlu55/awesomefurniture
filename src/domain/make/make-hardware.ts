@@ -49,7 +49,8 @@ function inTheWay(holes: readonly Hole[], post: { b: Board; i: number }, at: Vec
 }
 
 export const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
-const isUpright = (b: Board, h: number) => b.stock === 'carcass' && thinAxis(b) === 'x' && b.y1 - b.y0 > h * .2;
+// A divider is an upright however short (a drawer stack's side); a drawer box's own sides are not.
+const isUpright = (b: Board, h: number) => b.stock === 'carcass' && thinAxis(b) === 'x' && b.note !== 'drawer box' && (b.y1 - b.y0 > h * .2 || b.name === 'Divider');
 /** The uprights either side of a point, nearest first: the board whose face is left of `x` and the one right of it. */
 export function uprightsAround(boards: readonly Board[], x: number, y: number, h: number) {
   const ups = boards.map((b, i) => ({ b, i })).filter(({ b }) => isUpright(b, h) && b.y0 <= y && b.y1 >= y);

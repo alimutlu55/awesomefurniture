@@ -11,6 +11,10 @@ const FIXTURES = {
  wardrobe: `{ ...createEditorState(), w: 100, h: 210, d: 60, n: 2, wt: [1, 1, 100, 100, 100, 100], doors: 'hinged', dividers: [],
    secs: [[{ k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'shelf', h: 35 }, { k: 'shelf', h: 35 }], [{ k: 'short', h: 106 }, { k: 'shelf', h: 35 }], [], [], [], []] }`,
  kitchen: `{ ...createEditorState(), ...createKitchenDesign('base', 'drawers') }`,
+ // A 2 m bay without doors: four drawers on the left, a trouser pull-out beside them, nothing between the two.
+ column: `{ ...createEditorState(), w: 200, h: 210, d: 60, n: 1, wt: [200, 100, 100, 100, 100, 100], doors: 'none', dividers: [],
+   secs: [[{ k: 'drawer', h: 21, w: 103, ax: 'l' }, { k: 'drawer', h: 21, w: 103, ax: 'l' }, { k: 'drawer', h: 21, w: 103, ax: 'l' },
+     { k: 'drawer', h: 21, w: 103, ax: 'l' }, { k: 'pants', h: 70, w: 93, ax: 'r', y: 0 }], [], [], [], [], []] }`,
  // One wide bay without doors: two drawers and four drawers side by side either side of a divider, shelves under them.
  split: `{ ...createEditorState(), w: 160, h: 210, d: 60, n: 1, wt: [160, 100, 100, 100, 100, 100], doors: 'none',
    dividers: [{ i: 0, orientation: 'vertical', x: 79, y0: 60, y1: 112 }],

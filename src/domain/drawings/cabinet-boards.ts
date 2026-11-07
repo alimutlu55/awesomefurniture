@@ -11,7 +11,7 @@ import { ceilingPieces, ceilingPolyline, resolveShape, shapeBoards } from '../wa
 import { doorFit, doorTop, frontInside, leafThickness } from '../wardrobe/door-layout';
 import { fitting, hasTrait, type FittingKind } from '../wardrobe/fittings';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
-import { fittingPanels, sectionDividerBoards } from '../geometry/shared-board-spans';
+import { fittingPanels, sectionDividerBoards, sectionUprights } from '../geometry/shared-board-spans';
 import { kitchenReveal, shelfHeights } from '../kitchen/kitchen-fronts';
 import { kitchenUnit } from '../kitchen/kitchen-units';
 import { isKitchen } from '../furniture/furniture';
@@ -134,13 +134,15 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
         }
       });
     } else {
-      const shared = sectionDividerBoards(geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), iy);
-      const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared);
+      const rects = geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), shared = sectionDividerBoards(rects, iy);
+      const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared, sectionUprights(sw, rects, iy));
       panels.forEach((p, j) => {
         const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, pos.y0, it.h, inside) : null;
         // The boards over and under a drawer stop behind its front (carcass.ts).
         const deck = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fit;
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'x'));
+        // The side a drawer stack's runners are screwed to where it has no upright (shared-board-spans.ts).
+        for (const s of p.side) out.push(board('Divider', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'y'));
         if (front) {
           const extent = { x0: bayL + pos.off + .2, x1: bayL + pos.off + pos.w - .2, y0: front.y0, y1: front.y1, z0: front.z0, z1: front.z1 };
           out.push(board('Drawer front', 'front', extent, 'L2 W2', 'y', { kind: it.k, ...(it.f ? { decorId: defaultMaterials(it.f).frontDecorId } : {}),

@@ -10,11 +10,11 @@ import { resolveShape, isRegularShape } from '../../domain/wardrobe/shape/wardro
 import { renderCabinetDoors } from './door-renderer';
 import { createFittingRenderer } from './fitting-renderer.js';
 import { PANEL, PLINTH } from '../../domain/wardrobe/catalog.js';
-import { fittingDepth, interiorFloorOf, partitionDepthOf, plinthOf } from '../../domain/wardrobe/carcass';
-import { fittingDepthOf } from '../../domain/wardrobe/door-layout';
+import { backFaceOf, besideInnerFrontDepth, fittingDepth, interiorFloorOf, partitionDepthOf, plinthOf } from '../../domain/wardrobe/carcass';
+import { fittingDepthOf, frontInside } from '../../domain/wardrobe/door-layout';
 import { measureNumber, unitSuffix } from '../editor/editor-format.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
-import { fittingPanels, sectionDividerBoards } from '../../domain/geometry/shared-board-spans';
+import { fittingPanels, sectionDividerBoards, sectionUprights } from '../../domain/geometry/shared-board-spans';
 import { createItemDimensions } from './item-dimensions.js';
 import { isKitchen } from '../../domain/furniture/furniture';
 import { kitchenUnit as kitchenUnitDef } from '../../domain/kitchen/kitchen-units';
@@ -180,8 +180,8 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
             renderState.Gr.add(ho);
             renderState.outs[i] = ho;
             const lay = geometry.computeLayout(i);
-            const sharedBoards = sectionDividerBoards(geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), iy);
-            const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: getRenderDesign().secs[i][j].k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards);
+            const rects = geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), sharedBoards = sectionDividerBoards(rects, iy);
+            const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: getRenderDesign().secs[i][j].k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), sharedBoards, sectionUprights(sw, rects, iy));
             /** Boxes cut to the top: front outline clipped, depth kept. Cabinet-centred x. */
             const slabIn = (bx, w0, h0, dep, cx0, cy0, z, m, g) => {
                 let last = null;
@@ -203,7 +203,8 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                 const localX = ix - x - iwd / 2;
                 const local = span => ({...span,x0:span.x0-localX,x1:span.x1-localX});
                 const fit = lay[j] ? geometry.itemFit(i, lay[j], it) : null, cut = cutFor(fit, pos.x0);
-                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1), cut);
+                mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1), cut,
+                    panels.flatMap(p => p.side).filter(s => s.y0 < iy0 + hh && s.y1 > iy0 && s.x1 > pos.x0 && s.x0 < pos.x1).map(local));
                 const group = new THREE.Group(), parts = renderState.Gr.children.slice(start);
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);
@@ -234,6 +235,8 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                     itemDims(i, j);
                 }
             });
+            const sd = besideInnerFrontDepth(d, frontInside(getRenderDesign()), backFaceOf(getRenderDesign())); // A drawer stack's side: behind its fronts.
+            for (const s of panels.flatMap(p => p.side)) box(s.x1 - s.x0, s.y1 - s.y0, sd.depth, x + (s.x0 + s.x1) / 2, (s.y0 + s.y1) / 2, sd.centre, mp);
             geometry.sectionDividers(i).forEach(q => {
                 // Shelf boards and dividers meeting a sloped top are cut to its angle. A divider
                 // is drawn to the top the slope allows, never to a stored top above it.

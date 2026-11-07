@@ -19,6 +19,12 @@ It is as tall as its compartment allows, up to 250 mm and down to 50 mm: a shall
 corner instead of two), never a front with nothing behind it. Beside an in-bay divider, each box side runs on the rail
 of the upright next to it, the divider or the cabinet side.
 
+A drawer stack narrower than its bay, with open space beside it (drawers on one side, a trouser pull-out on the other),
+has nothing to screw its runners to on that side. It gets its own side there, a divider from the board under the stack
+to the one over it, inside the stack's width behind its fronts (`drawerStackSides` in
+`src/domain/geometry/shared-board-spans.ts`). The editor draws it, Make builds it, and the boards between the drawers
+stop at it. The planner's board count does not include it yet.
+
 ## The steps (Assembly Studio chapters)
 
 | Stage | What happens | Hardware |

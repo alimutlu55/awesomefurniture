@@ -71,7 +71,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>interiorFloorOf(getRenderDesign())+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>interiorFloorOf(getRenderDesign())+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut, sides: readonly {x0:number;x1:number}[] = []) {
         if (kitchen) {
             kitchen.kitchenFitting(it, cx, y, sw, { bottom: interiorFloorOf(getRenderDesign()), top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
             return;
@@ -98,9 +98,11 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         if (k === 'drawer' || k === 'sdrawer') {
             // An angled front over a rectangular drawer box that runs on standard slides.
             slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf);
-            const boxW = Math.max(4, coreW - 2 * RUNNER_CLEARANCE - .5), boxD = Math.min(d - 8, drawerExtension(d));
-            box(boxW, Math.max(4, coreH - 6), boxD, coreX, y + coreH / 2 - 1, -2, D);
-            for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, coreX + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -2, mh);
+            // A drawer stack's own side within the drawer's width (shared-board-spans.ts) takes its room from the box.
+            const inL = sides.some(s => s.x0 < sw / 2) ? PANEL : 0, inR = sides.some(s => s.x0 >= sw / 2) ? PANEL : 0, boxX = coreX + (inL - inR) / 2;
+            const boxW = Math.max(4, coreW - inL - inR - 2 * RUNNER_CLEARANCE - .5), boxD = Math.min(d - 8, drawerExtension(d));
+            box(boxW, Math.max(4, coreH - 6), boxD, boxX, y + coreH / 2 - 1, -2, D);
+            for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, boxX + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -2, mh);
             // Behind closed doors a drawer has a finger grip: a handle would reach through the door (D4).
             const handle = resolveHandle(resolveMaterials(design)), pull = innerFrontBehindDoor(getRenderDesign(), it) ? null : handleMesh(handle, sw - .4, mh, false);
             if (pull) {

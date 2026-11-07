@@ -80,8 +80,9 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
     const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
     if (!left || !right) continue;
     const x0 = left.b.x1 + RUNNER_CLEARANCE, x1 = right.b.x0 - RUNNER_CLEARANCE;
-    // A front at or proud of the carcass's front edge is applied; one inside it is the box's own front.
-    const applied = f.z0 >= Math.min(left.b.z1, right.b.z1) - .01;
+    // A front at or proud of the carcass's front edge is applied; one inside it is the box's own front. The carcass edge is
+    // the deeper upright's: a drawer stack's own side stops behind the fronts, as the boards between drawers do.
+    const applied = f.z0 >= Math.max(left.b.z1, right.b.z1) - .01;
     const face = applied ? Math.min(f.z0, left.b.z1, right.b.z1) - standoff : f.z0;
     const length = runnerForSpace(face - backFaceOf(design) - RUNNER_REAR_GAP);
     if (length === undefined) continue;
