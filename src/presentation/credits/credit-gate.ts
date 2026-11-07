@@ -3,6 +3,7 @@ import { creditErrorMessage, CreditUserError } from './credit-errors';
 import { coin } from './wallet-markup';
 import type { WalletNeed } from './credit-wallet';
 import { createLoadingState } from '../components/loading-state';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
 
 interface Ports {
   client: CreditsClient;
@@ -14,6 +15,7 @@ interface Ports {
   openWallet(need: WalletNeed): void;
   /** True (and the sign-in sheet opens) when this is a guest: credits, even free uses, need an account. */
   needsAccount(): boolean;
+  track?: TrackEvent | undefined;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Ports {
  * with a short notice; a paid use asks first, on a small card with the price and the balance; too few credits open
  * the wallet on the packs.
  */
-export function bindCreditGate({ client, page, host, lifetime, toast, openWallet, needsAccount }: Ports) {
+export function bindCreditGate({ client, page, host, lifetime, toast, openWallet, needsAccount, track = () => {} }: Ports) {
   const card = page.createElement('div');
   card.className = 'cr-overlay cr-confirm'; card.hidden = true;
   card.innerHTML = '<div class="cr-sheet cr-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="cr-confirm-title" tabindex="-1">'
@@ -61,11 +63,14 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     // Credits are not set up on this server: these features run in the browser, so they stay open.
     if (!client.available) return true;
     if (!feature || !wallet) { toast(creditErrorMessage(null)); return false; }
-    if (needsAccount()) return false;
+    const gate = (gate_outcome: 'free_or_pass' | 'paid_confirm_prompt' | 'insufficient_credits' | 'account_required') =>
+      track('credit_gate_triggered', { feature: key, gate_outcome, balance: wallet.balance, cost: feature.cost });
+    if (needsAccount()) { gate('account_required'); return false; }
     const covered = client.pass(key) || feature.freeLeft > 0;
+    if (covered) gate('free_or_pass');
     if (!covered) {
-      if (wallet.balance < feature.cost) { openWallet({ feature: key, cost: feature.cost, balance: wallet.balance }); return false; }
-      loading.stop();
+      if (wallet.balance < feature.cost) { gate('insufficient_credits'); openWallet({ feature: key, cost: feature.cost, balance: wallet.balance }); return false; }
+      loading.stop(); gate('paid_confirm_prompt');
       if (!await ask(feature.label, feature.cost, wallet.balance, feature.passHours)) return false;
       loading.start();
     }

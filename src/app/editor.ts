@@ -8,6 +8,8 @@ import { prepareSession } from './session-bootstrap';
 import { createDesignWorkspace } from './design-workspace';
 import { takeCheckoutReturn } from './credit-platform';
 import { createLoadingPlaceholder } from '../presentation/components/loading-state';
+import { createAnalyticsPlatform, sessionStart } from './analytics-platform';
+import type { SessionPlatform } from './session-bootstrap';
 import '../presentation/components/loading-state.css';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
@@ -21,7 +23,10 @@ const stopStartupTranslation = bindLocalizedUi(startup);
 // AI agents are welcome: a guide and functions on window.furnidraw (WebMCP tools where offered). They are
 // ready before the editor and stay when it cannot start (agents' browsers often have no WebGL).
 let editor:ReturnType<typeof mountEditor>|null=null;
-const agents=createAgentApi(()=>editor,location);
+let platform:SessionPlatform|null=null;
+// First-party product analytics (docs/analytics.md): off in automated browsers and with Do Not Track.
+const analytics=createAnalyticsPlatform(new URL(location.href),()=>platform);
+const agents=createAgentApi(()=>editor,location,analytics.track);
 Object.defineProperty(window,'furnidraw',{value:agents,configurable:true});
 // The app's earlier name, kept so agents and links written for it still work.
 Object.defineProperty(window,'wardrobeForge',{value:agents,configurable:true});
@@ -32,26 +37,32 @@ async function main(): Promise<void> {
  const checkout=takeCheckoutReturn(new URL(location.href),history);
  const url=new URL(location.href);
  preloadOakTextures(document);
- const platform=await prepareSession(url);
+ platform=await prepareSession(url);
+ const session=platform;
+ if(session.sharedSession) analytics.track('shared_link_opened',{link_kind:'session',status:session.sharedSession});
  // A design link opens that design, on loading and when the link changes: #design= is a design someone
  // shared (the whole design), #spec= one an assistant described.
  const openLink=async()=>{
   if(hasDesign(location.hash)) {
-   await designFromLink(location.hash).then(project=>{editor?.replaceDesign(project);editor?.notify('This is the shared design. Undo goes back to yours.');},
-    ()=>editor?.notify('This design link could not be opened: it is damaged or cut short. Ask for the link again.'));
+   await designFromLink(location.hash).then(project=>{editor?.replaceDesign(project);editor?.notify('This is the shared design. Undo goes back to yours.');
+    analytics.track('shared_link_opened',{link_kind:'design_hash',status:'opened'});},
+    ()=>{editor?.notify('This design link could not be opened: it is damaged or cut short. Ask for the link again.');
+    analytics.track('shared_link_opened',{link_kind:'design_hash',status:'invalid'});});
    return;
   }
   if(!new URLSearchParams(location.hash.slice(1)).has('spec')) return;
   let built:ReturnType<typeof checkSpec>|null=null;
   try { built=checkSpec(specFromLink(location.hash)); } catch { /* not a readable link */ }
+  analytics.track('shared_link_opened',{link_kind:'spec_hash',status:built?.project?'opened':'invalid'});
   if(built?.project) editor?.replaceDesign(built.project);
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- const workspace=createDesignWorkspace({root:root!,platform,changed:value=>{editor=value;(window as unknown as {__furnidrawEditor?: typeof value}).__furnidrawEditor=value;},initialLink:openLink,checkout});
+ analytics.track('editor_session_started',sessionStart(url,session));
+ const workspace=createDesignWorkspace({root:root!,platform:session,analytics,changed:value=>{editor=value;(window as unknown as {__furnidrawEditor?: typeof value}).__furnidrawEditor=value;},initialLink:openLink,checkout});
  startup.remove();
  await workspace.start();
  window.addEventListener('hashchange',openLink);
- const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();};
+ const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();analytics.dispose();};
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});
  import.meta.hot?.dispose(dispose);
 }
@@ -60,6 +71,8 @@ void main().finally(() => { stopStartupTranslation(); startup.remove(); }).catch
  const errorRoot=root.shadowRoot??root;
  errorRoot.replaceChildren();
  const text=error instanceof Error?error.message:'';
+ analytics.track('editor_startup_failed',{reason:/webgl/i.test(text)?'webgl_unavailable':/storage|quota|indexeddb/i.test(text)?'storage_error':'unknown'});
+ analytics.flush();
  const style=document.createElement('style');
  style.textContent=':host,#editor-root{display:block;box-sizing:border-box;max-width:640px;margin:0 auto;padding:24px 16px;font:16px/1.5 system-ui,sans-serif;color:#2b2a27}h1{font-size:22px;line-height:1.3}a{color:inherit}';
  errorRoot.append(style);

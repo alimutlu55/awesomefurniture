@@ -12,6 +12,7 @@ import type { CreditWalletApi } from '../credits/credit-wallet';
 import { bindImageCredits } from './design-image-credits';
 import { createLoadingState } from '../components/loading-state';
 import { bindLoadingImage } from '../components/loading-image';
+import { imageFunnel, type DesignImageAnalytics } from './design-image-analytics';
 
 export { IMAGE_STYLES, type ImageStyle } from './generate-image-dialog';
 
@@ -21,6 +22,7 @@ interface Ports {
   capture(): DesignImageRequest;
   /** The wallet that pays for each image; absent, images are requested without credits. */
   credits?: CreditWalletApi | null;
+  analytics?: DesignImageAnalytics | null;
 }
 
 type Phase = 'select' | 'closed' | 'generating' | 'result';
@@ -28,8 +30,8 @@ type Phase = 'select' | 'closed' | 'generating' | 'result';
 const TOOLBAR_SPARKLE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'
   + '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></svg>';
 
-export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }: Ports) {
-  const page = dom.host.ownerDocument;
+export function bindDesignImageViewer({ dom, lifetime, capture, credits = null, analytics = null }: Ports) {
+  const page = dom.host.ownerDocument, funnel = imageFunnel(analytics);
   const button = page.createElement('button');
   button.type = 'button';
   button.className = 'tb ai-image-button';
@@ -100,7 +102,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   const debugPreviewEnabled = isDebugMode();
   const loading = createDesignImageLoading(page, lifetime, {
     isDebug: debugPreviewEnabled,
-    onCancel: () => { cancel(); status.textContent = 'Image creation cancelled.'; },
+    onCancel: () => { funnel.failed('cancelled'); cancel(); status.textContent = 'Image creation cancelled.'; },
     onRestart: () => { void run(selectedStyle); },
   });
   dialog.append(loading.element);
@@ -204,6 +206,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
     showError(null);
     if (initialPhase === 'result' && imageUrl) showResultDialog();
     else showSelectDialog();
+    funnel.opened(!!imageUrl);
     void prepare();
   }
 
@@ -255,7 +258,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
     resultView.hidden = true;
     showError(null);
     status.textContent = 'Creating your image. This usually takes about a minute.';
-    loading.start();
+    loading.start(); funnel.started(style, category);
     loading.cancel.focus();
 
     try {
@@ -278,12 +281,12 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
       const ext = output.image.mimeType === 'image/jpeg' ? 'jpg' : output.image.mimeType.split('/')[1];
       download.download = `design-ai.${ext}`;
       loading.stop();
-      showResultDialog();
+      showResultDialog(); funnel.completed();
       status.textContent = 'Your image is ready.';
     } catch (error) {
       if (disposed || request.signal.aborted) return;
       const message = designImageErrorMessage(error);
-      loading.stop();
+      loading.stop(); funnel.failed(error);
       if (pay.refused(error)) { if (imageUrl) showResultDialog(); else showSelectDialog(); return; }
       if (imageUrl) {
         showResultDialog();
@@ -354,6 +357,8 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null }
   lifetime.listen(generate, 'click', () => {
     void run(selectedStyle);
   });
+
+  lifetime.listen(download, 'click', () => funnel.downloaded());
 
   lifetime.listen(again, 'click', () => {
     void run(selectedStyle);

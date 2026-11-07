@@ -6,4 +6,6 @@ readonly model: Readonly<Pick<ReturnType<typeof import('../../../application/pro
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen' | 'cleanup'>>;
 /** Makes a link that opens this design (given by the page that mounts the editor); without it there is no Share. */
 readonly shareLink: ((scene: import('../../../application/projects/editor-scene').EditorScene) => Promise<string>) | undefined;
+/** Product analytics: a design shared, by what it holds (counts only). */
+readonly track?: import('../../../application/analytics/analytics-port').TrackEvent | undefined;
 }

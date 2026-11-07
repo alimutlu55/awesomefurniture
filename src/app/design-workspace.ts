@@ -10,6 +10,8 @@ import type { SessionPlatform } from './session-bootstrap';
 import { createCreditPlatform, type CheckoutReturn } from './credit-platform';
 import { createAccountPlatform } from './account-platform';
 import { createLoadingState, paintLoading } from '../presentation/components/loading-state';
+import { noopAnalytics, type AnalyticsPort } from '../application/analytics/analytics-port';
+import type { AnalyticsEventMap } from '../domain/analytics/analytics-events';
 
 interface WorkspaceOptions {
   root: HTMLElement;
@@ -18,10 +20,11 @@ interface WorkspaceOptions {
   initialLink(): Promise<void>;
   /** A checkout that just sent the person back here, for the first editor to confirm. */
   checkout?: CheckoutReturn | null;
+  analytics?: AnalyticsPort;
 }
 
 /** The app owns document navigation. A fresh editor mount owns each design's Undo. */
-export function createDesignWorkspace({ root, platform, changed, initialLink, checkout = null }: WorkspaceOptions) {
+export function createDesignWorkspace({ root, platform, changed, initialLink, checkout = null, analytics = noopAnalytics }: WorkspaceOptions) {
   const collection = createDesignCollection(platform.repository, platform.drafts, () => crypto.randomUUID());
   let mounted: ReturnType<typeof mountEditor> | null = null;
   let sessions: ReturnType<typeof connectSessions> | null = null;
@@ -37,6 +40,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   // Signing out erases this browser's copy of the designs, so everything open is saved to the account first.
   const account = createAccountPlatform(platform, { save: () => ordered(async () => sessions ? sessions.save() : true) });
   const transition = createLoadingState(root);
+  const libraryAction = (action: AnalyticsEventMap['design_library_action']['action']) =>
+    analytics.track('design_library_action', { action, local_only: !platform.repository });
   function ordered<T>(work: () => Promise<T>): Promise<T> {
     const operation = pending.catch(() => undefined).then(async () => {
       if (disposed) throw new Error('The workspace has closed.');
@@ -95,8 +100,10 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   async function attach(design: OpenDesign, initialize = false) {
     root.hidden = false;
     let connection: ReturnType<typeof connectSessions> | null = null;
+    const opened = Date.now();
+    analytics.setDesign(design.draft.document.id);
     const editor = mountEditor({
-      root, initialScene:projectToScene(design.draft.document), credits, account,
+      root, initialScene:projectToScene(design.draft.document), credits, account, analytics,
       onBack: () => {
         if (transition.active) return;
         transition.start();
@@ -122,6 +129,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
         editor.notify('Another tab changed this design. Your work is kept in a recovered copy.');
       }, id => {
         currentId = id;
+        // A new design just got its first real change: the activation moment.
+        analytics.track('design_first_work_committed', { time_to_first_work_ms: Date.now() - opened, piece_count: editor.scene().wardrobes.length });
         if (!library.visible) route('editor', true);
       });
       sessions = connection;
@@ -135,7 +144,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   async function showDesigns(push = true) {
     await release();
     root.hidden = true;
-    library.show();
+    library.show(); libraryAction('opened_library'); analytics.setDesign(null);
     if (push) route('designs');
     await refresh();
   }
@@ -146,7 +155,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     const previous = current;
     try {
       await attach(design);
-      library.hide();
+      library.hide(); libraryAction('switched_design');
       if (push) route('editor');
     } catch (error) {
       if (!library.visible) await attach(previous);
@@ -157,15 +166,17 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     open: id => ordered(() => open(id)),
     create: name => ordered(async () => {
       const design = await collection.create(name);
-      await attach(design); library.hide(); route('editor');
+      await attach(design); library.hide(); route('editor'); libraryAction('created_design');
     }),
     rename: (id, name) => ordered(async () => {
       const renamed = await collection.rename(id, name);
       if (currentId === id) current = renamed;
+      libraryAction('renamed');
       await refresh();
     }),
     duplicate: id => ordered(async () => {
       const copy = await collection.duplicate(id);
+      libraryAction('duplicated');
       const image = previewCache.get(id) ?? platform.drafts.preview(id);
       if (image) {
         previewCache.set(copy.draft.document.id, image);
@@ -175,6 +186,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     }),
     remove: (id, revision) => ordered(async () => {
       await collection.remove(id, revision);
+      libraryAction('deleted');
       if (currentId === id) currentId = null;
       previewCache.delete(id); await refresh();
     }),

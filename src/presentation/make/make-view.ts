@@ -260,7 +260,7 @@ export function createMakeView(ports: MakeViewPorts) {
     resources.frameHooks.add(frame);
     app.classList.add('make-on');
     ports.refreshToolbar();
-    pressed();
+    pressed(); ports.opened?.(piece.parts.length);
     ports.camera.frameWardrobe();
   }
   function close() {
@@ -358,7 +358,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const blob = kind === 'pdf'
       ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts, undefined, band) }).buffer as ArrayBuffer], { type: 'application/pdf' })
       : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
-    await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
+    await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob); ports.saved?.(kind, piece.parts.length);
   }
   // Something else closing the panel (the editor closes its panels on some gestures) closes it for Make too.
   lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),

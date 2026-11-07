@@ -8,10 +8,10 @@ interface Environment extends ApiEnvironment {
   API_RATE_LIMITER: RequestLimiter;
 }
 export default {
-  async fetch(request: Request, env: Environment): Promise<Response> {
+  async fetch(request: Request, env: Environment, context?: { waitUntil(promise: Promise<unknown>): void }): Promise<Response> {
     try {
       const response = await protectRequest(request, env.API_RATE_LIMITER)
-        ?? await handleApi(request, env) ?? await env.ASSETS.fetch(request);
+        ?? await handleApi(request, env, { waitUntil: context ? promise => context.waitUntil(promise) : undefined }) ?? await env.ASSETS.fetch(request);
       return withSecurityHeaders(response);
     } catch (error) {
       const requestId = crypto.randomUUID();

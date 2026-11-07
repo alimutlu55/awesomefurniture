@@ -27,7 +27,7 @@ readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor
 
 export interface BindIdeaApplyPorts {
 readonly dom: ReturnType<typeof import('../editor-dom.js').createEditorDom>;
-readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'closeWizard' | 'readPreferences' | 'refreshIdeas'>>;
+readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'applied' | 'closeWizard' | 'readPreferences' | 'refreshIdeas'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').createEditorShell>, 'toast'>>;
 readonly plannerState: Pick<ReturnType<typeof import('../planner-state.js').createPlannerState>, 'ideas' | 'ideasConfig'>;
 readonly geometry: Readonly<Pick<ReturnType<typeof import('../../../domain/geometry/wardrobe-geometry.js').createWardrobeGeometry>, 'plannerConfig'>>;

@@ -15,6 +15,7 @@ import { FRONT_OVERLAYS, FRONT_REVEALS_MM, FRONT_STYLES, MAX_LEAVES } from '../d
 import { HINGES, HINGE_SOURCE } from '../domain/wardrobe/hinges';
 import { HANDLES, HANDLE_FINISH_DEFS } from '../domain/wardrobe/handles';
 import { DOOR_LIMITS } from '../domain/wardrobe/door-layout';
+import type { TrackEvent } from '../application/analytics/analytics-port';
 
 /**
  * The editor's welcome for AI agents. A browser agent can read the guide (`help()`, also /llms.txt), call
@@ -150,16 +151,22 @@ export const NO_EDITOR_NOTE = 'This browser cannot show the 3D editor (WebGL is 
  * before the editor starts and in a browser that cannot start it (agents' browsers often have no WebGL):
  * then `build` shows nothing and answers with a link for the person, and `describe` reports the last build.
  */
-export function createAgentApi(current: () => MountedEditor | null, location: { href: string }) {
+export function createAgentApi(current: () => MountedEditor | null, location: { href: string }, track: TrackEvent = () => {}) {
   let last: SceneReport | null = null;
+  // Each kind of call is counted once per page: agents call check() in loops while they adjust a spec.
+  const counted = new Set<string>();
+  const once = (method: 'help' | 'check' | 'build' | 'link' | 'describe', ok = true) => {
+    if (!counted.has(method + ok)) { counted.add(method + ok); track('agent_api_invoked', { method, ok }); }
+  };
   const api = {
     version: 1,
-    help: agentGuide,
+    help: () => { once('help'); return agentGuide(); },
     schema: designSpecJsonSchema,
     example: () => structuredClone(EXAMPLE_SPEC),
-    check: (spec: unknown) => checkSpec(spec).result,
+    check: (spec: unknown) => { const result = checkSpec(spec).result; once('check', result.ok); return result; },
     build(spec: unknown): AgentResult {
       const { result, project } = checkSpec(spec), editor = current();
+      once('build', result.ok);
       if (!project || !result.ok) return result;
       last = result.report;
       if (!editor) return { ...result, shown: false, link: api.link(spec), note: NO_EDITOR_NOTE };
@@ -169,6 +176,7 @@ export function createAgentApi(current: () => MountedEditor | null, location: { 
     },
     describe(): SceneReport | null {
       const editor = current();
+      once('describe');
       return editor ? describeScene(editor.scene()) : last;
     },
     /** The engine's design check, passport and prices of a spec, or of the design shown now; null when there is none. */
@@ -182,6 +190,7 @@ export function createAgentApi(current: () => MountedEditor | null, location: { 
       return editor && editor.scene().wardrobes.length ? engineReport(designInput(editor.scene()), currency) : null;
     },
     link(spec: unknown) {
+      once('link');
       const url = new URL(location.href);
       url.hash = 'spec=' + toBase64Url(JSON.stringify(spec));
       return url.toString();

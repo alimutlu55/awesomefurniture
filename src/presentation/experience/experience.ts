@@ -19,6 +19,7 @@ import { buildInBackground } from './spec-worker-client';
 import { countBelongings, spaceSpec, type Belongings, type Space } from './spaces';
 import { createStageFraming } from './stage-framing';
 import type { ExperienceDocument, ExperienceLifetime } from './lifetime.ports';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
 
 export interface ExperiencePorts {
   readonly dom: {
@@ -44,6 +45,8 @@ export interface ExperiencePorts {
   drawings(): void;
   autoDesign(): void;
   closeMenu(): void;
+  /** Product analytics: the welcome, the reveal and changes of mood. */
+  track?: TrackEvent | undefined;
 }
 
 const KNOCKS: Record<AssemblyPhase, 'board' | 'fitting' | 'door'> = { base: 'board', side: 'board', back: 'board', top: 'board', fitting: 'fitting', door: 'door' };
@@ -86,7 +89,12 @@ export function mountExperience(ports: ExperiencePorts) {
     if (save) writePreferences(storage, { ...readPreferences(storage), look: mood.look, time: mood.time, sounds: mood.sounds });
     control.render();
   }
+  const track: TrackEvent = ports.track ?? (() => {});
   function change(next: Partial<Mood>) {
+    if (next.look !== undefined && next.look !== mood.look) track('scene_mood_changed', { setting: 'look', value: next.look });
+    if (next.time !== undefined && next.time !== mood.time) track('scene_mood_changed', { setting: 'time', value: next.time });
+    if (next.sounds !== undefined && next.sounds !== mood.sounds) track('scene_mood_changed', { setting: 'sound', value: String(next.sounds) });
+    if (next.flat !== undefined && next.flat !== mood.flat) track('scene_mood_changed', { setting: 'lens', value: next.flat ? 'flat_elevation' : 'perspective' });
     Object.assign(mood, next);
     if (next.sounds !== undefined) sounds.setEnabled(next.sounds);
     if (next.apart !== undefined) { assembly.explode(renderState.wardrobeGroups, next.apart); resources.R.shadowMap.needsUpdate = true; }
@@ -97,14 +105,16 @@ export function mountExperience(ports: ExperiencePorts) {
   const control = createMoodControl({ bar: dom.$('#topright'), container: dom.$('#app'), document: doc, lifetime, docked, mood: () => mood, change, drawings: () => ports.drawings() });
   lifetime.cleanup(() => control.dispose());
   const reveal = createReveal({ container: dom.$('#app'), document: doc, lifetime, docked,
-    night: () => change({ time: 'night', look: mood.look === 'workshop' ? 'living' : mood.look }), workshop: () => change({ look: 'workshop' }), autoDesign: () => ports.autoDesign() });
+    night: () => { track('fit_reveal_action_clicked', { action: 'see_at_night' }); change({ time: 'night', look: mood.look === 'workshop' ? 'living' : mood.look }); },
+    workshop: () => { track('fit_reveal_action_clicked', { action: 'workshop' }); change({ look: 'workshop' }); },
+    autoDesign: () => { track('fit_reveal_action_clicked', { action: 'more_layouts' }); ports.autoDesign(); } });
   lifetime.cleanup(() => reveal.dispose());
 
   // The welcome: the room previews behind it; Build plans in the background, then the wardrobe assembles.
   let before: string | null = null, shown: EditorScene | null = null, building = false;
   const projectOf = (spec: ReturnType<typeof spaceSpec>) => { const built = buildFromSpec(spec, 'preview'); return built.ok ? built.project : null; };
   const welcome = createWelcome({
-    container: dom.$('#app'), document: doc, lifetime, view: view as (Window & typeof globalThis) | null, docked,
+    container: dom.$('#app'), document: doc, lifetime, view: view as (Window & typeof globalThis) | null, docked, track,
     preview(space: Space) {
       before ??= ports.design.snapshot();
       const project = projectOf(spaceSpec(space));
@@ -125,9 +135,11 @@ export function mountExperience(ports: ExperiencePorts) {
         void play().then(() => {
           const focused = doc.activeElement as HTMLElement | null, report = describeScene(ports.scene());
           reveal.show(report);
+          const fit = fitSummary(report);
+          if (fit.rows.length) track('fit_reveal_shown', { everything_fits: fit.all, placed_count: fit.placed, missing_count: fit.asked - fit.placed });
           // The welcome closed under the keyboard focus: it moves to the reveal.
           if (!focused || focused.closest('.xp-welcome') || focused === dom.host) reveal.focus();
-          if (fitSummary(report).all) sounds.fits();
+          if (fit.all) sounds.fits();
         });
         return { ok: true as const };
       } finally { building = false; }
@@ -210,7 +222,7 @@ export function mountExperience(ports: ExperiencePorts) {
   item.type = 'button'; item.className = 'mi'; item.setAttribute('role', 'menuitem');
   item.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l6-5 6 5v11M10 20v-6h4v6"/></svg><span>Plan from what I own</span>';
   dom.$('#fitchip').before(item);
-  lifetime.listen(item, 'click', () => { ports.closeMenu(); reveal.hide(); welcome.open(); });
+  lifetime.listen(item, 'click', () => { ports.closeMenu(); reveal.hide(); welcome.open('menu_plan_from_owned'); });
   lifetime.cleanup(() => item.remove());
 
   const fresh = () => { const s = ports.scene(); return !s.wardrobes.length && (!s.studio || JSON.stringify(s.studio) === JSON.stringify(createStudio('bedroom'))); };

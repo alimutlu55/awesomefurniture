@@ -16,7 +16,8 @@ export async function protectRequest(request: Request, limiter: RequestLimiter):
   if (!path.startsWith('/api/')) return null;
   // Stripe retries signed server-to-server events; never subject it to browser challenges or visitor quotas.
   if (path === '/api/payments/stripe/webhook') return null;
-  const key = 'api:ip:' + (request.headers.get('CF-Connecting-IP') ?? 'unknown');
+  // Analytics batches have their own allowance, so a busy tab never uses up what saving and paying need.
+  const key = (path === '/api/analytics' ? 'analytics:ip:' : 'api:ip:') + (request.headers.get('CF-Connecting-IP') ?? 'unknown');
   if (!(await limiter.limit({ key })).success) {
     return Response.json({ error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again in a minute.' } },
       { status: 429, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store' } });

@@ -3,6 +3,7 @@ import { accountErrorMessage, needsConfirmation } from './account-errors';
 import { accountMenuItem, accountSheet } from './account-markup';
 import { createLoadingState } from '../components/loading-state';
 import { MIN_PASSWORD_LENGTH } from '../../application/account/password-policy';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
 
 export type AccountView = 'sign-up' | 'sign-in' | 'confirm' | 'forgot' | 'reset' | 'adopt';
 export interface AccountOpenOptions {
@@ -19,6 +20,8 @@ interface Ports {
   closeMenu(): void;
   /** The editor's short notice: used only when signing out is refused. */
   toast(message: string): void;
+  /** Product analytics: which step of signing in is reached, and how it ended (never the email or the code). */
+  track?: TrackEvent | undefined;
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -43,7 +46,7 @@ export function offerCopy(offer: GuestOffer, email: string) {
  * "Sign in / Sign up" last in the ⋮ menu, and the sheet it opens: Google, or an email and a password with a
  * code to confirm the email. Designing never needs an account; credits do (the wallet opens this sheet).
  */
-export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports) {
+export function bindAccount({ dom, lifetime, platform, closeMenu, toast, track = () => {} }: Ports) {
   const page = dom.$('#app').ownerDocument;
   const item = page.createElement('button');
   item.type = 'button'; item.className = 'mi ac-menu'; item.setAttribute('role', 'menuitem');
@@ -100,10 +103,17 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
       .forEach(control => { control.disabled = on; });
   }
   /** One request at a time. A request that signs in reloads the page, so the sheet stays busy until then. */
-  async function run(section: HTMLElement | null, work: () => Promise<void>) {
+  async function run(section: HTMLElement | null, work: () => Promise<void>, method?: string) {
     if (busy) return;
     say(null); setBusy(section, true);
-    try { await work(); } catch (e) { say(accountErrorMessage(e)); } finally { setBusy(section, false); }
+    try {
+      await work();
+      if (method) track('account_auth_submitted', { method, outcome: view === 'confirm' || view === 'reset' ? 'otp_sent' : 'success', error_code: null });
+    } catch (e) {
+      say(accountErrorMessage(e));
+      const code = (e as { code?: unknown } | null)?.code;
+      if (method) track('account_auth_submitted', { method, outcome: 'error', error_code: typeof code === 'string' ? code.slice(0, 48) : null });
+    } finally { setBusy(section, false); }
   }
   function refuse(form: HTMLFormElement, name: string, message: string) { say(message); input(form, name).focus(); }
   const askForCode = (message = `Enter the code we sent to ${address}. It can take a minute to arrive.`) => {
@@ -112,7 +122,10 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
 
   function open(options: AccountOpenOptions = {}) {
     reason = options.reason ?? null;
-    if (overlay.hidden) previousFocus = root.activeElement as HTMLElement | null;
+    if (overlay.hidden) {
+      previousFocus = root.activeElement as HTMLElement | null;
+      track('account_sheet_opened', { trigger: reason ?? 'menu', initial_view: options.view ?? 'sign-in' });
+    }
     overlay.hidden = false;
     show(options.view ?? 'sign-in');
   }
@@ -135,7 +148,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
   lifetime.listen(switchAction, 'click', () => {
     if (!busy) show(view === 'sign-in' ? 'sign-up' : 'sign-in');
   });
-  lifetime.listen(google, 'click', () => { void run(null, () => platform.google()); });
+  lifetime.listen(google, 'click', () => { void run(null, () => platform.google(), 'google_oauth'); });
   lifetime.listen(credentials, 'submit', event => {
     event.preventDefault();
     const email = input(credentials, 'email').value.trim().toLowerCase(), password = input(credentials, 'password').value;
@@ -145,6 +158,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     }
     if (!password) return refuse(credentials, 'password', 'Enter your password.');
     address = email;
+    const method = view === 'sign-up' ? 'email_signup' : 'email_signin';
     void run(credentials, async () => {
       if (view === 'sign-up') { await platform.signUp(email, password); askForCode(); return; }
       try { await platform.signIn(email, password); } catch (e) {
@@ -152,13 +166,13 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
         await platform.resendSignUp(email).catch(() => undefined);
         askForCode(`Confirm your email first: we sent a new code to ${email}.`);
       }
-    });
+    }, method);
   });
   lifetime.listen(confirm, 'submit', event => {
     event.preventDefault();
     const code = input(confirm, 'code').value.replace(/\D/g, '');
     if (code.length < 6) return refuse(confirm, 'code', 'Enter the code from the email.');
-    void run(confirm, () => platform.confirmSignUp(address, code));
+    void run(confirm, () => platform.confirmSignUp(address, code), 'email_otp_confirm');
   });
   lifetime.listen($('.ac-resend'), 'click', () => {
     void run(confirm, async () => { await platform.resendSignUp(address); lead.textContent = `A new code is on its way to ${address}.`; });
@@ -176,7 +190,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
       await platform.sendReset(email);
       input(reset, 'code').value = ''; input(reset, 'password').value = '';
       show('reset', `Enter the code we sent to ${email} and choose a new password.`);
-    });
+    }, 'password_reset_request');
   });
   lifetime.listen($('.ac-to-forgot', reset), 'click', () => {
     void run(reset, async () => { await platform.sendReset(address); lead.textContent = `A new code is on its way to ${address}.`; });
@@ -186,14 +200,20 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast }: Ports
     const code = input(reset, 'code').value.replace(/\D/g, ''), password = input(reset, 'password').value;
     if (code.length < 6) return refuse(reset, 'code', 'Enter the code from the email.');
     if (password.length < MIN_PASSWORD_LENGTH) return refuse(reset, 'password', `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
-    void run(reset, () => platform.resetPassword(address, code, password));
+    void run(reset, () => platform.resetPassword(address, code, password), 'password_reset');
   });
   lifetime.listen($('.ac-adopt-yes'), 'click', () => {
     // A failed move changes nothing and the question stays: the person can try again.
-    void run(adopt, () => platform.adopt().catch(() => { throw Object.assign(new Error('Not added.'), { code: 'adopt_failed' }); }));
+    void run(adopt, () => platform.adopt().then(
+      () => track('guest_work_handover_decided', { decision: 'adopted', outcome: 'success' }),
+      () => {
+        track('guest_work_handover_decided', { decision: 'adopted', outcome: 'failed' });
+        throw Object.assign(new Error('Not added.'), { code: 'adopt_failed' });
+      }));
   });
   lifetime.listen($('.ac-adopt-no'), 'click', () => {
     platform.decline(); close();
+    track('guest_work_handover_decided', { decision: 'declined', outcome: 'success' });
   });
   lifetime.listen($('.cr-close'), 'click', close);
   lifetime.listen(overlay, 'mousedown', e => { if (e.target === overlay) close(); });
