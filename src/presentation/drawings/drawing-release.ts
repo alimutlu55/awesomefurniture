@@ -1,6 +1,7 @@
 import type { EditorScene } from '../../application/projects/editor-scene';
 import type { Sheet } from '../../domain/drawings/drawing';
 import type { DrawingInput } from '../../domain/drawings/room-pieces';
+import { drawingInputOf } from '../../application/engine/scene-input';
 import { technicalDrawings } from '../../domain/drawings/technical-drawings';
 import { type ManufacturingFinding, type ManufacturingValidation, modelRevision, validateForManufacture } from '../../domain/drawings/manufacturing-validation';
 import { type Mark } from './paper-marks';
@@ -15,10 +16,6 @@ export interface DrawingRelease {
   readonly validation: ManufacturingValidation;
 }
 
-/** What the drawings are made from: the room and every piece in it as it stands. */
-export function drawingInputOf(scene: EditorScene): DrawingInput {
-  return { studio: scene.studio, pieces: scene.wardrobes.map(c => ({ id: c.id, name: c.name, x: c.x, y: c.y || 0, z: c.z, angle: c.angle, design: c.state })) };
-}
 
 /** The installation set with the clearances plan after the plans, as the viewer shows it. */
 function drawingSheets(input: DrawingInput): Sheet[] {

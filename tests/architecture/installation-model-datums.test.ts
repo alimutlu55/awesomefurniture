@@ -9,7 +9,7 @@ import { ventilationDetails } from '../../src/domain/drawings/ventilation-detail
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import { sheetPresentation } from '../../src/presentation/drawings/sheet-marks';
 import { installationDrawingFixture } from '../../scripts/installation-drawing-fixture.mjs';
-import { drawingInputOf } from '../../src/presentation/drawings/drawing-release';
+import { drawingInputOf } from '../../src/application/engine/scene-input';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
 import { installationSlab } from '../../src/domain/kitchen/installation-parts';
 import { materialSchedule } from '../../src/domain/drawings/material-schedule';

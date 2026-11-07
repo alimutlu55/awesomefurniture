@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installationDrawingFixture } from '../../scripts/installation-drawing-fixture.mjs';
 import type { EditorScene } from '../../src/application/projects/editor-scene';
-import { drawingInputOf } from '../../src/presentation/drawings/drawing-release';
+import { drawingInputOf } from '../../src/application/engine/scene-input';
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import { cornerCabinetWidths } from '../../src/domain/kitchen/corner-widths';
 import { pieceBoards } from '../../src/domain/drawings/unit-detail';

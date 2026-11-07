@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { installationDrawingFixture } from './installation-drawing-fixture.mjs';
-import { drawingInputOf } from '../src/presentation/drawings/drawing-release.ts';
+import { drawingInputOf } from '../src/application/engine/scene-input.ts';
 import { technicalDrawings } from '../src/domain/drawings/technical-drawings.ts';
 import { sheetPresentation, releaseStamp } from '../src/presentation/drawings/sheet-marks.ts';
 import { marksToSvg } from '../src/presentation/drawings/paper-marks.ts';

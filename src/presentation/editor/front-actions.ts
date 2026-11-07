@@ -4,7 +4,7 @@ import { chosenLeaf, type createSelectionState } from './selection-state.js';
 import type { createEditorModel } from '../../application/projects/editor-model.js';
 import type { createDesignCommands } from '../../application/commands/design-commands';
 import { doorFacts, doorFactsHtml } from './door-facts';
-import { drawingInputOf } from '../drawings/drawing-release';
+import { drawingInputOf } from '../../application/engine/scene-input';
 
 type Model = Pick<ReturnType<typeof createEditorModel>, 'scene' | 'activeCabinet'>;
 type SelectionState = ReturnType<typeof createSelectionState>;
