@@ -29,7 +29,7 @@ export function createSmartGuideOverlay({ dom, model, resources, interactionStat
     const layer = owner.createElement('div'); layer.className = 'smart-guides'; layer.dataset.smartGuides = '';
     const svg = owner.createElementNS(NS, 'svg'); svg.setAttribute('aria-hidden', 'true');
     layer.append(svg); host.append(layer);
-    const pool: { group: SVGGElement; path: SVGPathElement }[] = [];
+    const pool: { group: SVGGElement; path: SVGPathElement; halo: SVGPathElement; dots: SVGCircleElement[] }[] = [];
     let held = new Set<string>(), lastContext = '';
     const vector = new THREE.Vector3();
     function field(): GuideField | null {
@@ -115,13 +115,17 @@ export function createSmartGuideOverlay({ dom, model, resources, interactionStat
         guides.forEach((g, i) => {
             let row = pool[i];
             if (!row) {
-                const group = owner!.createElementNS(NS, 'g'), path = owner!.createElementNS(NS, 'path');
-                group.append(path); svg.append(group);
-                row = { group, path }; pool.push(row);
+                const group = owner!.createElementNS(NS, 'g'), path = owner!.createElementNS(NS, 'path'), halo = owner!.createElementNS(NS, 'path');
+                const dots = [owner!.createElementNS(NS, 'circle'), owner!.createElementNS(NS, 'circle')];
+                halo.setAttribute('class', 'halo'); dots.forEach(d => { d.setAttribute('r', '3.5'); d.setAttribute('class', 'end'); });
+                group.append(halo, path, ...dots); svg.append(group);
+                row = { group, path, halo, dots }; pool.push(row);
             }
             const a = project(g.a), b = project(g.b), aligned = Math.abs(g.delta) < .001;
             row.group.setAttribute('class', aligned ? 'aligned' : 'near');
-            row.path.setAttribute('d', `M${a.x},${a.y}L${b.x},${b.y}`);
+            const d = `M${a.x},${a.y}L${b.x},${b.y}`;
+            row.path.setAttribute('d', d); row.halo.setAttribute('d', d);
+            [a, b].forEach((q, k) => { row!.dots[k]!.setAttribute('cx', String(q.x)); row!.dots[k]!.setAttribute('cy', String(q.y)); });
             row.group.style.display = '';
         });
         pool.slice(guides.length).forEach(row => { row.group.style.display = 'none'; });

@@ -1,6 +1,14 @@
 .smart-guides{position:absolute;pointer-events:none;z-index:8;overflow:hidden;isolation:isolate}
 .smart-guides[hidden]{display:none}
 .smart-guides>svg{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
-.smart-guides path{fill:none;stroke:#5f9f78;stroke-width:.6;stroke-dasharray:2 4;stroke-linecap:butt;opacity:.5;vector-effect:non-scaling-stroke}
-.smart-guides .aligned path{stroke:#32815b;stroke-width:.75;stroke-dasharray:2 4;opacity:.75}
+.smart-guides path{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round}
+/* A soft light underlay keeps the line readable on the dark floor and the pale wood alike. */
+.smart-guides .halo{stroke:rgba(255,255,255,.85);stroke-width:4;opacity:.7}
+.smart-guides path:not(.halo){stroke:#2f9b66;stroke-width:1.5;stroke-dasharray:6 5;opacity:.9}
+.smart-guides .end{fill:#fff;stroke:#2f9b66;stroke-width:1.5;opacity:.9}
+/* Lined up exactly: solid, brighter, with a glow, and the end marks fill in. */
+.smart-guides .aligned path:not(.halo){stroke:#12b571;stroke-width:2;stroke-dasharray:none;opacity:1;filter:drop-shadow(0 0 3px rgba(18,181,113,.7))}
+.smart-guides .aligned .halo{stroke-width:5;opacity:.85}
+.smart-guides .aligned .end{fill:#12b571;stroke:#fff;opacity:1}
 [data-editor-id="view"]:has(> .smart-guides:not([hidden])) [data-editor-id="snap-layer"]{visibility:hidden}
+#snap-layer .snap-line{height:2px;margin-top:-1px;opacity:.95;border-radius:1px;filter:drop-shadow(0 0 3px rgba(18,181,113,.6));background:repeating-linear-gradient(90deg,#12b571 0 6px,transparent 6px 11px)}

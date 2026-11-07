@@ -26,9 +26,9 @@ export function createAssistOverlay({ document, labels, scene, renderState }: As
   group.name = 'measuring-assistant';
   scene.add(group);
   const material = (hex: string, dashed = false) => dashed
-    ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 3, gapSize: 5, toneMapped: false, depthTest: false, transparent: true, opacity: .45 })
-    : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true, opacity: .45 });
-  const ok = material('#2f8a57'), level = material('#2f8a57', true);
+    ? new THREE.LineDashedMaterial({ color: colour(hex), dashSize: 4, gapSize: 3, toneMapped: false, depthTest: false, transparent: true, opacity: .95 })
+    : new THREE.LineBasicMaterial({ color: colour(hex), toneMapped: false, depthTest: false, transparent: true, opacity: .95 });
+  const ok = material('#1f9d5c'), level = material('#1f9d5c', true);
   const tagPool: Lab[] = [];
   let activeTags = 0;
   const linePool: THREE.LineSegments[] = [];
