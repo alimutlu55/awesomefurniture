@@ -86,6 +86,10 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
     const fittedBefore = (i: number) => {
       const f = piece.fittings[i]!;
+      // A drawer's locking plates are laid over the runner pins before the drawer is lowered onto them; the expanding dowels
+      // are hammered through its back once the back is in place (drawer-box.ts).
+      if (f.purpose === 'drawer-plate') return true;
+      if (f.purpose === 'box-back') return false;
       return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!]!.name === 'Cargo front';
     };
     const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || fittedBefore(i) !== before)

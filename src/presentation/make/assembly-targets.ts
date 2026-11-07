@@ -5,6 +5,9 @@ import { drillAt, fittedAt, fixingNow, seeThrough, type Playhead, type Timeline 
 import type { Vec3 } from '../../domain/make/make-measures';
 import type { AssemblyTarget } from './assembly-visibility';
 
+/** The fittings that build a drawer box or hold it on its runners (drawer-box.ts): the box's front is no finished face then. */
+const BOX_PURPOSES: ReadonlySet<string> = new Set(['box-front', 'box-sides', 'box-back', 'drawer-plate', 'drawer-lock']);
+
 /** Visibility is assessed for the active hardware, not every component in a chapter. */
 export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): AssemblyTarget[] {
   const targets: AssemblyTarget[] = [], fixing = fixingNow(tl, ph);
@@ -13,9 +16,10 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
     if (!e || e.board === null) continue;
     const progress = fittedAt(tl, ph, i, piece.fittings[i]!.kind);
     if (progress === null) continue;
+    const throughFronts = BOX_PURPOSES.has(piece.fittings[i]!.purpose ?? '');
     // Probe just outside the entry face, so a visible screw does not fade the board supporting it.
     for (const distance of [.2, Math.max(.2, WAIT * (1 - progress) ** 3)])
-      targets.push({ board: e.board, at: e.at.map((v, k) => v - e.dir[k]! * distance) as unknown as Vec3 });
+      targets.push({ board: e.board, at: e.at.map((v, k) => v - e.dir[k]! * distance) as unknown as Vec3, throughFronts });
   }
   if (!fixing) piece.holes.forEach((h, i) => {
     if (drillAt(tl, ph, i) === null) return;

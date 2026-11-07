@@ -69,26 +69,42 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   };
   shot(0, everything, facing + .7, .7, .95);
   shot(INTRO * .85, everything, facing + .45, .62, .8);
+  // A drawer box is put together outside the cabinet: while it is, the camera is on the box, not the cabinet.
+  const boxBoards = new Set((piece.drawers ?? []).flatMap(d => [d.front, d.bottom, d.back, ...d.sides]));
+  const BOX_STAGES: ReadonlySet<string> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back']);
   tl.steps.forEach((s, k) => {
-    const step = piece.steps[k]!, before = all.filter(i => tl.boardStep[i]! < k);
+    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage);
+    // What is already built that a shot shows with this step's boards: the piece so far, or the drawer boxes so far.
+    const before = all.filter(i => tl.boardStep[i]! < k && (!boxStep || boxBoards.has(i)));
     const isCargoStage = hasCargo && ['drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts'].includes(step.stage);
     const side = isCargoStage ? cargoSide : (k % 2 ? 1 : -1);
     const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k);
-    // Drilling: from above, on the boards waiting and the holes in what already stands.
+    // Drilling: from above on the boards waiting on the floor, then on the holes in what already stands. The two can be
+    // far apart, so each has its own shot rather than one wide enough for both.
     if (s.drill[1] > s.drill[0]) {
-      const time = s.drill[0] + (s.drill[1] - s.drill[0]) * .45;
-      const points = [...step.boards.flatMap(waiting), ...holes.filter(({ h }) => !step.boards.includes(h.board)).flatMap(({ h }) => {
+      const span = s.drill[1] - s.drill[0], time = s.drill[0] + span * .5;
+      const lying = step.boards.filter(b => holes.some(({ h }) => h.board === b)).flatMap(waiting);
+      const standing = holes.filter(({ h }) => !step.boards.includes(h.board)).flatMap(({ h }) => {
         const offset = drawerBoardOffset(piece, tl, playhead(tl, time), h.board);
-        return around([h.at[0] + offset[0], h.at[1] + offset[1], h.at[2] + offset[2]], 6);
-      })];
-      shot(time, points, facing + side * .35, .9, 1.12);
+        return around([h.at[0] + offset[0], h.at[1] + offset[1], h.at[2] + offset[2]], 9);
+      });
+      // Each held while its holes are drilled (a shot at each end of its part of the phase), the camera moving between.
+      const hold = (from: number, to: number, points: THREE.Vector3[], el: number, padding: number) => {
+        shot(s.drill[0] + span * from, points, facing + side * .35, el, padding);
+        shot(s.drill[0] + span * to, points, facing + side * .35, el, padding);
+      };
+      // Holes drilled down into the top edges of what stands are looked down on; holes in its faces from across.
+      const downward = holes.filter(({ h }) => !step.boards.includes(h.board)).every(({ h }) => h.axis === 1), standEl = downward ? .95 : .55;
+      if (lying.length && standing.length) { hold(.05, .42, lying, .9, 1.12); hold(.58, .95, standing, standEl, 1.15); }
+      else if (lying.length || standing.length) hold(.05, .95, lying.length ? lying : standing, lying.length ? .9 : standEl, 1.12);
     }
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test') {
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
-        const points = [...step.boards, ...before].flatMap(i => placed(i, time));
+        // Early on: the boards on their way, from where they wait to where they go. Late: where they went, in what stands.
+        const points = (fraction === .25 && step.boards.length ? step.boards : [...step.boards, ...before]).flatMap(i => placed(i, time));
         if (fraction === .25) points.push(...step.boards.flatMap(waiting));
         if (isCargoStage) {
           points.push(...cargoPointsAt(time, k));
@@ -116,15 +132,22 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
       // A runner group can span several drawers and the full rail depth: frame all screws, not just the middle one.
       const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate' && !piece.fittings[i]!.size?.includes('cargo'));
-      const padRadius = isCargoStage ? 10 : 5;
+      // A drawer lock is small and under a drawer: with enough round it to see which drawer and which side.
+      const padRadius = isCargoStage ? 10 : fix.items.some(i => piece.fittings[i]!.kind === 'drawerLock') ? 14 : 8;
       const points = hingePlate && middle ? around(where(middle.at), 14)
         : entries.flatMap(e => [...around(where(e.at), padRadius), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 4)]);
       // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
       // their line, turned towards the front.
       const out = new THREE.Vector3(...dir).negate(), up = Math.abs(out.y) > .7, turn = j % 2 ? .25 : -.25;
       const w = out.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), facing), way = Math.atan2(w.x, w.z), off = (a: number) => Math.abs(Math.atan2(Math.sin(a - facing), Math.cos(a - facing)));
-      const az = plates && middle ? inside(where(middle.at)) : up ? facing + side * .3 + turn : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!, el = up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
-      const span = fix.at[1] - fix.at[0], fixPad = isCargoStage ? 1.08 : .95;
+      const purpose = piece.fittings[fix.items[0]!]!.purpose, kind = piece.fittings[fix.items[0]!]!.kind;
+      // Seen where they can be seen: a drawer's locking plates and levers from below it, a drawer side's cams from above,
+      // looking down into the box, and the expanding dowels through a drawer back from above and behind it.
+      const below = kind === 'drawerLock', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
+      const az = plates && middle ? inside(where(middle.at)) : below || into ? facing + side * .45 : up ? facing + side * .3 + turn
+        : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
+      const el = below ? -.28 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
+      const span = fix.at[1] - fix.at[0], fixPad = isCargoStage ? 1.08 : 1.12;
       shot(fix.at[0] + span * .2, points, az, el, fixPad);
       shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);
     });
@@ -159,14 +182,16 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         }
         // Leave a short glide between drawers, outside their moving interval.
         const azAngle = hasCargo ? facing + cargoSide * .48 : facing + .65;
-        shot(start + duration * .03, points, azAngle, .36, 1.15);
-        shot(start + duration * .97, points, azAngle, .36, 1.15);
+        shot(start + duration * .03, points, azAngle, .4, 1.5);
+        shot(start + duration * .97, points, azAngle, .4, 1.5);
       });
+      // Then the whole piece, every drawer home.
+      shot(s.end - .15, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, s.end)), facing + .45, .4, 1.1);
     } else {
       // A breath: the piece so far, at this moment rather than at the chapter's start (including any staged/installed cargo mechanism).
       const time = s.end - .15;
       const breathPoints = [
-        ...all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, time)),
+        ...all.filter(i => tl.boardStep[i]! <= k && (!boxStep || boxBoards.has(i))).flatMap(i => placed(i, time)),
         ...cargoPointsAt(time, k),
       ];
       shot(time, breathPoints, facing + side * (isCargoStage ? .48 : .45), isCargoStage ? .36 : .45, isCargoStage ? 1.14 : 1.1);
