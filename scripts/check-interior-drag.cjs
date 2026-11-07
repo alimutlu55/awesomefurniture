@@ -85,7 +85,11 @@ const attached = process.env.INTERIOR_ATTACHED === '1';
     assert.equal(await page.evaluate(a => document.querySelector('#editor').shadowRoot.elementFromPoint(a.x, a.y)?.tagName, a), 'CANVAS', 'drag starts on the model rather than an overlay control');
     if (width <= 900) {
      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...a, id: 1 }] });
-     for (let n = 1; n <= 10; n++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + (b.x - a.x) * n / 10, y: a.y + (b.y - a.y) * n / 10, id: 1 }] });
+     // A finger that drags moves off at once, past the tap slop: held within a few pixels for a moment, a kitchen unit pulls
+     // out copies instead (kitchen-array-gesture.ts), and a loaded machine can deliver small first steps after that moment.
+     const lead = Math.min(1, 12 / Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)));
+     for (let n = 1; n <= 10; n++) { const t = lead + (1 - lead) * (n - 1) / 9;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, id: 1 }] }); }
      if (during) await during();
      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     } else { await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 10 }); if (during) await during(); await page.mouse.up(); }
