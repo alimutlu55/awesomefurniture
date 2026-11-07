@@ -5,6 +5,7 @@ import { createItemCommands } from './item-commands';
 import { createLayoutCommands } from './layout-commands';
 import { createAppearanceCommands } from './appearance-commands';
 import { createFrontCommands } from './front-commands';
+import { createBaySplitCommands } from './bay-split-commands';
 import { createCommandWorkflow } from './command-workflow';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { EditorState } from '../projects/editor-scene';
@@ -34,6 +35,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const layouts = createLayoutCommands({ getDesign, effects, rules });
     const appearance = createAppearanceCommands({ getDesign, effects, run });
     const fronts = createFrontCommands({ getDesign, widths: () => rules.widths(), run });
+    const baySplit = createBaySplitCommands({ getDesign, effects });
     const shaped = () => !isRegularShape(getDesign().shape);
     /** Outer height a bay planner should assume: the lowest clear point across the bay. */
     const bayHeight = (i: number) => Math.floor(rules.ceilingIn(i, 0, rules.widths()[i]!) + plinthOf(getDesign()) + 2 * PANEL);
@@ -70,5 +72,5 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     // afterward could compact or remove the very fittings the command preserves.
     const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
     return { run, ...dividers, ...dividerAlign, setDividerClearance, ...sizing, ...items, addMod, editItem,
-        ...layouts, applyProposal, autofill, changeSections, ...appearance, ...fronts };
+        ...layouts, applyProposal, autofill, changeSections, ...appearance, ...fronts, ...baySplit };
 }
