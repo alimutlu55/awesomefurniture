@@ -30,6 +30,7 @@ import creditsStylesheet from '../credits/credits.css?raw';
 import type { CreditsPlatform } from '../credits/credits.ports';
 import accountStylesheet from '../account/account.css?raw';
 import type { AccountPlatform } from '../account/account.ports';
+import { noopAnalytics, type AnalyticsPort } from '../../application/analytics/analytics-port';
 import experienceStylesheet from '../experience/experience.css?raw';
 import welcomeStylesheet from '../experience/welcome.css?raw';
 import loadingStylesheet from '../components/loading-state.css?raw';
@@ -47,6 +48,8 @@ export interface MountEditorOptions {
     credits?: CreditsPlatform | undefined;
     /** Given, the menu offers signing in and creating an account (src/app/account-platform.ts). */
     account?: AccountPlatform | undefined;
+    /** Product analytics (src/app/analytics-platform.ts); without it nothing is measured. */
+    analytics?: AnalyticsPort | undefined;
     cameraPerspective?: 'front' | 'scene' | undefined;
     /** Scene keeps the photographic backdrop for embedded product previews. */
     backdrop?: 'paper' | 'scene' | undefined;
@@ -54,7 +57,7 @@ export interface MountEditorOptions {
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, cameraPerspective, backdrop = 'paper' }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, analytics = noopAnalytics, cameraPerspective, backdrop = 'paper' }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -80,7 +83,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     });
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom, shareLink, credits, account, cameraPerspective);
+        editor = startEditor(initialScene, dom, shareLink, credits, account, cameraPerspective, analytics.track);
         if (onBack) {
             dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
             const back = dom.$('#designs-back');

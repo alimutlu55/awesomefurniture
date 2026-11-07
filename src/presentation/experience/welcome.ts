@@ -5,6 +5,7 @@ import { mountMobileSheet } from '../editor/mobile-sheet.js';
 import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import type { ExperienceDocument, ExperienceLifetime } from './lifetime.ports';
 import { createLoadingPlaceholder, paintLoading } from '../components/loading-state';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
 
 export interface WelcomePorts {
   /** The editor's own element: the welcome is one of its panels. */
@@ -25,6 +26,8 @@ export interface WelcomePorts {
   skip(): void;
   /** Where the welcome is drawn changed: the editor keeps the room in view beside or above it. */
   layout(rect: DOMRect | null): void;
+  /** Product analytics: where people stop in the welcome, and what they build. */
+  readonly track?: TrackEvent | undefined;
 }
 
 const icon = (path: string) => '<svg class="xp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="' + path + '"/></svg>';
@@ -40,7 +43,13 @@ const TITLES = { space: 'Where will it live?', things: 'What goes inside?', buil
 export function createWelcome(ports: WelcomePorts) {
   const { document: doc, lifetime } = ports, listen = lifetime.listen;
   let step: keyof typeof TITLES = 'space', chosen: Space = SPACES[0]!, persona = 'everyday', belongings = personaBelongings(persona);
-  let open = false, prepareTimer: unknown = null;
+  let open = false, prepareTimer: unknown = null, openedAt = 0, previewed = new Set<string>();
+  const track: TrackEvent = ports.track ?? (() => {});
+  /** Closed without building: back to the design as it was. */
+  function dismiss() {
+    if (open && step !== 'building') track('welcome_skipped', { abandoned_at_step: step === 'things' ? 'things' : 'space', space_id: chosen.id, time_spent_ms: Date.now() - openedAt });
+    close(); ports.skip();
+  }
   const root = doc.createElement('div');
   root.className = 'pop editor-panel xp-welcome';
   root.setAttribute('role', 'dialog');
@@ -69,7 +78,7 @@ export function createWelcome(ports: WelcomePorts) {
   const $$ = <T extends Element = HTMLElement>(s: string) => [...root.querySelectorAll(s)] as T[];
   $('.xp-loom').replaceWith(createLoadingPlaceholder(doc, 'Planning your wardrobe…', 'canvas'));
   // The editor's own sheet: a handle to drag it up or down (down closes it), the same heights as every panel.
-  mountMobileSheet({ document: doc, lifetime, panel: root, name: 'New design', close: () => { close(); ports.skip(); }, bottom: true, scene: ports.container, docked: ports.docked });
+  mountMobileSheet({ document: doc, lifetime, panel: root, name: 'New design', close: () => { dismiss(); }, bottom: true, scene: ports.container, docked: ports.docked });
 
   function render() {
     $('.xp-title').textContent = TITLES[step];
@@ -119,6 +128,8 @@ export function createWelcome(ports: WelcomePorts) {
     try {
       await paintLoading(root);
       const result = await ports.build(chosen, belongings);
+      track('welcome_built', { space_id: chosen.id, persona_id: persona || 'custom', total_belongings: countBelongings(belongings), build_ok: result.ok,
+        duration_ms: Date.now() - openedAt });
       if (result.ok) { close(); return; }
       go('things'); problem(result.message);
     } catch {
@@ -134,12 +145,16 @@ export function createWelcome(ports: WelcomePorts) {
   listen(root, 'click', e => {
     const target = e.target as HTMLElement;
     const card = target.closest<HTMLElement>('.xp-space');
-    if (card) { chosen = spaceById(card.dataset.space!); render(); ports.preview(chosen); return; }
+    if (card) { chosen = spaceById(card.dataset.space!); previewed.add(chosen.id); render(); ports.preview(chosen); return; }
     const chip = target.closest<HTMLElement>('[data-persona]');
     if (chip) { persona = chip.dataset.persona!; belongings = personaBelongings(persona); render(); warm(); return; }
-    if (target.closest('.xp-next')) { if (step === 'space') go('things'); else void build(); return; }
+    if (target.closest('.xp-next')) {
+      if (step === 'space') { track('welcome_space_selected', { space_id: chosen.id, previewed_spaces_count: previewed.size }); go('things'); }
+      else void build();
+      return;
+    }
     if (target.closest('.xp-back')) { go('space'); return; }
-    if (target.closest('.xp-close') && step !== 'building') { close(); ports.skip(); }
+    if (target.closest('.xp-close') && step !== 'building') { dismiss(); }
   });
   // − and + count on each tap; held down, they repeat, faster the longer they are held.
   let hold: unknown = null;
@@ -157,7 +172,7 @@ export function createWelcome(ports: WelcomePorts) {
   listen(root, 'keydown', e => {
     const k = e as KeyboardEvent, b = (k.target as HTMLElement).closest?.<HTMLElement>('[data-step-by]');
     if (b && (k.key === 'Enter' || k.key === ' ')) { k.preventDefault(); const key = b.closest<HTMLElement>('.xp-thing')!.dataset.thing!; setCount(key, (belongings[key] ?? 0) + Number(b.dataset.stepBy)); }
-    if (k.key === 'Escape' && step !== 'building') { close(); ports.skip(); }
+    if (k.key === 'Escape' && step !== 'building') { dismiss(); }
   });
   listen(root, 'input', e => {
     const input = e.target as HTMLInputElement, row = input.closest<HTMLElement>('.xp-thing');
@@ -174,12 +189,13 @@ export function createWelcome(ports: WelcomePorts) {
   if (Observer) lifetime.observe(new Observer(queueLayout), root);
   // Panels replace one another: another panel opening closes the welcome, as closing it would.
   const Mutations = ports.view?.MutationObserver;
-  if (Mutations) lifetime.observe(new Mutations(() => { if (open && !root.classList.contains('show') && step !== 'building') { close(); ports.skip(); } }), root,
+  if (Mutations) lifetime.observe(new Mutations(() => { if (open && !root.classList.contains('show') && step !== 'building') { dismiss(); } }), root,
     { attributes: true, attributeFilter: ['class'] });
 
-  function show() {
+  function show(trigger: 'initial_empty_design' | 'menu_plan_from_owned' = 'initial_empty_design') {
     if (open) return;
-    open = true;
+    open = true; openedAt = Date.now(); previewed = new Set([chosen.id]);
+    track('welcome_opened', { trigger });
     step = 'space';
     render();
     root.dataset.sheetPosition = 'compact';

@@ -13,6 +13,8 @@ import type { CreditWalletApi } from '../credits/credit-wallet';
 import type { CreditFeatureKey } from '../../domain/credits/credit-catalog';
 import { createLoadingPlaceholder, createLoadingState, paintLoading } from '../components/loading-state';
 import { saveFile } from '../components/save-file';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
+import { sceneSummary } from '../../application/analytics/scene-summary';
 
 interface Ports {
   /** The editor's controls, and the page it is mounted in (a download link belongs to the page). */
@@ -23,6 +25,7 @@ interface Ports {
   closeMenu(): void;
   /** Pays for a drawing set (the first is free; a design stays open for its pass). Absent: drawings are free. */
   credits?: CreditWalletApi | null;
+  track?: TrackEvent | undefined;
 }
 const FEATURE: CreditFeatureKey = 'technical-drawings';
 
@@ -45,7 +48,7 @@ const fileName = (project: string) => project.toLowerCase().replace(/[^a-z0-9]+/
 
 /** "Technical drawings" in the editor menu: the design as a carpenter's drawing set (plan and wall elevations, every
  * dimension in millimetres) on A3 sheets to read on screen, zoomed, and saved as a PDF file the app writes itself. */
-export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = null }: Ports) {
+export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = null, track = () => {} }: Ports) {
   const { document } = dom, page = dom.host.ownerDocument, menu = dom.$('#menu'), item = document.createElement('button');
   item.className = 'mi'; item.type = 'button'; item.setAttribute('role', 'menuitem');
   item.innerHTML = ICON + '<span>Technical drawings</span>';
@@ -97,6 +100,7 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
       + blocking.slice(0, 3).map(f => f.message).join('; ') + (blocking.length > 3 ? '; see the Manufacturing check sheet' : '') + '.';
     save.textContent = validation.ready ? 'Save as PDF' : 'Save review PDF';
     save.title = validation.ready ? 'Save the drawings, checked for manufacture' : 'Save the drawings marked NOT FOR MANUFACTURE';
+    return { blocking: blocking.length, rules: [...new Set(blocking.map(f => f.rule))], checks, summary: sceneSummary(s) };
   }
   let opening = false;
   async function open() {
@@ -112,7 +116,9 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
       panel.querySelector<HTMLButtonElement>('.drawings-close')!.focus();
       await paintLoading(panel);
       if (disposed || panel.hidden || token !== generation) return;
-      build(); scale = 1; zoomTo(1); list.scrollTo(0, 0);
+      const built = build(); scale = 1; zoomTo(1); list.scrollTo(0, 0);
+      track('drawings_opened', { sheet_count: current!.pages.length, ready_for_manufacture: current!.validation.ready, blocking_findings_count: built.blocking,
+        blocking_rule_ids: built.rules, review_issues_count: built.checks, wardrobe_count: built.summary.wardrobes, kitchen_unit_count: built.summary.kitchens });
     } catch {
       list.replaceChildren(); current = null;
       count.textContent = 'Drawings could not be prepared. Close and try again.';
@@ -127,6 +133,8 @@ export function bindDrawingsViewer({ dom, lifetime, scene, closeMenu, credits = 
     if (!releaseCurrent(current, scene())) build();
     const name = fileName(current.info.project), bytes = marksToPdf(current.marks, { w: PAPER.w, h: PAPER.h }, current.info.project + ' - technical drawings');
     await saveFile(page, name, new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' }));
+    track('drawings_pdf_exported', { sheet_count: current.pages.length, ready_for_manufacture: current.validation.ready,
+      blocking_findings_count: current.validation.findings.filter(f => f.severity === 'critical').length });
   }
   lifetime.listen(item, 'click', () => { void open(); });
   lifetime.listen(panel.querySelector('.drawings-close')!, 'click', close);

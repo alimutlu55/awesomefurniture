@@ -1,4 +1,5 @@
 import type { CreditsPlatform } from './credits.ports';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
 
 export interface CreditWalletPorts {
   /** The editor's controls, and the page it is mounted in. */
@@ -16,4 +17,6 @@ export interface CreditWalletPorts {
   closeMenu?(): void;
   /** Opens signing in or creating an account: credits belong to an account (src/presentation/account). */
   signIn(): void;
+  /** Product analytics: the wallet opening, packs chosen, credit gates. */
+  track?: TrackEvent | undefined;
 }

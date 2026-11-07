@@ -32,7 +32,7 @@ const ENDED: Partial<Record<OrderStatus, string>> = {
 };
 
 /** "Credits" with the balance in the editor menu, and the wallet sheet it opens: packs, the email step, checkout and activity. */
-export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = () => {}, signIn }: CreditWalletPorts) {
+export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = () => {}, signIn, track = () => {} }: CreditWalletPorts) {
   const client = createCreditsClient(platform), page = dom.host.ownerDocument, win = page.defaultView!;
   const still = () => win.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -134,6 +134,8 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
 
   function open(options: { need?: WalletNeed; view?: View } = {}) {
     if (overlay.hidden) {
+      track('wallet_opened', { trigger: options.need ? 'insufficient_credits' : options.view === 'wait' ? 'checkout_return' : 'menu',
+        needed_feature: options.need?.feature ?? null, balance: client.wallet?.balance ?? 0 });
       previousFocus = page.activeElement as HTMLElement | null;
       overflow = page.body.style.overflow; page.body.style.overflow = 'hidden';
     }
@@ -230,7 +232,10 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
   lifetime.listen($('.cr-close'), 'click', close);
   lifetime.listen($('.cr-done-close'), 'click', close);
   lifetime.listen(buy, 'click', () => { void startCheckout(); });
-  lifetime.listen(packs, 'click', e => { const card = (e.target as HTMLElement).closest<HTMLElement>('.cr-pack'); if (card?.dataset.pack) select(card.dataset.pack, true); });
+  lifetime.listen(packs, 'click', e => { 
+    const card = (e.target as HTMLElement).closest<HTMLElement>('.cr-pack');
+    if (card?.dataset.pack) { select(card.dataset.pack, true); track('wallet_pack_selected', { pack_id: card.dataset.pack }); }
+  });
   lifetime.listen(packs, 'keydown', event => {
     const e = event as KeyboardEvent, ids = client.wallet?.packs.map(p => p.id) ?? [];
     const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
@@ -271,7 +276,7 @@ export function bindCreditWallet({ dom, lifetime, platform, toast, closeMenu = (
     if (!overlay.hidden) page.body.style.overflow = overflow;
     overlay.remove(); chip.remove();
   });
-  const gate = bindCreditGate({ client, page, host: dom.$('#app'), lifetime, toast, openWallet: need => open({ need }), needsAccount });
+  const gate = bindCreditGate({ client, page, host: dom.$('#app'), lifetime, toast, openWallet: need => open({ need }), needsAccount, track });
   return {
     client, open, close, ...gate, needsAccount,
     /** What to offer after a purchase that started from this feature ("Create your AI image"). */

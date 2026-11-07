@@ -44,7 +44,9 @@ export function bindIdeaApply({ dom, planner, shell, plannerState, geometry, com
             shell.toast('Setup changed. Choose from the refreshed ideas.');
             return;
         }
-        commands.applyProposal(plannerState.ideas[+( /** @type {HTMLElement} */(b)).dataset.idea]);
+        const proposal = plannerState.ideas[+( /** @type {HTMLElement} */(b)).dataset.idea];
+        commands.applyProposal(proposal);
+        planner.applied(proposal);
         planner.closeWizard();
     };
 }

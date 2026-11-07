@@ -7,6 +7,7 @@ import { createMemoryCreditStore } from './memory-credit-store';
 import { createStripeProvider } from './stripe-provider';
 import { createSupabaseCreditStore } from './supabase-credit-store';
 import { createTestPaymentProvider } from './test-payment-provider';
+import type { ServerAnalytics } from '../../application/analytics/analytics-port';
 
 /** Server settings for credits. Secrets are Worker secrets (`wrangler secret put`), never `VITE_` variables. */
 export interface CreditEnvironment {
@@ -44,7 +45,8 @@ const runtimes = new WeakMap<object, CreditRuntime | null>();
  * Test mode keeps credits in memory and pays with a pretend checkout. Only the local dev server passes
  * `allowTest`; a deployed Worker never runs it, whatever its variables say.
  */
-export function createCreditRuntime(env: CreditEnvironment, origin: string, { allowTest = false } = {}): CreditRuntime | null {
+export function createCreditRuntime(env: CreditEnvironment, origin: string,
+  { allowTest = false, analytics }: { allowTest?: boolean; analytics?: ServerAnalytics } = {}): CreditRuntime | null {
   if (env.CREDITS_MODE === 'test') {
     if (!allowTest) return null;
     if (testRuntime) return testRuntime;
@@ -53,7 +55,7 @@ export function createCreditRuntime(env: CreditEnvironment, origin: string, { al
     const verify = requestUser(auth);
     testRuntime = {
       mode: 'test',
-      service: createCreditService({ store, providers: [provider], requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false' }),
+      service: createCreditService({ store, providers: [provider], requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false', ...(analytics ? { analytics } : {}) }),
       // Offline automated checks have no Supabase session: they act as one local person.
       authenticate: async request => request.headers.has('authorization') ? verify(request).catch(() => null) : LOCAL_TEST_USER,
       test: { ...provider, grant: store.grant, order: store.order },
@@ -70,7 +72,8 @@ export function createCreditRuntime(env: CreditEnvironment, origin: string, { al
   }
   const runtime: CreditRuntime = {
     mode: 'live',
-    service: createCreditService({ store: createSupabaseCreditStore(client), providers, requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false' }),
+    service: createCreditService({ store: createSupabaseCreditStore(client), providers, requireAccount: env.CREDITS_REQUIRE_ACCOUNT !== 'false',
+      ...(analytics ? { analytics } : {}) }),
     authenticate: requestUser(client),
     test: null,
   };

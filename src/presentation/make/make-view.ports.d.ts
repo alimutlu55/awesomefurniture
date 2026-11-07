@@ -20,4 +20,8 @@ export interface MakeViewPorts {
   setConstruction(id: number, change: Partial<import('../../domain/make/make-construction').Construction>): boolean;
   /** Pays for saving the piece's drawings or cut list (the drawing set's price and pass); false when not paid. */
   pay(): Promise<boolean>;
+  /** Make opened on a piece of this many parts (product analytics). */
+  opened?(parts: number): void;
+  /** The piece's drawings or cut list were saved (product analytics). */
+  saved?(kind: 'pdf' | 'csv', parts: number): void;
 }

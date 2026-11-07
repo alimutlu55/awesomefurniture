@@ -44,6 +44,8 @@ export async function prepareSession(url: URL) {
   const requestedId = hasInline ? null : url.searchParams.get('session') ?? url.searchParams.get('project');
   let draft: SessionDraft | null = null;
   let saved = false;
+  /** A design someone shared (`?session=`): whether it opened, for analytics. */
+  let sharedSession: 'opened' | 'invalid' | null = null;
   /** The design that was open last, if it still exists; otherwise the account's newest design; otherwise nothing. */
   async function restore() {
     try { draft = drafts.read(); } catch {
@@ -90,7 +92,9 @@ export async function prepareSession(url: URL) {
         draft = { document: {
           ...shared.document, id: crypto.randomUUID(), name: shared.document.name.slice(0, 113) + ' · Copy',
         }, expectedRevision: null };
+        sharedSession = 'opened';
       } catch {
+        sharedSession = 'invalid';
         // Removed, private or never shared (an old address, or one from before signing in): open the person's own work.
         await restore();
       }
@@ -103,6 +107,6 @@ export async function prepareSession(url: URL) {
   }
   const deferCreation = !draft || (!saved && draft.expectedRevision === null && !drafts.read(draft.document.id));
   draft ??= { document: createProject(crypto.randomUUID(), 'Untitled design'), expectedRevision: null };
-  return { client, user, repository, drafts, draft, saved, deferCreation, warning, handover, switched: () => switched };
+  return { client, user, repository, drafts, draft, saved, deferCreation, warning, handover, sharedSession, switched: () => switched };
 }
 export type SessionPlatform = Awaited<ReturnType<typeof prepareSession>>;

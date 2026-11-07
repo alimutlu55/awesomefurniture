@@ -62,9 +62,13 @@ import { mountExperience } from '../experience/experience';
 import { createMakeView } from '../make/make-view';
 import { createMakeCommands } from '../../application/commands/make-commands';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
+import type { TrackEvent } from '../../application/analytics/analytics-port';
+import { sceneSummary } from '../../application/analytics/scene-summary';
+import { withDesignAnalytics } from './piece-analytics';
+import { furnitureKind } from '../../domain/furniture/furniture';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
-    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform, cameraPerspective?: 'front' | 'scene') {
+    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform, cameraPerspective?: 'front' | 'scene', track: TrackEvent = () => {}) {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -115,7 +119,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 history.checkpoint(model.snapshot());
                 inspector.histUI();
             } };
-        const sceneCommands = createSceneCommands(() => model.scene, { checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint, report: message => shell.toast(message) });
+        const sceneCommands = withDesignAnalytics(createSceneCommands(() => model.scene, { checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint,
+            report: message => shell.toast(message) }), track, () => model.scene.wardrobes);
         const commands = createDesignCommands(() => model.activeCabinet().state, {
             getBudget: () => settings.budget, report: (message, action) => shell.toast(message, action), changed: keep => inspector.update(keep),
             checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint,
@@ -186,7 +191,8 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         // Pull-to-array: copies of a kitchen unit pulled out from its side or after a long press.
         const arrayFeedback = createTactileFeedback(dom);
         const kitchenArray = createKitchenArrayGesture({ dom, model, sceneCommands, history: { checkpoint: snapshot => history.checkpoint(snapshot) }, lifetime, picking, renderState,
-            callbacks: { rebuild: () => rendering.build(), finished: () => { inspector.update(true); inspector.histUI(); }, added: () => framing.frame(), toast: message => shell.toast(message), tick: count => arrayFeedback.tick(count) } });
+            callbacks: { rebuild: () => rendering.build(), finished: () => { inspector.update(true); inspector.histUI(); },
+                added: count => { framing.frame(); track('kitchen_array_committed', { copies_added: count }); }, toast: message => shell.toast(message), tick: count => arrayFeedback.tick(count) } });
         lifetime.cleanup(() => kitchenArray.dispose());
         const shapeInspector = createShapeInspector({ dom, model, sceneCommands, picking, selectionState, callbacks: {
             refresh: () => inspector.update(true), rebuild: () => rendering.build(), histUI: () => inspector.histUI(),
@@ -204,27 +210,33 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         inspectorPort.connect(createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState,
             renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector: { render() { shapeInspector.render(); sizeDrawing.render(); } },
             studioPanel, kitchenPanel, roomFields: room.fields }));
-        plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }));
+        plannerPort.connect(createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime, track }));
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         // Make: the selected piece taken down to its parts, in the editor's own view, toolbar and panel. Its full drawing set
         // is the paid one (bound below).
         const makeCommands = createMakeCommands(() => model.scene, historyActions.checkpoint);
         const make = createMakeView({ dom, lifetime, resources, camera, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message),
-            setConstruction: (id, change) => makeCommands.setConstruction(id, change), pay: async () => !credits || await credits.charge('technical-drawings'),
+            setConstruction: (id, change) => {
+                const changed = makeCommands.setConstruction(id, change);
+                if (changed) track('make_construction_changed', { setting: change.joints ? 'joints' : change.back ? 'back' : 'edge_band_mm', value: String(change.joints ?? change.back ?? '') });
+                return changed;
+            },
+            opened: parts => track('make_opened', { product: furnitureKind(model.activeCabinet().state), part_count: parts }),
+            saved: (format, parts) => track('make_export_saved', { format, part_count: parts }), pay: async () => !credits || await credits.charge('technical-drawings'),
             refreshToolbar: () => refreshContextualToolbar(dom.$('#toolbar')),
             closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray,
             make });
         bindKitchenConstruction({ dom, rendering, inspector, selectionState, model, sceneCommands, history, lifetime });
-        bindShareMenu({ dom, shell, model, lifetime, shareLink });
+        bindShareMenu({ dom, shell, model, lifetime, shareLink, track });
         bindLengthUnits({ dom, lifetime, redraw: () => { rendering.build(); inspector.update(true); rendering.redrawStudio(); } });
         bindMaxReachMenu({ dom, lifetime, current: () => model.scene.maxReach, set: value => { if (sceneCommands.setMaxReach(value)) { rendering.build(); inspector.update(true); } } });
         // Signing in, first in the menu; the coin balance and wallet, whose credits need an account.
-        const account = accountPlatform ? bindAccount({ dom, lifetime, platform: accountPlatform, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message) }) : null;
+        const account = accountPlatform ? bindAccount({ dom, lifetime, platform: accountPlatform, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message), track }) : null;
         const credits = creditsPlatform ? bindCreditWallet({ dom, lifetime, platform: creditsPlatform,
             toast: message => shell.toast(message), closeMenu: () => shell.closeDD(),
-            signIn: () => account?.open({ reason: 'credits' }) }) : null;
-        const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits });
+            signIn: () => account?.open({ reason: 'credits' }), track }) : null;
+        const drawings = bindDrawingsViewer({ dom, lifetime, scene: () => model.scene, closeMenu: () => shell.closeDD(), credits, track });
         // Insight: the engine's design check, prices, passport and change history; fixes go through the editor's commands.
         let currency = currencyForLanguage(dom.host.ownerDocument.documentElement.lang || navigator.language);
         const engine = createEngineService({ currency: () => currency });
@@ -232,7 +244,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             currency, setCurrency: next => { currency = next; },
             fix: action => applyFix(action, { scene: () => model.scene, select: id => { model.scene.activeWardrobe = id; inspector.update(false); },
                 splitSelectedBay: () => commands.splitBay(), setConstruction: (id, change) => makeCommands.setConstruction(id, change) }) });
-        bindDesignImageViewer({ dom, lifetime, credits, capture: () => experience.neutral(() => {
+        bindDesignImageViewer({ dom, lifetime, credits, analytics: { track, summary: () => sceneSummary(model.scene) }, capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);
@@ -246,7 +258,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         // The welcome, the wardrobe assembling itself, and the moods of the scene: drawn over the editor.
         const experience = mountExperience({ dom, lifetime, resources, renderState, cameraState, camera, scene: () => model.scene,
             design: { preview: project => showDesign(project, false), replace: replaceDesign, snapshot: model.snapshot, restore: snapshot => showScene(snapshot, true) },
-            drawings: () => drawings.open(), autoDesign: () => planner.openWizard(), closeMenu: () => shell.closeDD() });
+            drawings: () => drawings.open(), autoDesign: () => planner.openWizard(), closeMenu: () => shell.closeDD(), track });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));

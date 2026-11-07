@@ -2,6 +2,7 @@ import { CREDIT_FEATURES, CREDIT_PACKS, creditFeature, creditPack, packCredits, 
 import { PaymentProviderError, type CheckoutLinks, type CreditStore, type CreditUser, type PaymentOrder, type PaymentProvider, type PaymentUpdate,
   type SpendResult } from './credit-ports';
 import type { CreditWallet, OrderConfirmation } from './credit-wallet';
+import { noopServerAnalytics, type ServerAnalytics } from '../analytics/analytics-port';
 
 export type CreditErrorCode = 'UNKNOWN_PACK' | 'UNKNOWN_PROVIDER' | 'UNKNOWN_FEATURE' | 'ACCOUNT_REQUIRED' | 'INSUFFICIENT_CREDITS'
   | 'ORDER_NOT_FOUND' | 'INVALID_REQUEST' | 'SIGN_IN_REQUIRED' | 'CREDITS_UNAVAILABLE' | 'RATE_LIMITED';
@@ -28,10 +29,13 @@ interface Dependencies {
   requireAccount: boolean;
   /** Something an operator must look at (money taken without credits, a provider that does not answer). Default: a JSON log line. */
   report?: (event: string, detail: Readonly<Record<string, string | number | null>>) => void;
+  /** Checkouts and settled payments for the owner's analytics (docs/analytics.md). */
+  analytics?: ServerAnalytics;
 }
+type SettledVia = 'webhook' | 'return_poll' | 'cron_reconcile';
 
 /** Buying, spending and reading credits. Prices come only from the catalog; the store keeps every change. */
-export function createCreditService({ store, providers, requireAccount,
+export function createCreditService({ store, providers, requireAccount, analytics = noopServerAnalytics,
   report = (event, detail) => console.error(JSON.stringify({ event, ...detail })) }: Dependencies) {
   const provider = (id: string) => providers.find(p => p.id === id);
   const feature = (key: string, settlement: CreditFeature['settlement']) => {
@@ -81,6 +85,8 @@ export function createCreditService({ store, providers, requireAccount,
     const session = await via.checkout(order, input.links, user.email, `${pack.label} pack · ${packCredits(pack)} credits`)
       .catch(async (error: unknown) => { await store.expireOrder(order.id).catch(() => undefined); throw error; });
     await store.attachOrder(order.id, session.providerRef);
+    analytics.record('checkout_started', { pack_id: pack.id, credits: order.credits, amount_minor: order.amount, currency, provider: via.id },
+      { userId: user.id, anonymous: user.anonymous });
     return { orderId: order.id, url: session.url };
   }
 
@@ -96,11 +102,15 @@ export function createCreditService({ store, providers, requireAccount,
   }
 
   /** Applies one verified provider update, once: a replayed event is skipped. */
-  async function apply(via: PaymentProvider, update: PaymentUpdate) {
+  async function apply(via: PaymentProvider, update: PaymentUpdate, settledVia: SettledVia) {
     const order = await orderOf(via, update);
     if (!await store.recordEvent(via.id, update.eventId, update.kind, order?.id ?? null)) return 'replay' as const;
     if (update.kind === 'paid' && order) {
       const result = await store.completeOrder(update.capture);
+      if (result === 'credited') {
+        analytics.record('payment_settled', { pack_id: order.packId, credits: order.credits, amount_minor: order.amount, currency: order.currency,
+          settled_via: settledVia }, { userId: order.userId });
+      }
       // Money was taken and no credits were added: refund it, or credit it by hand (credits_grant). docs/credits.md
       if (result === 'mismatch' || result === 'unknown') {
         report('credits_paid_not_credited', { orderId: order.id, provider: via.id, eventId: update.eventId, result,
@@ -119,7 +129,7 @@ export function createCreditService({ store, providers, requireAccount,
   async function receive(providerId: string, body: string, headers: { get(name: string): string | null }) {
     const via = provider(providerId);
     if (!via) throw new CreditError('UNKNOWN_PROVIDER', 'Unknown payment provider.');
-    return apply(via, await via.webhook(body, headers));
+    return apply(via, await via.webhook(body, headers), 'webhook');
   }
 
   /** The person came back from checkout: if the webhook has not arrived yet, ask the provider directly. */
@@ -133,7 +143,7 @@ export function createCreditService({ store, providers, requireAccount,
         report('credits_lookup_failed', { orderId: order!.id, provider: via.id, reason: reasonOf(error) });
         return null;
       });
-      if (update) { await apply(via, update); order = await store.order(order.id) ?? order; }
+      if (update) { await apply(via, update, 'return_poll'); order = await store.order(order.id) ?? order; }
     }
     const { balance } = await store.summary(user.id, 0);
     return { orderId: order.id, status: order.status, credits: order.credits, balance };
@@ -170,7 +180,7 @@ export function createCreditService({ store, providers, requireAccount,
       if (!via) continue;
       try {
         const update = await via.lookup(order);
-        if (update && update.kind !== 'pending' && await apply(via, update) === 'applied') settled++;
+        if (update && update.kind !== 'pending' && await apply(via, update, 'cron_reconcile') === 'applied') settled++;
       } catch (error) {
         report('credits_reconcile_failed', { orderId: order.id, provider: via.id, reason: reasonOf(error) });
       }

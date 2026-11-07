@@ -11,7 +11,7 @@ import { planInBackground } from './planner-worker-client';
 import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
 /** wizard presentation behavior; the view ports provide transient UI state and application commands. */
 /** @param {import('./planner-presenter.ports').CreatePlannerPresenterPorts} ports */
-export function createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime }) {
+export function createPlannerPresenter({ dom, inspector, shell, plannerState, geometry, model, commands, plannerService, lifetime, track = () => {} }) {
     const kitchenPlan = createKitchenPlan({ $: dom.$, model });
     const { $, document } = dom;
     let ideasLoading;
@@ -115,7 +115,10 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
     }
     function showIdeas(cfg) {
         ideasLoading?.stop();
+        const started = Date.now();
         plannerState.ideas = plannerService.generate(cfg);
+        track('auto_design_proposals_generated', { proposal_count: plannerState.ideas.length, compute_ms: Date.now() - started,
+            complete_fit: plannerState.ideas.some(p => p.inventory?.complete ?? p.complete ?? false) });
         plannerState.ideasConfig = JSON.stringify({ ...cfg, engaged: 0 });
         renderIdeas();
         $('#ideas').setAttribute('aria-busy', 'false');
@@ -158,6 +161,8 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         $('#wizard').hidden = false;
         $('#app').classList.add('auto-design-open');
         $('#app').inert = true;
+        const { w, h, d } = model.activeCabinet().state;
+        track('auto_design_opened', { wardrobe_w_cm: w, wardrobe_h_cm: h, wardrobe_d_cm: d });
         if (plannerService.has(geometry.plannerConfig())) {
             refreshIdeas();
         }
@@ -229,5 +234,10 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         showCalculating('Settings changed · updating');
         plannerState.ideasTimer = lifetime.timeout(() => refreshIdeas(true), 350);
     }
-    return { miniPlan, renderIdeas, syncPreferences, readPreferences, refreshIdeas, openWizard, closeWizard, storedNow, planUI, markIdeasDirty, planned, kitchenSpecs: kitchenPlan.specs };
+    /** A proposal was used: which one, by its place in the list (product analytics). */
+    function applied(proposal) {
+        const rank = plannerState.ideas.indexOf(proposal);
+        track('auto_design_proposal_applied', { chosen_rank: rank, chosen_archetype: proposal?.archetype ?? null });
+    }
+    return { applied, miniPlan, renderIdeas, syncPreferences, readPreferences, refreshIdeas, openWizard, closeWizard, storedNow, planUI, markIdeasDirty, planned, kitchenSpecs: kitchenPlan.specs };
 }

@@ -84,8 +84,12 @@ export async function handleDesignImage(request: Request, env: ImageServiceEnvir
           ...credits,
         });
       }
+      const started = Date.now();
       const { usage, ...result } = await generateDesignImage(input, env.GEMINI_API_KEY!, signal, fetcher, env.LOG_LEVEL);
       await hold?.commit(usage);
+      // The cost of each image for Workers Logs (docs/analytics.md); credit_spends keeps the same counts per spend.
+      console.info(JSON.stringify({ event: 'ai_image_delivered', model: GEMINI_IMAGE_MODEL, style: input.renderConfig?.style ?? null,
+        category: input.renderConfig?.category ?? null, latencyMs: Date.now() - started, ...usage }));
       return json({ ...result, ...credits });
     } catch (error) {
       await hold?.refund(timeout.aborted ? 'timeout' : request.signal.aborted ? 'cancelled' : error instanceof ImageGenerationError ? error.code : 'failed');

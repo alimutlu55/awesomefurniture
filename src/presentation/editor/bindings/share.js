@@ -1,8 +1,9 @@
 import { createLoadingState } from '../../components/loading-state';
+import { sceneSummary } from '../../../application/analytics/scene-summary';
 /** Share: a link that opens this design, sent with the phone's share sheet or copied on a computer.
  * Event bindings only: the link itself comes from the page that mounts the editor. */
 /** @param {import('./share.ports').BindShareMenuPorts} ports */
-export function bindShareMenu({ dom, shell, model, lifetime, shareLink }) {
+export function bindShareMenu({ dom, shell, model, lifetime, shareLink, track = () => {} }) {
     const { $, navigator, history } = dom;
     const item = $('#share-menu');
     item.hidden = !shareLink;
@@ -25,6 +26,8 @@ export function bindShareMenu({ dom, shell, model, lifetime, shareLink }) {
         try { url = await shareLink(model.scene); }
         catch { return shell.toast('This design could not be put in a link.'); }
         finally { loading.stop(); }
+        const summary = sceneSummary(model.scene);
+        track('design_shared', { product_mix: summary.mix, piece_count: summary.pieces });
         const phone = dom.matchMedia('(pointer: coarse)').matches;
         if (phone && navigator.share) {
             navigator.share({ title: 'Wardrobe design', url }).catch(error => { if (error?.name !== 'AbortError') copied(url); });
