@@ -11,7 +11,7 @@ const TOUCH = .05;
 const THICK = 2.5;
 
 /** The longest clear run of a shelf between the dividers that reach up to its underside. */
-function clearSpan(shelf: Board, boards: readonly Board[]): number {
+export function clearSpan(shelf: Board, boards: readonly Board[]): number {
   const under = boards.filter(b => b.name === 'Divider' && b.y0 < shelf.y0 + TOUCH && b.y1 > shelf.y0 - TOUCH && b.x0 > shelf.x0 + TOUCH && b.x1 < shelf.x1 - TOUCH)
     .sort((a, b) => a.x0 - b.x0);
   let from = shelf.x0, longest = 0;
