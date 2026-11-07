@@ -53,7 +53,7 @@ test('where the browser offers WebMCP, the functions are tools; elsewhere nothin
   const tools: { name: string; execute(input: unknown): Promise<any> }[] = [];
   const api = createAgentApi(() => editor(), { href: 'https://example.test/' });
   assert.equal(registerWebMcpTools(api, { modelContext: { registerTool: (t: never) => tools.push(t) } }, {}), true);
-  assert.deepEqual(tools.map(t => t.name), ['design_guide', 'check_design', 'build_design', 'describe_design', 'design_link']);
+  assert.deepEqual(tools.map(t => t.name), ['design_guide', 'check_design', 'build_design', 'describe_design', 'design_link', 'inspect_design']);
   const reply = await tools.find(t => t.name === 'check_design')!.execute(EXAMPLE_SPEC);
   assert.equal(JSON.parse(reply.content[0].text).ok, true);
   assert.equal(registerWebMcpTools(api, {}, {}), false);
@@ -86,4 +86,18 @@ test('in a browser that cannot start the editor (no WebGL), the functions still 
   assert.deepEqual(specFromLink(new URL(built.link!).hash), LINK_EXAMPLE, 'the link opens what was built');
   assert.deepEqual(api.describe(), built.report, 'describe reports the last design built');
   assert.equal(api.build({ specVersion: 1, wardrobes: [{ against: 3 }] }).ok, false);
+});
+
+test('inspect · an agent gets the design check, passport and three prices of a spec before giving it to the person', () => {
+  const api = createAgentApi(() => null, { href: 'https://furnidraw.com/editor.html' });
+  const report = api.inspect(EXAMPLE_SPEC, 'pln');
+  assert.ok(report && 'reportVersion' in report);
+  assert.equal(report.reportVersion, 1);
+  assert.equal(typeof report.ready, 'boolean');
+  assert.ok(report.passport.parts > 0 && report.passport.sheets > 0 && report.passport.assemblyHours > 0);
+  assert.deepEqual(report.prices.map(p => p.profile), ['diy', 'panel-shop', 'workshop']);
+  assert.ok(report.prices.every(p => p.currency === 'pln' && p.total > 0));
+  const bad = api.inspect({ specVersion: 1, wardrobes: 'many' });
+  assert.ok(bad && 'ok' in bad && !bad.ok && bad.problems.length > 0);
+  assert.equal(api.inspect(), null, 'nothing is shown and nothing was given: nothing to inspect');
 });

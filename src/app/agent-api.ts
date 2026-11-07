@@ -1,6 +1,9 @@
 import { buildFromSpec } from '../application/spec/build-from-spec';
 import { describeScene, type SceneReport } from '../application/spec/describe-scene';
 import type { EditorScene } from '../application/projects/editor-scene';
+import { projectToScene } from '../application/projects/editor-mapper';
+import { designInput } from '../application/engine/engine-service';
+import { type EngineReport, engineReport } from '../application/engine/engine-report';
 import type { ProjectDocument } from '../domain/project/project';
 import type { DesignSpec, SpecProblem } from '../domain/spec/design-spec';
 import { designSpecJsonSchema, parseDesignSpec } from '../infrastructure/serialization/design-spec-codec';
@@ -73,6 +76,9 @@ Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
   In a browser without 3D (WebGL) nothing is shown: the result has \`shown: false\` and a \`link\` for the person.
 - \`describe()\`: the report of the design the editor shows now (without 3D, of the last design built).
 - \`link(spec)\`: a URL that opens this design in the editor; give it to the person.
+- \`inspect(spec?, currency?)\`: the design check of a spec (or, without one, of the design shown now): \`ready\` to build or not,
+  every finding (manufacturing, drilling, loads) with why and its fixes, the passport (parts, sheets, holes, hardware, weight,
+  assembly hours) and the price built yourself, cut and drilled, or built and fitted, in \`"pln"\`, \`"eur"\` or \`"usd"\`.
 
 Without JavaScript, give a link instead (above): \`#spec=\` with the JSON, URL-encoded, or base64url as \`link(spec)\` makes.
 
@@ -82,6 +88,7 @@ Without JavaScript, give a link instead (above): \`#spec=\` with the JSON, URL-e
    wall, heights at points along it); and what the person wants to store, with counts.
 2. Write a spec, \`check\` it, fix every problem (each has a \`path\` and says what to do), then \`build\` it.
 3. Read the report: gaps, what each wardrobe holds of what was asked, warnings. Adjust and build again.
+4. \`inspect\` it before you give it to the person: it should be \`ready\`, and the person may want the price.
 
 ## Conventions
 - Centimetres. Walls are numbered from 1: 1 is the back (the wardrobe wall), 2 right, 3 front, 4 left.
@@ -164,6 +171,16 @@ export function createAgentApi(current: () => MountedEditor | null, location: { 
       const editor = current();
       return editor ? describeScene(editor.scene()) : last;
     },
+    /** The engine's design check, passport and prices of a spec, or of the design shown now; null when there is none. */
+    inspect(spec?: unknown, currency: 'pln' | 'eur' | 'usd' = 'eur'): EngineReport | { ok: false; problems: readonly SpecProblem[] } | null {
+      if (spec !== undefined && spec !== null) {
+        const { result, project } = checkSpec(spec), scene = project ? projectToScene(project) : null;
+        if (!result.ok) return result;
+        return scene ? engineReport(designInput(scene), currency) : null;
+      }
+      const editor = current();
+      return editor && editor.scene().wardrobes.length ? engineReport(designInput(editor.scene()), currency) : null;
+    },
     link(spec: unknown) {
       const url = new URL(location.href);
       url.hash = 'spec=' + toBase64Url(JSON.stringify(spec));
@@ -186,6 +203,8 @@ export function registerWebMcpTools(api: ReturnType<typeof createAgentApi>, doc:
     { name: 'build_design', description: 'Builds a design spec and shows it in the editor (the person can undo it); returns the report or the problems.', inputSchema: spec, execute: (input: unknown) => reply(api.build(input)) },
     { name: 'describe_design', description: 'Reports the design the editor shows now: walls, ceilings, wardrobes, gaps, what they hold, warnings.', inputSchema: none, execute: () => reply(api.describe()) },
     { name: 'design_link', description: 'A URL that opens a design spec in the editor.', inputSchema: spec, execute: (input: unknown) => reply(api.link(input)) },
+    { name: 'inspect_design', description: 'The design check of the design shown now: ready to build or not, every finding with its fix, '
+      + 'parts, sheets, weight and assembly time, and the price three ways (yourself, cut and drilled, built and fitted).', inputSchema: none, execute: () => reply(api.inspect()) },
   ];
   try { for (const tool of tools) context.registerTool(tool); return true; } catch { return false; }
 }

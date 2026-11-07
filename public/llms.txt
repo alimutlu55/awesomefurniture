@@ -21,6 +21,9 @@ Example, a 240 cm wardrobe in a bedroom for 30 shirts and 10 pairs of shoes:
   In a browser without 3D (WebGL) nothing is shown: the result has `shown: false` and a `link` for the person.
 - `describe()`: the report of the design the editor shows now (without 3D, of the last design built).
 - `link(spec)`: a URL that opens this design in the editor; give it to the person.
+- `inspect(spec?, currency?)`: the design check of a spec (or, without one, of the design shown now): `ready` to build or not,
+  every finding (manufacturing, drilling, loads) with why and its fixes, the passport (parts, sheets, holes, hardware, weight,
+  assembly hours) and the price built yourself, cut and drilled, or built and fitted, in `"pln"`, `"eur"` or `"usd"`.
 
 Without JavaScript, give a link instead (above): `#spec=` with the JSON, URL-encoded, or base64url as `link(spec)` makes.
 
@@ -30,6 +33,7 @@ Without JavaScript, give a link instead (above): `#spec=` with the JSON, URL-enc
    wall, heights at points along it); and what the person wants to store, with counts.
 2. Write a spec, `check` it, fix every problem (each has a `path` and says what to do), then `build` it.
 3. Read the report: gaps, what each wardrobe holds of what was asked, warnings. Adjust and build again.
+4. `inspect` it before you give it to the person: it should be `ready`, and the person may want the price.
 
 ## Conventions
 - Centimetres. Walls are numbered from 1: 1 is the back (the wardrobe wall), 2 right, 3 front, 4 left.
