@@ -200,17 +200,18 @@ test('cancelled resizing restores the item and returns the movement camera',()=>
  }
 });
 
-test('edge resize snaps within 1 mm and releases beyond 1 mm',()=>{
+test('edge resize catches within its screen tolerance, holds through the release and lets go beyond it',()=>{
  const {c,api,begin,interactionState}=edgeGestureFixture([
   {k:'drawer',h:20,w:34,x:15,y:25},{k:'sdrawer',h:20,w:10,x:50,y:25}],0);
  begin('right');const a=interactionState.itemEdgeGesture;
- for(const gap of [10,9,8,7,6,5,4,3,2,1,0,1,5,10]){
-  a.delta=(10-gap)/10;
-  const align=api.snapItemEdge(a);
-  if(gap>1)assert.equal(align,null,'remaining '+gap+' mm stays outside the catch distance');
-  else assert.ok(align,'within 1 mm the edge automatically aligns');
+ a.tolerance=.5;a.lock=null;
+ const gapAt=gap=>{a.delta=(10-gap)/10;const align=api.snapItemEdge(a);
   const target=align?.target??c.itemEdgeSize(a.g,a.edge,a.delta,a.layout,a.index,a.minW,a.minH,a.maxH);
-  assert.equal(Math.round((50-target.x-target.w)*10),gap<=1?0:gap);
- }
+  return {align,left:Math.round((50-target.x-target.w)*10)};};
+ for(const gap of [10,8,6]){const r=gapAt(gap);assert.equal(r.align,null,gap+' mm away stays free');assert.equal(r.left,gap);}
+ for(const gap of [5,3,1,0]){const r=gapAt(gap);assert.ok(r.align,gap+' mm away is caught');assert.equal(r.left,0,'caught edges touch');}
+ // A finger or mouse settling while it lets go stays caught (hold), as the guide showed.
+ {const r=gapAt(7);assert.ok(r.align,'held within the hold distance');assert.equal(r.left,0);}
+ {const r=gapAt(10);assert.equal(r.align,null,'beyond the hold it lets go');assert.equal(r.left,10);}
  api.finishItemEdgeResize(true);
 });

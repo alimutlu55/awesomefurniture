@@ -96,3 +96,28 @@ test('profile pointer and typed edits catch at 10 mm at every zoom and do not pu
     const edit = (v: number) => points.map(p => p.y === 80 ? { ...p, y: v } : p);
     near(autoProfileValue(259, edit, bounds, room), 260); near(autoProfileValue(258.9, edit, bounds, room), 258.9);
 });
+
+test('dragging catches within a few screen pixels, holds through the release and starts free', async () => {
+    const { snapToleranceCm, snapArmed, INTERIOR_SNAP_CM, ROOM_SNAP_CM } = await import('../../src/domain/geometry/alignment');
+    near(snapToleranceCm(4), 2); near(snapToleranceCm(4, true), 3.5);
+    near(snapToleranceCm(.1), ROOM_SNAP_CM); near(snapToleranceCm(.1, false, INTERIOR_SNAP_CM), INTERIOR_SNAP_CM);
+    near(snapToleranceCm(1000), AUTO_ALIGN_CM); near(snapToleranceCm(0), AUTO_ALIGN_CM);
+    const held = new Set<string>(), guide = (v: number) => axisGuide('a', '', 'x', v, 100, [0, 80], frame);
+    near(autoGuideTranslation([guide(98.6)], ['x'], 1.5, held).x, 1.4); assert.ok(held.has('a'), 'a caught line is held');
+    near(autoGuideTranslation([guide(102.2)], ['x'], 1.5, held).x, -2.2);
+    near(autoGuideTranslation([guide(102.5)], ['x'], 1.5, held).x, 0); assert.equal(held.size, 0, 'beyond the hold it lets go');
+    near(autoGuideTranslation([guide(101.6)], ['x'], 1.5, held).x, 0);
+    const g: { left?: boolean } = {};
+    assert.equal(snapArmed(g, .5, 1), false); assert.equal(snapArmed(g, 1.2, 1), true); assert.equal(snapArmed(g, 0, 1), true);
+});
+
+test('a wardrobe slid across the floor is offered sides, fronts and walls, never centres, levels or equal spacing', async () => {
+    const { cabinetSmartGuides } = await import('../../src/presentation/editor/scene-smart-guides');
+    const state = { ...createEditorState(), w: 100, h: 200, n: 1 };
+    const model = createEditorModel({ wardrobes: [{ id: 1, name: 'A', x: 0, y: 0, z: 0, angle: 0, state },
+        { id: 2, name: 'B', x: 103, y: 0, z: 1, angle: 0, state: structuredClone(state) }], activeWardrobe: 2, nextWardrobeId: 3 });
+    const guides = cabinetSmartGuides(model.scene, model.activeCabinet(), 'floor');
+    assert.ok(guides.some(g => g.label === 'Side by side') && guides.some(g => g.label === 'Fronts aligned'));
+    assert.ok(!guides.some(g => /Centres|Equal|level/i.test(g.label)), guides.map(g => g.label).join());
+    assert.ok(guides.filter(g => g.id.startsWith('gap:')).every(g => g.quiet), 'contact is snapped to, drawn elsewhere');
+});

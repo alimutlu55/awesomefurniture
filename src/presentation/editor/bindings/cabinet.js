@@ -5,6 +5,7 @@ import { measureNumber, unitSuffix } from '../editor-format.js';
 import { createTactileEdits } from '../../../application/commands/tactile-edits';
 import { cabinetSmartGuides } from '../scene-smart-guides';
 import { autoGuideTranslation } from '../smart-guides';
+import { snapToleranceCm } from '../../../domain/geometry/alignment';
 /** Whole-wardrobe controls: size, finish, doors, wardrobe list, reset.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./cabinet.ports').BindCabinetDimensionsPorts} ports */
@@ -14,10 +15,15 @@ export function bindCabinetDimensions(ports) {
     // Sliders and the canvas labels share one reversible, boundary-clamped resize.
     // The slider's transaction records history, so previews do not checkpoint again.
     const edits = createTactileEdits({ model, checkpoint() {} });
-    const previewLift = value => {
+    /** A few pixels of the slider's track in centimetres: a size that close to lining up catches, as its guide shows. */
+    const sliderCatch = (range, min, max) => {
+        const width = range.getBoundingClientRect?.().width || 0, coarse = !!range.ownerDocument?.defaultView?.matchMedia?.('(pointer: coarse)').matches;
+        return snapToleranceCm(width / (max - min), coarse);
+    };
+    const previewLift = (value, tolerance) => {
         const c = model.activeCabinet();
         sceneCommands.previewTranslation(c.id, { x: c.x, y: value, z: c.z });
-        const d = autoGuideTranslation(cabinetSmartGuides(model.scene, c, 'y'), ['y']);
+        const d = autoGuideTranslation(cabinetSmartGuides(model.scene, c, 'y'), ['y'], tolerance);
         if (Math.abs(d.y) > 1e-6) sceneCommands.previewTranslation(c.id, { x: c.x, y: (c.y || 0) + d.y, z: c.z });
     };
     /** @type {Array<[string,string,number,number]>} */ const dimensions = [
@@ -55,7 +61,7 @@ export function bindCabinetDimensions(ports) {
         bindSizeSlider({ range, lifetime, model, history,
             started: () => { started(); startValue = read(); if (!lift) edits.beginDimension(/** @type {'w' | 'h' | 'd'} */ (id)); },
             finished: () => { if (!lift) edits.finish(); selectionState.editingSize = false; },
-            preview: value => lift ? previewLift(value) : edits.previewDimension(value - startValue),
+            preview: value => lift ? previewLift(value, sliderCatch(range, mi, ma)) : edits.previewDimension(value - startValue, sliderCatch(range, mi, ma)),
             refresh: () => inspector.update(true) });
         bindSizeNumber({ input: /** @type {HTMLInputElement} */ (el), lifetime, commit,
             started: () => { started(); rendering.build(); }, finished: () => { selectionState.editingSize = false; inspector.update(true); } });

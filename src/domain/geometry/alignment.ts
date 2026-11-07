@@ -27,6 +27,26 @@ export type Align = AlignTarget<never>;
 export const ALIGN_HOLD = 1.6;
 /** Interactive edits catch within one physical millimetre, independent of camera zoom. Units are centimetres. */
 export const AUTO_ALIGN_CM = .1;
+/** How near on screen a dragged part must come to a line to catch it, with a mouse and with a finger. A line
+ * the editor shows is a line the part has caught, so dropping it keeps the alignment. */
+export const SNAP_PX = 8;
+export const SNAP_PX_TOUCH = 14;
+/** That catch in centimetres at the current zoom (`pxPerCm` screen pixels per centimetre): never under one
+ * millimetre, never over `max` so a zoomed-out view does not drag parts across a room (5 cm) or a shelf two
+ * levels away (INTERIOR_SNAP_CM). */
+export const ROOM_SNAP_CM = 5;
+export const INTERIOR_SNAP_CM = 2;
+export function snapToleranceCm(pxPerCm: number, touch = false, max = ROOM_SNAP_CM): number {
+    if (!Number.isFinite(pxPerCm) || pxPerCm <= 0) return AUTO_ALIGN_CM;
+    return Math.min(max, Math.max(AUTO_ALIGN_CM, (touch ? SNAP_PX_TOUCH : SNAP_PX) / pxPerCm));
+}
+/** A drag starts free: nothing catches until the part has once moved farther than its catch distance from where it
+ * started (`travel`, in the same units as `tolerance`), so a part that starts on a line can be nudged off it.
+ * `state.left` remembers that. */
+export function snapArmed(state: { left?: boolean }, travel: number, tolerance: number): boolean {
+    if (!state.left && Math.abs(travel) > tolerance) state.left = true;
+    return !!state.left;
+}
 /** Two candidate values this close are the same line. */
 const SAME = 1e-6;
 

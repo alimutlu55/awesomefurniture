@@ -80,14 +80,14 @@ const shots = process.argv[2] || '/tmp';
    assert.equal((await state()).divider, 0, 'the shelf board is selected');
    assert.equal((await guide()).on, false, 'no guide before anything moves');
    let during;
-   // Near the next bay's shelf: the guide shows its level, but the shelf lands where it is let go. Boards line up by
-   // themselves only within 1 mm (alignment.ts, AUTO_ALIGN_CM); exact landing is covered by the alignment tests.
-   await drag(await board(0), 0, 18.7, async () => {
+   // Near the next bay's shelf: it catches that level within a few screen pixels (alignment.ts, snapToleranceCm), the
+   // guide shows it, and it lands there when let go.
+   await drag(await board(0), 0, 19.5, async () => {
     during = await guide();
     await page.screenshot({ path: `${shots}/board-level-${width}.png` });
    });
    assert.ok(during.on && during.width > 20, 'a guide shows the next shelf\'s level while the shelf nears it: ' + JSON.stringify(during));
-   assert.ok(Math.abs((await state()).dividers[0].y - 118.7) < .05, 'it lands where it was let go, not pulled from beyond 1 mm: ' + (await state()).dividers[0].y);
+   assert.ok(Math.abs((await state()).dividers[0].y - 120) < .05, 'it lands level with the next shelf, as the guide showed: ' + (await state()).dividers[0].y);
    assert.equal((await guide()).on, false, 'the guide goes when the drag ends');
    await page.locator('#editor').locator('canvas').focus(); await page.keyboard.press('ControlOrMeta+z'); await page.waitForTimeout(150);
    assert.equal((await state()).dividers[0].y, 100, 'one undo puts it back');
@@ -104,8 +104,7 @@ const shots = process.argv[2] || '/tmp';
     const y = (await state()).dividers[0].y;
     assert.ok(y !== 120 && Math.abs(y - 119.3) < .05, 'Shift moves freely: ' + y);
    }
-   // The divider in the next bay, dragged near the middle of its space: the guide shows the middle, and it lands where
-   // it is let go.
+   // The divider in the next bay, dragged near the middle of its space: the guide shows the middle, and it lands there.
    await tap(await board(2)); await tap(await board(2));
    assert.equal((await state()).divider, 2, 'the divider is selected');
    const ws = await page.evaluate(() => window.fx.rules.widths()), from = (await state()).dividers[2].x;
@@ -115,7 +114,7 @@ const shots = process.argv[2] || '/tmp';
    });
    assert.ok(during.on, 'a guide shows while the divider nears the middle of its space');
    const d = (await state()).dividers[2];
-   assert.ok(Math.abs(d.x - (from - 9.4)) < .05 && Math.abs(d.x - ws[1] / 2) < 1.5, 'near the middle, where it was let go: ' + d.x);
+   assert.ok(Math.abs(d.x - ws[1] / 2) < .05 && Math.abs(d.x - (from - 9.4)) < 1.5, 'centred, as the guide showed: ' + d.x);
    assert.deepEqual(errors, []);
    console.log(`PASS ${width}px: guides show a shelf nearing the next bay's level and a divider nearing the middle, none far away; boards land where let go; undo${mobile ? '' : ', Shift free'}`);
    await page.evaluate(() => window.fx.editor.dispose()); await page.close();

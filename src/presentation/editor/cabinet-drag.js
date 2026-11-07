@@ -5,6 +5,7 @@ import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
 import { pointerTapSlop } from './interaction-state.js';
 import { cabinetSmartGuides } from './scene-smart-guides';
 import { autoGuideTranslation } from './smart-guides';
+import { snapArmed, snapToleranceCm } from '../../domain/geometry/alignment';
 /** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
  * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
 const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
@@ -94,7 +95,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         const a0 = picking.screenPoint(anchor), a1 = picking.screenPoint(along);
         projected.along = { x: (a1.x - a0.x) / 50, y: (a1.y - a0.y) / 50 };
         const planeHeight = axis === 'floor' ? (picking.cast(e, renderState.hits)?.point.y || 0) : 0;
-        interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false, follows: false };
+        // Which guides the move can catch: a slide across the floor never changes a level.
+        const guides = axis === 'floor' && !hangs(w.state) ? 'floor' : axis === 'y' ? 'y' : undefined;
+        interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, guides, held: new Set(),
+            x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false, follows: false };
         resources.cv.style.cursor = 'grabbing';
         if (handle) {
             handle.classList.add('moving');
@@ -150,9 +154,13 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
         const w = model.activeCabinet();
-        if (!e.shiftKey && !e.altKey) {
-            const axes = g.axis === 'floor' ? (hangs(w.state) ? ['x', 'y', 'z'] : ['x', 'z']) : [g.axis];
-            const correction = autoGuideTranslation(cabinetSmartGuides(model.scene, w), axes);
+        const axes = g.axis === 'floor' ? (hangs(w.state) ? ['x', 'y', 'z'] : ['x', 'z']) : [g.axis];
+        // Caught within a few screen pixels, as the guides show it; the caught line holds while the pointer settles.
+        const pxPerCm = Math.max(...axes.map(k => Math.hypot(g.projected[k].x, g.projected[k].y)));
+        const tolerance = snapToleranceCm(pxPerCm, e.pointerType === 'touch');
+        const travel = Math.hypot(w.x - g.origin.x, (w.y || 0) - g.origin.y, w.z - g.origin.z);
+        if (!e.shiftKey && !e.altKey && snapArmed(g, travel, tolerance)) {
+            const correction = autoGuideTranslation(cabinetSmartGuides(model.scene, w, g.guides), axes, tolerance, g.held);
             if (Math.hypot(correction.x, correction.y, correction.z) > 1e-6) {
                 sceneCommands.previewTranslation(g.id, { x: w.x + correction.x, y: (w.y || 0) + correction.y, z: w.z + correction.z });
             }

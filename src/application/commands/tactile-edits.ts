@@ -34,7 +34,9 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
         if (changed) checkpoint(g.before);
         return changed;
     }
-    function previewDimension(delta: number) {
+    /** `tolerance`: how near (cm) a size must come to one that lines up with a neighbour or wall to catch it, from
+     * the slider's own scale; without it, typed values catch only within a millimetre or two. */
+    function previewDimension(delta: number, tolerance?: number) {
         const g = gesture;
         if (!g || !('dimension' in g) || !Number.isFinite(delta)) return null;
         const apply = (amount: number) => {
@@ -60,13 +62,13 @@ export function createTactileEdits({ model, checkpoint }: Ports) {
         }
         if (g.dimension === 'w' || g.dimension === 'h' || g.dimension === 'd') {
             const raw = model.snapshot(), before = structuredClone(model.activeCabinet()), key = g.dimension;
-            const limit = key === 'h' ? AUTO_ALIGN_CM : AUTO_ALIGN_CM * 2;
+            const limit = tolerance ?? (key === 'h' ? AUTO_ALIGN_CM : AUTO_ALIGN_CM * 2);
             const targets = sizeTargets(model.scene, before, key).filter(t => Math.abs(t.v - before.state[key]) <= limit + 1e-6)
                 .sort((a, b) => Math.abs(a.v - before.state[key]) - Math.abs(b.v - before.state[key]));
             for (const target of targets) {
                 if (Math.abs(target.v - before.state[key]) < 1e-6) continue;
                 if (apply(target.v - g.start) && Math.abs(value(key) - target.v) < .001
-                    && cabinetResizeTravel(before, model.activeCabinet()) <= AUTO_ALIGN_CM + 1e-6) return value(key);
+                    && cabinetResizeTravel(before, model.activeCabinet()) <= (tolerance ?? AUTO_ALIGN_CM) + 1e-6) return value(key);
                 model.restore(raw);
             }
         }

@@ -3,12 +3,12 @@ import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.
 import { fittingSmartGuides, boardSmartGuides } from '../editor/interior-smart-guides';
 import { cabinetFrame, cabinetSmartGuides, rotationSmartGuides, outlineSmartGuides } from '../editor/scene-smart-guides';
 import { roomSmartGuides } from '../editor/room-smart-guides';
-import { selectSmartGuides, type GuidePoint, type SmartGuide } from '../editor/smart-guides';
+import { isAligned, selectSmartGuides, type GuidePoint, type SmartGuide } from '../editor/smart-guides';
 import type { CreateCabinetRendererPorts } from './cabinet-renderer.ports';
 
 interface GuideInteraction {
     rotationGesture?: { moved: boolean } | null;
-    wardrobeGesture?: { moved: boolean } | null;
+    wardrobeGesture?: { moved: boolean; guides?: string } | null;
     dividerGesture?: { moved: boolean; index: number } | null;
     itemEdgeGesture?: { moved: boolean; section: number; index: number; edge: string } | null;
     drag?: { from: { i: number; j: number } } | null;
@@ -62,8 +62,8 @@ export function createSmartGuideOverlay({ dom, model, resources, interactionStat
         if (control?.outline) return { key: `outline-field:${c.id}:${control.outline.index}:${control.outline.side}:${control.outline.axis}`,
             guides: outlineSmartGuides(model.scene, c, control.outline.index, control.outline.side, control.outline.axis) };
         if (interaction.rotationGesture?.moved) return { key: `rotation:${c.id}`, guides: rotationSmartGuides(model.scene, c) };
-        if (interaction.wardrobeGesture?.moved || selection.editingSize) return { key: `cabinet:${c.id}:${selection.editingSize}`,
-            guides: cabinetSmartGuides(model.scene, c, selection.editingSize || undefined) };
+        if (interaction.wardrobeGesture?.moved || selection.editingSize) return { key: `cabinet:${c.id}:${selection.editingSize || interaction.wardrobeGesture?.guides}`,
+            guides: cabinetSmartGuides(model.scene, c, selection.editingSize || interaction.wardrobeGesture?.guides) };
         const drag = shapeInspector?.drag(), plan = interaction.previewPlan, a = interaction.itemEdgeGesture;
         const fittingControl = control && (control.key === 'iw' || control.key === 'ih');
         const boardControl = control && /^dgap/.test(control.key);
@@ -105,7 +105,7 @@ export function createSmartGuideOverlay({ dom, model, resources, interactionStat
         };
         const context = candidates();
         if (context.key !== lastContext) { held.clear(); lastContext = context.key; }
-        const guides = selectSmartGuides(context.guides, project, held); held = new Set(guides.map(g => g.id));
+        const guides = selectSmartGuides(context.guides.filter(isAligned), project, held); held = new Set(guides.map(g => g.id));
         svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
         layer.hidden = !guides.length;
         layer.dataset.guideCount = String(guides.length);

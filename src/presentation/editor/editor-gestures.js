@@ -9,6 +9,7 @@ import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 import { fittingSmartGuides } from './interior-smart-guides';
 import { autoGuideTranslation } from './smart-guides';
+import { INTERIOR_SNAP_CM, snapToleranceCm } from '../../domain/geometry/alignment';
 /** Presentation behavior with explicit subsystem dependencies. */
 /** @param {import('./editor-gestures.ports').CreateEditorGesturesPorts} ports */
 export function createEditorGestures({ dom, camera, rendering, inspector, shell, picking, cameraState, interactionState, renderState, selectionState, shellState, geometry, cabinetGeometry, resources, model, commands, sceneCommands, history, room }) {
@@ -109,7 +110,13 @@ export function createEditorGestures({ dom, camera, rendering, inspector, shell,
                     const rect = plan.layouts?.[to]?.[plan.index];
                     if (rect) {
                         const frame = (x, y) => ({ x, y, z: 0 });
-                        const d = autoGuideTranslation(fittingSmartGuides(model.activeCabinet().state, geometry, to, from.i === to ? from.j : -1, rect, frame));
+                        // A few screen pixels on the wardrobe's face: it catches what its guide shows and keeps it as it is let go.
+                        const aside = picking.frontPoint({ clientX: e.clientX + 10, clientY: e.clientY }), cmPer10px = aside && p ? Math.hypot(aside.x - p.x, aside.y - p.y) : 0;
+                        const drag = interactionState.drag;
+                        if (drag && !drag.held) drag.held = new Set();
+                        const held = drag?.held;
+                        const d = autoGuideTranslation(fittingSmartGuides(model.activeCabinet().state, geometry, to, from.i === to ? from.j : -1, rect, frame),
+                            ['x', 'y', 'z'], snapToleranceCm(cmPer10px > 0 ? 10 / cmPer10px : 0, e.pointerType === 'touch', INTERIOR_SNAP_CM), held);
                         if (Math.hypot(d.x, d.y) > 1e-6) {
                             const aligned = geometry.planFreeMove(from, to, { x: rect.x0 + d.x,
                                 y: rect.y0 - interiorFloorOf(model.activeCabinet().state) + d.y }, { free: true });
