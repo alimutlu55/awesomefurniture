@@ -12,7 +12,8 @@ hardware keys outside `src/domain/hardware/`.
 
 | Family | File | Entries |
 |---|---|---|
-| Registry, stages & runners | `hardware-registry.ts` | `RUNNER_ENTRY`, `ASSEMBLY_STAGE_SPECS`, `HARDWARE` |
+| Registry & stages | `hardware-registry.ts` | `ASSEMBLY_STAGE_SPECS`, `HARDWARE` |
+| Drawer runners | `drawer-hardware.ts` | `RUNNER_ENTRY` |
 | Hinges, plates & door tracks | `hinges-hardware.ts` | `HINGE_ENTRY`, `PLATE_ENTRY`, `SLIDING_TRACK_ENTRY` |
 | Handles & push latches | `handles-hardware.ts` | `HANDLE_ENTRY`, `PUSH_TO_OPEN_ENTRY` |
 | Rails, pins & pull-out racks | `rails-supports-hardware.ts` | `RAIL_ENTRY`, `RAIL_SUPPORT_ENTRY`, `SHELF_PIN_ENTRY`, `PULL_DOWN_RAIL_ENTRY`, `TROUSER_RACK_ENTRY`, `WIRE_BASKET_ENTRY` |
