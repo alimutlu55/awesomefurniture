@@ -48,7 +48,7 @@ export const HANDLE_ENTRY: HardwareEntry = {
         reason: 'Do not drill handle screw holes through tempered glass leaves.',
       },
     ],
-    costEur: 12,
+    costEur: 6,
   },
   drilling: [
     {

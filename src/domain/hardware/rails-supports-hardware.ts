@@ -20,7 +20,7 @@ export const RAIL_ENTRY: HardwareEntry = {
     boardThicknessMm: { min: 16, max: 25, standard: [18, 25] },
     minCarcassDepthMm: 530,
     maxSpanMm: { 18: 1200, 25: 900 },
-    costEur: 18,
+    costEur: 6,
   },
   drilling: [],
   fixings: [],
@@ -67,7 +67,7 @@ export const RAIL_SUPPORT_ENTRY: HardwareEntry = {
   rules: {
     clearanceMm: { topDrop: 60 },
     boardThicknessMm: { min: 16, max: 25, standard: [18, 25] },
-    costEur: 4,
+    costEur: 1.5,
   },
   drilling: [],
   fixings: [
@@ -125,7 +125,7 @@ export const SHELF_PIN_ENTRY: HardwareEntry = {
     maxSpanMm: { 18: 800, 25: 1000 },
     systemLineMm: 37,
     pitchMm: 32,
-    costEur: 1,
+    costEur: 0.1,
   },
   drilling: [
     {
@@ -196,7 +196,7 @@ export const PULL_DOWN_RAIL_ENTRY: HardwareEntry = {
     boardThicknessMm: { min: 18, max: 25, standard: [18, 25] },
     minCarcassDepthMm: 530,
     maxSpanMm: 1000,
-    costEur: 95,
+    costEur: 95, ratedLoadKg: 12, // lifts are sold by the load they lift; 12 kg is common for the standard size
   },
   drilling: [
     {

@@ -105,7 +105,7 @@ export const HINGE_ENTRY: HardwareEntry = {
         reason: 'Tempered glass cannot be bored for a 35 mm cup; use the glass-door clamp hinge.',
       },
     ],
-    costEur: 15,
+    costEur: 4.5,
   },
   drilling: [
     {
@@ -185,6 +185,7 @@ export const PLATE_ENTRY: HardwareEntry = {
     boardThicknessMm: { min: 16, max: 25, standard: [18, 25] },
     systemLineMm: 37,
     pitchMm: 32,
+    costEur: 0.8,
   },
   drilling: [
     {

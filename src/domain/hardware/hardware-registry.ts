@@ -219,7 +219,9 @@ export const RUNNER_ENTRY: HardwareEntry = {
     minCarcassDepthMm: 266,
     systemLineMm: 37,
     pitchMm: 32,
-    costEur: 35,
+    costEur: 25,
+    // Ball-bearing and concealed soft-close runners for wardrobe and kitchen drawers are commonly rated 30 kg a pair.
+    ratedLoadKg: 30,
   },
   drilling: [
     {

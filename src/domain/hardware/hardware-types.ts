@@ -168,6 +168,8 @@ export interface HardwareRulesSpec {
   readonly pitchMm?: number;
   readonly exclusions?: readonly HardwareExclusionRule[];
   readonly costEur?: number;
+  /** The most it carries in use, kilograms: per pair of runners, per pull-down rail (the engine's load checks). */
+  readonly ratedLoadKg?: number;
 }
 
 export interface AssemblyStageSpec {

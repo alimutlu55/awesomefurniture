@@ -19,6 +19,7 @@
 
 import { ZONE_PRIORITY } from './zone-style';
 import type { ZoneStyle } from './zone-style';
+import type { StorageLoad } from './storage-load';
 
 /** A shelf that holds one possession. Centimetres. */
 export interface ShelfHolder {
@@ -50,6 +51,8 @@ interface Common {
   };
   /** How its zone is drawn when it changes what the zone is (see zone-style.ts). Optional. */
   readonly zone?: ZoneStyle;
+  /** How heavy it is where it is kept, for the engine's load checks (storage-load.ts). */
+  readonly load: StorageLoad;
 }
 
 export interface BespokePossession extends Common {
@@ -77,31 +80,33 @@ export type Possession = BespokePossession | ShelfPossession;
 
 export const POSSESSIONS = [
   {
-    key: 'short', label: 'Shirts & jackets', engine: 'bespoke', need: { default: 24, max: 150 }, planner: { frequency: 1, home: [.4, 1] },
+    key: 'short', label: 'Shirts & jackets', engine: 'bespoke', need: { default: 24, max: 150 }, planner: { frequency: 1, home: [.4, 1] }, load: { kgPerMetre: 10 },
     icon: 'M12 7.5V6a2 2 0 1 1 2 2M12 7.5 3 13v1.5h18V13z',
   },
   {
-    key: 'long', label: 'Dresses & coats', engine: 'bespoke', need: { default: 6, max: 80 }, planner: { frequency: .6, home: [.4, 1] },
+    key: 'long', label: 'Dresses & coats', engine: 'bespoke', need: { default: 6, max: 80 }, planner: { frequency: .6, home: [.4, 1] }, load: { kgPerMetre: 18 },
     icon: 'M9 3h6l-.8 5L19 21H5l4.8-13z',
   },
   {
-    key: 'pants', label: 'Trousers & jeans', engine: 'bespoke', need: { default: 12, max: 100 }, planner: { frequency: .9, home: [.2, .8] }, zone: { color: '#9876ac', label: 'Trousers', priority: ZONE_PRIORITY.purpose },
+    key: 'pants', label: 'Trousers & jeans', engine: 'bespoke', need: { default: 12, max: 100 }, planner: { frequency: .9, home: [.2, .8] }, load: { kgPerMetre: 15 },
+    zone: { color: '#9876ac', label: 'Trousers', priority: ZONE_PRIORITY.purpose },
     icon: 'M6.5 3h11l1 18h-4.2L12 10l-2.3 11H5.5z',
   },
   {
-    key: 'folded', label: 'T-shirts & knitwear', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.2, .8] },
+    key: 'folded', label: 'T-shirts & knitwear', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.2, .8] }, load: { kgPerM2: 30 },
     icon: 'M8 4 3 7l2 4 3-1v10h8V10l3 1 2-4-5-3a4 4 0 0 1-8 0z',
   },
   {
-    key: 'shoes', label: 'Shoes', engine: 'bespoke', need: { default: 8, max: 80 }, planner: { frequency: .8, home: [0, .4] },
+    key: 'shoes', label: 'Shoes', engine: 'bespoke', need: { default: 8, max: 80 }, planner: { frequency: .8, home: [0, .4] }, load: { kgPerM2: 25 },
     icon: 'M3 18v-6.5l5 .8 3-4.3 2.4 1-1 3.2 6.6 2a3 3 0 0 1 2 2.8v1zM3 15h18',
   },
   {
-    key: 'small', label: 'Underwear & socks', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.4, .8] }, zone: { color: '#c0668a', label: 'Underwear & socks', priority: ZONE_PRIORITY.purpose },
+    key: 'small', label: 'Underwear & socks', engine: 'bespoke', need: { default: 30, max: 200 }, planner: { frequency: 1, home: [.4, .8] }, load: { kgPerM2: 20 },
+    zone: { color: '#c0668a', label: 'Underwear & socks', priority: ZONE_PRIORITY.purpose },
     icon: 'M9 3h6v8.5l3.2 3.6a3 3 0 0 1-2.2 4.9h-3.8a5 5 0 0 1-3.6-1.5L6.4 16.4 9 11.5z',
   },
   {
-    key: 'handbags', label: 'Handbags', engine: 'shelf', need: { default: 0, max: 60 }, planner: { frequency: .7, home: [.25, .85] },
+    key: 'handbags', label: 'Handbags', engine: 'shelf', need: { default: 0, max: 60 }, planner: { frequency: .7, home: [.25, .85] }, load: { kgPerM2: 15 },
     // A medium tote: 31 × 14 × 23 cm, standing upright, 33 cm each with a 2 cm gap.
     holder: { height: 25, pitch: 33, margin: 2, maxStack: 3, unit: { width: 31, depth: 14, height: 23, handle: true } },
     look: { color: '#a0664f', icon: 'M6 9h12l1 11H5L6 9Zm3 0V7a3 3 0 0 1 6 0v2', stroke: '#6b4a3a' },
