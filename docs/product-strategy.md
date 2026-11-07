@@ -9,6 +9,25 @@ corrected here (see §9).
 
 ---
 
+## Status (November 2026)
+
+Built on `claude/awesome-furniture-strategy-aekj4c` (see [engine.md](engine.md)):
+
+| Capability | State |
+|---|---|
+| 1. Build model | **Built.** Wraps Make; proven to use exactly the cutting list's boards; adds contents, loads, weight, revision |
+| 3. One rule engine | **Built** with three packs (manufacturing check, Make's drilling check, engineering loads), live in the editor, fixes applied through editor commands |
+| 4. Physics and loads | **Built** for shelf sag, rail span, lift and runner load, hinge load; stored weight now lives in the possession and purpose registries |
+| 5. Catalog, profiles, targets | **Built** in part: a dated price list, three builder profiles that lower the model, quotes in zł/€/$. Not yet: supplier price lists, CNC or machine exports |
+| 7c. Operation log | **Built** in part: a scene diff ("what changed") and a change history in the open editor, a product events port. Not yet: persisted versions, collaboration, an analytics adapter |
+| 7d. Headless engine | **Built** in part: the agent API's `inspect()` and the `inspect_design` WebMCP tool return the check, passport and prices as JSON |
+| 2. Components as definitions | **Not started.** Fittings still need planner and renderer code; sliding doors wait on this |
+| 6. Needs and a generic solver | **Not started.** Auto design does not read the engine yet |
+| 7a/7b. Tolerances, intent relations | **Not started** |
+
+In the editor: **Design check** in the menu (check, price three ways, passport, changes), and **Split the bay**, a command
+that keeps a bay's layout on both sides, which the Sections control could not.
+
 ## 1. The diagnosis: one piece of furniture is modelled five times
 
 A wardrobe in FurniDraw is described once (`EditorDesign`) and then **re-derived separately** by every part of the

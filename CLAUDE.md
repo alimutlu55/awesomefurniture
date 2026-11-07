@@ -53,13 +53,15 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Sign in, sign up, moving a guest's designs and credits into it | `src/presentation/account/`, `src/app/account-platform.ts`, `infrastructure/account/` (`guest-handover.ts`, merge endpoint), `account_merge` in `supabase/migrations/`. See [docs/accounts.md](docs/accounts.md) |
 | Make: one piece taken down to its parts (parts, measurements, joints and drilling, hardware, drawer boxes, assembly steps, cut layout, saving) | `src/domain/make/` (data: `make-parts`, `make-joints`, `make-hardware`, `make-assembly`, `make-cut-layout`, `make-construction`) and `src/presentation/make/` (3D, marks, panel, PDF/CSV), opened by the `make` tool in `contextual-actions.js`; the joint choice is `application/commands/make-commands.ts`. Draws from `pieceBoards`, never from the 3D renderer. See [docs/make.md](docs/make.md) |
+| The engine: what a design is when built (build model, load checks, rule packs, passport, prices, builder profiles, Design check panel) | `src/domain/engine/` and `application/engine/`; the panel is `presentation/insight/`. Read `buildModel`, never the 3D renderer. See [docs/engine.md](docs/engine.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
 | The welcome, assembly animation, moods (looks, time of day), fit reveal | `src/presentation/experience/` and `viewport/assembly-motion.ts`, `scene-looks.ts`, `daylight.ts`, `workshop-lens.ts`. Never saved in a project. See [docs/experience.md](docs/experience.md) |
 | Anything else | [docs/extending-editor.md](docs/extending-editor.md) |
 
 Never copy registry contents (hardware keys, kind names, possession keys, purpose labels, furniture kinds, kitchen
 units, fixture kinds, credit prices) into another file. Ask the registry: `HARDWARE` / `hardware(key)`, `FITTINGS`, `hasTrait(kind, trait)`, `POSSESSIONS`,
-`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`, `CREDIT_FEATURES` / `CREDIT_PACKS`.
+`PURPOSES`, `FURNITURE` / `furnitureModule(design)`, `KITCHEN_UNITS`, `FIXTURES`, `CREDIT_FEATURES` / `CREDIT_PACKS`,
+`RULE_PACKS`, `BUILDER_PROFILES`.
 
 ## Guards that must stay green
 
@@ -115,6 +117,9 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
 - Make: a sloped top is screwed straight down rather than square to its face, the cut layout is strips only (no free
   nesting or offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
   template (docs/make.md, Known limits).
+- Engine: Auto design does not read the engineering pack yet; loads are one density per purpose (no racking, tip-over or
+  wall fixing); prices are one dated indicative list; the change history and product events are not saved anywhere
+  (docs/engine.md, Known limits).
 - `bindDividerHeight` (`bindings/divider.js`) adds listeners directly instead of through the
   lifetime, so they are not removed when an editor is disposed.
 - Five presentation factories have no parameter type: `contextual-toolbar.js`,
