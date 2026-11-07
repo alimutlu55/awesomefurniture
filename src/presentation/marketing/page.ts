@@ -143,7 +143,7 @@ function footerHtml(c: MarketingCopy): string {
   const guideLinks = `<a href="/guides/">${e(h.guidesLabel)}</a>`;
   const langLinks = languages.map(l =>
     `<a href="${homePath(l.lang)}" lang="${l.lang}" hreflang="${l.lang}">${e(l.name)}</a>`).join(' ');
-  return `<footer><div class="wrap"><span>© 2026 FurniDraw Ltd. Co. No. 15842910 · London, UK.</span>`
+  return `<footer><div class="wrap"><span>© 2026 FurniDraw</span>`
     + `<span class="footer-links">${guideLinks}<a href="/about/" hreflang="en">${e(h.aboutLabel)}</a>`
     + `<a href="/pricing/" hreflang="en">${e(h.pricingLabel)}</a><a href="/contact/" hreflang="en">${e(h.contactLabel)}</a>`
     + `<a href="/privacy/" hreflang="en">${e(h.privacyLabel)}</a><a href="/terms/" hreflang="en">${e(h.termsLabel)}</a>`
@@ -223,6 +223,9 @@ export function homeBody(c: MarketingCopy): string {
     + `</main>${footerHtml(c)}`;
 }
 
+const longDate = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso));
+
 function renderBody(text: string): string {
   return e(text).replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 }
@@ -234,9 +237,10 @@ export function guideBody(c: MarketingCopy, guide: Guide): string {
   const breadcrumb = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">FurniDraw</a><span aria-hidden="true"> / </span>`
     + (isGuideArticle ? `<a href="/guides/">Guides</a><span aria-hidden="true"> / </span>` : '')
     + `<span aria-current="page">${e(guide.label)}</span></nav>`;
+  const dated = guide.updated ?? guide.published;
   const bylineHtml = isGuideArticle
     ? `<p class="guide-byline" style="font-size:13px;opacity:0.8;margin:-4px 0 24px;">`
-      + `By <strong>David Lindqvist</strong>, Lead Joinery Engineer · Reviewed by <strong>Marcus Thorne</strong>, Master Cabinetmaker · Updated November 2026</p>`
+      + `By the FurniDraw team${dated ? ` · ${guide.updated ? 'Updated' : 'Published'} <time datetime="${dated}">${longDate(dated)}</time>` : ''}</p>`
     : '';
   const hubGrid = guide.slug === 'guides'
     ? `<section class="guide-hub-grid" style="margin-top:28px;"><h2>All Guides &amp; References</h2><div class="guide-cards" style="margin-top:16px;">`

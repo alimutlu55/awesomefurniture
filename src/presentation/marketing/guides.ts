@@ -7,6 +7,8 @@ export type { Guide, GuideSection };
 export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/measure-for-a-fitted-wardrobe',
+    published: '2026-10-28',
+    updated: '2026-11-05',
     label: 'How to measure for a fitted wardrobe',
     title: 'How to Measure for a Fitted Wardrobe: 4-Step Checklist',
     description: 'Measure width, height, depth and obstructions for a fitted wardrobe. '
@@ -52,6 +54,8 @@ export const guideArticles: readonly Guide[] = [
   },
   {
     slug: 'guides/standard-wardrobe-dimensions',
+    published: '2026-11-04',
+    updated: '2026-11-05',
     label: 'Standard wardrobe dimensions guide',
     title: 'Standard Wardrobe Dimensions: Depth, Rail and Shelf Heights',
     description: 'Standard wardrobe dimensions: depth requirements, '
@@ -95,6 +99,8 @@ export const guideArticles: readonly Guide[] = [
   },
   {
     slug: 'guides/cabinet-hinge-types-guide',
+    published: '2026-11-04',
+    updated: '2026-11-05',
     label: 'Concealed cabinet hinges guide',
     title: 'Concealed Cabinet Hinges: 110° vs 155° Zero Protrusion',
     description: 'Guide to concealed cabinet hinges: full overlay, '
@@ -140,6 +146,8 @@ export const guideArticles: readonly Guide[] = [
   },
   {
     slug: 'guides/closet-vs-wardrobe',
+    published: '2026-11-04',
+    updated: '2026-11-05',
     label: 'Closet vs. wardrobe: planning your storage',
     title: 'Closet vs Wardrobe Planning: Custom Built-In Storage Guide',
     description: 'Compare closet and wardrobe layouts, measure space, and '
@@ -182,6 +190,8 @@ export const guideArticles: readonly Guide[] = [
   },
   {
     slug: 'guides/kitchen-layout-planning',
+    published: '2026-11-04',
+    updated: '2026-11-05',
     label: 'How to plan a kitchen cabinet layout',
     title: 'Kitchen Layout Planning Guide — Base, Wall & Tall Units',
     description: 'Plan a kitchen cabinet layout around room measurements, appliances, and access. '
@@ -224,6 +234,8 @@ export const guideArticles: readonly Guide[] = [
   },
   {
     slug: 'guides/read-a-cabinet-cutting-list',
+    published: '2026-11-04',
+    updated: '2026-11-05',
     label: 'How to read a cabinet cutting list',
     title: 'How to Read a Cabinet Cutting List: Workshop Guide',
     description: 'Understand cabinet cutting list dimensions, quantities, and materials. '

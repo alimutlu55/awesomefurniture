@@ -15,23 +15,14 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
       '@type': 'Organization',
       '@id': `${siteOrigin}/#organization`,
       name: 'FurniDraw',
-      legalName: 'FurniDraw Ltd',
       url: siteOrigin,
       logo: { '@type': 'ImageObject', url: `${siteOrigin}/assets/furnidraw-mark.png`, width: 512, height: 512 },
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: '71-75 Shelton Street, Covent Garden',
-        addressLocality: 'London',
-        postalCode: 'WC2H 9JQ',
-        addressCountry: 'GB',
-      },
       contactPoint: {
         '@type': 'ContactPoint',
         email: 'support@furnidraw.com',
         contactType: 'customer service',
         availableLanguage: languages.map(c => c.lang),
       },
-      sameAs: ['https://x.com/furnidraw', 'https://github.com/furnidraw'],
     },
     {
       '@type': 'WebSite',
@@ -112,14 +103,9 @@ export function seoHead(copy: MarketingCopy, guide?: Guide, indexable = true): s
         description,
         inLanguage: copy.lang,
         mainEntityOfPage: url,
-        datePublished: '2026-01-15T08:00:00Z',
-        dateModified: '2026-11-01T12:00:00Z',
-        author: {
-          '@type': 'Person',
-          name: 'David Lindqvist',
-          jobTitle: 'Lead Joinery Engineer',
-          worksFor: { '@id': `${siteOrigin}/#organization` },
-        },
+        ...(guide.published ? { datePublished: guide.published } : {}),
+        ...(guide.updated ? { dateModified: guide.updated } : {}),
+        author: { '@id': `${siteOrigin}/#organization` },
         publisher: { '@id': `${siteOrigin}/#organization` },
       });
     }

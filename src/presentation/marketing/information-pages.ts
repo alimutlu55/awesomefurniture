@@ -1,4 +1,5 @@
 import type { Guide } from './guides';
+import { creditPackList, creditUseLines } from './credit-prices';
 
 /** Corporate, pricing, support and legal trust documentation. */
 export const informationPages: readonly Guide[] = [
@@ -16,7 +17,7 @@ export const informationPages: readonly Guide[] = [
     sections: [
       {
         title: 'Bridging consumer planners and workshop CAD.',
-        body: 'FurniDraw was founded by furniture engineers and software developers to fill the gap '
+        body: 'FurniDraw is built to fill the gap '
           + 'between decorative room visualizers and complex desktop CAD tools like SketchUp or Fusion 360. '
           + 'While consumer visualizers only drag pre-made blocks and cannot engineer internal carcasses or hinges, '
           + 'FurniDraw generates real joinery, fitting clearances, and workshop cut lists directly in your web browser. '
@@ -30,31 +31,15 @@ export const informationPages: readonly Guide[] = [
           + 'partition, and cut list line updates instantly.',
       },
       {
-        title: 'How We Work With Joiners & Professional Workshops.',
-        body: 'Our platform is developed by FurniDraw Ltd (Company No. 15842910, registered in England and Wales). '
-          + 'Our engineering team brings hands-on joinery and CAD development expertise:\n'
-          + '• David Lindqvist, Lead Joinery Engineer (former master cabinetmaker, 18 years in custom fitted millwork).\n'
-          + '• Elena Rostova, Senior Software Architect (parametric geometric modeling and web graphics systems).\n'
-          + '• Marcus Thorne, Workshop Technical Advisor (independent bespoke cabinetmaker & CNC machining specialist).\n'
-          + 'We collaborate with independent joinery workshops across the UK and Europe to verify dimensional standards '
-          + '(System 32 hole spacing and 37 mm hinge setbacks). Exported drawings provide clear boring references for manual '
-          + 'and line-boring workshop setups; raw CNC machine toolpaths and G-code files are not included.',
+        title: 'Drawings made to be checked and built in a workshop.',
+        body: 'Hole positions follow common cabinetmaking practice (System 32 spacing and the 37 mm hinge line) '
+          + 'rather than one hardware maker\'s template, so check them against the hardware you buy. Exported drawings '
+          + 'give boring references for manual and line-boring setups; CNC toolpaths and G-code files are not included. '
+          + 'As our [terms](/terms/) say, every dimension should be checked on site by the person who builds the piece.',
       },
       {
-        title: 'Workshop testimonials from practicing joiners.',
-        body: 'What cabinetmakers and fitters say about FurniDraw documentation:\n'
-          + '• "The cutting lists and System 32 hole references save us hours of drafting before breaking down sheets on the saw." '
-          + '— Thomas Bennett, Bennett & Sons Bespoke Joinery, Bristol.\n'
-          + '• "Finally, software where homeowners can design their own alcove storage and hand us workable, accurate millimetre plans." '
-          + '— Stefan Lindholm, Lindholm Snickeri, Stockholm.\n'
-          + '• "Clear drawings with zero-protrusion hinge clearances already figured out. Cuts our on-site fitting time in half." '
-          + '— Liam O\'Connor, Celtic Oak Cabinetry, Dublin.',
-      },
-      {
-        title: 'Company details and registered office.',
-        body: 'FurniDraw Ltd is registered in England & Wales (Company No. 15842910).\n'
-          + 'Registered Office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ, United Kingdom.\n'
-          + 'For technical inquiries, trade partnerships, or workshops, contact our team at support@furnidraw.com.',
+        title: 'Get in touch.',
+        body: 'For technical questions, trade enquiries or feedback from your workshop, email support@furnidraw.com.',
       },
     ],
   },
@@ -80,27 +65,20 @@ export const informationPages: readonly Guide[] = [
       {
         title: 'Pay only when exporting drawings and renders.',
         body: 'Credits are only deducted when you generate high-resolution AI photorealistic room visualisations '
-          + 'or export downloadable CAD-ready technical drawing sets (dimensioned plans, elevations, section '
-          + 'details, and workshop cut lists). Credits never expire and carry over across projects.',
+          + 'or export a technical drawing set (dimensioned plans, elevations, sections, cutting and hardware lists '
+          + 'as an A3 PDF). Credits do not expire and carry over across projects.',
+        list: creditUseLines(),
       },
       {
         title: 'Available credit packages.',
-        body: 'We offer flexible pay-as-you-go credit packs directly inside the studio: Starter Pack '
-          + '(50 credits for $9 / €9 / 39 zł — ideal for a single room wardrobe), Pro Pack '
-          + '(150 credits for $24 / €24 / 99 zł — great for full home renovations), and Workshop Pack '
-          + '(500 credits for $59 / €59 / 249 zł — designed for active carpenters and design studios).',
+        body: 'Buy a pack inside the studio when you need one. Prices include VAT where it is charged: zloty in Poland, '
+          + 'euro elsewhere in the EU and US dollars everywhere else.',
+        list: creditPackList(),
       },
       {
-        title: 'Workshop feedback on credit value.',
-        body: '"A $9 Starter pack generates the complete dimensional drawings and cut list for a full bedroom alcove wardrobe. '
-          + 'It replaces half a day of CAD drafting for less than the cost of a single board blade sharpening." '
-          + '— Marcus Thorne, Master Cabinetmaker.',
-      },
-      {
-        title: 'Secure payments and refund guarantee.',
-        body: 'All credit purchases are processed with bank-level encryption via Stripe. We do not store '
-          + 'your credit card information. If an exported technical drawing or AI render fails to generate '
-          + 'properly, your credits are automatically refunded to your account balance.',
+        title: 'Secure payments.',
+        body: 'Payments are processed by Stripe; FurniDraw never sees or stores your card number. An AI image is '
+          + 'charged only when it arrives: if it fails, its credits go back to your balance.',
       },
     ],
   },
@@ -124,20 +102,14 @@ export const informationPages: readonly Guide[] = [
       },
       {
         title: 'Joinery & trade partnerships.',
-        body: 'Are you an independent cabinetmaker, joiner, or kitchen installer? We partner with '
-          + 'workshops across Europe and the UK to provide streamlined customer drawing handoffs '
-          + 'and cut-list integration. Contact trade@furnidraw.com for trade accounts.',
+        body: 'Are you an independent cabinetmaker, joiner, or kitchen installer? Tell us what your workshop needs '
+          + 'from customer drawing handoffs and cut lists: trade@furnidraw.com.',
       },
       {
         title: 'Response time & business hours.',
         body: 'Our engineering and support team reviews messages Monday through Friday between 08:00 '
           + 'and 18:00 CET. We aim to reply to all inquiries within 24 hours. For billing inquiries, '
           + 'please include your Stripe order reference.',
-      },
-      {
-        title: 'Headquarters & registered office.',
-        body: 'FurniDraw is operated by FurniDraw Ltd (Company No. 15842910, England & Wales).\n'
-          + 'Registered Office: 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ, United Kingdom.',
       },
     ],
   },

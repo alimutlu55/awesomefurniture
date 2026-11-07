@@ -15,6 +15,7 @@ export interface Guide {
   shape: 'regular' | 'alcove' | 'under-stairs';
   sections: readonly GuideSection[];
   faqs?: readonly [string, string][];
-  author?: string;
+  /** Guide articles: when the guide was first published and last changed in substance (ISO dates, YYYY-MM-DD). */
+  published?: string;
   updated?: string;
 }
