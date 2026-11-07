@@ -116,7 +116,9 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
 - Make: a sloped top is screwed straight down rather than square to its face, the cut layout is strips only (no free
   nesting or offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
-  template (docs/make.md, Known limits).
+  template (docs/make.md, Known limits). Every drawer is a knock-down box on bottom-mounted runners: no side-mounted or
+  undermount runners to choose, no soft-close, and the back's hook-and-swing is described rather than animated
+  (docs/drawer-assembly.md).
 - Engine: Auto design does not read the engineering pack yet; loads are one density per purpose (no racking, tip-over or
   wall fixing); prices are one dated indicative list; the change history and product events are not saved anywhere
   (docs/engine.md, Known limits).

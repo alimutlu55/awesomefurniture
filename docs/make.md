@@ -78,8 +78,11 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
   (37 mm in) 32 mm apart; nothing drilled in glass. Handles 128 mm; runners on the uprights; four shelf pins under each
   adjustable shelf in rows of five; rails 4 mm shorter than the bay with an end support each side; legs, hangers and
   wall brackets as the hardware list has them.
-- `drawerBoxes`: two sides and two ends 18 mm on a 6 mm bottom, 12.5 mm clear of each upright, as long as the runner,
-  clear of the boards above and below.
+- `drawerBoxes` (`drawer-box.ts`): knock-down drawers on bottom-mounted runners. The front (a wardrobe drawer's own front,
+  or a box front behind a kitchen's applied front), two sides between it and a back as wide as the box, and a 6 mm bottom
+  in a groove in all four; joined with cam bolts, cams and a dowel at the front, expanding dowels through the back; hooked
+  onto the runners at the back and locked at the front. 12.5 mm clear of each upright, as long as the runner. See
+  [drawer-assembly.md](drawer-assembly.md).
 - Parts: identical boards are one part; boards drilled differently are separate parts, unless one turned end for end or
   over matches the other (a turn that would move a banded edge is not allowed, so a carcass side stays handed).
 
@@ -88,7 +91,8 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 | Layer | File | What it owns |
 |---|---|---|
 | Domain | `make/make-parts.ts` | `makePiece`: boards, parts, holes, grooves, fittings, steps, buy list, checks, motions; `cutWithBand` |
-| Domain | `make/make-joints.ts`, `make-hardware.ts` | Joints and connectors, the back; hinges, handles, runners, pins, rails, legs; drawer boxes; door and drawer motion |
+| Domain | `make/make-joints.ts`, `make-hardware.ts` | Joints and connectors, the back; hinges, handles, runners, pins, rails, legs; door and drawer motion |
+| Domain | `make/drawer-box.ts`, `drawer-installation.ts` | Drawer boxes, their joints, grooves, hook and pin holes and locks; runner screws; the drawers' film |
 | Domain | `make/make-assembly.ts` | Holes on a flat board, drilling signatures, assembly steps, buy list, drilling checks |
 | Domain | `make/make-cut-layout.ts` | Stock sheets, strips, kerf, trim, grain; edge banding metres |
 | Domain | `make/make-timeline.ts` | The film: each step's drill, place and fix phases in seconds; what is where at any time (pure) |

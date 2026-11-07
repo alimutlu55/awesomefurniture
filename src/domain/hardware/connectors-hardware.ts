@@ -193,6 +193,7 @@ export const DOWEL_ENTRY: HardwareEntry = {
   variants: [
     { key: 'standard', name: '8 × 35 mm fluted beech dowel', sizeLabel: '8 × 35', sizesMm: [35] },
     { key: 'short', name: '6 × 30 mm short blind dowel (sloped roof joint)', sizeLabel: '6 × 30', sizesMm: [30] },
+    { key: 'expanding', name: '8 × 30 mm expanding plastic dowel, hammered through a drawer back', sizeLabel: '8 × 30 expanding', sizesMm: [30] },
   ],
   rules: {
     clearanceMm: {},
@@ -206,6 +207,9 @@ export const DOWEL_ENTRY: HardwareEntry = {
     { reference: 'joint-line', lineMm: 0, face: 'edge', kind: 'dowel', dMm: 8, depthMm: 25 },
     { reference: 'joint-line', lineMm: 0, face: 'inside', kind: 'dowel', dMm: 6, depthMm: 10 },
     { reference: 'joint-line', lineMm: 0, face: 'edge', kind: 'dowel', dMm: 6, depthMm: 22 },
+    // Expanding dowel: through the drawer back, then into the end of the drawer side behind it.
+    { reference: 'joint-line', lineMm: 0, face: 'outside', kind: 'dowel', dMm: 8, depthMm: 0 },
+    { reference: 'joint-line', lineMm: 0, face: 'edge', kind: 'dowel', dMm: 8, depthMm: 22 },
   ],
   fixings: [
     {
@@ -246,7 +250,8 @@ export const DOWEL_ENTRY: HardwareEntry = {
     drawingMark: { symbol: 'connector-cross', label: 'Dowel' },
     listLine: { label: 'Dowel', unit: 'pc', defaultSpec: '8 × 35' },
   },
-  source: 'Fluted hardwood dowel pins Ø8 × 35 mm (12 mm face bore + 25 mm edge bore) and Ø6 × 30 mm for shallow sloped-top joints (10 mm + 22 mm) — DIN 68150 / generic joinery practice.',
+  source: 'Fluted hardwood dowel pins Ø8 × 35 mm (12 mm face bore + 25 mm edge bore) and Ø6 × 30 mm for shallow sloped-top joints (10 mm + 22 mm); '
+    + 'Ø8 × 30 mm expanding plastic dowels hammered through a knock-down drawer back into its sides — DIN 68150 / generic joinery practice.',
 };
 
 /**

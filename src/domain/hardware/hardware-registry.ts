@@ -6,8 +6,8 @@ import {
   NAIL_ENTRY,
   SCREW_ENTRY,
 } from './connectors-hardware';
-import { RUNNER_ENTRY } from './drawer-hardware';
-export { RUNNER_ENTRY } from './drawer-hardware';
+import { DRAWER_LOCK_ENTRY, RUNNER_ENTRY } from './drawer-hardware';
+export { DRAWER_LOCK_ENTRY, RUNNER_ENTRY } from './drawer-hardware';
 import { HANDLE_ENTRY, PUSH_TO_OPEN_ENTRY } from './handles-hardware';
 import type {
   AssemblyStage,
@@ -116,14 +116,26 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
   {
     stage: 'drawer-boxes',
     requires: ['inside'],
-    title: 'Assemble the drawer boxes',
-    summary: 'Join the box sides and ends on the bench and fix the 6 mm drawer bottoms square.',
+    title: 'Start the drawer boxes: fronts and bottoms',
+    summary: 'Lay each drawer front face down on a soft mat, screw in its cam bolts, and slide the bottom into its groove, centred.',
+  },
+  {
+    stage: 'drawer-sides',
+    requires: ['drawer-boxes'],
+    title: 'Fit the drawer sides',
+    summary: 'Push the dowels in, set each side over the cam bolts with the bottom in its groove, and turn the cams to lock.',
+  },
+  {
+    stage: 'drawer-back',
+    requires: ['drawer-sides'],
+    title: 'Fit the drawer backs',
+    summary: 'Hook the back over the edge of the bottom, swing it into place, and hammer the expanding dowels through it into the sides.',
   },
   {
     stage: 'drawer-runners',
-    requires: ['carcass', 'partitions', 'drawer-boxes'],
+    requires: ['carcass', 'partitions', 'drawer-back'],
     title: 'Mount the drawer runners',
-    summary: 'Screw the cabinet runner members on the 37 mm System 32 line and the drawer members to the box sides.',
+    summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into the System 32 hole.',
   },
   {
     stage: 'cargo-frame',
@@ -140,12 +152,18 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
   {
     stage: 'drawers',
     requires: ['drawer-runners', 'cargo-baskets'],
-    title: 'Engage the drawers on their runners',
-    summary: 'Slide each drawer box or pull-out chassis onto the telescoping cabinet runners until the latches click.',
+    title: 'Put the drawers on their runners',
+    summary: 'Pull the runners out, hook each drawer back onto the rear hooks and lower the front onto the front pins through the locking plates.',
+  },
+  {
+    stage: 'drawer-lock',
+    requires: ['drawers'],
+    title: 'Lock the drawers to the runners',
+    summary: 'Screw a locking lever onto each front pin under the drawer and turn it to lock the drawer to its runners.',
   },
   {
     stage: 'fronts',
-    requires: ['drawers'],
+    requires: ['drawer-lock'],
     title: 'Fix and align the drawer fronts',
     summary: 'Fasten the decorative fronts from inside the drawer boxes and align the reveals.',
   },
@@ -153,7 +171,7 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     stage: 'drawer-test',
     requires: ['fronts'],
     title: 'Test drawer travel',
-    summary: 'Open and close each drawer in turn to check full extension, parallel reveals, and soft close.',
+    summary: 'Open and close each drawer in turn to check smooth travel, parallel reveals and that both locks hold.',
   },
   {
     stage: 'doors',
@@ -203,6 +221,7 @@ export function assemblyStageSpec(stage: AssemblyStage): AssemblyStageSpec | und
  */
 export const HARDWARE: readonly HardwareEntry[] = [
   RUNNER_ENTRY,
+  DRAWER_LOCK_ENTRY,
   HINGE_ENTRY,
   PLATE_ENTRY,
   SLIDING_TRACK_ENTRY,

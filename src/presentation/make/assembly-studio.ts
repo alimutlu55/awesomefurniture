@@ -9,8 +9,8 @@ import { unitSuffix } from '../editor/length-unit-state';
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const names: Record<Stage, string> = { plinth: 'Foundation', carcass: 'Structure', partitions: 'Partitions', top: 'Top', back: 'Back', inside: 'Shelves & interior',
-  'drawer-boxes': 'Build drawer boxes', 'drawer-runners': 'Mount drawer runners',
-  'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Insert drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
+  'drawer-boxes': 'Drawer fronts & bottoms', 'drawer-sides': 'Drawer sides', 'drawer-back': 'Drawer backs', 'drawer-runners': 'Mount drawer runners',
+  'cargo-frame': 'Prepare cargo frame', 'cargo-baskets': 'Hook on cargo baskets', drawers: 'Put the drawers on', 'drawer-lock': 'Lock the drawers', 'drawer-test': 'Test drawer travel', fronts: 'Fronts', doors: 'Doors', wall: 'Finishing' };
 const cargoNames: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Mount cargo slides (374 mm spacing)',
   'cargo-frame': 'Prepare cargo frame & slide brackets',
@@ -28,14 +28,19 @@ const instructions: Record<Stage, string> = {
   top: 'Lower the top onto the uprights, align the edges and secure each connection.',
   back: 'Square the cabinet, then fit the back using the selected back fixing.',
   inside: 'Fit the supports at matching heights, then position the shelves and interior components.',
-  'drawer-boxes': 'Assemble each drawer box outside the cabinet. Join the ends between the sides, fit the bottom and check the box is square.',
-  'drawer-runners': 'Separate the removable inner members. Fix the outer rails level and parallel inside the cabinet; screw the inner members to the drawer sides. Use short mounting screws.',
-  drawers: 'Bring the assembled boxes to the cabinet. Align both drawer members with the cabinet rails, support the box level and push evenly until both sides engage.',
-  'drawer-test': 'Open and close each drawer. The outer rail stays fixed, the middle rail telescopes and the inner member travels with the box. Check smooth travel, equal gaps and secure engagement on both sides.',
+  'drawer-boxes': 'Lay each drawer front face down on a soft mat. Screw the cam bolts into its inner face, then slide the bottom into the front\'s groove: the same gap at both ends. Do not bend the bottom.',
+  'drawer-sides': 'Tap the wooden dowels in. Set each side over the cam bolts and dowels with the bottom in its groove, then turn the cams clockwise to pull the joint tight.',
+  'drawer-back': 'Hook the back\'s groove over the edge of the bottom, swing the back into place against the sides, and hammer the expanding dowels through it into the sides.',
+  'drawer-runners': 'Hook each runner\'s rear peg into its System 32 hole, level the rail, and fix its front bracket with two short screws. Nothing is screwed to the drawer.',
+  drawers: 'Pull both runners out. Lay a locking plate over each front pin, hook the drawer back onto the rear hooks, and lower the front so the pins come up through the bottom and plates.',
+  'drawer-lock': 'Under each drawer, screw a locking lever up onto each front pin and turn it until it locks. The drawer can no longer lift off its runners.',
+  'drawer-test': 'Open and close each drawer. The cabinet rails stay fixed and the drawer rails travel with the box. Check smooth travel, equal gaps and that both locks hold.',
   fronts: 'Align the decorative drawer front, then fasten it from inside the box with short front-fixing screws. Keep the front square and the gaps even.',
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
 };
+/** The drawer chapters: their caption is shown, and their instruction is the drawer's own, whatever the phase. */
+const DRAWER_STAGES: ReadonlySet<Stage> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'drawer-lock', 'fronts', 'drawer-test']);
 const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
 const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
@@ -165,24 +170,27 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
         : adjusting ? 'adjust' : 'complete';
       const drawerCaption = q('.as-drawer-caption');
-      drawerCaption.hidden = !['drawer-boxes', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts', 'drawer-test'].includes(step.stage);
+      drawerCaption.hidden = !DRAWER_STAGES.has(step.stage);
       const captions: Partial<Record<Stage, string>> = {
-        'drawer-boxes': 'Build and square the box outside the cabinet.',
-        'drawer-runners': isCargo ? 'Lower slide at min 50 mm · Upper slide +374 mm above · 45 mm front setback (4×14 mm screws).' : 'Outer rail → cabinet · Inner rail → drawer box',
+        'drawer-boxes': 'Front face down on a soft mat · cam bolts in · bottom slid into the groove, centred.',
+        'drawer-sides': 'Dowels in · sides over the bolts, bottom in their grooves · turn the cams to lock.',
+        'drawer-back': 'Hook the back over the bottom · swing it in · hammer the expanding dowels.',
+        'drawer-runners': isCargo ? 'Lower slide at min 50 mm · Upper slide +374 mm above · 45 mm front setback (4×14 mm screws).' : 'Rear peg in its hole · two screws through the front bracket · nothing on the drawer.',
         'cargo-frame': 'Stand steel chassis outside cabinet · Clip 4 slide brackets onto wires 2–3 and 16–17 (192 mm span).',
         'cargo-baskets': 'Hook wire baskets (Kosz 150/200, max 15 kg) onto frame · Clip 2 transverse Separatory dividers onto rails.',
         drawers: isCargo
           ? (phase === 'fix'
             ? 'Lock all 4 basket slide brackets (2–3 & 16–17 pręt) to slides from above with 4 × M4×6 machine screws.'
             : 'Slide loaded cargo frame onto lower & upper slides (374 mm spacing), then lock with 4 × M4×6 screws.')
-          : 'Align both rails. Push the supported box evenly into the cabinet.',
+          : 'Runners out · plates over the front pins · hook the back on, lower the front onto the pins.',
+        'drawer-lock': 'Under each drawer: lever onto each front pin, turn to lock.',
         fronts: isCargo
           ? (phase === 'adjust'
             ? `3D Front Adjustment (REGULACJA): tune ${adjusting?.way === 'height' ? 'Height ⇅ (top screw)' : adjusting?.way === 'side' ? 'Side ⇄ (lateral screws)' : 'Depth ⇕ (clamping screws)'} · Snap on "GTV move" covers.`
             : phase === 'place' ? 'Couple front fittings onto cargo frame upright tongues · Lock & snap on "GTV move" protective covers.'
             : 'Screw 2 front fittings (103.5×36.5 mm, 78 mm screw pattern, 374 mm vertical spacing, *142 mm from floor) with 4×14 mm screws.')
           : 'Align decorative front, then fasten from inside with front-fixing screws.',
-        'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer to check smooth telescoping travel.',
+        'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer: smooth travel, even gaps, both locks holding.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
       const hardware = fixing?.hardware ?? step.fittings;
@@ -194,7 +202,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
           : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
-          : ['drawer-boxes', 'drawer-runners', 'drawers', 'drawer-test'].includes(step.stage) ? stageInstruction(step.stage)
+          : DRAWER_STAGES.has(step.stage) && step.stage !== 'fronts' ? stageInstruction(step.stage)
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : stageInstruction(step.stage);
         const hardwareHtml = hardware.map(f => {
           const disp = hardwareDisplay(f);

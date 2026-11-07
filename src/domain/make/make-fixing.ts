@@ -46,6 +46,8 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
     case 'hanger': case 'bracket': return { at: f.at, dir: [0, 0, 1], board: null };
     case 'rail': case 'support': return f.size?.includes('cargo') ? null : { at: f.at, dir: [0, 0, -1], board: null };
     case 'runner': return null;
+    // A lock plate and lever go on under the drawer, from below.
+    case 'drawerLock': return { at: f.at, dir: [0, 1, 0], board: f.boards[0] ?? null };
   }
 }
 

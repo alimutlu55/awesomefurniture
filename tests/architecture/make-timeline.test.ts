@@ -24,9 +24,13 @@ test('every hole is drilled for a fitting', () => {
     mp.holes.forEach(h => assert.ok(h.of !== undefined && mp.fittings[h.of], `${name} ${joints}: a ${h.kind} hole names its fitting`));
     for (const h of mp.holes.filter(x => x.kind === 'cup')) assert.equal(mp.fittings[h.of!]!.kind, 'hinge');
     for (const h of mp.holes.filter(x => x.kind === 'connector')) assert.equal(mp.fittings[h.of!]!.kind, 'confirmat');
+    // A runner hole holds a screw through the runner's front bracket, or is the runner's own: its rear peg in the upright,
+    // its hook in the box back, its front pin through the box bottom.
     for (const h of mp.holes.filter(x => x.kind === 'runner')) {
-      assert.equal(mp.fittings[h.of!]!.kind, 'screw');
-      assert.equal(mp.fittings[h.of!]!.purpose, 'runner-mount');
+      const f = mp.fittings[h.of!]!;
+      if (f.kind === 'runner') continue;
+      assert.equal(f.kind, 'screw');
+      assert.equal(f.purpose, 'runner-mount');
     }
     for (const h of mp.holes.filter(x => x.kind === 'bolt')) assert.equal(mp.fittings[h.of!]!.kind, 'bolt');
     for (const h of mp.holes.filter(x => x.kind === 'cam')) assert.equal(mp.fittings[h.of!]!.kind, 'cam');

@@ -1,4 +1,5 @@
 import { boreMaterial } from './bore-material';
+import type { DrawerBox } from './drawer-box';
 import type { Board } from '../drawings/cabinet-boards';
 import { hardware, resolveAssemblyStages } from '../hardware/hardware-registry';
 import type { AssemblyStage } from '../hardware/hardware-types';
@@ -77,15 +78,24 @@ export interface Step {
 /**
  * The order a maker puts the piece together, from where each board is and what it is: the plinth; the base between the
  * outer sides; the partitions; the top; the back; everything inside (shelves, dividers); the drawer boxes on their
- * runners; the fronts (drawer and kitchen fronts); the doors, hung on their hinge plates and adjusted.
+ * runners; the fronts (drawer and kitchen fronts); the doors, hung on their hinge plates and adjusted. A drawer box goes
+ * together in its own steps (`drawers`, from drawer-box.ts): front and bottom, sides, back.
  * Hardware joins in the step that adds the later of the boards it holds; legs with the plinth, a hinge plate with its
  * door (the hinge before it in the list), wall fixings last.
  */
-export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[]): Step[] {
+export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[], drawers: readonly DrawerBox[] = []): Step[] {
+  // A drawer box goes together in steps (drawer-box.ts): its front with the bottom, then the sides, then the back.
+  const boxStage = new Map<number, Stage>();
+  for (const d of drawers) {
+    boxStage.set(d.front, 'drawer-boxes'); boxStage.set(d.bottom, 'drawer-boxes'); boxStage.set(d.back, 'drawer-back');
+    for (const side of d.sides) boxStage.set(side, 'drawer-sides');
+  }
   const w = Math.max(...boards.map(b => b.x1)), h = Math.max(...boards.map(b => b.y1)), top = h;
   const horizontals = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.note !== 'drawer box');
   const base = horizontals.length ? Math.min(...horizontals.map(b => b.y0)) : -1;
-  const stepOf = (b: Board): Stage => {
+  const stepOf = (b: Board, i: number): Stage => {
+    const box = boxStage.get(i);
+    if (box) return box;
     if (b.stock === 'plinth') return 'plinth';
     if (b.stock === 'door') return 'doors';
     if (b.stock === 'front') return 'fronts';
@@ -100,6 +110,11 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
   };
   const steps = boards.map(stepOf);
   const fittingStep = (f: Fitting, i: number): Stage => {
+    if (f.purpose === 'box-front') return 'drawer-boxes';
+    if (f.purpose === 'box-sides') return 'drawer-sides';
+    if (f.purpose === 'box-back') return 'drawer-back';
+    if (f.purpose === 'drawer-plate') return 'drawers';
+    if (f.purpose === 'drawer-lock') return 'drawer-lock';
     if (f.purpose === 'cargo-lock') return 'drawers';
     if (f.purpose === 'runner-mount') return 'drawer-runners';
     if (f.purpose === 'drawer-front' || f.purpose === 'front-fixing') return 'fronts';

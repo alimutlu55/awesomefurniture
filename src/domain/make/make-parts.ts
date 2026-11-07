@@ -5,7 +5,8 @@ import { resolveMaterials } from '../materials/configured-materials';
 import type { EditorDesign } from '../wardrobe/editor-design';
 import { assemblySteps, buyList, drillingChecks, drillingSignature, type BuyLine, type Finding, type Step } from './make-assembly';
 import { type Construction, constructionOf } from './make-construction';
-import { drawerBoxes, frontHardware, frontMotions, type Motion } from './make-hardware';
+import { frontHardware, frontMotions, type Motion } from './make-hardware';
+import { type DrawerBox, drawerBoxes, drawerBoxJoints } from './drawer-box';
 import { backFixing, findJoints, type Fitting, type Groove, type Hole, jointFittings } from './make-joints';
 
 /**
@@ -43,6 +44,8 @@ export interface MakePiece {
   readonly findings: readonly Finding[];
   /** How each board moves when the piece is opened (doors swing, drawers slide); null: it stays. */
   readonly motions: readonly (Motion | null)[];
+  /** Every drawer: the boards its box is made of (drawer-box.ts). */
+  readonly drawers: readonly DrawerBox[];
 }
 
 /** The decor a board is cut from. */
@@ -93,15 +96,27 @@ export function makePlacedPiece(piece: PlacedPiece, pieces: readonly PlacedPiece
   const cut = pieceBoards(piece, pieces);
   if (!cut.length) return null;
   const boards = [...cut, ...drawerBoxes(piece, cut)], construction = constructionOf(piece.design);
-  const joints = jointFittings(boards, findJoints(boards), construction), back = backFixing(boards, construction), hardware = frontHardware(piece, pieces, boards, joints.holes);
-  // Hardware's holes name its fittings from 0: they follow the joints' and the back's in the one list.
-  const shift = joints.fittings.length + back.fittings.length;
-  const holes = [...joints.holes, ...hardware.holes.map(h => h.of === undefined ? h : { ...h, of: h.of + shift })];
-  const fittings = [...joints.fittings, ...back.fittings, ...hardware.fittings];
+  // A drawer box is joined its own way (drawer-box.ts), whatever joints the carcass has.
+  const box = drawerBoxJoints(boards), members = new Set(box.drawers.flatMap(d => [d.front, ...d.sides, d.back, d.bottom]));
+  const joints = jointFittings(boards, findJoints(boards).filter(j => !(members.has(j.face) && members.has(j.edge))), construction);
+  const back = backFixing(boards, construction);
+  // The fittings in one list: the carcass joints, the back's, the drawer boxes', then the hardware; holes name them by place.
+  const before = joints.fittings.length + back.fittings.length, shift = before + box.fittings.length;
+  const hardware = frontHardware(piece, pieces, boards, [...joints.holes, ...box.holes]);
+  const fittings = [...joints.fittings, ...back.fittings, ...box.fittings, ...hardware.fittings];
+  // A box's hook hole and pin holes are its runner pair's.
+  const runnerOf = (board: number) => {
+    const d = box.drawers.find(q => [q.back, q.bottom].includes(board));
+    return d ? fittings.findIndex(f => f.runner?.moving.includes(d.sides[0])) : -1;
+  };
+  const holes = [...joints.holes,
+    ...box.holes.map(h => h.of !== undefined ? { ...h, of: h.of + before } : h.kind === 'runner' && runnerOf(h.board) >= 0 ? { ...h, of: runnerOf(h.board) } : h),
+    ...hardware.holes.map(h => h.of === undefined ? h : { ...h, of: h.of + shift })];
   const { w, h, d } = piece.design;
   return {
-    piece, parts: makeParts(boards, piece.design, holes), size: { w, h, d }, boards, construction, holes, grooves: back.grooves, fittings,
-    steps: assemblySteps(boards, fittings), buy: buyList(fittings), findings: drillingChecks(boards, holes), motions: frontMotions(piece, pieces, boards),
+    piece, parts: makeParts(boards, piece.design, holes), size: { w, h, d }, boards, construction, holes, grooves: [...back.grooves, ...box.grooves], fittings,
+    steps: assemblySteps(boards, fittings, box.drawers), buy: buyList(fittings), findings: drillingChecks(boards, holes), motions: frontMotions(piece, pieces, boards),
+    drawers: box.drawers,
   };
 }
 

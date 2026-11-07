@@ -38,15 +38,15 @@ test('insertion camera frames the actual inserted position, rather than the box 
   near(shots(time).z, (Math.min(...zs) + Math.max(...zs)) / 2);
 });
 
-test('drawer-member screws are viewed from the accessible outside face of the box', () => {
+test('runner screws go into the cabinet only, and are viewed from inside it, where they go in', () => {
   const { piece, tl, shots } = fixture(), k = piece.steps.findIndex(s => s.stage === 'drawer-runners');
-  const fixes = tl.steps[k]!.fixes.filter(f => f.items.every(i => piece.fittings[i]!.purpose === 'runner-mount')
-    && f.board !== null && piece.boards[f.board]!.note === 'drawer box');
+  const fixes = tl.steps[k]!.fixes.filter(f => f.items.every(i => piece.fittings[i]!.purpose === 'runner-mount'));
   assert.ok(fixes.length >= 2);
+  assert.ok(fixes.every(f => f.board !== null && piece.boards[f.board]!.note !== 'drawer box'), 'bottom-mounted runners: nothing is screwed into the box');
   for (const fix of fixes) {
     const time = fix.at[0] + (fix.at[1] - fix.at[0]) * .2, pose = shots(time), e = entryOf(piece, fix.items[0]!)!;
     assert.ok(Math.sin(pose.az) * -e.dir[0] + Math.cos(pose.az) * -e.dir[2] > .2,
-      'camera must face the screw heads, not look through the drawer side');
+      'camera must face the screw heads, not look through the cabinet side');
   }
 });
 

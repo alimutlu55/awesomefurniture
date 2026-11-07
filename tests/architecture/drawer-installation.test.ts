@@ -15,31 +15,95 @@ const make = (design = createKitchenDesign('base', 'drawers')) => makePiece({ pi
 ] }, 1)!;
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
 
-test('drawer sequence builds the box, mounts the runners, engages the box, attaches the front and tests travel', () => {
+const wardrobe = () => make({ ...createInitialDesign(), w: 80, h: 200, d: 60, n: 1, wt: [1], doors: 'hinged',
+  secs: [[{ k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'shelf', h: 35 }]] } as never);
+const FLAT_PACK = ['drawer-boxes', 'drawer-sides', 'drawer-back', 'drawer-runners', 'drawers', 'drawer-lock', 'fronts', 'drawer-test'] as const;
+
+test('a drawer goes together as a flat-pack drawer: front and bottom, sides, back, runners, on, locked, tested', () => {
   const piece = make(), stages = piece.steps.map(s => s.stage);
-  const expected = ['drawer-boxes', 'drawer-runners', 'drawers', 'fronts', 'drawer-test'] as const;
-  for (let i = 1; i < expected.length; i++) assert.ok(stages.indexOf(expected[i]!) > stages.indexOf(expected[i - 1]!));
-  for (const step of piece.steps) for (const board of step.boards)
-    if (piece.boards[board]!.note === 'drawer box') assert.equal(step.stage, 'drawer-boxes');
+  for (let i = 1; i < FLAT_PACK.length; i++) assert.ok(stages.indexOf(FLAT_PACK[i]!) > stages.indexOf(FLAT_PACK[i - 1]!), FLAT_PACK[i]);
+  const stageOf = (board: number) => piece.steps.find(s => s.boards.includes(board))!.stage;
+  assert.equal(piece.drawers.length, 3);
+  for (const d of piece.drawers) {
+    assert.equal(stageOf(d.front), 'drawer-boxes'); assert.equal(stageOf(d.bottom), 'drawer-boxes');
+    for (const side of d.sides) assert.equal(stageOf(side), 'drawer-sides');
+    assert.equal(stageOf(d.back), 'drawer-back');
+    assert.equal(stageOf(d.applied!), 'fronts', 'a kitchen drawer\'s applied front goes on last');
+  }
   const plain = make({ ...createInitialDesign(), secs: [[{ k: 'shelf', h: 50 }]], doors: 'none' });
-  assert.ok(!plain.steps.some(s => expected.filter(v => v !== 'fronts').includes(s.stage as never)), 'no phantom drawer chapters');
+  assert.ok(!plain.steps.some(s => FLAT_PACK.filter(v => v !== 'fronts').includes(s.stage as never)), 'no phantom drawer chapters');
 });
 
-test('rail screws are short, driven from inside and owned by the correct runner installation stage', () => {
-  const piece = make(), tl = assemblyTimeline(piece), rails = piece.fittings.filter(f => f.runner);
-  assert.ok(rails.length > 1);
-  for (const rail of rails) {
+test('the box is joined as the instructions say: cam bolts in the front, cams and a dowel at each side, expanding dowels through the back', () => {
+  for (const piece of [make(), wardrobe()]) {
+    const tl = assemblyTimeline(piece), stage = (i: number) => piece.steps[tl.itemStep[i]!]!.stage;
+    for (const d of piece.drawers) {
+      const mine = piece.fittings.map((f, i) => ({ f, i })).filter(({ f }) => f.boards.some(b => [d.front, d.back, d.bottom, ...d.sides].includes(b)) && f.purpose);
+      const of = (kind: string, purpose: string) => mine.filter(({ f }) => f.kind === kind && f.purpose === purpose);
+      const bolts = of('bolt', 'box-front'), cams = of('cam', 'box-sides'), dowels = of('dowel', 'box-sides'), expanding = of('dowel', 'box-back');
+      assert.equal(bolts.length, 4); assert.equal(cams.length, 4); assert.equal(dowels.length, 2); assert.equal(expanding.length, 4);
+      for (const { f } of bolts) assert.equal(f.boards[0], d.front, 'the bolt is screwed into the front');
+      for (const { f } of expanding) { assert.equal(f.boards[0], d.back); assert.match(f.size!, /expanding/); }
+      for (const { i } of bolts) assert.equal(stage(i), 'drawer-boxes');
+      for (const { i } of [...cams, ...dowels]) assert.equal(stage(i), 'drawer-sides');
+      for (const { i } of expanding) assert.equal(stage(i), 'drawer-back');
+      // The runner's hooks go into the back; its pins up through the bottom, under a plate, locked by a lever.
+      assert.equal(piece.holes.filter(h => h.board === d.back && h.kind === 'runner').length, 2);
+      assert.equal(piece.holes.filter(h => h.board === d.bottom && h.kind === 'runner' && h.axis === 1 && h.depth === 0).length, 2);
+      const plates = of('drawerLock', 'drawer-plate'), levers = of('drawerLock', 'drawer-lock');
+      assert.equal(plates.length, 2); assert.equal(levers.length, 2);
+      for (const { i } of plates) assert.equal(stage(i), 'drawers');
+      for (const { i } of levers) { assert.equal(stage(i), 'drawer-lock'); assert.deepEqual(entryOf(piece, i)!.dir, [0, 1, 0], 'from below'); }
+      // Nothing joins a box board with the carcass's own connectors.
+      assert.ok(!piece.fittings.some(f => f.kind === 'confirmat' && f.boards.some(b => [d.back, d.bottom, ...d.sides].includes(b))));
+    }
+  }
+});
+
+test('the bottom is captured in grooves in the front, both sides and the back, never nailed', () => {
+  for (const piece of [make({ ...createKitchenDesign('base', 'drawers'), construction: { joints: 'confirmat', back: 'grooved' } }), wardrobe()]) {
+    assert.equal(piece.fittings.filter(f => f.kind === 'nail' && f.boards.some(b => piece.boards[b]!.name === 'Box bottom')).length, 0);
+    for (const d of piece.drawers) {
+      const bottom = piece.boards[d.bottom]!;
+      for (const k of [d.front, ...d.sides, d.back]) {
+        const g = piece.grooves.find(q => q.board === k && q.lo[1] <= bottom.y0 + 1e-6 && q.hi[1] >= bottom.y1 - 1e-6);
+        assert.ok(g, `${piece.boards[k]!.name} has the bottom's groove`);
+        assert.ok(Math.max(...g!.hi.map((v, a) => v - g!.lo[a]!)) > 5, 'along the board');
+      }
+    }
+  }
+});
+
+test('a wardrobe drawer\'s own front is its box front: no second front, no front screws', () => {
+  const piece = wardrobe();
+  assert.equal(piece.drawers.length, 2);
+  assert.ok(piece.drawers.every(d => d.applied === null && piece.boards[d.front]!.name === 'Drawer front'));
+  assert.equal(piece.boards.filter(b => b.name === 'Box front').length, 0);
+  assert.equal(piece.fittings.filter(f => f.purpose === 'drawer-front').length, 0);
+});
+
+test('runners are fixed to the cabinet only: two short screws through the front bracket, the rear peg in a System 32 hole', () => {
+  const piece = make(), tl = assemblyTimeline(piece), rails = piece.fittings.map((f, i) => ({ f, i })).filter(({ f }) => f.runner);
+  assert.equal(rails.length, 3);
+  for (const { f: rail, i: index } of rails) {
     assert.equal(rail.runner!.fixed.length, 2);
     assert.equal(rail.runner!.moving.length, 2);
-    for (const id of rail.runner!.fixed) assert.notEqual(piece.boards[id]!.note, 'drawer box');
+    for (const id of rail.runner!.fixed) {
+      assert.notEqual(piece.boards[id]!.note, 'drawer box');
+      const own = piece.holes.filter(h => h.board === id && h.kind === 'runner' && (h.of === index || piece.fittings[h.of!]?.purpose === 'runner-mount' && Math.abs(h.at[1] - rail.at[1]) < .01));
+      assert.equal(own.length, 3, 'two screw holes at the front and the peg hole');
+      const peg = own.filter(h => h.of === index);
+      assert.equal(peg.length, 1); assert.ok(peg[0]!.at[2] < Math.min(...own.filter(h => h.of !== index).map(h => h.at[2])), 'the peg is at the rear');
+    }
     for (const id of rail.runner!.moving) assert.equal(piece.boards[id]!.name, 'Box side');
   }
   const mounts = piece.fittings.flatMap((f, i) => f.purpose === 'runner-mount' ? [i] : []);
-  assert.ok(mounts.length >= rails.length * 8, 'both cabinet members and both drawer members are fixed');
+  assert.equal(mounts.length, rails.length * 4, 'two screws a rail, two rails a drawer');
   for (const i of mounts) {
     const fitting = piece.fittings[i]!, hole = piece.holes.find(h => h.of === i)!;
     assert.equal(fitting.kind, 'screw'); assert.equal(fitting.size, '4 × 12');
     assert.equal(hole.d, 2.5); assert.equal(hole.depth, 12);
+    assert.notEqual(piece.boards[hole.board]!.note, 'drawer box', 'nothing is screwed into the box');
     assert.equal(piece.steps[tl.itemStep[i]!]!.stage, 'drawer-runners');
     const b = piece.boards[hole.board]!;
     assert.ok(hole.at[0] + hole.sign * 1.2 > b.x0 && hole.at[0] + hole.sign * 1.2 < b.x1, 'screw stays within the 18 mm panel');
@@ -73,25 +137,28 @@ test('boxes are assembled outside, inserted as rigid groups and opened one at a 
   piece.boards.forEach((_, id) => near(offset(tl.duration, id), 0));
 });
 
-test('front screws fasten the decorative face from inside the box, without breaking out', () => {
+test('a kitchen drawer\'s applied front is screwed on from inside its box front, without breaking out', () => {
   const piece = make(), fixings = piece.fittings.filter(f => f.purpose === 'drawer-front');
   assert.equal(fixings.length, piece.fittings.filter(f => f.runner).length * 2);
   for (const f of fixings) {
     const end = piece.boards[f.boards[0]!]!, front = piece.boards[f.boards[1]!]!;
-    assert.equal(end.name, 'Box end'); assert.equal(front.stock, 'front');
+    assert.equal(end.name, 'Box front'); assert.equal(front.stock, 'front');
     near(f.at[2], end.z0);
     assert.ok(f.at[2] + 3 > front.z0 && f.at[2] + 3 < front.z1);
   }
 });
 
-test('runner geometry has two stationary outer members, two telescoping members and two drawer members', () => {
+test('runner geometry: a cabinet rail on each upright and a drawer rail under each box side', () => {
   const piece = make(), fitting = piece.fittings.find(f => f.runner)!, geometry = new THREE.BoxGeometry(), material = new THREE.MeshBasicMaterial();
   const rails = drawerRunnerMeshes(piece, fitting, geometry, material);
-  assert.equal(rails.length, 6);
-  assert.equal(rails.filter(r => fitting.runner!.moving.includes(r.board)).length, 2);
-  assert.equal(rails.filter(r => r.moving !== undefined && r.ratio === .5).length, 2);
-  assert.equal(rails.filter(r => fitting.runner!.fixed.includes(r.board) && r.moving === undefined).length, 2);
-  assert.ok(rails.every(r => r.mesh.children.length >= 3), 'nested channel flanges are modeled');
+  assert.equal(rails.length, 4);
+  assert.equal(rails.filter(r => fitting.runner!.fixed.includes(r.board)).length, 2, 'the cabinet rails stay');
+  assert.equal(rails.filter(r => fitting.runner!.moving.includes(r.board)).length, 2, 'the drawer rails move with the box');
+  for (const r of rails.filter(q => fitting.runner!.moving.includes(q.board))) {
+    const side = piece.boards[r.board]!;
+    assert.ok(r.mesh.position.y < side.y0, 'under the box side');
+  }
+  assert.ok(rails.every(r => r.mesh.children.length >= 3), 'web, foot and bracket; rail, hook and pin');
   geometry.dispose(); material.dispose();
 });
 
@@ -118,12 +185,15 @@ test('open and close demonstrations animate and pause exactly at their target, i
   p.animateTo(open); assert.equal(p.rate, -1); p.advance(1000); near(p.time, open); assert.equal(p.playing, false);
 });
 
-test('drawer bottom nails enter upwards from underneath, even with a grooved cabinet back', () => {
-  const piece = make({ ...createKitchenDesign('base', 'drawers'), construction: { joints: 'confirmat', back: 'grooved' } });
-  const nails = piece.fittings.flatMap((f, i) => f.kind === 'nail' && piece.boards[f.boards[0]!]!.name === 'Box bottom' ? [i] : []);
-  assert.ok(nails.length > 0);
-  for (const i of nails) {
-    const f = piece.fittings[i]!, b = piece.boards[f.boards[0]!]!, entry = entryOf(piece, i)!;
-    assert.equal(f.axis, 1); assert.deepEqual(entry.dir, [0, 1, 0]); near(entry.at[1], b.y0);
+
+test('the drawers stand out while the levers are turned under them, and are home again after', () => {
+  const piece = make(), tl = assemblyTimeline(piece), k = piece.steps.findIndex(s => s.stage === 'drawer-lock'), s = tl.steps[k]!;
+  assert.ok(k >= 0 && s.fix[1] > s.fix[0]);
+  const offset = (time: number, id: number) => drawerBoardOffset(piece, tl, playhead(tl, time), id)[2];
+  for (const d of piece.drawers) for (const id of [d.front, d.bottom, d.back, ...d.sides]) {
+    const by = piece.motions[id]!.kind === 'slide' ? (piece.motions[id] as { by: number }).by : 0;
+    near(offset(s.start, id), 0);
+    near(offset((s.fix[0] + s.fix[1]) / 2, id), by);
+    near(offset(s.end, id), 0);
   }
 });

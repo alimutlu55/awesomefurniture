@@ -143,6 +143,9 @@ test('the PDF is one A3 landscape page per sheet, a valid file made from the she
 
 const sheetNamed = (title: string, pieces = kitchen()) => technicalDrawings({ studio: room(), pieces }).find(s => s.title === title)!;
 const rowsOf = (title: string, pieces = kitchen()) => sheetNamed(title, pieces).table!.rows;
+/** The rows of a list that runs over several sheets ("Cutting list 1 of 2", ...). */
+const allRowsOf = (title: string, pieces = kitchen()) => technicalDrawings({ studio: room(), pieces })
+  .filter(s => s.title === title || s.title.startsWith(title + ' ')).flatMap(s => s.table!.rows);
 
 test('each cabinet has its own sheet to be made from: front, inside and a section', () => {
   const sheet = sheetNamed('K2  Base cabinet');
@@ -152,7 +155,7 @@ test('each cabinet has its own sheet to be made from: front, inside and a sectio
 });
 
 test('the cutting list: every board as built, length with the grain, the run\'s worktop and plinth', () => {
-  const k2 = rowsOf('Cutting list').filter(r => r[0] === 'K2' && r[1] !== 'Worktop' && r[1] !== 'Plinth').map(r => r.slice(1, 8).join(' '));
+  const k2 = allRowsOf('Cutting list').filter(r => r[0] === 'K2' && r[1] !== 'Worktop' && r[1] !== 'Plinth').map(r => r.slice(1, 8).join(' '));
   assert.deepEqual(k2, [
     'Top 1 600 580 18 Board 18 · Egger W1100 ST9 L1',
     'Side 1 762 580 18 Board 18 · Egger W1100 ST9 L1',
@@ -162,19 +165,23 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
     'Pan drawer front 1 294 597 18 Front 18 · Egger W1100 ST9 L2 W2',
     'Pan drawer front 1 276 597 18 Front 18 · Egger W1100 ST9 L2 W2',
     'Drawer front 1 201 597 18 Front 18 · Egger W1100 ST9 L2 W2',
-    'Box side 2 550 241.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 241.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 241.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box bottom 3 539 550 6 Back panel 6 —',
-    'Box side 2 550 236 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 236 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 236 18 Board 18 · Egger W1100 ST9 L1',
-    'Box side 2 550 148.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 148.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box end 1 503 148.5 18 Board 18 · Egger W1100 ST9 L1',
-
+    // Each drawer box: a box front behind its applied front, two sides between it and a back as wide as the box, and a
+    // bottom in their grooves (drawer-box.ts).
+    'Box front 1 539 247.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 247.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 247.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box back 1 539 247.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box bottom 3 519 530 6 Back panel 6 —',
+    'Box front 1 539 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box back 1 539 236 18 Board 18 · Egger W1100 ST9 L1',
+    'Box front 1 539 154.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 154.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box side 1 514 154.5 18 Board 18 · Egger W1100 ST9 L1',
+    'Box back 1 539 154.5 18 Board 18 · Egger W1100 ST9 L1',
   ]);
-  const run = rowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
+  const run = allRowsOf('Cutting list').filter(r => r[1] === 'Worktop' || r[1] === 'Plinth').map(r => r.slice(0, 6).join(' '));
   assert.deepEqual(run, ['K2 Worktop 1 600 600 40', 'K1 Plinth 1 600 80 18', 'K2 Plinth 1 600 80 18'], 'the worktop over the base unit; a plinth under each floor unit, 100 apart');
   const wardrobe = { id: 9, name: 'Wardrobe 1', x: 150, y: 0, z: 200, angle: 0, design: createInitialDesign() };
   const w1 = technicalDrawings({ pieces: [wardrobe] }).find(s => s.title === 'Cutting list')!.table!.rows.map(r => r.slice(1, 6).join(' '));
@@ -185,7 +192,11 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
 test('the hardware list: hinges by door height, runners to the depth, legs, hangers and fixings', () => {
   const rows = rowsOf('Hardware list', [...kitchen(), against(4, 'base', 'base', 230)]);
   const find = (item: string) => rows.find(r => r[0] === item);
-  assert.deepEqual(find('Drawer runners, full extension, pair'), ['Drawer runners, full extension, pair', '550 mm', '3', 'K2'], 'three drawers, 550 runners in a 580 deep unit');
+  const runners = 'Drawer runners, bottom-mounted, rear hook and front lock, pair';
+  assert.deepEqual(find(runners), [runners, '550 mm', '3', 'K2'], 'three drawers, 550 runners in a 580 deep unit');
+  const lock = 'Drawer front lock, locking plate and lever';
+  assert.deepEqual(rows.filter(r => r[0] === lock).map(r => r.slice(1)), [['plate', '6', 'K2'], ['lever', '6', 'K2']], 'a plate and a lever on each runner');
+  assert.ok(rows.some(r => r[0] === 'Dowel' && r[1] === '8 × 30 expanding' && r[2] === '12'), 'four expanding dowels through each drawer back');
   assert.deepEqual(find('Adjustable leg')?.slice(2), ['12', 'K1, K2, K4'], 'four under each floor unit');
   assert.deepEqual(find('Cabinet hanger, adjustable')?.slice(2), ['1', 'K3']);
   assert.deepEqual(find('Appliance door fixing kit')?.slice(2), ['2', 'K1'], 'the tall unit\'s fridge and freezer doors');

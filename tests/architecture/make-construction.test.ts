@@ -102,7 +102,11 @@ test('drawer boxes sit between the uprights, clear for their runners, behind the
 test('handed boards are separate parts; boards drilled alike once turned are one part', () => {
   const mp = make(wardrobe);
   assert.equal(mp.parts.filter(p => p.name === 'Side').length, 2, 'a left and a right side');
-  assert.equal(mp.parts.filter(p => p.name === 'Box side').length, 1, 'drawer sides are one part');
+  // A drawer side has its bottom's groove at its lower edge and its cams on its inner face: a left and a right side,
+  // each one part for every drawer of the size.
+  const sides = mp.parts.filter(p => p.name === 'Box side');
+  assert.equal(sides.length, 2, 'a left and a right drawer side');
+  assert.ok(sides.every(p => p.boards.length === mp.drawers.length));
   for (const p of mp.parts) assert.deepEqual(p.ids.map(i => mp.boards[i]), p.boards);
   assert.equal(mp.parts.reduce((s, p) => s + p.ids.length, 0), mp.boards.length);
 });
@@ -114,8 +118,10 @@ test('assembly steps take every board once, the carcass before the inside and th
     assert.equal(mp.steps.reduce((s, st) => s + st.fittings.reduce((t, f) => t + f.qty, 0), 0), mp.fittings.length, `${name}: every fitting in a step`);
     const at = (pred: (b: MakePiece['boards'][number]) => boolean) => mp.steps.findIndex(s => s.boards.some(i => pred(mp.boards[i]!)));
     assert.ok(at(b => b.name === 'Side') < at(b => b.name === 'Top'), `${name}: sides before the top`);
-    // The fronts, then the doors in their own chapter: nothing else comes after them.
-    const fronts = at(b => b.stock === 'door' || b.stock === 'front');
+    // The fronts, then the doors in their own chapter: nothing else comes after them. A wardrobe drawer's own front is
+    // its box front, built with the box (drawer-box.ts).
+    const boxFronts = new Set(mp.drawers.filter(d => d.applied === null).map(d => d.front));
+    const fronts = mp.steps.findIndex(s => s.boards.some(i => (mp.boards[i]!.stock === 'door' || mp.boards[i]!.stock === 'front') && !boxFronts.has(i)));
     if (fronts >= 0) assert.ok(mp.steps.slice(fronts + 1).every(s => s.boards.every(i => mp.boards[i]!.stock === 'door')), `${name}: fronts, then doors, last`);
     const doors = at(b => b.stock === 'door');
     if (doors >= 0) assert.ok(mp.steps.slice(doors + 1).every(s => !s.boards.length), `${name}: doors last`);
@@ -127,12 +133,13 @@ test('the joint system and back fixing change what is drilled, never a board', (
   const confirmat = by('confirmat', 'nailed'), cam = by('cam', 'nailed'), dowel = by('dowel', 'grooved');
   assert.deepEqual(cam.boards, confirmat.boards);
   assert.ok(qty(confirmat, 'confirmat') > 0 && qty(cam, 'confirmat') === 0);
-  assert.equal(qty(cam, 'cam'), qty(confirmat, 'confirmat'));
+  // Drawer boxes are joined their own way whatever the carcass's joints: count the carcass's.
+  const carcass = (m: MakePiece, kind: string) => m.fittings.filter(f => f.kind === kind && !f.purpose?.startsWith('box-')).length;
+  assert.equal(carcass(cam, 'cam'), qty(confirmat, 'confirmat'));
   assert.equal(qty(cam, 'bolt'), qty(cam, 'cam'), 'a bolt for every cam');
   assert.ok(cam.holes.some(h => h.kind === 'cam' && h.d === 15));
-  assert.equal(qty(dowel, 'dowel'), qty(confirmat, 'confirmat'));
-  assert.ok(dowel.fittings.filter(f => f.kind === 'nail').every(f => dowel.boards[f.boards[0]!]!.note === 'drawer box'),
-    'a grooved cabinet back has no nails; surface-mounted drawer bottoms retain their own fixings');
+  assert.equal(carcass(dowel, 'dowel'), qty(confirmat, 'confirmat'));
+  assert.equal(qty(dowel, 'nail'), 0, 'a grooved cabinet back has no nails, and drawer bottoms sit in grooves');
   assert.ok(dowel.grooves.length >= 4, 'the back slides into the boards around it');
   assert.deepEqual(constructionOf({}), { joints: 'confirmat', back: 'nailed' });
   assert.deepEqual(constructionOf({ construction: { joints: 'nope' as never, back: 'grooved' } }), { joints: 'confirmat', back: 'grooved' });

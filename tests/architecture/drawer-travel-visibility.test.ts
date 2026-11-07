@@ -25,7 +25,8 @@ function fixture() {
 
 test('screenshot regression: the last travel chapter ends with a closed, fully solid cabinet', () => {
   const f = fixture();
-  assert.equal(f.piece.steps.length, 9);
+  // Carcass, top, back, legs; the drawer box in three (front and bottom, sides, back); runners, on, locked; fronts; travel.
+  assert.equal(f.piece.steps.length, 12);
   assert.equal(f.piece.steps.at(-1)!.stage, 'drawer-test', 'the end must still be in the travel chapter');
   f.player.seek(f.player.duration);
   assert.equal(f.faded().length, 0, 'finished drawers must not leave cabinet sides or fronts translucent');

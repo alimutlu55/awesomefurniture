@@ -5,7 +5,6 @@ import {
   PLATE_ENTRY,
   RAIL_ENTRY,
   RAIL_SUPPORT_ENTRY,
-  RUNNER_ENTRY,
   SHELF_PIN_ENTRY,
 } from '../../domain/hardware/hardware-registry';
 import type { HardwareEntry } from '../../domain/hardware/hardware-types';
@@ -182,65 +181,6 @@ export function handleMesh(handle: ReturnType<typeof resolveHandle>, run: number
   if (!vertical) group.rotation.z = Math.PI / 2;
   group.traverse(o => { o.castShadow = true; });
   return group;
-}
-
-/**
- * Three nested telescopic runner channels, ball bearing tracks, and the removable drawer member's release lever,
- * driven from `RUNNER_ENTRY.motion.members` in the domain hardware registry.
- */
-export function telescopicRunnerChannelMeshes(
-  piece: MakePiece,
-  fitting: Fitting,
-  geometry: THREE.BufferGeometry,
-  metal: THREE.Material,
-) {
-  if (!fitting.runner) return [];
-  const members = RUNNER_ENTRY.motion?.kind === 'telescope' ? RUNNER_ENTRY.motion.members : [];
-  const outerSpec = members[0] ?? { ratio: 0, heightMm: 45, lengthRatio: 1, xOffsetMm: 1.6 };
-  const middleSpec = members[1] ?? { ratio: .5, heightMm: 34, lengthRatio: .96, xOffsetMm: 5.8 };
-  const innerSpec = members[2] ?? { ratio: 1, heightMm: 24, lengthRatio: .94, xOffsetMm: 10.5 };
-  const length = Number(fitting.size) / 10;
-  const result: { mesh: THREE.Group; board: number; moving?: number; ratio?: number }[] = [];
-  const frame = (x: number, y: number, z: number) => new THREE.Vector3(x - piece.size.w / 2, y, z - piece.size.d / 2);
-  for (let k = 0; k < fitting.runner.moving.length; k++) {
-    const moving = fitting.runner.moving[k]!, fixed = fitting.runner.fixed[k]!, side = piece.boards[moving]!, post = piece.boards[fixed];
-    if (!post) continue;
-    const leftSide = post.x1 <= piece.size.w / 2 + 1;
-    const sign = leftSide ? 1 : -1, face = leftSide ? post.x1 : post.x0, y = side.y0 + 3.2, z = post.z1 - length / 2;
-    const channel = (x: number, height: number, len: number) => {
-      const group = new THREE.Group();
-      group.position.copy(frame(x, y, z));
-      const bar = (dx: number, dy: number, sx: number, sy: number, sz: number, dz = 0) => {
-        const mesh = new THREE.Mesh(geometry, metal);
-        mesh.position.set(dx, dy, dz);
-        mesh.scale.set(sx, sy, sz);
-        group.add(mesh);
-      };
-      bar(0, 0, .12, height, len);
-      for (const s of [-1, 1]) bar(sign * .14, s * (height / 2 - .08), .4, .16, len);
-      return { group, bar };
-    };
-    const outer = channel(face + sign * ((outerSpec.xOffsetMm ?? 1.6) / 10), (outerSpec.heightMm ?? 45) / 10, length * (outerSpec.lengthRatio ?? 1));
-    const middle = channel(face + sign * ((middleSpec.xOffsetMm ?? 5.8) / 10), (middleSpec.heightMm ?? 34) / 10, length * (middleSpec.lengthRatio ?? .96));
-    const inner = channel(face + sign * ((innerSpec.xOffsetMm ?? 10.5) / 10), (innerSpec.heightMm ?? 24) / 10, length * (innerSpec.lengthRatio ?? .94));
-    for (const row of [-1, 1]) for (const pos of [-.35, -.15, .05, .25])
-      middle.bar(sign * .22, row * 1.1, .26, .26, .5, pos * length);
-    inner.bar(sign * .15, 0, .25, .6, 3.5, length * .36);
-    if (side.name === 'Cargo front') {
-      result.push(
-        { mesh: outer.group, board: fixed },
-        { mesh: middle.group, board: fixed, moving, ratio: middleSpec.ratio },
-        { mesh: inner.group, board: fixed, moving, ratio: innerSpec.ratio },
-      );
-    } else {
-      result.push(
-        { mesh: outer.group, board: fixed },
-        { mesh: middle.group, board: fixed, moving, ratio: middleSpec.ratio },
-        { mesh: inner.group, board: moving },
-      );
-    }
-  }
-  return result;
 }
 
 /**

@@ -74,8 +74,10 @@ test('technical cut sizes preserve fractional millimetres for each complete cons
 
 test('380 mm grooved wardrobe: 300 mm runners leave real rear clearance behind the inner front',()=>{
  const d={...design,d:38,secs:[[{k:'drawer' as const,h:22}]],construction:{joints:'confirmat' as const,back:'grooved' as const}},m=makePiece(input(d as typeof design),1)!;
- const sides=m.boards.filter(b=>b.name==='Box side');assert.equal(sides.length,2);
- for(const b of sides){exact((b.z1-b.z0)*10,300);assert.ok(b.z0*10>=22);}
+ const sides=m.boards.filter(b=>b.name==='Box side'),back=m.boards.find(b=>b.name==='Box back')!;assert.equal(sides.length,2);
+ // The box is as deep as its runners: the sides from the back, which is as wide as the box, to the front.
+ for(const b of sides){exact((b.z1-back.z0)*10,300);exact((b.z0-back.z1)*10,0);}
+ assert.ok(back.z0*10>=22);
  assert.equal(m.buy.find(b=>b.kind==='runner')!.size,'300');
 });
 

@@ -34,11 +34,13 @@ export interface Hole {
 }
 /** Bought hardware, where it goes and the boards it joins or sits on. */
 export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
-  | 'bracket';
+  | 'bracket' | 'drawerLock';
 export interface Fitting {
   readonly cargo?: CargoPullout;
   /** Installation purpose separates drawer and cargo hardware from structural cabinet connections. */
-  readonly purpose?: 'runner-mount' | 'drawer-front' | 'cargo-lock';
+  readonly purpose?: 'runner-mount' | 'drawer-front' | 'front-fixing' | 'cargo-lock'
+    /** A drawer box's own joints, in the order it goes together: bolts into the front, sides, back; then the locks. */
+    | 'box-front' | 'box-sides' | 'box-back' | 'drawer-plate' | 'drawer-lock';
   /** One purchased runner pair, with both stationary and moving attachment boards. */
   readonly runner?: { readonly moving: readonly number[]; readonly fixed: readonly number[] };
   readonly kind: FittingKind;
@@ -226,6 +228,8 @@ export function backFixing(boards: readonly Board[], construction: Construction)
       });
       return;
     }
+    // A drawer bottom is not fixed: it is captured in the grooves of its box (drawer-box.ts).
+    if (back.note === 'drawer box') return;
     boards.forEach((b, i) => {
       if (i === k || !isPanel(b) || b.stock === 'plinth') return;
       // A board the back stands against, beside or on: their boxes touch.

@@ -13,8 +13,9 @@ const findingLink=()=>execFileSync(process.execPath,['--import','tsx','--input-t
  const built = buildFromSpec({ specVersion: 1, wardrobes: [{ width: 154, height: 230, depth: 56, autoDesign: false }] }, 'drilling');
  const scene = projectToScene(built.project), w = scene.wardrobes[0];
  Object.assign(w.state, { n: 2, wt: [1, 1, 1, 1, 1, 1], doors: 'none', construction: { joints: 'dowel', back: 'grooved' },
-  dividers: [{ i: 0, orientation: 'vertical', x: 59, y0: 0, y1: 60 }], secs: [
-  [{ k: 'shoe', h: 14 }, { k: 'basket', h: 40 }, { k: 'drawer', h: 12 }], [{ k: 'folded', h: 30 }, { k: 'shelf', h: 40 }, { k: 'long', h: 13 }], [], [], [], []] });
+  // The divider stops where the shelves over the basket are dowelled into it: their holes run out at its top edge.
+  dividers: [{ i: 0, orientation: 'vertical', x: 59, y0: 0, y1: 55 }], secs: [
+  [{ k: 'shoe', h: 14 }, { k: 'basket', h: 42 }, { k: 'drawer', h: 12 }], [{ k: 'folded', h: 30 }, { k: 'shelf', h: 40 }, { k: 'long', h: 13 }], [], [], [], []] });
  process.stdout.write(await designLink(scene, ${JSON.stringify(BASE+'/editor.html')}));`],{encoding:'utf8'});
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});

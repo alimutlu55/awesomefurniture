@@ -17,9 +17,8 @@ import {
   SHELF_PIN_ENTRY,
   WALL_BRACKET_ENTRY,
 } from '../hardware/hardware-registry';
-import { backFaceOf, plinthOf } from '../wardrobe/carcass';
-import { PANEL } from '../wardrobe/catalog.js';
-import { drawerExtension, RUNNER_CLEARANCE, RUNNER_REAR_GAP, runnerForSpace } from '../wardrobe/drawer-runners';
+import { plinthOf } from '../wardrobe/carcass';
+import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import { completeDrawerHardware } from './drawer-installation';
@@ -49,57 +48,17 @@ function inTheWay(holes: readonly Hole[], post: { b: Board; i: number }, at: Vec
   });
 }
 
-const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
+export const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
 const isUpright = (b: Board, h: number) => b.stock === 'carcass' && thinAxis(b) === 'x' && b.y1 - b.y0 > h * .2;
 /** The uprights either side of a point, nearest first: the board whose face is left of `x` and the one right of it. */
-function uprightsAround(boards: readonly Board[], x: number, y: number, h: number) {
+export function uprightsAround(boards: readonly Board[], x: number, y: number, h: number) {
   const ups = boards.map((b, i) => ({ b, i })).filter(({ b }) => isUpright(b, h) && b.y0 <= y && b.y1 >= y);
   const left = ups.filter(u => u.b.x1 <= x + .01).sort((p, q) => q.b.x1 - p.b.x1)[0];
   const right = ups.filter(u => u.b.x0 >= x - .01).sort((p, q) => p.b.x0 - q.b.x0)[0];
   return { left, right };
 }
 /** The cut front that is this board. */
-const frontOf = (fronts: readonly Front[], b: Board) => fronts.find(f => isFrontBoard(f, b));
-
-function box(name: string, stock: Board['stock'], x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, grain: 0 | 1 | 2, edges: string, decorId: string): Board {
-  const e = [x1 - x0, y1 - y0, z1 - z0], order = [0, 1, 2].sort((a, b) => e[a]! - e[b]!), t = order[0]!;
-  const along = grain === t ? order[2]! : grain, across = [0, 1, 2].find(a => a !== along && a !== t)!;
-  return { name, stock, decorId, x0, x1, y0, y1, z0, z1, cut: { length: e[along]!, width: e[across]!, thickness: e[t]! }, edges, note: 'drawer box' };
-}
-
-/**
- * Drawer boxes for side-mount runners: two sides and two ends 18 mm thick, the ends between the sides, on a 6 mm
- * bottom; 12.5 mm clear of each upright for the runners, as long as the runner, 40 mm lower than the front and clear of
- * the boards under and over it.
- */
-export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board[] {
-  const { design } = piece, out: Board[] = [], h = design.h;
-  const m = resolveMaterials(design), decor = m.drawerDecorId ?? m.carcassDecorId, bottomDecor = m.backingDecorId ?? decor;
-  const fronts = piecefronts(design).fronts;
-  for (const f of boards) {
-    const opening = frontOf(fronts, f)?.opens;
-    if (!(f.name === 'Drawer front' || (f.stock === 'front' && opening === 'pull' && !f.name.startsWith('Cargo') && !f.name.startsWith('Pantry')))) continue;
-    const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
-    if (!left || !right) continue;
-    const x0 = left.b.x1 + RUNNER_CLEARANCE, x1 = right.b.x0 - RUNNER_CLEARANCE;
-    const standoff = (RUNNER_ENTRY.rules.clearanceMm.standoff ?? 2) / 10;
-    const z1 = Math.min(f.z0, left.b.z1, right.b.z1) - standoff, length = runnerForSpace(z1 - backFaceOf(design) - RUNNER_REAR_GAP);
-    if (length === undefined) continue;
-    const z0 = z1 - length;
-    // Between the boards under and over it: the base or a shelf below, the top or a shelf above.
-    const across = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.x0 < x1 && b.x1 > x0);
-    const floor = Math.max(f.y0, left.b.y0, ...across.filter(b => b.y1 <= cy).map(b => b.y1));
-    const ceiling = Math.min(f.y1, left.b.y1, ...across.filter(b => b.y0 >= cy).map(b => b.y0));
-    const bottomGap = (RUNNER_ENTRY.rules.clearanceMm.bottomGap ?? 15) / 10, topDrop = (RUNNER_ENTRY.rules.clearanceMm.topDrop ?? 40) / 10;
-    const y0 = floor + bottomGap, yb = y0 + .6, tall = Math.min(25, f.y1 - f.y0 - topDrop, ceiling - yb - bottomGap);
-    if (x1 - x0 < 4 * PANEL || z1 - z0 < 10 || tall < 6) continue;
-    out.push(box('Box side', 'carcass', x0, x0 + PANEL, yb, yb + tall, z0, z1, 2, 'L1', decor), box('Box side', 'carcass', x1 - PANEL, x1, yb, yb + tall, z0, z1, 2, 'L1', decor),
-      box('Box end', 'carcass', x0 + PANEL, x1 - PANEL, yb, yb + tall, z1 - PANEL, z1, 0, 'L1', decor),
-      box('Box end', 'carcass', x0 + PANEL, x1 - PANEL, yb, yb + tall, z0, z0 + PANEL, 0, 'L1', decor),
-      box('Box bottom', 'back', x0, x1, y0, yb, z0, z1, 0, '—', bottomDecor));
-  }
-  return out;
-}
+export const frontOf = (fronts: readonly Front[], b: Board) => fronts.find(f => isFrontBoard(f, b));
 
 /** Hinges, runners, shelf pins and handles, with the holes each needs, and the rails, legs, hangers and wall brackets.
  * `drilled`: the holes the joints already have, which runner screws keep clear of. */
@@ -242,19 +201,26 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       }
     }
   });
-  // Runners: a pair for every drawer box, screwed to the uprights on the System 32 line.
+  // Runners: a pair for every drawer box, bottom-mounted: each rail stands in the gap under a box side and is screwed to
+  // the upright through its front bracket (two System 32 holes); its rear peg sits in a System 32 hole near its end.
+  const rearPeg = (RUNNER_ENTRY.drilling[1]?.stationsMm?.[0] ?? 20) / 10, foot = (RUNNER_ENTRY.rules.clearanceMm.bottomGap ?? 15) / 20;
   boards.forEach((b, i) => {
     if (b.name !== 'Box side') return;
-    const runner = Number(((b.z1-b.z0)*10).toPrecision(12));
+    // The runner is as long as the box: from its front face to the back's rear face.
+    const back = boards.find(q => q.name === 'Box back' && Math.abs(q.y0 - b.y0) < .01 && q.x0 <= b.x0 + .01 && q.x1 >= b.x1 - .01);
+    const boxFront = boards.find(q => q.name === 'Box front' && Math.abs(q.y0 - b.y0) < .01 && q.x0 <= b.x0 + .01 && q.x1 >= b.x1 - .01);
+    const runner = Number((((boxFront?.z1 ?? b.z1) - (back?.z0 ?? b.z0)) * 10).toPrecision(12));
     const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
     if (!left || !right) return;
     const post = b.x0 - left.b.x1 < right.b.x0 - b.x1 ? left : right;
-    const face = post === left ? post.b.x1 : post.b.x0, sign = post === left ? -1 : 1, y = b.y0 + 3.2;
+    const face = post === left ? post.b.x1 : post.b.x0, sign = post === left ? -1 : 1, y = b.y0 - foot;
     // One fitting is the pair: the left side adds it, the right side's holes are for it too.
-    if (post === left) fittings.push({ kind: 'runner', at: [face, y, (b.z0 + b.z1) / 2], axis: 0, boards: [i, post.i], size: String(runner) });
+    if (post === left) fittings.push({ kind: 'runner', at: [face, y, (back?.z0 ?? b.z0) + runner / 20], axis: 0, boards: [i, post.i], size: String(runner) });
     const of = fittings.map((f, k) => f.kind === 'runner' && Math.abs(f.at[1] - y) < .01 ? k : -1).reduce((m, k) => Math.max(m, k), -1);
-    const stationsCm = (RUNNER_HOLE.stationsMm ?? [0, 224, 448]).map(mm => mm / 10);
-    for (const back of [stationsCm[0]!, stationsCm[1]!, ...(runner >= 500 ? [stationsCm[2]!] : [])]) {
+    const stationsCm = (RUNNER_HOLE.stationsMm ?? [0, 32]).map(mm => mm / 10);
+    // The rear peg's hole: the System 32 slot nearest `rearPeg` in from the runner's rear end.
+    const rear = Math.round((runner / 10 - rearPeg - SYSTEM_LINE) / PITCH) * PITCH;
+    for (const back of [...stationsCm, rear]) {
       // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
       // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else one forward.
       const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay([...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
