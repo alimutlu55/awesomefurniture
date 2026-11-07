@@ -86,10 +86,11 @@ const near = (a, b, message) => assert.ok(Math.abs(a - b) < .001, `${message}: $
     assert.ok(await guides.isVisible(), 'the real resize handler shows Smart Guides at the supporting edge');
     assert.ok(Number(await guides.getAttribute('data-guide-count')) > 0, 'alignment is shown with guide lines');
     assert.equal((await guides.textContent()).trim(), '', 'Smart Guides never add alignment text');
-    assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => getComputedStyle(p).stroke)))
-     .every(color => color === 'rgb(50, 129, 91)' || color === 'rgb(95, 159, 120)'), 'all Smart Guide strokes are green');
+    // A guide shows only once the edge is lined up: a solid green line over a light halo, the same width at every zoom.
+    assert.ok((await guides.locator('svg g:not([style*="none"]) path:not(.halo)').evaluateAll(paths => paths.map(p => getComputedStyle(p).stroke)))
+     .every(color => color === 'rgb(18, 181, 113)'), 'Smart Guides are drawn only when aligned, in green');
     assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => parseFloat(getComputedStyle(p).strokeWidth))))
-     .every(width => width <= .75), 'guide strokes remain hairlines at every camera zoom');
+     .every(width => width <= 5), 'guide strokes stay slim at every camera zoom');
     assert.ok((await guides.locator('svg path').evaluateAll(paths => paths.map(p => (p.getAttribute('d').match(/M/g) || []).length)))
      .every(count => count === 1), 'guides have no endpoint crosses or ornaments');
     assert.equal(await guides.evaluate(el => getComputedStyle(el).pointerEvents), 'none', 'guides leave drag handles interactive');

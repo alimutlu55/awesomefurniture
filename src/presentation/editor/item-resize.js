@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { PANEL, MODS } from '../../domain/wardrobe/catalog.js';
-import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
+import { INTERIOR_SNAP_CM, resolveAlignment, snapArmed, snapToleranceCm } from '../../domain/geometry/alignment';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'geometry' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'history' | 'shellState' | 'inspector' | 'renderState'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> }} ports */
 export function createItemResize({ dom, geometry, model, picking, camera, cameraState, interactionState, commands, history, shellState, inspector, renderState, callbacks }) {
     function beginItemEdgeResize(e, edge, handle) {
@@ -21,6 +21,8 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         interactionState.itemEdgeGesture = { edge, handle, pointer: e.pointerId, lastX: e.clientX, lastY: e.clientY, pressX: e.clientX, pressY: e.clientY, delta: 0, moved: false, g, section: model.activeCabinet().state.sel, index: model.activeCabinet().state.item, wardrobe: model.scene.activeWardrobe, layout: geometry.resizeObstacles(model.activeCabinet().state.sel), original: JSON.parse(JSON.stringify(model.activeCabinet().state.secs[model.activeCabinet().state.sel])), snapshot: model.snapshot(), minW: geometry.itemMinW(it), minH: geometry.effectiveMin(it.k), maxH: MODS[it.k].mx };
         interactionState.itemEdgeGesture.snap = buildSnapContext(interactionState.itemEdgeGesture);
         interactionState.itemEdgeGesture.guide = null;
+        // A few screen pixels on the fitting's face, so an edge catches what its guide shows and holds through the release.
+        interactionState.itemEdgeGesture.tolerance = snapToleranceCm(snapPxPerCm(interactionState.itemEdgeGesture), e.pointerType === 'touch', INTERIOR_SNAP_CM);
         interactionState.itemEdgeGesture.lock = null;
         // Under a finger the view holds still, so the edge stays under it; a mouse turns to the front for precision.
         if (e.pointerType !== 'touch') camera.moveViewOn();
@@ -50,7 +52,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         a.lastX = e.clientX;
         a.lastY = e.clientY;
         let target = geometry.itemEdgeSize(a.g, a.edge, a.delta, a.layout, a.index, a.minW, a.minH, a.maxH);
-        {
+        if (snapArmed(a, a.delta, a.tolerance ?? 0)) {
             const sn = snapItemEdge(a);
             if (sn) {
                 target = sn.target;
@@ -104,6 +106,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         return { others, bw: a.g.bw, top: geometry.interiorFloor() + geometry.ih() };
     }
     function snapPxPerCm(a) {
+        if (!renderState?.Gr || !picking.screenPoint) return 0;
         const g = a.g, y = (g.y0 + g.y1) / 2, A = picking.screenPoint(renderState.Gr.localToWorld(new THREE.Vector3(g.x0 - model.activeCabinet().state.w / 2, y, model.activeCabinet().state.d / 2 + 1))), B = picking.screenPoint(renderState.Gr.localToWorld(new THREE.Vector3(g.x0 - model.activeCabinet().state.w / 2 + 10, y, model.activeCabinet().state.d / 2 + 1)));
         return Math.max(.5, Math.hypot(B.x - A.x, B.y - A.y) / 10);
     }
@@ -112,7 +115,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
         if (!c) {
             return null;
         }
-        const g = a.g, tol = AUTO_ALIGN_CM, top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL,
+        const g = a.g, tol = a.tolerance ?? snapToleranceCm(0), top = a.edge === 'top', bottom = a.edge === 'bottom', left = g.x0 - g.bayL, right = g.x1 - g.bayL,
             raw = top ? g.y1 + a.delta : bottom ? g.y0 + a.delta : (a.edge === 'left' ? left : right) + a.delta, cand = [],
             add = (v, kind, label, src) => cand.push({ v, kind, label, src, penalty: kind === 'size' ? tol * .35 : 0 });
         if (top) {
@@ -158,7 +161,7 @@ export function createItemResize({ dom, geometry, model, picking, camera, camera
             : a.edge === 'left' ? target.x : target.x + target.w;
         // Resolve the interval once per pointer move, rather than rescanning every neighbor for every candidate.
         const low = position(solve(-Infinity)), high = position(solve(Infinity));
-        const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, hold: 1, within: [low, high] });
+        const best = resolveAlignment(raw, cand, { tolerance: tol, lock: a.lock, within: [low, high] });
         if (!best) {
             a.lock = null;
             return null;

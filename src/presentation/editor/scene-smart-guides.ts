@@ -11,13 +11,19 @@ export function cabinetFrame(c: EditorCabinet, depth = c.state.d / 2 + 1) {
         y: (c.y || 0) + y, z: c.z - x * Math.sin(a) + depth * Math.cos(a) });
 }
 
-/** Neighbour edges, levels, centres and room contact, independent of the precision movement commands. */
+/** What a wardrobe lines up with while it moves or changes size: its sides against or in line with a
+ * neighbour's sides, fronts in line, tops level (and bases, when one of them is off the floor), and a wall it
+ * touches. Only what the edit changes: `dimension` is the size being changed ('w', 'h', 'd', 'y'), or 'floor'
+ * for a slide across the floor, which never changes a level. No centre lines or equal spacing: they read as
+ * noise on a room. Wall contact is snapped to but drawn by the measuring assistant, not as a line here. */
 export function cabinetSmartGuides(scene: EditorScene, c: EditorCabinet, dimension?: string): SmartGuide[] {
     const out: SmartGuide[] = [], s = c.state, frame = cabinetFrame(c), a = c.angle * Math.PI / 180;
     const u = { x: Math.cos(a), z: -Math.sin(a) }, f = { x: Math.sin(a), z: Math.cos(a) }, y0 = c.y || 0;
     const x = (p: { x: number; z: number }) => (p.x - c.x) * u.x + (p.z - c.z) * u.z;
     const z = (p: { x: number; z: number }) => (p.x - c.x) * f.x + (p.z - c.z) * f.z;
-    const across = !dimension || dimension === 'w', up = !dimension || dimension === 'h' || dimension === 'y';
+    const floor = dimension === 'floor';
+    const across = !dimension || floor || dimension === 'w', up = !dimension || dimension === 'h' || dimension === 'y';
+    const deep = !dimension || floor || dimension === 'd';
     for (const o of scene.wardrobes) {
         if (o.id === c.id) continue;
         const turn = ((o.angle - c.angle) % 360 + 360) % 360;
@@ -25,48 +31,35 @@ export function cabinetSmartGuides(scene: EditorScene, c: EditorCabinet, dimensi
         const ox = x(o), oz = z(o), oy = (o.y || 0) - y0, ow = o.state.w, od = o.state.d;
         if (Math.abs(ox) > (s.w + ow) / 2 + 150 || Math.abs(oz) > (s.d + od) / 2 + 150) continue;
         if (across) {
-            for (const [i, v] of [-s.w / 2, 0, s.w / 2].entries()) {
-                for (const [j, t] of [ox - ow / 2, ox, ox + ow / 2].entries()) {
-                    out.push(axisGuide(`cab:${o.id}:x:${i}:${j}`, j === 1 && i === 1 ? 'Centres aligned' : 'Sides aligned',
+            // Side to side: butting up against it, or in line with it in front or behind. Never a centre.
+            for (const [i, v] of [-s.w / 2, s.w / 2].entries()) {
+                for (const [j, t] of [ox - ow / 2, ox + ow / 2].entries()) {
+                    out.push(axisGuide(`cab:${o.id}:x:${i}:${j}`, i === j ? 'Sides aligned' : 'Side by side',
                         'x', v, t, [0, Math.max(s.h, oy + o.state.h)], frame));
                 }
             }
         }
-        if (up) for (const [i, v] of (dimension === 'h' ? [s.h] : [0, s.h]).entries()) {
-            for (const [j, t] of [oy, oy + o.state.h].entries()) {
-                out.push(axisGuide(`cab:${o.id}:y:${i}:${j}`, j === 0 ? 'Bases level' : 'Tops level', 'y', v, t,
-                    [Math.min(-s.w / 2, ox - ow / 2), Math.max(s.w / 2, ox + ow / 2)], frame));
-            }
+        if (up) {
+            out.push(axisGuide(`cab:${o.id}:y:top`, 'Tops level', 'y', s.h, oy + o.state.h,
+                [Math.min(-s.w / 2, ox - ow / 2), Math.max(s.w / 2, ox + ow / 2)], frame));
+            if (dimension !== 'h' && (y0 > .5 || (o.y || 0) > .5)) out.push(axisGuide(`cab:${o.id}:y:base`, 'Bases level', 'y', 0, oy,
+                [Math.min(-s.w / 2, ox - ow / 2), Math.max(s.w / 2, ox + ow / 2)], frame));
         }
-        if (!dimension || dimension === 'd') {
+        if (deep) {
             const depthFrame = (v: number, along: number): GuidePoint => ({ x: c.x + along * u.x + v * f.x, y: y0 + 2,
                 z: c.z + along * u.z + v * f.z });
             out.push(axisGuide(`cab:${o.id}:front`, 'Fronts aligned', 'x', s.d / 2, oz + od / 2,
-                [Math.min(-s.w / 2, ox - ow / 2), Math.max(s.w / 2, ox + ow / 2)], depthFrame, 'depth'));
-            out.push(axisGuide(`cab:${o.id}:back`, 'Backs aligned', 'x', -s.d / 2, oz - od / 2,
                 [Math.min(-s.w / 2, ox - ow / 2), Math.max(s.w / 2, ox + ow / 2)], depthFrame, 'depth'));
         }
     }
     const { gaps } = measureAround(scene, c, ['left', 'right', 'back', 'front', 'top', 'bottom']);
     for (const g of gaps) {
         const horizontal = g.side === 'left' || g.side === 'right', vertical = g.side === 'top' || g.side === 'bottom';
-        if (dimension && !(horizontal && across || vertical && up || !horizontal && !vertical && dimension === 'd')) continue;
+        if (!(horizontal && across || vertical && up || !horizontal && !vertical && deep)) continue;
         const shift = { x: g.to.x - g.from.x, y: g.to.y - g.from.y, z: g.to.z - g.from.z };
-        const tangent = horizontal ? { x: 0, y: 35, z: 0 } : { x: u.x * s.w / 2, y: 0, z: u.z * s.w / 2 };
         const target = { x: g.from.x + shift.x, y: g.from.y + shift.y, z: g.from.z + shift.z };
         out.push({ id: `gap:${g.side}`, group: horizontal ? 'x' : vertical ? 'y' : 'depth', label: 'Flush with ' + g.target,
-            a: { x: target.x - tangent.x, y: target.y - tangent.y, z: target.z - tangent.z },
-            b: { x: target.x + tangent.x, y: target.y + tangent.y, z: target.z + tangent.z },
-            current: g.from, target, delta: Math.hypot(shift.x, shift.y, shift.z) });
-    }
-    for (const [lo, hi, axis] of [['left', 'right', 'x'], ['bottom', 'top', 'y']] as const) {
-        if (dimension && !(axis === 'x' && across || axis === 'y' && up)) continue;
-        const l = gaps.find(g => g.side === lo), r = gaps.find(g => g.side === hi);
-        if (!l || !r) continue;
-        const distance = (g: typeof l) => Math.hypot(g.to.x - g.from.x, g.to.y - g.from.y, g.to.z - g.from.z);
-        const move = (distance(r) - distance(l)) / 2;
-        out.push(axisGuide(`gap:centre:${axis}`, 'Equal spacing', axis, axis === 'x' ? 0 : s.h / 2,
-            (axis === 'x' ? 0 : s.h / 2) + move, axis === 'x' ? [0, s.h] : [-s.w / 2, s.w / 2], frame));
+            a: target, b: target, current: g.from, target, delta: Math.hypot(shift.x, shift.y, shift.z), quiet: true });
     }
     return out;
 }

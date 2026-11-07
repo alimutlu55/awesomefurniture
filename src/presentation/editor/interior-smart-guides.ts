@@ -6,7 +6,9 @@ type Geometry = Pick<ReturnType<typeof import('../../domain/geometry/wardrobe-ge
 type State = import('../../application/projects/editor-scene').EditorState;
 export interface GuideRect { x0: number; x1: number; y0: number; y1: number }
 
-/** Fittings align to the frame, centres, other fittings and boards, including levels in neighbouring bays. */
+/** Fittings align to the frame, centres, other fittings and boards, including levels in neighbouring bays.
+ * Only pairs a person means: an edge with an edge (lined up or butting), a centre with a centre. An edge on
+ * another part's middle reads as a mistake, so it is never offered. */
 export function fittingSmartGuides(state: State, geometry: Geometry, section: number, index: number,
     rect: GuideRect, frame: GuideFrame, axis?: 'x' | 'y', edge?: string): SmartGuide[] {
     const widths = geometry.widths(), left = (i: number) => PANEL + widths.slice(0, i).reduce((a, w) => a + w + PANEL, 0);
@@ -14,22 +16,30 @@ export function fittingSmartGuides(state: State, geometry: Geometry, section: nu
     const add = (key: string, label: string, a: 'x' | 'y', value: number, target: number, span: [number, number]) => {
         if (!axis || axis === a) out.push(axisGuide(key, label, a, value, target, span, frame));
     };
-    const xs = edge === 'left' ? [rect.x0] : edge === 'right' ? [rect.x1] : [rect.x0, (rect.x0 + rect.x1) / 2, rect.x1];
-    const ys = edge === 'bottom' ? [rect.y0] : edge === 'top' ? [rect.y1] : [rect.y0, (rect.y0 + rect.y1) / 2, rect.y1];
-    const vertical = (id: string, label: string, targets: number[], other = rect) => {
-        for (const [k, v] of xs.entries()) for (const [j, target] of targets.entries()) {
+    // Each value is an edge (true) or a middle (false); edges pair with edges, middles with middles.
+    type Mark = [number, boolean];
+    const xs: Mark[] = edge === 'left' ? [[rect.x0, true]] : edge === 'right' ? [[rect.x1, true]]
+        : [[rect.x0, true], [(rect.x0 + rect.x1) / 2, false], [rect.x1, true]];
+    const ys: Mark[] = edge === 'bottom' ? [[rect.y0, true]] : edge === 'top' ? [[rect.y1, true]]
+        : [[rect.y0, true], [(rect.y0 + rect.y1) / 2, false], [rect.y1, true]];
+    const marks = (lo: number, hi: number): Mark[] => [[lo, true], [(lo + hi) / 2, false], [hi, true]];
+    const edges = (...v: number[]): Mark[] => v.map(x => [x, true]);
+    const vertical = (id: string, label: string, targets: Mark[], other = rect) => {
+        for (const [k, [v, ve]] of xs.entries()) for (const [j, [target, te]] of targets.entries()) {
+            if (ve !== te) continue;
             add(`${id}:x:${k}:${j}`, label, 'x', base + v, base + target,
                 [Math.min(rect.y0, other.y0), Math.max(rect.y1, other.y1)]);
         }
     };
-    const horizontal = (id: string, label: string, targets: number[], x0: number, x1: number) => {
-        for (const [k, v] of ys.entries()) for (const [j, target] of targets.entries()) {
+    const horizontal = (id: string, label: string, targets: Mark[], x0: number, x1: number) => {
+        for (const [k, [v, ve]] of ys.entries()) for (const [j, [target, te]] of targets.entries()) {
+            if (ve !== te) continue;
             add(`${id}:y:${k}:${j}`, label, 'y', v, target, [Math.min(base + rect.x0, x0), Math.max(base + rect.x1, x1)]);
         }
     };
-    vertical('frame', 'Aligned with side', [0, widths[section]!]);
-    vertical('centre', 'Centred in section', [widths[section]! / 2]);
-    horizontal('frame', 'Aligned with base / top', [floor, floor + geometry.ceilingTop(section, rect.x0, rect.x1)], base, base + widths[section]!);
+    vertical('frame', 'Aligned with side', edges(0, widths[section]!));
+    vertical('centre', 'Centred in section', [[widths[section]! / 2, false]]);
+    horizontal('frame', 'Aligned with base / top', edges(floor, floor + geometry.ceilingTop(section, rect.x0, rect.x1)), base, base + widths[section]!);
     for (let i = 0; i < state.n; i++) {
         const others: GuideRect[] = geometry.computeLayout(i).filter((_: unknown, j: number) => i !== section || j !== index);
         for (const d of state.dividers ?? []) if (d.i === i) {
@@ -38,12 +48,12 @@ export function fittingSmartGuides(state: State, geometry: Geometry, section: nu
         }
         others.forEach((o: GuideRect, j: number) => {
             const id = `other:${i}:${j}`;
-            horizontal(id, 'Aligned with neighbour', [o.y0, (o.y0 + o.y1) / 2, o.y1], left(i) + o.x0, left(i) + o.x1);
-            if (i === section) vertical(id, 'Aligned with neighbour', [o.x0, (o.x0 + o.x1) / 2, o.x1], o);
-            if (edge === 'top') horizontal(id + ':size', 'Same height', [rect.y0 + o.y1 - o.y0], left(i) + o.x0, left(i) + o.x1);
-            if (edge === 'bottom') horizontal(id + ':size', 'Same height', [rect.y1 - (o.y1 - o.y0)], left(i) + o.x0, left(i) + o.x1);
-            if (i === section && edge === 'right') vertical(id + ':size', 'Same width', [rect.x0 + o.x1 - o.x0], o);
-            if (i === section && edge === 'left') vertical(id + ':size', 'Same width', [rect.x1 - (o.x1 - o.x0)], o);
+            horizontal(id, 'Aligned with neighbour', marks(o.y0, o.y1), left(i) + o.x0, left(i) + o.x1);
+            if (i === section) vertical(id, 'Aligned with neighbour', marks(o.x0, o.x1), o);
+            if (edge === 'top') horizontal(id + ':size', 'Same height', edges(rect.y0 + o.y1 - o.y0), left(i) + o.x0, left(i) + o.x1);
+            if (edge === 'bottom') horizontal(id + ':size', 'Same height', edges(rect.y1 - (o.y1 - o.y0)), left(i) + o.x0, left(i) + o.x1);
+            if (i === section && edge === 'right') vertical(id + ':size', 'Same width', edges(rect.x0 + o.x1 - o.x0), o);
+            if (i === section && edge === 'left') vertical(id + ':size', 'Same width', edges(rect.x1 - (o.x1 - o.x0)), o);
         });
     }
     return out;

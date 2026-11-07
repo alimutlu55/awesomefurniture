@@ -1,4 +1,4 @@
-import { AUTO_ALIGN_CM } from '../../domain/geometry/alignment';
+import { INTERIOR_SNAP_CM, snapArmed, snapToleranceCm } from '../../domain/geometry/alignment';
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'resources' | 'model' | 'picking' | 'camera' | 'cameraState' | 'interactionState' | 'commands' | 'rendering' | 'history' | 'inspector'>} ports */
 export function createDividerDrag({ dom, resources, model, picking, camera, cameraState, interactionState, commands, rendering, history, inspector }) {
     function beginDividerDrag(e, index, target = resources.cv) {
@@ -14,9 +14,10 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
         cameraState.tgtY = cameraState.tgt.y;
         cameraState.vsT = cameraState.vs;
         cameraState.vzT = cameraState.vz;
-        // About 8 screen pixels in centimetres on the board's plane: how close it must come to line up.
-        const aside = picking.frontPoint({ clientX: e.clientX + 8, clientY: e.clientY });
-        const tolerance = Math.max(.4, Math.min(4, aside ? Math.hypot(aside.x - point.x, aside.y - point.y) : 1));
+        // A few screen pixels in centimetres on the board's plane: how close it must come to line up.
+        const aside = picking.frontPoint({ clientX: e.clientX + 10, clientY: e.clientY });
+        const cmPer10px = aside ? Math.hypot(aside.x - point.x, aside.y - point.y) : 0;
+        const tolerance = snapToleranceCm(cmPer10px > 0 ? 10 / cmPer10px : 0, e.pointerType === 'touch', INTERIOR_SNAP_CM);
         interactionState.dividerGesture = { index, point, original: { ...d }, snapshot: model.snapshot(), pointer: e.pointerId, target, pressX: e.clientX, pressY: e.clientY, moved: false,
             tolerance, lock: null, guide: null };
         target.setPointerCapture(e.pointerId);
@@ -39,7 +40,8 @@ export function createDividerDrag({ dom, resources, model, picking, camera, came
         }
         const hor = g.original.orientation === 'horizontal';
         const raw = (hor ? g.original.y : g.original.x) + (hor ? point.y - g.point.y : point.x - g.point.x);
-        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: AUTO_ALIGN_CM, free: e.shiftKey });
+        const { moved, line, guide } = commands.alignDividerTo(g.index, raw, { tolerance: g.tolerance, lock: g.lock,
+            free: e.shiftKey || !snapArmed(g, raw - (hor ? g.original.y : g.original.x), g.tolerance) });
         g.lock = line;
         g.guide = guide;
         // Shelves and fittings attached to it moved too: the wardrobe is redrawn, else just the board.
