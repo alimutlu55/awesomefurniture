@@ -22,7 +22,8 @@ export function completeDrawerHardware(boards: readonly Board[], fittings: Fitti
     const right = boards.findIndex(q => q.name === 'Box side' && q.x0 > b.x0 && Math.abs(q.y0 - b.y0) < .01 && Math.abs(q.z0 - b.z0) < .01);
     if (right < 0) continue;
     const cabinetHoles = holes.filter(h => h.of === index && h.kind === 'runner');
-    const fixed = [...new Set(cabinetHoles.map(h => h.board))], moving = [left, right];
+    // Left upright with the left box side, right with the right: by where they stand, not by the order of their holes.
+    const fixed = [...new Set(cabinetHoles.map(h => h.board))].sort((p, q) => boards[p]!.x0 - boards[q]!.x0), moving = [left, right];
     fittings[index] = { ...runner, boards: [...moving, ...fixed], runner: { moving, fixed } };
     // Rail fixing screws enter from inside the cabinet, never through the cabinet's exterior: the front bracket's two.
     for (const post of fixed) {
@@ -89,7 +90,9 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
   }
   if (test < 0 || ph.step !== test) return [0, 0, 0];
   const s = tl.steps[test]!, runners = piece.fittings.filter(f => f.runner), own = runners.indexOf(drawerRunnerForBoard(piece, board)!);
-  const progress = unit((ph.t - s.place[0]) / (s.place[1] - s.place[0])), local = progress * runners.length - Math.max(0, own);
+  // A front on no runner has nothing to slide on: it stays shut rather than going out with another drawer.
+  if (own < 0) return [0, 0, 0];
+  const progress = unit((ph.t - s.place[0]) / (s.place[1] - s.place[0])), local = progress * runners.length - own;
   // Open, pause to see the telescoping members, close, then pause closed.
   const open = local < .35 ? ease(local / .35) : local < .55 ? 1 : 1 - ease((local - .55) / .35);
   return [0, 0, motion.by * open];

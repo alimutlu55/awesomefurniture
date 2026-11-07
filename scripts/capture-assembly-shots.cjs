@@ -11,6 +11,13 @@ const FIXTURES = {
  wardrobe: `{ ...createEditorState(), w: 100, h: 210, d: 60, n: 2, wt: [1, 1, 100, 100, 100, 100], doors: 'hinged', dividers: [],
    secs: [[{ k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'shelf', h: 35 }, { k: 'shelf', h: 35 }], [{ k: 'short', h: 106 }, { k: 'shelf', h: 35 }], [], [], [], []] }`,
  kitchen: `{ ...createEditorState(), ...createKitchenDesign('base', 'drawers') }`,
+ // One wide bay without doors: two drawers and four drawers side by side either side of a divider, shelves under them.
+ split: `{ ...createEditorState(), w: 160, h: 210, d: 60, n: 1, wt: [160, 100, 100, 100, 100, 100], doors: 'none',
+   dividers: [{ i: 0, orientation: 'vertical', x: 79, y0: 60, y1: 112 }],
+   secs: [[{ k: 'shelf', h: 25, y: 0 }, { k: 'shelf', h: 30, y: 26 },
+     { k: 'drawer', h: 25, w: 78, x: 0, y: 60 }, { k: 'drawer', h: 25, w: 78, x: 0, y: 86 },
+     { k: 'drawer', h: 12.5, w: 79, x: 80, y: 60 }, { k: 'drawer', h: 12.5, w: 79, x: 80, y: 73 },
+     { k: 'drawer', h: 12.5, w: 79, x: 80, y: 86 }, { k: 'drawer', h: 12.5, w: 79, x: 80, y: 99 }, { k: 'shelf', h: 80, y: 113 }], [], [], [], [], []] }`,
 };
 const VIEWPORTS = { desktop: [960, 600], phone: [375, 812] };
 
@@ -46,7 +53,7 @@ const VIEWPORTS = { desktop: [960, 600], phone: [375, 812] };
     const { drawingInputOf } = await import('/src/application/engine/scene-input.ts');
     const { assemblyTimeline } = await import('/src/domain/make/make-timeline.ts');
     const scene = window.shotsEditor.scene(), piece = makePiece(drawingInputOf(scene), scene.activeWardrobe), tl = assemblyTimeline(piece);
-    return { duration: tl.duration, steps: tl.steps.map((s, k) => ({ stage: piece.steps[k].stage, start: s.start, drill: s.drill, place: s.place,
+    return { duration: tl.duration, runners: piece.fittings.filter(f => f.runner).length, steps: tl.steps.map((s, k) => ({ stage: piece.steps[k].stage, start: s.start, drill: s.drill, place: s.place,
       fixes: s.fixes.map(f => f.at), hang: s.hang, adjust: s.adjust, end: s.end })) };
    });
    const moments = [];
@@ -54,7 +61,10 @@ const VIEWPORTS = { desktop: [960, 600], phone: [375, 812] };
     if (process.env.STAGE && !new RegExp(process.env.STAGE).test(s.stage)) return;
     const add = (label, t) => moments.push({ k, stage: s.stage, label, t });
     if (s.drill[1] > s.drill[0]) { add('drill', s.drill[0] + (s.drill[1] - s.drill[0]) * .3); add('drill·2', s.drill[0] + (s.drill[1] - s.drill[0]) * .8); }
-    if (s.place[1] > s.place[0]) { add('place', s.place[0] + (s.place[1] - s.place[0]) * .3); add('placed', s.place[0] + (s.place[1] - s.place[0]) * .9); }
+    // The travel test: each drawer at its widest open, in turn.
+    const runners = s.stage === 'drawer-test' ? film.runners : 0;
+    for (let j = 0; j < runners; j++) add('open ' + (j + 1), s.place[0] + (s.place[1] - s.place[0]) * (j + .45) / runners);
+    if (s.place[1] > s.place[0] && !runners) { add('place', s.place[0] + (s.place[1] - s.place[0]) * .3); add('placed', s.place[0] + (s.place[1] - s.place[0]) * .9); }
     s.fixes.slice(0, 6).forEach((f, j) => add('fix' + (j + 1), (f[0] + f[1]) / 2));
     if (s.hang[1] > s.hang[0]) add('hang', (s.hang[0] + s.hang[1]) / 2);
     if (s.adjust[1] > s.adjust[0]) add('adjust', (s.adjust[0] + s.adjust[1]) / 2);

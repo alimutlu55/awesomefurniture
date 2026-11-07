@@ -32,6 +32,8 @@ export const BOTTOM_GROOVE = { fromEdge: 1.2, depth: .8 } as const;
 export const BOTTOM_THICKNESS = .6;
 /** Joint stations on a box corner: this far from the side's lower and upper edges. */
 const LOW = 3.2, HIGH = 2.5;
+/** The lowest box that still takes its bottom's groove and one cam a corner: shallow drawers get a shallow box, never none. */
+const MIN_TALL = 5;
 /** The runner's front pin: through the bottom, this far inside the box side and behind the front's inner face. */
 const PIN = { inside: 1.5, behind: (RUNNER_ENTRY.drilling[3]?.lineMm ?? 30) / 10 } as const;
 const HOOK = RUNNER_ENTRY.drilling[2]!, PIN_HOLE = RUNNER_ENTRY.drilling[3]!;
@@ -89,7 +91,7 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
     const ceiling = Math.min(f.y1, left.b.y1, ...across.filter(b => b.y0 >= cy).map(b => b.y0));
     const ys = floor + bottomGap, tall = Math.min(25, f.y1 - f.y0 - topDrop, ceiling - ys - bottomGap);
     // The groove for the bottom must be in the front: an inner front reaching too little below it gets a box front.
-    if (x1 - x0 < 4 * T || sideFront - zb < 10 || tall < 6) continue;
+    if (x1 - x0 < 4 * T || sideFront - zb < 10 || tall < MIN_TALL) continue;
     const g = BOTTOM_GROOVE, yb = ys + g.fromEdge;
     if (applied) out.push(part('Box front', 'carcass', x0, x1, ys, ys + tall, face - T, face, 0, 'L1', decor));
     out.push(part('Box side', 'carcass', x0, x0 + T, ys, ys + tall, zb + T, sideFront, 2, 'L1', decor),

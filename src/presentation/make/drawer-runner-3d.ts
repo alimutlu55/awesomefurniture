@@ -9,6 +9,8 @@ import { RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
  * that travels with the box, with its rear hook and front pin. The cabinet rails belong to the uprights; the drawer rails
  * to the box sides, so they move with the drawer.
  */
+const gap = (b: { x0: number; x1: number }, x: number) => Math.min(Math.abs(b.x0 - x), Math.abs(b.x1 - x));
+
 export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry: THREE.BufferGeometry, metal: THREE.Material) {
   if (!fitting.runner) return [];
   const members = RUNNER_ENTRY.motion?.kind === 'telescope' ? RUNNER_ENTRY.motion.members : [];
@@ -17,8 +19,10 @@ export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry:
   const frame = (x: number, y: number, z: number) => new THREE.Vector3(x - piece.size.w / 2, y, z - piece.size.d / 2);
   const result: { mesh: THREE.Group; board: number; moving?: number; ratio?: number }[] = [];
   for (let k = 0; k < fitting.runner.moving.length; k++) {
-    const moving = fitting.runner.moving[k]!, fixed = fitting.runner.fixed[k]!, side = piece.boards[moving]!, post = piece.boards[fixed];
-    if (!post) continue;
+    // Each box side rides on the rail of the upright beside it: the nearest, whatever order the uprights are listed in.
+    const moving = fitting.runner.moving[k]!, side = piece.boards[moving]!, mid = (side.x0 + side.x1) / 2;
+    const fixed = [...fitting.runner.fixed].sort((p, q) => gap(piece.boards[p]!, mid) - gap(piece.boards[q]!, mid))[0], post = fixed === undefined ? undefined : piece.boards[fixed];
+    if (!post || fixed === undefined) continue;
     const left = post.x1 <= side.x0 + .01, sign = left ? 1 : -1, face = left ? post.x1 : post.x0;
     const z = side.z1 - length / 2 + (side.z1 - side.z0 < length ? (length - (side.z1 - side.z0)) / 2 : 0);
     const bar = (group: THREE.Group, dx: number, dy: number, sx: number, sy: number, sz: number, dz = 0) => {

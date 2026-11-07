@@ -18,6 +18,8 @@ export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(
 /** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
 export const INTRO = 2.6, OUTRO = 4;
 const DRILL = 1.8, PLACE = 2.6, HOLD = .9;
+/** More boards to drill take longer, each its turn: this much more a board, up to this long in all. */
+const DRILL_EACH = .7, DRILL_MAX = 7;
 /** The doors chapter ends adjusting each door on its hinges: side, then height, then depth, a third each (seconds). */
 export const ADJUST = 3.6;
 /** How far a door hangs out of true when first clipped on, before it is adjusted: side, height, depth. Centimetres. */
@@ -69,7 +71,12 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
   const steps: StepTime[] = [];
   let t = INTRO;
   piece.steps.forEach((s, k) => {
-    const mine = piece.holes.map((_, i) => i).filter(i => holeStep[i] === k);
+    // Board by board, so the drill (and the camera) stays on one board until its holes are done: the boards lying on the
+    // floor first, then what stands.
+    const lies = (i: number) => s.boards.includes(piece.holes[i]!.board) ? 0 : 1;
+    const mine = piece.holes.map((_, i) => i).filter(i => holeStep[i] === k)
+      .sort((a, b) => lies(a) - lies(b) || piece.holes[a]!.board - piece.holes[b]!.board || a - b);
+    const drilledBoards = new Set(mine.map(i => piece.holes[i]!.board)).size;
     mine.forEach((h, j) => { holeStart[h] = mine.length > 1 ? (1 - HOLE_WINDOW) * j / (mine.length - 1) : 0; });
     // One after another as a maker would: what lies flat before what stands on it (the base before the sides), from the
     // bottom up, left to right.
@@ -83,7 +90,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
-    const lies = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
+    const lying = (g: FixGroup, before: boolean) => before && g.board !== null && boardStep[g.board] === k ? 0 : 1;
     const fittedBefore = (i: number) => {
       const f = piece.fittings[i]!;
       // A drawer's locking plates are laid over the runner pins before the drawer is lowered onto them; the expanding dowels
@@ -93,14 +100,14 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
       return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!]!.name === 'Cargo front';
     };
     const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || fittedBefore(i) !== before)
-      .sort((a, b) => before ? lies(a, before) - lies(b, before) : 0).map(g => {
+      .sort((a, b) => before ? lying(a, before) - lying(b, before) : 0).map(g => {
       const n = g.items.length, travel = travelFor(n), own = n > 1 ? Math.min(1, travel * .55) : travel, from = t + SHOW;
       g.items.forEach((i, j) => { const go = from + (n > 1 ? (travel - own) * j / (n - 1) : 0); itemTime[i] = [t, go, go + own]; });
       return { ...g, before, lying: before && g.board !== null && boardStep[g.board] === k, at: [t, t += SHOW + travel + REST] as const };
     });
     // Drilled, then what goes in before the boards come together (bolts, dowels, hinge cups), then the boards brought
     // in and fixed.
-    const start = t, drill = [t, t += mine.length ? DRILL : 0] as const, before = fixing(true), place = [t, t += placing] as const;
+    const start = t, drill = [t, t += mine.length ? Math.min(DRILL_MAX, DRILL + DRILL_EACH * (drilledBoards - 1)) : 0] as const, before = fixing(true), place = [t, t += placing] as const;
     // The doors, in front of their places, are pushed home onto their plates.
     const hang = [t, t += s.stage === 'doors' ? HANG : 0] as const;
     const fixStart = t, fixes = [...before, ...fixing(false)], fix = [fixStart, t] as const;

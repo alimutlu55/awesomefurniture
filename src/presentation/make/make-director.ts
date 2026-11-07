@@ -7,6 +7,9 @@ import { INTRO, OUTRO, playhead, type Timeline } from '../../domain/make/make-ti
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { Vec3 } from '../../domain/make/make-measures';
 
+/** The most one drilling shot takes in (cm): boards further apart than this get a shot each. */
+const DRILL_REACH = 130;
+
 /** A camera pose as the editor's camera holds it: turned `az` round the target, raised `el`, `dist` away. */
 export interface Pose { az: number; el: number; dist: number; x: number; y: number; z: number }
 interface Bounds { x: number; y: number; z: number; w: number; h: number; d: number }
@@ -79,38 +82,40 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     const isCargoStage = hasCargo && ['drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts'].includes(step.stage);
     const side = isCargoStage ? cargoSide : (k % 2 ? 1 : -1);
     const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k);
-    // Drilling: from above on the boards waiting on the floor, then on the holes in what already stands. The two can be
-    // far apart, so each has its own shot rather than one wide enough for both.
+    // Drilling follows the drill: the boards lying on the floor, then the holes in what stands, board by board in the order
+    // they are drilled. Neighbours drilled one after another share a shot while they are close together; the camera moves
+    // when the drill goes somewhere it cannot be seen from here, and holds while it works.
     if (s.drill[1] > s.drill[0]) {
-      const span = s.drill[1] - s.drill[0], time = s.drill[0] + span * .5;
-      const lying = step.boards.filter(b => holes.some(({ h }) => h.board === b)).flatMap(waiting);
-      const standing = holes.filter(({ h }) => !step.boards.includes(h.board)).flatMap(({ h }) => {
-        const offset = drawerBoardOffset(piece, tl, playhead(tl, time), h.board);
-        return around([h.at[0] + offset[0], h.at[1] + offset[1], h.at[2] + offset[2]], 9);
+      const span = s.drill[1] - s.drill[0], at = (f: number) => s.drill[0] + span * f;
+      const groups: { board: number; from: number; points: THREE.Vector3[]; lying: boolean; down: boolean }[] = [];
+      for (const { h, i } of [...holes].sort((p, q) => tl.holeStart[p.i]! - tl.holeStart[q.i]!)) {
+        const lying = step.boards.includes(h.board), last = groups.at(-1);
+        const offset = drawerBoardOffset(piece, tl, playhead(tl, at(.5)), h.board);
+        const points = lying ? waiting(h.board) : around([h.at[0] + offset[0], h.at[1] + offset[1], h.at[2] + offset[2]], 9);
+        if (last && last.lying === lying && (last.board === h.board || reach([...last.points, ...points]) <= DRILL_REACH)) {
+          if (last.board !== h.board || !lying) last.points.push(...points);
+          last.board = h.board; last.down &&= h.axis === 1;
+        } else groups.push({ board: h.board, from: tl.holeStart[i]!, points, lying, down: h.axis === 1 });
+      }
+      groups.forEach((g, n) => {
+        const from = n ? g.from : 0, to = groups[n + 1]?.from ?? 1, el = g.lying ? .9 : g.down ? .95 : .55, padding = g.lying ? 1.12 : 1.15;
+        shot(at(from + Math.min(.12, (to - from) * .35)), g.points, facing + side * .35, el, padding);
+        shot(at(to), g.points, facing + side * .35, el, padding);
       });
-      // Each held while its holes are drilled (a shot at each end of its part of the phase), the camera moving between.
-      const hold = (from: number, to: number, points: THREE.Vector3[], el: number, padding: number) => {
-        shot(s.drill[0] + span * from, points, facing + side * .35, el, padding);
-        shot(s.drill[0] + span * to, points, facing + side * .35, el, padding);
-      };
-      // Holes drilled down into the top edges of what stands are looked down on; holes in its faces from across.
-      const downward = holes.filter(({ h }) => !step.boards.includes(h.board)).every(({ h }) => h.axis === 1), standEl = downward ? .95 : .55;
-      if (lying.length && standing.length) { hold(.05, .42, lying, .9, 1.12); hold(.58, .95, standing, standEl, 1.15); }
-      else if (lying.length || standing.length) hold(.05, .95, lying.length ? lying : standing, lying.length ? .9 : standEl, 1.12);
     }
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test') {
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
-        // Early on: the boards on their way, from where they wait to where they go. Late: where they went, in what stands.
-        const points = (fraction === .25 && step.boards.length ? step.boards : [...step.boards, ...before]).flatMap(i => placed(i, time));
-        if (fraction === .25) points.push(...step.boards.flatMap(waiting));
+        // Where the boards go, in what they go onto, so it is clear what goes where as they come in from wherever they wait
+        // on the floor (which can be far off: those are never framed).
+        const points = [...step.boards, ...before].flatMap(i => placed(i, time));
         if (isCargoStage) {
           points.push(...cargoPointsAt(time, k));
           shot(time, points, facing + cargoSide * .48, .36, 1.14);
         } else {
-          shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.04 : 1.1);
+          shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.2 : 1.1);
         }
       }
     }
@@ -214,6 +219,11 @@ function corners(lo: readonly number[], hi: readonly number[]) {
   const out: number[][] = [];
   for (const x of [lo[0]!, hi[0]!]) for (const y of [lo[1]!, hi[1]!]) for (const z of [lo[2]!, hi[2]!]) out.push([x, y, z]);
   return out;
+}
+/** How far a set of points spreads: the longest side of the box round them. */
+function reach(points: readonly THREE.Vector3[]) {
+  const s = new THREE.Box3().setFromPoints([...points]).getSize(new THREE.Vector3());
+  return Math.max(s.x, s.y, s.z);
 }
 function bounds(points: readonly THREE.Vector3[]): Bounds {
   const box = new THREE.Box3().setFromPoints([...points]), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());

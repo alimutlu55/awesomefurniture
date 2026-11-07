@@ -15,6 +15,9 @@ construction lives in `src/domain/make/drawer-box.ts`; the runners and locks in 
 
 The box stands 12.5 mm clear of each upright (the runner's room) and 15 mm above the board under it (the runner's foot),
 and is as deep as its runner, from the front's face to the back's rear face.
+It is as tall as its compartment allows, up to 250 mm and down to 50 mm: a shallow drawer gets a shallow box (one cam a
+corner instead of two), never a front with nothing behind it. Beside an in-bay divider, each box side runs on the rail
+of the upright next to it, the divider or the cabinet side.
 
 ## The steps (Assembly Studio chapters)
 
