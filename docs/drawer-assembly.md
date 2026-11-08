@@ -25,6 +25,16 @@ to the one over it, inside the stack's width behind its fronts (`drawerStackSide
 `src/domain/geometry/shared-board-spans.ts`). The editor draws it, Make builds it, and the boards between the drawers
 stop at it. The planner's board count does not include it yet.
 
+## Drawer stacks
+
+Drawers are built as a chest of drawers is: drawers the same width, one above another, at most 5 cm apart with nothing
+between them, are one stack (`drawerStacks` in `src/domain/geometry/shared-board-spans.ts`, used by the editor, Make,
+the clearances and the planner's board count). A stack has a board under its lowest drawer and one over its highest, and
+none between: its drawers run on runners screwed to the uprights either side. Each front covers its drawer's height
+and an equal share of the gaps in the stack, so the fronts stand at one even reveal however far apart the drawers were
+placed. Drawers alike (width, front, runner) get the same box at the same place behind their fronts, so their sides,
+backs, bottoms and fronts are each one part in the cutting list.
+
 ## The steps (Assembly Studio chapters)
 
 | Stage | What happens | Hardware |

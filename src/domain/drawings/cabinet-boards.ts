@@ -137,7 +137,7 @@ export function cabinetBoards(design: EditorDesign, faceWidths: readonly FaceWid
       const rects = geometry.sectionDividers(i).map(q => ({ ...geometry.dividerRect(q), orientation: q.orientation })), shared = sectionDividerBoards(rects, iy);
       const panels = fittingPanels(lay.map((q, j) => ({ ...q, k: items[j]!.k })), iy, (x0, x1) => iy + geometry.ceilingTop(i, x0, x1), shared, sectionUprights(sw, rects, iy));
       panels.forEach((p, j) => {
-        const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, pos.y0, it.h, inside) : null;
+        const it = items[j]!, pos = lay[j]!, front = fitting(it.k)?.innerFront ? innerFront(d, p.front.y0, p.front.y1 - p.front.y0, inside) : null;
         // The boards over and under a drawer stop behind its front (carcass.ts).
         const deck = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fit;
         for (const s of [...p.top, ...p.bottom]) out.push(board('Shelf', 'carcass', { x0: bayL + s.x0, x1: bayL + s.x1, y0: s.y0, y1: s.y1, z0: deck.z0, z1: deck.z1 }, 'L1', 'x'));

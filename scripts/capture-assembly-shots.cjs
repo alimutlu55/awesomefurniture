@@ -11,6 +11,9 @@ const FIXTURES = {
  wardrobe: `{ ...createEditorState(), w: 100, h: 210, d: 60, n: 2, wt: [1, 1, 100, 100, 100, 100], doors: 'hinged', dividers: [],
    secs: [[{ k: 'drawer', h: 22 }, { k: 'drawer', h: 22 }, { k: 'shelf', h: 35 }, { k: 'shelf', h: 35 }], [{ k: 'short', h: 106 }, { k: 'shelf', h: 35 }], [], [], [], []] }`,
  kitchen: `{ ...createEditorState(), ...createKitchenDesign('base', 'drawers') }`,
+ // Four drawers placed 3.2 cm apart under a shelf: built as one chest of drawers.
+ chest: `{ ...createEditorState(), w: 100, h: 210, d: 60, n: 1, wt: [100, 100, 100, 100, 100, 100], doors: 'none', dividers: [],
+   secs: [[0, 1, 2, 3].map(n => ({ k: 'drawer', h: 21, y: n * 24.2 })).concat([{ k: 'shelf', h: 40, y: 100 }]), [], [], [], [], []] }`,
  // A 2 m bay without doors: four drawers on the left, a trouser pull-out beside them, nothing between the two.
  column: `{ ...createEditorState(), w: 200, h: 210, d: 60, n: 1, wt: [200, 100, 100, 100, 100, 100], doors: 'none', dividers: [],
    secs: [[{ k: 'drawer', h: 21, w: 103, ax: 'l' }, { k: 'drawer', h: 21, w: 103, ax: 'l' }, { k: 'drawer', h: 21, w: 103, ax: 'l' },

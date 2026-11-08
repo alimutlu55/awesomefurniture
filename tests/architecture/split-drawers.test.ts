@@ -87,3 +87,28 @@ test('a drawer stack with open space beside it gets its own side, and its drawer
   // The boards between the drawers stop at the side; nothing of the stack reaches into the trouser pull-out.
   for (const b of piece.boards.filter(b => b.name === 'Shelf' && b.y0 > side.y0 && b.y1 < side.y1)) assert.ok(b.x1 <= side.x0 + .01 || b.x0 >= side.x1 - .01, `shelf at ${b.y0} crosses the side`);
 });
+
+// Three drawers placed 3.2 cm apart, as the editor lets them be: a chest of drawers, not three boxed drawers.
+const spaced = (gap: number) => makePiece({ pieces: [{ id: 1, name: 'Chest', x: 0, y: 0, z: 0, angle: 0, design: {
+  ...createInitialDesign(), w: 80, h: 210, d: 60, n: 1, wt: [80], doors: 'none', dividers: [],
+  secs: [[0, 1, 2].map(n => ({ k: 'drawer', h: 21, y: n * (21 + gap) }))],
+} as never }] }, 1)!;
+
+test('drawers one above another are one stack: no board between them, fronts at one even reveal, boxes alike', () => {
+  const piece = spaced(3.2), fronts = piece.boards.filter(b => b.name === 'Drawer front').sort((p, q) => p.y0 - q.y0);
+  const low = fronts[0]!.y0, high = fronts.at(-1)!.y1;
+  const between = piece.boards.filter(b => b.name === 'Shelf' && b.y0 > low && b.y1 < high);
+  assert.deepEqual(between, [], 'runners carry the drawers: no board between them');
+  const shelves = piece.boards.filter(b => b.name === 'Shelf');
+  assert.equal(shelves.length, 1, 'only the board over the stack (the base is under it)');
+  const reveals = fronts.slice(1).map((f, n) => Math.round((f.y0 - fronts[n]!.y1) * 10) / 10);
+  assert.ok(reveals.every(r => r === reveals[0] && r < 1.5), `fronts at one small reveal (${reveals})`);
+  assert.equal(new Set(fronts.map(f => (f.y1 - f.y0).toFixed(2))).size, 1, 'equal fronts');
+  assert.equal(piece.parts.filter(p => p.name === 'Box side').length, 2, 'every box alike: a left and a right side');
+  assert.equal(piece.parts.filter(p => p.name === 'Drawer front').length, 1, 'every front alike, drilled alike');
+});
+
+test('drawers far apart are separate, each with its own boards', () => {
+  const piece = spaced(30);
+  assert.ok(piece.boards.filter(b => b.name === 'Shelf').length >= 4, 'boards under and over drawers that stand apart');
+});

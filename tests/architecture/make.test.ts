@@ -64,7 +64,9 @@ test('clear heights up a bay never run through a board', () => {
   const mp = piece(wardrobe), boards = mp.parts.flatMap(p => p.boards);
   for (const m of pieceMeasures(mp).filter(m => m.rank === 2 && m.a[0] === m.b[0] && m.a[1] !== m.b[1] && m.part === undefined)) {
     const [y0, y1] = [m.a[1], m.b[1]], x = m.a[0];
-    const crossed = boards.filter(b => thinAxis(b) === 'y' && b.x0 <= x && b.x1 >= x && b.y0 > y0 + .01 && b.y1 < y1 - .01 && b.stock !== 'door' && b.stock !== 'front');
+    const crossed = boards.filter(b => thinAxis(b) === 'y' && b.x0 <= x && b.x1 >= x && b.y0 > y0 + .01 && b.y1 < y1 - .01 && b.stock !== 'door' && b.stock !== 'front'
+      // A drawer box's bottom is part of the drawer, not of the carcass: a stack's clear height runs past it.
+      && b.note !== 'drawer box');
     assert.equal(crossed.length, 0, `${y0}–${y1} crosses ${crossed.map(b => b.name)}`);
   }
 });
