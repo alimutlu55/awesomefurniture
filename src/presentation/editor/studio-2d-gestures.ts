@@ -1,8 +1,9 @@
 import { pickWallAsset, slideWallAsset } from './studio-2d-assets';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
-import { cornerDegree, nextId, wallLine } from '../../domain/studio/studio';
+import { nextId, wallLine } from '../../domain/studio/studio';
 import { furthestValid, snapCorner } from './studio-drag';
-import { extendFromCorner, moveWall } from '../../domain/studio/studio-edit';
+import { moveWall } from '../../domain/studio/studio-edit';
+import { extendToFit } from '../../domain/studio/studio-extend';
 import { attachPlanPoint, snapPlanCorner } from './studio-2d-snap';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import type { RoomSelection } from '../viewport/studio-renderer';
@@ -66,12 +67,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     let addedWall = '';
     cancelDrawing();
     const added = ports.editStudio(studio => {
-      const c = studio.corners.find(c => c.id === cornerId);
-      const w = studio.walls.find(w => w.a === cornerId || w.b === cornerId);
-      const line = w && wallLine(studio, w);
-      if (!c || !w || !line || cornerDegree(studio, cornerId) !== 1) return null;
-      const sign = w.b === cornerId ? 1 : -1;
-      const next = extendFromCorner(studio, cornerId, c.x + line.ux * sign * 150, c.z + line.uz * sign * 150);
+      const next = extendToFit(studio, cornerId, room => !ports.studioProblem(room));
       if (next) addedWall = next.walls.at(-1)!.id;
       return next;
     }, true);
