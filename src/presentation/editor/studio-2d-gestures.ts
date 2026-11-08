@@ -1,4 +1,4 @@
-import { pickWallAsset, slideWallAsset } from './studio-2d-assets';
+import { nearbyWall, pickWallAsset, slideWallAsset } from './studio-2d-assets';
 import type { Studio, StudioWall } from '../../domain/studio/studio';
 import { nextId, wallLine } from '../../domain/studio/studio';
 import { furthestValid, snapCorner } from './studio-drag';
@@ -174,24 +174,7 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
     }
 
     const wallEl = (e.target as Element).closest('[data-wall-id]');
-    if (wallEl) {
-      const wid = wallEl.getAttribute('data-wall-id')!;
-      const studio = ports.getStudio();
-      const wall = studio?.walls.find(w => w.id === wid);
-      const line = studio && wall && wallLine(studio, wall);
-      if (line) {
-        wallActionTarget = { wallId: wid, at: Math.max(0, Math.min(line.length,
-          (scenePt.x - line.a.x) * line.ux + (scenePt.z - line.a.z) * line.uz)) };
-      }
-      ports.setSelection({ kind: 'wall', id: wid });
-      drag = {
-        kind: 'wall', id: wid, startScreen: { x: e.clientX, y: e.clientY },
-        startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
-        moved: false, guides: [], carry: ports.standingAgainst(wid),
-      };
-      scheduleRefresh();
-      return true;
-    }
+    if (wallEl) return grabWall(wallEl.getAttribute('data-wall-id')!, e, scenePt, t);
 
     const furnEl = (e.target as Element).closest('[data-cabinet-id]');
     if (furnEl) {
@@ -209,11 +192,34 @@ export function createStudio2DGestures(ports: Studio2DGesturesPorts) {
       return true;
     }
 
+    // A finger that just misses a wall (a few pixels thick on a phone) still takes it; a mouse pointer must be on it.
+    const studio = ports.getStudio(), near = studio && e.pointerType !== 'mouse' ? nearbyWall(studio, scenePt, t.zoom) : null;
+    if (near) return grabWall(near, e, scenePt, t);
+
     ports.setSelection(null);
     drag = {
       kind: 'pan', startScreen: { x: e.clientX, y: e.clientY },
       startScene: scenePt, startTransform: t, snapshot: '', moved: false, guides: [],
     };
+    return true;
+  }
+
+  /** Select a wall and get ready to move it square to its length. */
+  function grabWall(wid: string, e: PointerEvent, scenePt: Point2D, t: ViewportTransform): boolean {
+    const studio = ports.getStudio();
+    const wall = studio?.walls.find(w => w.id === wid);
+    const line = studio && wall && wallLine(studio, wall);
+    if (line) {
+      wallActionTarget = { wallId: wid, at: Math.max(0, Math.min(line.length,
+        (scenePt.x - line.a.x) * line.ux + (scenePt.z - line.a.z) * line.uz)) };
+    }
+    ports.setSelection({ kind: 'wall', id: wid });
+    drag = {
+      kind: 'wall', id: wid, startScreen: { x: e.clientX, y: e.clientY },
+      startScene: scenePt, startTransform: t, snapshot: ports.snapshot(), originalStudio: ports.getStudio()!,
+      moved: false, guides: [], carry: ports.standingAgainst(wid),
+    };
+    scheduleRefresh();
     return true;
   }
 

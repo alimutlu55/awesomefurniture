@@ -1,11 +1,13 @@
 import { wallFace, wallLine, type Studio } from '../../domain/studio/studio';
-import { door2DPlan } from '../../domain/studio/studio-plan';
+import { door2DPlan, wall2DPlan } from '../../domain/studio/studio-plan';
 import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
 import { slideFixture } from '../../domain/studio/fixtures/fixture-setup';
 import { moveOpening } from '../../domain/studio/studio-edit';
 import type { Point2D } from './studio-2d-canvas';
 
 export interface WallAsset { kind: 'opening' | 'fixture'; id: string }
+/** How far, in screen pixels, a finger may land from a thin wall, opening or fixture and still take it. */
+export const FINGER_REACH = 22;
 const distanceToSegment = (p: Point2D, a: Point2D, b: Point2D) => {
   const dx = b.x - a.x, dz = b.z - a.z, length = dx * dx + dz * dz;
   const t = length ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / length)) : 0;
@@ -37,8 +39,26 @@ export function nearbyWallAsset(studio: Studio, point: Point2D, zoom: number): W
     const distance = Math.hypot(Math.max(0, x - c.state.w / 2), Math.max(0, z - c.state.d / 2)) * zoom;
     hits.push({ asset: { kind: 'fixture', id: f.id }, distance });
   }
-  return hits.filter(h => h.distance <= 22).sort((a, b) => a.distance - b.distance)[0]?.asset ?? null;
+  return hits.filter(h => h.distance <= FINGER_REACH).sort((a, b) => a.distance - b.distance)[0]?.asset ?? null;
 }
+
+/** The wall whose plan outline is nearest `point` and within `reach` screen pixels of it: a wall is a few pixels thick
+ * on a phone, thinner than a fingertip. Inside the outline is a distance of 0. */
+export function nearbyWall(studio: Studio, point: Point2D, zoom: number, reach = FINGER_REACH): string | null {
+  let best: { id: string; distance: number } | null = null;
+  for (const w of studio.walls) {
+    const solid = wall2DPlan(studio, w)?.solid;
+    if (!solid) continue;
+    const edges = solid.map((a, i) => distanceToSegment(point, a, solid[(i + 1) % solid.length]!));
+    const distance = (insidePolygon(point, solid) ? 0 : Math.min(...edges)) * zoom;
+    if (distance <= reach && (!best || distance < best.distance)) best = { id: w.id, distance };
+  }
+  return best?.id ?? null;
+}
+const insidePolygon = (p: Point2D, poly: readonly Point2D[]) => poly.reduce((inside, a, i) => {
+  const b = poly[(i + poly.length - 1) % poly.length]!;
+  return (a.z > p.z) !== (b.z > p.z) && p.x < (b.x - a.x) * (p.z - a.z) / (b.z - a.z) + a.x ? !inside : inside;
+}, false);
 
 /** Preserve direct furniture/visible corner hits, while allowing a finger to miss a thin window or utility. */
 export function pickWallAsset(studio: Studio | null, point: Point2D, zoom: number, target: Element): WallAsset | null {

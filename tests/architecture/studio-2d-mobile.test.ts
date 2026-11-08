@@ -8,7 +8,7 @@ import { addOpening } from '../../src/domain/studio/studio-edit';
 import { FIXTURES } from '../../src/domain/studio/fixtures/fixture-kinds';
 import { addFixture } from '../../src/domain/studio/fixtures/fixture-edit';
 import { fixturePlace } from '../../src/domain/studio/fixtures/fixture-place';
-import { nearbyWallAsset, slideWallAsset } from '../../src/presentation/editor/studio-2d-assets';
+import { FINGER_REACH, nearbyWall, nearbyWallAsset, slideWallAsset } from '../../src/presentation/editor/studio-2d-assets';
 import { overlayInsets, planScale } from '../../src/presentation/editor/studio-2d-overlays';
 import { layoutPlanLabels, renderPlanLabels } from '../../src/presentation/editor/studio-2d-labels';
 
@@ -27,6 +27,21 @@ for (const zoom of [.2, .6, 2.5]) {
       const f = studio.fixtures![0]!, place = fixturePlace(studio, f)!;
       const p = { x: place.solid.x + f.width / 2 + 20 / zoom, z: place.solid.z };
       assert.deepEqual(nearbyWallAsset(studio, p, zoom), { kind: 'fixture', id: f.id });
+    }
+  });
+}
+
+for (const zoom of [.2, .6, 2.5]) {
+  test(`walls have a finger-sized target at zoom ${zoom}`, () => {
+    const studio = rectangleStudio(600, 500);
+    for (const w of studio.walls) {
+      const line = wallLine(studio, w)!, mid = { x: line.a.x + line.ux * line.length / 2, z: line.a.z + line.uz * line.length / 2 };
+      const off = (px: number, side: number) => ({ x: mid.x + side * line.nx * (w.thickness / 2 + px / zoom), z: mid.z + side * line.nz * (w.thickness / 2 + px / zoom) });
+      assert.equal(nearbyWall(studio, mid, zoom), w.id, 'on the wall');
+      for (const side of [-1, 1]) {
+        assert.equal(nearbyWall(studio, off(FINGER_REACH - 4, side), zoom), w.id, `${FINGER_REACH - 4} px off, side ${side}`);
+        assert.equal(nearbyWall(studio, off(FINGER_REACH + 6, side), zoom), null, `${FINGER_REACH + 6} px off, side ${side}`);
+      }
     }
   });
 }
