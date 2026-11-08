@@ -28,7 +28,7 @@ test('Inside and Section A–A give the same clear heights between boards', () =
 test('each view still states its overall size, and the legend says what the figures are', () => {
   for (const title of ['Front', 'Inside']) assert.ok(strings(title).some(d => d.dir.y === 1 && figures(d).includes(2720)), title + ' height');
   const legend = unitDetailLegend(piece!).join(' ');
-  assert.match(legend, /boards 18 mm thick/); assert.match(legend, /joints between fronts 10 mm/); assert.match(legend, /6 back board \+ 380 shelf depth \+ 14 shelf setback/);
+  assert.match(legend, /boards 18 mm thick/); assert.match(legend, /joints between fronts 3 mm/); assert.match(legend, /6 back board \+ 380 shelf depth \+ 14 shelf setback/);
 });
 
 test('no two dimension figures on a shop sheet overlap, and nothing is left unplaced', () => {

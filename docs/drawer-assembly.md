@@ -32,7 +32,8 @@ between them, are one stack (`drawerStacks` in `src/domain/geometry/shared-board
 the clearances and the planner's board count). A stack has a board under its lowest drawer and one over its highest, and
 none between: its drawers run on runners screwed to the uprights either side. Each front covers its drawer's height
 and an equal share of the gaps in the stack, so the fronts stand at one even reveal however far apart the drawers were
-placed. Drawers alike (width, front, runner) get the same box at the same place behind their fronts, so their sides,
+placed: 3 mm between fronts and 1.5 mm to the boards over and under the stack, the hinge registry's front reveal, as
+between doors and kitchen fronts (`innerFront` in `src/domain/wardrobe/carcass.ts`). Drawers alike (width, front, runner) get the same box at the same place behind their fronts, so their sides,
 backs, bottoms and fronts are each one part in the cutting list.
 
 ## The steps (Assembly Studio chapters)

@@ -50,13 +50,17 @@ export function boardDepth(d: number, setback: number, rearFace = BACK_PANEL) {
 /** Shelves, fitting boards and the space a fitting may use. `inside` is depth the closed doors take from inside the
  * carcass (inset doors: door-layout.ts frontInside). */
 export const fittingDepth = (d: number, inside = 0, rearFace = BACK_PANEL) => boardDepth(d, FITTING_SETBACK + inside, rearFace);
+/** The reveal between two stacked drawer fronts: the hinge registry's front reveal (3 mm), as between doors and kitchen
+ * fronts. Centimetres. */
+export const INNER_FRONT_REVEAL = (HINGE_ENTRY.rules.clearanceMm.reveal ?? 3) / 10;
 /** A drawer's own front inside the carcass (behind any doors): PANEL thick, its face INNER_FRONT_GAP behind the front
- * edge, and 5 mm short of its space top and bottom, so stacked drawers show a 1 cm line between them. The board over or
- * under a drawer stops 1 mm behind that front, which closes over its edge: the deeper shelf line would run into it. */
+ * edge, and half INNER_FRONT_REVEAL short of its space top and bottom, so stacked drawers show one reveal between them and
+ * the stack half of one to the boards over and under it. The board over or under a drawer stops 1 mm behind that front,
+ * which closes over its edge: the deeper shelf line would run into it. */
 export const INNER_FRONT_GAP = .3;
 export function innerFront(d: number, y0: number, h: number, inside = 0) {
-  const z1 = d - INNER_FRONT_GAP - inside, z0 = z1 - PANEL;
-  return { y0: y0 + .5, y1: y0 + h - .5, z0, z1, centre: (z0 + z1) / 2 - d / 2 };
+  const z1 = d - INNER_FRONT_GAP - inside, z0 = z1 - PANEL, edge = INNER_FRONT_REVEAL / 2;
+  return { y0: y0 + edge, y1: y0 + h - edge, z0, z1, centre: (z0 + z1) / 2 - d / 2 };
 }
 export const besideInnerFrontDepth = (d: number, inside = 0, rearFace = BACK_PANEL) => boardDepth(d, INNER_FRONT_GAP + PANEL + .1 + inside, rearFace);
 /** Partitions between bays and the base board. */
