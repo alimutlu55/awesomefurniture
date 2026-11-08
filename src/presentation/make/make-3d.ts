@@ -107,10 +107,12 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Gives every board the materials for the look, the part picked and whether fronts are solid. */
   function paint() {
     contact.visible = boards.length > 0 && look === 'material';
+    const left: number[] = [];
     for (const b of boards) {
       // During the film only panels blocking the active hardware are translucent.
       const cutaway = !!film && blocked.has(b.index);
       const phantom = isFront(b.part) && !solidFronts && !film || cutaway;
+      if (phantom && !cutaway) left.push(b.index);
       const mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
       if (cutaway) face = fade(face);
@@ -121,6 +123,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       b.edges.visible = look !== 'material' || selected !== null || phantom;
       b.edges.material = phantom ? lines.phantom : dim ? lines.edgeFaded : mine ? lines.edgeSelected : look === 'xray' ? lines.edgeXray : lines.edge;
     }
+    // A front left out to see in takes its handle and its holes with it: no handle hanging on nothing.
+    fittings.hideOn(new Set(left));
   }
   /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
    * 100°), a drawer slides out on its runners. */

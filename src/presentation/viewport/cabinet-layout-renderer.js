@@ -204,7 +204,7 @@ export function createCabinetLayoutRenderer({ maxReach = () => undefined, getWid
                 const local = span => ({...span,x0:span.x0-localX,x1:span.x1-localX});
                 const fit = lay[j] ? geometry.itemFit(i, lay[j], it) : null, cut = cutFor(fit, pos.x0);
                 mod(it, ix, iy0, iwd, geometry.boxSupported(i, j, lay, iy), geometry.boxCapped(i, j, lay), panels[j].top.map(local), panels[j].bottom.map(local), panels[j].support.map(local), pos.x0 === undefined ? undefined : iy + geometry.ceilingTop(i, pos.x0, pos.x1), cut,
-                    panels.flatMap(p => p.side).filter(s => s.y0 < iy0 + hh && s.y1 > iy0 && s.x1 > pos.x0 && s.x0 < pos.x1).map(local));
+                    panels.flatMap(p => p.side).filter(s => s.y0 < iy0 + hh && s.y1 > iy0 && s.x1 > pos.x0 && s.x0 < pos.x1).map(local), panels[j].front);
                 const group = new THREE.Group(), parts = renderState.Gr.children.slice(start);
                 parts.forEach(o => group.add(o));
                 renderState.Gr.add(group);

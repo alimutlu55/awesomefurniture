@@ -76,7 +76,7 @@ export function pieceMeasures(mp: MakePiece): Measure[] {
   out.push(measure(1, [0, h, 0], [w, h, 0], [0, 10, 0]), measure(1, [w, 0, 0], [w, h, 0], [12, 0, 0]), measure(1, [w, 0, 0], [w, 0, d], [12, 0, 0]));
   const lift = plinthOf(mp.piece.design);
   if (lift > 0) out.push(measure(1, [0, 0, d], [0, lift, d], [-6, 0, 0], undefined, FRONT));
-  const posts = uprights(boards, h), across = boards.filter(b => thinAxis(b) === 'y' && b.stock !== 'plinth' && !isFront(b));
+  const posts = uprights(boards, h), across = boards.filter(b => thinAxis(b) === 'y' && b.stock !== 'plinth' && !isFront(b) && b.note !== 'drawer box');
   const found: { shelf?: Board } = {};
   posts.slice(0, -1).forEach((left, i) => {
     const right = posts[i + 1]!, x0 = left.x1, x1 = right.x0, mid = (x0 + x1) / 2;

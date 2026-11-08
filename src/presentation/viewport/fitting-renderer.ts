@@ -71,7 +71,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
     /** `cut` is present when the fitting meets a sloped or stepped top: boards and
      * fronts go through `slab`, which cuts them to the angle; working parts use
      * the core rectangle; shelf contents that would touch the top are left out. */
-    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>interiorFloorOf(getRenderDesign())+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut, sides: readonly {x0:number;x1:number}[] = []) {
+    function mod(it: EditorItem, cx: number, y: number, sw: number, _supported = true, _capped = false, topSpans = [{x0:0,x1:sw}], bottomSpans = [{x0:0,x1:sw}], support = [{x0:0,x1:sw,rise:y>interiorFloorOf(getRenderDesign())+.05?PANEL:0}], ceiling = h - PANEL, cut?: FittingCut, sides: readonly {x0:number;x1:number}[] = [], frontSpan = {y0:y,y1:y+it.h}) {
         if (kitchen) {
             kitchen.kitchenFitting(it, cx, y, sw, { bottom: interiorFloorOf(getRenderDesign()), top: ceiling }, { left: -getRenderDesign().w / 2 + PANEL, right: getRenderDesign().w / 2 - PANEL });
             return;
@@ -80,7 +80,8 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         const P = override ? createDecorMaterial(resources, override) : mp, D = override ? createDecorMaterial(resources, override) : md;
         if (override) ((group.userData.ownedMaterials ??= []) as THREE.Material[]).push(P, D);
         // A drawer's own front, and the boards over and under it stopping behind that front (carcass.ts).
-        const inside = frontInside(getRenderDesign()), front = fitting(k)?.innerFront ? innerFront(d, y, hh, inside) : null;
+        // A drawer's front covers its share of its stack (shared-board-spans.ts): fronts stand at one even reveal.
+        const inside = frontInside(getRenderDesign()), front = fitting(k)?.innerFront ? innerFront(d, frontSpan.y0, frontSpan.y1 - frontSpan.y0, inside) : null;
         const slab: BoxBuilder = cut ? cut.slab : box, board = front ? besideInnerFrontDepth(d, inside, backFaceOf(design)) : fittingDepth(d, inside, backFaceOf(design));
         // Working core: the full fitting unless the top cuts into it.
         const coreX = cut ? cx - sw / 2 + (cut.core.x0 + cut.core.x1) / 2 : cx, coreW = cut ? cut.core.x1 - cut.core.x0 : sw, coreH = cut ? cut.core.h : hh;

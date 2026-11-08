@@ -75,6 +75,7 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
   const m = resolveMaterials(design), decor = m.drawerDecorId ?? m.carcassDecorId, bottomDecor = m.backingDecorId ?? decor;
   const clearance = RUNNER_ENTRY.rules.clearanceMm, standoff = (clearance.standoff ?? 2) / 10;
   const bottomGap = (clearance.bottomGap ?? 15) / 10, topDrop = (clearance.topDrop ?? 40) / 10;
+  const drawers: { f: Board; x0: number; x1: number; applied: boolean; face: number; zb: number; sideFront: number; lift: number; room: number; key: string }[] = [];
   for (const f of boards) {
     if (!drawerFront(f, piece)) continue;
     const [cx, cy] = centre(f), { left, right } = uprightsAround(boards, cx, cy, h);
@@ -86,11 +87,22 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
     const face = applied ? Math.min(f.z0, left.b.z1, right.b.z1) - standoff : f.z0;
     const length = runnerForSpace(face - backFaceOf(design) - RUNNER_REAR_GAP);
     if (length === undefined) continue;
-    const zb = face - length, sideFront = applied ? face - T : face;
     const across = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.x0 < x1 && b.x1 > x0);
     const floor = Math.max(f.y0, left.b.y0, ...across.filter(b => b.y1 <= cy).map(b => b.y1));
     const ceiling = Math.min(f.y1, left.b.y1, ...across.filter(b => b.y0 >= cy).map(b => b.y0));
-    const ys = floor + bottomGap, tall = Math.min(25, f.y1 - f.y0 - topDrop, ceiling - ys - bottomGap);
+    // Measured from the front: how far up it the box stands, on its runners clear of any board under it, and the room
+    // over that up to the board over it.
+    const lift = floor - f.y0 + bottomGap, room = ceiling - f.y0;
+    const key = [x0, x1, f.y1 - f.y0, length, applied].map(v => typeof v === 'number' ? Math.round(v * 10) : v).join();
+    drawers.push({ f, x0, x1, applied, face, zb: face - length, sideFront: applied ? face - T : face, lift, room, key });
+  }
+  // Drawers alike (the same width, front and runner) get the same box at the same place behind their fronts, as a maker
+  // cuts them: the highest any stands, the lowest any is. In a stack the lowest drawer stands clear of the board under
+  // the stack, so every box of the stack stands as high; its fronts are then drilled alike.
+  for (const d of drawers) {
+    const alike = drawers.filter(o => o.key === d.key), lift = Math.max(...alike.map(o => o.lift));
+    const tall = Math.min(25, d.f.y1 - d.f.y0 - topDrop, ...alike.map(o => o.room - lift - bottomGap));
+    const { f, x0, x1, applied, face, zb, sideFront } = d, ys = f.y0 + lift;
     // The groove for the bottom must be in the front: an inner front reaching too little below it gets a box front.
     if (x1 - x0 < 4 * T || sideFront - zb < 10 || tall < MIN_TALL) continue;
     const g = BOTTOM_GROOVE, yb = ys + g.fromEdge;
