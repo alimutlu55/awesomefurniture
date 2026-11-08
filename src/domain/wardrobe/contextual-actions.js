@@ -21,7 +21,7 @@ const actions = {
     fixture: [['new', 'Add', 'Add cabinet'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
     // Make, open on a piece: Done goes back to Furniture; the piece taken apart, its doors solid or as outlines, its
     // measurements on or off; View holds the square views, the looks and part numbers; Parts lists every part.
-    make: [['make-done', 'Done'], ['make-assembly', 'Assembly'], ['make-fronts', 'Doors'], ['make-measures', 'Sizes'], ['make-view', 'View'], ['make-parts', 'Parts']],
+    make: [['make-done', 'Done'], ['make-assembly', 'Assembly'], ['make-fronts', 'Fronts'], ['make-measures', 'Sizes'], ['make-view', 'View'], ['make-parts', 'Parts']],
     // A selected item or divider: the same order as furniture, what it is first, then size, duplicate, remove.
     item: [['replace', 'Replace'], ['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove'], ['more', 'More']],
     divider: [['resize', 'Size'], ['duplicate', 'Duplicate'], ['remove', 'Remove']],
