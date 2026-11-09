@@ -85,6 +85,9 @@ export const HINGE_ENTRY: HardwareEntry = {
       standoff: 12,
       reveal: 3,
       side: 100,
+      // Half the mounting plate (about 50 mm long) and its arm, plus room to pass: a drawer behind the door slides past
+      // the hinge on its side only clear of it (a flat-pack wardrobe's drawers go a hole higher with hinged doors).
+      pullout: 30,
     },
     boardThicknessMm: { min: 16, max: 28, standard: [16, 18, 19, 22] },
     maxLeafMm: { width: 600, height: 2400 },
@@ -95,6 +98,7 @@ export const HINGE_ENTRY: HardwareEntry = {
       [Infinity, 5],
     ],
     edgeInsetMm: 100,
+    minEdgeInsetMm: 70,
     systemLineMm: 37,
     pitchMm: 32,
     exclusions: [

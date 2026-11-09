@@ -154,6 +154,8 @@ export interface HardwareRulesSpec {
     readonly reveal?: number;
     readonly standoff?: number;
     readonly endCutShort?: number;
+    /** A hinge's plate and arm keep this clear of anything that pulls out past them (a drawer, its box and runners). */
+    readonly pullout?: number;
   };
   readonly boardThicknessMm: {
     readonly min: number;
@@ -166,6 +168,8 @@ export interface HardwareRulesSpec {
   /** Upper threshold in mm -> quantity required (e.g. door height -> hinge count). */
   readonly quantityByHeightMm?: readonly (readonly [number, number])[];
   readonly edgeInsetMm?: number;
+  /** The nearest a fitting may come to the end it is set in from, when it has to move from `edgeInsetMm`. */
+  readonly minEdgeInsetMm?: number;
   readonly maxSpacingMm?: number;
   readonly systemLineMm?: number;
   readonly pitchMm?: number;

@@ -135,7 +135,7 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     stage: 'drawer-runners',
     requires: ['carcass', 'partitions', 'drawer-back'],
     title: 'Mount the drawer runners',
-    summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into the System 32 hole.',
+    summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into its 5 mm hole.',
   },
   {
     stage: 'cargo-frame',

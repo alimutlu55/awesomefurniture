@@ -31,7 +31,7 @@ const instructions: Record<Stage, string> = {
   'drawer-boxes': 'Lay each drawer front face down on a soft mat. Screw the cam bolts into its inner face, then slide the bottom into the front\'s groove: the same gap at both ends. Do not bend the bottom.',
   'drawer-sides': 'Tap the wooden dowels in. Set each side over the cam bolts and dowels with the bottom in its groove, then turn the cams clockwise to pull the joint tight.',
   'drawer-back': 'Hook the back\'s groove over the edge of the bottom, swing the back into place against the sides, and hammer the expanding dowels through it into the sides.',
-  'drawer-runners': 'Hook each runner\'s rear peg into its System 32 hole, level the rail, and fix its front bracket with two short screws. Nothing is screwed to the drawer.',
+  'drawer-runners': 'Hook each runner\'s rear peg into its 5 mm hole, level the rail, and fix its front bracket with two 4 × 12 mm screws in the pilot holes. Nothing is screwed to the drawer.',
   drawers: 'Pull both runners out. Lay a locking plate over each front pin, hook the drawer back onto the rear hooks, and lower the front so the pins come up through the bottom and plates.',
   'drawer-lock': 'Under each drawer, screw a locking lever up onto each front pin and turn it until it locks. The drawer can no longer lift off its runners.',
   'drawer-test': 'Open and close each drawer. The cabinet rails stay fixed and the drawer rails travel with the box. Check smooth travel, equal gaps and that both locks hold.',

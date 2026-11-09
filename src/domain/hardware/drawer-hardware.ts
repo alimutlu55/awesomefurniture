@@ -34,8 +34,8 @@ export const RUNNER_ENTRY: HardwareEntry = {
     ratedLoadKg: 25,
   },
   drilling: [
-    // The rail's front bracket: two screws on the System 32 line, one step apart.
-    { reference: 'system32', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 5, depthMm: 12, stationsMm: [0, 32] },
+    // The rail's front bracket: two screws on the System 32 line, one step apart, in Ø2.5 pilot holes.
+    { reference: 'system32', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 2.5, depthMm: 12, stationsMm: [0, 32] },
     // The rail's rear peg: a System 32 hole this far in from the rail's rear end (to the nearest slot).
     { reference: 'rear-edge', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 5, depthMm: 12, stationsMm: [20] },
     // The box back's hook hole, this far up from its lower edge, over the middle of each box side.
@@ -81,8 +81,8 @@ export const RUNNER_ENTRY: HardwareEntry = {
     approachFrom: [0, 0, 1],
     instructions: {
       title: 'Mount the drawer runners',
-      summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into the System 32 hole.',
-      drill: 'Use the 5 mm System 32 holes on the 37 mm line: two at the front for the screws, one at the rear for the peg.',
+      summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into its 5 mm hole.',
+      drill: 'On the 37 mm line at the runner\'s height: two Ø2.5 mm pilot holes at the front (37 and 69 mm in) for the screws, one Ø5 mm hole near the rear for the peg.',
       place: 'Hook the rear peg into its hole, rest the rail level and line its front bracket up with the two holes.',
       fix: 'Drive the two 4 × 12 mm pan-head screws through the front bracket into each cabinet side.',
     },

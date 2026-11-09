@@ -30,6 +30,8 @@ import { thinAxis, type Vec3 } from './make-measures';
 export const BOTTOM_GROOVE = { fromEdge: 1.2, depth: .8 } as const;
 /** The bottom: a 6 mm board captured in the groove. */
 export const BOTTOM_THICKNESS = .6;
+/** The bottom is cut this much short of each groove's floor, so it slides in and is centred with an equal gap each end. */
+export const BOTTOM_PLAY = .1;
 /** Joint stations on a box corner: this far from the side's lower and upper edges. */
 const LOW = 3.2, HIGH = 2.5;
 /** The lowest box that still takes its bottom's groove and one cam a corner: shallow drawers get a shallow box, never none. */
@@ -105,12 +107,12 @@ export function drawerBoxes(piece: PlacedPiece, boards: readonly Board[]): Board
     const { f, x0, x1, applied, face, zb, sideFront } = d, ys = f.y0 + lift;
     // The groove for the bottom must be in the front: an inner front reaching too little below it gets a box front.
     if (x1 - x0 < 4 * T || sideFront - zb < 10 || tall < MIN_TALL) continue;
-    const g = BOTTOM_GROOVE, yb = ys + g.fromEdge;
+    const g = BOTTOM_GROOVE, yb = ys + g.fromEdge, into = g.depth - BOTTOM_PLAY;
     if (applied) out.push(part('Box front', 'carcass', x0, x1, ys, ys + tall, face - T, face, 0, 'L1', decor));
     out.push(part('Box side', 'carcass', x0, x0 + T, ys, ys + tall, zb + T, sideFront, 2, 'L1', decor),
       part('Box side', 'carcass', x1 - T, x1, ys, ys + tall, zb + T, sideFront, 2, 'L1', decor),
       part('Box back', 'carcass', x0, x1, ys, ys + tall, zb, zb + T, 0, 'L1', decor),
-      part('Box bottom', 'back', x0 + T - g.depth, x1 - T + g.depth, yb, yb + BOTTOM_THICKNESS, zb + T - g.depth, sideFront + g.depth, 0, '—', bottomDecor));
+      part('Box bottom', 'back', x0 + T - into, x1 - T + into, yb, yb + BOTTOM_THICKNESS, zb + T - into, sideFront + into, 0, '—', bottomDecor));
   }
   return out;
 }
@@ -130,7 +132,7 @@ export function drawerGroups(boards: readonly Board[]): DrawerBox[] {
       && b.z0 < bottom.z1 && b.z1 > bottom.z0 && b.x1 > bottom.x0 - 2 && b.x0 < bottom.x1 + 2).sort((p, q) => p.b.x0 - q.b.x0);
     // The back and a box front are as wide as the box: around the bottom, not in the next bay at the same height.
     const across = (b: Board) => b.x0 <= bottom.x0 + .01 && b.x1 >= bottom.x1 - .01 && b.x0 >= bottom.x0 - 5 && b.x1 <= bottom.x1 + 5;
-    const back = find(b => b.name === 'Box back' && across(b) && Math.abs(b.y0 - sides[0]?.b.y0!) < .01 && Math.abs(b.z1 - bottom.z0 - BOTTOM_GROOVE.depth) < .01);
+    const back = find(b => b.name === 'Box back' && across(b) && Math.abs(b.y0 - sides[0]?.b.y0!) < .01 && Math.abs(b.z1 - bottom.z0 - BOTTOM_GROOVE.depth + BOTTOM_PLAY) < .01);
     if (sides.length !== 2 || back < 0) return;
     const [l, r] = [sides[0]!, sides[1]!], z = l.b.z1;
     const box = find(b => b.name === 'Box front' && across(b) && Math.abs(b.z0 - z) < .01 && Math.abs(b.y0 - l.b.y0) < .01);
@@ -144,10 +146,12 @@ export function drawerGroups(boards: readonly Board[]): DrawerBox[] {
   return out;
 }
 
-/** Where the bottom runs into `board`: the overlap of the two, as a groove cut in `board`. */
+/** Where the bottom runs into `board`: the overlap of the two, as a groove cut in `board`, as deep as BOTTOM_GROOVE (the
+ * bottom stops BOTTOM_PLAY short of its floor). */
 function groove(boards: readonly Board[], board: number, bottom: Board): Groove | null {
-  const b = boards[board]!, lo: Vec3 = [Math.max(b.x0, bottom.x0), Math.max(b.y0, bottom.y0), Math.max(b.z0, bottom.z0)];
-  const hi: Vec3 = [Math.min(b.x1, bottom.x1), Math.min(b.y1, bottom.y1), Math.min(b.z1, bottom.z1)];
+  const p = BOTTOM_PLAY, b = boards[board]!, room = { x0: bottom.x0 - p, x1: bottom.x1 + p, y0: bottom.y0, y1: bottom.y1, z0: bottom.z0 - p, z1: bottom.z1 + p };
+  const lo: Vec3 = [Math.max(b.x0, room.x0), Math.max(b.y0, room.y0), Math.max(b.z0, room.z0)];
+  const hi: Vec3 = [Math.min(b.x1, room.x1), Math.min(b.y1, room.y1), Math.min(b.z1, room.z1)];
   return hi.every((v, k) => v - lo[k]! > 1e-6) ? { board, lo, hi, kind: 'groove' } : null;
 }
 
