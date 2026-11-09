@@ -54,7 +54,8 @@ export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry:
     const pinX = sign * ((side.x1 - side.x0) / 2 + PIN_IN), pinZ = side.z1 - PIN_BEHIND - z, top = up(side.y0 + BOTTOM_GROOVE.fromEdge + BOTTOM_THICKNESS) + .2;
     bar(inner, pinX / 2, 0, Math.abs(pinX) + .5, .2, 1.2, pinZ);
     bar(inner, pinX, (rail * .4 + top) / 2, .6, top - rail * .4, .6, pinZ);
-    result.push({ mesh: outer, board: fixed }, { mesh: inner, board: moving });
+    // The drawer rail travels with the drawer, all the way out (the runner's extension ratio).
+    result.push({ mesh: outer, board: fixed }, { mesh: inner, board: moving, moving, ratio: 1 });
   }
   return result;
 }

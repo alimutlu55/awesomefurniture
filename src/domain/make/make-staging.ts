@@ -1,5 +1,6 @@
 import type { Board } from '../drawings/cabinet-boards';
 import type { MakePiece } from './make-parts';
+import { benchRoom } from './drawer-film';
 import { entryOf, FITTED_BEFORE } from './make-fixing';
 import { thinAxis, tiltOf, type Vec3 } from './make-measures';
 
@@ -43,7 +44,8 @@ function flipped(piece: MakePiece, i: number) {
 export function stagingLayout(piece: MakePiece, floor = 0): Staged[] {
   const order = piece.steps.flatMap(s => s.boards), out: Staged[] = piece.boards.map(() => ({ at: [0, 0, 0], lie: null, spin: false, size: [0, 0, 0], tilt: 0, flip: false }));
   const span = Math.max(piece.size.w * 1.6, 240), x0 = piece.size.w / 2 - span / 2;
-  let x = x0, z = piece.size.d + FRONT, row = 0;
+  // Beyond the mat the drawer boxes are built on (drawer-film.ts), when there is one.
+  let x = x0, z = piece.size.d + FRONT + benchRoom(piece), row = 0;
   for (const i of order) {
     const flat = lyingFlat(piece.boards[i]!, flipped(piece, i)), [w, t, d] = flat.size;
     if (x > x0 && x + w > x0 + span) { x = x0; z += row + GAP; row = 0; }

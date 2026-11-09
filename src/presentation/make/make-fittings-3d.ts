@@ -39,7 +39,8 @@ export interface FittingsLayer {
   ring(holes: ReadonlySet<number> | null): void;
   /** The room the ringed holes take, in world space, with `margin` cm round them; null when none is ringed. */
   ringExtent(margin: number): THREE.Box3 | null;
-  motion(nudge?: (board: number) => readonly [number, number, number]): void;
+  /** Moves the runners: by `pull`, how far the runners under a drawer board are out, or else by the board's nudge. */
+  motion(nudge?: (board: number) => readonly [number, number, number], pull?: (board: number) => number): void;
   clear(): void;
   dispose(): void;
 }
@@ -55,7 +56,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
   const ringed = new THREE.MeshBasicMaterial({ color: 0x4976ad, depthTest: false, transparent: true });
   let links: readonly (readonly number[])[] = [], hidden: ReadonlySet<number> = new Set();
   let frontStepItems: number[] = [];
-  let slides: { mesh: THREE.Object3D; moving: THREE.Object3D; movingBoard?: number; rest: number; home: number; max: number; ratio: number }[] = [];
+  /** What slides with a drawer: its runners' moving rails, a cargo chassis; `drawer` when it goes as far as the drawer's
+   * runners are pulled out (the film's `pull`), which can be before the box is on them. */
+  let slides: { mesh: THREE.Object3D; moving: THREE.Object3D; movingBoard?: number; rest: number; home: number; max: number; ratio: number; drawer?: boolean }[] = [];
   let holes: { mesh: THREE.Mesh; board: number; index: number; size: THREE.Vector3; geometry: THREE.BufferGeometry }[] = [];
   let fittings: {
     mesh: THREE.Object3D;
@@ -227,7 +230,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     applyMotion();
   }
 
-  function applyMotion(nudge?: (board: number) => readonly [number, number, number]) {
+  function applyMotion(nudge?: (board: number) => readonly [number, number, number], pull?: (board: number) => number) {
     // Cabinet runner channels stay closed until the fronts / travel-test chapters engage them.
     const frontsStarted = !shownFittings || frontStepItems.length === 0 || frontStepItems.some(idx => shownFittings!(idx) !== null);
     for (const rail of slides) {
@@ -235,7 +238,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
       const progress = shownFittings && fitting ? shownFittings(fitting.index) : 1;
       if (progress === null) continue;
       let delta = 0;
-      if (rail.max < Infinity && !frontsStarted) {
+      if (pull && rail.movingBoard !== undefined && rail.drawer) {
+        delta = Math.max(0, Math.min(rail.max, pull(rail.movingBoard)));
+      } else if (rail.max < Infinity && !frontsStarted) {
         delta = 0;
       } else if (nudge && rail.movingBoard !== undefined) {
         delta = Math.max(0, Math.min(rail.max, nudge(rail.movingBoard)[2]));
@@ -288,7 +293,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
             }
             const moving = rail.moving === undefined ? undefined : meshOf(rail.moving);
             if (moving && rail.moving !== undefined) slides.push({
-              mesh, moving, movingBoard: rail.moving, rest: rest(rail.moving).z,
+              mesh, moving, movingBoard: rail.moving, rest: rest(rail.moving).z, drawer: piece.boards[rail.moving]?.note === 'drawer box',
               home: mesh.position.z, ratio: rail.ratio ?? 0, max: Number(f.size) / 10 * .7,
             });
           }
@@ -340,12 +345,15 @@ export function createMakeFittings(layer: number): FittingsLayer {
           const board = f.kind === 'handle' ? f.boards[0] ?? null : null, host = board === null ? undefined : meshOf(board);
           if (host && board !== null) { mesh.position.sub(rest(board)); host.add(mesh); } else root.add(mesh);
           fittings.push({ mesh, index, board: host ? board : null, home: mesh.position.clone(), from: fromFor(f.kind), size: mesh.scale.clone() });
+          // A drawer's locking plate and lever sit on its runner's front pin: out with the runner, in with the drawer.
+          const under = f.kind === 'drawerLock' ? f.boards[0] : undefined, moving = under === undefined ? undefined : meshOf(under);
+          if (moving && under !== undefined) slides.push({ mesh, moving, movingBoard: under, rest: rest(under).z, home: mesh.position.z, max: Infinity, ratio: 1, drawer: true });
         }
       });
       visible();
     },
     only(boards, items, seen) { shown = boards; shownFittings = items; seenFittings = seen ?? null; visible(); },
-    motion(nudge) { applyMotion(nudge); },
+    motion(nudge, pull) { applyMotion(nudge, pull); },
     focus(boards) { focused = boards; visible(); },
     hideOn(boards) { hidden = boards; visible(); },
     ring(next) { rung = next; visible(); },

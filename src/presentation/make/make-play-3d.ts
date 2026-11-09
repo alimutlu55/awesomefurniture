@@ -32,6 +32,12 @@ export interface MakeFilm {
   seen(item: number): number;
   /** How far a door hangs out of true now, before it is adjusted (side, height, depth; cm). */
   nudge?(board: number): import('../../domain/make/make-measures').Vec3;
+  /** Where a drawer board is now: on the mat, going onto its runners, or moved in the cabinet. */
+  pose?(board: number): import('../../domain/make/drawer-film').DrawerPose;
+  /** How far the runners under a drawer board are pulled out now (cm). */
+  pull?(board: number): number;
+  /** The mat the drawer boxes are built on, while it is down. */
+  readonly mat?: import('../../domain/make/drawer-film').MatArea | null;
   /** Hardware points the actual camera should see; only intervening boards become translucent. */
   readonly targets?: readonly import('./assembly-visibility').AssemblyTarget[];
 }

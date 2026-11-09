@@ -10,6 +10,7 @@ import type { createViewportResources } from '../viewport/viewport-resources.js'
 import { createAssemblyVisibility } from './assembly-visibility';
 import { createMakeFittings } from './make-fittings-3d';
 import { createMakePlay, type MakeFilm } from './make-play-3d';
+import { MAT, posePoint } from '../../domain/make/drawer-film';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
@@ -19,7 +20,7 @@ export const MAKE_LAYER = 3;
 export type MakeLook = 'lines' | 'material' | 'xray';
 type Resources = Pick<ReturnType<typeof createViewportResources>, 'M' | 'decorTexture' | 'contact'>;
 
-const OPEN_ANGLE = 100 * Math.PI / 180, IDENTITY = new THREE.Quaternion(), INK = 0x1a1a1a, PAPER = 0xfbfbf8, SELECTED = 0xe3eaf5, XRAY = 0x3e6fc2, FADE = .14;
+const OPEN_ANGLE = 100 * Math.PI / 180, INK = 0x1a1a1a, PAPER = 0xfbfbf8, SELECTED = 0xe3eaf5, XRAY = 0x3e6fc2, FADE = .14;
 /** Outlines as an assembly manual draws them: a steady width on screen however near the camera is (pixels). */
 const PEN = 1.5, PEN_PICKED = 2.4;
 const easeInOut = (t: number) => t < .5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
@@ -68,6 +69,9 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   contact.material = resources.contact.material.clone();
   contact.layers.set(MAKE_LAYER); contact.visible = false; scene.add(contact);
   const decorMaterials = new Map<string, THREE.Material>(), faded = new Map<THREE.Material, THREE.Material>();
+  // The soft mat the drawer boxes are built on, front face down, as the flat-pack drawer manual asks (drawer-film.ts).
+  const mat = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x9aa192 }));
+  mat.layers.set(MAKE_LAYER); mat.receiveShadow = true; mat.visible = false; mat.userData.make = true; mat.raycast = () => undefined;
   const lines = {
     // A drawing, as an assembly manual is drawn: boards the colour of the paper, unshaded, so only their ink outlines
     // give their form; set back a hair so the outlines are never half hidden in them.
@@ -129,7 +133,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   /** Puts every board where it is at the current amounts apart and open: a door turns about its hinge edge (up to
    * 100°), a drawer slides out on its runners. */
   function place() {
-    if (film) { carry(film); fittings.motion(film.nudge); return; }
+    if (film) { carry(film); fittings.motion(film.nudge, film.pull); return; }
+    mat.visible = false;
     for (const b of boards) {
       const at = b.face.position.set(b.rest.x + b.apart[0] * amount, b.rest.y + b.apart[1] * amount, b.rest.z + b.apart[2] * amount);
       let turn = 0;
@@ -150,11 +155,22 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
    * along an arc, turning as it goes, and set down. */
   function carry(f: MakeFilm) {
     const turned = new THREE.Quaternion(), start = new THREE.Vector3(), centre = new THREE.Vector3(), off = new THREE.Vector3();
+    const goal = new THREE.Vector3(), goalTurn = new THREE.Quaternion();
+    mat.visible = !!f.mat;
+    if (f.mat) {
+      mat.scale.set(f.mat.x1 - f.mat.x0, MAT, f.mat.z1 - f.mat.z0);
+      mat.position.set((f.mat.x0 + f.mat.x1) / 2 - size.w / 2, f.mat.y - MAT / 2, (f.mat.z0 + f.mat.z1) / 2 - size.d / 2);
+    }
     for (const b of boards) {
-      const st = f.stage(b.index), e = easeInOut(f.arrive(b.index));
+      const st = f.stage(b.index), e = easeInOut(f.arrive(b.index)), pose = f.pose?.(b.index);
       start.set(st.at[0] - size.w / 2, st.at[1], st.at[2] - size.d / 2);
-      centre.lerpVectors(start, b.centre, e).y += LIFT * Math.sin(Math.PI * e);
-      turned.copy(lying(st.lie, st.spin, st.tilt, st.flip)).slerp(IDENTITY, smooth(.08, .7, e));
+      // Where it goes: its place, or where its drawer is now (on the mat, going onto its runners, pulled out).
+      if (pose) {
+        const m = posePoint(pose, [b.centre.x + size.w / 2, b.centre.y, b.centre.z + size.d / 2]);
+        goal.set(m[0] - size.w / 2, m[1], m[2] - size.d / 2); goalTurn.setFromAxisAngle(X, pose.angle);
+      } else { goal.copy(b.centre); goalTurn.identity(); }
+      centre.lerpVectors(start, goal, e).y += LIFT * Math.sin(Math.PI * e);
+      turned.copy(lying(st.lie, st.spin, st.tilt, st.flip)).slerp(goalTurn, smooth(.08, .7, e));
       off.subVectors(b.centre, b.rest).applyQuaternion(turned);
       b.face.position.subVectors(centre, off);
       // A door comes in to just in front of its place, is pushed home onto its plates, and hangs a little out of true
@@ -170,6 +186,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     fittings.clear(); play.clear(); visibility.clear(); blocked.clear();
     for (const b of boards) { b.face.geometry.dispose(); b.edges.geometry.dispose(); }
     group.clear();
+    group.add(mat);
     boards = [];
   }
 
@@ -285,7 +302,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
     dispose() {
       clear();
       scene.remove(group, contact);
-      contact.material.dispose();
+      contact.material.dispose(); mat.geometry.dispose(); (mat.material as THREE.Material).dispose();
       fittings.dispose(); play.dispose(); visibility.dispose();
       for (const m of new Set<THREE.Material>([...Object.values(lines), ...decorMaterials.values(), ...faded.values()])) m.dispose();
     },

@@ -4,7 +4,8 @@ import { makePiece } from '../../src/domain/make/make-parts';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { assemblyTimeline, playhead } from '../../src/domain/make/make-timeline';
 import { stagingLayout } from '../../src/domain/make/make-staging';
-import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
+import { drawerBoardOffset, drawerPose } from '../../src/domain/make/drawer-installation';
+import { installWindow, posePoint } from '../../src/domain/make/drawer-film';
 import { entryOf } from '../../src/domain/make/make-fixing';
 import { planShots, type DirectorCamera, type Pose } from '../../src/presentation/make/make-director';
 
@@ -23,19 +24,22 @@ function fixture() {
 }
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
 
-test('runner drilling camera follows drawer holes outside the cabinet', () => {
+test('runner drilling camera follows the drawer holes where the boxes are, on the mat', () => {
   const { piece, tl, shots } = fixture(), k = piece.steps.findIndex(s => s.stage === 'drawer-runners'), s = tl.steps[k]!;
   const time = s.drill[0] + (s.drill[1] - s.drill[0]) * .45, ph = playhead(tl, time);
-  const zs = piece.holes.filter((_, i) => tl.holeStep[i] === k).map(h => h.at[2] + drawerBoardOffset(piece, tl, ph, h.board)[2] - piece.size.d / 2);
-  near(shots(time).z, (Math.min(...zs) + Math.max(...zs)) / 2);
+  const zs = piece.holes.filter((_, i) => tl.holeStep[i] === k).map(h => posePoint(drawerPose(piece, tl, ph, h.board), h.at)[2] - piece.size.d / 2);
+  assert.ok(zs.some(z => z > piece.size.d / 2), 'the boxes wait on the mat in front of the piece');
+  const z = shots(time).z;
+  assert.ok(z >= Math.min(...zs) - 1e-6 && z <= Math.max(...zs) + 1e-6);
 });
 
-test('insertion camera frames the actual inserted position, rather than the box position at chapter start', () => {
-  const { piece, tl, shots } = fixture(), k = piece.steps.findIndex(s => s.stage === 'drawers'), s = tl.steps[k]!;
-  const time = s.place[0] + (s.place[1] - s.place[0]) * .9, ph = playhead(tl, time);
-  const zs = piece.boards.flatMap((b, i) => tl.boardStep[i]! >= k ? [] : [b.z0, b.z1]
-    .map(z => z + drawerBoardOffset(piece, tl, ph, i)[2] - piece.size.d / 2));
-  near(shots(time).z, (Math.min(...zs) + Math.max(...zs)) / 2);
+test('each drawer going on is framed where it ends, home in the cabinet', () => {
+  const { piece, tl, shots } = fixture();
+  piece.drawers.forEach((d, j) => {
+    const [a, b] = installWindow(piece, tl, j)!, time = b - (b - a) * .04;
+    const zs = [d.front, d.bottom, d.back, ...d.sides].flatMap(i => { const q = piece.boards[i]!; return [q.z0, q.z1].map(z => z - piece.size.d / 2); });
+    near(shots(time).z, (Math.min(...zs) + Math.max(...zs)) / 2);
+  });
 });
 
 test('runner screws go into the cabinet only, and are viewed from inside it, where they go in', () => {

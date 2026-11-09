@@ -30,6 +30,8 @@ export const HANG = 2.4, HANG_OUT = 6;
 /** A joint's fixing: its fasteners come into view at the ends of their lines while the camera comes in (SHOW), go in
  * one after another (longer for more, up to a few seconds), and are seen home (REST). */
 const SHOW = .8, REST = .45, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (n - 1));
+/** Each drawer is put on its runners in its own turn of the `drawers` chapter (drawer-film.ts), this long. Seconds. */
+export const INSTALL_EACH = 5;
 /** How much of the drilling phase each hole's own drilling takes; the rest staggers them, one after another. */
 export const HOLE_WINDOW = .35;
 
@@ -86,7 +88,8 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
     const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
-    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' || s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' ? Math.max(6, (piece.drawers?.length ?? 0) * INSTALL_EACH)
+      : s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
