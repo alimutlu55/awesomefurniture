@@ -37,6 +37,8 @@ export const CONFIRMAT_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'carcass',
+    tools: ['hex'],
+    cue: 'Screw home until the head is flush',
     requires: ['plinth'],
     phase: 'after-place',
     approachFrom: [-1, 0, 0],
@@ -96,6 +98,8 @@ export const CAM_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'carcass',
+    tools: ['flat'],
+    cue: 'Push in, arrow to the bolt, turn ½ turn clockwise',
     requires: ['plinth'],
     phase: 'after-place',
     approachFrom: [0, -1, 0],
@@ -132,6 +136,7 @@ export const BOLT_ENTRY: HardwareEntry = {
   unit: 'pc',
   mountsOn: ['side', 'partition', 'top', 'base'],
   sizesMm: [34],
+  variants: [{ key: '34', name: 'Cam bolt for a cam 34 mm from the joint, Ø5 mm thread', sizeLabel: '34', label: 'Cam bolt', sizeText: 'Ø5, cam 34 mm in' }],
   rules: {
     clearanceMm: {},
     boardThicknessMm: { min: 16, max: 25, standard: [18, 25] },
@@ -152,6 +157,8 @@ export const BOLT_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'carcass',
+    tools: ['pozidriv'],
+    cue: 'Screw in down to its shoulder',
     requires: ['plinth'],
     phase: 'lying-before-place',
     approachFrom: [1, 0, 0],
@@ -191,9 +198,9 @@ export const DOWEL_ENTRY: HardwareEntry = {
   sizesMm: [35, 30],
   defaultVariant: 'standard',
   variants: [
-    { key: 'standard', name: '8 × 35 mm fluted beech dowel', sizeLabel: '8 × 35', sizesMm: [35] },
+    { key: 'standard', name: '8 × 35 mm fluted beech dowel', sizeLabel: '8 × 35', label: 'Wooden dowel', sizesMm: [35] },
     { key: 'short', name: '6 × 30 mm short blind dowel (sloped roof joint)', sizeLabel: '6 × 30', sizesMm: [30] },
-    { key: 'expanding', name: '8 × 30 mm expanding plastic dowel, hammered through a drawer back', sizeLabel: '8 × 30 expanding', sizesMm: [30] },
+    { key: 'expanding', name: '8 × 30 mm expanding plastic dowel, hammered through a drawer back', sizeLabel: '8 × 30 expanding', label: 'Expanding dowel', sizeText: '8 × 30 mm', sizesMm: [30] },
   ],
   rules: {
     clearanceMm: {},
@@ -231,6 +238,8 @@ export const DOWEL_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'carcass',
+    tools: ['hammer'],
+    cue: 'Tap in with a hammer',
     requires: ['plinth'],
     phase: 'lying-before-place',
     approachFrom: [1, 0, 0],
@@ -294,6 +303,8 @@ export const SCREW_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'plinth',
+    tools: ['pozidriv'],
+    cue: 'Screw in until snug',
     requires: [],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -342,6 +353,8 @@ export const NAIL_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'back',
+    tools: ['hammer'],
+    cue: 'Hammer in flush',
     requires: ['top'],
     phase: 'after-place',
     approachFrom: [0, 0, -1],

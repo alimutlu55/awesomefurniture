@@ -4,6 +4,8 @@ import type { Stage } from '../../domain/make/make-assembly';
 import type { MakePlayer } from './make-player';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import { chapterPreview } from './assembly-preview';
+import { notesHtml, partText } from './assembly-notes';
+import { stepNotes } from '../../domain/make/make-instructions';
 import { unitSuffix } from '../editor/length-unit-state';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -209,11 +211,13 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
           return `<span title="${esc(disp.name)}">${fittingIcon(f.kind)}<span>${esc(disp.name)}`
             + `${disp.size ? ` · ${esc(disp.size)}` : ''}<b> ×${f.qty}</b></span></span>`;
         }).join('');
-        const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`
+        const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(partText(piece, p))}`
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
+        // As a flat-pack manual frames a step: what to do, the tools, the hardware and parts, then the notes.
+        const notes = notesHtml(stepNotes(piece, player.head.step));
         q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`
-          + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>`
-          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`;
+          + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>${notes.tools}`
+          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>${notes.rest}`;
       }
     },
     inspect(piece: MakePiece, n: number | null, length: (cm: number) => string, material: (id: string) => string) {

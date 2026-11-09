@@ -139,6 +139,8 @@ export const HINGE_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Press the cup in, screw it down',
     requires: ['inside', 'drawer-test'],
     phase: 'lying-before-place',
     adjustAxes: ['side', 'height', 'depth'],
@@ -215,6 +217,8 @@ export const PLATE_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Screw onto the side panel',
     requires: ['carcass', 'partitions'],
     phase: 'before-place',
     approachFrom: [1, 0, 0],
@@ -285,6 +289,8 @@ export const SLIDING_TRACK_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'doors',
+    tools: ['drill', 'pozidriv', 'level'],
+    cue: 'Screw up level along its length',
     requires: ['top', 'carcass', 'inside', 'drawer-test'],
     phase: 'before-place',
     adjustAxes: ['height', 'side'],

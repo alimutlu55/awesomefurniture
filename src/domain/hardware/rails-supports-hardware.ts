@@ -26,6 +26,8 @@ export const RAIL_ENTRY: HardwareEntry = {
   fixings: [],
   assembly: {
     stage: 'inside',
+    tools: ['hand'],
+    cue: 'Rest in its end supports',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -81,6 +83,8 @@ export const RAIL_SUPPORT_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'inside',
+    tools: ['pozidriv'],
+    cue: 'Screw onto the side panel',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -151,6 +155,8 @@ export const SHELF_PIN_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'inside',
+    tools: ['hand'],
+    cue: 'Push into its hole',
     requires: ['back'],
     phase: 'before-place',
     fittedFirst: true,
@@ -225,6 +231,8 @@ export const PULL_DOWN_RAIL_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'inside',
+    tools: ['pozidriv'],
+    cue: 'Screw onto both sides',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -299,6 +307,8 @@ export const TROUSER_RACK_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'inside',
+    tools: ['pozidriv'],
+    cue: 'Screw the runners on, slide the rack in',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -370,6 +380,8 @@ export const WIRE_BASKET_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'inside',
+    tools: ['pozidriv'],
+    cue: 'Screw the runners on, slide the basket in',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],

@@ -32,6 +32,8 @@ export const LEG_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'plinth',
+    tools: ['hand', 'level'],
+    cue: 'Clip on, turn to level',
     requires: [],
     phase: 'after-place',
     approachFrom: [0, -1, 0],
@@ -83,6 +85,8 @@ export const PLINTH_CLIP_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'plinth',
+    tools: ['hand'],
+    cue: 'Clip the plinth onto the legs',
     requires: [],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -134,6 +138,8 @@ export const CABINET_HANGER_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'wall',
+    tools: ['drill', 'pozidriv', 'level'],
+    cue: 'Screw to the wall, hang the cabinet, level',
     requires: ['doors'],
     phase: 'after-place',
     approachFrom: [0, 0, -1],
@@ -183,6 +189,8 @@ export const WALL_BRACKET_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'wall',
+    tools: ['drill', 'pozidriv'],
+    cue: 'Screw to the cabinet and into the wall',
     requires: ['doors'],
     phase: 'after-place',
     approachFrom: [0, 0, -1],
@@ -232,6 +240,8 @@ export const SHELF_BRACKET_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'wall',
+    tools: ['pozidriv'],
+    cue: 'Screw on under the shelf',
     requires: [],
     phase: 'after-place',
     approachFrom: [0, 0, -1],

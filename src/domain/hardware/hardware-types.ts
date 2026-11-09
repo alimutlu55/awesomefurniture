@@ -1,3 +1,4 @@
+import type { ToolKey } from './tools';
 /**
  * Domain hardware registry types.
  * Every dimension in a hardware entry is in millimetres (mm) and angles in degrees.
@@ -185,6 +186,8 @@ export interface AssemblyStageSpec {
   readonly requires: readonly AssemblyStage[];
   readonly title: string;
   readonly summary: string;
+  /** What not to do: the mistakes a flat-pack manual crosses out for this step. */
+  readonly avoid?: readonly string[];
   readonly drill?: string;
   readonly place?: string;
   readonly fix?: string;
@@ -198,6 +201,10 @@ export interface AssemblyStepSpec {
   readonly adjustAxes?: readonly ('side' | 'height' | 'depth')[];
   readonly testsTravel?: boolean;
   readonly approachFrom: readonly [number, number, number];
+  /** The tools it goes in with (tools.ts). */
+  readonly tools?: readonly ToolKey[];
+  /** How it goes in, in a few words, written beside it while it does ("Turn ½ turn clockwise"). */
+  readonly cue?: string;
   readonly instructions: {
     readonly title: string;
     readonly summary: string;
@@ -263,6 +270,9 @@ export interface HardwareVariantSpec {
   readonly key: string;
   readonly name: string;
   readonly sizeLabel: string;
+  /** What it is called in a step's list, short ("Expanding dowel"), and its size written there ("8 × 30 mm"). */
+  readonly label?: string;
+  readonly sizeText?: string;
   readonly sizesMm?: readonly number[];
   readonly fullSpan?: boolean;
   readonly angleDeg?: number;

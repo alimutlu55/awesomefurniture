@@ -75,6 +75,8 @@ export const RUNNER_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'drawer-runners',
+    tools: ['pozidriv', 'level'],
+    cue: 'Rear peg in its hole, level, two screws at the front',
     requires: ['carcass', 'partitions', 'drawer-back'],
     phase: 'after-place',
     testsTravel: true,
@@ -124,8 +126,8 @@ export const DRAWER_LOCK_ENTRY: HardwareEntry = {
   mountsOn: ['drawer-box'],
   sizesMm: [35],
   variants: [
-    { key: 'plate', name: 'Locking plate, laid under the drawer bottom over the runner pin', sizeLabel: 'plate', sizesMm: [60] },
-    { key: 'lever', name: 'Locking lever, screwed onto the runner pin and turned', sizeLabel: 'lever', sizesMm: [35] },
+    { key: 'plate', name: 'Locking plate, laid under the drawer bottom over the runner pin', sizeLabel: 'plate', label: 'Locking plate', sizeText: '', sizesMm: [60] },
+    { key: 'lever', name: 'Locking lever, screwed onto the runner pin and turned', sizeLabel: 'lever', label: 'Locking lever', sizeText: '', sizesMm: [35] },
   ],
   defaultVariant: 'lever',
   rules: {
@@ -137,6 +139,8 @@ export const DRAWER_LOCK_ENTRY: HardwareEntry = {
   fixings: [],
   assembly: {
     stage: 'drawer-lock',
+    tools: ['hand'],
+    cue: 'By hand: screw up onto the pin, turn to lock',
     requires: ['drawers'],
     phase: 'after-place',
     approachFrom: [0, -1, 0],

@@ -67,6 +67,8 @@ export const CARGO_MECHANISM_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'cargo-frame',
+    tools: ['pozidriv'],
+    cue: 'Screw on, then lock the slides',
     requires: ['drawer-runners'],
     phase: 'place',
     adjustAxes: ['side', 'height', 'depth'],
@@ -124,6 +126,8 @@ export const CORNER_MECHANISM_ENTRY: HardwareEntry = {
   motion: { kind: 'swing', axis: 'y', maxAngleDeg: 95 },
   assembly: {
     stage: 'inside',
+    tools: ['pozidriv'],
+    cue: 'Screw on, then adjust',
     requires: ['back'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -183,6 +187,8 @@ export const LIFT_FITTING_ENTRY: HardwareEntry = {
   motion: { kind: 'lift', axis: 'x', maxAngleDeg: 105 },
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Screw on, then set its force',
     requires: ['inside'],
     phase: 'after-place',
     adjustAxes: ['side', 'height', 'depth'],
@@ -226,6 +232,8 @@ export const CABINET_LED_ENTRY: HardwareEntry = {
   fixings: [],
   assembly: {
     stage: 'inside',
+    tools: ['hand'],
+    cue: 'Clip in, plug in',
     requires: ['top'],
     phase: 'after-place',
     approachFrom: [0, -1, 0],
@@ -267,6 +275,8 @@ export const APPLIANCE_KIT_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'fronts',
+    tools: ['pozidriv'],
+    cue: 'Screw the appliance on',
     requires: ['carcass'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -306,6 +316,8 @@ export const VENT_GRILLE_ENTRY: HardwareEntry = {
   fixings: [],
   assembly: {
     stage: 'plinth',
+    tools: ['hand'],
+    cue: 'Press into its cut-out',
     requires: [],
     phase: 'after-place',
     approachFrom: [0, 0, 1],

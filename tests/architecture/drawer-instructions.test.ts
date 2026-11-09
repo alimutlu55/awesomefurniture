@@ -9,7 +9,9 @@ import { placePieces } from '../../src/domain/drawings/room-pieces';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 import { alone, goldenWardrobes } from './rule-fixtures';
 import { BOTTOM_GROOVE, BOTTOM_PLAY } from '../../src/domain/make/drawer-box';
-import { RUNNER_ENTRY } from '../../src/domain/hardware/hardware-registry';
+import { HARDWARE, RUNNER_ENTRY } from '../../src/domain/hardware/hardware-registry';
+import { TOOLS } from '../../src/domain/hardware/tools';
+import { drawerHand, stepNotes } from '../../src/domain/make/make-instructions';
 import { hardwareDisplay } from '../../src/presentation/make/make-panel-tabs';
 
 // Drawers at the bottom of the left bay, behind hinged doors: the reference flat-pack manual moves drawers a hole up for
@@ -76,4 +78,36 @@ test('runners are called what they are: no full extension or soft close they do 
   const shown = hardwareDisplay({ kind: 'runner', size: '450' });
   assert.doesNotMatch(shown.name + shown.size, /soft|full/i);
   assert.match(shown.name, /left and right/);
+});
+
+test('every piece of hardware says which tools it goes in with and how, as a manual draws it', () => {
+  for (const h of HARDWARE) {
+    assert.ok(h.assembly.tools?.length, `${h.key}: tools`);
+    assert.ok(h.assembly.tools!.every(t => t in TOOLS), `${h.key}: known tools`);
+    assert.ok(h.assembly.cue, `${h.key}: cue`);
+  }
+});
+
+test('a drawer takes what the flat-pack drawer manual counts, step by step, once per drawer', () => {
+  const mp = made(wardrobe), k = (stage: string) => mp.steps.findIndex(s => s.stage === stage);
+  const kit = (stage: string) => { const kits = stepNotes(mp, k(stage)).kits; assert.equal(kits.length, 1, stage); assert.equal(kits[0]!.drawers, 2); return Object.fromEntries(kits[0]!.each.map(c => [`${c.kind} ${c.size}`, c.qty])); };
+  assert.deepEqual(kit('drawer-boxes'), { 'bolt 34': 4 });
+  assert.deepEqual(kit('drawer-sides'), { 'cam 15 mm': 4, 'dowel 8 × 35': 2 });
+  assert.deepEqual(kit('drawer-back'), { 'dowel 8 × 30 expanding': 4 });
+  assert.deepEqual(kit('drawer-runners'), { 'runner 550': 1, 'screw 4 × 12': 4 });
+  assert.deepEqual(kit('drawers'), { 'drawerLock plate': 2 });
+  assert.deepEqual(kit('drawer-lock'), { 'drawerLock lever': 2 });
+  assert.deepEqual(stepNotes(mp, k('drawer-sides')).tools, ['drill', 'flat', 'hammer']);
+  assert.deepEqual(stepNotes(mp, k('drawer-lock')).tools, ['hand']);
+  assert.ok(stepNotes(mp, k('drawer-boxes')).avoid.some(a => /soft mat/.test(a)));
+});
+
+test('the runners step says where each runner goes; box sides are named left and right', () => {
+  const mp = made(wardrobe), k = mp.steps.findIndex(s => s.stage === 'drawer-runners'), places = stepNotes(mp, k).runners;
+  assert.equal(places.length, 4, 'two drawers, a runner on each side');
+  for (const p of places) { assert.deepEqual(p.screws, [37, 69]); assert.ok(p.peg > p.screws[1]!); }
+  const hands = mp.parts.map(p => drawerHand(mp, p)).filter(h => h);
+  assert.ok(hands.includes('left') && hands.includes('right'));
+  assert.equal(hardwareDisplay({ kind: 'dowel', size: '8 × 30 expanding' }).name, 'Expanding dowel');
+  assert.equal(hardwareDisplay({ kind: 'drawerLock', size: 'lever' }).name, 'Locking lever');
 });
