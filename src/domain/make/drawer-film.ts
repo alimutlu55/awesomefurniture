@@ -1,7 +1,7 @@
 import type { DrawerBox } from './drawer-box';
 import type { MakePiece } from './make-parts';
 import type { Vec3 } from './make-measures';
-import { arrivalAt, INSTALL_EACH, type Playhead, type Timeline } from './make-timeline';
+import { INSTALL_EACH, turnAt, type Playhead, type Timeline } from './make-timeline';
 
 /**
  * The drawers in the assembly film, as the flat-pack drawer manual shows them:
@@ -44,7 +44,8 @@ function blend(a: DrawerPose, b: DrawerPose, t: number, about: Vec3, lift = 0): 
 
 /** The mat: this thick, its edge this far in front of the piece, boxes this far apart on it, rows this far apart. */
 export const MAT = 1;
-const MAT_FROM = 10, MAT_EDGE = 6, BENCH_GAP = 14, ROW_GAP = 10;
+// Far enough out that the cabinet stands back behind the boxes, not over them.
+const MAT_FROM = 45, MAT_EDGE = 6, BENCH_GAP = 14, ROW_GAP = 10;
 /** Where a box stands on the mat: `ref`, the middle of its front's outer face, at `at`, the front lying face down. */
 export interface Bench { readonly at: Vec3; readonly ref: Vec3; readonly size: readonly [number, number] }
 /** The mat under the boxes being built: its corners on the floor and its top. */
@@ -114,7 +115,8 @@ export function installWindow(piece: MakePiece, tl: Timeline, k: number): readon
  * groove, a side lowered over the bolts, the back swung shut over the bottom's edge. */
 function onTheBox(piece: MakePiece, tl: Timeline, ph: Playhead, d: DrawerBox, board: number): DrawerPose {
   if (tl.boardStep[board] !== ph.step) return shifted([0, 0, 0]);
-  const settle = 1 - ease((arrivalAt(tl, ph, board) - .55) / .45), bottom = piece.boards[d.bottom]!, cx = (bottom.x0 + bottom.x1) / 2, cy = (bottom.y0 + bottom.y1) / 2;
+  // Carried in over the first half of its turn (held open, the back hooked over the bottom's edge), then put on.
+  const settle = 1 - ease((turnAt(tl, ph, board) - .55) / .4), bottom = piece.boards[d.bottom]!, cx = (bottom.x0 + bottom.x1) / 2, cy = (bottom.y0 + bottom.y1) / 2;
   if (board === d.bottom) { const g: Vec3 = [cx, cy, bottom.z1]; return { angle: BOTTOM_IN * settle, ref: g, at: g }; }
   if (board === d.back) { const g: Vec3 = [cx, cy, bottom.z0]; return { angle: -BACK_OPEN * settle, ref: g, at: g }; }
   if (d.sides.includes(board)) return shifted([0, 0, -SIDE_DROP * settle]);

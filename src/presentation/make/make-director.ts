@@ -94,7 +94,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const groups: { board: number; from: number; points: THREE.Vector3[]; lying: boolean; down: boolean }[] = [];
       for (const { h, i } of [...holes].sort((p, q) => tl.holeStart[p.i]! - tl.holeStart[q.i]!)) {
         const lying = step.boards.includes(h.board), last = groups.at(-1);
-        const points = lying ? waiting(h.board) : around(posePoint(poseAt(h.board, at(.5)), h.at), 9);
+        // A hole in a drawer box on the mat is drilled with the whole box in view, not a wall of board.
+        const box = !lying && boxStep ? (piece.drawers ?? []).find(q => drawerBoards(q).includes(h.board)) : undefined;
+        const points = lying ? waiting(h.board) : box ? drawerBoards(box).flatMap(j => placed(j, at(.5))) : around(posePoint(poseAt(h.board, at(.5)), h.at), 9);
         if (last && last.lying === lying && (last.board === h.board || reach([...last.points, ...points]) <= DRILL_REACH)) {
           if (last.board !== h.board || !lying) last.points.push(...points);
           last.board = h.board; last.down &&= h.axis === 1;
@@ -108,7 +110,17 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     }
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
-    if (s.place[1] > s.place[0] && step.stage !== 'drawer-test' && !(step.stage === 'drawers' && piece.drawers?.length)) {
+    // A drawer box's boards go on one at a time: the whole box in view through each one's turn, a little closer as it goes
+    // on (the back seen from above, as it is hooked over the bottom's edge and swung shut).
+    if (boxStep && s.place[1] > s.place[0]) for (const i of step.boards) {
+      const d = (piece.drawers ?? []).find(q => drawerBoards(q).includes(i));
+      if (!d) continue;
+      const span = s.place[1] - s.place[0], a = s.place[0] + span * tl.boardStart[i]!, b = a + span * tl.boardWindow[i]!;
+      const box = drawerBoards(d).flatMap(j => placed(j, b)), el = step.stage === 'drawer-back' ? .62 : .5;
+      shot(a + (b - a) * .05, box, facing + side * .4, el, 1.5);
+      shot(b - (b - a) * .05, box, facing + side * .4, el, 1.3);
+    }
+    if (s.place[1] > s.place[0] && step.stage !== 'drawer-test' && !boxStep && !(step.stage === 'drawers' && piece.drawers?.length)) {
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
         // Where the boards go, in what they go onto, so it is clear what goes where as they come in from wherever they wait
@@ -141,9 +153,13 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
       // A runner group can span several drawers and the full rail depth: frame all screws, not just the middle one.
       const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate' && !piece.fittings[i]!.size?.includes('cargo'));
+      const purpose0 = piece.fittings[fix.items[0]!]!.purpose;
       // A drawer lock is small and under a drawer: with enough round it to see which drawer and which side.
       const padRadius = isCargoStage ? 10 : fix.items.some(i => piece.fittings[i]!.kind === 'drawerLock') ? 14 : 8;
-      const points = hingePlate && middle ? around(where(middle.at), 14)
+      // The back's dowels are hammered with the whole back in view, so it is clear where they go and that it is shut.
+      const backBox = purpose0 === 'box-back' && fix.board !== null ? (piece.drawers ?? []).find(q => drawerBoards(q).includes(fix.board!)) : undefined;
+      const points = backBox ? drawerBoards(backBox).flatMap(j => placed(j, (fix.at[0] + fix.at[1]) / 2))
+        : hingePlate && middle ? around(where(middle.at), 14)
         : entries.flatMap(e => [...around(where(e.at), padRadius), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 4)]);
       // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
       // their line, turned towards the front.
@@ -157,7 +173,7 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const az = plates && middle ? inside(where(middle.at)) : below || into ? facing + side * .45 : up ? facing + side * .3 + turn
         : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
       const el = below ? -.28 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
-      const span = fix.at[1] - fix.at[0], fixPad = isCargoStage ? 1.08 : 1.12;
+      const span = fix.at[1] - fix.at[0], fixPad = backBox ? 1.25 : isCargoStage ? 1.08 : 1.12;
       shot(fix.at[0] + span * .2, points, az, el, fixPad);
       shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);
     });

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import type { Fitting } from '../../domain/make/make-joints';
+import { hardware } from '../../domain/hardware/hardware-registry';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
 import {
   camBoltMesh,
   camHousingMesh,
   dowelMesh,
+  expandingDowelMesh,
   hingeCupAndArmMesh,
   mountingPlateMesh,
   screwFastenerMesh,
@@ -47,11 +49,23 @@ const STEEL = 0x555b62, BRASS = 0x9a7434, BIT = 0x2b2e33;
 const VIS = 1.6;
 const Y = new THREE.Vector3(0, 1, 0), AXES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
 const ease = (t: number) => 1 - (1 - t) ** 3;
+/** The hammer, cm: its face square, its head long, its handle long and thick; it rises this high between blows, and
+ * gives this many blows to drive one fastener home. */
+const HAMMER = { face: 2.6, head: 9, handle: 28, grip: 1.3, lift: 7, blows: 3 } as const;
+/** A fastener driven by blows: how far it is in (0 to 1) and how far the hammer's face stands off its head (cm). */
+export function blows(p: number): { into: number; off: number } {
+  const n = HAMMER.blows, k = Math.min(n - 1, Math.floor(p * n)), phase = p * n - k;
+  // Raised over the first half, held, brought down at the end: the fastener moves in as the blow lands.
+  const off = phase < .5 ? HAMMER.lift * (1 - (1 - phase / .5) ** 2) : phase < .8 ? HAMMER.lift : HAMMER.lift * (1 - (phase - .8) / .2);
+  return { into: Math.min(1, (k + Math.max(0, (phase - .8) / .2)) / n), off: p >= 1 ? 0 : off };
+}
 
 interface Fastener {
   readonly group: THREE.Object3D; readonly item: number; readonly home: THREE.Vector3; readonly dir: THREE.Vector3; readonly spin: number; readonly board: number | null;
   /** Pushed home first, then turned (a cam), rather than turned as it goes in (a screw). */
   readonly turnLast?: boolean;
+  /** Driven in by a hammer's blows (its hardware goes in with a hammer): it goes in a step at each blow. */
+  readonly hammered?: boolean;
 }
 interface Bit { readonly mesh: THREE.Object3D; readonly hole: number; readonly mouth: THREE.Vector3; readonly dir: THREE.Vector3; readonly depth: number }
 
@@ -66,6 +80,16 @@ export function createMakePlay(layer: number) {
   const steel = new THREE.MeshLambertMaterial({ color: STEEL, emissive: 0x2c2f33, emissiveIntensity: .5 });
   const brass = new THREE.MeshLambertMaterial({ color: BRASS, emissive: 0x3a2c14, emissiveIntensity: .5 });
   const drill = new THREE.MeshLambertMaterial({ color: BIT, emissive: 0x15171a, emissiveIntensity: .5 });
+  const plastic = new THREE.MeshLambertMaterial({ color: 0xd9d6cf, emissive: 0x5a5852, emissiveIntensity: .45 });
+  const wood = new THREE.MeshLambertMaterial({ color: 0xa8743f, emissive: 0x3a2814, emissiveIntensity: .45 });
+  // The hammer that drives what goes in with one (one on screen at a time, at the fastener being driven): its face at
+  // its origin striking along +y, its head behind it and the handle across.
+  const hammer = new THREE.Group();
+  hammer.add(solid(box, steel, new THREE.Vector3(0, -HAMMER.head / 2, 0), new THREE.Vector3(HAMMER.face, HAMMER.head, HAMMER.face)),
+    solid(rod, wood, new THREE.Vector3(HAMMER.handle / 2, -HAMMER.head / 2, 0), new THREE.Vector3(HAMMER.grip, HAMMER.handle, HAMMER.grip), new THREE.Vector3(1, 0, 0)));
+  hammer.visible = false;
+  hammer.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; });
+  const hammered = (f: Fitting) => !!hardware(f.kind)?.assembly.tools?.includes('hammer');
   let fasteners: Fastener[] = [], bits: Bit[] = [];
   let links: readonly (readonly number[])[] = [];
   const highlight = new THREE.MeshLambertMaterial({ color: 0x4976ad, emissive: 0x243b56, emissiveIntensity: .5 });
@@ -90,8 +114,9 @@ export function createMakePlay(layer: number) {
     if (f.kind === 'confirmat' || f.kind === 'screw') return make(screwFastenerMesh(f.kind, f.size, rod, cone, steel), 8 * Math.PI);
     if (f.kind === 'bolt') return make(camBoltMesh(rod, box, steel), 6 * Math.PI);
     if (f.kind === 'cam') return { ...make(camHousingMesh(rod, box, cone, brass, steel), Math.PI), turnLast: true };
-    if (f.kind === 'dowel') return make(dowelMesh(rod, brass));
-    if (f.kind === 'nail') return make(screwFastenerMesh('nail', f.size, rod, cone, steel));
+    // An expanding dowel is the plastic one with a mushroom head, hammered through a drawer back; a wooden one is tapped in.
+    if (f.kind === 'dowel') return { ...make(f.size?.includes('expanding') ? expandingDowelMesh(rod, plastic) : dowelMesh(rod, brass)), hammered: hammered(f) };
+    if (f.kind === 'nail') return { ...make(screwFastenerMesh('nail', f.size, rod, cone, steel)), hammered: hammered(f) };
     if (f.kind === 'pin') return make(shelfPinMesh(rod, brass));
     if (f.kind === 'hinge') {
       // The hinge's cup pressed into the door, and its arm reaching from the cup to where its plate is on the side panel
@@ -146,16 +171,27 @@ export function createMakePlay(layer: number) {
         b.mesh.rotation.set(0, 0, 0);
         b.mesh.quaternion.setFromUnitVectors(Y, b.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, p * 24));
       }
+      let striking: { f: Fastener; off: number } | null = null;
       for (const f of fasteners) {
         const p = film?.fit(f.item) ?? null;
         f.group.visible = p !== null;
         if (p === null) continue;
         // It grows into view where it waits, at the end of its dashed line, then goes in along it (a screw turning; a
-        // cam pushed home, then turned).
-        const e = ease(f.turnLast ? Math.min(1, p / .55) : p), turn = f.turnLast ? ease(Math.max(0, (p - .55) / .45)) : e, seen = ease(film!.seen(f.item));
+        // cam pushed home, then turned; a dowel or nail driven a step at each hammer blow).
+        const blow = f.hammered && p > 0 && p < 1 ? blows(p) : null;
+        if (blow && !striking) striking = { f, off: blow.off };
+        const e = blow ? blow.into : ease(f.turnLast ? Math.min(1, p / .55) : p), turn = f.turnLast ? ease(Math.max(0, (p - .55) / .45)) : e, seen = ease(film!.seen(f.item));
         f.group.position.copy(f.home).addScaledVector(f.dir, -(1 - e) * WAIT);
         f.group.quaternion.setFromUnitVectors(Y, f.dir).multiply(new THREE.Quaternion().setFromAxisAngle(Y, turn * f.spin));
         f.group.scale.setScalar(Math.max(.01, seen) * (1 + (VIS - 1) * (1 - e)));
+      }
+      // The hammer over the fastener being driven, on the same board, its face on the fastener's head as each blow lands.
+      hammer.visible = !!striking;
+      if (striking) {
+        const { f, off } = striking;
+        (f.group.parent ?? f.group).add(hammer);
+        hammer.position.copy(f.group.position).addScaledVector(f.dir, -off - .4);
+        hammer.quaternion.setFromUnitVectors(Y, f.dir);
       }
     },
     /** Highlight the actual fasteners joining an inspected component, at their current timeline transforms. */
@@ -166,13 +202,13 @@ export function createMakePlay(layer: number) {
       }
     },
     clear() {
-      for (const o of [...bits.map(b => b.mesh), ...fasteners.map(f => f.group)]) o.parent?.remove(o);
+      for (const o of [...bits.map(b => b.mesh), ...fasteners.map(f => f.group), hammer]) o.parent?.remove(o);
       bits = []; fasteners = []; originals.clear(); links = [];
     },
     dispose() {
       this.clear();
       for (const g of [rod, cone, box]) g.dispose();
-      steel.dispose(); brass.dispose(); drill.dispose(); highlight.dispose();
+      steel.dispose(); brass.dispose(); drill.dispose(); highlight.dispose(); plastic.dispose(); wood.dispose();
     },
   };
 }

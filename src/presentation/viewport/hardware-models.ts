@@ -107,6 +107,22 @@ export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): 
   return orientedSolid(rod, material, new THREE.Vector3(0, 0, 0), new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20));
 }
 
+/** The expanding dowel's mushroom head (diameter, thickness) and its ribs (diameter, thickness, spacing). Mm. */
+const EXPANDING_HEAD = [14, 2.5] as const, EXPANDING_RIB = [9.2, 1.2, 3] as const;
+/**
+ * Expanding plastic dowel 3D mesh (DOWEL_ENTRY's expanding variant): a mushroom head left standing on the drawer back,
+ * a Ø8 body as long as the variant, ribbed so it grips the side's end once hammered in. Into the hole along +y from its
+ * mouth, as every fastener is drawn.
+ */
+export function expandingDowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+  const variant = DOWEL_ENTRY.variants?.find(v => v.key === 'expanding'), length = (variant?.sizesMm?.[0] ?? 30) / 10, body = .8 / 2;
+  const g = new THREE.Group(), [hd, ht] = EXPANDING_HEAD, [rd, rt, step] = EXPANDING_RIB;
+  g.add(orientedSolid(rod, material, new THREE.Vector3(0, -ht / 20, 0), new THREE.Vector3(hd / 20, ht / 10, hd / 20)));
+  g.add(orientedSolid(rod, material, new THREE.Vector3(0, length / 2, 0), new THREE.Vector3(body, length, body)));
+  for (let y = step / 10; y < length - .2; y += step / 10) g.add(orientedSolid(rod, material, new THREE.Vector3(0, y, 0), new THREE.Vector3(rd / 20, rt / 10, rd / 20)));
+  return g;
+}
+
 /**
  * Adjustable kitchen/cabinet plinth leg 3D mesh, driven by `LEG_ENTRY.display.model3d` in the domain hardware registry.
  */

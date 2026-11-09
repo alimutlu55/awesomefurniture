@@ -15,6 +15,8 @@ import { drawerHand, stepNotes } from '../../src/domain/make/make-instructions';
 import { hardwareDisplay } from '../../src/presentation/make/make-panel-tabs';
 import { stepPages, wrap } from '../../src/presentation/make/make-steps-pdf';
 import { marksToPdf } from '../../src/presentation/drawings/pdf-writer';
+import { blows } from '../../src/presentation/make/make-play-3d';
+import { assemblyTimeline } from '../../src/domain/make/make-timeline';
 
 // Drawers at the bottom of the left bay, behind hinged doors: the reference flat-pack manual moves drawers a hole up for
 // hinged doors; a made wardrobe moves the hinges.
@@ -138,4 +140,16 @@ test('step pictures go on their page as JPEGs, the close-up framed with each fas
   // The cross-reference offsets count bytes, the pictures' binary included.
   const xref = Number(/startxref\n(\d+)/.exec(text)![1]);
   assert.equal(text.slice(xref, xref + 4), 'xref');
+});
+
+test('a drawer back is hooked on and swung shut in its own turn, slow enough to follow, then hammered', () => {
+  const mp = made(wardrobe), tl = assemblyTimeline(mp), k = mp.steps.findIndex(s => s.stage === 'drawer-back'), s = tl.steps[k]!;
+  const backs = mp.drawers!.map(d => d.back), span = s.place[1] - s.place[0];
+  for (const b of backs) assert.ok(tl.boardWindow[b]! * span >= 4, 'each back has at least 4 s');
+  assert.deepEqual(backs.map(b => tl.boardStart[b]).sort(), [...new Set(backs.map(b => tl.boardStart[b]))].sort(), 'one after another');
+  // The expanding dowels go in a step at each hammer blow; the hammer lands as each step is taken.
+  const steps = [0, .3, .6, .95].map(p => blows(p).into);
+  assert.ok(steps.every((v, i) => i === 0 || v >= steps[i - 1]!));
+  assert.equal(blows(1).into, 1); assert.equal(blows(.999).off < 2, true);
+  assert.ok(HARDWARE.find(h => h.key === 'dowel')!.assembly.tools!.includes('hammer'));
 });
