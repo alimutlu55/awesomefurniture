@@ -1,3 +1,4 @@
+import { boresClash, meantToMeet } from './bore-clearance';
 import { boreMaterial } from './bore-material';
 import type { DrawerBox } from './drawer-box';
 import type { Board } from '../drawings/cabinet-boards';
@@ -155,28 +156,26 @@ export function buyList(fittings: readonly Fitting[]): BuyLine[] {
   return [...lines.values()].map(l => ({ kind: l.kind, ...(l.size ? { size: l.size } : {}), qty: l.qty, boards: [...l.boards] }));
 }
 
-/** Something to look at before drilling: two holes running into each other, a hole too near an edge, a blind hole
- * breaking out of the far face, or two blind holes from both faces meeting inside the board. Millimetres. */
+/** What must not be drilled as set out: two bores running into each other anywhere inside the board (side by side,
+ * crossing at a right angle, or end to end from both faces), a hole too near an edge, or a blind hole breaking out of
+ * the far face. Millimetres. */
 export interface Finding { readonly board: number; readonly kind: 'clash' | 'edge' | 'breakout' | 'meet'; readonly a: FlatHole; readonly b?: FlatHole; readonly gap: number }
 export function drillingChecks(boards: readonly Board[], holes: readonly Hole[]): Finding[] {
   const out: Finding[] = [];
   boards.forEach((board, i) => {
-    const mine = flatHoles(board, holes.filter(h => h.board === i)), L = board.cut.length * 10, W = board.cut.width * 10, T = board.cut.thickness * 10;
+    const own = holes.filter(h => h.board === i), mine = flatHoles(board, own), L = board.cut.length * 10, W = board.cut.width * 10, T = board.cut.thickness * 10;
     const onFace = (h: FlatHole) => h.face === '+' || h.face === '-';
-    holes.filter(h=>h.board===i).forEach((h,k)=>{for(const f of boreMaterial(board,h)) out.push({board:i,a:mine[k]!,...f});});
+    own.forEach((h,k)=>{for(const f of boreMaterial(board,h)) out.push({board:i,a:mine[k]!,...f});});
     for (const h of mine.filter(onFace)) {
       const edge = Math.min(h.u, L - h.u, h.v, W - h.v) - h.d / 2;
       if (edge < 3 && h.kind !== 'connector' && h.kind !== 'screw' && !out.some(f => f.board === i && f.a === h && f.kind === 'edge')) out.push({ board: i, kind: 'edge', a: h, gap: Math.round(edge * 10) / 10 });
       if (h.depth > 0 && h.depth > T - 2.5 && !out.some(f => f.board === i && f.a === h && f.kind === 'breakout')) out.push({ board: i, kind: 'breakout', a: h, gap: Math.round((T - h.depth) * 10) / 10 });
     }
-    for (let p = 0; p < mine.length; p++) for (let q = p + 1; q < mine.length; q++) {
-      const a = mine[p]!, b = mine[q]!;
-      if (!onFace(a) || !onFace(b)) continue;
-      const dist = Math.hypot(a.u - b.u, a.v - b.v), through = a.depth === 0 || b.depth === 0;
-      if (a.face === b.face || through) {
-        const gap = dist - (a.d + b.d) / 2;
-        if (gap < 2 && !(dist < .5 && a.kind === b.kind && a.face === b.face)) out.push({ board: i, kind: 'clash', a, b, gap: Math.round(gap * 10) / 10 });
-      } else if (dist < (a.d + b.d) / 2 && a.depth + b.depth > T - 1) out.push({ board: i, kind: 'meet', a, b, gap: Math.round((T - a.depth - b.depth) * 10) / 10 });
+    // Every pair of bores in the board, in three dimensions (bore-clearance.ts): side by side, crossing, end to end.
+    for (let p = 0; p < own.length; p++) for (let q = p + 1; q < own.length; q++) {
+      if (meantToMeet(own[p]!, own[q]!)) continue;
+      const hit = boresClash(board, own[p]!, own[q]!);
+      if (hit) out.push({ board: i, kind: hit.kind, a: mine[p]!, b: mine[q]!, gap: Math.round(hit.gap * 10) / 10 });
     }
   });
   return out;

@@ -15,7 +15,8 @@ export const CONFIRMAT_ENTRY: HardwareEntry = {
   defaultVariant: '7x50',
   variants: [{ key: '7x50', name: '7 × 50 mm one-piece connector screw', sizeLabel: '7 × 50', sizesMm: [50] }],
   rules: {
-    clearanceMm: { endCutShort: 120 },
+    // A joint shorter than two System 32 steps takes one connector; from 64 mm on it takes two.
+    clearanceMm: { endCutShort: 64 },
     boardThicknessMm: { min: 16, max: 25, standard: [18, 25] },
     edgeInsetMm: 50,
     maxSpacingMm: 300,

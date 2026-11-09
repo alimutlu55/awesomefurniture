@@ -21,6 +21,7 @@ import { plinthOf } from '../wardrobe/carcass';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
+import { boreIsClear } from './bore-clearance';
 import { completeDrawerHardware } from './drawer-installation';
 import type { Fitting, Hole } from './make-joints';
 import { heightsAt, thinAxis, type Vec3 } from './make-measures';
@@ -36,16 +37,11 @@ const RUNNER_HOLE = RUNNER_ENTRY.drilling[0]!;
 const RUNNER_SCREW = { d: RUNNER_HOLE.dMm, depth: RUNNER_HOLE.depthMm } as const;
 
 /** Whether a hole drilled into an upright's face at `at` (going in along x, `sign` the way it faces out) is in another
- * hole's way: one on the same face less than 2 mm from it (a hinge plate's), one right through the board (a connector's,
- * on both faces), or one from the other face that it would meet, their circles overlapping and together deeper than
- * the board less 1 mm. */
-function inTheWay(holes: readonly Hole[], post: { b: Board; i: number }, at: Vec3, sign: 1 | -1, hole: { d: number; depth: number }) {
-  const thick = (post.b.x1 - post.b.x0) * 10;
-  return holes.some(h => {
-    if (h.board !== post.i || h.axis !== 0) return false;
-    const reach = Math.hypot(h.at[1] - at[1], h.at[2] - at[2]) * 10 - (h.d + hole.d) / 2;
-    return h.sign === sign || h.depth === 0 ? reach < 2 : h.depth > 0 && reach < 0 && h.depth + hole.depth > thick - 1;
-  });
+ * hole's way: any bore already in that board that it would come within 2 mm of, in three dimensions (bore-clearance.ts):
+ * one beside it on the same face, a connector's right through the board or run in from its end, or one from the other
+ * face that it would meet. */
+function inTheWay(boards: readonly Board[], holes: readonly Hole[], post: { b: Board; i: number }, at: Vec3, sign: 1 | -1, hole: { d: number; depth: number }, kind: Hole['kind'] = 'runner') {
+  return !boreIsClear(boards, holes, { board: post.i, kind, at, axis: 0, sign, d: hole.d, depth: hole.depth });
 }
 
 export const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
@@ -83,7 +79,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - plate.line / 10 : 0;
       // A partition with doors hinged on both faces (a pair either side of it): a plate whose screws would meet the other
       // face's, or a connector, inside the board steps one System 32 pitch along it.
-      const clear = (y: number) => !post || [-pitch / 2, pitch / 2].every(dy => !inTheWay([...drilled, ...holes], post, [face, y + dy, z], sign, plate.screw));
+      const clear = (y: number) => !post || [-pitch / 2, pitch / 2].every(dy => !inTheWay(boards, [...drilled, ...holes], post, [face, y + dy, z], sign, plate.screw, 'plate'));
       for (const s of hingeStations(edgeTop - b.y0)) {
         const y = b.y0 + s + ([0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH].find(dy => clear(b.y0 + s + dy)) ?? 0);
         const inset = (kind.cup?.fromEdge ?? 22.5) / 10, cup: Vec3 = [edgeX + (hinge === 'left' ? inset : -inset), y, b.z0];
@@ -223,13 +219,16 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     const rear = Math.round((runner / 10 - rearPeg - SYSTEM_LINE) / PITCH) * PITCH;
     for (const back of [...stationsCm, rear]) {
       // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
-      // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else one forward.
-      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay([...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
-      const slots = [0, 1, 2, 3].map(k => z - k * PITCH).filter(s => s >= post.b.z0 + 2);
-      holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z + PITCH], axis: 0, sign, ...RUNNER_SCREW, of });
+      // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else forward.
+      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay(boards, [...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
+      const slots = [0, -1, -2, -3, 1, 2].map(k => z + k * PITCH).filter(s => s >= post.b.z0 + 2 && s <= post.b.z1 - 2);
+      holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z], axis: 0, sign, ...RUNNER_SCREW, of });
     }
   });
-  // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down.
+  // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down. A row that
+  // would run into a connector or a plate screw moves a System 32 step back or forward; a row that meets the row of a
+  // shelf at the same height on the other face of a partition is drilled right through, one hole for both pins
+  // (two 10 mm holes would leave nothing between them in an 18 mm board).
   const pinHole = SHELF_PIN_ENTRY.drilling[0]!;
   const pinStationsCm = (pinHole.stationsMm ?? [-64, -32, 0, 32, 64]).map(mm => mm / 10);
   boards.forEach((b, i) => {
@@ -237,8 +236,19 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     const { left, right } = uprightsAround(boards, (b.x0 + b.x1) / 2, b.y0, h);
     for (const [post, face, sign] of [[left, left?.b.x1, -1], [right, right?.b.x0, 1]] as const) {
       if (!post || face === undefined) continue;
-      for (const z of [b.z0 + SYSTEM_LINE, b.z1 - SYSTEM_LINE]) {
-        for (const dy of pinStationsCm) holes.push({ board: post.i, kind: 'pin', at: [face, b.y0 + dy, z], axis: 0, sign, d: pinHole.dMm, depth: pinHole.depthMm, of: fittings.length });
+      const far = sign < 0 ? post.b.x0 : post.b.x1;
+      for (const line of [b.z0 + SYSTEM_LINE, b.z1 - SYSTEM_LINE]) {
+        const row = (z: number): Hole[] => pinStationsCm.map(dy => ({ board: post.i, kind: 'pin' as const, at: [face, b.y0 + dy, z] as Vec3, axis: 0 as const, sign, d: pinHole.dMm, depth: pinHole.depthMm, of: fittings.length }));
+        // The row opposite, from the other face: the same holes seen from behind.
+        const opposite = (p: Hole) => (o: Hole) => o.board === post.i && o.kind === 'pin' && o.axis === 0 && o.sign === -sign
+          && Math.abs(o.at[1] - p.at[1]) < .005 && Math.abs(o.at[2] - p.at[2]) < .005 && Math.abs(o.at[0] - far) < .005;
+        const all = () => [...drilled, ...holes];
+        const free = (z: number) => row(z).every(p => boreIsClear(boards, all(), p, opposite(p), true));
+        const z = [0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH].map(step => line + step).find(free) ?? line;
+        for (const p of row(z)) {
+          const met = holes.findIndex(opposite(p));
+          if (met >= 0) { holes[met] = { ...holes[met]!, depth: 0 }; holes.push({ ...p, depth: 0 }); } else holes.push(p);
+        }
         fittings.push({ kind: 'pin', at: [face, b.y0, z], axis: 0, boards: [i, post.i] });
       }
     }

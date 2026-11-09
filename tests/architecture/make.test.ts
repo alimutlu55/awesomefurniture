@@ -221,7 +221,7 @@ test('a back larger than a stock sheet is split over the partition nearest the m
   assert.equal(cabinetBoards({ ...createInitialDesign(), w: 100 }).filter(b => b.stock === 'back').length, 1, 'a 100 cm wardrobe keeps one back');
 });
 
-test('a top, base and plinth rails longer than a sheet are split over partitions too, with a bearer under each rail joint', () => {
+test('a top and base longer than a sheet stop either side of a partition that runs through them; split plinth rails get a bearer under each base end', () => {
   const wide: EditorDesign = { ...createInitialDesign(), w: 320, h: 230, n: 4, wt: [1, 1, 1, 1] };
   const boards = cabinetBoards(wide), named = (name: string) => boards.filter(b => b.name === name);
   const fits = (b: { cut: { length: number } }) => Math.round(b.cut.length * 10) <= 2780;
@@ -230,12 +230,31 @@ test('a top, base and plinth rails longer than a sheet are split over partitions
     assert.ok(named(name).every(fits), name + ' pieces fit the sheet');
   }
   assert.equal(named('Plinth rail').length, 4, 'front and rear rails in two');
-  const seam = named('Base')[0]!.x1, partition = named('Partition').find(p => p.x0 < seam && p.x1 > seam)!;
-  assert.ok(partition, 'the base joint is under a partition');
-  assert.ok(named('Plinth bearer').some(b => b.x0 < seam && b.x1 > seam), 'a bearer under the rail joint');
-  assert.equal(named('Plinth bearer').length, 3);
-  const mp = piece(wide), base = mp.boards.flatMap((b, i) => b.name === 'Base' ? [i] : []), at = mp.boards.findIndex(b => b.name === 'Partition' && b.x0 === partition.x0);
-  for (const id of base) assert.ok(mp.fittings.some(f => f.boards.includes(id) && f.boards.includes(at)), 'the partition is fixed to both base pieces');
+  const mmOf = (v: number) => Math.round(v * 10);
+  for (const name of ['Top', 'Base']) {
+    const [left, right] = named(name) as [typeof boards[0], typeof boards[0]];
+    const partition = named('Partition').find(p => mmOf(p.x0) === mmOf(left.x1) && mmOf(p.x1) === mmOf(right.x0));
+    assert.ok(partition, name + ': each piece stops at a face of the same partition');
+    // The partition runs through: down to the base's underside, up to the top's upper face.
+    assert.ok(name === 'Base' ? mmOf(partition.y0) === mmOf(left.y0) : mmOf(partition.y1) === mmOf(left.y1), name + ': the partition runs through it');
+    // The closure still holds to the millimetre: pieces plus the partition between them span what one board did.
+    assert.equal(mmOf(left.cut.length + right.cut.length + 1.8), name === 'Top' ? 3200 : 3200 - 36);
+  }
+  const seamPartition = named('Partition').find(p => mmOf(p.x0) === mmOf(named('Base')[0]!.x1))!;
+  assert.equal(mmOf(seamPartition.cut.length), 2300 - 80, 'from the base underside (80 mm plinth) to the top face');
+  assert.equal(named('Partition').filter(p => p !== seamPartition).every(p => mmOf(p.cut.length) === 2300 - 80 - 36), true, 'the other partitions stand between base and top');
+  // A bearer stands wholly under each base end beside the through partition, and at each end of the plinth.
+  assert.equal(named('Plinth bearer').length, 4);
+  for (const base of named('Base')) assert.ok(named('Plinth bearer').filter(b => b.x0 >= base.x0 - 1e-9 && b.x1 <= base.x1 + 1e-9).length >= 2, 'two bearers under each base piece');
+  // Every connector into a board's edge is on the centre line of its thickness: nothing is screwed 1 mm from a face.
+  const mp = piece(wide);
+  for (const h of mp.holes.filter(h => h.kind === 'pilot')) {
+    const b = mp.boards[h.board]!, lo = [b.x0, b.y0, b.z0], hi = [b.x1, b.y1, b.z1], t = ({ x: 0, y: 1, z: 2 } as const)[thinAxis(b)];
+    if (h.axis !== t) assert.ok(Math.abs(h.at[t]! - (lo[t]! + hi[t]!) / 2) < 1e-9, b.name + ': pilot on the centre line');
+  }
+  assert.deepEqual(mp.findings, [], 'nothing to look at before drilling');
+  const base = mp.boards.flatMap((b, i) => b.name === 'Base' ? [i] : []), at = mp.boards.findIndex(b => b.name === 'Partition' && b.x0 === seamPartition.x0);
+  for (const id of base) assert.ok(mp.fittings.filter(f => f.boards.includes(id) && f.boards.includes(at)).length >= 2, 'the partition is joined to both base pieces');
   const regular = cabinetBoards({ ...createInitialDesign(), w: 200, n: 2, wt: [1, 1] });
   assert.deepEqual(['Top', 'Base', 'Back', 'Plinth rail', 'Plinth bearer'].map(n => regular.filter(b => b.name === n).length), [1, 1, 1, 2, 2], 'a 2 m wardrobe is unchanged');
 });

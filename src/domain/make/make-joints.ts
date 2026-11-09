@@ -9,7 +9,8 @@ import {
 } from '../hardware/hardware-registry';
 import { boardPolygon, clipPolygon, type Point } from './back-construction';
 import type { Board } from '../drawings/cabinet-boards';
-import type { Construction } from './make-construction';
+import { boreIsClear, meantToMeet } from './bore-clearance';
+import type { Construction, JointSystem } from './make-construction';
 import { heightsAt, thinAxis, tiltOf, type Vec3 } from './make-measures';
 
 /**
@@ -87,77 +88,95 @@ const DOWEL_FACE = DOWEL_ENTRY.drilling[0]!, DOWEL_EDGE = DOWEL_ENTRY.drilling[1
 const SHORT_DOWEL_FACE = DOWEL_ENTRY.drilling[2]!, SHORT_DOWEL_EDGE = DOWEL_ENTRY.drilling[3]!;
 const BOLT_HOLE = BOLT_ENTRY.drilling[0]!;
 const CAM_HOLE = CAM_ENTRY.drilling[0]!, CAM_EDGE = CAM_ENTRY.drilling[1]!;
-const CONNECTOR_MIN_DUAL_CM = (CONFIRMAT_ENTRY.rules.clearanceMm.endCutShort ?? 120) / 10;
+/** A joint shorter than this takes one connector in its middle: there is no room for two a System 32 step apart with
+ * board left round each. From it on a joint takes at least two, so the boards cannot turn about one. */
+const CONNECTOR_MIN_DUAL_CM = (CONFIRMAT_ENTRY.rules.clearanceMm.endCutShort ?? 64) / 10;
 const CONNECTOR_INSET_CM = (CONFIRMAT_ENTRY.rules.edgeInsetMm ?? 50) / 10;
 const CONNECTOR_SPACING_CM = (CONFIRMAT_ENTRY.rules.maxSpacingMm ?? 300) / 10;
 const CONNECTOR_PITCH_CM = (CONFIRMAT_ENTRY.rules.pitchMm ?? 32) / 10;
 const CAM_LINE_CM = (CAM_ENTRY.rules.systemLineMm ?? 34) / 10;
 const NAIL_SPACING_CM = (NAIL_ENTRY.rules.maxSpacingMm ?? 150) / 10;
 const NAIL_SIZE = NAIL_ENTRY.display.listLine.defaultSpec;
+/** A connector stays at least this far from the end of its joint when it steps aside, centimetres. */
+const CONNECTOR_END_CM = 1.6;
 
-/** Where connectors go along a joint `length` long: 5 cm in from each end, and between them no more than 30 cm apart
- * (a short joint takes one in its middle). Centimetres from the joint's start. */
+/** Where connectors go along a joint `length` long: 5 cm in from each end (a quarter of a short joint), and between
+ * them no more than 30 cm apart; a joint under 64 mm takes one in its middle. Centimetres from the joint's start. */
 export function connectorStations(length: number): number[] {
   if (length < CONNECTOR_MIN_DUAL_CM) return [length / 2];
   const margin = Math.min(CONNECTOR_INSET_CM, length / 4), span = length - 2 * margin, gaps = Math.max(1, Math.ceil(span / CONNECTOR_SPACING_CM));
   return Array.from({ length: gaps + 1 }, (_, k) => margin + span * k / gaps);
 }
 
+/** The steps a connector tries along its joint when its place is taken: its own, then one System 32 step either way,
+ * then two, three. */
+const STEPS_ASIDE = [0, 1, -1, 2, -2, 3, -3].map(k => k * CONNECTOR_PITCH_CM);
+
 /**
  * The connectors at every joint and the holes they need. Carcass joints follow the piece's joint system: a confirmat
  * through the face board into the edge board's end; a cam in the edge board's face with its bolt in the face board; or
  * dowels glued into both. Plinth frames are screwed. The edge board's end takes a pilot hole on the screw's line.
+ *
+ * No connector is drilled into another: one whose holes would come within 2 mm of a hole already set out, in either
+ * board and in any direction (bore-clearance.ts), steps along its joint a System 32 pitch at a time until it is clear.
+ * So shelves level either side of a partition, a divider standing near the end of a shelf and a plinth rail screwed
+ * from its face and into its end all keep their connectors apart. `system` chooses another connector for one joint.
  */
-export function jointFittings(boards: readonly Board[], joints: readonly Joint[], construction: Construction) {
+export function jointFittings(boards: readonly Board[], joints: readonly Joint[], construction: Construction,
+  system: (joint: Joint) => JointSystem | undefined = () => undefined) {
   const holes: Hole[] = [], fittings: Fitting[] = [];
-  // A board joined from both faces at one place (shelves level either side of a partition): the second joint's
-  // connectors move one System 32 step along, so they never meet the first ones inside the board.
-  const clear = (board: number, p: Vec3, axis: Axis) => !holes.some(h => h.board === board && h.axis === axis
-    && Math.hypot(...([0, 1, 2] as Axis[]).filter(k => k !== axis).map(k => h.at[k] - p[k])) < 1.2);
   for (const j of joints) {
     const A = boards[j.face]!, B = boards[j.edge]!, tb = thin(B), run = ([0, 1, 2] as Axis[]).find(k => k !== j.axis && k !== tb)!;
     const r0 = Math.max(lo(A)[run], lo(B)[run]), r1 = Math.min(hi(A)[run], hi(B)[run]), across = (Math.max(lo(A)[tb], lo(B)[tb]) + Math.min(hi(A)[tb], hi(B)[tb])) / 2;
-    const plinth = A.stock === 'plinth' || B.stock === 'plinth', chosen = plinth ? 'screw' : construction.joints;
+    const plinth = A.stock === 'plinth' || B.stock === 'plinth', chosen = plinth ? 'screw' : system(j) ?? construction.joints;
     for (const station of connectorStations(r1 - r0)) {
-      const p = [0, 0, 0] as [number, number, number];
-      p[j.axis] = j.plane; p[tb] = across; p[run] = r0 + station;
-      if (!clear(j.face, p, j.axis)) p[run] += station + CONNECTOR_PITCH_CM <= r1 - r0 - 2 ? CONNECTOR_PITCH_CM : -CONNECTOR_PITCH_CM;
-      const outer = [...p] as [number, number, number];
-      outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
-      const into = j.side as 1 | -1, back = -j.side as 1 | -1;
-      let system = chosen, shortDowel = false;
-      // A shelf just under a rising roof may meet the inner face above the outer face.
-      // Use a short blind dowel from inside, with its axis lower in the shelf; never drill through air.
-      if (j.axis === 0 && tb === 1 && A.outline && outer[1] + .35 > heightsAt(A, outer[0])[1]) {
-        system = 'dowel'; shortDowel = true;
-        const endX = j.plane - j.side, roof = Math.min(heightsAt(A,j.plane)[1],heightsAt(A,endX)[1]);
-        p[1] = Math.min(across, roof - .4);
-      }
-      if (system === 'confirmat' || system === 'screw') {
-        const faceHole = system === 'screw' ? SCREW_FACE : CONFIRMAT_FACE;
-        const edgeHole = system === 'screw' ? SCREW_EDGE : CONFIRMAT_EDGE;
-        const size = system === 'screw' ? SCREW_ENTRY.display.listLine.defaultSpec : CONFIRMAT_ENTRY.display.listLine.defaultSpec;
-        holes.push({ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: faceHole.dMm, depth: faceHole.depthMm, of: fittings.length },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: fittings.length });
-        fittings.push({ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size });
-      } else if (system === 'dowel') {
-        const faceHole = shortDowel ? SHORT_DOWEL_FACE : DOWEL_FACE;
-        const edgeHole = shortDowel ? SHORT_DOWEL_EDGE : DOWEL_EDGE;
-        const size = shortDowel ? (DOWEL_ENTRY.variants?.[1]?.sizeLabel ?? '6 × 30') : DOWEL_ENTRY.display.listLine.defaultSpec;
-        holes.push({ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: faceHole.dMm, depth: faceHole.depthMm, of: fittings.length },
-          { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: fittings.length });
-        fittings.push({ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size });
-      } else {
+      // The connector at `at` along the joint: its holes and fittings, numbered from `first`.
+      const build = (at: number, first: number): { holes: Hole[]; fittings: Fitting[] } => {
+        const p = [0, 0, 0] as [number, number, number];
+        p[j.axis] = j.plane; p[tb] = across; p[run] = at;
+        const outer = [...p] as [number, number, number];
+        outer[j.axis] = j.side > 0 ? lo(A)[j.axis] : hi(A)[j.axis];
+        const into = j.side as 1 | -1, back = -j.side as 1 | -1;
+        let system = chosen, shortDowel = false;
+        // A shelf just under a rising roof may meet the inner face above the outer face.
+        // Use a short blind dowel from inside, with its axis lower in the shelf; never drill through air.
+        if (j.axis === 0 && tb === 1 && A.outline && outer[1] + .35 > heightsAt(A, outer[0])[1]) {
+          system = 'dowel'; shortDowel = true;
+          const endX = j.plane - j.side, roof = Math.min(heightsAt(A,j.plane)[1],heightsAt(A,endX)[1]);
+          p[1] = Math.min(across, roof - .4);
+        }
+        if (system === 'confirmat' || system === 'screw') {
+          const faceHole = system === 'screw' ? SCREW_FACE : CONFIRMAT_FACE;
+          const edgeHole = system === 'screw' ? SCREW_EDGE : CONFIRMAT_EDGE;
+          const size = system === 'screw' ? SCREW_ENTRY.display.listLine.defaultSpec : CONFIRMAT_ENTRY.display.listLine.defaultSpec;
+          return { holes: [{ board: j.face, kind: system === 'screw' ? 'screw' : 'connector', at: outer, axis: j.axis, sign: into, d: faceHole.dMm, depth: faceHole.depthMm, of: first },
+            { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: first }],
+            fittings: [{ kind: system === 'screw' ? 'screw' : 'confirmat', at: p, axis: j.axis, boards: [j.face, j.edge], size }] };
+        }
+        if (system === 'dowel') {
+          const faceHole = shortDowel ? SHORT_DOWEL_FACE : DOWEL_FACE;
+          const edgeHole = shortDowel ? SHORT_DOWEL_EDGE : DOWEL_EDGE;
+          const size = shortDowel ? (DOWEL_ENTRY.variants?.[1]?.sizeLabel ?? '6 × 30') : DOWEL_ENTRY.display.listLine.defaultSpec;
+          return { holes: [{ board: j.face, kind: 'dowel', at: p, axis: j.axis, sign: back, d: faceHole.dMm, depth: faceHole.depthMm, of: first },
+            { board: j.edge, kind: 'dowel', at: p, axis: j.axis, sign: into, d: edgeHole.dMm, depth: edgeHole.depthMm, of: first }],
+            fittings: [{ kind: 'dowel', at: p, axis: j.axis, boards: [j.face, j.edge], size }] };
+        }
         // The bolt is screwed into the face board; the edge board goes on over it (its head in a pilot hole 34 mm into
         // the board's end), and the cam, set in the edge board's inner face 34 mm from the joint, is turned to grip it.
-        const cam = [...p] as [number, number, number], bolt = fittings.length;
+        const cam = [...p] as [number, number, number];
         cam[j.axis] = j.plane + j.side * CAM_LINE_CM; cam[tb] = hi(B)[tb];
-        holes.push({ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: BOLT_HOLE.dMm, depth: BOLT_HOLE.depthMm, of: bolt },
-          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: CAM_EDGE.dMm, depth: CAM_EDGE.depthMm, of: bolt + 1 },
-          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: CAM_HOLE.dMm, depth: CAM_HOLE.depthMm, of: bolt + 1 });
-        fittings.push({ kind: 'bolt', at: p, axis: j.axis, boards: [j.face, j.edge], size: BOLT_ENTRY.display.listLine.defaultSpec },
-          { kind: 'cam', at: cam, axis: tb, boards: [j.face, j.edge], size: CAM_ENTRY.display.listLine.defaultSpec });
-      }
+        return { holes: [{ board: j.face, kind: 'bolt', at: p, axis: j.axis, sign: back, d: BOLT_HOLE.dMm, depth: BOLT_HOLE.depthMm, of: first },
+          { board: j.edge, kind: 'pilot', at: p, axis: j.axis, sign: into, d: CAM_EDGE.dMm, depth: CAM_EDGE.depthMm, of: first + 1 },
+          { board: j.edge, kind: 'cam', at: cam, axis: tb, sign: -1, d: CAM_HOLE.dMm, depth: CAM_HOLE.depthMm, of: first + 1 }],
+          fittings: [{ kind: 'bolt', at: p, axis: j.axis, boards: [j.face, j.edge], size: BOLT_ENTRY.display.listLine.defaultSpec },
+            { kind: 'cam', at: cam, axis: tb, boards: [j.face, j.edge], size: CAM_ENTRY.display.listLine.defaultSpec }] };
+      };
+      const clear = (made: { holes: Hole[] }) => made.holes.every(h => boreIsClear(boards, holes, h, o => meantToMeet(o, h)));
+      const inJoint = (at: number) => at >= r0 + Math.min(CONNECTOR_END_CM, (r1 - r0) / 2) - 1e-9 && at <= r1 - Math.min(CONNECTOR_END_CM, (r1 - r0) / 2) + 1e-9;
+      const tries = STEPS_ASIDE.map(step => r0 + station + step).filter(inJoint).map(at => build(at, fittings.length));
+      // Its own place when no step is clear: the drilling check then names the two holes, and nothing is issued.
+      const made = tries.find(clear) ?? build(r0 + station, fittings.length);
+      holes.push(...made.holes); fittings.push(...made.fittings);
     }
   }
   slopeFittings(boards, holes, fittings);
@@ -189,10 +208,14 @@ function slopeFittings(boards: readonly Board[], holes: Hole[], fittings: Fittin
       const [under, over] = across(top.outline!, x), end = up.outline ? across(up.outline, x)[1] : up.y1;
       if (Math.abs(end - under) > .3) return;
       for (const station of connectorStations(r1 - r0)) {
-        const z = r0 + station, at: Vec3 = [x, under, z];
-        holes.push({ board: t, kind: 'connector', at: [x, over, z], axis: 1, sign: -1, d: CONFIRMAT_FACE.dMm, depth: CONFIRMAT_FACE.depthMm, of: fittings.length },
-          { board: u, kind: 'pilot', at, axis: 1, sign: -1, d: CONFIRMAT_EDGE.dMm, depth: CONFIRMAT_EDGE.depthMm, of: fittings.length });
-        fittings.push({ kind: 'confirmat', at, axis: 1, boards: [t, u], size: CONFIRMAT_ENTRY.display.listLine.defaultSpec });
+        const pair = (z: number): Hole[] => [
+          { board: t, kind: 'connector', at: [x, over, z], axis: 1, sign: -1, d: CONFIRMAT_FACE.dMm, depth: CONFIRMAT_FACE.depthMm, of: fittings.length },
+          { board: u, kind: 'pilot', at: [x, under, z], axis: 1, sign: -1, d: CONFIRMAT_EDGE.dMm, depth: CONFIRMAT_EDGE.depthMm, of: fittings.length }];
+        // Clear of the upright's other connectors (a shelf screwed into it just under the top), a System 32 step at a time.
+        const tries = STEPS_ASIDE.map(step => r0 + station + step).filter(z => z >= r0 + CONNECTOR_END_CM && z <= r1 - CONNECTOR_END_CM);
+        const z = tries.find(q => pair(q).every(h => boreIsClear(boards, holes, h))) ?? r0 + station;
+        holes.push(...pair(z));
+        fittings.push({ kind: 'confirmat', at: [x, under, z], axis: 1, boards: [t, u], size: CONFIRMAT_ENTRY.display.listLine.defaultSpec });
       }
     });
   });
