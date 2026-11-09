@@ -5,34 +5,51 @@ export const productPages: readonly Guide[] = [
   {
     slug: 'wardrobe-designer',
     label: 'Online wardrobe designer',
-    title: 'Free Online Wardrobe Designer — 3D Fitted Closet Planner',
-    description: 'Design fitted wardrobes and closets in 3D in your browser, free to start. '
-      + 'Get dimensioned drawings and cut lists to hand to your joiner.',
-    eyebrow: 'FITTED WARDROBE PLANNING & 3D CLOSET CONFIGURATOR',
-    heading: 'Free online wardrobe designer.\nCustom fitted storage in 3D.',
-    intro: 'Design custom built-in wardrobes and walk-in closets to the exact millimetre. '
-      + 'Configure hanging rails, internal drawers, and door fronts, then generate dimensioned drawings and cutting lists.',
+    title: 'Design a Fitted Wardrobe Online — Free 3D Wardrobe Planner',
+    description: 'Design a fitted or built-in wardrobe online, free to start. '
+      + 'Plan the layout in 3D to your room, then get dimensioned drawings and a cut list for your joiner.',
+    eyebrow: 'FITTED & BUILT-IN WARDROBE PLANNER',
+    heading: 'Design a fitted wardrobe online.\nFree 3D wardrobe planner.',
+    intro: 'FurniDraw is a free online wardrobe designer for fitted and built-in wardrobes. '
+      + 'Plan the layout to your exact room, choose rails, drawers and doors, then get dimensioned drawings and a cutting list.',
     shape: 'regular',
     sections: [
       {
-        title: 'Parametric wardrobe and custom closet layout design.',
+        title: 'How to design your own wardrobe online.',
+        body: 'You do not need CAD experience or a download. Begin with the space, using our '
+          + '[guide on measuring for a fitted wardrobe](/guides/measure-for-a-fitted-wardrobe/), then shape the wardrobe around it.',
+        list: [
+          'Enter the width, height and depth of the space.',
+          'Count your clothes and let Auto design propose a layout, or add rails, shelves and drawers yourself.',
+          'Choose door style, finish and handles, then check the result in 3D.',
+          'Export dimensioned drawings and a cutting list for your joiner.',
+        ],
+      },
+      {
+        title: 'A wardrobe layout planner built around your exact room.',
         body: 'FurniDraw lets you design wall-to-wall and floor-to-ceiling fitted wardrobes that adapt '
           + 'to your exact room dimensions. Unlike generic room planners that place rigid pre-made blocks, '
-          + 'our engine builds parametric joinery using standard 18 mm carcass boards, 8 mm recessed backs, '
+          + 'our engine builds parametric joinery using standard 18 mm carcass boards, 6 mm recessed backs, '
           + 'and customizable plinths. Review our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) '
           + 'for depths, hanging heights, and shelf spacing guidelines.',
       },
       {
-        title: 'Auto-design built-in storage by garment & shoe count.',
+        title: 'Design a built-in wardrobe from what you actually own.',
         body: 'Tell the planner what you need to store: count your shirts, jackets, long coats, folded sweaters, '
           + 'and shoe pairs. FurniDraw’s automatic layout algorithm proposes an optimized interior configuration '
-          + 'with appropriate hanging drops (1050 mm for short hanging, 1600 mm for long coats). Use our '
-          + '[guide on measuring for a fitted wardrobe](/guides/measure-for-a-fitted-wardrobe/) to record clear site dimensions.',
+          + 'with appropriate hanging drops (1050 mm for short hanging, 1600 mm for long coats).',
         list: [
           'Automatic bay splitting based on clothing inventory and user reach.',
           'Dedicated vertical zones for shirts, dresses, folded knitwear, and shoes.',
           'Real-time clearance checking for drawer travel and door swings.',
         ],
+      },
+      {
+        title: 'Fitted or built-in: design for the space you have.',
+        body: '“Fitted” and “built-in” usually describe the same thing: a wardrobe made to fill the space between walls, '
+          + 'floor and ceiling instead of standing in front of them. Awkward rooms have their own starting points: '
+          + 'the [alcove wardrobe designer](/alcove-wardrobe-designer/), the [sloped ceiling wardrobe designer](/sloped-ceiling-wardrobe-designer/) '
+          + 'and [under stairs wardrobe design](/under-stairs-wardrobe/). For a whole dressing room, use the [walk-in closet planner](/walk-in-closet-planner/).',
       },
       {
         title: 'Door front styles, carcass finishes & hardware clearances.',
@@ -42,31 +59,31 @@ export const productPages: readonly Guide[] = [
           + 'require unobstructed clearance to slide past open doors.',
       },
       {
-        title: 'Accurate dimensioned elevations, sections & workshop cutting lists.',
+        title: 'From wardrobe design tool to drawings your joiner can build.',
         body: 'Export comprehensive CAD-ready technical drawings including front elevations, sectional views, '
           + 'panel cutting schedules, and hardware lists. Hand these clear documentation sets directly to your '
           + 'carpenter or local joiner. Design 100% free in your browser; our transparent [pricing](/pricing/) '
           + 'applies only when exporting drawings or AI renders.',
       },
       {
-        title: 'Worked example: 2400 mm alcove wardrobe specification.',
-        body: 'For a 2400 mm wide bedroom alcove with a 2400 mm ceiling, FurniDraw divides the space into three equal '
-          + '780 mm bays (with 30 mm scribing fillers on each side). Bay 1 provides double hanging rails (2× 1050 mm drops) '
-          + 'for 40 shirts and jackets. Bay 2 features a 3-drawer chest with soft-close runners and four adjustable knitwear shelves. '
-          + 'Bay 3 provides full-length coat hanging (1600 mm drop) with luggage storage above. The exported cutting list details '
-          + '28 finished panels in 18 mm Natural Oak MFC with 1 mm ABS edge banding.',
+        title: 'Worked example: a 2.4 m fitted wardrobe planned from a clothes count.',
+        body: 'We gave Auto design a space 240 cm wide, 240 cm high and 60 cm deep, and a typical count: 24 shirts and jackets, '
+          + '6 long coats and dresses, 12 trousers, 30 folded items, 8 pairs of shoes and 30 small items. Its top proposal has four bays '
+          + 'with a shelf zone across the top for seasonal things. It holds all the trousers, folded items, shoes and small items, '
+          + 'and about 86% of the hanging clothes, so a wider wardrobe or a shorter list would be needed to fit everything.',
+        list: [
+          'Bay 1 (51 cm): full-length hanging for coats and dresses.',
+          'Bay 2 (60 cm): two drawers with shirt hanging above.',
+          'Bay 3 (60 cm): two drawers, a small-items drawer and five shoe shelves.',
+          'Bay 4 (60 cm): a drawer and two shelves with shirt hanging above.',
+        ],
       },
     ],
     faqs: [
       [
-        'Is FurniDraw completely free to design a wardrobe?',
+        'Can I design my own wardrobe online for free?',
         'Yes. You can plan rooms, configure custom wardrobes, adjust internal fittings, and save drafts in '
           + 'your browser completely free without entering payment details or creating an account.',
-      ],
-      [
-        'Can I design wardrobes for alcoves or sloped ceilings?',
-        'Yes. FurniDraw supports alcove room templates, chimney breasts, under-stairs layouts, and raked ceilings, '
-          + 'automatically calculating scribing fillets and angled panel geometry.',
       ],
       [
         'What door styles and hinge types are supported?',
@@ -85,7 +102,7 @@ export const productPages: readonly Guide[] = [
       ],
       [
         'Do I need to download or install any software?',
-        'No. FurniDraw operates entirely inside your web browser on desktop, laptop, or tablet with WebGL support.',
+        'No. FurniDraw operates entirely inside your web browser on desktop, laptop, tablet, or phone with WebGL support.',
       ],
     ],
   },
@@ -105,7 +122,7 @@ export const productPages: readonly Guide[] = [
         title: '2D and 3D kitchen room layout planner.',
         body: 'Start by drawing your kitchen perimeter, placing doors and windows, and marking plumbing and electrical connections. '
           + 'Use our [free 2D/3D room planner](/2d-3d-room-planner/) to keep floor plans and 3D views synchronized so you can verify '
-          + 'walkway clearances, work triangle efficiency, and appliance access.',
+          + 'walkway clearances and appliance access.',
       },
       {
         title: 'Configure modular base, wall & tall cabinets.',
@@ -114,14 +131,14 @@ export const productPages: readonly Guide[] = [
           + 'worktops and recessed plinths. Read our [kitchen layout planning guide](/guides/kitchen-layout-planning/) for ergonomics.',
         list: [
           'Modular base units with adjustable drawers, shelving, and pull-out organizers.',
-          'Tall pantry units with internal drawer towers and appliance service recesses.',
+          'Tall pantry units with pull-out storage, and housings for fridges and ovens.',
           'Continuous worktop spans and recessed plinth runs with accurate levelling heights.',
         ],
       },
       {
         title: 'Door fronts, drawer systems & hardware clearances.',
-        body: 'Choose from modern slab doors or classic shaker profiles. Configure soft-close drawer runners, '
-          + 'sink base false drawers, and concealed European hinges. FurniDraw calculates door swing clearances and drawer '
+        body: 'Choose from modern slab doors or classic shaker profiles. Configure drawers on bottom-mounted '
+          + 'runners and concealed European hinges. FurniDraw calculates door swing clearances and drawer '
           + 'travel to prevent clashes with adjacent walls, handles, or appliances.',
       },
       {
@@ -195,7 +212,7 @@ export const productPages: readonly Guide[] = [
       {
         title: 'Workshop-ready drawings, cutting lists & hardware schedules.',
         body: 'Generate full documentation packets with one click using our [cabinet cut list generator](/cabinet-cut-list-generator/). '
-          + 'Cutting lists categorize components by board material and thickness (e.g. 18 mm MFC carcass, 8 mm backing board). '
+          + 'Cutting lists categorize components by board material and thickness (e.g. 18 mm MFC carcass, 6 mm backing board). '
           + 'Consult our guide on [how to read a cabinet cutting list](/guides/read-a-cabinet-cutting-list/) before cutting.',
       },
       {
@@ -213,13 +230,13 @@ export const productPages: readonly Guide[] = [
       ],
       [
         'What panel materials and board thicknesses are supported?',
-        'FurniDraw supports standard board thicknesses (18 mm, 19 mm, 16 mm, and 8 mm backs) across natural oak, '
-          + 'smoked oak, chalk white laminates, and customizable surface decors.',
+        'Carcasses use 18 mm boards with 6 mm backs, across natural and smoked oak decors, '
+          + 'white finishes, and other surface decors.',
       ],
       [
         'Does FurniDraw support hardware specifications like hinges and drawer runners?',
         'Yes. The engine automatically calculates quantities and specifications for concealed European hinges, '
-          + 'soft-close undermount drawer runners, hanging rails, and assembly fasteners.',
+          + 'bottom-mounted drawer runners, hanging rails, and assembly fasteners.',
       ],
       [
         'Is any software installation required?',
@@ -230,30 +247,42 @@ export const productPages: readonly Guide[] = [
   {
     slug: 'under-stairs-wardrobe',
     label: 'Under stairs wardrobe designer',
-    title: 'Under Stairs Wardrobe Designer — 3D Storage | FurniDraw',
-    description: 'Design custom under-stairs wardrobes and storage in 3D. '
-      + 'Plan raked carcasses, pull-out shoe drawers, and sloped hanging rails with cut lists.',
-    eyebrow: 'SHAPED STORAGE & UNDER-STAIRS PLANNING',
-    heading: 'Under-stairs wardrobe designer.\nPlan shaped storage in 3D.',
-    intro: 'Maximize awkward space beneath your staircase. '
-      + 'Design custom raked carcasses, pull-out shoe racks, and hanging rails that follow your exact stair angle.',
+    title: 'Under Stairs Wardrobe Design — Free 3D Planner | FurniDraw',
+    description: 'Design an under stairs wardrobe in 3D, free to start. '
+      + 'Fit coats, shoes and drawers beneath the slope, then get dimensioned drawings and a cut list.',
+    eyebrow: 'UNDER STAIRS STORAGE PLANNER',
+    heading: 'Under stairs wardrobe design.\nPlan shaped storage in 3D.',
+    intro: 'Turn the awkward space beneath your staircase into a wardrobe. '
+      + 'Set the slope, plan bays for coats, shoes and drawers, and get drawings made for that exact shape.',
     shape: 'under-stairs',
     sections: [
       {
-        title: 'Design fitted wardrobes for sloped and awkward staircase angles.',
-        body: 'The triangular void beneath staircases is one of the most valuable yet difficult spaces to furnish. '
-          + 'FurniDraw eliminates guesswork by allowing you to define staircase pitch, landing breaks, and vertical risers. '
+        title: 'Design a wardrobe under the stairs that follows the real slope.',
+        body: 'The triangular space beneath a staircase is valuable but hard to furnish. '
+          + 'Start from the under-stairs shape in FurniDraw and adjust its outline to match your staircase, including a level landing at the tall end. '
           + 'Pair with our [sloped ceiling wardrobe designer](/sloped-ceiling-wardrobe-designer/) for attic and roof eaves.',
       },
       {
-        title: 'Zone storage for shoes, pull-out drawers & angled hanging rails.',
-        body: 'Divide the angled staircase envelope into high-efficiency storage zones: full-extension pull-out drawer '
-          + 'towers at the lower end for shoes and bags, and tall bays near the top for coats and jackets. '
-          + 'Our planner calculates clear opening widths and prevents drawer runners from binding against staircase stringers.',
+        title: 'Under stairs wardrobe ideas for each height.',
+        body: 'Each part of the slope suits different storage, so plan it by height. Auto design follows this pattern. '
+          + 'It fills each bay up to the lowest point of the slope above it, so the wedge above that point stays empty in its proposals.',
         list: [
-          'Parametric ceiling slope following the exact staircase angle and landing profile.',
-          'Deep full-extension pull-out shoe drawers in low, awkward height zones.',
-          'Full-height coat hanging and utility cupboards at the tall end of the run.',
+          'Low end: shoe shelves, which need little height.',
+          'Middle: shirts and jackets on short hanging, or drawers.',
+          'Tall end: full-length coats and dresses, with space above for seasonal things.',
+        ],
+      },
+      {
+        title: 'Worked example: a 2 m wardrobe under the stairs.',
+        body: 'We gave Auto design a space 200 cm wide and 60 cm deep, rising from 69 cm at the low end to 230 cm and then level, '
+          + 'with 8 shirts and jackets, 6 long coats, 10 folded items and 10 pairs of shoes. Its top proposal holds all the folded items, '
+          + 'about 86% of the long clothes, 75% of the shoes and 70% of the shirts and jackets. A staircase holds less than a straight wardrobe, '
+          + 'so count what you own before you commit.',
+        list: [
+          'Bay 1 (41 cm), the lowest: three shoe shelves.',
+          'Bay 2 (50 cm): short hanging.',
+          'Bay 3 (50 cm): two drawers and six shoe shelves.',
+          'Bay 4 (50 cm), the tallest: full-length hanging with a shelf space above.',
         ],
       },
       {
@@ -277,8 +306,12 @@ export const productPages: readonly Guide[] = [
       ],
       [
         'Can I combine pull-out drawers with hanging rails under stairs?',
-        'Yes. You can configure tall bays with hanging rails and shorter bays with heavy-duty full-extension drawers '
-          + 'or angled shoe shelves.',
+        'Yes. You can configure tall bays with hanging rails and shorter bays with drawers or shoe shelves.',
+      ],
+      [
+        'Can I build an under stairs wardrobe myself?',
+        'If you are comfortable cutting angled panels, yes. The drawings give the height on each side of every sloped door and panel, '
+          + 'and the cutting list gives finished sizes. Ask a joiner to check the site measurements before you cut.',
       ],
       [
         'Does FurniDraw calculate raked ceiling panels and angled doors?',

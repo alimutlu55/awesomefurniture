@@ -50,7 +50,7 @@ export const nichePages: readonly Guide[] = [
       ],
       [
         'Do furniture pieces snap to the walls in 2D?',
-        'Yes. Cabinets automatically align and snap flush against selected walls, maintaining proper rear ventilation setbacks.',
+        'Yes. Cabinets automatically align and snap flush against selected walls.',
       ],
       [
         'Can I plan both bedrooms and kitchens in the same planner?',
@@ -83,10 +83,10 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Parametric geometry: following rake angles to the exact degree.',
         body: 'Specify the slope start position and degree of pitch. The software calculates the cut angles on vertical partitions, '
-          + 'raked top panels, and door stiles. Whether your slope runs front-to-back or side-to-side, internal shelves align to '
+          + 'raked top panels, and door stiles. Whether your slope falls to the left or the right, internal shelves align to '
           + 'maximize every centimetre of vertical space.',
         list: [
-          'Parametric ceiling rake matching single slopes, gambrel roofs, and dormer recesses.',
+          'Parametric top outline matching single slopes, stepped tops, and custom profiles.',
           'Automatic calculation of bevel cuts and rake angles on side gables and doors.',
           'Full-height storage in tall sections transitioning to deep drawer bays under the eaves.',
         ],
@@ -127,34 +127,34 @@ export const nichePages: readonly Guide[] = [
     label: 'Walk-in closet planner',
     title: 'Walk-In Closet Planner — 3D Dressing Rooms | FurniDraw',
     description: 'Plan custom walk-in closets and dressing rooms in 3D. '
-      + 'Design hanging bays, shoe walls, drawers, and islands with dimensioned drawings.',
+      + 'Design hanging bays, shoe shelves and drawers along every wall, with dimensioned drawings.',
     eyebrow: 'WALK-IN CLOSET PLANNER & DRESSING ROOM CAD',
     heading: 'Walk-in closet planner.\nDesign custom dressing rooms in 3D.',
     intro: 'Transform spare rooms and dressing areas into luxury walk-in closets. '
-      + 'Configure U-shaped, L-shaped, and galley storage layouts with custom shelving, shoe displays, and drawer islands.',
+      + 'Configure U-shaped, L-shaped, and galley storage layouts with custom shelving, shoe shelves, and drawers.',
     shape: 'regular',
     sections: [
       {
         title: 'Design U-shaped, L-shaped and galley walk-in closets in 3D.',
         body: 'Whether transforming a walk-through dressing area or dedicated closet room, FurniDraw helps you plan every wall. '
-          + 'Configure continuous cabinetry around corners with corner posts and specialized blind-corner storage, ensuring '
-          + 'seamless transitions between hanging rails, shelving bays, and drawer stacks.',
+          + 'Place a wardrobe on each wall and line them up at the corners, so hanging rails, '
+          + 'shelving bays, and drawer stacks read as one run.',
       },
       {
         title: 'Calculate storage capacity from your actual garment inventory.',
         body: 'Input your complete wardrobe inventory: shirts, suits, long evening gowns, folded jeans, handbags, and shoes. '
           + 'The planner optimizes vertical space based on our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) '
-          + 'by stacking double hanging rails (~2100 mm total height) and allocating dedicated illuminated shoe displays.',
+          + 'by stacking double hanging rails (~2100 mm total height) and giving shoes their own shelves.',
         list: [
-          'Efficient corner integration with corner hanging rails or continuous shelving.',
-          'Integrated drawer towers with velvet-lined accessory organizers and jewelry trays.',
-          'Custom shoe walls with adjustable shelf pitches and high-heel heel stops.',
+          'Wardrobes on adjoining walls that line up at the corners.',
+          'Drawer stacks, with shallow drawers for accessories.',
+          'Shoe shelves stacked in their own bays.',
         ],
       },
       {
-        title: 'Configure corner transitions, corner posts & interior shelving.',
-        body: 'Corner intersections are often wasted space. FurniDraw models corner carcass joinery, ensuring that adjacent doors '
-          + 'and pull-out drawers never collide. Configure open-concept boutique closets or enclose bays with elegant glass doors.',
+        title: 'Plan corners, doors & interior shelving.',
+        body: 'Corner intersections are often wasted space. Check each corner on the plan and in 3D, and leave room for adjacent doors '
+          + 'and drawers to open. Configure open-concept boutique closets or enclose bays with glass doors.',
       },
       {
         title: 'Generate accurate material schedules & dimensioned elevations.',
@@ -177,8 +177,8 @@ export const nichePages: readonly Guide[] = [
         'Yes. FurniDraw fully supports open boutique-style cabinetry, as well as framed and glass door fronts.',
       ],
       [
-        'Does the software calculate corner clearances?',
-        'Yes. The engine enforces corner setback rules to ensure drawers in adjoining bays can pull out freely.',
+        'How do I plan the corners of a walk-in closet?',
+        'Place wardrobes on adjoining walls and line them up at the corner. Then check on the plan and in 3D that doors and drawers have room to open.',
       ],
     ],
   },
@@ -207,20 +207,20 @@ export const nichePages: readonly Guide[] = [
           + 'the chimney breast face or recesses slightly to maintain architectural shadow gaps.',
         list: [
           'Built-in scribing fillets for out-of-plumb walls and uneven plasterwork.',
-          'Seamless integration with Victorian, Edwardian, and modern baseboards (skirting).',
-          'Full-height ceiling infill panels or decorative cornice crown moulding details.',
+          'Plinth and scribing options to suit tall skirting boards.',
+          'Full-height ceiling infill panels.',
         ],
       },
       {
         title: 'Maximize alcove depth for hanging rails, shelves & drawers.',
         body: 'Standard alcove depth is often around 40–50 cm, which is slightly shallower than standard 60 cm hanger depth. '
           + 'FurniDraw allows you to either project the wardrobe forward with custom side end panels or utilize pull-out '
-          + 'telescopic hanging rails to preserve shallow alcove aesthetics.',
+          + 'hanging rails to preserve shallow alcove aesthetics.',
       },
       {
         title: 'Workshop elevations & cut lists with fitting tolerances.',
         body: 'Export millimetre-accurate cutting lists and front elevations from our [online wardrobe designer](/wardrobe-designer/). '
-          + 'Share the documentation with your joiner to ensure all panels, partitions, and face frames are cut to fit your alcove exactly.',
+          + 'Share the documentation with your joiner to ensure all panels and partitions are cut to fit your alcove exactly.',
       },
     ],
     faqs: [
@@ -240,7 +240,7 @@ export const nichePages: readonly Guide[] = [
       ],
       [
         'Does the software account for high Victorian skirting boards?',
-        'Yes. You can configure plinth (toe kick) heights up to 150 mm or more to clear tall historic skirting boards cleanly.',
+        'Yes. You can set the plinth (toe kick) height and scribing fillets to work around tall skirting boards.',
       ],
     ],
   },
@@ -265,7 +265,7 @@ export const nichePages: readonly Guide[] = [
       {
         title: 'Track carcass panels, shelves, partitions, fronts & backing boards.',
         body: 'The generated parts list categorizes components logically by assembly role and material thickness. '
-          + 'Distinguish 18 mm carcass boards (MDF, MFC, or plywood) from 8 mm backing boards and 22 mm worktop slabs. '
+          + 'Distinguish 18 mm carcass boards (MDF, MFC, or plywood) from 6 mm backing boards and worktop slabs. '
           + 'Quantities, finished lengths, and finished widths are displayed clearly for workshop efficiency.',
         list: [
           'Component schedule organized by board material and thickness.',
@@ -274,10 +274,10 @@ export const nichePages: readonly Guide[] = [
         ],
       },
       {
-        title: 'Edge banding allowances, grain direction & board thicknesses.',
-        body: 'Our documentation details finished component sizes and indicates which visible edges require edge banding (0.8 mm, '
-          + '1 mm, or 2 mm PVC/ABS/wood veneer). Grain direction flags ensure that woodgrain decors run vertically on doors '
-          + 'and gables and horizontally on drawer fronts and shelves.',
+        title: 'Edge marks, grain direction & board thicknesses.',
+        body: 'Our documentation details finished component sizes, with an Edges column marking which long and short edges are banded. '
+          + 'Each part is listed with its length running along the grain, so woodgrain decors stay consistent. '
+          + 'Sizes are finished sizes, so deduct edge banding before cutting.',
       },
       {
         title: 'Export dimensioned CAD drawings & hardware schedules.',
@@ -297,7 +297,7 @@ export const nichePages: readonly Guide[] = [
       ],
       [
         'Does the cut list include backing board grooves and rebates?',
-        'Carcass depths and back board sizes are calculated accounting for an 8 mm back panel set into a rear rebate or groove.',
+        'Carcass depths and back board sizes are calculated accounting for a 6 mm back panel set into a rear rebate or groove.',
       ],
       [
         'Is the cut list generator free to use?',

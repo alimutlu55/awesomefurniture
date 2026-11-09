@@ -234,8 +234,8 @@ const portuguese: MarketingCopy = {
 };
 
 const turkish: MarketingCopy = {
-  lang: 'tr', name: 'Türkçe', title: 'FurniDraw — Online 3D Mobilya ve Gardırop Tasarımı',
-  description: "Tasarla. Detaylandır. Üret. Odanızı ve mobilyalarınızı tek bir 3D stüdyoda planlayın, ardından FurniDraw ile ölçülü çizimler ve parça listeleri oluşturun.",
+  lang: 'tr', name: 'Türkçe', title: '3D Gardırop Tasarımı Online: Ücretsiz Başla | FurniDraw',
+  description: "Gardırobunu ve mutfak dolaplarını online 3D tasarla, ücretsiz başla. Ardından ölçülü çizimler ve parça listeleri hazırla.",
   nav: ['Deneyim', 'Detaylar', 'Tasarım notları'], start: 'Stüdyoyu aç', eyebrow: "MOBİLYANIZ. FİKİRDEN ÜRETİME.",
   headline: ["Tasarla.", "Detaylandır.", "Üret."],
   intro: "Alanınıza neyin uyduğunu görün, parçaların nasıl birleşeceğini planlayın ve üretim için net planlar hazırlayın. Hepsi tek bir 3D stüdyoda.",

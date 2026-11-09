@@ -26,7 +26,7 @@ export const informationPages: readonly Guide[] = [
       {
         title: 'Parametric accuracy to the millimetre.',
         body: 'Every wardrobe and cabinet is engineered with real millwork parameters: 18 mm board construction, '
-          + '8 mm inset backs, 60–100 mm plinth offsets, scribing allowances for uneven walls, and '
+          + '6 mm inset backs, 60–100 mm plinth offsets, scribing allowances for uneven walls, and '
           + 'concealed hinge calculations. Change an overall dimension or ceiling angle, and every shelf, '
           + 'partition, and cut list line updates instantly.',
       },

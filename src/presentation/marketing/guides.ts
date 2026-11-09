@@ -8,7 +8,7 @@ export const guideArticles: readonly Guide[] = [
   {
     slug: 'guides/measure-for-a-fitted-wardrobe',
     published: '2026-10-28',
-    updated: '2026-11-05',
+    updated: '2026-11-08',
     label: 'How to measure for a fitted wardrobe',
     title: 'How to Measure for a Fitted Wardrobe: 4-Step Checklist',
     description: 'Measure width, height, depth and obstructions for a fitted wardrobe. '
@@ -45,11 +45,45 @@ export const guideArticles: readonly Guide[] = [
           + 'flush against irregular walls. Check our [standard wardrobe dimensions](/guides/standard-wardrobe-dimensions/) for internal sizing.',
       },
       {
-        title: '04. Professional cabinetmaker review.',
-        body: 'Reviewed by FurniDraw Cabinet Engineering Team. Before ordering sheet goods or cutting boards, have your '
+        title: '04. Have a joiner check the measurements.',
+        body: 'Before ordering sheet goods or cutting boards, have your '
           + 'joiner or carpenter verify critical site measurements against the exported dimensioned drawings. '
           + 'Transparent [pricing](/pricing/) lets you plan 100% free and pay only when generating CAD export packages.',
       },
+      {
+        title: 'Example: choosing the width to design to.',
+        body: 'Say an opening measures 2412 mm at the floor, 2405 mm at the midpoint and 2398 mm near the ceiling. '
+          + 'The wardrobe has to pass through the narrowest point, so 2398 mm is the width to design to. '
+          + 'With a 30 mm scribing fillet on each side, the cabinets themselves would be 2338 mm wide.',
+      },
+      {
+        title: 'Common measuring mistakes.',
+        body: 'Most fitting problems come from a measurement that was never taken, not one that was misread.',
+        list: [
+          'Taking one width and assuming the walls are parallel.',
+          'Measuring depth above the skirting board and forgetting it at the floor.',
+          'Leaving out sockets, switches and pipes that sit behind the wardrobe.',
+          'Forgetting the room a door needs to open, or the space to bring long panels into the room.',
+        ],
+      },
+    ],
+    faqs: [
+      [
+        'Which width do I use if the walls are not straight?',
+        'Use the smallest measurement. Fillets at the sides and top then close the gaps where the walls move away from the wardrobe.',
+      ],
+      [
+        'How much should I allow for uneven walls?',
+        'Allow a 25–40 mm scribing fillet along each side and the top, so your joiner can cut it to the wall on site.',
+      ],
+      [
+        'Do I measure from the skirting board or the wall?',
+        'Measure both. The width above the skirting is the wall-to-wall size, but the skirting narrows the space at floor level unless it is removed or the wardrobe is cut around it.',
+      ],
+      [
+        'Can I enter my measurements in inches?',
+        'Yes. The studio accepts centimetres, millimetres and inches.',
+      ],
     ],
   },
   {
@@ -255,8 +289,8 @@ export const guideArticles: readonly Guide[] = [
       {
         title: 'Check units, material specification and board thickness.',
         body: 'Confirm measurement units (millimetres are standard in cabinetmaking workshops). Group parts by board material '
-          + 'and thickness (e.g. 18 mm MFC for carcasses, 8 mm MDF for backs). Check grain orientation flags '
-          + 'for veneered or woodgrain decors.',
+          + 'and thickness (e.g. 18 mm MFC for carcasses, 6 mm MDF for backs). Each part’s length runs with the grain '
+          + 'on veneered or woodgrain decors.',
         list: [
           'Verify current drawing revision number matches the cutting list revision.',
           'Check part counts, board thicknesses, and material specifications.',
@@ -318,7 +352,7 @@ export const guidesHub: Guide = {
     {
       title: 'From 3D model to workshop cutting list.',
       body: 'Translate 3D parametric models into accurate panel cutting schedules. Understand finished part sizes, '
-        + 'grain orientation flags, and edge-banding deductions using our [guide on how to read a cutting list](/guides/read-a-cabinet-cutting-list/) '
+        + 'grain direction, and edge-banding deductions using our [guide on how to read a cutting list](/guides/read-a-cabinet-cutting-list/) '
         + 'and [cabinet cut list generator](/cabinet-cut-list-generator/).',
     },
   ],
