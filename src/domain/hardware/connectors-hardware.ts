@@ -198,9 +198,10 @@ export const DOWEL_ENTRY: HardwareEntry = {
   sizesMm: [35, 30],
   defaultVariant: 'standard',
   variants: [
-    { key: 'standard', name: '8 × 35 mm fluted beech dowel', sizeLabel: '8 × 35', label: 'Wooden dowel', sizesMm: [35] },
-    { key: 'short', name: '6 × 30 mm short blind dowel (sloped roof joint)', sizeLabel: '6 × 30', sizesMm: [30] },
-    { key: 'expanding', name: '8 × 30 mm expanding plastic dowel, hammered through a drawer back', sizeLabel: '8 × 30 expanding', label: 'Expanding dowel', sizeText: '8 × 30 mm', sizesMm: [30] },
+    { key: 'standard', name: '8 × 35 mm fluted beech dowel', sizeLabel: '8 × 35', label: 'Wooden dowel', tools: ['hand'], cue: 'Push in by hand, as far as it goes', sizesMm: [35] },
+    { key: 'short', name: '6 × 30 mm short blind dowel (sloped roof joint)', sizeLabel: '6 × 30', sizesMm: [30], tools: ['hand'], cue: 'Push in by hand, as far as it goes' },
+    { key: 'expanding', name: '8 × 30 mm expanding plastic dowel, hammered through a drawer back', sizeLabel: '8 × 30 expanding',
+      label: 'Expanding dowel', sizeText: '8 × 30 mm', tools: ['hammer'], cue: 'Hammer through the back into the side', sizesMm: [30] },
   ],
   rules: {
     clearanceMm: {},

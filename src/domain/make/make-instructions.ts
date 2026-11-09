@@ -1,4 +1,4 @@
-import { assemblyStageSpec, hardware } from '../hardware/hardware-registry';
+import { assemblyStageSpec, fittingTools } from '../hardware/hardware-registry';
 import { TOOL_ORDER, type ToolKey } from '../hardware/tools';
 import type { FittingKind } from './make-joints';
 import type { MakePart, MakePiece } from './make-parts';
@@ -88,7 +88,7 @@ export function stepNotes(piece: MakePiece, k: number): StepNotes {
   const step = piece.steps[k]!, items = new Set(step.items), tools = new Set<ToolKey>();
   const drills = piece.holes.some(h => h.of !== undefined ? items.has(h.of) : step.boards.includes(h.board));
   if (drills) tools.add('drill');
-  for (const i of step.items) for (const t of hardware(piece.fittings[i]!.kind)?.assembly.tools ?? []) tools.add(t);
+  for (const i of step.items) for (const t of fittingTools(piece.fittings[i]!.kind, piece.fittings[i]!.size).tools) tools.add(t);
   return {
     tools: TOOL_ORDER.filter(t => tools.has(t)),
     kits: drawerKits(piece, k),

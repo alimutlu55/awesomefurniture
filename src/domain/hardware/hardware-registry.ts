@@ -1,3 +1,4 @@
+import type { ToolKey } from './tools';
 import {
   BOLT_ENTRY,
   CAM_ENTRY,
@@ -271,4 +272,10 @@ export function requireHardware(key: string): HardwareEntry {
 
 export function hardwareByCategory(category: HardwareCategory): HardwareEntry[] {
   return HARDWARE.filter(h => h.category === category);
+}
+
+/** The tools a fitting goes in with and how: its variant's own (a wooden or an expanding dowel), else its entry's. */
+export function fittingTools(kind: string, size?: string): { tools: readonly ToolKey[]; cue: string } {
+  const entry = hardware(kind), variant = size ? entry?.variants?.find(v => v.sizeLabel === size) : undefined;
+  return { tools: variant?.tools ?? entry?.assembly.tools ?? [], cue: variant?.cue ?? entry?.assembly.cue ?? '' };
 }

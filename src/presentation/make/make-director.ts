@@ -157,7 +157,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate' && !piece.fittings[i]!.size?.includes('cargo'));
       const purpose0 = piece.fittings[fix.items[0]!]!.purpose;
       // A drawer lock is small and under a drawer: with enough round it to see which drawer and which side.
-      const padRadius = isCargoStage ? 10 : fix.items.some(i => piece.fittings[i]!.kind === 'drawerLock') ? 14 : 8;
+      // A dowel into a board lying on the floor is small: close in on it and its hole.
+      const small = lying !== null && fix.items.every(i => piece.fittings[i]!.kind === 'dowel');
+      const padRadius = isCargoStage ? 10 : fix.items.some(i => piece.fittings[i]!.kind === 'drawerLock') ? 14 : small ? 4 : 8;
       // The back's dowels are hammered with the whole back in view, so it is clear where they go and that it is shut.
       const backBox = purpose0 === 'box-back' && fix.board !== null ? (piece.drawers ?? []).find(q => drawerBoards(q).includes(fix.board!)) : undefined;
       const points = backBox ? drawerBoards(backBox).flatMap(j => placed(j, (fix.at[0] + fix.at[1]) / 2))
@@ -174,7 +176,10 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const below = kind === 'drawerLock' && piece.fittings[fix.items[0]!]!.size === 'lever', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
       const az = plates && middle ? inside(where(middle.at)) : below || into || plate ? facing + side * .45 : up ? facing + side * .3 + turn
         : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
-      const el = below ? -.28 : plate ? .6 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
+      // Something going straight down into a board lying flat (a dowel into a side's end, a bolt into a front) is seen from
+      // the side, a little above, so it shows along its length going into its hole, not end on as a coin.
+      // Into a board lying among the others on the floor: from higher up, over the neighbours, not past them.
+      const el = below ? -.28 : plate ? .6 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .45 : .12) : small ? .62 : plates ? .3 : .34;
       const span = fix.at[1] - fix.at[0], fixPad = backBox ? 1.25 : isCargoStage ? 1.08 : 1.12;
       shot(fix.at[0] + span * .2, points, az, el, fixPad);
       shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);

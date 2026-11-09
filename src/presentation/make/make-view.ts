@@ -131,7 +131,7 @@ export function createMakeView(ports: MakeViewPorts) {
       showFilm();
     } else {
       player.pause();
-      make3d.setFilm(null);
+      make3d.setFilm(null); make3d.ring(null);
       st.building = null; st.marks = '';
     }
     pressed();
@@ -140,7 +140,7 @@ export function createMakeView(ports: MakeViewPorts) {
    * it from where the person left the camera), and the player's controls. */
   function showFilm() {
     if (!st.piece || !st.filming) return;
-    make3d.setFilm(player.film());
+    make3d.setFilm(player.film()); make3d.ring(player.fixing()?.holes ?? null);
     resources.R.shadowMap.needsUpdate = true;
     st.building = player.building();
     if (st.follow && st.shots) {

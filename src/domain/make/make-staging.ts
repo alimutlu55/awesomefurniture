@@ -15,7 +15,9 @@ export interface Staged {
   readonly at: Vec3; readonly lie: 'x' | 'z' | null; readonly spin: boolean; readonly size: Vec3; readonly tilt: number; readonly flip: boolean;
 }
 
-const GAP = 8, FRONT = 30;
+/** Parts lie this far apart: more than a fastener waits from its hole (WAIT) and its length, so one waiting to go into a
+ * board's end waits in the clear, not inside the next board. */
+const GAP = 16, FRONT = 30;
 
 /** A board's size lying flat: [across the room, thickness, front to back], and how it is turned to lie so. */
 export function lyingFlat(b: Board, flip = false) {

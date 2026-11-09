@@ -121,7 +121,9 @@ export function createMakePlayer() {
         c.qty++;
         counts.set(key, c);
       }
-      return { lines, hardware: [...counts.values()] };
+      // The holes they go into, so the hole each one goes into is marked while it does.
+      const holes = p.holes.flatMap((h, k) => h.of !== undefined && now.items.includes(h.of) ? [k] : []);
+      return { lines, hardware: [...counts.values()], holes };
     },
   };
 }
@@ -134,5 +136,7 @@ function matShown(piece: MakePiece, tl: Timeline, ph: Playhead) {
 /** A joint being fixed, as Make writes it over the film. */
 export interface Fixing {
   readonly lines: readonly { readonly from: Vec3; readonly to: Vec3; readonly seen: number; readonly go: number }[];
+  /** The holes the joint's hardware goes into, by their place in the piece's hole list. */
+  readonly holes: readonly number[];
   readonly hardware: readonly { readonly kind: FittingKind; readonly size?: string; readonly qty: number }[];
 }

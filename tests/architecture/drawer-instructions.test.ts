@@ -101,7 +101,7 @@ test('a drawer takes what the flat-pack drawer manual counts, step by step, once
   assert.deepEqual(kit('drawer-runners'), { 'runner 550': 1, 'screw 4 × 12': 4 });
   assert.deepEqual(kit('drawers'), { 'drawerLock plate': 2 });
   assert.deepEqual(kit('drawer-lock'), { 'drawerLock lever': 2 });
-  assert.deepEqual(stepNotes(mp, k('drawer-sides')).tools, ['drill', 'flat', 'hammer']);
+  assert.deepEqual(stepNotes(mp, k('drawer-sides')).tools, ['drill', 'flat', 'hand'], 'wooden dowels go in by hand');
   assert.deepEqual(stepNotes(mp, k('drawer-lock')).tools, ['hand']);
   assert.ok(stepNotes(mp, k('drawer-boxes')).avoid.some(a => /soft mat/.test(a)));
 });

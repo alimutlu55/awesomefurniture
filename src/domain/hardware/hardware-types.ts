@@ -273,6 +273,9 @@ export interface HardwareVariantSpec {
   /** What it is called in a step's list, short ("Expanding dowel"), and its size written there ("8 × 30 mm"). */
   readonly label?: string;
   readonly sizeText?: string;
+  /** Tools and the way it goes in, where they differ from its entry's (a wooden dowel by hand, an expanding one hammered). */
+  readonly tools?: readonly ToolKey[];
+  readonly cue?: string;
   readonly sizesMm?: readonly number[];
   readonly fullSpan?: boolean;
   readonly angleDeg?: number;

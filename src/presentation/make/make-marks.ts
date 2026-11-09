@@ -3,7 +3,7 @@ import { type Measure, partMeasures, pieceMeasures, thinAxis, type Vec3 } from '
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
 import { translate } from '../i18n/language';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
-import { hardware } from '../../domain/hardware/hardware-registry';
+import { fittingTools } from '../../domain/hardware/hardware-registry';
 import type { Fixing } from './make-player';
 
 /** A length (centimetres) as the person reads it, in their unit. */
@@ -166,7 +166,7 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
     return { ...h, name: esc(translate(disp.name)), label: `×${h.qty}`, small: esc(disp.size) };
   });
   // How it goes in, as the manual's arrow says it: turned, tapped, hammered, by hand (the hardware registry's cue).
-  const cue = esc(translate(hardware(fixing.hardware[0]!.kind)?.assembly.cue ?? ''));
+  const cue = esc(translate(fittingTools(fixing.hardware[0]!.kind, fixing.hardware[0]!.size).cue));
   const row = fs * 2.1, pad = fs * .6, icon = fs * 1.5, cueRow = cue ? fs * 1.6 : 0;
   const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
   const rawW = pad * 2 + Math.max(icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52)), cue.length * fs * .5);

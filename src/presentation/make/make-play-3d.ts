@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Fitting } from '../../domain/make/make-joints';
-import { hardware } from '../../domain/hardware/hardware-registry';
+import { fittingTools } from '../../domain/hardware/hardware-registry';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { MakePiece } from '../../domain/make/make-parts';
 import {
@@ -81,6 +81,7 @@ export function createMakePlay(layer: number) {
   const brass = new THREE.MeshLambertMaterial({ color: BRASS, emissive: 0x3a2c14, emissiveIntensity: .5 });
   const drill = new THREE.MeshLambertMaterial({ color: BIT, emissive: 0x15171a, emissiveIntensity: .5 });
   const plastic = new THREE.MeshLambertMaterial({ color: 0xd9d6cf, emissive: 0x5a5852, emissiveIntensity: .45 });
+  const beech = new THREE.MeshLambertMaterial({ color: 0xe2c48f, emissive: 0x4a3a20, emissiveIntensity: .4 });
   const wood = new THREE.MeshLambertMaterial({ color: 0xa8743f, emissive: 0x3a2814, emissiveIntensity: .45 });
   // The hammer that drives what goes in with one (one on screen at a time, at the fastener being driven): its face at
   // its origin striking along +y, its head behind it and the handle across.
@@ -89,7 +90,7 @@ export function createMakePlay(layer: number) {
     solid(rod, wood, new THREE.Vector3(HAMMER.handle / 2, -HAMMER.head / 2, 0), new THREE.Vector3(HAMMER.grip, HAMMER.handle, HAMMER.grip), new THREE.Vector3(1, 0, 0)));
   hammer.visible = false;
   hammer.traverse(c => { c.layers.set(layer); c.userData.make = true; c.raycast = () => undefined; });
-  const hammered = (f: Fitting) => !!hardware(f.kind)?.assembly.tools?.includes('hammer');
+  const hammered = (f: Fitting) => fittingTools(f.kind, f.size).tools.includes('hammer');
   let fasteners: Fastener[] = [], bits: Bit[] = [];
   let links: readonly (readonly number[])[] = [];
   const highlight = new THREE.MeshLambertMaterial({ color: 0x4976ad, emissive: 0x243b56, emissiveIntensity: .5 });
@@ -115,7 +116,7 @@ export function createMakePlay(layer: number) {
     if (f.kind === 'bolt') return make(camBoltMesh(rod, box, steel), 6 * Math.PI);
     if (f.kind === 'cam') return { ...make(camHousingMesh(rod, box, cone, brass, steel), Math.PI), turnLast: true };
     // An expanding dowel is the plastic one with a mushroom head, hammered through a drawer back; a wooden one is tapped in.
-    if (f.kind === 'dowel') return { ...make(f.size?.includes('expanding') ? expandingDowelMesh(rod, plastic) : dowelMesh(rod, brass)), hammered: hammered(f) };
+    if (f.kind === 'dowel') return { ...make(f.size?.includes('expanding') ? expandingDowelMesh(rod, plastic) : dowelMesh(rod, beech, box, cone)), hammered: hammered(f) };
     if (f.kind === 'nail') return { ...make(screwFastenerMesh('nail', f.size, rod, cone, steel)), hammered: hammered(f) };
     if (f.kind === 'pin') return make(shelfPinMesh(rod, brass));
     if (f.kind === 'hinge') {
@@ -191,7 +192,13 @@ export function createMakePlay(layer: number) {
         const { f, off } = striking;
         (f.group.parent ?? f.group).add(hammer);
         hammer.position.copy(f.group.position).addScaledVector(f.dir, -off - .4);
-        hammer.quaternion.setFromUnitVectors(Y, f.dir);
+        // Its face along the way the fastener goes in, its handle turned to point as far up as it can, never into the floor.
+        const host = f.group.parent ?? f.group, up = Y.clone().applyQuaternion(host.getWorldQuaternion(new THREE.Quaternion()).invert());
+        const handle = up.sub(f.dir.clone().multiplyScalar(up.dot(f.dir)));
+        if (handle.lengthSq() < 1e-4) handle.set(1, 0, 0).sub(f.dir.clone().multiplyScalar(f.dir.x));
+        const face = new THREE.Quaternion().setFromUnitVectors(Y, f.dir), across = new THREE.Vector3(1, 0, 0).applyQuaternion(face);
+        const spin = Math.atan2(across.clone().cross(handle.normalize()).dot(f.dir), across.dot(handle));
+        hammer.quaternion.copy(new THREE.Quaternion().setFromAxisAngle(f.dir, spin).multiply(face));
       }
     },
     /** Highlight the actual fasteners joining an inspected component, at their current timeline transforms. */
@@ -208,7 +215,7 @@ export function createMakePlay(layer: number) {
     dispose() {
       this.clear();
       for (const g of [rod, cone, box]) g.dispose();
-      steel.dispose(); brass.dispose(); drill.dispose(); highlight.dispose(); plastic.dispose(); wood.dispose();
+      steel.dispose(); brass.dispose(); drill.dispose(); highlight.dispose(); plastic.dispose(); wood.dispose(); beech.dispose();
     },
   };
 }
