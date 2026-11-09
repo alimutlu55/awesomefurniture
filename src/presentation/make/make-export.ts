@@ -6,7 +6,8 @@ import { thinAxis } from '../../domain/make/make-measures';
 import { box, type Mark, type Pt, shape, words } from '../drawings/paper-marks';
 import { marksToPdf } from '../drawings/pdf-writer';
 import { PAPER } from '../drawings/sheet-layout';
-import { FITTING_NAMES, sold } from './make-panel-tabs';
+import { hardwareDisplay } from './make-panel-tabs';
+import { stepPages } from './make-steps-pdf';
 import { drillingSummary, partDrilling } from './make-sheet';
 
 /**
@@ -82,7 +83,7 @@ function partCell(piece: MakePiece, part: MakePart, info: ExportInfo, x0: number
   return out;
 }
 
-/** The drawings: parts six to a page, the stock sheets two to a page, then hardware and the steps. */
+/** The drawings: parts six to a page, the stock sheets two to a page, the hardware, then the steps four to a page. */
 export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
   const pages: { heading: string; marks: Mark[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
   for (let k = 0; k < piece.parts.length; k += cols * rows) {
@@ -111,17 +112,11 @@ export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
     pages.push({ heading: 'Cut layout', marks });
   }
   const marks: Mark[] = [words(P(M + 4, M + 10), 'Hardware', 'heading')];
-  piece.buy.forEach((b, i) => marks.push(words(P(M + 4, M + 18 + i * 5.5), FITTING_NAMES[b.kind] + (b.size ? '  ' + sold(b.size) : ''), 'list'),
-    words(P(M + 110, M + 18 + i * 5.5), '×' + b.qty, 'listMark', 'end')));
-  const sx = M + 130;
-  marks.push(words(P(sx, M + 10), 'Steps', 'heading'));
-  piece.steps.forEach((st, i) => {
-    const parts = [...new Set(st.boards.map(b => piece.parts.find(p => p.ids.includes(b))!.n))].join(', ');
-    const hardware = st.fittings.map(f => `${FITTING_NAMES[f.kind]} ×${f.qty}`).join(', ');
-    marks.push(words(P(sx, M + 18 + i * 11), `${st.n}`, 'listMark'), words(P(sx + 8, M + 18 + i * 11), parts ? 'Parts ' + parts : '', 'list'),
-      words(P(sx + 8, M + 23 + i * 11), hardware, 'small'));
-  });
+  piece.buy.forEach((b, i) => { const d = hardwareDisplay(b); marks.push(words(P(M + 4, M + 18 + i * 5.5), d.name + (d.size ? '  ' + d.size : ''), 'list'),
+    words(P(M + 150, M + 18 + i * 5.5), '×' + b.qty, 'listMark', 'end')); });
   marks.push(words(P(M + 4, PH - M - TITLE - 6), `Joints: ${piece.construction.joints} · back: ${piece.construction.back} · holes in mm from the part's lower left corner, face up; dashed: from the face under it.`, 'small'));
-  pages.push({ heading: 'Hardware and steps', marks });
+  pages.push({ heading: 'Hardware', marks });
+  // The steps, as the manual prints them: a drawing and the words for each.
+  pages.push(...stepPages(piece, { x: M + 2, y: M + 2, w: PW - 2 * M - 4, h: PH - 2 * M - TITLE - 4 }));
   return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make');
 }

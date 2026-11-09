@@ -222,7 +222,8 @@ test('the cut list has a line a part in millimetres and the drawings are one PDF
   const pdf = new TextDecoder().decode(makePdf(mp, { title: 'Wardrobe', material: () => 'Oak', band: 1, cut: cutLayout(mp.parts) }));
   assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
   const pages = Number(/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/.exec(pdf)![1]);
-  assert.equal(pages, Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1);
+  // Parts, stock sheets, the hardware, then the steps four to a page.
+  assert.equal(pages, Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1 + Math.ceil(mp.steps.length / 4));
 });
 
 test('glass doors hang on clamp hinges: nothing is drilled in them', async () => {

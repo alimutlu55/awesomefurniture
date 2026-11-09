@@ -39,11 +39,11 @@ const instructions: Record<Stage, string> = {
   'drawer-test': 'Open and close each drawer. The cabinet rails stay fixed and the drawer rails travel with the box. Check smooth travel, equal gaps and that both locks hold.',
   fronts: 'Align the decorative drawer front, then fasten it from inside the box with short front-fixing screws. Keep the front square and the gaps even.',
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
-  wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
+  wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer\'s instructions.',
 };
 /** The drawer chapters: their caption is shown, and their instruction is the drawer's own, whatever the phase. */
 const DRAWER_STAGES: ReadonlySet<Stage> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'drawer-lock', 'fronts', 'drawer-test']);
-const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
+export const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
 const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
   'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
@@ -56,7 +56,9 @@ const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-test': 'Pull the cargo unit out to full extension (430 mm travel on L=450 mm slides). Verify smooth telescoping travel, '
     + 'M4×6 bracket lock, Separator divider retention, even 3D-adjusted door reveals, and SLOW soft-close return.',
 };
-const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
+/** A step's instruction as the Studio and the saved drawings write it: a cargo pull-out's own where it has one. */
+export const instructionFor = (s: Stage, isCargo: boolean) => (isCargo && cargoInstructions[s]) || stageInstruction(s);
+export const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
 /** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
  * pressed into the doors, plates screwed to the side panel, each door clipped onto its plates, then adjusted. */
 const hanging = {

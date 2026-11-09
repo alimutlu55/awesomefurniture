@@ -13,6 +13,7 @@ import { HARDWARE, RUNNER_ENTRY } from '../../src/domain/hardware/hardware-regis
 import { TOOLS } from '../../src/domain/hardware/tools';
 import { drawerHand, stepNotes } from '../../src/domain/make/make-instructions';
 import { hardwareDisplay } from '../../src/presentation/make/make-panel-tabs';
+import { stepPages, wrap } from '../../src/presentation/make/make-steps-pdf';
 
 // Drawers at the bottom of the left bay, behind hinged doors: the reference flat-pack manual moves drawers a hole up for
 // hinged doors; a made wardrobe moves the hinges.
@@ -110,4 +111,17 @@ test('the runners step says where each runner goes; box sides are named left and
   assert.ok(hands.includes('left') && hands.includes('right'));
   assert.equal(hardwareDisplay({ kind: 'dowel', size: '8 × 30 expanding' }).name, 'Expanding dowel');
   assert.equal(hardwareDisplay({ kind: 'drawerLock', size: 'lever' }).name, 'Locking lever');
+});
+
+test('the saved drawings print every step with its drawing, instruction, tools, drawer kit and what not to do', () => {
+  const mp = made(wardrobe), pages = stepPages(mp, { x: 0, y: 0, w: 400, h: 260 });
+  assert.equal(pages.length, Math.ceil(mp.steps.length / 4));
+  const text = pages.flatMap(p => p.marks).flatMap(m => m.kind === 'text' ? [m.text] : []), all = text.join(' ');
+  for (const s of mp.steps) assert.ok(text.includes(String(s.n)), `step ${s.n} numbered`);
+  assert.match(all, /Tools: .*Flat screwdriver/);
+  assert.match(all, /Each of 2 drawers: Cam bolt/);
+  assert.match(all, /× Do not build a drawer on a hard floor/);
+  assert.match(all, /holes 107 mm up/);
+  assert.ok(pages.every(p => p.marks.some(m => m.kind === 'shape' && m.fill === 'laminated')), 'what each step adds is shaded');
+  assert.deepEqual(wrap('one two three four five', 12, 2.4), ['one two', 'three four', 'five'], 'at most 10 letters a line');
 });
