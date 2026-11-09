@@ -2,10 +2,10 @@ import { boresClash, meantToMeet } from './bore-clearance';
 import { boreMaterial } from './bore-material';
 import type { DrawerBox } from './drawer-box';
 import type { Board } from '../drawings/cabinet-boards';
-import { hardware, resolveAssemblyStages } from '../hardware/hardware-registry';
-import type { AssemblyStage } from '../hardware/hardware-types';
+import { hardware } from '../hardware/hardware-registry';
 import { type Axis, type Fitting, type FittingKind, type Hole, type HoleKind, hi, lo } from './make-joints';
 import { thinAxis, tiltOf } from './make-measures';
+import { type BuildSequence, STAGES, type Stage } from './make-sequence';
 
 /** A hole as it is marked on its board lying flat: millimetres along the board's length (u) and across it (v) from its
  * corner, on the face shown (+), the face under it (−), or in an edge (u0, u1: the ends; v0, v1: the long edges). */
@@ -64,10 +64,9 @@ export function drillingSignature(b: Board, holes: readonly Hole[]): string {
 }
 const bandCounts = (code: string) => ({ long: Number(/L(\d)/.exec(code)?.[1] ?? 0), short: Number(/W(\d)/.exec(code)?.[1] ?? 0) });
 
-/** One step of putting the piece together: the boards it adds and the hardware that holds them. */
 /** What a step does, in the order resolved from each stage's prerequisites in the hardware registry. */
-export const STAGES: readonly AssemblyStage[] = resolveAssemblyStages();
-export type Stage = AssemblyStage;
+export { STAGES, type Stage };
+/** One step of putting the piece together: the boards it adds, in the order they go in, and the hardware that holds them. */
 export interface Step {
   readonly n: number;
   readonly stage: Stage;
@@ -77,39 +76,15 @@ export interface Step {
   readonly items: readonly number[];
 }
 /**
- * The order a maker puts the piece together, from where each board is and what it is: the plinth; the base between the
- * outer sides; the partitions; the top; the back; everything inside (shelves, dividers); the drawer boxes on their
- * runners; the fronts (drawer and kitchen fronts); the doors, hung on their hinge plates and adjusted. A drawer box goes
- * together in its own steps (`drawers`, from drawer-box.ts): front and bottom, sides, back.
- * Hardware joins in the step that adds the later of the boards it holds; legs with the plinth, a hinge plate with its
- * door (the hinge before it in the list), wall fixings last.
+ * The steps a maker puts the piece together in, from the build order (make-sequence.ts): the plinth; the left side and
+ * the base; the bays, left to right, to the right side; the top; the back; what rests inside; the drawer boxes on
+ * their runners; the fronts; the doors, hung on their hinge plates and adjusted. A drawer box goes together in its own
+ * steps (drawer-box.ts): front and bottom, sides, back.
+ * Hardware joins in the step that adds the later of the boards it holds; legs with the base they are screwed under, a
+ * hinge plate with its door (the hinge before it in the list), wall fixings last.
  */
-export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[], drawers: readonly DrawerBox[] = []): Step[] {
-  // A drawer box goes together in steps (drawer-box.ts): its front with the bottom, then the sides, then the back.
-  const boxStage = new Map<number, Stage>();
-  for (const d of drawers) {
-    boxStage.set(d.front, 'drawer-boxes'); boxStage.set(d.bottom, 'drawer-boxes'); boxStage.set(d.back, 'drawer-back');
-    for (const side of d.sides) boxStage.set(side, 'drawer-sides');
-  }
-  const w = Math.max(...boards.map(b => b.x1)), h = Math.max(...boards.map(b => b.y1)), top = h;
-  const horizontals = boards.filter(b => b.stock === 'carcass' && thinAxis(b) === 'y' && b.note !== 'drawer box');
-  const base = horizontals.length ? Math.min(...horizontals.map(b => b.y0)) : -1;
-  const stepOf = (b: Board, i: number): Stage => {
-    const box = boxStage.get(i);
-    if (box) return box;
-    if (b.stock === 'plinth') return 'plinth';
-    if (b.stock === 'door') return 'doors';
-    if (b.stock === 'front') return 'fronts';
-    if (b.note === 'drawer box') return 'drawer-boxes';
-    if (b.note === 'adjustable') return 'inside';
-    if (b.stock === 'back') return 'back';
-    const t = thinAxis(b);
-    if (t === 'x' && b.y1 - b.y0 > h * .4) return b.x0 < .5 || b.x1 > w - .5 ? 'carcass' : 'partitions';
-    if (t === 'y' && b.y1 >= top - .05) return 'top';
-    if (t === 'y' && Math.abs(b.y0 - base) < .05) return 'carcass';
-    return 'inside';
-  };
-  const steps = boards.map(stepOf);
+export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[], sequence: BuildSequence, drawers: readonly DrawerBox[] = []): Step[] {
+  const order = sequence.stages, steps = sequence.stage;
   const fittingStep = (f: Fitting, i: number): Stage => {
     if (f.purpose === 'box-front') return 'drawer-boxes';
     if (f.purpose === 'box-sides') return 'drawer-sides';
@@ -124,14 +99,17 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
     }
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
     const hw = hardware(f.kind);
-    if (hw && !hw.assembly.fittedFirst && !['connector', 'fixing', 'hinge', 'handle'].includes(hw.category)) {
+    // Hardware with a stage of its own (rails, runners, wall fixings) goes in there; a connector, a hinge, a handle or a
+    // leg goes in with the later of the boards it holds.
+    if (hw && !hw.assembly.fittedFirst && !['connector', 'fixing', 'hinge', 'handle', 'leg'].includes(hw.category)) {
       return hw.assembly.stage;
     }
-    return STAGES[Math.max(0, ...f.boards.map(b => STAGES.indexOf(steps[b]!)))]!;
+    return order[Math.max(0, ...f.boards.map(b => order.indexOf(steps[b]!)))]!;
   };
   const out: Step[] = [], hasDrawers = fittings.some(f => f.runner || f.kind === 'runner');
-  for (const stage of STAGES) {
-    const mine = boards.map((_, i) => i).filter(i => steps[i] === stage);
+  void drawers;
+  for (const stage of order) {
+    const mine = boards.map((_, i) => i).filter(i => steps[i] === stage).sort((a, b) => sequence.rank[a]! - sequence.rank[b]!);
     const held = new Map<string, { kind: FittingKind; size?: string; qty: number }>(), items: number[] = [];
     fittings.forEach((f, i) => {
       if (fittingStep(f, i) !== stage) return;

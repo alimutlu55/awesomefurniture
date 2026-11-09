@@ -81,7 +81,9 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // One after another as a maker would: what lies flat before what stands on it (the base before the sides), from the
     // bottom up, left to right.
     const key = (i: number) => { const b = piece.boards[i]!; return [s.stage === 'carcass' && thinAxis(b) !== 'y' ? 1 : 0, Math.round(b.y0 / 10), thinAxis(b) === 'y' ? 0 : 1, b.x0]; };
-    const order = [...s.boards].sort((a, b) => { const p = key(a), q = key(b), k = p.findIndex((v, i) => v !== q[i]); return k < 0 ? 0 : p[k]! - q[k]!; });
+    // The carcass goes together in its build order (make-sequence.ts), which the step's boards are already in.
+    const planned = s.stage === 'carcass' || s.stage === 'partitions' || s.stage === 'top';
+    const order = planned ? [...s.boards] : [...s.boards].sort((a, b) => { const p = key(a), q = key(b), k = p.findIndex((v, i) => v !== q[i]); return k < 0 ? 0 : p[k]! - q[k]!; });
     order.forEach((b, j) => { boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; });
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;

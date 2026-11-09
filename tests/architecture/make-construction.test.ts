@@ -132,13 +132,24 @@ test('the joint system and back fixing change what is drilled, never a board', (
   const by = (joints: typeof JOINT_SYSTEMS[number], back: 'nailed' | 'grooved') => make({ ...wardrobe, construction: { joints, back } });
   const confirmat = by('confirmat', 'nailed'), cam = by('cam', 'nailed'), dowel = by('dowel', 'grooved');
   assert.deepEqual(cam.boards, confirmat.boards);
-  assert.ok(qty(confirmat, 'confirmat') > 0 && qty(cam, 'confirmat') === 0);
   // Drawer boxes are joined their own way whatever the carcass's joints: count the carcass's.
   const carcass = (m: MakePiece, kind: string) => m.fittings.filter(f => f.kind === kind && !f.purpose?.startsWith('box-')).length;
-  assert.equal(carcass(cam, 'cam'), qty(confirmat, 'confirmat'));
+  // Every joint has its connectors at the same stations whatever joins it: the same number in all three systems.
+  const connectors = (m: MakePiece) => carcass(m, 'confirmat') + carcass(m, 'cam') + carcass(m, 'dowel');
+  assert.ok(qty(confirmat, 'confirmat') > 0 && carcass(cam, 'cam') > 0 && carcass(dowel, 'dowel') > 0);
+  assert.equal(connectors(cam), connectors(confirmat));
+  assert.equal(connectors(dowel), connectors(confirmat));
   assert.equal(qty(cam, 'bolt'), qty(cam, 'cam'), 'a bolt for every cam');
   assert.ok(cam.holes.some(h => h.kind === 'cam' && h.d === 15));
-  assert.equal(carcass(dowel, 'dowel'), qty(confirmat, 'confirmat'));
+  // A joint takes the piece's connector wherever it can be made with it in the build order, and says why where not:
+  // a screw whose head would be behind a board already in becomes a dowel, a board with no way onto cams is screwed.
+  for (const m of [confirmat, cam, dowel]) {
+    assert.equal(m.joints.filter(c => c.stuck).length, 0, 'every joint can be made');
+    for (const c of m.joints) assert.equal(c.system !== m.construction.joints, c.instead !== undefined, 'another connector always says why');
+  }
+  assert.ok(cam.joints.filter(c => c.system === 'cam').length > cam.joints.filter(c => c.system !== 'cam').length, 'cams wherever a board can travel onto them');
+  assert.ok(cam.joints.filter(c => c.system !== 'cam').every(c => c.system === 'confirmat' && c.instead === 'captured'));
+  assert.ok(confirmat.joints.filter(c => c.system !== 'confirmat').every(c => c.system === 'dowel' && c.access === 'closed'));
   assert.equal(qty(dowel, 'nail'), 0, 'a grooved cabinet back has no nails, and drawer bottoms sit in grooves');
   assert.ok(dowel.grooves.length >= 4, 'the back slides into the boards around it');
   assert.deepEqual(constructionOf({}), { joints: 'confirmat', back: 'nailed' });

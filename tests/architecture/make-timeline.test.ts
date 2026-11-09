@@ -103,11 +103,25 @@ test('every part waits lying flat on the floor in front of the piece, none on an
   }
 });
 
-test('a step puts its boards in one after another: the base before the sides, shelves from the bottom up', () => {
+test('the carcass goes together from the left: the left side, the base against it, each bay from the bottom up, the right side last', () => {
   const mp = make(wardrobe), tl = assemblyTimeline(mp), at = (name: string) => mp.boards.map((b, i) => ({ b, i })).filter(x => x.b.name === name);
-  for (const side of at('Side')) assert.ok(tl.boardStart[side.i]! > tl.boardStart[at('Base')[0]!.i]!, 'the base goes in before a side');
-  const shelves = at('Shelf').filter(x => tl.boardStep[x.i] === tl.boardStep[at('Shelf')[0]!.i]).sort((p, q) => p.b.y0 - q.b.y0);
-  shelves.slice(1).forEach((x, k) => assert.ok(Math.round(x.b.y0 / 10) === Math.round(shelves[k]!.b.y0 / 10) || tl.boardStart[x.i]! > tl.boardStart[shelves[k]!.i]!, 'lower shelves first'));
+  const when = (i: number) => tl.steps[tl.boardStep[i]!]!.place[0] + tl.boardStart[i]!;
+  const [left, right] = at('Side').sort((p, q) => p.b.x0 - q.b.x0) as [{ b: typeof mp.boards[0]; i: number }, { b: typeof mp.boards[0]; i: number }];
+  const base = at('Base')[0]!;
+  assert.ok(when(left.i) < when(base.i), 'the left side stands before the base is pushed against it');
+  const structure = mp.boards.map((b, i) => ({ b, i })).filter(x => ['carcass', 'partitions'].includes(mp.sequence.stage[x.i]!));
+  for (const x of structure) if (x.i !== right.i) assert.ok(mp.sequence.rank[x.i]! < mp.sequence.rank[right.i]!, `${x.b.name} is in before the right side closes the carcass`);
+  // Every joint's low-side board (left, underneath) is in before the board on its high side: nothing goes between two fixed boards.
+  for (const c of mp.joints) {
+    const [first, then] = c.joint.side > 0 ? [c.joint.face, c.joint.edge] : [c.joint.edge, c.joint.face];
+    assert.ok(mp.sequence.rank[first]! < mp.sequence.rank[then]!, `${mp.boards[first]!.name} before ${mp.boards[then]!.name}`);
+  }
+  // Within a step the film brings the boards in in that order.
+  for (const s of mp.steps.filter(s => ['carcass', 'partitions', 'top'].includes(s.stage))) {
+    s.boards.slice(1).forEach((b, k) => assert.ok(tl.boardStart[b]! >= tl.boardStart[s.boards[k]!]!, 'in build order'));
+  }
+  const shelves = at('Shelf').sort((p, q) => p.b.x0 - q.b.x0 || p.b.y0 - q.b.y0);
+  shelves.slice(1).forEach((x, k) => { if (Math.abs(x.b.x0 - shelves[k]!.b.x0) < .01) assert.ok(mp.sequence.rank[x.i]! > mp.sequence.rank[shelves[k]!.i]!, 'lower shelves of a bay first'); });
 });
 
 test('each joint is fixed in its own time, its fittings going in one after another, through a board that is there', () => {
