@@ -90,7 +90,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
     if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
     if (st.filming) {
-      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}x${studio.root.querySelector<HTMLElement>('.as-bottom')!.offsetHeight}`;
+      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}`;
       if (size !== st.shotsFor) { plan(); st.shotsFor = size; if (st.follow) followFrom(ports.camera.camNow()); }
       if (st.glide) st.glide.left -= reduce ? GLIDE : dt;
       if (player.advance(dt) || st.glide) showFilm();

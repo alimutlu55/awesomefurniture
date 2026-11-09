@@ -178,6 +178,19 @@ export function createMakeFittings(layer: number): FittingsLayer {
     }
     if (f.kind === 'hanger' || f.kind === 'bracket') return tag(wallBracketOrHangerMesh(f.kind, at, bar, metal));
     if (f.kind === 'support') return tag(railEndSupportMesh(at, disc, metal));
+    if (f.kind === 'drawerLock') {
+      const g = new THREE.Group();
+      g.position.copy(at);
+      if (f.size === 'plate' || f.purpose === 'drawer-plate') {
+        g.add(solid(bar, metal, new THREE.Vector3(0, 0, 0), new THREE.Vector3(6, .24, 1.8)));
+      } else {
+        g.add(
+          solid(rod, metal, new THREE.Vector3(0, -.7, 0), new THREE.Vector3(.45, 1.4, .45)),
+          solid(bar, metal, new THREE.Vector3(1.1, -1.2, 0), new THREE.Vector3(2.6, .35, .9)),
+        );
+      }
+      return tag(g);
+    }
     return null;
   }
   function visible() {
@@ -249,7 +262,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
         delta = inStaging ? 0 : Math.max(0, Math.min(rail.max, rail.moving.position.z - rail.rest));
       }
       const p = fitting?.hook ? Math.min(1, progress / .8) : progress;
-      const weight = p * p * (3 - 2 * p);
+      const weight = rail.drawer ? 1 : p * p * (3 - 2 * p);
       rail.mesh.position.z = (fitting?.placement?.z ?? rail.home) + delta * rail.ratio * weight;
     }
   }

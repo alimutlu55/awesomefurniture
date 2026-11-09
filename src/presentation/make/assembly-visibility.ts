@@ -3,7 +3,7 @@ import type { Vec3 } from '../../domain/make/make-measures';
 
 /** A point on the hardware being demonstrated, before its host board's assembly transform. A drawer box's front is
  * one of the box's parts while the box is built, so it is seen through then (`throughFronts`). */
-export interface AssemblyTarget { readonly board: number; readonly at: Vec3; readonly throughFronts?: boolean }
+export interface AssemblyTarget { readonly board: number; readonly at: Vec3; readonly throughFronts?: boolean; readonly inPiece?: boolean }
 export interface VisibilityBoard { readonly index: number; readonly face: THREE.Mesh; readonly rest: THREE.Vector3; readonly stock?: string }
 
 /** Test the opaque geometry, regardless of its current cutaway material. Otherwise each frame would
@@ -28,8 +28,13 @@ export function createAssemblyVisibility() {
       for (const target of targets) {
         const host = byId.get(target.board);
         if (!host) continue;
-        point.set(target.at[0] - size.w / 2, target.at[1], target.at[2] - size.d / 2).sub(host.rest);
-        host.face.localToWorld(point);
+        point.set(target.at[0] - size.w / 2, target.at[1], target.at[2] - size.d / 2);
+        if (target.inPiece) {
+          host.face.parent?.localToWorld(point);
+        } else {
+          point.sub(host.rest);
+          host.face.localToWorld(point);
+        }
         const distance = direction.subVectors(point, eye).length();
         if (distance < .1) continue;
         ray.set(eye, direction.normalize()); ray.near = 0; ray.far = distance - .08;

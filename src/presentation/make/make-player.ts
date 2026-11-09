@@ -103,17 +103,18 @@ export function createMakePlayer() {
       // A joint fixed on a board lying on the floor is drawn where that board lies.
       // A locking plate goes on its runner's front pin, pulled out in the cabinet, not on the drawer waiting on the mat.
       const plate = now.items.every(i => p.fittings[i]!.purpose === 'drawer-plate');
-      const board = now.board, where = (q: Vec3): Vec3 => {
-        if (now.lying && board !== null) return lyingPoint(p.boards[board]!, staged[board]!, q);
-        if (board === null) return q;
-        if (plate) return [q[0], q[1], q[2] + runnerTravel(p, tl!, ph, board)];
-        return posePoint(drawerPose(p, tl!, ph, board, floor), q);
+      const board = now.board, where = (q: Vec3, b = board): Vec3 => {
+        if (now.lying && b !== null) return lyingPoint(p.boards[b]!, staged[b]!, q);
+        if (b === null) return q;
+        if (plate) return [q[0], q[1], q[2] + runnerTravel(p, tl!, ph, b)];
+        return posePoint(drawerPose(p, tl!, ph, b, floor), q);
       };
       const lines = now.items.flatMap(i => {
         const e = entryOf(p, i);
         if (!e) return [];
-        const from: Vec3 = where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]);
-        return [{ from, to: where(e.at), seen: seenAt(tl!, ph, i), go: fittedAt(tl!, ph, i, p.fittings[i]!.kind) ?? 0 }];
+        const b = e.board ?? board;
+        const from: Vec3 = where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT], b);
+        return [{ from, to: where(e.at, b), seen: seenAt(tl!, ph, i), go: fittedAt(tl!, ph, i, p.fittings[i]!.kind) ?? 0 }];
       });
       const counts = new Map<string, { kind: FittingKind; size?: string; qty: number }>();
       for (const i of now.items) {
