@@ -150,7 +150,9 @@ test('each joint is fixed in its own time, its fittings going in one after anoth
       });
     });
     mp.fittings.forEach((f, i) => {
-      if (FITTED_FIRST.has(f.kind) || f.kind === 'runner') return;
+      // The screws that hold a piece of hardware go in with it, and a set bought whole goes on by its maker's template:
+      // the film shows the hardware and its step, not each of those screws.
+      if (FITTED_FIRST.has(f.kind) || f.kind === 'runner' || f.purpose === 'fixing' || f.purpose === 'wall-fixing' || entryOf(mp, i) === null) return;
       assert.ok(tl.itemTime[i], `${name}: the ${f.kind} ${i} is fixed in a joint of its own step`);
     });
   }

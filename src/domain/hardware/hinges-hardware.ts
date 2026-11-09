@@ -118,13 +118,13 @@ export const HINGE_ENTRY: HardwareEntry = {
     },
   ],
   fixings: [
+    // The cup is pressed into its 35 mm hole and held by a screw through each ear of its flange.
     {
       target: 'door',
       fromFace: 'back',
       fastenerKind: 'screw',
-      size: '35 mm cup',
-      qtyPerUnit: 1,
-      pilotHole: { kind: 'cup', dMm: 35, depthMm: 13 },
+      size: '3.5 × 16',
+      qtyPerUnit: 2,
     },
   ],
   motion: {
@@ -204,7 +204,8 @@ export const PLATE_ENTRY: HardwareEntry = {
       target: 'side',
       fromFace: 'inside',
       fastenerKind: 'screw',
-      size: '5 × 12',
+      // A Euro screw: its 6.3 mm thread cuts into the 5 mm System 32 hole, and it stops short of the hole's 12 mm.
+      size: 'Euro 6.3 × 11.5',
       qtyPerUnit: 2,
       pilotHole: { kind: 'plate', dMm: 5, depthMm: 12 },
     },

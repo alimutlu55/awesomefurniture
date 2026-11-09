@@ -38,10 +38,6 @@ import { innerFrontBehindDoor, piecefronts } from './fronts';
 import type { PlacedPiece } from './room-pieces';
 import { cornerFaceWidths } from './corner-widths';
 
-const BRACKET_MAX_SPACING = SHELF_BRACKET_ENTRY.rules.maxSpacingMm ?? 800;
-/** A wall shelf's brackets: one at each end, one more every 800 mm. */
-const bracketsFor = (width: number) => 2 + Math.floor((width - 1) / BRACKET_MAX_SPACING);
-
 interface Line { item: string; size: string; qty: number; marks: string[] }
 
 /**
@@ -59,14 +55,14 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
   };
   for (const p of pieces) {
     const d = p.design;
-    if (p.fixture === 'shelf') { add(p, SHELF_BRACKET_ENTRY.display.listLine.label, 'for ' + mm(d.d) + ' deep', bracketsFor(mm(d.w))); continue; }
-    if (p.fixture || installationKind(d)) continue;
+    // A wall shelf, a filler strip and an end panel are one board each: their brackets and screws come from Make.
+    if (p.fixture === 'shelf' || installationKind(d)) { made(p); continue; }
+    if (p.fixture) continue;
     const vent = ventilationGrille(d);
     if (vent) add(p, VENT_GRILLE_ENTRY.display.listLine.label, mm(vent.width) + ' × ' + mm(vent.height) + ' overall; ' + VENT_GRILLE_ENTRY.display.listLine.defaultSpec, 1);
     const kitchen = isKitchen(d);
     for (const f of piecefronts(d, cornerFaceWidths(p, pieces)).fronts) {
       if (f.own || f.opens === 'open' || f.opens === 'fixed') continue;
-      if (f.label && (f.opens === 'side' || f.opens === 'down')) add(p, APPLIANCE_KIT_ENTRY.display.listLine.label, APPLIANCE_KIT_ENTRY.display.listLine.defaultSpec, 1);
       // A handle-rail door is its own grip: its profile, as long as the door is wide, in place of a handle.
       if (f.opens === 'side' && !f.label && madeStyle({ ...d, materials: resolveMaterials(d) }, f.decorId).grip) { add(p, 'Handle rail profile', mm(f.x1 - f.x0) + ' mm long', 1); continue; }
       const handle = resolveHandle(resolveMaterials(d));
@@ -84,10 +80,15 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
 
       }
       for (const h of (fitting(it.k)?.hardware ?? []) as readonly FittingHardware[]) {
-        if (h === 'runners' || h === 'rail' || h === 'shelfSupports') continue;
-        else add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
+        // Runners, rails, shelf supports and the sets mounted whole are counted where Make sets them out (below).
+        if (h !== 'cargoMechanism') continue;
+        add(p, FITTING_HARDWARE[h].replace(/, one .*$/, ''), 'for ' + mm(pos.w) + ' wide', 1);
       }
     }));
+    made(p);
+  }
+  function made(p: PlacedPiece) {
+    const d = p.design;
     const names: Record<FittingKind, string> = {
       confirmat: CONFIRMAT_ENTRY.display.listLine.label,
       cam: CAM_ENTRY.display.listLine.label,
@@ -106,6 +107,9 @@ export function hardwareList(pieces: readonly PlacedPiece[]): Table[] {
       leg: LEG_ENTRY.display.listLine.label,
       hanger: CABINET_HANGER_ENTRY.display.listLine.label,
       bracket: WALL_BRACKET_ENTRY.display.listLine.label,
+      pullDownRail: FITTING_HARDWARE.pullDownRail, trouserRack: FITTING_HARDWARE.trouserRack, basket: FITTING_HARDWARE.basket,
+      liftFitting: FITTING_HARDWARE.liftFitting.replace(/, one .*$/, ''), cornerMechanism: FITTING_HARDWARE.cornerMechanism,
+      applianceKit: APPLIANCE_KIT_ENTRY.display.listLine.label, shelfBracket: SHELF_BRACKET_ENTRY.display.listLine.label,
     };
     for (const line of makePlacedPiece(p,pieces)?.buy ?? []) {
       const def = line.kind === 'hinge' ? HINGES.find(h=>h.size===line.size) : undefined;

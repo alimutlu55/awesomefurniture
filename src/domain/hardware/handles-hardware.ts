@@ -65,7 +65,7 @@ export const HANDLE_ENTRY: HardwareEntry = {
       lineMm: 10,
       face: 'back',
       kind: 'handle',
-      dMm: 4,
+      dMm: 2,
       depthMm: 10,
     },
   ],
@@ -84,7 +84,8 @@ export const HANDLE_ENTRY: HardwareEntry = {
       fastenerKind: 'screw',
       size: '3.5 × 15',
       qtyPerUnit: 2,
-      pilotHole: { kind: 'handle', dMm: 4, depthMm: 10 },
+      // A pilot the 3.5 mm screw's thread still bites in.
+      pilotHole: { kind: 'handle', dMm: 2, depthMm: 10 },
     },
   ],
   assembly: {

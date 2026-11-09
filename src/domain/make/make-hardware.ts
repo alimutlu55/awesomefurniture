@@ -8,22 +8,29 @@ import { resolveMaterials } from '../materials/configured-materials';
 import { madeStyle } from '../wardrobe/front-styles';
 import { getDecor } from '../materials/decor-catalog';
 import {
+  APPLIANCE_KIT_ENTRY,
   CABINET_HANGER_ENTRY,
   CARGO_MECHANISM_ENTRY,
   HANDLE_ENTRY,
   LEG_ENTRY,
   RAIL_ENTRY,
   RUNNER_ENTRY,
+  SCREW_ENTRY,
+  SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
   WALL_BRACKET_ENTRY,
 } from '../hardware/hardware-registry';
+import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
+import { installationKind } from '../kitchen/kitchen-units';
+import { PANEL } from '../wardrobe/catalog.js';
+import { fitting, FITTING_HARDWARE_KEYS, type FittingHardware } from '../wardrobe/fittings';
 import { plinthOf } from '../wardrobe/carcass';
 import { drawerExtension } from '../wardrobe/drawer-runners';
 import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import { boreIsClear } from './bore-clearance';
 import { completeDrawerHardware } from './drawer-installation';
-import type { Fitting, Hole } from './make-joints';
+import { connectorStations, type Fitting, type Hole } from './make-joints';
 import { heightsAt, thinAxis, type Vec3 } from './make-measures';
 import { cargoPulloutGeometry } from '../kitchen/cargo-pullout';
 
@@ -42,6 +49,19 @@ const RUNNER_SCREW = { d: RUNNER_HOLE.dMm, depth: RUNNER_HOLE.depthMm } as const
  * face that it would meet. */
 function inTheWay(boards: readonly Board[], holes: readonly Hole[], post: { b: Board; i: number }, at: Vec3, sign: 1 | -1, hole: { d: number; depth: number }, kind: Hole['kind'] = 'runner') {
   return !boreIsClear(boards, holes, { board: post.i, kind, at, axis: 0, sign, d: hole.d, depth: hole.depth });
+}
+
+/** Sets bought whole, each named by a fitting (FITTING_HARDWARE) and mounted as one thing. */
+const SETS: ReadonlySet<Fitting['kind']> = new Set(['pullDownRail', 'trouserRack', 'basket', 'liftFitting', 'cornerMechanism']);
+/** The screw a fixed panel is held by, through the board beside it: 18 mm of that board, then 12 mm into the panel. */
+const PANEL_SCREW = SCREW_ENTRY.variants?.find(v => v.key === '4x30')?.sizeLabel ?? '4 × 30';
+/** Where a fixed panel's screws go: two rows up its length, 5 cm in from each end and no more than 30 cm apart, on
+ * the lines a quarter of its width in from each long edge (one row down the middle of a strip under 10 cm wide). */
+function fixedPanelStations(b: Board): Vec3[] {
+  const t = ({ x: 0, y: 1, z: 2 } as const)[thinAxis(b)], lo = [b.x0, b.y0, b.z0], hi = [b.x1, b.y1, b.z1];
+  const [u, v] = ([0, 1, 2] as const).filter(k => k !== t).sort((p, q) => (hi[q]! - lo[q]!) - (hi[p]! - lo[p]!)) as [0 | 1 | 2, 0 | 1 | 2];
+  const wide = hi[v]! - lo[v]!, rows = wide < 10 ? [lo[v]! + wide / 2] : [lo[v]! + wide / 4, hi[v]! - wide / 4];
+  return rows.flatMap(row => connectorStations(hi[u]! - lo[u]!).map(s => { const p = [0, 0, 0]; p[t] = lo[t]!; p[u] = lo[u]! + s; p[v] = row; return p as unknown as Vec3; }));
 }
 
 export const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
@@ -258,16 +278,53 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   for (const r of inside.filter(x => x.kind === 'rail')) {
     const y = r.y0, at: Vec3 = [(r.x0 + r.x1) / 2, y, design.d / 2];
     fittings.push({ kind: 'rail', at, axis: 0, boards: [], size: String(Math.round((r.x1 - r.x0) * 10) - railCutShortMm) });
-    fittings.push({ kind: 'support', at: [r.x0, y, design.d / 2], axis: 0, boards: [] }, { kind: 'support', at: [r.x1, y, design.d / 2], axis: 0, boards: [] });
+    // Each end support is screwed to the upright it stands against.
+    const { left, right } = uprightsAround(boards, at[0], y, h), on = (post: typeof left) => post ? [post.i] : [];
+    fittings.push({ kind: 'support', at: [r.x0, y, design.d / 2], axis: 0, boards: on(left) }, { kind: 'support', at: [r.x1, y, design.d / 2], axis: 0, boards: on(right) });
+  }
+  // Sets bought whole and mounted by their maker's template (pull-down rails, trouser racks, baskets, flap lifts, corner
+  // mechanisms): one for each fitting that names it, on the uprights of its bay, with its screws from the registry.
+  const editing = { ...design, sel: 0, item: -1, divider: -1, space: null }, geometry = createWardrobeGeometry(() => editing), floor = kitchen ? 0 : plinthOf(design) + PANEL;
+  let bayLeft = PANEL;
+  if (!installationKind(design) && !piece.fixture) geometry.widths().forEach((sw: number, i: number) => {
+    geometry.computeLayout(i).forEach((pos: { off: number; w: number; y0: number }, j: number) => {
+      const it = design.secs[i]?.[j];
+      for (const key of (it ? fitting(it.k)?.hardware ?? [] : []) as readonly FittingHardware[]) {
+        const kind = FITTING_HARDWARE_KEYS[key] as Fitting['kind'];
+        if (!SETS.has(kind)) continue;
+        const x = bayLeft + pos.off + pos.w / 2, y = floor + pos.y0 + (it?.h ?? 0) / 2, { left, right } = uprightsAround(boards, x, y, h);
+        const front = boards.findIndex(b => b.stock === 'front' && b.x0 <= x && b.x1 >= x && b.y0 <= y && b.y1 >= y);
+        const base = boards.findIndex(b => b.name === 'Base');
+        const on = kind === 'cornerMechanism' ? (base >= 0 ? [base] : []) : [...(kind === 'liftFitting' && front >= 0 ? [front] : []), ...[left, right].flatMap(u => u ? [u.i] : [])];
+        fittings.push({ kind, at: [x, y, design.d / 2], axis: kind === 'cornerMechanism' ? 1 : 0, boards: on, size: 'for ' + Math.round(pos.w * 10) + ' wide' });
+      }
+    });
+    bayLeft += sw + PANEL;
+  });
+  // An integrated appliance's door is carried by the appliance, on the fixing kit that comes with it.
+  boards.forEach((b, i) => {
+    const f = b.stock === 'front' ? frontOf(fronts, b) : undefined;
+    if (f?.label && (f.opens === 'side' || f.opens === 'down')) fittings.push({ kind: 'applianceKit', at: centre(b), axis: 2, boards: [i], size: APPLIANCE_KIT_ENTRY.display.listLine.defaultSpec });
+    // A front that does not open (a blind corner panel, a filler cover) is screwed on from inside the carcass.
+    else if (f?.opens === 'fixed') for (const at of fixedPanelStations(b)) fittings.push({ kind: 'screw', at, axis: 2, boards: [i], size: PANEL_SCREW, purpose: 'front-fixing' });
+  });
+  // A filler strip or an end panel is one board, screwed on from inside the cabinet beside it; a wall shelf stands on
+  // brackets, one at each end and one more every 800 mm.
+  if (installationKind(design) && boards.length === 1) for (const at of fixedPanelStations(boards[0]!)) fittings.push({ kind: 'screw', at, axis: ({ x: 0, y: 1, z: 2 } as const)[thinAxis(boards[0]!)], boards: [0], size: PANEL_SCREW, purpose: 'front-fixing' });
+  if (piece.fixture === 'shelf' && boards.length === 1) {
+    const b = boards[0]!, count = 2 + Math.floor((Math.round((b.x1 - b.x0) * 10) - 1) / (SHELF_BRACKET_ENTRY.rules.maxSpacingMm ?? 800)), inset = Math.min(5, (b.x1 - b.x0) / 4);
+    for (let k = 0; k < count; k++) fittings.push({ kind: 'shelfBracket', at: [b.x0 + inset + (b.x1 - b.x0 - 2 * inset) * k / (count - 1), b.y0, b.z0], axis: 1, boards: [0], size: 'for ' + Math.round(design.d * 10) + ' deep' });
   }
   // Standing, hanging and fixing: legs under a kitchen floor unit, hangers on a wall unit, brackets on tall pieces.
   const unit = kitchen ? kitchenUnit(design.unit) : null, base = boards.findIndex(b => b.name === 'Base');
   const legInset = (LEG_ENTRY.rules.edgeInsetMm ?? 50) / 10;
-  if (unit?.plinth && plinthOf(design) > 0) for (const [x, z] of [[legInset, legInset], [design.w - legInset, legInset], [legInset, design.d - legInset], [design.w - legInset, design.d - legInset]] as const) {
+  // Legs are screwed under a base: a filler strip or an end panel, one board with no base, stands on none.
+  if (unit?.plinth && plinthOf(design) > 0 && base >= 0) for (const [x, z] of [[legInset, legInset], [design.w - legInset, legInset], [legInset, design.d - legInset], [design.w - legInset, design.d - legInset]] as const) {
     fittings.push({ kind: 'leg', at: [x, 0, z], axis: 1, boards: base >= 0 ? [base] : [], size: String(Math.round(plinthOf(design) * 10)) });
   }
   const hangerDrop = (CABINET_HANGER_ENTRY.rules.clearanceMm.topDrop ?? 30) / 10;
-  if (piece.hung) fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - hangerDrop, 0], axis: 2, boards: [], size: CABINET_HANGER_ENTRY.display.listLine.defaultSpec });
+  // A wall shelf stands on its brackets (below); only a cabinet hangs on hangers.
+  if (piece.hung && piece.fixture !== 'shelf') fittings.push({ kind: 'hanger', at: [design.w / 2, design.h - hangerDrop, 0], axis: 2, boards: [], size: CABINET_HANGER_ENTRY.display.listLine.defaultSpec });
   const bracketInset = (WALL_BRACKET_ENTRY.rules.edgeInsetMm ?? 100) / 10;
   if (!kitchen || (unit && !unit.worktop && unit.plinth)) for (const x of [bracketInset, design.w - bracketInset]) {
     const roof = boards.findIndex(b => b.name === 'Top' && b.x0 <= x && b.x1 >= x);

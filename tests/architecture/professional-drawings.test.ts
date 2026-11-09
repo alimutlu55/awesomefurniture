@@ -156,5 +156,6 @@ test('K32 wall shelf stays one board, has shelf labels and brackets, and is neve
   const cutting = sheets.filter(s => s.title.startsWith('Cutting list')).flatMap(s => s.table!.rows);
   assert.equal(cutting.length, 1); assert.equal(cutting[0]![1], 'Shelf board');
   const hardware = sheets.filter(s => s.title.startsWith('Hardware list')).flatMap(s => s.table!.rows);
-  assert.deepEqual(hardware.map(row => row[0]), ['Shelf bracket']); assert.equal(hardware[0]![2], '5');
+  // Five brackets for 2930 mm (one at each end, one more every 800 mm), and the two wall screws each is held by.
+  assert.deepEqual(hardware.map(row => row.slice(0, 3)), [['Shelf bracket', 'for 300 deep', '5'], ['Screw', '5 × 60', '10']]);
 });

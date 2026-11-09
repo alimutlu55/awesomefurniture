@@ -35,13 +35,21 @@ export interface Hole {
 }
 /** Bought hardware, where it goes and the boards it joins or sits on. */
 export type FittingKind = 'confirmat' | 'dowel' | 'cam' | 'bolt' | 'screw' | 'nail' | 'pin' | 'hinge' | 'plate' | 'runner' | 'handle' | 'rail' | 'support' | 'leg' | 'hanger'
-  | 'bracket' | 'drawerLock';
+  | 'bracket' | 'drawerLock'
+  /** Sets bought whole and mounted by their maker's template: each is its hardware registry entry's key. */
+  | 'pullDownRail' | 'trouserRack' | 'basket' | 'liftFitting' | 'cornerMechanism' | 'applianceKit' | 'shelfBracket';
 export interface Fitting {
   readonly cargo?: CargoPullout;
   /** Installation purpose separates drawer and cargo hardware from structural cabinet connections. */
   readonly purpose?: 'runner-mount' | 'drawer-front' | 'front-fixing' | 'cargo-lock'
     /** A drawer box's own joints, in the order it goes together: bolts into the front, sides, back; then the locks. */
-    | 'box-front' | 'box-sides' | 'box-back' | 'drawer-plate' | 'drawer-lock';
+    | 'box-front' | 'box-sides' | 'box-back' | 'drawer-plate' | 'drawer-lock'
+    /** A screw that holds a piece of hardware (`of`) to its board: a hinge's, a plate's, a handle's, a leg's. */
+    | 'fixing'
+    /** A screw that fixes the piece to the building (a wall plug and screw): the fixing follows the wall. */
+    | 'wall-fixing';
+  /** The fitting a `fixing` screw holds, by its place in the piece's fitting list. */
+  readonly of?: number;
   /** One purchased runner pair, with both stationary and moving attachment boards. */
   readonly runner?: { readonly moving: readonly number[]; readonly fixed: readonly number[] };
   readonly kind: FittingKind;

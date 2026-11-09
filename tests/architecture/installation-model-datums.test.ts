@@ -83,5 +83,6 @@ test('solid installation parts describe only their actual board and align with t
   const rows = materialSchedule(pieces).flatMap(t => t.rows);
   assert.equal(rows.length, 2);
   assert.equal(rows[0]![3], '19mm'); assert.equal(rows[1]![3], '22mm');
-  assert.equal(hardwareList(pieces).flatMap(t => t.rows).length, 0, 'fixed parts have no door or storage hardware');
+  // A fixed strip or panel is screwed on from the cabinet beside it: those screws, and no door or storage hardware.
+  assert.deepEqual(hardwareList(pieces).flatMap(t => t.rows).map(r => r[0] + ' ' + r[1]), ['Screw 4 × 30'], 'fixed parts have their fixing screws only');
 });

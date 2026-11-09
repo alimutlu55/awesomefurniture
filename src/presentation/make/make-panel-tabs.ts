@@ -13,6 +13,8 @@ export const FITTING_NAMES: Record<FittingKind, string> = {
   confirmat: 'Connector screw', cam: 'Cam connector', bolt: 'Cam bolt', dowel: 'Dowel', screw: 'Screw', nail: 'Nail', pin: 'Shelf pin', hinge: 'Hinge',
   plate: 'Hinge plate', runner: 'Runners, pair', handle: 'Handle', rail: 'Hanging rail', support: 'Rail support', leg: 'Leg',
   hanger: 'Hangers, pair', bracket: 'Wall bracket', drawerLock: 'Drawer lock',
+  pullDownRail: 'Pull-down rail', trouserRack: 'Trouser rack', basket: 'Pull-out basket', liftFitting: 'Flap lift, set', cornerMechanism: 'Corner mechanism',
+  applianceKit: 'Appliance door kit', shelfBracket: 'Shelf bracket',
 };
 const ICONS: Record<FittingKind, string> = {
   confirmat: 'M8 4h8M12 4v14l-2 2M12 7l3 1-6 2 6 2-6 2 6 2', screw: 'M8 4h8M12 4v14l-2 2M12 7l3 1-6 2 6 2-6 2 6 2',
@@ -20,6 +22,8 @@ const ICONS: Record<FittingKind, string> = {
   hinge: 'M7 12a4 4 0 1 0 .01 0zM11 12h9M16 9v6', plate: 'M5 8h14v8H5zM9 12h.01M15 12h.01', runner: 'M3 9h18v6H3zM3 12h18',
   handle: 'M5 9h14M7 9v6M17 9v6', rail: 'M3 10h18v4H3z', support: 'M8 6v8a4 4 0 0 0 8 0V6', leg: 'M9 4h6v13H9zM8 20h8',
   hanger: 'M5 6h14v5H5zM9 11l3 6 3-6', bracket: 'M7 4v16h10', drawerLock: 'M4 10h16v3H4zM12 13v4M9 17h7',
+  pullDownRail: 'M4 6h16M6 6v9a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V6', trouserRack: 'M4 7h16M7 7v10M11 7v10M15 7v10M19 7v10', basket: 'M4 8h16l-2 10H6zM9 8v10M15 8v10',
+  liftFitting: 'M5 19 17 7M17 7h-5M17 7v5M5 19h4', cornerMechanism: 'M12 4a8 8 0 1 0 8 8h-8z', applianceKit: 'M6 4h12v16H6zM9 8h6M9 12h6', shelfBracket: 'M6 5v14h12M6 19 16 9',
 };
 export const fittingIcon = (kind: FittingKind) => `<svg class="make-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[kind]}"/></svg>`;
 /** A size as sold: millimetres when it is a bare number ("550 mm"), as written otherwise ("7 × 50", "110°"). */

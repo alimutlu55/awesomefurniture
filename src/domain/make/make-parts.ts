@@ -7,6 +7,7 @@ import { assemblySteps, buyList, drillingChecks, drillingSignature, type BuyLine
 import { type Construction, constructionOf } from './make-construction';
 import { frontHardware, frontMotions, type Motion } from './make-hardware';
 import { type DrawerBox, drawerBoxes, drawerBoxJoints } from './drawer-box';
+import { fixingScrews } from './make-fixings';
 import { backFixing, findJoints, type Fitting, type Groove, type Hole, jointFittings } from './make-joints';
 import { type BuildSequence, buildSequence, chooseConnectors, type JointChoice } from './make-sequence';
 
@@ -112,7 +113,10 @@ export function makePlacedPiece(piece: PlacedPiece, pieces: readonly PlacedPiece
   // The fittings in one list: the carcass joints, the back's, the drawer boxes', then the hardware; holes name them by place.
   const before = joints.fittings.length + back.fittings.length, shift = before + box.fittings.length;
   const hardware = frontHardware(piece, pieces, boards, [...joints.holes, ...box.holes]);
-  const fittings = [...joints.fittings, ...back.fittings, ...box.fittings, ...hardware.fittings];
+  const held = [...joints.fittings, ...back.fittings, ...box.fittings, ...hardware.fittings];
+  const drilled = [...joints.holes, ...box.holes.map(h => h.of === undefined ? h : { ...h, of: h.of + before }), ...hardware.holes.map(h => h.of === undefined ? h : { ...h, of: h.of + shift })];
+  // The screws each piece of hardware is held by, after the hardware itself (make-fixings.ts).
+  const fittings = [...held, ...fixingScrews(boards, held, drilled)];
   // A box's hook hole and pin holes are its runner pair's.
   const runnerOf = (board: number) => {
     const d = box.drawers.find(q => [q.back, q.bottom].includes(board));

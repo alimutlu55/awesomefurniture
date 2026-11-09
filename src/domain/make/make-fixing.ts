@@ -31,6 +31,8 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
   const back = () => f.boards[0] ?? null;
   switch (f.kind) {
     case 'confirmat': case 'screw':
+      // The screws that hold a piece of hardware go in with it; the film shows the hardware.
+      if (f.purpose === 'fixing' || f.purpose === 'wall-fixing') return null;
       if (f.purpose === 'cargo-lock') return { at: f.at, dir: [0, -1, 0], board: null };
       return through(mine.find(h => h.kind === 'connector' || h.kind === 'screw' || h.kind === 'runner' || h.kind === 'pilot'));
     case 'cam': return through(mine.find(h => h.kind === 'cam'));
@@ -48,6 +50,8 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
     case 'runner': return null;
     // A lock plate and lever go on under the drawer, from below.
     case 'drawerLock': return { at: f.at, dir: [0, 1, 0], board: f.boards[0] ?? null };
+    // A set bought whole is mounted by its maker's template: the film shows its step, not each of its screws.
+    default: return null;
   }
 }
 

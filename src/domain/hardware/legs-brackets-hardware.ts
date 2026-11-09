@@ -125,12 +125,15 @@ export const CABINET_HANGER_ENTRY: HardwareEntry = {
   drilling: [],
   fixings: [
     {
+      // Two into each side through the hanger's housing: short enough to stay inside an 16 mm board.
       target: 'side',
       fromFace: 'inside',
       fastenerKind: 'screw',
-      size: '4 × 40',
+      size: '4 × 16',
       qtyPerUnit: 4,
     },
+    // The hanging rail on the wall: the fixing follows the wall (plug and screw in masonry, a stud screw in timber).
+    { target: 'wall', fromFace: 'back', fastenerKind: 'screw', size: '5 × 60 with wall plug', qtyPerUnit: 4 },
   ],
   assembly: {
     stage: 'wall',
@@ -174,12 +177,15 @@ export const WALL_BRACKET_ENTRY: HardwareEntry = {
   drilling: [],
   fixings: [
     {
+      // Down into the top from above: a 30 mm screw would come out inside the wardrobe through an 18 mm board.
       target: 'top',
-      fromFace: 'inside',
+      fromFace: 'top',
       fastenerKind: 'screw',
-      size: '4 × 30',
+      size: '4 × 16',
       qtyPerUnit: 2,
     },
+    // Into the wall: the fixing follows the wall (plug and screw in masonry, a stud screw in timber).
+    { target: 'wall', fromFace: 'back', fastenerKind: 'screw', size: '5 × 60 with wall plug', qtyPerUnit: 1 },
   ],
   assembly: {
     stage: 'wall',

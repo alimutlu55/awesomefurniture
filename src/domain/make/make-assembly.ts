@@ -86,6 +86,9 @@ export interface Step {
 export function assemblySteps(boards: readonly Board[], fittings: readonly Fitting[], sequence: BuildSequence, drawers: readonly DrawerBox[] = []): Step[] {
   const order = sequence.stages, steps = sequence.stage;
   const fittingStep = (f: Fitting, i: number): Stage => {
+    // A screw that holds a piece of hardware goes in with it; what goes into the wall goes in last.
+    if (f.purpose === 'wall-fixing') return 'wall';
+    if (f.purpose === 'fixing' && f.of !== undefined) return fittingStep(fittings[f.of]!, f.of);
     if (f.purpose === 'box-front') return 'drawer-boxes';
     if (f.purpose === 'box-sides') return 'drawer-sides';
     if (f.purpose === 'box-back') return 'drawer-back';
