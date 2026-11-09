@@ -24,13 +24,16 @@ function fixture() {
 }
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
 
-test('runner drilling camera follows the drawer holes where the boxes are, on the mat', () => {
+test('runner drilling camera holds on the board being drilled, where it is', () => {
   const { piece, tl, shots } = fixture(), k = piece.steps.findIndex(s => s.stage === 'drawer-runners'), s = tl.steps[k]!;
-  const time = s.drill[0] + (s.drill[1] - s.drill[0]) * .45, ph = playhead(tl, time);
-  const zs = piece.holes.filter((_, i) => tl.holeStep[i] === k).map(h => posePoint(drawerPose(piece, tl, ph, h.board), h.at)[2] - piece.size.d / 2);
-  assert.ok(zs.some(z => z > piece.size.d / 2), 'the boxes wait on the mat in front of the piece');
+  // Each board drilled in its turn; the camera is on it by the end of its turn.
+  const at = (i: number) => s.drill[0] + (s.drill[1] - s.drill[0]) * tl.holeStart[i]!;
+  const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k).sort((p, q) => at(p.i) - at(q.i));
+  const mid = holes[Math.floor(holes.length / 2)]!, next = holes.find(({ h, i }) => at(i) > at(mid.i) && h.board !== mid.h.board);
+  const time = (next ? at(next.i) : s.drill[1]) - .1, ph = playhead(tl, time), now = mid.h, b = piece.boards[now.board]!;
+  const pose = drawerPose(piece, tl, ph, now.board), zs = [b.z0, b.z1].flatMap(z => [b.y0, b.y1].map(y => posePoint(pose, [b.x0, y, z])[2] - piece.size.d / 2));
   const z = shots(time).z;
-  assert.ok(z >= Math.min(...zs) - 1e-6 && z <= Math.max(...zs) + 1e-6);
+  assert.ok(z >= Math.min(...zs) - 1e-6 && z <= Math.max(...zs) + 1e-6, `camera on the board being drilled (${z} in ${Math.min(...zs)}..${Math.max(...zs)})`);
 });
 
 test('each drawer going on is framed where it ends, home in the cabinet', () => {
@@ -42,13 +45,13 @@ test('each drawer going on is framed where it ends, home in the cabinet', () => 
   });
 });
 
-test('runner screws go into the cabinet only, and are viewed from inside it, where they go in', () => {
+test('runner screws go into the cabinet only, and are viewed facing their heads, held while they go in', () => {
   const { piece, tl, shots } = fixture(), k = piece.steps.findIndex(s => s.stage === 'drawer-runners');
   const fixes = tl.steps[k]!.fixes.filter(f => f.items.every(i => piece.fittings[i]!.purpose === 'runner-mount'));
   assert.ok(fixes.length >= 2);
   assert.ok(fixes.every(f => f.board !== null && piece.boards[f.board]!.note !== 'drawer box'), 'bottom-mounted runners: nothing is screwed into the box');
   for (const fix of fixes) {
-    const time = fix.at[0] + (fix.at[1] - fix.at[0]) * .2, pose = shots(time), e = entryOf(piece, fix.items[0]!)!;
+    const pose = shots(fix.at[0] + (fix.at[1] - fix.at[0]) * .5), e = entryOf(piece, fix.items[0]!)!;
     assert.ok(Math.sin(pose.az) * -e.dir[0] + Math.cos(pose.az) * -e.dir[2] > .2,
       'camera must face the screw heads, not look through the cabinet side');
   }

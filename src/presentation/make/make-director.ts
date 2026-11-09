@@ -8,8 +8,15 @@ import { INTRO, OUTRO, playhead, type Timeline } from '../../domain/make/make-ti
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { Vec3 } from '../../domain/make/make-measures';
 
-/** The most one drilling shot takes in (cm): boards further apart than this get a shot each. */
-const DRILL_REACH = 130;
+/** A drawer filmed while it is built has this much room round it, so a part going on is never cut off at the edge. */
+const BOX_ROOM = 1.7;
+/** The work in close-up: this much room round each joint or hole (cm), joints this far apart at most share a view, and the
+ * view turned and raised this much off straight in front of the face (radians). */
+const WORK_ROOM = 7, WORK_REACH = 45, WORK_TURN = .3, WORK_RAISE = .3;
+/** How far round from the front a face inside the cabinet is seen (radians): as far as the opening lets the camera see it. */
+const INSIDE_TURN = .6;
+/** The least time between two camera shots (seconds). */
+const STEADY = .35;
 
 /** A camera pose as the editor's camera holds it: turned `az` round the target, raised `el`, `dist` away. */
 export interface Pose { az: number; el: number; dist: number; x: number; y: number; z: number }
@@ -79,47 +86,92 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   // A drawer box is put together outside the cabinet: while it is, the camera is on the box, not the cabinet.
   const boxBoards = new Set((piece.drawers ?? []).flatMap(d => [d.front, d.bottom, d.back, ...d.sides]));
   const BOX_STAGES: ReadonlySet<string> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back']);
+  /**
+   * A drawer box chapter in three held views, always from the same side and height: the parts waiting beside the mat
+   * while they are drilled and fitted (with any box on the mat that is drilled too); then each drawer in turn, whole and
+   * with room round it, while its boards go on; then all the boxes on the mat while their joints are fixed.
+   */
+  function boxShots(s: (typeof tl.steps)[number], k: number) {
+    const step = piece.steps[k]!, drawers = piece.drawers ?? [];
+    // Each hold arrives in a short, even glide and is held to its end.
+    const hold = (from: number, until: number, points: THREE.Vector3[], el: number, room = BOX_ROOM) => {
+      if (!points.length || until <= from) return;
+      shot(from + Math.min(.45, (until - from) * .3), points, facing + .22, el, room);
+      shot(until - .05, points, facing + .22, el, room);
+    };
+    // 2. A drawer at a time, as its boards go on.
+    const span = s.place[1] - s.place[0];
+    drawers.forEach(d => {
+      const mine = step.boards.filter(b => drawerBoards(d).includes(b));
+      if (!mine.length) return;
+      const from = s.place[0] + span * Math.min(...mine.map(b => tl.boardStart[b]!)), until = s.place[0] + span * Math.max(...mine.map(b => tl.boardStart[b]! + tl.boardWindow[b]!));
+      hold(from, until, drawerBoards(d).flatMap(b => placed(b, until)), .55);
+    });
+  }
+  /**
+   * The work, as a fitter looks at it: each hole drilled and each joint fixed seen from straight in front of the face the
+   * drill or the hardware goes into, a little to the side and above so a screw or dowel shows along its length, and close:
+   * the joint and what waits to go in, with a little room. Joints next to each other on the same face share one view; the
+   * camera holds still on each and glides to the next. Boards in front of the work go see-through (assembly-targets).
+   */
+  function workShots(s: (typeof tl.steps)[number], k: number) {
+    const step = piece.steps[k]!, items: { from: number; until: number; at: Vec3[]; wait: Vec3[]; out: Vec3; inside: boolean }[] = [];
+    // Work on the inside of the standing cabinet (a side's inner face) is seen through its front opening, never through a wall.
+    const standing = (b: number | null, lying: boolean) => b !== null && !lying && !boxBoards.has(b) && piece.boards[b]!.stock === 'carcass';
+    // Drilling: a board at a time, the whole board from above and in front, held while all its holes are drilled.
+    const drillSpan = s.drill[1] - s.drill[0], drilledBoards: { board: number; from: number }[] = [];
+    piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k).sort((p, q) => tl.holeStart[p.i]! - tl.holeStart[q.i]!)
+      .forEach(({ h, i }) => { if (drilledBoards.at(-1)?.board !== h.board) drilledBoards.push({ board: h.board, from: s.drill[0] + drillSpan * tl.holeStart[i]! }); });
+    drilledBoards.forEach((d, n) => {
+      const until = drilledBoards[n + 1]?.from ?? s.drill[1], lying = step.boards.includes(d.board);
+      const points = lying ? waiting(d.board) : placed(d.board, d.from);
+      shot(d.from + Math.min(.45, (until - d.from) * .3), points, facing + WORK_TURN, .8, 1.2);
+      shot(until - .05, points, facing + WORK_TURN, .8, 1.2);
+    });
+    // A joint: its hardware going in, from where it waits.
+    for (const fix of s.fixes) {
+      const lying = fix.lying && fix.board !== null ? fix.board : null, mid = (fix.at[0] + fix.at[1]) / 2;
+      // A locking plate is laid on its runner's front pin, pulled out in the cabinet, from above.
+      const plate = fix.items.every(i => piece.fittings[i]!.purpose === 'drawer-plate');
+      const pose = fix.board === null ? null : plate ? shifted([0, 0, runnerTravel(piece, tl, playhead(tl, mid), fix.board)]) : poseAt(fix.board, mid);
+      const where = (p: Vec3): Vec3 => lying !== null ? lyingPoint(piece.boards[lying]!, staged[lying]!, p) : pose ? posePoint(pose, p) : p;
+      const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null);
+      if (!entries.length) continue;
+      const dir = lying !== null ? lyingDir(staged[lying]!, fix.dir) : pose ? poseDir(pose, fix.dir) : fix.dir;
+      items.push({ from: fix.at[0], until: fix.at[1], at: entries.map(e => where(e.at)), wait: entries.map(e => where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT])),
+        out: plate ? [0, 1, 0] : [-dir[0], -dir[1], -dir[2]], inside: standing(fix.board, lying !== null) });
+    }
+    items.sort((p, q) => p.from - q.from);
+    // Next to each other on the same face: one view.
+    const views: typeof items = [];
+    for (const it of items) {
+      const last = views.at(-1), same = last && last.out[0] * it.out[0] + last.out[1] * it.out[1] + last.out[2] * it.out[2] > .95;
+      if (last && same && reach([...last.at, ...it.at].map(half)) <= WORK_REACH) { last.at.push(...it.at); last.wait.push(...it.wait); last.until = Math.max(last.until, it.until); }
+      else views.push({ ...it, at: [...it.at], wait: [...it.wait] });
+    }
+    views.forEach((v, n) => {
+      const until = Math.max(v.until, views[n + 1]?.from ?? v.until), w = new THREE.Vector3(...v.out).applyAxisAngle(new THREE.Vector3(0, 1, 0), facing);
+      // Straight at the face, turned a little and raised a little; a face up or down is seen from above or below.
+      // A face inside the cabinet looking across it (a side's inner face) is seen from the front opening, at an angle.
+      const across = Math.abs(w.x * Math.sin(facing) + w.z * Math.cos(facing)) < .5, sideways = Math.sign(w.x * Math.cos(facing) - w.z * Math.sin(facing)) || 1;
+      const flat = Math.abs(v.out[1]) > .85, az = flat ? facing + WORK_TURN : v.inside && across ? facing + sideways * INSIDE_TURN : Math.atan2(w.x, w.z) + WORK_TURN;
+      const el = flat ? (v.out[1] > 0 ? 1.05 : -.55) : Math.max(-.5, Math.min(1.1, Math.asin(Math.max(-1, Math.min(1, v.out[1]))) + WORK_RAISE));
+      const points = [...v.at.flatMap(p => around(p, WORK_ROOM)), ...v.wait.flatMap(p => around(p, 3))];
+      shot(v.from + Math.min(.45, (until - v.from) * .3), points, az, el, 1.25);
+      shot(until - .05, points, az, el, 1.25);
+    });
+  }
   tl.steps.forEach((s, k) => {
-    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage);
+    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage), runnerStep = step.stage === 'drawer-runners' && !hasCargo && !!piece.drawers?.length;
     // What is already built that a shot shows with this step's boards: the piece so far, or the drawer boxes so far.
     const before = all.filter(i => tl.boardStep[i]! < k && (!boxStep || boxBoards.has(i)));
     const isCargoStage = hasCargo && ['drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts'].includes(step.stage);
-    const side = isCargoStage ? cargoSide : (k % 2 ? 1 : -1);
-    const holes = piece.holes.map((h, i) => ({ h, i })).filter(({ i }) => tl.holeStep[i] === k);
-    // Drilling follows the drill: the boards lying on the floor, then the holes in what stands, board by board in the order
-    // they are drilled. Neighbours drilled one after another share a shot while they are close together; the camera moves
-    // when the drill goes somewhere it cannot be seen from here, and holds while it works.
-    if (s.drill[1] > s.drill[0]) {
-      const span = s.drill[1] - s.drill[0], at = (f: number) => s.drill[0] + span * f;
-      const groups: { board: number; from: number; points: THREE.Vector3[]; lying: boolean; down: boolean }[] = [];
-      for (const { h, i } of [...holes].sort((p, q) => tl.holeStart[p.i]! - tl.holeStart[q.i]!)) {
-        const lying = step.boards.includes(h.board), last = groups.at(-1);
-        // A hole in a drawer box on the mat is drilled with the whole box in view, not a wall of board.
-        const box = !lying && boxStep ? (piece.drawers ?? []).find(q => drawerBoards(q).includes(h.board)) : undefined;
-        const points = lying ? waiting(h.board) : box ? drawerBoards(box).flatMap(j => placed(j, at(.5))) : around(posePoint(poseAt(h.board, at(.5)), h.at), 9);
-        if (last && last.lying === lying && (last.board === h.board || reach([...last.points, ...points]) <= DRILL_REACH)) {
-          if (last.board !== h.board || !lying) last.points.push(...points);
-          last.board = h.board; last.down &&= h.axis === 1;
-        } else groups.push({ board: h.board, from: tl.holeStart[i]!, points, lying, down: h.axis === 1 });
-      }
-      groups.forEach((g, n) => {
-        const from = n ? g.from : 0, to = groups[n + 1]?.from ?? 1, el = g.lying ? .9 : g.down ? .95 : .55, padding = g.lying ? 1.12 : 1.15;
-        shot(at(from + Math.min(.12, (to - from) * .35)), g.points, facing + side * .35, el, padding);
-        shot(at(to), g.points, facing + side * .35, el, padding);
-      });
-    }
+    // One side of the piece for the whole film, so the camera never swings across between chapters.
+    const side = isCargoStage ? cargoSide : 1;
+    if (boxStep) boxShots(s, k);
+    workShots(s, k);
     // Compute each destination at the time of its shot: a drawer can move during this phase.
     // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
-    // A drawer box's boards go on one at a time: the whole box in view through each one's turn, a little closer as it goes
-    // on (the back seen from above, as it is hooked over the bottom's edge and swung shut).
-    if (boxStep && s.place[1] > s.place[0]) for (const i of step.boards) {
-      const d = (piece.drawers ?? []).find(q => drawerBoards(q).includes(i));
-      if (!d) continue;
-      const span = s.place[1] - s.place[0], a = s.place[0] + span * tl.boardStart[i]!, b = a + span * tl.boardWindow[i]!;
-      const box = drawerBoards(d).flatMap(j => placed(j, b)), el = step.stage === 'drawer-back' ? .62 : .5;
-      shot(a + (b - a) * .05, box, facing + side * .4, el, 1.5);
-      shot(b - (b - a) * .05, box, facing + side * .4, el, 1.3);
-    }
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test' && !boxStep && !(step.stage === 'drawers' && piece.drawers?.length)) {
       for (const fraction of [.25, .9]) {
         const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
@@ -135,55 +187,6 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       }
     }
 
-    // Fixing, joint by joint: close on each, from the side its screws go in from (a side's from outside it, the back's
-    // nails from behind, a base's screws from above, a door's hinges from above it lying face down), held while they go
-    // in one after another.
-    s.fixes.forEach((fix, j) => {
-      const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null), lying = fix.lying && fix.board !== null ? fix.board : null;
-      // A drawer box's joint is where the box is then: on the mat, front face down, while it is built.
-      // A locking plate is laid on its runner's front pin, pulled out in the cabinet: framed there, from above.
-      const plate = fix.items.every(i => piece.fittings[i]!.purpose === 'drawer-plate'), mid = (fix.at[0] + fix.at[1]) / 2;
-      const pose = fix.board === null ? null : plate ? shifted([0, 0, runnerTravel(piece, tl, playhead(tl, mid), fix.board)]) : poseAt(fix.board, mid);
-      const where = (p: Vec3): Vec3 => {
-        if (lying !== null) return lyingPoint(piece.boards[lying]!, staged[lying]!, p);
-        return pose ? posePoint(pose, p) : p;
-      }, dir = lying === null ? (pose ? poseDir(pose, fix.dir) : fix.dir) : lyingDir(staged[lying]!, fix.dir);
-      // Hinge plates go on a side panel's inner face: seen from inside the piece, never through the panel, close on the
-      // middle one so a plate reads as the part it is.
-      const plates = fix.items.every(i => piece.fittings[i]!.kind === 'plate'
-        || (piece.fittings[i]!.purpose === 'runner-mount' && fix.board !== null && piece.boards[fix.board]!.note !== 'drawer box'))
-        && entries.length > 0, middle = entries[Math.floor(entries.length / 2)];
-      // A runner group can span several drawers and the full rail depth: frame all screws, not just the middle one.
-      const hingePlate = fix.items.every(i => piece.fittings[i]!.kind === 'plate' && !piece.fittings[i]!.size?.includes('cargo'));
-      const purpose0 = piece.fittings[fix.items[0]!]!.purpose;
-      // A drawer lock is small and under a drawer: with enough round it to see which drawer and which side.
-      // A dowel into a board lying on the floor is small: close in on it and its hole.
-      const small = lying !== null && fix.items.every(i => piece.fittings[i]!.kind === 'dowel');
-      const padRadius = isCargoStage ? 10 : fix.items.some(i => piece.fittings[i]!.kind === 'drawerLock') ? 14 : small ? 4 : 8;
-      // The back's dowels are hammered with the whole back in view, so it is clear where they go and that it is shut.
-      const backBox = purpose0 === 'box-back' && fix.board !== null ? (piece.drawers ?? []).find(q => drawerBoards(q).includes(fix.board!)) : undefined;
-      const points = backBox ? drawerBoards(backBox).flatMap(j => placed(j, (fix.at[0] + fix.at[1]) / 2))
-        : hingePlate && middle ? around(where(middle.at), 14)
-        : entries.flatMap(e => [...around(where(e.at), padRadius), ...around(where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]), 4)]);
-      // Across the way they go in, never down it, so each can be seen travelling to its hole: half a right angle off
-      // their line, turned towards the front.
-      const out = new THREE.Vector3(...dir).negate(), up = Math.abs(out.y) > .7, turn = j % 2 ? .25 : -.25;
-      const w = out.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), facing), way = Math.atan2(w.x, w.z), off = (a: number) => Math.abs(Math.atan2(Math.sin(a - facing), Math.cos(a - facing)));
-      const purpose = piece.fittings[fix.items[0]!]!.purpose, kind = piece.fittings[fix.items[0]!]!.kind;
-      // Seen where they can be seen: a drawer's locking plates and levers from below it, a drawer side's cams from above,
-      // looking down into the box, and the expanding dowels through a drawer back from above and behind it.
-      // A lever is screwed on from under the drawer; a locking plate is laid on the pin from above.
-      const below = kind === 'drawerLock' && piece.fittings[fix.items[0]!]!.size === 'lever', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
-      const az = plates && middle ? inside(where(middle.at)) : below || into || plate ? facing + side * .45 : up ? facing + side * .3 + turn
-        : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
-      // Something going straight down into a board lying flat (a dowel into a side's end, a bolt into a front) is seen from
-      // the side, a little above, so it shows along its length going into its hole, not end on as a coin.
-      // Into a board lying among the others on the floor: from higher up, over the neighbours, not past them.
-      const el = below ? -.28 : plate ? .6 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .45 : .12) : small ? .62 : plates ? .3 : .34;
-      const span = fix.at[1] - fix.at[0], fixPad = backBox ? 1.25 : isCargoStage ? 1.08 : 1.12;
-      shot(fix.at[0] + span * .2, points, az, el, fixPad);
-      shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);
-    });
     // Hanging the doors: close on one hinge and its plate (the middle one of the first door), from the front and across
     // the way the plate went on, so the arm is seen going onto the plate as the door is pushed home.
     if (s.hang[1] > s.hang[0]) {
@@ -231,8 +234,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       });
       // Then the whole piece, every drawer home.
       shot(s.end - .15, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, s.end)), facing + .45, .4, 1.1);
-    } else {
+    } else if (!boxStep && !runnerStep) {
       // A breath: the piece so far, at this moment rather than at the chapter's start (including any staged/installed cargo mechanism).
+      // The drawer and runner chapters hold their own view to their end instead.
       const time = s.end - .15;
       const breathPoints = [
         ...all.filter(i => tl.boardStep[i]! <= k && (!boxStep || boxBoards.has(i))).flatMap(i => placed(i, time)),
@@ -245,6 +249,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   shot(tl.duration - OUTRO + .6, all.flatMap(i => placed(i, tl.duration)), facing + .65, .36, 1.06);
   shot(tl.duration, all.flatMap(i => placed(i, tl.duration)), facing - .7, .26, 1.06);
   shots.sort((a, b) => a.t - b.t);
+  // Never two moves in a moment: a shot less than STEADY after the one before waits until STEADY has passed, so a held
+  // view is held to its end and every move takes its time.
+  for (let i = 1; i < shots.length; i++) if (shots[i]!.t - shots[i - 1]!.t < STEADY) shots[i]!.t = shots[i - 1]!.t + STEADY;
   /** The camera at time `t`: between the shots either side, glided with the editor's own easing. */
   return (t: number): Pose => {
     const next = shots.findIndex(s => s.t > t);
