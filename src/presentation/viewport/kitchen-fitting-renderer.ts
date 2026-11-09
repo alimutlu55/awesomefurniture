@@ -65,9 +65,10 @@ export function createKitchenFittingRenderer({ box, group, d, unit, doorHang, ma
     const mid = (y0 + y1) / 2, hinge = itemHingeSide(it, { doorHang }), explicit = !!(it.hinge ?? doorHang), pullX = hinge === 'right' ? x0 + 4 : x1 - 4;
     switch (it.k) {
       case 'cutlery': case 'pan': case 'hob': {
-        panel(x0, x1, y0, y1);
-        pull(x1 - x0, frontCentre, it.k === 'pan' ? y1 - Math.min(7, (y1 - y0) / 3) : mid);
-        drawerBox(cx, y, sw, hh);
+        // The front and its pull go on the drawer, to travel with its box.
+        const slide = drawerBox(cx, y, sw, hh);
+        panel(x0, x1, y0, y1, undefined, slide);
+        pull(x1 - x0, frontCentre, it.k === 'pan' ? y1 - Math.min(7, (y1 - y0) / 3) : mid, false, slide);
         break;
       }
       case 'cupboard': case 'sink':

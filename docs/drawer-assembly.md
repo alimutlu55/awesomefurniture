@@ -36,6 +36,16 @@ placed: 3 mm between fronts and 1.5 mm to the boards over and under the stack, t
 between doors and kitchen fronts (`innerFront` in `src/domain/wardrobe/carcass.ts`). Drawers alike (width, front, runner) get the same box at the same place behind their fronts, so their sides,
 backs, bottoms and fronts are each one part in the cutting list.
 
+## Opening a drawer in the editor
+
+"Open doors" pulls each drawer out as a drawer really moves (`src/domain/wardrobe/drawer-mechanism.ts`, drawn by
+`src/presentation/viewport/drawer-slide.ts`). Only the drawer travels: its front, its handle, its box (open at the
+top: two sides, the back, the bottom in its groove, and a kitchen drawer's own box front) and the drawer member of each
+runner. The boards over and under it, a drawer stack's own side and the cabinet member of each runner, screwed to the
+upright, stay with the carcass. The box is the one Make cuts (as deep as its runner, 12.5 mm clear of each upright,
+15 mm above the board under it, up to 250 mm tall), and it comes out the runner's open pull from the hardware registry
+(70% of the runner's length). A trouser pull-out and a wire basket slide out the same way, under the board over them.
+
 ## The steps (Assembly Studio chapters)
 
 | Stage | What happens | Hardware |
