@@ -16,7 +16,8 @@ hardware keys outside `src/domain/hardware/`.
 | Drawer runners | `drawer-hardware.ts` | `RUNNER_ENTRY` |
 | Hinges, plates & door tracks | `hinges-hardware.ts` | `HINGE_ENTRY`, `PLATE_ENTRY`, `SLIDING_TRACK_ENTRY` |
 | Handles & push latches | `handles-hardware.ts` | `HANDLE_ENTRY`, `PUSH_TO_OPEN_ENTRY` |
-| Rails, pins & pull-out racks | `rails-supports-hardware.ts` | `RAIL_ENTRY`, `RAIL_SUPPORT_ENTRY`, `SHELF_PIN_ENTRY`, `PULL_DOWN_RAIL_ENTRY`, `TROUSER_RACK_ENTRY`, `WIRE_BASKET_ENTRY` |
+| Rails and pins | `rails-supports-hardware.ts` | `RAIL_ENTRY`, `RAIL_SUPPORT_ENTRY`, `SHELF_PIN_ENTRY` |
+| Pull-out racks | `pullout-hardware.ts` | `PULL_DOWN_RAIL_ENTRY`, `TROUSER_RACK_ENTRY`, `WIRE_BASKET_ENTRY` |
 | Carcass & back connectors | `connectors-hardware.ts` | `CONFIRMAT_ENTRY`, `CAM_ENTRY`, `BOLT_ENTRY`, `DOWEL_ENTRY`, `SCREW_ENTRY`, `NAIL_ENTRY` |
 | Legs, plinths & wall brackets | `legs-brackets-hardware.ts` | `LEG_ENTRY`, `PLINTH_CLIP_ENTRY`, `CABINET_HANGER_ENTRY`, `WALL_BRACKET_ENTRY`, `SHELF_BRACKET_ENTRY` |
 | Kitchen mechanisms & services | `kitchen-hardware.ts` | `CARGO_MECHANISM_ENTRY`, `CORNER_MECHANISM_ENTRY`, `LIFT_FITTING_ENTRY`, `CABINET_LED_ENTRY`, `APPLIANCE_KIT_ENTRY`, `VENT_GRILLE_ENTRY` |

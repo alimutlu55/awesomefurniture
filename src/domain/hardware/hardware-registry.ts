@@ -31,14 +31,8 @@ import {
   SHELF_BRACKET_ENTRY,
   WALL_BRACKET_ENTRY,
 } from './legs-brackets-hardware';
-import {
-  PULL_DOWN_RAIL_ENTRY,
-  RAIL_ENTRY,
-  RAIL_SUPPORT_ENTRY,
-  SHELF_PIN_ENTRY,
-  TROUSER_RACK_ENTRY,
-  WIRE_BASKET_ENTRY,
-} from './rails-supports-hardware';
+import { RAIL_ENTRY, RAIL_SUPPORT_ENTRY, SHELF_PIN_ENTRY } from './rails-supports-hardware';
+import { PULL_DOWN_RAIL_ENTRY, TROUSER_RACK_ENTRY, WIRE_BASKET_ENTRY } from './pullout-hardware';
 
 export {
   APPLIANCE_KIT_ENTRY,
