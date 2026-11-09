@@ -173,3 +173,15 @@ test('the bottom\'s groove is 6.5 mm for the 6 mm bottom; the runner hook goes u
   }
   assert.deepEqual(mp.findings.filter(f => mp.drawers!.some(d => d.back === f.board)), [], 'no drilling finding on a back');
 });
+
+test('a drawer\'s handle goes on once the drawer is in and locked, never on the front lying face down on the mat', () => {
+  const open = { ...wardrobe, doors: 'none' } as EditorDesign, mp = made(open), stageOf = (i: number) => mp.steps.find(s => s.items.includes(i))?.stage;
+  const handles = mp.fittings.flatMap((f, i) => f.kind === 'handle' ? [i] : []);
+  assert.ok(handles.length >= 2);
+  for (const i of handles) {
+    const board = mp.boards[mp.fittings[i]!.boards[0]!]!;
+    assert.equal(stageOf(i), board.stock === 'door' ? 'doors' : 'fronts', `${board.name}'s handle`);
+  }
+  const order = mp.steps.map(s => s.stage);
+  assert.ok(order.indexOf('fronts') > order.indexOf('drawer-lock'));
+});

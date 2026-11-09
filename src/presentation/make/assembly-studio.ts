@@ -41,6 +41,9 @@ const instructions: Record<Stage, string> = {
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
   wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer\'s instructions.',
 };
+/** Fitting the handles on drawers already in place: pulled out, screwed on from inside through the front. */
+const HANDLE_CAPTION = 'Pull the drawer out · hold the handle on the front · screw it on from inside the drawer.';
+const HANDLE_INSTRUCTION = 'Pull each drawer out. Hold the handle against the front over its two holes and drive the two screws in from inside the drawer, through the front into the handle. Do not overtighten.';
 /** The drawer chapters: their caption is shown, and their instruction is the drawer's own, whatever the phase. */
 const DRAWER_STAGES: ReadonlySet<Stage> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'drawer-lock', 'fronts', 'drawer-test']);
 export const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
@@ -173,6 +176,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const fixing = player.fixing(), adjusting = player.adjusting();
       const phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
         : adjusting ? 'adjust' : 'complete';
+      // A wardrobe drawer's own front gets only its handle in this chapter: the drawer is in and locked, pulled out to reach in.
+      const handlesOnly = step.stage === 'fronts' && step.fittings.length > 0 && step.fittings.every(f => f.kind === 'handle');
       const drawerCaption = q('.as-drawer-caption');
       drawerCaption.hidden = !DRAWER_STAGES.has(step.stage);
       const captions: Partial<Record<Stage, string>> = {
@@ -193,7 +198,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
             ? `3D Front Adjustment (REGULACJA): tune ${adjusting?.way === 'height' ? 'Height ⇅ (top screw)' : adjusting?.way === 'side' ? 'Side ⇄ (lateral screws)' : 'Depth ⇕ (clamping screws)'} · Snap on "GTV move" covers.`
             : phase === 'place' ? 'Couple front fittings onto cargo frame upright tongues · Lock & snap on "GTV move" protective covers.'
             : 'Screw 2 front fittings (103.5×36.5 mm, 78 mm screw pattern, 374 mm vertical spacing, *142 mm from floor) with 4×14 mm screws.')
-          : 'Align decorative front, then fasten from inside with front-fixing screws.',
+          : handlesOnly ? HANDLE_CAPTION : 'Align decorative front, then fasten from inside with front-fixing screws.',
         'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer: smooth travel, even gaps, both locks holding.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
@@ -206,6 +211,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
           : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
+          : step.stage === 'fronts' && handlesOnly ? HANDLE_INSTRUCTION
           : DRAWER_STAGES.has(step.stage) && step.stage !== 'fronts' ? stageInstruction(step.stage)
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : stageInstruction(step.stage);
         const hardwareHtml = hardware.map(f => {

@@ -155,7 +155,10 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       // A face inside the cabinet looking across it (a side's inner face) is seen from the front opening, at an angle.
       const across = Math.abs(w.x * Math.sin(facing) + w.z * Math.cos(facing)) < .5, sideways = Math.sign(w.x * Math.cos(facing) - w.z * Math.sin(facing)) || 1;
       const flat = Math.abs(v.out[1]) > .85, az = flat ? facing + WORK_TURN : v.inside && across ? facing + sideways * INSIDE_TURN : Math.atan2(w.x, w.z) + WORK_TURN;
-      const el = flat ? (v.out[1] > 0 ? 1.05 : -.55) : Math.max(-.5, Math.min(1.1, Math.asin(Math.max(-1, Math.min(1, v.out[1]))) + WORK_RAISE));
+      // Never from under the floor: work on or near the floor is seen from above it.
+      const low = Math.min(...v.at.map(p => p[1])) < floor + 25;
+      const raw = flat ? (v.out[1] > 0 ? 1.05 : -.55) : Math.max(-.5, Math.min(1.1, Math.asin(Math.max(-1, Math.min(1, v.out[1]))) + WORK_RAISE));
+      const el = low ? Math.max(.45, raw) : raw;
       const points = [...v.at.flatMap(p => around(p, WORK_ROOM)), ...v.wait.flatMap(p => around(p, 3))];
       shot(v.from + Math.min(.45, (until - v.from) * .3), points, az, el, 1.25);
       shot(until - .05, points, az, el, 1.25);
