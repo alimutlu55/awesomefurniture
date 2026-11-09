@@ -38,8 +38,9 @@ export const RUNNER_ENTRY: HardwareEntry = {
     { reference: 'system32', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 2.5, depthMm: 12, stationsMm: [0, 32] },
     // The rail's rear peg: a System 32 hole this far in from the rail's rear end (to the nearest slot).
     { reference: 'rear-edge', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 5, depthMm: 12, stationsMm: [20] },
-    // The box back's hook hole, this far up from its lower edge, over the middle of each box side.
-    { reference: 'rear-edge', lineMm: 8, face: 'back', kind: 'runner', dMm: 6, depthMm: 10 },
+    // The box back's hook hole, drilled up into its lower edge over the middle of each box side, this far in from its rear
+    // face (midway through 18 mm): the rail's rear hook comes up into it from below as the drawer is lowered on.
+    { reference: 'rear-edge', lineMm: 9, face: 'bottom', kind: 'runner', dMm: 6, depthMm: 10 },
     // The front pin's hole through the box bottom, this far behind the box front's inner face.
     { reference: 'front-edge', lineMm: 30, face: 'bottom', kind: 'runner', dMm: 10, depthMm: 0 },
   ],

@@ -2,8 +2,8 @@ import { cargoFittedAt } from '../../domain/make/cargo-installation';
 import * as THREE from 'three';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { hardwareStagingLayout, lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
-import { drawerBoardOffset, drawerPose, drawerRunnerForBoard } from '../../domain/make/drawer-installation';
-import { drawerBoards, installWindow, poseDir, posePoint } from '../../domain/make/drawer-film';
+import { drawerBoardOffset, drawerPose, drawerRunnerForBoard, runnerTravel } from '../../domain/make/drawer-installation';
+import { drawerBoards, installWindow, poseDir, posePoint, shifted } from '../../domain/make/drawer-film';
 import { INTRO, OUTRO, playhead, type Timeline } from '../../domain/make/make-timeline';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { Vec3 } from '../../domain/make/make-measures';
@@ -141,7 +141,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     s.fixes.forEach((fix, j) => {
       const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null), lying = fix.lying && fix.board !== null ? fix.board : null;
       // A drawer box's joint is where the box is then: on the mat, front face down, while it is built.
-      const pose = fix.board === null ? null : poseAt(fix.board, (fix.at[0] + fix.at[1]) / 2);
+      // A locking plate is laid on its runner's front pin, pulled out in the cabinet: framed there, from above.
+      const plate = fix.items.every(i => piece.fittings[i]!.purpose === 'drawer-plate'), mid = (fix.at[0] + fix.at[1]) / 2;
+      const pose = fix.board === null ? null : plate ? shifted([0, 0, runnerTravel(piece, tl, playhead(tl, mid), fix.board)]) : poseAt(fix.board, mid);
       const where = (p: Vec3): Vec3 => {
         if (lying !== null) return lyingPoint(piece.boards[lying]!, staged[lying]!, p);
         return pose ? posePoint(pose, p) : p;
@@ -170,9 +172,9 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       // looking down into the box, and the expanding dowels through a drawer back from above and behind it.
       // A lever is screwed on from under the drawer; a locking plate is laid on the pin from above.
       const below = kind === 'drawerLock' && piece.fittings[fix.items[0]!]!.size === 'lever', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
-      const az = plates && middle ? inside(where(middle.at)) : below || into ? facing + side * .45 : up ? facing + side * .3 + turn
+      const az = plates && middle ? inside(where(middle.at)) : below || into || plate ? facing + side * .45 : up ? facing + side * .3 + turn
         : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
-      const el = below ? -.28 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
+      const el = below ? -.28 : plate ? .6 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;
       const span = fix.at[1] - fix.at[0], fixPad = backBox ? 1.25 : isCargoStage ? 1.08 : 1.12;
       shot(fix.at[0] + span * .2, points, az, el, fixPad);
       shot(fix.at[1] - span * .08, points, az + turn * .2, el, fixPad);

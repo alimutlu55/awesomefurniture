@@ -8,7 +8,7 @@ import { hingeDrawer } from '../../src/domain/drawings/manufacturing-rules/hinge
 import { placePieces } from '../../src/domain/drawings/room-pieces';
 import type { EditorDesign } from '../../src/domain/wardrobe/editor-design';
 import { alone, goldenWardrobes } from './rule-fixtures';
-import { BOTTOM_GROOVE, BOTTOM_PLAY } from '../../src/domain/make/drawer-box';
+import { BOTTOM_GROOVE, BOTTOM_PLAY, GROOVE_WIDTH } from '../../src/domain/make/drawer-box';
 import { HARDWARE, RUNNER_ENTRY } from '../../src/domain/hardware/hardware-registry';
 import { TOOLS } from '../../src/domain/hardware/tools';
 import { drawerHand, stepNotes } from '../../src/domain/make/make-instructions';
@@ -152,4 +152,24 @@ test('a drawer back is hooked on and swung shut in its own turn, slow enough to 
   assert.ok(steps.every((v, i) => i === 0 || v >= steps[i - 1]!));
   assert.equal(blows(1).into, 1); assert.equal(blows(.999).off < 2, true);
   assert.ok(HARDWARE.find(h => h.key === 'dowel')!.assembly.tools!.includes('hammer'));
+});
+
+test('the bottom\'s groove is 6.5 mm for the 6 mm bottom; the runner hook goes up into the back\'s lower edge', () => {
+  const mp = made(wardrobe);
+  for (const d of mp.drawers ?? []) {
+    const bottom = mp.boards[d.bottom]!, back = mp.boards[d.back]!;
+    for (const k of [d.front, ...d.sides, d.back]) {
+      const g = mp.grooves.find(q => q.board === k)!;
+      assert.equal(Math.round((g.hi[1] - g.lo[1]) * 100) / 100, GROOVE_WIDTH);
+      assert.equal(Math.round((g.lo[1] - bottom.y0) * 100) / 100, 0, 'the bottom rests on the groove\'s lower side');
+    }
+    const hooks = mp.holes.filter(h => h.board === d.back && h.kind === 'runner');
+    assert.equal(hooks.length, 2);
+    for (const h of hooks) {
+      assert.equal(h.axis, 1); assert.equal(h.sign, 1, 'drilled up from below');
+      assert.equal(h.at[1], back.y0, 'in the lower edge');
+      assert.ok(h.at[2] > back.z0 && h.at[2] < back.z1, 'within the back\'s thickness');
+    }
+  }
+  assert.deepEqual(mp.findings.filter(f => mp.drawers!.some(d => d.back === f.board)), [], 'no drilling finding on a back');
 });

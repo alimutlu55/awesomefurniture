@@ -6,7 +6,7 @@ import { BOTTOM_GROOVE, BOTTOM_THICKNESS } from '../../domain/make/drawer-box';
 
 /** Where the box takes the drawer rail, as drawer-box.ts drills it: the rear hook's hole this far up the back, the front
  * pin's hole through the bottom this far inside the box side and behind the front's inner face. Centimetres. */
-const HOOK_UP = (RUNNER_ENTRY.drilling[2]?.lineMm ?? 8) / 10, PIN_IN = 1.5, PIN_BEHIND = (RUNNER_ENTRY.drilling[3]?.lineMm ?? 30) / 10;
+const HOOK_IN = (RUNNER_ENTRY.drilling[2]?.lineMm ?? 9) / 10, HOOK_UP = (RUNNER_ENTRY.drilling[2]?.depthMm ?? 10) / 10 - .1, PIN_IN = 1.5, PIN_BEHIND = (RUNNER_ENTRY.drilling[3]?.lineMm ?? 30) / 10;
 
 /**
  * A bottom-mounted runner pair (drawer-hardware.ts), drawn from the shared hardware entry: on each side a cabinet rail,
@@ -43,14 +43,13 @@ export function drawerRunnerMeshes(piece: MakePiece, fitting: Fitting, geometry:
     bar(outer, sign * .06, -web / 2 + .1, .12, web, length * (cabinet.lengthRatio ?? 1));
     bar(outer, sign * reach / 2, -.08, reach, .16, length * (cabinet.lengthRatio ?? 1));
     bar(outer, sign * .12, -web / 2, .12, web * .9, 4.5, length / 2 - 2.6);
-    // The drawer rail: under the box side, with the rear hook up behind the back and forward into its hole, and the front
-    // pin on a tab under the bottom, up through its hole: both where drawer-box.ts drills them.
+    // The drawer rail: under the box side, with the rear hook standing up into the hole in the back's lower edge, and the
+    // front pin on a tab under the bottom, up through its hole: both where drawer-box.ts drills them.
     const inner = new THREE.Group(), cx = (side.x0 + side.x1) / 2, up = (y: number) => y - (side.y0 - rail / 2);
     inner.position.copy(frame(cx, side.y0 - rail / 2, z));
     bar(inner, 0, 0, side.x1 - side.x0, rail * .8, length * (drawer.lengthRatio ?? .97));
     const rear = -length / 2, hook = up(side.y0 + HOOK_UP);
-    bar(inner, 0, (rail * .4 + hook) / 2, .5, hook - rail * .4, .3, rear - .25);
-    bar(inner, 0, hook, .5, .4, 1.05, rear + .3);
+    bar(inner, 0, (rail * .4 + hook) / 2, .5, hook - rail * .4, .5, rear + HOOK_IN);
     const pinX = sign * ((side.x1 - side.x0) / 2 + PIN_IN), pinZ = side.z1 - PIN_BEHIND - z, top = up(side.y0 + BOTTOM_GROOVE.fromEdge + BOTTOM_THICKNESS) + .2;
     bar(inner, pinX / 2, 0, Math.abs(pinX) + .5, .2, 1.2, pinZ);
     bar(inner, pinX, (rail * .4 + top) / 2, .6, top - rail * .4, .6, pinZ);

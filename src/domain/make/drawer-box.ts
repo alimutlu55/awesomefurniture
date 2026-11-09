@@ -32,6 +32,8 @@ export const BOTTOM_GROOVE = { fromEdge: 1.2, depth: .8 } as const;
 export const BOTTOM_THICKNESS = .6;
 /** The bottom is cut this much short of each groove's floor, so it slides in and is centred with an equal gap each end. */
 export const BOTTOM_PLAY = .1;
+/** The groove is cut this wide for the 6 mm bottom, so it slides in without forcing (a 6.5 mm cutter). */
+export const GROOVE_WIDTH = .65;
 /** Joint stations on a box corner: this far from the side's lower and upper edges. */
 const LOW = 3.2, HIGH = 2.5;
 /** The lowest box that still takes its bottom's groove and one cam a corner: shallow drawers get a shallow box, never none. */
@@ -147,9 +149,9 @@ export function drawerGroups(boards: readonly Board[]): DrawerBox[] {
 }
 
 /** Where the bottom runs into `board`: the overlap of the two, as a groove cut in `board`, as deep as BOTTOM_GROOVE (the
- * bottom stops BOTTOM_PLAY short of its floor). */
+ * bottom stops BOTTOM_PLAY short of its floor) and GROOVE_WIDTH wide, up from its lower side, where the bottom rests. */
 function groove(boards: readonly Board[], board: number, bottom: Board): Groove | null {
-  const p = BOTTOM_PLAY, b = boards[board]!, room = { x0: bottom.x0 - p, x1: bottom.x1 + p, y0: bottom.y0, y1: bottom.y1, z0: bottom.z0 - p, z1: bottom.z1 + p };
+  const p = BOTTOM_PLAY, b = boards[board]!, room = { x0: bottom.x0 - p, x1: bottom.x1 + p, y0: bottom.y0, y1: bottom.y0 + GROOVE_WIDTH, z0: bottom.z0 - p, z1: bottom.z1 + p };
   const lo: Vec3 = [Math.max(b.x0, room.x0), Math.max(b.y0, room.y0), Math.max(b.z0, room.z0)];
   const hi: Vec3 = [Math.min(b.x1, room.x1), Math.min(b.y1, room.y1), Math.min(b.z1, room.z1)];
   return hi.every((v, k) => v - lo[k]! > 1e-6) ? { board, lo, hi, kind: 'groove' } : null;
@@ -192,7 +194,8 @@ export function drawerBoxJoints(boards: readonly Board[]) {
           { board: s, kind: 'dowel', at: [sx, y, back.z1], axis: 2, sign: 1, d: EXPANDING_END.dMm, depth: EXPANDING_END.depthMm, of: dowel });
       }
       // The runner's rear hook goes into the back's lower edge over the side; its front pin up through the bottom.
-      holes.push({ board: d.back, kind: 'runner', at: [sx, back.y0 + HOOK.lineMm / 10, back.z0], axis: 2, sign: 1, d: HOOK.dMm, depth: HOOK.depthMm });
+      // Up into the back's lower edge, midway through it: the hook comes up into it from below as the drawer is lowered on.
+      holes.push({ board: d.back, kind: 'runner', at: [sx, back.y0, back.z0 + HOOK.lineMm / 10], axis: 1, sign: 1, d: HOOK.dMm, depth: HOOK.depthMm });
       const pin: Vec3 = [n === 0 ? side.x1 + PIN.inside : side.x0 - PIN.inside, bottom.y0, plane - PIN.behind];
       holes.push({ board: d.bottom, kind: 'runner', at: pin, axis: 1, sign: 1, d: PIN_HOLE.dMm, depth: PIN_HOLE.depthMm });
       fittings.push({ kind: 'drawerLock', at: [pin[0], pin[1] - .1, pin[2]], axis: 1, boards: [d.bottom], size: 'plate', purpose: 'drawer-plate' },

@@ -11,7 +11,7 @@ construction lives in `src/domain/make/drawer-box.ts`; the runners and locks in 
 | Front | A wardrobe drawer's own front (its inner front) is the box front. A kitchen drawer, whose front is applied over the carcass, gets a box front of its own behind it. |
 | Sides | Two 18 mm sides between the front and the back. A side has the bottom's groove at its lower edge and its cams on its inner face, so there is a left and a right side. |
 | Back | 18 mm, as wide as the box, against the ends of the sides. |
-| Bottom | 6 mm, captured in a groove 12 mm up from the lower edge and 8 mm deep in the front, both sides and the back, cut 1 mm short of each groove's floor (`BOTTOM_PLAY`) so it slides in and is centred with an equal gap each end. Never nailed. |
+| Bottom | 6 mm, captured in a groove 12 mm up from the lower edge, 6.5 mm wide (`GROOVE_WIDTH`) and 8 mm deep in the front, both sides and the back, cut 1 mm short of each groove's floor (`BOTTOM_PLAY`) so it slides in and is centred with an equal gap each end. Never nailed. |
 
 The box stands 12.5 mm clear of each upright (the runner's room) and 15 mm above the board under it (the runner's foot),
 and is as deep as its runner, from the front's face to the back's rear face.
@@ -92,8 +92,9 @@ from the registry. The callout over a joint says how its hardware goes in (`asse
 - Front: Ø5 × 11 bolt holes and Ø8 × 12 dowel holes in its inner face.
 - Sides: Ø8 × 34 bores in the front end for the bolts, Ø15 × 12.5 cam housings 34 mm back on the inner face, Ø8 × 25
   dowel bores, and Ø8 × 22 bores in the rear end for the expanding dowels.
-- Back: Ø8 through holes for the expanding dowels; a Ø6 × 10 hook hole 8 mm up from its lower edge over each side, which
-  the runner's rear hook goes into (the 3D runner draws its hook and front pin over these holes).
+- Back: Ø8 through holes for the expanding dowels; a Ø6 × 10 hook hole drilled up into its lower edge over each side,
+  9 mm in from its rear face, which the runner's rear hook comes up into from below as the drawer is lowered on (the
+  3D runner draws its hook and front pin standing in these holes).
 - Bottom: a Ø10 through hole for each runner's front pin, 15 mm inside the side and 30 mm behind the front.
 - Uprights: per runner, two Ø2.5 × 12 pilot holes on the 37 mm line, 32 mm apart, at the front (screws) and one Ø5 × 12
   hole near the rear (the peg).

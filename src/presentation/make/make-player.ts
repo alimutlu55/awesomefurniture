@@ -101,9 +101,12 @@ export function createMakePlayer() {
       const ph = head(), now = fixingNow(tl, ph), p = piece;
       if (!now) return null;
       // A joint fixed on a board lying on the floor is drawn where that board lies.
+      // A locking plate goes on its runner's front pin, pulled out in the cabinet, not on the drawer waiting on the mat.
+      const plate = now.items.every(i => p.fittings[i]!.purpose === 'drawer-plate');
       const board = now.board, where = (q: Vec3): Vec3 => {
         if (now.lying && board !== null) return lyingPoint(p.boards[board]!, staged[board]!, q);
         if (board === null) return q;
+        if (plate) return [q[0], q[1], q[2] + runnerTravel(p, tl!, ph, board)];
         return posePoint(drawerPose(p, tl!, ph, board, floor), q);
       };
       const lines = now.items.flatMap(i => {
