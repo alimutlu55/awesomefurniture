@@ -12,6 +12,7 @@ import { cabinetDoorLeaves, doorFit, doorTop, leafGlass, leafThickness } from '.
 import { hinge, hingeFor } from '../../domain/wardrobe/hinges';
 import { hasTrait } from '../../domain/wardrobe/fittings';
 import { drawerPull } from '../../domain/make/make-hardware';
+import { slidingPart } from './drawer-slide';
 import { leafKey, madeStyle } from '../../domain/wardrobe/front-styles';
 import { styledFrontGeometry, styleLines } from './front-style-geometry';
 import { boardSeed, boardUVs } from './board-geometry';
@@ -20,16 +21,18 @@ import { chosenLeaf, type createSelectionState } from '../editor/selection-state
 /** Doors follow structural compartments and the wardrobe's outer profile. Each leaf's pivot names it (`leaf`:
  * bay.row.leaf, `bay`) so a tap can choose it; the chosen leaf (selection-state chosenLeaf) of the `picked` wardrobe wears the selection look a
  * chosen fitting has. Opened, a leaf swings to its hinge's angle (`userData.t`, radians); the pull-out fittings among
- * `items` (drawers) are returned with them, to slide out by Make's drawer pull (`userData.slide`, cm) when the piece is
- * shown open. */
+ * `items` (drawers) are returned with them: the part of each that travels, to slide out by its runner's open pull
+ * (`userData.slide`, cm) when the piece is shown open. */
 export function renderCabinetDoors(design: EditorState, widths: readonly number[], group: Object3D, box: BoxBuilder, prism: PrismBuilder, resources: Parameters<typeof createDecorMaterial>[0], panel: Material, hardware: Material,
     picked?: { selection: ReturnType<typeof createSelectionState>; wardrobe: number | undefined },
     items: readonly { readonly it: { readonly k: string }; readonly group: Object3D }[] = []): Object3D[] {
     const pivots: Object3D[] = [];
-    for (const { group: drawer } of items.filter(x => hasTrait(x.it.k, 'pullout'))) {
-        drawer.userData.slide = drawerPull(design.d);
-        drawer.userData.rest = drawer.position.z;
-        pivots.push(drawer);
+    // Only what travels slides: a drawer's front, box and runner members (drawer-slide.ts), never the boards round it.
+    for (const { group: fitting } of items.filter(x => hasTrait(x.it.k, 'pullout'))) {
+        const { part, travel } = slidingPart(fitting, drawerPull(design.d));
+        part.userData.slide = travel;
+        part.userData.rest = part.position.z;
+        pivots.push(part);
     }
     if (design.doors === 'none')
         return pivots;

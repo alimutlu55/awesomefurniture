@@ -9,7 +9,9 @@ import type { EditorItem } from '../../domain/wardrobe/editor-design';
 import type { EditorState } from '../../application/projects/editor-scene';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { backFaceOf, besideInnerFrontDepth, fittingDepth, innerFront, interiorFloorOf, RAIL_DROP, RAIL_RADIUS } from '../../domain/wardrobe/carcass';
-import { drawerExtension, RUNNER_CLEARANCE } from '../../domain/wardrobe/drawer-runners';
+import { drawerMechanism, drawerTravel } from '../../domain/wardrobe/drawer-mechanism';
+import { drawerExtension } from '../../domain/wardrobe/drawer-runners';
+import { drawerSlide, travelling } from './drawer-slide';
 import { frontInside } from '../../domain/wardrobe/door-layout';
 import { COL } from '../editor/editor-format.js';
 import { type GarmentKey } from './garment-types';
@@ -97,19 +99,21 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
         const riseAt=(x0=0,x1=sw)=>Math.max(0,...support.filter(span=>span.x1>x0+.01&&span.x0<x1-.01).map(span=>span.rise));
         const base=y+riseAt();
         if (k === 'drawer' || k === 'sdrawer') {
-            // An angled front over a rectangular drawer box that runs on standard slides.
-            slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf);
+            // The drawer as it is built and hung (drawer-mechanism.ts): its front, handle, open box and the drawer member
+            // of each runner travel; the boards over and under it and the runners' cabinet members stay with the carcass.
             // A drawer stack's own side within the drawer's width (shared-board-spans.ts) takes its room from the box.
-            const inL = sides.some(s => s.x0 < sw / 2) ? PANEL : 0, inR = sides.some(s => s.x0 >= sw / 2) ? PANEL : 0, boxX = coreX + (inL - inR) / 2;
-            const boxW = Math.max(4, coreW - inL - inR - 2 * RUNNER_CLEARANCE - .5), boxD = Math.min(d - 8, drawerExtension(d));
-            box(boxW, Math.max(4, coreH - 6), boxD, boxX, y + coreH / 2 - 1, -2, D);
-            for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, boxX + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -2, mh);
+            const inL = sides.some(s => s.x0 < sw / 2) ? PANEL : 0, inR = sides.some(s => s.x0 >= sw / 2) ? PANEL : 0;
+            const capped = y + hh < ceiling - .05 && topSpans.length > 0, floor = base;
+            const mechanism = drawerMechanism({ x0: coreX - coreW / 2 + inL, x1: coreX + coreW / 2 - inR, floor, ceiling: y + coreH - (capped ? PANEL : 0),
+                frontY1: front!.y1, frontBack: front!.centre - PANEL / 2, rear: backFaceOf(design) - d / 2 });
+            const slide = drawerSlide(group, box, mechanism, { box: D, metal: mh });
+            slab(sw - .4, front!.y1 - front!.y0, PANEL, cx, (front!.y0 + front!.y1) / 2, front!.centre, override ? P : mf, slide);
             // Behind closed doors a drawer has a finger grip: a handle would reach through the door (D4).
             const handle = resolveHandle(resolveMaterials(design)), pull = innerFrontBehindDoor(getRenderDesign(), it) ? null : handleMesh(handle, sw - .4, mh, false);
             if (pull) {
                 const at = handlePlacement({ x0: cx - (sw - .4) / 2, x1: cx + (sw - .4) / 2, y0: front!.y0, y1: front!.y1, door: false }, handle);
                 pull.position.set(at.x, at.y, front!.centre + PANEL / 2);
-                group.add(pull);
+                slide.add(pull);
             }
         }
         else if (['shelf', 'folded', 'seasonal', 'shoe', 'basket'].includes(k)) {
@@ -169,9 +173,10 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
                 }
             }
             else if (k === 'basket') {
-                const bh = Math.min(coreH - 5, 32);
-                box(Math.max(4, coreW - 6), bh, d - 9, coreX, base + bh / 2, 0, resources.M('#8d99ae', { wireframe: true }));
-                box(Math.max(4, coreW - 7), 2, 2, coreX, y + coreH - 7, d / 2 - 3, mh);
+                // The basket and its pull travel on their runners; the shelf over it stays.
+                const bh = Math.min(coreH - 5, 32), slide = travelling(group, drawerTravel(drawerExtension(d)));
+                box(Math.max(4, coreW - 6), bh, d - 9, coreX, base + bh / 2, 0, resources.M('#8d99ae', { wireframe: true }), slide);
+                box(Math.max(4, coreW - 7), 2, 2, coreX, y + coreH - 7, d / 2 - 3, mh, slide);
             }
         }
         else if (k === 'void') {
@@ -180,7 +185,7 @@ export function createFittingRenderer({ resources, mp, md, mf = mp, door = mf, h
             const count = Math.max(1, WardrobePlanner.geo.pantsCount(coreW));
             if (trouserPullOut) {
                 const drop = Math.max(5, Math.min(60, coreH - riseAt() - 12));
-                trouserPullOut(group, coreX, y + coreH - 7, 0, coreW, Math.min(d - 10, 44), drop, count, resolveMaterials(design).internalAccessoryFinish);
+                trouserPullOut(travelling(group, drawerTravel(drawerExtension(d))), coreX, y + coreH - 7, 0, coreW, Math.min(d - 10, 44), drop, count, resolveMaterials(design).internalAccessoryFinish);
             } else {
                 box(Math.max(4, coreW - 5), 1.5, d - 8, coreX, y + coreH - 7, -1, ma);
                 for (let j = 0; j < count; j++) {

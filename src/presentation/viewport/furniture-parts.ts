@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
-import { drawerExtension, RUNNER_CLEARANCE } from '../../domain/wardrobe/drawer-runners';
+import { BACK_PANEL } from '../../domain/wardrobe/carcass';
+import { drawerMechanism } from '../../domain/wardrobe/drawer-mechanism';
+import { RUNNER_ENTRY } from '../../domain/hardware/hardware-registry';
+import { drawerSlide } from './drawer-slide';
 import { handleMesh } from './hardware';
 import { resolveHandle } from '../../domain/wardrobe/handles';
 import { hingedLeaves, shelfHeights } from '../../domain/kitchen/kitchen-fronts';
@@ -14,6 +17,9 @@ import { decorateFront } from './front-surface';
  * tap, a hob). Each takes its place and materials and adds itself to a group; nothing here knows which kind of
  * furniture it is building. Centimetres; x along the width, y up, z towards the front.
  */
+
+/** An applied front's box stands this far behind the carcass's front edge (the runner's standoff). */
+const STANDOFF = (RUNNER_ENTRY.rules.clearanceMm.standoff ?? 2) / 10;
 
 /** A mesh placed at a point, casting and receiving shadows. */
 export function partMesh(geometry: THREE.BufferGeometry, material: THREE.Material, parent: THREE.Object3D, x: number, y: number, z: number) {
@@ -36,18 +42,18 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
 }) {
   const gap = reveal ?? (handleless ? .2 : .3);
   /** The cabinet's handle on a front `run` long along it, across (drawers, flaps) or upright (doors). */
-  const pull = (run: number, x: number, y: number, vertical = false) => {
+  const pull = (run: number, x: number, y: number, vertical = false, on: THREE.Object3D = group) => {
     const mesh = handleless ? null : handleMesh(handle, run, metal, vertical);
     if (!mesh) return;
     mesh.position.set(x, y, face + (front.userData.panelThickness ?? PANEL) / 2);
-    group.add(mesh);
+    on.add(mesh);
   };
   /** One front panel from y0 to y1 across x0..x1, a hairline gap all round. */
-  const panel = (x0: number, x1: number, y0: number, y1: number, material = front) => {
+  const panel = (x0: number, x1: number, y0: number, y1: number, material = front, on: THREE.Object3D = group) => {
     const thickness = material.userData.panelThickness ?? PANEL;
-    const mesh = box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), thickness, (x0 + x1) / 2, (y0 + y1) / 2, face, material);
+    const mesh = box(Math.max(1, x1 - x0 - gap), Math.max(1, y1 - y0 - gap), thickness, (x0 + x1) / 2, (y0 + y1) / 2, face, material, on);
     decorateFront([{ x: x0 + gap / 2, y: y0 + gap / 2 }, { x: x1 - gap / 2, y: y0 + gap / 2 },
-      { x: x1 - gap / 2, y: y1 - gap / 2 }, { x: x0 + gap / 2, y: y1 - gap / 2 }], thickness, face, material, group);
+      { x: x1 - gap / 2, y: y1 - gap / 2 }, { x: x0 + gap / 2, y: y1 - gap / 2 }], thickness, face, material, on);
     return mesh;
   };
   /** Hinged leaves across a span (hingedLeaves: one within the leaf limit, else a pair), each with its pull by its free edge. */
@@ -63,12 +69,11 @@ export function createFrontParts({ box, group, face, depth, front, inside, metal
   const shelves = (x0: number, x1: number, y0: number, y1: number) => {
     for (const y of shelfHeights(y0, y1)) box(x1 - x0 - 1, shelfThickness, depth - 6, (x0 + x1) / 2, y, -1, inside);
   };
-  /** The box of a drawer behind its front, with its side-mounted telescopic runners. */
-  const drawerBox = (cx: number, y: number, w: number, h: number) => {
-    const boxW = Math.max(4, w - 2 * RUNNER_CLEARANCE - 1.5), boxD = Math.min(depth - 6, drawerExtension(depth));
-    box(boxW, Math.max(4, h - 4), boxD, cx, y + h / 2, -1, drawer);
-    for (const side of [-1, 1]) box(RUNNER_CLEARANCE * .8, 4.5, boxD, cx + side * (boxW / 2 + RUNNER_CLEARANCE / 2), y + 4.2, -1, metal);
-  };
+  /** A drawer behind its applied front as it is built and hung (drawer-mechanism.ts): its own box front, open box and
+   * runners. Returns the part that travels, for the front and its pull to go on. */
+  const drawerBox = (cx: number, y: number, w: number, h: number) => drawerSlide(group, box, drawerMechanism({
+    x0: cx - w / 2, x1: cx + w / 2, floor: y, ceiling: y + h, frontY1: y + h, frontBack: depth / 2 - STANDOFF, rear: BACK_PANEL - depth / 2, applied: true,
+  }), { box: drawer, metal });
   return { panel, doors, shelves, drawerBox, pull };
 }
 
