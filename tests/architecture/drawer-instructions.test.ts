@@ -14,6 +14,7 @@ import { TOOLS } from '../../src/domain/hardware/tools';
 import { drawerHand, stepNotes } from '../../src/domain/make/make-instructions';
 import { hardwareDisplay } from '../../src/presentation/make/make-panel-tabs';
 import { stepPages, wrap } from '../../src/presentation/make/make-steps-pdf';
+import { marksToPdf } from '../../src/presentation/drawings/pdf-writer';
 
 // Drawers at the bottom of the left bay, behind hinged doors: the reference flat-pack manual moves drawers a hole up for
 // hinged doors; a made wardrobe moves the hinges.
@@ -115,13 +116,26 @@ test('the runners step says where each runner goes; box sides are named left and
 
 test('the saved drawings print every step with its drawing, instruction, tools, drawer kit and what not to do', () => {
   const mp = made(wardrobe), pages = stepPages(mp, { x: 0, y: 0, w: 400, h: 260 });
-  assert.equal(pages.length, Math.ceil(mp.steps.length / 4));
+  assert.equal(pages.length, Math.ceil(mp.steps.length / 2));
   const text = pages.flatMap(p => p.marks).flatMap(m => m.kind === 'text' ? [m.text] : []), all = text.join(' ');
   for (const s of mp.steps) assert.ok(text.includes(String(s.n)), `step ${s.n} numbered`);
   assert.match(all, /Tools: .*Flat screwdriver/);
   assert.match(all, /Each of 2 drawers: Cam bolt/);
   assert.match(all, /× Do not build a drawer on a hard floor/);
   assert.match(all, /holes 107 mm up/);
-  assert.ok(pages.every(p => p.marks.some(m => m.kind === 'shape' && m.fill === 'laminated')), 'what each step adds is shaded');
   assert.deepEqual(wrap('one two three four five', 12, 2.4), ['one two', 'three four', 'five'], 'at most 10 letters a line');
+});
+
+test('step pictures go on their page as JPEGs, the close-up framed with each fastener\'s way in', () => {
+  const mp = made(wardrobe), jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+  const pictures = mp.steps.map(() => ({ whole: { jpeg, width: 1500, height: 1000 }, detail: { jpeg, width: 900, height: 900, ways: [{ from: [.2, .2] as const, to: [.5, .5] as const }] } }));
+  const pages = stepPages(mp, { x: 0, y: 0, w: 400, h: 260 }, pictures);
+  assert.ok(pages.every(p => p.images.length >= 2));
+  const pdf = marksToPdf(pages.map(p => p.marks), { w: 420, h: 297 }, 'Steps', pages.map(p => p.images));
+  const text = new TextDecoder('latin1').decode(pdf);
+  assert.match(text, /\/Subtype \/Image \/Width 1500 \/Height 1000 .*\/Filter \/DCTDecode/);
+  assert.match(text, /\/XObject << \/Im0 \d+ 0 R/);
+  // The cross-reference offsets count bytes, the pictures' binary included.
+  const xref = Number(/startxref\n(\d+)/.exec(text)![1]);
+  assert.equal(text.slice(xref, xref + 4), 'xref');
 });

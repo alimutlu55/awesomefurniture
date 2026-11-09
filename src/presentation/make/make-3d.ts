@@ -70,7 +70,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
   contact.layers.set(MAKE_LAYER); contact.visible = false; scene.add(contact);
   const decorMaterials = new Map<string, THREE.Material>(), faded = new Map<THREE.Material, THREE.Material>();
   // The soft mat the drawer boxes are built on, front face down, as the flat-pack drawer manual asks (drawer-film.ts).
-  const mat = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x9aa192 }));
+  // Unlit, so it reads the same from any side (a close-up from under a drawer sees its underside).
+  const mat = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xc9cdc3 }));
   mat.layers.set(MAKE_LAYER); mat.receiveShadow = true; mat.visible = false; mat.userData.make = true; mat.raycast = () => undefined;
   const lines = {
     // A drawing, as an assembly manual is drawn: boards the colour of the paper, unshaded, so only their ink outlines

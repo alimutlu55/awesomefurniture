@@ -4,10 +4,11 @@ import { type CutLayout, STOCK } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePart, type MakePiece } from '../../domain/make/make-parts';
 import { thinAxis } from '../../domain/make/make-measures';
 import { box, type Mark, type Pt, shape, words } from '../drawings/paper-marks';
-import { marksToPdf } from '../drawings/pdf-writer';
+import { marksToPdf, type PdfImage } from '../drawings/pdf-writer';
 import { PAPER } from '../drawings/sheet-layout';
 import { hardwareDisplay } from './make-panel-tabs';
 import { stepPages } from './make-steps-pdf';
+import type { StepPicture } from './make-pictures';
 import { drillingSummary, partDrilling } from './make-sheet';
 
 /**
@@ -20,6 +21,8 @@ export interface ExportInfo {
   readonly material: (decorId: string) => string;
   readonly band: number;
   readonly cut: CutLayout;
+  /** Each step's pictures, taken from the film (make-pictures.ts); without them the steps are words only. */
+  readonly pictures?: readonly StepPicture[];
 }
 
 const mm = (cm: number) => String(Number((cm*10).toPrecision(12)));
@@ -83,9 +86,9 @@ function partCell(piece: MakePiece, part: MakePart, info: ExportInfo, x0: number
   return out;
 }
 
-/** The drawings: parts six to a page, the stock sheets two to a page, the hardware, then the steps four to a page. */
+/** The drawings: parts six to a page, the stock sheets two to a page, the hardware, then the steps two to a page. */
 export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
-  const pages: { heading: string; marks: Mark[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
+  const pages: { heading: string; marks: Mark[]; images?: PdfImage[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
   for (let k = 0; k < piece.parts.length; k += cols * rows) {
     const marks = piece.parts.slice(k, k + cols * rows).flatMap((part, i) => partCell(piece, part, info, M + 4 + (i % cols) * cw, M + 4 + Math.floor(i / cols) * ch, cw - 6, ch - 4));
     pages.push({ heading: 'Parts', marks });
@@ -117,6 +120,7 @@ export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
   marks.push(words(P(M + 4, PH - M - TITLE - 6), `Joints: ${piece.construction.joints} · back: ${piece.construction.back} · holes in mm from the part's lower left corner, face up; dashed: from the face under it.`, 'small'));
   pages.push({ heading: 'Hardware', marks });
   // The steps, as the manual prints them: a drawing and the words for each.
-  pages.push(...stepPages(piece, { x: M + 2, y: M + 2, w: PW - 2 * M - 4, h: PH - 2 * M - TITLE - 4 }));
-  return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make');
+  pages.push(...stepPages(piece, { x: M + 2, y: M + 2, w: PW - 2 * M - 4, h: PH - 2 * M - TITLE - 4 }, info.pictures));
+  return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make',
+    pages.map(p => p.images));
 }

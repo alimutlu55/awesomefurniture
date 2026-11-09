@@ -152,7 +152,8 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const purpose = piece.fittings[fix.items[0]!]!.purpose, kind = piece.fittings[fix.items[0]!]!.kind;
       // Seen where they can be seen: a drawer's locking plates and levers from below it, a drawer side's cams from above,
       // looking down into the box, and the expanding dowels through a drawer back from above and behind it.
-      const below = kind === 'drawerLock', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
+      // A lever is screwed on from under the drawer; a locking plate is laid on the pin from above.
+      const below = kind === 'drawerLock' && piece.fittings[fix.items[0]!]!.size === 'lever', into = purpose === 'box-sides' && kind === 'cam', overBack = purpose === 'box-back';
       const az = plates && middle ? inside(where(middle.at)) : below || into ? facing + side * .45 : up ? facing + side * .3 + turn
         : [way + .85, way - .85].sort((a, b) => off(a) - off(b))[0]!;
       const el = below ? -.28 : into ? .8 : overBack ? .62 : up ? (out.y > 0 ? .85 : .12) : plates ? .3 : .34;

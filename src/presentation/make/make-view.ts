@@ -16,6 +16,7 @@ import { createStudioController } from './assembly-studio-controller';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
 import { cutListCsv, makePdf } from './make-export';
+import { picturesFor } from './make-pictures'; // the saved drawings' step pictures, photographed from the film
 import { saveFile } from '../components/save-file';
 
 const GLIDE = .9, BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
@@ -40,9 +41,7 @@ export function createMakeView(ports: MakeViewPorts) {
   const desktop = dom.matchMedia('(min-width:901px)'), reducedMotion = dom.matchMedia('(prefers-reduced-motion: reduce)');
   const make3d = createMake3d(resources, resources.scene);
   const overlay = doc.createElementNS(SVG, 'svg') as SVGSVGElement;
-  overlay.setAttribute('class', 'make-overlay');
-  overlay.setAttribute('aria-hidden', 'true');
-  overlay.setAttribute('translate', 'no');
+  for (const [name, value] of [['class', 'make-overlay'], ['aria-hidden', 'true'], ['translate', 'no']] as const) overlay.setAttribute(name, value);
   view.append(overlay);
   const panel = doc.createElement('div');
   panel.className = 'pop editor-panel make-panel';
@@ -352,11 +351,12 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   /** Saves the piece's drawings (PDF) or cut list (CSV): part of the paid drawing set. */
   async function save(kind: 'pdf' | 'csv') {
-    const piece = st.piece;
-    if (!piece || !await ports.pay() || st.piece !== piece) return;
+    const piece = st.piece; if (!piece || !await ports.pay() || st.piece !== piece) return;
     const title = ports.scene().wardrobes.find(c => c.id === st.id)?.name || 'Piece', name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
+    const pictures = kind === 'pdf' ? picturesFor(piece, player, { renderer: resources.R, scene: resources.scene, layer: MAKE_LAYER, document: doc, make3d, camera: ports.camera },
+      st.pose, { look: st.look, filming: st.filming, paper: () => paper(st.filming), size: [view.clientWidth, view.clientHeight] }) : [];
     const blob = kind === 'pdf'
-      ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts, undefined, band) }).buffer as ArrayBuffer], { type: 'application/pdf' })
+      ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts, undefined, band), pictures }).buffer as ArrayBuffer], { type: 'application/pdf' })
       : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
     await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob); ports.saved?.(kind, piece.parts.length);
   }
