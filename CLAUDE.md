@@ -53,6 +53,7 @@ Details: [docs/architecture.md](docs/architecture.md).
 | Wall and ceiling shapes (outline editing, presets) | Geometry rules in `src/domain/geometry/profile-polygon.ts`, adapter `src/domain/studio/surface-profile.ts`, presets in `CEILING_SHAPES` (`studio-ceiling.ts`), editor `presentation/editor/surface-shape-*.ts`. See [docs/studio-handoff.md](docs/studio-handoff.md) |
 | Sign in, sign up, moving a guest's designs and credits into it | `src/presentation/account/`, `src/app/account-platform.ts`, `infrastructure/account/` (`guest-handover.ts`, merge endpoint), `account_merge` in `supabase/migrations/`. See [docs/accounts.md](docs/accounts.md) |
 | Make: one piece taken down to its parts (parts, measurements, joints and drilling, hardware, drawer boxes, assembly steps, cut layout, saving) | `src/domain/make/` (data: `make-parts`, `make-joints`, `make-hardware`, `make-assembly`, `make-cut-layout`, `make-construction`) and `src/presentation/make/` (3D, marks, panel, PDF/CSV), opened by the `make` tool in `contextual-actions.js`; the joint choice is `application/commands/make-commands.ts`. Draws from `pieceBoards`, never from the 3D renderer. See [docs/make.md](docs/make.md) |
+| Whether a piece can be built, and how: build order, the connector each joint takes, bore clearances, the screws that hold hardware, the proof (`verifyPiece`), the gate into assembly, the written assembly plan | `src/domain/make/` (`make-sequence`, `bore-clearance`, `make-fixings`, `make-verify`, `assembly-plan`, `stand-up`), `domain/engine/assembly-gate.ts` and `rules/buildability-pack.ts`; in the editor `presentation/make/make-gate.ts`, `assembly-plan-text.ts`. Derived from the piece, never written per product. See [docs/buildability.md](docs/buildability.md) |
 | The engine: what a design is when built (build model, load checks, rule packs, passport, prices, builder profiles, Design check panel) | `src/domain/engine/` and `application/engine/`; the panel is `presentation/insight/`. Read `buildModel`, never the 3D renderer. See [docs/engine.md](docs/engine.md) |
 | Product analytics: a new event, what the owner's views show, the ingest endpoint | One entry in `src/domain/analytics/analytics-events.ts`; `track(...)` from the module's ports where the action commits; views in `supabase/migrations/*_analytics.sql`. See [docs/analytics.md](docs/analytics.md) |
 | Building designs from a description (agents, imports) | `src/application/spec/` and the spec codec. See [docs/design-spec.md](docs/design-spec.md) |
@@ -76,6 +77,9 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   in the same commit and say why.
 - **Credit margin** (`tests/architecture/credits.test.ts`) fails when a paid feature keeps less than 65% usually or 40%
   at worst on any pack, after 23% VAT, Stripe's fee, refunds, chargebacks and the Gemini token cost, for every pack in every currency (zloty, euro, dollars) (`domain/credits/unit-economics.ts`). The ledger itself is checked by `supabase/tests/credits_ledger.sql`.
+- **Buildability** (`tests/architecture/buildability.test.ts`, `assembly-plan.test.ts`) runs `verifyPiece` and the plan's closures over
+  every kitchen unit and preset, every shape, the golden and welcome designs and Auto design from 60 to 300 cm, in all joint systems.
+  A new defect there is a real one: fix what Make sets out, never the check. The one known refusal (a larder's pantry front) is named in the test.
 - **Architecture ratchet** (`scripts/architecture-baseline.json`) lists older code that breaks a
   rule. A listed file may only improve. Never raise a number or add a file: fix the code.
 
@@ -115,6 +119,10 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   automated checks (docs/experience.md, Known limits).
 - Accounts: no real sign-up, email code or Google sign-in was run during development; Google stays hidden until it is
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
+- Buildability: a larder's pantry front is refused by the gate (no pull-out frame is set out for it); the film still shows a
+  standing build while the plan says how to build lying down and stand up; sets mounted whole and the screws that hold hardware
+  are counted and stepped but not drawn or set out hole by hole; tool access is a 150 mm box behind each screw head
+  (docs/buildability.md, Known limits).
 - Make: a sloped top is screwed straight down rather than square to its face, the cut layout is strips only (no free
   nesting or offcut reuse), and hole positions follow common practice (System 32, 37 mm line) rather than a hardware maker's
   template (docs/make.md, Known limits). Every drawer is a knock-down box on bottom-mounted runners: no side-mounted or

@@ -1,5 +1,5 @@
+import { BOARD_MINUTES, FIT_MINUTES, fitMinutes } from '../hardware/fit-time';
 import { hardware } from '../hardware/hardware-registry';
-import type { HardwareCategory } from '../hardware/hardware-types';
 import { type CutLayout, STOCK, cutLayout } from '../make/make-cut-layout';
 import type { MakePart } from '../make/make-parts';
 import type { BuildModel } from './build-model';
@@ -11,15 +11,7 @@ import type { LoadCheck } from './physics/structure';
  * passport, the cutting list and the drawings always agree.
  */
 
-/** Minutes to fit one of each kind of hardware, for one person who has done it before (estimates; drilling not included). */
-export const FIT_MINUTES: Readonly<Record<HardwareCategory, number>> = {
-  connector: 1.5, fixing: .3, support: .5, hinge: 4, runner: 10, handle: 3, rail: 5, leg: 1, bracket: 3, lift: 20, mechanism: 25,
-  plinth: 1, track: 30, lighting: 15,
-};
-/** Minutes to fit one fitting of this kind: its entry's own time where it has one, else its category's. */
-export const fitMinutes = (kind: string): number => { const entry = hardware(kind); return entry?.assembly.minutes ?? FIT_MINUTES[entry?.category ?? 'fixing']; };
-/** Minutes to handle, place and square up one board. */
-export const BOARD_MINUTES = 2;
+export { BOARD_MINUTES, FIT_MINUTES, fitMinutes };
 
 export interface HardwareLine { readonly key: string; readonly name: string; readonly size: string | undefined; readonly qty: number; readonly unit: string }
 

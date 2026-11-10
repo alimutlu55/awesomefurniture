@@ -153,7 +153,8 @@ export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
   marks.push(words(P(sx, M + 10), 'Steps', 'heading'));
   piece.steps.forEach((st, i) => {
     const parts = [...new Set(st.boards.map(b => piece.parts.find(p => p.ids.includes(b))!.n))].join(', ');
-    const hardware = st.fittings.map(f => `${FITTING_NAMES[f.kind]} ×${f.qty}`).join(', ');
+    // With its size, so two kinds of screw in one step are told apart.
+    const hardware = st.fittings.map(f => `${FITTING_NAMES[f.kind]}${f.size ? ' ' + sold(f.size) : ''} ×${f.qty}`).join(', ');
     marks.push(words(P(sx, M + 18 + i * 11), `${st.n}`, 'listMark'), words(P(sx + 8, M + 18 + i * 11), parts ? 'Parts ' + parts : '', 'list'),
       words(P(sx + 8, M + 23 + i * 11), hardware, 'small'));
   });

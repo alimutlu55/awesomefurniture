@@ -1,5 +1,5 @@
 import type { Board } from '../drawings/cabinet-boards';
-import { BOARD_MINUTES, fitMinutes } from '../engine/passport';
+import { BOARD_MINUTES, fitMinutes } from '../hardware/fit-time';
 import { assemblyStageSpec, hardware } from '../hardware/hardware-registry';
 import type { Step } from './make-assembly';
 import { doorGaps } from './make-fixing';

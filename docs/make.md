@@ -34,7 +34,8 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
     direct stage link; each Hardware row opens its next relevant stage, using the same playhead.
   - **Cutting**: every stock sheet (2800 × 2070 mm, 10 mm trim, 4 mm kerf) per decor and thickness with its parts on
     it and how much is used, parts longer than a sheet, and the edge banding to buy; save the cut list (CSV).
-- **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, hardware and steps) or the
+- **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, hardware and steps, then
+  the assembly plan written out) or the
   cut list (CSV a panel saw or optimiser takes) is part of the paid drawing set: the same price and 24-hour pass.
 
 ## Assembly Studio
@@ -51,7 +52,9 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
   highlights its boards and connecting hardware, frames its current transformed bounds, and shows its dimensions,
   material and stage link. Playback resumes from the same time; the camera glides back to the director.
 - Guidance is an optional compact overlay: the current phase, installation guidance, required boards and real
-  hardware quantities. The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
+  hardware quantities, then the step written out from the assembly plan (each part going in, each joint's set-out, the
+  checks). **Before you start** (method, people, time, tools) is under the chapters. Studio opens only when nothing
+  blocks building the piece (buildability.md). The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
 - Playback controls fade to 60% after four seconds without interaction, still readable (3:1 on the lightest backdrop) and in reach; any tap brings them back.
   Keyboard focus keeps controls visible. Space plays/pauses; arrows move between steps. Reduced motion starts paused.
 - Back, Escape, or the back arrow restores the previous camera, selected part, panel, look and editing controls.
@@ -59,16 +62,24 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 
 ## How the piece goes together (domain, centimetres; holes in millimetres)
 
+The order it is built in, the connector each joint takes, the drilling clearances, the screws that hold hardware, the
+proof that it can be built and the written plan are in [buildability.md](buildability.md).
+
+
 - `findJoints`: every place one board's edge meets another's face. Doors, fronts, backs, adjustable shelves and a top
   set at a slope are not joined there.
 - A top set at a slope (`tiltOf`) is screwed down into every side and partition under it: connector screws Ø7 straight
   down through it in the upright's own plane, whatever the joint system (a cam or dowel cannot sit square to a sloped
   edge). Its holes are marked along the slope on its drawing; it is measured along the slope, through its thickness and
   up to each end, and it waits on the floor levelled.
-- `jointFittings`: connectors 5 cm in from each end of a joint and no more than 30 cm apart. Confirmat Ø7 through the
-  face board, Ø5 × 45 pilot in the edge; cam Ø15 × 12.5 in the edge board 34 mm from the joint, bolt Ø5 × 11, Ø8 × 34;
-  dowels Ø8 × 12 / × 25. Plinths are screwed (Ø4, pilot Ø2.5 × 30). A board joined from both faces at one place moves
-  the second joint's connectors 32 mm along, so they never meet inside it.
+- `jointFittings`: connectors 5 cm in from each end of a joint (a quarter of a short one) and no more than 30 cm apart;
+  two from 64 mm, one in the middle below. Confirmat Ø7 through the face board, Ø5 × 45 pilot in the edge; cam Ø15 × 12.5
+  in the edge board 34 mm from the joint, bolt Ø5 × 11, Ø8 × 34; dowels Ø8 × 12 / × 25. Plinths are screwed (Ø4, pilot
+  Ø2.5 × 30). A connector whose holes would come within 2 mm of any hole already set out, in either board and any
+  direction, steps along its joint 32 mm at a time until it is clear. Each joint takes the connector it can be made
+  with in the build order (`make-sequence.ts`).
+- A top or base longer than a sheet is split either side of a partition that runs through it, so each piece is joined
+  into the partition's face like a shelf; split plinth rails get a bearer under each base end.
 - `backFixing`: nails every 15 cm into each board the back touches, or a groove in each.
   A back larger than a stock sheet (`make/stock-sheet.ts`: 2800 × 2070 mm less 10 mm trim) is split over the
   partition nearest the middle, again until each piece fits (`cabinetBoards`); the pieces meet on the partition's
@@ -76,8 +87,11 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 - `frontHardware`: hinges by door height as the drawing set counts them (≤ 900 mm 2, ≤ 1600 3, ≤ 2000 4, else 5), only
   as high as the upright the door hangs from; cups Ø35 × 13 22.5 mm from the hinge edge, plates on the System 32 line
   (37 mm in) 32 mm apart; nothing drilled in glass. Handles 128 mm; runners on the uprights; four shelf pins under each
-  adjustable shelf in rows of five; rails 4 mm shorter than the bay with an end support each side; legs, hangers and
-  wall brackets as the hardware list has them.
+  adjustable shelf in rows of five (one hole right through a partition where two shelves are level either side); rails
+  4 mm shorter than the bay with an end support screwed to the upright each side; legs, hangers and wall brackets; the
+  sets a fitting names (pull-down rail, trouser rack, basket, flap lift, corner mechanism), an appliance door's kit, a
+  fixed panel's screws and a wall shelf's brackets.
+- `fixingScrews` (`make-fixings.ts`): the screws every piece of hardware is held by, from its registry entry.
 - `drawerBoxes` (`drawer-box.ts`): knock-down drawers on bottom-mounted runners. The front (a wardrobe drawer's own front,
   or a box front behind a kitchen's applied front), two sides between it and a back as wide as the box, and a 6 mm bottom
   in a groove in all four; joined with cam bolts, cams and a dowel at the front, expanding dowels through the back; hooked
@@ -94,6 +108,8 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 | Domain | `make/make-joints.ts`, `make-hardware.ts` | Joints and connectors, the back; hinges, handles, runners, pins, rails, legs; door and drawer motion |
 | Domain | `make/drawer-box.ts`, `drawer-installation.ts` | Drawer boxes, their joints, grooves, hook and pin holes and locks; runner screws; the drawers' film |
 | Domain | `make/make-assembly.ts` | Holes on a flat board, drilling signatures, assembly steps, buy list, drilling checks |
+| Domain | `make/make-sequence.ts`, `bore-clearance.ts`, `make-fixings.ts` | Build order and the connector per joint; bores in three dimensions; the screws that hold hardware |
+| Domain | `make/make-verify.ts`, `assembly-plan.ts`, `stand-up.ts` | The proof a piece can be built; the steps written out; the height needed to stand it up |
 | Domain | `make/make-cut-layout.ts` | Stock sheets, strips, kerf, trim, grain; edge banding metres |
 | Domain | `make/make-timeline.ts` | The film: each step's drill, place and fix phases in seconds; what is where at any time (pure) |
 | Domain | `make/make-fixing.ts` | Where and which way each fitting goes in, and a step's fittings gathered into joints fixed in turn |
@@ -107,6 +123,7 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
 | Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts` | The panel and its tabs; the PDF and CSV |
 | Presentation | `make/make-view.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys, the per-frame overlay |
+| Presentation | `make/make-gate.ts`, `assembly-plan-text.ts` | The gate into assembly and onto paper, saving; the plan in words for the Studio and the PDF |
 | Wiring | `contextual-actions.js`, `contextual-toolbar.js`, `mount-editor-bindings.js`, `bindings/canvas.js`, `editor-runtime.ts` | The Make tool, its toolbar and View menu, taps, the joint command, paying |
 
 ## Decisions (keep them)
@@ -119,8 +136,8 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 - **The camera is the editor's.** While Make is open the canvas drags nothing; drags turn and taps pick. The camera sees
   only `MAKE_LAYER` (the lights are added to it), so the room needs no hiding.
 - **What you see is the cutting list.** Make draws from `pieceBoards`, never from the editor's 3D renderer.
-- **Counts agree with the drawing set.** Hinges, runners, rails, pins, handles, legs, hangers and brackets are tested
-  against `hardwareList`.
+- **Counts agree with the drawing set.** The drawings' hardware list reads Make's buy list: hinges, runners, rails,
+  pins, handles, legs, hangers, brackets, the sets mounted whole and every screw that holds them.
 - **Keys stay inside Make**, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
 - **Saving is paid**, as part of the technical drawings feature; no price of its own.
 
@@ -136,7 +153,7 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 - Labels keep a 6 px gap; one that would crowd another waits until the view turns.
 - Measurements over the view do not follow open doors (a front's sizes hide while it is open).
 
-Tests: `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`, `tests/architecture/make-timeline.test.ts`,
+Tests: `tests/architecture/buildability.test.ts`, `tests/architecture/assembly-plan.test.ts`, `tests/architecture/make.test.ts`, `tests/architecture/make-construction.test.ts`, `tests/architecture/make-timeline.test.ts`,
 `tests/architecture/assembly-studio.test.ts`, `tests/contextual-actions.test.cjs`; in a browser, `scripts/check-make.cjs` (part of `npm run check:mobile`).
 
 Assembly Studio browser checks: `npm run check:assembly` (Chromium) and

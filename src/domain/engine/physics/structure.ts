@@ -46,7 +46,10 @@ export const DRAWER_SELF_KG = 3;
 /** A hardware's longest span without a centre support (mm), for boards of the carcass's thickness. */
 function maxSpanMm(entry: HardwareEntry): number | undefined {
   const span = entry.rules.maxSpanMm;
-  if (span === undefined || typeof span === 'number') return span;
+  // One test a line, so the looser typecheck of the editor's JavaScript (which now reaches the engine through Make's
+  // gate) narrows each case too.
+  if (typeof span === 'number') return span;
+  if (span === undefined) return undefined;
   return span[Math.round(PANEL * 10)] ?? Math.max(...Object.values(span));
 }
 

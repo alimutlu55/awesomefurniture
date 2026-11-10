@@ -9,7 +9,7 @@ agree by construction (and `tests/architecture/engine.test.ts` proves the boards
 flowchart TD
   Scene["Scene (designInput)"] --> BM["build-model.ts<br/>Make pieces + contents + loads + weight"]
   Profile["catalog/builder-profiles.ts"] -. lowers .-> BM
-  BM --> Rules["rules/: manufacturing · drilling · engineering packs"]
+  BM --> Rules["rules/: manufacturing · drilling · buildability · engineering packs"]
   BM --> Passport["passport.ts"]
   BM --> Quote["catalog/quote.ts (price-list.ts)"]
   Rules --> Inspect["inspect.ts"]
@@ -24,7 +24,7 @@ flowchart TD
 
 **Design check** in the editor menu (its badge counts what blocks building) opens a panel, a bottom sheet on phones:
 
-- **Check**: every finding, most serious first, identical ones grouped. Each says what, why, how far over its limit, and
+- **Check**: every finding, most serious first, identical ones grouped (manufacturing, drilling, buildability, loads). Each says what, why, how far over its limit, and
   offers its fixes. *Split the bay* puts a partition under the middle of a bay and keeps its layout on both sides (one undo step).
 - **Price**: the design *built yourself*, *cut and drilled*, or *built and fitted*, in zł, € or $, with the lines behind each.
 - **Passport**: parts, boards, sheets and yield, edge banding, holes, hardware, empty weight, planned contents, assembly time.
@@ -44,6 +44,7 @@ Agents get the same through `window.furnidraw.inspect(spec?, currency?)` and the
 | `domain/engine/physics/contents.ts` | What each fitting holds (its purpose's `load` in the registry) and what carries it: boards, a rail, runners |
 | `domain/engine/physics/structure.ts` | Load checks: shelf sag, rail span, lift and runner load, hinge load, as a share of the limit |
 | `domain/engine/rules/` | `EngineFinding`, `Fix`, rule packs and `RULE_PACKS` |
+| `domain/engine/rules/buildability-pack.ts`, `domain/engine/assembly-gate.ts` | Make's proof that each piece can be built, as blocking findings; the gate into assembly ([buildability.md](buildability.md)) |
 | `domain/engine/passport.ts` | The numbers a workshop quotes by |
 | `domain/engine/catalog/` | `price-list.ts` (dated prices), `builder-profiles.ts`, `quote.ts` |
 | `domain/engine/scene-diff.ts` | What changed between two versions |
@@ -68,6 +69,8 @@ Agents get the same through `window.furnidraw.inspect(spec?, currency?)` and the
 ## Decisions (keep them)
 
 - **One source of truth.** The model wraps Make; it never re-derives boards. A new output reads the model.
+- **What cannot be built blocks.** A buildability defect or drilling that cannot be made is a closure that does not
+  hold, not an estimate: it blocks, and closes the gate into assembly.
 - **Loads are estimates and never block.** Engineering findings warn (over the limit) or advise (over 85%). The blocking
   rule on spans stays D2 in the manufacturing check.
 - **Shelf sag**: a beam on two supports (conservative: fixed shelves are partly restrained by their joints), long-term
