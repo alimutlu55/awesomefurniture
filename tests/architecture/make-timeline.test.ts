@@ -261,3 +261,34 @@ test('a door is hung by clipping its hinges onto the plates: held in front, seen
   assert.ok(!seeThrough(tl, at(s.hang[1]), door) && !seeThrough(tl, at(tl.duration), door), 'solid once clipped');
   assert.ok(!seeThrough(tl, at((s.hang[0] + s.hang[1]) / 2), side), 'only the doors');
 });
+
+test('built lying down, the carcass lies on its front edges until the top and back are on, then is stood up', async () => {
+  const { lyingAt, tipPoint, tipDir, RAISE } = await import('../../src/domain/make/make-timeline');
+  const mp = make(wardrobe), standing = assemblyTimeline(mp), tl = assemblyTimeline(mp, { lying: true });
+  assert.equal(standing.raise, null, 'built standing unless the plan says lying');
+  assert.equal(lyingAt(standing, 10), 0);
+  const [a, b] = tl.raise!, last = Math.max(mp.steps.findIndex(s => s.stage === 'top'), mp.steps.findIndex(s => s.stage === 'back'));
+  assert.ok(Math.abs(b - a - RAISE) < 1e-9);
+  assert.ok(a >= tl.steps[last]!.fix[1] && b <= tl.steps[last]!.end, 'raised at the end of the later of the top and the back');
+  const longer = tl.duration - standing.duration;
+  assert.ok(longer >= RAISE - 1e-9 && longer < RAISE + 1, 'the film is longer by the raise and a moment to see the carcass done first');
+  assert.equal(lyingAt(tl, 0), 1);
+  assert.equal(lyingAt(tl, a), 1);
+  assert.equal(lyingAt(tl, b), 0);
+  assert.equal(lyingAt(tl, tl.duration), 0);
+  assert.ok(lyingAt(tl, (a + b) / 2) > .49 && lyingAt(tl, (a + b) / 2) < .51);
+  for (const s of tl.steps.slice(last + 1)) assert.equal(lyingAt(tl, s.start), 0, 'everything after is done standing');
+  // Lying: the front edge is on the floor, the back is up at the piece's depth, the top end lies its height out in front.
+  const { h, d } = mp.size, near = (p: readonly number[], q: readonly number[]) => p.every((v, k) => Math.abs(v - q[k]!) < 1e-9);
+  assert.ok(near(tipPoint(d, 1, [10, 0, d]), [10, 0, d]), 'the bottom front edge is what it turns about');
+  assert.ok(near(tipPoint(d, 1, [10, 0, 0]), [10, d, d]), 'the bottom back edge is up at the depth');
+  assert.ok(near(tipPoint(d, 1, [10, h, d]), [10, 0, d + h]), 'the top front edge is on the floor, the height out in front');
+  assert.ok(near(tipPoint(d, 0, [10, 50, 20]), [10, 50, 20]));
+  assert.ok(near(tipDir(1, [0, -1, 0]), [0, 0, -1]), 'a screw driven down through the top is driven level while it lies');
+  // No part waits where the carcass lies: across its width, from its front out to its height.
+  const clear = stagingLayout(mp, 0, h), { w } = mp.size;
+  for (const s of clear) {
+    const across = s.at[0] + s.size[0] / 2 > 0 && s.at[0] - s.size[0] / 2 < w, under = s.at[2] + s.size[2] / 2 > d && s.at[2] - s.size[2] / 2 < d + h;
+    assert.ok(!(across && under), `a part waits at x ${s.at[0]}, z ${s.at[2]}, under the lying carcass`);
+  }
+});

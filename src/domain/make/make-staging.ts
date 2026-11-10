@@ -45,11 +45,12 @@ function flipped(piece: MakePiece, i: number) {
   return down(true) > down(false);
 }
 
-export function stagingLayout(piece: MakePiece, floor = 0): Staged[] {
+/** `clear` keeps the floor in front of the piece free that far out: where its carcass lies while it is built lying down. */
+export function stagingLayout(piece: MakePiece, floor = 0, clear = 0): Staged[] {
   const order = piece.steps.flatMap(s => s.boards), out: Staged[] = piece.boards.map(() => ({ at: [0, 0, 0], lie: null, spin: false, size: [0, 0, 0], tilt: 0, flip: false }));
   const span = Math.max(piece.size.w * 1.6, 240), x0 = piece.size.w / 2 - span / 2;
   // Beyond the mat the drawer boxes are built on (drawer-film.ts), when there is one.
-  let x = x0, z = piece.size.d + FRONT + benchRoom(piece), row = 0;
+  let x = x0, z = piece.size.d + FRONT + benchRoom(piece) + clear, row = 0;
   // A drawer box's parts lie beside the mat they are built on, in rows of their own, not out among the carcass's.
   const box = new Set((piece.drawers ?? []).flatMap(d => [d.front, d.bottom, d.back, ...d.sides])), mat = matArea(piece, floor);
   // To the right of the rows the carcass's parts lie in, level with the mat.

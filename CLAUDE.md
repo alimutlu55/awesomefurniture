@@ -119,8 +119,7 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   automated checks (docs/experience.md, Known limits).
 - Accounts: no real sign-up, email code or Google sign-in was run during development; Google stays hidden until it is
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
-- Buildability: a pantry pull-out is set out as a cargo pull-out at larder height (no wider larder frame in the registry); the film still shows a
-  standing build while the plan says how to build lying down and stand up; sets mounted whole and the screws that hold hardware
+- Buildability: a pantry pull-out is set out as a cargo pull-out at larder height (no wider larder frame in the registry); sets mounted whole and the screws that hold hardware
   are counted and stepped but not drawn or set out hole by hole; tool access is a 150 mm box behind each screw head
   (docs/buildability.md, Known limits).
 - Make: a sloped top is screwed straight down rather than square to its face, the cut layout is strips only (no free

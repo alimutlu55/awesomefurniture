@@ -11,6 +11,7 @@ import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
 import { marksSvg, type Projector } from './make-marks';
 import { partDetail, pieceTabs } from './make-panel';
 import { createMakeGate } from './make-gate';
+import { buildsLying } from './assembly-plan-text';
 import { type PanelTab } from './make-panel-tabs';
 import { createMakePlayer } from './make-player';
 import { createStudioController } from './assembly-studio-controller';
@@ -253,7 +254,7 @@ export function createMakeView(ports: MakeViewPorts) {
     ports.closePanels();
     Object.assign(st, { piece, pose: { x: cabinet.x, y: cabinet.y || 0, z: cabinet.z, angle: cabinet.angle }, apartOn: false, apart: 0, selected: null, marks: '',
       id: cabinet.id, tab: 'parts', cut: null, openOn: false, open: 0, filming: false });
-    player.load(piece, -(cabinet.y || 0)); player.seek(0);
+    player.load(piece, -(cabinet.y || 0), buildsLying(piece, ports.scene())); player.seek(0);
     make3d.show(piece, st.pose);
     make3d.setLook(st.look);
     make3d.setSolidFronts(st.solidFronts);
@@ -353,7 +354,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (!piece) { close(); return; }
     const selected = st.selected !== null && piece.parts.some(p => p.n === st.selected) ? st.selected : null;
     Object.assign(st, { piece, cut: null, marks: '', shotsFor: '' });
-    player.load(piece, -st.pose.y);
+    player.load(piece, -st.pose.y, buildsLying(piece, ports.scene()));
     make3d.show(piece, st.pose);
     make3d.setLook(st.look); make3d.setSolidFronts(st.solidFronts); make3d.setApart(st.apart); make3d.setOpen(st.open); make3d.setSelected(selected);
     st.selected = selected;

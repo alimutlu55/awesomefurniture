@@ -157,7 +157,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
    * along an arc, turning as it goes, and set down. */
   function carry(f: MakeFilm) {
     const turned = new THREE.Quaternion(), start = new THREE.Vector3(), centre = new THREE.Vector3(), off = new THREE.Vector3();
-    const goal = new THREE.Vector3(), goalTurn = new THREE.Quaternion();
+    const goal = new THREE.Vector3(), goalTurn = new THREE.Quaternion(), tipTurn = new THREE.Quaternion();
     mat.visible = !!f.mat;
     if (f.mat) {
       mat.scale.set(f.mat.x1 - f.mat.x0, MAT, f.mat.z1 - f.mat.z0);
@@ -171,6 +171,12 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
         const m = posePoint(pose, [b.centre.x + size.w / 2, b.centre.y, b.centre.z + size.d / 2]);
         goal.set(m[0] - size.w / 2, m[1], m[2] - size.d / 2); goalTurn.setFromAxisAngle(X, pose.angle);
       } else { goal.copy(b.centre); goalTurn.identity(); }
+      // Built lying down: its place is in the carcass on its front edges, turned about its bottom front edge.
+      if (f.tip) {
+        const a = f.tip * Math.PI / 2, y = goal.y, z = goal.z - size.d / 2;
+        goal.set(goal.x, y * Math.cos(a) - z * Math.sin(a), size.d / 2 + y * Math.sin(a) + z * Math.cos(a));
+        goalTurn.premultiply(tipTurn.setFromAxisAngle(X, a));
+      }
       centre.lerpVectors(start, goal, e).y += LIFT * Math.sin(Math.PI * e);
       turned.copy(lying(st.lie, st.spin, st.tilt, st.flip)).slerp(goalTurn, smooth(.08, .7, e));
       off.subVectors(b.centre, b.rest).applyQuaternion(turned);

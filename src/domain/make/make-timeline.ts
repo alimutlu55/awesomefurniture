@@ -66,7 +66,15 @@ export interface Timeline {
   /** When each fitting fixed joint by joint shows at the end of its line, starts in and is home (seconds); null for
    * one fitted otherwise. */
   readonly itemTime: readonly (readonly [number, number, number] | null)[];
+  /** When the carcass, built lying on its front edges, is stood up (seconds); null when it is built standing. */
+  readonly raise: readonly [number, number] | null;
 }
+export interface TimelineOptions {
+  /** The carcass is built lying on its front edges and stood up once its top and back are on (assembly-plan.ts). */
+  readonly lying?: boolean | undefined;
+}
+/** Standing the carcass up takes this long on film. */
+export const RAISE = 3.6;
 /** How much of the placing each board's own way in takes when a step puts in several. */
 const BOARD_WINDOW = .42;
 /** A drawer box's boards go on one after another, each in its own turn this long (seconds), so each is seen going in:
@@ -76,7 +84,10 @@ const BOX_TURN: Readonly<Record<string, number>> = { 'drawer-boxes': 2.6, 'drawe
 /** Carried to the box in the first half of its turn, then put on in the second. */
 const BOX_CARRY = .5;
 
-export function assemblyTimeline(piece: MakePiece): Timeline {
+export function assemblyTimeline(piece: MakePiece, options: TimelineOptions = {}): Timeline {
+  // Lying down until the later of the top and the back is on: everything after is done with it standing.
+  const closing = piece.steps.map((s, k) => s.stage === 'top' || s.stage === 'back' ? k : -1), lastLying = options.lying ? Math.max(-1, ...closing) : -1;
+  let raise: readonly [number, number] | null = null;
   const boardStep = piece.boards.map(() => 0), itemStep = piece.fittings.map(() => 0);
   piece.steps.forEach((s, k) => { s.boards.forEach(i => { boardStep[i] = k; }); s.items.forEach(i => { itemStep[i] = k; }); });
   const holeStep = piece.holes.map(h => h.of === undefined ? boardStep[h.board]! : itemStep[h.of]!), holeStart = piece.holes.map(() => 0);
@@ -138,9 +149,31 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // The doors (and 3D-adjustable cargo fronts, GTV Manual Page 6 REGULACJA) are set true: side, height and depth.
     const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => onPulloutFrame(piece.boards[i]));
     const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
+    // A moment to see it done, then it is stood up, turning about its bottom front edge.
+    if (k === lastLying) { raise = [t + HOLD / 2, t + HOLD / 2 + RAISE]; t = raise[1]; }
     steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });
-  return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, boardWindow, boardCarry, itemTime };
+  return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, boardWindow, boardCarry, itemTime, raise };
+}
+
+/** How far the carcass lies down at time `t`: 1 on its front edges, 0 standing, easing between while it is stood up. */
+export function lyingAt(tl: Timeline, t: number): number {
+  if (!tl.raise) return 0;
+  const p = Math.max(0, Math.min(1, (t - tl.raise[0]) / (tl.raise[1] - tl.raise[0])));
+  return 1 - p * p * (3 - 2 * p);
+}
+/** A point of the piece as it is while the carcass lies `lying` of the way down: turned about its bottom front edge
+ * (on the floor, `depth` from the back), so its front edges are on the floor and its back is up. Centimetres. */
+export function tipPoint(depth: number, lying: number, p: Vec3, floor = 0): Vec3 {
+  if (!lying) return p;
+  const a = lying * Math.PI / 2, y = p[1] - floor, z = p[2] - depth;
+  return [p[0], floor + y * Math.cos(a) - z * Math.sin(a), depth + y * Math.sin(a) + z * Math.cos(a)];
+}
+/** A direction turned the same way. */
+export function tipDir(lying: number, v: Vec3): Vec3 {
+  if (!lying) return v;
+  const a = lying * Math.PI / 2;
+  return [v[0], v[1] * Math.cos(a) - v[2] * Math.sin(a), v[1] * Math.sin(a) + v[2] * Math.cos(a)];
 }
 
 /** Where the film is at time `t`: the step (from 0) and how far through each of its phases. */

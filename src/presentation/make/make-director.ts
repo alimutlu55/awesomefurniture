@@ -4,7 +4,7 @@ import type { MakePiece } from '../../domain/make/make-parts';
 import { hardwareStagingLayout, lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
 import { drawerBoardOffset, drawerPose, drawerRunnerForBoard, runnerTravel } from '../../domain/make/drawer-installation';
 import { drawerBoards, installWindow, poseDir, posePoint, shifted } from '../../domain/make/drawer-film';
-import { INTRO, OUTRO, playhead, type Timeline } from '../../domain/make/make-timeline';
+import { INTRO, lyingAt, OUTRO, playhead, type Timeline, tipDir, tipPoint } from '../../domain/make/make-timeline';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { Vec3 } from '../../domain/make/make-measures';
 
@@ -38,9 +38,11 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   // Where the floor is (a hung unit's parts lie below it), and so the mat the drawer boxes are built on.
   const floor = staged.length ? Math.min(...staged.map(s => s.at[1] - s.size[1] / 2)) : 0;
   const poseAt = (i: number, time: number) => drawerPose(piece, tl, playhead(tl, time), i, floor);
+  // While the carcass is built lying down, everything on it is where it lies at that moment (make-timeline.ts).
+  const tip = (p: Vec3, time: number): Vec3 => tipPoint(d, lyingAt(tl, time), p, floor);
   const placed = (i: number, time: number) => {
     const b = piece.boards[i]!, pose = poseAt(i, time);
-    return corners([b.x0, b.y0, b.z0], [b.x1, b.y1, b.z1]).map(p => half(posePoint(pose, p as unknown as Vec3)));
+    return corners([b.x0, b.y0, b.z0], [b.x1, b.y1, b.z1]).map(p => half(tip(posePoint(pose, p as unknown as Vec3), time)));
   };
   const waiting = (i: number) => { const s = staged[i]!; return corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half); };
   const around = (p: readonly number[], r: number) => corners(p.map(v => v - r), p.map(v => v + r)).map(half);
@@ -131,14 +133,14 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         else drilledBoards.at(-1)!.holes.push(h);
       });
     drilledBoards.forEach((d, n) => {
-      const until = drilledBoards[n + 1]?.from ?? s.drill[1], lying = step.boards.includes(d.board), isStanding = standing(d.board, lying);
+      const until = drilledBoards[n + 1]?.from ?? s.drill[1], lying = step.boards.includes(d.board), isStanding = !lyingAt(tl, d.from) && standing(d.board, lying);
       const b = piece.boards[d.board]!, pose = poseAt(d.board, d.from);
       let points: THREE.Vector3[];
       if (lying) {
         points = waiting(d.board);
       } else if (isStanding && d.holes.length) {
         const ys = d.holes.map(h => h.at[1]), y0 = Math.max(b.y0, Math.min(...ys) - 28), y1 = Math.min(b.y1, Math.max(...ys) + 28);
-        points = corners([b.x0, y0, b.z0], [b.x1, y1, b.z1]).map(p => half(posePoint(pose, p as unknown as Vec3)));
+        points = corners([b.x0, y0, b.z0], [b.x1, y1, b.z1]).map(p => half(tip(posePoint(pose, p as unknown as Vec3), d.from)));
       } else {
         points = placed(d.board, d.from);
       }
@@ -157,12 +159,12 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const where = (p: Vec3, b = fix.board): Vec3 => {
         if (fix.lying && b !== null) return lyingPoint(piece.boards[b]!, staged[b]!, p);
         const pose = poseFor(b);
-        return pose ? posePoint(pose, p) : p;
+        return tip(pose ? posePoint(pose, p) : p, mid);
       };
       const entries = fix.items.map(i => entryOf(piece, i)).filter(e => e !== null);
       if (!entries.length) continue;
       const pose = poseFor(fix.board);
-      const dir = lying !== null ? lyingDir(staged[lying]!, fix.dir) : pose ? poseDir(pose, fix.dir) : fix.dir;
+      const down = lyingAt(tl, mid), dir = lying !== null ? lyingDir(staged[lying]!, fix.dir) : tipDir(down, pose ? poseDir(pose, fix.dir) : fix.dir);
       const ctx: THREE.Vector3[] = [];
       if (BOX_STAGES.has(step.stage) && fix.board !== null && lying === null) {
         const drawer = (piece.drawers ?? []).find(d => drawerBoards(d).includes(fix.board!));
@@ -180,7 +182,8 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         wait: entries.map(e => where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT], e.board)),
         ctx,
         out: plate ? [0, 1, 0] : [-dir[0], -dir[1], -dir[2]],
-        inside: standing(fix.board, lying !== null),
+        // A carcass lying on its front has no front opening to look in through: its joints are seen from outside.
+        inside: !down && standing(fix.board, lying !== null),
         onFloor: lying !== null || BOX_STAGES.has(step.stage),
         board: fix.board,
       });
@@ -307,6 +310,13 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       shot(time, breathPoints, facing + side * (isCargoStage ? .48 : .45), isCargoStage ? .36 : .42, isCargoStage ? 1.14 : 1.1);
     }
   });
+  // Standing it up: one held view wide enough for the carcass lying down and standing, from the side it turns past.
+  if (tl.raise) {
+    const [a, b] = tl.raise, built = all.filter(i => tl.steps[tl.boardStep[i]!]!.end <= b);
+    const swept = [...built.flatMap(i => placed(i, a)), ...built.flatMap(i => placed(i, (a + b) / 2)), ...built.flatMap(i => placed(i, b))];
+    shot(a - .1, swept, facing + 1.1, .3, 1.12);
+    shot(b, swept, facing + 1.1, .3, 1.12);
+  }
   // The finished piece, turning slowly.
   shot(tl.duration - OUTRO + .6, all.flatMap(i => placed(i, tl.duration)), facing + .65, .36, 1.06);
   shot(tl.duration, all.flatMap(i => placed(i, tl.duration)), facing - .7, .26, 1.06);

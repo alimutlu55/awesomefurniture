@@ -40,6 +40,8 @@ export interface MakeFilm {
   pull?(board: number): number;
   /** The mat the drawer boxes are built on, while it is down. */
   readonly mat?: import('../../domain/make/drawer-film').MatArea | null;
+  /** How far the carcass lies down now: 1 on its front edges, 0 standing (make-timeline.ts lyingAt). */
+  readonly tip?: number;
   /** Hardware points the actual camera should see; only intervening boards become translucent. */
   readonly targets?: readonly import('./assembly-visibility').AssemblyTarget[];
 }

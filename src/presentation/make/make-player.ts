@@ -3,7 +3,7 @@ import { assemblyTargets } from './assembly-targets';
 import { drawerPose, runnerTravel } from '../../domain/make/drawer-installation';
 import { matArea, posePoint } from '../../domain/make/drawer-film';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, lyingAt, type Playhead, playhead, seenAt, stepStart, type Timeline, tipPoint } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { Measure, Vec3 } from '../../domain/make/make-measures';
@@ -20,7 +20,12 @@ export function createMakePlayer() {
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, hang: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
-    load(next: MakePiece, at = 0) { piece = next; floor = at; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; stopAt = null; },
+    /** `lying`: the carcass is built lying on its front edges and stood up (the assembly plan's method); its parts
+     * then wait beyond where it lies. */
+    load(next: MakePiece, at = 0, lying = false) {
+      piece = next; floor = at; tl = assemblyTimeline(next, { lying }); staged = stagingLayout(next, floor, tl.raise ? next.size.h : 0);
+      t = Math.min(t, tl.duration); playing = false; rate = 1; stopAt = null;
+    },
     get timeline() { return tl; },
     get staged() { return staged; },
     get time() { return t; },
@@ -85,7 +90,9 @@ export function createMakePlayer() {
         pose: board => drawerPose(piece!, line, ph, board, floor),
         pull: board => runnerTravel(piece!, line, ph, board),
         mat: matShown(piece, line, ph) ? matArea(piece, floor) : null,
-        targets: assemblyTargets(piece, line, ph),
+        // While the carcass lies down, what is looked at on it lies down with it.
+        targets: assemblyTargets(piece, line, ph).map(target => ({ ...target, at: tipPoint(piece!.size.d, lyingAt(line, ph.t), target.at, floor) })),
+        tip: lyingAt(line, ph.t),
       };
     },
     /** While the doors chapter adjusts the doors: the gaps they are set to, as measurements, and which way now. */
@@ -105,6 +112,8 @@ export function createMakePlayer() {
       const plate = now.items.every(i => p.fittings[i]!.purpose === 'drawer-plate');
       const board = now.board, where = (q: Vec3, b = board): Vec3 => {
         if (now.lying && b !== null) return lyingPoint(p.boards[b]!, staged[b]!, q);
+        // On the carcass while it lies down: turned with it.
+        if (lyingAt(tl!, ph.t)) return tipPoint(p.size.d, lyingAt(tl!, ph.t), q, floor);
         if (b === null) return q;
         if (plate) return [q[0], q[1], q[2] + runnerTravel(p, tl!, ph, b)];
         return posePoint(drawerPose(p, tl!, ph, b, floor), q);

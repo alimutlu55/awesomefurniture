@@ -134,6 +134,9 @@ proof that it can be built and the written plan are in [buildability.md](buildab
 
 ## Decisions (keep them)
 
+- **The film builds the way the plan says.** A piece the plan builds lying down goes together on its front edges and is
+  stood up after the top and back (buildability.md); a low or hung piece, or one too tall to stand up in its room, is
+  built standing.
 - **The film is a function of time.** `make-timeline.ts` says where everything is at any second, so play, pause,
   scrubbing and replay always agree; every hole names its fitting (`Hole.of`) so it is drilled before that goes in.
 

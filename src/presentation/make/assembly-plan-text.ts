@@ -16,6 +16,9 @@ export function planFor(piece: MakePiece, scene: EditorScene): AssemblyPlan {
   return assemblyPlan(piece, { ceiling: height !== undefined && Number.isFinite(height) ? height : undefined });
 }
 
+/** Whether the plan builds the piece lying down and stands it up: the film then shows it that way. */
+export const buildsLying = (piece: MakePiece, scene: EditorScene) => planFor(piece, scene).method.posture === 'lying';
+
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 /** A time someone plans by: minutes under an hour, then hours and quarters. */
 export const duration = (minutes: number) => minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 >= 8 ? ' ' + Math.round(minutes % 60 / 15) * 15 % 60 + ' min' : ''}`.replace(' 0 min', '');

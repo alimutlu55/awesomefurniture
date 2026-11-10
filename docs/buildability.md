@@ -121,8 +121,10 @@ piece. `presentation/make/assembly-plan-text.ts` words it for Assembly Studio an
 
 - **A pantry pull-out is set out as a cargo pull-out at larder height** (frame, baskets, runners, front brackets): the
   registry has no wider larder frame of its own yet.
-- **The film is still a standing build.** It brings the boards in in the planned order, but it does not show the carcass
-  lying down or being stood up; the plan's *Before you start* says how.
+- **The film follows the plan's method.** Where the plan builds lying down, the carcass goes together on its front edges
+  and is stood up, turning about its bottom front edge, once the top and back are on (`make-timeline.ts`: `raise`,
+  `lyingAt`, `tipPoint`); the parts wait beyond where it lies. Hardware not riding on a board, and Make's measurements,
+  do not turn with it (none is on screen while it lies).
 - **Sets mounted whole** (pull-down rail, trouser rack, basket, flap lift, corner mechanism, appliance kit, shelf
   brackets) and the screws that hold hardware are counted and stepped, not drawn in 3D or set out hole by hole: they go
   on by their maker's template.
