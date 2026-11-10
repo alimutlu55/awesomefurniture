@@ -9,7 +9,8 @@ import { mm } from '../../domain/drawings/drawing';
 import { isFrontBoard, piecefronts } from '../../domain/drawings/fronts';
 import { cornerFaceWidths } from '../../domain/drawings/corner-widths';
 import { pieceBoards } from '../../domain/drawings/unit-detail';
-import { placePieces, type DrawingInput } from '../../domain/drawings/room-pieces';
+import { placePieces, type DrawingInput, type PlacedPiece } from '../../domain/drawings/room-pieces';
+import { makePlacedPiece } from '../../domain/make/make-parts';
 import { RULES } from '../../domain/drawings/manufacturing-rules/index';
 
 /** One door leaf's facts, as the hardware list and the rules have them. Millimetres, except `hinges.at` and the drawing's
@@ -51,10 +52,17 @@ export function doorFacts(input: DrawingInput, wardrobe: number, key: string): D
     key, width: mm(front.x1 - front.x0), height: mm(height), thickness: board ? Math.round(board.cut.thickness * 10) : 0,
     decor: decorBadge(getDecor(leaf.decorId ?? materials.frontDecorId)),
     hinges: { name: kind.name, count: hingesFor(mm(height)), softClose: kind.softClose, angle: kind.angle, side: front.hinge ?? 'left',
-      at: hingeStations(height).map(y => Math.round(y * 10)) },
+      at: hingeCentres(p, pieces, index) ?? hingeStations(height).map(y => Math.round(y * 10)) },
     ...(made.grip ? { handle: null, grip: made.name } : { handle: handle.none ? null : { label: handleLabel(handle), x: mm(place.x - front.x0), y: mm(place.y - front.y0) } }),
     status: worst ? { severity: worst.severity, rule: worst.rule, fix: worst.fix } : { severity: 'ok' },
   };
+}
+
+/** Where Make hangs the leaf's hinges, mm up from its lower end: moved clear of drawers behind it, as the lists have them. */
+function hingeCentres(p: PlacedPiece, pieces: readonly PlacedPiece[], index: number): number[] | null {
+  const made = index < 0 ? null : makePlacedPiece(p, pieces), leaf = made?.boards[index];
+  const at = made && leaf ? made.fittings.filter(f => f.kind === 'hinge' && f.boards[0] === index).map(f => Math.round((f.at[1] - leaf.y0) * 10)) : [];
+  return at.length ? at.sort((a, b) => a - b) : null;
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));

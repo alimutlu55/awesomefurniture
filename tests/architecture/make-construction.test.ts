@@ -233,8 +233,8 @@ test('the cut list has a line a part in millimetres and the drawings are one PDF
   const pdf = new TextDecoder().decode(makePdf(mp, { title: 'Wardrobe', material: () => 'Oak', band: 1, cut: cutLayout(mp.parts) }));
   assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
   const pages = Number(/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/.exec(pdf)![1]);
-  // Parts six to a page, stock sheets two to a page, hardware and steps on one, then the assembly plan written out.
-  const before = Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1;
+  // Parts six to a page, stock sheets two to a page, the hardware, the steps two to a page, then the assembly plan written out.
+  const before = Math.ceil(mp.parts.length / 6) + Math.ceil(cutLayout(mp.parts).sheets.length / 2) + 1 + Math.ceil(mp.steps.length / 2);
   assert.ok(pages > before && pages <= before + 6, `${pages} pages, ${before} before the assembly plan`);
 });
 

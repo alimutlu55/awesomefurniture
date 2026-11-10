@@ -6,6 +6,8 @@ import type { MakePlayer } from './make-player';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import { overviewMarkup, stepMarkup } from './assembly-plan-text';
 import { chapterPreview } from './assembly-preview';
+import { notesHtml, partText } from './assembly-notes';
+import { stepNotes } from '../../domain/make/make-instructions';
 import { unitSuffix } from '../editor/length-unit-state';
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -33,17 +35,20 @@ const instructions: Record<Stage, string> = {
   'drawer-boxes': 'Lay each drawer front face down on a soft mat. Screw the cam bolts into its inner face, then slide the bottom into the front\'s groove: the same gap at both ends. Do not bend the bottom.',
   'drawer-sides': 'Tap the wooden dowels in. Set each side over the cam bolts and dowels with the bottom in its groove, then turn the cams clockwise to pull the joint tight.',
   'drawer-back': 'Hook the back\'s groove over the edge of the bottom, swing the back into place against the sides, and hammer the expanding dowels through it into the sides.',
-  'drawer-runners': 'Hook each runner\'s rear peg into its System 32 hole, level the rail, and fix its front bracket with two short screws. Nothing is screwed to the drawer.',
+  'drawer-runners': 'Hook each runner\'s rear peg into its 5 mm hole, level the rail, and fix its front bracket with two 4 × 12 mm screws in the pilot holes. Nothing is screwed to the drawer.',
   drawers: 'Pull both runners out. Lay a locking plate over each front pin, hook the drawer back onto the rear hooks, and lower the front so the pins come up through the bottom and plates.',
   'drawer-lock': 'Under each drawer, screw a locking lever up onto each front pin and turn it until it locks. The drawer can no longer lift off its runners.',
   'drawer-test': 'Open and close each drawer. The cabinet rails stay fixed and the drawer rails travel with the box. Check smooth travel, equal gaps and that both locks hold.',
   fronts: 'Align the decorative drawer front, then fasten it from inside the box with short front-fixing screws. Keep the front square and the gaps even.',
   doors: 'Fit the hinge plates on the 37 mm line, clip each door on, then adjust it: side, height and depth, to an even gap.',
-  wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer’s instructions.',
+  wall: 'Position the wall attachments. Use fixings suitable for your wall and follow the hardware manufacturer\'s instructions.',
 };
+/** Fitting the handles on drawers already in place: pulled out, screwed on from inside through the front. */
+const HANDLE_CAPTION = 'Pull the drawer out · hold the handle on the front · screw it on from inside the drawer.';
+const HANDLE_INSTRUCTION = 'Pull each drawer out. Hold the handle against the front over its two holes and drive the two screws in from inside the drawer, through the front into the handle. Do not overtighten.';
 /** The drawer chapters: their caption is shown, and their instruction is the drawer's own, whatever the phase. */
 const DRAWER_STAGES: ReadonlySet<Stage> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back', 'drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'drawer-lock', 'fronts', 'drawer-test']);
-const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
+export const stageInstruction = (s: Stage) => instructions[s] ?? assemblyStageSpec(s)?.summary ?? '';
 const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-runners': 'Fix the lower full-extension slide (min 50 mm from interior floor, 45 mm front setback) and upper slide (374 mm above lower slide, 192 mm bracket span) to the mounting panel using 4×14 mm screws.',
   'cargo-frame': 'Stand the steel cargo frame outside the cabinet. Clip the 4 slide brackets (Mocowanie do prowadnicy) onto wires 2–3 (16 / 64 mm) and rear wires 16–17 (192 mm span) at the lower and upper slide levels.',
@@ -56,7 +61,9 @@ const cargoInstructions: Partial<Record<Stage, string>> = {
   'drawer-test': 'Pull the cargo unit out to full extension (430 mm travel on L=450 mm slides). Verify smooth telescoping travel, '
     + 'M4×6 bracket lock, Separator divider retention, even 3D-adjusted door reveals, and SLOW soft-close return.',
 };
-const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
+/** A step's instruction as the Studio and the saved drawings write it: a cargo pull-out's own where it has one. */
+export const instructionFor = (s: Stage, isCargo: boolean) => (isCargo && cargoInstructions[s]) || stageInstruction(s);
+export const stageName = (s: Stage, isCargo: boolean) => (isCargo && cargoNames[s]) || names[s];
 /** The doors chapter says what each moment of it is, in the order a fitter works: cups and plate holes drilled, hinges
  * pressed into the doors, plates screwed to the side panel, each door clipped onto its plates, then adjusted. */
 const hanging = {
@@ -174,6 +181,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       const fixing = player.fixing(), adjusting = player.adjusting();
       const phase = fixing ? 'fix' : player.head.drill < 1 ? 'drill' : player.head.place < 1 ? 'place' : player.head.hang < 1 ? 'hang'
         : adjusting ? 'adjust' : 'complete';
+      // A wardrobe drawer's own front gets only its handle in this chapter: the drawer is in and locked, pulled out to reach in.
+      const handlesOnly = step.stage === 'fronts' && step.fittings.length > 0 && step.fittings.every(f => f.kind === 'handle');
       const drawerCaption = q('.as-drawer-caption');
       drawerCaption.hidden = !DRAWER_STAGES.has(step.stage);
       const captions: Partial<Record<Stage, string>> = {
@@ -194,7 +203,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
             ? `3D Front Adjustment (REGULACJA): tune ${adjusting?.way === 'height' ? 'Height ⇅ (top screw)' : adjusting?.way === 'side' ? 'Side ⇄ (lateral screws)' : 'Depth ⇕ (clamping screws)'} · Snap on "GTV move" covers.`
             : phase === 'place' ? 'Couple front fittings onto cargo frame upright tongues · Lock & snap on "GTV move" protective covers.'
             : 'Screw 2 front fittings (103.5×36.5 mm, 78 mm screw pattern, 374 mm vertical spacing, *142 mm from floor) with 4×14 mm screws.')
-          : 'Align decorative front, then fasten from inside with front-fixing screws.',
+          : handlesOnly ? HANDLE_CAPTION : 'Align decorative front, then fasten from inside with front-fixing screws.',
         'drawer-test': isCargo ? 'Pull cargo out (430–450 mm FULL extension) · Check 15 kg stability, Separatory dividers & SLOW soft-close.' : 'Open and close each drawer: smooth travel, even gaps, both locks holding.',
       };
       text('.as-drawer-caption', captions[step.stage] ?? '');
@@ -207,6 +216,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         const instruction = doors && phase === 'fix' && (kinds.has('hinge') || kinds.has('plate')) ? hanging[kinds.has('hinge') ? 'hinge' : 'plate']
           : doors && (phase === 'drill' || phase === 'hang' || phase === 'adjust') ? hanging[phase] : doors && phase === 'place' ? hanging.hang
           : isCargo && cargoInstructions[step.stage] ? cargoInstructions[step.stage]!
+          : step.stage === 'fronts' && handlesOnly ? HANDLE_INSTRUCTION
           : DRAWER_STAGES.has(step.stage) && step.stage !== 'fronts' ? stageInstruction(step.stage)
           : phase === 'drill' ? 'Prepare the marked holes. The camera shows the drilling sequence.' : phase === 'fix' ? 'Align the indicated connection and install the hardware shown.' : stageInstruction(step.stage);
         const hardwareHtml = hardware.map(f => {
@@ -214,11 +224,13 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
           return `<span title="${esc(disp.name)}">${fittingIcon(f.kind)}<span>${esc(disp.name)}`
             + `${disp.size ? ` · ${esc(disp.size)}` : ''}<b> ×${f.qty}</b></span></span>`;
         }).join('');
-        const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(p.name)}`
+        const partsHtml = parts.map(p => `<button type="button" data-studio="part" data-value="${p.n}">${esc(partText(piece, p))}`
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
+        // As a flat-pack manual frames a step: what to do, the tools, the hardware and parts, then the notes.
+        const notes = notesHtml(stepNotes(piece, player.head.step));
         q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`
-          + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>`
-          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`
+          + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>${notes.tools}`
+          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>${notes.rest}`
           + (plan?.steps[player.head.step] ? stepMarkup(plan.steps[player.head.step]!) : '');
       }
     },

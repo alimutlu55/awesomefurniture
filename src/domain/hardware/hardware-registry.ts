@@ -1,3 +1,4 @@
+import type { ToolKey } from './tools';
 import {
   BOLT_ENTRY,
   CAM_ENTRY,
@@ -31,14 +32,8 @@ import {
   SHELF_BRACKET_ENTRY,
   WALL_BRACKET_ENTRY,
 } from './legs-brackets-hardware';
-import {
-  PULL_DOWN_RAIL_ENTRY,
-  RAIL_ENTRY,
-  RAIL_SUPPORT_ENTRY,
-  SHELF_PIN_ENTRY,
-  TROUSER_RACK_ENTRY,
-  WIRE_BASKET_ENTRY,
-} from './rails-supports-hardware';
+import { RAIL_ENTRY, RAIL_SUPPORT_ENTRY, SHELF_PIN_ENTRY } from './rails-supports-hardware';
+import { PULL_DOWN_RAIL_ENTRY, TROUSER_RACK_ENTRY, WIRE_BASKET_ENTRY } from './pullout-hardware';
 
 export {
   APPLIANCE_KIT_ENTRY,
@@ -106,6 +101,7 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     requires: ['top'],
     title: 'Square the carcass and fit the back',
     summary: 'Check the two diagonals are equal, then fix the back panel into the rear rebates.',
+    avoid: ["Do not fix the back before the two diagonals are equal."],
   },
   {
     stage: 'inside',
@@ -118,24 +114,28 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     requires: ['inside'],
     title: 'Start the drawer boxes: fronts and bottoms',
     summary: 'Lay each drawer front face down on a soft mat, screw in its cam bolts, and slide the bottom into its groove, centred.',
+    avoid: ["Do not build a drawer on a hard floor: its front lies face down on a soft mat.", "Do not push the bottom in flat or bend it: set it in the groove at an angle and swing it up."],
   },
   {
     stage: 'drawer-sides',
     requires: ['drawer-boxes'],
     title: 'Fit the drawer sides',
     summary: 'Push the dowels in, set each side over the cam bolts with the bottom in its groove, and turn the cams to lock.',
+    avoid: ["Do not turn a cam before its side sits tight against the front."],
   },
   {
     stage: 'drawer-back',
     requires: ['drawer-sides'],
     title: 'Fit the drawer backs',
     summary: 'Hook the back over the edge of the bottom, swing it into place, and hammer the expanding dowels through it into the sides.',
+    avoid: ["Do not hammer the dowels in before the back sits square against both sides."],
   },
   {
     stage: 'drawer-runners',
     requires: ['carcass', 'partitions', 'drawer-back'],
     title: 'Mount the drawer runners',
-    summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into the System 32 hole.',
+    summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into its 5 mm hole.',
+    avoid: ["Do not swap the runners: each has a left and a right; the hooks go at the back.", "Do not screw anything into the drawer box."],
   },
   {
     stage: 'cargo-frame',
@@ -154,12 +154,14 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     requires: ['drawer-runners', 'cargo-baskets'],
     title: 'Put the drawers on their runners',
     summary: 'Pull the runners out, hook each drawer back onto the rear hooks and lower the front onto the front pins through the locking plates.',
+    avoid: ["Do not push a drawer home before both front pins are through its bottom."],
   },
   {
     stage: 'drawer-lock',
     requires: ['drawers'],
     title: 'Lock the drawers to the runners',
     summary: 'Screw a locking lever onto each front pin under the drawer and turn it to lock the drawer to its runners.',
+    avoid: ["Do not use a tool on the levers: turn them by hand."],
   },
   {
     stage: 'fronts',
@@ -178,12 +180,14 @@ export const ASSEMBLY_STAGE_SPECS: readonly AssemblyStageSpec[] = [
     requires: ['inside', 'drawer-test'],
     title: 'Hang and adjust the doors',
     summary: 'Press the hinge cups into the doors, screw the mounting plates on the 37 mm line, clip on, and adjust 3-way.',
+    avoid: ["Do not hang the doors before the cabinet stands where it will stay."],
   },
   {
     stage: 'wall',
     requires: ['doors'],
     title: 'Secure to the wall',
     summary: 'Level the unit in place and anchor the top anti-tip brackets or wall hangers into solid masonry or studs.',
+    avoid: ["Do not load the cabinet before it is fixed to the wall."],
   },
 ];
 
@@ -268,4 +272,10 @@ export function requireHardware(key: string): HardwareEntry {
 
 export function hardwareByCategory(category: HardwareCategory): HardwareEntry[] {
   return HARDWARE.filter(h => h.category === category);
+}
+
+/** The tools a fitting goes in with and how: its variant's own (a wooden or an expanding dowel), else its entry's. */
+export function fittingTools(kind: string, size?: string): { tools: readonly ToolKey[]; cue: string } {
+  const entry = hardware(kind), variant = size ? entry?.variants?.find(v => v.sizeLabel === size) : undefined;
+  return { tools: variant?.tools ?? entry?.assembly.tools ?? [], cue: variant?.cue ?? entry?.assembly.cue ?? '' };
 }

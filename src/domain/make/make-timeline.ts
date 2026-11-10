@@ -30,6 +30,8 @@ export const HANG = 2.4, HANG_OUT = 6;
 /** A joint's fixing: its fasteners come into view at the ends of their lines while the camera comes in (SHOW), go in
  * one after another (longer for more, up to a few seconds), and are seen home (REST). */
 const SHOW = .8, REST = .45, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (n - 1));
+/** Each drawer is put on its runners in its own turn of the `drawers` chapter (drawer-film.ts), this long. Seconds. */
+export const INSTALL_EACH = 5;
 /** How much of the drilling phase each hole's own drilling takes; the rest staggers them, one after another. */
 export const HOLE_WINDOW = .35;
 
@@ -56,17 +58,28 @@ export interface Timeline {
   readonly holeStart: readonly number[];
   /** When a board starts in, within its step's placing (0 to 1); boards go in one after another. */
   readonly boardStart: readonly number[];
+  /** How much of its step's placing each board's own way in takes (a drawer box's boards: each its own turn). */
+  readonly boardWindow: readonly number[];
+  /** How much of its own turn a board takes to be carried in; the rest is how it goes on (drawer-film.ts). */
+  readonly boardCarry: readonly number[];
   /** When each fitting fixed joint by joint shows at the end of its line, starts in and is home (seconds); null for
    * one fitted otherwise. */
   readonly itemTime: readonly (readonly [number, number, number] | null)[];
 }
 /** How much of the placing each board's own way in takes when a step puts in several. */
 const BOARD_WINDOW = .42;
+/** A drawer box's boards go on one after another, each in its own turn this long (seconds), so each is seen going in:
+ * the front and the bottom swung up into its groove, a side lowered over its bolts, the back hooked over the bottom's
+ * edge and swung shut (drawer-film.ts). */
+const BOX_TURN: Readonly<Record<string, number>> = { 'drawer-boxes': 2.6, 'drawer-sides': 2.4, 'drawer-back': 4.5 };
+/** Carried to the box in the first half of its turn, then put on in the second. */
+const BOX_CARRY = .5;
 
 export function assemblyTimeline(piece: MakePiece): Timeline {
   const boardStep = piece.boards.map(() => 0), itemStep = piece.fittings.map(() => 0);
   piece.steps.forEach((s, k) => { s.boards.forEach(i => { boardStep[i] = k; }); s.items.forEach(i => { itemStep[i] = k; }); });
-  const holeStep = piece.holes.map(h => h.of === undefined ? boardStep[h.board]! : itemStep[h.of]!), holeStart = piece.holes.map(() => 0), boardStart = piece.boards.map(() => 0);
+  const holeStep = piece.holes.map(h => h.of === undefined ? boardStep[h.board]! : itemStep[h.of]!), holeStart = piece.holes.map(() => 0);
+  const boardStart = piece.boards.map(() => 0), boardWindow = piece.boards.map(() => 1), boardCarry = piece.boards.map(() => 1);
   const itemTime: ([number, number, number] | null)[] = piece.fittings.map(() => null);
   const steps: StepTime[] = [];
   let t = INTRO;
@@ -81,14 +94,22 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     // One after another as a maker would: what lies flat before what stands on it (the base before the sides), from the
     // bottom up, left to right.
     const key = (i: number) => { const b = piece.boards[i]!; return [s.stage === 'carcass' && thinAxis(b) !== 'y' ? 1 : 0, Math.round(b.y0 / 10), thinAxis(b) === 'y' ? 0 : 1, b.x0]; };
+    const turn = BOX_TURN[s.stage], drawerAt = (i: number) => (piece.drawers ?? []).findIndex(d => [d.front, d.bottom, ...d.sides, d.back].includes(i));
+    // A drawer box's boards drawer by drawer, front before bottom, left side before right; each its own turn.
+    const role = (i: number) => { const d = piece.drawers?.[drawerAt(i)]; return d ? [d.front, d.bottom, ...d.sides, d.back].indexOf(i) : 0; };
     // The carcass goes together in its build order (make-sequence.ts), which the step's boards are already in.
     const planned = s.stage === 'carcass' || s.stage === 'partitions' || s.stage === 'top';
-    const order = planned ? [...s.boards] : [...s.boards].sort((a, b) => { const p = key(a), q = key(b), k = p.findIndex((v, i) => v !== q[i]); return k < 0 ? 0 : p[k]! - q[k]!; });
-    order.forEach((b, j) => { boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; });
+    const order = planned ? [...s.boards] : [...s.boards].sort(turn ? (a, b) => drawerAt(a) - drawerAt(b) || role(a) - role(b)
+      : (a, b) => { const p = key(a), q = key(b), k = p.findIndex((v, i) => v !== q[i]); return k < 0 ? 0 : p[k]! - q[k]!; });
+    order.forEach((b, j) => {
+      if (turn) { boardStart[b] = j / order.length; boardWindow[b] = 1 / order.length; boardCarry[b] = BOX_CARRY; return; }
+      boardStart[b] = order.length > 1 ? (1 - BOARD_WINDOW) * j / (order.length - 1) : 0; boardWindow[b] = order.length > 1 ? BOARD_WINDOW : 1;
+    });
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
     const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
-    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' || s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' ? Math.max(6, (piece.drawers?.length ?? 0) * INSTALL_EACH)
+      : turn ? turn * s.boards.length : s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
     // What goes into a board lying on the floor first (a door's hinges), then what goes into one standing (their plates).
@@ -118,7 +139,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
     steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });
-  return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, itemTime };
+  return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, boardWindow, boardCarry, itemTime };
 }
 
 /** Where the film is at time `t`: the step (from 0) and how far through each of its phases. */
@@ -161,8 +182,14 @@ export function arrivalAt(tl: Timeline, ph: Playhead, board: number): number {
   const s = tl.boardStep[board]!;
   if (s !== ph.step) return s < ph.step ? 1 : 0;
   if (ph.place >= 1) return 1;
-  const window = tl.boardStart.filter((_, i) => tl.boardStep[i] === s).length > 1 ? BOARD_WINDOW : 1;
-  return Math.max(0, Math.min(1, (ph.place - tl.boardStart[board]!) / window));
+  return Math.min(1, turnAt(tl, ph, board) / tl.boardCarry[board]!);
+}
+/** How far through its own turn a board is (0 to 1): carried in, then put on. */
+export function turnAt(tl: Timeline, ph: Playhead, board: number): number {
+  const s = tl.boardStep[board]!;
+  if (s !== ph.step) return s < ph.step ? 1 : 0;
+  if (ph.place >= 1) return 1;
+  return Math.max(0, Math.min(1, (ph.place - tl.boardStart[board]!) / tl.boardWindow[board]!));
 }
 /** The start of step `k`, to jump to it. */
 export const stepStart = (tl: Timeline, k: number) => tl.steps[Math.max(0, Math.min(tl.steps.length - 1, k))]!.start;

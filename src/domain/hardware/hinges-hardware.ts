@@ -85,6 +85,9 @@ export const HINGE_ENTRY: HardwareEntry = {
       standoff: 12,
       reveal: 3,
       side: 100,
+      // Half the mounting plate (about 50 mm long) and its arm, plus room to pass: a drawer behind the door slides past
+      // the hinge on its side only clear of it (a flat-pack wardrobe's drawers go a hole higher with hinged doors).
+      pullout: 30,
     },
     boardThicknessMm: { min: 16, max: 28, standard: [16, 18, 19, 22] },
     maxLeafMm: { width: 600, height: 2400 },
@@ -95,6 +98,7 @@ export const HINGE_ENTRY: HardwareEntry = {
       [Infinity, 5],
     ],
     edgeInsetMm: 100,
+    minEdgeInsetMm: 70,
     systemLineMm: 37,
     pitchMm: 32,
     exclusions: [
@@ -135,6 +139,8 @@ export const HINGE_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Press the cup in, screw it down',
     requires: ['inside', 'drawer-test'],
     phase: 'lying-before-place',
     adjustAxes: ['side', 'height', 'depth'],
@@ -212,6 +218,8 @@ export const PLATE_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Screw onto the side panel',
     requires: ['carcass', 'partitions'],
     phase: 'before-place',
     // Two Euro screws into holes already drilled: its hinge takes the adjusting time.
@@ -284,6 +292,8 @@ export const SLIDING_TRACK_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'doors',
+    tools: ['drill', 'pozidriv', 'level'],
+    cue: 'Screw up level along its length',
     requires: ['top', 'carcass', 'inside', 'drawer-test'],
     phase: 'before-place',
     adjustAxes: ['height', 'side'],

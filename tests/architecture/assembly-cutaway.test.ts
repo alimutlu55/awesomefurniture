@@ -34,7 +34,7 @@ test('door hanging still supplies hinge targets for camera-based visibility', ()
   player.seek(player.duration); assert.deepEqual(player.film()!.targets, []);
 });
 
-test('actual panel materials become translucent only when they block the current view, then restore on orbit', () => {
+test('a panel is see-through only while it blocks the current view, with no outline, and solid again on orbit', () => {
   const piece = fixture(), player = createMakePlayer(); player.load(piece); player.seek(player.duration);
   const id = piece.boards.findIndex(b => b.name === 'Side' && b.x0 < .5), b = piece.boards[id]!;
   const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial());
@@ -48,6 +48,8 @@ test('actual panel materials become translucent only when they block the current
   camera.position.set(-80, 180, 0); camera.updateMatrixWorld(); renderer.updateVisibility(camera);
   assert.ok(material().transparent && material().opacity > 0 && material().opacity <= .15);
   assert.equal(material().depthWrite, false);
+  const outline = renderer.group.children.find(o => o !== panel && o.userData.n === leftPart.n && o.position.distanceTo(panel.position) < 1e-6);
+  assert.equal(outline?.visible, false, 'no grey outline is drawn round the see-through panel');
   const faded = renderer.group.children.filter(o => o instanceof THREE.Mesh && o.type === 'Mesh'
     && !Array.isArray(o.material) && o.material.opacity < 1);
   assert.equal(faded.length, 1, 'unrelated cabinet panels and drawers remain solid');

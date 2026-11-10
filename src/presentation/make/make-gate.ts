@@ -5,6 +5,7 @@ import { saveFile } from '../components/save-file';
 import { planFor } from './assembly-plan-text';
 import { cutListCsv, makePdf } from './make-export';
 import { gateView } from './make-panel';
+import type { StepPicture } from './make-pictures';
 import type { MakeViewPorts } from './make-view.ports';
 
 /**
@@ -51,14 +52,15 @@ export function createMakeGate(host: Host) {
       if (wanted === 'assembly') host.assemble(); else if (passes(wanted)) host.showList();
       return true;
     },
-    /** Saves the piece's drawings (PDF) or cut list (CSV): part of the paid drawing set, and only for a piece that can be built. */
-    async save(kind: 'pdf' | 'csv', doc: Document, band: number, material: (decorId: string) => string, cut: () => CutLayout) {
+    /** Saves the piece's drawings (PDF, with each step's pictures taken from the film) or cut list (CSV): part of the
+     * paid drawing set, and only for a piece that can be built. */
+    async save(kind: 'pdf' | 'csv', doc: Document, band: number, material: (decorId: string) => string, cut: () => CutLayout, pictures: () => readonly StepPicture[]) {
       const open = host.piece();
       if (!open || !passes('drawings') || !await host.ports.pay() || host.piece()?.piece !== open.piece) return;
       const { piece, id } = open, title = host.ports.scene().wardrobes.find(c => c.id === id)?.name || 'Piece';
       const name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
       const blob = kind === 'pdf'
-        ? new Blob([makePdf(piece, { title, material, band, cut: cut(), plan: planFor(piece, host.ports.scene()) }).buffer as ArrayBuffer], { type: 'application/pdf' })
+        ? new Blob([makePdf(piece, { title, material, band, cut: cut(), pictures: pictures(), plan: planFor(piece, host.ports.scene()) }).buffer as ArrayBuffer], { type: 'application/pdf' })
         : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
       await saveFile(doc, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
       host.ports.saved?.(kind, piece.parts.length);

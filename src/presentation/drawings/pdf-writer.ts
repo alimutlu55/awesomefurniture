@@ -49,30 +49,50 @@ function draw(m: Mark): string {
   return out.join(' ');
 }
 
+/** A JPEG placed on a page: its box in paper millimetres (y down) and its pixel size. */
+export interface PdfImage { readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly jpeg: Uint8Array; readonly width: number; readonly height: number }
+
 /**
  * A PDF of pages of marks, each `size` millimetres (A3 landscape for the drawings): vector lines at their ISO weights,
  * hatching as clipped lines, and text in Helvetica, which every PDF reader has. Pages are drawn in paper millimetres
- * with y down, as the marks are. Returns the file's bytes.
+ * with y down, as the marks are. `images` puts JPEG pictures on a page, under its marks. Returns the file's bytes.
  */
-export function marksToPdf(pages: readonly (readonly Mark[])[], size: { w: number; h: number }, title: string): Uint8Array {
-  const W = size.w * K, H = size.h * K, objects: string[] = [];
-  const add = (body: string) => { objects.push(body); return objects.length; };
+export function marksToPdf(pages: readonly (readonly Mark[])[], size: { w: number; h: number }, title: string, images: readonly (readonly PdfImage[] | undefined)[] = []): Uint8Array {
+  const W = size.w * K, H = size.h * K, objects: (string | { head: string; bytes: Uint8Array })[] = [];
+  const add = (body: string | { head: string; bytes: Uint8Array }) => { objects.push(body); return objects.length; };
   const catalog = add(''), tree = add('');
   const fonts = [add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'), add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>')];
   const safe = title.replace(/[^\x20-\x7e]/g, '-').replace(/[()\\]/g, '');
   const info = add(`<< /Title (${safe}) /Producer (FurniDraw) >>`);
-  const kids = pages.map(marks => {
-    const content = `q ${n(K)} 0 0 ${n(-K)} 0 ${n(H)} cm 0 J 0 j ` + marks.map(draw).join('\n') + ' Q';
+  const kids = pages.map((marks, page) => {
+    // A picture is drawn upright in its box: the image's unit square, turned back over as the page runs y down.
+    const head = (im: PdfImage) => `<< /Type /XObject /Subtype /Image /Width ${im.width} /Height ${im.height} /ColorSpace /DeviceRGB`
+      + ` /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.jpeg.length} >>`;
+    const pictures = (images[page] ?? []).map((im, k) => ({ name: `Im${k}`, ref: add({ head: head(im), bytes: im.jpeg }), im }));
+    const drawn = pictures.map(p => `q ${n(p.im.w)} 0 0 ${n(-p.im.h)} ${n(p.im.x)} ${n(p.im.y + p.im.h)} cm /${p.name} Do Q`).join('\n');
+    const content = `q ${n(K)} 0 0 ${n(-K)} 0 ${n(H)} cm 0 J 0 j ` + drawn + '\n' + marks.map(draw).join('\n') + ' Q';
     const stream = add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
-    return add(`<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 ${n(W)} ${n(H)}] /Resources << /Font << /F1 ${fonts[0]} 0 R /F2 ${fonts[1]} 0 R >> >> /Contents ${stream} 0 R >>`);
+    const xobjects = pictures.length ? ` /XObject << ${pictures.map(p => `/${p.name} ${p.ref} 0 R`).join(' ')} >>` : '';
+    return add(`<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 ${n(W)} ${n(H)}] /Resources << /Font << /F1 ${fonts[0]} 0 R /F2 ${fonts[1]} 0 R >>${xobjects} >> /Contents ${stream} 0 R >>`);
   });
   objects[catalog - 1] = `<< /Type /Catalog /Pages ${tree} 0 R >>`;
   objects[tree - 1] = `<< /Type /Pages /Kids [${kids.map(k => k + ' 0 R').join(' ')}] /Count ${kids.length} >>`;
-  // Every byte is ASCII (text goes as hex), so string lengths are byte offsets.
-  let file = '%PDF-1.4\n';
-  const offsets = objects.map((body, k) => { const at = file.length; file += `${k + 1} 0 obj\n${body}\nendobj\n`; return at; });
-  const xref = file.length;
-  file += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` + offsets.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
-  file += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return new TextEncoder().encode(file);
+  // Every written byte is ASCII (text goes as hex) except a picture's stream, which goes as it is: offsets count bytes.
+  const chunks: Uint8Array[] = [], encoder = new TextEncoder();
+  let at = 0;
+  const put = (part: string | Uint8Array) => { const bytes = typeof part === 'string' ? encoder.encode(part) : part; chunks.push(bytes); at += bytes.length; };
+  put('%PDF-1.4\n');
+  const offsets = objects.map((body, k) => {
+    const start = at;
+    if (typeof body === 'string') put(`${k + 1} 0 obj\n${body}\nendobj\n`);
+    else { put(`${k + 1} 0 obj\n${body.head}\nstream\n`); put(body.bytes); put('\nendstream\nendobj\n'); }
+    return start;
+  });
+  const xref = at;
+  put(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n` + offsets.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+  put(`trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  const file = new Uint8Array(at);
+  let o = 0;
+  for (const c of chunks) { file.set(c, o); o += c.length; }
+  return file;
 }

@@ -171,7 +171,7 @@ test('the cutting list: every board as built, length with the grain, the run\'s 
     'Box side 1 514 247.5 18 Board 18 · Egger W1100 ST9 L1',
     'Box side 1 514 247.5 18 Board 18 · Egger W1100 ST9 L1',
     'Box back 1 539 247.5 18 Board 18 · Egger W1100 ST9 L1',
-    'Box bottom 3 519 530 6 Back panel 6 —',
+    'Box bottom 3 517 528 6 Back panel 6 —',
     'Box front 1 539 236 18 Board 18 · Egger W1100 ST9 L1',
     'Box side 1 514 236 18 Board 18 · Egger W1100 ST9 L1',
     'Box side 1 514 236 18 Board 18 · Egger W1100 ST9 L1',

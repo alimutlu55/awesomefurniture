@@ -56,7 +56,7 @@ export function entryOf(piece: MakePiece, item: number): Entry | null {
 }
 
 /** Fittings further apart than this (centimetres) are two places to look, each fixed in its own turn. */
-const APART = 45, MOST = 9;
+const APART = 115, MOST = 9;
 
 /**
  * A step's fixing, joint by joint: its fittings (but `skip`, fitted before the boards come in) gathered by the board
@@ -65,18 +65,26 @@ const APART = 45, MOST = 9;
  */
 export function fixGroups(piece: MakePiece, items: readonly number[], skip: (item: number) => boolean): FixGroup[] {
   const groups = new Map<string, { items: number[]; dir: Vec3; board: number | null }>();
+  const drawerOf = (b: number | null) => b === null ? -1 : (piece.drawers ?? []).findIndex(d => d.sides.includes(b));
   for (const i of items) {
     const e = skip(i) ? null : entryOf(piece, i);
     if (!e) continue;
-    const key = `${e.board}:${e.dir.join()}`, g = groups.get(key) ?? { items: [], dir: e.dir, board: e.board };
+    const f = piece.fittings[i]!;
+    const key = f.purpose === 'box-sides' && f.kind === 'dowel'
+      ? 'box-sides:dowel'
+      : f.purpose === 'box-sides' && f.kind === 'cam'
+        ? `box-sides:cam:${drawerOf(e.board)}`
+        : `${e.board}:${e.dir.join()}`;
+    const g = groups.get(key) ?? { items: [], dir: f.purpose === 'box-sides' && f.kind === 'cam' ? [0, -1, 0] : e.dir, board: e.board };
     g.items.push(i);
     groups.set(key, g);
   }
   const at = (i: number) => piece.fittings[i]!.at, low = (g: FixGroup) => Math.min(...g.items.map(i => at(i)[1]));
+  const kindRank = (g: FixGroup) => piece.fittings[g.items[0]!]?.kind === 'handle' ? 1 : 0;
   const order = (a: number, b: number) => at(a)[1] - at(b)[1] || at(a)[0] - at(b)[0] || at(a)[2] - at(b)[2];
   const whole = [...groups.values()], split = whole.flatMap(g => places(g.items, at).map(items => ({ ...g, items })));
   return (split.length <= MOST ? split : whole).map(g => ({ ...g, items: [...g.items].sort(order) }))
-    .sort((a, b) => Math.round(low(a) / 20) - Math.round(low(b) / 20) || order(a.items[0]!, b.items[0]!));
+    .sort((a, b) => kindRank(a) - kindRank(b) || Math.round(low(a) / 20) - Math.round(low(b) / 20) || order(a.items[0]!, b.items[0]!));
 }
 
 /** Fittings in the places they are at: each within APART of another in its place. */

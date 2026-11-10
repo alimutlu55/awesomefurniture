@@ -3,6 +3,7 @@ import { type Measure, partMeasures, pieceMeasures, thinAxis, type Vec3 } from '
 import type { MakePart, MakePiece } from '../../domain/make/make-parts';
 import { translate } from '../i18n/language';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
+import { fittingTools } from '../../domain/hardware/hardware-registry';
 import type { Fixing } from './make-player';
 
 /** A length (centimetres) as the person reads it, in their unit. */
@@ -164,10 +165,12 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
     const disp = hardwareDisplay(h);
     return { ...h, name: esc(translate(disp.name)), label: `×${h.qty}`, small: esc(disp.size) };
   });
-  const row = fs * 2.1, pad = fs * .6, icon = fs * 1.5;
+  // How it goes in, as the manual's arrow says it: turned, tapped, hammered, by hand (the hardware registry's cue).
+  const cue = esc(translate(fittingTools(fixing.hardware[0]!.kind, fixing.hardware[0]!.size).cue));
+  const row = fs * 2.1, pad = fs * .6, icon = fs * 1.5, cueRow = cue ? fs * 1.6 : 0;
   const top = 64, bottom = size.h - 112, left = Math.max(12, size.left ?? 0), right = size.w - 12;
-  const rawW = pad * 2 + icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52));
-  const bw = Math.min(Math.max(140, right - left), rawW), bh = pad * 2 + rows.length * row - fs * .4;
+  const rawW = pad * 2 + Math.max(icon + fs * .5 + Math.max(...rows.map(r => (r.name.length + r.label.length + 2) * fs * .6 + r.small.length * fs * .52)), cue.length * fs * .5);
+  const bw = Math.min(Math.max(140, right - left), rawW), bh = pad * 2 + rows.length * row - fs * .4 + cueRow;
   const xs = [...tails, ...heads].map(p => p[0]), ys = [...tails, ...heads].map(p => p[1]), gap = 28;
   const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] as const, mx = (box[0] + box[2]) / 2, my = (box[1] + box[3]) / 2;
   const clampX = (x: number) => Math.max(left + bw / 2, Math.min(right - bw / 2, x));
@@ -198,6 +201,7 @@ function fixingMarks(pr: Projector, fixing: Fixing, size: { w: number; h: number
       + `<text class="make-tagt" font-size="${n1(fs * 1.05)}" x="${n1(tx)}" y="${n1(y)}" dy=".35em" dominant-baseline="alphabetic"><tspan class="make-calln">${r.name}</tspan> ${r.label}`
       + `${r.small ? `<tspan class="make-calls" font-size="${n1(fs * .85)}" dx="${n1(fs * .45)}">${r.small}</tspan>` : ''}</text>`;
   });
+  if (cue) out += `<text class="make-calls make-cue" font-size="${n1(fs * .85)}" x="${n1(x0 + pad)}" y="${n1(y0 + pad + rows.length * row + fs * .3)}" dy=".35em">${cue}</text>`;
   return out + '</g>';
 }
 

@@ -99,12 +99,47 @@ export function camHousingMesh(
   return g;
 }
 
+/** A wooden dowel's flutes (how many, how deep) and the chamfer at each end, mm. */
+const FLUTES = 8, FLUTE_DEPTH = .5, CHAMFER = 1.2;
 /**
- * Fluted hardwood dowel pin 3D mesh, driven by `DOWEL_ENTRY.display.model3d` in the domain hardware registry.
+ * Fluted hardwood dowel pin 3D mesh, driven by `DOWEL_ENTRY.display.model3d` in the domain hardware registry: a beech
+ * pin with straight flutes along it (the glue's way out) and chamfered ends, as a dowel is bought. With no `box` and
+ * `cone` (the editor's small pins), a plain cylinder.
  */
-export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
-  const prim = DOWEL_ENTRY.display.model3d.primitives[0]!;
-  return orientedSolid(rod, material, new THREE.Vector3(0, 0, 0), new THREE.Vector3(prim.sizeMm[0] / 20, prim.sizeMm[1] / 10, prim.sizeMm[2] / 20));
+export function dowelMesh(rod: THREE.BufferGeometry, material: THREE.Material, box?: THREE.BufferGeometry, cone?: THREE.BufferGeometry): THREE.Group {
+  const prim = DOWEL_ENTRY.display.model3d.primitives[0]!, r = prim.sizeMm[0] / 20, length = prim.sizeMm[1] / 10, g = new THREE.Group();
+  if (!box || !cone) { g.add(orientedSolid(rod, material, new THREE.Vector3(), new THREE.Vector3(r, length, r))); return g; }
+  const core = r - FLUTE_DEPTH / 20, body = length - 2 * CHAMFER / 10;
+  g.add(orientedSolid(rod, material, new THREE.Vector3(), new THREE.Vector3(core, body, core)));
+  // The lands between the flutes stand out to the full diameter.
+  for (let k = 0; k < FLUTES; k++) {
+    const a = 2 * Math.PI * k / FLUTES, land = orientedSolid(box, material, new THREE.Vector3(Math.cos(a) * (r - FLUTE_DEPTH / 40), 0, Math.sin(a) * (r - FLUTE_DEPTH / 40)),
+      new THREE.Vector3(FLUTE_DEPTH / 10, body, 2 * Math.PI * r / FLUTES * .55));
+    land.rotation.y = -a;
+    g.add(land);
+  }
+  for (const end of [1, -1]) {
+    const tip = orientedSolid(cone, material, new THREE.Vector3(0, end * (body / 2 + CHAMFER / 20), 0), new THREE.Vector3(r, CHAMFER / 10, r));
+    if (end < 0) tip.rotation.x = Math.PI;
+    g.add(tip);
+  }
+  return g;
+}
+
+/** The expanding dowel's mushroom head (diameter, thickness) and its ribs (diameter, thickness, spacing). Mm. */
+const EXPANDING_HEAD = [14, 2.5] as const, EXPANDING_RIB = [9.2, 1.2, 3] as const;
+/**
+ * Expanding plastic dowel 3D mesh (DOWEL_ENTRY's expanding variant): a mushroom head left standing on the drawer back,
+ * a Ø8 body as long as the variant, ribbed so it grips the side's end once hammered in. Into the hole along +y from its
+ * mouth, as every fastener is drawn.
+ */
+export function expandingDowelMesh(rod: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+  const variant = DOWEL_ENTRY.variants?.find(v => v.key === 'expanding'), length = (variant?.sizesMm?.[0] ?? 30) / 10, body = .8 / 2;
+  const g = new THREE.Group(), [hd, ht] = EXPANDING_HEAD, [rd, rt, step] = EXPANDING_RIB;
+  g.add(orientedSolid(rod, material, new THREE.Vector3(0, -ht / 20, 0), new THREE.Vector3(hd / 20, ht / 10, hd / 20)));
+  g.add(orientedSolid(rod, material, new THREE.Vector3(0, length / 2, 0), new THREE.Vector3(body, length, body)));
+  for (let y = step / 10; y < length - .2; y += step / 10) g.add(orientedSolid(rod, material, new THREE.Vector3(0, y, 0), new THREE.Vector3(rd / 20, rt / 10, rd / 20)));
+  return g;
 }
 
 /**

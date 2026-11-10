@@ -11,7 +11,7 @@ construction lives in `src/domain/make/drawer-box.ts`; the runners and locks in 
 | Front | A wardrobe drawer's own front (its inner front) is the box front. A kitchen drawer, whose front is applied over the carcass, gets a box front of its own behind it. |
 | Sides | Two 18 mm sides between the front and the back. A side has the bottom's groove at its lower edge and its cams on its inner face, so there is a left and a right side. |
 | Back | 18 mm, as wide as the box, against the ends of the sides. |
-| Bottom | 6 mm, captured in a groove 12 mm up from the lower edge and 8 mm deep in the front, both sides and the back. Never nailed. |
+| Bottom | 6 mm, captured in a groove 12 mm up from the lower edge, 6.5 mm wide (`GROOVE_WIDTH`) and 8 mm deep in the front, both sides and the back, cut 1 mm short of each groove's floor (`BOTTOM_PLAY`) so it slides in and is centred with an equal gap each end. Never nailed. |
 
 The box stands 12.5 mm clear of each upright (the runner's room) and 15 mm above the board under it (the runner's foot),
 and is as deep as its runner, from the front's face to the back's rear face.
@@ -50,30 +50,61 @@ upright, stay with the carcass. The box is the one Make cuts (as deep as its run
 
 | Stage | What happens | Hardware |
 |---|---|---|
-| `drawer-boxes` | The front lies face down on a soft mat; cam bolts go into its inner face; the bottom slides into its groove, the same gap at both ends. | Cam bolts, 2 a side |
+| `drawer-boxes` | The front lies face down on a soft mat; cam bolts go into its inner face; the bottom goes into its groove at an angle and is swung up, the same gap at both ends. | Cam bolts, 2 a side |
 | `drawer-sides` | Dowels go in; each side goes on over the bolts and dowel with the bottom in its groove; the cams are turned to lock. | Cams, 2 a side; one 8 × 35 dowel a side |
 | `drawer-back` | The back is hooked over the edge of the bottom, swung into place, and fixed with expanding dowels hammered through it into the sides. | Expanding dowels 8 × 30, 2 a side |
-| `drawer-runners` | Each runner's rear peg goes into a System 32 hole; its front bracket is screwed with two 4 × 12 mm screws. Nothing is screwed to the drawer. | Runners; 4 × 12 screws, 2 a runner |
-| `drawers` | The runners are pulled out; a locking plate goes over each front pin; the drawer's back is hooked onto the rear hooks and its front lowered so the pins come up through the bottom. | Locking plates, 1 a runner |
+| `drawer-runners` | Each runner's rear peg goes into its 5 mm hole; its front bracket is screwed with two 4 × 12 mm screws in 2.5 mm pilot holes. Nothing is screwed to the drawer. | Runners (a left and a right); 4 × 12 screws, 2 a runner |
+| `drawers` | Both runners are pulled out; a locking plate goes over each front pin; each drawer in turn is lifted off the mat, its back hooked onto the rear hooks with the front held up, its front lowered so the pins come up through the bottom, and pushed home. | Locking plates, 1 a runner |
 | `drawer-lock` | Under each drawer, a lever is screwed onto each front pin and turned to lock. | Locking levers, 1 a runner |
 | `fronts` | Kitchen drawers only: the applied front is screwed on from inside the box front. | 4 × 30 screws, 2 a drawer |
 | `drawer-test` | Each drawer is opened and closed in turn. | |
 
 The box (and a wardrobe drawer's own front) is built outside the cabinet and goes in as one piece in `drawers`.
 
+## The film (`drawer-film.ts`)
+
+The boxes are built on a mat in front of the piece, in rows as the parts are laid out, each front lying face down (a
+rigid pose: a turn about x and a move; holes, bits and fasteners ride on their board, so they follow). The bottom swings
+up into the front's groove, the sides come down over the bolts, the back hooks over the bottom's edge and swings shut.
+In `drawers` both runners are pulled out at once (`runnerPull`), then each drawer has its own turn (`INSTALL_EACH`
+seconds): lifted off the mat, hooked on at the back with the front held up, lowered onto the pins, pushed home with its
+runners. The drawer rails and the locks travel with the drawer from then on. The parts wait beyond the mat (`benchRoom`).
+
+## Hinges behind drawers
+
+A hinge's plate and arm stand in the cabinet's front corner, so a drawer behind a hinged door would hit a hinge at its
+height (the reference flat-pack wardrobe moves its drawers a hole up for hinged doors). Make moves the hinges instead:
+`hingeStationsClear` (`wardrobe/hinges.ts`) puts any hinge that would sit within 30 mm of a drawer front or box on the
+upright it hangs from (`pulloutSpans`) above or below it, the outer two as near their usual places as they can be and the
+rest evenly between. A door too short to spread its hinges keeps them where they were, and the `hinge-drawer`
+manufacturing rule reports it as critical: move the drawer. The door popover reads the hinge heights from Make.
+
+## Guidance (`make-instructions.ts`)
+
+Each step's notes, shown in Assembly Studio's guidance and printed on the saved drawings' step pages: the tools (each
+hardware entry's `assembly.tools`, and the drill when the step drills its own holes), the hardware one drawer takes and
+for how many drawers, the parts by number with a box side's hand (left, right, or either), where each runner goes on its
+upright (part, face, height from its lower end, screw and peg holes from its front edge), and the stage's `avoid` lines
+from the registry. The callout over a joint says how its hardware goes in (`assembly.cue`).
+
 ## Holes
 
 - Front: Ø5 × 11 bolt holes and Ø8 × 12 dowel holes in its inner face.
 - Sides: Ø8 × 34 bores in the front end for the bolts, Ø15 × 12.5 cam housings 34 mm back on the inner face, Ø8 × 25
   dowel bores, and Ø8 × 22 bores in the rear end for the expanding dowels.
-- Back: Ø8 through holes for the expanding dowels; a Ø6 × 10 hook hole 8 mm up from its lower edge over each side.
+- Back: Ø8 through holes for the expanding dowels; a Ø6 × 10 hook hole drilled up into its lower edge over each side,
+  9 mm in from its rear face, which the runner's rear hook comes up into from below as the drawer is lowered on (the
+  3D runner draws its hook and front pin standing in these holes).
 - Bottom: a Ø10 through hole for each runner's front pin, 15 mm inside the side and 30 mm behind the front.
-- Uprights: per runner, two Ø5 System 32 holes 32 mm apart at the front (screws) and one near the rear (the peg).
+- Uprights: per runner, two Ø2.5 × 12 pilot holes on the 37 mm line, 32 mm apart, at the front (screws) and one Ø5 × 12
+  hole near the rear (the peg).
 
 ## Known limits
 
 - One drawer system for every drawer: no side-mounted or concealed undermount runners to choose, and no soft-close.
 - Hole positions follow common practice (System 32, 37 mm line), not a runner maker's template.
-- The film places the back and the bottom with the same approach as any other board: the back's hook-and-swing and the
-  bottom's slide into its groove are described in the chapter text rather than animated.
 - Drawer box parts are in the cutting list but not yet drawn on their own shop sheet.
+- A door whose drawers leave no room to spread its hinges keeps them where they were and gets a critical `hinge-drawer`
+  finding: the drawers must move. The planner does not yet keep drawer heights clear of hinges itself.
+- The saved step pages draw a drawer box once (the first drawer); the others are counted beside it. Hardware is marked
+  with a ring where it goes, not drawn.

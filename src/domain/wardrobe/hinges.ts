@@ -92,3 +92,48 @@ export function hingeStations(length: number): number[] {
   const n = hingesFor(Math.round(length * 10));
   return Array.from({ length: n }, (_, k) => EDGE_INSET_CM + (length - 2 * EDGE_INSET_CM) * k / (n - 1));
 }
+
+const MIN_INSET_CM = (HINGE_ENTRY.rules.minEdgeInsetMm ?? 70) / 10;
+/** How far a hinge's plate and arm stay from anything that pulls out past them, centimetres. */
+export const HINGE_PULLOUT_CLEAR = (HINGE_ENTRY.rules.clearanceMm.pullout ?? 30) / 10;
+/** Two hinges on one edge are never nearer than this, centimetres. */
+const MIN_HINGE_GAP = 8;
+/** Moved hinges still span at least this share of the usual distance between the outer two. */
+const MIN_SPREAD = .5;
+
+/**
+ * Hinge centres along a door `length` cm tall, each clear of the spans in `blocked` (centimetres up from the door's lower
+ * end) that something slides past on the hinge side: a drawer behind the door, its box and runners. The hinge plate and
+ * arm stand in the cabinet's front corner, so a drawer there would hit them; a flat-pack wardrobe moves its drawers up
+ * a hole for hinged doors, and a made wardrobe moves the hinge instead. A hinge in a span goes to the nearest place
+ * outside it (HINGE_PULLOUT_CLEAR above or below): the outer two as near their usual places as they can be, the rest evenly
+ * between, none nearer an end than the hinge's least inset or nearer another hinge than MIN_HINGE_GAP. Where there is no
+ * such place, or the free stretches are too short to spread the hinges (MIN_SPREAD), they stay where hingeStations has
+ * them and the clash is reported (`hingeClashes`, the hinge-drawer rule) so the drawers move instead.
+ */
+export function hingeStationsClear(length: number, blocked: readonly (readonly [number, number])[]): number[] {
+  const even = hingeStations(length), spans = blocked.map(([a, b]) => [a - HINGE_PULLOUT_CLEAR, b + HINGE_PULLOUT_CLEAR] as const);
+  if (!hingeClashes(even, blocked).length) return even;
+  const lo = Math.min(MIN_INSET_CM, length / 2), hi = Math.max(length - MIN_INSET_CM, length / 2);
+  const free = (y: number) => y >= lo - 1e-9 && y <= hi + 1e-9 && !spans.some(([a, b]) => y > a + 1e-9 && y < b - 1e-9);
+  const edges = [lo, hi, ...spans.flatMap(([a, b]) => [a, b])].filter(free);
+  const nearest = (y: number, ok: (y: number) => boolean = () => true) =>
+    [y, ...edges].filter(v => free(v) && ok(v)).sort((p, q) => Math.abs(p - y) - Math.abs(q - y))[0];
+  // The outer hinges as near their usual places as they can be, the others evenly between them, each then moved out of
+  // what it would block.
+  const first = nearest(even[0]!) ?? even[0]!, last = nearest(even.at(-1)!) ?? even.at(-1)!, n = even.length;
+  const placed: number[] = [];
+  for (let k = 0; k < n; k++) {
+    const want = n === 1 ? first : first + (last - first) * k / (n - 1);
+    placed.push(nearest(want, y => placed.every(p => Math.abs(p - y) >= MIN_HINGE_GAP - 1e-9)) ?? want);
+  }
+  // Hinges crowded into a short free stretch no longer hold the door square: they stay where they were and the clash is
+  // reported, so the drawers move instead.
+  if (Math.max(...placed) - Math.min(...placed) < (even.at(-1)! - even[0]!) * MIN_SPREAD) return even;
+  // Drilled to the whole millimetre.
+  return placed.map(y => Math.round(y * 10) / 10).sort((p, q) => p - q);
+}
+
+/** The hinge centres among `stations` that still sit in a blocked span (see hingeStationsClear). */
+export const hingeClashes = (stations: readonly number[], blocked: readonly (readonly [number, number])[]) =>
+  stations.filter(y => blocked.some(([a, b]) => y > a - HINGE_PULLOUT_CLEAR + 1e-9 && y < b + HINGE_PULLOUT_CLEAR - 1e-9));

@@ -46,9 +46,12 @@ export function hardwareDisplay(b: { kind: FittingKind; size?: string }): { name
     const v = CARGO_MECHANISM_ENTRY.variants?.find(x => x.key === 'slide-lock');
     return { name: v?.name ?? 'Slide locking screw', size: 'M4 × 6 mm machine screw' };
   }
-  if (b.kind === 'runner' && b.size) {
-    return { name: 'Full-extension runners', size: `${b.size} mm soft-close pair` };
-  }
+  // A pair, left and right: the size is the rails' length. Nothing is said of the extension or a soft close the runner
+  // registry does not give (bottom-mounted with a rear hook and front lock; a cargo pull-out's slides say theirs in its steps).
+  if (b.kind === 'runner' && b.size) return { name: 'Drawer runners, left and right', size: `${b.size} mm pair` };
+  // A variant with a name of its own (a wooden or an expanding dowel, a drawer lock's plate or lever) is called that.
+  const variant = b.size ? hardware(b.kind)?.variants?.find(v => v.sizeLabel === b.size && v.label) : undefined;
+  if (variant) return { name: variant.label!, size: variant.sizeText ?? sold(b.size) };
   return { name: FITTING_NAMES[b.kind] ?? hardware(b.kind)?.display.listLine.label ?? b.kind, size: sold(b.size) };
 }
 

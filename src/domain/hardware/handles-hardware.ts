@@ -90,6 +90,8 @@ export const HANDLE_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Screw on from behind',
     requires: ['fronts', 'doors'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],
@@ -151,6 +153,8 @@ export const PUSH_TO_OPEN_ENTRY: HardwareEntry = {
   ],
   assembly: {
     stage: 'doors',
+    tools: ['pozidriv'],
+    cue: 'Screw on, then press to test',
     requires: ['carcass'],
     phase: 'after-place',
     approachFrom: [0, 0, 1],

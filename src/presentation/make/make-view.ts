@@ -16,6 +16,7 @@ import { createMakePlayer } from './make-player';
 import { createStudioController } from './assembly-studio-controller';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
+import { picturesFor } from './make-pictures'; // the saved drawings' step pictures, photographed from the film
 
 const GLIDE = .9, BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
 /** How far round from the front the camera turns to face a hole in a side face: most of a quarter turn (radians). */
@@ -39,9 +40,7 @@ export function createMakeView(ports: MakeViewPorts) {
   const desktop = dom.matchMedia('(min-width:901px)'), reducedMotion = dom.matchMedia('(prefers-reduced-motion: reduce)');
   const make3d = createMake3d(resources, resources.scene);
   const overlay = doc.createElementNS(SVG, 'svg') as SVGSVGElement;
-  overlay.setAttribute('class', 'make-overlay');
-  overlay.setAttribute('aria-hidden', 'true');
-  overlay.setAttribute('translate', 'no');
+  for (const [name, value] of [['class', 'make-overlay'], ['aria-hidden', 'true'], ['translate', 'no']] as const) overlay.setAttribute(name, value);
   view.append(overlay);
   const panel = doc.createElement('div');
   panel.className = 'pop editor-panel make-panel';
@@ -94,7 +93,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
     if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
     if (st.filming) {
-      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}x${studio.root.querySelector<HTMLElement>('.as-bottom')!.offsetHeight}`;
+      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}`;
       if (size !== st.shotsFor) { plan(); st.shotsFor = size; if (st.follow) followFrom(ports.camera.camNow()); }
       if (st.glide) st.glide.left -= reduce ? GLIDE : dt;
       if (player.advance(dt) || st.glide) showFilm();
@@ -136,7 +135,7 @@ export function createMakeView(ports: MakeViewPorts) {
       showFilm();
     } else {
       player.pause();
-      make3d.setFilm(null);
+      make3d.setFilm(null); make3d.ring(null);
       st.building = null; st.marks = '';
     }
     pressed();
@@ -145,7 +144,7 @@ export function createMakeView(ports: MakeViewPorts) {
    * it from where the person left the camera), and the player's controls. */
   function showFilm() {
     if (!st.piece || !st.filming) return;
-    make3d.setFilm(player.film());
+    make3d.setFilm(player.film()); make3d.ring(player.fixing()?.holes ?? null);
     resources.R.shadowMap.needsUpdate = true;
     st.building = player.building();
     if (st.follow && st.shots) {
@@ -336,7 +335,9 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
     else if (t.closest<HTMLElement>('[data-save]')) {
       const piece = st.piece!;
-      void gate.save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv', view.ownerDocument, band, material, () => st.cut ??= cutLayout(piece.parts, undefined, band));
+      const shots = () => picturesFor(piece, player, { renderer: resources.R, scene: resources.scene, layer: MAKE_LAYER, document: doc, make3d, camera: ports.camera },
+        st.pose, { look: st.look, filming: st.filming, paper: () => paper(st.filming), size: [view.clientWidth, view.clientHeight] });
+      void gate.save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv', view.ownerDocument, band, material, () => st.cut ??= cutLayout(piece.parts, undefined, band), shots);
     }
   });
   /** Changes how the piece goes together (saved with the design, one undo step) and takes it apart again. */

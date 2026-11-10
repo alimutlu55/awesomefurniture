@@ -42,7 +42,7 @@ export function materialSchedule(pieces: readonly PlacedPiece[]): Table[] {
       'Front board SKU applies to solid fronts and drawer panels; retain glazed outer doors.']);
     rows.push([piece.mark, 'Hardware Spec', hardwareDescription(materials.handleFinish), '—',
       (glazed ? 'Frame/carrier-compatible glass or mirror door hinges; glazing rebates and safety backing confirmed by fabricator. '
-        : 'Concealed hinges, 35mm cup, each door\'s kind on the hardware list; ') + 'Full-extension drawer runners where configured. '
+        : 'Concealed hinges, 35mm cup, each door\'s kind on the hardware list; ') + 'Drawer runners where configured: bottom-mounted pairs with a rear hook and a front lock. '
       + (materials.handleFinish === 'handleless_tip_on' ? 'Use push-to-open compatible hinges and runners; confirm load rating and drilling with supplier.' : 'Confirm hinge/runner load rating and drilling with supplier.')]);
     rows.push([piece.mark, 'Internal accessories', accessoryDescription(materials.internalAccessoryFinish), '—', 'Rails and internal metal fittings.']);
     if (materials.frontProfile === 'micro_shaker') rows.push([piece.mark, 'Front profile', 'Micro-Shaker', '—', 'Shallow matching perimeter rails; preserve the configured door outlines.']);

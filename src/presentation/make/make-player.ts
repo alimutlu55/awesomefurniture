@@ -1,6 +1,7 @@
 import { cargoFittedAt } from '../../domain/make/cargo-installation';
 import { assemblyTargets } from './assembly-targets';
-import { drawerBoardOffset } from '../../domain/make/drawer-installation';
+import { drawerPose, runnerTravel } from '../../domain/make/drawer-installation';
+import { matArea, posePoint } from '../../domain/make/drawer-film';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, type Playhead, playhead, seenAt, stepStart, type Timeline } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
@@ -15,11 +16,11 @@ import type { MakeFilm } from './make-play-3d';
  */
 export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
-  let stopAt: number | null = null;
+  let stopAt: number | null = null, floor = 0;
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, hang: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
-    load(next: MakePiece, floor = 0) { piece = next; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; stopAt = null; },
+    load(next: MakePiece, at = 0) { piece = next; floor = at; tl = assemblyTimeline(next); staged = stagingLayout(next, floor); t = Math.min(t, tl.duration); playing = false; rate = 1; stopAt = null; },
     get timeline() { return tl; },
     get staged() { return staged; },
     get time() { return t; },
@@ -79,10 +80,11 @@ export function createMakePlayer() {
         bit: hole => drillAt(line, ph, hole),
         fit: item => fittedAt(line, ph, item, fittings[item]!.kind),
         seen: item => seenAt(line, ph, item),
-        nudge: board => {
-          const door = doorNudge(line, ph, board), drawer = drawerBoardOffset(piece!, line, ph, board);
-          return [door[0] + drawer[0], door[1] + drawer[1], door[2] + drawer[2]];
-        },
+        nudge: board => doorNudge(line, ph, board),
+        // A drawer box: on the mat, carried onto its runners, or moved in the cabinet (drawer-film.ts).
+        pose: board => drawerPose(piece!, line, ph, board, floor),
+        pull: board => runnerTravel(piece!, line, ph, board),
+        mat: matShown(piece, line, ph) ? matArea(piece, floor) : null,
         targets: assemblyTargets(piece, line, ph),
       };
     },
@@ -99,17 +101,20 @@ export function createMakePlayer() {
       const ph = head(), now = fixingNow(tl, ph), p = piece;
       if (!now) return null;
       // A joint fixed on a board lying on the floor is drawn where that board lies.
-      const board = now.board, where = (q: Vec3): Vec3 => {
-        if (now.lying && board !== null) return lyingPoint(p.boards[board]!, staged[board]!, q);
-        if (board === null) return q;
-        const off = drawerBoardOffset(p, tl!, ph, board);
-        return [q[0] + off[0], q[1] + off[1], q[2] + off[2]];
+      // A locking plate goes on its runner's front pin, pulled out in the cabinet, not on the drawer waiting on the mat.
+      const plate = now.items.every(i => p.fittings[i]!.purpose === 'drawer-plate');
+      const board = now.board, where = (q: Vec3, b = board): Vec3 => {
+        if (now.lying && b !== null) return lyingPoint(p.boards[b]!, staged[b]!, q);
+        if (b === null) return q;
+        if (plate) return [q[0], q[1], q[2] + runnerTravel(p, tl!, ph, b)];
+        return posePoint(drawerPose(p, tl!, ph, b, floor), q);
       };
       const lines = now.items.flatMap(i => {
         const e = entryOf(p, i);
         if (!e) return [];
-        const from: Vec3 = where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT]);
-        return [{ from, to: where(e.at), seen: seenAt(tl!, ph, i), go: fittedAt(tl!, ph, i, p.fittings[i]!.kind) ?? 0 }];
+        const b = e.board ?? board;
+        const from: Vec3 = where([e.at[0] - e.dir[0] * WAIT, e.at[1] - e.dir[1] * WAIT, e.at[2] - e.dir[2] * WAIT], b);
+        return [{ from, to: where(e.at, b), seen: seenAt(tl!, ph, i), go: fittedAt(tl!, ph, i, p.fittings[i]!.kind) ?? 0 }];
       });
       const counts = new Map<string, { kind: FittingKind; size?: string; qty: number }>();
       for (const i of now.items) {
@@ -117,13 +122,22 @@ export function createMakePlayer() {
         c.qty++;
         counts.set(key, c);
       }
-      return { lines, hardware: [...counts.values()] };
+      // The holes they go into, so the hole each one goes into is marked while it does.
+      const holes = p.holes.flatMap((h, k) => h.of !== undefined && now.items.includes(h.of) ? [k] : []);
+      return { lines, hardware: [...counts.values()], holes };
     },
   };
 }
 export type MakePlayer = ReturnType<typeof createMakePlayer>;
+/** The mat is down from the first drawer box chapter until the last box is on its runners. */
+function matShown(piece: MakePiece, tl: Timeline, ph: Playhead) {
+  const from = piece.steps.findIndex(s => s.stage === 'drawer-boxes'), to = piece.steps.findIndex(s => s.stage === 'drawers');
+  return from >= 0 && ph.step >= from && (to < 0 || ph.step < to || (ph.step === to && ph.t < tl.steps[to]!.place[1]));
+}
 /** A joint being fixed, as Make writes it over the film. */
 export interface Fixing {
   readonly lines: readonly { readonly from: Vec3; readonly to: Vec3; readonly seen: number; readonly go: number }[];
+  /** The holes the joint's hardware goes into, by their place in the piece's hole list. */
+  readonly holes: readonly number[];
   readonly hardware: readonly { readonly kind: FittingKind; readonly size?: string; readonly qty: number }[];
 }

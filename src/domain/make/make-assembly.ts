@@ -101,6 +101,13 @@ export function assemblySteps(boards: readonly Board[], fittings: readonly Fitti
       return f.kind === 'rail' ? 'cargo-baskets' : f.kind === 'support' ? 'cargo-frame' : 'fronts';
     }
     if (f.kind === 'plate' && fittings[i - 1]?.kind === 'hinge') return fittingStep(fittings[i - 1]!, i - 1);
+    // A handle goes on a front once it hangs where it will stay, upright (the drawers in and locked, the door hung), never
+    // while the front lies face down on the mat as its box is built, with the handle's face against the mat.
+    if (f.kind === 'handle') {
+      const b = boards[f.boards[0] ?? -1];
+      if (b?.stock === 'door') return 'doors';
+      if (b && (b.stock === 'front' || drawers.some(d => d.front === f.boards[0] || d.applied === f.boards[0]))) return 'fronts';
+    }
     const hw = hardware(f.kind);
     // Hardware with a stage of its own (rails, runners, wall fixings) goes in there; a connector, a hinge, a handle or a
     // leg goes in with the later of the boards it holds.

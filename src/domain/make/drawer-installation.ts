@@ -4,6 +4,7 @@ import type { Fitting, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
 import type { Vec3 } from './make-measures';
 import type { Playhead, Timeline } from './make-timeline';
+import { benchPose, runnerPull, shifted, type DrawerPose } from './drawer-film';
 
 const CABINET_MOUNT_FIXING = RUNNER_ENTRY.fixings.find(f => f.target === 'side')!;
 const FRONT_FIXING = RUNNER_ENTRY.fixings.find(f => f.target === 'front')!;
@@ -51,18 +52,24 @@ export function completeDrawerHardware(boards: readonly Board[], fittings: Fitti
 
 const unit = (v: number) => Math.max(0, Math.min(1, v));
 const ease = (v: number) => { const t = unit(v); return t * t * (3 - 2 * t); };
-/** Drawer boxes are built outside the cabinet, then engaged with the runners as one rigid assembly. */
+/** Where a drawer board is at the playhead, as a rigid pose: a box on the mat or going onto its runners (drawer-film.ts),
+ * else moved in the cabinet (drawerBoardOffset). */
+export function drawerPose(piece: MakePiece, tl: Timeline, ph: Playhead, board: number, floor = 0): DrawerPose {
+  return benchPose(piece, tl, ph, board, floor) ?? shifted(drawerBoardOffset(piece, tl, ph, board));
+}
+/** How far the runners under a drawer board are pulled out: pulled out to take the boxes, then with their drawer. */
+export function runnerTravel(piece: MakePiece, tl: Timeline, ph: Playhead, board: number): number {
+  const pull = runnerPull(piece, tl, ph, board);
+  if (pull !== null) return pull;
+  return benchPose(piece, tl, ph, board) ? 0 : drawerBoardOffset(piece, tl, ph, board)[2];
+}
+
+/** A drawer in the cabinet: pulled out while its levers are turned or its applied front is fixed, opened in the travel
+ * test; a cargo front carried in. A box on the mat or going onto its runners is drawer-film.ts's. */
 export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, board: number): Vec3 {
   const b = piece.boards[board]!, motion = piece.motions[board];
   if (motion?.kind !== 'slide') return [0, 0, 0];
   const install = piece.steps.findIndex(s => s.stage === 'drawers'), test = piece.steps.findIndex(s => s.stage === 'drawer-test');
-  // The box, and a wardrobe drawer's own front (its box front), are built outside the cabinet and go in together.
-  const boxPart = b.note === 'drawer box' || (piece.drawers ?? []).some(d => d.front === board && d.applied === null);
-  if (boxPart && install >= 0) {
-    const s = tl.steps[install]!, runner = drawerRunnerForBoard(piece, board);
-    const length = Number(runner?.size) / 10 || motion.by / .7;
-    if (ph.t < s.end) return [0, 0, (length + 8) * (1 - ease((ph.t - s.place[0]) / Math.max(.001, s.place[1] - s.place[0])))];
-  }
   if (b.name === 'Cargo front' && install >= 0 && ph.t < tl.steps[install]!.end) {
     const s=tl.steps[install]!,length=Number(drawerRunnerForBoard(piece,board)?.size)/10;
     return [0,0,(length+10)*(1-ease((ph.t-s.place[0])/Math.max(.001,s.place[1]-s.place[0])))];

@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { drawerBoardOffset, drawerRunnerForBoard } from '../../src/domain/make/drawer-installation';
+import { drawerBoardOffset, drawerPose, drawerRunnerForBoard, runnerTravel } from '../../src/domain/make/drawer-installation';
+import { installWindow, MAT, posePoint } from '../../src/domain/make/drawer-film';
 import { assemblyTimeline, playhead } from '../../src/domain/make/make-timeline';
 import { createMakePlayer } from '../../src/presentation/make/make-player';
 import { drawerRunnerMeshes } from '../../src/presentation/make/drawer-runner-3d';
@@ -110,19 +111,34 @@ test('runners are fixed to the cabinet only: two short screws through the front 
   }
 });
 
-test('boxes are assembled outside, inserted as rigid groups and opened one at a time with their fronts', () => {
+test('boxes are built front face down on the mat, hooked onto pulled-out runners, then opened one at a time with their fronts', () => {
   const piece = make(), tl = assemblyTimeline(piece), k = (stage: string) => piece.steps.findIndex(s => s.stage === stage);
   const offset = (time: number, id: number) => drawerBoardOffset(piece, tl, playhead(tl, time), id)[2];
+  const pose = (time: number, id: number) => drawerPose(piece, tl, playhead(tl, time), id);
   const rails = piece.fittings.filter(f => f.runner), mount = tl.steps[k('drawer-runners')]!, insert = tl.steps[k('drawers')]!, demo = tl.steps[k('drawer-test')]!;
-  for (const rail of rails) {
-    const ids = piece.boards.flatMap((_, i) => drawerRunnerForBoard(piece, i) === rail ? [i] : []);
-    const boxes = ids.filter(i => piece.boards[i]!.note === 'drawer box');
-    assert.equal(boxes.length, 5);
-    for (const i of boxes) {
-      near(offset(mount.start, i), Number(rail.size) / 10 + 8);
-      near(offset((insert.place[0] + insert.place[1]) / 2, i), (Number(rail.size) / 10 + 8) / 2);
-      near(offset(insert.end, i), 0);
+  piece.drawers.forEach((d, j) => {
+    const box = [d.front, d.bottom, d.back, ...d.sides], window = installWindow(piece, tl, j)!, front = piece.boards[d.front]!;
+    assert.ok(window[0] >= insert.place[0] && window[1] <= insert.place[1], 'each drawer in its own turn');
+    for (const i of box) {
+      // On the mat while the runners go on: the front lies face down on the mat, in front of the piece.
+      const onMat = pose(mount.start, i);
+      near(onMat.angle, Math.PI / 2);
+      const face = posePoint(onMat, [(front.x0 + front.x1) / 2, (front.y0 + front.y1) / 2, front.z1]);
+      near(face[1], MAT); assert.ok(face[2] > piece.size.d, 'in front of the piece');
+      // Hooked on at the back with the front held up, on the runners pulled out.
+      const hooked = pose(window[0] + (window[1] - window[0]) * .55, i);
+      assert.ok(hooked.angle < 0, 'front held up while the back hooks on');
+      // Home once its turn is over, and still home when the chapter ends.
+      for (const t of [window[1], insert.end]) {
+        const home = pose(t, i), b = piece.boards[i]!;
+        near(home.angle, 0); posePoint(home, [b.x0, b.y0, b.z0]).forEach((v, a) => near(v, [b.x0, b.y0, b.z0][a]!));
+      }
     }
+  });
+  // Both runners are out before any box comes off the mat; each pair goes home with its drawer.
+  for (const d of piece.drawers) {
+    near(runnerTravel(piece, tl, playhead(tl, insert.place[0]), d.sides[0]), piece.motions[d.sides[0]]!.kind === 'slide' ? (piece.motions[d.sides[0]] as { by: number }).by : 0);
+    near(runnerTravel(piece, tl, playhead(tl, insert.end), d.sides[0]), 0);
   }
   const span = (demo.place[1] - demo.place[0]) / rails.length;
   rails.forEach((rail, index) => {

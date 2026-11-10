@@ -34,12 +34,13 @@ export const RUNNER_ENTRY: HardwareEntry = {
     ratedLoadKg: 25,
   },
   drilling: [
-    // The rail's front bracket: two screws on the System 32 line, one step apart.
-    { reference: 'system32', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 5, depthMm: 12, stationsMm: [0, 32] },
+    // The rail's front bracket: two screws on the System 32 line, one step apart, in Ø2.5 pilot holes.
+    { reference: 'system32', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 2.5, depthMm: 12, stationsMm: [0, 32] },
     // The rail's rear peg: a System 32 hole this far in from the rail's rear end (to the nearest slot).
     { reference: 'rear-edge', lineMm: 37, pitchMm: 32, face: 'inside', kind: 'runner', dMm: 5, depthMm: 12, stationsMm: [20] },
-    // The box back's hook hole, this far up from its lower edge, over the middle of each box side.
-    { reference: 'rear-edge', lineMm: 8, face: 'back', kind: 'runner', dMm: 6, depthMm: 10 },
+    // The box back's hook hole, drilled up into its lower edge over the middle of each box side, this far in from its rear
+    // face (midway through 18 mm): the rail's rear hook comes up into it from below as the drawer is lowered on.
+    { reference: 'rear-edge', lineMm: 9, face: 'bottom', kind: 'runner', dMm: 6, depthMm: 10 },
     // The front pin's hole through the box bottom, this far behind the box front's inner face.
     { reference: 'front-edge', lineMm: 30, face: 'bottom', kind: 'runner', dMm: 10, depthMm: 0 },
   ],
@@ -75,14 +76,16 @@ export const RUNNER_ENTRY: HardwareEntry = {
   },
   assembly: {
     stage: 'drawer-runners',
+    tools: ['pozidriv', 'level'],
+    cue: 'Rear peg in its hole, level, two screws at the front',
     requires: ['carcass', 'partitions', 'drawer-back'],
     phase: 'after-place',
     testsTravel: true,
     approachFrom: [0, 0, 1],
     instructions: {
       title: 'Mount the drawer runners',
-      summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into the System 32 hole.',
-      drill: 'Use the 5 mm System 32 holes on the 37 mm line: two at the front for the screws, one at the rear for the peg.',
+      summary: 'Screw each runner to the cabinet side with two screws at the front; its rear peg goes into its 5 mm hole.',
+      drill: 'On the 37 mm line at the runner\'s height: two Ø2.5 mm pilot holes at the front (37 and 69 mm in) for the screws, one Ø5 mm hole near the rear for the peg.',
       place: 'Hook the rear peg into its hole, rest the rail level and line its front bracket up with the two holes.',
       fix: 'Drive the two 4 × 12 mm pan-head screws through the front bracket into each cabinet side.',
     },
@@ -124,8 +127,8 @@ export const DRAWER_LOCK_ENTRY: HardwareEntry = {
   mountsOn: ['drawer-box'],
   sizesMm: [35],
   variants: [
-    { key: 'plate', name: 'Locking plate, laid under the drawer bottom over the runner pin', sizeLabel: 'plate', sizesMm: [60] },
-    { key: 'lever', name: 'Locking lever, screwed onto the runner pin and turned', sizeLabel: 'lever', sizesMm: [35] },
+    { key: 'plate', name: 'Locking plate, laid under the drawer bottom over the runner pin', sizeLabel: 'plate', label: 'Locking plate', sizeText: '', sizesMm: [60] },
+    { key: 'lever', name: 'Locking lever, screwed onto the runner pin and turned', sizeLabel: 'lever', label: 'Locking lever', sizeText: '', sizesMm: [35] },
   ],
   defaultVariant: 'lever',
   rules: {
@@ -137,6 +140,8 @@ export const DRAWER_LOCK_ENTRY: HardwareEntry = {
   fixings: [],
   assembly: {
     stage: 'drawer-lock',
+    tools: ['hand'],
+    cue: 'By hand: screw up onto the pin, turn to lock',
     requires: ['drawers'],
     phase: 'after-place',
     // A plate laid over a pin or a lever turned onto it: half a minute, not a pair of runners' ten.

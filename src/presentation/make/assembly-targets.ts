@@ -1,12 +1,13 @@
 import type { MakePiece } from '../../domain/make/make-parts';
-import { drawerBoardOffset } from '../../domain/make/drawer-installation';
+import { drawerBoardOffset, runnerTravel } from '../../domain/make/drawer-installation';
+import { installWindow } from '../../domain/make/drawer-film';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import { drillAt, fittedAt, fixingNow, seeThrough, type Playhead, type Timeline } from '../../domain/make/make-timeline';
 import type { Vec3 } from '../../domain/make/make-measures';
 import type { AssemblyTarget } from './assembly-visibility';
 
 /** The fittings that build a drawer box or hold it on its runners (drawer-box.ts): the box's front is no finished face then. */
-const BOX_PURPOSES: ReadonlySet<string> = new Set(['box-front', 'box-sides', 'box-back', 'drawer-plate', 'drawer-lock']);
+const BOX_PURPOSES: ReadonlySet<string> = new Set(['box-front', 'box-sides', 'box-back', 'drawer-plate', 'drawer-lock', 'drawer-front']);
 
 /** Visibility is assessed for the active hardware, not every component in a chapter. */
 export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): AssemblyTarget[] {
@@ -16,14 +17,23 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
     if (!e || e.board === null) continue;
     const progress = fittedAt(tl, ph, i, piece.fittings[i]!.kind);
     if (progress === null) continue;
-    const throughFronts = BOX_PURPOSES.has(piece.fittings[i]!.purpose ?? '');
+    const purpose = piece.fittings[i]!.purpose ?? '';
+    const throughFronts = BOX_PURPOSES.has(purpose);
+    const plate = purpose === 'drawer-plate';
+    const pull = plate ? runnerTravel(piece, tl, ph, e.board) : 0;
     // Probe just outside the entry face, so a visible screw does not fade the board supporting it.
     for (const distance of [.2, Math.max(.2, WAIT * (1 - progress) ** 3)])
-      targets.push({ board: e.board, at: e.at.map((v, k) => v - e.dir[k]! * distance) as unknown as Vec3, throughFronts });
+      targets.push({
+        board: e.board,
+        at: [e.at[0] - e.dir[0] * distance, e.at[1] - e.dir[1] * distance, e.at[2] + pull - e.dir[2] * distance],
+        throughFronts,
+        ...(plate ? { inPiece: true } : {}),
+      });
   }
   if (!fixing) piece.holes.forEach((h, i) => {
     if (drillAt(tl, ph, i) === null) return;
-    targets.push({ board: h.board, at: h.at.map((v, k) => v - (h.axis === k ? h.sign * .2 : 0)) as unknown as Vec3 });
+    const throughFronts = piece.boards[h.board]?.note === 'drawer box' || piece.boards[h.board]?.stock === 'front';
+    targets.push({ board: h.board, at: h.at.map((v, k) => v - (h.axis === k ? h.sign * .2 : 0)) as unknown as Vec3, throughFronts });
   });
   // While a door clips on, expose only panels hiding its hinge cups and arms from this camera.
   piece.fittings.forEach(f => {
@@ -31,6 +41,16 @@ export function assemblyTargets(piece: MakePiece, tl: Timeline, ph: Playhead): A
     if (f.kind === 'hinge' && board !== undefined && seeThrough(tl, ph, board))
       targets.push({ board, at: [f.at[0], f.at[1], f.at[2] - .2] });
   });
+  if (piece.steps[ph.step]?.stage === 'drawers' && !fixing) {
+    (piece.drawers ?? []).forEach((drawer, j) => {
+      const win = installWindow(piece, tl, j);
+      if (!win || ph.t < win[0] || ph.t > win[1]) return;
+      drawer.sides.forEach((id, k) => {
+        const b = piece.boards[id]!;
+        for (const z of [b.z0 + 5, b.z1 - 5]) targets.push({ board: id, at: [k === 0 ? b.x0 - .2 : b.x1 + .2, b.y0 + 2, z] });
+      });
+    });
+  }
   if (piece.steps[ph.step]?.stage === 'drawer-test') {
     const runners = piece.fittings.filter(f => f.runner), phase = tl.steps[ph.step]!.place;
     const fraction = Math.max(0, Math.min(.999, (ph.t - phase[0]) / (phase[1] - phase[0])));

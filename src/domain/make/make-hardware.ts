@@ -27,7 +27,7 @@ import { PANEL } from '../wardrobe/catalog.js';
 import { fitting, FITTING_HARDWARE_KEYS, type FittingHardware } from '../wardrobe/fittings';
 import { plinthOf } from '../wardrobe/carcass';
 import { drawerExtension } from '../wardrobe/drawer-runners';
-import { hinge as hingeOf, hingeFor, hingeStations } from '../wardrobe/hinges';
+import { hinge as hingeOf, hingeClashes, hingeFor, hingeStationsClear } from '../wardrobe/hinges';
 import { handlePlacement, resolveHandle } from '../wardrobe/handles';
 import { boreIsClear } from './bore-clearance';
 import { completeDrawerHardware } from './drawer-installation';
@@ -43,6 +43,7 @@ const HANDLE_THROUGH_HOLE = HANDLE_ENTRY.drilling[0]!;
 const HANDLE_BACK_HOLE = HANDLE_ENTRY.drilling[1]!;
 const RUNNER_HOLE = RUNNER_ENTRY.drilling[0]!;
 const RUNNER_SCREW = { d: RUNNER_HOLE.dMm, depth: RUNNER_HOLE.depthMm } as const;
+const RUNNER_PEG = { d: RUNNER_ENTRY.drilling[1]?.dMm ?? 5, depth: RUNNER_ENTRY.drilling[1]?.depthMm ?? 12 } as const;
 
 /** Whether a hole drilled into an upright's face at `at` (going in along x, `sign` the way it faces out) is in another
  * hole's way: any bore already in that board that it would come within 2 mm of, in three dimensions (bore-clearance.ts):
@@ -64,6 +65,20 @@ function fixedPanelStations(b: Board): Vec3[] {
   const [u, v] = ([0, 1, 2] as const).filter(k => k !== t).sort((p, q) => (hi[q]! - lo[q]!) - (hi[p]! - lo[p]!)) as [0 | 1 | 2, 0 | 1 | 2];
   const wide = hi[v]! - lo[v]!, rows = wide < 10 ? [lo[v]! + wide / 2] : [lo[v]! + wide / 4, hi[v]! - wide / 4];
   return rows.flatMap(row => connectorStations(hi[u]! - lo[u]!).map(s => { const p = [0, 0, 0]; p[t] = lo[t]!; p[u] = lo[u]! + s; p[v] = row; return p as unknown as Vec3; }));
+}
+
+/** How near the upright's face something must come to slide past the hinges on it, centimetres. */
+const PAST_HINGES = 3;
+/**
+ * The heights, from `door`'s lower end, of what slides out past the hinges on `post` behind that door: a drawer's own
+ * front inside the carcass and its box, beside the face the door hangs from.
+ */
+export function pulloutSpans(boards: readonly Board[], post: Board, side: 'left' | 'right', door: Board): [number, number][] {
+  const face = side === 'left' ? post.x1 : post.x0;
+  return boards.filter(q => (q.note === 'drawer box' || (q.stock === 'front' && q.z1 <= door.z0 + .01))
+    && (side === 'left' ? q.x0 >= face - .01 && q.x0 - face < PAST_HINGES : q.x1 <= face + .01 && face - q.x1 < PAST_HINGES)
+    && q.y1 > door.y0 && q.y0 < door.y1)
+    .map(q => [q.y0 - door.y0, q.y1 - door.y0]);
 }
 
 export const centre = (b: Board): Vec3 => [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2];
@@ -101,9 +116,17 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
       const face = post ? (hinge === 'left' ? post.b.x1 : post.b.x0) : 0, sign = hinge === 'left' ? -1 : 1, z = post ? post.b.z1 - plate.line / 10 : 0;
       // A partition with doors hinged on both faces (a pair either side of it): a plate whose screws would meet the other
       // face's, or a connector, inside the board steps one System 32 pitch along it.
-      const clear = (y: number) => !post || [-pitch / 2, pitch / 2].every(dy => !inTheWay(boards, [...drilled, ...holes], post, [face, y + dy, z], sign, plate.screw, 'plate'));
-      for (const s of hingeStations(edgeTop - b.y0)) {
-        const y = b.y0 + s + ([0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH].find(dy => clear(b.y0 + s + dy)) ?? 0);
+      const clear = (y: number) => !post || (y - pitch / 2 >= post.b.y0 + 2 && y + pitch / 2 <= post.b.y1 - 2
+        && [-pitch / 2, pitch / 2].every(dy => !inTheWay(boards, [...drilled, ...holes], post, [face, y + dy, z], sign, plate.screw, 'plate')));
+      // A drawer behind the door, beside the upright it hangs from, slides past the hinges' plates and arms: they go
+      // above or below it (hingeStationsClear).
+      const spans = post ? pulloutSpans(boards, post.b, hinge, b) : [], hung: number[] = [];
+      for (const s of hingeStationsClear(edgeTop - b.y0, spans)) {
+        // Stepped a pitch at a time out of other holes' way, still clear of the drawers and of this door's other hinges.
+        const steps = [0, PITCH, -PITCH, 2 * PITCH, -2 * PITCH, 3 * PITCH, -3 * PITCH], apart = (dy: number) => hung.every(q => Math.abs(q - s - dy) >= 2 * PITCH);
+        const dy = steps.find(dy => clear(b.y0 + s + dy) && apart(dy) && !hingeClashes([s + dy], spans).length) ?? steps.find(dy => clear(b.y0 + s + dy) && apart(dy)) ?? 0;
+        hung.push(s + dy);
+        const y = b.y0 + s + dy;
         const inset = (kind.cup?.fromEdge ?? 22.5) / 10, cup: Vec3 = [edgeX + (hinge === 'left' ? inset : -inset), y, b.z0];
         if (kind.cup) holes.push({ board: i, kind: 'cup', at: cup, axis: 2, sign: 1, d: kind.cup.d, depth: kind.cup.depth, of: fittings.length });
         fittings.push({ kind: 'hinge', at: cup, axis: 2, boards: post ? [i, post.i] : [i], size: kind.size });
@@ -239,12 +262,14 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     const stationsCm = (RUNNER_HOLE.stationsMm ?? [0, 32]).map(mm => mm / 10);
     // The rear peg's hole: the System 32 slot nearest `rearPeg` in from the runner's rear end.
     const rear = Math.round((runner / 10 - rearPeg - SYSTEM_LINE) / PITCH) * PITCH;
-    for (const back of [...stationsCm, rear]) {
+    for (const [k, back] of [...stationsCm, rear].entries()) {
+      // The front bracket's screws go into pilot holes; the rear peg into a 5 mm hole.
+      const bore = k < stationsCm.length ? RUNNER_SCREW : RUNNER_PEG;
       // A screw in another hole's way (a hinge plate's, or a runner's from the other face of a partition with drawers
       // level either side) goes in the runner's next free slot back, a System 32 step at a time, or else forward.
-      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay(boards, [...drilled, ...holes], post, [face, y, z], sign, RUNNER_SCREW);
+      const z = post.b.z1 - SYSTEM_LINE - back, free = (z: number) => !inTheWay(boards, [...drilled, ...holes], post, [face, y, z], sign, bore);
       const slots = [0, -1, -2, -3, 1, 2].map(k => z + k * PITCH).filter(s => s >= post.b.z0 + 2 && s <= post.b.z1 - 2);
-      holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z], axis: 0, sign, ...RUNNER_SCREW, of });
+      holes.push({ board: post.i, kind: 'runner', at: [face, y, slots.find(free) ?? z], axis: 0, sign, ...bore, of });
     }
   });
   // Shelf pins: four under every adjustable shelf, in a row of five either side to move it up or down. A row that

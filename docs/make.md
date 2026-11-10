@@ -34,8 +34,9 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
     direct stage link; each Hardware row opens its next relevant stage, using the same playhead.
   - **Cutting**: every stock sheet (2800 × 2070 mm, 10 mm trim, 4 mm kerf) per decor and thickness with its parts on
     it and how much is used, parts longer than a sheet, and the edge banding to buy; save the cut list (CSV).
-- **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, hardware and steps, then
-  the assembly plan written out) or the
+- **Saving** the drawings (A3 PDF: parts six to a page with holes measured, the stock sheets, the hardware, then the steps
+  two to a page, each with the step done and a close-up of a joint taken from the film (make-pictures.ts), its instruction, tools, a drawer's kit, the parts by number, where
+  the runners go and what not to do (`make-steps-pdf.ts`); then the assembly plan written out with every joint's set-out) or the
   cut list (CSV a panel saw or optimiser takes) is part of the paid drawing set: the same price and 24-hour pass.
 
 ## Assembly Studio
@@ -51,10 +52,14 @@ WebGL renderer. No scene or design edits are made when entering or leaving Studi
 - Explore pauses at the exact current time. Drag orbits, right-drag pans, two fingers pan and pinch. Tapping a part
   highlights its boards and connecting hardware, frames its current transformed bounds, and shows its dimensions,
   material and stage link. Playback resumes from the same time; the camera glides back to the director.
-- Guidance is an optional compact overlay: the current phase, installation guidance, required boards and real
-  hardware quantities, then the step written out from the assembly plan (each part going in, each joint's set-out, the
-  checks). **Before you start** (method, people, time, tools) is under the chapters. Studio opens only when nothing
-  blocks building the piece (buildability.md). The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
+- Guidance is an optional compact overlay: the current phase, installation guidance, the tools, required boards (by part
+  number, a drawer side's hand) and real hardware quantities, a drawer's kit, where the runners go, and what not to do
+  (`make-instructions.ts`, `assembly-notes.ts`); then the step written out from the assembly plan (each part going in,
+  each joint's set-out, the checks). **Before you start** (method, people, time, tools) is under the chapters. Studio
+  opens only when nothing blocks building the piece (buildability.md). The callout over a joint says how its hardware
+  goes in. The connection button jumps to a joint close-up. Opening guidance or chapters pauses playback.
+- Drawers are built on a mat, front face down, and hooked onto pulled-out runners one at a time
+  ([drawer-assembly.md](drawer-assembly.md), The film).
 - Playback controls fade to 60% after four seconds without interaction, still readable (3:1 on the lightest backdrop) and in reach; any tap brings them back.
   Keyboard focus keeps controls visible. Space plays/pauses; arrows move between steps. Reduced motion starts paused.
 - Back, Escape, or the back arrow restores the previous camera, selected part, panel, look and editing controls.
@@ -106,7 +111,8 @@ proof that it can be built and the written plan are in [buildability.md](buildab
 |---|---|---|
 | Domain | `make/make-parts.ts` | `makePiece`: boards, parts, holes, grooves, fittings, steps, buy list, checks, motions; `cutWithBand` |
 | Domain | `make/make-joints.ts`, `make-hardware.ts` | Joints and connectors, the back; hinges, handles, runners, pins, rails, legs; door and drawer motion |
-| Domain | `make/drawer-box.ts`, `drawer-installation.ts` | Drawer boxes, their joints, grooves, hook and pin holes and locks; runner screws; the drawers' film |
+| Domain | `make/drawer-box.ts`, `drawer-installation.ts`, `drawer-film.ts` | Drawer boxes, their joints, grooves, hook and pin holes and locks; runner screws; the drawers' film (the mat, hooking on) |
+| Domain | `make/make-instructions.ts` | Each step's notes: tools, a drawer's kit, runner places, handed parts, what not to do |
 | Domain | `make/make-assembly.ts` | Holes on a flat board, drilling signatures, assembly steps, buy list, drilling checks |
 | Domain | `make/make-sequence.ts`, `bore-clearance.ts`, `make-fixings.ts` | Build order and the connector per joint; bores in three dimensions; the screws that hold hardware |
 | Domain | `make/make-verify.ts`, `assembly-plan.ts`, `stand-up.ts` | The proof a piece can be built; the steps written out; the height needed to stand it up |
@@ -121,7 +127,7 @@ proof that it can be built and the written plan are in [buildability.md](buildab
 | Presentation | `make/make-director.ts` | The film's shots, fitted with the editor's own framing and glided between, a function of time |
 | Domain | `make/make-staging.ts` | Where each part waits, lying flat on the floor in front of the piece |
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
-| Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts` | The panel and its tabs; the PDF and CSV |
+| Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts`, `make-steps-pdf.ts` | The panel and its tabs; the PDF (with its step pages) and CSV |
 | Presentation | `make/make-view.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys, the per-frame overlay |
 | Presentation | `make/make-gate.ts`, `assembly-plan-text.ts` | The gate into assembly and onto paper, saving; the plan in words for the Studio and the PDF |
 | Wiring | `contextual-actions.js`, `contextual-toolbar.js`, `mount-editor-bindings.js`, `bindings/canvas.js`, `editor-runtime.ts` | The Make tool, its toolbar and View menu, taps, the joint command, paying |

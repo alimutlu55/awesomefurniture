@@ -1,5 +1,6 @@
 import type { Board } from '../drawings/cabinet-boards';
 import type { MakePiece } from './make-parts';
+import { benchRoom, matArea } from './drawer-film';
 import { entryOf, FITTED_BEFORE } from './make-fixing';
 import { thinAxis, tiltOf, type Vec3 } from './make-measures';
 
@@ -14,7 +15,11 @@ export interface Staged {
   readonly at: Vec3; readonly lie: 'x' | 'z' | null; readonly spin: boolean; readonly size: Vec3; readonly tilt: number; readonly flip: boolean;
 }
 
-const GAP = 8, FRONT = 30;
+/** Parts lie this far apart: more than a fastener waits from its hole (WAIT) and its length, so one waiting to go into a
+ * board's end waits in the clear, not inside the next board. */
+const GAP = 16, FRONT = 30;
+/** How wide the drawer parts' rows beside the mat run, cm. */
+const BESIDE = 260;
 
 /** A board's size lying flat: [across the room, thickness, front to back], and how it is turned to lie so. */
 export function lyingFlat(b: Board, flip = false) {
@@ -43,9 +48,29 @@ function flipped(piece: MakePiece, i: number) {
 export function stagingLayout(piece: MakePiece, floor = 0): Staged[] {
   const order = piece.steps.flatMap(s => s.boards), out: Staged[] = piece.boards.map(() => ({ at: [0, 0, 0], lie: null, spin: false, size: [0, 0, 0], tilt: 0, flip: false }));
   const span = Math.max(piece.size.w * 1.6, 240), x0 = piece.size.w / 2 - span / 2;
-  let x = x0, z = piece.size.d + FRONT, row = 0;
-  for (const i of order) {
+  // Beyond the mat the drawer boxes are built on (drawer-film.ts), when there is one.
+  let x = x0, z = piece.size.d + FRONT + benchRoom(piece), row = 0;
+  // A drawer box's parts lie beside the mat they are built on, in rows of their own, not out among the carcass's.
+  const box = new Set((piece.drawers ?? []).flatMap(d => [d.front, d.bottom, d.back, ...d.sides])), mat = matArea(piece, floor);
+  // To the right of the rows the carcass's parts lie in, level with the mat.
+  const bx0 = Math.max(mat ? mat.x1 : 0, x0 + span) + GAP;
+  let bx = bx0, bz = mat ? mat.z0 : 0, brow = 0;
+  // Each drawer's parts together, in the order the drawers are built: its front and bottom in one row, its sides and back
+  // in the next, so what one chapter takes of a drawer lies side by side.
+  const drawerOf = (i: number) => (piece.drawers ?? []).findIndex(d => [d.front, d.bottom, d.back, ...d.sides].includes(i));
+  const first = (i: number) => piece.steps.find(st => st.boards.includes(i))?.stage === 'drawer-boxes';
+  const boxOrder = order.filter(i => box.has(i)).sort((a, b) => drawerOf(a) - drawerOf(b) || Number(first(b)) - Number(first(a)));
+  let lastDrawer = -1, lastFirst = false;
+  for (const i of [...order.filter(i => !box.has(i)), ...boxOrder]) {
     const flat = lyingFlat(piece.boards[i]!, flipped(piece, i)), [w, t, d] = flat.size;
+    if (mat && box.has(i)) {
+      const next = lastDrawer >= 0 && (drawerOf(i) !== lastDrawer || lastFirst !== first(i));
+      lastDrawer = drawerOf(i); lastFirst = first(i);
+      if (bx > bx0 && (next || bx + w > bx0 + BESIDE)) { bx = bx0; bz += brow + GAP; brow = 0; }
+      out[i] = { ...flat, at: [bx + w / 2, floor + t / 2, bz + d / 2] };
+      bx += w + GAP; brow = Math.max(brow, d);
+      continue;
+    }
     if (x > x0 && x + w > x0 + span) { x = x0; z += row + GAP; row = 0; }
     out[i] = { ...flat, at: [x + w / 2, floor + t / 2, z + d / 2] };
     x += w + GAP; row = Math.max(row, d);

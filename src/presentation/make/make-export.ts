@@ -5,10 +5,12 @@ import { type CutLayout, STOCK } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePart, type MakePiece } from '../../domain/make/make-parts';
 import { thinAxis } from '../../domain/make/make-measures';
 import { box, type Mark, type Pt, shape, words } from '../drawings/paper-marks';
-import { marksToPdf } from '../drawings/pdf-writer';
+import { marksToPdf, type PdfImage } from '../drawings/pdf-writer';
 import { PAPER } from '../drawings/sheet-layout';
 import { duration, stepLines } from './assembly-plan-text';
-import { FITTING_NAMES, sold } from './make-panel-tabs';
+import { hardwareDisplay } from './make-panel-tabs';
+import { stepPages } from './make-steps-pdf';
+import type { StepPicture } from './make-pictures';
 import { drillingSummary, partDrilling } from './make-sheet';
 
 /**
@@ -23,6 +25,8 @@ export interface ExportInfo {
   readonly cut: CutLayout;
   /** The assembly plan to print; made from the piece when absent (then it knows no ceiling). */
   readonly plan?: AssemblyPlan | undefined;
+  /** Each step's pictures, taken from the film (make-pictures.ts); without them the steps are words only. */
+  readonly pictures?: readonly StepPicture[];
 }
 
 const mm = (cm: number) => String(Number((cm*10).toPrecision(12)));
@@ -87,7 +91,7 @@ function partCell(piece: MakePiece, part: MakePart, info: ExportInfo, x0: number
 }
 
 /** Text broken into lines no longer than `width` characters, at spaces. */
-function wrap(text: string, width: number): string[] {
+function wrapChars(text: string, width: number): string[] {
   const out: string[] = [];
   let line = '';
   for (const word of text.split(' ')) {
@@ -100,7 +104,7 @@ function wrap(text: string, width: number): string[] {
  * board going in, the joints that fix it with their set-out, the hardware and what to check. */
 function assemblyPages(plan: AssemblyPlan): { heading: string; marks: Mark[] }[] {
   const lines: { text: string; style: 'caption' | 'list' | 'small'; indent: number; gap: number }[] = [];
-  const add = (text: string, style: 'caption' | 'list' | 'small', indent: number, gap = 0) => wrap(text, style === 'small' ? 150 - indent * 2 : 120 - indent * 2)
+  const add = (text: string, style: 'caption' | 'list' | 'small', indent: number, gap = 0) => wrapChars(text, style === 'small' ? 150 - indent * 2 : 120 - indent * 2)
     .forEach((t, k) => lines.push({ text: t, style, indent: indent + (k ? 1 : 0), gap: k ? 0 : gap }));
   add(`Before you start  ·  ${plan.people === 1 ? '1 person' : plan.people + ' people'}  ·  about ${duration(plan.minutes)}`, 'caption', 0);
   add(plan.method.text, 'list', 0, 1);
@@ -118,9 +122,10 @@ function assemblyPages(plan: AssemblyPlan): { heading: string; marks: Mark[] }[]
   return out;
 }
 
-/** The drawings: parts six to a page, the stock sheets two to a page, then hardware and the steps, then the assembly plan written out. */
+/** The drawings: parts six to a page, the stock sheets two to a page, the hardware, the steps two to a page, then the
+ * assembly plan written out with every joint's set-out. */
 export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
-  const pages: { heading: string; marks: Mark[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
+  const pages: { heading: string; marks: Mark[]; images?: PdfImage[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
   for (let k = 0; k < piece.parts.length; k += cols * rows) {
     const marks = piece.parts.slice(k, k + cols * rows).flatMap((part, i) => partCell(piece, part, info, M + 4 + (i % cols) * cw, M + 4 + Math.floor(i / cols) * ch, cw - 6, ch - 4));
     pages.push({ heading: 'Parts', marks });
@@ -147,19 +152,14 @@ export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
     pages.push({ heading: 'Cut layout', marks });
   }
   const marks: Mark[] = [words(P(M + 4, M + 10), 'Hardware', 'heading')];
-  piece.buy.forEach((b, i) => marks.push(words(P(M + 4, M + 18 + i * 5.5), FITTING_NAMES[b.kind] + (b.size ? '  ' + sold(b.size) : ''), 'list'),
-    words(P(M + 110, M + 18 + i * 5.5), '×' + b.qty, 'listMark', 'end')));
-  const sx = M + 130;
-  marks.push(words(P(sx, M + 10), 'Steps', 'heading'));
-  piece.steps.forEach((st, i) => {
-    const parts = [...new Set(st.boards.map(b => piece.parts.find(p => p.ids.includes(b))!.n))].join(', ');
-    // With its size, so two kinds of screw in one step are told apart.
-    const hardware = st.fittings.map(f => `${FITTING_NAMES[f.kind]}${f.size ? ' ' + sold(f.size) : ''} ×${f.qty}`).join(', ');
-    marks.push(words(P(sx, M + 18 + i * 11), `${st.n}`, 'listMark'), words(P(sx + 8, M + 18 + i * 11), parts ? 'Parts ' + parts : '', 'list'),
-      words(P(sx + 8, M + 23 + i * 11), hardware, 'small'));
-  });
+  piece.buy.forEach((b, i) => { const d = hardwareDisplay(b); marks.push(words(P(M + 4, M + 18 + i * 5.5), d.name + (d.size ? '  ' + d.size : ''), 'list'),
+    words(P(M + 150, M + 18 + i * 5.5), '×' + b.qty, 'listMark', 'end')); });
   marks.push(words(P(M + 4, PH - M - TITLE - 6), `Joints: ${piece.construction.joints} · back: ${piece.construction.back} · holes in mm from the part's lower left corner, face up; dashed: from the face under it.`, 'small'));
-  pages.push({ heading: 'Hardware and steps', marks });
+  pages.push({ heading: 'Hardware', marks });
+  // The steps, as the manual prints them: a drawing and the words for each.
+  pages.push(...stepPages(piece, { x: M + 2, y: M + 2, w: PW - 2 * M - 4, h: PH - 2 * M - TITLE - 4 }, info.pictures));
+  // Then the plan written out: each part's way in, each joint's set-out, what to check (assembly-plan.ts).
   pages.push(...assemblyPages(info.plan ?? assemblyPlan(piece)));
-  return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make');
+  return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make',
+    pages.map(p => p.images));
 }
