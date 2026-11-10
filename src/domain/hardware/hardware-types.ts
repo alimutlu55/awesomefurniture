@@ -191,6 +191,8 @@ export interface AssemblyStepSpec {
   readonly requires: readonly AssemblyStage[];
   readonly phase: 'before-place' | 'lying-before-place' | 'place' | 'hang' | 'after-place' | 'adjust' | 'test';
   readonly fittedFirst?: boolean;
+  /** Minutes to fit one, where it differs from its category's (engine/passport.ts FIT_MINUTES): a part of another fitting. */
+  readonly minutes?: number;
   readonly adjustAxes?: readonly ('side' | 'height' | 'depth')[];
   readonly testsTravel?: boolean;
   readonly approachFrom: readonly [number, number, number];

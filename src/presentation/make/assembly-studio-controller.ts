@@ -4,6 +4,7 @@ import type { MakeLook, createMake3d } from './make-3d';
 import type { MakePlayer } from './make-player';
 import type { MakeViewPorts } from './make-view.ports';
 import type { Pose } from './make-director';
+import { planFor } from './assembly-plan-text';
 import { createAssemblyStudio } from './assembly-studio';
 
 interface StudioState {
@@ -53,7 +54,7 @@ export function createStudioController(host: Host) {
       }
       studio.root.hidden = false;
       ports.resources.cv.setAttribute('aria-label', 'Interactive assembly. Switch to Explore to orbit, pan, zoom and inspect components.');
-      studio.load(st.piece, player);
+      studio.load(st.piece, player, planFor(st.piece, ports.scene()));
       paper(true);
       if (push) history.pushState({ ...history.state, [historyKey]: true }, '');
       filming();

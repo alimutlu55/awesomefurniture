@@ -214,6 +214,8 @@ export const PLATE_ENTRY: HardwareEntry = {
     stage: 'doors',
     requires: ['carcass', 'partitions'],
     phase: 'before-place',
+    // Two Euro screws into holes already drilled: its hinge takes the adjusting time.
+    minutes: 1.5,
     approachFrom: [1, 0, 0],
     instructions: {
       title: 'Fix the hinge mounting plates',

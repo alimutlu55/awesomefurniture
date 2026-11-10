@@ -1,3 +1,4 @@
+import { type AssemblyPlan, assemblyPlan } from '../../domain/make/assembly-plan';
 import { partOperations } from '../../domain/make/part-operations';
 import { flatOutline } from '../../domain/make/make-assembly';
 import { type CutLayout, STOCK } from '../../domain/make/make-cut-layout';
@@ -6,6 +7,7 @@ import { thinAxis } from '../../domain/make/make-measures';
 import { box, type Mark, type Pt, shape, words } from '../drawings/paper-marks';
 import { marksToPdf } from '../drawings/pdf-writer';
 import { PAPER } from '../drawings/sheet-layout';
+import { duration, stepLines } from './assembly-plan-text';
 import { FITTING_NAMES, sold } from './make-panel-tabs';
 import { drillingSummary, partDrilling } from './make-sheet';
 
@@ -19,6 +21,8 @@ export interface ExportInfo {
   readonly material: (decorId: string) => string;
   readonly band: number;
   readonly cut: CutLayout;
+  /** The assembly plan to print; made from the piece when absent (then it knows no ceiling). */
+  readonly plan?: AssemblyPlan | undefined;
 }
 
 const mm = (cm: number) => String(Number((cm*10).toPrecision(12)));
@@ -82,7 +86,39 @@ function partCell(piece: MakePiece, part: MakePart, info: ExportInfo, x0: number
   return out;
 }
 
-/** The drawings: parts six to a page, the stock sheets two to a page, then hardware and the steps. */
+/** Text broken into lines no longer than `width` characters, at spaces. */
+function wrap(text: string, width: number): string[] {
+  const out: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    if (line && line.length + 1 + word.length > width) { out.push(line); line = word; } else line = line ? line + ' ' + word : word;
+  }
+  return line ? [...out, line] : out;
+}
+
+/** The assembly plan written out, two columns to a page: how it is built and the tools, then every step with each
+ * board going in, the joints that fix it with their set-out, the hardware and what to check. */
+function assemblyPages(plan: AssemblyPlan): { heading: string; marks: Mark[] }[] {
+  const lines: { text: string; style: 'caption' | 'list' | 'small'; indent: number; gap: number }[] = [];
+  const add = (text: string, style: 'caption' | 'list' | 'small', indent: number, gap = 0) => wrap(text, style === 'small' ? 150 - indent * 2 : 120 - indent * 2)
+    .forEach((t, k) => lines.push({ text: t, style, indent: indent + (k ? 1 : 0), gap: k ? 0 : gap }));
+  add(`Before you start  ·  ${plan.people === 1 ? '1 person' : plan.people + ' people'}  ·  about ${duration(plan.minutes)}`, 'caption', 0);
+  add(plan.method.text, 'list', 0, 1);
+  for (const tool of plan.tools) add('– ' + tool, 'small', 1);
+  for (const step of plan.steps) for (const l of stepLines(step)) add(l.text, l.level === 0 ? 'caption' : l.level === 1 ? 'list' : 'small', l.level === 2 ? 3 : l.level, l.level === 0 ? 3 : l.level === 1 ? 1 : 0);
+  const pitch = 4.2, top = M + 9, room = PH - M - TITLE - 6 - top, width = (PW - 2 * M - 16) / 2, out: { heading: string; marks: Mark[] }[] = [];
+  let marks: Mark[] = [], column = 0, y = 0;
+  for (const l of lines) {
+    if (y + l.gap + pitch > room) { column++; y = 0; if (column > 1) { out.push({ heading: 'Assembly', marks }); marks = []; column = 0; } }
+    y += y ? l.gap : 0;
+    marks.push(words(P(M + 4 + column * (width + 8) + l.indent * 3, top + y), l.text, l.style));
+    y += pitch;
+  }
+  if (marks.length) out.push({ heading: 'Assembly', marks });
+  return out;
+}
+
+/** The drawings: parts six to a page, the stock sheets two to a page, then hardware and the steps, then the assembly plan written out. */
 export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
   const pages: { heading: string; marks: Mark[] }[] = [], cols = 3, rows = 2, cw = (PW - 2 * M - 8) / cols, ch = (PH - 2 * M - TITLE - 8) / rows;
   for (let k = 0; k < piece.parts.length; k += cols * rows) {
@@ -123,5 +159,6 @@ export function makePdf(piece: MakePiece, info: ExportInfo): Uint8Array {
   });
   marks.push(words(P(M + 4, PH - M - TITLE - 6), `Joints: ${piece.construction.joints} · back: ${piece.construction.back} · holes in mm from the part's lower left corner, face up; dashed: from the face under it.`, 'small'));
   pages.push({ heading: 'Hardware and steps', marks });
+  pages.push(...assemblyPages(info.plan ?? assemblyPlan(piece)));
   return marksToPdf(pages.map((p, i) => [...frame(info, piece, i + 1, pages.length, p.heading), ...p.marks]), { w: PW, h: PH }, info.title + ' - make');
 }

@@ -2,6 +2,7 @@ import type { AssemblyGate } from '../../domain/engine/assembly-gate';
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { saveFile } from '../components/save-file';
+import { planFor } from './assembly-plan-text';
 import { cutListCsv, makePdf } from './make-export';
 import { gateView } from './make-panel';
 import type { MakeViewPorts } from './make-view.ports';
@@ -57,7 +58,7 @@ export function createMakeGate(host: Host) {
       const { piece, id } = open, title = host.ports.scene().wardrobes.find(c => c.id === id)?.name || 'Piece';
       const name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
       const blob = kind === 'pdf'
-        ? new Blob([makePdf(piece, { title, material, band, cut: cut() }).buffer as ArrayBuffer], { type: 'application/pdf' })
+        ? new Blob([makePdf(piece, { title, material, band, cut: cut(), plan: planFor(piece, host.ports.scene()) }).buffer as ArrayBuffer], { type: 'application/pdf' })
         : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
       await saveFile(doc, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
       host.ports.saved?.(kind, piece.parts.length);

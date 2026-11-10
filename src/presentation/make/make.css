@@ -165,3 +165,17 @@
 .make-gate-row .make-name{white-space:normal;line-height:1.35}
 .make-gate-row .make-name small{display:block;margin-top:3px;color:var(--mute);font-size:11px;line-height:1.4;white-space:normal}
 .make-gate-row .make-mark{margin-top:1px}
+
+/* The assembly plan written out: the step on screen, and the card before the first step. */
+.as-plan{margin-top:10px;padding-top:10px;border-top:1px solid #0000000f;font-size:12px;line-height:1.5;color:#3d382f}
+.as-plan-meta{display:flex;gap:8px;margin-bottom:6px}.as-plan-meta span{padding:2px 9px;border-radius:999px;background:#0000000a;font-size:11px;font-variant-numeric:tabular-nums}
+.as-plan ol,.as-plan ul{margin:0;padding-left:18px}.as-plan-places>li{margin:0 0 8px}.as-plan-places>li>ul,.as-plan-fitted{list-style:none;padding-left:0;margin-top:5px}
+.as-plan-fix{margin:0 0 6px;padding:7px 10px;border-radius:12px;background:#0000000a}
+.as-plan-fix b{display:block;font-size:12px}.as-plan-fix span{display:block;font-variant-numeric:tabular-nums}.as-plan-fix small{display:block;color:#625c52;font-size:11px}
+.as-plan-checks{margin-top:8px;padding:8px 10px;border-radius:12px;border:1px solid #00000014}.as-plan-checks b{font-size:12px}
+.as-plan-start{margin-top:12px;padding-top:10px;border-top:1px solid #0000000f;font-size:12px;line-height:1.5;color:#3d382f}
+.as-plan-start b{display:block;font-size:13px}.as-plan-start span{color:#625c52;font-size:11px}.as-plan-start p{margin:6px 0}.as-plan-start ul{margin:0;padding-left:18px;color:#625c52}
+.as-chapters{max-height:min(420px,56dvh);overflow:auto;overscroll-behavior:contain}
+/* The guidance holds the step written out: room to read a board and its joints without hiding the piece. */
+.as-guide{max-height:min(340px,44dvh)}
+@media(max-height:600px) and (min-width:600px){.as-guide{max-height:150px}}

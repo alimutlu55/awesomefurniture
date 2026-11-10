@@ -1,8 +1,10 @@
 import { assemblyStageSpec } from '../../domain/hardware/hardware-registry';
+import type { AssemblyPlan } from '../../domain/make/assembly-plan';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
 import type { MakePlayer } from './make-player';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
+import { overviewMarkup, stepMarkup } from './assembly-plan-text';
 import { chapterPreview } from './assembly-preview';
 import { unitSuffix } from '../editor/length-unit-state';
 
@@ -83,7 +85,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
     <div class="as-explore-hint" hidden>Drag to orbit · Pinch to zoom and pan · Tap a part</div>
     <div class="as-inspector" hidden></div>
     <div class="as-bottom">
-      <section class="as-chapters" aria-label="Assembly chapters" hidden><div class="as-section-title"><b>Chapters</b>${button('chapters', 'Close chapters', 'close')}</div><div class="as-chapter-list"></div></section>
+      <section class="as-chapters" aria-label="Assembly chapters" hidden><div class="as-section-title"><b>Chapters</b>${button('chapters', 'Close chapters', 'close')}</div><div class="as-chapter-list"></div>
+        <div class="as-plan-overview"></div></section>
       <section class="as-guide" aria-label="Step guidance" hidden><div class="as-guide-content"></div></section>
       <div class="as-console">
         <div class="as-caption"><button type="button" data-studio="chapters" aria-expanded="false"><span class="as-eyebrow">ASSEMBLY</span><strong class="as-step-title"></strong></button>
@@ -98,7 +101,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
     </div>`;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
   const text = (selector: string, value: string) => { const el = q(selector); if (el.textContent !== value) el.textContent = value; };
-  let showing = '', selection = '', chapters = false, guide = false, touched = 0;
+  let showing = '', selection = '', chapters = false, guide = false, touched = 0, plan: AssemblyPlan | null = null;
   const now = () => doc.defaultView!.performance.now();
   const wake = () => { touched = now(); root.classList.remove('as-quiet'); };
   const toggle = (which: 'chapters' | 'guide') => {
@@ -123,8 +126,10 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
   root.addEventListener('focusin', wake);
   return {
     root, wake,
-    load(piece: MakePiece, player: MakePlayer) {
-      showing = ''; selection = ''; chapters = false; guide = false;
+    /** `written` is the piece's assembly plan: the step on screen is written out from it in the guidance. */
+    load(piece: MakePiece, player: MakePlayer, written: AssemblyPlan | null = null) {
+      showing = ''; selection = ''; chapters = false; guide = false; plan = written;
+      q('.as-plan-overview').innerHTML = plan ? overviewMarkup(plan) : '';
       q('.as-chapters').hidden = true; q('.as-guide').hidden = true; q('.as-inspector').hidden = true;
       root.querySelectorAll('[aria-expanded]').forEach(e => e.setAttribute('aria-expanded', 'false'));
       q('.as-duration').textContent = time(player.duration);
@@ -213,7 +218,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
           + ` <b>×${p.ids.filter(id => step.boards.includes(id)).length}</b></button>`).join('');
         q('.as-guide-content').innerHTML = `<div class="as-section-title"><b>${phase === 'drill' ? 'Prepare' : phase === 'fix' ? 'Connect' : 'Install'} · ${title}</b>`
           + `${button('connection', 'Close-up of connection', 'fit')}</div><p>${esc(instruction)}</p>`
-          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`;
+          + `<div class="as-required">${hardwareHtml}</div><div class="as-required">${partsHtml}</div>`
+          + (plan?.steps[player.head.step] ? stepMarkup(plan.steps[player.head.step]!) : '');
       }
     },
     inspect(piece: MakePiece, n: number | null, length: (cm: number) => string, material: (id: string) => string) {

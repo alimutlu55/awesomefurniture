@@ -16,6 +16,8 @@ export const FIT_MINUTES: Readonly<Record<HardwareCategory, number>> = {
   connector: 1.5, fixing: .3, support: .5, hinge: 4, runner: 10, handle: 3, rail: 5, leg: 1, bracket: 3, lift: 20, mechanism: 25,
   plinth: 1, track: 30, lighting: 15,
 };
+/** Minutes to fit one fitting of this kind: its entry's own time where it has one, else its category's. */
+export const fitMinutes = (kind: string): number => { const entry = hardware(kind); return entry?.assembly.minutes ?? FIT_MINUTES[entry?.category ?? 'fixing']; };
 /** Minutes to handle, place and square up one board. */
 export const BOARD_MINUTES = 2;
 
@@ -63,7 +65,7 @@ export function assemblyMinutes(model: BuildModel): number {
   let minutes = 0;
   for (const p of model.pieces) {
     minutes += p.make.boards.length * BOARD_MINUTES;
-    for (const f of p.make.fittings) minutes += FIT_MINUTES[hardware(f.kind)?.category ?? 'fixing'];
+    for (const f of p.make.fittings) minutes += fitMinutes(f.kind);
   }
   return Math.round(minutes);
 }

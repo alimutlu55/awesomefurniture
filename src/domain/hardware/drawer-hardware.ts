@@ -139,6 +139,8 @@ export const DRAWER_LOCK_ENTRY: HardwareEntry = {
     stage: 'drawer-lock',
     requires: ['drawers'],
     phase: 'after-place',
+    // A plate laid over a pin or a lever turned onto it: half a minute, not a pair of runners' ten.
+    minutes: .5,
     approachFrom: [0, -1, 0],
     instructions: {
       title: 'Lock the drawers to the runners',
