@@ -29,13 +29,14 @@ export const throughScrew = (thick: number) => 'M4 × ' + (MACHINE_LENGTHS.find(
 const intoWall = (f: FixingSpec) => f.target === 'wall';
 
 /** The fixings one fitting needs: which of its entry's apply to it, and how many. */
-function fixingsOf(f: Fitting, boards: readonly Board[], holes: readonly Hole[], index: number): { size: string; qty: number; wall: boolean }[] {
+type Need = { size: string; qty: number; wall: boolean; target?: FixingSpec['target'] };
+function fixingsOf(f: Fitting, boards: readonly Board[], holes: readonly Hole[], index: number): Need[] {
   if (OWN.has(f.kind) || f.cargo || f.size?.includes('cargo')) return [];
   const entry = hardware(f.kind);
   if (!entry) return [];
   if (f.kind === 'hinge') {
     // A hinge clamped to glass has no cup and no screws in the door.
-    return holes.some(h => h.of === index && h.kind === 'cup') ? entry.fixings.filter(x => !intoWall(x)).map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: false })) : [];
+    return holes.some(h => h.of === index && h.kind === 'cup') ? entry.fixings.filter(x => !intoWall(x)).map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: false, target: x.target })) : [];
   }
   if (f.kind === 'handle') {
     // One screw for every hole drilled for it: through the front (a machine screw as long as the front needs), or
@@ -46,7 +47,16 @@ function fixingsOf(f: Fitting, boards: readonly Board[], holes: readonly Hole[],
     const back = entry.fixings.find(x => x.pilotHole && x.pilotHole.depthMm > 0);
     return [{ size: through ? throughScrew(Number((board.cut.thickness * 10).toPrecision(6))) : back?.size ?? '3.5 × 15', qty: mine.length, wall: false }];
   }
-  return entry.fixings.map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: intoWall(x) }));
+  return entry.fixings.map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: intoWall(x), target: x.target }));
+}
+
+/** Whether a board is the kind a fixing says it goes into. */
+function suits(b: Board, target: FixingSpec['target'] | undefined): boolean {
+  const thin = thinAxis(b), front = b.stock === 'door' || b.stock === 'front';
+  if (target === 'door' || target === 'front') return front;
+  if (target === 'side' || target === 'partition') return !front && thin === 'x';
+  if (target === 'base' || target === 'top' || target === 'shelf') return !front && thin === 'y';
+  return true;
 }
 
 /**
@@ -57,8 +67,8 @@ export function fixingScrews(boards: readonly Board[], fittings: readonly Fittin
   const out: Fitting[] = [];
   fittings.forEach((f, index) => {
     for (const x of fixingsOf(f, boards, holes, index)) {
-      // Into the board the hardware sits on: the door for a hinge, the upright for its plate.
-      const host = f.boards.find(b => boards[b]) ?? null, axis = host === null ? f.axis : ({ x: 0, y: 1, z: 2 } as const)[thinAxis(boards[host]!)];
+      // Into the board of the hardware's that the fixing names: the door for a hinge, an upright for a lift's arms.
+      const host = f.boards.find(b => boards[b] && suits(boards[b]!, x.target)) ?? f.boards.find(b => boards[b]) ?? null, axis = host === null ? f.axis : ({ x: 0, y: 1, z: 2 } as const)[thinAxis(boards[host]!)];
       for (let n = 0; n < x.qty; n++) out.push({ kind: 'screw', at: f.at, axis, boards: x.wall || host === null ? [] : [host], size: x.size, purpose: x.wall ? 'wall-fixing' : 'fixing', of: index });
     }
   });

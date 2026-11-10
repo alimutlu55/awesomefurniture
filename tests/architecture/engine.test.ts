@@ -109,7 +109,7 @@ test('engine · rule packs: the manufacturing check is shown whole, with severit
   assert.deepEqual(split, { kind: 'split-bay', piece: 4, bay: 0 }, 'the fix splits the bay the shelf spans');
   assert.deepEqual(e.findings.map(f => f.severity), [...e.findings.map(f => f.severity)].sort((a, b) => ['blocking', 'warning', 'advice'].indexOf(a) - ['blocking', 'warning', 'advice'].indexOf(b)));
   assert.deepEqual(evaluate(buildModel(input)).findings, e.findings, 'deterministic');
-  assert.deepEqual(RULE_PACKS.map(p => p.key), ['manufacturing', 'drilling', 'engineering']);
+  assert.deepEqual(RULE_PACKS.map(p => p.key), ['manufacturing', 'drilling', 'buildability', 'engineering']);
 });
 
 test('engineering · a heavy shelf, a long rail and an overloaded pull-down rail are reported with a fix', () => {

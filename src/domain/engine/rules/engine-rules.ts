@@ -13,7 +13,7 @@ import type { BuildModel } from '../build-model';
 export type Severity = 'blocking' | 'warning' | 'advice';
 export const SEVERITIES: readonly Severity[] = ['blocking', 'warning', 'advice'];
 
-export type RulePackKey = 'manufacturing' | 'drilling' | 'engineering';
+export type RulePackKey = 'manufacturing' | 'drilling' | 'buildability' | 'engineering';
 
 /** A change the editor can make for a finding. */
 export type FixAction =
