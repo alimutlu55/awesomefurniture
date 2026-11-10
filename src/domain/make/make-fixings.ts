@@ -1,7 +1,7 @@
 import type { Board } from '../drawings/cabinet-boards';
 import { hardware } from '../hardware/hardware-registry';
 import type { FixingSpec } from '../hardware/hardware-types';
-import type { Fitting, FittingKind, Hole } from './make-joints';
+import type { Fitting, Hole } from './make-joints';
 import { thinAxis } from './make-measures';
 
 /**
@@ -11,12 +11,13 @@ import { thinAxis } from './make-measures';
  * `fixings` (hardware registry), so here they are counted and written down with nothing copied: every fitting of a
  * kind that names fixings gets its screws, in the step that fits it, and on the buy list.
  *
- * Connectors (their own fixings are themselves), runners and the cargo mechanism (whose screws Make sets out one by
- * one, with their holes) are left as they are.
+ * A connector or a fastener is its own fixing, a fixing that is not a screw (a shelf pin) is the hardware itself, and
+ * a fixing with a purpose (a runner's, the cargo mechanism's) is set out by Make one by one with its holes
+ * (make-hardware.ts, drawer-installation.ts): none of those is counted again here.
  */
 
-/** Hardware whose screws are set out with it already (make-hardware.ts, drawer-installation.ts), or that is a fastener. */
-const OWN: ReadonlySet<FittingKind> = new Set(['confirmat', 'dowel', 'cam', 'bolt', 'screw', 'nail', 'pin', 'runner', 'drawerLock']);
+/** Whether one of an entry's fixings is a screw this module counts. */
+const counted = (x: FixingSpec) => x.fastenerKind === 'screw' && !x.purpose;
 
 /** The length of a screw from its size as sold ("3.5 × 16", "Euro 6.3 × 11.5", "M4 × 25"), millimetres. */
 export const screwLength = (size: string): number | null => { const m = /×\s*(\d+(?:\.\d+)?)/.exec(size); return m ? Number(m[1]) : null; };
@@ -31,12 +32,11 @@ const intoWall = (f: FixingSpec) => f.target === 'wall';
 /** The fixings one fitting needs: which of its entry's apply to it, and how many. */
 type Need = { size: string; qty: number; wall: boolean; target?: FixingSpec['target'] };
 function fixingsOf(f: Fitting, boards: readonly Board[], holes: readonly Hole[], index: number): Need[] {
-  if (OWN.has(f.kind) || f.cargo || f.size?.includes('cargo')) return [];
   const entry = hardware(f.kind);
-  if (!entry) return [];
+  if (!entry || entry.category === 'connector' || entry.category === 'fixing' && f.kind !== 'applianceKit' || f.cargo || f.size?.includes('cargo')) return [];
   if (f.kind === 'hinge') {
     // A hinge clamped to glass has no cup and no screws in the door.
-    return holes.some(h => h.of === index && h.kind === 'cup') ? entry.fixings.filter(x => !intoWall(x)).map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: false, target: x.target })) : [];
+    return holes.some(h => h.of === index && h.kind === 'cup') ? entry.fixings.filter(x => counted(x) && !intoWall(x)).map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: false, target: x.target })) : [];
   }
   if (f.kind === 'handle') {
     // One screw for every hole drilled for it: through the front (a machine screw as long as the front needs), or
@@ -47,7 +47,7 @@ function fixingsOf(f: Fitting, boards: readonly Board[], holes: readonly Hole[],
     const back = entry.fixings.find(x => x.pilotHole && x.pilotHole.depthMm > 0);
     return [{ size: through ? throughScrew(Number((board.cut.thickness * 10).toPrecision(6))) : back?.size ?? '3.5 × 15', qty: mine.length, wall: false }];
   }
-  return entry.fixings.map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: intoWall(x), target: x.target }));
+  return entry.fixings.filter(counted).map(x => ({ size: x.size, qty: x.qtyPerUnit, wall: intoWall(x), target: x.target }));
 }
 
 /** Whether a board is the kind a fixing says it goes into. */

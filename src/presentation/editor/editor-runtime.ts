@@ -35,6 +35,7 @@ import { createEditorModel } from '../../application/projects/editor-model.js';
 import { createSceneHistory } from '../../application/history/scene-history.js';
 import { createDesignCommands } from '../../application/commands/design-commands.js';
 import { createEngineService } from '../../application/engine/engine-service';
+import { assemblyGate } from '../../domain/engine/assembly-gate';
 import { applyFix } from '../../application/engine/engine-fixes';
 import { bindInsightPanel, currencyForLanguage } from '../insight/insight-panel';
 import { createSceneCommands } from '../../application/commands/scene-commands.js';
@@ -223,6 +224,9 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             },
             opened: parts => track('make_opened', { product: furnitureKind(model.activeCabinet().state), part_count: parts }),
             saved: (format, parts) => track('make_export_saved', { format, part_count: parts }), pay: async () => !credits || await credits.charge('technical-drawings'),
+            // The gate into assembly: the engine's own check of the design as it is now, for the piece Make has open.
+            gate: id => { engine.refresh(model.scene); const checked = engine.current(); return checked ? assemblyGate(checked.evaluation, id) : { open: true, blockers: [], notes: [] }; },
+            openCheck: () => { make.act('make-done'); insight.open(); },
             refreshToolbar: () => refreshContextualToolbar(dom.$('#toolbar')),
             closePanels: () => { shell.closeDD(); inspector.hidePop(); elements.app.classList.remove('props-open'); elements.app.classList.add('props-hidden'); } });
         mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray,
@@ -240,7 +244,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         // Insight: the engine's design check, prices, passport and change history; fixes go through the editor's commands.
         let currency = currencyForLanguage(dom.host.ownerDocument.documentElement.lang || navigator.language);
         const engine = createEngineService({ currency: () => currency });
-        bindInsightPanel({ dom, lifetime, scene: () => model.scene, engine, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message),
+        const insight = bindInsightPanel({ dom, lifetime, scene: () => model.scene, engine, closeMenu: () => shell.closeDD(), toast: message => shell.toast(message),
             currency, setCurrency: next => { currency = next; },
             fix: action => applyFix(action, { scene: () => model.scene, select: id => { model.scene.activeWardrobe = id; inspector.update(false); },
                 splitSelectedBay: () => commands.splitBay(), setConstruction: (id, change) => makeCommands.setConstruction(id, change) }) });

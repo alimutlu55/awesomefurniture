@@ -20,6 +20,10 @@ export interface MakeViewPorts {
   setConstruction(id: number, change: Partial<import('../../domain/make/make-construction').Construction>): boolean;
   /** Pays for saving the piece's drawings or cut list (the drawing set's price and pass); false when not paid. */
   pay(): Promise<boolean>;
+  /** The gate into assembly for a piece, from the engine's check of the design as it is now (assembly-gate.ts). */
+  gate?(piece: number): import('../../domain/engine/assembly-gate').AssemblyGate;
+  /** Leaves Make and opens Design check, where every finding has its fix. */
+  openCheck?(): void;
   /** Make opened on a piece of this many parts (product analytics). */
   opened?(parts: number): void;
   /** The piece's drawings or cut list were saved (product analytics). */

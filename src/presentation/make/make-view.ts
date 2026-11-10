@@ -10,13 +10,12 @@ import { animateMobileSheetClose } from '../editor/mobile-sheet-motion.js';
 import { createMake3d, MAKE_LAYER, type MakeLook } from './make-3d';
 import { marksSvg, type Projector } from './make-marks';
 import { partDetail, pieceTabs } from './make-panel';
+import { createMakeGate } from './make-gate';
 import { type PanelTab } from './make-panel-tabs';
 import { createMakePlayer } from './make-player';
 import { createStudioController } from './assembly-studio-controller';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
-import { cutListCsv, makePdf } from './make-export';
-import { saveFile } from '../components/save-file';
 
 const GLIDE = .9, BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
 /** How far round from the front the camera turns to face a hole in a side face: most of a quarter turn (radians). */
@@ -61,7 +60,11 @@ export function createMakeView(ports: MakeViewPorts) {
   const player = createMakePlayer();
   const { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera: studioCamera } = createStudioController({
     st, player, make3d, app, view, ports, reducedMotion, hidePanel, showPanel, filming, paper, showFilm, followFrom, length: cm => length(cm), material,
+    mayAssemble: () => gate.passes('assembly'),
   });
+  // What leaves Make passes the gate: Assembly and the paper only for a piece that can be built (make-gate.ts).
+  const gate = createMakeGate({ ports, piece: () => st.piece ? { piece: st.piece, id: st.id } : null, rebuild: () => rebuild(), assemble: () => enterStudio(),
+    showList: () => { make3d.ring(null); st.selected = null; make3d.setSelected(null); showPanel('list'); pressed(); } });
   let editorPose: Pose | null = null;
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
   const length = (cm: number) => lengthText(cm);
@@ -112,9 +115,10 @@ export function createMakeView(ports: MakeViewPorts) {
 
   function renderPanel() {
     if (!st.piece || st.panel === 'closed') return;
-    const part = st.piece.parts.find(p => p.n === st.selected), showPart = st.panel === 'part' && !!part;
-    panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : 'Parts';
-    panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart;
+    const part = st.piece.parts.find(p => p.n === st.selected), showPart = st.panel === 'part' && !!part, gated = !showPart && !!gate.shut;
+    panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : gated ? 'Fix first' : 'Parts';
+    panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart && !gated;
+    if (gated) { panel.querySelector('.make-body')!.innerHTML = gate.markup(st.piece); filming(); return; }
     const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts, undefined, band) };
     panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : pieceTabs(shown);
     filming();
@@ -182,7 +186,7 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   function hidePanel() {
     if (panel.classList.contains('show')) { animateMobileSheetClose(panel); panel.classList.remove('show'); }
-    st.panel = 'closed';
+    st.panel = 'closed'; gate.clear();
     filming();
     pressed();
   }
@@ -321,7 +325,8 @@ export function createMakeView(ports: MakeViewPorts) {
       if (index >= 0) enterStudio(stages.find(({ k }) => k >= player.head.step)?.k ?? stages[0]?.k);
     }
     else if (t.closest('.make-close')) hidePanel();
-    else if (t.closest('.make-back')) { st.selected = null; make3d.setSelected(null); showPanel('list'); }
+    else if (gate.click(t)) { /* the closed gate's own buttons */ }
+    else if (t.closest('.make-back')) { st.selected = null; gate.clear(); make3d.setSelected(null); showPanel('list'); }
     else if (t.closest<HTMLElement>('[data-finding]')) showFinding(Number(t.closest<HTMLElement>('[data-finding]')!.dataset.finding));
     else if (row) select(Number(row.dataset.n));
     else if (bandButton) { st.cut = null; band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
@@ -329,7 +334,10 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (t.closest('[data-set]')) ports.openDrawings();
     else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); }
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
-    else if (t.closest<HTMLElement>('[data-save]')) void save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv');
+    else if (t.closest<HTMLElement>('[data-save]')) {
+      const piece = st.piece!;
+      void gate.save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv', view.ownerDocument, band, material, () => st.cut ??= cutLayout(piece.parts, undefined, band));
+    }
   });
   /** Changes how the piece goes together (saved with the design, one undo step) and takes it apart again. */
   function construct(choice: DOMStringMap) {
@@ -349,16 +357,6 @@ export function createMakeView(ports: MakeViewPorts) {
     make3d.setLook(st.look); make3d.setSolidFronts(st.solidFronts); make3d.setApart(st.apart); make3d.setOpen(st.open); make3d.setSelected(selected);
     st.selected = selected;
     renderPanel();
-  }
-  /** Saves the piece's drawings (PDF) or cut list (CSV): part of the paid drawing set. */
-  async function save(kind: 'pdf' | 'csv') {
-    const piece = st.piece;
-    if (!piece || !await ports.pay() || st.piece !== piece) return;
-    const title = ports.scene().wardrobes.find(c => c.id === st.id)?.name || 'Piece', name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
-    const blob = kind === 'pdf'
-      ? new Blob([makePdf(piece, { title, material, band, cut: st.cut ??= cutLayout(piece.parts, undefined, band) }).buffer as ArrayBuffer], { type: 'application/pdf' })
-      : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
-    await saveFile(view.ownerDocument, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob); ports.saved?.(kind, piece.parts.length);
   }
   // Something else closing the panel (the editor closes its panels on some gestures) closes it for Make too.
   lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),

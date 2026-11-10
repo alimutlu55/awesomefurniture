@@ -16,6 +16,8 @@ interface Host {
   ports: MakeViewPorts; reducedMotion: { readonly matches: boolean };
   hidePanel(): void; showPanel(mode: 'list' | 'part'): void; filming(): void; paper(on: boolean): void;
   showFilm(): void; followFrom(pose: Pose): void; length(cm: number): string; material(id: string): string;
+  /** The gate into assembly: false when something blocks building the piece (the host then shows what). */
+  mayAssemble(): boolean;
 }
 /** Studio changes presentation only. The host owns the single scene, timeline and editor state. */
 export function createStudioController(host: Host) {
@@ -35,6 +37,8 @@ export function createStudioController(host: Host) {
   }
   function enterStudio(chapter?: number, push = true) {
     if (!st.piece || historyPending) return;
+    // Every way in passes the gate: the tool, a part's stage link, a hardware row, the browser's Forward.
+    if (!st.studio && !host.mayAssemble()) return;
     const firstVisit = visited !== st.piece; visited = st.piece;
     if (!st.studio) {
       saved = { pose: { ...ports.camera.camNow() }, look: st.look, measures: st.measures, numbers: st.numbers, selected: st.selected,

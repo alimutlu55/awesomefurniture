@@ -19,6 +19,7 @@ import {
   SHELF_BRACKET_ENTRY,
   SHELF_PIN_ENTRY,
   WALL_BRACKET_ENTRY,
+  hardware as hardwareEntry,
 } from '../hardware/hardware-registry';
 import { createWardrobeGeometry } from '../geometry/wardrobe-geometry.js';
 import { installationKind } from '../kitchen/kitchen-units';
@@ -51,8 +52,9 @@ function inTheWay(boards: readonly Board[], holes: readonly Hole[], post: { b: B
   return !boreIsClear(boards, holes, { board: post.i, kind, at, axis: 0, sign, d: hole.d, depth: hole.depth });
 }
 
-/** Sets bought whole, each named by a fitting (FITTING_HARDWARE) and mounted as one thing. */
-const SETS: ReadonlySet<Fitting['kind']> = new Set(['pullDownRail', 'trouserRack', 'basket', 'liftFitting', 'cornerMechanism']);
+/** Whether a fitting's hardware is a set bought whole and mounted as one thing (the registry sells it as a set). The
+ * cargo mechanism is one too, but Make sets it out part by part above. */
+const isSet = (key: FittingHardware) => key !== 'cargoMechanism' && hardwareEntry(FITTING_HARDWARE_KEYS[key])?.unit === 'set';
 /** The screw a fixed panel is held by, through the board beside it: 18 mm of that board, then 12 mm into the panel. */
 const PANEL_SCREW = SCREW_ENTRY.variants?.find(v => v.key === '4x30')?.sizeLabel ?? '4 × 30';
 /** Where a fixed panel's screws go: two rows up its length, 5 cm in from each end and no more than 30 cm apart, on
@@ -290,8 +292,8 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
     geometry.computeLayout(i).forEach((pos: { off: number; w: number; y0: number }, j: number) => {
       const it = design.secs[i]?.[j];
       for (const key of (it ? fitting(it.k)?.hardware ?? [] : []) as readonly FittingHardware[]) {
+        if (!isSet(key)) continue;
         const kind = FITTING_HARDWARE_KEYS[key] as Fitting['kind'];
-        if (!SETS.has(kind)) continue;
         const x = bayLeft + pos.off + pos.w / 2, y = floor + pos.y0 + (it?.h ?? 0) / 2, { left, right } = uprightsAround(boards, x, y, h);
         const front = boards.findIndex(b => b.stock === 'front' && b.x0 <= x && b.x1 >= x && b.y0 <= y && b.y1 >= y);
         const base = boards.findIndex(b => b.name === 'Base');
@@ -310,7 +312,10 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   });
   // A filler strip or an end panel is one board, screwed on from inside the cabinet beside it; a wall shelf stands on
   // brackets, one at each end and one more every 800 mm.
-  if (installationKind(design) && boards.length === 1) for (const at of fixedPanelStations(boards[0]!)) fittings.push({ kind: 'screw', at, axis: ({ x: 0, y: 1, z: 2 } as const)[thinAxis(boards[0]!)], boards: [0], size: PANEL_SCREW, purpose: 'front-fixing' });
+  if (installationKind(design) && boards.length === 1) {
+    const slab = boards[0]!, axis = ({ x: 0, y: 1, z: 2 } as const)[thinAxis(slab)];
+    for (const at of fixedPanelStations(slab)) fittings.push({ kind: 'screw', at, axis, boards: [0], size: PANEL_SCREW, purpose: 'front-fixing' });
+  }
   if (piece.fixture === 'shelf' && boards.length === 1) {
     const b = boards[0]!, count = 2 + Math.floor((Math.round((b.x1 - b.x0) * 10) - 1) / (SHELF_BRACKET_ENTRY.rules.maxSpacingMm ?? 800)), inset = Math.min(5, (b.x1 - b.x0) / 4);
     for (let k = 0; k < count; k++) fittings.push({ kind: 'shelfBracket', at: [b.x0 + inset + (b.x1 - b.x0 - 2 * inset) * k / (count - 1), b.y0, b.z0], axis: 1, boards: [0], size: 'for ' + Math.round(design.d * 10) + ' deep' });

@@ -1,3 +1,4 @@
+import type { AssemblyGate } from '../../domain/engine/assembly-gate';
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePiece } from '../../domain/make/make-parts';
 import type { LengthText } from './make-marks';
@@ -65,4 +66,22 @@ export function partDetail({ piece, selected, band, length, material }: PanelVie
     + (banded ? `<div class="make-line"><span>Edge banding</span><span class="unit-seg" role="group" aria-label="Edge banding taken off the cut size">`
       + BANDS.map(v => `<button type="button" data-band="${v}" aria-pressed="${band === v}">${v}</button>`).join('') + '</span></div>' : '')
     + '<div class="make-line make-steps"><button type="button" data-step="-1">Previous</button><button type="button" data-step="1">Next</button></div>';
+}
+
+/**
+ * The gate, closed: what stands in the way of building this piece, each with the rule it breaks. Only a piece that can
+ * be built is opened in Assembly or saved as drawings; a row with a part goes to that part, Design check to the fixes.
+ */
+export function gateView(gate: AssemblyGate, piece: MakePiece, wanted: 'assembly' | 'drawings') {
+  const n = gate.blockers.length, rows = gate.blockers.map((f, k) => {
+    const part = f.board === undefined ? undefined : piece.parts.find(p => p.ids.includes(f.board!));
+    return `<button type="button" class="make-row make-check make-gate-row bad" data-gate="${k}"${part ? ` data-n="${part.n}"` : ''}>`
+      + `<span class="make-mark" aria-hidden="true">!</span><span class="make-n">${part ? part.n : ''}</span>`
+      + `<span class="make-name">${esc(f.title)}<small>${esc(f.why)}</small></span><b>${part ? 'Show' : ''}</b></button>`;
+  }).join('');
+  return `<div class="make-gate" role="alert"><b>Not ready ${wanted === 'assembly' ? 'to assemble' : 'to save'}</b>`
+    + `<p>${n === 1 ? 'One thing' : n + ' things'} must be fixed first. Only a piece that can be built exactly as set out `
+    + `${wanted === 'assembly' ? 'opens in Assembly' : 'is saved as drawings or a cut list'}, so nothing is cut, drilled or ordered wrongly.</p></div>`
+    + `<div class="make-rows">${rows}</div>`
+    + '<div class="make-line make-steps"><button type="button" data-gate-check>Design check</button><button type="button" data-gate-retry>Check again</button></div>';
 }

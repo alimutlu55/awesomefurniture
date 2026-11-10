@@ -156,3 +156,12 @@
 #toolbar .tb.on:not(:disabled),.make-panel button.on:not(:disabled):not([aria-pressed="true"]){background:rgba(60,52,42,.12);transition:none}
 
 .as-drawer-caption{margin:6px 0 10px;color:var(--mute);font-size:12px;line-height:1.5;max-width:48em}
+
+/* The gate into assembly, closed: what to fix first. */
+.make-gate{margin:8px 0 10px;padding:12px 14px;border-radius:16px;background:var(--seg);color:var(--ink);font-size:13px}
+.make-gate b{display:block;font-size:14px}
+.make-gate p{margin:6px 0 0;color:var(--mute);font-size:12px;line-height:1.45}
+.make-row.make-gate-row{align-items:start;padding:8px 6px;text-align:left}
+.make-gate-row .make-name{white-space:normal;line-height:1.35}
+.make-gate-row .make-name small{display:block;margin-top:3px;color:var(--mute);font-size:11px;line-height:1.4;white-space:normal}
+.make-gate-row .make-mark{margin-top:1px}
