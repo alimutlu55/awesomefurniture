@@ -25,6 +25,31 @@ test('playback clamps both ends and restarts in its selected direction', () => {
   p.toggle(); assert.equal(p.time, p.duration); p.pause();
   p.seek(NaN); assert.equal(p.time, p.duration); p.seek(-20); assert.equal(p.time, 0);
 });
+test('changing speed preserves the playhead and scales forward and reverse playback', () => {
+  const p = createMakePlayer(); p.load(piece());
+  p.seek(5); p.toggle(); p.setSpeed(1.25);
+  assert.equal(p.time, 5);
+  p.advance(2); assert.equal(p.time, 7.5);
+  p.setSpeed(1.5); p.direction(-1);
+  p.advance(2); assert.equal(p.time, 4.5);
+  p.animateTo(4); p.advance(2);
+  assert.equal(p.time, 4); assert.equal(p.playing, false);
+  p.setSpeed(1); p.direction(1); p.toggle(); p.advance(2);
+  assert.equal(p.time, 6);
+});
+test('playback shows the boards in use and Explore can still show the staged parts', () => {
+  const model = piece(), p = createMakePlayer(); p.load(model);
+  const line = p.timeline!, later = line.boardStep.findIndex(step => step > 0);
+  assert.ok(later >= 0);
+  assert.equal(p.film(true)!.visible!(later), false);
+  const start = line.steps[line.boardStep[later]!]!.place;
+  p.seek(start[0] + (start[1] - start[0]) * .9);
+  assert.equal(p.film(true)!.visible!(later), true);
+  p.seek(p.duration);
+  assert.ok(model.boards.every((_, i) => p.film(true)!.visible!(i)));
+  p.seek(0);
+  assert.equal(p.film()!.visible, undefined);
+});
 test('chapter and component entry points use the existing timeline starts', () => {
   const model = piece(), p = createMakePlayer(); p.load(model);
   for (const part of model.parts) {

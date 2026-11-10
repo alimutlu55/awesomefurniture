@@ -23,11 +23,12 @@ export function createAssemblyVisibility() {
     },
     blocked(camera: THREE.Camera, targets: readonly AssemblyTarget[], size: { w: number; d: number }): Set<number> {
       const blocked = new Set<number>(), byId = new Map(boards.map(b => [b.index, b]));
+      const visible = proxies.filter((_, i) => boards[i]!.face.visible);
       camera.getWorldPosition(eye);
       boards.forEach((b, i) => proxies[i]!.matrixWorld.copy(b.face.matrixWorld));
       for (const target of targets) {
         const host = byId.get(target.board);
-        if (!host) continue;
+        if (!host?.face.visible) continue;
         point.set(target.at[0] - size.w / 2, target.at[1], target.at[2] - size.d / 2);
         if (target.inPiece) {
           host.face.parent?.localToWorld(point);
@@ -40,7 +41,7 @@ export function createAssemblyVisibility() {
         ray.set(eye, direction.normalize()); ray.near = 0; ray.far = distance - .08;
         // Every panel before the target must be revealed, but panels behind it stay solid. Fronts stay solid, except
         // round a drawer box being built.
-        for (const hit of ray.intersectObjects(proxies, false)) {
+        for (const hit of ray.intersectObjects(visible, false)) {
           const bIdx = hit.object.userData.board as number;
           if (byId.get(bIdx)?.stock === 'front' && !target.throughFronts) continue;
           blocked.add(bIdx);

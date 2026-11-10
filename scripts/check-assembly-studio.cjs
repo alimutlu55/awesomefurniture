@@ -49,6 +49,21 @@ async function pieceBounds(page) {
   await studio.waitFor({state:'visible'});
   assert.equal(await el('app').evaluate(e=>e.querySelectorAll('canvas').length),1, 'reuses one WebGL canvas');
   assert.equal(await toolbar.evaluate(e=>e.inert),true,'editing controls are inert');
+  const speed = studio.getByLabel('Playback speed');
+  const sliderBox = await studio.locator('.as-scrub').boundingBox(), speedBox = await speed.boundingBox();
+  assert.ok(speedBox.y >= sliderBox.y + sliderBox.height, 'playback speed sits below the timeline');
+  assert.ok(speedBox.height >= 44, 'playback speed has a 44px touch target');
+  const rowCenters = await studio.locator('.as-transport > *').evaluateAll(es => es.map(e => {
+   const { top, height } = e.getBoundingClientRect(); return top + height / 2;
+  }));
+  assert.ok(rowCenters.every(y => Math.abs(y - rowCenters[0]) < 1), 'all playback controls share one row');
+  assert.equal(await speed.inputValue(), '1');
+  for (const value of ['1.25', '1.5', '1']) {
+   await speed.selectOption(value);
+   assert.equal(await speed.inputValue(), value);
+   assert.equal(await studio.locator('.as-speed-label').textContent(), `${value}×`);
+   assert.equal(await studio.locator('.as-scrub').inputValue(), '0', 'speed changes preserve the paused playhead');
+  }
   await studio.locator('.as-scrub').fill('800');
   assert.ok(Number(await studio.locator('.as-scrub').inputValue()) > 799);
   await studio.locator('.as-caption [data-studio="chapters"]').click();

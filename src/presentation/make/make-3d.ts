@@ -118,7 +118,8 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       // way, so the joint behind it shows; without an outline, which read as another part and another joint.
       const cutaway = !!film && blocked.has(b.index);
       const phantom = isFront(b.part) && !solidFronts && !film;
-      if (phantom) left.push(b.index);
+      b.face.visible = film?.visible?.(b.index) ?? true;
+      if (phantom || !b.face.visible) left.push(b.index);
       const mine = selected !== null ? selected === b.part.n : !!film?.now(b.index), dim = selected !== null && !mine;
       let face: THREE.Material = look === 'material' ? decor(b.part.decorId) : look === 'xray' ? lines.xray : mine ? lines.selected : lines.face;
       if (cutaway) face = fade(face);
@@ -126,7 +127,7 @@ export function createMake3d(resources: Resources, scene: THREE.Scene) {
       else if (dim) face = fade(face);
       b.face.material = face;
       b.face.renderOrder = phantom || cutaway || dim || look === 'xray' ? 1 : 0;
-      b.edges.visible = !cutaway && (look !== 'material' || selected !== null || phantom);
+      b.edges.visible = b.face.visible && !cutaway && (look !== 'material' || selected !== null || phantom);
       b.edges.material = phantom ? lines.phantom : dim ? lines.edgeFaded : mine ? lines.edgeSelected : look === 'xray' ? lines.edgeXray : lines.edge;
     }
     // A front left out to see in takes its handle and its holes with it: no handle hanging on nothing.

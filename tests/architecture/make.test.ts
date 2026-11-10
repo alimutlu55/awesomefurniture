@@ -196,7 +196,9 @@ test('Make moves the editor\'s own camera only through the editor\'s camera cont
   }
   // Every shot, glide and framing goes through the controller the rest of the editor uses.
   const view = readFileSync(`${dir}/make-view.ts`, 'utf8');
-  for (const call of ['cameraTransition', 'cameraSample', 'fittedCamera', 'frameBox', 'frameWardrobe']) assert.match(view, new RegExp(`ports\\.camera\\.${call}\\b`), call);
+  for (const call of ['cameraTransition', 'cameraSample', 'frameBox', 'frameWardrobe']) assert.match(view, new RegExp(`ports\\.camera\\.${call}\\b`), call);
+  const studio = readFileSync(`${dir}/assembly-studio-controller.ts`, 'utf8');
+  assert.match(studio, /ports\.camera\.cameraFitDistance\b/, 'Studio fits shots with the editor camera controller');
 });
 
 test('a back larger than a stock sheet is split over the partition nearest the middle; each piece fits and is fixed to it', async () => {

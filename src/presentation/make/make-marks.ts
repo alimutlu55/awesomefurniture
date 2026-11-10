@@ -24,6 +24,8 @@ export interface MarksState {
   readonly open?: number | undefined;
   /** In a build step: the parts it adds (only their numbers are written). */
   readonly building?: ReadonlySet<number> | null | undefined;
+  /** In playback, anchor labels to boards being worked on or already in place. */
+  readonly labelBoard?: ((board: number) => boolean) | undefined;
   /** In a build step: the joint being fixed now. */
   readonly fixing?: Fixing | null | undefined;
   /** In the doors chapter: the gaps the doors are being adjusted to. */
@@ -115,11 +117,13 @@ function sizeLabels(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Vec
 
 /** Part numbers beside the piece, in two columns at the screen's sides, each with a leader to its part. */
 function numberMarks(pr: Projector, piece: MakePiece, offsetOf: (b: Board) => Vec3, size: { w: number; h: number }, fs: number, selected: number | null,
-  only?: ReadonlySet<number>) {
+  only?: ReadonlySet<number>, labelBoard?: (board: number) => boolean) {
   const anchors: { n: number; x: number; y: number; ty: number }[] = [];
   for (const part of piece.parts) {
     if (only && !only.has(part.n)) continue;
-    const b = part.boards[0]!, thin = thinAxis(b), at: Vec3 = thin === 'y' ? [(b.x0 + b.x1) / 2, b.y1, (b.z0 + b.z1) / 2] : [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.z1];
+    const b = part.boards[labelBoard ? part.ids.findIndex(labelBoard) : 0];
+    if (!b) continue;
+    const thin = thinAxis(b), at: Vec3 = thin === 'y' ? [(b.x0 + b.x1) / 2, b.y1, (b.z0 + b.z1) / 2] : [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.z1];
     const s = pr(add(at, offsetOf(b)));
     if (s) anchors.push({ n: part.n, x: s[0], y: s[1], ty: s[1] });
   }
@@ -212,7 +216,7 @@ export function marksSvg(piece: MakePiece, state: MarksState, pr: Projector, off
   // A build step: only the numbers of the parts it adds, the piece's own sizes would measure what is not there yet.
   // While a joint is fixed, only what goes into it.
   if (state.building && state.adjusting?.length) return gapMarks(pr, state.adjusting, length, fs, placed);
-  if (state.building) return state.fixing ? fixingMarks(pr, state.fixing, size, fs) : numberMarks(pr, piece, offsetOf, size, fs, null, state.building);
+  if (state.building) return state.fixing ? fixingMarks(pr, state.fixing, size, fs) : numberMarks(pr, piece, offsetOf, size, fs, null, state.building, state.labelBoard);
   if (state.measures) {
     const part = state.selected === null ? null : piece.parts.find(p => p.n === state.selected) ?? null;
     if (part) out = measureMarks(pr, partMeasures(part, state.apart < .05), length, fs, () => offsetOf(part.boards[0]!), placed);

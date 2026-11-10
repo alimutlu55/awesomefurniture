@@ -7,7 +7,7 @@ import { drawerBoardOffset } from '../../src/domain/make/drawer-installation';
 import { assemblyTimeline, playhead } from '../../src/domain/make/make-timeline';
 import { stagingLayout } from '../../src/domain/make/make-staging';
 import { drawerRunnerMeshes } from '../../src/presentation/make/drawer-runner-3d';
-import { planShots, type DirectorCamera, type Pose } from '../../src/presentation/make/make-director';
+import { planShots, type DirectorCamera } from '../../src/presentation/make/make-director';
 
 // One wide bay without doors: two deep drawers and four shallow ones side by side either side of a divider.
 const split = () => makePiece({ pieces: [{ id: 1, name: 'Split', x: 0, y: 0, z: 0, angle: 0, design: {
@@ -50,13 +50,10 @@ test('in the travel test only the drawer being tested moves, front and box toget
 
 const camera: DirectorCamera = {
   fittedCamera: (az, el, _padding, b) => ({ az, el, dist: Math.max(b.w, b.h, b.d), x: b.x, y: b.y, z: b.z }),
-  cameraSample(a, b, t) {
-    return Object.fromEntries(Object.keys(a).map(key => [key, a[key as keyof Pose] + (b[key as keyof Pose] - a[key as keyof Pose]) * t])) as unknown as Pose;
-  },
 };
 
 test('drilling and placing a drawer chapter stay close: never the whole floor of waiting parts at once', () => {
-  const piece = split(), tl = assemblyTimeline(piece), shots = planShots(camera, piece, tl, stagingLayout(piece), p => p, 0);
+  const piece = split(), tl = assemblyTimeline(piece), shots = planShots(camera, piece, tl, stagingLayout(piece), p => p, 0).at;
   for (const stage of ['drawer-boxes', 'drawer-sides', 'drawer-back']) {
     const s = tl.steps[piece.steps.findIndex(x => x.stage === stage)]!;
     for (const [from, to] of [s.drill, s.place]) for (let f = .1; f < 1; f += .1) {

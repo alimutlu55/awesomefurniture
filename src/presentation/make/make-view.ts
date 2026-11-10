@@ -54,7 +54,8 @@ export function createMakeView(ports: MakeViewPorts) {
 
   const st = { piece: null as MakePiece | null, pose: { x: 0, y: 0, z: 0, angle: 0 }, look: 'lines' as MakeLook, apartOn: false, apart: 0, openOn: false, open: 0,
     solidFronts: false, measures: true, numbers: false, selected: null as number | null, panel: 'closed' as 'closed' | 'list' | 'part', marks: '',
-    id: -1, tab: 'parts' as PanelTab, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null, filming: false, studio: false, explore: false,
+    id: -1, tab: 'parts' as PanelTab, cut: null as CutLayout | null, building: null as ReadonlySet<number> | null,
+    labelBoard: undefined as ((board: number) => boolean) | undefined, filming: false, studio: false, explore: false,
     // The film's camera: following the director's shots, and gliding back to them after the person has looked around.
     follow: true, shots: null as ((t: number) => Pose) | null, shotsFor: '', glide: null as { from: Pose; left: number } | null };
   const player = createMakePlayer();
@@ -94,8 +95,7 @@ export function createMakeView(ports: MakeViewPorts) {
     if (st.apart !== (st.apartOn ? 1 : 0)) { st.apart = ease(st.apart, st.apartOn ? 1 : 0, 9); make3d.setApart(st.apart); }
     if (st.open !== (st.openOn ? 1 : 0)) { st.open = ease(st.open, st.openOn ? 1 : 0, 6); make3d.setOpen(st.open); }
     if (st.filming) {
-      const size = `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}`;
-      if (size !== st.shotsFor) { plan(); st.shotsFor = size; if (st.follow) followFrom(ports.camera.camNow()); }
+      if (shotSize() !== st.shotsFor) { plan(); if (st.follow) followFrom(ports.camera.camNow()); }
       if (st.glide) st.glide.left -= reduce ? GLIDE : dt;
       if (player.advance(dt) || st.glide) showFilm();
       if (st.glide && st.glide.left <= 0) st.glide = null;
@@ -105,7 +105,7 @@ export function createMakeView(ports: MakeViewPorts) {
     const w = view.clientWidth, h = view.clientHeight;
     make3d.setResolution(w, h);
     const key = camera.matrixWorld.elements.map(v => v.toFixed(2)).join() + camera.projectionMatrix.elements.slice(8, 10).map(v => v.toFixed(4)).join()
-      + [w, h, st.apart.toFixed(3), st.open.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, lengthText(100), [...st.building ?? []].join(':'), st.filming ? player.time.toFixed(2) : ''].join();
+      + [w, h, st.apart.toFixed(3), st.open.toFixed(3), st.selected, st.measures, st.numbers, st.solidFronts, st.explore, lengthText(100), [...st.building ?? []].join(':'), st.filming ? player.time.toFixed(2) : ''].join();
     if (key === st.marks) return;
     st.marks = key;
     overlay.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -132,12 +132,12 @@ export function createMakeView(ports: MakeViewPorts) {
       Object.assign(st, { apartOn: false, apart: 0, openOn: false, open: 0, follow: true, shotsFor: '' });
       make3d.setApart(0); make3d.setOpen(0);
       plan();
-      followFrom(ports.camera.camNow());
+      st.glide = null;
       showFilm();
     } else {
       player.pause();
       make3d.setFilm(null); make3d.ring(null);
-      st.building = null; st.marks = '';
+      st.building = null; st.labelBoard = undefined; st.marks = '';
     }
     pressed();
   }
@@ -145,32 +145,26 @@ export function createMakeView(ports: MakeViewPorts) {
    * it from where the person left the camera), and the player's controls. */
   function showFilm() {
     if (!st.piece || !st.filming) return;
-    make3d.setFilm(player.film()); make3d.ring(player.fixing()?.holes ?? null);
+    const film = player.film(!st.explore);
+    make3d.setFilm(film); make3d.ring(player.fixing()?.holes ?? null);
     resources.R.shadowMap.needsUpdate = true;
     st.building = player.building();
+    st.labelBoard = film?.visible;
     if (st.follow && st.shots) {
       const pose = st.shots(player.time);
       ports.camera.cameraTransition(st.glide ? ports.camera.cameraSample(st.glide.from, pose, 1 - Math.max(0, st.glide.left) / GLIDE) : pose, 0);
     }
     studio.update(st.piece, player, st.explore);
   }
-  /** The director's shots for the piece where it stands, fitted to the view as it is now: on a desktop, to the room
-   * beside the docked panel, each shot moved into the middle of that room. */
+  const shotSize = () => `${view.clientWidth}x${view.clientHeight}x${panel.classList.contains('show')}`;
+  /** Fit the director's shots to the space available in Studio. */
   function plan() {
     const tl = player.timeline;
     if (!st.piece || !tl) return;
     make3d.group.updateMatrixWorld(true);
-    const W = view.clientWidth, H = view.clientHeight, left = dockedLeft();
-    const room = Math.max(W * .4, W - left - 36), tanV = Math.tan(35 * Math.PI / 360);
-    const camera = {
-      cameraSample: ports.camera.cameraSample,
-      fittedCamera(az: number, el: number, padding: number, box: Parameters<typeof ports.camera.fittedCamera>[3]) {
-        if (st.studio && box) return studioCamera(az, el, padding, box);
-        const pose = ports.camera.fittedCamera(az, el, padding * W / room, box), px = (W - room) / 2, perPx = 2 * pose.dist * tanV / H;
-        return { ...pose, x: pose.x - Math.cos(az) * px * perPx, z: pose.z + Math.sin(az) * px * perPx };
-      },
-    };
-    st.shots = planShots(camera, st.piece, tl, player.staged, p => make3d.group.localToWorld(p), st.pose.angle * Math.PI / 180);
+    st.shots = planShots({ fittedCamera: studioCamera }, st.piece, tl, player.staged,
+      p => make3d.group.localToWorld(p), st.pose.angle * Math.PI / 180).at;
+    st.shotsFor = shotSize();
   }
   /** How much of the view the panel covers at its left, docked beside it on a desktop (pixels). */
   function dockedLeft() {

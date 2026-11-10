@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createInitialDesign } from '../../src/domain/wardrobe/default-design';
 import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
 import { makePiece } from '../../src/domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, CLIPPED_ON, doorNudge, drillAt, drilled, FITTED_FIRST, fittedAt, HANG_OUT, INTRO, OUTRO, playhead, seeThrough, stepStart } from '../../src/domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, CLIPPED_ON, doorNudge, drillAt, drilled, FITTED_FIRST, fittedAt, HANG_OUT, playhead, seeThrough, stepStart } from '../../src/domain/make/make-timeline';
 import { lyingDir, lyingFlat, lyingPoint, stagingLayout } from '../../src/domain/make/make-staging';
 import { doorGaps, entryOf } from '../../src/domain/make/make-fixing';
 import { tiltOf } from '../../src/domain/make/make-measures';
@@ -42,11 +42,11 @@ test('the steps follow each other without gaps, each drilling, then bringing boa
     const mp = make(design), tl = assemblyTimeline(mp);
     assert.equal(tl.steps.length, mp.steps.length);
     tl.steps.forEach((s, k) => {
-      assert.equal(s.start, k ? tl.steps[k - 1]!.end : INTRO, `${name}: step ${k + 1} starts where the last ended, after the opening`);
+      assert.equal(s.start, k ? tl.steps[k - 1]!.end : 0, `${name}: the first step starts immediately and the others follow in order`);
       assert.ok(s.start <= s.drill[0] && s.drill[1] <= s.place[0] && s.place[1] <= s.fix[0] && s.fix[1] < s.end, `${name}: phases in order`);
       assert.equal(playhead(tl, stepStart(tl, k)).step, k);
     });
-    assert.equal(tl.duration, tl.steps.at(-1)!.end + OUTRO, 'the film ends going round the finished piece');
+    assert.equal(tl.duration, tl.steps.at(-1)!.end, 'the film ends with the final step');
     assert.equal(playhead(tl, -5).step, 0, 'before the start is the start');
     assert.equal(playhead(tl, tl.duration + 5).step, tl.steps.length - 1, 'after the end is the end');
   }

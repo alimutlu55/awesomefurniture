@@ -2,7 +2,7 @@ import { assemblyStageSpec } from '../../domain/hardware/hardware-registry';
 import type { AssemblyPlan } from '../../domain/make/assembly-plan';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Stage } from '../../domain/make/make-assembly';
-import type { MakePlayer } from './make-player';
+import { PLAYBACK_SPEEDS, type MakePlayer } from './make-player';
 import { fittingIcon, hardwareDisplay } from './make-panel-tabs';
 import { overviewMarkup, stepMarkup } from './assembly-plan-text';
 import { chapterPreview } from './assembly-preview';
@@ -78,6 +78,7 @@ const paths = {
   prev: 'M6 5v14m13-14-10 7 10 7z', next: 'M18 5v14M5 5l10 7-10 7z',
   reverse: 'm12 6-8 6 8 6V6m8 0-8 6 8 6V6', chapters: 'M4 5h16M4 12h16M4 19h16',
   explore: 'm12 3 9 5v8l-9 5-9-5V8l9-5zm0 9 9-4m-9 4L3 8m9 4v9',
+  speed: 'M5.3 19a9 9 0 1 1 13.4 0M12 13l4-4M12 12a1 1 0 1 0 0 2 1 1 0 0 0 0-2',
   fit: 'M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5', info: 'M12 11v6m0-10v1M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20', close: 'm6 6 12 12M6 18 18 6',
 };
 const icon = (key: keyof typeof paths) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[key]}"/></svg>`;
@@ -99,11 +100,16 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
         <div class="as-caption"><button type="button" data-studio="chapters" aria-expanded="false"><span class="as-eyebrow">ASSEMBLY</span><strong class="as-step-title"></strong></button>
           <span class="as-step-count"></span>${button('guide', 'Step guidance', 'info', 'aria-expanded="false"')}</div>
         <p class="as-drawer-caption" role="status" hidden></p>
-        <div class="as-track"><input type="range" class="as-scrub" min="0" max="1000" step="0.01" value="0" aria-label="Assembly timeline"><div class="as-markers" aria-hidden="true"></div></div>
-        <div class="as-times" translate="no"><span class="as-time">0:00</span><span class="as-duration"></span></div>
+        <div class="as-progress">
+          <span class="as-time" translate="no">0:00</span>
+          <div class="as-track"><input type="range" class="as-scrub" min="0" max="1000" step="0.01" value="0" aria-label="Assembly timeline"><div class="as-markers" aria-hidden="true"></div></div>
+          <span class="as-duration" translate="no"></span>
+        </div>
         <div class="as-transport">${button('previous', 'Previous step', 'prev')}${button('reverse', 'Reverse playback', 'reverse', 'aria-pressed="false"')}
           ${button('play', 'Play', 'play', 'class="as-play"')}${button('next', 'Next step', 'next')}
-          <button type="button" class="as-explore" data-studio="mode" aria-pressed="false">${icon('explore')}<span>Explore</span></button></div>
+          <label class="as-speed">${icon('speed')}<span class="as-speed-label" aria-hidden="true">1×</span>
+            <select aria-label="Playback speed" translate="no">${PLAYBACK_SPEEDS.map(speed => `<option value="${speed}">${speed}×</option>`).join('')}</select></label>
+          <button type="button" class="as-explore" data-studio="mode" aria-label="Explore" aria-pressed="false">${icon('explore')}<span>Explore</span></button></div>
       </div>
     </div>`;
   const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
@@ -129,6 +135,9 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
     else { if (action === 'part' && guide) toggle('guide'); if (action === 'chapter') { chapters = true; toggle('chapters'); } act(action, Number(target.dataset.value)); }
   });
   root.addEventListener('input', e => { if (e.target === q('.as-scrub')) { wake(); act('seek', Number((e.target as HTMLInputElement).value) / 1000); } });
+  const speed = q<HTMLSelectElement>('.as-speed select');
+  const showSpeed = () => text('.as-speed-label', `${speed.value}×`);
+  speed.addEventListener('change', () => { wake(); showSpeed(); act('speed', Number(speed.value)); });
   root.addEventListener('pointerdown', wake);
   root.addEventListener('focusin', wake);
   return {
@@ -139,6 +148,8 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       q('.as-plan-overview').innerHTML = plan ? overviewMarkup(plan) : '';
       q('.as-chapters').hidden = true; q('.as-guide').hidden = true; q('.as-inspector').hidden = true;
       root.querySelectorAll('[aria-expanded]').forEach(e => e.setAttribute('aria-expanded', 'false'));
+      speed.value = String(player.speed);
+      showSpeed();
       q('.as-duration').textContent = time(player.duration);
       q('.as-markers').innerHTML = player.starts.map(t => `<i style="left:${t / player.duration * 100}%"></i>`).join('');
       const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
@@ -163,8 +174,10 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
       root.classList.toggle('as-exploring', explore);
       text('.as-mode-label', explore ? 'EXPLORE' : paused ? 'PAUSED' : player.rate < 0 ? 'REVERSE' : 'PLAYBACK');
       q('.as-explore-hint').hidden = !explore;
-      q('[data-studio="mode"]').setAttribute('aria-pressed', String(explore));
-      text('[data-studio="mode"] span', explore ? 'Playback' : 'Explore');
+      const mode = q('[data-studio="mode"]'), modeLabel = explore ? 'Playback' : 'Explore';
+      mode.setAttribute('aria-pressed', String(explore));
+      mode.setAttribute('aria-label', modeLabel);
+      text('[data-studio="mode"] span', modeLabel);
       q('[data-studio="reverse"]').setAttribute('aria-pressed', String(player.rate < 0));
       const isCargo = piece.fittings.some(f => f.size?.includes('cargo'));
       const title = stageName(step.stage, isCargo);
