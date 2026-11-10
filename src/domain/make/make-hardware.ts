@@ -33,7 +33,7 @@ import { boreIsClear } from './bore-clearance';
 import { completeDrawerHardware } from './drawer-installation';
 import { connectorStations, type Fitting, type Hole } from './make-joints';
 import { heightsAt, thinAxis, type Vec3 } from './make-measures';
-import { cargoPulloutGeometry } from '../kitchen/cargo-pullout';
+import { cargoPulloutGeometry, onPulloutFrame } from '../kitchen/cargo-pullout';
 
 /** The System 32 line: holes for plates, runners and pins sit 37 mm in from a board's front edge. */
 export const SYSTEM_LINE = (RUNNER_ENTRY.rules.systemLineMm ?? 37) / 10;
@@ -152,7 +152,7 @@ export function frontHardware(piece: PlacedPiece, pieces: readonly PlacedPiece[]
   // Cargo pull-out hardware: GTV Cargo Movix 150/200 runners (374 mm vertical spacing), 4 slide brackets + M4×6 locking screws,
   // 2 3D-adjustable front fittings (78 mm screw pattern, 374 mm vertical spacing, "GTV move" covers), 4×14 screws, and pilot holes.
   boards.forEach((b, i) => {
-    if (b.name !== 'Cargo front') return;
+    if (!onPulloutFrame(b)) return;
     const [cx, cy] = centre(b), { left, right } = uprightsAround(boards, cx, cy, h);
     const { cargoPullouts } = piecefronts(design, cornerFaceWidths(piece, pieces));
     const cargo = cargoPullouts.find(c => Math.abs(c.cx - cx) < 1 && Math.abs(c.y0 - b.y0) < 5)
@@ -383,7 +383,7 @@ export function frontMotions(piece: PlacedPiece, pieces: readonly PlacedPiece[],
     } else if (f?.opens === 'pull' || b.name === 'Drawer front') {
       // The front and the box behind it: the box's boards stand within the front's width and height.
       const side = boards.find(x=>x.name==='Box side' && x.x0>=b.x0-1 && x.x1<=b.x1+1 && x.y0>=b.y0-1 && x.y1<=b.y1+1);
-      const cargoRunner = boards[i]!.name === 'Cargo front' ? cargoPulloutGeometry((b.x0+b.x1)/2,b.y0,b.x1-b.x0,b.y1-b.y0,piece.design.d).runners.length : undefined;
+      const cargoRunner = onPulloutFrame(boards[i]!) ? cargoPulloutGeometry((b.x0+b.x1)/2,b.y0,b.x1-b.x0,b.y1-b.y0,piece.design.d).runners.length : undefined;
       const travel = cargoRunner !== undefined ? cargoRunner * OPEN_PULL_RATIO : side ? Math.round((side.z1-side.z0)*OPEN_PULL_RATIO) : pull;
       out[i] = { kind: 'slide', by: travel };
       boards.forEach((x, k) => { if (x.note === 'drawer box' && x.x0 >= b.x0 - 1 && x.x1 <= b.x1 + 1 && x.y0 >= b.y0 - 1 && x.y1 <= b.y1 + 1) out[k] = { kind: 'slide', by: travel }; });

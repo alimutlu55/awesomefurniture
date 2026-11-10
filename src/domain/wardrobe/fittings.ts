@@ -217,7 +217,7 @@ export const FITTINGS = [
     kitchen: { units: ['base', 'tall'], score: 42, why: 'Slim pull-out for bottles, jars and tins' } },
   { key: 'pantry', name: 'Pantry pull-out', code: 'T', height: 160, min: 90, max: 200, minWidth: 30, minDepth: 45, price: 260, purpose: 'food',
     purposes: KITCHEN_PURPOSES, menu: { order: 20, group: 'storage' }, zone: { ...KITCHEN, label: 'Pantry' },
-    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', opens: 'pull', hardware: ['runners'], traits: ['pullout', 'front', 'sideHandle'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
+    icon: 'M7 3h10v18H7zM7 8h10M7 13h10M12 17v1', opens: 'pull', hardware: ['runners', 'cargoMechanism'], traits: ['pullout', 'front', 'sideHandle'], kitchen: { units: ['tall'], score: 45, why: 'Tall pull-out larder for food' } },
   { key: 'corner', name: 'Corner pull-out', code: '8', height: 72, min: 50, max: 82, minWidth: 50, minDepth: 45, price: 290, purpose: 'cookware',
     purposes: KITCHEN_PURPOSES, menu: { order: 25, group: 'storage' }, zone: { ...KITCHEN, label: 'Corner' },
     icon: 'M3 5h18v14H3zM12 5v14M7 9.5a2.5 2.5 0 1 0 0 5h2.5v-5zM15 11v2', opens: 'side', hardware: ['cornerMechanism'], traits: ['pullout', 'front', 'sideHandle'],

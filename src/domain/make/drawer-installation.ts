@@ -1,3 +1,4 @@
+import { onPulloutFrame } from '../kitchen/cargo-pullout';
 import type { Board } from '../drawings/cabinet-boards';
 import { RUNNER_ENTRY } from '../hardware/hardware-registry';
 import type { Fitting, Hole } from './make-joints';
@@ -70,7 +71,7 @@ export function drawerBoardOffset(piece: MakePiece, tl: Timeline, ph: Playhead, 
   const b = piece.boards[board]!, motion = piece.motions[board];
   if (motion?.kind !== 'slide') return [0, 0, 0];
   const install = piece.steps.findIndex(s => s.stage === 'drawers'), test = piece.steps.findIndex(s => s.stage === 'drawer-test');
-  if (b.name === 'Cargo front' && install >= 0 && ph.t < tl.steps[install]!.end) {
+  if (onPulloutFrame(b) && install >= 0 && ph.t < tl.steps[install]!.end) {
     const s=tl.steps[install]!,length=Number(drawerRunnerForBoard(piece,board)?.size)/10;
     return [0,0,(length+10)*(1-ease((ph.t-s.place[0])/Math.max(.001,s.place[1]-s.place[0])))];
   }

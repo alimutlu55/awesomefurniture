@@ -5,7 +5,7 @@ import type { MakePiece } from '../../domain/make/make-parts';
 import { WAIT } from '../../domain/make/make-fixing';
 import { drawerRunnerMeshes } from './drawer-runner-3d';
 import { hardware } from '../../domain/hardware/hardware-registry';
-import { cargoPulloutGeometry } from '../../domain/kitchen/cargo-pullout';
+import { cargoPulloutGeometry, onPulloutFrame } from '../../domain/kitchen/cargo-pullout';
 import { hardwareStagingLayout, stagingLayout } from '../../domain/make/make-staging';
 import {
   cabinetLegMesh,
@@ -103,7 +103,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     if (f.kind === 'leg') return tag(cabinetLegMesh(at, size, rod, metal));
     if (f.kind === 'support' && (f.size?.includes('cargo frame') || f.size?.includes('cargo pull-out'))) {
       const parts = f.size.split(':'), tiers = Number(parts[1]) || 2, style = parts[2] === 'solid' ? 'solid' : 'wire';
-      const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
+      const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => onPulloutFrame(q));
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
       const geo = f.cargo ?? cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
       const cFrame = frame(piece, [
@@ -127,7 +127,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
     }
     if (f.kind === 'rail' && f.size?.includes('cargo basket')) {
       const parts = f.size.split(':'), style = parts[1] === 'solid' ? 'solid' : 'wire';
-      const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => q.name === 'Cargo front');
+      const b = piece.boards[f.boards[0]!] ?? piece.boards.find(q => onPulloutFrame(q));
       const w = b ? b.x1 - b.x0 : 30, h = b ? b.y1 - b.y0 : 74, d = piece.size.d;
       const tiers = Number(piece.fittings.find(q => q.kind === 'support' && q.size?.startsWith('cargo frame:'))?.size?.split(':')[1]) || (h >= 100 ? 4 : 2);
       const geo = f.cargo ?? cargoPulloutGeometry(f.at[0], b?.y0 ?? f.at[1] - h / 2, w, h, d, { tiers, basketStyle: style, isTall: h >= 100 });
@@ -293,7 +293,7 @@ export function createMakeFittings(layer: number): FittingsLayer {
         } : undefined;
 
         if (f.kind === 'runner') {
-          for (const rail of (piece.boards[f.runner?.moving[0] ?? -1]?.name === 'Cargo front' ? cargoRunnerMeshes : drawerRunnerMeshes)(piece, f, bar, metal)) {
+          for (const rail of (onPulloutFrame(piece.boards[f.runner?.moving[0] ?? -1]) ? cargoRunnerMeshes : drawerRunnerMeshes)(piece, f, bar, metal)) {
             const i = rail.board, host = meshOf(i), mesh = tag(rail.mesh);
             if (!host) continue;
             if (staged) {
@@ -326,9 +326,9 @@ export function createMakeFittings(layer: number): FittingsLayer {
 
         const isCargoBracket = (f.kind === 'bracket' || f.kind === 'plate') && f.size?.includes('cargo');
         const isCargoChassis = (f.kind === 'support' || f.kind === 'rail') && f.size?.includes('cargo');
-        const frontIdx = piece.boards.findIndex(q => q.name === 'Cargo front' || q.stock === 'front');
+        const frontIdx = piece.boards.findIndex(q => onPulloutFrame(q) || q.stock === 'front');
 
-        const cargoDoorFixing = isCargoBracket || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!] ?.name === 'Cargo front';
+        const cargoDoorFixing = isCargoBracket || f.purpose === 'drawer-front' && onPulloutFrame(piece.boards[f.boards[0]!]);
         if (cargoDoorFixing) {
           const board = f.boards[0]!, host = meshOf(board);
           if (host) {mesh.position.sub(rest(board));host.add(mesh);}

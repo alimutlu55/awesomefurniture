@@ -49,14 +49,11 @@ function proposals(w: number, h: number, d: number, template: 'regular' | 'slope
   return generateDesignedLayouts(createWardrobeGeometry(() => blank()).plannerConfig()).slice(0, 2).map(p => { const s = blank(); createDesignCommands(() => s).applyProposal(p as never); return s; });
 }
 
-// Known and reported, not hidden: a pantry pull-out's frame is not set out yet, so a larder is refused by the gate.
-const KNOWN = (line: string) => line.startsWith('mechanism: Pantry front');
-
 for (const [name, design] of constructionCases) test(`buildable as set out: ${name}`, () => {
   for (const joints of JOINT_SYSTEMS) for (const back of BACK_FIXINGS) {
     const mp = make({ ...design, construction: { joints, back } });
     if (!mp) continue;
-    assert.deepEqual(say(mp).filter(l => !KNOWN(l)), [], `${joints}, ${back}`);
+    assert.deepEqual(say(mp), [], `${joints}, ${back}`);
   }
 });
 
@@ -234,11 +231,13 @@ test('the gate into assembly opens only when nothing blocks building the piece',
   const sound = inspect(alone(createInitialDesign()), { profiles: [] });
   assert.deepEqual(assemblyGate(sound.evaluation, 1).blockers, []);
   assert.equal(assemblyGate(sound.evaluation, 1).open, true);
-  // A larder's pantry front pulls out on a frame that is not set out: the piece is refused, and says why.
-  const larder = inspect(alone(createKitchenDesign('tall', 'larder')), { profiles: [] }), gate = assemblyGate(larder.evaluation, 1);
-  assert.equal(gate.open, false);
-  assert.ok(gate.blockers.some(f => f.pack === 'buildability' && /Pantry front pulls out but has nothing to slide on/.test(f.title)));
-  assert.ok(gate.blockers.every(f => f.severity === 'blocking' && f.why.length > 0 && f.fixes.length > 0));
+  // A pantry pull-out is carried by its frame on its own runners, like a cargo pull-out: a larder passes.
+  const larderPiece = make(createKitchenDesign('tall', 'larder'))!, pantry = larderPiece.boards.findIndex(b => b.name === 'Pantry front');
+  assert.ok(larderPiece.fittings.some(f => f.kind === 'runner' && f.cargo && f.boards.includes(pantry)), 'the pantry front has its runners and frame');
+  assert.equal(assemblyGate(inspect(alone(createKitchenDesign('tall', 'larder')), { profiles: [] }).evaluation, 1).open, true);
+  // Take the mechanism away and the same piece is refused, with the reason.
+  const bare = { ...larderPiece, fittings: larderPiece.fittings.map(f => f.cargo ? { ...f, boards: [], cargo: undefined } as never : f) };
+  assert.ok(verifyPiece(bare).some(d => d.kind === 'mechanism' && /Pantry front pulls out but has nothing to slide on/.test(d.what)));
   // The manufacturing check's critical findings close it too: a door wider than a door can be.
   const wideDoor = inspect(alone({ ...createInitialDesign(), w: 200, n: 1, wt: [1], doors: 'hinged' } as EditorDesign), { profiles: [] });
   const refused = assemblyGate(wideDoor.evaluation, 1);
@@ -246,7 +245,7 @@ test('the gate into assembly opens only when nothing blocks building the piece',
   assert.ok(refused.blockers.some(f => f.pack === 'manufacturing'));
   // One piece's blockers do not close the gate of another.
   const two: DrawingInput = { pieces: [{ id: 1, name: 'A', x: 0, y: 0, z: 0, angle: 0, design: createInitialDesign() },
-    { id: 2, name: 'B', x: 400, y: 0, z: 0, angle: 0, design: createKitchenDesign('tall', 'larder') }] };
+    { id: 2, name: 'B', x: 400, y: 0, z: 0, angle: 0, design: { ...createInitialDesign(), w: 200, n: 1, wt: [1], doors: 'hinged' } as EditorDesign }] };
   const both = inspect(two, { profiles: [] }).evaluation;
   assert.equal(assemblyGate(both, 1).open, true);
   assert.equal(assemblyGate(both, 2).open, false);

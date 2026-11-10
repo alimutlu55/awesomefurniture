@@ -363,3 +363,7 @@ export function cargoPulloutGeometry(
     brackets,
   };
 }
+
+/** A front carried by a pull-out frame on its own runners, with baskets hung on it: a cargo pull-out's, and a pantry
+ * pull-out's, which is the same mechanism at larder height. Make sets both out the same way. */
+export const onPulloutFrame = (b: { readonly name: string } | undefined): boolean => b?.name === 'Cargo front' || b?.name === 'Pantry front';

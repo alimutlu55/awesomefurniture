@@ -119,7 +119,8 @@ piece. `presentation/make/assembly-plan-text.ts` words it for Assembly Studio an
 
 ## Known limits
 
-- **A larder's pantry front is refused**: it pulls out, and no frame or runners are set out for it yet. The gate says so.
+- **A pantry pull-out is set out as a cargo pull-out at larder height** (frame, baskets, runners, front brackets): the
+  registry has no wider larder frame of its own yet.
 - **The film is still a standing build.** It brings the boards in in the planned order, but it does not show the carcass
   lying down or being stood up; the plan's *Before you start* says how.
 - **Sets mounted whole** (pull-down rail, trouser rack, basket, flap lift, corner mechanism, appliance kit, shelf

@@ -1,3 +1,4 @@
+import { onPulloutFrame } from '../kitchen/cargo-pullout';
 import { HARDWARE, HINGE_ENTRY } from '../hardware/hardware-registry';
 import type { FittingKind } from './make-joints';
 import type { MakePiece } from './make-parts';
@@ -120,7 +121,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
       // are hammered through its back once the back is in place (drawer-box.ts).
       if (f.purpose === 'drawer-plate') return true;
       if (f.purpose === 'box-back') return false;
-      return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && piece.boards[f.boards[0]!]!.name === 'Cargo front';
+      return FITTED_BEFORE.has(f.kind) || f.purpose === 'drawer-front' && onPulloutFrame(piece.boards[f.boards[0]!]!);
     };
     const fixing = (before: boolean) => fixGroups(piece, s.items, i => FITTED_FIRST.has(piece.fittings[i]!.kind) || fittedBefore(i) !== before)
       .sort((a, b) => before ? lying(a, before) - lying(b, before) : 0).map(g => {
@@ -135,7 +136,7 @@ export function assemblyTimeline(piece: MakePiece): Timeline {
     const hang = [t, t += s.stage === 'doors' ? HANG : 0] as const;
     const fixStart = t, fixes = [...before, ...fixing(false)], fix = [fixStart, t] as const;
     // The doors (and 3D-adjustable cargo fronts, GTV Manual Page 6 REGULACJA) are set true: side, height and depth.
-    const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => piece.boards[i]?.name === 'Cargo front');
+    const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => onPulloutFrame(piece.boards[i]));
     const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
     steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });

@@ -79,7 +79,7 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   at worst on any pack, after 23% VAT, Stripe's fee, refunds, chargebacks and the Gemini token cost, for every pack in every currency (zloty, euro, dollars) (`domain/credits/unit-economics.ts`). The ledger itself is checked by `supabase/tests/credits_ledger.sql`.
 - **Buildability** (`tests/architecture/buildability.test.ts`, `assembly-plan.test.ts`) runs `verifyPiece` and the plan's closures over
   every kitchen unit and preset, every shape, the golden and welcome designs and Auto design from 60 to 300 cm, in all joint systems.
-  A new defect there is a real one: fix what Make sets out, never the check. The one known refusal (a larder's pantry front) is named in the test.
+  A new defect there is a real one: fix what Make sets out, never the check.
 - **Architecture ratchet** (`scripts/architecture-baseline.json`) lists older code that breaks a
   rule. A listed file may only improve. Never raise a number or add a file: fix the code.
 
@@ -119,7 +119,7 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   automated checks (docs/experience.md, Known limits).
 - Accounts: no real sign-up, email code or Google sign-in was run during development; Google stays hidden until it is
   turned on in Supabase. An account cannot change its email or delete itself in the app (docs/accounts.md).
-- Buildability: a larder's pantry front is refused by the gate (no pull-out frame is set out for it); the film still shows a
+- Buildability: a pantry pull-out is set out as a cargo pull-out at larder height (no wider larder frame in the registry); the film still shows a
   standing build while the plan says how to build lying down and stand up; sets mounted whole and the screws that hold hardware
   are counted and stepped but not drawn or set out hole by hole; tool access is a 150 mm box behind each screw head
   (docs/buildability.md, Known limits).

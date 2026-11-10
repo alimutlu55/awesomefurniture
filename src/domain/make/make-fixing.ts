@@ -1,3 +1,4 @@
+import { onPulloutFrame } from '../kitchen/cargo-pullout';
 import { DOWEL_ENTRY, HARDWARE } from '../hardware/hardware-registry';
 import type { FittingKind, Hole } from './make-joints';
 import type { MakePiece } from './make-parts';
@@ -102,7 +103,7 @@ function places(items: readonly number[], at: (i: number) => Vec3) {
 /** The gaps a door or 3D-adjusted cargo front is set to, as measurements on the front: between neighbouring doors, and over a
  * door or cargo front with no neighbour, to the top of the piece. Centimetres; Make draws them while adjusting. */
 export function doorGaps(piece: MakePiece): Measure[] {
-  const doors = piece.boards.filter(b => b.stock === 'door' || b.name === 'Cargo front');
+  const doors = piece.boards.filter(b => b.stock === 'door' || onPulloutFrame(b));
   const top = Math.max(...piece.boards.map(b => b.y1)), out: Measure[] = [];
   for (const a of doors) {
     const next = doors.filter(b => b.x0 >= a.x1 - .01 && b.x0 - a.x1 < 1 && b.y0 < a.y1 && b.y1 > a.y0).sort((p, q) => p.x0 - q.x0)[0];
@@ -114,7 +115,7 @@ export function doorGaps(piece: MakePiece): Measure[] {
       const x = (a.x0 + a.x1) / 2;
       out.push({ rank: 1, a: [x, a.y1, z], b: [x, top, z], offset: [6, 0, 0], length: top - a.y1, face: [0, 0, 1] });
     }
-    if (a.name === 'Cargo front') {
+    if (onPulloutFrame(a)) {
       const yMid = (a.y0 + a.y1) / 2;
       if (a.x0 > 0.02 && a.x0 < 1) {
         out.push({ rank: 1, a: [0, yMid, z], b: [a.x0, yMid, z], offset: [0, 6, 0], length: a.x0, face: [0, 0, 1] });
