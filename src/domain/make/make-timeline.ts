@@ -16,7 +16,9 @@ export const FITTED_FIRST: ReadonlySet<FittingKind> = new Set(
   HARDWARE.filter(h => h.assembly.fittedFirst).map(h => h.key as FittingKind),
 );
 
-const DRILL = 1.8, PLACE = 2.6, SETTLE = .25, DRAWER_CLOSE = .9;
+/** The film opens on the parts laid out (INTRO) and ends going round the finished piece (OUTRO). */
+export const INTRO = 2.6, OUTRO = 4;
+const DRILL = 1.8, PLACE = 2.6, HOLD = .9;
 /** More boards to drill take longer, each its turn: this much more a board, up to this long in all. */
 const DRILL_EACH = .7, DRILL_MAX = 7;
 /** The doors chapter ends adjusting each door on its hinges: side, then height, then depth, a third each (seconds). */
@@ -26,9 +28,9 @@ export const CLIPPED_ON: Vec3 = [.15, -.2, .1];
 /** Hanging a door: it comes in held HANG_OUT cm in front of its place, its hinge arms short of their plates, then is
  * pushed home over HANG seconds so each arm slides onto its plate and clicks. */
 export const HANG = 2.4, HANG_OUT = 6;
-/** A joint's fixing: its fasteners come into view at the ends of their lines (SHOW), go in
+/** A joint's fixing: its fasteners come into view at the ends of their lines while the camera comes in (SHOW), go in
  * one after another (longer for more, up to a few seconds), and are seen home (REST). */
-const SHOW = .18, REST = .18, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (n - 1));
+const SHOW = .8, REST = .45, travelFor = (n: number) => Math.min(3.4, 1 + .2 * (n - 1));
 /** Each drawer is put on its runners in its own turn of the `drawers` chapter (drawer-film.ts), this long. Seconds. */
 export const INSTALL_EACH = 5;
 /** How much of the drilling phase each hole's own drilling takes; the rest staggers them, one after another. */
@@ -48,7 +50,7 @@ export interface StepTime {
 }
 export interface Timeline {
   readonly steps: readonly StepTime[];
-  /** The time from the first action to the completed assembly. */
+  /** The whole film: the opening, every step, and the closing turn round the piece. */
   readonly duration: number;
   /** The step (from 0) each board, fitting and hole belongs to; a hole's start within its step's drilling (0 to 1). */
   readonly boardStep: readonly number[];
@@ -92,7 +94,7 @@ export function assemblyTimeline(piece: MakePiece, options: TimelineOptions = {}
   const boardStart = piece.boards.map(() => 0), boardWindow = piece.boards.map(() => 1), boardCarry = piece.boards.map(() => 1);
   const itemTime: ([number, number, number] | null)[] = piece.fittings.map(() => null);
   const steps: StepTime[] = [];
-  let t = 0;
+  let t = INTRO;
   piece.steps.forEach((s, k) => {
     // Board by board, so the drill (and the camera) stays on one board until its holes are done: the boards lying on the
     // floor first, then what stands.
@@ -118,7 +120,7 @@ export function assemblyTimeline(piece: MakePiece, options: TimelineOptions = {}
     // More boards take longer to bring in, each in its turn.
     const count = piece.fittings.filter(f => f.runner).length;
     const baskets = s.items.filter(i => piece.fittings[i]!.size?.startsWith('cargo basket:')).length;
-    const placing = s.stage === 'cargo-baskets' ? baskets * 6 : s.stage === 'drawers' ? ((piece.drawers?.length ?? 0) * INSTALL_EACH || 6)
+    const placing = s.stage === 'cargo-baskets' ? 1.5 + baskets * 6 : s.stage === 'drawers' ? Math.max(6, (piece.drawers?.length ?? 0) * INSTALL_EACH)
       : turn ? turn * s.boards.length : s.stage === 'cargo-frame' ? 6 : s.stage === 'drawer-test' ? count * 6
       : s.boards.length ? Math.min(7, PLACE + .45 * (s.boards.length - 1)) : 0;
     // Each joint in its turn, its screws going in one after another.
@@ -147,12 +149,11 @@ export function assemblyTimeline(piece: MakePiece, options: TimelineOptions = {}
     // The doors (and 3D-adjustable cargo fronts, GTV Manual Page 6 REGULACJA) are set true: side, height and depth.
     const hasCargoFront = s.stage === 'fronts' && s.boards.some(i => onPulloutFrame(piece.boards[i]));
     const adjust = [t, t += s.stage === 'doors' || hasCargoFront ? ADJUST : 0] as const;
-    // Stand the carcass up after the last joint, turning about its bottom front edge.
-    if (k === lastLying) { raise = [t, t + RAISE]; t = raise[1]; }
-    const closesDrawers = s.stage === 'drawer-lock' || (s.stage === 'fronts' && count > 0);
-    steps.push({ start, drill, place, hang, fix, adjust, end: t += closesDrawers ? DRAWER_CLOSE : SETTLE, fixes });
+    // A moment to see it done, then it is stood up, turning about its bottom front edge.
+    if (k === lastLying) { raise = [t + HOLD / 2, t + HOLD / 2 + RAISE]; t = raise[1]; }
+    steps.push({ start, drill, place, hang, fix, adjust, end: t += HOLD, fixes });
   });
-  return { steps, duration: t, boardStep, itemStep, holeStep, holeStart, boardStart, boardWindow, boardCarry, itemTime, raise };
+  return { steps, duration: t + OUTRO, boardStep, itemStep, holeStep, holeStart, boardStart, boardWindow, boardCarry, itemTime, raise };
 }
 
 /** How far the carcass lies down at time `t`: 1 on its front edges, 0 standing, easing between while it is stood up. */
@@ -199,7 +200,7 @@ export function fittedAt(tl: Timeline, ph: Playhead, item: number, kind: Fitting
   if (s > ph.step) return null;
   if (FITTED_FIRST.has(kind)) return ph.drill >= 1 ? Math.min(1, ph.place * 3) : null;
   if (!w) return ph.drill >= 1 ? 1 : null;
-  return ph.t <= w[0] ? null : unit((ph.t - w[1]) / (w[2] - w[1]));
+  return ph.t < w[0] ? null : unit((ph.t - w[1]) / (w[2] - w[1]));
 }
 /** How far a fitting has come into view at the end of its line (0 to 1), as its joint's turn comes. */
 export function seenAt(tl: Timeline, ph: Playhead, item: number): number {

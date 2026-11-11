@@ -11,10 +11,15 @@ import { planShots, type DirectorCamera, type Pose } from '../../src/presentatio
 
 const camera: DirectorCamera = {
   fittedCamera: (az, el, _padding, b) => ({ az, el, dist: Math.max(b.w, b.h, b.d), x: b.x, y: b.y, z: b.z }),
+  cameraSample(a, b, t) {
+    return Object.fromEntries(Object.keys(a).map(key => {
+      const k = key as keyof Pose; return [k, a[k] + (b[k] - a[k]) * t];
+    })) as unknown as Pose;
+  },
 };
 function fixture() {
   const piece = makePiece({ pieces: [{ id: 1, name: 'Drawers', x: 0, y: 0, z: 0, angle: 0, design: createKitchenDesign('base', 'drawers') }] }, 1)!;
-  const tl = assemblyTimeline(piece), shots = planShots(camera, piece, tl, stagingLayout(piece), p => p, 0).at;
+  const tl = assemblyTimeline(piece), shots = planShots(camera, piece, tl, stagingLayout(piece), p => p, 0);
   return { piece, tl, shots };
 }
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-6, `${a} != ${b}`);
@@ -31,15 +36,12 @@ test('runner drilling camera holds on the board being drilled, where it is', () 
   assert.ok(z >= Math.min(...zs) - 1e-6 && z <= Math.max(...zs) + 1e-6, `camera on the board being drilled (${z} in ${Math.min(...zs)}..${Math.max(...zs)})`);
 });
 
-test('each drawer going on holds a view from rear-hook engagement to the push home', () => {
+test('each drawer going on is framed where it ends, home in the cabinet', () => {
   const { piece, tl, shots } = fixture();
   piece.drawers.forEach((d, j) => {
-    const [a, b] = installWindow(piece, tl, j)!, at = (f: number) => a + (b - a) * f;
-    const pose = shots(at(.45));
-    for (const fraction of [.55, .75, .96]) assert.deepEqual(shots(at(fraction)), pose);
-    assert.notDeepEqual(shots(at(.1)), pose, 'the carry from the mat has its own view');
-    const front = piece.boards[d.front]!;
-    assert.ok(pose.z - pose.dist / 2 <= front.z1 - piece.size.d / 2, 'the sweep includes the home position');
+    const [a, b] = installWindow(piece, tl, j)!, time = b - (b - a) * .04;
+    const zs = [d.front, d.bottom, d.back, ...d.sides].flatMap(i => { const q = piece.boards[i]!; return [q.z0, q.z1].map(z => z - piece.size.d / 2); });
+    near(shots(time).z, (Math.min(...zs) + Math.max(...zs)) / 2);
   });
 });
 

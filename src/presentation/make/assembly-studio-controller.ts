@@ -87,9 +87,7 @@ export function createStudioController(host: Host) {
     if (back && history.state?.[historyKey]) { historyPending = true; history.back(); }
   }
   function explore(on: boolean) {
-    player.pause();
-    if (st.explore === on) return;
-    st.explore = on; st.glide = null; st.follow = !on;
+    st.explore = on; player.pause(); st.glide = null; st.follow = !on;
     if (!on) { st.selected = null; make3d.setSelected(null); studio.inspect(st.piece!, null, length, material); followFrom(ports.camera.camNow()); }
     showFilm(); studio.wake();
   }
@@ -113,23 +111,22 @@ export function createStudioController(host: Host) {
     if (action === 'mode') { explore(!st.explore); return; }
     if (action === 'part') { inspect(value); return; }
     if (action === 'deselect') { inspect(null); return; }
-    if (action === 'part-stage') { explore(false); st.glide = null; player.chapter(stageForPart(value)); }
+    if (action === 'part-stage') { explore(false); player.chapter(stageForPart(value)); }
     if (action === 'play' || action === 'reverse') {
       if (st.explore) explore(false);
       if (action === 'reverse') { player.direction(player.rate === -1 ? 1 : -1); if (!player.playing) player.toggle(); }
       else player.toggle();
-      if (player.playing) st.glide = null;
     }
     if (action === 'pause') player.pause();
     if (action === 'speed') player.setSpeed(value);
-    if (action === 'seek') { player.pause(); st.glide = null; player.seek(value * player.duration); }
-    if (action === 'chapter') { explore(false); st.glide = null; player.chapter(value); }
-    if (action === 'previous' || action === 'next') { player.pause(); st.glide = null; player.step(action === 'previous' ? -1 : 1); }
+    if (action === 'seek') { player.pause(); player.seek(value * player.duration); }
+    if (action === 'chapter') { explore(false); player.chapter(value); }
+    if (action === 'previous' || action === 'next') { player.pause(); player.step(action === 'previous' ? -1 : 1); }
     if (action === 'fit') { explore(true); focusPart(); }
     if (action === 'connection') {
       explore(false);
       const step = player.timeline?.steps[player.head.step], fix = step?.fixes.find(f => f.at[1] > player.time) ?? step?.fixes[0];
-      if (fix) { st.glide = null; player.seek((fix.at[0] + fix.at[1]) / 2); }
+      if (fix) player.seek((fix.at[0] + fix.at[1]) / 2);
     }
     showFilm(); studio.wake();
   }

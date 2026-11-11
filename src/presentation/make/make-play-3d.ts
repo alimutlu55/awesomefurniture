@@ -18,8 +18,6 @@ import {
 export interface MakeFilm {
   /** A board: 0 lying where it waits, 1 in place. */
   arrive(board: number): number;
-  /** Whether this board is in use at the playhead. Omitted when inspecting the full scene. */
-  visible?(board: number): boolean;
   /** Where a board waits, lying flat on the floor in front of the piece. */
   stage(board: number): import('../../domain/make/make-staging').Staged;
   /** Whether a board is one the step is putting in now (drawn picked out). */

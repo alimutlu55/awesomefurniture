@@ -3,7 +3,7 @@ import { assemblyTargets } from './assembly-targets';
 import { drawerPose, runnerTravel } from '../../domain/make/drawer-installation';
 import { matArea, posePoint } from '../../domain/make/drawer-film';
 import type { MakePiece } from '../../domain/make/make-parts';
-import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, HOLE_WINDOW, lyingAt, type Playhead, playhead, seenAt, stepStart, type Timeline, tipPoint } from '../../domain/make/make-timeline';
+import { adjustingNow, arrivalAt, assemblyTimeline, doorNudge, drillAt, drilled, fittedAt, fixingNow, lyingAt, type Playhead, playhead, seenAt, stepStart, type Timeline, tipPoint } from '../../domain/make/make-timeline';
 import { doorGaps, entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { FittingKind } from '../../domain/make/make-joints';
 import type { Measure, Vec3 } from '../../domain/make/make-measures';
@@ -77,12 +77,11 @@ export function createMakePlayer() {
       const k = head().step, boards = piece.steps[k]?.boards ?? [];
       return new Set(piece.parts.filter(p => p.ids.some(i => boards.includes(i))).map(p => p.n));
     },
-    film(focusOnWork = false): MakeFilm | null {
+    film(): MakeFilm | null {
       if (!piece || !tl) return null;
-      const model = piece, line = tl, ph = head(), fittings = model.fittings;
+      const line = tl, ph = head(), fittings = piece.fittings;
       return {
         arrive: board => arrivalAt(line, ph, board),
-        ...(focusOnWork ? { visible: workVisibility(model, line, ph) } : {}),
         stage: board => staged[board]!,
         now: board => line.boardStep[board] === ph.step,
         hole: index => drilled(line, ph, index),
@@ -144,24 +143,6 @@ export function createMakePlayer() {
   };
 }
 export type MakePlayer = ReturnType<typeof createMakePlayer>;
-
-/** Show boards as they are worked on or moved into place, and keep the assembled parts visible. */
-function workVisibility(piece: MakePiece, tl: Timeline, ph: Playhead) {
-  const active = new Set<number>();
-  if (ph.drill < 1) piece.holes.forEach((h, i) => {
-    const start = tl.holeStart[i]!;
-    if (tl.holeStep[i] === ph.step && ph.drill >= start && ph.drill < start + HOLE_WINDOW) active.add(h.board);
-  });
-  const fix = fixingNow(tl, ph);
-  for (const i of fix?.items ?? []) {
-    const board = entryOf(piece, i)?.board;
-    if (board != null) active.add(board);
-  }
-  return (board: number) => active.has(board) || tl.boardStep[board]! < ph.step || (
-    tl.boardStep[board] === ph.step && ph.t >= tl.steps[ph.step]!.place[0] && ph.place >= tl.boardStart[board]!
-  );
-}
-
 /** The mat is down from the first drawer box chapter until the last box is on its runners. */
 function matShown(piece: MakePiece, tl: Timeline, ph: Playhead) {
   const from = piece.steps.findIndex(s => s.stage === 'drawer-boxes'), to = piece.steps.findIndex(s => s.stage === 'drawers');

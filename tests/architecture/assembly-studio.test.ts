@@ -37,19 +37,6 @@ test('changing speed preserves the playhead and scales forward and reverse playb
   p.setSpeed(1); p.direction(1); p.toggle(); p.advance(2);
   assert.equal(p.time, 6);
 });
-test('playback shows the boards in use and Explore can still show the staged parts', () => {
-  const model = piece(), p = createMakePlayer(); p.load(model);
-  const line = p.timeline!, later = line.boardStep.findIndex(step => step > 0);
-  assert.ok(later >= 0);
-  assert.equal(p.film(true)!.visible!(later), false);
-  const start = line.steps[line.boardStep[later]!]!.place;
-  p.seek(start[0] + (start[1] - start[0]) * .9);
-  assert.equal(p.film(true)!.visible!(later), true);
-  p.seek(p.duration);
-  assert.ok(model.boards.every((_, i) => p.film(true)!.visible!(i)));
-  p.seek(0);
-  assert.equal(p.film()!.visible, undefined);
-});
 test('chapter and component entry points use the existing timeline starts', () => {
   const model = piece(), p = createMakePlayer(); p.load(model);
   for (const part of model.parts) {

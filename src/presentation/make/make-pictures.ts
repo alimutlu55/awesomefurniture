@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { installWindow } from '../../domain/make/drawer-film';
 import type { MakePiece } from '../../domain/make/make-parts';
 import type { Vec3 } from '../../domain/make/make-measures';
-import { planShots } from './make-director';
+import { planShots, type DirectorCamera } from './make-director';
 import { printCamera } from '../drawings/print-camera';
 import type { MakePlayer } from './make-player';
 import type { MakeFilm } from './make-play-3d';
@@ -10,7 +10,7 @@ import type { MakeFilm } from './make-play-3d';
 /**
  * The saved drawings' step pictures, taken from the assembly film itself, drawn the way the flat-pack manual is: Make's
  * Lines look (paper boards, ink outlines, the hardware in grey), white paper. For each step: the step done, seen as the
- * director frames the completed step, and a close-up of its first joint, as the film shows it while the
+ * film's director frames it at the end of the step, and a close-up of its first joint, as the film shows it while the
  * fasteners go in, with each fastener's way in drawn as a dashed line. Rendered off screen at twice the size and scaled
  * down, so outlines are smooth; JPEG bytes for the PDF.
  */
@@ -30,6 +30,7 @@ export interface PictureStage {
   readonly visibility: (camera: THREE.Camera) => void;
   readonly resolution: (width: number, height: number) => void;
   readonly fitDistance: (box: { x: number; y: number; z: number; w: number; h: number; d: number }, az: number, el: number, aspect: number) => number;
+  readonly sample: DirectorCamera['cameraSample'];
   readonly facing: number;
   readonly document: Pick<Document, 'createElement'>;
 }
@@ -69,6 +70,7 @@ export function stepPictures(piece: MakePiece, player: MakePlayer, stage: Pictur
   stage.group.updateMatrixWorld(true);
   const director = (aspect: number) => planShots({
     fittedCamera: (az, el, padding, box) => ({ az, el, dist: stage.fitDistance(box, az, el, aspect) * padding, x: box.x, y: box.y ?? box.h / 2, z: box.z }),
+    cameraSample: stage.sample,
   }, piece, tl, player.staged, toWorld, stage.facing);
   const wide = director(WHOLE.w / WHOLE.h), close = director(DETAIL.w / DETAIL.h);
   const project = (camera: THREE.Camera, p: Vec3): [number, number] => {
@@ -82,13 +84,13 @@ export function stepPictures(piece: MakePiece, player: MakePlayer, stage: Pictur
     const hook = piece.steps[k]!.stage === 'drawers' ? installWindow(piece, tl, 0) : null;
     const end = hook ? hook[0] + (hook[1] - hook[0]) * .55 : s.end - .2;
     player.seek(end); stage.film(player.film());
-    const whole = shoot(stage, printCamera(hook ? wide.at(end) : wide.completed(k, end), WHOLE.w / WHOLE.h, stage.layer), WHOLE);
+    const whole = shoot(stage, printCamera(wide(end), WHOLE.w / WHOLE.h, stage.layer), WHOLE);
     // Its first joint, while the fasteners go in, from where they can be seen going in.
     const fix = s.fixes[0];
     if (!fix || piece.steps[k]!.items.length === 0) return { whole, detail: null };
     const at = fix.at[0] + (fix.at[1] - fix.at[0]) * .45;
     player.seek(at); stage.film(player.film());
-    const camera = printCamera(close.at(at), DETAIL.w / DETAIL.h, stage.layer), ways = (player.fixing()?.lines ?? []).map(l => ({ from: project(camera, l.from), to: project(camera, l.to) }));
+    const camera = printCamera(close(at), DETAIL.w / DETAIL.h, stage.layer), ways = (player.fixing()?.lines ?? []).map(l => ({ from: project(camera, l.from), to: project(camera, l.to) }));
     return { whole, detail: { ...shoot(stage, camera, DETAIL), ways } };
   });
   player.seek(time);
@@ -101,7 +103,7 @@ export interface PictureMake {
   readonly renderer: THREE.WebGLRenderer; readonly scene: THREE.Scene; readonly layer: number; readonly document: Pick<Document, 'createElement'>;
   readonly make3d: { readonly group: THREE.Object3D; setLook(look: 'lines' | 'material' | 'xray'): void; setPaper(paper: string, ink: string): void;
     setFilm(film: MakeFilm | null): void; updateVisibility(camera: THREE.Camera): void; setResolution(w: number, h: number): void };
-  readonly camera: { cameraFitDistance(box: Parameters<PictureStage['fitDistance']>[0], az: number, el: number, aspect: number, minimum: number): number };
+  readonly camera: { cameraFitDistance(box: Parameters<PictureStage['fitDistance']>[0], az: number, el: number, aspect: number, minimum: number): number; cameraSample: DirectorCamera['cameraSample'] };
 }
 /** The step pictures for the saved drawings of the piece standing at `pose`, Make left showing what it showed (`restore`). */
 export function picturesFor(piece: MakePiece, player: MakePlayer, m: PictureMake, pose: { y: number; angle: number }, restore: { look: 'lines' | 'material' | 'xray'; filming: boolean; paper(): void; size: readonly [number, number] }) {
@@ -110,7 +112,7 @@ export function picturesFor(piece: MakePiece, player: MakePlayer, m: PictureMake
     renderer: m.renderer, scene: m.scene, group: m.make3d.group, layer: m.layer, facing: pose.angle * Math.PI / 180, document: m.document,
     look: lines => { m.make3d.setLook(lines ? 'lines' : restore.look); if (lines) m.make3d.setPaper(PAPER, INK); else restore.paper(); },
     film: film => m.make3d.setFilm(film), visibility: camera => m.make3d.updateVisibility(camera), resolution: (w, h) => m.make3d.setResolution(w, h),
-    fitDistance: (box, az, el, aspect) => m.camera.cameraFitDistance(box, az, el, aspect, 24),
+    fitDistance: (box, az, el, aspect) => m.camera.cameraFitDistance(box, az, el, aspect, 24), sample: m.camera.cameraSample,
   });
   m.make3d.setFilm(restore.filming ? player.film() : null);
   m.make3d.setResolution(...restore.size);

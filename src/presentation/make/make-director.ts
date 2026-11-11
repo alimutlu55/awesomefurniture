@@ -4,7 +4,7 @@ import type { MakePiece } from '../../domain/make/make-parts';
 import { hardwareStagingLayout, lyingDir, lyingPoint, type Staged } from '../../domain/make/make-staging';
 import { drawerBoardOffset, drawerPose, drawerRunnerForBoard, runnerTravel } from '../../domain/make/drawer-installation';
 import { drawerBoards, installWindow, poseDir, posePoint, shifted } from '../../domain/make/drawer-film';
-import { lyingAt, playhead, type Timeline, tipDir, tipPoint } from '../../domain/make/make-timeline';
+import { INTRO, lyingAt, OUTRO, playhead, type Timeline, tipDir, tipPoint } from '../../domain/make/make-timeline';
 import { entryOf, WAIT } from '../../domain/make/make-fixing';
 import type { Vec3 } from '../../domain/make/make-measures';
 
@@ -15,16 +15,24 @@ const BOX_ROOM = 1.35;
 const WORK_ROOM = 20, WORK_REACH = 115, WORK_TURN = .32, WORK_RAISE = .28;
 /** How far round from the front a face inside the cabinet is seen (radians): as far as the opening lets the camera see it. */
 const INSIDE_TURN = .6;
+/** The least time between two camera shots (seconds). */
+const STEADY = .35;
 
 /** A camera pose as the editor's camera holds it: turned `az` round the target, raised `el`, `dist` away. */
 export interface Pose { az: number; el: number; dist: number; x: number; y: number; z: number }
 interface Bounds { x: number; y: number; z: number; w: number; h: number; d: number }
-/** The editor's camera framing for the space an action needs. */
+/** The editor's own camera framing: the pose that fits `bounds` from `az`, `el`, and gliding from one pose to another. */
 export interface DirectorCamera {
   fittedCamera(az: number, el: number, padding: number, bounds: Bounds): Pose;
+  cameraSample(from: Pose, to: Pose, t: number): Pose;
 }
 
-/** Cut to the work as each action begins and hold the view while it happens. Scrubbing and reverse use the same shots. */
+/**
+ * The assembly film's camera, as a building video is shot: it opens on the parts laid out, looks down on each step's
+ * drilling, stands back as its boards are carried in, comes in close from the side the screws go in from, steps back,
+ * and ends going slowly round the finished piece. Every shot is fitted with the editor's own framing, and the camera
+ * glides from one to the next. Like the film, it is a function of the time: scrubbing shows the same shot.
+ */
 export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline, staged: readonly Staged[], toWorld: (p: THREE.Vector3) => THREE.Vector3, facing: number) {
   const { w, d } = piece.size, half = (p: readonly number[]) => toWorld(new THREE.Vector3(p[0]! - w / 2, p[1]!, p[2]! - d / 2));
   // Where the floor is (a hung unit's parts lie below it), and so the mat the drawer boxes are built on.
@@ -47,7 +55,11 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
   const shot = (t: number, points: THREE.Vector3[], az: number, el: number, padding: number) => {
     if (points.length) shots.push({ t, pose: camera.fittedCamera(az, el, padding, bounds(points)) });
   };
+  // Opening: every part laid out in front of where the piece will stand (its footprint on the floor), easing in.
+  const site = corners([0, floor, 0], [w, floor + 1, d]).map(half);
   const hwStaged = hardwareStagingLayout(piece, staged, floor);
+  const hwWaiting = [...hwStaged.values()].flatMap(s => corners(s.at.map((v, k) => v - s.size[k]! / 2), s.at.map((v, k) => v + s.size[k]! / 2)).map(half));
+  const everything = [...all.flatMap(waiting), ...hwWaiting, ...site];
   const cargoFrameFitting = piece.fittings.find(f => f.size?.startsWith('cargo frame:'));
   const hasCargo = piece.fittings.some(f => f.size?.includes('cargo'));
   const cargoMount = cargoFrameFitting?.size?.split(':')[3] ?? 'bottom';
@@ -71,25 +83,41 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     });
     return pts;
   };
+  shot(0, everything, facing + .7, .7, .95);
+  shot(INTRO * .85, everything, facing + .45, .62, .8);
   // A drawer box is put together outside the cabinet: while it is, the camera is on the box, not the cabinet.
   const boxBoards = new Set((piece.drawers ?? []).flatMap(d => [d.front, d.bottom, d.back, ...d.sides]));
   const BOX_STAGES: ReadonlySet<string> = new Set(['drawer-boxes', 'drawer-sides', 'drawer-back']);
-  /** Frame each drawer on the mat while its boards go on. */
+  /**
+   * A drawer box chapter in three held views, always from the same side and height: the parts waiting beside the mat
+   * while they are drilled and fitted (with any box on the mat that is drilled too); then each drawer in turn, whole and
+   * with room round it, while its boards go on; then all the boxes on the mat while their joints are fixed.
+   */
   function boxShots(s: (typeof tl.steps)[number], k: number) {
     const step = piece.steps[k]!, drawers = piece.drawers ?? [];
+    // Each hold arrives in a short, even glide and is held to its end.
+    const hold = (from: number, until: number, points: THREE.Vector3[], el: number, room = BOX_ROOM) => {
+      if (!points.length || until <= from) return;
+      shot(from + Math.min(.45, (until - from) * .3), points, facing + .25, el, room);
+      shot(until - .05, points, facing + .25, el, room);
+    };
+    // 2. A drawer at a time, as its boards go on.
     const span = s.place[1] - s.place[0];
     drawers.forEach(d => {
       const mine = step.boards.filter(b => drawerBoards(d).includes(b));
       if (!mine.length) return;
       const from = s.place[0] + span * Math.min(...mine.map(b => tl.boardStart[b]!)), until = s.place[0] + span * Math.max(...mine.map(b => tl.boardStart[b]! + tl.boardWindow[b]!));
-      shot(from, drawerBoards(d).filter(b => tl.boardStep[b]! <= k).flatMap(b => [...placed(b, from), ...placed(b, until)]), facing + .25, .52, BOX_ROOM);
+      hold(from, until, drawerBoards(d).flatMap(b => placed(b, until)), .52);
     });
+    // Hold on the assembled drawer boxes on the mat at chapter end so the view never drifts onto empty floor.
+    const builtBoxes = all.filter(i => tl.boardStep[i]! <= k && boxBoards.has(i)).flatMap(i => placed(i, s.end));
+    if (builtBoxes.length) shot(s.end - .05, builtBoxes, facing + .28, .48, 1.2);
   }
   /**
    * The work, as a fitter looks at it: each hole drilled and each joint fixed seen from straight in front of the face the
    * drill or the hardware goes into, a little to the side and above so a screw or dowel shows along its length, and close:
    * the joint and what waits to go in, with contextual room. Joints next to each other on the same face share one view; the
-   * camera holds still on each. Boards in front of the work go see-through (assembly-targets).
+   * camera holds still on each and glides to the next. Boards in front of the work go see-through (assembly-targets).
    */
   function workShots(s: (typeof tl.steps)[number], k: number) {
     const step = piece.steps[k]!, isRearStage = step.stage === 'back' || step.stage === 'wall';
@@ -104,27 +132,23 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
         if (drilledBoards.at(-1)?.board !== h.board) drilledBoards.push({ board: h.board, from: s.drill[0] + drillSpan * tl.holeStart[i]!, holes: [h] });
         else drilledBoards.at(-1)!.holes.push(h);
       });
-    drilledBoards.forEach(drill => {
-      const lying = step.boards.includes(drill.board), isStanding = !lyingAt(tl, drill.from) && standing(drill.board, lying);
-      const b = piece.boards[drill.board]!, pose = poseAt(drill.board, drill.from);
+    drilledBoards.forEach((d, n) => {
+      const until = drilledBoards[n + 1]?.from ?? s.drill[1], lying = step.boards.includes(d.board), isStanding = !lyingAt(tl, d.from) && standing(d.board, lying);
+      const b = piece.boards[d.board]!, pose = poseAt(d.board, d.from);
       let points: THREE.Vector3[];
       if (lying) {
-        points = waiting(drill.board);
-      } else if (isStanding) {
-        const ys = drill.holes.map(h => h.at[1]), y0 = Math.max(b.y0, Math.min(...ys) - 28), y1 = Math.min(b.y1, Math.max(...ys) + 28);
-        points = corners([b.x0, y0, b.z0], [b.x1, y1, b.z1]).map(p => half(tip(posePoint(pose, p as unknown as Vec3), drill.from)));
+        points = waiting(d.board);
+      } else if (isStanding && d.holes.length) {
+        const ys = d.holes.map(h => h.at[1]), y0 = Math.max(b.y0, Math.min(...ys) - 28), y1 = Math.min(b.y1, Math.max(...ys) + 28);
+        points = corners([b.x0, y0, b.z0], [b.x1, y1, b.z1]).map(p => half(tip(posePoint(pose, p as unknown as Vec3), d.from)));
       } else {
-        points = placed(drill.board, drill.from);
+        points = placed(d.board, d.from);
       }
-      const firstHole = drill.holes[0]!;
-      let az = isStanding && firstHole.axis === 0 ? facing - firstHole.sign * INSIDE_TURN : facing + WORK_TURN;
-      if (lying) {
-        const normal: [number, number, number] = [0, 0, 0];
-        normal[firstHole.axis] = -firstHole.sign;
-        const [x, , z] = lyingDir(staged[drill.board]!, normal);
-        if (Math.hypot(x, z) > .5) az = facing + Math.atan2(x, z) + WORK_TURN;
-      }
-      shot(drill.from, points, az, isStanding ? .38 : .68, 1.18);
+      const firstHole = d.holes[0];
+      const drillAz = isStanding && firstHole?.axis === 0 ? facing - firstHole.sign * INSIDE_TURN : facing + WORK_TURN;
+      const drillEl = isStanding ? .38 : .68;
+      shot(d.from + Math.min(.45, (until - d.from) * .3), points, drillAz, drillEl, 1.18);
+      shot(until - .05, points, drillAz, drillEl, 1.18);
     });
     // A joint: its hardware going in, from where it waits.
     for (const fix of s.fixes) {
@@ -169,12 +193,12 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
     const views: typeof items = [];
     for (const it of items) {
       const last = views.at(-1), same = last && last.board === it.board && last.out[0] * it.out[0] + last.out[1] * it.out[1] + last.out[2] * it.out[2] > .95;
-      if (last && same && last.until === it.from && reach([...last.at, ...it.at].map(half)) <= WORK_REACH) {
+      if (last && same && reach([...last.at, ...it.at].map(half)) <= WORK_REACH) {
         last.at.push(...it.at); last.wait.push(...it.wait); last.ctx.push(...it.ctx); last.until = Math.max(last.until, it.until);
       } else views.push({ ...it, at: [...it.at], wait: [...it.wait], ctx: [...it.ctx] });
     }
-    views.forEach(v => {
-      const w = new THREE.Vector3(...v.out).applyAxisAngle(new THREE.Vector3(0, 1, 0), facing);
+    views.forEach((v, n) => {
+      const until = Math.max(v.until, views[n + 1]?.from ?? v.until), w = new THREE.Vector3(...v.out).applyAxisAngle(new THREE.Vector3(0, 1, 0), facing);
       const forward = w.x * Math.sin(facing) + w.z * Math.cos(facing);
       const across = Math.abs(forward) < .5, sideways = Math.sign(w.x * Math.cos(facing) - w.z * Math.sin(facing)) || side;
       const flat = Math.abs(v.out[1]) > .85, low = Math.min(...v.at.map(p => p[1])) < floor + 25;
@@ -195,25 +219,34 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       if (low) el = Math.max(.38, el);
       const room = BOX_STAGES.has(step.stage) ? 12 : isRearStage ? 26 : WORK_ROOM;
       const points = [...v.at.flatMap(p => around(p, room)), ...v.wait.flatMap(p => around(p, 4)), ...v.ctx];
-      shot(v.from, points, az, el, 1.2);
+      shot(v.from + Math.min(.45, (until - v.from) * .3), points, az, el, 1.2);
+      shot(until - .05, points, az, el, 1.2);
     });
   }
   tl.steps.forEach((s, k) => {
-    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage);
+    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage), runnerStep = step.stage === 'drawer-runners' && !hasCargo && !!piece.drawers?.length;
+    // What is already built that a shot shows with this step's boards: the piece so far, or the drawer boxes so far.
+    const before = all.filter(i => tl.boardStep[i]! < k && (!boxStep || boxBoards.has(i)));
     const isCargoStage = hasCargo && ['drawer-runners', 'cargo-frame', 'cargo-baskets', 'drawers', 'fronts'].includes(step.stage);
     // One side of the piece for the whole film, so the camera never swings across between chapters.
     const side = isCargoStage ? cargoSide : 1;
     if (boxStep) boxShots(s, k);
     workShots(s, k);
-    // Show the receiving cabinet and the active boards' destinations as they come together.
+    // Compute each destination at the time of its shot: a drawer can move during this phase.
+    // Travel demonstrations have their own stable shots below, instead of competing wide placement shots.
     if (s.place[1] > s.place[0] && step.stage !== 'drawer-test' && !boxStep && !(step.stage === 'drawers' && piece.drawers?.length)) {
-      const [start, end] = s.place;
-      const onBench = step.stage === 'cargo-frame' || step.stage === 'cargo-baskets';
-      const points = onBench ? [] : all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, end));
-      if (isCargoStage) {
-        for (const fraction of [0, .25, .5, .75, 1]) points.push(...cargoPointsAt(start + (end - start) * fraction, k));
+      for (const fraction of [.25, .9]) {
+        const time = s.place[0] + (s.place[1] - s.place[0]) * fraction;
+        // Where the boards go, in what they go onto, so it is clear what goes where as they come in from wherever they wait
+        // on the floor (which can be far off: those are never framed).
+        const points = [...step.boards, ...before].flatMap(i => placed(i, time));
+        if (isCargoStage) {
+          points.push(...cargoPointsAt(time, k));
+          shot(time, points, facing + cargoSide * .48, .36, 1.14);
+        } else {
+          shot(time, points, facing + side * (fraction === .25 ? .55 : .5), fraction === .25 ? .45 : .4, fraction === .25 ? 1.2 : 1.1);
+        }
       }
-      shot(start, points, facing + side * (isCargoStage ? .48 : .55), isCargoStage ? .36 : .45, 1.2);
     }
 
     // Hanging the doors: frame the hinge line of the first door with cabinet opening context from the front-inside angle,
@@ -224,13 +257,15 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const e = plate === undefined ? null : entryOf(piece, plate);
       if (e) {
         const points = [...first.flatMap(i => around(piece.fittings[i]!.at, 20)), ...around([w / 2, e.at[1], d + 4], 16)];
-        shot(s.hang[0], points, inside(e.at), .26, 1.08);
+        shot(s.hang[0] + .15, points, inside(e.at), .26, 1.08);
+        shot(s.hang[1] - .05, points, inside(e.at), .26, 1.05);
       }
     }
     // Adjusting the doors: square on to their fronts, close enough to read the gaps.
     if (s.adjust[1] > s.adjust[0]) {
-      const doors = step.boards.flatMap(i => [...placed(i, s.adjust[0]), ...placed(i, s.adjust[1])]);
-      shot(s.adjust[0], doors, facing, .12, 1.05);
+      const doors = step.boards.flatMap(i => placed(i, s.adjust[0]));
+      shot(s.adjust[0] + .3, doors, facing, .12, .98);
+      shot(s.adjust[1] - .2, doors, facing + side * .08, .12, .95);
     }
     // Putting the drawers on, one after another: lifted off the mat towards its runners, hooked on at the back with the
     // front held up and lowered onto the pins, seen from above the front; then pushed home.
@@ -238,8 +273,10 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
       const window = installWindow(piece, tl, j);
       if (!window) return;
       const [a, b] = window, span = b - a, box = drawerBoards(drawer), at = (f: number) => box.flatMap(i => placed(i, a + span * f));
-      shot(a, [...at(0), ...at(.225), ...at(.45)], facing + side * .5, .42, 1.12);
-      shot(a + span * .45, [...at(.45), ...at(.6), ...at(.75), ...at(1)], facing + side * .4, .52, 1.25);
+      shot(a + span * .06, [...at(0), ...at(1)], facing + side * .5, .42, 1.12);
+      shot(a + span * .5, [...at(.5), ...at(.7)], facing + side * .4, .55, 1.25);
+      shot(a + span * .74, [...at(.7), ...at(1)], facing + side * .4, .5, 1.25);
+      shot(b - span * .04, at(1), facing + side * .45, .4, 1.6);
     });
     if (step.stage === 'drawer-test') {
       const runners = piece.fittings.filter(f => f.runner), duration = (s.place[1] - s.place[0]) / runners.length;
@@ -252,36 +289,47 @@ export function planShots(camera: DirectorCamera, piece: MakePiece, tl: Timeline
           const b = piece.boards[i]!;
           points.push(...corners([b.x0 - 2, b.y0 - 3, b.z0], [b.x1 + 2, b.y1 + 3, b.z1]).map(half));
         }
+        // Leave a short glide between drawers, outside their moving interval.
         const azAngle = hasCargo ? facing + cargoSide * .48 : facing + .65;
-        shot(start, points, azAngle, .4, 1.5);
+        shot(start + duration * .03, points, azAngle, .4, 1.5);
+        shot(start + duration * .97, points, azAngle, .4, 1.5);
       });
+      // Then the whole piece, every drawer home.
+      shot(s.end - .15, all.filter(i => tl.boardStep[i]! <= k).flatMap(i => placed(i, s.end)), facing + .45, .4, 1.1);
+    } else if (!boxStep && !runnerStep) {
+      // A breath: the piece so far, at this moment rather than at the chapter's start (including any staged/installed cargo mechanism).
+      // The drawer and runner chapters hold their own view to their end instead.
+      const time = s.end - .15;
+      const builtBoards = all.filter(i => tl.boardStep[i]! <= k && (!boxStep || boxBoards.has(i))).flatMap(i => placed(i, time));
+      const fittingPoints = builtBoards.length ? [] : step.items.flatMap(i => around(piece.fittings[i]!.at, 18));
+      const breathPoints = [
+        ...builtBoards,
+        ...fittingPoints,
+        ...cargoPointsAt(time, k),
+      ];
+      shot(time, breathPoints, facing + side * (isCargoStage ? .48 : .45), isCargoStage ? .36 : .42, isCargoStage ? 1.14 : 1.1);
     }
   });
-
   // Standing it up: one held view wide enough for the carcass lying down and standing, from the side it turns past.
   if (tl.raise) {
-    const [a, b] = tl.raise, built = all.filter(i => tl.steps[tl.boardStep[i]!]!.start <= a);
+    const [a, b] = tl.raise, built = all.filter(i => tl.steps[tl.boardStep[i]!]!.end <= b);
     const swept = [...built.flatMap(i => placed(i, a)), ...built.flatMap(i => placed(i, (a + b) / 2)), ...built.flatMap(i => placed(i, b))];
-    shot(a, swept, facing + 1.1, .3, 1.12);
+    shot(a - .1, swept, facing + 1.1, .3, 1.12);
+    shot(b, swept, facing + 1.1, .3, 1.12);
   }
-
-  // Completed-step overviews are still used in the printed instructions.
-  function completed(k: number, time: number): Pose {
-    const step = piece.steps[k]!, boxStep = BOX_STAGES.has(step.stage);
-    const points = all.filter(i => tl.boardStep[i]! <= k && (!boxStep || boxBoards.has(i))).flatMap(i => placed(i, time));
-    if (!points.length) points.push(...step.items.flatMap(i => around(piece.fittings[i]!.at, 18)));
-    points.push(...cargoPointsAt(time, k));
-    return camera.fittedCamera(facing + (boxStep ? .28 : .45), boxStep ? .48 : .42, boxStep ? 1.2 : 1.1, bounds(points));
-  }
-  const finished = camera.fittedCamera(facing + .45, .4, 1.1, bounds(all.flatMap(i => placed(i, tl.duration))));
+  // The finished piece, turning slowly.
+  shot(tl.duration - OUTRO + .6, all.flatMap(i => placed(i, tl.duration)), facing + .65, .36, 1.06);
+  shot(tl.duration, all.flatMap(i => placed(i, tl.duration)), facing - .7, .26, 1.06);
   shots.sort((a, b) => a.t - b.t);
-  return {
-    at(t: number): Pose {
-      if (t >= tl.duration) return { ...finished };
-      const next = shots.findIndex(s => s.t > t);
-      return { ...(shots[next < 0 ? shots.length - 1 : Math.max(0, next - 1)]?.pose ?? finished) };
-    },
-    completed,
+  // Never two moves in a moment: a shot less than STEADY after the one before waits until STEADY has passed, so a held
+  // view is held to its end and every move takes its time.
+  for (let i = 1; i < shots.length; i++) if (shots[i]!.t - shots[i - 1]!.t < STEADY) shots[i]!.t = shots[i - 1]!.t + STEADY;
+  /** The camera at time `t`: between the shots either side, glided with the editor's own easing. */
+  return (t: number): Pose => {
+    const next = shots.findIndex(s => s.t > t);
+    if (next <= 0) return { ...shots[next === 0 ? 0 : shots.length - 1]!.pose };
+    const a = shots[next - 1]!, b = shots[next]!;
+    return camera.cameraSample(a.pose, b.pose, (t - a.t) / (b.t - a.t));
   };
 }
 
