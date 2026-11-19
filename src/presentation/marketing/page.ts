@@ -3,8 +3,8 @@ import { guides, type Guide } from './guides';
 import { informationPages } from './information-pages';
 import { homePath, languages } from './translations';
 import { escapeHtml as e } from './seo';
-import { studySvg } from './study';
-import { assemblyCopy } from './assembly-copy';
+import { studyMeasure, studySvg, type StudyShape } from './study';
+import { STARTER_WARDROBE_SHAPES, STARTER_WARDROBE_WIDTH, starterDesignHref } from '../../domain/project/starter-design';
 import { stageSvg } from './stage-art';
 import { homeCopy, type HomeCopy } from './home-copy';
 import { languageMenu } from './language-menu';
@@ -89,28 +89,28 @@ export const FEATURES: readonly FeaturePillar[] = [
   },
 ];
 
-function fittingRoom(c: MarketingCopy, shape: 'regular' | 'alcove' | 'under-stairs' = 'regular'): string {
-  const shapes = ['regular', 'alcove', 'under-stairs'];
-  const a = assemblyCopy(c.lang);
+function fittingRoom(c: MarketingCopy, shape: StudyShape = 'regular'): string {
+  const { initial, min, max, step } = STARTER_WARDROBE_WIDTH;
+  const measure = studyMeasure(initial, false, c.lang);
+  const href = starterDesignHref(c.lang, { kind: 'wardrobe', width: initial, shape });
   return `<div class="fitting-room" data-nosnippet data-shape="${shape}" data-view="drawing">
     <div class="assembly-stage">
-      <div class="study-canvas" id="study-canvas" aria-busy="true">
-        <div class="study-fallback">${studySvg({ width: 240, shape, finish: 'chalk', inches: false }, c.lang)}</div>
-        <p class="assembly-status" role="status">${e(a.loading)}</p>
+      <div class="study-canvas" id="study-canvas">
+        <div class="study-fallback">${studySvg({ width: initial, shape, finish: 'chalk', inches: false }, c.lang)}</div>
       </div>
     </div>
     <div class="study-bottomline">
       <div class="study-shapes" role="group" aria-label="${e(c.shapes[0])}">
-        ${c.shapes.map((s, i) => `<button type="button" data-shape="${shapes[i]}" aria-pressed="${shapes[i] === shape}">${e(s)}</button>`).join('')}
+        ${STARTER_WARDROBE_SHAPES.map((id, i) => `<button type="button" data-shape="${id}" aria-pressed="${id === shape}">${e(c.shapes[i]!)}</button>`).join('')}
       </div>
     </div>
     <div class="study-controls">
       <div class="width-control"><div class="width-top"><label for="study-width">${e(c.width)}</label>
-        <div class="width-value"><output for="study-width" id="width-output" aria-label="240 cm">240</output></div></div>
-        <input id="study-width" type="range" min="140" max="320" step="5" value="240" aria-valuetext="240 cm">
+        <div class="width-value"><output for="study-width" id="width-output" aria-label="${e(measure)}">${initial}</output></div></div>
+        <input id="study-width" type="range" min="${min}" max="${max}" step="${step}" value="${initial}" aria-valuetext="${e(measure)}">
       </div>
     </div>
-    <div class="study-handoff"><a id="study-start" class="text-link" href="/editor/?lang=${c.lang}">${e(c.dimensionCta)} ${arrow}</a>
+    <div class="study-handoff"><a id="study-start" class="text-link" href="${e(href)}">${e(c.dimensionCta)} ${arrow}</a>
       <p>${e(c.illustration)}</p></div>
   </div>`;
 }
@@ -133,7 +133,7 @@ function kitchenStudy(c: MarketingCopy): string {
     + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Tall Pantry Housing</span>`
     + `<span style="background:var(--soft);padding:4px 8px;border-radius:3px;">Continuous Worktop &amp; Plinth</span>`
     + `</div></div>`
-    + `<div class="study-handoff" style="margin-top:14px;"><a id="study-start" class="text-link" href="/editor/?lang=${c.lang}">Open kitchen planner in 3D ${arrow}</a>`
+    + `<div class="study-handoff" style="margin-top:14px;"><a id="study-start" class="text-link" href="${e(starterDesignHref(c.lang, { kind: 'kitchen' }))}">Open kitchen planner in 3D ${arrow}</a>`
     + `<p>Plan modular base, wall, and tall kitchen units directly in your browser with real-time 3D dimensions.</p></div>`
     + `</div>`;
 }
@@ -232,6 +232,8 @@ function renderBody(text: string): string {
 
 export function guideBody(c: MarketingCopy, guide: Guide): string {
   const informational = informationPages.some(page => page.slug === guide.slug);
+  const kitchen = guide.slug === 'kitchen-cabinet-design-software';
+  const editorHref = kitchen ? starterDesignHref(c.lang, { kind: 'kitchen' }) : `/editor/?lang=${c.lang}`;
   const h = homeCopy(c.lang);
   const isGuideArticle = guide.slug.startsWith('guides/');
   const breadcrumb = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">FurniDraw</a><span aria-hidden="true"> / </span>`
@@ -251,12 +253,12 @@ export function guideBody(c: MarketingCopy, guide: Guide): string {
   return `<a class="skip-link" href="#main">${e(c.skip)}</a><header><div class="wrap nav"><a class="logo" href="/">FurniDraw<i>.</i></a>`
     + `<nav aria-label="FurniDraw"><a class="l" href="/">Home</a><a class="l" href="/pricing/">${e(h.pricingLabel)}</a>`
     + `<a class="guides-nav" href="/guides/">Guides</a>${languageMenu(c)}`
-    + `<a class="btn sm" href="/editor/?lang=${c.lang}">Open the studio ↗</a></nav></div></header>`
+    + `<a class="btn sm" href="${e(editorHref)}">Open the studio ↗</a></nav></div></header>`
     + `<main id="main" class="guide-page wrap">`
     + `<section class="guide-hero">${breadcrumb}`
     + `<div class="eyebrow">${e(guide.eyebrow)}</div><h1>${e(guide.heading).replace('\n', '<br>')}</h1><p class="sub">${e(guide.intro)}</p>`
     + bylineHtml
-    + `<a class="btn" href="/editor/?lang=${c.lang}">${e(c.start)} ${arrow}</a></section>`
+    + `<a class="btn" href="${e(editorHref)}">${e(c.start)} ${arrow}</a></section>`
     + `<div class="guide-content${informational ? ' information-content' : ''}"><article class="guide-article">${guide.sections.map(s =>
       `<section><h2>${e(s.title)}</h2><p>${renderBody(s.body)}</p>${s.list ? `<ul>${s.list.map(t => `<li>${renderBody(t)}</li>`).join('')}</ul>` : ''}</section>`).join('')}`
     + hubGrid
@@ -264,7 +266,7 @@ export function guideBody(c: MarketingCopy, guide: Guide): string {
       + `${guide.faqs.map(([q, a]) => `<details><summary>${e(q)}</summary><p>${e(a)}</p></details>`).join('')}</section>` : '')
     + `<a class="text-link" href="mailto:support@furnidraw.com">Contact support@furnidraw.com ${arrow}</a></article>`
     + `${informational ? '<div class="fitting-room" data-nosnippet style="display:none"></div>'
-      : `<aside id="fitting-room" aria-label="${e(c.study)}">${guide.slug === 'kitchen-cabinet-design-software' ? kitchenStudy(c) : fittingRoom(c, guide.shape)}</aside>`}</div>`
+      : `<aside id="fitting-room" aria-label="${e(c.study)}">${kitchen ? kitchenStudy(c) : fittingRoom(c, guide.shape)}</aside>`}</div>`
     + `<section class="related"><div class="eyebrow">KEEP EXPLORING</div><div class="related-links">${guides.filter(g => g.slug !== guide.slug && g.slug !== 'guides').map(g =>
       `<a href="/${g.slug}/">${e(g.label)} ${arrow}</a>`).join('')}</div></section>`
     + `</main>${footerHtml(c)}`;

@@ -59,6 +59,8 @@ export function createCreditsClient(platform: CreditsPlatform) {
     },
     confirm: (orderId: string) => call<OrderConfirmation>('/api/credits/orders/' + encodeURIComponent(orderId)),
     async spend(feature: string, key: string) {
+      const passHours = wallet?.features.find(item => item.key === feature)?.passHours;
+      if (passHours && platform.saveDesignForPass && !await platform.saveDesignForPass()) throw new CreditUserError(undefined);
       const receipt = await call<SpendReceipt>('/api/credits/spend', { method: 'POST', body: JSON.stringify({ feature, key, scope: platform.designId() }) });
       await refresh().catch(() => balance(receipt.balance));
       return receipt;

@@ -25,6 +25,7 @@ export interface RevealPorts {
   night(): void;
   workshop(): void;
   autoDesign(): void;
+  drawings(): void;
 }
 
 const MOON = 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z', PLAN = 'M4 4h16v16H4zM4 9h16M9 9v11M13 13h4M13 16h4', SPARK = 'M5 19 17 7M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1z';
@@ -55,9 +56,11 @@ export function createReveal(ports: RevealPorts) {
     card.querySelector('.xp-reveal-body')!.innerHTML = `<h2>${title}</h2><p class="xp-line">${line}</p>
       <ul>${s.rows.map((r, k) => `<li style="--d:${k * 70}ms" class="${r.holds < r.asked ? 'short' : ''}">${svg(possessionIcon(r.possession))}<span>${r.possession.label}</span>
         <b>${Math.min(r.holds, r.asked)}<small>/${r.asked}</small></b><i><i style="width:${Math.min(100, r.holds / r.asked * 100)}%"></i></i></li>`).join('')}</ul>
-      <div class="xp-reveal-actions">${s.all ? '' : `<button type="button" data-go="auto">${svg(SPARK)}More layouts</button>`}
+      <div class="xp-reveal-actions">
         <button type="button" data-go="night">${svg(MOON)}See it at night</button><button type="button" data-go="workshop">${svg(PLAN)}Workshop</button>
-        <button type="button" class="xp-primary" data-go="close">Keep designing</button></div>`;
+        ${s.all
+          ? `<button type="button" class="xp-primary" data-go="drawings">${svg(PLAN)}View dimensioned drawings</button>`
+          : `<button type="button" class="xp-primary" data-go="auto">${svg(SPARK)}Adjust my layout</button>`}</div>`;
     card.classList.toggle('all', s.all);
     card.dataset.sheetPosition = 'compact';
     card.classList.add('show');
@@ -71,12 +74,13 @@ export function createReveal(ports: RevealPorts) {
     const go = (e.target as HTMLElement).closest<HTMLElement>('[data-go],.xp-reveal-close');
     if (!go) return;
     const where = go.dataset.go;
+    hide();
     if (where === 'night') ports.night();
     if (where === 'workshop') ports.workshop();
     if (where === 'auto') ports.autoDesign();
-    hide();
+    if (where === 'drawings') ports.drawings();
   });
-  /** Gives keyboard focus to Keep designing (after the welcome closed under it). */
+  /** Gives keyboard focus to the primary action after the welcome closes. */
   const focus = () => card.querySelector<HTMLElement>('.xp-primary')?.focus({ preventScroll: true });
   lifetime.listen(card, 'keydown', e => { if ((e as KeyboardEvent).key === 'Escape') hide(); });
   return { show, hide, focus, isOpen: () => card.classList.contains('show'), dispose() { card.remove(); } };

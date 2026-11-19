@@ -77,9 +77,9 @@ export function connectSessions(platform: SessionPlatform, editor: ReturnType<ty
     get id() { return saver.document.id; },
     get persisted() { return persisted; },
     /** Saves the design to the account now, without closing the editor. False when it could not be saved (offline). */
-    save: () => ordered(async () => {
-      if (!begin()) return true;
-      try { await flush(); } catch (error) { return error instanceof DesignUnavailableError; }
+    save: (force = false) => ordered(async () => {
+      if (!begin(force)) return true;
+      try { await flush(); } catch (error) { return !force && error instanceof DesignUnavailableError; }
       return !!repository;
     }),
     /** Caller freezes editor input until this resolves; no later capture may read a new editor. */

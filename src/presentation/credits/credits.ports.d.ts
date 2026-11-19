@@ -4,6 +4,8 @@ export interface CreditsPlatform {
   accessToken(): Promise<string | null>;
   /** The design that open passes belong to (technical drawings stay free for it for 24 hours). */
   designId(): string | null;
+  /** Saves a new starter before spending credits on a pass tied to its design ID. */
+  saveDesignForPass?(): Promise<boolean>;
   /** Leaves for a hosted checkout. The design is saved as a browser draft on the way out. */
   redirect(url: string): void;
   /** A checkout that just sent the person back to the editor, read once at start. */

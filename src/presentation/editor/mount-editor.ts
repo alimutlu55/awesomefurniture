@@ -50,6 +50,7 @@ export interface MountEditorOptions {
     account?: AccountPlatform | undefined;
     /** Product analytics (src/app/analytics-platform.ts); without it nothing is measured. */
     analytics?: AnalyticsPort | undefined;
+    onDesignEdit?: ((pieceCount: number) => void) | undefined;
     cameraPerspective?: 'front' | 'scene' | undefined;
     /** Scene keeps the photographic backdrop for embedded product previews. */
     backdrop?: 'paper' | 'scene' | undefined;
@@ -57,7 +58,7 @@ export interface MountEditorOptions {
 const markup = withPossessionFields(rawMarkup);
 const mounted = new WeakSet<HTMLElement>();
 /** Each editor owns a separate DOM tree, controls, focus, working scene and lifetime. */
-export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, analytics = noopAnalytics, cameraPerspective, backdrop = 'paper' }: MountEditorOptions) {
+export function mountEditor({ root, initialScene, shareLink, onBack, credits, account, analytics = noopAnalytics, onDesignEdit, cameraPerspective, backdrop = 'paper' }: MountEditorOptions) {
     if (mounted.has(root))
         throw new Error('This container already contains a mounted editor.');
     mounted.add(root);
@@ -83,7 +84,7 @@ export function mountEditor({ root, initialScene, shareLink, onBack, credits, ac
     });
     let editor:ReturnType<typeof startEditor>|undefined;
     try {
-        editor = startEditor(initialScene, dom, shareLink, credits, account, cameraPerspective, analytics.track);
+        editor = startEditor(initialScene, dom, shareLink, credits, account, cameraPerspective, analytics.track, onDesignEdit);
         if (onBack) {
             dom.$('#view-modes').setAttribute('aria-label', 'Design navigation and editing mode');
             const back = dom.$('#designs-back');

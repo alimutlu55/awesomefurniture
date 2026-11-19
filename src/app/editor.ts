@@ -10,6 +10,8 @@ import { takeCheckoutReturn } from './credit-platform';
 import { createLoadingPlaceholder } from '../presentation/components/loading-state';
 import { createAnalyticsPlatform, sessionStart } from './analytics-platform';
 import type { SessionPlatform } from './session-bootstrap';
+import { starterDesignFromUrl } from '../domain/project/starter-design';
+import { buildStarterDesign } from '../application/projects/build-starter-design';
 import '../presentation/components/loading-state.css';
 
 const root=document.querySelector<HTMLElement>('#editor-root');
@@ -37,7 +39,9 @@ async function main(): Promise<void> {
  const checkout=takeCheckoutReturn(new URL(location.href),history);
  const url=new URL(location.href);
  preloadOakTextures(document);
- platform=await prepareSession(url);
+ const requestedStarter = starterDesignFromUrl(url);
+ const starter = requestedStarter && buildStarterDesign(requestedStarter, crypto.randomUUID());
+ platform=await prepareSession(url, starter);
  const session=platform;
  if(session.sharedSession) analytics.track('shared_link_opened',{link_kind:'session',status:session.sharedSession});
  // A design link opens that design, on loading and when the link changes: #design= is a design someone
@@ -57,10 +61,14 @@ async function main(): Promise<void> {
   if(built?.project) editor?.replaceDesign(built.project);
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- analytics.track('editor_session_started',sessionStart(url,session));
+ analytics.track('editor_session_started', sessionStart(url, session, starter && requestedStarter?.kind));
  const workspace=createDesignWorkspace({root:root!,platform:session,analytics,changed:value=>{editor=value;(window as unknown as {__furnidrawEditor?: typeof value}).__furnidrawEditor=value;},initialLink:openLink,checkout});
  startup.remove();
  await workspace.start();
+ if (starter && requestedStarter) {
+  analytics.track('starter_design_loaded', { product: requestedStarter.kind });
+  if (requestedStarter.kind === 'kitchen') workspace.notify('Use Add to place another kitchen cabinet.');
+ }
  window.addEventListener('hashchange',openLink);
  const dispose=()=>{window.removeEventListener('hashchange',openLink);workspace.dispose();analytics.dispose();};
  window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();},{once:true});

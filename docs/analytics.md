@@ -41,6 +41,12 @@ to doing nothing, so tests and embedded editors need no change. `editor-runtime.
 each. Scene commands that add things (pieces, shape presets, room edits) are counted by `withDesignAnalytics`
 (`presentation/editor/piece-analytics.ts`), only when the command changed the design.
 
+Starter entries use `wardrobe_starter` or `kitchen_starter` in `editor_session_started`, with the landing page in
+`referrer_path` when available. `starter_design_loaded` confirms the editor opened the starter. The first
+`design_first_work_committed` in a visit comes from a design-changing edit or a guided build, independent of saving.
+Older events used the first autosave of a new design as a proxy, so activation rates across the change use different definitions.
+An explicit “Design it myself” click is recorded as `welcome_skipped` with `manual: true`.
+
 ## Adding an event
 
 1. Add it to `AnalyticsEventMap` with its properties, and to `ANALYTICS_EVENTS` with its pillar (TypeScript fails until

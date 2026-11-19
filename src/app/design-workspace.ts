@@ -12,6 +12,7 @@ import { createAccountPlatform } from './account-platform';
 import { createLoadingState, paintLoading } from '../presentation/components/loading-state';
 import { noopAnalytics, type AnalyticsPort } from '../application/analytics/analytics-port';
 import type { AnalyticsEventMap } from '../domain/analytics/analytics-events';
+import { starterDesignFromUrl } from '../domain/project/starter-design';
 
 interface WorkspaceOptions {
   root: HTMLElement;
@@ -33,9 +34,16 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   let currentId: string | null = platform.drafts.read()?.document.id ?? null;
   let pending: Promise<unknown> = Promise.resolve();
   let disposed = false, navigation = 0;
+  const opened = Date.now();
+  const initialStarterUrl = starterDesignFromUrl(new URL(location.href)) ? location.href : null;
+  let firstWork = false;
   const previewCache = new Map<string, string>();
   const credits = createCreditPlatform(platform, {
     designId: () => currentId,
+    saveDesignForPass: () => ordered(async () => {
+      if (!initialStarterUrl || current.draft.document.id !== platform.draft.document.id) return true;
+      return !!sessions && await sessions.save(true);
+    }),
   }, checkout);
   // Signing out erases this browser's copy of the designs, so everything open is saved to the account first.
   const account = createAccountPlatform(platform, { save: () => ordered(async () => sessions ? sessions.save() : true) });
@@ -51,7 +59,9 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
     return operation;
   }
   function route(kind: 'designs' | 'editor', replace = false) {
-    const url = new URL(location.href); url.search = ''; url.hash = '';
+    const url = new URL(location.href);
+    if (kind === 'editor' && !currentId && starterDesignFromUrl(url)) return;
+    url.search = ''; url.hash = '';
     if (kind === 'designs') url.searchParams.set('view', 'designs');
     else if (currentId) url.searchParams.set('session', currentId);
     if (url.href !== location.href) history[replace ? 'replaceState' : 'pushState'](null, '', url);
@@ -100,10 +110,14 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   async function attach(design: OpenDesign, initialize = false) {
     root.hidden = false;
     let connection: ReturnType<typeof connectSessions> | null = null;
-    const opened = Date.now();
     analytics.setDesign(design.draft.document.id);
     const editor = mountEditor({
       root, initialScene:projectToScene(design.draft.document), credits, account, analytics,
+      onDesignEdit: pieceCount => {
+        if (firstWork) return;
+        firstWork = true;
+        analytics.track('design_first_work_committed', { time_to_first_work_ms: Date.now() - opened, piece_count: pieceCount });
+      },
       onBack: () => {
         if (transition.active) return;
         transition.start();
@@ -129,8 +143,6 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
         editor.notify('Another tab changed this design. Your work is kept in a recovered copy.');
       }, id => {
         currentId = id;
-        // A new design just got its first real change: the activation moment.
-        analytics.track('design_first_work_committed', { time_to_first_work_ms: Date.now() - opened, piece_count: editor.scene().wardrobes.length });
         if (!library.visible) route('editor', true);
       });
       sessions = connection;
@@ -202,6 +214,8 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
           const design = await collection.open(id);
           if (token !== navigation) return;
           await release(); await attach(design); library.hide(); route('editor', true);
+        } else if (!mounted && url.href === initialStarterUrl) {
+          await attach({ draft: platform.draft, saved: false, deferCreation: true }); library.hide();
         } else if (!mounted && currentId) await open(currentId, false);
         else if (!mounted) await showDesigns(false);
       }
@@ -230,6 +244,7 @@ export function createDesignWorkspace({ root, platform, changed, initialLink, ch
   window.addEventListener('popstate', popstate);
   window.addEventListener('storage', storage);
   return {
+    notify: (message: string) => mounted?.notify(message),
     async start() {
       if (new URL(location.href).searchParams.get('view') === 'designs') {
         root.hidden = true; library.show(); await refresh();

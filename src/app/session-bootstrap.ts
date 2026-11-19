@@ -3,7 +3,7 @@ import { createBrowserDrafts } from '../infrastructure/persistence/browser-draft
 import { loadPublicSession, SupabaseProjectRepository } from '../infrastructure/supabase/project-repository';
 import { resolveSupabaseProject } from '../infrastructure/supabase/project-config';
 import { handOver, refreshGuest, type Handover } from '../infrastructure/account/guest-handover';
-import { createProject } from '../domain/project/project';
+import { createProject, type ProjectDocument } from '../domain/project/project';
 import type { SessionDraft } from '../application/projects/session-autosave';
 import { authCaptchaOptions } from '../infrastructure/account/auth-captcha';
 
@@ -12,7 +12,7 @@ import { authCaptchaOptions } from '../infrastructure/account/auth-captcha';
  * signing in, a guest that has real work is offered to the person (nothing moves unless they agree), and the editor
  * opens the account's own designs meanwhile.
  */
-export async function prepareSession(url: URL) {
+export async function prepareSession(url: URL, starter?: ProjectDocument | null) {
   const project = resolveSupabaseProject(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
   const client = createBrowserSupabase(project.url, project.publishableKey);
   async function identity() {
@@ -102,6 +102,8 @@ export async function prepareSession(url: URL) {
   } else if (requestedId) {
     draft = drafts.read(requestedId);
     if (!draft) throw new Error('This design is not available in this browser while cloud saving is unavailable.');
+  } else if (starter) {
+    draft = { document: starter, expectedRevision: null };
   } else if (!hasInline) {
     await restore();
   }

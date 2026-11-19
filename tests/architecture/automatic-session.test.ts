@@ -166,7 +166,7 @@ test('closing retains local recovery on a cloud failure, but refuses navigation 
   }
 });
 
-for (const action of ['none', 'edit', 'unload-edit', 'share'] as const) {
+for (const action of ['none', 'edit', 'unload-edit', 'share', 'drawing-pass'] as const) {
   test(`fresh landing defers all storage until meaningful action: ${action}`, async () => {
     const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
     const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
@@ -215,6 +215,10 @@ for (const action of ['none', 'edit', 'unload-edit', 'share'] as const) {
       } else if (action === 'share') {
         assert.equal(new URL(await connection.share()).searchParams.get('session'), 'fresh');
         assert.equal((await memory.list()).length, 1);
+      } else if (action === 'drawing-pass') {
+        assert.equal(await connection.save(true), true);
+        assert.equal(drafts.read()?.document.id, connection.id);
+        assert.ok(await memory.load(connection.id), 'the pass can be tied to a saved design before any edits');
       }
       await connection.close();
       if (action === 'none') {

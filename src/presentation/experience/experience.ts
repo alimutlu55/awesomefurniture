@@ -43,7 +43,7 @@ export interface ExperiencePorts {
   /** Shows a design without an undo step (a preview), or puts one in as one undo step, framed whole. */
   readonly design: { preview(project: ProjectDocument): void; replace(project: ProjectDocument): void; snapshot(): string; restore(snapshot: string): void };
   drawings(): void;
-  autoDesign(): void;
+  autoDesign(cabinetId?: number): void;
   closeMenu(): void;
   /** Product analytics: the welcome, the reveal and changes of mood. */
   track?: TrackEvent | undefined;
@@ -107,7 +107,13 @@ export function mountExperience(ports: ExperiencePorts) {
   const reveal = createReveal({ container: dom.$('#app'), document: doc, lifetime, docked,
     night: () => { track('fit_reveal_action_clicked', { action: 'see_at_night' }); change({ time: 'night', look: mood.look === 'workshop' ? 'living' : mood.look }); },
     workshop: () => { track('fit_reveal_action_clicked', { action: 'workshop' }); change({ look: 'workshop' }); },
-    autoDesign: () => { track('fit_reveal_action_clicked', { action: 'more_layouts' }); ports.autoDesign(); } });
+    autoDesign: () => {
+      track('fit_reveal_action_clicked', { action: 'adjust_layout' });
+      const scene = ports.scene();
+      const shortage = describeScene(scene).wardrobes.findIndex(wardrobe => Object.values(wardrobe.holds).some(item => item.holds < item.asked));
+      ports.autoDesign(scene.wardrobes[shortage]?.id);
+    },
+    drawings: () => { track('fit_reveal_action_clicked', { action: 'view_drawings' }); ports.drawings(); } });
   lifetime.cleanup(() => reveal.dispose());
 
   // The welcome: the room previews behind it; Build plans in the background, then the wardrobe assembles.

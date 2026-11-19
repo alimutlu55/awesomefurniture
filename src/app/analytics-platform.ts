@@ -31,13 +31,13 @@ export function entryOf(url: URL, referrer: string): { source: AnalyticsEntrySou
 }
 
 /** What `editor_session_started` says about this visit, read once at start-up. */
-export function sessionStart(url: URL, platform: Pick<SessionPlatform, 'client' | 'draft' | 'saved' | 'deferCreation'>):
+export function sessionStart(url: URL, platform: Pick<SessionPlatform, 'client' | 'draft' | 'saved' | 'deferCreation'>, starter?: 'wardrobe' | 'kitchen' | null):
   AnalyticsEventMap['editor_session_started'] {
   const hash = new URLSearchParams(url.hash.slice(1)), utm = (name: string) => url.searchParams.get('utm_' + name)?.slice(0, 64) ?? null;
-  const entry_type = hash.has('design') ? 'design_hash' : hash.has('spec') ? 'spec_hash'
+  const entry_type: AnalyticsEventMap['editor_session_started']['entry_type'] = hash.has('design') ? 'design_hash' : hash.has('spec') ? 'spec_hash'
     : url.searchParams.get('view') === 'designs' ? 'library'
       : url.searchParams.has('session') ? 'shared_session'
-        : platform.saved ? 'restored_cloud' : platform.deferCreation ? 'new' : 'restored_draft';
+        : starter ? `${starter}_starter` : platform.saved ? 'restored_cloud' : platform.deferCreation ? 'new' : 'restored_draft';
   return { entry_type, utm_source: utm('source'), utm_medium: utm('medium'), utm_campaign: utm('campaign'), cloud_available: !!platform.client };
 }
 

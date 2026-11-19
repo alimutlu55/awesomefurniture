@@ -46,9 +46,10 @@ export function createWelcome(ports: WelcomePorts) {
   let open = false, prepareTimer: unknown = null, openedAt = 0, previewed = new Set<string>();
   const track: TrackEvent = ports.track ?? (() => {});
   /** Closed without building: back to the design as it was. */
-  function dismiss() {
-    if (open && step !== 'building') track('welcome_skipped', { abandoned_at_step: step === 'things' ? 'things' : 'space', space_id: chosen.id, time_spent_ms: Date.now() - openedAt });
+  function dismiss(manual = false) {
+    if (open && step !== 'building') track('welcome_skipped', { abandoned_at_step: step === 'things' ? 'things' : 'space', space_id: chosen.id, time_spent_ms: Date.now() - openedAt, manual });
     close(); ports.skip();
+    if (manual) ports.container.querySelector<HTMLButtonElement>('[data-editor-id="add-furniture-btn"]')?.focus();
   }
   const root = doc.createElement('div');
   root.className = 'pop editor-panel xp-welcome';
@@ -72,7 +73,11 @@ export function createWelcome(ports: WelcomePorts) {
       <div class="xp-loom" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><p class="xp-lede xp-busy" role="status" aria-live="polite"></p>
     </div>
     <p class="xp-problem" role="alert" hidden></p>
-    <div class="xp-foot"><span class="xp-total" aria-live="polite"></span><button type="button" class="xp-back">Back</button><button type="button" class="xp-next"></button></div>`;
+    <div class="xp-foot">
+      <button type="button" class="xp-manual">Design it myself</button>
+      <span class="xp-total" aria-live="polite"></span>
+      <button type="button" class="xp-back">Back</button><button type="button" class="xp-next"></button>
+    </div>`;
   ports.container.append(root);
   const $ = <T extends Element = HTMLElement>(s: string) => root.querySelector(s) as T;
   const $$ = <T extends Element = HTMLElement>(s: string) => [...root.querySelectorAll(s)] as T[];
@@ -91,7 +96,8 @@ export function createWelcome(ports: WelcomePorts) {
       li.classList.toggle('none', !(belongings[li.dataset.thing!] ?? 0));
     }
     const total = countBelongings(belongings);
-    $('.xp-total').textContent = step === 'things' ? `${total} ${total === 1 ? 'thing' : 'things'}` : step === 'space' ? chosen.line : '';
+    $('.xp-total').textContent = step === 'things' ? `${total} ${total === 1 ? 'thing' : 'things'}` : '';
+    $('.xp-manual').hidden = step !== 'space';
     $('.xp-back').hidden = step !== 'things';
     $('.xp-next').textContent = step === 'space' ? 'Next' : 'Build';
     $('.xp-foot').hidden = step === 'building';
@@ -154,6 +160,7 @@ export function createWelcome(ports: WelcomePorts) {
       return;
     }
     if (target.closest('.xp-back')) { go('space'); return; }
+    if (target.closest('.xp-manual')) { dismiss(true); return; }
     if (target.closest('.xp-close') && step !== 'building') { dismiss(); }
   });
   // − and + count on each tap; held down, they repeat, faster the longer they are held.

@@ -19,7 +19,7 @@ import { createModulePort } from './module-port';
 import { createScenePicking } from './scene-picking.js';
 import { createThreeViewport } from '../viewport/three-viewport';
 import { applyViewportSession } from '../viewport/project-view';
-import { projectToScene } from '../../application/projects/editor-mapper';
+import { projectToScene, sceneDesignKey } from '../../application/projects/editor-mapper';
 import { createViewportResources } from '../viewport/viewport-resources.js';
 import { capturePreview } from '../viewport/capture-preview';
 import { captureDesignReferences } from '../viewport/capture-design-references';
@@ -69,7 +69,8 @@ import { withDesignAnalytics } from './piece-analytics';
 import { furnitureKind } from '../../domain/furniture/furniture';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
 export function startEditor(initialScene: EditorScene | undefined, dom: ReturnType<typeof createEditorDom>, shareLink?: (scene: EditorScene) => Promise<string>,
-    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform, cameraPerspective?: 'front' | 'scene', track: TrackEvent = () => {}) {
+    creditsPlatform?: CreditsPlatform, accountPlatform?: AccountPlatform, cameraPerspective?: 'front' | 'scene', track: TrackEvent = () => {},
+    onDesignEdit?: (pieceCount: number) => void) {
     const { $ } = dom;
     const lifetime = createEditorLifetime();
     lifetime.cleanup(() => dom.dispose());
@@ -86,7 +87,22 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
     try {
         const resources = createViewportResources($('#c'));
         lifetime.cleanup(() => resources.dispose());
-        const history = createSceneHistory(model.snapshot, model.restore);
+        const sceneHistory = createSceneHistory(model.snapshot, model.restore);
+        let reportedEdit = false;
+        // Commands checkpoint before a mutation and gestures checkpoint on release. Compare after
+        // the synchronous edit so a no-op, rejected edit or selection change cannot count.
+        const history = Object.create(sceneHistory) as typeof sceneHistory;
+        history.checkpoint = (before = model.snapshot()) => {
+            sceneHistory.checkpoint(before);
+            if (!onDesignEdit || reportedEdit) return;
+            queueMicrotask(() => {
+                if (reportedEdit || !sceneHistory.undoCount) return;
+                model.snapshot();
+                if (sceneDesignKey(JSON.parse(before) as EditorScene) === sceneDesignKey(model.scene)) return;
+                reportedEdit = true;
+                onDesignEdit(model.scene.wardrobes.length);
+            });
+        };
         const geometry = createWardrobeGeometry(() => model.activeCabinet().state, () => settings.budget);
         const cabinetGeometry = createCabinetGeometry(() => model.scene.wardrobes, () => studioObstacles(model.scene.studio));
         const plannerService = createPlannerService();
@@ -261,8 +277,11 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         }) });
         // The welcome, the wardrobe assembling itself, and the moods of the scene: drawn over the editor.
         const experience = mountExperience({ dom, lifetime, resources, renderState, cameraState, camera, scene: () => model.scene,
-            design: { preview: project => showDesign(project, false), replace: replaceDesign, snapshot: model.snapshot, restore: snapshot => showScene(snapshot, true) },
-            drawings: () => drawings.open(), autoDesign: () => planner.openWizard(), closeMenu: () => shell.closeDD(), track });
+            design: { preview: project => showDesign(project), replace: project => showDesign(project, history.checkpoint), snapshot: model.snapshot, restore: snapshot => showScene(snapshot, true) },
+            drawings: () => drawings.open(), autoDesign: cabinetId => {
+                if (cabinetId !== undefined && model.select(cabinetId)) inspector.update(false);
+                planner.openWizard();
+            }, closeMenu: () => shell.closeDD(), track });
         shapeInspector.bind((target, type, handler) => lifetime.listen(target, type, handler));
         studioPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
         kitchenPanel.bind((target, type, handler) => lifetime.listen(target, type, handler));
@@ -281,14 +300,14 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         lifetime.frame(() => lifetime.frame(() => clothingWarmup.prepare()));
         /** Puts a whole design in the editor (one an agent built, or an import) as one undo step, framed whole. */
         function replaceDesign(project: ProjectDocument) {
-            showDesign(project, true);
+            showDesign(project, sceneHistory.checkpoint);
         }
         /** Shows a design, framed whole: as one undo step, or as a preview that leaves the history and the open
          * panel (the welcome showing it) alone. */
-        function showDesign(project: ProjectDocument, record: boolean) {
+        function showDesign(project: ProjectDocument, checkpoint?: () => void) {
             const next = projectToScene(project) ?? createEditorModel().scene;
-            if (record) history.checkpoint(model.snapshot());
-            showScene(JSON.stringify(next), !record);
+            checkpoint?.();
+            showScene(JSON.stringify(next), !checkpoint);
             checkInstallation();
         }
         function checkInstallation() {

@@ -10,16 +10,17 @@ type Style = 'realistic' | 'studio' | 'concept';
 
 export interface AnalyticsEventMap {
   // Acquisition and start-up
-  editor_session_started: { entry_type: 'new' | 'restored_draft' | 'restored_cloud' | 'shared_session' | 'design_hash' | 'spec_hash' | 'library';
+  editor_session_started: { entry_type: 'new' | 'wardrobe_starter' | 'kitchen_starter' | 'restored_draft' | 'restored_cloud' | 'shared_session' | 'design_hash' | 'spec_hash' | 'library';
     utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; cloud_available: boolean };
   editor_startup_failed: { reason: 'webgl_unavailable' | 'storage_error' | 'unknown' };
+  starter_design_loaded: { product: Product };
   shared_link_opened: { link_kind: 'session' | 'design_hash' | 'spec_hash'; status: 'opened' | 'invalid' };
   agent_api_invoked: { method: 'help' | 'check' | 'build' | 'link' | 'describe'; ok: boolean };
   // Welcome and experience
   welcome_opened: { trigger: 'initial_empty_design' | 'menu_plan_from_owned' };
   welcome_space_selected: { space_id: string; previewed_spaces_count: number };
   welcome_built: { space_id: string; persona_id: string; total_belongings: number; build_ok: boolean; duration_ms: number };
-  welcome_skipped: { abandoned_at_step: 'space' | 'things'; space_id: string; time_spent_ms: number };
+  welcome_skipped: { abandoned_at_step: 'space' | 'things'; space_id: string; time_spent_ms: number; manual?: boolean };
   fit_reveal_shown: { everything_fits: boolean; placed_count: number; missing_count: number };
   fit_reveal_action_clicked: { action: string };
   scene_mood_changed: { setting: 'look' | 'time' | 'lens' | 'sound'; value: string };
@@ -76,7 +77,7 @@ interface EventDefinition {
 
 /** Every event, once. The Worker accepts only these names (and none marked `server` from a browser). */
 export const ANALYTICS_EVENTS = {
-  editor_session_started: { pillar: 'acquisition' }, editor_startup_failed: { pillar: 'acquisition' },
+  editor_session_started: { pillar: 'acquisition' }, editor_startup_failed: { pillar: 'acquisition' }, starter_design_loaded: { pillar: 'activation' },
   shared_link_opened: { pillar: 'acquisition' }, agent_api_invoked: { pillar: 'acquisition' },
   welcome_opened: { pillar: 'activation' }, welcome_space_selected: { pillar: 'activation' }, welcome_built: { pillar: 'activation' },
   welcome_skipped: { pillar: 'activation' }, fit_reveal_shown: { pillar: 'activation' }, fit_reveal_action_clicked: { pillar: 'activation' },

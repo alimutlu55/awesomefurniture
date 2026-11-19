@@ -15,6 +15,7 @@ export function takeCheckoutReturn(url: URL, history: Pick<History, 'replaceStat
 interface Workspace {
   /** The open design's id, for passes. */
   designId(): string | null;
+  saveDesignForPass(): Promise<boolean>;
 }
 
 /**
@@ -31,6 +32,7 @@ export function createCreditPlatform(platform: SessionPlatform, workspace: Works
       return data.session?.access_token ?? null;
     },
     designId: workspace.designId,
+    saveDesignForPass: workspace.saveDesignForPass,
     redirect(url) { location.assign(url); },
     returned() { const value = returned; returned = null; return value; },
   };

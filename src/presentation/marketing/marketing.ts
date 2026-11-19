@@ -2,9 +2,11 @@ import './marketing.css';
 import { editorEntry } from './entry-route';
 import { mountThemeToggle } from './theme-toggle';
 import { mountLanguagePicker } from './language-picker';
+import { mountWardrobeStudy } from './wardrobe-study';
 
 mountThemeToggle();
 mountLanguagePicker();
+mountWardrobeStudy(document);
 
 // Shared links and checkout returns must reach the editor with their payload intact.
 const destination = editorEntry(location.href);
