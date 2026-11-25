@@ -78,8 +78,8 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         if (refresh) update();
     }
     function addCabinet(copy = false, template, wall, size = {}) {
-        // A new wardrobe stands against the wall in view, in front of the viewer.
-        const w = sceneCommands.addCabinet(copy, template, wall, !copy && !wall ? { ...viewedPlacement(model.scene.studio, resources.cam), ...size } : {});
+        const placement = !copy && !wall ? { ...viewedPlacement(model.scene.studio, resources.cam), fallbackToRoom: true, ...size } : {};
+        const w = sceneCommands.addCabinet(copy, template, wall, placement);
         if (!w) return false;
         selectionState.room = null;
         if (template && template !== 'regular') selectionState.shapeEditing = true;

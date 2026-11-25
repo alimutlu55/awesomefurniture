@@ -8,6 +8,7 @@ import { emptyCabinet } from '../projects/editor-model';
 import { startingScene } from '../projects/editor-mapper';
 import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet';
 import { applyPiecePreset } from './piece-preset-commands';
+import { piecePreset } from '../../domain/furniture/piece-presets';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
@@ -142,8 +143,9 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             if (scene.wardrobes.length) cabinet.x = Math.round((bounds.x + bounds.w / 2 + collision.cabinetBounds(cabinet).hw + 15) * 10) / 10;
             const placed = placeCreatedCabinet(scene, cabinet, copy, wall, size);
             if (!placed) {
-                report(wall || size.placementWall ? 'The wardrobe does not fit on this wall within the room and its ceiling.'
-                    : 'The wardrobe does not fit in the available studio space.');
+                const label = copy ? original.name : piecePreset(size.preset)?.name ?? 'Wardrobe';
+                report(wall || (size.placementWall && !size.fallbackToRoom) ? label + ' does not fit on the selected wall.'
+                    : label + ' does not fit in the available room space.');
                 return null;
             }
             cabinet = placed;

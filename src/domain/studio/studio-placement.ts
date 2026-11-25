@@ -7,6 +7,7 @@ import { MIN_CABINET_DEPTH } from '../wardrobe/cabinet-limits';
 import { wallFace, wallLine } from './studio';
 import { reachAt } from './studio-ceiling';
 import type { Studio, StudioWall } from './studio';
+import { boundedRoomPolygons } from './room-polygons';
 
 export interface Pose { readonly x: number; readonly z: number; readonly angle: number }
 export interface Footprint { readonly w: number; readonly d: number }
@@ -52,6 +53,36 @@ export function placeAgainstWall(studio: Studio, size: Footprint, collides: Coll
     for (const along of [min, max]) {
       const pose = flush(studio, w, along, size);
       if (pose && !collides(pose)) return pose;
+    }
+  }
+  return null;
+}
+
+/** Try the centre of an enclosed room first, then work outward in floor coordinates. */
+export function placeOnRoomFloor(studio: Studio, size: Footprint, collides: Collides, angle: number): Pose | null {
+  const samples = (min: number, max: number) => {
+    if (min > max) return [];
+    const mid = (min + max) / 2, positions = [mid];
+    for (let offset = 10; mid + offset < max; offset += 10) positions.push(mid - offset, mid + offset);
+    return positions.concat(min, max);
+  };
+  for (const room of boundedRoomPolygons(studio)) {
+    const xs = room.map(p => p.x), zs = room.map(p => p.z);
+    for (const turn of [angle, (angle + 90) % 360]) {
+      const oriented = { x: 0, z: 0, angle: turn };
+      const halfX = reach(oriented, size, 1, 0), halfZ = reach(oriented, size, 0, 1);
+      const rows = samples(Math.min(...zs) + halfZ, Math.max(...zs) - halfZ);
+      const columns = samples(Math.min(...xs) + halfX, Math.max(...xs) - halfX);
+      for (const z of rows) for (const x of columns) {
+        let inside = false;
+        for (let i = 0; i < room.length; i++) {
+          const a = room[i]!, b = room[(i + 1) % room.length]!;
+          if ((a.z > z) !== (b.z > z) && x < a.x + (b.x - a.x) * (z - a.z) / (b.z - a.z)) inside = !inside;
+        }
+        // Check the centre is in the room and let collision rules check the full footprint.
+        const pose = { x, z, angle: turn };
+        if (inside && !collides(pose)) return pose;
+      }
     }
   }
   return null;

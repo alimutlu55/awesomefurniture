@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
-import { rectangleStudio } from '../../src/domain/studio/studio-templates';
+import { createStudio, rectangleStudio } from '../../src/domain/studio/studio-templates';
 import { studioObstacles } from '../../src/domain/studio/studio-obstacles';
+import { standsAgainst } from '../../src/domain/studio/studio-placement';
+import { presetSize } from '../../src/domain/furniture/piece-presets';
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry';
 import { ceilingClearance } from '../../src/domain/studio/studio-clearance';
 import { resolveShape } from '../../src/domain/wardrobe/shape/wardrobe-shape';
@@ -61,6 +63,46 @@ test('an explicitly selected wall takes priority over the view target', () => {
   const f = fixture(rectangleStudio(300, 500));
   const added = f.commands.addCabinet(false, undefined, 'w2', { w: 180, placementWall: 'w1' });
   assert.ok(added); assert.equal(added.angle, -90); assertPhysics(f);
+});
+
+test('Add furniture keeps the TV unit full size when the wall in view has a chest in the middle', () => {
+  const studio = createStudio('bedroom'), f = fixture(studio);
+  const chest = f.commands.addCabinet(false, 'regular', undefined, { ...presetSize('chest'), placementWall: 'w1' });
+  assert.ok(chest);
+  assert.equal(chest.x, 0);
+  const before = f.model.snapshot();
+  const tv = f.commands.addCabinet(false, 'regular', undefined, {
+    ...presetSize('tv-unit'), placementWall: 'w1', fallbackToRoom: true,
+  });
+  assert.ok(tv);
+  assert.deepEqual([tv.state.w, tv.state.h, tv.state.d], [200, 50, 40]);
+  assert.ok(studio.walls.some(wall => wall.id !== 'w1' && standsAgainst(studio, wall.id, tv, tv.state)));
+  assertPhysics(f);
+  assert.equal(f.history.at(-1), before);
+});
+
+test('Add furniture can use the clear floor when every wall is occupied', () => {
+  const studio = rectangleStudio(400, 350), f = fixture(studio);
+  for (const [i, wall] of studio.walls.entries()) {
+    const from = ((i % 2 ? 350 : 400) - 80) / 2;
+    assert.ok(f.commands.addCabinet(false, 'regular', wall.id, { ...presetSize('chest'), from }));
+  }
+  const tv = f.commands.addCabinet(false, 'regular', undefined, {
+    ...presetSize('tv-unit'), placementWall: 'w1', fallbackToRoom: true,
+  });
+  assert.ok(tv);
+  assert.deepEqual([tv.x, tv.z, tv.state.w, tv.state.h, tv.state.d], [0, 175, 200, 50, 40]);
+  assertPhysics(f);
+});
+
+test('Add furniture reports when the whole room is too small and leaves the scene intact', () => {
+  const f = fixture(rectangleStudio(150, 150)), before = f.model.snapshot();
+  assert.equal(f.commands.addCabinet(false, 'regular', undefined, {
+    ...presetSize('tv-unit'), placementWall: 'w1', fallbackToRoom: true,
+  }), null);
+  assert.deepEqual(f.messages, ['TV unit does not fit in the available room space.']);
+  assert.equal(f.model.snapshot(), before);
+  assert.deepEqual(f.history, []);
 });
 
 test('explicit dimensions and a duplicate that cannot fit are refused atomically', () => {

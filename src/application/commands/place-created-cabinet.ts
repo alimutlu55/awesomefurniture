@@ -4,15 +4,17 @@ import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
 import { studioPlacementObstacles, studioObstacles } from '../../domain/studio/studio-obstacles';
-import { flushAgainst, placeAgainstWall, wallSpot, type Pose } from '../../domain/studio/studio-placement';
-import { roomHeight, wallFace } from '../../domain/studio/studio';
+import { flushAgainst, placeAgainstWall, placeOnRoomFloor, wallSpot, type Pose } from '../../domain/studio/studio-placement';
+import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
 import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { resizeShape, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { createCeilingCommands } from './ceiling-commands';
 
 /** `placementWall`: the wall a new piece goes against (the one in view); `placementAlong`: where on it to start looking, cm along it. */
 export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string; placementAlong?: number;
-  /** The piece preset it is added from (piece-presets.ts), for counting only. */
+  /** Add furniture can look elsewhere when the wall in view is full. */
+  fallbackToRoom?: boolean;
+  /** The piece preset it is added from (piece-presets.ts). */
   preset?: string }
 /** Prepare detached candidates. A failed search never changes the scene, its
  * selection, identity counters or undo history. Requested dimensions stay exact;
@@ -24,9 +26,12 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   if (!Number.isFinite(original.state.d) || original.state.d < minD || original.state.d > maxD) return null;
   const studio = scene.studio;
   const targetWall = wall ?? size.placementWall;
-  const collision = createCabinetGeometry(() => scene.wardrobes, () => studioPlacementObstacles(studio));
+  const roomFallback = size.fallbackToRoom && !copy && !wall && size.from === undefined;
+  const placementObstacles = studioPlacementObstacles(studio);
+  const collision = createCabinetGeometry(() => scene.wardrobes, () => placementObstacles);
   if (!studio) return targetWall || collision.cabinetCollides(original) ? null : original;
-  const wallsOnly = createCabinetGeometry(() => [], () => studioObstacles(studio));
+  const obstacles = studioObstacles(studio);
+  const wallsOnly = createCabinetGeometry(() => [], () => obstacles);
   const ceilings = createCeilingCommands(() => scene, () => {});
   function prepare(pose: Pose, w: number, d: number): EditorCabinet | null {
     if (w < minW || w > maxW || d < minD || d > maxD) return null;
@@ -46,7 +51,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
     }
     state.n = Math.max(1, Math.min(state.n, createWardrobeGeometry(() => state).maxN()));
     state.sel = Math.min(state.sel, state.n - 1);
-    if (ceilings.follow(candidate, false)) return null;
+    if ((!roomFallback || size.h === undefined) && ceilings.follow(candidate, false)) return null;
     const shape = resolveShape(state);
     if (shapeProblems(shape, w).length || ceilingClearance(studio, { ...candidate, w, d })(shape)) return null;
     return collision.cabinetCollides(candidate) ? null : candidate;
@@ -87,6 +92,18 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
       const result = search(min, d, roomWall.id);
       if (result) return result;
     }
+  }
+  if (roomFallback) {
+    const { w, d } = original.state;
+    const elsewhere = targetWall ? search(w, d) : null;
+    if (elsewhere) return elsewhere;
+    const viewed = studio.walls.find(roomWall => roomWall.id === targetWall);
+    const angle = viewed ? wallLine(studio, viewed)?.angle ?? 0 : 0;
+    placeOnRoomFloor(studio, { w, d }, pose => {
+      found = prepare(pose, w, d);
+      return found === null;
+    }, angle);
+    return found;
   }
   return null;
 }
