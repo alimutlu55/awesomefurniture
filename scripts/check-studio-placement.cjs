@@ -30,7 +30,7 @@ const roomSpec={specVersion:1,room:{width:150,depth:115,height:270,openings:[{wa
    assert.equal((await report()).wardrobes.length,0);
    if(scenario==='sloped' && width===375) await page.screenshot({path:'/tmp/wardrobe-studio-ui-before.png'});
    await page.locator('[data-editor-id="add-furniture-btn"]').click();
-   await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
+   {const tile=page.locator('[data-fc-category="wardrobe"]:visible');if(await tile.count())await tile.first().click();}await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
    {
     const check=async()=>{
      const result=await report();assert.equal(result.wardrobes.length,1);const w=result.wardrobes[0];

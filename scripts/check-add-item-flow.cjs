@@ -28,7 +28,7 @@ const base = process.env.MOBILE_TEST_URL || 'http://127.0.0.1:4173';
     await activate(add());await assertFittings();await activate(el('px'));await add().waitFor();
    }
    await activate(el('toolbar').locator('[data-action="new"]'));
-   assert.ok(await el('pop2').locator('[data-add-wardrobe]:visible').count()>0,'Add furniture still offers wardrobes');
+   assert.ok(await el('pop2').locator('[data-fc-category="wardrobe"]:visible,[data-add-wardrobe]:visible').count()>0,'Add furniture still offers wardrobes');
    await activate(el('px'));
    const again=await el('view').boundingBox();await page.mouse.click(again.x+again.width/2,again.y+again.height*.45);
    await activate(add());await assertFittings();

@@ -73,6 +73,7 @@ try {
     await manualPage.getByRole('button', { name: 'Design it myself', exact: true }).click();
     assert.equal(await manualPage.locator('.xp-welcome').isVisible(), false);
     await manualPage.getByRole('button', { name: 'Add furniture', exact: true }).click();
+    { const tile = manualPage.locator('[data-fc-category="wardrobe"]:visible'); if (await tile.count()) await tile.first().click(); }
     await manualPage.getByRole('button', { name: 'Regular', exact: true }).click();
     assert.equal(await manualPage.evaluate(() => window.__furnidrawEditor.scene().wardrobes.length), 1);
     await manual.close();

@@ -45,7 +45,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:4173';
   await page.locator('[data-view-mode="furniture"]').click();await page.waitForTimeout(350);await check(3);
   // A new wardrobe is selected: Add, Interior, Size, Fronts, More, Undo, Redo (the same tools as a cabinet).
   await furniture.click();
-  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(7);
+  {const tile=page.locator('[data-fc-category="wardrobe"]:visible');if(await tile.count())await tile.first().click();}await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(500);await check(7);
   await page.keyboard.press('ControlOrMeta+z');await page.waitForTimeout(350);await check(3);
   await page.keyboard.press('ControlOrMeta+Shift+z');await page.waitForTimeout(350);await check(7);
   console.log('PASS '+width+': empty, Studio, new actions, hidden actions, add, undo and redo');await page.close();

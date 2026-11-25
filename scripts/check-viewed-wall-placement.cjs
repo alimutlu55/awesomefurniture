@@ -21,7 +21,7 @@ const {chromium}=require('playwright');
   await page.locator('[data-editor-id="add-furniture-btn"]').click();
   // Waiting catches a picker which unexpectedly rotates back to the default wall.
   await page.waitForTimeout(900);
-  await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
+  {const tile=page.locator('[data-fc-category="wardrobe"]:visible');if(await tile.count())await tile.first().click();}await page.getByRole('button',{name:'Regular',exact:true}).click();await page.waitForTimeout(600);
   const report=()=>page.evaluate(()=>window.furnidraw.describe());
   const added=(await report()).wardrobes;
   assert.equal(added.length,1);assert.equal(added[0].against,wall,'Camera-facing wall at '+width+' px');

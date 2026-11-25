@@ -32,7 +32,7 @@ const output='docs/verification/design-workspace';
   await library().getByRole('button',{name:'Done',exact:true}).click();
   await create('Hallway storage');assert.equal((await snapshot()).wardrobes.length,0);
   await page.keyboard.press('ControlOrMeta+z');assert.equal((await snapshot()).wardrobes.length,0,'Undo cannot restore another design');
-  await page.locator('[data-editor-id="add-furniture-btn"]').click();await page.getByRole('button',{name:'Regular',exact:true}).click();
+  await page.locator('[data-editor-id="add-furniture-btn"]').click();{const tile=page.locator('[data-fc-category="wardrobe"]:visible');if(await tile.count())await tile.first().click();}await page.getByRole('button',{name:'Regular',exact:true}).click();
   await page.waitForTimeout(350);assert.equal((await snapshot()).wardrobes.length,1);
   await back().click();await row('Hallway storage').waitFor();
   await row('Bedroom · Oak').click();await back().waitFor();assert.equal((await snapshot()).wardrobes.length,1);
