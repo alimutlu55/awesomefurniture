@@ -41,9 +41,9 @@ export function createWardrobeSizeBackend({ model, sceneCommands, history, rebui
       }
       return fields;
     },
-    field(key, value) {
+    field(key, value, profile) {
       if (key === 'depth' || (key === 'width' && resolveShape(model.activeCabinet().state).top.length === 2)) {
-        const axis = key === 'width' ? 'w' : 'd';
+        const axis = key === 'width' && profile.view === 'front' ? 'w' : 'd';
         return atomic(true, () => {
           const c = model.activeCabinet();
           if (Math.abs(c.state[axis] - value) < .001) return true;

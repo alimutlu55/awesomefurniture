@@ -37,7 +37,9 @@ test('typed drawing width, height, depth and floor position apply through valida
   if(key==='floor')assert.equal(f.model.activeCabinet().y,value);
  }
  const s=f.read();assert.equal(f.backend.field('depth',70,s,null),true);assert.equal(f.state().d,70);
- assert.equal(f.checkpoints.length,4);
+ const beforeSide=f.model.snapshot();assert.equal(f.backend.field('width',65,f.read('side'),null),true);
+ assert.equal(f.state().d,65);assert.equal(f.state().w,220);
+ assert.equal(f.checkpoints.length,5);assert.equal(f.checkpoints.at(-1),beforeSide);
 });
 test('front edge points and steps are editable and side slopes preserve front/rear geometry',()=>{
  const f=fixture(),s=f.read(),point=addPoint(s.points,2);assert.ok(point);
