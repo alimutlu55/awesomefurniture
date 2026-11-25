@@ -234,8 +234,11 @@ const assert=require('node:assert/strict');
    await toolbar.locator('[data-action="auto"]').click();await page.waitForTimeout(330);
    const sheet=el('wizard').locator('.wizard-shell'),box=await sheet.boundingBox();
    assert.ok(Math.abs(box.height-height*.85)<2,'Auto design opens at 85%');
-   await el('close-wizard').click();
-   assert.equal(await page.locator('[data-mobile-sheet-exit]').count(),1,'Animated exit snapshot');
+   const exitCount=await el('close-wizard').evaluate(button=>{
+    button.click();
+    return button.getRootNode().querySelectorAll('[data-mobile-sheet-exit]').length;
+   });
+   assert.equal(exitCount,1,'Animated exit snapshot');
    await page.locator('[data-mobile-sheet-exit]').waitFor({state:'detached'});
    assert.equal(await page.locator('[data-mobile-sheet-exit]').count(),0,'Exit cleaned up');
    await page.screenshot({path:`/tmp/contextual-${width}.png`});
