@@ -3,7 +3,7 @@ import { createKitchenConstructionCommands } from './kitchen-construction';
 import { growRearWithFront } from './front-growth';
 import { ceilingClearance, CEILING_CLEARANCE_TOLERANCE } from '../../domain/studio/studio-clearance';
 import type { EditorScene, EditorState, EditorCabinet } from '../projects/editor-scene';
-import { createEditorState } from '../projects/editor-state';
+import { createEditorState, resetCabinetState } from '../projects/editor-state';
 import { emptyCabinet } from '../projects/editor-model';
 import { startingScene } from '../projects/editor-mapper';
 import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet';
@@ -382,15 +382,13 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             return true;
         },
         resetCabinet() {
-            // A kitchen cabinet goes back to an empty unit of its kind; a wardrobe to the new-wardrobe design.
-            const current = active().state, module = furnitureModule(current), fresh = module.reset?.(current);
-            const state = fresh ? { ...createEditorState(), ...fresh } : initialDesign();
-            if (collision.cabinetCollides({ ...active(), state })) {
-                report('Move this ' + module.noun + ' before resetting its size.');
+            const cabinet = active(), state = resetCabinetState(cabinet.state, initialDesign);
+            if (collision.cabinetCollides({ ...cabinet, state })) {
+                report('Move this ' + furnitureModule(cabinet.state).noun + ' before resetting it.');
                 return false;
             }
             checkpoint();
-            Object.assign(active().state, state, { open: false });
+            Object.assign(cabinet.state, state);
             return true;
         },
     };

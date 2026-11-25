@@ -25,7 +25,7 @@ flowchart LR
 | `sizes(design)`: width, height, depth limits | resize commands, placing, size fields and sliders, on-model size pills |
 | `allows(kind, design)`, `fittingKinds(design)` | Add item, Replace, the type menu, keyboard shortcuts, the command guard |
 | `duplicate(design)` | Duplicate, and pull-to-array |
-| `reset(design)` | More › Reset (a kitchen cabinet goes back to an empty unit of its kind) |
+| `reset(design)` | More › Reset restores the design defaults while keeping the piece's size, fitted outline and position. |
 | `autoDesign` | Auto design leads the toolbar; the planner refuses others |
 | `wholeDoors` | whole-front doors (More › Doors); kitchen fittings show their own fronts |
 | `label`, `noun`, `addLabel` | Add sheet tabs, messages, the Add tool's name (New wardrobe / Add cabinet) |

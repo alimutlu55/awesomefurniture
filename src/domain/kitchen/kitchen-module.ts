@@ -14,6 +14,9 @@ export const KITCHEN_MODULE: FurnitureModule = {
   allows: (kind, design) => (fitting(kind)?.kitchen?.units as readonly string[] | undefined)?.includes(kitchenUnit(design.unit).key) ?? false,
   fittingKinds: design => KITCHEN_MENU_KINDS.filter(k => KITCHEN_MODULE.allows(k, design)),
   duplicate: duplicateKitchenDesign,
-  // An empty unit of the same kind at its standard size, ready for Add item.
-  reset: design => createKitchenDesign(design.unit ?? 'base', design.unit ?? 'base'),
+  reset: design => {
+    const unit = design.unit ?? 'base', empty = createKitchenDesign(unit, unit);
+    // The fixed panels make a cover unit fit its gap and define its usable width range.
+    return isCoverUnit(design) ? { ...empty, n: design.n, wt: design.wt, secs: design.secs } : empty;
+  },
 };

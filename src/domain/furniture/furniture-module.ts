@@ -37,6 +37,6 @@ export interface FurnitureModule {
   fittingKinds(design: FurnitureDesign): readonly FittingKind[];
   /** The design a duplicate starts from. */
   duplicate<T extends EditorDesign>(design: T): T;
-  /** What Reset returns it to. Absent: the editor's new-wardrobe design. */
-  reset?(design: FurnitureDesign): EditorDesign;
+  /** Reset defaults for this kind of furniture. The scene keeps its existing size and shape. */
+  reset?(design: EditorDesign): EditorDesign;
 }

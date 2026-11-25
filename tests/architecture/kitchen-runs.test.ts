@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { arrayCount, arrayPoses, besidePose, kitchenRuns, kitchenSpans, type UnitPose } from '../../src/domain/kitchen/kitchen-runs';
-import { createKitchenDesign } from '../../src/domain/kitchen/kitchen-design';
+import { createKitchenCover, createKitchenDesign, isCoverUnit } from '../../src/domain/kitchen/kitchen-design';
 import { WORKTOP } from '../../src/domain/kitchen/kitchen-units';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
 import { createEditorState } from '../../src/application/projects/editor-state';
@@ -126,14 +126,24 @@ test('the Storage panel counts the whole kitchen along the wall and says what it
   assert.deepEqual(s.notes, ['No hob yet: add one from Sinks and appliances, then place it on the worktop.', '1 cabinet is still empty: select a space and use Add item.']);
 });
 
-test('Reset keeps a kitchen cabinet a cabinet: an empty unit of its kind at its standard size', () => {
+test('Reset empties a kitchen cabinet while keeping its kind and current dimensions', () => {
   const s = scene(unit(1, 'upper', 0, -11.5, 0, 90, 'upper'));
+  Object.assign(s.wardrobes[0]!.state, { h: 55, d: 40 });
   s.wardrobes[0]!.state.secs[0] = [{ k: 'flap', h: 30 }];
   let checkpoints = 0;
   assert.equal(createSceneCommands(() => s, { checkpoint: () => checkpoints++ }).resetCabinet(), true);
   const state = s.wardrobes[0]!.state;
-  assert.deepEqual([state.product, state.unit, state.w, state.h, state.d, state.secs[0]!.length], ['kitchen', 'upper', 60, 70, 35, 0]);
+  assert.deepEqual([state.product, state.unit, state.w, state.h, state.d, state.secs[0]!.length], ['kitchen', 'upper', 90, 55, 40, 0]);
   assert.equal(checkpoints, 1);
+});
+
+test('Reset keeps a narrow kitchen cover and its installed dimensions', () => {
+  const cover = unit(1, 'base', 0);
+  Object.assign(cover.state, createKitchenCover(cover.state, 8));
+  const s = scene(cover);
+  assert.equal(createSceneCommands(() => s).resetCabinet(), true);
+  assert.equal(cover.state.w, 8);
+  assert.equal(isCoverUnit(cover.state), true);
 });
 
 test('Add furniture puts a cabinet against the wall in view, in front of the viewer; a cabinet\'s own Add joins it', async () => {

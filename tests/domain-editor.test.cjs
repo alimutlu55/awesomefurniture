@@ -111,10 +111,33 @@ test('opening the planner schedules uncached ideas through its application servi
   const presenter=createPlannerPresenter({dom:require('./helpers/dom-fixture.cjs').domFixture(), shell:ports,inspector:ports,geometry:ports,plannerState:ports,plannerService:ports.plannerService,lifetime:ports.lifetime,model:{activeCabinet:()=>({state:{profile:{needs:{},growth:15}}})}});presenter.openWizard();assert.equal(classes.has('auto-design-open'),true);assert.equal(sheet.dataset.sheetPosition,'full');assert.equal(elements['#wizard'].hidden,false);assert.equal(elements['#app'].inert,true);assert.equal(scheduled,1);assert.equal(focused,1);presenter.closeWizard();assert.equal(classes.has('auto-design-open'),false);assert.equal(elements['#wizard'].hidden,true);assert.equal(elements['#app'].inert,false);
  }finally{global.document=originalDocument}
 });
-test('cabinet reset retains the existing reach-line toggle just as the supplied editor did',async()=>{
+test('cabinet reset clears the interior and keeps sideboard dimensions, position and the reach-line toggle',async()=>{
  const {createSceneCommands}=await import('../src/application/commands/scene-commands.js');
  const {createEditorModel}=await import('../src/application/projects/editor-model.js');
- const model=createEditorModel();model.activeCabinet().state.reachLine=true;model.activeCabinet().state.w=250;
- const commands=createSceneCommands(()=>model.scene);assert.equal(commands.resetCabinet(),true);
- assert.equal(model.activeCabinet().state.w,200);assert.equal(model.activeCabinet().state.reachLine,true);
+ const model=createEditorModel(),cabinet=model.activeCabinet(),state=cabinet.state;
+ Object.assign(cabinet,{name:'Sideboard',x:50,y:10,z:25,angle:90});
+ Object.assign(state,{w:180,h:75,d:45,reachLine:true,open:true});
+ state.secs[0]=[{k:'drawer',h:22}];
+ const before=model.snapshot(),checkpoints=[];
+ const commands=createSceneCommands(()=>model.scene,{checkpoint:()=>checkpoints.push(model.snapshot())});
+ assert.equal(commands.resetCabinet(),true);
+ assert.deepEqual([state.w,state.h,state.d],[180,75,45]);
+ assert.deepEqual([cabinet.name,cabinet.x,cabinet.y,cabinet.z,cabinet.angle],['Sideboard',50,10,25,90]);
+ assert.ok(state.secs.every(items=>items.length===0));
+ assert.equal(state.reachLine,true);assert.equal(state.open,false);
+ assert.deepEqual(checkpoints,[before]);
+ model.restore(checkpoints[0]);assert.equal(model.snapshot(),before);
+});
+test('cabinet reset keeps an edited partition and the step it positions in the fitted top',async()=>{
+ const {createSceneCommands}=await import('../src/application/commands/scene-commands.js');
+ const {createEditorModel}=await import('../src/application/projects/editor-model.js');
+ const {resolveShape}=await import('../src/domain/wardrobe/shape/wardrobe-shape.ts');
+ const model=createEditorModel(),state=model.activeCabinet().state,commands=createSceneCommands(()=>model.scene);
+ assert.equal(commands.applyShapeTemplate('stepped'),true);
+ state.wt=[180,100,100,100,100,100];
+ state.secs[0]=[{k:'shelf',h:30}];
+ const before=resolveShape(state);
+ assert.equal(commands.resetCabinet(),true);
+ assert.deepEqual(resolveShape(state),before);
+ assert.ok(state.secs.every(items=>items.length===0));
 });
