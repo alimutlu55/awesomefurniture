@@ -33,7 +33,8 @@ export function structureKey(sections:readonly PlannerSection[],dividers:readonl
 /** Select a fitting for each clear remainder, with a bounded deterministic beam. */
 export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype,cache:CandidateCache=new Map(),limit=R.candidateCount,compact=true):SelectionProposal[] {
  const c=selectionContext(cfg),targetBoxes=physical.seasonalAllowance(cfg),finished:State[]=[];
- if(c.height<1000||c.depth<350)return[];
+ // Low pieces (chests, sideboards, TV units) are planned too: only a space too small for any fitting is not.
+ if(c.height<R.minHeight||c.depth<R.minDepth)return[];
  const fixed=cfg.fixedSections!==undefined,states:State[]=[];
  for(const widths of selectConcepts(partitionOptions(cfg),strategy,cfg)){
   const model=createSpaceModel({...cfg,bayWidths:widths}),metrics=physical.analyze(model.sections,cfg);

@@ -130,3 +130,28 @@ The 30 cm width floor comes from the engine's 25 cm minimum bay (see Known limit
 - Sinks and hobs are drawn on the worktop; the worktop is not cut out under them.
 - Design specs (`#spec=`, the agent API) build wardrobes only.
 - Corner units and worktops that turn a corner are not modelled: each straight run has its own.
+
+
+## Piece presets: storage furniture that is not a wardrobe
+
+`PIECE_PRESETS` (`src/domain/furniture/piece-presets.ts`) lists the chest of drawers, sideboard, TV unit and shoe cabinet:
+a size, what each is meant to hold (counts by possession) and its fronts. A preset is a wardrobe-module piece: `addCabinet`
+with `presetSize(id)` places it at its size, then `applyPiecePreset` names it, sets its fronts and needs, and applies Auto
+design's best layout, in the same undo step. The Add furniture sheet lists them under tabs named as furniture shops name them (`PIECE_CATEGORIES`: Chests of drawers, Sideboards & TV units, Shoe cabinets), between Wardrobes and Kitchen cabinets, one card each (`piece-preset-art.ts`), a starter link opens
+one (`/editor/?starter=piece&preset=chest`), and a landing page can set `starter` to open on one. Adding a kind of piece is
+one entry; `tests/architecture/piece-presets.test.ts` adds every entry and proves it filled and buildable in every joint
+system. They were added because people squeezed wardrobes into chests and sideboards (analytics, November 2026).
+
+## Add furniture: the category tree
+
+What Add furniture offers is filed in one tree, `FURNITURE_CATEGORIES` (`src/domain/furniture/furniture-taxonomy.ts`):
+Furniture › Cabinets and storage › Wardrobes, Chests of drawers, Sideboards and TV units, Shoe cabinets, Kitchen cabinets,
+named as furniture shops name them and mapped to the Google Product Taxonomy where it has the category. Every item points
+at a category by id: a furniture module (`category` in `wardrobe-module.ts`, `kitchen-module.ts`) or a piece preset.
+Rooms (`ROOMS`) are an attribute of a category, used as a filter, never as categories of their own.
+
+The sheet (`presentation/editor/furniture-catalog.ts`) opens on a room filter and a tile per category that has items,
+drawn with its first item's card, then shows the chosen category's items with "‹ All furniture" and its place in the
+tree. A new kind of furniture is one category entry and its items; the sheet, its tiles and the filter need no change.
+`tests/architecture/furniture-taxonomy.test.ts` keeps the tree whole: one root, every parent real, unique names, every
+item under a category without children, and every such category holding items and belonging in a room.

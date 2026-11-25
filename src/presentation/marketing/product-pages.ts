@@ -190,7 +190,7 @@ export const productPages: readonly Guide[] = [
     heading: 'Furniture making software.\nFrom 3D CAD to workshop cut lists.',
     intro: 'Design custom built-in furniture to the exact millimetre. '
       + 'Generate dimensioned shop elevations, section views, parts schedules, and cutting lists directly in your browser.',
-    shape: 'regular',
+    shape: 'regular', starter: { kind: 'piece', preset: 'chest' }, // makers start from a piece small enough for a weekend
     sections: [
       {
         title: 'Parametric 3D furniture design to exact millimetres.',

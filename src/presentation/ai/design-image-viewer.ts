@@ -13,6 +13,7 @@ import { bindImageCredits } from './design-image-credits';
 import { createLoadingState } from '../components/loading-state';
 import { bindLoadingImage } from '../components/loading-image';
 import { imageFunnel, type DesignImageAnalytics } from './design-image-analytics';
+import { bindEmptyDesign, isEmptyDesign } from './design-image-empty';
 
 export { IMAGE_STYLES, type ImageStyle } from './generate-image-dialog';
 
@@ -23,6 +24,8 @@ interface Ports {
   /** The wallet that pays for each image; absent, images are requested without credits. */
   credits?: CreditWalletApi | null;
   analytics?: DesignImageAnalytics | null;
+  /** Opens the editor's Add furniture sheet, offered when the design is empty. */
+  addFurniture?: () => void;
 }
 
 type Phase = 'select' | 'closed' | 'generating' | 'result';
@@ -30,7 +33,7 @@ type Phase = 'select' | 'closed' | 'generating' | 'result';
 const TOOLBAR_SPARKLE = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'
   + '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></svg>';
 
-export function bindDesignImageViewer({ dom, lifetime, capture, credits = null, analytics = null }: Ports) {
+export function bindDesignImageViewer({ dom, lifetime, capture, credits = null, analytics = null, addFurniture }: Ports) {
   const page = dom.host.ownerDocument, funnel = imageFunnel(analytics);
   const button = page.createElement('button');
   button.type = 'button';
@@ -88,7 +91,7 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null, 
   const selectView = dialog.querySelector<HTMLElement>('.ai-select-view')!;
   const resultView = dialog.querySelector<HTMLElement>('.ai-result-view')!;
   const generate = selectView.querySelector<HTMLButtonElement>('.ai-generate-button')!;
-  const preparationLoading = createLoadingState(generate);
+  const preparationLoading = createLoadingState(generate), empty = bindEmptyDesign({ generate, lifetime, close: () => close(), addFurniture });
   const selectError = selectView.querySelector<HTMLElement>('.ai-error')!;
   const resultError = resultView.querySelector<HTMLElement>('.ai-result-error')!;
   const resultImage = resultView.querySelector('img')!;
@@ -225,12 +228,12 @@ export function bindDesignImageViewer({ dom, lifetime, capture, credits = null, 
       if (current !== preparation || disposed || (phase as Phase) === 'closed') return;
       prepared = { ...captured, ...(swatches.length ? { decorSwatches: swatches } : {}) };
       references.update(prepared);
-      showError(null);
+      showError(null); empty.show(false);
       status.textContent = 'Your design is ready to generate.';
     } catch (error) {
       prepared = null;
       const message = designImageErrorMessage(error);
-      showError(message);
+      showError(message); empty.show(isEmptyDesign(error));
     } finally {
       if (current === preparation) { generate.disabled = false; preparationLoading.stop(); }
     }

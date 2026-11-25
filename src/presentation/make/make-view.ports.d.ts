@@ -24,8 +24,16 @@ export interface MakeViewPorts {
   gate?(piece: number): import('../../domain/engine/assembly-gate').AssemblyGate;
   /** Leaves Make and opens Design check, where every finding has its fix. */
   openCheck?(): void;
+  /** What a piece costs to have built, per builder profile (the quotes of Design check's Price tab, for this piece). */
+  estimate?(piece: number): readonly import('../../domain/engine/catalog/quote').Quote[];
+  /** Leaves Make and opens Design check on its Price tab, every line of the estimate. */
+  openPrice?(): void;
+  /** Assembly Studio opened on a piece of this many parts; `direct` false when the browser's Forward reopened it (product analytics). */
+  studioOpened?(parts: number, direct: boolean): void;
+  /** A tab of Make's panel was shown (product analytics). */
+  tabViewed?(tab: import('./make-panel-tabs').PanelTab): void;
   /** Make opened on a piece of this many parts (product analytics). */
   opened?(parts: number): void;
   /** The piece's drawings or cut list were saved (product analytics). */
-  saved?(kind: 'pdf' | 'csv', parts: number): void;
+  saved?(kind: 'pdf' | 'csv' | 'parts', parts: number): void;
 }

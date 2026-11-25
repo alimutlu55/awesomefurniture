@@ -9,9 +9,9 @@ const room = (action: string): Counter => (track, args) => track('studio_room_ed
 
 /** The scene commands counted, each only when it changed the design (a truthy result), never while dragging. */
 const COUNTED: Readonly<Record<string, Counter>> = {
-  addCabinet: (track, [copy, template], result, pieces) => {
+  addCabinet: (track, [copy, template, _wall, size], result, pieces) => {
     const piece = result && typeof result === 'object' && 'state' in result ? result as EditorCabinet : null;
-    track('furniture_piece_added', { product: piece ? furnitureKind(piece.state) : 'wardrobe', preset_id: copy ? null : text(template, 'regular'),
+    track('furniture_piece_added', { product: piece ? furnitureKind(piece.state) : 'wardrobe', preset_id: copy ? null : text((size as { preset?: unknown } | undefined)?.preset, text(template, 'regular')),
       placement: copy ? 'duplicate' : 'wall', total_pieces_in_scene: pieces });
   },
   addKitchenUnit: (track, [preset, placement], _result, pieces) => track('furniture_piece_added', { product: 'kitchen', preset_id: text(preset, 'unit'),

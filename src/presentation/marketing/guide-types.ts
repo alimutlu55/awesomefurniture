@@ -1,3 +1,5 @@
+import type { StarterDesign } from '../../domain/project/starter-design';
+
 export interface GuideSection {
   title: string;
   body: string;
@@ -13,6 +15,8 @@ export interface Guide {
   heading: string;
   intro: string;
   shape: 'regular' | 'alcove' | 'under-stairs';
+  /** What the page's buttons open in the editor, when not a wardrobe of `shape` (a kitchen, a chest of drawers...). */
+  starter?: StarterDesign;
   sections: readonly GuideSection[];
   faqs?: readonly [string, string][];
   /** Guide articles: when the guide was first published and last changed in substance (ISO dates, YYYY-MM-DD). */

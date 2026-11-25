@@ -37,6 +37,8 @@ Details: [docs/architecture.md](docs/architecture.md).
 | New piece of furniture hardware (runners, hinges, handles, rails, pins, connectors, legs, plinth clips, brackets, sliding tracks, kitchen mechanisms) | One entry in `src/domain/hardware/` and `HARDWARE` in `src/domain/hardware/hardware-registry.ts`; shared 3D builders in `src/presentation/viewport/hardware.ts`. See [docs/adding-hardware.md](docs/adding-hardware.md) |
 | New fitting kind, purpose, or a rule shared by several kinds (trait) | One entry in `src/domain/wardrobe/fittings.ts` / `purposes.ts`. See [docs/adding-a-fitting.md](docs/adding-a-fitting.md) |
 | Something that differs between wardrobes and kitchen cabinets (limits, allowed fittings, toolbar, duplicate) | The furniture module: `src/domain/furniture/`, `wardrobe/wardrobe-module.ts`, `kitchen/kitchen-module.ts`. See [docs/furniture.md](docs/furniture.md) |
+| Storage furniture that is not a wardrobe (chest of drawers, sideboard, TV unit, shoe cabinet): its size, what it holds, its fronts | One entry in `PIECE_PRESETS` (`src/domain/furniture/piece-presets.ts`) with its `category`; Auto design fills it, the Add sheet, starter links (`?starter=piece&preset=`) and Make take it as is. See [docs/furniture.md](docs/furniture.md) |
+| A furniture category or room in Add furniture (its name, place in the tree, rooms, Google category) | One entry in `FURNITURE_CATEGORIES` / `ROOMS` (`src/domain/furniture/furniture-taxonomy.ts`); items point at it by id. The tiles, room filter and back link are drawn from it (`furniture-catalog.ts`); `furniture-taxonomy.test.ts` checks every item has a category and every category items |
 | Kitchen units, presets, runs (worktop, plinth), pull-to-array | `src/domain/kitchen/`, `application/commands/kitchen-commands.ts`, `presentation/editor/kitchen-*.ts`. See [docs/furniture.md](docs/furniture.md) |
 | Something that stands on a shelf (bags, hats...) | One entry in `src/domain/wardrobe/possessions.ts`. See [docs/adding-a-possession.md](docs/adding-a-possession.md) |
 | Geometry or feasibility rule | The module that owns the concern in `src/domain/geometry/wardrobe-rules/`. `wardrobe-geometry.js` only composes them. |
@@ -110,8 +112,9 @@ units, fixture kinds, credit prices) into another file. Ask the registry: `HARDW
   sizes without deducting edge banding (docs/technical-drawings.md).
 - Alignment covers rooms, shapes, wardrobes and kitchen units (moving, quarter-turn runs, slider sizes), fittings and
   boards inside a wardrobe. It does not line up parts across levels (a fitting with a wardrobe elsewhere in the room),
-  units at angles other than equal or a quarter turn, or room parts with furniture; a wardrobe is resized from its
-  middle, so "filling the gap" is only reached when it can slide (kitchen units).
+  units at angles other than equal or a quarter turn, or room parts with furniture. "Fill the gap" (fill-commands.ts)
+  slides and widens a piece: kitchen units up to 15 cm each side, other pieces the whole stretch between two walls or
+  neighbours, never past their widest.
 - Manufacturing check: no material or edge-banding completeness checks, and door swing clearances stay review
   findings on the drawings, not blocking ones.
 - `npm run check:mobile` is not part of `npm run check`; run it (Vite on port 4173) before a push that changes the editor.

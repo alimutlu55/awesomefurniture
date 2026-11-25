@@ -6,6 +6,7 @@ import { PANEL, PLINTH, PURPOSE, purposeName, itemName, r1 } from '../../domain/
 import { esc, measureNumber, zoneColor, zoneText, unitSuffix } from './editor-format.js';
 import { tags, issueTags } from './storage-tags.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
+import { noPlanExplanation } from '../../domain/planner/selection-planner';
 import { POSSESSION_KEYS, possession } from '../../domain/wardrobe/possessions';
 import { planInBackground } from './planner-worker-client';
 import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
@@ -58,6 +59,8 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
                 return '<span'+cls+'>'+esc(PURPOSE[k])+'</span><b'+cls+'>'+have+' / '+need+'</b>';
             }).join('')+'</div><button class="apply" data-idea="'+index+'">Use this layout</button></div></article>';
         }).join('') : tag(Object.values(cfg.needs).some(n=>Number(n)>0)?'No fitting layout':'Add possessions','warn');
+        // Nothing to propose: say why, and what would change it, instead of an empty list.
+        if (!plannerState.ideas.length) { $('#ideas-note').textContent = noPlanExplanation(cfg); $('#ideas-note').hidden = false; }
     }
     function syncPreferences(preserveEditing = false) {
         const p = model.activeCabinet().state.profile;

@@ -61,12 +61,12 @@ async function main(): Promise<void> {
   if(built?.project) editor?.replaceDesign(built.project);
   else editor?.notify('This design link could not be opened: '+(built && !built.result.ok ? built.result.problems.map(p=>p.message).join(' ') : 'it is not a design spec.'));
  };
- analytics.track('editor_session_started', sessionStart(url, session, starter && requestedStarter?.kind));
+ analytics.track('editor_session_started', sessionStart(url, session, starter && requestedStarter && (requestedStarter.kind === 'kitchen' ? 'kitchen' : 'wardrobe')));
  const workspace=createDesignWorkspace({root:root!,platform:session,analytics,changed:value=>{editor=value;(window as unknown as {__furnidrawEditor?: typeof value}).__furnidrawEditor=value;},initialLink:openLink,checkout});
  startup.remove();
  await workspace.start();
  if (starter && requestedStarter) {
-  analytics.track('starter_design_loaded', { product: requestedStarter.kind });
+  analytics.track('starter_design_loaded', { product: requestedStarter.kind === 'kitchen' ? 'kitchen' : 'wardrobe' });
   if (requestedStarter.kind === 'kitchen') workspace.notify('Use Add to place another kitchen cabinet.');
  }
  window.addEventListener('hashchange',openLink);

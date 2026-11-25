@@ -10,7 +10,7 @@ import { shareMillimetres, toMm } from '../../geometry/millimetres';
  * model; geometry, validation and rendering never branch on the template name.
  * Centimetres; x is measured from the left outer face, y is outer height from the floor. */
 /** 'room': fitted under a room's ceiling by the editor (studio-fit.ts), never chosen from the templates. */
-export const SHAPE_TEMPLATE_IDS = ['regular', 'sloped', 'stepped', 'under-stairs', 'alcove', 'custom', 'room'] as const;
+export const SHAPE_TEMPLATE_IDS = ['regular', 'sloped', 'stepped', 'under-stairs', 'alcove', 'attic', 'window', 'custom', 'room'] as const;
 export type ShapeTemplateId = typeof SHAPE_TEMPLATE_IDS[number];
 
 export interface ShapePoint {

@@ -37,7 +37,10 @@ export interface AnalyticsEventMap {
   // Make
   make_opened: { product: Product; part_count: number };
   make_construction_changed: { setting: 'joints' | 'back' | 'edge_band_mm'; value: string };
-  make_export_saved: { format: 'pdf' | 'csv'; part_count: number };
+  make_export_saved: { format: 'pdf' | 'csv' | 'parts_csv'; part_count: number };
+  make_tab_viewed: { tab: 'parts' | 'hardware' | 'cutting' };
+  make_price_opened: { product: Product };
+  assembly_studio_opened: { part_count: number; direct: boolean };
   // Technical drawings
   drawings_opened: { sheet_count: number; ready_for_manufacture: boolean; blocking_findings_count: number; blocking_rule_ids: readonly string[];
     review_issues_count: number; wardrobe_count: number; kitchen_unit_count: number };
@@ -88,6 +91,7 @@ export const ANALYTICS_EVENTS = {
   auto_design_proposal_applied: { pillar: 'engagement' },
   make_opened: { pillar: 'engagement' }, make_construction_changed: { pillar: 'engagement' },
   make_export_saved: { pillar: 'realization', realizes: true },
+  make_tab_viewed: { pillar: 'engagement' }, make_price_opened: { pillar: 'engagement' }, assembly_studio_opened: { pillar: 'engagement' },
   drawings_opened: { pillar: 'realization', realizes: true }, drawings_pdf_exported: { pillar: 'realization', realizes: true },
   ai_image_dialog_opened: { pillar: 'realization' }, ai_image_generation_started: { pillar: 'realization' },
   ai_image_generation_completed: { pillar: 'realization', realizes: true },

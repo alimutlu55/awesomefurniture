@@ -66,6 +66,8 @@ Wardrobe tops (`wardrobes[].shape`):
 - `stepped`: Different heights per section
 - `under-stairs`: Follows a staircase above
 - `alcove`: Fits around a beam or boxing
+- `attic`: Low at both ends, under a pitched roof
+- `window`: Full height either side, low under the window
 - `custom`: Free-form top to shape yourself
 
 What wardrobes hold (`wardrobes[].for`, counts):

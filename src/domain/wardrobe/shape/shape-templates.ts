@@ -65,6 +65,31 @@ export const SHAPE_TEMPLATES: readonly ShapeTemplate[] = [
     },
   },
   {
+    // Half of the pieces people saved have a top they drew themselves, mostly for roofs and windows (analytics,
+    // November 2026): the two most common outlines, ready to start from.
+    id: 'attic', name: 'Attic', description: 'Low at both ends, under a pitched roof',
+    create: ({ w, h, maxN }) => {
+      if (maxN < 3) return { shape: { template: 'attic', top: [{ x: 0, y: h }, { x: w, y: h }] }, n: 1, wt: fill([100]) };
+      // A 35° pitch at most: steeper, a screw driven down through the sloped top would barely reach the side under it.
+      const rise = Math.min(90, r(w * .35)), low = Math.max(MIN_OUTER_HEIGHT + 60, r(h - rise * Math.tan(35 * Math.PI / 180)));
+      return { shape: { template: 'attic', top: [{ x: 0, y: low }, { x: rise, y: h }, { x: r(w - rise), y: h }, { x: w, y: low }] }, n: 3,
+        wt: fill(weightsFor(w, [r(rise - PANEL / 2), r(w - rise - PANEL / 2)])) };
+    },
+  },
+  {
+    id: 'window', name: 'Around a window', description: 'Full height either side, low under the window',
+    create: ({ w, h, maxN }) => {
+      if (maxN < 3) return { shape: { template: 'window', top: [{ x: 0, y: h }, { x: w, y: h }] }, n: 1, wt: fill([100]) };
+      const side = Math.min(60, r(w * .28)), low = Math.max(MIN_OUTER_HEIGHT + 20, Math.min(90, r(h - 60)));
+      const left = r(side), right = r(w - side - PANEL);
+      return {
+        shape: { template: 'window', top: [{ x: 0, y: h }, { x: left + PANEL, y: h, partition: 0 }, { x: left + PANEL, y: low, partition: 0 },
+          { x: right, y: low, partition: 1 }, { x: right, y: h, partition: 1 }, { x: w, y: h }] },
+        n: 3, wt: fill(weightsFor(w, [left, right])),
+      };
+    },
+  },
+  {
     id: 'custom', name: 'Custom', description: 'Free-form top to shape yourself',
     create: ({ w, h, maxN }) => {
       const n = Math.min(2, maxN);

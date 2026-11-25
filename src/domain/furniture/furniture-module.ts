@@ -1,4 +1,5 @@
 import type { EditorDesign } from '../wardrobe/editor-design';
+import type { FurnitureCategoryId } from './furniture-taxonomy';
 import type { FittingKind } from '../wardrobe/fittings';
 
 export type FurnitureKind = 'wardrobe' | 'kitchen';
@@ -13,6 +14,8 @@ export type FurnitureDesign = Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' | 'shape
  */
 export interface FurnitureModule {
   readonly key: FurnitureKind;
+  /** Where the Add sheet files it (furniture-taxonomy.ts). */
+  readonly category: FurnitureCategoryId;
   /** Toolbar and panel name, and the word for one of them in messages. */
   readonly label: string;
   readonly noun: string;

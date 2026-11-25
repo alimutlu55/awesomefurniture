@@ -119,7 +119,7 @@ export function createMakeView(ports: MakeViewPorts) {
     panel.querySelector('.make-title')!.textContent = showPart ? `${part!.n} · ${part!.name}` : gated ? 'Fix first' : 'Parts';
     panel.querySelector<HTMLElement>('.make-back')!.hidden = !showPart && !gated;
     if (gated) { panel.querySelector('.make-body')!.innerHTML = gate.markup(st.piece); filming(); return; }
-    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts, undefined, band) };
+    const piece = st.piece, shown = { piece, selected: st.selected, band, length, material, tab: st.tab, player, cut: () => st.cut ??= cutLayout(piece.parts, undefined, band), estimate: () => ports.estimate?.(st.id) ?? [] };
     panel.querySelector('.make-body')!.innerHTML = showPart ? partDetail(shown) : pieceTabs(shown);
     filming();
   }
@@ -331,14 +331,14 @@ export function createMakeView(ports: MakeViewPorts) {
     else if (row) select(Number(row.dataset.n));
     else if (bandButton) { st.cut = null; band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
     else if (stepBy) step(Number(stepBy.dataset.step));
-    else if (t.closest('[data-set]')) ports.openDrawings();
-    else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); }
+    else if (t.closest('[data-set],[data-price]')) { if (t.closest('[data-price]')) ports.openPrice?.(); else ports.openDrawings(); }
+    else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); ports.tabViewed?.(st.tab); }
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
     else if (t.closest<HTMLElement>('[data-save]')) {
       const piece = st.piece!;
       const shots = () => picturesFor(piece, player, { renderer: resources.R, scene: resources.scene, layer: MAKE_LAYER, document: doc, make3d, camera: ports.camera },
         st.pose, { look: st.look, filming: st.filming, paper: () => paper(st.filming), size: [view.clientWidth, view.clientHeight] });
-      void gate.save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv', view.ownerDocument, band, material, () => st.cut ??= cutLayout(piece.parts, undefined, band), shots);
+      void gate.save(t.closest<HTMLElement>('[data-save]')!.dataset.save as 'pdf' | 'csv' | 'parts', view.ownerDocument, band, material, () => st.cut ??= cutLayout(piece.parts, undefined, band), shots);
     }
   });
   /** Changes how the piece goes together (saved with the design, one undo step) and takes it apart again. */

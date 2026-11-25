@@ -7,6 +7,7 @@ import { createEditorState } from '../projects/editor-state';
 import { emptyCabinet } from '../projects/editor-model';
 import { startingScene } from '../projects/editor-mapper';
 import { placeCreatedCabinet, type CreationSize } from './place-created-cabinet';
+import { applyPiecePreset } from './piece-preset-commands';
 import { createStudioCommands } from './studio-commands';
 import { createCeilingCommands } from './ceiling-commands';
 import { createAlignCommands } from './align-commands';
@@ -151,7 +152,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 Object.assign(cabinet.state, sectionsUnder(cabinet.state.shape, cabinet.state.w, geometry.maxN()));
                 cabinet.state.sel = Math.min(cabinet.state.sel, cabinet.state.n - 1);
             }
-            createDesignCommands(() => cabinet.state, { report }).fitToShape();
+            createDesignCommands(() => cabinet.state, { report }).fitToShape(); if (!copy && size.preset) applyPiecePreset(cabinet, size.preset);
             checkpoint();
             applyMaxReach(cabinet.state, scene.maxReach);
             scene.wardrobes.push(cabinet);

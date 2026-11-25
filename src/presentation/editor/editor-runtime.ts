@@ -65,6 +65,7 @@ import { createMakeCommands } from '../../application/commands/make-commands';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 import type { TrackEvent } from '../../application/analytics/analytics-port';
 import { sceneSummary } from '../../application/analytics/scene-summary';
+import { createPieceQuotes } from '../../application/engine/piece-quotes';
 import { withDesignAnalytics } from './piece-analytics';
 import { furnitureKind } from '../../domain/furniture/furniture';
 /** Composition root: construct services, connect explicit ports, then mount the UI. */
@@ -231,7 +232,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         shellPort.connect(createEditorShell({ dom, shellState, geometry, model, lifetime, elements }));
         // Make: the selected piece taken down to its parts, in the editor's own view, toolbar and panel. Its full drawing set
         // is the paid one (bound below).
-        const makeCommands = createMakeCommands(() => model.scene, historyActions.checkpoint);
+        const makeCommands = createMakeCommands(() => model.scene, historyActions.checkpoint), pieceQuotes = createPieceQuotes();
         const make = createMakeView({ dom, lifetime, resources, camera, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message),
             setConstruction: (id, change) => {
                 const changed = makeCommands.setConstruction(id, change);
@@ -239,7 +240,13 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 return changed;
             },
             opened: parts => track('make_opened', { product: furnitureKind(model.activeCabinet().state), part_count: parts }),
-            saved: (format, parts) => track('make_export_saved', { format, part_count: parts }), pay: async () => !credits || await credits.charge('technical-drawings'),
+            saved: (format, parts) => track('make_export_saved', { format: format === 'parts' ? 'parts_csv' : format, part_count: parts }),
+            tabViewed: tab => track('make_tab_viewed', { tab }), studioOpened: (parts, direct) => track('assembly_studio_opened', { part_count: parts, direct }),
+            estimate: id => pieceQuotes(model.scene, id, currency),
+            openPrice: () => {
+                track('make_price_opened', { product: furnitureKind(model.activeCabinet().state) });
+                make.act('make-done'); insight.open('price');
+            }, pay: async () => !credits || await credits.charge('technical-drawings'),
             // The gate into assembly: the engine's own check of the design as it is now, for the piece Make has open.
             gate: id => { engine.refresh(model.scene); const checked = engine.current(); return checked ? assemblyGate(checked.evaluation, id) : { open: true, blockers: [], notes: [] }; },
             openCheck: () => { make.act('make-done'); insight.open(); },
@@ -264,7 +271,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
             currency, setCurrency: next => { currency = next; },
             fix: action => applyFix(action, { scene: () => model.scene, select: id => { model.scene.activeWardrobe = id; inspector.update(false); },
                 splitSelectedBay: () => commands.splitBay(), setConstruction: (id, change) => makeCommands.setConstruction(id, change) }) });
-        bindDesignImageViewer({ dom, lifetime, credits, analytics: { track, summary: () => sceneSummary(model.scene) }, capture: () => experience.neutral(() => {
+        bindDesignImageViewer({ dom, lifetime, credits, analytics: { track, summary: () => sceneSummary(model.scene) }, addFurniture: () => dom.$('#add-furniture-btn').click(), capture: () => experience.neutral(() => {
             const design = structuredClone(model.scene);
             if (!design.wardrobes.length) throw new DesignImageUserError('EMPTY_DESIGN');
             const specification = imageDesignSpecification(design);

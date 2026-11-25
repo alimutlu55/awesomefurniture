@@ -11,7 +11,9 @@ import { resizeShape, resolveShape, shapeProblems } from '../../domain/wardrobe/
 import { createCeilingCommands } from './ceiling-commands';
 
 /** `placementWall`: the wall a new piece goes against (the one in view); `placementAlong`: where on it to start looking, cm along it. */
-export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string; placementAlong?: number }
+export interface CreationSize { w?: number; h?: number; d?: number; from?: number; placementWall?: string; placementAlong?: number;
+  /** The piece preset it is added from (piece-presets.ts), for counting only. */
+  preset?: string }
 /** Prepare detached candidates. A failed search never changes the scene, its
  * selection, identity counters or undo history. Requested dimensions stay exact;
  * unrequested default width/depth can shrink to the available room. */

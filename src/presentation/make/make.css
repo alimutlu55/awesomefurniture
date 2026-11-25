@@ -186,3 +186,13 @@
 /* The guidance holds the step written out: room to read a board and its joints without hiding the piece. */
 .as-guide{max-height:min(340px,44dvh)}
 @media(max-height:600px) and (min-width:600px){.as-guide{max-height:150px}}
+/* What it costs to build: Design check's three ways, one row each, above the parts. */
+.make-estimate{margin:4px 0 14px}
+.make-estimate .make-line{margin:0 0 6px}
+#app .make-estimate-more{border:0;background:none;padding:4px 0;color:var(--ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.make-estimate-ways{display:grid;gap:6px}
+.make-estimate-way{display:grid;grid-template-columns:1fr auto;column-gap:12px;row-gap:2px;align-items:center;padding:9px 12px;border-radius:12px;background:var(--seg);color:var(--ink)}
+.make-estimate-way span{font-size:12px;font-weight:600}
+.make-estimate-way small{grid-column:1;font-size:11px;color:var(--mute)}
+.make-estimate-way b{grid-column:2;grid-row:1/span 2;font-size:15px;font-weight:700;letter-spacing:-.3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.make-estimate-note{margin:6px 0 0;font-size:11px;color:var(--mute)}

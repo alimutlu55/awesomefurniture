@@ -108,6 +108,8 @@ export function selectStorageLayouts(cfg:PlannerConfig):SpecialistPlan[] {return
 export function noPlanExplanation(cfg:PlannerConfig):string {
  const c=selectionContext(cfg);
  if(CATEGORIES.every(k=>c.demand[k]===0))return 'Add clothing quantities to generate storage ideas.';
+ if(c.depth<R.minDepth)return `Auto design plans pieces at least ${R.minDepth/10} cm deep, so drawers and folded clothes fit. Make this one deeper, or fill it with Add item.`;
+ if(c.height<R.minHeight)return `This piece leaves ${Math.round(Math.max(0,c.height)/10)} cm inside, too low for a drawer. Make it taller, or fill it with Add item.`;
  const longMinimum=c.longDrop+R.hookAllowance+R.hemClearance;
  if(c.demand.long>0&&longMinimum>MODS.long.mx*10)return `Your saved longest garments need ${longMinimum/10} cm of clear hanging height. The existing long-hang fitting supports up to ${MODS.long.mx} cm.`;
  if(c.demand.long>0&&longMinimum+R.base-60>c.reach)return `A rail for your saved longest garments would be above your ${c.reach/10} cm reach. This setup needs a different long-hanging solution.`;

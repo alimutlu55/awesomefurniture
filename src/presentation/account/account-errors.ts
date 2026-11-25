@@ -12,7 +12,7 @@ export function accountErrorMessage(error: unknown): string {
     case 'email_exists': return 'This email already has an account. Sign in instead.';
     case 'weak_password': return `Choose a stronger password: at least ${MIN_PASSWORD_LENGTH} characters, not a common one.`;
     case 'same_password': return 'Choose a password you have not used here before.';
-    case 'otp_expired': return 'That code is wrong or has expired. Check it, or ask for a new one.';
+    case 'otp_expired': return 'That code is wrong or has expired. Use the code in the newest email from us, or send a new one.';
     case 'email_address_invalid':
     case 'validation_failed': return 'Enter a valid email address.';
     case 'over_email_send_rate_limit': return 'Too many emails were sent just now. Wait a minute and try again.';

@@ -486,7 +486,7 @@
   "Enter your email address.": "Saisissez votre adresse e-mail.",
   "Enter your password.": "Saisissez votre mot de passe.",
   "Enter the code from the email.": "Saisissez le code reçu par e-mail.",
-  "That code is wrong or has expired. Check it, or ask for a new one.": "Ce code est incorrect ou expiré. Vérifiez-le ou demandez-en un autre.",
+  "That code is wrong or has expired. Use the code in the newest email from us, or send a new one.": "Ce code est erroné ou a expiré. Utilisez le code de notre dernier e-mail ou demandez-en un nouveau.",
   "That email and password do not match. Check them, or reset your password.": "L’e-mail et le mot de passe ne correspondent pas. Vérifiez-les ou réinitialisez le mot de passe.",
   "Too many attempts. Wait a minute and try again.": "Trop de tentatives. Patientez une minute.",
   "This email already has an account. Sign in instead.": "Cette adresse a déjà un compte. Connectez-vous.",

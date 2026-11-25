@@ -22,6 +22,13 @@ below. Existing geometry, reach, catalog and fixed-fitting constraints still app
   family variants and shortages. Capacity rows show fits / owned / growth.
   Warnings remain available on focus and hover via a trade-off tag.
 
+Low pieces are planned too: chests of drawers, sideboards and TV units, down to 25 cm inside (`minHeight`) and from
+35 cm deep (`minDepth`, both in `SELECTION_RULES`). Below 1 m inside there is no room for hanging, so their proposals are
+drawers, folded stacks, shoes and small items; the clothes that need a rail are shown as not fitting. When nothing can
+be proposed, the gallery says why and what would change it (`noPlanExplanation`). Before November 2026 anything under
+1 m inside got an empty gallery: two of the last three Auto design runs in production were such pieces (60 × 75 × 40
+and 200 × 62 × 60 cm). `buildability.test.ts` proves every low-piece proposal can be built in every joint system.
+
 Validation: the four standard inventory envelopes produce eight designs. The tiny
 80 cm cabinet produces seven after enforcing a 12 cm generated sock-drawer minimum.
 Previews distinguish above-reach reserve storage from folded clothing and show actual

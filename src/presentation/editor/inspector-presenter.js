@@ -23,7 +23,7 @@ import { updateCargoUI } from './cargo-presenter';
 export function createInspectorPresenter({ dom, elements, camera, rendering, interactions, planner, shell, cameraState, interactionState, renderState, selectionState, shellState, geometry, resources, model, commands, sceneCommands, history, shapeInspector, studioPanel, kitchenPanel, roomFields }) {
     const { $, document } = dom;
     const syncCabinetSize = createCabinetSizeSync(dom, model);
-    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template) => addCabinet(copy, template), roomProducts: () => studioPanel.products() + (kitchenPanel?.products() ?? '') });
+    const { renderAddChoices } = createAddMenuPresenter({ $, model, selectionState, geometry, addCabinet: (copy, template, wall, size) => addCabinet(copy, template, wall, size), roomProducts: () => studioPanel.products() + (kitchenPanel?.products() ?? '') });
     const { editableItemClearance, editableDividerClearance, dividerUI } = createMeasurementInspector({ dom, geometry, shell, commands, rendering, model, history, callbacks: { get histUI() {
                 return histUI;
             }, get hidePop() {
@@ -77,9 +77,9 @@ export function createInspectorPresenter({ dom, elements, camera, rendering, int
         selectionState.deep = false;
         if (refresh) update();
     }
-    function addCabinet(copy = false, template, wall) {
+    function addCabinet(copy = false, template, wall, size = {}) {
         // A new wardrobe stands against the wall in view, in front of the viewer.
-        const w = sceneCommands.addCabinet(copy, template, wall, !copy && !wall ? viewedPlacement(model.scene.studio, resources.cam) : {});
+        const w = sceneCommands.addCabinet(copy, template, wall, !copy && !wall ? { ...viewedPlacement(model.scene.studio, resources.cam), ...size } : {});
         if (!w) return false;
         selectionState.room = null;
         if (template && template !== 'regular') selectionState.shapeEditing = true;

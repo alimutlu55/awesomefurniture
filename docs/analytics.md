@@ -80,8 +80,8 @@ Money is only ever recorded by the Worker (`server: true`): a browser cannot cla
 
 ## Known limits
 
-- Not instrumented yet: shape handle drags and numeric shape edits, `make_finding_inspected`, Assembly Studio sessions,
-  decor choices (`finish_decor_selected`), fittings added (`fitting_added`).
+- Not instrumented yet: shape handle drags and numeric shape edits, `make_finding_inspected`, how long Assembly Studio
+  is watched (its opening is `assembly_studio_opened`), decor choices (`finish_decor_selected`), fittings added (`fitting_added`).
 - An event sent while the page closes in its first moment may go without the access token: it is then stored as a guest.
 - Marketing pages send nothing (search-discovery.md); their visits are in Cloudflare Web Analytics, and the editor records
   the marketing page someone came from (`entry_source`, `referrer_path`).

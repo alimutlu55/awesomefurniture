@@ -101,7 +101,7 @@ try {
       await shot('create-account');
       await fill('.ac-credentials', { email: 'Person@Example.test', password: 'short' });
       await submit('.ac-credentials');
-      assert.match(await error.innerText(), /at least 8 characters/);
+      assert.match(await error.innerText(), /at least \d+ characters/);
       await fill('.ac-credentials', { password: 'long enough password' });
       await submit('.ac-credentials');
       await page.locator('.ac-confirm:not([hidden])').waitFor();
@@ -109,6 +109,16 @@ try {
       await fill('.ac-confirm', { code: '00000000' });
       await submit('.ac-confirm');
       assert.match(await error.innerText(), /wrong or has expired/);
+      assert.match(await error.innerText(), /newest email/, 'says which code counts');
+      // Creating the account again (the only real sign-up failed this way: three codes, then an old one) sends no new code.
+      await page.locator('.ac-confirm .ac-to-start').click();
+      if (await sheet.getAttribute('data-view') !== 'sign-up') await page.locator('.ac-switch-action').click();
+      await fill('.ac-credentials', { email: 'person@example.test', password: 'long enough password' });
+      await submit('.ac-credentials');
+      await page.locator('.ac-confirm:not([hidden])').waitFor();
+      assert.equal((await calls()).filter(c => c[0] === 'signUp').length, 1, 'one sign-up, so one code');
+      assert.match(await page.locator('.ac-lead').innerText(), /already sent a code/);
+      await shot('sign-up-again');
       await page.locator('.ac-resend').click();
       await page.waitForFunction(() => window.calls.some(c => c[0] === 'resendSignUp'));
       await shot('confirm-code');
@@ -147,7 +157,7 @@ try {
       await page.locator('.ac-reset:not([hidden])').waitFor();
       await fill('.ac-reset', { code: '12345678', password: 'short' });
       await submit('.ac-reset');
-      assert.match(await error.innerText(), /at least 8 characters/);
+      assert.match(await error.innerText(), /at least \d+ characters/);
       await shot('reset-password');
       await fill('.ac-reset', { password: 'a new long password' });
       await submit('.ac-reset');

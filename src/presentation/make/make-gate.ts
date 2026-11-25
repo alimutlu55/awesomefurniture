@@ -3,7 +3,7 @@ import type { CutLayout } from '../../domain/make/make-cut-layout';
 import type { MakePiece } from '../../domain/make/make-parts';
 import { saveFile } from '../components/save-file';
 import { planFor } from './assembly-plan-text';
-import { cutListCsv, makePdf } from './make-export';
+import { cutListCsv, makePdf, partsListCsv } from './make-export';
 import { gateView } from './make-panel';
 import type { StepPicture } from './make-pictures';
 import type { MakeViewPorts } from './make-view.ports';
@@ -54,15 +54,16 @@ export function createMakeGate(host: Host) {
     },
     /** Saves the piece's drawings (PDF, with each step's pictures taken from the film) or cut list (CSV): part of the
      * paid drawing set, and only for a piece that can be built. */
-    async save(kind: 'pdf' | 'csv', doc: Document, band: number, material: (decorId: string) => string, cut: () => CutLayout, pictures: () => readonly StepPicture[]) {
+    async save(kind: 'pdf' | 'csv' | 'parts', doc: Document, band: number, material: (decorId: string) => string, cut: () => CutLayout, pictures: () => readonly StepPicture[]) {
       const open = host.piece();
-      if (!open || !passes('drawings') || !await host.ports.pay() || host.piece()?.piece !== open.piece) return;
+      // The parts list is free (no account, no credits); the cut list and the drawings are the paid set.
+      if (!open || !passes('drawings') || kind !== 'parts' && !await host.ports.pay() || host.piece()?.piece !== open.piece) return;
       const { piece, id } = open, title = host.ports.scene().wardrobes.find(c => c.id === id)?.name || 'Piece';
       const name = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'piece';
       const blob = kind === 'pdf'
         ? new Blob([makePdf(piece, { title, material, band, cut: cut(), pictures: pictures(), plan: planFor(piece, host.ports.scene()) }).buffer as ArrayBuffer], { type: 'application/pdf' })
-        : new Blob([cutListCsv(piece, material, band)], { type: 'text/csv' });
-      await saveFile(doc, `${name}-${kind === 'pdf' ? 'make' : 'cut-list'}.${kind}`, blob);
+        : new Blob([kind === 'parts' ? partsListCsv(piece, material) : cutListCsv(piece, material, band)], { type: 'text/csv' });
+      await saveFile(doc, `${name}-${kind === 'pdf' ? 'make.pdf' : kind === 'parts' ? 'parts.csv' : 'cut-list.csv'}`, blob);
       host.ports.saved?.(kind, piece.parts.length);
     },
   };

@@ -486,7 +486,7 @@
   "Enter your email address.": "E-posta adresinizi girin.",
   "Enter your password.": "Şifrenizi girin.",
   "Enter the code from the email.": "E-postadaki kodu girin.",
-  "That code is wrong or has expired. Check it, or ask for a new one.": "Kod yanlış veya süresi dolmuş. Kontrol edin ya da yeni kod isteyin.",
+  "That code is wrong or has expired. Use the code in the newest email from us, or send a new one.": "Kod yanlış veya süresi dolmuş. Size gönderdiğimiz en yeni e-postadaki kodu kullanın ya da yeni bir kod isteyin.",
   "That email and password do not match. Check them, or reset your password.": "E-posta ve şifre eşleşmiyor. Kontrol edin veya şifrenizi sıfırlayın.",
   "Too many attempts. Wait a minute and try again.": "Çok fazla deneme. Bir dakika bekleyin.",
   "This email already has an account. Sign in instead.": "Bu e-posta ile kayıtlı bir hesap var. Giriş yapın.",

@@ -81,6 +81,24 @@ test('buildable as set out: Auto design from 60 to 300 cm, regular, sloped and s
   assert.ok(pieces >= 150, `${pieces} pieces checked`);
 });
 
+test('buildable as set out: Auto design for low pieces (chests, sideboards, TV units), with and without doors', () => {
+  // Real sizes people planned and got nothing for (analytics, November 2026), and the low pieces around them.
+  let pieces = 0;
+  for (const [w, h, d] of [[60, 75, 40], [200, 62.2, 60], [120, 90, 45], [150, 80, 35], [180, 50, 40], [100, 110, 50]] as const)
+    for (const doors of ['none', 'hinged'] as const) {
+      const designs = proposals(w, h, d, 'regular', doors);
+      assert.ok(designs.length > 0, `${w} × ${h} × ${d}, doors ${doors}: Auto design proposes something`);
+      designs.forEach((design, k) => {
+        for (const joints of JOINT_SYSTEMS) {
+          const mp = make({ ...design, construction: { joints, back: joints === 'dowel' ? 'grooved' : 'nailed' } })!;
+          assert.deepEqual(say(mp), [], `${w} × ${h} × ${d}, doors ${doors}, proposal ${k}, ${joints}`);
+          pieces++;
+        }
+      });
+    }
+  assert.ok(pieces >= 60, `${pieces} pieces checked`);
+});
+
 // ── Drilling in three dimensions ────────────────────────────────────────────────────────────────────────────────────
 
 const slab: Board = { name: 'Shelf', stock: 'carcass', x0: 0, x1: 60, y0: 0, y1: 1.8, z0: 0, z1: 40, cut: { length: 60, width: 40, thickness: 1.8 }, edges: '—' };

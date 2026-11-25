@@ -116,7 +116,9 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast, track =
     } finally { setBusy(section, false); }
   }
   function refuse(form: HTMLFormElement, name: string, message: string) { say(message); input(form, name).focus(); }
-  const askForCode = (message = `Enter the code we sent to ${address}. It can take a minute to arrive.`) => {
+  /** The address a sign-up code was last sent to, until it is confirmed. */
+  let pending: string | null = null;
+  const askForCode = (message = `Enter the code we sent to ${address}. It can take a minute to arrive; a new code replaces the one before.`) => {
     input(confirm, 'code').value = ''; show('confirm', message);
   };
 
@@ -160,7 +162,10 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast, track =
     address = email;
     const method = view === 'sign-up' ? 'email_signup' : 'email_signin';
     void run(credentials, async () => {
-      if (view === 'sign-up') { await platform.signUp(email, password); askForCode(); return; }
+      // Signing up again would send another code and make the first one useless: the only sign-up this month failed that
+      // way (three codes in 11 minutes, then an old one typed). Back to the code screen instead; it can send a new one.
+      if (view === 'sign-up' && pending === email) { askForCode(`We already sent a code to ${email}. Use the newest email from us, or send a new code.`); return; }
+      if (view === 'sign-up') { await platform.signUp(email, password); pending = email; askForCode(); return; }
       try { await platform.signIn(email, password); } catch (e) {
         if (!needsConfirmation(e)) throw e;
         await platform.resendSignUp(email).catch(() => undefined);
@@ -172,7 +177,7 @@ export function bindAccount({ dom, lifetime, platform, closeMenu, toast, track =
     event.preventDefault();
     const code = input(confirm, 'code').value.replace(/\D/g, '');
     if (code.length < 6) return refuse(confirm, 'code', 'Enter the code from the email.');
-    void run(confirm, () => platform.confirmSignUp(address, code), 'email_otp_confirm');
+    void run(confirm, async () => { await platform.confirmSignUp(address, code); pending = null; }, 'email_otp_confirm');
   });
   lifetime.listen($('.ac-resend'), 'click', () => {
     void run(confirm, async () => { await platform.resendSignUp(address); lead.textContent = `A new code is on its way to ${address}.`; });

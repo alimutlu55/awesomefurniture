@@ -55,6 +55,7 @@ export function createStudioController(host: Host) {
       studio.root.hidden = false;
       ports.resources.cv.setAttribute('aria-label', 'Interactive assembly. Switch to Explore to orbit, pan, zoom and inspect components.');
       studio.load(st.piece, player, planFor(st.piece, ports.scene()));
+      ports.studioOpened?.(st.piece.parts.length, push);
       paper(true);
       if (push) history.pushState({ ...history.state, [historyKey]: true }, '');
       filming();

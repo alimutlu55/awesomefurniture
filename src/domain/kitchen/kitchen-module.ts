@@ -6,7 +6,7 @@ import { createKitchenDesign, duplicateKitchenDesign, isCoverUnit } from './kitc
 /** Kitchen cabinets: modular base, wall and tall units that share a worktop and plinth along a run.
  * Their fronts are the fittings themselves (drawers, doors, appliances), so there are no whole-front doors. */
 export const KITCHEN_MODULE: FurnitureModule = {
-  key: 'kitchen', label: 'Cabinets', noun: 'cabinet', mark: 'K', addLabel: 'Add cabinet', autoDesign: false, wholeDoors: false, shaped: false,
+  key: 'kitchen', category: 'kitchen', label: 'Cabinets', noun: 'cabinet', mark: 'K', addLabel: 'Add cabinet', autoDesign: false, wholeDoors: false, shaped: false,
   sizes: design => {
     const base = kitchenUnit(design.unit).sizes;
     return isCoverUnit(design) ? { ...base, w: [5, base.w[1]] } : base;

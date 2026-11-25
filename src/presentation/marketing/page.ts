@@ -233,7 +233,10 @@ function renderBody(text: string): string {
 export function guideBody(c: MarketingCopy, guide: Guide): string {
   const informational = informationPages.some(page => page.slug === guide.slug);
   const kitchen = guide.slug === 'kitchen-cabinet-design-software';
-  const editorHref = kitchen ? starterDesignHref(c.lang, { kind: 'kitchen' }) : `/editor/?lang=${c.lang}`;
+  // The page's buttons open the editor on what the page is about, not on the welcome's questions: 28 of 31 people
+  // who saw the welcome left it at its first question (analytics, November 2026).
+  const starter = guide.starter ?? (kitchen ? { kind: 'kitchen' as const } : { kind: 'wardrobe' as const, width: STARTER_WARDROBE_WIDTH.initial, shape: guide.shape });
+  const editorHref = informational ? `/editor/?lang=${c.lang}` : starterDesignHref(c.lang, starter);
   const h = homeCopy(c.lang);
   const isGuideArticle = guide.slug.startsWith('guides/');
   const breadcrumb = `<nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">FurniDraw</a><span aria-hidden="true"> / </span>`

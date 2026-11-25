@@ -42,6 +42,17 @@ export function cutListCsv(piece: MakePiece, material: (decorId: string) => stri
   return [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
+/**
+ * The parts list: what Make shows on screen, one line a part, finished sizes in millimetres. Free, with no account: people
+ * open Make to see how a piece is made and, before this, left with nothing (analytics, November 2026). What a workshop
+ * cuts and drills from (sizes after banding, holes, machining) stays in the cut list and drawings, the paid set.
+ */
+export function partsListCsv(piece: MakePiece, material: (decorId: string) => string): string {
+  const head = ['Part', 'Name', 'Qty', 'Length mm', 'Width mm', 'Thickness mm', 'Material'];
+  const rows = piece.parts.map(p => [p.n, p.name, p.boards.length, mm(p.cut.length), mm(p.cut.width), mm(p.cut.thickness), material(p.decorId)]);
+  return [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
 const { w: PW, h: PH } = PAPER, M = 12, TITLE = 14;
 const P = (x: number, y: number): Pt => ({ x, y });
 const line = (a: Pt, b: Pt, pen: Parameters<typeof shape>[1] = 'thin') => shape([a, b], pen);

@@ -119,5 +119,6 @@ export function bindInsightPanel(ports: InsightPanelPorts) {
     }
   });
 
-  return { open: show, close: hide, refresh: () => { if (refresh()) draw(); } };
+  /** Opens the panel, on `start` when given (Make opens it on Price). */
+  return { open: (start?: Tab) => { if (start) tab = start; show(); }, close: hide, refresh: () => { if (refresh()) draw(); } };
 }

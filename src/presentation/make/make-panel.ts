@@ -1,4 +1,6 @@
 import type { AssemblyGate } from '../../domain/engine/assembly-gate';
+import type { Quote } from '../../domain/engine/catalog/quote';
+import { hours, money } from '../insight/insight-markup';
 import type { CutLayout } from '../../domain/make/make-cut-layout';
 import { cutWithBand, type MakePiece } from '../../domain/make/make-parts';
 import type { LengthText } from './make-marks';
@@ -21,6 +23,8 @@ export interface PanelView {
   readonly player: MakePlayer;
   /** The cut layout, made when the Cutting tab is first shown. */
   readonly cut: () => CutLayout;
+  /** What the piece costs to have built, per builder profile (Design check's quotes for this piece); empty when unknown. */
+  readonly estimate?: (() => readonly Quote[]) | undefined;
 }
 
 /** The piece as a whole, by tab: its parts, its hardware, how it goes together, how it is cut. */
@@ -32,7 +36,7 @@ export function pieceTabs(view: PanelView) {
 }
 
 /** The parts of the piece, one row each: its shape to scale, number, name, how many, and its size. */
-function partsList({ piece, length }: PanelView) {
+function partsList({ piece, length, estimate }: PanelView) {
   const partsRows = `<div class="make-rows">${piece.parts.map(p => `<button type="button" class="make-row" data-n="${p.n}">${partTileSvg(p, 28)}`
     + `<span class="make-n">${p.n}</span><span class="make-name" translate="no">${esc(p.name)}${p.boards.length > 1 ? ` <small>×${p.boards.length}</small>` : ''}</span>`
     + `<b>${length(p.cut.length)} × ${length(p.cut.width)}</b></button>`).join('')}</div>`;
@@ -47,8 +51,23 @@ function partsList({ piece, length }: PanelView) {
       }).join('')}</div>`
     : '';
 
-  return partsRows + hardwareRows
-    + '<div class="make-line make-steps"><button type="button" data-save="pdf">Drawings</button><button type="button" data-set>Full drawing set</button></div>';
+  return estimateCard(estimate?.() ?? []) + partsRows + hardwareRows
+    + '<div class="make-line make-steps"><button type="button" data-save="parts" title="Every part with its size and material, as a spreadsheet">Parts list · free</button>'
+    + '<button type="button" data-save="pdf">Drawings</button><button type="button" data-set>Full drawing set</button></div>';
+}
+
+/**
+ * What this piece costs to build, three ways, before its parts: people open Make to see how a piece is made, and the price
+ * of making it is the next question. The same quotes as Design check's Price tab, which "Every line" opens.
+ */
+function estimateCard(quotes: readonly Quote[]) {
+  if (!quotes.length) return '';
+  const currency = quotes[0]!.currency;
+  return '<section class="make-estimate" aria-label="What it costs to build"><div class="make-line"><span>What it costs to build</span>'
+    + '<button type="button" class="make-estimate-more" data-price>Every line ›</button></div><div class="make-estimate-ways">'
+    + quotes.map(q => `<div class="make-estimate-way"><span>${esc(q.profile.label)}</span><b>${money(q.total, currency)}</b>`
+      + `<small>${q.ownMinutes ? 'about ' + hours(q.ownMinutes) + ' of your time' : 'no time of yours'}</small></div>`).join('')
+    + `</div><p class="make-estimate-note">Estimate before VAT, prices of ${esc(quotes[0]!.asOf)}.</p></section>`;
 }
 
 /** One part: its size, its cut size after edge banding and its decor, its flat drawing, and the banding to take off. */

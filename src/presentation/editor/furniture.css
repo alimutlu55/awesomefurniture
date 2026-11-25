@@ -45,8 +45,34 @@ svg.kitchen-art{filter:none}
 #pop2 .mobile-add-categories button[aria-pressed="true"]:hover{background:var(--ink);color:var(--panel)}
 :host([data-theme="dark"]) #pop2 .mobile-add-categories button[aria-pressed="true"]:hover{background:#fff;color:#181c24}
 /* Add furniture on a phone: the title shares its row with the close button, the kind tabs sit on a row of their own. */
+/* Add furniture: a room filter and a tile per category, then the category's pieces with a way back (furniture-catalog.ts). */
+#pop2[data-add-context="furniture"] .mobile-add-categories [data-category]{display:none}
+/* Desktop: the sheet has its own title, so the empty tab row goes (a desktop rule shows that row with !important). */
+@media (min-width:901px){#app #pop2[data-add-context="furniture"] .mobile-add-browser .mobile-add-categories{display:none!important}}
+.furniture-catalog{display:flex;flex-direction:column;gap:10px;margin:2px 0 10px}
+.fc-rooms{display:flex;flex-wrap:wrap;gap:6px}
+#app .fc-rooms button{height:30px;padding:0 12px;border:0;border-radius:15px;background:var(--seg);color:inherit;font:inherit;font-size:12px;cursor:pointer}
+#app .fc-rooms button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.fc-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#app .fc-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 8px 10px;border:0;border-radius:14px;background:var(--seg);color:inherit;font:inherit;text-align:center;cursor:pointer}
+#app .fc-tile:hover,#app .fc-tile:focus-visible{background:color-mix(in srgb,var(--seg) 70%,var(--ink) 8%)}
+.fc-tile .product-art{width:100%;max-width:120px;height:72px}
+.fc-tile b{font-size:13px;font-weight:600;line-height:1.25}
+.fc-tile small,.fc-path{font-size:11px;color:var(--mute,#76736c)}
+#app .fc-back{align-self:flex-start;border:0;background:none;padding:2px 0;color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.fc-title{font-size:15px}
+.fc-path{margin-top:-8px}
 @media (max-width:900px){
  #app.adding:has(#pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"])){--catalog-height:min(272px,50vh)}
+ /* Add furniture shows a room filter and rows of category tiles: taller, so a tile row shows whole. */
+ #app.adding:has(#pop2[data-add-context="furniture"]){--catalog-height:min(480px,66vh)}
+ /* On a phone: three smaller tiles a row and compact room chips, so every category is in view; the rest scrolls. */
+ #pop2[data-add-context="furniture"] .furniture-catalog{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ #pop2[data-add-context="furniture"] .fc-tiles{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #app #pop2[data-add-context="furniture"] .fc-tile{padding:6px 4px 8px;border-radius:12px;min-height:0}
+ #pop2[data-add-context="furniture"] .fc-tile .product-art{height:50px}
+ #pop2[data-add-context="furniture"] .fc-tile b{font-size:12px}
+ #app #pop2[data-add-context="furniture"] .fc-rooms button{height:30px;min-height:30px;padding:0 10px}
  #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .mobile-add-browser{padding-top:14px}
  #app.adding #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .ph{top:14px;right:12px}
  #pop2:is([data-add-context="furniture"],[data-add-context="wall"],[data-add-context="studio"]) .mobile-add-categories{flex-wrap:wrap;overflow:visible;row-gap:10px}

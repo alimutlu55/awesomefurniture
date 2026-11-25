@@ -27,7 +27,9 @@ toolbar and panels as everywhere else. It reads the design and changes one thing
   drawing with every hole (a ring on the face up, filled right through, dashed from the face under it, a tick in an
   edge), grooves, hole positions from the corner in millimetres, holes counted by size, and Previous / Next.
 - **Parts** opens the panel's three tabs, with an Assembly Studio shortcut:
-  - **Parts**: every part, numbered; save the drawings; the full (paid) drawing set.
+  - **Parts**: what the piece costs to build, three ways (built yourself, cut and drilled, built and fitted: Design
+    check's quotes for this piece alone, `application/engine/piece-quotes.ts`), with *Every line* opening Design check's
+    Price tab; then every part, numbered; save the drawings; the full (paid) drawing set.
   - **Hardware**: Joints (Screws, Cams, Dowels) and Back (Nailed, Grooved), saved with the design; the drilling check
     (holes running into each other, too near an edge, through the far face, meeting inside); everything to buy, counted.
   - **Assembly Studio** is a shortcut above the tabs, replacing embedded Steps playback. A part's detail has a
