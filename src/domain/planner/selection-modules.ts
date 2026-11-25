@@ -10,6 +10,7 @@ import { storageHeightLimits } from './storage-fitting-limits';
 import type { OpenSpace } from './selection-spaces';
 import { shelfPossession } from '../wardrobe/possessions';
 import { hasTrait } from '../wardrobe/fittings';
+import { allowsPresetFitting, piecePreset } from '../furniture/piece-presets';
 export interface ModuleCandidate {items:EditorItem[];capacity:Demand;seasonalBoxes:number;height:number;value:number;clearance:number;reason:string}
 export function clearanceFit(it:EditorItem,cfg:PlannerConfig):number {
  const c=selectionContext(cfg),h=it.h*10;
@@ -42,10 +43,12 @@ export function additionalGate(it:EditorItem,width:number,bottom:number,cfg:Plan
  return null;
 }
 export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:PlannerConfig,seasonalRemaining:number,compact=true):ModuleCandidate[] {
+ const preset=piecePreset(cfg.piecePreset);
  // A category the caller does not mention has nothing unmet.
  const unmet=Object.fromEntries(CATEGORIES.map(k=>[k,unmetDemand[k]??0])) as Demand;
  const c=selectionContext(cfg),out:ModuleCandidate[]=[],size=storageBoxSize(cfg);
  const add=(specs:EditorItem[],reason:string)=>{
+  if(!specs.every(it=>allowsPresetFitting(preset,it.k)))return;
   const height=specs.reduce((n,it)=>n+it.h*10,0);if(height>space.h+.1)return;
   let y=space.y;
   const items=specs.map(it=>{const next={...it,x:space.x/10,y:y/10,w:space.w/10};y+=it.h*10;return next;});
@@ -90,9 +93,10 @@ export function modulesFor(space:OpenSpace,unmetDemand:Partial<Demand>,cfg:Plann
    for(const h of new Set([snapUp(MODS.folded.mn*10),snapUp(MODS.folded.h*10),300,...(compact?[shelfHeight]:[])]))add([spec('folded',cat,h)],`${cat==='pants'?'Folded trousers':'Folded clothing'} use this shelf with hand clearance; rear-depth access is included in the score.`);
    if(cfg.drawers!=='none')for(const h of new Set([snapUp(R.drawerIdeal),...(compact?[drawerHeight]:[])]))for(const n of [1,2,3])add(Array.from({length:n},()=>spec('drawer',cat,h)),'A grouped drawer bank makes folded clothing visible and accessible.');
   }else if(cat==='small'){
+   const smallItems=preset?.smallItemsLabel?.toLowerCase()??'underwear and socks';
    add([spec('sdrawer','small',Math.max(MODS.sdrawer.mn*10,R.smallDrawerIdeal))],'A small-item drawer preserves practical contents and hand clearance.');
-   add([spec('sdrawer','small',MODS.sdrawer.h*10)],'A standard-height small-item drawer gives extra room for organising underwear and socks.');
-   for(const n of [1,2,3])add(Array.from({length:n},()=>spec('sdrawer','small',snapUp(R.smallDrawerIdeal))),'Small-item drawers keep underwear and socks together below the drawer reach limit.');
+   add([spec('sdrawer','small',MODS.sdrawer.h*10)],'A standard-height small-item drawer gives extra room for organising '+smallItems+'.');
+   for(const n of [1,2,3])add(Array.from({length:n},()=>spec('sdrawer','small',snapUp(R.smallDrawerIdeal))),'Small-item drawers keep '+smallItems+' together below the drawer reach limit.');
   }else if(shelfPossession(cat)){
    // A possession that stands on a shelf: one to maxStack stacked shelves of its own height.
    const held=shelfPossession(cat)!;

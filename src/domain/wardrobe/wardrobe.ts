@@ -5,6 +5,7 @@ import type { Needs } from './possessions';
 import type { Purpose } from './purposes';
 import type { FittingKind } from './fittings';
 import type { KitchenUnitKey } from '../kitchen/kitchen-units';
+import type { PiecePresetId } from '../furniture/piece-presets';
 
 /** Fitting kinds come from the fittings registry (fittings.ts). */
 export type ItemKind = FittingKind;
@@ -104,4 +105,5 @@ export interface Wardrobe {
   readonly product?: 'kitchen' | undefined;
   /** Kitchen cabinets: which unit (base, wall or tall). */
   readonly unit?: KitchenUnitKey | undefined;
+  readonly piecePreset?: PiecePresetId | undefined;
 }

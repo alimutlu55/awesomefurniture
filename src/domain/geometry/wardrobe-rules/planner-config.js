@@ -1,5 +1,6 @@
 import { FIN } from '../../wardrobe/catalog.js';
 import { isRegularShape } from '../../wardrobe/shape/wardrobe-shape';
+import { piecePreset, presetNeeds } from '../../furniture/piece-presets';
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** The configuration Auto design receives for the current wardrobe.
@@ -17,7 +18,9 @@ export function createPlannerConfigRules(ctx, deps) {
     function plannerConfig() {
         // Whole-cabinet Auto design starts from the envelope and preferences.
         // Commands that preserve fittings (such as bay autofill) pass them explicitly.
-        const cfg = { w: getDesign().w, h: getDesign().h, d: getDesign().d, budget: getBudget(), finFactor: Number(FIN[getDesign().fin][1]), doors: getDesign().doors, ...getDesign().profile };
+        const design = getDesign(), preset = piecePreset(design.piecePreset);
+        const cfg = { w: design.w, h: design.h, d: design.d, budget: getBudget(), finFactor: Number(FIN[design.fin][1]), doors: design.doors, ...design.profile,
+            ...(preset ? { piecePreset: preset.id, needs: presetNeeds(preset, design.profile.needs), upper: 'none' } : {}) };
         if (isRegularShape(getDesign().shape)) return cfg;
         // A shaped wardrobe: the planner keeps every bay under the top. Steps anchored to bay
         // boundaries move with them, so those bays keep their widths.

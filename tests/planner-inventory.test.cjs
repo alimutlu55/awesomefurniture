@@ -6,7 +6,7 @@ async function fixture(){
  const {createPlannerPresenter}=await import('../src/presentation/editor/planner-presenter.js');
  const profile={needs:{...inventory},reach:122,reachStd:185,accessible:true,density:'spacious',growth:20,longDrop:180,upper:'more',drawers:'more',allowLift:true,composition:'storage',boxWidth:40,boxHeight:28,boxDepth:35,engaged:false,jackets:6,coats:2};
  const elements=Object.fromEntries(Object.keys(inventory).map(k=>['#need-'+k,{value:String(inventory[k])}]));
- Object.assign(elements,{'#jackets':{value:'6'},'#coats':{value:'2'},'#reach':{value:'185'},'#reach-value':{},'#wizard':{hidden:false},'#ideas-count':{},'#ideas':require('./helpers/loading-surface.cjs').loadingSurface()});
+ Object.assign(elements,{'#jackets':{value:'6'},'#coats':{value:'2'},'#need-small-label':{},'#reach':{value:'185'},'#reach-value':{},'#wizard':{hidden:false},'#ideas-count':{},'#ideas':require('./helpers/loading-surface.cjs').loadingSurface()});
  let delay;
  const presenter=createPlannerPresenter({dom:{$:key=>{assert.ok(elements[key],`Removed control queried: ${key}`);return elements[key]}},model:{activeCabinet:()=>({state:{profile}})},plannerState:{ideasTimer:null},lifetime:{cancelTimeout(){},timeout(callback,ms){delay=ms;return 1}}});
  return {presenter,profile,elements,getDelay:()=>delay};

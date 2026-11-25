@@ -1,7 +1,8 @@
 import { SHELF_POSSESSIONS, shelfFits, unitsOnShelf } from '../../domain/wardrobe/possessions';
 import { MODS, ADD_ORDER, r1, PANEL as T, PLINTH as PL } from '../../domain/wardrobe/catalog.js';
 import { fitting, hasTrait } from '../../domain/wardrobe/fittings';
-import { isKitchen } from '../../domain/furniture/furniture';
+import { furnitureModule, isKitchen } from '../../domain/furniture/furniture';
+import { piecePreset } from '../../domain/furniture/piece-presets';
 import { kitchenSuggestions } from './kitchen-suggestions';
 import { measureNumber, unitSuffix } from './editor-format.js';
 /** Add item menu content for the selected space: which fittings fit, ranked, with the reason and the
@@ -13,9 +14,11 @@ export function createAddSuggestions(getDesign, rules) {
     const { edgeGap, effectiveMin, itemFeasible, sectionSpaceMeasurements, spaceSpan } = rules;
     function addSuggestions() {
         // A kitchen unit offers kitchen fittings, ranked by the registry.
-        if (isKitchen(getDesign())) return kitchenSuggestions(getDesign(), rules);
+        const design = getDesign();
+        if (isKitchen(design)) return kitchenSuggestions(design, rules);
+        const preset = piecePreset(design.piecePreset), module = furnitureModule(design);
         const sp = sectionSpaceMeasurements(getDesign().sel), w = sp.w, H = sp.h, b = sp.y0, t = sp.y1, reach = getDesign().profile.reach, dMax = getDesign().profile.accessible ? 105 : Math.max(100, Math.min(135, Math.round(reach * .7))), onFloor = b - (PL + T) <= 1, high = b >= reach - 1, above = Math.max(0, t - Math.max(b, reach)), eng = !!getDesign().profile.engaged, need = { short: 'short', long: 'long', pants: 'pants', folded: 'folded', drawer: 'folded', shoe: 'shoes', sdrawer: 'small' }, list = [];
-        [...ADD_ORDER, 'divider'].forEach((k, o) => {
+        [...ADD_ORDER.filter(k => module.allows(k, design)), 'divider'].forEach((k, o) => {
             let fit = true, s = 0, why = '', hint = '', warn = false;
             if (k === 'divider') {
                 fit = (w - T) / 2 >= 25;
@@ -106,11 +109,11 @@ export function createAddSuggestions(getDesign, rules) {
                             : b >= 100 ? '<b>Upper shelf zone.</b> Good for folded clothes and light storage.'
                                 : '<b>Compact space.</b> Good for drawers, shelves and folded clothes.';
         // Possessions that stand on a shelf (handbags...): suggested where a shelf can hold them, ranked with the shelves.
-        SHELF_POSSESSIONS.forEach((p, n) => {
+        SHELF_POSSESSIONS.filter(p => !preset || p.key in preset.holds).forEach((p, n) => {
             const fits = shelfFits(p.holder, w, H), minWidth = p.holder.pitch + p.holder.margin;
             list.push({ k: p.key, possession: p.key, o: ADD_ORDER.length + 1 + n, fit: fits, s: p.menu.score + (H >= 60 ? 6 : 0) - (high ? 15 : 0), why: p.menu.why, hint: fits ? '' : unitsOnShelf(p.holder, w) < 1 ? 'Needs ' + measureNumber(minWidth) + unitSuffix() + ' width' : 'Needs ' + measureNumber(p.holder.height) + unitSuffix() + ' height', warn: false });
         });
-        return { list, intent };
+        return { list, intent: preset ? '<b>' + preset.name + '</b>' : intent };
     }
     return { addSuggestions };
 }

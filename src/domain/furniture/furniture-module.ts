@@ -5,7 +5,7 @@ import type { FittingKind } from '../wardrobe/fittings';
 export type FurnitureKind = 'wardrobe' | 'kitchen';
 export type SizeRange = readonly [number, number];
 /** The parts of a design a module reads to decide its rules. */
-export type FurnitureDesign = Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' | 'shape' | 'product' | 'unit'>;
+export type FurnitureDesign = Pick<EditorDesign, 'w' | 'h' | 'n' | 'wt' | 'shape' | 'product' | 'unit' | 'piecePreset'>;
 
 /**
  * What makes one kind of furniture different from another. The editor's shared tools (moving,

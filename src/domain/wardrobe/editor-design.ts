@@ -1,6 +1,7 @@
 import type { ItemKind, StoragePurpose, WardrobePreferences } from './wardrobe';
 import type { WardrobeShape } from './shape/wardrobe-shape';
 import type { KitchenUnitKey } from '../kitchen/kitchen-units';
+import type { PiecePresetId } from '../furniture/piece-presets';
 
 /** Serializable layout intent: distinguishes stacked/full-width items from
  * pinned coordinates and retains divider travel regions. No camera or selection. */
@@ -70,4 +71,6 @@ export interface EditorDesign {
   product?: 'kitchen' | undefined;
   /** Kitchen cabinets: which unit (base, wall or tall). */
   unit?: KitchenUnitKey | undefined;
+  /** Furniture preset supplying the fitting and inventory context. */
+  piecePreset?: PiecePresetId | undefined;
 }

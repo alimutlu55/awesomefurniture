@@ -12,6 +12,7 @@ import { BACK_FIXINGS, JOINT_SYSTEMS } from '../../domain/make/make-construction
 import type { Needs } from '../../domain/wardrobe/possessions';
 import type { ItemKind, StoragePurpose } from '../../domain/wardrobe/wardrobe';
 import { FITTING_KINDS } from '../../domain/wardrobe/fittings';
+import { PIECE_PRESET_IDS } from '../../domain/furniture/piece-presets';
 import { frontsSchema } from './fronts-schema';
 import { frontsProblems } from '../../domain/wardrobe/front-styles';
 import { STUDIO_TEMPLATES } from '../../domain/studio/studio-templates';
@@ -106,6 +107,7 @@ const wardrobe = z.strictObject({
   shape: shape.optional(),
   // Furniture other than a wardrobe (domain/furniture). Absent in every older project.
   product: z.enum(['kitchen']).optional(),
+  piecePreset: z.enum(PIECE_PRESET_IDS).optional(),
   unit: z.enum(KITCHEN_UNIT_KEYS as unknown as [string, ...string[]]).optional() as unknown as z.ZodOptional<z.ZodEnum<{ [K in typeof KITCHEN_UNIT_KEYS[number]]: K }>>,
   preferences: z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
@@ -121,6 +123,7 @@ const wardrobe = z.strictObject({
   const fail = (message: string) => context.addIssue({code:'custom', message});
   const close = (a: number, b: number) => Math.abs(a-b)<.001;
   if ((cabinet.product === 'kitchen') !== (cabinet.unit !== undefined)) fail('A kitchen cabinet names its unit, and only a kitchen cabinet has one.');
+  if (cabinet.product === 'kitchen' && cabinet.piecePreset) fail('A kitchen cabinet uses its unit for its fitting context.');
   if (cabinet.materials?.worktopDecorId && cabinet.product !== 'kitchen') fail('Only kitchen furniture has a worktop decor.');
   if (cabinet.fronts) for (const problem of frontsProblems(cabinet.fronts, cabinet.sections.length)) fail(problem);
   if (cabinet.editorLayout) {

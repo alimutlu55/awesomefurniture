@@ -17,6 +17,7 @@ import { heroMetrics } from './design-hero-metrics';
 import { selectConcepts,strategyModules,candidateKey,conceptRoleOptions,conceptAllows } from './design-archetypes';
 import type { DesignArchetype,CandidateCache,ConceptRole } from './design-archetypes';
 import { purposeName,PURPOSE } from '../wardrobe/catalog.js';
+import { allowsPresetFitting,piecePreset } from '../furniture/piece-presets';
 export {scoreLayout} from './layout-score';
 interface Ranked {inventory?:PlannerProposal['inventory'];complete:boolean;score:number;partCount:number;positionSum:number;id:string;metrics?:{coverage:Record<string,number>}}
 export function rankStoragePlans<T extends Ranked>(plans:readonly T[]):T[] {
@@ -33,6 +34,7 @@ export function structureKey(sections:readonly PlannerSection[],dividers:readonl
 /** Select a fitting for each clear remainder, with a bounded deterministic beam. */
 export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype,cache:CandidateCache=new Map(),limit=R.candidateCount,compact=true):SelectionProposal[] {
  const c=selectionContext(cfg),targetBoxes=physical.seasonalAllowance(cfg),finished:State[]=[];
+ const preset=piecePreset(cfg.piecePreset);
  // Low pieces (chests, sideboards, TV units) are planned too: only a space too small for any fitting is not.
  if(c.height<R.minHeight||c.depth<R.minDepth)return[];
  const fixed=cfg.fixedSections!==undefined,states:State[]=[];
@@ -127,6 +129,7 @@ export function searchStorageLayouts(cfg:PlannerConfig,strategy?:DesignArchetype
   state.sections=finishStorageCompartments(finalizeSelection(recovered.sections,state.dividers,cfg),state.dividers,cfg);
   const envelope=completeStorageEnvelope(state.sections,state.dividers,cfg);
   state.sections=envelope.sections;state.dividers=envelope.dividers;
+  if(preset&&!state.sections.every(s=>s.items.every(it=>allowsPresetFitting(preset,it.k))))continue;
   if(hasUnassignedCompartment(state.sections,state.dividers,cfg))continue;
   if(!state.sections.every((s,i)=>conceptAllows(s.items,state.roles[i])))continue;
   if(strategy&&(!strategy.gate(state.sections)||!strategy.accept(state.sections.flatMap(s=>s.items),cfg)))continue;

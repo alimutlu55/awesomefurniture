@@ -63,7 +63,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         (/** @type {HTMLButtonElement} */ (browser.querySelector('[data-add-wardrobe]'))).onclick = () => addCabinet();
         // Wardrobe templates add a new wardrobe that starts from that skeleton.
         (/** @type {NodeListOf<HTMLButtonElement>} */ ($('#pop2').querySelectorAll('[data-add-shape]'))).forEach(button => { button.onclick = () => addCabinet(false, button.dataset.addShape); });
-        // Chests, sideboards, shoe cabinets: added at their size with their inside planned (piece-presets.ts).
+        // These pieces start empty with their own fitting and inventory context (piece-presets.ts).
         (/** @type {NodeListOf<HTMLButtonElement>} */ ($('#pop2').querySelectorAll('[data-add-piece]'))).forEach(button => { button.onclick = () => addCabinet(false, 'regular', undefined, presetSize(button.dataset.addPiece)); });
         (/** @type {HTMLButtonElement | null} */ (categories.querySelector('[data-auto-design]')))?.addEventListener('click', () => $('#launch-wizard').click());
         const show = category => {

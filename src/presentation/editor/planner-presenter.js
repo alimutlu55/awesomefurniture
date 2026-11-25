@@ -8,6 +8,7 @@ import { tags, issueTags } from './storage-tags.js';
 import { WardrobePlanner } from '../../domain/planner/wardrobe-planner.js';
 import { noPlanExplanation } from '../../domain/planner/selection-planner';
 import { POSSESSION_KEYS, possession } from '../../domain/wardrobe/possessions';
+import { piecePreset, presetNeeds } from '../../domain/furniture/piece-presets';
 import { planInBackground } from './planner-worker-client';
 import { createLoadingState, createLoadingPlaceholder } from '../components/loading-state';
 /** wizard presentation behavior; the view ports provide transient UI state and application commands. */
@@ -63,7 +64,11 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
         if (!plannerState.ideas.length) { $('#ideas-note').textContent = noPlanExplanation(cfg); $('#ideas-note').hidden = false; }
     }
     function syncPreferences(preserveEditing = false) {
-        const p = model.activeCabinet().state.profile;
+        const design = model.activeCabinet().state, p = design.profile, preset = piecePreset(design.piecePreset);
+        const showRow = (selector, visible) => {
+            const row = $(selector).closest?.('label');
+            if (row) row.hidden = !visible;
+        };
         const syncValue = (selector, value) => {
             const input = /** @type {HTMLInputElement} */ ($(selector));
             if (preserveEditing && document?.activeElement === input) return;
@@ -71,24 +76,30 @@ export function createPlannerPresenter({ dom, inspector, shell, plannerState, ge
             if (input.value !== next) input.value = next;
         };
         for (const k of Object.keys(p.needs)) {
+            showRow('#need-' + k, !preset || k in preset.holds);
             syncValue('#need-' + k, p.needs[k]);
         }
+        showRow('#jackets', !preset);
+        showRow('#coats', !preset);
+        const smallLabel = $('#need-small-label'), label = preset?.smallItemsLabel ?? possession('small')?.label;
+        if (smallLabel && label && smallLabel.textContent !== label) smallLabel.textContent = label;
         syncValue('#jackets', p.jackets ?? 0);
         syncValue('#coats', p.coats ?? 0);
         WardrobePlanner.configure(p);
     }
     function readPreferences() {
+        const design = model.activeCabinet().state, p = design.profile, preset = piecePreset(design.piecePreset);
         const bounded = (id, min, max, fallback) => {
             const v = Number($(id).value);
             return Math.max(min, Math.min(max, Number.isFinite(v) && $(id).value !== '' ? Math.round(v) : fallback));
         };
         const needs = { short: 0, long: 0, pants: 0, folded: 0, shoes: 0, small: 0 };
-        for (const k of Object.keys(model.activeCabinet().state.profile.needs)) {
-            needs[k] = bounded('#need-' + k, 0, possession(k)?.need.max ?? 80, model.activeCabinet().state.profile.needs[k] ?? 0);
+        for (const k of Object.keys(p.needs)) {
+            needs[k] = bounded('#need-' + k, 0, possession(k)?.need.max ?? 80, p.needs[k] ?? 0);
         }
-        const p = model.activeCabinet().state.profile;
         const reachStd = p.reachStd ?? p.reach ?? 185;
-        return { ...p, reach: p.accessible ? 122 : reachStd, reachStd, needs, jackets: bounded('#jackets', 0, needs.short, 0), coats: bounded('#coats', 0, needs.long, 0), engaged: true };
+        return { ...p, reach: p.accessible ? 122 : reachStd, reachStd, needs: preset ? presetNeeds(preset, needs) : needs,
+            jackets: preset ? 0 : bounded('#jackets', 0, needs.short, 0), coats: preset ? 0 : bounded('#coats', 0, needs.long, 0), engaged: true };
     }
     function refreshIdeas(read = false) {
         lifetime.cancelTimeout(plannerState.ideasTimer);

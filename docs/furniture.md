@@ -135,12 +135,11 @@ The 30 cm width floor comes from the engine's 25 cm minimum bay (see Known limit
 ## Piece presets: storage furniture that is not a wardrobe
 
 `PIECE_PRESETS` (`src/domain/furniture/piece-presets.ts`) lists the chest of drawers, sideboard, TV unit and shoe cabinet:
-a size, what each is meant to hold (counts by possession) and its fronts. A preset is a wardrobe-module piece: `addCabinet`
-with `presetSize(id)` places it at its size, then `applyPiecePreset` names it, sets its fronts and needs, and applies Auto
-design's best layout, in the same undo step. The Add furniture sheet lists them under tabs named as furniture shops name them (`PIECE_CATEGORIES`: Chests of drawers, Sideboards & TV units, Shoe cabinets), between Wardrobes and Kitchen cabinets, one card each (`piece-preset-art.ts`), a starter link opens
-one (`/editor/?starter=piece&preset=chest`), and a landing page can set `starter` to open on one. Adding a kind of piece is
-one entry; `tests/architecture/piece-presets.test.ts` adds every entry and proves it filled and buildable in every joint
-system. They were added because people squeezed wardrobes into chests and sideboards (analytics, November 2026).
+a size, fitting options, inventory defaults and fronts. A preset starts empty when added from the catalogue or opened
+through a starter link (`/editor/?starter=piece&preset=chest`). Its preset is saved with the design. The selected piece
+determines the fittings offered in Add and the inventory shown in Auto design. Sections and fittings use the
+selected space's dimensions. Auto design builds a layout when requested. The preset tests check that the resulting
+layouts are buildable in every joint system.
 
 ## Add furniture: the category tree
 

@@ -53,6 +53,7 @@ export function sceneToProject(project: ProjectDocument, scene: EditorScene): Pr
    preferences:{...preferences,budget:900},
    ...(s.shape?{shape:structuredClone(s.shape)}:{}),
    ...(s.product?{product:s.product}:{}),...(s.unit?{unit:s.unit}:{}),
+   ...(s.piecePreset?{piecePreset:s.piecePreset}:{}),
    editorLayout:{cabinetId:cabinet.id,weights:structuredClone(s.wt),...(reachStd===undefined?{}:{reachStd}),
     ...(engaged===undefined?{}:{engaged}),...(s.reachLine===undefined?{}:{reachLine:s.reachLine}),...(s.doorHang===undefined?{}:{doorHang:s.doorHang}),proposal:structuredClone(s.proposal)},
    sections:widths.map((width,i)=>{
@@ -109,6 +110,7 @@ export function projectToScene(project: ProjectDocument): EditorScene | undefine
    proposal:layout?structuredClone(layout.proposal):null,...(layout?.reachLine===undefined?{}:{reachLine:layout.reachLine}),...(layout?.doorHang===undefined?{}:{doorHang:layout.doorHang}),
    ...(w.shape?{shape:structuredClone(w.shape)}:{}),
    ...(w.product?{product:w.product}:{}),...(w.unit?{unit:w.unit}:{}),
+   ...(w.piecePreset?{piecePreset:w.piecePreset}:{}),
    sel:0,item:-1,divider:-1,space:null,open:false,
   };
   return {id:layout?.cabinetId??index+1,name:w.name,x:w.position.x,y:w.position.y,z:w.position.z,angle:w.rotation,state};

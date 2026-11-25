@@ -32,7 +32,7 @@ export interface PlannerProposal {
   metrics: PlannerMetrics; cost: number; score: number; coverage: Record<string, number>; reasons: string[]; warnings: string[];
 }
 /** The preserved numerical engine accepts partial configurations and normalizes defaults. */
-export type PlannerConfig = Record<string, unknown>;
+export type PlannerConfig = Record<string, unknown> & { piecePreset?: import('../furniture/piece-presets').PiecePresetId | undefined };
 export const WardrobePlanner: {
   generate(config: PlannerConfig): PlannerProposal[];
   analyze(sections: readonly PlannerSection[] | { sections: readonly PlannerSection[] }, config: PlannerConfig): PlannerMetrics;
