@@ -26,8 +26,11 @@ const audit=()=>{const h=[...document.querySelectorAll('*')].find(x=>x.shadowRoo
    const add=page.locator('[data-editor-id="add-furniture-btn"]:visible, [data-editor-id="toolbar"] [data-action="new"]:visible').first();
    for(let n=0;n<3&&!await add.isVisible();n++){await el('c').focus().catch(()=>{});await page.keyboard.press('Escape');await page.waitForTimeout(300);}
    await add.click();await page.waitForTimeout(400);
-   await page.getByRole('button',{name:/Cabinets/}).first().click().catch(()=>{});await page.waitForTimeout(250);
-   await page.locator(`[data-add-kitchen="${kind}"]:visible`).first().click();await page.waitForTimeout(900);
+   const category=page.locator('[data-fc-category="kitchen"]:visible');
+   const card=page.locator(`[data-add-kitchen="${kind}"]:visible`).first();
+   await category.or(card).first().waitFor();
+   if(await category.isVisible())await category.click();
+   await card.click();await page.waitForTimeout(900);
    problems.push(...(await page.evaluate(audit)).map(p=>kind+': '+p));
   }
   const v=await el('view').boundingBox();
