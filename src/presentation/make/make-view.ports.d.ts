@@ -28,12 +28,6 @@ export interface MakeViewPorts {
   estimate?(piece: number): readonly import('../../domain/engine/catalog/quote').Quote[];
   /** Leaves Make and opens Design check on its Price tab, every line of the estimate. */
   openPrice?(): void;
-  /** Assembly Studio opened on a piece of this many parts; `direct` false when the browser's Forward reopened it (product analytics). */
-  studioOpened?(parts: number, direct: boolean): void;
-  /** A tab of Make's panel was shown (product analytics). */
-  tabViewed?(tab: import('./make-panel-tabs').PanelTab): void;
-  /** Make opened on a piece of this many parts (product analytics). */
-  opened?(parts: number): void;
-  /** The piece's drawings or cut list were saved (product analytics). */
-  saved?(kind: 'pdf' | 'csv' | 'parts', parts: number): void;
+  /** What the person does in Make and Assembly Studio, one note at a time (product analytics: application/analytics/make-usage.ts). */
+  note?(note: import('../../application/analytics/make-usage').MakeNote): void;
 }

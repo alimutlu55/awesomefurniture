@@ -18,6 +18,12 @@ Everything is in Supabase, in the `analytics` schema (Supabase Studio → SQL ed
 | `analytics.ai_image_unit_economics` | Images delivered and failed (and why), and Google's token counts (from `credit_spends`) |
 | `analytics.drawing_trial_conversion` | Whether the free first drawing set leads to buying credits |
 | `analytics.design_portfolio_stats` | What saved designs hold: wardrobes, kitchens, pieces, revisions, shares |
+| `analytics.make_visits` | One row per visit to Make: seconds, how it ended, the tools and tabs used, parts picked, saves (see "Make" below) |
+| `analytics.weekly_make_funnel` | By week: Make visits that were left untouched, turned the 3D, used a tool, picked a part, opened the panel, Hardware or Cutting, Assembly, were blocked by the gate, asked to save, saved |
+| `analytics.make_feature_use` | Each Make tool, tab and panel feature as a share of visits (a tool missing from it was never used) |
+| `analytics.make_exits` | The last thing done before leaving Make, and how it was left: where people stop |
+| `analytics.assembly_visits` | One row per visit to Assembly Studio: where it was opened from, the furthest step, finished or not, the controls used |
+| `analytics.make_gate_blockers`, `analytics.make_exports` | The rules that close Make's gate; every save from Make and what stopped the rest |
 
 The last four read the existing tables, so they show history from before analytics existed. Workers Logs also carry a
 line per settled payment (`payment_settled`), checkout (`checkout_started`) and delivered image (`ai_image_delivered`,
@@ -46,6 +52,25 @@ Starter entries use `wardrobe_starter` or `kitchen_starter` in `editor_session_s
 `design_first_work_committed` in a visit comes from a design-changing edit or a guided build, independent of saving.
 Older events used the first autosave of a new design as a proxy, so activation rates across the change use different definitions.
 An explicit “Design it myself” click is recorded as `welcome_skipped` with `manual: true`.
+
+## Make
+
+Make reports what the person does as notes (`MakeNote`, `src/application/analytics/make-usage.ts`), from `make-view.ts`,
+`make-input.ts`, `make-gate.ts` and `assembly-studio-controller.ts` through the view's one `note` port. The tally sums a
+visit up and sends:
+
+| Event | When |
+|---|---|
+| `make_opened` | Make opens on a piece (its part and drilling finding counts) |
+| `make_closed` | Make closes: seconds, how (`done`, `escape`, `view_mode`, `price`, `design_check`, `page_hidden` ...), every toolbar and View menu tool used and how often, the panel and tabs, parts picked (by tapping, from the list, Previous / Next), drilling findings and Hardware rows opened, edge banding, joints and back, touches and zoom on the 3D view, Assembly, the gate, the price, the drawing set, saves, and the last thing done |
+| `make_tab_viewed`, `make_construction_changed`, `make_price_opened` | A tab chosen; joints, back or edge banding changed; the price opened |
+| `make_gate_blocked`, `make_gate_action` | The gate closed on Assembly or saving (how many blockers, their packs and rules, as `findingRule` names them: never a mark or board); Retry or Design check pressed, and whether Retry got through |
+| `make_export_saved`, `make_export_stopped` | A save from Make, or what stopped it: the gate, not paying, the piece changing, an error |
+| `assembly_studio_opened`, `assembly_studio_closed` | Assembly Studio: where it was opened from; when it closes, the furthest step played to, finished or not, how much was watched, and play, step, chapter, scrub, speed, Explore, parts inspected, the chapter list and the guide |
+
+When the page is hidden while Make is open, the visit (and any Studio visit) is summed up at once with `page_hidden`,
+so a person who leaves from Make is still counted; if they come back, the rest is a second `make_closed` with
+`resumed: true`. `tests/architecture/make-analytics.test.ts` checks the summaries.
 
 ## Adding an event
 
@@ -80,8 +105,10 @@ Money is only ever recorded by the Worker (`server: true`): a browser cannot cla
 
 ## Known limits
 
-- Not instrumented yet: shape handle drags and numeric shape edits, `make_finding_inspected`, how long Assembly Studio
-  is watched (its opening is `assembly_studio_opened`), decor choices (`finish_decor_selected`), fittings added (`fitting_added`).
+- Not instrumented yet: shape handle drags and numeric shape edits, decor choices (`finish_decor_selected`), fittings
+  added (`fitting_added`). In Make, turning the view is counted by touch (a tap that picks a part counts too), and a visit
+  split by hiding the page shows as two rows.
+- An event the Worker does not know is dropped, so new events count only once the Worker that knows them is deployed.
 - An event sent while the page closes in its first moment may go without the access token: it is then stored as a guest.
 - Marketing pages send nothing (search-discovery.md); their visits are in Cloudflare Web Analytics, and the editor records
   the marketing page someone came from (`entry_source`, `referrer_path`).

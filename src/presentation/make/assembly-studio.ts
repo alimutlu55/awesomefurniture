@@ -125,7 +125,7 @@ export function createAssemblyStudio(doc: Document, act: (action: string, value?
     q('.as-caption [data-studio="chapters"]').setAttribute('aria-expanded', String(chapters));
     q('[data-studio="guide"]').setAttribute('aria-expanded', String(guide));
     wake();
-    if (chapters || guide) act('pause');
+    if (chapters || guide) act(chapters ? 'chapters' : 'guide');
   };
   root.addEventListener('click', e => {
     const target = (e.target as Element).closest<HTMLElement>('[data-studio]');

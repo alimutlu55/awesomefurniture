@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { MakePiece } from '../../domain/make/make-parts';
+import type { AssemblyEntry, AssemblyExit } from '../../domain/analytics/analytics-events';
+import type { FilmFacts } from '../../application/analytics/make-usage';
 import type { MakeLook, createMake3d } from './make-3d';
 import type { MakePlayer } from './make-player';
 import type { MakeViewPorts } from './make-view.ports';
@@ -36,11 +38,17 @@ export function createStudioController(host: Host) {
     const part = st.piece?.parts.find(p => p.n === n);
     return part ? st.piece!.steps.findIndex(step => step.boards.some(i => part.ids.includes(i))) : 0;
   }
-  function enterStudio(chapter?: number, push = true) {
+  /** Where the film stands, for the analytics of a visit to the Studio. */
+  function filmFacts(): FilmFacts {
+    const watch = player.watch;
+    return { steps: player.timeline?.steps.length ?? 0, atStep: player.head.step, furthestStep: watch.furthestStep, finished: watch.finished,
+      watched: watch.seconds, duration: player.duration };
+  }
+  function enterStudio(chapter?: number, push = true, entry: AssemblyEntry = 'toolbar') {
     if (!st.piece || historyPending) return;
     // Every way in passes the gate: the tool, a part's stage link, a hardware row, the browser's Forward.
     if (!st.studio && !host.mayAssemble()) return;
-    const firstVisit = visited !== st.piece; visited = st.piece;
+    const firstVisit = visited !== st.piece, opening = !st.studio; visited = st.piece;
     if (!st.studio) {
       saved = { pose: { ...ports.camera.camNow() }, look: st.look, measures: st.measures, numbers: st.numbers, selected: st.selected,
         apartOn: st.apartOn, openOn: st.openOn, panel: st.panel, canvasLabel: ports.resources.cv.getAttribute('aria-label') ?? '', focus: (app.getRootNode() as ShadowRoot).activeElement as HTMLElement | null };
@@ -55,7 +63,6 @@ export function createStudioController(host: Host) {
       studio.root.hidden = false;
       ports.resources.cv.setAttribute('aria-label', 'Interactive assembly. Switch to Explore to orbit, pan, zoom and inspect components.');
       studio.load(st.piece, player, planFor(st.piece, ports.scene()));
-      ports.studioOpened?.(st.piece.parts.length, push);
       paper(true);
       if (push) history.pushState({ ...history.state, [historyKey]: true }, '');
       filming();
@@ -63,10 +70,12 @@ export function createStudioController(host: Host) {
     }
     if (chapter !== undefined && chapter >= 0) { player.pause(); player.chapter(chapter); }
     else if (firstVisit && !reducedMotion.matches && !player.playing) { player.direction(1); player.toggle(); }
+    if (opening) { player.watchFrom(); ports.note?.({ kind: 'studio_opened', parts: st.piece.parts.length, entry, direct: push, step: player.head.step }); }
     showFilm();
   }
-  function leaveStudio(back = true) {
+  function leaveStudio(back = true, exit: AssemblyExit = 'exit') {
     if (!st.studio) return;
+    ports.note?.({ kind: 'studio_closed', exit, film: filmFacts() });
     player.pause(); st.studio = false; st.explore = false;
     studio.root.hidden = true; app.classList.remove('assembly-studio-on');
     for (const [el, inert] of inertBefore) el.inert = inert;
@@ -108,6 +117,7 @@ export function createStudioController(host: Host) {
   }
   function studioAction(action: string, value = 0) {
     if (!st.piece || !st.studio) return;
+    ports.note?.({ kind: 'studio', action, value });
     if (action === 'exit') { leaveStudio(); return; }
     if (action === 'mode') { explore(!st.explore); return; }
     if (action === 'part') { inspect(value); return; }
@@ -118,7 +128,8 @@ export function createStudioController(host: Host) {
       if (action === 'reverse') { player.direction(player.rate === -1 ? 1 : -1); if (!player.playing) player.toggle(); }
       else player.toggle();
     }
-    if (action === 'pause') player.pause();
+    // The chapter list and the written guide pause the film while they are open.
+    if (action === 'pause' || action === 'chapters' || action === 'guide') player.pause();
     if (action === 'speed') player.setSpeed(value);
     if (action === 'seek') { player.pause(); player.seek(value * player.duration); }
     if (action === 'chapter') { explore(false); player.chapter(value); }
@@ -146,9 +157,9 @@ export function createStudioController(host: Host) {
       y: (box.y ?? box.h / 2) + Math.cos(el) * dy, z: box.z - Math.sin(az) * dx - Math.cos(az) * Math.sin(el) * dy };
   }
   function historyChanged(e: Event) {
-    if (st.studio) { e.stopImmediatePropagation(); leaveStudio(false); }
+    if (st.studio) { e.stopImmediatePropagation(); leaveStudio(false, 'history'); }
     else if (historyPending) { historyPending = false; e.stopImmediatePropagation(); }
-    else if (history.state?.[historyKey] && st.piece) { e.stopImmediatePropagation(); enterStudio(undefined, false); }
+    else if (history.state?.[historyKey] && st.piece) { e.stopImmediatePropagation(); enterStudio(undefined, false, 'history'); }
   }
-  return { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera };
+  return { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera, filmFacts };
 }

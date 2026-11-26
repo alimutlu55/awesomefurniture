@@ -15,6 +15,15 @@ export interface AssemblyGate {
   readonly notes: readonly EngineFinding[];
 }
 
+/**
+ * The rule a finding breaks, the same for every piece and board ("drilling:edge", "manufacturing:clash"): its id without
+ * the piece's mark, board numbers and counters. For counting which rules stop people, never naming a design's parts.
+ */
+export function findingRule(f: Pick<EngineFinding, 'id' | 'pack' | 'mark'>): string {
+  const kind = f.id.split(':').slice(1).find(s => s !== '' && s !== f.mark && !/^\d+(?:\.\d+)?$/.test(s));
+  return f.pack + ':' + (kind ?? 'design');
+}
+
 export function assemblyGate(evaluation: Evaluation, piece: number): AssemblyGate {
   const about = (f: EngineFinding) => f.piece === piece || f.piece === undefined && f.mark === undefined;
   const mine = evaluation.findings.filter(about), blockers = mine.filter(f => f.severity === 'blocking');

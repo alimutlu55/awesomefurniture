@@ -20,6 +20,8 @@ export function createMakePlayer() {
   let piece: MakePiece | null = null, tl: Timeline | null = null, staged: Staged[] = [], t = 0, playing = false, rate: 1 | -1 = 1;
   let speed: (typeof PLAYBACK_SPEEDS)[number] = 1;
   let stopAt: number | null = null, floor = 0;
+  // What has been watched since `watchFrom`: seconds of film played (either way) and the furthest time played to.
+  let watched = 0, furthest = 0;
   const head = (): Playhead => tl ? playhead(tl, t) : { step: 0, drill: 0, place: 0, hang: 0, fix: 0, adjust: 0, t: 0 };
   return {
     /** Takes a piece; `floor` is where the floor is in its frame (below a hung unit), where its parts wait. */
@@ -39,6 +41,10 @@ export function createMakePlayer() {
     get speed() { return speed; },
     setSpeed(next: number) { speed = PLAYBACK_SPEEDS.find(value => value === next) ?? speed; },
     get head() { return head(); },
+    /** Starts counting what is watched from now (Assembly Studio opening). */
+    watchFrom() { watched = 0; furthest = t; },
+    /** Seconds of film played since `watchFrom`, and the step of the furthest time played to (product analytics). */
+    get watch() { return { seconds: watched, furthestStep: tl ? playhead(tl, furthest).step : 0, finished: !!tl && furthest >= tl.duration - .01 }; },
     /** Each step's start, for its chapter. */
     get starts() { return tl ? tl.steps.map(s => s.start) : []; },
     seek(to: number) { stopAt = null; if (Number.isFinite(to)) t = Math.max(0, Math.min(tl?.duration ?? 0, to)); },
@@ -64,10 +70,11 @@ export function createMakePlayer() {
     advance(dt: number) {
       if (!playing || !tl) return false;
       if (!Number.isFinite(dt) || dt < 0) return false;
-      const next = Math.max(0, Math.min(tl.duration, t + dt * rate * speed));
+      const before = t, next = Math.max(0, Math.min(tl.duration, t + dt * rate * speed));
       if (stopAt !== null && (next - stopAt) * rate >= 0) {
         t = stopAt; stopAt = null; playing = false;
       } else t = next;
+      watched += Math.abs(t - before); furthest = Math.max(furthest, t);
       if ((rate > 0 && t >= tl.duration) || (rate < 0 && t <= 0)) playing = false;
       return true;
     },
