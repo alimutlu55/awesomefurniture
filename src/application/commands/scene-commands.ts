@@ -244,7 +244,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
             }
             let requested = Math.max(range[0]!, Math.min(range[1]!, Math.round(value * 10) / 10));
             if (key === 'w') {
-                requested = Math.max(requested, geometry.minTotal());
+                requested = design.limitWidth(Math.max(requested, geometry.minTotal())); // an appliance housing: no wider than its appliance
             }
             if (state[key as 'w' | 'h' | 'd'] === requested) return false;
             const pose = collision.cabinetResizePose(cabinet, key, requested, isKitchen(state));
@@ -309,7 +309,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
                 if (recordHistory) discardCheckpoint();
                 return false;
             }
-            design.refitAfterSize();
+            design.refitAfterSize(key === 'h' ? state.h - previous.h : 0);
             if ((state.dividers || []).some((d, j) => !geometry.dividerValid(d, j))) {
                 Object.assign(state, previous);
                 state.shape = previous.shape;

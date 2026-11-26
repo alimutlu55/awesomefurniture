@@ -7,6 +7,7 @@ import { createAppearanceCommands } from './appearance-commands';
 import { createFrontCommands } from './front-commands';
 import { createBaySplitCommands } from './bay-split-commands';
 import { createCommandWorkflow } from './command-workflow';
+import { createKitchenFitCommands } from './kitchen-fit-commands';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
 import type { EditorState } from '../projects/editor-scene';
 import type { CommandEffects } from './command-effects';
@@ -36,6 +37,7 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     const appearance = createAppearanceCommands({ getDesign, effects, run });
     const fronts = createFrontCommands({ getDesign, widths: () => rules.widths(), run });
     const baySplit = createBaySplitCommands({ getDesign, effects });
+    const kitchenFit = createKitchenFitCommands({ getDesign, rules, report: effects.report });
     const shaped = () => !isRegularShape(getDesign().shape);
     /** Outer height a bay planner should assume: the lowest clear point across the bay. */
     const bayHeight = (i: number) => Math.floor(rules.ceilingIn(i, 0, rules.widths()[i]!) + plinthOf(getDesign()) + 2 * PANEL);
@@ -60,7 +62,23 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
         effects.report(MODS[k].n + ' does not go in a ' + (getDesign().unit ? getDesign().unit + ' ' : '') + module.noun);
         return true;
     };
-    const addMod: typeof items.addMod = k => { if (!refused(k)) items.addMod(k); };
+    /** A kitchen unit's whole front (a dishwasher in a base unit) goes only into an empty unit. */
+    const blocked = (k: ItemKind) => {
+        const problem = kitchenFit.addProblem(k);
+        if (problem) effects.report(problem);
+        return !!problem;
+    };
+    const addMod: typeof items.addMod = k => {
+        if (refused(k) || blocked(k)) return;
+        const i = getDesign().sel, before = (getDesign().secs[i] ?? []).map(it => JSON.stringify(it));
+        items.addMod(k);
+        if (kitchenFit.underWorktop(i, before)) effects.changed(true);
+    };
+    /** After a new size, a kitchen unit's fronts that closed it grow with it (`grownBy`: how much taller it is). */
+    const refitAfterSize = (grownBy = 0) => {
+        sizing.refitAfterSize();
+        for (let i = 0; i < getDesign().n; i++) kitchenFit.closeGaps(i, grownBy);
+    };
     const editItem: typeof items.editItem = (i, j, edit) => edit.kind && refused(edit.kind) ? false : items.editItem(i, j, edit);
     /** Only furniture that Auto design plans can have a bay filled for it. */
     const planned = () => {
@@ -72,5 +90,5 @@ export function createDesignCommands(getDesign: () => EditorState, supplied: Com
     // afterward could compact or remove the very fittings the command preserves.
     const changeSections: typeof layouts.changeSections = delta => layouts.changeSections(delta);
     return { run, ...dividers, ...dividerAlign, setDividerClearance, ...sizing, ...items, addMod, editItem,
-        ...layouts, applyProposal, autofill, changeSections, ...appearance, ...fronts, ...baySplit };
+        ...layouts, applyProposal, autofill, changeSections, ...appearance, ...fronts, ...baySplit, refitAfterSize, limitWidth: kitchenFit.limitWidth };
 }

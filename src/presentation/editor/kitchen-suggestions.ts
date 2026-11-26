@@ -1,6 +1,8 @@
 import { fitting, hasTrait, type FittingKind } from '../../domain/wardrobe/fittings';
 import { furnitureModule } from '../../domain/furniture/furniture';
-import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
+import { kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
+import { kitchenInside } from '../../domain/kitchen/kitchen-design';
+import { wholeFrontProblem, withinMadeWidth } from '../../domain/kitchen/kitchen-fit';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import type { EditorState } from '../../application/projects/editor-scene';
 import type { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
@@ -13,12 +15,17 @@ type Rules = Pick<ReturnType<typeof createWardrobeGeometry>, 'effectiveMin' | 'i
  * suggested once: a second one goes last. Same shape as the wardrobe suggestions (add-suggestions.js). */
 export function kitchenSuggestions(design: Pick<EditorState, 'sel' | 'n' | 'd' | 'secs' | 'unit' | 'product' | 'w' | 'h' | 'wt' | 'shape'>, rules: Rules) {
   const sp = rules.sectionSpaceMeasurements(design.sel), w = sp.w, H = sp.h, unit = kitchenUnit(design.unit);
+  const inside = kitchenInside(design.h, unit.key as KitchenUnitKey);
   const has = (k: FittingKind) => design.secs.slice(0, design.n).some(items => items.some(it => it.k === k));
   const list = furnitureModule(design).fittingKinds(design).map((k, o) => {
     const def = fitting(k)!, mn = rules.effectiveMin(k);
-    const fit = rules.itemFeasible(k, w) && mn <= H + .01 && !!rules.spaceSpan(design.sel, sp, mn, def.minWidth);
+    // A dishwasher or corner pull-out in a base unit is its whole front; an oven or cargo is made in set widths.
+    const whole = wholeFrontProblem(k, unit.key as KitchenUnitKey, H, inside);
+    const fit = rules.itemFeasible(k, w) && mn <= H + .01 && !whole && !!rules.spaceSpan(design.sel, sp, mn, def.minWidth);
     const needs = (cm: number, what: string) => 'Needs ' + measureNumber(cm) + unitSuffix() + ' ' + what;
-    const hint = fit ? '' : w < def.minWidth - .01 ? needs(def.minWidth, 'width') : design.d < def.minDepth ? needs(def.minDepth, 'depth') : needs(mn, 'height');
+    const tooWide = !withinMadeWidth(k, w) ? 'Made up to ' + measureNumber(def.maxWidth!) + unitSuffix() + ' wide' : '';
+    const hint = fit ? '' : w < def.minWidth - .01 ? needs(def.minWidth, 'width') : tooWide || (design.d < def.minDepth ? needs(def.minDepth, 'depth')
+      : whole || needs(mn, 'height'));
     const s = def.kitchen!.score - (hasTrait(k, 'worktop') && has(k) ? 40 : 0);
     return { k: k as string, o, fit, s, why: def.kitchen!.why, hint, warn: false };
   });

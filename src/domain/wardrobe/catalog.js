@@ -5,7 +5,8 @@ import { PURPOSES } from './purposes';
 /** Catalogue tables kept for existing callers. They are derived from the registries; edit
  * fittings.ts, purposes.ts or possessions.ts, never these. */
 /** @type {Record<import('./fittings').FittingKind, {n:string,h:number,p:number,k:string,mn:number,mx:number,w:number,d:number,purpose:import('./purposes').Purpose}>} */
-export const MODS = /** @type {any} */ (Object.fromEntries(FITTINGS.map(f => [f.key, { n: f.name, h: f.height, p: f.price, k: f.code, mn: f.min, mx: f.max, w: f.minWidth, d: f.minDepth, purpose: f.purpose }])));
+export const MODS = /** @type {any} */ (Object.fromEntries(FITTINGS.map(f => [f.key, { n: f.name, h: f.height, p: f.price, k: f.code, mn: f.min, mx: f.max,
+    w: f.minWidth, mw: 'maxWidth' in f ? f.maxWidth : Infinity, d: f.minDepth, purpose: f.purpose }])));
 /** @type {Record<import('./purposes').Purpose, string>} */
 export const PURPOSE = /** @type {any} */ (Object.fromEntries(PURPOSES.map(p => [p.key, p.label])));
 export const purposeName = it => PURPOSE[it.purpose] || it.purpose || PURPOSE[MODS[it.k].purpose];

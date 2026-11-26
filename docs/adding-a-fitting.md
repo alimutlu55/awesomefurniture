@@ -15,15 +15,18 @@ or possessions.
 ## A fitting kind
 
 1. Append one entry to `FITTINGS` in `fittings.ts`. Copy the closest existing kind:
-   - **Sizes**: `height`, `min`, `max`, `minWidth`, `minDepth` in centimetres.
+   - **Sizes**: `height`, `min`, `max`, `minWidth`, `minDepth` in centimetres, and `maxWidth` for something made
+     in set widths (an oven fits a 60 cm housing, a corner pull-out a 90–120 cm blind corner unit). Widths are the
+     bay inside the boards: a 60 cm cabinet is 56.4 cm inside.
    - **`purpose`** it starts with, and **`purposes`** the inspector offers.
    - **`traits`**: which shared rules apply (pulls out, hangs, open shelf...). See `FITTING_TRAITS`.
    - **`planner`**: only where the planner's limits differ from the editor's.
    - **`menu`**: Add item order, group and label; leave it out if users never add it directly.
    - **`zone`**: colour and label in layout diagrams, with a `ZONE_PRIORITY` level.
    - **`icon`**: a 24 px line icon path.
-   - **`kitchen`**: only for a kitchen cabinet fitting: the units it fits in, its Add item score and
-     the reason shown on its card. Kitchen fittings draw their own fronts in
+   - **`kitchen`**: only for a kitchen cabinet fitting: the units it fits in, its Add item score,
+     the reason shown on its card, and `whole`: the units whose whole front it is (a dishwasher in a base unit).
+     Sizes follow real products, not the editor's convenience. Kitchen fittings draw their own fronts in
      `src/presentation/viewport/kitchen-fitting-renderer.ts` and their card in `kitchen-art.ts`.
      See [furniture](furniture.md).
 2. Run `npm test`. `tests/architecture/fittings.test.ts` checks the new entry everywhere it is

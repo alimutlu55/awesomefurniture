@@ -18,7 +18,7 @@ export const KITCHEN_PRESETS = [
   { key: 'end-panel', unit: 'end-panel', name: 'End/Separator pane', parts: [] },
   { key: 'base', unit: 'base', name: 'Base cabinet', parts: [] },
   { key: 'drawers', unit: 'base', name: 'Drawer unit', parts: [['pan', 3], ['pan', 3], ['cutlery', 2]] },
-  { key: 'oven-under', unit: 'base', name: 'Oven unit', parts: [['cutlery', 1], ['oven', 5]] },
+  { key: 'oven-under', unit: 'base', name: 'Oven unit', parts: [['cutlery', 14.4], ['oven', 60]] },
   { key: 'sink-top', unit: 'sink-top', name: 'Sink', parts: [] },
   { key: 'hob-top', unit: 'hob-top', name: 'Hob', parts: [] },
   { key: 'dishwasher', unit: 'base', name: 'Dishwasher', parts: [['dishwasher', 1]] },

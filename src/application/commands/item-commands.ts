@@ -4,6 +4,7 @@ import type { ItemEdit, ItemMovePlan, ItemResizeSession, ItemResizeTarget } from
 import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { itemName, MODS } from '../../domain/wardrobe/catalog.js';
 import { sectionAfterEdgeResize } from './item-edge-resize';
+import { kitchenFitHeight } from '../../domain/kitchen/kitchen-fit';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
@@ -12,6 +13,9 @@ type Ports = {
     run(fn: () => void): void;
 };
 export function createItemCommands({ getDesign, effects, rules, callbacks, run }: Ports) {
+    /** Height a new fitting takes where `free` cm are open; a kitchen unit's fronts close it (domain/kitchen/kitchen-fit.ts). */
+    const addHeight = (k: ItemKind, free: number) => getDesign().product === 'kitchen'
+        ? kitchenFitHeight(k, getDesign().unit ?? 'base', free) : Math.min(Math.max(MODS[k].h, rules.effectiveMin(k)), free);
     function applyItemEdgeSize(a: ItemResizeSession, target: ItemResizeTarget) {
         const sec = sectionAfterEdgeResize(a, target);
         if (!sec)
@@ -94,7 +98,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             // Under a sloped or stepped top the fitting fills the space and is cut to
             // the angle; its working core keeps the default height where it fits.
             const y0 = space.y0 - rules.interiorFloor(), fit = (h: number) => rules.itemFit(getDesign().sel, { x0: space.x0!, x1: space.x1!, relY0: y0, relY1: y0 + h }, rules.newItem(k, h));
-            let hh = Math.min(Math.max(m.h, mn), space.h), place = fit(hh);
+            let hh = addHeight(k, space.h), place = fit(hh);
             for (let h = hh; !place && h >= mn - .01; h = Math.round((h - .5) * 10) / 10) {
                 if ((place = fit(h))) hh = h;
             }
@@ -119,7 +123,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
         const selIt = getDesign().item >= 0 ? getDesign().secs[getDesign().sel]![getDesign().item]! : null, selFree = selIt ? rules.itemFreeAbove(getDesign().sel, getDesign().item) : 0;
         if (selIt && selIt.w && selFree >= mn) {
             run(() => {
-                const nit = { ...rules.newItem(k, Math.min(Math.max(m.h, mn), selFree)), w: selIt.w, ...(selIt.ax ? { ax: selIt.ax } : {}) };
+                const nit = { ...rules.newItem(k, addHeight(k, selFree)), w: selIt.w, ...(selIt.ax ? { ax: selIt.ax } : {}) };
                 getDesign().secs[getDesign().sel]!.splice(getDesign().item + 1, 0, nit);
                 getDesign().item = getDesign().item + 1;
                 getDesign().proposal = null;
@@ -133,7 +137,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
         if (f < mn) {
             const g = rules.edgeGap(k);
             if (g) {
-                const hh = Math.min(Math.max(m.h, mn), rules.ih(getDesign().sel));
+                const hh = addHeight(k, rules.ih(getDesign().sel));
                 run(() => {
                     getDesign().divider = -1;
                     getDesign().secs[getDesign().sel]!.push({ ...rules.newItem(k, hh), w: g.w, ax: (g.ax as 'l' | 'c' | 'r') });
@@ -148,7 +152,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             return;
         }
         run(() => {
-            getDesign().secs[getDesign().sel]!.push(rules.newItem(k, Math.min(Math.max(m.h, mn), f)));
+            getDesign().secs[getDesign().sel]!.push(rules.newItem(k, addHeight(k, f)));
             getDesign().item = getDesign().secs[getDesign().sel]!.length - 1;
             getDesign().proposal = null;
         });

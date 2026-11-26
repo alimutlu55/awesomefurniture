@@ -68,6 +68,21 @@ tap on a piece's W, H or D with Size closed opens Size with that field focused (
 | `presentation/editor/kitchen-array-gesture.ts` | Pull-to-array grips and long press |
 | `presentation/editor/kitchen-plan.ts`, `furniture-framing.ts` | Storage panel for a kitchen; framing a kitchen run |
 
+**Fronts close the unit** (`domain/kitchen/kitchen-fit.ts`, `application/commands/kitchen-fit-commands.ts`). A kitchen
+unit is shut by its fronts from its bottom board to its top board, never with a strip of open carcass between them:
+
+- Add item gives a fitting its usual height, but grows it into a leftover lower than the smallest front the unit can
+  hold (a 72 cm door in a 74.4 cm base unit becomes 74.4 cm). Drawers stack until the last one closes the unit.
+- A **whole front** (`kitchen.whole`: sink cupboard, dishwasher, under-counter fridge, corner and cargo pull-outs and
+  covers in a base unit) fills the unit and goes only into an empty one; its card says *Takes the whole cabinet front*.
+  In a tall unit a fridge, cargo or pantry still shares the height with a cupboard above.
+- Appliances and mechanisms are made in set widths (`maxWidth`): oven, microwave, integrated fridge and pantry
+  pull-out a 60 cm unit, dishwasher 45–60, base cargo 15–50, corner pull-out 90–120, hob and hood up to 90. A
+  wider bay is refused (*Made up to … wide*; add a divider or narrow the unit), and a unit holding one grows no
+  wider than it (*Widest this cabinet can be…*).
+- A hob's drawer is pinned under the worktop it is set in; the space below it is selected for the drawers under it.
+- A unit made taller grows the fronts that closed it; a lower one shrinks them. An open space the user left stays open.
+
 Kitchen fittings (cutlery and pan drawers, cupboard door, lift-up flap, open shelf, sink, hob,
 oven, microwave, fridge, pantry, cargo) are entries in the one fittings registry, each with a `kitchen` field
 naming the units it fits and how Add item ranks it. Traits carry the rules: `front` (shows its

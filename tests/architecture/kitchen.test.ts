@@ -127,9 +127,12 @@ test('kitchen Add item · every kitchen fitting is offered inside a unit it fits
   const { kitchenSuggestions } = await import('../../src/presentation/editor/kitchen-suggestions');
   const { createWardrobeGeometry } = await import('../../src/domain/geometry/wardrobe-geometry.js');
   const offered = new Set<string>();
-  for (const unit of KITCHEN_UNIT_KEYS) {
+  // A plain unit at its usual width, a slim 30 cm one (a cargo pull-out is made 15–50 cm) and the 100 cm a blind corner
+  // unit takes (a corner pull-out is made 90–120 cm).
+  for (const unit of KITCHEN_UNIT_KEYS) for (const w of [kitchenUnit(unit).w, 30, 100]) {
+    if (w > kitchenUnit(unit).sizes.w[1] || w < kitchenUnit(unit).sizes.w[0]) continue;
     // The plain unit of each kind starts empty (its preset has the unit's key).
-    const design = { ...createKitchenDesign(unit, unit), sel: 0, item: -1, divider: -1, space: null, open: false };
+    const design = { ...createKitchenDesign(unit, unit), w, sel: 0, item: -1, divider: -1, space: null, open: false };
     assert.equal(design.secs[0]!.length, 0);
     const { list, intent } = kitchenSuggestions(design, createWardrobeGeometry(() => design));
     assert.match(intent, /Inside the/);

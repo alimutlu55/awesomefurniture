@@ -15,6 +15,8 @@ const { syncCabinetSizeLimits } = require('../src/presentation/editor/resize-fie
 const { createTactileEdits } = require('../src/application/commands/tactile-edits.ts');
 const { createCabinetSizeRange } = require('../src/application/commands/cabinet-size-range.ts');
 const { createKitchenDesign, KITCHEN_PRESETS } = require('../src/domain/kitchen/kitchen-design.ts');
+const { fitting } = require('../src/domain/wardrobe/fittings.ts');
+const { PANEL } = require('../src/domain/wardrobe/catalog.js');
 
 function fixture({ x = 0, y = 0, z = 30, angle = 0, w = 200, h = 230, d = 60, room = true, roomWidth = 400, roomDepth = 300 } = {}) {
     const a = angle * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -74,7 +76,9 @@ for (const preset of KITCHEN_PRESETS) test(`${preset.key}: ranges use the furnit
     f.model.scene.wardrobes.push(...[-1, 1].map((side, i) => ({ id: i + 2, name: 'Neighbor', x: side * (initial / 2 + 50.4), y: 0,
         z: 30, angle: 0, state: { ...createEditorState(), w: 100 } })));
     const before = f.model.snapshot(), limits = createCabinetSizeRange(() => f.model.scene)();
-    close(limits.w[1], initial + .8, 'the range consumes both gaps exactly');
+    // An appliance housing grows no wider than the appliance it is made for (kitchen-fit-commands.ts).
+    const made = Math.min(...f.cabinet().state.secs[0].map(it => fitting(it.k).maxWidth ?? Infinity));
+    close(limits.w[1], Math.min(initial + .8, Math.floor((made + 2 * PANEL) * 10) / 10), 'the range consumes both gaps exactly, up to the appliance');
     assert.equal(f.model.snapshot(), before);
     assert.equal(f.commands.setCabinetSize('w', limits.w[1], false), true); f.fits();
 });

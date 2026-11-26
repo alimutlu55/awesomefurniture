@@ -18,7 +18,8 @@ export function createSizesRules(ctx, deps) {
     }
     function itemFeasible(k, w) {
         const m = MODS[k], front = (k === 'short' || k === 'long') && getDesign().d < 55;
-        return getDesign().d >= (front ? 35 : m.d) && w >= (front ? 55 : m.w) && !(k === 'lift' && !getDesign().profile.allowLift);
+        // An appliance or mechanism made in set widths (an oven, a corner pull-out) fits only bays up to its widest.
+        return getDesign().d >= (front ? 35 : m.d) && w >= (front ? 55 : m.w) && w <= m.mw + .01 && !(k === 'lift' && !getDesign().profile.allowLift);
     }
     function newItem(k, h) {
         return { k, h, purpose: MODS[k].purpose, ...((k === 'short' || k === 'long') && getDesign().d < 55 ? { front: true } : {}) };
