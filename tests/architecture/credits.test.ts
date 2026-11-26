@@ -283,10 +283,15 @@ test('the schedule credits a paid checkout whose webhook never came, even if the
   assert.equal(await service.reconcile(), 0, 'a credited order is not looked up again');
 });
 
-test('a guest designs freely, but buying and using credits (a free drawing set too) needs an account', async () => {
+test('a guest designs freely and gets the first drawing set, but buying and spending credits needs an account', async () => {
   const { service } = setup();
-  await assert.rejects(service.spend(guest, { feature: 'technical-drawings', key: 'drawings-guest-1', scope: 'design-1' }),
-    (e: CreditError) => e.code === 'ACCOUNT_REQUIRED');
+  assert.equal((await service.spend(guest, { feature: 'technical-drawings', key: 'drawings-guest-1', scope: 'design-1' })).charge, 'free',
+    'the first drawing set needs no account');
+  assert.equal((await service.spend(guest, { feature: 'technical-drawings', key: 'drawings-guest-3', scope: 'design-1' })).charge, 'pass',
+    'changes to that design stay open for the pass');
+  await assert.rejects(service.spend(guest, { feature: 'technical-drawings', key: 'drawings-guest-4', scope: 'design-2' }),
+    (e: CreditError) => e.code === 'ACCOUNT_REQUIRED', 'a second design would take credits');
+  assert.equal((await service.wallet(guest)).features.find(f => f.key === 'technical-drawings')!.freeLeft, 0);
   await assert.rejects(service.reserve(guest, 'ai-image', 'image-guest-0001'), (e: CreditError) => e.code === 'ACCOUNT_REQUIRED');
   await assert.rejects(service.checkout(guest, { pack: 'starter', provider: 'fake', links }), (e: CreditError) => e.code === 'ACCOUNT_REQUIRED');
   assert.equal((await service.wallet(guest)).account.anonymous, true, 'a guest still sees the wallet and the packs');

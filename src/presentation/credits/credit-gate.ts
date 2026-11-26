@@ -13,7 +13,7 @@ interface Ports {
   lifetime: { listen(target: EventTarget, event: string, handler: (e: Event) => void): void; cleanup(callback: () => void): void };
   toast(message: string): void;
   openWallet(need: WalletNeed): void;
-  /** True (and the sign-in sheet opens) when this is a guest: credits, even free uses, need an account. */
+  /** True (and the sign-in sheet opens) when this is a guest: spending credits needs an account (free uses and passes do not). */
   needsAccount(): boolean;
   track?: TrackEvent | undefined;
 }
@@ -65,10 +65,10 @@ export function bindCreditGate({ client, page, host, lifetime, toast, openWallet
     if (!feature || !wallet) { toast(creditErrorMessage(null)); return false; }
     const gate = (gate_outcome: 'free_or_pass' | 'paid_confirm_prompt' | 'insufficient_credits' | 'account_required') =>
       track('credit_gate_triggered', { feature: key, gate_outcome, balance: wallet.balance, cost: feature.cost });
-    if (needsAccount()) { gate('account_required'); return false; }
     const covered = client.pass(key) || feature.freeLeft > 0;
     if (covered) gate('free_or_pass');
     if (!covered) {
+      if (needsAccount()) { gate('account_required'); return false; }
       if (wallet.balance < feature.cost) { gate('insufficient_credits'); openWallet({ feature: key, cost: feature.cost, balance: wallet.balance }); return false; }
       loading.stop(); gate('paid_confirm_prompt');
       if (!await ask(feature.label, feature.cost, wallet.balance, feature.passHours)) return false;

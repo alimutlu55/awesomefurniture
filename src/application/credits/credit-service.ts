@@ -43,9 +43,10 @@ export function createCreditService({ store, providers, requireAccount, analytic
     if (!found || found.settlement !== settlement) throw new CreditError('UNKNOWN_FEATURE', 'This feature cannot be charged here.');
     return found;
   };
-  /** Credits belong to an account, so buying and using them (free uses too) needs one; designing does not. */
+  /** Credits belong to an account, so buying and spending them needs one; designing does not. */
+  const isGuest = (user: CreditUser) => requireAccount && (user.anonymous || !user.email);
   const needAccount = (user: CreditUser, action: string) => {
-    if (requireAccount && (user.anonymous || !user.email)) throw new CreditError('ACCOUNT_REQUIRED', `Sign up or sign in to ${action}.`);
+    if (isGuest(user)) throw new CreditError('ACCOUNT_REQUIRED', `Sign up or sign in to ${action}.`);
   };
   const refuseShort = (result: SpendResult) => {
     if (result.status === 'insufficient') {
@@ -149,15 +150,20 @@ export function createCreditService({ store, providers, requireAccount, analytic
     return { orderId: order.id, status: order.status, credits: order.credits, balance };
   }
 
-  /** Uses a feature that is final when used (technical drawings). */
+  /**
+   * Uses a feature that is final when used (technical drawings). A guest gets its free uses and the passes they open
+   * (the first drawing set needs no account); anything that would take credits asks them to sign up or sign in. A guest
+   * cannot buy credits, so their balance is empty and the ledger answers such a use with `insufficient`.
+   */
   async function spend(user: CreditUser, input: { feature: unknown; key: unknown; scope: unknown }) {
     const f = feature(String(input.feature), 'immediate');
-    needAccount(user, 'use credits');
     if (typeof input.key !== 'string' || !KEY.test(input.key)) throw new CreditError('INVALID_REQUEST', 'A request key is required.');
     const scope = typeof input.scope === 'string' && SCOPE.test(input.scope) ? input.scope : null;
     if (f.passHours > 0 && !scope) throw new CreditError('INVALID_REQUEST', 'Say which design this is for.');
-    return refuseShort(await store.spend({ userId: user.id, feature: f.key, key: `${f.key}:${input.key}`, cost: f.cost, freeUses: f.freeUses,
-      passHours: f.passHours, scope, capture: true }));
+    const result = await store.spend({ userId: user.id, feature: f.key, key: `${f.key}:${input.key}`, cost: f.cost, freeUses: f.freeUses,
+      passHours: f.passHours, scope, capture: true });
+    if (result.status === 'insufficient' && isGuest(user)) needAccount(user, 'use credits');
+    return refuseShort(result);
   }
 
   /** Reserves a feature whose result may fail (an AI image); settle it with `settle` either way. */

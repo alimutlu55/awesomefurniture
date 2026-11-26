@@ -12,18 +12,21 @@ clicking it opens the wallet with the packs, what credits buy, and the activity 
   preselected and marked), what each feature costs, and the Activity tab (every purchase, spend and refund).
 - **AI image**: the price sits on Generate image and Try again (4 ◉). With too few credits the wallet opens
   on the packs and says what is missing. After the purchase, the success screen offers "Create your AI image".
-- **Technical drawings**: the menu item shows *Free trial*, *10 ◉* or *Open* (a pass is running). The first set is
-  free and opens a 24-hour pass for that design; later designs ask on a small card before taking credits.
+- **Technical drawings**: the menu item shows *Free trial*, *20 ◉* or *Open* (a pass is running). The first set is
+  free, guests included, and opens a 24-hour pass for that design; later designs ask on a small card before taking
+  credits (a guest is asked to sign up or sign in first).
 - **Buying**: Continue → (a guest) sign up or sign in → the provider's hosted checkout → back in the editor,
   "Confirming your payment" → the celebration with the credits added. Every ending says whether money was taken:
   not completed ("you were not charged"), paid but not credited (a reference to quote, see Operations), refunded or
   disputed. A reload while confirming picks the confirmation up again; after two minutes it carries on quietly for
   half an hour; the balance in the menu counts up when they land (no message).
 
-Credits belong to an account: buying them and using them (the free first drawing set too) needs one
-(`CREDITS_REQUIRE_ACCOUNT`, on by default; the server refuses with `ACCOUNT_REQUIRED`). A guest still sees the
-balance, the packs and the prices; the sign-in sheet opens when they would buy or use credits, and the wallet
-reopens on the chosen pack afterwards. Designing never needs an account. Signing in offers to add the guest's work
+Credits belong to an account: buying and spending them needs one (`CREDITS_REQUIRE_ACCOUNT`, on by default; the
+server refuses with `ACCOUNT_REQUIRED`). Free uses and the passes they open do not: a guest gets the first drawing
+set, and the changes to that design for 24 hours, without signing in. A guest still sees the balance, the packs and
+the prices; the sign-in sheet opens when they would buy credits or use something that takes them, and the wallet
+reopens on the chosen pack afterwards. Signing in moves the guest's free use and pass to the account, so it
+counts there too (`account_merge`). Designing never needs an account. Signing in offers to add the guest's work
 and credits to the account (the person decides), so paid credits survive a cleared browser and reach every device: see
 [accounts.md](accounts.md).
 
@@ -239,8 +242,8 @@ for webhooks).
 
 - Technical drawings are made in the browser, so their charge is a gate in the editor, not enforced on the
   server. The pass's design id comes from the browser too.
-- The first free drawing set is per account. Someone could create several accounts for several free sets; each
-  needs a confirmed email.
+- The first free drawing set is per person in the ledger, and a guest is one. Clearing the browser makes a new guest
+  with a new free set; drawings are made in the browser and cost nothing to serve, so this is accepted.
 - Free uses and passes are not in the Activity list: it lists balance changes only.
 - One currency (USD). Prices in other currencies are more `CREDIT_PACKS` entries with a currency each.
 - The debug image mock can be turned on by any browser (`X-Debug-Mode`, older than credits). With a live
