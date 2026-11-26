@@ -2,6 +2,8 @@ import { expandedEndPanels } from '../kitchen/explicit-panel-fit';
 import { installationCollisionSolids, installationPair } from '../kitchen/installation-collision';
 import { automaticInstallationParts } from '../kitchen/automatic-installation';
 import { cornerSweepSolids } from '../kitchen/corner-sweep';
+import { SCENE_EXTENT } from '../furniture/piece-envelope';
+import { worktopSolids } from '../kitchen/worktop-solids';
 // Centimetres: tolerate only 0.0001 mm of serialized transform noise, never a real 1 mm joint.
 const CONTACT = 1e-5;
 /** Collision rules receive scene data explicitly; no editor or renderer state.
@@ -17,12 +19,25 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
      * @param {Parameters<typeof cornerSweepSolids>[0]} context
      * @param {Parameters<typeof cornerSweepSolids>[0]} [guardTargets] */
     const solidParts = (poses, context, guardTargets = context) => [...installationCollisionSolids(poses, context), ...cornerSweepSolids(poses, guardTargets)];
-    const solids = candidate => solidParts([...bodies(candidate), ...panels(candidate).filter(p => p.ownerId !== candidate?.id), ...getObstacles()], bodies(candidate), candidate ? [candidate] : []);
-    const owned = candidate => solidParts([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...panels(candidate).filter(p => p.ownerId === candidate.id)], bodies(candidate));
+    /** The candidate with its own panels, and everything else: each side carries the worktop over its base units. */
+    const split = candidate => {
+        const all = bodies(candidate), parts = panels(candidate), body = all.find(p => p.id === candidate.id) ?? candidate;
+        const mine = [body, ...parts.filter(p => p.ownerId === candidate.id)];
+        const rest = [...all.filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id)];
+        return { all, mine, rest };
+    };
+    const solids = candidate => {
+        if (!candidate) return solidParts([...bodies(), ...panels(), ...getObstacles()], bodies(), []);
+        const { all, rest } = split(candidate);
+        return [...solidParts([...all, ...panels(candidate).filter(p => p.ownerId !== candidate.id), ...getObstacles()], all, [candidate]), ...worktopSolids(rest)];
+    };
+    const owned = candidate => {
+        const { all, mine } = split(candidate);
+        return [...solidParts(mine, all), ...worktopSolids(mine)];
+    };
     const assembly = candidate => {
-        const parts = panels(candidate);
-        return { moving: solidParts([bodies(candidate).find(p => p.id === candidate.id) ?? candidate, ...parts.filter(p => p.ownerId === candidate.id)], bodies(candidate)),
-            fixed: solidParts([...bodies(candidate).filter(p => p.id !== candidate.id), ...parts.filter(p => p.ownerId !== candidate.id), ...getObstacles()], bodies(candidate), [candidate]) };
+        const { all, mine, rest } = split(candidate);
+        return { moving: [...solidParts(mine, all), ...worktopSolids(mine)], fixed: [...solidParts([...rest, ...getObstacles()], all, [candidate]), ...worktopSolids(rest)] };
     };
     function cabinetBounds(w) {
         const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
@@ -228,7 +243,8 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         return { x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0, h: Math.max(...bs.map(b => b.h)) };
     }
     function cabinetTranslation(origin, delta) {
-        return { x: Math.max(-5000, Math.min(5000, origin.x + (delta.x || 0))), y: Math.max(0, Math.min(5000, (origin.y || 0) + (delta.y || 0))), z: Math.max(-5000, Math.min(5000, origin.z + (delta.z || 0))) };
+        const clamp = (v, lo) => Math.max(lo, Math.min(SCENE_EXTENT, v));
+        return { x: clamp(origin.x + (delta.x || 0), -SCENE_EXTENT), y: clamp((origin.y || 0) + (delta.y || 0), 0), z: clamp(origin.z + (delta.z || 0), -SCENE_EXTENT) };
     }
     return { cabinetBounds, cabinetAxes, cabinetRadius, cabinetGap, cabinetOverlaps, cabinetCollides, cabinetObstruction,
         cabinetResizePose, safeCabinetTranslation, safeCabinetRotation, sceneBounds, cabinetTranslation };

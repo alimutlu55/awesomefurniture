@@ -18,12 +18,15 @@ export function installationCollisionSolids<T extends Envelope>(poses: readonly 
   });
 }
 /** Front extensions apply to installation contact, leaving normal carcass/fixture rules intact. */
-type CollisionPart = { id?: string | number; state: { w: number; h: number; d: number; unit?: unknown }; frontStock?: boolean; installationStock?: boolean; cornerGuardFor?: string | number; cornerFront?: boolean };
+type CollisionPart = { id?: string | number; state: { w: number; h: number; d: number; unit?: unknown }; frontStock?: boolean; installationStock?: boolean;
+  cornerGuardFor?: string | number; cornerFront?: boolean; worktop?: boolean };
 export function installationPair(a: CollisionPart, b: CollisionPart) {
+  // Worktops are solid to everything but each other: two runs' worktops meet in a corner joint.
+  if (a.worktop || b.worktop) return !(a.worktop && b.worktop);
   if (a.cornerGuardFor !== undefined && b.cornerGuardFor !== undefined) return false;
   if (a.cornerGuardFor !== undefined) return b.cornerFront === true && b.id === a.cornerGuardFor;
   if (b.cornerGuardFor !== undefined) return a.cornerFront === true && a.id === b.cornerGuardFor;
   if (a.cornerFront || b.cornerFront) return false;
-  return (!a.frontStock || b.installationStock || !!installationKind(b.state as InstallationPose['state']))
-    && (!b.frontStock || a.installationStock || !!installationKind(a.state as InstallationPose['state']));
+  // A door or drawer front is as solid as the carcass behind it: nothing may stand in it.
+  return true;
 }

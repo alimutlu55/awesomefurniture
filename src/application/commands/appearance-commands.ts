@@ -4,6 +4,7 @@ import { designerPalettes } from '../../domain/materials/designer-palettes';
 import { DEFAULT_HANDLE, HANDLE_KINDS, handleKind, handleSizeFits, type HandleKind, type HandleSize } from '../../domain/wardrobe/handles';
 import type { EditorState } from '../projects/editor-scene';
 import type { EditorProfile } from '../../domain/wardrobe/editor-design';
+import { boundedProfile } from '../../domain/wardrobe/profile-limits';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'checkpoint' | 'changed'>;
@@ -25,9 +26,10 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
         effects.changed(true);
         return true;
     }
+    /** Whatever the caller sends, the profile keeps counts and heights a person can own and reach. */
     function setPreferences(profile: EditorProfile) {
         effects.checkpoint();
-        getDesign().profile = profile;
+        getDesign().profile = boundedProfile(profile, getDesign().profile);
         effects.changed();
     }
     function setFinish(finish: EditorState['fin']) {

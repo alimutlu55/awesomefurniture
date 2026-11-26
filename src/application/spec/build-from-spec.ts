@@ -1,4 +1,5 @@
-import { MIN_CABINET_DEPTH, MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
+import { MAX_CABINET_DEPTH, MAX_WARDROBE_WIDTH, MIN_CABINET_DEPTH, MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
+import { MAX_OUTER_HEIGHT } from '../../domain/wardrobe/shape/wardrobe-shape';
 import type { EditorScene } from '../projects/editor-scene';
 import { createSceneCommands } from '../commands/scene-commands';
 import { createDesignCommands } from '../commands/design-commands';
@@ -25,7 +26,7 @@ import type { ShapeTemplateId } from '../../domain/wardrobe/shape/wardrobe-shape
 export type SpecBuild = { ok: true; project: ProjectDocument; report: SceneReport } | { ok: false; problems: SpecProblem[] };
 
 /** Sizes a wardrobe can be, as the editor's own size controls allow. */
-const RANGE = { width: [MIN_WARDROBE_WIDTH, 600], height: [40, 300], depth: [MIN_CABINET_DEPTH, 90] } as const;
+const RANGE = { width: [MIN_WARDROBE_WIDTH, MAX_WARDROBE_WIDTH], height: [40, MAX_OUTER_HEIGHT], depth: [MIN_CABINET_DEPTH, MAX_CABINET_DEPTH] } as const;
 
 /**
  * Builds a design from a spec (domain/spec/design-spec.ts) with the editor's own commands, in order: the

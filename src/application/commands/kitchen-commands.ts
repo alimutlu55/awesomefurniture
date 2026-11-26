@@ -7,7 +7,7 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createKitchenCover, createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
 import { isFixture, kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { arrayPoses, besidePanel, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { MAX_ARRAY_COPIES, arrayPoses, besidePanel, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
@@ -149,7 +149,8 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
      */
     arrayKitchenUnit(count: number, side: 1 | -1, recordHistory = true): number {
       const scene = getScene(), original = active();
-      if (!original || !isKitchenUnit(original) || count < 1) return 0;
+      if (!original || !isKitchenUnit(original) || !Number.isInteger(count) || count < 1) return 0;
+      count = Math.min(count, MAX_ARRAY_COPIES);
       const copies: EditorCabinet[] = [];
       const run = runOf(original), end = side > 0 ? run[run.length - 1]! : run[0]!;
       for (const pose of arrayPoses(original, count, side, end)) {

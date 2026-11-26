@@ -167,7 +167,9 @@ export function runReach(units: readonly UnitPose[], unit: UnitPose): [number, n
 
 /** How many copies of a unit `width` wide a pull of `distance` centimetres from its side asks for. A copy
  * appears once the pull passes 40% of its width, so it follows the pointer without waiting a whole width. */
-export const arrayCount = (distance: number, width: number, max = 12) => Math.max(0, Math.min(max, Math.floor(distance / width + .6)));
+/** Most copies one pull lays down: twelve standard 60 cm units make a 7.2 m run. */
+export const MAX_ARRAY_COPIES = 12;
+export const arrayCount = (distance: number, width: number, max = MAX_ARRAY_COPIES) => Math.max(0, Math.min(max, Math.floor(distance / width + .6)));
 
 
 /** Existing stock remains between bodies when another module is placed beside it. */

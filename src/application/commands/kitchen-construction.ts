@@ -16,17 +16,21 @@ import { sharedEndPanels } from '../../domain/kitchen/shared-panels';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
 import { interiorFloorOf } from '../../domain/wardrobe/carcass';
 import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
-
-type KitchenConstructionKey = 'plinthHeight' | 'leftPanelThickness' | 'rightPanelThickness' | 'endPanelThickness'
-  | 'cornerStrip' | 'frontThickness' | 'worktopThickness' | 'ventilationWidth' | 'ventilationHeight' | 'fridgeSplit';
+import { kitchenConstructionRange, type KitchenConstructionKey } from '../../domain/kitchen/construction-limits';
 
 export function createKitchenConstructionCommands(getScene: () => EditorScene, checkpoint: () => void, report: (message: string) => void) {
   return {
     setKitchenConstruction(key: KitchenConstructionKey, value: number, recordHistory = true) {
       const notify = (message: string) => { if (recordHistory) report(message); };
       const scene = getScene(), cabinet = scene.wardrobes.find(p => p.id === scene.activeWardrobe);
-      if (!cabinet || cabinet.state.product !== 'kitchen' || !Number.isFinite(value) || value < 0 || value > (key === 'ventilationWidth' ? cabinet.state.w : key === 'fridgeSplit' ? cabinet.state.h : 30)) return false;
+      if (!cabinet || cabinet.state.product !== 'kitchen' || !Number.isFinite(value)) return false;
       const next = structuredClone(cabinet), state = next.state, requested = Math.round(value * 10) / 10;
+      const range = kitchenConstructionRange(key, { w: state.w, h: state.h, plinth: plinthOf(state), heights: kitchenUnit(state.unit).sizes.h });
+      if (requested < range.min - 1e-9 || requested > range.max + 1e-9) {
+        notify('Choose ' + range.min + '–' + range.max + ' cm here: anything else cannot be built'
+          + (key === 'plinthHeight' ? ' while the unit stays a height it is made in.' : '.'));
+        return false;
+      }
       if (key === 'plinthHeight') {
         if (!kitchenUnit(state.unit).plinth) return false;
         const delta = requested - plinthOf(state);
@@ -35,11 +39,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
         state.h += delta;
         if (state.shape) state.shape = { ...state.shape, top: state.shape.top.map(p => ({ ...p, y: p.y + delta })),
           ...(state.shape.back ? { back: state.shape.back.map(y => y + delta) } : {}) };
-      } else if (key === 'cornerStrip' && (requested < .1 || requested === state.cornerStrip)) return false;
-      else if ((key === 'frontThickness' || key === 'worktopThickness') && requested < .1) return false;
-      if ((key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness') && requested > 10) return false;
-      if (key === 'frontThickness' && requested > 5 || key === 'worktopThickness' && requested > 15) return false;
-      if (key === 'ventilationHeight' && requested > plinthOf(state)) return false;
+      } else if (key === 'cornerStrip' && requested === state.cornerStrip) return false;
       const oldTop = cabinet.state.h + worktopThickness(cabinet.state);
       const isSideKey = key === 'leftPanelThickness' || key === 'rightPanelThickness' || key === 'endPanelThickness';
       const oldSide = key === 'leftPanelThickness' ? sidePanelThickness(cabinet.state, -1)
@@ -105,7 +105,6 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
       }), () => studioObstacles(scene.studio));
       const top = resolveShape(state), spans = kitchenSpans(planned.wardrobes);
       const extra = spans.find(s => s.kind === 'worktop' && s.units.includes(next.id))?.height ?? 0;
-      const envelope = { ...next, state: { ...state, h: state.h + extra } };
       const checksHeight = key === 'plinthHeight' || key === 'worktopThickness';
       const editedSides = key === 'leftPanelThickness' ? [-1] : key === 'rightPanelThickness' ? [1] : [-1, 1];
       const sideCollides = () => {
@@ -124,7 +123,7 @@ export function createKitchenConstructionCommands(getScene: () => EditorScene, c
             && !ownerCabinets.some(owner => collision.cabinetOverlaps(owner, other)));
         });
       };
-      if ((isSideKey ? sideCollides() : collision.cabinetCollides(envelope))
+      if ((isSideKey ? sideCollides() : collision.cabinetCollides(next))
         || (checksHeight && state.h + extra > oldTop && ceilingClearance(scene.studio, { ...next, w: state.w, d: state.d }, 0)({ ...top,
           top: top.top.map(p => ({ ...p, y: p.y + extra })), ...(top.back ? { back: top.back.map(y => y + extra) } : {}) }))
         || (checksHeight && Array.from({ length: state.n }, (_, i) => i).some(i => !rules.sectionLayoutValid(i) || rules.overflow(i) > .001))) {

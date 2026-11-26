@@ -5,6 +5,7 @@ import { shelfPossession } from '../../domain/wardrobe/possessions';
 import { itemName, MODS } from '../../domain/wardrobe/catalog.js';
 import { sectionAfterEdgeResize } from './item-edge-resize';
 import { kitchenFitHeight } from '../../domain/kitchen/kitchen-fit';
+import { cargoTiersProblem } from '../../domain/kitchen/cargo-pullout';
 type Ports = {
     getDesign(): import('../projects/editor-scene').EditorState;
     effects: Pick<Required<import('./command-effects').CommandEffects>, 'changed' | 'report' | 'closeInspector' | 'requestUndo' | 'milestone' | 'checkpoint'>;
@@ -287,9 +288,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
     }
     function editItem(i: number, j: number, edit: ItemEdit) {
         const it = getDesign().secs[i]!?.[j]!;
-        if (!it) {
-            return false;
-        }
+        if (!it) return false;
         if (edit.kind) {
             const m = MODS[edit.kind], f = it.h + rules.itemFreeAbove(i, j), mn = rules.effectiveMin(edit.kind), nh = Math.min(Math.max(m.h, mn), f);
             if (nh < mn || !rules.itemFeasible(edit.kind, rules.itemGeom(i, j)!.w)) {
@@ -308,6 +307,7 @@ export function createItemCommands({ getDesign, effects, rules, callbacks, run }
             });
             return true;
         }
+        if (edit.tiers !== undefined && cargoTiersProblem(it, edit.tiers)) { effects.report(cargoTiersProblem(it, edit.tiers)!); return false; }
         let accepted = true;
         run(() => {
             const original = { ...it };

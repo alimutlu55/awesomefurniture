@@ -6,7 +6,11 @@ import { fixtureSchema } from './fixture-schema';
 import { withoutRetiredFixtures } from './retired-fixtures';
 import type { ProjectDocument } from '../../domain/project/project';
 import type { StoredProject } from '../../application/ports/project-repository';
-import { POSSESSIONS } from '../../domain/wardrobe/possessions';
+import { POSSESSIONS, possession } from '../../domain/wardrobe/possessions';
+import { PIECE_ENVELOPE, withinPieceEnvelope } from '../../domain/furniture/piece-envelope';
+import { KITCHEN_CONSTRUCTION_LIMITS, type KitchenConstructionKey } from '../../domain/kitchen/construction-limits';
+import { MAX_REACH, MIN_REACH } from '../../domain/wardrobe/max-reach';
+import { LONG_DROP, MAX_GROWTH_PERCENT } from '../../domain/wardrobe/profile-limits';
 import { ALL_PURPOSES } from '../../domain/wardrobe/purposes';
 import { BACK_FIXINGS, JOINT_SYSTEMS } from '../../domain/make/make-construction';
 import type { Needs } from '../../domain/wardrobe/possessions';
@@ -22,6 +26,7 @@ import { cleanStudio } from '../../domain/studio/studio-clean';
 import type { Studio } from '../../domain/studio/studio';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
 import { KITCHEN_UNIT_KEYS, installationKind } from '../../domain/kitchen/kitchen-units';
+import { CARGO_TIERS } from '../../domain/kitchen/cargo-pullout';
 import { SHAPE_TEMPLATE_IDS, maxHeight, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 
 const id = z.string().trim().min(1);
@@ -32,16 +37,27 @@ const count = nonnegative.int();
 // Fitting kinds, purposes and needs come from the registries: a new entry is accepted here with no edit.
 const kindEnum = z.enum(FITTING_KINDS as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in ItemKind]: K }>;
 const purposeEnum = z.enum(ALL_PURPOSES as unknown as [string, ...string[]]) as unknown as z.ZodEnum<{ [K in StoragePurpose]: K }>;
-const needsSchema = z.strictObject(Object.fromEntries(POSSESSIONS.map(p => [p.key, p.engine === 'bespoke' ? count : count.optional()]))) as unknown as z.ZodType<Needs>;
+// No one owns more of a thing than its possession allows (the same limit as the inventory fields).
+const needCount = (max: number, required: boolean) => required ? count.max(max) : count.max(max).optional();
+const needsSchema = z.strictObject(Object.fromEntries(POSSESSIONS.map(p => [p.key, needCount(p.need.max, p.engine === 'bespoke')]))) as unknown as z.ZodType<Needs>;
+/** A kitchen construction setting: never beyond what can be built. Older designs saved thinner fronts or worktops than
+ * any real board; they open at the thinnest real one. A corner strip of 0 is "not set" (the usual 4 cm), and stays so. */
+const construction = (key: KitchenConstructionKey) => {
+  const { min, max } = KITCHEN_CONSTRUCTION_LIMITS[key];
+  return finite.min(0).max(max).transform(v => key === 'cornerStrip' && v === 0 ? v : Math.max(min, v)).optional();
+};
+/** One length inside a piece: no longer than the largest piece. */
+const pieceLength = (axis: 'w' | 'h') => finite.max(PIECE_ENVELOPE[axis][1]);
+const reach = finite.min(MIN_REACH).max(MAX_REACH);
 const name = z.string().trim().min(1).max(120);
 const editorItem = z.strictObject({
   id:id.optional(),
   k: kindEnum,
   f: z.enum(['Oak','White','Walnut','Graphite','Sage']).nullable().optional(),
-  h: nonnegative, purpose: purposeEnum.optional(),
-  w: positive.optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
+  h: pieceLength('h').nonnegative(), purpose: purposeEnum.optional(),
+  w: pieceLength('w').positive().optional(), x: nonnegative.optional(), y: nonnegative.optional(), ax: z.enum(['l','c','r']).optional(),
   front: z.boolean().optional(), boxes: count.optional(), hinge: z.enum(['left', 'right']).optional(),
-  tiers: count.optional(), basketStyle: z.enum(['wire', 'solid']).optional(), cargoMount: z.enum(['left', 'right', 'bottom']).optional(),
+  tiers: count.min(CARGO_TIERS.min).max(CARGO_TIERS.max).optional(), basketStyle: z.enum(['wire', 'solid']).optional(), cargoMount: z.enum(['left', 'right', 'bottom']).optional(),
 });
 const area = z.strictObject({x0:nonnegative,x1:positive,y0:nonnegative,y1:positive});
 const editorDivider = z.strictObject({
@@ -54,7 +70,7 @@ const editorDivider = z.strictObject({
   if(!valid)ctx.addIssue({code:'custom',message:'Invalid divider extent'});
 });
 const editorLayout = z.strictObject({
-  cabinetId:count.positive(), weights:z.array(positive).length(6), reachStd:positive.optional(), engaged:z.boolean().optional(), reachLine:z.boolean().optional(),
+  cabinetId:count.positive(), weights:z.array(positive).length(6), reachStd:reach.optional(), engaged:z.boolean().optional(), reachLine:z.boolean().optional(),
   doorHang:z.enum(['left','right']).optional(),
   proposal:z.strictObject({title:z.string(),summary:z.string()}).nullable(),
 });
@@ -68,13 +84,13 @@ const item = z.strictObject({
   id,
   kind: kindEnum,
   purpose: purposeEnum,
-  width: positive,
-  height: nonnegative,
+  width: pieceLength('w').positive(),
+  height: pieceLength('h').nonnegative(),
   x: nonnegative,
   y: nonnegative,
   frontFacing: z.boolean(),
   boxes: count.nullable(),
-  tiers: count.nullable().optional(),
+  tiers: count.min(CARGO_TIERS.min).max(CARGO_TIERS.max).nullable().optional(),
   basketStyle: z.enum(['wire', 'solid']).nullable().optional(),
   cargoMount: z.enum(['left', 'right', 'bottom']).nullable().optional(),
 });
@@ -84,7 +100,7 @@ const divider = z.strictObject({
   x: nonnegative, y: nonnegative, length: positive, thickness: positive,
 });
 const section = z.strictObject({
-  id, width: positive, items: z.array(item), dividers: z.array(divider),
+  id, width: pieceLength('w').positive(), items: z.array(item), dividers: z.array(divider),
 });
 const wardrobe = z.strictObject({
   editorLayout: editorLayout.optional(),
@@ -94,13 +110,14 @@ const wardrobe = z.strictObject({
   rotation: finite,
   finish: z.enum(['Oak', 'White', 'Walnut', 'Graphite', 'Sage']),
   construction: z.strictObject({ joints: z.enum(JOINT_SYSTEMS), back: z.enum(BACK_FIXINGS) }).optional(),
-  materials: materialsSchema.optional(), plinthHeight: finite.min(0).max(30).optional(), cornerStrip: finite.min(0).max(30).optional(), fridgeSplit: finite.min(0).max(270).optional(),
-  leftPanelThickness: finite.min(0).max(10).optional(),
-  rightPanelThickness: finite.min(0).max(10).optional(),
-  endPanelThickness: finite.min(0).max(10).optional(),
+  materials: materialsSchema.optional(), plinthHeight: construction('plinthHeight'), cornerStrip: construction('cornerStrip'),
+  fridgeSplit: construction('fridgeSplit'),
+  leftPanelThickness: construction('leftPanelThickness'),
+  rightPanelThickness: construction('rightPanelThickness'),
+  endPanelThickness: construction('endPanelThickness'),
   endPanelSides: z.array(z.union([z.literal(-1), z.literal(1)])).max(2).optional(),
-  ventilationWidth: finite.min(0).max(150).optional(), ventilationHeight: finite.min(0).max(30).optional(),
-  frontThickness: finite.min(.1).max(5).optional(), worktopThickness: finite.min(.1).max(15).optional(),
+  ventilationWidth: construction('ventilationWidth'), ventilationHeight: construction('ventilationHeight'),
+  frontThickness: construction('frontThickness'), worktopThickness: construction('worktopThickness'),
   doors: z.enum(['none', 'solid', 'glass']),
   fronts: frontsSchema.optional(),
   sections: z.array(section),
@@ -113,15 +130,19 @@ const wardrobe = z.strictObject({
     boxWidth:positive.max(100).optional(), boxHeight:positive.max(60).optional(), boxDepth:positive.max(100).optional(),
     composition:z.enum(['balanced','storage']).optional(),
     needs: needsSchema,
-    reach: positive, longDrop: positive,
+    reach, longDrop: finite.min(LONG_DROP.min).max(LONG_DROP.max),
     upper: z.enum(['none', 'auto', 'more', 'fill']),
     drawers: z.enum(['none', 'auto', 'more']),
     allowLift: z.boolean(), density: z.enum(['compact', 'comfort', 'spacious']),
-    growth: nonnegative, jackets: count, coats: count, accessible: z.boolean(), budget: nonnegative,
+    growth: nonnegative.max(MAX_GROWTH_PERCENT), jackets: count.max(possession('short')!.need.max), coats: count.max(possession('long')!.need.max),
+    accessible: z.boolean(), budget: nonnegative,
   }),
 }).superRefine((cabinet, context) => {
   const fail = (message: string) => context.addIssue({code:'custom', message});
   const close = (a: number, b: number) => Math.abs(a-b)<.001;
+  const { width: w, height: h, depth: d } = cabinet.dimensions;
+  if (!withinPieceEnvelope({ w, h, d }, cabinet.position)) fail(`A piece must be ${PIECE_ENVELOPE.w.join('–')} cm wide, `
+    + `${PIECE_ENVELOPE.h.join('–')} cm tall and ${PIECE_ENVELOPE.d.join('–')} cm deep, and stand within 50 m of the room.`);
   if ((cabinet.product === 'kitchen') !== (cabinet.unit !== undefined)) fail('A kitchen cabinet names its unit, and only a kitchen cabinet has one.');
   if (cabinet.product === 'kitchen' && cabinet.piecePreset) fail('A kitchen cabinet uses its unit for its fitting context.');
   if (cabinet.materials?.worktopDecorId && cabinet.product !== 'kitchen') fail('Only kitchen furniture has a worktop decor.');

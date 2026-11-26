@@ -96,13 +96,30 @@ export interface CargoPullout {
   readonly brackets: readonly CargoBracket[];
 }
 
-/** Standard tier count: base cargo has 2 tiers (or 3 for spice units); tall cargo has 4 to 6 tiers. */
+/** Baskets a cargo frame can carry: fewer than 2 is a shelf, more than 6 leaves no room to lift a bottle out. */
+export const CARGO_TIERS = Object.freeze({ min: 2, max: 6 });
+/** Pull-outs this tall (cm) are larder (tall) frames, with 3 to 6 baskets; lower ones are base frames with 2 or 3. */
+export const TALL_CARGO_HEIGHT = 100;
+
+/** The tier counts a cargo frame this high (cm) is made with. */
+export function cargoTierOptions(hh: number): readonly number[] {
+  const [lo, hi] = hh >= TALL_CARGO_HEIGHT ? [3, CARGO_TIERS.max] : [CARGO_TIERS.min, 3];
+  return Array.from({ length: hi - lo + 1 }, (_, k) => lo + k);
+}
+
+/** Why a fitting cannot take this many baskets, or null: only a cargo frame has them, and only the counts made for
+ * its height (cm). */
+export function cargoTiersProblem(item: { k: string; h: number }, tiers: number): string | null {
+  if (item.k !== 'cargo') return 'Only a cargo pull-out has baskets.';
+  return cargoTierOptions(item.h).includes(tiers) ? null : 'A pull-out this high takes ' + cargoTierOptions(item.h).join(', ') + ' baskets.';
+}
+
+/** Standard tier count: base cargo has 2 tiers (or 3 for spice units); tall cargo has 4 to 6 tiers. A requested count
+ * the frame is not made with (6 baskets in a base unit) is not built: the standard count is. */
 export function cargoTierCount(hh: number, requested?: number): number {
-  if (requested !== undefined && Number.isFinite(requested) && requested >= 2 && requested <= 6) {
-    return Math.round(requested);
-  }
-  if (hh < 100) return 2;
-  return Math.max(3, Math.min(6, Math.round(hh / 38)));
+  if (requested !== undefined && cargoTierOptions(hh).includes(requested)) return requested;
+  if (hh < TALL_CARGO_HEIGHT) return CARGO_TIERS.min;
+  return Math.max(3, Math.min(CARGO_TIERS.max, Math.round(hh / 38)));
 }
 
 /** Basket width: 100mm (10.4cm Movix 150) for 150mm units, 150mm (15cm Movix 200) for 200mm units, or sw - 4cm for wider units. */
@@ -138,7 +155,7 @@ export function cargoPulloutGeometry(
   d: number,
   options: CargoPulloutOptions = {}
 ): CargoPullout {
-  const isTall = options.isTall ?? (hh >= 100);
+  const isTall = options.isTall ?? (hh >= TALL_CARGO_HEIGHT);
   const tiers = cargoTierCount(hh, options.tiers);
   const basketStyle = options.basketStyle ?? 'wire';
   const mount = options.mount ?? (sw <= 20 ? 'left' : 'bottom');

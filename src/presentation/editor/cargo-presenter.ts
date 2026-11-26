@@ -1,4 +1,5 @@
 import type { EditorItem } from '../../domain/wardrobe/editor-design';
+import { cargoTierOptions, TALL_CARGO_HEIGHT } from '../../domain/kitchen/cargo-pullout';
 
 /** Updates the cargo customization controls in the item settings popover. */
 export function updateCargoUI(popover: HTMLElement, item: EditorItem): void {
@@ -8,9 +9,10 @@ export function updateCargoUI(popover: HTMLElement, item: EditorItem): void {
   icargo.hidden = !isCargo;
   if (!isCargo) return;
 
-  const isTall = item.h >= 100;
-  const activeTiers = item.tiers ?? (isTall ? (item.h >= 190 ? 5 : 4) : 2);
-  const tierOptions = isTall ? [3, 4, 5, 6] : [2, 3];
+  const isTall = item.h >= TALL_CARGO_HEIGHT;
+  // Only the counts a frame this high is made with; a count saved before the pull-out was resized is not offered.
+  const tierOptions = cargoTierOptions(item.h);
+  const activeTiers = item.tiers !== undefined && tierOptions.includes(item.tiers) ? item.tiers : (isTall ? (item.h >= 190 ? 5 : 4) : 2);
   const tiersContainer = icargo.querySelector('#icargo-tiers-btns');
   if (tiersContainer) {
     tiersContainer.innerHTML = tierOptions.map(t =>

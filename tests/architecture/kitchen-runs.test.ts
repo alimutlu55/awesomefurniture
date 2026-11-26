@@ -108,10 +108,13 @@ test('copies stop at a wall of the room and at other furniture', () => {
   assert.ok(first, 'a lone unit stands against a free wall');
   const count = commands.arrayKitchenUnit(40, 1) + commands.arrayKitchenUnit(40, -1);
   assert.ok(count > 0 && count < 40, 'stops at the ends of the wall');
-  const blocked = { ...unit(9, 'base', 0), x: 1000 };
+  const blocked = { ...unit(9, 'base', 0), x: 600 };
   const free = scene(unit(1, 'base', 0), blocked);
   const second = createSceneCommands(() => free).arrayKitchenUnit(40, 1);
-  assert.equal(second, 15, 'stops before the unit 1000 cm away');
+  assert.equal(second, 9, 'stops before the unit 600 cm away');
+  const open = scene(unit(1, 'base', 0));
+  assert.equal(createSceneCommands(() => open).arrayKitchenUnit(40, 1), 12, 'one pull lays at most twelve units, as the gesture does');
+  assert.equal(createSceneCommands(() => open).arrayKitchenUnit(2.5, 1), 0, 'a count of units is a whole number');
 });
 
 test('the Storage panel counts the whole kitchen along the wall and says what it still lacks', async () => {

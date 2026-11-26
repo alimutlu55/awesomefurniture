@@ -9,6 +9,7 @@ import { sizeControlMarkup, bindSizeNumber, bindSizeSlider } from './size-contro
 import { syncResizeFields } from './resize-fields.js';
 import type { BindCabinetDimensionsPorts } from './bindings/cabinet.ports';
 import { lengthWithUnit } from './length-unit-state';
+import { KITCHEN_CONSTRUCTION_LIMITS, kitchenConstructionRange } from '../../domain/kitchen/construction-limits';
 
 const mounted = new WeakMap<BindCabinetDimensionsPorts['dom'], { root: HTMLElement; model: BindCabinetDimensionsPorts['model'] }>();
 
@@ -35,11 +36,8 @@ export function bindKitchenConstruction({ dom, model, sceneCommands, inspector, 
     ['ventilationWidth', 'Vent grille width'], ['ventilationHeight', 'Vent grille height'],
     ['fridgeSplit', 'Lower fridge door height'],
   ] as const) {
-    const allowZero = key === 'plinthHeight' || key === 'leftPanelThickness' || key === 'rightPanelThickness'
-      || key === 'ventilationWidth' || key === 'ventilationHeight' || key === 'fridgeSplit';
-    root.insertAdjacentHTML('beforeend', sizeControlMarkup({ label, min: allowZero ? 0 : .1,
-      max: key === 'leftPanelThickness' || key === 'rightPanelThickness' ? 10 : key === 'frontThickness' ? 5 : key === 'worktopThickness' ? 15 : key === 'ventilationWidth' ? 150 : key === 'fridgeSplit' ? 270 : 30,
-      inputAttributes: { 'data-construction': key, 'aria-label': label } }));
+    const { min, max } = KITCHEN_CONSTRUCTION_LIMITS[key];
+    root.insertAdjacentHTML('beforeend', sizeControlMarkup({ label, min, max, inputAttributes: { 'data-construction': key, 'aria-label': label } }));
     const input = root.querySelector<HTMLInputElement>('[data-construction="' + key + '"]')!, row = input.closest<HTMLElement>('.size-control')!;
     const refresh = () => inspector.update(true);
     bindSizeNumber({ input, lifetime, commit: value => { sceneCommands.setKitchenConstruction(key, value); refresh(); }, finished: refresh });
@@ -74,7 +72,13 @@ export function syncKitchenConstruction(dom: BindCabinetDimensionsPorts['dom'], 
     input.closest<HTMLElement>('.size-control')!.hidden = key === 'plinthHeight' ? !kitchenUnit(d.unit).plinth
       : key === 'cornerStrip' || key === 'leftPanelThickness' || key === 'rightPanelThickness' ? !!installationKind(d) : key === 'worktopThickness' ? !kitchenUnit(d.unit).worktop
         : key === 'ventilationWidth' || key === 'ventilationHeight' || key === 'fridgeSplit' ? !d.secs.flat().some(i => i.k === 'fridge') : key === 'frontThickness' ? installationKind(d) === 'end-panel' : false;
-    const value = currentConstructionValue(d, key);
+    const value = currentConstructionValue(d, key), range = kitchenConstructionRange(key,
+      { w: d.w, h: d.h, plinth: plinthOf(d), heights: kitchenUnit(d.unit).sizes.h });
+    // The fields offer only what this unit can be built with (a grille no wider than the unit).
+    for (const field of [input, input.closest<HTMLElement>('.size-control')!.querySelector<HTMLInputElement>('input[type="range"]')]) {
+      if (!field) continue;
+      field.min = String(range.min); field.max = String(range.max);
+    }
     if (dom.document.activeElement !== input) input.value = String(value);
   }
   syncResizeFields(root);
